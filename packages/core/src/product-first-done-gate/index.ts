@@ -21,6 +21,16 @@ export {
   resolveProductFirstCheckMode,
 } from "./check-mode.js";
 export {
+  EMPTY_AC_CAUSE,
+  EMPTY_AC_OUTCOME,
+  EMPTY_AC_REMEDY,
+  formatSoftEmptyMessage,
+  isEmptyAcResolution,
+  isSoftEmptyAcText,
+  projectHasSuiteFloor,
+  type VerifyAcResolution,
+} from "./empty-resolution.js";
+export {
   type EvaluateVerifyAcOptions,
   evaluateVerifyAcFromPath,
   evaluateVerifyAcFromPlan,

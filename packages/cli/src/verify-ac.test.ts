@@ -50,8 +50,8 @@ describe("verify:ac run (#3284)", () => {
     });
     writeFileSync(join(active, "a.xbrief.json"), body, "utf8");
     writeFileSync(join(active, "b.xbrief.json"), body, "utf8");
-    // Check composition runs every active scope (both empty floor → pass).
-    expect(run(["--project-root", root, "--soft-missing-xbrief", "--quiet"])).toBe(0);
+    // Consumer temp root has no suite floor: empty resolution is not green (#3334).
+    expect(run(["--project-root", root, "--soft-missing-xbrief", "--quiet"])).toBe(1);
     // Standalone without soft-missing still requires an explicit path.
     expect(run(["--project-root", root])).toBe(1);
   });
@@ -71,7 +71,7 @@ describe("verify:ac run (#3284)", () => {
     writeFileSync(join(xa, "x.xbrief.json"), body, "utf8");
     writeFileSync(join(va, "v.vbrief.json"), body, "utf8");
     // Both roots must be evaluated under check composition (not stop at xbrief only).
-    expect(run(["--project-root", root, "--soft-missing-xbrief", "--quiet"])).toBe(0);
+    expect(run(["--project-root", root, "--soft-missing-xbrief", "--quiet"])).toBe(1);
   });
 
   it("exits 2 when no xbrief and soft-missing off", () => {
@@ -99,7 +99,7 @@ describe("verify:ac run (#3284)", () => {
       }),
       "utf8",
     );
-    expect(run(["--project-root", root, "--quiet"])).toBe(0);
+    expect(run(["--project-root", root, "--quiet"])).toBe(1);
   });
 
   it("parseArgs supports equals forms and missing values", () => {

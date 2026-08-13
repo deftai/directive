@@ -137,6 +137,18 @@ describe("RunSummaryEmitter (#3282)", () => {
     expect(lines[1]?.event).toBe("check_invocation");
     expect(lines[1]?.seq).toBe(2);
     expect(lines[1]?.framework_version).toBe("1.2.3");
+    const r3 = emitter.emitAcceptance({
+      resolved_command_count: 0,
+      outcome: "empty-pass",
+      source_rung: "project_floor",
+    });
+    expect(r3.emitted).toBe(true);
+    const after = readFileSync(out, "utf8")
+      .trim()
+      .split("\n")
+      .map((l) => JSON.parse(l) as { event: string; payload: { outcome?: string } });
+    expect(after[2]?.event).toBe("acceptance");
+    expect(after[2]?.payload.outcome).toBe("empty-pass");
   });
 
   it("prefixes stdout with DEFT-TLM: when path is -", () => {

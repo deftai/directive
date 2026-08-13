@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -412,6 +412,107 @@ tasks:
     expect(started[started.length - 1]).toBe("ts:check-lane");
     const logs = errWrite.mock.calls.map((c) => String(c[0])).join("");
     expect(logs).toMatch(/starting suite gate ts:check-lane after fast preflight \(#3188\)/);
+    errWrite.mockRestore();
+  });
+});
+
+describe("dispatchCachedTaskCheck empty verify:ac (#3334)", () => {
+  it("records verify:ac soft_empty as skipped/degraded, not a green run", () => {
+    const framework = mkdtempSync(join(tmpdir(), "deft-3334-fw-"));
+    tempDirs.push(framework);
+    mkdirSync(join(framework, "tasks"), { recursive: true });
+    writeFileSync(
+      join(framework, "Taskfile.yml"),
+      `version: '3'
+includes:
+  verify:
+    taskfile: ./tasks/verify.yml
+  toolchain:
+    taskfile: ./tasks/toolchain.yml
+  vbrief:
+    taskfile: ./tasks/vbrief.yml
+tasks:
+  doctor:
+    cmds: [echo doctor]
+  verify-strategy-output:
+    cmds: [echo strategy]
+`,
+      "utf8",
+    );
+    writeFileSync(
+      join(framework, "tasks", "verify.yml"),
+      `version: '3'
+tasks:
+  ac:
+    cmds: [echo ok]
+  branch:
+    cmds: [echo ok]
+  cache-fresh:
+    cmds: [echo ok]
+  wip-cap:
+    cmds: [echo ok]
+  orphan-active:
+    cmds: [echo ok]
+  test-boundary:
+    cmds: [echo ok]
+  scope-provenance:
+    cmds: [echo ok]
+  consumer-check-contract:
+    cmds: [echo ok]
+`,
+      "utf8",
+    );
+    writeFileSync(
+      join(framework, "tasks", "toolchain.yml"),
+      "version: '3'\ntasks:\n  check-consumer:\n    cmds: [echo ok]\n",
+      "utf8",
+    );
+    writeFileSync(
+      join(framework, "tasks", "vbrief.yml"),
+      "version: '3'\ntasks:\n  validate:\n    cmds: [echo ok]\n",
+      "utf8",
+    );
+
+    const summary = join(framework, "summary.jsonl");
+    const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const project = mkdtempSync(join(tmpdir(), "consumer-3334-"));
+    tempDirs.push(project);
+    const code = dispatchCachedTaskCheck(framework, project, {
+      noCache: true,
+      preflight: null,
+      env: { DEFT_RUN_SUMMARY_PATH: summary },
+      gateSpawnFn: (gateId) => {
+        if (gateId === "verify:ac") {
+          return {
+            exitCode: 1,
+            stdout: "",
+            stderr:
+              "verify:ac soft_empty (#3334) [rung=project_floor]: no acceptance stamped — floor is empty in this project.\n",
+          };
+        }
+        return { exitCode: 0, stdout: "", stderr: "" };
+      },
+    });
+
+    expect(code).toBe(1);
+    const logs = errWrite.mock.calls.map((c) => String(c[0])).join("");
+    expect(logs).toMatch(/soft_empty/);
+    expect(logs).toMatch(/degraded \(#3334\)/);
+    const text = readFileSync(summary, "utf8");
+    const line = JSON.parse(text.trim().split(/\r?\n/)[0] ?? "{}") as {
+      event: string;
+      payload: {
+        exit_code: number;
+        degraded: boolean;
+        gates: readonly { id: string; status: string; cause?: string }[];
+      };
+    };
+    expect(line.event).toBe("check_invocation");
+    expect(line.payload.exit_code).toBe(1);
+    expect(line.payload.degraded).toBe(true);
+    const ac = line.payload.gates.find((g) => g.id === "verify:ac");
+    expect(ac?.status).toBe("skipped");
+    expect(ac?.cause).toMatch(/no acceptance stamped/);
     errWrite.mockRestore();
   });
 });

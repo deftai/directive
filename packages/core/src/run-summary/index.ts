@@ -16,6 +16,8 @@ export {
   readToolTurnDenominator,
 } from "./share.js";
 export {
+  type AcceptanceRunSummaryOutcome,
+  type AcceptanceRunSummaryPayload,
   type CheckGateOutcome,
   type CheckInvocationRunSummaryPayload,
   DEFAULT_RUN_SUMMARY_BASENAME,

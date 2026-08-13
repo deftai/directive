@@ -10,8 +10,11 @@ import type { TaskRunResult } from "../cache/task-cache/types.js";
 import { readCorePackageVersion } from "../engine-version.js";
 import {
   applyProductFirstGateMode,
+  EMPTY_AC_CAUSE,
+  EMPTY_AC_REMEDY,
   isHygieneGate,
   isProductAcGate,
+  isSoftEmptyAcText,
   resolveProductFirstCheckMode,
 } from "../product-first-done-gate/index.js";
 import { RunSummaryEmitter } from "../run-summary/emit.js";
@@ -308,6 +311,39 @@ export function dispatchCachedTaskCheck(
     // Fail-fast: do not start later gates (including suite) after a failure —
     // unless this is a hygiene gate under pressure mode (advisory only, #3284).
     if (result.exitCode !== 0) {
+      const combinedOut = `${lastSpawn.stdout}\n${lastSpawn.stderr}`;
+      if (isProductAcGate(gateId) && isSoftEmptyAcText(combinedOut)) {
+        process.stderr.write(
+          `check: verify:ac empty-resolution is not a green run (soft_empty); ` +
+            `degraded (#3334) — cause: ${EMPTY_AC_CAUSE}; remedy: ${EMPTY_AC_REMEDY}\n`,
+        );
+        gateOutcomes.push({
+          id: gateId,
+          status: "skipped",
+          exit_code: result.exitCode,
+          cause: EMPTY_AC_CAUSE,
+          remedy: EMPTY_AC_REMEDY,
+          from_cache: result.fromCache,
+        });
+        let sawCurrent = false;
+        for (const later of gates) {
+          const id = checkGateId(later);
+          if (!sawCurrent) {
+            if (id === gateId) sawCurrent = true;
+            continue;
+          }
+          if (!gateOutcomes.some((o) => o.id === id)) {
+            gateOutcomes.push({
+              id,
+              status: "skipped",
+              cause: `skipped after ${gateId} soft_empty`,
+              remedy: EMPTY_AC_REMEDY,
+            });
+          }
+        }
+        emitSummary(1, true);
+        return 1;
+      }
       if (modeResolution.hygieneAdvisory && isHygieneGate(gateId) && !isProductAcGate(gateId)) {
         process.stderr.write(
           `check: hygiene gate ${gateId} failed (exit ${result.exitCode}) but is ADVISORY ` +

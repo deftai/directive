@@ -9,6 +9,7 @@ import { hasArtifactSuffix } from "../layout/resolve.js";
 import { evaluateCompletedPlanConsistency } from "../lifecycle/completed-consistency.js";
 import { evaluateLiteralAcceptanceFromPlan } from "../literal-acceptance/index.js";
 import type { GitRunner } from "../session/git.js";
+import { evaluateAcceptanceActivateGate } from "./acceptance-activate-gate.js";
 import {
   type CriterionAcceptanceReport,
   evaluateAcceptanceEvidenceGate,
@@ -216,6 +217,10 @@ export function runTransition(
     const effortGate = evaluateEffortActivateGate(planObj);
     if (!effortGate.ok) {
       return { ok: false, message: effortGate.message };
+    }
+    const acceptanceGate = evaluateAcceptanceActivateGate(planObj);
+    if (!acceptanceGate.ok) {
+      return { ok: false, message: acceptanceGate.message };
     }
   }
 

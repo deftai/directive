@@ -166,8 +166,17 @@ describe("verify:ac evaluation (#3284)", () => {
       projectRoot: dir,
       quiet: false,
     });
-    expect(result.ok).toBe(true);
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe(1);
+    expect(result.resolution).toBe("soft_empty");
     expect(result.sourceRung).toBe("project_floor");
+    const suite = evaluateVerifyAcFromPath(path, {
+      projectRoot: dir,
+      quiet: false,
+      hasSuiteFloor: true,
+    });
+    expect(suite.ok).toBe(true);
+    expect(suite.resolution).toBe("empty-pass");
   });
 
   it("schema error on contradictory acceptance is config exit 2", () => {

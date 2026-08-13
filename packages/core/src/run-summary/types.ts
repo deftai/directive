@@ -30,6 +30,7 @@ export const RUN_SUMMARY_EVENT_KINDS = [
   "check_invocation",
   "tool_turn_denominator",
   "verification",
+  "acceptance",
 ] as const;
 
 export type RunSummaryEventKind = (typeof RUN_SUMMARY_EVENT_KINDS)[number];
@@ -104,6 +105,15 @@ export interface ToolTurnDenominatorRunSummaryPayload {
 /** Product-oracle attempt (#3322). Same emitter as #3319 / #3320. */
 export type VerificationOutcome = "pass" | "fail";
 
+/** verify:ac resolution telemetry (#3334). Distinct from verification pass/fail. */
+export type AcceptanceRunSummaryOutcome = "verified-pass" | "empty-pass" | "soft_empty" | "fail";
+
+export interface AcceptanceRunSummaryPayload {
+  readonly resolved_command_count: number;
+  readonly outcome: AcceptanceRunSummaryOutcome;
+  readonly source_rung?: string;
+}
+
 export interface VerificationRunSummaryPayload {
   readonly check_id: string;
   readonly method_fingerprint: string;
@@ -122,7 +132,8 @@ export type RunSummaryPayload =
   | DialEscalationEvaluationRunSummaryPayload
   | CheckInvocationRunSummaryPayload
   | ToolTurnDenominatorRunSummaryPayload
-  | VerificationRunSummaryPayload;
+  | VerificationRunSummaryPayload
+  | AcceptanceRunSummaryPayload;
 
 export type RunSummaryLine = RunSummaryBaseFields & {
   readonly payload: RunSummaryPayload;

@@ -13,6 +13,7 @@ import { containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { type ResolveRunSummaryDestinationOptions, resolveRunSummaryDestination } from "./path.js";
 import {
+  type AcceptanceRunSummaryPayload,
   type CheckInvocationRunSummaryPayload,
   type DialEscalationEvaluationRunSummaryPayload,
   type DialTransitionRunSummaryPayload,
@@ -232,6 +233,10 @@ export class RunSummaryEmitter {
 
   emitVerification(payload: VerificationRunSummaryPayload): EmitRunSummaryResult {
     return this.emit("verification", payload);
+  }
+
+  emitAcceptance(payload: AcceptanceRunSummaryPayload): EmitRunSummaryResult {
+    return this.emit("acceptance", payload);
   }
 
   /** Emit the harness-supplied denominator when DEFT_TOTAL_TOOL_TURNS is set. */

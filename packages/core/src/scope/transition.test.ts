@@ -124,6 +124,44 @@ describe("runTransition", () => {
     expect(existsSync(join(root, "xbrief", "active", "sized.xbrief.json"))).toBe(true);
   });
 
+  it("refuses activate when narratives are acceptance-shaped without plan.acceptance (#3334)", () => {
+    root = makeRepo();
+    const path = join(root, "xbrief", "pending", "prose-ac.xbrief.json");
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "T",
+        status: "pending",
+        narratives: { Test: "the form rejects empty passwords" },
+        items: [],
+      },
+    });
+    const result = runTransition("activate", path);
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/plan\.acceptance is absent \(#3334\)/);
+    expect(result.message).toMatch(/Stamp plan\.acceptance/);
+    expect(existsSync(path)).toBe(true);
+    expect(existsSync(join(root, "xbrief", "active", "prose-ac.xbrief.json"))).toBe(false);
+  });
+
+  it("activates when acceptance-shaped narratives have plan.acceptance stamped (#3334)", () => {
+    root = makeRepo();
+    const path = join(root, "xbrief", "pending", "stamped.xbrief.json");
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "T",
+        status: "pending",
+        narratives: { AcceptanceCriteria: "login rejects empty passwords" },
+        acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
+        items: [],
+      },
+    });
+    const result = runTransition("activate", path);
+    expect(result.ok).toBe(true);
+    expect(existsSync(join(root, "xbrief", "active", "stamped.xbrief.json"))).toBe(true);
+  });
+
   it("completes active to completed with stamp", () => {
     root = makeRepo();
     const file = writeVbrief(root, "active", "running");

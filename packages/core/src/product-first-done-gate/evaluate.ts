@@ -3,8 +3,9 @@
  *
  * Runs plan.acceptance.commands (or #3267 literal ledger) via the shared
  * literal-acceptance runner. Records source_rung in the result message.
- * Project floor with empty commands is a soft pass (suite gates own the floor
- * inside full `task check`); standalone done paths still surface the rung.
+ * Project floor with empty commands is a soft pass only when a suite floor
+ * exists (suite gates own the floor inside full `task check`). With no suite
+ * floor, empty resolution is soft_empty — not a green run (#3334).
  */
 
 import { existsSync, readFileSync } from "node:fs";
@@ -16,6 +17,11 @@ import {
   type LiteralAcceptanceRunner,
   runLiteralAcceptanceCommands,
 } from "../literal-acceptance/index.js";
+import {
+  type AcceptanceRunSummaryOutcome,
+  ENV_RUN_SUMMARY_PATH,
+  RunSummaryEmitter,
+} from "../run-summary/index.js";
 import { maybeBankOnAcPass } from "../session/ac-pass-banking.js";
 import {
   emitVerifyAcAttempts,
@@ -23,12 +29,20 @@ import {
   mergeOracleVerdict,
 } from "../verify-ac/evaluate.js";
 import { readPlanAcceptance, validatePlanAcceptance } from "./acceptance.js";
+import {
+  formatSoftEmptyMessage,
+  isEmptyAcResolution,
+  projectHasSuiteFloor,
+  type VerifyAcResolution,
+} from "./empty-resolution.js";
 import type { AcSourceRung, PlanAcceptance } from "./types.js";
 
 export interface VerifyAcResult extends LiteralAcceptanceGateResult {
   readonly sourceRung: AcSourceRung;
   readonly noneStated: boolean;
   readonly acceptance: PlanAcceptance;
+  readonly resolution: VerifyAcResolution;
+  readonly resolvedCommandCount: number;
 }
 
 export interface EvaluateVerifyAcOptions extends EvaluateLiteralAcceptanceOptions {
@@ -61,8 +75,13 @@ export interface EvaluateVerifyAcOptions extends EvaluateLiteralAcceptanceOption
   readonly runSummaryText?: string | null;
   /** When false, skip #3322 oracle integrity. Default true. */
   readonly applyOracleIntegrity?: boolean;
-  /** Env seam for run-summary dest resolution (#3322). */
+  /** Env seam for run-summary dest resolution (#3322 / #3334). */
   readonly env?: NodeJS.ProcessEnv;
+  /**
+   * Inject suite-floor detection (tests). Default: framework source has a
+   * suite floor; consumer projects do not (#3334).
+   */
+  readonly hasSuiteFloor?: boolean;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -93,6 +112,8 @@ export function evaluateVerifyAcFromPlan(
         sourceRung: acceptance.source_rung,
         noneStated: acceptance.none_stated,
         acceptance,
+        resolution: "config",
+        resolvedCommandCount: 0,
       },
       options,
     );
@@ -164,6 +185,14 @@ export function evaluateVerifyAcFromPlan(
           sourceRung: acceptance.source_rung,
           noneStated: acceptance.none_stated,
           acceptance,
+          resolution: classifyResolution({
+            ok: true,
+            code: 0,
+            runsLength: 0,
+            commandCount: base.commands.length,
+            rejectedCount: base.rejected?.length ?? 0,
+          }),
+          resolvedCommandCount: base.commands.length,
         },
         options,
       );
@@ -173,26 +202,135 @@ export function evaluateVerifyAcFromPlan(
   return applyOracle(annotate(base, acceptance, options.quiet), options);
 }
 
+function classifyResolution(input: {
+  readonly ok: boolean;
+  readonly code: number;
+  readonly runsLength: number;
+  readonly commandCount: number;
+  readonly rejectedCount: number;
+  readonly resolution?: VerifyAcResolution;
+}): VerifyAcResolution {
+  if (input.resolution !== undefined) {
+    return input.resolution;
+  }
+  if (input.code === 2) {
+    return "config";
+  }
+  if (!input.ok) {
+    return "fail";
+  }
+  if (input.runsLength > 0) {
+    return "verified-pass";
+  }
+  if (isEmptyAcResolution(input)) {
+    return "empty-pass";
+  }
+  return "empty-pass";
+}
+
+function applyEmptyFloorPolicy(
+  result: VerifyAcResult,
+  options: EvaluateVerifyAcOptions,
+): VerifyAcResult {
+  if (
+    !isEmptyAcResolution({
+      ok: result.ok,
+      code: result.code,
+      runsLength: result.runs.length,
+      commandCount: Math.max(result.commands.length, result.acceptance.commands.length),
+      rejectedCount: result.rejected?.length ?? 0,
+      resolution: result.resolution,
+    })
+  ) {
+    return result;
+  }
+  const projectRoot = resolve(options.projectRoot ?? process.cwd());
+  const suiteFloor = options.hasSuiteFloor ?? projectHasSuiteFloor(projectRoot);
+  if (suiteFloor) {
+    return {
+      ...result,
+      resolution: "empty-pass",
+      resolvedCommandCount: 0,
+    };
+  }
+  return {
+    ...result,
+    ok: false,
+    code: 1,
+    message: formatSoftEmptyMessage(result.acceptance),
+    resolution: "soft_empty",
+    resolvedCommandCount: 0,
+  };
+}
+
+function acceptanceOutcomeOf(result: VerifyAcResult): AcceptanceRunSummaryOutcome | null {
+  if (result.resolution === "verified-pass") return "verified-pass";
+  if (result.resolution === "empty-pass") return "empty-pass";
+  if (result.resolution === "soft_empty") return "soft_empty";
+  if (result.resolution === "fail") return "fail";
+  return null;
+}
+
+function emitAcceptanceOutcome(
+  result: VerifyAcResult,
+  options: EvaluateVerifyAcOptions,
+  projectRoot: string,
+): void {
+  if (options.env === undefined) {
+    return;
+  }
+  const dest = options.env[ENV_RUN_SUMMARY_PATH];
+  if (dest === undefined || dest.trim().length === 0) {
+    return;
+  }
+  const outcome = acceptanceOutcomeOf(result);
+  if (outcome === null) {
+    return;
+  }
+  try {
+    const emitter = new RunSummaryEmitter({
+      projectRoot,
+      sessionId:
+        (typeof options.env.DEFT_SESSION_ID === "string" && options.env.DEFT_SESSION_ID.trim()) ||
+        "verify-ac",
+      env: options.env,
+    });
+    emitter.emitAcceptance({
+      resolved_command_count: result.resolvedCommandCount,
+      outcome,
+      source_rung: result.sourceRung,
+    });
+  } catch {
+    // fail-open
+  }
+}
+
 function applyOracle(result: VerifyAcResult, options: EvaluateVerifyAcOptions): VerifyAcResult {
   const projectRoot = resolve(options.projectRoot ?? process.cwd());
+  const gated = applyEmptyFloorPolicy(result, options);
   // Emit/read disk only when the caller supplied env (CLI passes process.env).
   // Tests stay isolated unless they opt in with env or runSummaryText.
   if (options.env !== undefined) {
     emitVerifyAcAttempts({
       projectRoot,
-      runs: result.runs,
+      runs: gated.runs,
       env: options.env,
     });
   }
-  if (options.applyOracleIntegrity === false) {
-    return result;
+  let next = gated;
+  if (options.applyOracleIntegrity !== false) {
+    const verdict = evaluateProductOracleIntegrity({
+      projectRoot,
+      runSummaryText: options.runSummaryText,
+      env: options.env,
+    });
+    next = mergeOracleVerdict(gated, verdict);
+    if (!verdict.ok && next.resolution !== "soft_empty" && next.resolution !== "config") {
+      next = { ...next, resolution: "fail" };
+    }
   }
-  const verdict = evaluateProductOracleIntegrity({
-    projectRoot,
-    runSummaryText: options.runSummaryText,
-    env: options.env,
-  });
-  return mergeOracleVerdict(result, verdict);
+  emitAcceptanceOutcome(next, options, projectRoot);
+  return next;
 }
 
 function annotate(
@@ -216,12 +354,21 @@ function annotate(
   } else if (result.ok) {
     message = "";
   }
+  const commandCount = Math.max(result.commands.length, acceptance.commands.length);
   return {
     ...result,
     message,
     sourceRung: acceptance.source_rung,
     noneStated: acceptance.none_stated,
     acceptance,
+    resolution: classifyResolution({
+      ok: result.ok,
+      code: result.code,
+      runsLength: result.runs.length,
+      commandCount,
+      rejectedCount: result.rejected?.length ?? 0,
+    }),
+    resolvedCommandCount: result.runs.length > 0 ? result.runs.length : commandCount,
   };
 }
 
@@ -237,70 +384,25 @@ export function evaluateVerifyAcFromPath(
     if (options.softMissingXbrief) {
       return applyOracle(softSkip(`xBRIEF not found: ${abs}`, options.quiet), options);
     }
-    return applyOracle(
-      {
-        ok: false,
-        code: 2,
-        message: `verify:ac: xBRIEF not found: ${abs}`,
-        commands: [],
-        runs: [],
-        sourceRung: "project_floor",
-        noneStated: true,
-        acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
-      },
-      options,
-    );
+    return applyOracle(configResult(`verify:ac: xBRIEF not found: ${abs}`), options);
   }
   let parsed: unknown;
   try {
     parsed = JSON.parse(readFileSync(abs, "utf8"));
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    return applyOracle(
-      {
-        ok: false,
-        code: 2,
-        message: `verify:ac: unreadable xBRIEF (${msg}): ${abs}`,
-        commands: [],
-        runs: [],
-        sourceRung: "project_floor",
-        noneStated: true,
-        acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
-      },
-      options,
-    );
+    return applyOracle(configResult(`verify:ac: unreadable xBRIEF (${msg}): ${abs}`), options);
   }
   const data = asRecord(parsed);
   if (data === null) {
     return applyOracle(
-      {
-        ok: false,
-        code: 2,
-        message: `verify:ac: xBRIEF top-level is not an object: ${abs}`,
-        commands: [],
-        runs: [],
-        sourceRung: "project_floor",
-        noneStated: true,
-        acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
-      },
+      configResult(`verify:ac: xBRIEF top-level is not an object: ${abs}`),
       options,
     );
   }
   const plan = asRecord(data.plan);
   if (plan === null) {
-    return applyOracle(
-      {
-        ok: false,
-        code: 2,
-        message: `verify:ac: xBRIEF missing plan object: ${abs}`,
-        commands: [],
-        runs: [],
-        sourceRung: "project_floor",
-        noneStated: true,
-        acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
-      },
-      options,
-    );
+    return applyOracle(configResult(`verify:ac: xBRIEF missing plan object: ${abs}`), options);
   }
   const result = evaluateVerifyAcFromPlan(plan, options);
   return maybeAttachAcPassBank(result, plan, abs, options);
@@ -352,11 +454,27 @@ function maybeAttachAcPassBank(
       ...result,
       ok: false,
       code: 1,
+      resolution: "fail",
       message:
         `verify:ac bank checkpoint failed (#3285): ${msg}` +
         (result.message ? `\n${result.message}` : ""),
     };
   }
+}
+
+function configResult(message: string): VerifyAcResult {
+  return {
+    ok: false,
+    code: 2,
+    message,
+    commands: [],
+    runs: [],
+    sourceRung: "project_floor",
+    noneStated: true,
+    acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
+    resolution: "config",
+    resolvedCommandCount: 0,
+  };
 }
 
 function softSkip(detail: string, quiet?: boolean): VerifyAcResult {
@@ -369,6 +487,8 @@ function softSkip(detail: string, quiet?: boolean): VerifyAcResult {
     sourceRung: "project_floor",
     noneStated: true,
     acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
+    resolution: "skipped",
+    resolvedCommandCount: 0,
   };
 }
 

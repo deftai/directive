@@ -309,6 +309,7 @@ describe("verify:ac evaluation applies oracle integrity (#3322)", () => {
       {
         projectRoot: mkdtempSync(join(tmpdir(), "oracle-eval-")),
         captureFromNarratives: false,
+        hasSuiteFloor: true,
         runSummaryText: jsonl([
           { check_id: "eq", method_fingerprint: "diff-v1", outcome: "fail" },
           { check_id: "eq", method_fingerprint: "json-v2", outcome: "pass" },
@@ -329,6 +330,7 @@ describe("verify:ac evaluation applies oracle integrity (#3322)", () => {
     const ok = evaluateVerifyAcFromPlan(plan, {
       projectRoot: mkdtempSync(join(tmpdir(), "oracle-eval-ok-")),
       captureFromNarratives: false,
+      hasSuiteFloor: true,
       runSummaryText: jsonl([
         { check_id: "eq", method_fingerprint: "diff-v1", outcome: "fail" },
         {
@@ -344,6 +346,7 @@ describe("verify:ac evaluation applies oracle integrity (#3322)", () => {
       projectRoot: mkdtempSync(join(tmpdir(), "oracle-eval-skip-")),
       captureFromNarratives: false,
       applyOracleIntegrity: false,
+      hasSuiteFloor: true,
       runSummaryText: jsonl([
         { check_id: "eq", method_fingerprint: "diff-v1", outcome: "fail" },
         { check_id: "eq", method_fingerprint: "json-v2", outcome: "pass" },

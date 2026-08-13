@@ -1,3 +1,4 @@
+export * from "./acceptance-activate-gate.js";
 export * from "./acceptance-evidence.js";
 export * from "./audit-log.js";
 export * from "./batch-promote.js";
