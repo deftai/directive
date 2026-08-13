@@ -1,6 +1,7 @@
 {
   "name": "@deftai/directive-content",
   "version": "0.0.0",
+  "deftConsumerDeposit": true,
   "description": "Shippable Directive framework content in the consumer .deft/core/ layout (C1 flatten), plus the engine surfaces (.githooks/, Taskfile.yml, tasks/) the deposit wires. Python-free per #2022 Phase 3. Refs #11, #1669, #1967.",
   "license": "MIT",
   "type": "module",

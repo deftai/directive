@@ -2,12 +2,22 @@
 "use strict";
 
 const assert = require("node:assert/strict");
-const { describe, it } = require("node:test");
+const { spawnSync } = require("node:child_process");
+const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = require("node:fs");
+const { tmpdir } = require("node:os");
+const { join } = require("node:path");
+const { describe, it, after } = require("node:test");
 const {
   shellSplit,
   quoteWin32Arg,
   buildSpawnPlan,
   WIN32_CMD_METACHAR_RE,
+  hasConsumerDepositMarker,
+  isBuildableSource,
+  resolveInvokeDispatch,
+  CONSUMER_DEPOSIT_MARKER_FILE,
+  CONTENT_PACKAGE_NAME,
+  DEPOSIT_REMEDIATION,
 } = require("./engine-invoke.cjs");
 
 const WIN32 = { platform: "win32", nodePath: "/node" };
@@ -203,7 +213,125 @@ describe("buildSpawnPlan — CodeQL absolute-path isolation (#3175 / alert #74)"
     assert.equal(plan.args[3].includes("node.exe"), false);
     assert.deepEqual(splitCmdTokens(plan.args[3]), ["deft", "release", "--summary", "ok"]);
   });
+});
 
+describe("consumer-deposit marker (#3324)", () => {
+  const created = [];
+
+  after(() => {
+    for (const dir of created.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  function tempRoot() {
+    const dir = mkdtempSync(join(tmpdir(), "3324-deposit-"));
+    created.push(dir);
+    return dir;
+  }
+
+  function writePkg(dir, pkg) {
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "package.json"), JSON.stringify(pkg), "utf8");
+  }
+
+  function writeBuildableTree(dir, pkgExtra = {}) {
+    writePkg(dir, { name: "looks-like-source", scripts: { build: "tsc -b" }, ...pkgExtra });
+    mkdirSync(join(dir, "packages", "cli"), { recursive: true });
+    writePkg(join(dir, "packages", "cli"), { name: "@deftai/directive-cli" });
+  }
+
+  it("detects the package.json deftConsumerDeposit field", () => {
+    const root = tempRoot();
+    writePkg(root, { name: "app", deftConsumerDeposit: true, scripts: { build: "tsc" } });
+    assert.equal(hasConsumerDepositMarker(root), true);
+  });
+
+  it("detects @deftai/directive-content as a deposit", () => {
+    const root = tempRoot();
+    writePkg(root, { name: CONTENT_PACKAGE_NAME, scripts: { build: "tsc" } });
+    assert.equal(hasConsumerDepositMarker(root), true);
+  });
+
+  it("detects the .deft-consumer-deposit marker file", () => {
+    const root = tempRoot();
+    writePkg(root, { name: "app", scripts: { build: "tsc" } });
+    writeFileSync(join(root, CONSUMER_DEPOSIT_MARKER_FILE), "1\n", "utf8");
+    assert.equal(hasConsumerDepositMarker(root), true);
+  });
+
+  it("does not mark a framework source checkout", () => {
+    const root = tempRoot();
+    writeBuildableTree(root);
+    assert.equal(hasConsumerDepositMarker(root), false);
+    assert.equal(isBuildableSource(root), true);
+  });
+
+  it("never treats a marked deposit as buildable source", () => {
+    const root = tempRoot();
+    writeBuildableTree(root, { deftConsumerDeposit: true });
+    assert.equal(hasConsumerDepositMarker(root), true);
+    assert.equal(isBuildableSource(root), false);
+  });
+
+  it("routes every deposit verb via global CLI (not the self-build path)", () => {
+    const plan = resolveInvokeDispatch({
+      hasBin: false,
+      isBuildableSource: false,
+      isRuntimeVerb: false,
+      hasGlobalCli: true,
+    });
+    assert.deepEqual(plan, { action: "global" });
+  });
+
+  it("fails closed with the one remediation when a deposit has no global CLI", () => {
+    const plan = resolveInvokeDispatch({
+      hasBin: false,
+      isBuildableSource: false,
+      isRuntimeVerb: false,
+      hasGlobalCli: false,
+    });
+    assert.equal(plan.action, "fail-closed");
+    assert.equal(plan.exitCode, 2);
+    assert.deepEqual(plan.remediations, [DEPOSIT_REMEDIATION]);
+    assert.equal(DEPOSIT_REMEDIATION, "npm i -g @deftai/directive");
+  });
+
+  it("keeps the runtime-verb whitelist for true source checkouts", () => {
+    const runtime = resolveInvokeDispatch({
+      hasBin: false,
+      isBuildableSource: true,
+      isRuntimeVerb: true,
+      hasGlobalCli: true,
+    });
+    assert.deepEqual(runtime, { action: "global" });
+
+    const check = resolveInvokeDispatch({
+      hasBin: false,
+      isBuildableSource: true,
+      isRuntimeVerb: false,
+      hasGlobalCli: true,
+    });
+    assert.equal(check.action, "fail-closed");
+    assert.deepEqual(check.remediations, ["task build"]);
+  });
+
+  it("CLI probe exits 0 for a marked deposit and 1 for is-buildable-source", () => {
+    const root = tempRoot();
+    writeBuildableTree(root, { deftConsumerDeposit: true });
+    const script = join(__dirname, "engine-invoke.cjs");
+    const marker = spawnSync(process.execPath, [script, "deposit-marker", root], {
+      encoding: "utf8",
+    });
+    assert.equal(marker.status, 0, marker.stderr);
+    const buildable = spawnSync(process.execPath, [script, "is-buildable-source", root], {
+      encoding: "utf8",
+    });
+    assert.equal(buildable.status, 1, buildable.stderr);
+  });
+});
+
+describe("buildSpawnPlan — CodeQL absolute-path isolation (#3175 / alert #74)", () => {
   it("uses nodePath only as the non-shell vendored command (never cmd.exe)", () => {
     const nodePath = String.raw`C:\Program Files\nodejs\node.exe`;
     const plan = buildSpawnPlan("vendored", String.raw`C:\repo\packages\cli\dist\bin.js`, ["session:start"], {

@@ -21,12 +21,12 @@ import { repoRoot } from "./_helpers.js";
  * would miss: a local `_ts-build`, a local `_ensure-ts` (`pnpm --dir DEFT_ROOT
  * run build`), and a `deps: [:ts:build]` on the unconditional maintainer build
  * primitive. The canonical guarded pattern lives in tasks/engine.yml:
- *   - `:engine:_ts-build` guards the build behind packages/cli/package.json
- *     AND a root `build` script (#2142) so it builds on a cold framework
- *     checkout (dist/ is gitignored) yet no-ops on a consumer deposit or a
- *     git-vendored stray packages/ tree without a root build script -- and runs
- *     from `{{.USER_WORKING_DIR}}` so an absolute `dir:` cannot double on a
- *     Windows `task -t <abs>` invocation (#2126), and
+ *   - `:engine:_ts-build` guards the build via engine-invoke.cjs
+ *     `is-buildable-source` (#2142 / #3324): source checkouts still build;
+ *     a consumer-deposit marker forces a no-op even when stray packages/ +
+ *     a root build script are present. Runs from `{{.USER_WORKING_DIR}}` so
+ *     an absolute `dir:` cannot double on a Windows `task -t <abs>`
+ *     invocation (#2126), and
  *   - `:engine:invoke` runs the vendored bin.js when present, else falls back to
  *     the globally-installed `deft` command.
  *
@@ -106,10 +106,10 @@ describe("task surface routes through the guarded :engine:* pattern (#2126)", ()
   it("engine.yml still owns the guarded build + runtime invoke dispatch", () => {
     const engine = readTask(ENGINE_FILE);
     expect(engine).toMatch(/_ts-build:/);
-    // Guard requires packages/cli/package.json AND a root build script (#2142)
-    // so cold framework checkouts still build while stray consumer packages/
-    // trees without a root build script no-op instead of ERR_PNPM_NO_SCRIPT.
-    expect(engine).toMatch(/\[ -f "\{\{\.DEFT_ROOT\}\}\/packages\/cli\/package\.json" \]/);
+    // #3324: buildability lives in engine-invoke.cjs (deposit marker forces
+    // false). Cold source still builds; marked deposits never self-build.
+    expect(engine).toMatch(/engine-invoke\.cjs" is-buildable-source/);
+    expect(engine).toMatch(/deftConsumerDeposit/);
     expect(engine).toMatch(/process\.argv\[1\]/);
     expect(engine).toMatch(/readFileSync\(process\.argv\[1\]/);
     expect(engine).toMatch(/pm-run:/);
@@ -240,14 +240,15 @@ writeFileSync(process.env.TEST_ENGINE_OUTER_OUT, JSON.stringify({
     expect(existsSync(join(repoRoot(), "tasks", "ts-build-fresh.cjs"))).toBe(true);
   });
 
-  it("_ts-build guard no-ops on stray packages/ without root build script (#2142)", () => {
+  it("_ts-build guard no-ops on stray packages/ without root build script (#2142 / #3324)", () => {
     const engine = readTask(ENGINE_FILE);
     const scriptMatch = engine.match(
-      /if \[ -f "\{\{\.DEFT_ROOT\}\}\/packages\/cli\/package\.json" \][\s\S]*?fi/m,
+      /if node "\{\{\.TASKFILE_DIR\}\}\/engine-invoke\.cjs" is-buildable-source "\{\{\.DEFT_ROOT\}\}"; then[\s\S]*?fi/m,
     );
-    expect(scriptMatch, "engine _ts-build guard block").not.toBeNull();
+    expect(scriptMatch, "engine _ts-build is-buildable-source guard").not.toBeNull();
     const guardBlock = scriptMatch?.[0] ?? "";
-    expect(guardBlock).toMatch(/process\.argv\[1\]/);
+    expect(guardBlock).toMatch(/ts-build-fresh\.cjs/);
+    expect(engine).toMatch(/engine-pm-run\.cjs/);
     expect(guardBlock).not.toMatch(/\[ -f "\{\{\.DEFT_ROOT\}\}\/packages\/cli\/dist\/bin\.js" \]/);
   });
 

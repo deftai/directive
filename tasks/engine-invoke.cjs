@@ -11,6 +11,18 @@
  */
 
 const { spawnSync } = require("node:child_process");
+const fs = require("node:fs");
+const path = require("node:path");
+
+/** Consumer-deposit identity (#3324). Present on @deftai/directive-content. */
+const CONSUMER_DEPOSIT_FIELD = "deftConsumerDeposit";
+/** Optional marker file at DEFT_ROOT (installer / test fixture). */
+const CONSUMER_DEPOSIT_MARKER_FILE = ".deft-consumer-deposit";
+/** Published content-package name also identifies a deposit. */
+const CONTENT_PACKAGE_NAME = "@deftai/directive-content";
+/** Single remediation when a deposit has no global CLI (#3324 / #3265). */
+const DEPOSIT_REMEDIATION = "npm i -g @deftai/directive";
+const SOURCE_BUILD_REMEDIATION = "task build";
 
 /**
  * cmd.exe command separators / metacharacters. Free-text DEFT_ENGINE_CMD_JSON
@@ -71,6 +83,113 @@ function shellSplit(input) {
     out.push(cur);
   }
   return out;
+}
+
+/**
+ * True when DEFT_ROOT is a consumer deposit, not a framework source checkout.
+ * Honors an explicit package.json field, the content-package name, or a
+ * marker file. #3324: deposits must never take the self-build path.
+ * @param {string} root
+ * @param {{ fs?: typeof fs, path?: typeof path }} [opts]
+ */
+function hasConsumerDepositMarker(root, opts = {}) {
+  const io = opts.fs || fs;
+  const pathMod = opts.path || path;
+  if (!root) {
+    return false;
+  }
+  const markerPath = pathMod.join(root, CONSUMER_DEPOSIT_MARKER_FILE);
+  try {
+    if (io.existsSync(markerPath)) {
+      return true;
+    }
+  } catch {
+    // ignore unreadable marker path
+  }
+  const pkgPath = pathMod.join(root, "package.json");
+  try {
+    const pkg = JSON.parse(io.readFileSync(pkgPath, "utf8"));
+    if (pkg && pkg[CONSUMER_DEPOSIT_FIELD] === true) {
+      return true;
+    }
+    if (pkg && pkg.name === CONTENT_PACKAGE_NAME) {
+      return true;
+    }
+  } catch {
+    return false;
+  }
+  return false;
+}
+
+/**
+ * Buildable-source means "may run pnpm/corepack/`task build`". A deposit
+ * marker forces false even when packages/cli + scripts.build are present.
+ * @param {string} root
+ * @param {{ fs?: typeof fs, path?: typeof path }} [opts]
+ */
+function isBuildableSource(root, opts = {}) {
+  if (hasConsumerDepositMarker(root, opts)) {
+    return false;
+  }
+  const io = opts.fs || fs;
+  const pathMod = opts.path || path;
+  if (!root) {
+    return false;
+  }
+  const cliPkg = pathMod.join(root, "packages", "cli", "package.json");
+  const rootPkg = pathMod.join(root, "package.json");
+  try {
+    if (!io.existsSync(cliPkg) || !io.existsSync(rootPkg)) {
+      return false;
+    }
+    const pkg = JSON.parse(io.readFileSync(rootPkg, "utf8"));
+    return Boolean(pkg && pkg.scripts && pkg.scripts.build);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Dispatch decision after local dist / buildable / runtime-whitelist probes.
+ * Deposit marker is applied via isBuildableSource(false); this keeps the
+ * runtime-verb whitelist for true source checkouts only (#3324 / #2409).
+ *
+ * @param {{
+ *   hasBin: boolean,
+ *   isBuildableSource: boolean,
+ *   isRuntimeVerb: boolean,
+ *   hasGlobalCli: boolean,
+ * }} input
+ * @returns {{
+ *   action: "vendored" | "global" | "fail-closed",
+ *   remediations?: string[],
+ *   exitCode?: number,
+ * }}
+ */
+function resolveInvokeDispatch(input) {
+  if (input.hasBin) {
+    return { action: "vendored" };
+  }
+  if (input.isBuildableSource) {
+    if (input.isRuntimeVerb && input.hasGlobalCli) {
+      return { action: "global" };
+    }
+    return {
+      action: "fail-closed",
+      remediations: input.isRuntimeVerb
+        ? [DEPOSIT_REMEDIATION, SOURCE_BUILD_REMEDIATION]
+        : [SOURCE_BUILD_REMEDIATION],
+      exitCode: 2,
+    };
+  }
+  if (input.hasGlobalCli) {
+    return { action: "global" };
+  }
+  return {
+    action: "fail-closed",
+    remediations: [DEPOSIT_REMEDIATION],
+    exitCode: 2,
+  };
 }
 
 function main() {
@@ -171,7 +290,27 @@ function buildSpawnPlan(mode, target, argv, opts = {}) {
 }
 
 if (require.main === module) {
+  const mode = process.argv[2];
+  if (mode === "deposit-marker") {
+    process.exit(hasConsumerDepositMarker(process.argv[3] || "") ? 0 : 1);
+  }
+  if (mode === "is-buildable-source") {
+    process.exit(isBuildableSource(process.argv[3] || "") ? 0 : 1);
+  }
   main();
 }
 
-module.exports = { shellSplit, quoteWin32Arg, buildSpawnPlan, WIN32_CMD_METACHAR_RE };
+module.exports = {
+  shellSplit,
+  quoteWin32Arg,
+  buildSpawnPlan,
+  WIN32_CMD_METACHAR_RE,
+  hasConsumerDepositMarker,
+  isBuildableSource,
+  resolveInvokeDispatch,
+  CONSUMER_DEPOSIT_FIELD,
+  CONSUMER_DEPOSIT_MARKER_FILE,
+  CONTENT_PACKAGE_NAME,
+  DEPOSIT_REMEDIATION,
+  SOURCE_BUILD_REMEDIATION,
+};

@@ -5,6 +5,8 @@ version: '3'
 # Framework-source checkouts invoke the vendored `packages/cli/dist/bin.js`.
 # npm consumer deposits copy @deftai/directive-content only — no bundled CLI —
 # so tasks fall back to the globally installed `deft` / `directive` command.
+# A deposit marker (package.json deftConsumerDeposit / .deft-consumer-deposit /
+# @deftai/directive-content name) forces that fallback for every verb (#3324).
 
 vars:
   DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
@@ -24,7 +26,7 @@ tasks:
 
   _ts-build:
     internal: true
-    desc: "Build CLI dist from the framework source checkout; no-op on npm consumer deposits that ship no packages/ source (#2022 Phase 3 / #2126)."
+    desc: "Build CLI dist from the framework source checkout; no-op on consumer deposits (#2022 / #2126 / #3324)."
     # Run from the operator project root (USER_WORKING_DIR), NOT an absolute
     # DEFT_ROOT: an absolute `dir:` doubles onto the invocation cwd on Windows
     # when the Taskfile is invoked via `task -t <absolute-path>` (observed as
@@ -45,9 +47,9 @@ tasks:
     cmds:
       - |
         set -eu
-        if [ -f "{{.DEFT_ROOT}}/packages/cli/package.json" ] \
-           && [ -f "{{.DEFT_ROOT}}/package.json" ] \
-           && node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.exit(j.scripts&&j.scripts.build?0:1)" "{{.DEFT_ROOT}}/package.json"; then
+        # #3324: consumer-deposit marker forces a no-op even when stray
+        # packages/cli + scripts.build make the tree look buildable.
+        if node "{{.TASKFILE_DIR}}/engine-invoke.cjs" is-buildable-source "{{.DEFT_ROOT}}"; then
           if node "{{.TASKFILE_DIR}}/ts-build-fresh.cjs" "{{.DEFT_ROOT}}"; then
             exit 0
           fi
@@ -56,7 +58,7 @@ tasks:
 
   invoke:
     internal: true
-    desc: "Run a deft-ts verb from vendored bin.js (source checkout) or global deft (npm consumer deposit / runtime fallback #2409). Runtime/session verbs must not trigger engine:_ts-build / pnpm (#2181)."
+    desc: "Run a deft-ts verb from vendored bin.js (source checkout) or global deft (deposit / runtime fallback #2409 / #3324). Runtime/session verbs must not trigger engine:_ts-build / pnpm (#2181)."
     # Run from the operator project root so deft verbs resolve USER_WORKING_DIR
     # correctly; without this, included engine.yml defaults cwd to tasks/ (#2022).
     dir: '{{.USER_WORKING_DIR}}'
@@ -70,10 +72,10 @@ tasks:
         set -eu
         bin="{{.DEFT_ROOT}}/packages/cli/dist/bin.js"
         root_pkg="{{.DEFT_ROOT}}/package.json"
+        # #3324: deposit marker (package.json field / file / content-package
+        # name) forces is_buildable_source=0 so every verb uses global CLI.
         is_buildable_source=0
-        if [ -f "{{.DEFT_ROOT}}/packages/cli/package.json" ] \
-           && [ -f "$root_pkg" ] \
-           && node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.exit(j.scripts&&j.scripts.build?0:1)" "$root_pkg"; then
+        if node "{{.TASKFILE_DIR}}/engine-invoke.cjs" is-buildable-source "{{.DEFT_ROOT}}"; then
           is_buildable_source=1
         fi
         if [ -f "$bin" ]; then
