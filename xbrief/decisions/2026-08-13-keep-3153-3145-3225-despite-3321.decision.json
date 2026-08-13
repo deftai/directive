@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "keep-3153-3145-3225-despite-3321",
+  "decision": "Keep #3153 default merge-ready, #3214 ceremony dial, #3145 consumer check trio, and #3225 advisory-verdict blocking. Do not relax those gates or consumer check composition to recover the two 0.92-0.99 hard-task fails. The two tasks are not worth weakening gate integrity.",
+  "governingRule": {
+    "description": "When a quality gate fails, fix the product/process/test under test. Do not clear red by editing the gate, verifier, required check, coverage floor, or policy flag solely to go green.",
+    "path": "content/docs/gate-integrity.md",
+    "rfc2119": "MUST NOT"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Remove drive-to:merge-ready as the default envelope (#3153 revert)",
+      "whyNot": "Silent PR-open handback is the #1880 / #3032 failure class. Default merge-ready is correct for real story work."
+    },
+    {
+      "option": "Drop the #3145 trio from consumer task check",
+      "whyNot": "That is editing the gate that surfaced lifecycle/toolchain work. Warn-default already exists. Removal would hide placement and provenance defects."
+    },
+    {
+      "option": "Stop treating advisory reviewer prose as a merge-ready block (#3225 revert)",
+      "whyNot": "#3225 is not the inserter on this profile. Reverting it would re-open merge-against-advice on org repos."
+    },
+    {
+      "option": "Classify every vanilla deposit as non-project so mid x L stays minimal",
+      "whyNot": "Would under-ceremony real consumer projects. Shape must stay explicit (CLI/env or a later task-kind signal), not a silent default flip."
+    }
+  ],
+  "whyWinner": "The named cause is over-application of intentional story/merge-ready process to one-shot hard tasks. The gates themselves are correct for their intended profile. Recovery belongs in a scoped follow-up (bank mid-run product pass; optional one-shot envelope) plus #3322/#3323 oracle work, not in a check or review-gate rollback.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-08-13T01:21:21Z",
+  "revisitTrigger": "If a follow-up ships a one-shot / bank-before-reverify envelope and the two tasks recover without touching check or #3225, this decision stays. Re-open only if new evidence shows #3145 or #3225 themselves flip a mid-run product pass to fail without a process tail.",
+  "tags": [
+    "gate-integrity",
+    "regression",
+    "ceremony",
+    "envelope"
+  ],
+  "relatedIssues": [
+    3321,
+    3282,
+    3153,
+    3214,
+    3145,
+    3225,
+    3156,
+    3322,
+    3323,
+    3324,
+    3325
+  ]
+}

@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Named cause for the 0.92→0.99 hard-task regression (#3321).** Default merge-ready (#3153) inserted the post-product verify-to-ship gap; ceremony dial + deposit-as-project (#3214) and the #3145 consumer-check trio lengthen that tail. #3225 is not the inserter. Amends the 0.99 #3282 turn-sink-as-cause conclusion. Gates kept (#3156). Follow-up #3325. Closes #3321.
+
 - **Overlap dispose via `decision:write` + list-before-recommend (#3315).** Portfolio-priority documents human overlap-cluster dispose (every member in `relatedIssues`, required `revisitTrigger`) and parks already-disposed pairs after `task decision:list -- --issue N`. Dedicated ledger deferred until a pass re-litigates despite a dispose record (#3310). Closes #3315. Refs #3310.
 
 ### Changed

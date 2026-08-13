@@ -473,6 +473,52 @@ describe("provisional intake estimate (#3214 design note option 1)", () => {
   });
 });
 
+describe("deposit-as-project classifier (#3321 / #3214)", () => {
+  const roots: string[] = [];
+  afterEach(() => {
+    for (const root of roots.splice(0)) {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("treats .deft/core or AGENTS+xbrief as project; empty tree stays unknown", () => {
+    const empty = mkdtempSync(join(tmpdir(), "ceremony-shape-empty-"));
+    roots.push(empty);
+    expect(detectCeremonyProjectShape(empty)).toBeNull();
+
+    const coreOnly = mkdtempSync(join(tmpdir(), "ceremony-shape-core-"));
+    roots.push(coreOnly);
+    mkdirSync(join(coreOnly, ".deft", "core"), { recursive: true });
+    expect(detectCeremonyProjectShape(coreOnly)).toBe("project");
+
+    const agentsXbrief = mkdtempSync(join(tmpdir(), "ceremony-shape-agents-"));
+    roots.push(agentsXbrief);
+    writeFileSync(join(agentsXbrief, "AGENTS.md"), "# A\n", "utf8");
+    mkdirSync(join(agentsXbrief, "xbrief"), { recursive: true });
+    expect(detectCeremonyProjectShape(agentsXbrief)).toBe("project");
+  });
+
+  it("mid x L on a vanilla deposit selects elevated (hard-task profile)", () => {
+    const root = makeProject({});
+    roots.push(root);
+    expect(detectCeremonyProjectShape(root)).toBe("project");
+    expect(
+      selectCeremonyDepthFromMatrix({
+        taskSize: "L",
+        modelTier: "mid",
+        projectShape: detectCeremonyProjectShape(root),
+      }),
+    ).toBe("elevated");
+    expect(
+      selectCeremonyDepthFromMatrix({
+        taskSize: "L",
+        modelTier: "mid",
+        projectShape: "non-project",
+      }),
+    ).toBe("minimal");
+  });
+});
+
 describe("readCeremonyDialAudit (#3263)", () => {
   let root = "";
   afterEach(() => {
