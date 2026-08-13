@@ -92,11 +92,26 @@ function shellSplit(input) {
  * @param {string} root
  * @param {{ fs?: typeof fs, path?: typeof path }} [opts]
  */
+/**
+ * Consumer Taskfile includes live at `.deft/core/tasks/`, so DEFT_ROOT is
+ * `.deft/core`. Framework source uses repo-root `tasks/`. Go source-tarball
+ * deposits keep the unmarked monorepo package.json at that core root (#3324
+ * Greptile P1) — the path itself is the deposit identity.
+ * @param {string} root
+ */
+function isVendoredCoreRoot(root) {
+  const norm = String(root).replace(/\\/g, "/").replace(/\/+$/, "");
+  return /(^|\/)\.deft\/core$/.test(norm);
+}
+
 function hasConsumerDepositMarker(root, opts = {}) {
   const io = opts.fs || fs;
   const pathMod = opts.path || path;
   if (!root) {
     return false;
+  }
+  if (isVendoredCoreRoot(root)) {
+    return true;
   }
   const markerPath = pathMod.join(root, CONSUMER_DEPOSIT_MARKER_FILE);
   try {
@@ -306,6 +321,7 @@ module.exports = {
   buildSpawnPlan,
   WIN32_CMD_METACHAR_RE,
   hasConsumerDepositMarker,
+  isVendoredCoreRoot,
   isBuildableSource,
   resolveInvokeDispatch,
   CONSUMER_DEPOSIT_FIELD,

@@ -13,6 +13,7 @@ const {
   buildSpawnPlan,
   WIN32_CMD_METACHAR_RE,
   hasConsumerDepositMarker,
+  isVendoredCoreRoot,
   isBuildableSource,
   resolveInvokeDispatch,
   CONSUMER_DEPOSIT_MARKER_FILE,
@@ -265,6 +266,14 @@ describe("consumer-deposit marker (#3324)", () => {
     writeBuildableTree(root);
     assert.equal(hasConsumerDepositMarker(root), false);
     assert.equal(isBuildableSource(root), true);
+  });
+
+  it("treats a .deft/core DEFT_ROOT as a deposit (Go source-tarball layout)", () => {
+    const root = join(tempRoot(), ".deft", "core");
+    writeBuildableTree(root);
+    assert.equal(isVendoredCoreRoot(root), true);
+    assert.equal(hasConsumerDepositMarker(root), true);
+    assert.equal(isBuildableSource(root), false);
   });
 
   it("never treats a marked deposit as buildable source", () => {
