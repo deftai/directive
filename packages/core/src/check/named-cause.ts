@@ -47,6 +47,8 @@ const GATE_REMEDIES: Readonly<Record<string, string>> = {
 const SPAWN_ERROR_REMEDY =
   "Install go-task (https://taskfile.dev/installation/) and ensure `task` is on PATH; then re-run task check";
 
+const CLI_SPAWN_ERROR_REMEDY = "Install: npm i -g @deftai/directive@latest";
+
 /**
  * Extract a short cause from gate stdout/stderr without leaking env values.
  * Strips lines that look like KEY=value assignments.
@@ -60,6 +62,9 @@ export function extractGateCause(
   if (spawnError !== undefined && spawnError.length > 0) {
     // Normalize common missing-binary messages without path dumps.
     if (/ENOENT|not found|not recognized/i.test(spawnError)) {
+      if (/\b(deft|directive)(\.cmd)?\b/i.test(spawnError)) {
+        return "global deft/directive CLI not found on PATH";
+      }
       return "task binary not found on PATH (cannot spawn go-task)";
     }
     return sanitizeCauseLine(spawnError);
@@ -93,7 +98,13 @@ function sanitizeCauseLine(line: string): string {
 }
 
 export function remedyForGate(gateId: string, cause: string): string {
+  if (/global deft\/directive CLI not found/i.test(cause)) {
+    return CLI_SPAWN_ERROR_REMEDY;
+  }
   if (/task binary not found|cannot spawn go-task/i.test(cause)) {
+    if (gateId.startsWith("verify:") || gateId.startsWith("verify-") || gateId === "doctor") {
+      return CLI_SPAWN_ERROR_REMEDY;
+    }
     return SPAWN_ERROR_REMEDY;
   }
   if (/pnpm binary not found|pnpm: NOT FOUND/i.test(cause)) {

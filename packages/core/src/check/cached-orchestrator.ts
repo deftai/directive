@@ -7,6 +7,7 @@ import {
   runWithCache,
 } from "../cache/task-cache/index.js";
 import type { TaskRunResult } from "../cache/task-cache/types.js";
+import { defaultWhich } from "../doctor/which.js";
 import { readCorePackageVersion } from "../engine-version.js";
 import {
   applyProductFirstGateMode,
@@ -21,6 +22,12 @@ import {
   SKIP_ALL_GATES,
   type ToolchainPreflightResult,
 } from "../session/toolchain-preflight.js";
+import {
+  checkGateCliArgv,
+  cliSpawnPlan,
+  resolveGateDispatch,
+  resolveGlobalCliBin,
+} from "./cli-native-gates.js";
 import {
   evaluateConsumerGateIntegrity,
   formatConsumerGateIntegrityFailure,
@@ -52,14 +59,19 @@ export interface CachedCheckOptions extends CheckOrchestratorSeams {
   readonly sessionId?: string;
   /** #3282: disable run-summary emission (tests). */
   readonly emitRunSummary?: boolean;
+  /** PATH lookup seam (tests). */
+  readonly which?: (name: string) => string | null;
+  /** Override global CLI binary when dispatching CLI-native gates (#3335). */
+  readonly cliBin?: string | null;
 }
 
 function captureSpawn(
   taskBin: string,
   args: string[],
-  opts: { cwd: string; env?: NodeJS.ProcessEnv },
+  opts: { cwd: string; env?: NodeJS.ProcessEnv; cli?: boolean },
 ): { exitCode: number; stdout: string; stderr: string; spawnError?: string } {
-  const result = spawnSync(taskBin, args, {
+  const plan = opts.cli === true ? cliSpawnPlan(taskBin, args) : { command: taskBin, args };
+  const result = spawnSync(plan.command, plan.args, {
     cwd: opts.cwd,
     encoding: "utf8",
     env: opts.env ?? process.env,
@@ -187,13 +199,20 @@ export function dispatchCachedTaskCheck(
   }
 
   // #3282: toolchain preflight — degraded skip when framework tools missing.
+  const which = options.which ?? defaultWhich;
   const preflight: ToolchainPreflightResult | null =
     options.preflight === undefined
       ? runToolchainPreflight({
           projectRoot: resolvedProject,
           frameworkRoot: resolvedFramework,
+          composedGates: gates,
+          consumerDeposit: target === "check:consumer",
+          which,
         })
       : options.preflight;
+  const taskPresent =
+    preflight === null || !preflight.findings.some((f) => f.tool === "task" && !f.present);
+  const cliBin = options.cliBin !== undefined ? options.cliBin : resolveGlobalCliBin(which);
 
   // Expand SKIP_ALL_GATES sentinel to the live composition (avoids hardcode drift).
   const skipSet = new Set<string>();
@@ -268,7 +287,29 @@ export function dispatchCachedTaskCheck(
     }
     options.onGateStart?.(gateId);
     const contract = resolveTaskContract(gateId);
-    const taskArgs = checkGateSpawnArgs(gateSpec, taskfilePath);
+    const dispatch = resolveGateDispatch({
+      gateId,
+      taskPresent,
+      cliBin,
+    });
+    if ("skip" in dispatch) {
+      process.stderr.write(
+        `check: skipping gate ${gateId} (no runner) — cause: ${dispatch.cause}; remedy: ${dispatch.remedy}\n`,
+      );
+      gateOutcomes.push({
+        id: gateId,
+        status: "skipped",
+        cause: dispatch.cause,
+        remedy: dispatch.remedy,
+      });
+      options.onGateComplete?.(gateId, 0, false);
+      continue;
+    }
+    const spawnBin = dispatch.mode === "cli" ? dispatch.bin : taskBin;
+    const spawnArgs =
+      dispatch.mode === "cli"
+        ? checkGateCliArgv(gateSpec)
+        : checkGateSpawnArgs(gateSpec, taskfilePath);
     let lastSpawn: {
       exitCode: number;
       stdout: string;
@@ -283,11 +324,15 @@ export function dispatchCachedTaskCheck(
       noCache: options.noCache,
       runner: () => {
         const spawned = options.gateSpawnFn
-          ? options.gateSpawnFn(gateId, taskBin, taskArgs, {
+          ? options.gateSpawnFn(gateId, spawnBin, spawnArgs, {
               cwd,
               env: options.env,
             })
-          : captureSpawn(taskBin, taskArgs, { cwd, env: options.env });
+          : captureSpawn(spawnBin, spawnArgs, {
+              cwd,
+              env: options.env,
+              cli: dispatch.mode === "cli",
+            });
         lastSpawn = {
           exitCode: spawned.exitCode,
           stdout: spawned.stdout,

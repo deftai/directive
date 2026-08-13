@@ -21,6 +21,17 @@ describe("named-cause gate failures (#3282)", () => {
     expect(msg.lines.join("\n")).not.toMatch(/DEFT_[A-Z0-9_]+=/);
   });
 
+  it("names a missing global CLI without telling the agent to install go-task (#3335)", () => {
+    const msg = formatNamedCauseFailure({
+      gateId: "verify:ac",
+      exitCode: 1,
+      spawnError: "spawn deft ENOENT",
+    });
+    expect(msg.cause).toMatch(/deft\/directive CLI not found/i);
+    expect(msg.remedy).toMatch(/@deftai\/directive/);
+    expect(msg.remedy).not.toMatch(/go-task|taskfile\.dev/i);
+  });
+
   it("names missing task binary from spawn errors", () => {
     const msg = formatNamedCauseFailure({
       gateId: "toolchain:check-consumer",

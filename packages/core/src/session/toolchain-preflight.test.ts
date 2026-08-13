@@ -64,6 +64,42 @@ describe("runToolchainPreflight (#3282)", () => {
     expect(result.skipGateIds).toContain(SKIP_ALL_GATES);
   });
 
+  it("treats missing go-task as impact none in a CLI-dispatchable deposit (#3335)", () => {
+    const result = runToolchainPreflight({
+      which: (name) => (name === "task" ? null : `/bin/${name}`),
+      exists: () => false,
+      probeCliDist: true,
+      consumerDeposit: true,
+    });
+    expect(result.ok).toBe(true);
+    expect(result.degraded).toBe(false);
+    expect(result.status).toBe("ok");
+    expect(result.skipGateIds).toEqual([]);
+    const task = result.findings.find((f) => f.tool === "task");
+    expect(task?.present).toBe(false);
+    expect(task?.impact).toBe("none");
+    expect(task?.remedy).toBeNull();
+    expect(result.lines.join("\n")).not.toMatch(/Install go-task|taskfile\.dev/i);
+    expect(result.lines.some((l) => l.includes("impact: none"))).toBe(true);
+    expect(result.lines.some((l) => l.includes("go-task not required"))).toBe(true);
+  });
+
+  it("does not recommend installing go-task when the deposit has no CLI either (#3335)", () => {
+    const result = runToolchainPreflight({
+      which: (name) =>
+        name === "task" || name === "deft" || name === "directive" ? null : `/bin/${name}`,
+      exists: () => false,
+      probeCliDist: true,
+      consumerDeposit: true,
+    });
+    expect(result.degraded).toBe(true);
+    expect(result.skipGateIds).toContain(SKIP_ALL_GATES);
+    const task = result.findings.find((f) => f.tool === "task");
+    expect(task?.remedy).toMatch(/@deftai\/directive/);
+    expect(task?.remedy).not.toMatch(/go-task|taskfile\.dev/i);
+    expect(result.lines.join("\n")).not.toMatch(/Install go-task|taskfile\.dev/i);
+  });
+
   it("probes CLI dist when no global deft and dist missing", () => {
     const result = runToolchainPreflight({
       frameworkRoot: "/tmp/fw-no-dist",

@@ -1,5 +1,14 @@
 export { type CachedCheckOptions, dispatchCachedTaskCheck } from "./cached-orchestrator.js";
 export {
+  allGatesCliDispatchable,
+  checkGateCliArgv,
+  cliSpawnPlan,
+  GLOBAL_CLI_REMEDY,
+  isCliNativeGate,
+  resolveGateDispatch,
+  resolveGlobalCliBin,
+} from "./cli-native-gates.js";
+export {
   CHECK_GRAPH_REQUIRED_NAMESPACES,
   CONSUMER_GATE_INTEGRITY_RECOVERY,
   type ConsumerGateIntegrityFinding,

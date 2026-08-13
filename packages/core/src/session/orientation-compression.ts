@@ -7,6 +7,7 @@
  * (default). Does NOT implement unified `deft orient` (Later remains open).
  */
 
+import { isFrameworkRepoRoot } from "../check/context.js";
 import {
   decideThrottle,
   readState as readDoctorState,
@@ -408,16 +409,23 @@ export function runCacheFreshOrientationSection(
   void options.now;
   try {
     const evaluate = options.evaluateFn ?? evaluateCacheFresh;
-    // #3286 Greptile: do not treat missing cache/candidates as a successful
-    // cache-fresh for orientation / gated_steps (bootstrap must not look green).
-    // Session:start still continues; gated verify will re-run cache_fresh when
-    // ok is false.
+    const consumerDeposit = !isFrameworkRepoRoot(projectRoot);
+    // Consumer deposits often have no triage cache. Treat that as a named
+    // bootstrap cause (dirty), never a generic orientation `error` (#3335).
+    // Framework source still evaluates live; missing cache stays non-green
+    // (#3286) so gated verify re-runs cache_fresh.
     const result = evaluate(projectRoot, {
       allowMissingBootstrap: false,
       autoPopulateEmpty: false,
       ...options.evaluateOptions,
     });
     const ok = result.code === 0;
+    const missingCache = result.code === 2 && /not found|bootstrap/i.test(result.message);
+    const namedCause = missingCache
+      ? consumerDeposit
+        ? `[deft cache-fresh] triage cache not populated (consumer deposit) — not a toolchain failure. Recovery: run \`deft triage:bootstrap\` if you need the queue.`
+        : result.message
+      : result.message;
     // Tag as sha_match only when message already uses the canonical phrase
     // (e.g. tests inject it) — never invent a shortcut past evaluate.
     const shaMatch = ok && result.message.includes(DEPOSIT_SHA_MATCH_NOOP);
@@ -425,19 +433,21 @@ export function runCacheFreshOrientationSection(
       ? "sha_match"
       : ok
         ? "ok"
-        : result.code === 2
-          ? "error"
-          : "dirty";
+        : missingCache
+          ? "dirty"
+          : result.code === 2
+            ? "error"
+            : "dirty";
     return {
       name: "cache_fresh",
       status,
       ok,
       exitCode: result.code,
-      lines: [result.message],
+      lines: [namedCause],
       shaMatch,
       depositSha: options.depositSha,
       durationMs: elapsedMs(started),
-      detail: { code: result.code },
+      detail: { code: result.code, missing_cache: missingCache },
     };
   } catch (exc) {
     return {

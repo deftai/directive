@@ -11,12 +11,27 @@
 
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import {
+  allGatesCliDispatchable,
+  GLOBAL_CLI_REMEDY,
+  isCliNativeGate,
+} from "../check/cli-native-gates.js";
+import { isFrameworkRepoRoot, isFrameworkSourceContext } from "../check/context.js";
+import {
+  type CheckGateSpec,
+  CONSUMER_CHECK_GATES,
+  checkGateId,
+  FRAMEWORK_CHECK_GATES,
+} from "../check/gate-lists.js";
 import { defaultWhich } from "../doctor/which.js";
 
 export const TOOLCHAIN_PREFLIGHT_TOOLS = ["task", "pnpm", "node", "git"] as const;
 export type ToolchainPreflightTool = (typeof TOOLCHAIN_PREFLIGHT_TOOLS)[number];
 
 export type ToolchainPreflightStatus = "ok" | "missing" | "degraded";
+
+/** How a missing tool affects check dispatch (#3335). */
+export type ToolchainPreflightImpact = "none" | "degraded";
 
 export interface ToolchainPreflightFinding {
   readonly tool: ToolchainPreflightTool | "cli_dist";
@@ -25,6 +40,11 @@ export interface ToolchainPreflightFinding {
   readonly cause: string | null;
   /** Operator/agent remedy command or instruction. */
   readonly remedy: string | null;
+  /**
+   * Missing-tool impact. `none` = present false but no install remedy and
+   * check does not skip CLI-native gates (#3335).
+   */
+  readonly impact?: ToolchainPreflightImpact | null;
 }
 
 export interface ToolchainPreflightResult {
@@ -55,6 +75,13 @@ export interface ToolchainPreflightOptions {
    * a global `deft`/`directive` is on PATH.
    */
   readonly probeCliDist?: boolean;
+  /** Active check composition. Defaults from consumer vs framework context. */
+  readonly composedGates?: readonly CheckGateSpec[];
+  /**
+   * Consumer deposit (not framework source). When omitted, inferred from
+   * frameworkRoot vs projectRoot (#3335 / #3324).
+   */
+  readonly consumerDeposit?: boolean;
 }
 
 const REMEDY: Record<ToolchainPreflightTool, string> = {
@@ -131,9 +158,23 @@ function formatFindingLine(finding: ToolchainPreflightFinding): string {
   if (finding.present) {
     return `[deft preflight] ${finding.tool}: ok`;
   }
+  if (finding.impact === "none") {
+    const cause = finding.cause ?? "absent";
+    return `[deft preflight] ${finding.tool}: absent (impact: none) — ${cause}`;
+  }
   const cause = finding.cause ?? "missing";
   const remedy = finding.remedy ?? "install the tool";
   return `[deft preflight] ${finding.tool}: MISSING — cause: ${cause}; remedy: ${remedy}`;
+}
+
+function inferConsumerDeposit(options: ToolchainPreflightOptions): boolean {
+  if (options.consumerDeposit !== undefined) return options.consumerDeposit;
+  const project = options.projectRoot;
+  if (project === undefined) return false;
+  // Same-path roots are framework-source only when the tree is the source repo.
+  if (isFrameworkRepoRoot(project)) return false;
+  const framework = options.frameworkRoot ?? project;
+  return !isFrameworkSourceContext(framework, project);
 }
 
 /**
@@ -144,6 +185,10 @@ export function runToolchainPreflight(
 ): ToolchainPreflightResult {
   const which = options.which ?? defaultWhich;
   const exists = options.exists ?? existsSync;
+  const consumerDeposit = inferConsumerDeposit(options);
+  const composed =
+    options.composedGates ?? (consumerDeposit ? CONSUMER_CHECK_GATES : FRAMEWORK_CHECK_GATES);
+  const allCli = allGatesCliDispatchable(composed);
   const findings: ToolchainPreflightFinding[] = [];
 
   for (const tool of TOOLCHAIN_PREFLIGHT_TOOLS) {
@@ -154,16 +199,46 @@ export function runToolchainPreflight(
     findings.push(probeCliDist(options.frameworkRoot ?? options.projectRoot, which, exists));
   }
 
-  const missingCritical = findings.filter(
-    (f) => !f.present && (f.tool === "task" || f.tool === "pnpm" || f.tool === "node"),
-  );
+  const cliPresent = findings.some((f) => f.tool === "cli_dist" && f.present);
   const taskMissing = findings.some((f) => f.tool === "task" && !f.present);
   const pnpmMissing = findings.some((f) => f.tool === "pnpm" && !f.present);
   const nodeMissing = findings.some((f) => f.tool === "node" && !f.present);
 
+  // #3335: in a deposit whose composed gates are all CLI-dispatchable, a
+  // missing task binary is impact none — no install-go-task remedy.
+  if (taskMissing && allCli) {
+    const idx = findings.findIndex((f) => f.tool === "task");
+    const prior = findings[idx];
+    if (idx >= 0 && prior !== undefined) {
+      findings[idx] = {
+        ...prior,
+        impact: "none",
+        remedy: cliPresent || nodeMissing ? null : GLOBAL_CLI_REMEDY,
+        cause: cliPresent
+          ? "go-task absent; CLI-native gates dispatch via global deft/directive (#3335)"
+          : "go-task absent and no global deft/directive CLI",
+      };
+    }
+  }
+
+  const missingCritical = findings.filter((f) => {
+    if (f.present || f.impact === "none") return false;
+    return f.tool === "task" || f.tool === "pnpm" || f.tool === "node";
+  });
+
   const skip = new Set<string>();
-  if (taskMissing || nodeMissing) {
-    // Dynamic: orchestrator expands SKIP_ALL_GATES to the live gate list.
+  if (nodeMissing) {
+    skip.add(SKIP_ALL_GATES);
+  } else if (taskMissing && !allCli) {
+    if (!cliPresent) {
+      skip.add(SKIP_ALL_GATES);
+    } else {
+      for (const spec of composed) {
+        const id = checkGateId(spec);
+        if (!isCliNativeGate(id)) skip.add(id);
+      }
+    }
+  } else if (taskMissing && allCli && !cliPresent) {
     skip.add(SKIP_ALL_GATES);
   } else if (pnpmMissing) {
     for (const id of PNPM_DEPENDENT_GATE_IDS) {
@@ -171,7 +246,7 @@ export function runToolchainPreflight(
     }
   }
 
-  const degraded = missingCritical.length > 0;
+  const degraded = missingCritical.length > 0 || (taskMissing && allCli && !cliPresent);
   const ok = !degraded;
   const status: ToolchainPreflightStatus = ok ? "ok" : "degraded";
 
@@ -183,7 +258,11 @@ export function runToolchainPreflight(
     }
   }
   if (ok) {
-    lines.push("[deft preflight] done-gate toolchain ready (task, pnpm, node)");
+    lines.push(
+      taskMissing && allCli
+        ? "[deft preflight] done-gate toolchain ready (CLI dispatch; go-task not required) (#3335)"
+        : "[deft preflight] done-gate toolchain ready (task, pnpm, node)",
+    );
   } else {
     lines.push(
       "[deft preflight] degraded mode: directive check will skip toolchain-dependent gates " +
@@ -219,6 +298,7 @@ export function toolchainPreflightToDict(
       present: f.present,
       cause: f.cause,
       remedy: f.remedy,
+      ...(f.impact !== undefined ? { impact: f.impact } : {}),
     })),
     skip_gate_ids: [...result.skipGateIds],
   };

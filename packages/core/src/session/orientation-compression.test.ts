@@ -9,6 +9,7 @@ import {
   ORIENTATION_LATER_STATUS,
   type OrientationSectionResult,
   resolveSessionCompact,
+  runCacheFreshOrientationSection,
   runOrientationCompression,
 } from "./orientation-compression.js";
 import { readOrientationState, writeOrientationState } from "./orientation-state.js";
@@ -232,5 +233,16 @@ describe("orientation compression (#3286)", () => {
     });
     expect(bundle.depositSha).not.toBe("aaaaaaaaaaaa");
     expect(bundle.sections.every((s) => s.shaMatch === false)).toBe(true);
+  });
+
+  it("reports named actionable cause (not error) when a consumer deposit has no cache (#3335)", () => {
+    const root = tempRoot();
+    const section = runCacheFreshOrientationSection(root, { depositSha: "deadbeef" });
+    expect(section.name).toBe("cache_fresh");
+    expect(section.status).toBe("dirty");
+    expect(section.status).not.toBe("error");
+    expect(section.ok).toBe(false);
+    expect(section.lines.join("\n")).toMatch(/triage cache not populated|triage:bootstrap/i);
+    expect(section.lines.join("\n")).not.toMatch(/status: "error"/);
   });
 });
