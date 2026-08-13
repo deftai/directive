@@ -50,6 +50,9 @@ describe("deriveAcceptanceClauses (#3323)", () => {
     expect(clauses).toHaveLength(2);
     expect(clauses[0]?.artifact_path).toBe("CHANGELOG.md");
     expect(clauses[1]?.artifact_path).toBe("packages/core/src/verify-ac/clauses.ts");
+    const padded = deriveAcceptanceClauses(`Test:${" ".repeat(80)}CHANGELOG.md exists\n`);
+    expect(padded).toHaveLength(1);
+    expect(padded[0]?.artifact_path).toBe("CHANGELOG.md");
   });
 
   it("skips Relates meta lines and empty input", () => {

@@ -41,7 +41,7 @@ export interface ClauseWalkReport {
 }
 
 const SECTION_HEADING = /^(#{1,6})\s+(acceptance(?:\s+criteria|\s+sketch)?|fix)\s*$/i;
-const LABELED_AC = /^(?:test|acceptance(?:criteria)?)\s*:\s*(.+)$/i;
+const LABELED_AC_PREFIXES = ["test:", "acceptance:", "acceptancecriteria:"] as const;
 const META_CLAUSE = /^(relates?\s+#|refs?\s+#)/i;
 const FILE_EXT = /\.(?:ts|tsx|js|mjs|cjs|json|md|go|py|yml|yaml|txt)$/i;
 const SCRATCH_SEGMENTS = new Set([
@@ -142,12 +142,27 @@ function collectSectionItems(text: string, headingRe: RegExp): string[] {
   return items;
 }
 
+function matchLabeledAcLine(line: string): string | null {
+  const trimmed = line.trim();
+  if (trimmed.length === 0) {
+    return null;
+  }
+  const lower = trimmed.toLowerCase();
+  for (const prefix of LABELED_AC_PREFIXES) {
+    if (!lower.startsWith(prefix)) {
+      continue;
+    }
+    const body = trimmed.slice(prefix.length).trim();
+    return body.length > 0 ? body : null;
+  }
+  return null;
+}
+
 function collectLabeledLines(text: string): string[] {
   const items: string[] = [];
   for (const line of text.split("\n")) {
-    const match = LABELED_AC.exec(line.trim());
-    const body = match?.[1]?.trim() ?? "";
-    if (body.length > 0 && !isMetaClause(body)) {
+    const body = matchLabeledAcLine(line);
+    if (body !== null && !isMetaClause(body)) {
       items.push(normalizeClauseText(body));
     }
   }
