@@ -1,0 +1,124 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3321",
+    "updated": "2026-08-13T02:10:49Z"
+  },
+  "plan": {
+    "title": "bug(regression): two hard-task regressions introduced at 0.99 survive 0.101 - field-solved and directive-solved at 0.92, and the done-gate turn-sink explanation is now disconfirmed",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(regression): two hard-task regressions introduced at 0.99 survive 0.101 - field-solved and directive-solved at 0.92, and the done-gate turn-sink explanation is now disconfirmed. This story is scoped for through-merge on the growing cohort.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3321",
+      "Overview": "**TL;DR: two hard tasks that directive solved at 0.92 broke at 0.99 and are still broken at 0.101. Both are solved by every comparison arm on the same model, including no-framework. The done-gate turn-sink explanation we landed on in the 0.99 forensics is now disconfirmed — 0.101 cut gate invocations by roughly an order of magnitude and both tasks still fail. Something else in the 0.92 -> 0.99 delta is responsible and is still shipping. Ask is a bisect.**\n\n**Evidence (internal benchmark, private; one mid-tier stack, two hard non-project tasks, n=1 per task per version but four observations across two versions):**\n\n| | 0.87 | 0.92 | 0.99 | 0.101 |\n|---|---|---|---|---|\n| task A | — | pass | **fail** | **fail** |\n| task B | pass | pass | **fail** | **fail** |\n\nBase rates on the same model and bank, which is what makes this attributable rather than noise:\n\n- **Task A is solved by 11 of 14 arms**, including the no-framework control and every comparison framework on that stack. Directive 0.92 solved it. Directive 0.99 and 0.101 are two of the three failures.\n- **Task B is solved by the no-framework control, two comparison frameworks, and directive's own 0.87 and 0.92.** Directive 0.99 and 0.101 fail.\n\nThese are not capability walls. The model solves both tasks unaided. Directive solved both before 0.99 and does not solve either now. That is a framework-attributable regression that has survived two releases.\n\n## What this rules out\n\nThe 0.99 forensics attributed these two failures to the done-gate turn sink: 44–47% of all agent turns spent making `directive check` pass in a toolchain-incomplete container, crowding product verification into the last 1–2 turns. #3282 fixed that — 0.101 telemetry shows **2–8 gate invocations per trial**, down from consuming nearly half of all turns, and mean turns dropped 20% with cost down 18%.\n\n**Both tasks still fail.** So the turn sink was real, was fixed, and was not the cause — or at minimum not the sole cause. The 0.99 forensic conclusion needs amending and the actual defect is still unidentified and still shipping.\n\nThis also means #3284 (product-first done-gate, AC runs first and never degrades) and #3267 (literal acceptance-command verification) did not recover these tasks, despite both being aimed squarely at silent product-verification failure. Either they are not firing on these tasks, or the stated-AC ladder does not reach what is actually broken. That is decidable from telemetry once #3319 lands.\n\n## Ask\n\n**Bisect 0.92 -> 0.99.** That range is the only place the defect can be. It is a large range and this is deliberately not a thin-slice issue — it is an investigation, and the first deliverable is a named cause, not a fix.\n\nSuggested order, cheapest first:\n\n1. Diff the gate / verification composition between 0.92 and 0.99 for the affected profile. #3225 (advisory-verdict blocking, made previously-advisory failures mandatory) is the leading suspect on prior-art grounds and was already flagged as a likely multiplier in #3282.\n2. Check whether the ceremony dial (#3214) changed effective behaviour for this profile across that range, independent of the #3274 cold-start work that came later.\n3. Reproduce locally against the two task shapes rather than waiting on external run cadence — both are ordinary hard engineering tasks, not benchmark-specific.\n\n## Acceptance sketch\n\n- A named cause in the 0.92 -> 0.99 range, with the mechanism explained, not just a bisect commit.\n- A regression test at the appropriate boundary so the class cannot silently return.\n- The 0.99 forensic conclusion amended wherever it is recorded, since \"the done-gate turn sink caused these two failures\" is now known to be wrong.\n- If the cause turns out to be an intentional behaviour change, an explicit decision recorded on why it is worth the two tasks — per #3156 the resolution must not be to relax the gate that surfaced it.\n\nRelates #3282 (turn sink, fixed — and the fix is what disconfirmed the old explanation), #3284 / #3267 (did not recover these), #3319 (escalation telemetry needed to decide \"not firing\" vs \"insufficient\"), #3225 (leading suspect), #3214 (ceremony dial), #3156 (gate integrity).\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-08-13T00:40:55Z)\n\n**Evidence update from the failing transcripts (internal benchmark, private) — reprioritizes this issue and weakens one of its claims.**\n\n**1. Task B's regression signal is weaker than the body states.** The body says task B is \"solved by the no-framework control.\" That is true of one control on the same model but **the same-harness no-framework control also fails task B**, and one comparison framework scores partial credit on it. Task B is variance-prone on this stack independent of directive. Task A remains the clean signal: every other same-harness arm passes it (6/6), only the two post-0.92 directive versions fail. **Bisect effort should go to task A first.**\n\n**2. Budget exhaustion is ruled out as the mechanism.** Both failing runs finished at roughly a third of max turns. The regression is not \"ceremony consumed the budget.\"\n\n**3. What the transcripts actually show (task A):** the agent produced a solution and verified output equivalence mid-run. It then spent ~25 turns on lifecycle + toolchain work (including the #3282-class self-build fight — see #3324), and re-verified at the end. The final check **contradicted** the earlier pass; the agent repaired the comparison apparatus rather than the product, observed green, and shipped a confident success claim. Verifier: 0. The mechanism is oracle self-adjudication, now filed as #3322; the process-shape contribution is that ~25 turns of unrelated work sat between verification and ship, creating a stale-verification window in which the contradiction had to be adjudicated under end-of-run pressure.\n\n**4. Task B's transcript** shows thorough self-authored tests that passed — the same-author-oracle failure mode, filed as #3323.\n\nBisect guidance updated accordingly: the 0.92 → 0.99 delta to hunt is whatever inserted or lengthened the verify-to-ship gap and the end-of-run re-verification pattern on this profile, with #3225 still the leading suspect. #3322/#3323 are the forward fixes independent of the bisect outcome.",
+      "Labels": "bug, agent-experience",
+      "UserStory": "As a maintainer, I want a named cause for the 0.92 to 0.99 hard-task regression, so that we stop shipping a framework-attributable fail that the model solves unaided.",
+      "ImplementationPlan": "Investigation first: bisect 0.92 to 0.99 on task A (comment 2026-08-13: task B is variance-prone; same-harness no-framework also fails B). Hunt what inserted the verify-to-ship gap and end-of-run re-verification; #3225 remains leading suspect. Write a named-cause analysis under docs/analysis, amend the 0.99 forensic conclusion wherever recorded, record a decision if the cause is intentional (#3156: do not relax the gate). Add a regression test at the appropriate boundary if a product fix is in-scope; otherwise file the fix follow-up and land the analysis+amendment+CHANGELOG. Do not edit packages/core/src/check or release. Cite #3321. Comment: #3322/#3323 are separate forward fixes.",
+      "AcceptanceJustification": "3 items from issue body.",
+      "Decisions": "- xbrief/decisions/2026-08-13-keep-3153-3145-3225-despite-3321.decision.json — Keep #3153 default merge-ready, #3214 ceremony dial, #3145 consumer check trio, and #3225 advisory-verdict blocking. Do not relax those gates or consumer check composition to recover the two 0.92-0.99 hard-task fails. The two tasks are not worth weakening gate integrity."
+    },
+    "items": [
+      {
+        "title": "named cause",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "A named 0.92-0.99 cause with mechanism, prioritizing task A per the 2026-08-13 comment."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3326 merge 6ff4e630e77d2b4db81fa827e88ac9f806238974",
+          "recorded_at": "2026-08-13T02:10:00Z",
+          "recorded_by": "3321-leaf"
+        }
+      },
+      {
+        "title": "forensic amendment",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "The 0.99 done-gate turn-sink explanation is amended wherever recorded."
+        },
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/issues/3282#issuecomment-5274770513",
+          "recorded_at": "2026-08-13T02:10:00Z",
+          "recorded_by": "3321-leaf"
+        }
+      },
+      {
+        "title": "regression or follow-up",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "A boundary regression test lands, or an explicit follow-up issue is filed if the cause is not closable in this PR; CHANGELOG cites #3321."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/policy/ceremony-dial.test.ts deposit-as-project classifier + https://github.com/deftai/directive/issues/3325",
+          "recorded_at": "2026-08-13T02:10:00Z",
+          "recorded_by": "3321-leaf"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3321",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3321: bug(regression): two hard-task regressions introduced at 0.99 survive 0.101 - field-solved and directive-solved at 0.92, and the done-gate turn-sink explanation is now disconfirmed"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "project_floor",
+      "derived_reason": "no shell acceptance commands stated in task text; floor until agent derives AC (#3284 ladder)"
+    },
+    "id": "3321-bisect-092-099-hard-task-regression",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "docs/analysis",
+          "xbrief/decisions",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [],
+        "expected_outputs": [
+          "3321-bisect-092-099-hard-task-regression",
+          "CHANGELOG"
+        ],
+        "depends_on": [],
+        "conflict_group": "growing-cohort-3319-3324",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Issue body plus comments 2026-08-13.",
+        "acceptance_criteria_justification": "3 items from issue AC sketch."
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 3326,
+        "prBase": "master",
+        "mergeCommit": "6ff4e630e77d2b4db81fa827e88ac9f806238974",
+        "deliveryBranch": "master",
+        "deliveryCommit": "6ff4e630e77d2b4db81fa827e88ac9f806238974",
+        "verifiedAt": "2026-08-13T02:10:49Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-13T02:10:49Z",
+      "capacityBucket": "technical-debt"
+    },
+    "updated": "2026-08-13T02:10:49Z"
+  }
+}
