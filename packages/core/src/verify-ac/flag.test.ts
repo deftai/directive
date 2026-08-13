@@ -129,6 +129,40 @@ describe("flagPassAfterFailWithMethodChange (#3322)", () => {
     expect(flagged).toEqual([]);
   });
 
+  it("does not keep a re-derived pass as an active failure", () => {
+    const flagged = flagPassAfterFailWithMethodChange([
+      {
+        check_id: "eq",
+        method_fingerprint: "diff-v1",
+        outcome: "fail",
+        independent_rederivation: false,
+        session_id: "s1",
+      },
+      {
+        check_id: "eq",
+        method_fingerprint: "json-v2",
+        outcome: "pass",
+        independent_rederivation: true,
+        session_id: "s1",
+      },
+      {
+        check_id: "eq",
+        method_fingerprint: "csv-v3",
+        outcome: "pass",
+        independent_rederivation: false,
+        session_id: "s1",
+      },
+    ]);
+    expect(flagged).toEqual([
+      {
+        check_id: "eq",
+        failed_method: "diff-v1",
+        passed_method: "json-v2",
+        independent_rederivation: true,
+      },
+    ]);
+  });
+
   it("does not pair a fail in one session with a pass in another", () => {
     const flagged = flagPassAfterFailWithMethodChange([
       {

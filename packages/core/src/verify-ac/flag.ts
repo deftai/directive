@@ -105,6 +105,7 @@ export function flagPassAfterFailWithMethodChange(
       passed_method: attempt.method_fingerprint,
       independent_rederivation: attempt.independent_rederivation,
     });
+    lastFail.delete(key);
   }
   return flagged;
 }

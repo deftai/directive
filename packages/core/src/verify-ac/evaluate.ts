@@ -5,6 +5,7 @@
  * fail → method-change → pass without independent_rederivation fails closed.
  */
 
+import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { LiteralAcceptanceRunResult } from "../literal-acceptance/types.js";
@@ -68,7 +69,7 @@ export function emitVerifyAcAttempts(options: {
     const sessionId =
       options.sessionId?.trim() ||
       (typeof env.DEFT_SESSION_ID === "string" ? env.DEFT_SESSION_ID.trim() : "") ||
-      "verify-ac";
+      randomUUID();
     const emitter = new RunSummaryEmitter({
       projectRoot: resolve(options.projectRoot),
       sessionId,
