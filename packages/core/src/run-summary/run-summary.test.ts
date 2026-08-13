@@ -6,6 +6,7 @@ import { RunSummaryEmitter } from "./emit.js";
 import {
   DEFAULT_RUN_SUMMARY_BASENAME,
   ENV_RUN_SUMMARY_PATH,
+  ENV_TOTAL_TOOL_TURNS,
   gitignoreCoversRunSummary,
   RUN_SUMMARY_STDOUT_PREFIX,
   RUN_SUMMARY_WRITE_WARNING,
@@ -314,5 +315,39 @@ describe("RunSummaryEmitter (#3282)", () => {
     expect(result.emitted).toBe(false);
     expect(stdout).toEqual([]);
     expect(stderr).toEqual([]);
+  });
+
+  it("stamps DEFT_TOTAL_TOOL_TURNS onto production events when set (#3320)", () => {
+    const root = freshRoot("run-summary-env-denom-");
+    const out = join(root, "summary.jsonl");
+    const emitter = new RunSummaryEmitter({
+      projectRoot: root,
+      sessionId: "sess-env",
+      frameworkVersion: "0.0.0",
+      env: { [ENV_RUN_SUMMARY_PATH]: out, [ENV_TOTAL_TOOL_TURNS]: "40" },
+    });
+    emitter.emitCheckInvocation({ target: "check:consumer", exit_code: 0, gates: [] });
+    const line = JSON.parse(readFileSync(out, "utf8").trim()) as {
+      event: string;
+      total_tool_turns?: number;
+    };
+    expect(line.event).toBe("check_invocation");
+    expect(line.total_tool_turns).toBe(40);
+  });
+
+  it("does not invent a denominator from an invalid DEFT_TOTAL_TOOL_TURNS (#3320)", () => {
+    const root = freshRoot("run-summary-env-bad-");
+    const out = join(root, "summary.jsonl");
+    const emitter = new RunSummaryEmitter({
+      projectRoot: root,
+      sessionId: "sess-env-bad",
+      frameworkVersion: "0.0.0",
+      env: { [ENV_RUN_SUMMARY_PATH]: out, [ENV_TOTAL_TOOL_TURNS]: "nope" },
+    });
+    emitter.emitCheckInvocation({ target: "check:consumer", exit_code: 0, gates: [] });
+    const line = JSON.parse(readFileSync(out, "utf8").trim()) as {
+      total_tool_turns?: number;
+    };
+    expect(line.total_tool_turns).toBeUndefined();
   });
 });

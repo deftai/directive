@@ -10,6 +10,9 @@ export const RUN_SUMMARY_SCHEMA_VERSION = 1 as const;
 /** Env var that opts into / redirects run-summary JSONL (#3282). */
 export const ENV_RUN_SUMMARY_PATH = "DEFT_RUN_SUMMARY_PATH";
 
+/** Harness-supplied session tool/turn total stamped onto run-summary lines (#3320). */
+export const ENV_TOTAL_TOOL_TURNS = "DEFT_TOTAL_TOOL_TURNS";
+
 /** Repo-root default collectible path when gitignore coverage is present. */
 export const DEFAULT_RUN_SUMMARY_BASENAME = ".deft-run-summary.json";
 

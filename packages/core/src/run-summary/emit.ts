@@ -16,6 +16,7 @@ import {
   type CheckInvocationRunSummaryPayload,
   type DialEscalationEvaluationRunSummaryPayload,
   type DialTransitionRunSummaryPayload,
+  ENV_TOTAL_TOOL_TURNS,
   RUN_SUMMARY_SCHEMA_VERSION,
   RUN_SUMMARY_STDOUT_PREFIX,
   RUN_SUMMARY_WRITE_WARNING,
@@ -137,6 +138,7 @@ export class RunSummaryEmitter {
   private readonly frameworkVersion: string;
   private readonly now: () => Date;
   private readonly destination: RunSummaryDestination;
+  private readonly env: NodeJS.ProcessEnv;
   private readonly writeStdout: (line: string) => void;
   private readonly writeStderr: (line: string) => void;
 
@@ -145,10 +147,11 @@ export class RunSummaryEmitter {
     this.sessionId = options.sessionId;
     this.frameworkVersion = options.frameworkVersion ?? readCorePackageVersion();
     this.now = options.now ?? (() => new Date());
+    this.env = options.env ?? process.env;
     this.destination =
       options.destination ??
       resolveRunSummaryDestination(options.projectRoot, {
-        env: options.env,
+        env: this.env,
         gitignoreCovers: options.gitignoreCovers,
       });
     this.writeStdout = options.writeStdout ?? ((line) => process.stdout.write(`${line}\n`));
@@ -165,7 +168,8 @@ export class RunSummaryEmitter {
         return { emitted: false, destination: this.destination, line: null, warning: false };
       }
       this.seq += 1;
-      const denominator = readPayloadToolTurnDenominator(payload);
+      const denominator =
+        readPayloadToolTurnDenominator(payload) ?? readEnvToolTurnDenominator(this.env);
       const line: RunSummaryLine = {
         schema_version: RUN_SUMMARY_SCHEMA_VERSION,
         session_id: this.sessionId,
@@ -232,6 +236,19 @@ function readPayloadToolTurnDenominator(payload: RunSummaryPayload): number | un
   }
   const value = payload.total_tool_turns;
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+/** Parse harness-supplied DEFT_TOTAL_TOOL_TURNS (integer > 0). Invalid/unset → omit. */
+export function readEnvToolTurnDenominator(env: NodeJS.ProcessEnv): number | undefined {
+  const raw = env[ENV_TOTAL_TOOL_TURNS];
+  if (raw === undefined || raw.trim().length === 0) {
+    return undefined;
+  }
+  const n = Number(raw.trim());
+  if (!Number.isInteger(n) || !Number.isFinite(n) || n <= 0) {
+    return undefined;
+  }
+  return n;
 }
 
 /**

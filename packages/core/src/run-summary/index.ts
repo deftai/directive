@@ -23,6 +23,7 @@ export {
   type DialEscalationEvaluationRunSummaryPayload,
   type DialTransitionRunSummaryPayload,
   ENV_RUN_SUMMARY_PATH,
+  ENV_TOTAL_TOOL_TURNS,
   RUN_SUMMARY_EVENT_KINDS,
   RUN_SUMMARY_SCHEMA_VERSION,
   RUN_SUMMARY_STDOUT_PREFIX,
