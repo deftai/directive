@@ -133,6 +133,7 @@ function evaluatePaths(
       quiet: options.quiet,
       softMissingXbrief: options.softMissingXbrief,
       checkIntegrated: options.softMissingXbrief,
+      env: process.env,
     });
     if (result.message.length > 0) {
       if (result.ok) {

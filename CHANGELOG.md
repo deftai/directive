@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Product-oracle gate integrity (#3322).** A red product verification may be resolved only by a product change or an independently re-derived oracle. Run-summary `verification` events record `{check_id, method_fingerprint, outcome}`; `fail` then method-change then `pass` on one check id is flagged. `verify:ac` fails closed unless `independent_rederivation` is recorded. Build + pre-pr MUST/⊗ via pack source. Extends #3156. Closes #3322. Refs #3282, #3319, #3320, #1006, #3265.
+
 - **Named cause for the 0.92→0.99 hard-task regression (#3321).** Default merge-ready (#3153) inserted the post-product verify-to-ship gap; ceremony dial + deposit-as-project (#3214) and the #3145 consumer-check trio lengthen that tail. #3225 is not the inserter. Amends the 0.99 #3282 turn-sink-as-cause conclusion. Gates kept (#3156). Follow-up #3325. Closes #3321.
 
 - **Overlap dispose via `decision:write` + list-before-recommend (#3315).** Portfolio-priority documents human overlap-cluster dispose (every member in `relatedIssues`, required `revisitTrigger`) and parks already-disposed pairs after `task decision:list -- --issue N`. Dedicated ledger deferred until a pass re-litigates despite a dispose record (#3310). Closes #3315. Refs #3310.
@@ -25,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Retire the coverageDebt/checkResume consent ritual; keep two plain settings (#3314).** Session-start no longer quizzes Strict / Hatch-aware / Later. `policy:coverage-check-resume-preset|later|dismiss` and the nudge/preset modules are gone. `coverageDebt.mode` and `checkResume.localStamp` stay as optional fail-closed fields (default off). Interactive mutation ritual prints one disclosure line when either is non-default. Hatch and local stamp are reserved; live hatch is `--allow-coverage-debt=#N` (#2866). Closes #3314. Refs #3189, #3187, #2866.
 
 ### Fixed
+
+- **verify:ac fails closed on stdout run-summary dest (#3322).** `DEFT_RUN_SUMMARY_PATH=-` evaluates the in-process verification attempts from this invocation instead of treating non-file dest as no evidence. File dest still reads the file; unset dest stays fail-open/silent.
 
 - **Go installer plants the #3324 consumer-deposit marker on `.deft/core` and `--legacy-layout` `deft/` (#3331).** After vendor or upgrade, `deft-install` writes `.deft-consumer-deposit` into the deposit root so `engine:invoke` does not treat a source-looking tarball as buildable framework source. Engine dispatch honor stays on #3324. Genuine source checkouts are unchanged. Refs #3324, #3329, #3282, #2022.
 

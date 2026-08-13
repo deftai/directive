@@ -29,6 +29,7 @@ export const RUN_SUMMARY_EVENT_KINDS = [
   "dial_escalation_evaluation",
   "check_invocation",
   "tool_turn_denominator",
+  "verification",
 ] as const;
 
 export type RunSummaryEventKind = (typeof RUN_SUMMARY_EVENT_KINDS)[number];
@@ -100,12 +101,28 @@ export interface ToolTurnDenominatorRunSummaryPayload {
   readonly total_tool_turns: number;
 }
 
+/** Product-oracle attempt (#3322). Same emitter as #3319 / #3320. */
+export type VerificationOutcome = "pass" | "fail";
+
+export interface VerificationRunSummaryPayload {
+  readonly check_id: string;
+  readonly method_fingerprint: string;
+  readonly outcome: VerificationOutcome;
+  /**
+   * True when both sides of the comparison were rebuilt from scratch by a
+   * different method than the one that failed. Required to resolve
+   * fail → method-change → pass (#3322).
+   */
+  readonly independent_rederivation?: boolean;
+}
+
 export type RunSummaryPayload =
   | SessionStartRunSummaryPayload
   | DialTransitionRunSummaryPayload
   | DialEscalationEvaluationRunSummaryPayload
   | CheckInvocationRunSummaryPayload
-  | ToolTurnDenominatorRunSummaryPayload;
+  | ToolTurnDenominatorRunSummaryPayload
+  | VerificationRunSummaryPayload;
 
 export type RunSummaryLine = RunSummaryBaseFields & {
   readonly payload: RunSummaryPayload;

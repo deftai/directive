@@ -94,6 +94,7 @@ export * as vbriefBuild from "./vbrief-build/index.js";
 export * as vbriefReconcile from "./vbrief-reconcile/index.js";
 export * as vbriefValidate from "./vbrief-validate/index.js";
 export * as vbriefValidation from "./vbrief-validation/index.js";
+export * as verifyAc from "./verify-ac/index.js";
 export * as verifyEnv from "./verify-env/index.js";
 export * as verifySource from "./verify-source/index.js";
 export * as wipCap from "./wip-cap/index.js";

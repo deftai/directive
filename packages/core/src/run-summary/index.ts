@@ -35,4 +35,6 @@ export {
   type RunSummaryPayload,
   type SessionStartRunSummaryPayload,
   type ToolTurnDenominatorRunSummaryPayload,
+  type VerificationOutcome,
+  type VerificationRunSummaryPayload,
 } from "./types.js";

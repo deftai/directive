@@ -366,6 +366,15 @@ task verify:ac -- <active-story-path>
 - ⊗ Skip this gate because ceremony dial is rapid/minimal — rapid's positive content is exactly this check (#3284).
 - ⊗ Leave `plan.acceptance.commands` empty without `none_stated: true` — absence must be an explicit decision.
 
+## Product-oracle gate integrity (#3322 / #3156)
+
+A red product verification may be resolved only by a product change or an independently re-derived oracle (both sides rebuilt from scratch, different method). In-place repair of the failing comparison then pass is not a pass — it is an unresolved discrepancy.
+
+- ! When a product oracle is red, resolve it by changing the product or by independently re-deriving the oracle, and record `independent_rederivation` on the run-summary `verification` event.
+- ! Emit a run-summary verification event `{check_id, method_fingerprint, outcome}` for each product-oracle attempt when `DEFT_RUN_SUMMARY_PATH` is set. `fail` then a different `method_fingerprint` then `pass` on one check id is machine-flagged.
+- ! `task verify:ac` treats comparison-method mutation as unresolved (exit non-zero) unless independent re-derivation is recorded. Lead the done report with any unresolved discrepancy (#1006).
+- ⊗ Self-adjudicate a red product oracle by editing the comparison (reference file, diff invocation, one-sided regenerate) and shipping the new pass as success.
+
 ## Operator-log hygiene (lazy-load, #1940)
 
 When the story touches **operator-facing** services (dashboards, multi-process
@@ -510,3 +519,4 @@ Docs: `docs/decision-log.md` · `xbrief/decisions/README.md`.
 - ⊗ Silently skip deepening for budget without a fail-loud summary note (#3266 / #1006)
 - ⊗ Chase post-bank out-of-scope findings when surplus budget is insufficient — report, do not thrash the banked pass (#3285)
 - ⊗ Skip finalize-on-green after first stated AC pass under a hard budget (#3285)
+- ⊗ Clear a red product oracle by editing the comparison method then treating the new pass as a pass — record independent re-derivation or fix the product (#3322 / #3156)
