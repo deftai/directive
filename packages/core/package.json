@@ -292,6 +292,10 @@
       "types": "./dist/product-first-done-gate/index.d.ts",
       "default": "./dist/product-first-done-gate/index.js"
     },
+    "./verify-ac": {
+      "types": "./dist/verify-ac/index.d.ts",
+      "default": "./dist/verify-ac/index.js"
+    },
     "./packs": {
       "types": "./dist/packs/index.d.ts",
       "default": "./dist/packs/index.js"

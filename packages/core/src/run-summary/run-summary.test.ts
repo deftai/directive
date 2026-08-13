@@ -298,6 +298,75 @@ describe("RunSummaryEmitter (#3282)", () => {
     expect(line.payload.total_tool_turns).toBe(32);
   });
 
+  it("emits verification events with check_id, method_fingerprint, and outcome (#3322)", () => {
+    const root = freshRoot("run-summary-verify-");
+    const out = join(root, "summary.jsonl");
+    const emitter = new RunSummaryEmitter({
+      projectRoot: root,
+      sessionId: "sess-verify",
+      frameworkVersion: "0.0.0",
+      env: { [ENV_RUN_SUMMARY_PATH]: out },
+    });
+    const failed = emitter.emitVerification({
+      check_id: "output-eq",
+      method_fingerprint: "diff-ref-v1",
+      outcome: "fail",
+    });
+    const passed = emitter.emitVerification({
+      check_id: "output-eq",
+      method_fingerprint: "json-rebuilt-v2",
+      outcome: "pass",
+    });
+    expect(failed.emitted).toBe(true);
+    expect(passed.emitted).toBe(true);
+    const lines = readFileSync(out, "utf8")
+      .trim()
+      .split("\n")
+      .map(
+        (l) =>
+          JSON.parse(l) as {
+            event: string;
+            payload: {
+              check_id: string;
+              method_fingerprint: string;
+              outcome: string;
+            };
+          },
+      );
+    expect(lines).toHaveLength(2);
+    expect(lines[0]?.event).toBe("verification");
+    expect(lines[0]?.payload).toEqual({
+      check_id: "output-eq",
+      method_fingerprint: "diff-ref-v1",
+      outcome: "fail",
+    });
+    expect(lines[1]?.payload.outcome).toBe("pass");
+    expect(lines[1]?.payload.method_fingerprint).toBe("json-rebuilt-v2");
+  });
+
+  it("stays silent for verification when path is unset (#3322)", () => {
+    const root = freshRoot("run-summary-verify-silent-");
+    const stdout: string[] = [];
+    const stderr: string[] = [];
+    const emitter = new RunSummaryEmitter({
+      projectRoot: root,
+      sessionId: "s",
+      frameworkVersion: "0.0.0",
+      env: {},
+      gitignoreCovers: () => false,
+      writeStdout: (line) => stdout.push(line),
+      writeStderr: (line) => stderr.push(line),
+    });
+    const result = emitter.emitVerification({
+      check_id: "output-eq",
+      method_fingerprint: "diff-ref-v1",
+      outcome: "fail",
+    });
+    expect(result.emitted).toBe(false);
+    expect(stdout).toEqual([]);
+    expect(stderr).toEqual([]);
+  });
+
   it("stays silent for tool_turn_denominator when path is unset (#3320)", () => {
     const root = freshRoot("run-summary-denom-silent-");
     const stdout: string[] = [];

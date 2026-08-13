@@ -26,6 +26,7 @@ import {
   type RunSummaryPayload,
   type SessionStartRunSummaryPayload,
   type ToolTurnDenominatorRunSummaryPayload,
+  type VerificationRunSummaryPayload,
 } from "./types.js";
 
 export interface RunSummaryEmitterOptions extends ResolveRunSummaryDestinationOptions {
@@ -227,6 +228,10 @@ export class RunSummaryEmitter {
 
   emitToolTurnDenominator(payload: ToolTurnDenominatorRunSummaryPayload): EmitRunSummaryResult {
     return this.emit("tool_turn_denominator", payload);
+  }
+
+  emitVerification(payload: VerificationRunSummaryPayload): EmitRunSummaryResult {
+    return this.emit("verification", payload);
   }
 
   /** Emit the harness-supplied denominator when DEFT_TOTAL_TOOL_TURNS is set. */

@@ -181,6 +181,15 @@ When session effort-budget is hard-capped (`DEFT_MAX_TURNS` / `DEFT_MAX_BUDGET` 
 - ! Full `task check` already runs `verify:ac` first; still run it explicitly before push when AC is stated so failures are visible without the full hygiene suite.
 - ⊗ Skip AC run on rapid/minimal ceremony dial — rapid = AC-only; AC never degrades when commands exist (#3284 / #3156).
 
+## Product-oracle gate integrity (#3322 / #3156)
+
+A red product verification may be resolved only by a product change or an independently re-derived oracle (both sides rebuilt from scratch, different method). In-place repair of the failing comparison then pass is not a pass — it is an unresolved discrepancy.
+
+- ! When a product oracle is red, resolve it by changing the product or by independently re-deriving the oracle, and record `independent_rederivation` on the run-summary `verification` event.
+- ! Emit a run-summary verification event `{check_id, method_fingerprint, outcome}` for each product-oracle attempt when `DEFT_RUN_SUMMARY_PATH` is set. `fail` then a different `method_fingerprint` then `pass` on one check id is machine-flagged.
+- ! `task verify:ac` treats comparison-method mutation as unresolved (exit non-zero) unless independent re-derivation is recorded. Lead the done report with any unresolved discrepancy (#1006).
+- ⊗ Self-adjudicate a red product oracle by editing the comparison (reference file, diff invocation, one-sided regenerate) and shipping the new pass as success.
+
 ## Probe-then-fill remote claims (#3120)
 
 ! Before filling any **remote** handoff field (PR URL, PR number, commit/HEAD SHA, CI green/success, review score) or claiming `status: pass` / ship/gate done, MUST **probe then fill**:
@@ -228,5 +237,6 @@ Docs: `docs/decision-log.md`.
 - ⊗ Invent remote PR/SHA/CI/review claims in handoff evidence without same-turn probe binding — invented-done (#3120)
 - ⊗ Fill remote ship/gate fields from memory when only local work completed; legal partial omits PR fields (#3120)
 - ⊗ Clear a failing gate by editing the gate (definition, verifier, reward, required check, coverage floor, policy, eval fixture) instead of the work under test — gate integrity (#3156); see [docs/gate-integrity.md](../../docs/gate-integrity.md)
+- ⊗ Clear a red product oracle by editing the comparison method then treating the new pass as a pass — record independent re-derivation or fix the product (#3322 / #3156)
 - ⊗ Under a hard turn/cost budget, gold-plate pre-PR polish past the stated bar until the budget expires (#3266)
 - ⊗ Exit pre-PR after skipping deepen-for-budget without naming the skip in the summary (#3266 / #1006)

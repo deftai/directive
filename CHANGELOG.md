@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Product-oracle gate integrity (#3322).** A red product verification may be resolved only by a product change or an independently re-derived oracle. Run-summary `verification` events record `{check_id, method_fingerprint, outcome}`; `fail` then method-change then `pass` on one check id is flagged. `verify:ac` fails closed unless `independent_rederivation` is recorded. Build + pre-pr MUST/⊗ via pack source. Extends #3156. Closes #3322. Refs #3282, #3319, #3320, #1006, #3265.
+
 - **Named cause for the 0.92→0.99 hard-task regression (#3321).** Default merge-ready (#3153) inserted the post-product verify-to-ship gap; ceremony dial + deposit-as-project (#3214) and the #3145 consumer-check trio lengthen that tail. #3225 is not the inserter. Amends the 0.99 #3282 turn-sink-as-cause conclusion. Gates kept (#3156). Follow-up #3325. Closes #3321.
 
 - **Overlap dispose via `decision:write` + list-before-recommend (#3315).** Portfolio-priority documents human overlap-cluster dispose (every member in `relatedIssues`, required `revisitTrigger`) and parks already-disposed pairs after `task decision:list -- --issue N`. Dedicated ledger deferred until a pass re-litigates despite a dispose record (#3310). Closes #3315. Refs #3310.

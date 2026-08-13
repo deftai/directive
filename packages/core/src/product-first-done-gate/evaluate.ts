@@ -17,6 +17,7 @@ import {
   runLiteralAcceptanceCommands,
 } from "../literal-acceptance/index.js";
 import { maybeBankOnAcPass } from "../session/ac-pass-banking.js";
+import { evaluateProductOracleIntegrity, mergeOracleVerdict } from "../verify-ac/evaluate.js";
 import { readPlanAcceptance, validatePlanAcceptance } from "./acceptance.js";
 import type { AcSourceRung, PlanAcceptance } from "./types.js";
 
@@ -49,6 +50,15 @@ export interface EvaluateVerifyAcOptions extends EvaluateLiteralAcceptanceOption
   readonly bankOnPass?: boolean;
   /** Optional scope id override for the bank ledger (default plan.id / path). */
   readonly bankScopeId?: string | null;
+  /**
+   * Injected run-summary JSONL for product-oracle integrity (#3322).
+   * Undefined → read DEFT_RUN_SUMMARY_PATH / default dest; null → skip disk.
+   */
+  readonly runSummaryText?: string | null;
+  /** When false, skip #3322 oracle integrity. Default true. */
+  readonly applyOracleIntegrity?: boolean;
+  /** Env seam for run-summary dest resolution (#3322). */
+  readonly env?: NodeJS.ProcessEnv;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -69,16 +79,19 @@ export function evaluateVerifyAcFromPlan(
   const schemaErrors = validatePlanAcceptance(plan.acceptance ?? acceptance);
   // Only hard-fail schema when an explicit plan.acceptance object exists.
   if (plan.acceptance !== undefined && schemaErrors.length > 0) {
-    return {
-      ok: false,
-      code: 2,
-      message: `verify:ac config error (#3284): ${schemaErrors.join("; ")}`,
-      commands: [],
-      runs: [],
-      sourceRung: acceptance.source_rung,
-      noneStated: acceptance.none_stated,
-      acceptance,
-    };
+    return applyOracle(
+      {
+        ok: false,
+        code: 2,
+        message: `verify:ac config error (#3284): ${schemaErrors.join("; ")}`,
+        commands: [],
+        runs: [],
+        sourceRung: acceptance.source_rung,
+        noneStated: acceptance.none_stated,
+        acceptance,
+      },
+      options,
+    );
   }
 
   const projectRoot = resolve(options.projectRoot ?? process.cwd());
@@ -115,7 +128,7 @@ export function evaluateVerifyAcFromPlan(
       })),
       { projectRoot, runner, allowTaskStatement: options.allowTaskStatement },
     );
-    return annotate(direct, acceptance, options.quiet);
+    return applyOracle(annotate(direct, acceptance, options.quiet), options);
   }
 
   // Check composition: mid-story unpromoted capture-only may soft-pass so the
@@ -125,32 +138,47 @@ export function evaluateVerifyAcFromPlan(
   if (options.checkIntegrated === true && !base.ok && base.runs.length === 0) {
     const hasRejected = (base.rejected?.length ?? 0) > 0;
     if (hasRejected) {
-      return annotate(base, acceptance, options.quiet);
+      return applyOracle(annotate(base, acceptance, options.quiet), options);
     }
     const unpromoted =
       /capture-only|task_statement|no matching agent-promoted/i.test(base.message) ||
       (base.commands.length > 0 && base.commands.every((c) => c.source === "task_statement"));
     if (unpromoted || base.commands.length === 0) {
-      return {
-        ok: true,
-        code: 0,
-        message: options.quiet
-          ? ""
-          : `verify:ac advisory (#3284 check-integrated): no executable AC peers yet ` +
-            `(capture-only / empty). Done-gate standalone verify:ac still requires promotion. ` +
-            `[rung=${acceptance.source_rung}]\n` +
-            base.message,
-        commands: base.commands,
-        runs: [],
-        rejected: base.rejected,
-        sourceRung: acceptance.source_rung,
-        noneStated: acceptance.none_stated,
-        acceptance,
-      };
+      return applyOracle(
+        {
+          ok: true,
+          code: 0,
+          message: options.quiet
+            ? ""
+            : `verify:ac advisory (#3284 check-integrated): no executable AC peers yet ` +
+              `(capture-only / empty). Done-gate standalone verify:ac still requires promotion. ` +
+              `[rung=${acceptance.source_rung}]\n` +
+              base.message,
+          commands: base.commands,
+          runs: [],
+          rejected: base.rejected,
+          sourceRung: acceptance.source_rung,
+          noneStated: acceptance.none_stated,
+          acceptance,
+        },
+        options,
+      );
     }
   }
 
-  return annotate(base, acceptance, options.quiet);
+  return applyOracle(annotate(base, acceptance, options.quiet), options);
+}
+
+function applyOracle(result: VerifyAcResult, options: EvaluateVerifyAcOptions): VerifyAcResult {
+  if (options.applyOracleIntegrity === false) {
+    return result;
+  }
+  const verdict = evaluateProductOracleIntegrity({
+    projectRoot: resolve(options.projectRoot ?? process.cwd()),
+    runSummaryText: options.runSummaryText,
+    env: options.env ?? process.env,
+  });
+  return mergeOracleVerdict(result, verdict);
 }
 
 function annotate(
@@ -193,60 +221,72 @@ export function evaluateVerifyAcFromPath(
   const abs = resolve(xbriefPath);
   if (!existsSync(abs)) {
     if (options.softMissingXbrief) {
-      return softSkip(`xBRIEF not found: ${abs}`, options.quiet);
+      return applyOracle(softSkip(`xBRIEF not found: ${abs}`, options.quiet), options);
     }
-    return {
-      ok: false,
-      code: 2,
-      message: `verify:ac: xBRIEF not found: ${abs}`,
-      commands: [],
-      runs: [],
-      sourceRung: "project_floor",
-      noneStated: true,
-      acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
-    };
+    return applyOracle(
+      {
+        ok: false,
+        code: 2,
+        message: `verify:ac: xBRIEF not found: ${abs}`,
+        commands: [],
+        runs: [],
+        sourceRung: "project_floor",
+        noneStated: true,
+        acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
+      },
+      options,
+    );
   }
   let parsed: unknown;
   try {
     parsed = JSON.parse(readFileSync(abs, "utf8"));
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    return {
-      ok: false,
-      code: 2,
-      message: `verify:ac: unreadable xBRIEF (${msg}): ${abs}`,
-      commands: [],
-      runs: [],
-      sourceRung: "project_floor",
-      noneStated: true,
-      acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
-    };
+    return applyOracle(
+      {
+        ok: false,
+        code: 2,
+        message: `verify:ac: unreadable xBRIEF (${msg}): ${abs}`,
+        commands: [],
+        runs: [],
+        sourceRung: "project_floor",
+        noneStated: true,
+        acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
+      },
+      options,
+    );
   }
   const data = asRecord(parsed);
   if (data === null) {
-    return {
-      ok: false,
-      code: 2,
-      message: `verify:ac: xBRIEF top-level is not an object: ${abs}`,
-      commands: [],
-      runs: [],
-      sourceRung: "project_floor",
-      noneStated: true,
-      acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
-    };
+    return applyOracle(
+      {
+        ok: false,
+        code: 2,
+        message: `verify:ac: xBRIEF top-level is not an object: ${abs}`,
+        commands: [],
+        runs: [],
+        sourceRung: "project_floor",
+        noneStated: true,
+        acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
+      },
+      options,
+    );
   }
   const plan = asRecord(data.plan);
   if (plan === null) {
-    return {
-      ok: false,
-      code: 2,
-      message: `verify:ac: xBRIEF missing plan object: ${abs}`,
-      commands: [],
-      runs: [],
-      sourceRung: "project_floor",
-      noneStated: true,
-      acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
-    };
+    return applyOracle(
+      {
+        ok: false,
+        code: 2,
+        message: `verify:ac: xBRIEF missing plan object: ${abs}`,
+        commands: [],
+        runs: [],
+        sourceRung: "project_floor",
+        noneStated: true,
+        acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
+      },
+      options,
+    );
   }
   const result = evaluateVerifyAcFromPlan(plan, options);
   return maybeAttachAcPassBank(result, plan, abs, options);
