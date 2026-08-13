@@ -1326,6 +1326,7 @@ export function escalateCeremonyDial(
         outcome,
         reason,
       });
+      emitter.emitKnownToolTurnDenominator();
     } catch {
       // fail-open
     }
@@ -1392,6 +1393,7 @@ export function escalateCeremonyDial(
         reason: options.reason,
         evidence: options.evidence,
       });
+      emitter.emitKnownToolTurnDenominator();
     } catch {
       // fail-open
     }

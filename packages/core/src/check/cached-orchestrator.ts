@@ -143,6 +143,7 @@ export function dispatchCachedTaskCheck(
         degraded,
         gates: gateOutcomes,
       });
+      emitter.emitKnownToolTurnDenominator();
     } catch {
       // fail-open
     }

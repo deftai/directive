@@ -228,6 +228,15 @@ export class RunSummaryEmitter {
   emitToolTurnDenominator(payload: ToolTurnDenominatorRunSummaryPayload): EmitRunSummaryResult {
     return this.emit("tool_turn_denominator", payload);
   }
+
+  /** Emit the harness-supplied denominator when DEFT_TOTAL_TOOL_TURNS is set. */
+  emitKnownToolTurnDenominator(): EmitRunSummaryResult {
+    const n = readEnvToolTurnDenominator(this.env);
+    if (n === undefined) {
+      return { emitted: false, destination: this.destination, line: null, warning: false };
+    }
+    return this.emitToolTurnDenominator({ total_tool_turns: n });
+  }
 }
 
 function readPayloadToolTurnDenominator(payload: RunSummaryPayload): number | undefined {

@@ -141,6 +141,7 @@ export function emitCeremonyDialEscalationEvaluation(
       outcome: options.evaluation.outcome,
       reason: options.evaluation.reason,
     });
+    emitter.emitKnownToolTurnDenominator();
   } catch {
     // fail-open
   }

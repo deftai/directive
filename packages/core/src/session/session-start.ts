@@ -1615,6 +1615,7 @@ export function runSessionStart(
             }
           : {}),
       });
+      emitter.emitKnownToolTurnDenominator();
       // #3319: evaluate escalate-on-evidence only when #3274 is live. A pin
       // emits nothing so never-evaluated stays distinguishable from declined.
       if (!isCeremonyStartTierPinned(startTierProvenance)) {

@@ -350,4 +350,30 @@ describe("RunSummaryEmitter (#3282)", () => {
     };
     expect(line.total_tool_turns).toBeUndefined();
   });
+
+  it("emits tool_turn_denominator from production emitKnown when env is set (#3320)", () => {
+    const root = freshRoot("run-summary-known-");
+    const out = join(root, "summary.jsonl");
+    const emitter = new RunSummaryEmitter({
+      projectRoot: root,
+      sessionId: "sess-known",
+      frameworkVersion: "0.0.0",
+      env: { [ENV_RUN_SUMMARY_PATH]: out, [ENV_TOTAL_TOOL_TURNS]: "12" },
+    });
+    const missing = new RunSummaryEmitter({
+      projectRoot: root,
+      sessionId: "sess-known-missing",
+      frameworkVersion: "0.0.0",
+      env: { [ENV_RUN_SUMMARY_PATH]: out },
+    });
+    expect(missing.emitKnownToolTurnDenominator().emitted).toBe(false);
+    expect(emitter.emitKnownToolTurnDenominator().emitted).toBe(true);
+    const lines = readFileSync(out, "utf8")
+      .trim()
+      .split("\n")
+      .map((l) => JSON.parse(l) as { event: string; total_tool_turns?: number });
+    expect(lines).toHaveLength(1);
+    expect(lines[0]?.event).toBe("tool_turn_denominator");
+    expect(lines[0]?.total_tool_turns).toBe(12);
+  });
 });
