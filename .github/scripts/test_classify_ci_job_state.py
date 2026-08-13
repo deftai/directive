@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Unit tests for classify-ci-job-state.py (#2672 / #3168)."""
+"""Unit tests for classify-ci-job-state.py (#2672 / #3168 / #3340)."""
 
 from __future__ import annotations
 
@@ -56,14 +56,89 @@ class TestClassifyJob(unittest.TestCase):
         }
         self.assertEqual(mod.classify_job(job), "started")
 
-    def test_started_from_started_at_alone(self) -> None:
+    def test_started_at_alone_is_unclaimed(self) -> None:
+        """#3340 — started_at without runner_name is still unclaimed."""
         job = {
             "name": "TypeScript (Blacksmith primary) / run",
             "status": "in_progress",
             "started_at": "2026-08-06T12:00:00Z",
             "runner_name": None,
         }
-        self.assertEqual(mod.classify_job(job), "started")
+        self.assertEqual(mod.classify_job(job), "queued")
+
+    def test_queued_with_started_at_no_runner_is_unclaimed(self) -> None:
+        job = {
+            "name": "Merge gate (Blacksmith primary)",
+            "status": "queued",
+            "started_at": "2026-08-13T15:20:00Z",
+            "runner_name": None,
+        }
+        self.assertEqual(mod.classify_job(job), "queued")
+
+    def test_empty_runner_name_is_unclaimed(self) -> None:
+        job = {
+            "name": "Go (Blacksmith primary) / run",
+            "status": "in_progress",
+            "started_at": "2026-08-13T15:20:00Z",
+            "runner_name": "  ",
+        }
+        self.assertEqual(mod.classify_job(job), "queued")
+        self.assertFalse(mod.runner_claimed(job))
+
+    def test_reusable_caller_in_progress_without_inner_runner_is_unclaimed(self) -> None:
+        """Caller in_progress is not a claim; inner still waiting → queued (#3340)."""
+        payload = {
+            "jobs": [
+                {
+                    "name": "TypeScript (Blacksmith primary)",
+                    "status": "in_progress",
+                    "started_at": "2026-08-13T15:20:00Z",
+                    "runner_name": None,
+                },
+                {
+                    "name": "TypeScript (Blacksmith primary) / run",
+                    "status": "queued",
+                    "started_at": None,
+                    "runner_name": None,
+                },
+            ]
+        }
+        self.assertEqual(
+            mod.classify_jobs_payload("typescript (blacksmith primary)", payload),
+            "queued",
+        )
+
+    def test_reusable_inner_runner_is_claimed(self) -> None:
+        payload = {
+            "jobs": [
+                {
+                    "name": "TypeScript (Blacksmith primary)",
+                    "status": "in_progress",
+                    "started_at": "2026-08-13T15:20:00Z",
+                    "runner_name": None,
+                },
+                {
+                    "name": "TypeScript (Blacksmith primary) / run",
+                    "status": "in_progress",
+                    "started_at": "2026-08-13T15:21:00Z",
+                    "runner_name": "blacksmith-abc",
+                },
+            ]
+        }
+        self.assertEqual(
+            mod.classify_jobs_payload("typescript (blacksmith primary)", payload),
+            "started",
+        )
+
+    def test_cancelled_with_started_at_no_runner_is_capacity_death(self) -> None:
+        job = {
+            "name": "Merge gate (Blacksmith primary)",
+            "status": "completed",
+            "conclusion": "cancelled",
+            "started_at": "2026-08-13T15:20:00Z",
+            "runner_name": None,
+        }
+        self.assertEqual(mod.classify_job(job), "cancelled_unclaimed")
 
     def test_done_success(self) -> None:
         job = {

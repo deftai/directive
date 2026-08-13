@@ -393,9 +393,9 @@ Following a v1.0.0 release, commits:
 
 **Framework CI runners (#2672)**:
 - ! `deftai/directive` required CI prefers Blacksmith (`blacksmith-4vcpu-ubuntu-2404`) for TypeScript and Go cost
-- ! Capacity watchdog (~20 minute budget): if a Blacksmith primary job stays `queued` with `runner_name` null and no `started_at`, cancel that queued attempt (concurrency cancel-in-progress) and run the same suite on `ubuntu-latest`
-- ! Branch-protection required check names (`TypeScript (build + lint + test)`, `Go (test + build)`) live **only** on the aggregator jobs — never on primary/failover lane names
-- ⊗ Fail over `in_progress` jobs (execution hangs) — those stay timeout + fix (#2652); capacity failover is queue-stall only
+- ! Capacity watchdog (~20 minute budget): if a required Blacksmith job (TypeScript, Go, or merge-gate) stays unclaimed (`runner_name` null — `started_at` alone is not a claim), cancel that unclaimed attempt and run the same suite on `ubuntu-latest` (#3340)
+- ! Branch-protection required check names (`TypeScript (build + lint + test)`, `Go (test + build)`, `Merge gate (task check)`) live **only** on the aggregator jobs — never on primary/failover lane names
+- ⊗ Fail over a job that has `runner_name` (claimed execution hang) — those stay timeout + fix (#2652); capacity failover is unclaimed-queue stall only (#3340)
 - ! Consumer scaffolds and `npm-publish.yml` stay on GitHub-hosted `ubuntu-latest` (Blacksmith is opt-in for consumer orgs; npm `--provenance` requires GH-hosted)
 - ! Agents seeing `runner_capacity_stall` / `RUNNER_CAPACITY_STALL` MUST wait for auto-failover — ⊗ `--skip-ci` as a capacity remedy
 

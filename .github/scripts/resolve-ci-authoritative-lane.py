@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve the authoritative CI lane result for a required aggregator job (#2672 / #3168).
+"""Resolve the authoritative CI lane result for a required aggregator job (#2672 / #3168 / #3340).
 
 Env:
   REPO, RUN_ID, GH_TOKEN (via gh), WANT_FAILOVER, FAILOVER_RESULT,
@@ -18,6 +18,42 @@ import os
 import subprocess
 import sys
 import time
+
+
+def runner_claimed(job: dict | None) -> bool:
+    """True only when Actions assigned a runner_name. started_at is not a claim (#3340)."""
+    if job is None:
+        return False
+    runner = job.get("runner_name")
+    if runner is None:
+        return False
+    return bool(str(runner).strip())
+
+
+def select_primary_job(needle: str, payload: dict) -> dict | None:
+    """Prefer the reusable-workflow inner `/run` job over the caller wrapper (#3340)."""
+    matches = [
+        job
+        for job in (payload.get("jobs") or [])
+        if needle in str(job.get("name") or "").lower()
+    ]
+    if not matches:
+        return None
+    inner = [job for job in matches if " / " in str(job.get("name") or "")]
+    pool = inner or matches
+    claimed = [job for job in pool if runner_claimed(job)]
+    if claimed:
+        return claimed[0]
+    completed = [job for job in pool if str(job.get("status") or "") == "completed"]
+    if completed:
+        return completed[0]
+    return pool[0]
+
+
+def is_capacity_death(job: dict) -> bool:
+    """Cancelled/skipped without a runner_name is capacity death (#3168 / #3340)."""
+    conclusion = str(job.get("conclusion") or "")
+    return conclusion in ("cancelled", "skipped") and not runner_claimed(job)
 
 
 def gh_api(path: str) -> dict:
@@ -50,14 +86,7 @@ def main() -> int:
     deadline = time.time() + 6 * 60 * 60
     while time.time() < deadline:
         payload = gh_api(f"repos/{repo}/actions/runs/{run_id}/jobs?per_page=100")
-        match = next(
-            (
-                job
-                for job in (payload.get("jobs") or [])
-                if needle in str(job.get("name") or "").lower()
-            ),
-            None,
-        )
+        match = select_primary_job(needle, payload)
         if match is None:
             time.sleep(15)
             continue
@@ -74,11 +103,11 @@ def main() -> int:
                 print(f"Authoritative {label} green via Blacksmith primary (#2672)")
                 return 0
             # Capacity-death without failover arm is a graph bug (#3168) — fail loud.
-            if conclusion in ("cancelled", "skipped") and not (started or runner):
+            if is_capacity_death(match):
                 print(
                     f"::error::{label} Blacksmith primary {conclusion} without a "
                     f"runner claim and failover was not armed — capacity-watchdog/"
-                    f"capacity-arm should have set WANT_FAILOVER (#3168)",
+                    f"capacity-arm should have set WANT_FAILOVER (#3168/#3340)",
                     file=sys.stderr,
                 )
                 return 1

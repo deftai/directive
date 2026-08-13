@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Unit tests for cancel-queued-ci-primary.py (#2672 / #3168)."""
+"""Unit tests for cancel-queued-ci-primary.py (#2672 / #3168 / #3340)."""
 
 from __future__ import annotations
 
@@ -43,6 +43,40 @@ class TestIsCancelable(unittest.TestCase):
                 {
                     "status": "in_progress",
                     "started_at": "2026-08-06T12:00:00Z",
+                    "runner_name": "blacksmith-abc",
+                }
+            )
+        )
+
+    def test_in_progress_without_runner_is_cancelable(self) -> None:
+        """#3340 — started_at without runner_name is still unclaimed."""
+        self.assertTrue(
+            mod.is_cancelable_unclaimed(
+                {
+                    "status": "in_progress",
+                    "started_at": "2026-08-13T15:20:00Z",
+                    "runner_name": None,
+                }
+            )
+        )
+
+    def test_queued_with_started_at_no_runner_is_cancelable(self) -> None:
+        self.assertTrue(
+            mod.is_cancelable_unclaimed(
+                {
+                    "status": "queued",
+                    "started_at": "2026-08-13T15:20:00Z",
+                    "runner_name": None,
+                }
+            )
+        )
+
+    def test_claimed_queued_with_runner_not_cancelable(self) -> None:
+        self.assertFalse(
+            mod.is_cancelable_unclaimed(
+                {
+                    "status": "queued",
+                    "started_at": None,
                     "runner_name": "blacksmith-abc",
                 }
             )
@@ -112,6 +146,40 @@ class TestCancelMatching(unittest.TestCase):
         self.assertEqual(cancelled, [101])
         self.assertEqual(len(calls), 1)
         self.assertIn("repos/deftai/directive/actions/jobs/101/cancel", calls[0][-1])
+
+    def test_cancels_started_at_only_in_progress(self) -> None:
+        calls: list[list[str]] = []
+
+        def fake_run(argv: list[str], check: bool = False) -> Any:
+            calls.append(list(argv))
+            return None
+
+        payload = {
+            "jobs": [
+                {
+                    "id": 201,
+                    "name": "Merge gate (Blacksmith primary)",
+                    "status": "in_progress",
+                    "started_at": "2026-08-13T15:20:00Z",
+                    "runner_name": None,
+                },
+                {
+                    "id": 202,
+                    "name": "Merge gate (Blacksmith primary)",
+                    "status": "in_progress",
+                    "started_at": "2026-08-13T15:21:00Z",
+                    "runner_name": "blacksmith-abc",
+                },
+            ]
+        }
+        cancelled = mod.cancel_matching_primaries(
+            "merge gate (blacksmith primary)",
+            payload,
+            repo="deftai/directive",
+            runner=fake_run,
+        )
+        self.assertEqual(cancelled, [201])
+        self.assertEqual(len(calls), 1)
 
 
 if __name__ == "__main__":
