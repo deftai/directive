@@ -10,6 +10,7 @@
 
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { defaultGitRunner, type GitRunner, gitIsAncestor } from "../session/git.js";
+import { readRitualState } from "../session/ritual-sentinel.js";
 
 /** Handoff states that Git delivery can assert (deploy/UAT never inferred). */
 export const HANDOFF_STATES = [
@@ -56,6 +57,8 @@ export interface CompletionProvenance {
   readonly deployed: boolean | null;
   /** Always null unless explicitly supplied — never inferred from Git (#3041). */
   readonly uatVerified: boolean | null;
+  /** Session that completed the brief; used by check to target xbrief/completed (#3357). */
+  readonly completedSessionId?: string | null;
 }
 
 export interface DeliveryEvidenceInput {
@@ -100,6 +103,22 @@ function asRecord(value: unknown): Record<string, unknown> | null {
     return value as Record<string, unknown>;
   }
   return null;
+}
+
+/**
+ * Session id for a completing brief (#3357). Prefer DEFT_SESSION_ID, then ritual-state.
+ */
+export function resolveCompletionSessionId(
+  projectRoot: string,
+  env: NodeJS.ProcessEnv = process.env,
+): string | null {
+  const fromEnv = typeof env.DEFT_SESSION_ID === "string" ? env.DEFT_SESSION_ID.trim() : "";
+  if (fromEnv.length > 0) {
+    return fromEnv;
+  }
+  const [state] = readRitualState(projectRoot);
+  const id = state?.sessionId.trim() ?? "";
+  return id.length > 0 ? id : null;
 }
 
 export function isNonDeliveryDisposition(value: unknown): value is NonDeliveryDisposition {
@@ -514,6 +533,10 @@ export function stampDeliveryProvenance(
     // Deploy/UAT are explicit-only; default null so readers never infer from Git.
     deployed: provenance.deployed,
     uatVerified: provenance.uatVerified,
+    ...(typeof provenance.completedSessionId === "string" &&
+    provenance.completedSessionId.trim().length > 0
+      ? { completedSessionId: provenance.completedSessionId.trim() }
+      : {}),
   };
   meta.deliveryDisposition = provenance.disposition;
   meta.handoffState = provenance.handoffState;

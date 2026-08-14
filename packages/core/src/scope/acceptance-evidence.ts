@@ -15,6 +15,10 @@
 
 import { isHumanOrigin } from "../authz/origin.js";
 import type { GrantOrigin } from "../authz/types.js";
+import {
+  type EvaluateVerifyAcOptions,
+  evaluateVerifyAcFromPlan,
+} from "../product-first-done-gate/evaluate.js";
 
 /** Canonical namespaced key for typed acceptance evidence (#3305 / #1620). */
 export const ACCEPTANCE_EVIDENCE_KEY = "x-directive/evidence" as const;
@@ -471,6 +475,50 @@ function walkItems(items: unknown, pathPrefix: string, reports: CriterionAccepta
     walkItems(obj.subItems, `${path}.subItems`, reports);
     walkItems(obj.items, `${path}.items`, reports);
   });
+}
+
+/**
+ * One remediation when scope:complete cannot accept empty or failing product AC (#3357).
+ * Item-level disposition is not a substitute for the acceptance walk.
+ */
+export const SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION =
+  "Run task verify:ac -- <completing-xbrief> and stamp executable plan.acceptance; scope:complete refuses empty or failing acceptance (disposition is not a substitute) (#3357)";
+
+/**
+ * Hard precondition for scope:complete (#3357 / #3267 / #3284).
+ *
+ * Runs the same verify:ac walk check uses. Disposition on plan items does not
+ * skip it. Briefs with no stamped plan.acceptance and no executable commands
+ * keep the legacy #3267 "nothing to run" pass so existing evidence-only
+ * fixtures stay valid.
+ */
+export function evaluateScopeCompleteAcceptanceWalk(
+  plan: Record<string, unknown>,
+  options: EvaluateVerifyAcOptions = {},
+): AcceptanceEvidenceGateResult {
+  const stamped = plan.acceptance !== undefined;
+  const walk = evaluateVerifyAcFromPlan(plan, {
+    ...options,
+    checkIntegrated: false,
+    captureFromNarratives: options.captureFromNarratives ?? true,
+  });
+  const rejectedCount = walk.rejected?.length ?? 0;
+  const hadWork = walk.runs.length > 0 || walk.commands.length > 0 || rejectedCount > 0;
+  if (!stamped && !hadWork) {
+    return {
+      ok: true,
+      message: "Acceptance walk not required (no stamped plan.acceptance) (#3357)",
+      reports: [],
+    };
+  }
+  if (walk.ok) {
+    return { ok: true, message: walk.message, reports: [] };
+  }
+  return {
+    ok: false,
+    message: `${SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION}\n${walk.message}`,
+    reports: [],
+  };
 }
 
 /**

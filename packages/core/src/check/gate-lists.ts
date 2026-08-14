@@ -16,8 +16,9 @@ export type CheckGateSpec =
     };
 
 /**
- * Product-first AC gate (#3284): always first; soft-missing when no active
- * xBRIEF so framework self-check is not deadlocked without a story.
+ * Product-first AC gate (#3284): always first; `--soft-missing-xbrief` skips
+ * only when no story was active this session. A same-session complete targets
+ * xbrief/completed instead of skipping (#3357).
  */
 export const PRODUCT_FIRST_AC_GATE: CheckGateSpec = {
   task: PRODUCT_AC_GATE_ID,

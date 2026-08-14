@@ -162,6 +162,7 @@ const subpathAliases: Record<string, string> = {
   "@deftai/directive-core/xbrief-migrate": sub("core", "xbrief-migrate"),
   "@deftai/directive-core/category-b-namespace": sub("core", "category-b-namespace"),
   "@deftai/directive-core/check-updates": sub("core", "check-updates"),
+  "@deftai/directive-core/check": sub("core", "check"),
   "@deftai/directive-core/umbrella-current-shape": sub("core", "umbrella-current-shape"),
   "@deftai/directive-core/ts-check-lane": sub("core", "ts-check-lane"),
   "@deftai/directive-core": src("core"),

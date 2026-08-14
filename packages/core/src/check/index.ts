@@ -56,3 +56,9 @@ export {
   runnerDetectionTable,
   type TestRunnerKind,
 } from "./runner-detect.js";
+export {
+  type ResolveSessionCompletedAcInput,
+  resolveSessionCompletedVerifyAcTarget,
+  SESSION_COMPLETED_AC_REMEDIATION,
+  type SessionCompletedAcTarget,
+} from "./session-completed-ac.js";

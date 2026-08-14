@@ -38,6 +38,53 @@ describe("verify:ac run (#3284)", () => {
     expect(code).toBe(0);
   });
 
+  it("soft-missing targets a same-session completed brief instead of skipping (#3357)", () => {
+    const root = mkdtempSync(join(tmpdir(), "verify-ac-completed-"));
+    const completed = join(root, "xbrief", "completed");
+    mkdirSync(completed, { recursive: true });
+    writeFileSync(
+      join(completed, "done.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "done",
+          status: "completed",
+          acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
+          metadata: {
+            completedAt: "2026-08-14T12:00:00Z",
+            completedSessionId: "cli-sess-3357",
+          },
+          items: [],
+        },
+      }),
+      "utf8",
+    );
+    const prev = process.env.DEFT_SESSION_ID;
+    process.env.DEFT_SESSION_ID = "cli-sess-3357";
+    try {
+      const chunks: string[] = [];
+      vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+        chunks.push(String(c));
+        return true;
+      });
+      const err: string[] = [];
+      vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+        err.push(String(c));
+        return true;
+      });
+      // Consumer temp root: empty stamped acceptance is soft_empty, not a skip.
+      expect(run(["--project-root", root, "--soft-missing-xbrief"])).toBe(1);
+      expect(chunks.join("")).toMatch(/just-completed|#3357/);
+      expect(err.join("")).toMatch(/soft_empty|#3334|#3357/);
+    } finally {
+      if (prev === undefined) {
+        delete process.env.DEFT_SESSION_ID;
+      } else {
+        process.env.DEFT_SESSION_ID = prev;
+      }
+    }
+  });
+
   it("evaluates ALL active xbriefs under soft-missing multi-active (#3284)", () => {
     const root = mkdtempSync(join(tmpdir(), "verify-ac-multi-"));
     const active = join(root, "xbrief", "active");

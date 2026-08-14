@@ -25,6 +25,8 @@ export interface StampCompletionOptions {
    * tests so the fallback path is exercised without a network call.
    */
   readonly liveLabelReader?: LabelReader;
+  /** Session that ran scope:complete; check uses this to target xbrief/completed (#3357). */
+  readonly completedSessionId?: string | null;
 }
 
 function normalizeLabels(labels: Iterable<string>): Set<string> {
@@ -123,6 +125,10 @@ export function stampCompletionMetadata(
   }
   const meta = metadata as Record<string, unknown>;
   meta.completedAt = timestamp;
+  const sessionId = options.completedSessionId?.trim() ?? "";
+  if (sessionId.length > 0) {
+    meta.completedSessionId = sessionId;
+  }
 
   const existing = meta.capacityBucket;
   if (typeof existing === "string" && existing.trim().length > 0) {

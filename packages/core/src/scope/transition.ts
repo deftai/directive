@@ -17,6 +17,7 @@ import { evaluateAcceptanceActivateGate } from "./acceptance-activate-gate.js";
 import {
   type CriterionAcceptanceReport,
   evaluateAcceptanceEvidenceGate,
+  evaluateScopeCompleteAcceptanceWalk,
   formatAcceptanceCompletionListing,
 } from "./acceptance-evidence.js";
 import { append, canonicalLogPath, newDecisionId } from "./audit-log.js";
@@ -40,6 +41,7 @@ import {
   type DeliveryEvidenceInput,
   evaluateDeliveryGate,
   type NonDeliveryDisposition,
+  resolveCompletionSessionId,
   stampDeliveryProvenance,
 } from "./delivery-evidence.js";
 import { evaluateEffortActivateGate } from "./effort-activate-gate.js";
@@ -256,7 +258,13 @@ export function runTransition(
       return { ok: false, message: gate.message };
     }
     if (gate.provenance !== null) {
-      stampDeliveryProvenance(planObj, gate.provenance);
+      const sessionId = resolveCompletionSessionId(projectRoot);
+      stampDeliveryProvenance(
+        planObj,
+        sessionId !== null
+          ? { ...gate.provenance, completedSessionId: sessionId }
+          : gate.provenance,
+      );
     }
   }
 
@@ -296,6 +304,20 @@ export function runTransition(
           ? `${acceptanceListing}\n${literalGate.message}`
           : literalGate.message;
     }
+
+    // #3357: verify:ac walk is a hard precondition. Disposition does not skip it.
+    const acWalk = evaluateScopeCompleteAcceptanceWalk(planObj, { projectRoot });
+    if (!acWalk.ok) {
+      return {
+        ok: false,
+        message: acWalk.message,
+        acceptanceReports: acceptanceGate.reports,
+      };
+    }
+    if (acWalk.message.length > 0) {
+      acceptanceListing =
+        acceptanceListing.length > 0 ? `${acceptanceListing}\n${acWalk.message}` : acWalk.message;
+    }
   }
 
   planObj.status = targetStatus;
@@ -310,7 +332,9 @@ export function runTransition(
   }
 
   if (act === "complete") {
-    stampCompletionMetadata(planObj, projectRoot, nowIso);
+    stampCompletionMetadata(planObj, projectRoot, nowIso, {
+      completedSessionId: resolveCompletionSessionId(projectRoot),
+    });
     // #3242 / epic #3237 Q4: after reconcile, completed lifecycle must match
     // plan.status=completed and terminal plan.items (compose with #3240).
     const consistency = evaluateCompletedPlanConsistency(planObj, {

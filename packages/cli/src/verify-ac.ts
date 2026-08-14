@@ -9,6 +9,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveSessionCompletedVerifyAcTarget } from "@deftai/directive-core/check";
 import {
   formatRejectedLedger,
   resolveLiteralAcceptanceDetailed,
@@ -192,12 +193,28 @@ export function run(argv: string[]): number {
         return 1;
       }
     } else if (args.softMissingXbrief) {
-      if (!args.quiet) {
+      const completed = resolveSessionCompletedVerifyAcTarget({
+        projectRoot,
+        env: process.env,
+      });
+      if (completed.kind === "target") {
+        paths = [completed.path];
+        if (!args.quiet) {
+          process.stdout.write(
+            `verify:ac targeting just-completed brief (#3357): ${completed.path}\n`,
+          );
+        }
+      } else if (completed.kind === "cannot") {
+        process.stderr.write(`${completed.message}\n`);
+        return 1;
+      } else if (!args.quiet) {
         process.stdout.write(
           "verify:ac skipped (#3284 soft-missing): no active xBRIEF in xbrief/active/\n",
         );
       }
-      return 0;
+      if (completed.kind === "none") {
+        return 0;
+      }
     } else {
       process.stderr.write(
         "verify_ac: pass an xBRIEF path or ensure exactly one artifact in xbrief/active/\n" +

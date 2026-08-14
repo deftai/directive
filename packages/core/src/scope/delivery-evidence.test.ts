@@ -8,6 +8,7 @@ import {
   evaluateDeliveryGate,
   isCodeBearingScope,
   NON_DELIVERY_DISPOSITIONS,
+  resolveCompletionSessionId,
 } from "./delivery-evidence.js";
 import { runTransition } from "./transition.js";
 
@@ -244,6 +245,42 @@ describe("delivery evidence (#3041)", () => {
     });
     expect(gate.ok).toBe(false);
     expect(gate.message).toMatch(/not an ancestor|delivery/i);
+  });
+
+  it("resolveCompletionSessionId prefers DEFT_SESSION_ID then ritual-state (#3357)", () => {
+    root = makeRepo();
+    expect(resolveCompletionSessionId(root, { DEFT_SESSION_ID: "env-sess" })).toBe("env-sess");
+    expect(resolveCompletionSessionId(root, {})).toBeNull();
+  });
+
+  it("stamps completedSessionId onto metadata on complete (#3357)", () => {
+    root = makeRepo();
+    const path = join(root, "xbrief", "active", "docs.xbrief.json");
+    writeFileSync(
+      path,
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "docs", status: "running", items: [] },
+      }),
+      "utf8",
+    );
+    const prev = process.env.DEFT_SESSION_ID;
+    process.env.DEFT_SESSION_ID = "stamp-sess-3357";
+    try {
+      const result = runTransition("complete", path);
+      expect(result.ok).toBe(true);
+      const dest = join(root, "xbrief", "completed", "docs.xbrief.json");
+      const data = JSON.parse(readFileSync(dest, "utf8")) as {
+        plan: { metadata: { completedSessionId?: string } };
+      };
+      expect(data.plan.metadata.completedSessionId).toBe("stamp-sess-3357");
+    } finally {
+      if (prev === undefined) {
+        delete process.env.DEFT_SESSION_ID;
+      } else {
+        process.env.DEFT_SESSION_ID = prev;
+      }
+    }
   });
 
   it("allows non-code-bearing complete without evidence", () => {

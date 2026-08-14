@@ -7,9 +7,11 @@ import {
   ACCEPTANCE_DISPOSITION_KEY,
   ACCEPTANCE_EVIDENCE_KEY,
   evaluateAcceptanceEvidenceGate,
+  evaluateScopeCompleteAcceptanceWalk,
   inferRequiredStrictAxes,
   isEvidenceKindSuitable,
   readNamespacedAcceptanceFields,
+  SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION,
   stampNamespacedDisposition,
   stampNamespacedEvidence,
 } from "./acceptance-evidence.js";
@@ -442,6 +444,79 @@ describe("acceptance evidence gate (#3240 / #3305)", () => {
     root = makeRepo();
     const file = writeActive(root, "empty.xbrief.json", []);
     expect(runTransition("complete", file).ok).toBe(true);
+  });
+
+  it("scope:complete fails closed on empty stamped acceptance (disposition is not a substitute) (#3357)", () => {
+    root = makeRepo();
+    const file = writeActive(
+      root,
+      "empty-ac.xbrief.json",
+      [
+        withDisposition(
+          { title: "Waived item", status: "pending" },
+          {
+            disposition: "waived",
+            reason: "operator waived the item",
+            provenance: humanProv,
+            recorded_at: "2026-08-14T12:00:00Z",
+          },
+        ),
+      ],
+      {
+        acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
+      },
+    );
+    const result = runTransition("complete", file);
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain(SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION);
+    expect(result.message).toMatch(/soft_empty|#3334|#3357/);
+    expect(readFileSync(file, "utf8")).toContain("running");
+  });
+
+  it("scope:complete fails closed on failing acceptance commands (#3357)", () => {
+    const walk = evaluateScopeCompleteAcceptanceWalk(
+      {
+        title: "failing product",
+        acceptance: {
+          commands: [{ command: "false", expectedExitCode: 0 }],
+          none_stated: false,
+          source_rung: "derived",
+        },
+        metadata: {
+          literal_acceptance_commands: [
+            { command: "false", source: "explicit", expectedExitCode: 0 },
+          ],
+        },
+        items: [
+          withDisposition(
+            { title: "Waived", status: "pending" },
+            {
+              disposition: "waived",
+              reason: "not a substitute",
+              provenance: humanProv,
+              recorded_at: "2026-08-14T12:00:00Z",
+            },
+          ),
+        ],
+      },
+      {
+        projectRoot: process.cwd(),
+        runner: () => ({ exitCode: 1, stdout: "", stderr: "product wrong" }),
+        captureFromNarratives: false,
+        hasSuiteFloor: true,
+      },
+    );
+    expect(walk.ok).toBe(false);
+    expect(walk.message).toContain(SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION);
+  });
+
+  it("acceptance walk is not required when plan.acceptance is unstamped (#3357)", () => {
+    const walk = evaluateScopeCompleteAcceptanceWalk(
+      { title: "legacy", items: [] },
+      { projectRoot: process.cwd(), hasSuiteFloor: false },
+    );
+    expect(walk.ok).toBe(true);
+    expect(walk.message).toMatch(/not required/);
   });
 });
 
