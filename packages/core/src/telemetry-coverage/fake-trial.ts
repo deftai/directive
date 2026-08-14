@@ -6,9 +6,10 @@
  * rather than rebuilding a per-kind fixture.
  */
 
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { RunSummaryEmitter } from "../run-summary/emit.js";
 import {
   ENV_RUN_SUMMARY_PATH,
@@ -121,8 +122,18 @@ export interface FakeTrialResult {
 function createConsumerShapedRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "deft-telemetry-trial-"));
   mkdirSync(join(root, "xbrief"), { recursive: true });
-  writeFileSync(join(root, ".gitignore"), ".deft-run-summary.json\n", "utf8");
-  writeFileSync(join(root, "package.json"), '{"name":"fake-trial-consumer"}\n', "utf8");
+  containedWrite({
+    root,
+    target: ".gitignore",
+    data: ".deft-run-summary.json\n",
+    mode: "create",
+  });
+  containedWrite({
+    root,
+    target: "package.json",
+    data: '{"name":"fake-trial-consumer"}\n',
+    mode: "create",
+  });
   return root;
 }
 

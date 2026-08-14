@@ -11,6 +11,7 @@
 
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { DEFAULT_TRIAL_STEPS } from "./fake-trial.js";
 import { ENROLLED_FIELD_FIXTURE_KINDS, kindForMethod, RUN_SUMMARY_EVENT_KINDS } from "./kinds.js";
 import { scanProductionCallers } from "./scan-callers.js";
 
@@ -31,6 +32,8 @@ export interface TelemetryCoverageOptions {
   readonly scanRoots?: readonly string[];
   readonly kinds?: readonly string[];
   readonly enrolledKinds?: readonly string[];
+  /** Override trial-step kinds (tests). Default: DEFAULT_TRIAL_STEPS. */
+  readonly trialKinds?: readonly string[];
 }
 
 export interface TelemetryCoverageResult {
@@ -73,7 +76,8 @@ export function evaluateTelemetryCoverage(
   }
 
   const kinds = options.kinds ?? [...RUN_SUMMARY_EVENT_KINDS];
-  const enrolled = new Set(options.enrolledKinds ?? [...ENROLLED_FIELD_FIXTURE_KINDS]);
+  const enrolled = new Set(options.enrolledKinds ?? ENROLLED_FIELD_FIXTURE_KINDS);
+  const trialKinds = new Set(options.trialKinds ?? DEFAULT_TRIAL_STEPS.map((step) => step.kind));
   const scan = scanProductionCallers({
     projectRoot: root,
     scanRoots: options.scanRoots,
@@ -83,7 +87,7 @@ export function evaluateTelemetryCoverage(
   const findings: TelemetryCoverageFinding[] = [];
   for (const kind of kinds) {
     const missingCaller = (scan.callersByKind[kind] ?? []).length === 0;
-    const missingFixture = !enrolled.has(kind);
+    const missingFixture = !enrolled.has(kind) || !trialKinds.has(kind);
     if (missingCaller || missingFixture) {
       findings.push({
         subject: kind,

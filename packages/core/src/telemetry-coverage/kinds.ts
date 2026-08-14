@@ -22,10 +22,19 @@ export const EVENT_KIND_TO_EMITTER_METHODS: Readonly<
 
 /**
  * Kinds asserted by the shared fake-trial harness.
- * Enroll here (and add a trial step) — do not rebuild a per-kind harness (#3362).
+ * Author this list independently of RUN_SUMMARY_EVENT_KINDS — spreading the
+ * schema would make a missing fixture undetectable (#3362 Greptile).
+ * Enroll here and add a DEFAULT_TRIAL_STEPS entry; do not rebuild a per-kind harness.
  */
 export const ENROLLED_FIELD_FIXTURE_KINDS: readonly RunSummaryEventKind[] = [
-  ...RUN_SUMMARY_EVENT_KINDS,
+  "session_start",
+  "dial_transition",
+  "dial_escalation_evaluation",
+  "check_invocation",
+  "tool_turn_denominator",
+  "verification",
+  "acceptance",
+  "acceptance_stamp",
 ];
 
 const GENERIC_EMIT_METHODS = new Set(["emit"]);

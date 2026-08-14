@@ -16,6 +16,10 @@ describe("telemetry-coverage kinds (#3362)", () => {
     expect([...ENROLLED_FIELD_FIXTURE_KINDS].sort()).toEqual([...RUN_SUMMARY_EVENT_KINDS].sort());
   });
 
+  it("authors enrollment independently of the schema array identity", () => {
+    expect(ENROLLED_FIELD_FIXTURE_KINDS).not.toBe(RUN_SUMMARY_EVENT_KINDS);
+  });
+
   it("maps every schema kind to at least one emitter method", () => {
     for (const kind of RUN_SUMMARY_EVENT_KINDS) {
       expect(methodsForKind(kind).length, kind).toBeGreaterThan(0);

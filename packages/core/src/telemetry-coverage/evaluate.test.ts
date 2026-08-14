@@ -83,6 +83,25 @@ describe("evaluateTelemetryCoverage (#3362)", () => {
     expect(result.stream).toBe("stderr");
   });
 
+  it("flags a kind enrolled without a trial step as missing a fixture", () => {
+    const root = freshDir("tlm-no-step-");
+    writeProd(
+      root,
+      "packages/core/src/session/session-start.ts",
+      "emitter.emitSessionStart({ ready: true });\n",
+    );
+    const result = evaluateTelemetryCoverage({
+      projectRoot: root,
+      enforce: true,
+      kinds: ["session_start"],
+      enrolledKinds: ["session_start"],
+      trialKinds: [],
+    });
+    expect(result.code).toBe(1);
+    expect(result.findings[0]?.missingFixture).toBe(true);
+    expect(result.findings[0]?.remediation).toContain("no field fixture");
+  });
+
   it("names only the missing fixture half when a caller exists", () => {
     const root = freshDir("tlm-fix-");
     writeProd(
