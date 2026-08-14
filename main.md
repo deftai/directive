@@ -315,9 +315,13 @@ See [`skills/deft-directive-refinement/SKILL.md`](./content/skills/deft-directiv
 - ~ Continuously improve agent workflows
 - ~ Before implementing, LOAD relevant prior lessons via the content-pack slice surface: discover packs with `task deft:packs:slice --list-packs`, discover a pack's slices with `task deft:packs:slice <pack> --list`, then read the slice you need (read the slice, not the whole file)
 - ~ When repeated correction or better approach found, codify in `./lessons.md`
+- ~ Ask: could this failure recur with a different query or different session?
+  - One-off / non-recurrable prose → `./lessons.md` (playbook lessons stay the short-lived store)
+  - Recurrable structural gap → propose skill or directive change via GitHub issue/PR under [Self-Improving, Not Self-Editing (#3164)](#self-improving-not-self-editing-3164) gates — never mid-run constitution self-edit
 - ? Modify `./lessons.md` without prior approval
 - ~ When using codified instruction, inform user which rule was applied
 - ! Promote constitution-tier improvements (skills, policy, managed AGENTS rules) through issue / PR / quality gate — not mid-run self-edit (see [Self-Improving, Not Self-Editing (#3164)](#self-improving-not-self-editing-3164))
+- ? Escalate via kaizen runtime when that skill exists (#666) — pointer only; do not invent the skill here
 
 **Observation:**
 - ~ Think beyond immediate task
