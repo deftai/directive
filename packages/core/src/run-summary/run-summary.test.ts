@@ -1,8 +1,8 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { RunSummaryEmitter } from "./emit.js";
+import { emitRunSummaryEvent, RunSummaryEmitter } from "./emit.js";
 import {
   DEFAULT_RUN_SUMMARY_BASENAME,
   ENV_RUN_SUMMARY_PATH,
@@ -473,5 +473,138 @@ describe("RunSummaryEmitter (#3282)", () => {
     expect(lines).toHaveLength(1);
     expect(lines[0]?.event).toBe("tool_turn_denominator");
     expect(lines[0]?.total_tool_turns).toBe(12);
+  });
+
+  it("continues seq across separate constructors into one file (#3350)", () => {
+    const root = freshRoot("run-summary-seq-ctors-");
+    const out = join(root, "summary.jsonl");
+    const base = {
+      projectRoot: root,
+      frameworkVersion: "0.0.0",
+      env: { [ENV_RUN_SUMMARY_PATH]: out },
+    };
+    const first = new RunSummaryEmitter({ ...base, sessionId: "cli-1" });
+    expect(first.emitCheckInvocation({ target: "a", exit_code: 0, gates: [] }).line?.seq).toBe(1);
+    expect(first.emitCheckInvocation({ target: "b", exit_code: 0, gates: [] }).line?.seq).toBe(2);
+    const second = new RunSummaryEmitter({ ...base, sessionId: "cli-2" });
+    expect(second.emitCheckInvocation({ target: "c", exit_code: 0, gates: [] }).line?.seq).toBe(3);
+    const third = new RunSummaryEmitter({ ...base, sessionId: "cli-3" });
+    expect(third.emitCheckInvocation({ target: "d", exit_code: 0, gates: [] }).line?.seq).toBe(4);
+    expect(third.emitCheckInvocation({ target: "e", exit_code: 0, gates: [] }).line?.seq).toBe(5);
+    const seqs = readFileSync(out, "utf8")
+      .trim()
+      .split("\n")
+      .map((l) => (JSON.parse(l) as { seq: number }).seq);
+    expect(seqs).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("continues seq across emitRunSummaryEvent one-shot calls (#3350)", () => {
+    const root = freshRoot("run-summary-seq-oneshot-");
+    const out = join(root, "summary.jsonl");
+    const base = {
+      projectRoot: root,
+      sessionId: "oneshot",
+      frameworkVersion: "0.0.0",
+      env: { [ENV_RUN_SUMMARY_PATH]: out },
+      event: "check_invocation" as const,
+      payload: { target: "check:consumer", exit_code: 0, gates: [] },
+    };
+    expect(emitRunSummaryEvent(base).line?.seq).toBe(1);
+    expect(emitRunSummaryEvent(base).line?.seq).toBe(2);
+    expect(emitRunSummaryEvent(base).line?.seq).toBe(3);
+    const seqs = readFileSync(out, "utf8")
+      .trim()
+      .split("\n")
+      .map((l) => (JSON.parse(l) as { seq: number }).seq);
+    expect(seqs).toEqual([1, 2, 3]);
+  });
+
+  it("keeps stdout seq per-process across constructors (#3350)", () => {
+    const root = freshRoot("run-summary-seq-stdout-");
+    const firstOut: string[] = [];
+    const first = new RunSummaryEmitter({
+      projectRoot: root,
+      sessionId: "stdout-1",
+      frameworkVersion: "0.0.0",
+      env: { [ENV_RUN_SUMMARY_PATH]: "-" },
+      writeStdout: (line) => firstOut.push(line),
+    });
+    first.emitCheckInvocation({ target: "a", exit_code: 0, gates: [] });
+    const secondOut: string[] = [];
+    const second = new RunSummaryEmitter({
+      projectRoot: root,
+      sessionId: "stdout-2",
+      frameworkVersion: "0.0.0",
+      env: { [ENV_RUN_SUMMARY_PATH]: "-" },
+      writeStdout: (line) => secondOut.push(line),
+    });
+    second.emitCheckInvocation({ target: "b", exit_code: 0, gates: [] });
+    const firstBody = JSON.parse(firstOut[0]?.slice(RUN_SUMMARY_STDOUT_PREFIX.length) ?? "") as {
+      seq: number;
+    };
+    const secondBody = JSON.parse(secondOut[0]?.slice(RUN_SUMMARY_STDOUT_PREFIX.length) ?? "") as {
+      seq: number;
+    };
+    expect(firstBody.seq).toBe(1);
+    expect(secondBody.seq).toBe(1);
+  });
+
+  it("resets seq to 1 when default-path session_start truncates (#3350)", () => {
+    const root = freshRoot("run-summary-seq-truncate-");
+    writeFileSync(join(root, ".gitignore"), `${DEFAULT_RUN_SUMMARY_BASENAME}\n`, "utf8");
+    const path = join(root, DEFAULT_RUN_SUMMARY_BASENAME);
+    writeFileSync(path, '{"stale":true}\n{"also":"stale"}\n', "utf8");
+    const emitter = new RunSummaryEmitter({
+      projectRoot: root,
+      sessionId: "new-sess",
+      frameworkVersion: "0.0.0",
+      env: {},
+    });
+    const start = emitter.emitSessionStart({ ready: true });
+    const next = emitter.emitCheckInvocation({ target: "check:consumer", exit_code: 0, gates: [] });
+    expect(start.line?.seq).toBe(1);
+    expect(next.line?.seq).toBe(2);
+    const lines = readFileSync(path, "utf8")
+      .trim()
+      .split("\n")
+      .map((l) => JSON.parse(l) as { seq?: number; event?: string });
+    expect(lines).toHaveLength(2);
+    expect(lines[0]?.event).toBe("session_start");
+    expect(lines[0]?.seq).toBe(1);
+    expect(lines[1]?.seq).toBe(2);
+  });
+
+  it("starts seq at 1 when the destination file is empty (#3350)", () => {
+    const root = freshRoot("run-summary-seq-empty-");
+    const out = join(root, "summary.jsonl");
+    writeFileSync(out, "", "utf8");
+    const emitter = new RunSummaryEmitter({
+      projectRoot: root,
+      sessionId: "empty",
+      frameworkVersion: "0.0.0",
+      env: { [ENV_RUN_SUMMARY_PATH]: out },
+    });
+    expect(emitter.emitCheckInvocation({ target: "a", exit_code: 0, gates: [] }).line?.seq).toBe(1);
+  });
+
+  it("fail-opens seq seed when the destination file is unreadable (#3350)", () => {
+    const root = freshRoot("run-summary-seq-unreadable-");
+    const asDir = join(root, "not-a-file");
+    mkdirSync(asDir);
+    const emitter = new RunSummaryEmitter({
+      projectRoot: root,
+      sessionId: "unreadable",
+      frameworkVersion: "0.0.0",
+      env: {},
+      destination: {
+        kind: "file",
+        path: asDir,
+        truncateOnSessionStart: false,
+        explicit: true,
+      },
+    });
+    const result = emitter.emitCheckInvocation({ target: "a", exit_code: 0, gates: [] });
+    expect(result.line?.seq).toBe(1);
+    expect(result.emitted).toBe(false);
   });
 });

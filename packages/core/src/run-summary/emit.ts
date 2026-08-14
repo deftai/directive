@@ -6,7 +6,7 @@
  * Symlink destinations are refused (no-follow / containment) — fail-open.
  */
 
-import { mkdirSync, realpathSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { readCorePackageVersion } from "../engine-version.js";
 import { containedWrite } from "../fs/contained-write.js";
@@ -131,7 +131,43 @@ function writeRunSummaryLine(
 }
 
 /**
- * Stateful emitter: one instance per session tracks seq and write-warning once.
+ * Count non-empty lines in an existing append-only JSONL. Missing/unreadable
+ * files seed at 0 (fail-open). Used so a fresh CLI process continues seq
+ * from the destination file instead of resetting to 1 (#3350).
+ */
+function countExistingJsonlLines(path: string): number {
+  try {
+    if (!existsSync(path)) {
+      return 0;
+    }
+    const text = readFileSync(path, "utf8");
+    if (text.length === 0) {
+      return 0;
+    }
+    let count = 0;
+    for (const line of text.split(/\r?\n/)) {
+      if (line.trim().length > 0) {
+        count += 1;
+      }
+    }
+    return count;
+  } catch {
+    return 0;
+  }
+}
+
+function seedSeqFromDestination(destination: RunSummaryDestination): number {
+  if (destination.kind !== "file") {
+    return 0;
+  }
+  return countExistingJsonlLines(destination.path);
+}
+
+/**
+ * Stateful emitter: one instance tracks seq and write-warning once.
+ * File destinations seed seq from the current JSONL line count so multiple
+ * CLI processes appending to one DEFT_RUN_SUMMARY_PATH share 1..N (#3350).
+ * Stdout destinations stay per-process (each constructor starts at 0).
  */
 export class RunSummaryEmitter {
   private seq = 0;
@@ -157,6 +193,7 @@ export class RunSummaryEmitter {
         env: this.env,
         gitignoreCovers: options.gitignoreCovers,
       });
+    this.seq = seedSeqFromDestination(this.destination);
     this.writeStdout = options.writeStdout ?? ((line) => process.stdout.write(`${line}\n`));
     this.writeStderr = options.writeStderr ?? ((line) => process.stderr.write(`${line}\n`));
   }
@@ -169,6 +206,14 @@ export class RunSummaryEmitter {
     try {
       if (this.destination.kind === "silent") {
         return { emitted: false, destination: this.destination, line: null, warning: false };
+      }
+      // Default-path session_start replaces the file — restart seq at 1.
+      if (
+        this.destination.kind === "file" &&
+        event === "session_start" &&
+        this.destination.truncateOnSessionStart
+      ) {
+        this.seq = 0;
       }
       this.seq += 1;
       const denominator =
@@ -277,7 +322,9 @@ export function readEnvToolTurnDenominator(env: NodeJS.ProcessEnv): number | und
 
 /**
  * One-shot helper for call sites that do not hold an emitter (e.g. dial escalate).
- * Still fail-open; creates a fresh seq=1 emitter unless `seqSeed` is passed via reuse.
+ * Still fail-open. File destinations seed seq from the existing JSONL line
+ * count so successive one-shot calls into the same path continue 1..N (#3350).
+ * Stdout destinations stay per-process (each call starts at seq=1).
  */
 export function emitRunSummaryEvent(
   options: RunSummaryEmitterOptions & {
