@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { newRitualStatePayload, writeRitualState } from "../session/ritual-sentinel.js";
 import {
   resolveSessionCompletedVerifyAcTarget,
   SESSION_COMPLETED_AC_REMEDIATION,
@@ -75,6 +76,28 @@ describe("resolveSessionCompletedVerifyAcTarget (#3357)", () => {
         sessionId: "sess-1",
       }),
     ).toEqual({ kind: "target", path: latest });
+  });
+
+  it("does not mix DEFT_SESSION_ID with a different ritual startedAt", () => {
+    const root = mkdtempSync(join(tmpdir(), "sess-ac-mix-"));
+    writeRitualState(
+      root,
+      newRitualStatePayload({
+        sessionId: "ritual-sess",
+        gitHead: "abc1234",
+        worktreePath: root,
+        startedAt: new Date("2026-08-14T10:00:00Z"),
+      }),
+    );
+    writeCompleted(root, "unstamped.xbrief.json", {
+      completedAt: "2026-08-14T11:00:00Z",
+    });
+    expect(
+      resolveSessionCompletedVerifyAcTarget({
+        projectRoot: root,
+        env: { DEFT_SESSION_ID: "env-sess" },
+      }),
+    ).toEqual({ kind: "none" });
   });
 
   it("does not select a newer brief stamped for a different session", () => {
