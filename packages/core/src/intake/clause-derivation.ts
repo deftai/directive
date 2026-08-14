@@ -119,7 +119,7 @@ function formatAmbiguousClauseNotice(clauses: readonly AcceptanceClause[]): stri
  */
 export function applyClauseDerivationToPlan(
   plan: Record<string, unknown>,
-  options: { readonly projectRoot?: string } = {},
+  options: { readonly projectRoot?: string; readonly emitStamp?: boolean } = {},
 ): ClauseDerivationResult {
   if (!needsClauseDerivation(plan.acceptance)) {
     return {
@@ -150,7 +150,7 @@ export function applyClauseDerivationToPlan(
     derived_reason: `derived ${clauses.length} independently testable clauses from the task statement before product edit (#3323)`,
     clauses: serializeAcceptanceClauses(clauses),
   };
-  if (options.projectRoot !== undefined) {
+  if (options.emitStamp !== false && options.projectRoot !== undefined) {
     emitAcceptanceStampFromPlan(options.projectRoot, plan);
   }
   return {

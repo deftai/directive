@@ -10,6 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { ENV_RUN_SUMMARY_PATH } from "../run-summary/index.js";
 import { atomicWriteBrief, readBriefForMutation } from "./brief-io.js";
 import { detectLifecycleFolder, runTransition } from "./transition.js";
 import { formatBriefJson } from "./vbrief-json.js";
@@ -238,6 +239,39 @@ describe("runTransition", () => {
     expect(data.plan.acceptance.source_rung).toBe("stated");
     expect(data.plan.acceptance.commands).toEqual([{ command: "pnpm test" }]);
     expect(data.plan.acceptance.clauses).toHaveLength(1);
+  });
+
+  it("does not emit acceptance_stamp when activate is refused after derivation (#3360)", () => {
+    root = makeRepo();
+    const summary = join(root, "summary.jsonl");
+    const prev = process.env[ENV_RUN_SUMMARY_PATH];
+    process.env[ENV_RUN_SUMMARY_PATH] = summary;
+    try {
+      const path = join(root, "xbrief", "pending", "xl-derived.xbrief.json");
+      writeFile(path, {
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "XL after derive",
+          status: "pending",
+          narratives: {
+            Overview:
+              "## Acceptance sketch\n- Write the helper to packages/core/src/intake/clause-derivation.ts\n",
+          },
+          items: [{ id: "big", title: "Needs breakdown", status: "pending", effort: "XL" }],
+        },
+      });
+      const result = runTransition("activate", path);
+      expect(result.ok).toBe(false);
+      expect(result.message).toMatch(/effort=XL|#1581/);
+      expect(existsSync(summary)).toBe(false);
+      expect(existsSync(path)).toBe(true);
+    } finally {
+      if (prev === undefined) {
+        delete process.env[ENV_RUN_SUMMARY_PATH];
+      } else {
+        process.env[ENV_RUN_SUMMARY_PATH] = prev;
+      }
+    }
   });
 
   it("completes active to completed with stamp", () => {

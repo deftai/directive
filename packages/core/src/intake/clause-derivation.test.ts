@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -174,7 +174,9 @@ describe("applyClauseDerivationToPlan (#3360)", () => {
     const plan: Record<string, unknown> = {
       narratives: { Overview: TRIAL_OVERVIEW },
     };
-    applyClauseDerivationToPlan(plan, { projectRoot: root });
+    applyClauseDerivationToPlan(plan, { projectRoot: root, emitStamp: false });
+    expect(existsSync(summary)).toBe(false);
+    emitAcceptanceStampFromPlan(root, plan);
     const line = JSON.parse(readFileSync(summary, "utf8").trim()) as {
       event: string;
       payload: { rung: string; none_stated: boolean; clause_count: number };
