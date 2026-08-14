@@ -751,3 +751,153 @@ describe("cmdDoctor USER.md resolution surface (#2271)", () => {
     expect(typeof payload.user_md?.path).toBe("string");
   });
 });
+
+describe("cmdDoctor completed-open-items advisory mapping (#3372)", () => {
+  function makeConsumer(): { root: string; framework: string } {
+    const root = makeRoot();
+    const framework = makeRoot();
+    const deposit = join(root, ".deft", "core");
+    for (const dir of ["languages", "strategies", "skills", "templates", "tasks", "xbrief"]) {
+      mkdirSync(join(deposit, dir), { recursive: true });
+    }
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      "<!-- deft:managed-section v3 sha=abc refreshed=x session=y -->\nmanaged\n<!-- /deft:managed-section -->\n",
+      "utf8",
+    );
+    writeFileSync(join(root, "Taskfile.yml"), "version: '3'\n", "utf8");
+    return { root, framework };
+  }
+
+  function writeCompletedBrief(root: string, name: string, body: string): void {
+    const dir = join(root, "xbrief", "completed");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, name), body, "utf8");
+  }
+
+  function runDoctorJson(
+    root: string,
+    framework: string,
+    argv: string[] = ["--full", "--json", "--project-root", root],
+  ): {
+    exit: number;
+    lastErrorCount: number;
+    payload: {
+      ok?: boolean;
+      findings?: Array<Record<string, unknown>>;
+      summary?: { errors?: number; warnings?: number };
+    };
+  } {
+    const stdout: string[] = [];
+    const origWrite = process.stdout.write.bind(process.stdout);
+    process.stdout.write = ((chunk: string | Uint8Array): boolean => {
+      stdout.push(typeof chunk === "string" ? chunk : chunk.toString());
+      return true;
+    }) as typeof process.stdout.write;
+    let lastErrorCount = -1;
+    let exit: number;
+    try {
+      exit = cmdDoctor(argv, {
+        whichFn: () => "/usr/bin/x",
+        frameworkRoot: framework,
+        agentsRefreshPlan: () => ({ state: "current" }),
+        writeState: (_projectRoot, payload) => {
+          lastErrorCount = payload.errorCount;
+          return null;
+        },
+      });
+    } finally {
+      process.stdout.write = origWrite;
+    }
+    const parsed: unknown = JSON.parse(stdout.join(""));
+    expect(parsed).not.toBeNull();
+    expect(typeof parsed).toBe("object");
+    return {
+      exit,
+      lastErrorCount,
+      payload: parsed as {
+        ok?: boolean;
+        findings?: Array<Record<string, unknown>>;
+        summary?: { errors?: number; warnings?: number };
+      },
+    };
+  }
+
+  it("maps historical completed/ open items to a warning: exit 0, lastErrorCount 0, paths named", () => {
+    const { root, framework } = makeConsumer();
+    writeCompletedBrief(
+      root,
+      "open.xbrief.json",
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "open",
+          status: "completed",
+          items: [{ title: "todo", status: "pending" }],
+        },
+      }),
+    );
+    const { exit, lastErrorCount, payload } = runDoctorJson(root, framework);
+    expect(exit).toBe(0);
+    expect(lastErrorCount).toBe(0);
+    expect(payload.ok).toBe(true);
+    expect(payload.summary?.errors).toBe(0);
+    const finding = payload.findings?.find(
+      (f) =>
+        f.install_check === "completed-open-items" ||
+        f.check === "install-integrity:completed-open-items",
+    );
+    expect(finding).toBeDefined();
+    expect(finding?.severity).toBe("warning");
+    expect(String(finding?.message)).toContain("completed/open.xbrief.json");
+    expect(String(finding?.message)).toContain("pending");
+    // Gated ritual invokes cmdDoctor without --full; same mapping must stay advisory.
+    const ritual = runDoctorJson(root, framework, ["--json", "--project-root", root]);
+    expect(ritual.exit).toBe(0);
+    expect(ritual.lastErrorCount).toBe(0);
+  });
+
+  it("still hard-fails completed-lifecycle-consistency on plan.status drift", () => {
+    const { root, framework } = makeConsumer();
+    writeCompletedBrief(
+      root,
+      "drift.xbrief.json",
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "drift",
+          status: "running",
+          items: [{ title: "done", status: "completed" }],
+        },
+      }),
+    );
+    const { exit, lastErrorCount, payload } = runDoctorJson(root, framework);
+    expect(exit).toBe(1);
+    expect(lastErrorCount).toBeGreaterThan(0);
+    const finding = payload.findings?.find(
+      (f) =>
+        f.install_check === "completed-lifecycle-consistency" ||
+        f.check === "install-integrity:completed-lifecycle-consistency",
+    );
+    expect(finding).toBeDefined();
+    expect(finding?.severity).toBe("error");
+    expect(String(finding?.message)).toContain("completed/drift.xbrief.json");
+    expect(String(finding?.message)).toContain("plan.status=running");
+  });
+
+  it("still hard-fails completed-lifecycle-consistency on unreadable completed artifacts", () => {
+    const { root, framework } = makeConsumer();
+    writeCompletedBrief(root, "bad.xbrief.json", "{not-json");
+    const { exit, lastErrorCount, payload } = runDoctorJson(root, framework);
+    expect(exit).toBe(1);
+    expect(lastErrorCount).toBeGreaterThan(0);
+    const finding = payload.findings?.find(
+      (f) =>
+        f.install_check === "completed-lifecycle-consistency" ||
+        f.check === "install-integrity:completed-lifecycle-consistency",
+    );
+    expect(finding).toBeDefined();
+    expect(finding?.severity).toBe("error");
+    expect(String(finding?.message)).toContain("completed/bad.xbrief.json");
+  });
+});

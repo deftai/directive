@@ -852,6 +852,17 @@ function runInstallIntegrityChecks(
         }
       });
     const result = runChecks(projectRoot, { isDir, isFile, readText });
+    // Exit-exempt check fails stay warnings so lastErrorCount stays 0
+    // (gated ritual / PreToolUse). Keep completed-lifecycle-consistency hard.
+    const warningOnFail = new Set([
+      "legacy-layout",
+      "canonical-vendored-npm-signpost",
+      "manifest-version-reportable",
+      "gitignore-coverage",
+      "stale-xbrief-schema-deposit",
+      "typescript-7-side-by-side",
+      "completed-open-items",
+    ]);
     for (const entry of (result.checks as Array<Record<string, unknown>>) ?? []) {
       const name = String(entry.name ?? "install-integrity");
       const status = String(entry.status ?? "");
@@ -869,15 +880,7 @@ function runInstallIntegrityChecks(
         sink.info(`${name}: skip -- ${detail}`);
         continue;
       }
-      if (
-        (name === "legacy-layout" ||
-          name === "canonical-vendored-npm-signpost" ||
-          name === "manifest-version-reportable" ||
-          name === "gitignore-coverage" ||
-          name === "stale-xbrief-schema-deposit" ||
-          name === "typescript-7-side-by-side") &&
-        status === "fail"
-      ) {
+      if (warningOnFail.has(name) && status === "fail") {
         sink.warn(`${name}: ${detail}`);
         addFinding({
           severity: "warning",
