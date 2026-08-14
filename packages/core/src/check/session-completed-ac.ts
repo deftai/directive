@@ -54,7 +54,8 @@ function resolveSession(input: ResolveSessionCompletedAcInput): {
   const ritualId = state?.sessionId.trim() ?? "";
   const sessionId = fromEnv.length > 0 ? fromEnv : ritualId;
   // Do not pair DEFT_SESSION_ID with a different ritual-state startedAt.
-  const ritualStartedAt = ritualId.length > 0 && ritualId === sessionId ? (state?.startedAt ?? null) : null;
+  const ritualStartedAt =
+    ritualId.length > 0 && ritualId === sessionId ? (state?.startedAt ?? null) : null;
   return {
     sessionId: sessionId.length > 0 ? sessionId : null,
     startedAt: input.sessionStartedAt ?? ritualStartedAt,
