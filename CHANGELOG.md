@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **#3179 Wave 4 proposer path mapping.** Thin SoT maps skill/playbook propose path onto #1307 / #2436 / #2741 (consume, do not refile): evidence → staged proposal → deferred control bar → PR disposal. Closes Wave 4 mapping AC; dual-credits #2436 written-mapping AC. Path: docs/analysis/2026-08-13-3179-wave4-proposer-path-mapping.md.
 
-- **Continuous Improvement promotion triage (#607).** Learning asks the recurrable-failure question and triages one-off prose (`lessons.md`) vs structural proposals via issue/PR under #3164 gates; optional #666 kaizen pointer. Residual after #3202; does not re-land the Self-Improving stance section.
+- **Continuous Improvement promotion triage (#607).** Learning asks the recurrable-failure question and triages one-off prose (`meta/lessons.md`) vs structural proposals via issue/PR under #3164 gates; optional #666 kaizen pointer; thin agents-entry mirror for consumers. Residual after #3202; does not re-land the Self-Improving stance section.
 
 
 ### Changed
