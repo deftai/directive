@@ -1,14 +1,7 @@
 import { randomUUID } from "node:crypto";
-import {
-  appendFileSync,
-  closeSync,
-  existsSync,
-  fsyncSync,
-  mkdirSync,
-  openSync,
-  readFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { resolveTriageCachePath } from "../triage/cache-path.js";
 import { pythonJsonStringify } from "./json.js";
 import { withAppendLock } from "./lock.js";
@@ -29,10 +22,6 @@ export interface WriteSliceOptions {
 export interface RecordModuleDeps {
   readonly readFile?: typeof readFileSync;
   readonly exists?: typeof existsSync;
-  readonly append?: typeof appendFileSync;
-  readonly fsync?: typeof fsyncSync;
-  readonly open?: typeof openSync;
-  readonly close?: typeof closeSync;
   readonly mkdir?: typeof mkdirSync;
   readonly withLock?: typeof withAppendLock;
 }
@@ -40,13 +29,21 @@ export interface RecordModuleDeps {
 const defaultDeps: Required<RecordModuleDeps> = {
   readFile: readFileSync,
   exists: existsSync,
-  append: appendFileSync,
-  fsync: fsyncSync,
-  open: openSync,
-  close: closeSync,
   mkdir: mkdirSync,
   withLock: withAppendLock,
 };
+
+/**
+ * Containment root for slices.jsonl append (#3354 / #3288).
+ * Prefer `projectRoot` when the log is nested under it so out-of-tree dests refuse.
+ * Otherwise use the log parent (still refuses leaf symlink follow).
+ */
+export function containmentRootForSliceLog(logPath: string, projectRoot?: string): string {
+  if (projectRoot !== undefined) {
+    return resolve(projectRoot);
+  }
+  return resolve(dirname(logPath));
+}
 
 function resolvePath(path: string | undefined): string {
   return path !== undefined ? resolve(path) : resolveTriageCachePath(process.cwd(), "slices.jsonl");
@@ -95,7 +92,12 @@ function parseJsonlIds(
 /** Validate + append record without acquiring the sidecar lock. */
 export function writeSliceUnlocked(
   record: Record<string, unknown>,
-  options: { path?: string; deps?: RecordModuleDeps; warn?: (message: string) => void } = {},
+  options: {
+    path?: string;
+    deps?: RecordModuleDeps;
+    warn?: (message: string) => void;
+    projectRoot?: string;
+  } = {},
 ): string {
   const deps = { ...defaultDeps, ...options.deps };
   validateRecord(record);
@@ -107,13 +109,14 @@ export function writeSliceUnlocked(
     return resolvedId;
   }
   const line = `${pythonJsonStringify(record)}\n`;
-  deps.append(logPath, line, { encoding: "utf8" });
-  const fd = deps.open(logPath, "a");
-  try {
-    deps.fsync(fd);
-  } finally {
-    deps.close(fd);
-  }
+  const root = containmentRootForSliceLog(logPath, options.projectRoot);
+  deps.mkdir(root, { recursive: true });
+  containedWrite({
+    root,
+    target: logPath,
+    data: line,
+    mode: "append",
+  });
   return resolvedId;
 }
 

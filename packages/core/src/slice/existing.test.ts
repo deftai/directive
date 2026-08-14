@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
@@ -227,6 +227,37 @@ describe("runRecordExisting", () => {
     );
     expect(bad.exitCode).toBe(1);
     expect(bad.stderr).toContain("issue #3");
+  });
+
+  it("refuses leaf symlink slices.jsonl diverting append into tracked file (#3354)", () => {
+    const root = makeRoot();
+    const victim = join(root, "AGENTS.md");
+    writeFileSync(victim, "# keep existing\n", "utf8");
+    const logPath = join(root, "xbrief", ".triage-cache", "slices.jsonl");
+    try {
+      symlinkSync(victim, logPath);
+    } catch {
+      return;
+    }
+    const result = runRecordExisting(
+      {
+        umbrella: 1,
+        children: "2",
+        actor: "manual:operator",
+        expectedCloseSignal: "all-children-merged",
+        slicedAt: "2026-05-14T17:00:00Z",
+        notes: null,
+        dryRun: false,
+        force: false,
+        skipValidation: true,
+        repo: "owner/repo",
+        projectRoot: root,
+      },
+      new Map(),
+    );
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toMatch(/refused slices\.jsonl write|symlink|contained write/i);
+    expect(readFileSync(victim, "utf8")).toBe("# keep existing\n");
   });
 });
 

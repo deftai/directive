@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **UAT Shell residual after #3336: further write bins plus slices.jsonl leaf diversion (#3354).** Under active UAT, residual bins (`nc`/`netcat`/`7zz`/`msgfmt`/`msgcat`/`lz4`/`lzop`/`unrar`/`rar`/`aunpack`/`atool`/`ftpget`/`tftp`/`sqlite3`/`crane`/`objcopy`) that write into `.deft/authz/**` or plant `.deft-directive-disable` / `.no-deft-directive` classify as settings deny (not unclassifiable allow). Dest flags cover `-o`/`--output`/`--outfile` and 7zz attached `-oDIR`; unknown write-shaped dest flags targeting those paths also fail closed. `slices.jsonl` append routes through `containedWrite` so a leaf symlink cannot divert the write. Ordinary non-authz dests such as `/tmp` stay unclassifiable. Already-denied `ncat`/`7z`/`msguniq` peers stay denied. Closes #3354. Refs #3336, #3288, #3039.
+
 ### Removed
 
 ## [0.103.0] - 2026-08-14

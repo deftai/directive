@@ -256,11 +256,28 @@ const DOWNLOADER_DECODER_BINS = new Set([
   "dpkg-deb",
   "hg",
   "msguniq",
+  // #3354 residual after #3336: nc/7zz/msgfmt peers + plant writers.
+  "nc",
+  "netcat",
+  "7zz",
+  "msgfmt",
+  "msgcat",
+  "lz4",
+  "lzop",
+  "unrar",
+  "rar",
+  "aunpack",
+  "atool",
+  "ftpget",
+  "tftp",
+  "sqlite3",
+  "crane",
+  "objcopy",
 ]);
 
 /**
  * Archive extractors / alt writers that can plant via pathish operands without
- * shell redirects (#3245 / #3288 / #3311 / #3336). Used for pathish authz/kill scans (prefer deny)
+ * shell redirects (#3245 / #3288 / #3311 / #3336 / #3354). Used for pathish authz/kill scans (prefer deny)
  * and write-shape residual under UAT — not bare curl-class URL fetches.
  */
 const ARCHIVE_ALT_WRITE_BINS = new Set([
@@ -316,10 +333,27 @@ const ARCHIVE_ALT_WRITE_BINS = new Set([
   "dpkg-deb",
   "hg",
   "msguniq",
+  // #3354 residual after #3336.
+  "nc",
+  "netcat",
+  "7zz",
+  "msgfmt",
+  "msgcat",
+  "lz4",
+  "lzop",
+  "unrar",
+  "rar",
+  "aunpack",
+  "atool",
+  "ftpget",
+  "tftp",
+  "sqlite3",
+  "crane",
+  "objcopy",
 ]);
 
 /**
- * Bins whose pathish operands are scanned for authz/kill destinations (#3213 / #3245 / #3288 / #3311 / #3336).
+ * Bins whose pathish operands are scanned for authz/kill destinations (#3213 / #3245 / #3288 / #3311 / #3336 / #3354).
  * Prefer a Set over a long `||` chain so coverage counts one membership check, not N branches.
  */
 const PROTECTED_POSITIONAL_BINS = new Set([
@@ -365,14 +399,36 @@ const PROTECTED_POSITIONAL_BINS = new Set([
   "dpkg-deb",
   "hg",
   "msguniq",
+  // #3354 residual: positional dest writers (nc/7zz/unrar/ftpget/crane/objcopy/sqlite3).
+  "nc",
+  "netcat",
+  "7zz",
+  "msgfmt",
+  "msgcat",
+  "lz4",
+  "lzop",
+  "unrar",
+  "rar",
+  "aunpack",
+  "atool",
+  "ftpget",
+  "tftp",
+  "sqlite3",
+  "crane",
+  "objcopy",
 ]);
 
 /** wget family (directory-prefix dest flags). */
 const WGET_FAMILY_BINS = new Set(["wget", "wget2"]);
 /** aria2 family (dir dest flags). */
 const ARIA2_FAMILY_BINS = new Set(["aria2c", "aria2"]);
-/** 7z family (attached -oDIR only). */
-const SEVEN_Z_FAMILY_BINS = new Set(["7z", "7za", "7zr"]);
+/** 7z family (attached -oDIR only). Includes 7zz (#3354). */
+const SEVEN_Z_FAMILY_BINS = new Set(["7z", "7za", "7zr", "7zz"]);
+/** aunpack / atool extract-to dest flags (#3354). */
+const ATOOL_FAMILY_BINS = new Set(["aunpack", "atool"]);
+const ATOOL_DIR_DEST_FLAGS = new Set(["-x", "--extract-to"]);
+/** sqlite3 meta-commands that plant a file dest (#3354). */
+const SQLITE3_OUTPUT_META = [".output", ".once"] as const;
 /** tar family (chdir -C / --directory). Includes GNU/Schily aliases (#3311). */
 const TAR_FAMILY_BINS = new Set(["tar", "bsdtar", "gtar", "star", "gnutar"]);
 /** xh / httpie family (download-dir dest flags) (#3311). */
@@ -480,6 +536,7 @@ function isDownloaderDestFlag(flag: string, bin: string, rawFlag?: string): bool
   }
   if (UNZIP_DIR_DEST_BINS.has(bin) && UNZIP_DIR_DEST_FLAGS.has(flag)) return true;
   if (XH_FAMILY_BINS.has(bin) && XH_DIR_DEST_FLAGS.has(flag)) return true;
+  if (ATOOL_FAMILY_BINS.has(bin) && ATOOL_DIR_DEST_FLAGS.has(flag)) return true;
   return false;
 }
 /**
@@ -664,6 +721,12 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
           i++;
           continue;
         }
+        // aunpack / atool attached -XDIR (#3354)
+        if (ATOOL_FAMILY_BINS.has(bin) && n.startsWith("-x") && n.length > 2) {
+          dests.push(pathishToken(raw.slice(2)));
+          i++;
+          continue;
+        }
         // tar attached -CDIR (rare; capital C required)
         if (TAR_FAMILY_BINS.has(bin) && raw.startsWith("-C") && raw.length > 2) {
           dests.push(pathishToken(raw.slice(2)));
@@ -722,6 +785,19 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
         }
       }
 
+      // sqlite3 `.output` / `.once` dest (separate token or `.output PATH` in one token) (#3354).
+      if (bin === "sqlite3") {
+        const meta = sqlite3MetaDest(raw, tokens[i + 1]);
+        if (meta !== null) {
+          dests.push(meta.dest);
+          if (pathishIsAuthzDir(meta.dest) || pathishMentionsKillSwitch(meta.dest)) {
+            protectedPathish.push(meta.dest);
+          }
+          i += meta.consumedNext ? 2 : 1;
+          continue;
+        }
+      }
+
       // scp / certutil / rclone / archive extractors: pathish operands (quote-aware glued-op cut).
       // Under UAT: any `.deft/authz` / kill-switch pathish is fail-closed settings
       // (read vs write thrash deferred — prefer deny over dest-parser perfection; #3213 / #3245).
@@ -754,6 +830,10 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
     if (lastPositionalPath !== null && !protectedPathish.includes(lastPositionalPath)) {
       dests.push(lastPositionalPath);
     }
+  }
+  // #3354: fail-closed dest flags on unknown write-shaped bins (not named-peer only).
+  for (const dest of genericProtectedDests(tokens)) {
+    dests.push(dest);
   }
   return dests;
 }
@@ -833,6 +913,75 @@ function hasPolicyAuthorityMutator(tokens: readonly string[]): boolean {
 }
 
 /** True when pathish token names a kill-switch basename (quote-strip resistant). */
+function pathishIsProtectedDest(pathish: string): boolean {
+  return pathishIsAuthzDir(pathish) || pathishMentionsKillSwitch(pathish);
+}
+
+/**
+ * Fail-closed dest harvest for write-shaped Shell under UAT (#3354).
+ * Named-bin parsers above are not the only path: any token that looks like
+ * `-o` / `--output` / `--outfile` / `--output-file` (or attached `-oDIR`)
+ * whose dest is authz/kill-switch is collected even when the bin is unknown.
+ * scp `-o` (OpenSSH option) and cpio `-o` (copy-out) stay excluded.
+ */
+function genericProtectedDests(tokens: readonly string[]): string[] {
+  const dests: string[] = [];
+  for (let i = 0; i < tokens.length; i++) {
+    const raw = tokens[i] as string;
+    const n = normalizeToken(raw);
+    const bare = binBareName(raw);
+    if (bare === "scp" || bare === "cpio") continue;
+    if (n.includes("=") && (n.startsWith("-") || n.startsWith("--"))) {
+      const eq = raw.indexOf("=");
+      const flag = normalizeToken(raw.slice(0, eq));
+      if (DOWNLOADER_FILE_DEST_FLAGS.has(flag)) {
+        const dest = pathishToken(raw.slice(eq + 1));
+        if (pathishIsProtectedDest(dest)) dests.push(dest);
+      }
+      continue;
+    }
+    if (
+      n.startsWith("-") &&
+      !n.startsWith("--") &&
+      n.startsWith("-o") &&
+      !n.startsWith("-out") &&
+      n.length > 2
+    ) {
+      const dest = pathishToken(raw.slice(2));
+      if (pathishIsProtectedDest(dest)) dests.push(dest);
+      continue;
+    }
+    if (DOWNLOADER_FILE_DEST_FLAGS.has(n)) {
+      const next = tokens[i + 1];
+      if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
+        const dest = pathishToken(next);
+        if (pathishIsProtectedDest(dest)) dests.push(dest);
+      }
+    }
+  }
+  return dests;
+}
+
+function sqlite3MetaDest(
+  raw: string,
+  next: string | undefined,
+): { dest: string; consumedNext: boolean } | null {
+  const p = pathishToken(raw);
+  for (const meta of SQLITE3_OUTPUT_META) {
+    if (p === meta) {
+      if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
+        return { dest: pathishToken(next), consumedNext: true };
+      }
+      return null;
+    }
+    if (p.startsWith(`${meta} `) || p.startsWith(`${meta}\t`)) {
+      const dest = p.slice(meta.length).trim();
+      if (dest.length > 0 && dest !== "|") return { dest, consumedNext: false };
+    }
+  }
+  return null;
+}
+
 function pathishMentionsKillSwitch(pathish: string): boolean {
   for (const name of KILL_SWITCH_BASENAMES) {
     if (pathish === name || pathish.endsWith(`/${name}`) || pathish.includes(name)) {

