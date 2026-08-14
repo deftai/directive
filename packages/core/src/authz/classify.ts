@@ -926,11 +926,29 @@ function pathishIsProtectedDest(pathish: string): boolean {
  */
 function genericProtectedDests(tokens: readonly string[]): string[] {
   const dests: string[] = [];
+  // Track the current command bin — scp `-o` is OpenSSH option, cpio `-o` is copy-out.
+  // Skipping only when the current token itself is `scp`/`cpio` missed later `-o` values (#3354).
+  let currentBin = "";
   for (let i = 0; i < tokens.length; i++) {
     const raw = tokens[i] as string;
     const n = normalizeToken(raw);
-    const bare = binBareName(raw);
-    if (bare === "scp" || bare === "cpio") continue;
+    if (isShellSegmentBreak(raw)) {
+      currentBin = "";
+      continue;
+    }
+    if (!n.startsWith("-")) {
+      if (isDownloaderDecoderBin(raw)) {
+        currentBin = binBareName(raw);
+      } else if (
+        currentBin.length === 0 &&
+        !raw.includes("/") &&
+        !raw.includes("\\") &&
+        n.length > 0
+      ) {
+        currentBin = binBareName(raw);
+      }
+    }
+    if (currentBin === "scp" || currentBin === "cpio") continue;
     if (n.includes("=") && (n.startsWith("-") || n.startsWith("--"))) {
       const eq = raw.indexOf("=");
       const flag = normalizeToken(raw.slice(0, eq));

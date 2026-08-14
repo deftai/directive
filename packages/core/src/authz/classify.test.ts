@@ -771,6 +771,12 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("crane pull ghcr.io/example/g:latest /tmp/out")).toEqual([]);
     expect(classifyShellAuthzOps("objcopy src.bin /tmp/out")).toEqual([]);
     expect(classifyShellAuthzOps("weirdbin -o /tmp/out")).toEqual([]);
+    // scp `-o` is OpenSSH option, not a file dest (retain bin context; #3354 Greptile P1).
+    expect(
+      classifyShellAuthzOps("scp -o IdentityFile=.deft-directive-disable host:x /tmp/out"),
+    ).toEqual([]);
+    expect(classifyShellAuthzOps("scp -o ProxyCommand=none host:g.json /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("cpio -o > /tmp/a.cpio")).toEqual([]);
   });
 
   it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {

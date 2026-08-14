@@ -22,6 +22,7 @@ import {
   closeSync,
   constants,
   existsSync,
+  fsyncSync,
   lstatSync,
   mkdirSync,
   openSync,
@@ -226,6 +227,7 @@ function writeNoFollow(targetAbs: string, buf: Buffer, flags: number): number {
       }
       offset += n;
     }
+    fsyncSync(fd);
     return offset;
   } finally {
     closeSync(fd);
