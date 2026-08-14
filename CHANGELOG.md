@@ -14,7 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+> Always-on writing bar: clarity, simplicity, brevity for documents and communications (#3368).
+
 ### Added
+
+- **Always-on writing bar: clarity, simplicity, brevity (#3368).** Standing outcome bar for documents and user communications, including sub-agent status and handbacks. Agents-entry and the worker preamble name the three words. The depth page keeps the four STE mechanics plus ceremony-vs-fields, product-content voice, and no-reasoning-scope carve-outs. Not an [AXIOM], skill pin, or red CI style gate. Version blurb and GitHub/Slack Key Changes must name this bar. Closes #3368. Refs #2927, #3313.
 
 - **Ceremony-dial evaluation reads a consumer evidence source (#3358).** Session:start maps stamped #3323 clause count (and optional host-tier / failing-gate env) into `taskSize`/`modelTier` so evaluation is not permanently `insufficient evidence (size=- modelTier=-)`. Rapid default and decline threshold stay unchanged when no evidence exists. Closes #3358. Refs #3319, #3274, #3214, #3323.
 

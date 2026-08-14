@@ -535,6 +535,10 @@ The parent monitor watches the heartbeat file directly (three-state exit 0 ok / 
 Principle: `main.md` `## Rule Authority [AXIOM]`.
 Principle: `main.md` `## Thin Fail-Closed Design (#3265)`.
 
+## 10.56 Writing bar — clarity, simplicity, brevity (#3368)
+
+! Clarity, simplicity, brevity in documents and user communications, including sub-agent status and handbacks. Cut ceremony, not required fields. Depth: `content/docs/writing-ste100.md` (#2927 / #3368). ⊗ Full STE; ⊗ historical rewrite; ⊗ red CI style gate; ⊗ prefacing the rule.
+
 ## 10.6 Dual stop for multi-iteration worker loops (#2442)
 
 Multi-iteration implement, pre-PR, repair, and monitor loops require **two** stops: **success** (goal / AC / checker met) and **failure or budget** (max iterations, no-progress, or time/token budget). Single-turn tasks are exempt. Principle and defaults: `main.md` `## Dual Stop Rule (#2442)`; build skill dual-stop table; swarm Phase 4 / core-ops.

@@ -95,7 +95,7 @@ Same as managed below; `task verify:story-ready`, `task scope:promote -- <path>`
 ## CHANGELOG entry style (#1242)
 
 ! Brief release-notes — `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § CHANGELOG entry style (#1242).
-! Controlled English for docs/issues/PRs — `content/docs/writing-ste100.md` (#2927). ⊗ Full STE cert; ⊗ big-bang rewrite; ⊗ red CI style gate v1.
+! Clarity, simplicity, brevity in documents and user communications, including sub-agent status and handbacks. Cut ceremony, not required fields. STE how: `content/docs/writing-ste100.md` (#2927). ⊗ Full STE; ⊗ historical rewrite; ⊗ red CI style gate; ⊗ prefacing the rule.
 ! Per-project opt-out — root `.no-deft-directive` (#2926) skips install/session/setup (`content/docs/no-deft-directive.md`); flag wins locally over org force-on; flag+deposit → doctor warns, init/update fail closed. Temporary kill-switch `.deft-directive-disable` (#3039) — deposit OK; delete + NEW agent session (`content/docs/deft-directive-disable.md`).
 
 ## Contextual guardrails (runtime-detect lazy-load)
@@ -160,7 +160,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=7ba22d62390d refreshed=2026-08-14T00:23:38Z session=685f6741f27f -->
+<!-- deft:managed-section v3 sha=3e7f077fd037 refreshed=2026-08-14T19:52:03Z session=66f590ef7036 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -232,6 +232,8 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 ! Prefer `task deft:*` over AGENTS.md prose. See main.md.
 ## Thin Fail-Closed Design (#3265)
 ! One fail-closed `task deft:*` check + one remediation. See main.md.
+## Writing bar (#3368)
+! Clarity, simplicity, brevity in documents and user communications, including sub-agent status and handbacks. Cut ceremony, not required fields. STE how: `.deft/core/docs/writing-ste100.md` (#2927). ⊗ Full STE; ⊗ historical rewrite; ⊗ red CI style gate; ⊗ prefacing the rule.
 
 ## Continuous Improvement Learning (#607 / #3164)
 

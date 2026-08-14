@@ -107,6 +107,7 @@ const PROPAGATION_HEADER_MARKERS = [
   "## Skill pin policy (#2508)",
   "## Rule Authority [AXIOM]",
   "## Thin Fail-Closed Design (#3265)",
+  "## Writing bar (#3368)",
   "## Through-merge worker dispatch (#3032)",
   "## Mid-scope gate capability tier (#3158 / #954)",
   "## WIP cap",
@@ -138,6 +139,14 @@ const DEFT_DIRECTIVE_DISABLE_MARKERS = [
 const RULE_AUTHORITY_THIN_FAIL_CLOSED_POINTER_MARKERS = [
   "Prefer `task deft:*` over AGENTS.md prose",
   "One fail-closed `task deft:*` check + one remediation",
+] as const;
+
+/** Always-on writing bar (#3368) — three words must stay in the line. */
+const WRITING_BAR_MARKERS = [
+  "Clarity, simplicity, brevity",
+  "documents and user communications",
+  "sub-agent status and handbacks",
+  "writing-ste100.md",
 ] as const;
 
 const THROUGH_MERGE_DISPATCH_MARKERS = [
@@ -357,6 +366,27 @@ const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
       "pre-`start_agent` gate stack (#1149/#1348)",
       "deft verify:cache-fresh` is gate-stack step 3",
     ],
+  },
+  {
+    id: "writing-bar-3368",
+    shape: "doc",
+    header: "Writing bar (#3368)",
+    canonicalHome: "docs/writing-ste100.md",
+    pointerHints: [
+      "Clarity, simplicity, brevity",
+      "documents and user communications",
+      "sub-agent status and handbacks",
+      "writing-ste100.md",
+      "#3368",
+    ],
+    canonicalBodyMarkers: [
+      "clarity, simplicity, and brevity",
+      "Short sentences",
+      "does not govern reasoning",
+      "fiction, game dialogue, marketing",
+      "DONE",
+    ],
+    retiredFullTextMarkers: [],
   },
   {
     id: "human-merge-1193",
@@ -746,6 +776,11 @@ describe("test_agents_entry_contract", () => {
   it("rule_authority_thin_fail_closed_pointer_bodies_present_in_both_files", () => {
     expect(missingMarkers(template, RULE_AUTHORITY_THIN_FAIL_CLOSED_POINTER_MARKERS)).toEqual([]);
     expect(missingMarkers(agents, RULE_AUTHORITY_THIN_FAIL_CLOSED_POINTER_MARKERS)).toEqual([]);
+  });
+
+  it("writing_bar_markers_present_in_both_files", () => {
+    expect(missingMarkers(template, WRITING_BAR_MARKERS)).toEqual([]);
+    expect(missingMarkers(agents, WRITING_BAR_MARKERS)).toEqual([]);
   });
 
   it("through_merge_dispatch_markers_present_in_both_files", () => {
