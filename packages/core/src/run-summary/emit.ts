@@ -445,6 +445,17 @@ export class RunSummaryEmitter {
     }
     return this.emitToolTurnDenominator({ total_tool_turns: n });
   }
+
+  /**
+   * Always emit a session denominator when the destination is live (#3356).
+   * `emitKnownToolTurnDenominator` stays silent unless DEFT_TOTAL_TOOL_TURNS is
+   * set; this caller records host planned turns or the session:start CLI floor.
+   */
+  emitSessionToolTurnDenominator(hostMaxTurns?: number | null): EmitRunSummaryResult {
+    return this.emitToolTurnDenominator({
+      total_tool_turns: resolveSessionToolTurnDenominator(this.env, hostMaxTurns),
+    });
+  }
 }
 
 function readPayloadToolTurnDenominator(payload: RunSummaryPayload): number | undefined {
@@ -457,15 +468,53 @@ function readPayloadToolTurnDenominator(payload: RunSummaryPayload): number | un
 
 /** Parse harness-supplied DEFT_TOTAL_TOOL_TURNS (integer > 0). Invalid/unset → omit. */
 export function readEnvToolTurnDenominator(env: NodeJS.ProcessEnv): number | undefined {
-  const raw = env[ENV_TOTAL_TOOL_TURNS];
+  return readPositiveIntegerEnv(env, ENV_TOTAL_TOOL_TURNS);
+}
+
+/** Canonical host planned-turn budget recorded at session:start (#3356). */
+export const ENV_MAX_TURNS_DENOMINATOR = "DEFT_MAX_TURNS";
+
+/** session:start is one CLI invocation when no host/harness count is known (#3356). */
+export const SESSION_START_CLI_INVOCATION_DENOMINATOR = 1 as const;
+
+function isPositiveIntegerDenominator(value: unknown): value is number {
+  return (
+    typeof value === "number" && Number.isInteger(value) && Number.isFinite(value) && value > 0
+  );
+}
+
+function readPositiveIntegerEnv(env: NodeJS.ProcessEnv, key: string): number | undefined {
+  const raw = env[key];
   if (raw === undefined || raw.trim().length === 0) {
     return undefined;
   }
   const n = Number(raw.trim());
-  if (!Number.isInteger(n) || !Number.isFinite(n) || n <= 0) {
-    return undefined;
+  return isPositiveIntegerDenominator(n) ? n : undefined;
+}
+
+/**
+ * Resolve the session tool/turn denominator (#3356).
+ *
+ * Prefer harness actuals (`DEFT_TOTAL_TOOL_TURNS`), then a host planned-turn
+ * budget (`DEFT_MAX_TURNS` or `hostMaxTurns` from the session:start descriptor),
+ * else this CLI invocation (1). An emitted proxy beats a perfect unused kind.
+ */
+export function resolveSessionToolTurnDenominator(
+  env: NodeJS.ProcessEnv,
+  hostMaxTurns?: number | null,
+): number {
+  const known = readEnvToolTurnDenominator(env);
+  if (known !== undefined) {
+    return known;
   }
-  return n;
+  const planned = readPositiveIntegerEnv(env, ENV_MAX_TURNS_DENOMINATOR);
+  if (planned !== undefined) {
+    return planned;
+  }
+  if (isPositiveIntegerDenominator(hostMaxTurns)) {
+    return hostMaxTurns;
+  }
+  return SESSION_START_CLI_INVOCATION_DENOMINATOR;
 }
 
 /**

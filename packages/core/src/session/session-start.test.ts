@@ -5,8 +5,10 @@ import { afterEach, describe, expect, it } from "vitest";
 import { clearRegistryCache, DEFAULT_EVENT_LOG, readEvents } from "../lifecycle/events.js";
 import type { EnvironmentContext } from "../platform/shell-context.js";
 import { selectCeremonyDepth } from "../policy/ceremony-dial.js";
-import { ENV_RUN_SUMMARY_PATH } from "../run-summary/types.js";
+import { computeRitualGateShare, parseRunSummaryJsonl } from "../run-summary/share.js";
+import { ENV_RUN_SUMMARY_PATH, ENV_TOTAL_TOOL_TURNS } from "../run-summary/types.js";
 import type { ResolveUserMdResult } from "../user-config/resolve-user-md.js";
+import { ENV_MAX_TURNS } from "./effort-budget.js";
 import type { GitRunResult } from "./git.js";
 import {
   ENV_SESSION_START_NETWORK,
@@ -603,6 +605,74 @@ describe("runSessionStart start-tier provenance + evaluation events (#3319)", ()
     });
     expect(result.code).toBe(0);
     expect(existsSync(join(root, ".deft-run-summary.json"))).toBe(false);
+  });
+});
+
+describe("runSessionStart tool_turn_denominator (#3356)", () => {
+  function summaryEvents(out: string): Array<{
+    event: string;
+    total_tool_turns?: number;
+    payload: { total_tool_turns?: number };
+  }> {
+    return parseRunSummaryJsonl(readFileSync(out, "utf8"));
+  }
+
+  it("emits a denominator when only DEFT_RUN_SUMMARY_PATH is set", () => {
+    const root = tempRoot();
+    const out = join(root, "summary.jsonl");
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult()),
+      env: { [ENV_RUN_SUMMARY_PATH]: out },
+      ceremonyDialInputs: {
+        taskSize: "S",
+        modelTier: "frontier",
+        projectShape: "project",
+      },
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(0);
+    const events = summaryEvents(out);
+    const denoms = events.filter((e) => e.event === "tool_turn_denominator");
+    expect(denoms).toHaveLength(1);
+    expect(denoms[0]?.payload.total_tool_turns).toBe(1);
+    expect(denoms[0]?.total_tool_turns).toBe(1);
+    const share = computeRitualGateShare(events);
+    expect(share.evaluable).toBe(true);
+    expect(share.totalToolTurns).toBe(1);
+    expect(share.share).toBe(0);
+  });
+
+  it("records DEFT_MAX_TURNS as the session denominator", () => {
+    const root = tempRoot();
+    const out = join(root, "summary.jsonl");
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult()),
+      env: { [ENV_RUN_SUMMARY_PATH]: out, [ENV_MAX_TURNS]: "50" },
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(0);
+    const denoms = summaryEvents(out).filter((e) => e.event === "tool_turn_denominator");
+    expect(denoms).toHaveLength(1);
+    expect(denoms[0]?.total_tool_turns).toBe(50);
+    expect(computeRitualGateShare(summaryEvents(out)).share).toBe(0);
+  });
+
+  it("prefers DEFT_TOTAL_TOOL_TURNS over DEFT_MAX_TURNS", () => {
+    const root = tempRoot();
+    const out = join(root, "summary.jsonl");
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult()),
+      env: {
+        [ENV_RUN_SUMMARY_PATH]: out,
+        [ENV_TOTAL_TOOL_TURNS]: "12",
+        [ENV_MAX_TURNS]: "50",
+      },
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(0);
+    const denoms = summaryEvents(out).filter((e) => e.event === "tool_turn_denominator");
+    expect(denoms.length).toBeGreaterThanOrEqual(1);
+    expect(denoms.every((e) => e.total_tool_turns === 12)).toBe(true);
   });
 });
 

@@ -1639,7 +1639,11 @@ export function runSessionStart(
             }
           : {}),
       });
-      emitter.emitKnownToolTurnDenominator();
+      // #3356: always emit a denominator when the destination is live so
+      // share = ritual_events / denominator is computable from the stream.
+      // Prefer DEFT_TOTAL_TOOL_TURNS, then DEFT_MAX_TURNS / host maxTurns,
+      // else this session:start CLI invocation (1).
+      emitter.emitSessionToolTurnDenominator(effortBudget.budget.maxTurns);
       // #3319: evaluate escalate-on-evidence only when #3274 is live. A pin
       // emits nothing so never-evaluated stays distinguishable from declined.
       if (!isCeremonyStartTierPinned(startTierProvenance)) {

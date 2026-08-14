@@ -1,8 +1,11 @@
 export {
   type EmitRunSummaryResult,
+  ENV_MAX_TURNS_DENOMINATOR,
   emitRunSummaryEvent,
   RunSummaryEmitter,
   type RunSummaryEmitterOptions,
+  resolveSessionToolTurnDenominator,
+  SESSION_START_CLI_INVOCATION_DENOMINATOR,
 } from "./emit.js";
 export {
   gitignoreCoversRunSummary,
