@@ -6,7 +6,8 @@
  * Symlink destinations are refused (no-follow / containment) — fail-open.
  */
 
-import { existsSync, mkdirSync, readFileSync, realpathSync, statSync, unlinkSync } from "node:fs";
+import { randomBytes } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, realpathSync, unlinkSync } from "node:fs";
 import { basename, dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { readCorePackageVersion } from "../engine-version.js";
 import {
@@ -170,17 +171,63 @@ function seedSeqFromDestination(destination: RunSummaryDestination): number {
 const SEQ_LOCK_WAIT_MS = 2_000;
 const SEQ_LOCK_SPIN_MS = 15;
 
-/**
- * Cross-process exclusive lock so count-then-append is one critical section
- * (#3350 Greptile P1). Fail-open: if the lock cannot be acquired, emit still
- * proceeds with a best-effort recount. A lock older than the wait window is
- * treated as abandoned and reclaimed so a crashed holder cannot leave later
- * writers unlocked forever.
- */
-function tryReclaimStaleLock(lockPath: string): boolean {
+/** Owner token stored in `.seq.lock` so reclaim is not age-based (#3361). */
+export interface SeqLockOwner {
+  readonly pid: number;
+  readonly nonce: string;
+}
+
+function isErrno(err: unknown, code: string): boolean {
+  return Boolean(err && typeof err === "object" && "code" in err && err.code === code);
+}
+
+function isPidAlive(pid: number): boolean {
   try {
-    const ageMs = Date.now() - statSync(lockPath).mtimeMs;
-    if (ageMs < SEQ_LOCK_WAIT_MS) {
+    process.kill(pid, 0);
+    return true;
+  } catch (err) {
+    // EPERM: process exists but we cannot signal it — treat as live.
+    return isErrno(err, "EPERM");
+  }
+}
+
+function parseSeqLockOwner(raw: string): SeqLockOwner | null {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed === null || typeof parsed !== "object") {
+      return null;
+    }
+    const pid = (parsed as { pid?: unknown }).pid;
+    const nonce = (parsed as { nonce?: unknown }).nonce;
+    if (typeof pid !== "number" || !Number.isInteger(pid) || pid <= 0) {
+      return null;
+    }
+    if (typeof nonce !== "string" || nonce.length === 0) {
+      return null;
+    }
+    return { pid, nonce };
+  } catch {
+    return null;
+  }
+}
+
+function newSeqLockOwner(): SeqLockOwner {
+  return { pid: process.pid, nonce: randomBytes(8).toString("hex") };
+}
+
+function serializeSeqLockOwner(owner: SeqLockOwner): string {
+  return `${JSON.stringify({ pid: owner.pid, nonce: owner.nonce })}\n`;
+}
+
+/**
+ * Reclaim `.seq.lock` only when the owner process is dead or the token is
+ * missing/unreadable/corrupt (unknown owner). Live holders are never stolen
+ * by mtime (#3361).
+ */
+export function tryReclaimSeqLock(lockPath: string): boolean {
+  try {
+    const owner = parseSeqLockOwner(readFileSync(lockPath, "utf8"));
+    if (owner !== null && isPidAlive(owner.pid)) {
       return false;
     }
     unlinkSync(lockPath);
@@ -190,6 +237,30 @@ function tryReclaimStaleLock(lockPath: string): boolean {
   }
 }
 
+/**
+ * Unlink `.seq.lock` only when the on-disk token still matches this holder
+ * (ownership-blind release must not delete a successor's lock).
+ */
+export function releaseSeqLockIfOwner(lockPath: string, owner: SeqLockOwner): boolean {
+  try {
+    const current = parseSeqLockOwner(readFileSync(lockPath, "utf8"));
+    if (current === null || current.pid !== owner.pid || current.nonce !== owner.nonce) {
+      return false;
+    }
+    unlinkSync(lockPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Cross-process exclusive lock so count-then-append is one critical section
+ * (#3350 / #3361). Fail-open: if the lock cannot be acquired within the wait
+ * window, emit still proceeds with a best-effort recount. Reclaim is allowed
+ * only when the owner process is dead or the token is unknown — never by
+ * mtime of a live holder.
+ */
 function acquireSeqLock(targetPath: string): () => void {
   const noop = () => {
     /* fail-open: no lock held */
@@ -201,30 +272,27 @@ function acquireSeqLock(targetPath: string): () => void {
     const lockPath = `${targetAbs}.seq.lock`;
     const deadline = Date.now() + SEQ_LOCK_WAIT_MS;
     while (true) {
+      const owner = newSeqLockOwner();
       try {
         containedWrite({
           root: parent,
           target: lockPath,
-          data: "\0",
+          data: serializeSeqLockOwner(owner),
           mode: "create",
         });
         return () => {
-          try {
-            unlinkSync(lockPath);
-          } catch {
-            /* ignore */
-          }
+          releaseSeqLockIfOwner(lockPath, owner);
         };
       } catch (err) {
         if (err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS) {
+          if (tryReclaimSeqLock(lockPath)) {
+            continue;
+          }
           if (Date.now() < deadline) {
             const spinEnd = Date.now() + SEQ_LOCK_SPIN_MS;
             while (Date.now() < spinEnd) {
               /* brief spin */
             }
-            continue;
-          }
-          if (tryReclaimStaleLock(lockPath)) {
             continue;
           }
         }

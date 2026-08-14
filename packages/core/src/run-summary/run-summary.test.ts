@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -10,7 +11,12 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { emitRunSummaryEvent, RunSummaryEmitter } from "./emit.js";
+import {
+  emitRunSummaryEvent,
+  RunSummaryEmitter,
+  releaseSeqLockIfOwner,
+  tryReclaimSeqLock,
+} from "./emit.js";
 import {
   DEFAULT_RUN_SUMMARY_BASENAME,
   ENV_RUN_SUMMARY_PATH,
@@ -635,22 +641,77 @@ describe("RunSummaryEmitter (#3282)", () => {
     expect(result.emitted).toBe(false);
   });
 
-  it("reclaims a stale seq lock and still emits unique seq (#3350)", () => {
-    const root = freshRoot("run-summary-seq-stale-lock-");
+  it("does not reclaim a live holder's seq lock even when mtime is old (#3361)", () => {
+    const root = freshRoot("run-summary-seq-live-lock-");
     const out = join(root, "summary.jsonl");
     const lock = `${out}.seq.lock`;
-    writeFileSync(lock, "\0", "utf8");
-    const stale = new Date(Date.now() - 10_000);
-    utimesSync(lock, stale, stale);
+    const token = { pid: process.pid, nonce: "live-holder" };
+    writeFileSync(lock, `${JSON.stringify(token)}\n`, "utf8");
+    const aged = new Date(Date.now() - 10_000);
+    utimesSync(lock, aged, aged);
+    expect(tryReclaimSeqLock(lock)).toBe(false);
+    expect(readFileSync(lock, "utf8")).toContain("live-holder");
+    const emitter = new RunSummaryEmitter({
+      projectRoot: root,
+      sessionId: "live-holder",
+      frameworkVersion: "0.0.0",
+      env: { [ENV_RUN_SUMMARY_PATH]: out },
+    });
+    const result = emitter.emitCheckInvocation({ target: "a", exit_code: 0, gates: [] });
+    expect(result.emitted).toBe(true);
+    expect(result.line?.seq).toBe(1);
+    expect(existsSync(lock)).toBe(true);
+    expect(readFileSync(lock, "utf8")).toContain("live-holder");
+  });
+
+  it("reclaims a dead-holder seq lock and still emits unique seq (#3361)", () => {
+    const root = freshRoot("run-summary-seq-dead-lock-");
+    const out = join(root, "summary.jsonl");
+    const lock = `${out}.seq.lock`;
+    const child = spawnSync(process.execPath, ["-e", "process.exit(0)"], { windowsHide: true });
+    expect(typeof child.pid).toBe("number");
+    const deadPid = child.pid as number;
+    writeFileSync(lock, `${JSON.stringify({ pid: deadPid, nonce: "dead-holder" })}\n`, "utf8");
+    expect(tryReclaimSeqLock(lock)).toBe(true);
+    expect(existsSync(lock)).toBe(false);
+    writeFileSync(lock, `${JSON.stringify({ pid: deadPid, nonce: "dead-holder" })}\n`, "utf8");
     const base = {
       projectRoot: root,
       frameworkVersion: "0.0.0",
       env: { [ENV_RUN_SUMMARY_PATH]: out },
     };
-    const first = new RunSummaryEmitter({ ...base, sessionId: "stale-1" });
-    const second = new RunSummaryEmitter({ ...base, sessionId: "stale-2" });
+    const first = new RunSummaryEmitter({ ...base, sessionId: "dead-1" });
+    const second = new RunSummaryEmitter({ ...base, sessionId: "dead-2" });
     expect(first.emitCheckInvocation({ target: "a", exit_code: 0, gates: [] }).line?.seq).toBe(1);
     expect(second.emitCheckInvocation({ target: "b", exit_code: 0, gates: [] }).line?.seq).toBe(2);
+    expect(existsSync(lock)).toBe(false);
+  });
+
+  it("reclaims a corrupt/unknown seq lock without using age (#3361)", () => {
+    const root = freshRoot("run-summary-seq-unknown-lock-");
+    const out = join(root, "summary.jsonl");
+    const lock = `${out}.seq.lock`;
+    writeFileSync(lock, "\0", "utf8");
+    const base = {
+      projectRoot: root,
+      frameworkVersion: "0.0.0",
+      env: { [ENV_RUN_SUMMARY_PATH]: out },
+    };
+    const first = new RunSummaryEmitter({ ...base, sessionId: "unknown-1" });
+    const second = new RunSummaryEmitter({ ...base, sessionId: "unknown-2" });
+    expect(first.emitCheckInvocation({ target: "a", exit_code: 0, gates: [] }).line?.seq).toBe(1);
+    expect(second.emitCheckInvocation({ target: "b", exit_code: 0, gates: [] }).line?.seq).toBe(2);
+    expect(existsSync(lock)).toBe(false);
+  });
+
+  it("releases a seq lock only when the on-disk token still matches (#3361)", () => {
+    const root = freshRoot("run-summary-seq-release-owner-");
+    const lock = join(root, "summary.jsonl.seq.lock");
+    const owner = { pid: process.pid, nonce: "holder-a" };
+    writeFileSync(lock, `${JSON.stringify(owner)}\n`, "utf8");
+    expect(releaseSeqLockIfOwner(lock, { pid: process.pid, nonce: "other" })).toBe(false);
+    expect(existsSync(lock)).toBe(true);
+    expect(releaseSeqLockIfOwner(lock, owner)).toBe(true);
     expect(existsSync(lock)).toBe(false);
   });
 
