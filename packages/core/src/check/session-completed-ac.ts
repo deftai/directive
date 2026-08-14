@@ -8,12 +8,22 @@
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { readRitualState } from "../session/ritual-sentinel.js";
 import { parseTimestamp } from "../session/time.js";
 
 /** One remediation when check cannot target the just-completed brief (#3357). */
 export const SESSION_COMPLETED_AC_REMEDIATION =
   "Run task verify:ac -- xbrief/completed/<just-completed>.xbrief.json (a story completed this session; check must not soft-skip) (#3357)";
+
+/** Project-relative marker written by scope:complete for this session (#3357). */
+export const SESSION_COMPLETED_MARKER_REL = [".deft", "last-completed.json"] as const;
+
+export interface SessionCompletedMarker {
+  readonly path: string;
+  readonly sessionId: string;
+  readonly completedAt: string;
+}
 
 export type SessionCompletedAcTarget =
   | { readonly kind: "none" }
@@ -38,6 +48,46 @@ function asRecord(value: unknown): Record<string, unknown> | null {
     return value as Record<string, unknown>;
   }
   return null;
+}
+
+export function sessionCompletedMarkerPath(projectRoot: string): string {
+  return join(resolve(projectRoot), ...SESSION_COMPLETED_MARKER_REL);
+}
+
+/** Persist the just-completed brief so check can fail closed if that file is unreadable. */
+export function writeSessionCompletedMarker(
+  projectRoot: string,
+  marker: SessionCompletedMarker,
+): void {
+  const root = resolve(projectRoot);
+  const target = sessionCompletedMarkerPath(root);
+  containedWrite({
+    root,
+    target,
+    data: `${JSON.stringify(marker, null, 2)}\n`,
+    mode: "replace",
+    mkdir: true,
+  });
+}
+
+function readSessionCompletedMarker(projectRoot: string): SessionCompletedMarker | null {
+  const path = sessionCompletedMarkerPath(projectRoot);
+  if (!existsSync(path)) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(readFileSync(path, "utf8"));
+    const rec = asRecord(parsed);
+    const briefPath = typeof rec?.path === "string" ? rec.path.trim() : "";
+    const sessionId = typeof rec?.sessionId === "string" ? rec.sessionId.trim() : "";
+    const completedAt = typeof rec?.completedAt === "string" ? rec.completedAt.trim() : "";
+    if (briefPath.length === 0 || sessionId.length === 0) {
+      return null;
+    }
+    return { path: briefPath, sessionId, completedAt };
+  } catch {
+    return null;
+  }
 }
 
 function resolveSession(input: ResolveSessionCompletedAcInput): {
@@ -136,6 +186,14 @@ export function resolveSessionCompletedVerifyAcTarget(
 ): SessionCompletedAcTarget {
   const projectRoot = resolve(input.projectRoot);
   const { sessionId, startedAt } = resolveSession(input);
+  const marker = readSessionCompletedMarker(projectRoot);
+  if (marker !== null && sessionId !== null && marker.sessionId === sessionId) {
+    const candidate = readCompletedCandidate(marker.path);
+    if (candidate === "unreadable") {
+      return { kind: "cannot", message: SESSION_COMPLETED_AC_REMEDIATION };
+    }
+    return { kind: "target", path: candidate.path };
+  }
   const paths = listCompletedBriefPaths(projectRoot);
   if (paths.length === 0 || (sessionId === null && startedAt === null)) {
     return { kind: "none" };

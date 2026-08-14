@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, unlinkSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { writeSessionCompletedMarker } from "../check/session-completed-ac.js";
 import { InstrumentedVbriefCrud, persistCrudMetrics } from "../eval/crud-telemetry.js";
 import {
   assertProjectionContained,
@@ -368,6 +369,20 @@ export function runTransition(
       return { ok: false, message: writeResult.message };
     }
     crud.recordTrustedUpdate(destPath, formatted);
+    if (act === "complete") {
+      const sessionId = resolveCompletionSessionId(projectRoot);
+      if (sessionId !== null) {
+        try {
+          writeSessionCompletedMarker(projectRoot, {
+            path: destPath,
+            sessionId,
+            completedAt: nowIso,
+          });
+        } catch {
+          /* best-effort marker; check still scans completed/ */
+        }
+      }
+    }
 
     try {
       unlinkSync(resolvedPath);
