@@ -102,6 +102,8 @@ export const FRAMEWORK_CHECK_GATES: readonly CheckGateSpec[] = [
   "verify:test-boundary",
   "verify:scope-provenance",
   "verify:consumer-check-contract",
+  // #3362: dead-surface detector (warn-only this release; no --enforce)
+  "verify:telemetry-coverage",
   "verify:vbrief-conformance",
   "verify:destructive-gh-verbs",
   "verify:scm-boundary",

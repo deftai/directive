@@ -539,6 +539,12 @@ Principle: `main.md` `## Thin Fail-Closed Design (#3265)`.
 
 ! Clarity, simplicity, brevity in documents and user communications, including sub-agent status and handbacks. Cut ceremony, not required fields. Depth: `.deft/core/docs/writing-ste100.md` (#2927 / #3368). ⊗ Full STE; ⊗ historical rewrite; ⊗ red CI style gate; ⊗ prefacing the rule.
 
+## 10.57 Telemetry deliverable fixture (#3362)
+
+! A telemetry deliverable is not done until a field-shaped fixture reads its events from the shared fake trial (`task verify:telemetry-coverage`). Silence is the failure mode this gate exists for.
+
+⊗ Ship a new `RUN_SUMMARY_EVENT_KINDS` member or exported emitter method without a production caller and a fixture that asserts the kind in `DEFT_RUN_SUMMARY_PATH` JSONL.
+
 ## 10.6 Dual stop for multi-iteration worker loops (#2442)
 
 Multi-iteration implement, pre-PR, repair, and monitor loops require **two** stops: **success** (goal / AC / checker met) and **failure or budget** (max iterations, no-progress, or time/token budget). Single-turn tasks are exempt. Principle and defaults: `main.md` `## Dual Stop Rule (#2442)`; build skill dual-stop table; swarm Phase 4 / core-ops.

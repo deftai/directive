@@ -180,6 +180,12 @@ task check    # runs: validate + lint + test
 
 ⊗ Commit code that has not passed `task check`.
 
+### Telemetry coverage (#3362)
+
+! A telemetry deliverable is not done until a fixture reads its events from a fake trial (`task verify:telemetry-coverage`). Silence is the failure mode this gate exists for.
+
+⊗ Add a run-summary event kind or emitter method without a production caller and a field-shaped fixture. The framework `task check` list ships this gate warn-only this release; pass `--enforce` to fail closed.
+
 ### AGENTS.md line budget (#645)
 
 `task verify:agents-md-budget` (wired into `task check:framework-source`) is a **ratchet** that keeps AGENTS.md a map, not a manual (#1882). It counts the managed section and the unmanaged region separately and fails when either grows past `plan.policy.agentsMdBudget.{managedMaxLines,unmanagedMaxLines}` in `PROJECT-DEFINITION`. The budget is seeded at the current per-region size, so the gate ships green; only *growth* fails.

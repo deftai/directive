@@ -47,6 +47,16 @@ tasks:
         vars:
           ENGINE_CMD: 'verify-biome-config --project-root "{{.DEFT_ROOT}}"'
 
+  telemetry-coverage:
+    desc: "Dead-surface detector for run-summary event kinds (#3362). Every RUN_SUMMARY_EVENT_KINDS member needs a production caller and a field-shaped fixture. Default is warn-only; pass --enforce to fail closed. -- task verify:telemetry-coverage [-- --enforce]"
+    deps:
+      - task: :engine:_ts-build
+    # Framework-source-only gate: scans THIS repo's packages/core/src emitters.
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify-telemetry-coverage --project-root "{{.DEFT_ROOT}}" {{.CLI_ARGS}}'
+
   contained-writes:
     desc: "Inventory raw product write sinks outside the contained-write allowlist (#2951 / #2980). Default CLI remains fail-open; task check wires --enforce fail-closed. -- task verify:contained-writes [-- --enforce]"
     deps:

@@ -80,6 +80,11 @@ describe("gate-lists (#2791)", () => {
     expect(framework).not.toContain("verify:completed-tracked");
   });
 
+  it("includes verify:telemetry-coverage on the framework list only (#3362)", () => {
+    expect(FRAMEWORK_CHECK_GATES.map(checkGateId)).toContain("verify:telemetry-coverage");
+    expect(CONSUMER_CHECK_GATES.map(checkGateId)).not.toContain("verify:telemetry-coverage");
+  });
+
   it("includes #3145 enforcement gates on framework and consumer lists", () => {
     const framework = FRAMEWORK_CHECK_GATES.map(checkGateId);
     const consumer = CONSUMER_CHECK_GATES.map(checkGateId);

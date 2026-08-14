@@ -1,3 +1,4 @@
+export * from "../telemetry-coverage/index.js";
 export * from "./biome-config.js";
 export * from "./code-structure-validate.js";
 export * from "./contained-writes.js";
