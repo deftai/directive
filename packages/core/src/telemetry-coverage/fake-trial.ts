@@ -6,7 +6,7 @@
  * rather than rebuilding a per-kind fixture.
  */
 
-import { existsSync, mkdirSync, mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
@@ -127,20 +127,25 @@ export interface FakeTrialResult {
 
 function createConsumerShapedRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "deft-telemetry-trial-"));
-  mkdirSync(join(root, "xbrief"), { recursive: true });
-  containedWrite({
-    root,
-    target: ".gitignore",
-    data: ".deft-run-summary.json\n",
-    mode: "create",
-  });
-  containedWrite({
-    root,
-    target: "package.json",
-    data: '{"name":"fake-trial-consumer"}\n',
-    mode: "create",
-  });
-  return root;
+  try {
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    containedWrite({
+      root,
+      target: ".gitignore",
+      data: ".deft-run-summary.json\n",
+      mode: "create",
+    });
+    containedWrite({
+      root,
+      target: "package.json",
+      data: '{"name":"fake-trial-consumer"}\n',
+      mode: "create",
+    });
+    return root;
+  } catch (error) {
+    rmSync(root, { recursive: true, force: true });
+    throw error;
+  }
 }
 
 function seqIsMonotonic(lines: readonly RunSummaryLine[]): boolean {
@@ -173,48 +178,56 @@ function readTrialLines(destPath: string): RunSummaryLine[] {
  * across invocations (#3350 class).
  */
 export function runFakeTrial(options: FakeTrialOptions = {}): FakeTrialResult {
+  const ownsTempRoot = options.projectRoot === undefined;
   const projectRoot = options.projectRoot ?? createConsumerShapedRoot();
-  const destPath = options.destPath ?? join(projectRoot, "trial-run-summary.jsonl");
-  const sessionId = options.sessionId ?? "fake-trial-session";
-  const steps = options.steps ?? DEFAULT_TRIAL_STEPS;
-  const env: NodeJS.ProcessEnv = {
-    ...(options.env ?? process.env),
-    [ENV_RUN_SUMMARY_PATH]: destPath,
-    [ENV_TOTAL_TOOL_TURNS]: "8",
-  };
+  try {
+    const destPath = options.destPath ?? join(projectRoot, "trial-run-summary.jsonl");
+    const sessionId = options.sessionId ?? "fake-trial-session";
+    const steps = options.steps ?? DEFAULT_TRIAL_STEPS;
+    const env: NodeJS.ProcessEnv = {
+      ...(options.env ?? process.env),
+      [ENV_RUN_SUMMARY_PATH]: destPath,
+      [ENV_TOTAL_TOOL_TURNS]: "8",
+    };
 
-  const first = new RunSummaryEmitter({ projectRoot, sessionId, env });
-  const stepOutcomes: FakeTrialStepOutcome[] = [];
-  let seenLines = 0;
-  for (const step of steps) {
-    step.invoke(first);
-    const current = readTrialLines(destPath);
-    const emittedKinds = current.slice(seenLines).map((line) => line.event);
-    seenLines = current.length;
-    stepOutcomes.push({ declaredKind: step.kind, emittedKinds });
-  }
-  const second = new RunSummaryEmitter({ projectRoot, sessionId, env });
-  second.emitCheckInvocation({
-    target: "check:framework-source",
-    exit_code: 0,
-    gates: [],
-  });
+    const first = new RunSummaryEmitter({ projectRoot, sessionId, env });
+    const stepOutcomes: FakeTrialStepOutcome[] = [];
+    let seenLines = 0;
+    for (const step of steps) {
+      step.invoke(first);
+      const current = readTrialLines(destPath);
+      const emittedKinds = current.slice(seenLines).map((line) => line.event);
+      seenLines = current.length;
+      stepOutcomes.push({ declaredKind: step.kind, emittedKinds });
+    }
+    const second = new RunSummaryEmitter({ projectRoot, sessionId, env });
+    second.emitCheckInvocation({
+      target: "check:framework-source",
+      exit_code: 0,
+      gates: [],
+    });
 
-  const lines = readTrialLines(destPath);
-  const present = new Set<RunSummaryEventKind>();
-  for (const line of lines) {
-    present.add(line.event);
+    const lines = readTrialLines(destPath);
+    const present = new Set<RunSummaryEventKind>();
+    for (const line of lines) {
+      present.add(line.event);
+    }
+    return {
+      projectRoot,
+      destPath,
+      sessionId,
+      lines,
+      presentKinds: [...present],
+      stepOutcomes,
+      seqMonotonic: seqIsMonotonic(lines),
+      sessionIdStable: sessionIdIsStable(lines, sessionId),
+    };
+  } catch (error) {
+    if (ownsTempRoot) {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+    throw error;
   }
-  return {
-    projectRoot,
-    destPath,
-    sessionId,
-    lines,
-    presentKinds: [...present],
-    stepOutcomes,
-    seqMonotonic: seqIsMonotonic(lines),
-    sessionIdStable: sessionIdIsStable(lines, sessionId),
-  };
 }
 
 /** Assert every enrolled kind appears in a trial result. */

@@ -99,24 +99,23 @@ export function evaluateTelemetryCoverage(
   let trialRoot: string | undefined;
   let presentFromTrial: Set<string> | undefined;
   let failedStepKinds: Set<string> | undefined;
-  if (options.trialResult !== undefined) {
-    presentFromTrial = new Set(options.trialResult.presentKinds);
-    failedStepKinds = failedDeclaredSteps(options.trialResult.stepOutcomes);
-  } else if (options.skipTrial !== true) {
-    const trial = runFakeTrial();
-    trialRoot = trial.projectRoot;
-    presentFromTrial = new Set(trial.presentKinds);
-    failedStepKinds = failedDeclaredSteps(trial.stepOutcomes);
-  }
-
-  const scan = scanProductionCallers({
-    projectRoot: root,
-    scanRoots: options.scanRoots,
-    kinds,
-  });
-
   const findings: TelemetryCoverageFinding[] = [];
   try {
+    if (options.trialResult !== undefined) {
+      presentFromTrial = new Set(options.trialResult.presentKinds);
+      failedStepKinds = failedDeclaredSteps(options.trialResult.stepOutcomes);
+    } else if (options.skipTrial !== true) {
+      const trial = runFakeTrial();
+      trialRoot = trial.projectRoot;
+      presentFromTrial = new Set(trial.presentKinds);
+      failedStepKinds = failedDeclaredSteps(trial.stepOutcomes);
+    }
+
+    const scan = scanProductionCallers({
+      projectRoot: root,
+      scanRoots: options.scanRoots,
+      kinds,
+    });
     for (const kind of kinds) {
       const missingCaller = (scan.callersByKind[kind] ?? []).length === 0;
       const missingFromTrial = presentFromTrial !== undefined && !presentFromTrial.has(kind);

@@ -1,7 +1,8 @@
 /**
  * Shared fake-trial harness: enroll kinds, do not rebuild per kind (#3362).
  */
-import { rmSync } from "node:fs";
+import { readdirSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import { DEFAULT_TRIAL_STEPS, missingEnrolledKinds, runFakeTrial } from "./fake-trial.js";
 import { ENROLLED_FIELD_FIXTURE_KINDS, RUN_SUMMARY_EVENT_KINDS } from "./kinds.js";
@@ -61,5 +62,25 @@ describe("runFakeTrial (#3362)", () => {
     roots.push(result.projectRoot);
     expect(result.stepOutcomes).toEqual([{ declaredKind: "session_start", emittedKinds: [] }]);
     expect(missingEnrolledKinds(result, ["session_start"])).toEqual(["session_start"]);
+  });
+
+  it("removes the auto-created temp root when a trial step throws", () => {
+    const prefix = "deft-telemetry-trial-";
+    const listed = (): string[] => readdirSync(tmpdir()).filter((name) => name.startsWith(prefix));
+    const before = new Set(listed());
+    expect(() =>
+      runFakeTrial({
+        steps: [
+          {
+            kind: "session_start",
+            invoke: () => {
+              throw new Error("fake-trial-boom");
+            },
+          },
+        ],
+      }),
+    ).toThrow(/fake-trial-boom/);
+    const leaked = listed().filter((name) => !before.has(name));
+    expect(leaked).toEqual([]);
   });
 });
