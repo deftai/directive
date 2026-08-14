@@ -1,4 +1,8 @@
-import { GITHUB_ISSUE_REF_TYPES, parseIssueNumber } from "../intake/reconcile-issues.js";
+import {
+  extractReferencesFromVbrief,
+  GITHUB_ISSUE_REF_TYPES,
+  parseIssueNumber,
+} from "../intake/reconcile-issues.js";
 import { type CallOptions, type CompletedProcess, call } from "../scm/call.js";
 
 const ISSUE_URL_PATTERN = /https:\/\/github\.com\/([^/\s]+)\/([^/\s]+)\/issues\/(\d+)/;
@@ -56,21 +60,9 @@ export function briefUpdatedOf(payload: Record<string, unknown>): string | null 
 }
 
 export function extractGithubIssueOrigins(payload: Record<string, unknown>): GithubIssueOrigin[] {
-  const plan = payload.plan;
-  if (plan === null || typeof plan !== "object" || Array.isArray(plan)) {
-    return [];
-  }
-  const refs = (plan as Record<string, unknown>).references;
-  if (!Array.isArray(refs)) {
-    return [];
-  }
   const origins: GithubIssueOrigin[] = [];
   const seen = new Set<string>();
-  for (const ref of refs) {
-    if (ref === null || typeof ref !== "object" || Array.isArray(ref)) {
-      continue;
-    }
-    const rec = ref as Record<string, unknown>;
+  for (const rec of extractReferencesFromVbrief(payload)) {
     const type = String(rec.type ?? "");
     if (!GITHUB_ISSUE_REF_TYPES.has(type)) {
       continue;

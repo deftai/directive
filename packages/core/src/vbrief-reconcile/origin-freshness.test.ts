@@ -55,6 +55,31 @@ describe("extractGithubIssueOrigin", () => {
     ).toBe("x-vbrief/github-issue");
   });
 
+  it("fails closed when a nested item github-issue origin is newer", () => {
+    const result = evaluateOriginFreshness(
+      {
+        xBRIEFInfo: { version: "0.8", updated: "2026-08-14T16:00:00Z" },
+        plan: {
+          status: "running",
+          items: [
+            {
+              references: [
+                {
+                  type: "x-xbrief/github-issue",
+                  uri: "https://github.com/deftai/directive/issues/99",
+                },
+              ],
+            },
+          ],
+        },
+      },
+      { fetchOriginUpdatedAt: () => ({ updatedAt: "2026-08-14T17:00:00Z" }) },
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.message).toContain("#99");
+  });
+
   it("fails closed when a later github-issue origin is newer", () => {
     const brief = {
       xBRIEFInfo: { version: "0.8", updated: "2026-08-14T16:00:00Z" },
