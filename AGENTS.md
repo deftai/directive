@@ -160,7 +160,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=313027f92247 refreshed=2026-08-14T00:13:46Z session=f11bc6304595 -->
+<!-- deft:managed-section v3 sha=a67fabe9f31a refreshed=2026-08-14T00:19:20Z session=0241acf47962 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -235,10 +235,7 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ## Continuous Improvement Learning (#607 / #3164)
 
-! After a failure or better approach: ask whether it could recur with a different query or different session.
-- One-off prose → `meta/lessons.md` (or lessons pack slice)
-- Recurrable structural gap → propose skill/directive via issue/PR under Self-Improving gates — never mid-run constitution self-edit
-~ Depth: `.deft/core/main.md` Continuous Improvement; stance #3164. Optional escalate runtime #666 when kaizen skill exists.
+! After a failure: ask if it could recur with a different query or session. One-off → `./lessons.md` inbox (⊗ hand-edit generated `meta/lessons.md`); recurrable structural → propose skill/directive via issue/PR under Self-Improving gates — never mid-run constitution self-edit. Depth: Continuous Improvement in main.md; stance #3164; optional #666.
 
 ## Through-merge worker dispatch (#3032)
 

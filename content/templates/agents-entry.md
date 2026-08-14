@@ -73,10 +73,7 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ## Continuous Improvement Learning (#607 / #3164)
 
-! After a failure or better approach: ask whether it could recur with a different query or different session.
-- One-off prose → `meta/lessons.md` (or lessons pack slice)
-- Recurrable structural gap → propose skill/directive via issue/PR under Self-Improving gates — never mid-run constitution self-edit
-~ Depth: `.deft/core/main.md` Continuous Improvement; stance #3164. Optional escalate runtime #666 when kaizen skill exists.
+! After a failure: ask if it could recur with a different query or session. One-off → `./lessons.md` inbox (⊗ hand-edit generated `meta/lessons.md`); recurrable structural → propose skill/directive via issue/PR under Self-Improving gates — never mid-run constitution self-edit. Depth: Continuous Improvement in main.md; stance #3164; optional #666.
 
 ## Through-merge worker dispatch (#3032)
 
