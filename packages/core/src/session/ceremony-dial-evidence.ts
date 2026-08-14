@@ -64,8 +64,6 @@ function rankSize(size: CeremonyTaskSize): number {
       return 2;
     case "XL":
       return 3;
-    default:
-      return 0;
   }
 }
 
@@ -179,7 +177,7 @@ export function collectCeremonyDialConsumerEvidence(
   }
 
   const modelTier = normalizeCeremonyModelTier(
-    env[ENV_HOST_MODEL_TIER] ?? env[ENV_CEREMONY_MODEL_TIER] ?? env[ENV_CEREMONY_MODEL_HINT],
+    env[ENV_CEREMONY_MODEL_TIER] ?? env[ENV_CEREMONY_MODEL_HINT] ?? env[ENV_HOST_MODEL_TIER],
   );
   if (modelTier !== null) {
     reasons.push(`modelTier=${modelTier} from host env`);

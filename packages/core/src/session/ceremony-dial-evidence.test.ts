@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { ENV_CEREMONY_MODEL_TIER } from "../policy/ceremony-dial.js";
 import {
   collectCeremonyDialConsumerEvidence,
   ENV_FAILING_GATE_COUNT,
@@ -155,6 +156,16 @@ describe("collectCeremonyDialConsumerEvidence (#3358)", () => {
     });
     expect(evidence.modelTier).toBe("mid");
     expect(evidence.reasons.some((r) => r.includes("modelTier=mid"))).toBe(true);
+  });
+
+  it("lets ceremony-specific model-tier env win over the generic host hint", () => {
+    const evidence = collectCeremonyDialConsumerEvidence(tempRoot(), {
+      env: {
+        [ENV_HOST_MODEL_TIER]: "low",
+        [ENV_CEREMONY_MODEL_TIER]: "frontier",
+      },
+    });
+    expect(evidence.modelTier).toBe("frontier");
   });
 
   it("ignores an unparsable failing-gate env instead of inventing a size", () => {
