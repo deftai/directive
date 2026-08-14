@@ -282,7 +282,9 @@ A normal framework upgrade is **one PR**, not two stacked PRs. The deposited `de
 
 **Do not** split a routine version bump into “deposit-only” then “pin/GENERATION” PRs — that re-creates engine / deposit / pin skew between merges. **Do** keep product feature work on a separate branch/PR from the framework upgrade. Consumers should **not** hand-roll a forked `deft-core-guard.yml` for normal upgrades — the deposited workflow already enforces pin-only + lock follow-through.
 
-Refs: [#3127](https://github.com/deftai/directive/issues/3127), [#3193](https://github.com/deftai/directive/issues/3193), [#1430](https://github.com/deftai/directive/issues/1430), [#3117](https://github.com/deftai/directive/issues/3117).
+**Load fix (#3345):** if GitHub Actions shows workflow name as the path string `.github/workflows/deft-core-guard.yml` (not `deft-core-guard`), or historical runs are 0s/0 jobs and the required check `no-mixed-core-and-app` never appears on PRs, the deposited workflow failed to load (invalid YAML from an unindented Python heredoc). Run `deft update` (or re-init deposit) so the fixed workflow is rewritten, then open a normal upgrade PR — classic branch protection that requires `no-mixed-core-and-app` can clear once the job posts.
+
+Refs: [#3127](https://github.com/deftai/directive/issues/3127), [#3193](https://github.com/deftai/directive/issues/3193), [#1430](https://github.com/deftai/directive/issues/1430), [#3117](https://github.com/deftai/directive/issues/3117), [#3345](https://github.com/deftai/directive/issues/3345).
 
 Machine-readable skill exit line (for agents/operators):
 

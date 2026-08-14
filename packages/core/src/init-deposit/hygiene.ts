@@ -204,12 +204,21 @@ export function assertInstallerAllowlistHonors1430(
   }
 }
 
-/** POSIX ERE alternation embedded in the deposited deft-core-guard workflow. */
-export function installerManagedGuardEre(): string {
+/**
+ * Individual POSIX ERE patterns for the deposited deft-core-guard allowlist.
+ * One pattern per line in the workflow heredoc (#3345) — joined form is still
+ * available via {@link installerManagedGuardEre} for tests and classifiers.
+ */
+export function installerManagedGuardErePatterns(): string[] {
   const matchers = installerManagedMatchers();
   // Refuse to emit a guard workflow that would exempt consumer denylist paths.
   assertInstallerAllowlistHonors1430(matchers);
-  return matchers.map((matcher) => matcherToEre(matcher)).join("|");
+  return matchers.map((matcher) => matcherToEre(matcher));
+}
+
+/** POSIX ERE alternation (joined) for tests / tooling that want a single pattern. */
+export function installerManagedGuardEre(): string {
+  return installerManagedGuardErePatterns().join("|");
 }
 
 export function isInstallerManagedPath(path: string): boolean {

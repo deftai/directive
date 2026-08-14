@@ -18,7 +18,7 @@ import {
 import { agentsRefreshPlan } from "../platform/agents-md.js";
 import { MIGRATED_ARTIFACT_DIR } from "../xbrief-migrate/constants.js";
 import { CANONICAL_INSTALL_ROOT, type InitDepositIo } from "./constants.js";
-import { assertInstallerAllowlistHonors1430, installerManagedGuardEre } from "./hygiene.js";
+import { assertInstallerAllowlistHonors1430, installerManagedGuardErePatterns } from "./hygiene.js";
 import { writeAgentsSkillsFromInventory } from "./skill-discovery-deposit.js";
 import { syncConsumerXbriefSchemas } from "./xbrief-projections.js";
 
@@ -601,15 +601,73 @@ export function mergeCoreGuardWorkflowRefresh(existing: string, desired: string)
 }
 
 /**
+ * Indent for shell lines inside the deposited workflow `run: |` block.
+ * YAML literal blocks end at any line less indented than this; the #3193
+ * Python body must stay at this column so GHA can load the workflow (#3345).
+ */
+const CORE_GUARD_RUN_INDENT = "          ";
+
+/**
+ * Soft max line length for deposited core-guard workflow YAML (#3345).
+ * Mega-line allowlist EREs previously sat near ~5k chars; keep well below.
+ * Enforced by {@link assertCoreGuardWorkflowLoadable} before deposit write.
+ */
+export const CORE_GUARD_WORKFLOW_MAX_LINE = 500;
+
+/**
+ * Fail closed if a rendered deft-core-guard workflow would not load in GHA
+ * (#3345): any `run: |` content line less indented than the block base, or a
+ * line longer than {@link CORE_GUARD_WORKFLOW_MAX_LINE}.
+ */
+export function assertCoreGuardWorkflowLoadable(content: string): void {
+  if (
+    !content.startsWith("name: deft-core-guard\n") &&
+    !content.startsWith("name: deft-core-guard\r\n")
+  ) {
+    throw new Error("deft-core-guard workflow must start with name: deft-core-guard (#3345)");
+  }
+  let inRun = false;
+  let baseIndent: number | null = null;
+  for (const [index, line] of content.split("\n").entries()) {
+    if (line.length > CORE_GUARD_WORKFLOW_MAX_LINE) {
+      throw new Error(
+        `deft-core-guard workflow line ${index + 1} is ${line.length} chars ` +
+          `(max ${CORE_GUARD_WORKFLOW_MAX_LINE}; #3345 loadable YAML)`,
+      );
+    }
+    if (line.trim() === "run: |") {
+      inRun = true;
+      baseIndent = null;
+      continue;
+    }
+    if (!inRun || line.trim() === "") continue;
+    const lead = line.match(/^( *)/)?.[1]?.length ?? 0;
+    if (baseIndent === null) {
+      baseIndent = lead;
+      continue;
+    }
+    if (lead < baseIndent) {
+      throw new Error(
+        `deft-core-guard workflow line ${index + 1} dedents below run-block base ` +
+          `(indent ${lead} < ${baseIndent}; #3345 YAML load failure class)`,
+      );
+    }
+  }
+}
+
+/**
  * Embedded python3 content check for package.json / lockfiles when co-travelling
  * with .deft/core/** (#3193). Mirrors TS `isUpgradePinPathContentAllowed`.
  * Uses a single-quoted heredoc so GHA does not interpolate shell variables
  * inside the Python source (BASE/HEAD are argv).
+ *
+ * Every emitted line is indented to {@link CORE_GUARD_RUN_INDENT} so the YAML
+ * `run: |` block stays intact (#3345). After GHA strips the common indent, the
+ * shell heredoc body reaches python3 with correct relative indentation.
  */
 function coreGuardPinContentPython(): string {
   // Keep this compact: deposited into every consumer workflow on init/update.
-  return [
-    '          python3 - "$BASE_SHA" "$HEAD_SHA" <<\'PY\'',
+  const pyBody = [
     "import json, re, subprocess, sys",
     "base_sha, head_sha = sys.argv[1], sys.argv[2]",
     "def git_show(sha, path):",
@@ -865,7 +923,32 @@ function coreGuardPinContentPython(): string {
     "    print('\\n'.join(bad))",
     "    sys.exit(1)",
     "print('OK: package/lock content is Directive pin unit (#3193).')",
-    "PY",
+  ];
+  const run = CORE_GUARD_RUN_INDENT;
+  return [
+    `${run}python3 - "$BASE_SHA" "$HEAD_SHA" <<'PY'`,
+    ...pyBody.map((line) => `${run}${line}`),
+    `${run}PY`,
+  ].join("\n");
+}
+
+/**
+ * Shell that materializes the installer-managed allowlist as one ERE per line
+ * and filters "app" paths with `grep -vE -f` (#3345 — avoids a ~5k-char line
+ * that contributed to invalid workflow load). Semantics match the prior
+ * single-alternation ERE (OR of all matchers).
+ */
+function coreGuardAllowlistShell(): string {
+  const run = CORE_GUARD_RUN_INDENT;
+  const patterns = installerManagedGuardErePatterns();
+  return [
+    `${run}# Installer-managed allowlist — one ERE per line (#3345 loadable YAML)`,
+    `${run}allowlist=$(mktemp)`,
+    `${run}trap 'rm -f "$allowlist"' EXIT`,
+    `${run}cat > "$allowlist" <<'ALLOW'`,
+    ...patterns.map((p) => `${run}${p}`),
+    `${run}ALLOW`,
+    `${run}app=$(printf '%s\\n' "$changed" | grep -vE '^\\.deft/core/' | grep -vE -f "$allowlist" | grep -v '^$' || true)`,
   ].join("\n");
 }
 
@@ -876,7 +959,7 @@ function coreGuardWorkflowContent(): string {
   const headSha = githubActionsExpr("github.event.pull_request.head.sha");
   return (
     "name: deft-core-guard\n\n" +
-    "# Deft framework guard (#1430 / #3127 / #3193): a single PR should not mix changes to the\n" +
+    "# Deft framework guard (#1430 / #3127 / #3193 / #3345): a single PR should not mix changes to the\n" +
     "# vendored framework payload (.deft/core/**) with true application/product files.\n" +
     "# One upgrade PR MAY include deposit + installer-managed paths + package.json pin/lock\n" +
     "# + .deft/GENERATION.json when package.json is @deftai/directive* dependency-key pin-only\n" +
@@ -904,9 +987,7 @@ function coreGuardWorkflowContent(): string {
     '          echo "Changed files:"\n' +
     '          echo "$changed"\n' +
     "          core=$(printf '%s\\n' \"$changed\" | grep -E '^\\.deft/core/' || true)\n" +
-    "          app=$(printf '%s\\n' \"$changed\" | grep -vE '^\\.deft/core/' | grep -vE '" +
-    installerManagedGuardEre() +
-    "' | grep -v '^$' || true)\n" +
+    `${coreGuardAllowlistShell()}\n` +
     '          if [ -n "$core" ] && [ -n "$app" ]; then\n' +
     '            echo "::error title=deft-core guard (#1430)::This PR changes the vendored framework payload (.deft/core/**) AND non-framework files. Split the framework update into its own PR."\n' +
     '            echo "--- framework (.deft/core/**) changes ---"; printf \'%s\\n\' "$core"\n' +
@@ -1060,6 +1141,7 @@ export function ensureCodeqlPathsIgnore(projectDir: string, io: InitDepositIo): 
 export function ensureCoreGuardWorkflow(projectDir: string, io: InitDepositIo): boolean {
   const path = projectionTarget(projectDir, CORE_GUARD_WORKFLOW_REL);
   const desired = coreGuardWorkflowContent();
+  assertCoreGuardWorkflowLoadable(desired);
   if (existsSync(path)) {
     const existing = readFileSync(path, "utf8");
     if (!existing.includes("name: deft-core-guard")) {
