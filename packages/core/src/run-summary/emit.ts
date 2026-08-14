@@ -483,6 +483,18 @@ function isPositiveIntegerDenominator(value: unknown): value is number {
   );
 }
 
+/**
+ * Host descriptors (#3266) accept any finite number >= 0. Floor a positive
+ * fractional maxTurns so we emit a usable integer instead of falling back to 1.
+ */
+function coercePositiveIntegerDenominator(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    return undefined;
+  }
+  const n = Math.floor(value);
+  return n > 0 ? n : undefined;
+}
+
 function readPositiveIntegerEnv(env: NodeJS.ProcessEnv, key: string): number | undefined {
   const raw = env[key];
   if (raw === undefined || raw.trim().length === 0) {
@@ -511,8 +523,9 @@ export function resolveSessionToolTurnDenominator(
   if (planned !== undefined) {
     return planned;
   }
-  if (isPositiveIntegerDenominator(hostMaxTurns)) {
-    return hostMaxTurns;
+  const host = coercePositiveIntegerDenominator(hostMaxTurns);
+  if (host !== undefined) {
+    return host;
   }
   return SESSION_START_CLI_INVOCATION_DENOMINATOR;
 }

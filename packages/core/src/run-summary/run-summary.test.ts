@@ -495,6 +495,7 @@ describe("RunSummaryEmitter (#3282)", () => {
     expect(resolveSessionToolTurnDenominator({})).toBe(SESSION_START_CLI_INVOCATION_DENOMINATOR);
     expect(resolveSessionToolTurnDenominator({}, 0)).toBe(SESSION_START_CLI_INVOCATION_DENOMINATOR);
     expect(resolveSessionToolTurnDenominator({}, 24)).toBe(24);
+    expect(resolveSessionToolTurnDenominator({}, 10.5)).toBe(10);
     expect(resolveSessionToolTurnDenominator({ DEFT_MAX_TURNS: "40" }, 24)).toBe(40);
     expect(
       resolveSessionToolTurnDenominator({ [ENV_TOTAL_TOOL_TURNS]: "12", DEFT_MAX_TURNS: "40" }, 24),
