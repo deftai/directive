@@ -46,4 +46,20 @@ describe("runFakeTrial (#3362)", () => {
     roots.push(result.projectRoot);
     expect(missingEnrolledKinds(result, ["acceptance"])).toEqual(["acceptance"]);
   });
+
+  it("treats a first-step no-write as empty emit instead of throwing ENOENT", () => {
+    const result = runFakeTrial({
+      steps: [
+        {
+          kind: "session_start",
+          invoke: () => {
+            /* silent / fail-open: destPath is never created */
+          },
+        },
+      ],
+    });
+    roots.push(result.projectRoot);
+    expect(result.stepOutcomes).toEqual([{ declaredKind: "session_start", emittedKinds: [] }]);
+    expect(missingEnrolledKinds(result, ["session_start"])).toEqual(["session_start"]);
+  });
 });

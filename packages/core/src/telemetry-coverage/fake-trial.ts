@@ -6,7 +6,7 @@
  * rather than rebuilding a per-kind fixture.
  */
 
-import { mkdirSync, mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
@@ -159,6 +159,14 @@ function sessionIdIsStable(lines: readonly RunSummaryLine[], sessionId: string):
   return lines.every((line) => line.session_id === sessionId);
 }
 
+/** Missing dest after a silent / fail-open step is empty emit, not ENOENT. */
+function readTrialLines(destPath: string): RunSummaryLine[] {
+  if (!existsSync(destPath)) {
+    return [];
+  }
+  return parseRunSummaryJsonl(readFileSync(destPath, "utf8"));
+}
+
 /**
  * Run one fake trial: write JSONL via the production emitter, then read it back.
  * A second emitter instance appends so seq/session_id identity is asserted
@@ -180,7 +188,7 @@ export function runFakeTrial(options: FakeTrialOptions = {}): FakeTrialResult {
   let seenLines = 0;
   for (const step of steps) {
     step.invoke(first);
-    const current = parseRunSummaryJsonl(readFileSync(destPath, "utf8"));
+    const current = readTrialLines(destPath);
     const emittedKinds = current.slice(seenLines).map((line) => line.event);
     seenLines = current.length;
     stepOutcomes.push({ declaredKind: step.kind, emittedKinds });
@@ -192,8 +200,7 @@ export function runFakeTrial(options: FakeTrialOptions = {}): FakeTrialResult {
     gates: [],
   });
 
-  const text = readFileSync(destPath, "utf8");
-  const lines = parseRunSummaryJsonl(text);
+  const lines = readTrialLines(destPath);
   const present = new Set<RunSummaryEventKind>();
   for (const line of lines) {
     present.add(line.event);
