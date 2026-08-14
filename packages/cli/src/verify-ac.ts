@@ -217,6 +217,11 @@ export function run(argv: string[]): number {
         }
       } else if (completed.kind === "cannot") {
         process.stderr.write(`${completed.message}\n`);
+        emitVerifyAcTerminalOutcome({
+          projectRoot,
+          env: process.env,
+          outcome: "config-error",
+        });
         return 1;
       } else if (!args.quiet) {
         process.stdout.write(
