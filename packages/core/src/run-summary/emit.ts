@@ -484,15 +484,14 @@ function isPositiveIntegerDenominator(value: unknown): value is number {
 }
 
 /**
- * Host descriptors (#3266) accept any finite number >= 0. Coerce a positive
- * host budget to a usable integer (>= 1) instead of falling back to the CLI
- * floor as if no host signal existed.
+ * Host descriptors (#3266) accept any finite number >= 0. Keep a positive
+ * planned-turn budget as-is so share uses the host value, not a floored proxy.
  */
-function coercePositiveIntegerDenominator(value: unknown): number | undefined {
+function coercePositiveHostDenominator(value: unknown): number | undefined {
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
     return undefined;
   }
-  return Math.max(1, Math.floor(value));
+  return value;
 }
 
 function readPositiveIntegerEnv(env: NodeJS.ProcessEnv, key: string): number | undefined {
@@ -523,7 +522,7 @@ export function resolveSessionToolTurnDenominator(
   if (planned !== undefined) {
     return planned;
   }
-  const host = coercePositiveIntegerDenominator(hostMaxTurns);
+  const host = coercePositiveHostDenominator(hostMaxTurns);
   if (host !== undefined) {
     return host;
   }

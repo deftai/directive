@@ -657,7 +657,7 @@ describe("runSessionStart tool_turn_denominator (#3356)", () => {
     expect(computeRitualGateShare(summaryEvents(out)).share).toBe(0);
   });
 
-  it("floors a fractional host maxTurns instead of falling back to 1", () => {
+  it("emits a fractional host maxTurns as the planned-turn budget", () => {
     const root = tempRoot();
     const out = join(root, "summary.jsonl");
     const result = runSessionStart(root, {
@@ -669,10 +669,10 @@ describe("runSessionStart tool_turn_denominator (#3356)", () => {
     expect(result.code).toBe(0);
     const denoms = summaryEvents(out).filter((e) => e.event === "tool_turn_denominator");
     expect(denoms).toHaveLength(1);
-    expect(denoms[0]?.total_tool_turns).toBe(10);
+    expect(denoms[0]?.total_tool_turns).toBe(10.5);
   });
 
-  it("coerces a sub-unit host maxTurns to 1 instead of dropping the host signal", () => {
+  it("emits a sub-unit host maxTurns as the planned-turn budget", () => {
     const root = tempRoot();
     const out = join(root, "summary.jsonl");
     const result = runSessionStart(root, {
@@ -684,7 +684,7 @@ describe("runSessionStart tool_turn_denominator (#3356)", () => {
     expect(result.code).toBe(0);
     const denoms = summaryEvents(out).filter((e) => e.event === "tool_turn_denominator");
     expect(denoms).toHaveLength(1);
-    expect(denoms[0]?.total_tool_turns).toBe(1);
+    expect(denoms[0]?.total_tool_turns).toBe(0.5);
   });
 
   it("prefers DEFT_TOTAL_TOOL_TURNS over DEFT_MAX_TURNS", () => {

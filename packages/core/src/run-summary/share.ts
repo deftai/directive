@@ -21,11 +21,9 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
-/** True when n is a finite integer usable as a share denominator. */
+/** True when n is a finite positive number usable as a share denominator. */
 export function isValidToolTurnDenominator(value: unknown): value is number {
-  return (
-    typeof value === "number" && Number.isInteger(value) && Number.isFinite(value) && value > 0
-  );
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
 
 /** Read total_tool_turns from a line (top-level field or payload). */

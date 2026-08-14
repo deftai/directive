@@ -50,7 +50,7 @@ describe("computeRitualGateShare (#3320)", () => {
     expect(share.totalToolTurns).toBeNull();
   });
 
-  it("rejects a zero or non-integer denominator instead of inventing a share", () => {
+  it("rejects a zero or non-finite denominator instead of inventing a share", () => {
     const zero = computeRitualGateShare(
       parseRunSummaryJsonl(
         JSON.stringify({
@@ -63,7 +63,21 @@ describe("computeRitualGateShare (#3320)", () => {
     expect(zero.evaluable).toBe(false);
     expect(zero.share).toBeNull();
 
-    const fractional = computeRitualGateShare(
+    const nan = computeRitualGateShare(
+      parseRunSummaryJsonl(
+        JSON.stringify({
+          event: "check_invocation",
+          session_id: "s1",
+          total_tool_turns: Number.NaN,
+          payload: {},
+        }),
+      ),
+    );
+    expect(nan.evaluable).toBe(false);
+  });
+
+  it("accepts a positive fractional host budget as the share denominator (#3356)", () => {
+    const share = computeRitualGateShare(
       parseRunSummaryJsonl(
         JSON.stringify({
           event: "check_invocation",
@@ -73,7 +87,9 @@ describe("computeRitualGateShare (#3320)", () => {
         }),
       ),
     );
-    expect(fractional.evaluable).toBe(false);
+    expect(share.evaluable).toBe(true);
+    expect(share.totalToolTurns).toBe(2.5);
+    expect(share.share).toBe(0.4);
   });
 
   it("parses DEFT-TLM stdout capture and skips malformed lines", () => {
