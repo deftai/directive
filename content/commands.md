@@ -132,10 +132,10 @@ Scope xBRIEFs live under `xbrief/{proposed,pending,active,completed,cancelled}/`
 
 Common commands:
 
-- `task scope:promote -- xbrief/proposed/<file>.xbrief.json` -- move proposed work to `pending/` and set status to `pending`.
+- `task scope:promote -- xbrief/proposed/<file>.xbrief.json` -- move proposed work to `pending/` and set status to `pending`. When `plan.acceptance` is absent, empty-with-none_stated, or command-only-without-clauses, runs #3323 clause derivation and stamps `clauses[]` (#3360).
 - `task scope:promote -- --from-issue=<N> [--repo OWNER/NAME] [--strict] [--force-no-cache] [--path <file>]` -- promote the proposed scope for issue N via triage-cache reciprocity (#1136). Latest `candidates.jsonl` decision must be `accept` (non-accept refuses unless `--force-no-cache`; missing decision soft-warns, `--strict` fails). Path/`--batch` without `--from-issue` stay ungated.
 - `task scope:promote -- --batch` -- batch-promote **all** `xbrief/proposed/` scopes to `pending/` in one command (#3011 / epic #3009). Optional: `--batch <path>…` for an explicit list; `--force` overrides WIP cap (logged). Does **not** activate; implement remains one `scope:activate` at a time.
-- `task scope:activate -- xbrief/pending/<file>.xbrief.json` -- move accepted work to `active/` and set status to `running`.
+- `task scope:activate -- xbrief/pending/<file>.xbrief.json` -- move accepted work to `active/` and set status to `running`. Same #3323 derivation hook as promote; #3334 refusal names the derive step (#3360). Headless: records `chosen_reading`, never blocks on a question.
 - `task scope:complete -- xbrief/active/<file>.xbrief.json` -- move running work to `completed/` and set status to `completed`.
   - **Per-criterion acceptance evidence (#3240 / #3305):** each non-terminal `plan.items[]` entry needs either namespaced typed evidence or a human-origin disposition before complete may advance it:
     - `plan.items[].x-directive/evidence` — `{ kind: test|review|merge|deploy|smoke|uat|observed_behavior, pointer, recorded_at, recorded_by }`

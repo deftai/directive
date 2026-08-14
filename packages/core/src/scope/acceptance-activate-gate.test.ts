@@ -32,7 +32,7 @@ describe("acceptance-activate-gate (#3334)", () => {
     });
     expect(gate.ok).toBe(false);
     expect(gate.message).toMatch(/plan\.acceptance is absent \(#3334\)/);
-    expect(gate.message).toMatch(/Stamp plan\.acceptance/);
+    expect(gate.message).toMatch(/Stamp plan\.acceptance via clause derivation/);
     expect(gate.message.split("Stamp plan.acceptance")).toHaveLength(2);
     expect(collectAcceptanceShapedNarrativeKeys({ Verification: "ok", Test: "  " })).toEqual([
       { key: "Verification" },

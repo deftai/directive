@@ -11,7 +11,7 @@ import type { PlanAcceptance } from "./types.js";
 export const EMPTY_AC_OUTCOME = "soft_empty" as const;
 export const EMPTY_AC_CAUSE = "no acceptance stamped — floor is empty in this project";
 export const EMPTY_AC_REMEDY =
-  "stamp plan.acceptance (author commands or run intake capture / task issue:ingest)";
+  "stamp plan.acceptance via clause derivation (scope:activate / scope:promote runs #3323, or task issue:ingest)";
 
 export type VerifyAcResolution =
   | "verified-pass"

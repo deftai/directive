@@ -6,7 +6,6 @@ import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/project
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { captureAndAttachLiteralAcceptance } from "../literal-acceptance/index.js";
 import { stampAcceptanceFromLiteralCapture } from "../product-first-done-gate/index.js";
-import { ENV_RUN_SUMMARY_PATH, RunSummaryEmitter } from "../run-summary/index.js";
 import { type CompletedProcess, call } from "../scm/call.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
 import { resolveProjectRepo } from "../slice/project-context.js";
@@ -28,6 +27,7 @@ import {
   MIGRATED_INFO_ROOT_KEY,
   VBRIEF_VERSION,
 } from "../xbrief-migrate/constants.js";
+import { emitAcceptanceStampFromPlan } from "./clause-derivation.js";
 import {
   findAcHeading,
   parseCheckboxItems,
@@ -923,47 +923,8 @@ export function ingestOne(
 
   mkdirSync(folderPath, { recursive: true });
   writeFileSync(target, `${JSON.stringify(vbrief, null, 2)}\n`, "utf8");
-  emitIntakeAcceptanceStamp(projectRoot, vbrief.plan);
+  emitAcceptanceStampFromPlan(projectRoot, vbrief.plan);
   return ["created", target, `CREATED ${folder}/${filename}`];
-}
-
-function emitIntakeAcceptanceStamp(projectRoot: string, plan: unknown): void {
-  const rec =
-    plan !== null && typeof plan === "object" && !Array.isArray(plan)
-      ? (plan as Record<string, unknown>)
-      : null;
-  if (rec === null) {
-    return;
-  }
-  const acceptance =
-    rec.acceptance !== null && typeof rec.acceptance === "object" && !Array.isArray(rec.acceptance)
-      ? (rec.acceptance as Record<string, unknown>)
-      : null;
-  if (acceptance === null) {
-    return;
-  }
-  const env = process.env;
-  const dest = env[ENV_RUN_SUMMARY_PATH];
-  if (dest === undefined || dest.trim().length === 0) {
-    return;
-  }
-  try {
-    const sessionId =
-      typeof env.DEFT_SESSION_ID === "string" && env.DEFT_SESSION_ID.trim().length > 0
-        ? env.DEFT_SESSION_ID.trim()
-        : "issue-ingest";
-    const emitter = new RunSummaryEmitter({ projectRoot, sessionId, env });
-    const commands = Array.isArray(acceptance.commands) ? acceptance.commands.length : 0;
-    const clauses = Array.isArray(acceptance.clauses) ? acceptance.clauses.length : 0;
-    emitter.emitAcceptanceStamp({
-      rung: typeof acceptance.source_rung === "string" ? acceptance.source_rung : "project_floor",
-      none_stated: acceptance.none_stated === true,
-      command_count: commands,
-      clause_count: clauses,
-    });
-  } catch {
-    // fail-open
-  }
 }
 
 export function ingestBulk(

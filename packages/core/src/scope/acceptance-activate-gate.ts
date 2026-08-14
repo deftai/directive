@@ -3,7 +3,7 @@
  *
  * Agents author Test / AcceptanceCriteria / Verification prose in narratives
  * and then skip the executable plan.acceptance block. Activation fails closed
- * with one remediation: stamp the acceptance block.
+ * with one remediation: stamp plan.acceptance via clause derivation.
  */
 
 import { validatePlanAcceptance } from "../product-first-done-gate/acceptance.js";
@@ -72,7 +72,7 @@ export function evaluateAcceptanceActivateGate(
         message:
           `Refusing activate: plan.acceptance is present but invalid (#3334): ` +
           `${schemaErrors.join("; ")}. Stamp a valid plan.acceptance block ` +
-          `(author commands or none_stated via intake capture / task issue:ingest).`,
+          `via clause derivation (scope:activate / scope:promote runs #3323).`,
         hits,
       };
     }
@@ -83,8 +83,8 @@ export function evaluateAcceptanceActivateGate(
     ok: false,
     message:
       `Refusing activate: narratives contain acceptance-shaped keys (${keys}) ` +
-      `but plan.acceptance is absent (#3334). Stamp plan.acceptance ` +
-      `(author commands or none_stated via intake capture / task issue:ingest) — ` +
+      `but plan.acceptance is absent (#3334). Stamp plan.acceptance via clause derivation ` +
+      `(scope:activate / scope:promote runs #3323, or task issue:ingest) — ` +
       `the criteria are in the wrong, non-executable field.`,
     hits,
   };

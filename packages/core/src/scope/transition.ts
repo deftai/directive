@@ -5,6 +5,7 @@ import {
   assertProjectionContained,
   ProjectionContainmentError,
 } from "../fs/projection-containment.js";
+import { applyClauseDerivationToPlan } from "../intake/clause-derivation.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { evaluateCompletedPlanConsistency } from "../lifecycle/completed-consistency.js";
 import { evaluateLiteralAcceptanceFromPlan } from "../literal-acceptance/index.js";
@@ -212,6 +213,15 @@ export function runTransition(
 
   const nowIso = utcNowIso(now);
 
+  // #3360: hand-authored briefs run #3323 clause derivation on activate/promote.
+  let derivationNotice = "";
+  if (act === "activate" || act === "promote") {
+    const derivation = applyClauseDerivationToPlan(planObj, { projectRoot });
+    if (derivation.applied) {
+      derivationNotice = derivation.notice;
+    }
+  }
+
   // #1581: fail closed before activating a scope that still has XL plan items.
   if (act === "activate") {
     const effortGate = evaluateEffortActivateGate(planObj);
@@ -368,6 +378,7 @@ export function runTransition(
     syncSpecificationAfterScopeMove(data, resolvedPath, destPath, vbriefRoot, targetStatus);
     const moveMsg =
       `${actionLabel} ${basename}: ${currentFolder}/ -> ${targetFolder}/ (status: ${targetStatus})` +
+      (derivationNotice.length > 0 ? `\n${derivationNotice}` : "") +
       (acceptanceListing.length > 0 ? `\n${acceptanceListing}` : "");
     return {
       ok: true,
@@ -390,6 +401,7 @@ export function runTransition(
   const actionLabel = STAY_LABELS[act] ?? act.charAt(0).toUpperCase() + act.slice(1);
   const stayMsg =
     `${actionLabel} ${basename}: stays in ${currentFolder}/ (status: ${targetStatus})` +
+    (derivationNotice.length > 0 ? `\n${derivationNotice}` : "") +
     (acceptanceListing.length > 0 ? `\n${acceptanceListing}` : "");
   return {
     ok: true,

@@ -1,4 +1,5 @@
 export * from "./candidates-log.js";
+export * from "./clause-derivation.js";
 export * from "./github-auth-modes.js";
 export { resultToDict } from "./github-auth-modes.js";
 export * from "./github-body.js";

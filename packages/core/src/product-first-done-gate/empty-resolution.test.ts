@@ -52,6 +52,7 @@ describe("empty verify:ac resolution (#3334)", () => {
     });
     expect(msg).toContain(EMPTY_AC_CAUSE);
     expect(msg).toContain(EMPTY_AC_REMEDY);
+    expect(EMPTY_AC_REMEDY).toMatch(/via clause derivation/);
     expect(msg).toMatch(/soft_empty \(#3334\)/);
   });
 
