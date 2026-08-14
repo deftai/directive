@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -36,6 +36,29 @@ describe("verify:ac run (#3284)", () => {
     const root = mkdtempSync(join(tmpdir(), "verify-ac-soft-"));
     const code = run(["--project-root", root, "--soft-missing-xbrief"]);
     expect(code).toBe(0);
+  });
+
+  it("soft-missing with no target emits an acceptance outcome (#3355)", () => {
+    const root = mkdtempSync(join(tmpdir(), "verify-ac-soft-tlm-"));
+    const summary = join(root, "summary.jsonl");
+    const prev = process.env.DEFT_RUN_SUMMARY_PATH;
+    process.env.DEFT_RUN_SUMMARY_PATH = summary;
+    try {
+      expect(run(["--project-root", root, "--soft-missing-xbrief", "--quiet"])).toBe(0);
+      const lines = readFileSync(summary, "utf8")
+        .trim()
+        .split(/\r?\n/)
+        .map((line) => JSON.parse(line) as { event: string; payload: { outcome?: string } });
+      const acceptance = lines.filter((line) => line.event === "acceptance");
+      expect(acceptance).toHaveLength(1);
+      expect(acceptance[0]?.payload.outcome).toBe("soft-missing");
+    } finally {
+      if (prev === undefined) {
+        delete process.env.DEFT_RUN_SUMMARY_PATH;
+      } else {
+        process.env.DEFT_RUN_SUMMARY_PATH = prev;
+      }
+    }
   });
 
   it("soft-missing targets a same-session completed brief instead of skipping (#3357)", () => {

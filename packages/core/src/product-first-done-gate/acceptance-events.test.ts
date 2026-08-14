@@ -13,7 +13,11 @@ import { ENV_RUN_SUMMARY_PATH } from "../run-summary/index.js";
 import { evaluateAcceptanceActivateGate } from "../scope/acceptance-activate-gate.js";
 import { runTransition } from "../scope/transition.js";
 import { formatBriefJson } from "../scope/vbrief-json.js";
-import { evaluateVerifyAcFromPath, evaluateVerifyAcFromPlan } from "./evaluate.js";
+import {
+  emitVerifyAcTerminalOutcome,
+  evaluateVerifyAcFromPath,
+  evaluateVerifyAcFromPlan,
+} from "./evaluate.js";
 
 function parseJsonl(path: string): { event: string; payload: Record<string, unknown> }[] {
   return readFileSync(path, "utf8")
@@ -138,6 +142,19 @@ describe("verify:ac terminal acceptance outcomes (#3355)", () => {
       expect(acceptance, row.name).toHaveLength(1);
       expect(acceptance[0]?.payload.outcome, row.name).toBe(row.outcome);
     }
+  });
+
+  it("emits CLI-only terminal outcomes without evaluating a brief", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3355-cli-terminal-"));
+    const summary = join(root, "summary.jsonl");
+    emitVerifyAcTerminalOutcome({
+      projectRoot: root,
+      env: { [ENV_RUN_SUMMARY_PATH]: summary },
+      outcome: "soft-missing",
+    });
+    const acceptance = parseJsonl(summary).filter((line) => line.event === "acceptance");
+    expect(acceptance).toHaveLength(1);
+    expect(acceptance[0]?.payload.outcome).toBe("soft-missing");
   });
 });
 

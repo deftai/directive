@@ -32,6 +32,7 @@ export {
 } from "./empty-resolution.js";
 export {
   type EvaluateVerifyAcOptions,
+  emitVerifyAcTerminalOutcome,
   evaluateVerifyAcFromPath,
   evaluateVerifyAcFromPlan,
   isVerifyAcRequiredAtCeremonyDepth,

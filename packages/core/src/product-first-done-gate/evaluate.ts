@@ -369,6 +369,50 @@ function emitAcceptanceTelemetry(
   emitAcceptanceOutcome(result, options, projectRoot);
 }
 
+/**
+ * CLI-only early returns that never reach evaluate still emit an acceptance
+ * outcome so field streams see config-error / soft-missing (#3355).
+ */
+export function emitVerifyAcTerminalOutcome(input: {
+  readonly projectRoot: string;
+  readonly env?: NodeJS.ProcessEnv;
+  readonly outcome: AcceptanceRunSummaryOutcome;
+  readonly sourceRung?: AcSourceRung;
+  readonly noneStated?: boolean;
+}): void {
+  emitAcceptanceOutcome(
+    {
+      ok: input.outcome !== "config-error" && input.outcome !== "fail",
+      code: input.outcome === "config-error" ? 2 : input.outcome === "fail" ? 1 : 0,
+      message: "",
+      commands: [],
+      runs: [],
+      sourceRung: input.sourceRung ?? "project_floor",
+      noneStated: input.noneStated ?? true,
+      acceptance: {
+        commands: [],
+        none_stated: input.noneStated ?? true,
+        source_rung: input.sourceRung ?? "project_floor",
+      },
+      resolution:
+        input.outcome === "config-error"
+          ? "config"
+          : input.outcome === "soft-missing"
+            ? "skipped"
+            : input.outcome === "fail"
+              ? "fail"
+              : input.outcome === "soft_empty"
+                ? "soft_empty"
+                : input.outcome === "verified-pass"
+                  ? "verified-pass"
+                  : "empty-pass",
+      resolvedCommandCount: 0,
+    },
+    { projectRoot: input.projectRoot, env: input.env },
+    resolve(input.projectRoot),
+  );
+}
+
 function applyClauseWalk(result: VerifyAcResult, options: EvaluateVerifyAcOptions): VerifyAcResult {
   const clauses = result.acceptance.clauses ?? [];
   if (clauses.length === 0 || result.resolution === "config" || result.resolution === "skipped") {

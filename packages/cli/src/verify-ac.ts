@@ -15,6 +15,7 @@ import {
   resolveLiteralAcceptanceDetailed,
 } from "@deftai/directive-core/literal-acceptance";
 import {
+  emitVerifyAcTerminalOutcome,
   evaluateVerifyAcFromPath,
   readPlanAcceptance,
 } from "@deftai/directive-core/product-first-done-gate";
@@ -163,6 +164,11 @@ export function run(argv: string[]): number {
   const args = parseArgs(argv);
   if (args.error !== undefined) {
     process.stderr.write(`verify_ac: ${args.error}\n`);
+    emitVerifyAcTerminalOutcome({
+      projectRoot: resolve(args.projectRoot),
+      env: process.env,
+      outcome: "config-error",
+    });
     return 2;
   }
 
@@ -190,6 +196,11 @@ export function run(argv: string[]): number {
             "  Usage: task verify:ac -- <path-to-active.xbrief.json>\n" +
             "  Refs #3284 product-first done-gate\n",
         );
+        emitVerifyAcTerminalOutcome({
+          projectRoot,
+          env: process.env,
+          outcome: "config-error",
+        });
         return 1;
       }
     } else if (args.softMissingXbrief) {
@@ -213,6 +224,11 @@ export function run(argv: string[]): number {
         );
       }
       if (completed.kind === "none") {
+        emitVerifyAcTerminalOutcome({
+          projectRoot,
+          env: process.env,
+          outcome: "soft-missing",
+        });
         return 0;
       }
     } else {
@@ -221,6 +237,11 @@ export function run(argv: string[]): number {
           "  Usage: task verify:ac -- <path-to-active.xbrief.json>\n" +
           "  Refs #3284 product-first done-gate (mechanism #3267)\n",
       );
+      emitVerifyAcTerminalOutcome({
+        projectRoot,
+        env: process.env,
+        outcome: "config-error",
+      });
       return 2;
     }
   }
