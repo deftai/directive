@@ -313,10 +313,9 @@ See [`skills/deft-directive-refinement/SKILL.md`](./content/skills/deft-directiv
 
 **Learning:**
 - ~ Continuously improve agent workflows
-- ~ Before implementing, LOAD relevant prior lessons via the content-pack slice surface: discover packs with `task deft:packs:slice --list-packs`, discover a pack's slices with `task deft:packs:slice <pack> --list`, then read the slice you need (read the slice, not the whole file)
-- ~ When repeated correction or better approach found, codify one-off prose in `./lessons.md` (informal inbox) or the lessons pack source then `task packs:render` — ⊗ hand-edit the generated `meta/lessons.md` projection
+- ~ Before implementing, LOAD prior lessons: (1) content-pack slice surface — `task deft:packs:slice --list-packs`, then `task deft:packs:slice <pack> --list` / the needed slice; (2) when present, also read project `./lessons.md` informal inbox so one-off prose is not invisible to the next session
 - ~ Ask: could this failure recur with a different query or different session?
-  - One-off / non-recurrable prose → `./lessons.md` informal inbox (playbook lessons stay short-lived; durable pack lessons use the pack source)
+  - One-off / non-recurrable prose → write `./lessons.md` (informal inbox, readable on next load above); promote durable lessons into the lessons pack source then `task packs:render` — ⊗ hand-edit generated `meta/lessons.md`
   - Recurrable structural gap → propose skill or directive change via GitHub issue/PR under [Self-Improving, Not Self-Editing (#3164)](#self-improving-not-self-editing-3164) gates — never mid-run constitution self-edit
 - ? Modify `./lessons.md` without prior approval
 - ~ When using codified instruction, inform user which rule was applied
