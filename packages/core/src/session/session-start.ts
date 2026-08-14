@@ -70,6 +70,12 @@ import { type ResolveUserMdResult, resolveUserMdPath } from "../user-config/reso
 import { emitSessionValueReadback } from "../value/readback.js";
 import { verifyRequiredTools } from "../verify-env/verify-tools.js";
 import {
+  ceremonyDialEvidenceToDict,
+  collectCeremonyDialConsumerEvidence,
+  formatCeremonyDialEvidenceLine,
+  mergeCeremonyDialInputsWithConsumerEvidence,
+} from "./ceremony-dial-evidence.js";
+import {
   type DetectHardEffortBudgetInput,
   effortBudgetToDict,
   type HardEffortBudget,
@@ -1101,8 +1107,21 @@ export function runSessionStart(
   // missing size/tier/shape from env/verb/files/deposit BEFORE resolve — never
   // block on plan-item effort (post-planning only). Cold incomplete size is
   // tier-conditional (#3263): mid/low → standard; frontier/unknown → rapid.
+  // #3358: fill at least one consumer-supplied input (stamped clause count,
+  // host-tier env, failing-gate count) so evaluation is not permanently
+  // size=- / modelTier=-. ⊗ Change rapid default when no evidence exists.
+  const consumerDialEvidence = collectCeremonyDialConsumerEvidence(projectRoot, {
+    env: options.env,
+  });
+  const dialInputsWithEvidence =
+    options.ceremonyDial === undefined
+      ? mergeCeremonyDialInputsWithConsumerEvidence(
+          options.ceremonyDialInputs,
+          consumerDialEvidence,
+        )
+      : (options.ceremonyDialInputs ?? {});
   const { inputs: resolvedDialInputs, provisional: provisionalDial } =
-    resolveSessionCeremonyDialInputs(projectRoot, options.ceremonyDialInputs, {
+    resolveSessionCeremonyDialInputs(projectRoot, dialInputsWithEvidence, {
       ...options.ceremonyDialHints,
       env: options.env,
     });
@@ -1166,6 +1185,10 @@ export function runSessionStart(
   }
   if (provisionalDial.reasons.length > 0 && options.ceremonyDial === undefined) {
     lines.push(`[deft ceremony-dial] provisional: ${provisionalDial.reasons.join("; ")}`);
+  }
+  const evidenceLine = formatCeremonyDialEvidenceLine(consumerDialEvidence);
+  if (evidenceLine !== null && options.ceremonyDial === undefined) {
+    lines.push(evidenceLine);
   }
 
   // Resolve USER.md via the shared first-hit-wins resolver so the alignment
@@ -1538,6 +1561,7 @@ export function runSessionStart(
       projectShape: provisionalDial.projectShape,
       reasons: [...provisionalDial.reasons],
     },
+    consumer_evidence: ceremonyDialEvidenceToDict(consumerDialEvidence),
   };
   const preflightDict =
     toolchainPreflightResult !== null ? toolchainPreflightToDict(toolchainPreflightResult) : null;

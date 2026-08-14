@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Ceremony-dial evaluation reads a consumer evidence source (#3358).** Session:start maps stamped #3323 clause count (and optional host-tier / failing-gate env) into `taskSize`/`modelTier` so evaluation is not permanently `insufficient evidence (size=- modelTier=-)`. Rapid default and decline threshold stay unchanged when no evidence exists. Closes #3358. Refs #3319, #3274, #3214, #3323.
+
 ### Changed
 
 ### Fixed

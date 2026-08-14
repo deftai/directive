@@ -605,3 +605,102 @@ describe("runSessionStart start-tier provenance + evaluation events (#3319)", ()
     expect(existsSync(join(root, ".deft-run-summary.json"))).toBe(false);
   });
 });
+
+describe("runSessionStart consumer evidence (#3358)", () => {
+  function writeActiveClauses(root: string, count: number): void {
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "T",
+          status: "running",
+          acceptance: {
+            none_stated: true,
+            clauses: Array.from({ length: count }, (_, i) => ({
+              id: i + 1,
+              text: `clause ${i + 1}`,
+            })),
+          },
+        },
+      }),
+      "utf8",
+    );
+  }
+
+  it("stays rapid when no stamped clauses or host env exist", () => {
+    const root = tempRoot();
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult()),
+      env: {},
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(0);
+    const dial = result.payload.ceremony_dial as {
+      depth: string;
+      inputs: { taskSize: string | null; modelTier: string | null };
+      consumer_evidence: { taskSize: string | null; clauseCount: number | null };
+    };
+    expect(dial.depth).toBe("rapid");
+    expect(dial.inputs.taskSize).toBeNull();
+    expect(dial.inputs.modelTier).toBeNull();
+    expect(dial.consumer_evidence.clauseCount).toBeNull();
+  });
+
+  it("escalates from stamped clause count instead of a vacuous decline", () => {
+    const root = tempRoot();
+    writeActiveClauses(root, 3);
+    const out = join(root, "summary.jsonl");
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult()),
+      env: { [ENV_RUN_SUMMARY_PATH]: out },
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(0);
+    const dial = result.payload.ceremony_dial as {
+      depth: string;
+      inputs: { taskSize: string | null };
+      consumer_evidence: { clauseCount: number | null; taskSize: string | null };
+    };
+    expect(dial.inputs.taskSize).toBe("M");
+    expect(dial.depth).toBe("standard");
+    expect(dial.consumer_evidence.clauseCount).toBe(3);
+    expect(result.lines.some((l) => l.includes("evidence:") && l.includes("clauseCount=3"))).toBe(
+      true,
+    );
+    const events = readFileSync(out, "utf8")
+      .trim()
+      .split("\n")
+      .map(
+        (l) => JSON.parse(l) as { event: string; payload: { outcome?: string; reason?: string } },
+      );
+    const evals = events.filter((e) => e.event === "dial_escalation_evaluation");
+    expect(evals).toHaveLength(1);
+    expect(evals[0]?.payload.outcome).toBe("escalated");
+    expect(String(evals[0]?.payload.reason)).toContain("size=M");
+    expect(String(evals[0]?.payload.reason)).not.toContain("size=-");
+  });
+
+  it("does not override an explicit CLI size with stamped clauses", () => {
+    const root = tempRoot();
+    writeActiveClauses(root, 4);
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult()),
+      env: {},
+      ceremonyDialInputs: {
+        taskSize: "S",
+        modelTier: "frontier",
+        projectShape: "project",
+      },
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(0);
+    const dial = result.payload.ceremony_dial as {
+      depth: string;
+      inputs: { taskSize: string | null };
+    };
+    expect(dial.inputs.taskSize).toBe("S");
+    expect(dial.depth).toBe("rapid");
+  });
+});
