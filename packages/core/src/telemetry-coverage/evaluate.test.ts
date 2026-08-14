@@ -53,6 +53,7 @@ describe("evaluateTelemetryCoverage (#3362)", () => {
       projectRoot: root,
       kinds: ["ghost"],
       enrolledKinds: [],
+      skipTrial: true,
     });
     expect(result.code).toBe(0);
     expect(result.failOpen).toBe(true);
@@ -74,6 +75,7 @@ describe("evaluateTelemetryCoverage (#3362)", () => {
       enforce: true,
       kinds: ["session_start", "ghost"],
       enrolledKinds: ["session_start"],
+      skipTrial: true,
     });
     expect(result.code).toBe(1);
     expect(result.failOpen).toBe(false);
@@ -96,6 +98,7 @@ describe("evaluateTelemetryCoverage (#3362)", () => {
       kinds: ["session_start"],
       enrolledKinds: ["session_start"],
       trialKinds: [],
+      skipTrial: true,
     });
     expect(result.code).toBe(1);
     expect(result.findings[0]?.missingFixture).toBe(true);
@@ -114,6 +117,7 @@ describe("evaluateTelemetryCoverage (#3362)", () => {
       enforce: true,
       kinds: ["session_start"],
       enrolledKinds: [],
+      skipTrial: true,
     });
     expect(result.code).toBe(1);
     expect(result.findings[0]?.missingCaller).toBe(false);
@@ -134,6 +138,7 @@ describe("evaluateTelemetryCoverage (#3362)", () => {
       enforce: true,
       kinds: ["session_start"],
       enrolledKinds: ["session_start"],
+      skipTrial: true,
     });
     expect(result.code).toBe(0);
     expect(result.findings).toEqual([]);
@@ -153,6 +158,7 @@ describe("evaluateTelemetryCoverage (#3362)", () => {
       enforce: true,
       kinds: [],
       enrolledKinds: [],
+      skipTrial: true,
     });
     expect(result.code).toBe(1);
     expect(result.findings.some((f) => f.subject === "emitGhostKind")).toBe(true);
@@ -163,5 +169,25 @@ describe("evaluateTelemetryCoverage (#3362)", () => {
     expect(result.code).toBe(0);
     expect(result.findings).toEqual([]);
     expect(result.message).toMatch(/^OK:/);
+  });
+
+  it("flags a declared kind that the fake trial did not emit", () => {
+    const root = freshDir("tlm-silent-step-");
+    writeProd(
+      root,
+      "packages/core/src/session/session-start.ts",
+      "emitter.emitSessionStart({ ready: true });\n",
+    );
+    const result = evaluateTelemetryCoverage({
+      projectRoot: root,
+      enforce: true,
+      kinds: ["session_start"],
+      enrolledKinds: ["session_start"],
+      trialKinds: ["session_start"],
+      trialResult: { presentKinds: [] },
+    });
+    expect(result.code).toBe(1);
+    expect(result.findings[0]?.missingFixture).toBe(true);
+    expect(result.findings[0]?.remediation).toContain("no field fixture");
   });
 });
