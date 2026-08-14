@@ -537,7 +537,7 @@ Principle: `main.md` `## Thin Fail-Closed Design (#3265)`.
 
 ## 10.56 Writing bar — clarity, simplicity, brevity (#3368)
 
-! Clarity, simplicity, brevity in documents and user communications, including sub-agent status and handbacks. Cut ceremony, not required fields. Depth: `content/docs/writing-ste100.md` (#2927 / #3368). ⊗ Full STE; ⊗ historical rewrite; ⊗ red CI style gate; ⊗ prefacing the rule.
+! Clarity, simplicity, brevity in documents and user communications, including sub-agent status and handbacks. Cut ceremony, not required fields. Depth: `.deft/core/docs/writing-ste100.md` (#2927 / #3368). ⊗ Full STE; ⊗ historical rewrite; ⊗ red CI style gate; ⊗ prefacing the rule.
 
 ## 10.6 Dual stop for multi-iteration worker loops (#2442)
 
