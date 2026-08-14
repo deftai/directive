@@ -77,6 +77,25 @@ describe("resolveSessionCompletedVerifyAcTarget (#3357)", () => {
     ).toEqual({ kind: "target", path: latest });
   });
 
+  it("does not select a newer brief stamped for a different session", () => {
+    const root = mkdtempSync(join(tmpdir(), "sess-ac-other-"));
+    const ours = writeCompleted(root, "ours.xbrief.json", {
+      completedAt: "2026-08-14T11:00:00Z",
+      completedSessionId: "sess-1",
+    });
+    writeCompleted(root, "theirs.xbrief.json", {
+      completedAt: "2026-08-14T13:00:00Z",
+      completedSessionId: "sess-2",
+    });
+    expect(
+      resolveSessionCompletedVerifyAcTarget({
+        projectRoot: root,
+        sessionId: "sess-1",
+        sessionStartedAt: new Date("2026-08-14T10:00:00Z"),
+      }),
+    ).toEqual({ kind: "target", path: ours });
+  });
+
   it("matches completedAt after session start when session id was not stamped", () => {
     const root = mkdtempSync(join(tmpdir(), "sess-ac-time-"));
     writeCompleted(root, "before.xbrief.json", {

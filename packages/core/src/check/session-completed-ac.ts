@@ -112,7 +112,13 @@ function isSameSession(
   if (sessionId !== null && candidate.sessionId === sessionId) {
     return true;
   }
-  if (startedAt !== null && candidate.completedAtMs >= startedAt.getTime()) {
+  // Timestamp fallback only for pre-#3357 briefs that never stamped a session id.
+  // A brief stamped for a different session must not replace this session's target.
+  if (
+    candidate.sessionId === null &&
+    startedAt !== null &&
+    candidate.completedAtMs >= startedAt.getTime()
+  ) {
     return true;
   }
   return false;
