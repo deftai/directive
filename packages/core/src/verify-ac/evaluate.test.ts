@@ -9,6 +9,8 @@ import {
   evaluateProductOracleIntegrity,
   mergeOracleVerdict,
   resetInProcessVerificationBuffer,
+  VERIFY_AC_CHECK_ID_PREFIX,
+  verifyAcCheckId,
 } from "./evaluate.js";
 
 beforeEach(() => {
@@ -34,6 +36,21 @@ function jsonl(
     )
     .join("\n");
 }
+
+describe("verifyAcCheckId (#3337)", () => {
+  it("falls back to the global prefix when scope is unknown", () => {
+    expect(verifyAcCheckId()).toBe(VERIFY_AC_CHECK_ID_PREFIX);
+    expect(verifyAcCheckId(null)).toBe("verify:ac");
+    expect(verifyAcCheckId("   ")).toBe("verify:ac");
+  });
+
+  it("namespaces per active scope key", () => {
+    expect(verifyAcCheckId("3337-verify-ac-scope-check-ids")).toBe(
+      "verify:ac/3337-verify-ac-scope-check-ids",
+    );
+    expect(verifyAcCheckId("story-a")).not.toBe(verifyAcCheckId("story-b"));
+  });
+});
 
 describe("emitVerifyAcAttempts (#3322)", () => {
   it("writes a verification event for each executed AC run", () => {
@@ -65,6 +82,41 @@ describe("emitVerifyAcAttempts (#3322)", () => {
     expect(line.payload.check_id).toBe("verify:ac");
     expect(line.payload.outcome).toBe("pass");
     expect(line.payload.method_fingerprint).toContain("true");
+  });
+
+  it("emits distinct check_ids per active scope (#3337)", () => {
+    const root = mkdtempSync(join(tmpdir(), "oracle-scope-emit-"));
+    const path = join(root, "summary.jsonl");
+    const run = {
+      command: "true",
+      cwd: root,
+      exitCode: 0,
+      stdout: "",
+      stderr: "",
+      ok: true,
+      detail: "ok",
+    };
+    emitVerifyAcAttempts({
+      projectRoot: root,
+      sessionId: "sess-multi",
+      env: { [ENV_RUN_SUMMARY_PATH]: path },
+      scopeKey: "story-a",
+      runs: [run],
+    });
+    emitVerifyAcAttempts({
+      projectRoot: root,
+      sessionId: "sess-multi",
+      env: { [ENV_RUN_SUMMARY_PATH]: path },
+      scopeKey: "story-b",
+      runs: [run],
+    });
+    const lines = readFileSync(path, "utf8")
+      .trim()
+      .split("\n")
+      .map((row) => JSON.parse(row) as { payload: { check_id: string } });
+    expect(lines).toHaveLength(2);
+    expect(lines[0]?.payload.check_id).toBe("verify:ac/story-a");
+    expect(lines[1]?.payload.check_id).toBe("verify:ac/story-b");
   });
 });
 
@@ -193,6 +245,90 @@ describe("evaluateProductOracleIntegrity (#3322)", () => {
     expect(verdict.message).toMatch(/check_id=eq/);
   });
 
+  it("does not flag cross-scope fail/pass under one session (#3337)", () => {
+    const root = mkdtempSync(join(tmpdir(), "oracle-cross-scope-"));
+    const path = join(root, "summary.jsonl");
+    const env = { [ENV_RUN_SUMMARY_PATH]: path, DEFT_SESSION_ID: "sess-cohort" };
+    // Story A fails with method m1; story B passes with different method m2.
+    // Pre-#3337 both shared check_id=verify:ac and false-denied.
+    emitVerifyAcAttempts({
+      projectRoot: root,
+      sessionId: "sess-cohort",
+      env,
+      scopeKey: "story-a",
+      runs: [
+        {
+          command: "diff-v1",
+          cwd: root,
+          exitCode: 1,
+          stdout: "",
+          stderr: "mismatch",
+          ok: false,
+          detail: "fail",
+        },
+      ],
+    });
+    emitVerifyAcAttempts({
+      projectRoot: root,
+      sessionId: "sess-cohort",
+      env,
+      scopeKey: "story-b",
+      runs: [
+        {
+          command: "json-v2",
+          cwd: root,
+          exitCode: 0,
+          stdout: "",
+          stderr: "",
+          ok: true,
+          detail: "ok",
+        },
+      ],
+    });
+    const verdict = evaluateProductOracleIntegrity({ projectRoot: root, env });
+    expect(verdict.ok).toBe(true);
+    expect(verdict.unresolved).toEqual([]);
+    expect(verdict.flagged).toEqual([]);
+  });
+
+  it("same-scope fail then different-method pass still fails closed (#3337)", () => {
+    const root = mkdtempSync(join(tmpdir(), "oracle-same-scope-"));
+    const path = join(root, "summary.jsonl");
+    const env = { [ENV_RUN_SUMMARY_PATH]: path, DEFT_SESSION_ID: "sess-same" };
+    emitVerifyAcAttempts({
+      projectRoot: root,
+      sessionId: "sess-same",
+      env,
+      scopeKey: "story-a",
+      runs: [
+        {
+          command: "diff-v1",
+          cwd: root,
+          exitCode: 1,
+          stdout: "",
+          stderr: "mismatch",
+          ok: false,
+          detail: "fail",
+        },
+        {
+          command: "json-v2",
+          cwd: root,
+          exitCode: 0,
+          stdout: "",
+          stderr: "",
+          ok: true,
+          detail: "ok",
+        },
+      ],
+    });
+    const verdict = evaluateProductOracleIntegrity({ projectRoot: root, env });
+    expect(verdict.ok).toBe(false);
+    expect(verdict.code).toBe(1);
+    expect(verdict.unresolved).toHaveLength(1);
+    expect(verdict.unresolved[0]?.check_id).toBe("verify:ac/story-a");
+    expect(verdict.message).toMatch(/UNRESOLVED product-oracle discrepancy \(#3322\)/);
+  });
+
   it("passes when independent re-derivation is recorded", () => {
     const verdict = evaluateProductOracleIntegrity({
       projectRoot: mkdtempSync(join(tmpdir(), "oracle-resolved-")),
@@ -299,6 +435,39 @@ describe("evaluateProductOracleIntegrity (#3322)", () => {
 });
 
 describe("verify:ac evaluation applies oracle integrity (#3322)", () => {
+  it("namespaces emitted check_id from plan.id (#3337)", () => {
+    const root = mkdtempSync(join(tmpdir(), "oracle-plan-id-"));
+    const path = join(root, "summary.jsonl");
+    const env = { [ENV_RUN_SUMMARY_PATH]: path, DEFT_SESSION_ID: "sess-plan" };
+    evaluateVerifyAcFromPlan(
+      {
+        id: "3337-verify-ac-scope-check-ids",
+        title: "t",
+        acceptance: {
+          commands: [{ command: "true" }],
+          none_stated: true,
+          source_rung: "derived",
+        },
+        metadata: {},
+      },
+      {
+        projectRoot: root,
+        captureFromNarratives: false,
+        env,
+        runner: () => ({ exitCode: 0, stdout: "ok\n", stderr: "" }),
+        applyOracleIntegrity: false,
+        bankOnPass: false,
+      },
+    );
+    const lines = readFileSync(path, "utf8")
+      .trim()
+      .split(/\r?\n/)
+      .map((row) => JSON.parse(row) as { event: string; payload: { check_id?: string } });
+    const verification = lines.find((row) => row.event === "verification");
+    expect(verification).toBeDefined();
+    expect(verification?.payload.check_id).toBe("verify:ac/3337-verify-ac-scope-check-ids");
+  });
+
   it("fails a floor-pass plan when method-change pass is unresolved", () => {
     const result = evaluateVerifyAcFromPlan(
       {

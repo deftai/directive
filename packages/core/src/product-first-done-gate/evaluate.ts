@@ -94,6 +94,12 @@ export interface EvaluateVerifyAcOptions extends EvaluateLiteralAcceptanceOption
    * emit after the #3285 bank checkpoint.
    */
   readonly skipAcceptanceEmit?: boolean;
+  /**
+   * Active scope key for product-oracle check_id namespacing (#3337).
+   * Prefer plan.id; path stem when id is missing. Multi-active verify:ac
+   * under one session must not share a single global `verify:ac` check id.
+   */
+  readonly oracleScopeKey?: string | null;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -110,6 +116,11 @@ export function evaluateVerifyAcFromPlan(
   plan: Record<string, unknown>,
   options: EvaluateVerifyAcOptions = {},
 ): VerifyAcResult {
+  const planId = typeof plan.id === "string" && plan.id.trim() ? plan.id.trim() : null;
+  const optionsWithScope: EvaluateVerifyAcOptions = {
+    ...options,
+    oracleScopeKey: options.oracleScopeKey?.trim() || planId || null,
+  };
   const acceptance = readPlanAcceptance(plan);
   const schemaErrors = validatePlanAcceptance(plan.acceptance ?? acceptance);
   // Only hard-fail schema when an explicit plan.acceptance object exists.
@@ -127,11 +138,11 @@ export function evaluateVerifyAcFromPlan(
         resolution: "config",
         resolvedCommandCount: 0,
       },
-      options,
+      optionsWithScope,
     );
   }
 
-  const projectRoot = resolve(options.projectRoot ?? process.cwd());
+  const projectRoot = resolve(optionsWithScope.projectRoot ?? process.cwd());
 
   // Prefer shared literal-acceptance path so safety / promotion rules stay one place.
   // Empty plan.acceptance.commands still consults the #3267 rejected ledger
@@ -140,13 +151,14 @@ export function evaluateVerifyAcFromPlan(
   // if the literal ledger is empty of executables.
   const base = evaluateLiteralAcceptanceFromPlan(plan, {
     projectRoot,
-    runner: options.runner,
+    runner: optionsWithScope.runner,
     // Check composition uses the stamped ledger only. Re-scanning issue prose
     // during `task check` re-captures backtick `verify:ac` lines as rejected
     // and deadlocks the graph (#3323 / #3284 check-integrated).
     captureFromNarratives:
-      options.captureFromNarratives ?? (options.checkIntegrated === true ? false : undefined),
-    quiet: options.quiet,
+      optionsWithScope.captureFromNarratives ??
+      (optionsWithScope.checkIntegrated === true ? false : undefined),
+    quiet: optionsWithScope.quiet,
   });
 
   // When literal path had nothing executable but plan.acceptance has derived commands,
@@ -157,7 +169,7 @@ export function evaluateVerifyAcFromPlan(
     acceptance.commands.length > 0 &&
     (acceptance.source_rung === "derived" || acceptance.source_rung === "project_floor")
   ) {
-    const runner: LiteralAcceptanceRunner | undefined = options.runner;
+    const runner: LiteralAcceptanceRunner | undefined = optionsWithScope.runner;
     const direct = runLiteralAcceptanceCommands(
       acceptance.commands.map((c) => ({
         command: c.command,
@@ -167,19 +179,23 @@ export function evaluateVerifyAcFromPlan(
         source: "explicit" as const,
         sourceSpan: "plan.acceptance.commands",
       })),
-      { projectRoot, runner, allowTaskStatement: options.allowTaskStatement },
+      {
+        projectRoot,
+        runner,
+        allowTaskStatement: optionsWithScope.allowTaskStatement,
+      },
     );
-    return applyOracle(annotate(direct, acceptance, options.quiet), options);
+    return applyOracle(annotate(direct, acceptance, optionsWithScope.quiet), optionsWithScope);
   }
 
   // Check composition: mid-story unpromoted capture-only may soft-pass so the
   // framework graph is not deadlocked before agents promote peers.
   // Greptile P1 #3284: safety-rejected stated commands NEVER soft-pass — they
   // block product verification until a safe alternative is promoted.
-  if (options.checkIntegrated === true && !base.ok && base.runs.length === 0) {
+  if (optionsWithScope.checkIntegrated === true && !base.ok && base.runs.length === 0) {
     const hasRejected = (base.rejected?.length ?? 0) > 0;
     if (hasRejected) {
-      return applyOracle(annotate(base, acceptance, options.quiet), options);
+      return applyOracle(annotate(base, acceptance, optionsWithScope.quiet), optionsWithScope);
     }
     const unpromoted =
       /capture-only|task_statement|no matching agent-promoted/i.test(base.message) ||
@@ -189,7 +205,7 @@ export function evaluateVerifyAcFromPlan(
         {
           ok: true,
           code: 0,
-          message: options.quiet
+          message: optionsWithScope.quiet
             ? ""
             : `verify:ac advisory (#3284 check-integrated): no executable AC peers yet ` +
               `(capture-only / empty). Done-gate standalone verify:ac still requires promotion. ` +
@@ -210,12 +226,12 @@ export function evaluateVerifyAcFromPlan(
           }),
           resolvedCommandCount: base.commands.length,
         },
-        options,
+        optionsWithScope,
       );
     }
   }
 
-  return applyOracle(annotate(base, acceptance, options.quiet), options);
+  return applyOracle(annotate(base, acceptance, optionsWithScope.quiet), optionsWithScope);
 }
 
 function classifyResolution(input: {
@@ -362,6 +378,7 @@ function applyOracle(result: VerifyAcResult, options: EvaluateVerifyAcOptions): 
       projectRoot,
       runs: gated.runs,
       env: options.env,
+      scopeKey: options.oracleScopeKey,
     });
   }
   let next = gated;
@@ -453,7 +470,17 @@ export function evaluateVerifyAcFromPath(
   if (plan === null) {
     return applyOracle(configResult(`verify:ac: xBRIEF missing plan object: ${abs}`), options);
   }
-  const result = evaluateVerifyAcFromPlan(plan, { ...options, skipAcceptanceEmit: true });
+  const planId = typeof plan.id === "string" && plan.id.trim() ? plan.id.trim() : null;
+  const pathStem = basename(abs)
+    .replace(/\.xbrief\.json$/i, "")
+    .replace(/\.vbrief\.json$/i, "");
+  // Prefer explicit oracleScopeKey, then plan.id, then path stem (#3337).
+  const oracleScopeKey = options.oracleScopeKey?.trim() || planId || pathStem || null;
+  const result = evaluateVerifyAcFromPlan(plan, {
+    ...options,
+    skipAcceptanceEmit: true,
+    oracleScopeKey,
+  });
   const banked = maybeAttachAcPassBank(result, plan, abs, options);
   emitAcceptanceOutcome(banked, options, resolve(options.projectRoot ?? process.cwd()));
   return banked;

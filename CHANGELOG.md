@@ -29,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **verify:ac product-oracle check ids are namespaced per active scope (#3337).** Multi-active sessions no longer share one global `verify:ac` check id, so a fail from story A and a pass from story B cannot false-deny as an unresolved method-change sequence. Same-scope fail then different-method pass still fails closed without independent re-derivation. Residual of #3322 / PR #3333. Closes #3337. Refs #3322, #3333.
+
 ### Removed
 
 ## [0.102.0] - 2026-08-13

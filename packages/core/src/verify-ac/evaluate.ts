@@ -52,7 +52,25 @@ function formatUnresolved(flag: FlaggedMethodChangePass): string {
   );
 }
 
-const VERIFY_AC_CHECK_ID = "verify:ac";
+/** Stable prefix for product-oracle check ids emitted by verify:ac (#3322 / #3337). */
+export const VERIFY_AC_CHECK_ID_PREFIX = "verify:ac";
+
+/**
+ * Namespace product-oracle check_id per active scope (#3337).
+ *
+ * Same-session multi-active verify:ac must not pair fail/pass across briefs.
+ * Prefer plan.id or xBRIEF path as scopeKey; empty → global fallback `verify:ac`
+ * (unknown-scope single-brief / tests without a plan).
+ */
+export function verifyAcCheckId(scopeKey?: string | null): string {
+  const key = typeof scopeKey === "string" ? scopeKey.trim() : "";
+  if (key.length === 0) {
+    return VERIFY_AC_CHECK_ID_PREFIX;
+  }
+  // Keep pairing keys readable; strip control chars that would corrupt JSONL.
+  const safe = key.replace(/[\0\n\r]/g, "_");
+  return `${VERIFY_AC_CHECK_ID_PREFIX}/${safe}`;
+}
 
 /** Same-process verification JSONL when dest is stdout (`-`). */
 const inProcessVerificationLines: string[] = [];
@@ -76,12 +94,20 @@ function inProcessVerificationText(): string | null {
  * Fail-open: missing dest / write errors never change the AC result.
  * Stdout dest also appends to the same-process buffer so evaluate can
  * inspect this invocation without re-reading a file.
+ * check_id is namespaced per active scope when scopeKey is provided (#3337).
  */
 export function emitVerifyAcAttempts(options: {
   readonly projectRoot: string;
   readonly runs: readonly LiteralAcceptanceRunResult[];
   readonly env?: NodeJS.ProcessEnv;
   readonly sessionId?: string;
+  /**
+   * Active scope identity (plan.id or xBRIEF path stem). When set, check_id
+   * becomes `verify:ac/<scopeKey>` so multi-active sessions do not false-deny (#3337).
+   */
+  readonly scopeKey?: string | null;
+  /** Full check_id override (tests). Wins over scopeKey when non-empty. */
+  readonly checkId?: string | null;
   /** stdout seam (tests). */
   readonly writeStdout?: (line: string) => void;
 }): void {
@@ -104,6 +130,11 @@ export function emitVerifyAcAttempts(options: {
         sessionId = randomUUID();
       }
     }
+    const explicitCheck =
+      typeof options.checkId === "string" && options.checkId.trim().length > 0
+        ? options.checkId.trim()
+        : null;
+    const checkId = explicitCheck ?? verifyAcCheckId(options.scopeKey);
     const emitter = new RunSummaryEmitter({
       projectRoot,
       sessionId,
@@ -112,7 +143,7 @@ export function emitVerifyAcAttempts(options: {
     });
     for (const run of options.runs) {
       const emitted = emitter.emitVerification({
-        check_id: VERIFY_AC_CHECK_ID,
+        check_id: checkId,
         method_fingerprint: `${run.command}\0${run.cwd}`,
         outcome: run.ok ? "pass" : "fail",
       });

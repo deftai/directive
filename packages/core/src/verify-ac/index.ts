@@ -26,6 +26,8 @@ export {
   mergeOracleVerdict,
   type OracleIntegrityResultFields,
   type ProductOracleIntegrityVerdict,
+  VERIFY_AC_CHECK_ID_PREFIX,
+  verifyAcCheckId,
 } from "./evaluate.js";
 export {
   type FlaggedMethodChangePass,
