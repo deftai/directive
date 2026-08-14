@@ -16,6 +16,22 @@ export {
   ScmLabelError,
 } from "./labels.js";
 export { cmdVbriefReconcile, run, usage } from "./main.js";
+export type {
+  EvaluateOriginFreshnessOptions,
+  FetchOriginUpdatedAt,
+  GithubIssueOrigin,
+  OriginFreshnessKind,
+  OriginFreshnessResult,
+} from "./origin-freshness.js";
+export {
+  briefUpdatedOf,
+  compareOriginFreshness,
+  evaluateOriginFreshness,
+  extractGithubIssueOrigin,
+  fetchGithubIssueUpdatedAt,
+  formatOriginStaleMessage,
+  ORIGIN_FRESHNESS_REMEDIATION,
+} from "./origin-freshness.js";
 export {
   PARITY_SCENARIO_NAMES,
   renderScenarioOutput,

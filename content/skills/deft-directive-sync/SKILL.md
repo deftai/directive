@@ -263,29 +263,27 @@ directive doctor
 
 ## Phase 5 -- Origin Freshness (RFC D12)
 
-! For xBRIEFs with external origin references, detect staleness and externally-closed origins.
+! For xBRIEFs with external origin references, detect externally-closed origins. `task reconcile:issues` reports linked / unlinked / closed / completed-status drift -- it does **not** have a stale-content (`updatedAt`) bucket. Implementation-intent fail-closed for a newer origin is `task xbrief:preflight` (#3363).
 
 ### Step 1: Scan Origins
 
-1. ! For each xBRIEF in `proposed/` and `pending/` with a `github-issue` reference in `plan.references` or top-level `references`:
-   - Extract the issue number from the reference URL or `id` field
-   - Fetch the issue: `gh issue view {N} --repo {owner/repo} --json updatedAt,state`
-2. ! Compare the issue's `updatedAt` against the xBRIEF's `xBRIEFInfo.updated` (or `xBRIEFInfo.created` if no `updated` field)
+1. ! Run `task reconcile:issues` for linked / unlinked / externally-closed / completed-status drift.
+2. ! For each xBRIEF in `proposed/` and `pending/` with a `github-issue` reference in `plan.references` or top-level `references`, an advisory scan MAY fetch the issue (`gh api repos/{owner}/{repo}/issues/{N}`) and compare `updatedAt` / `updated_at` against `xBRIEFInfo.updated` (or `xBRIEFInfo.created` if no `updated` field). This is report-only; it is not the engine verb.
 
 ### Step 2: Categorize and Report
 
-1. ! **Stale origins** -- issue `updatedAt` is newer than xBRIEF `updated` timestamp:
-   - "{N} xBRIEFs have origins updated since last sync"
-   - List each: "{filename}: Issue #{N} updated {time_delta} ago"
-2. ! **Externally closed origins** -- issue state is `CLOSED`:
+1. ! **Externally closed origins** -- issue state is `CLOSED` (from `task reconcile:issues`):
    - "{N} xBRIEFs have origins that were closed externally"
    - List each: "{filename}: Issue #{N} is closed ({close_reason})"
+2. ! **Advisory newer origin** -- issue `updatedAt` is newer than xBRIEF `updated` timestamp (manual scan or later `task xbrief:preflight`):
+   - "{N} xBRIEFs have origins updated since last sync"
+   - List each: "{filename}: Issue #{N} updated {time_delta} ago"
 3. ~ **Current origins** -- no changes detected (report count only)
 
 ### Step 3: Recommendation
 
 - ! Report only -- never auto-update xBRIEFs based on origin changes
-- ~ If stale or externally-closed xBRIEFs are found, suggest: "Run a refinement session (`skills/deft-directive-refinement/SKILL.md`) to reconcile stale origins with user approval."
+- ~ If newer or externally-closed origins are found, suggest: "Run a refinement session (`skills/deft-directive-refinement/SKILL.md`) to walk origin changes with user approval. Implementation will fail closed at `task xbrief:preflight` until the brief is refreshed or intentional divergence is recorded."
 
 ⊗ Auto-update xBRIEFs based on origin freshness checks -- report only; user decides during refinement
 

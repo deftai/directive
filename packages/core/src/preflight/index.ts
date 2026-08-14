@@ -1,4 +1,4 @@
-export type { EvaluateResult } from "./evaluate.js";
+export type { EvaluateOptions, EvaluateResult } from "./evaluate.js";
 export {
   ACTIVATE_HINT,
   ACTIVE_FOLDER,

@@ -6,6 +6,10 @@ import {
   formatParentLineageLine,
   type ParentLineageResult,
 } from "../scope/parent-lineage.js";
+import {
+  evaluateOriginFreshness,
+  type FetchOriginUpdatedAt,
+} from "../vbrief-reconcile/origin-freshness.js";
 
 /** Canonical eligibility folder — only vbrief/active/ may spawn implementation. */
 export const ACTIVE_FOLDER = "active";
@@ -36,6 +40,10 @@ export interface EvaluateOptions {
   readonly projectRoot?: string;
   /** Skip parent-lineage check (tests / opt-out). Default false. */
   readonly skipParentLineage?: boolean;
+  /** Skip origin timestamp freshness (#3363). Default false. */
+  readonly skipOriginFreshness?: boolean;
+  /** Injected origin fetch for tests. Default: live `gh api` REST. */
+  readonly fetchOriginUpdatedAt?: FetchOriginUpdatedAt;
 }
 
 /** Substitute `{path}` without `$`-pattern expansion in user paths (#1721). */
@@ -203,6 +211,20 @@ export function evaluate(vbriefPath: string, options: EvaluateOptions = {}): Eva
         path,
         `${lineage.message}${defect}\n  ${formatParentLineageLine(lineage)}`,
       ),
+    };
+  }
+
+  // #3363: fail closed when the live GitHub origin is newer than the brief.
+  const originFreshness = evaluateOriginFreshness(record, {
+    skip: options.skipOriginFreshness === true,
+    fetchOriginUpdatedAt: options.fetchOriginUpdatedAt,
+    cwd: options.projectRoot,
+  });
+  if (!originFreshness.ok) {
+    return {
+      exitCode: 1,
+      parentLineage: lineage,
+      message: buildReject(path, originFreshness.message),
     };
   }
 

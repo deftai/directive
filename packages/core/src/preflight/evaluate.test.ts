@@ -1,4 +1,4 @@
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
@@ -251,6 +251,67 @@ describe("preflight index barrel", () => {
   it("re-exports evaluate and emitJson", () => {
     expect(evaluateFromIndex).toBe(evaluate);
     expect(emitJsonFromIndex).toBe(emitJson);
+  });
+});
+
+describe("origin freshness (#3363)", () => {
+  function writeOriginBrief(updated: string): string {
+    return writeVbrief(
+      "active",
+      "3363-origin.xbrief.json",
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", updated },
+        plan: {
+          status: "running",
+          references: [
+            {
+              type: "x-xbrief/github-issue",
+              uri: "https://github.com/deftai/directive/issues/3363",
+            },
+          ],
+        },
+      }),
+    );
+  }
+
+  it("fails closed when live origin updated_at is newer than the brief", () => {
+    const path = writeOriginBrief("2026-08-14T16:00:00Z");
+    const result = evaluate(path, {
+      fetchOriginUpdatedAt: () => ({ updatedAt: "2026-08-14T17:00:00Z" }),
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toContain("newer than this xBRIEF");
+    expect(result.message).toContain("#2143");
+    expect(result.message).toContain("Do not auto-write origin text");
+  });
+
+  it("passes after recording divergence / bumping brief updated", () => {
+    const path = writeOriginBrief("2026-08-14T17:00:00Z");
+    const result = evaluate(path, {
+      fetchOriginUpdatedAt: () => ({ updatedAt: "2026-08-14T17:00:00Z" }),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.message).toContain("ready for implementation");
+  });
+
+  it("fails closed when origin fetch errors and skip disables the check", () => {
+    const path = writeOriginBrief("2026-08-14T16:00:00Z");
+    const failed = evaluate(path, {
+      fetchOriginUpdatedAt: () => ({ error: "offline" }),
+    });
+    expect(failed.exitCode).toBe(1);
+    expect(failed.message).toContain("Could not fetch origin");
+    const skipped = evaluate(path, { skipOriginFreshness: true });
+    expect(skipped.exitCode).toBe(0);
+  });
+
+  it("does not auto-apply origin text onto the brief", () => {
+    const path = writeOriginBrief("2026-08-14T16:00:00Z");
+    const before = readFileSync(path, "utf8");
+    evaluate(path, {
+      fetchOriginUpdatedAt: () => ({ updatedAt: "2026-08-14T17:00:00Z" }),
+    });
+    expect(readFileSync(path, "utf8")).toBe(before);
   });
 });
 

@@ -229,16 +229,18 @@ The task emits xBRIEFs conforming to the canonical v0.6 schema (`xbrief/schemas/
 task reconcile:issues
 ```
 
-The task scans every xBRIEF with a GitHub-backed reference (whether the reference uses the legacy `github-issue` bare type or the canonical `x-xbrief/github-issue` shape), fetches each linked issue, compares timestamps and state, and reports items in four buckets:
+The task scans every xBRIEF with a GitHub-backed reference (whether the reference uses the legacy `github-issue` bare type or the canonical `x-xbrief/github-issue` shape), fetches each linked issue, and reports items in these buckets:
 
-- **Linked & current** — origin has not changed since the xBRIEF was last updated (no action)
-- **Stale** — origin `updatedAt` is newer than the xBRIEF (propose an update)
+- **Linked & current** — an open origin issue has a matching xBRIEF (no action)
 - **Externally closed** — origin issue is `CLOSED` (propose cancellation or reconcile if intentional divergence)
-- **Unlinked** — xBRIEF has no GitHub reference (flag for review)
+- **Unlinked** — open GitHub issue with no xBRIEF (flag for review)
+- **Completed-status drift** — a `completed/` brief whose `plan.status` is not terminal
+
+`task reconcile:issues` does **not** compare origin `updated_at` to the brief `updated` timestamp. Origin **content** staleness is fail-closed at implementation intent: `task xbrief:preflight` exits 1 when the live issue is newer than `xBRIEFInfo.updated` (#3363).
 
 ### Step 2: Walk Flagged Items with the User
 
-1. ! For each **stale** item the task surfaces, show the user the diff between the current xBRIEF and the refreshed origin. Propose edits; ! wait for explicit user approval before writing anything.
+1. ! When `task xbrief:preflight` (or a manual origin re-read) shows the live issue is newer than the brief, show the user the current xBRIEF against the origin body + comments (#2143). Propose a refresh **or** record intentional divergence and bump `xBRIEFInfo.updated`; ! wait for explicit user approval before writing anything. ⊗ Auto-write origin text onto the brief (#309 D12).
 2. ! For each **externally closed** item, ask the user whether to `task scope:cancel <file>` it or preserve intentional divergence.
 3. ! For each **unlinked** item, ask whether to attach an origin reference or leave the xBRIEF as-is.
 
