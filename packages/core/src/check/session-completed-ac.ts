@@ -223,7 +223,8 @@ export function resolveSessionCompletedVerifyAcTarget(
   }
 
   if (matched.length === 0) {
-    if (unreadableCount > 0 && unreadableCount === paths.length) {
+    // Any unreadable completed brief may be this session's target.
+    if (unreadableCount > 0) {
       return { kind: "cannot", message: SESSION_COMPLETED_AC_REMEDIATION };
     }
     return { kind: "none" };

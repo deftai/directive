@@ -175,6 +175,22 @@ describe("resolveSessionCompletedVerifyAcTarget (#3357)", () => {
     ).toEqual({ kind: "cannot", message: SESSION_COMPLETED_AC_REMEDIATION });
   });
 
+  it("returns cannot when an unreadable completed brief exists beside another session", () => {
+    const root = mkdtempSync(join(tmpdir(), "sess-ac-mixed-"));
+    writeCompleted(root, "other.xbrief.json", {
+      completedAt: "2026-08-14T10:00:00Z",
+      completedSessionId: "sess-other",
+    });
+    const dest = join(root, "xbrief", "completed", "ours-broken.xbrief.json");
+    writeFileSync(dest, "{not-json", "utf8");
+    expect(
+      resolveSessionCompletedVerifyAcTarget({
+        projectRoot: root,
+        sessionId: "sess-1",
+      }),
+    ).toEqual({ kind: "cannot", message: SESSION_COMPLETED_AC_REMEDIATION });
+  });
+
   it("returns cannot with the single remediation when every completed brief is unreadable", () => {
     const root = mkdtempSync(join(tmpdir(), "sess-ac-bad-"));
     const dir = join(root, "xbrief", "completed");
