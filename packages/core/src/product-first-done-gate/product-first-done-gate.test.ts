@@ -24,6 +24,7 @@ import {
   evaluateVerifyAcFromPath,
   evaluateVerifyAcFromPlan,
   isVerifyAcRequiredAtCeremonyDepth,
+  resolveOracleScopeKey,
 } from "./evaluate.js";
 import {
   ENV_CHECK_AC_ONLY,
@@ -587,5 +588,25 @@ describe("product-first gate ordering contract (#3284)", () => {
       captureFromNarratives: false,
     });
     expect(result.ok).toBe(true);
+  });
+});
+
+describe("resolveOracleScopeKey (#3337)", () => {
+  it("disambiguates same plan.id and same stem across active roots", () => {
+    const root = mkdtempSync(join(tmpdir(), "oracle-scope-key-"));
+    const plan = { id: "story-a" };
+    const xPath = join(root, "xbrief", "active", "foo.xbrief.json");
+    const vPath = join(root, "vbrief", "active", "foo.xbrief.json");
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    mkdirSync(join(root, "vbrief", "active"), { recursive: true });
+    writeFileSync(xPath, "{}", "utf8");
+    writeFileSync(vPath, "{}", "utf8");
+    const a = resolveOracleScopeKey(plan, xPath, root);
+    const b = resolveOracleScopeKey(plan, vPath, root);
+    expect(a).not.toBe(b);
+    expect(a).toContain("story-a@");
+    expect(a).toContain("xbrief/active/foo.xbrief.json");
+    expect(b).toContain("vbrief/active/foo.xbrief.json");
+    expect(resolveOracleScopeKey({}, xPath, root)).toBe("xbrief/active/foo.xbrief.json");
   });
 });

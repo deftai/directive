@@ -468,6 +468,19 @@ describe("verify:ac evaluation applies oracle integrity (#3322)", () => {
     expect(verification?.payload.check_id).toBe("verify:ac/3337-verify-ac-scope-check-ids");
   });
 
+  it("path-based keys stay unique for same stem under different active roots (#3337)", () => {
+    // Mirrors Greptile residual: id-less xbrief/active/foo and vbrief/active/foo.
+    const keyA = verifyAcCheckId("xbrief/active/foo.xbrief.json");
+    const keyB = verifyAcCheckId("vbrief/active/foo.xbrief.json");
+    expect(keyA).not.toBe(keyB);
+    expect(keyA).toBe("verify:ac/xbrief/active/foo.xbrief.json");
+    expect(keyB).toBe("verify:ac/vbrief/active/foo.xbrief.json");
+    // plan.id alone would collide; id@path does not.
+    const sameIdA = verifyAcCheckId("story@xbrief/active/a.xbrief.json");
+    const sameIdB = verifyAcCheckId("story@vbrief/active/a.xbrief.json");
+    expect(sameIdA).not.toBe(sameIdB);
+  });
+
   it("fails a floor-pass plan when method-change pass is unresolved", () => {
     const result = evaluateVerifyAcFromPlan(
       {

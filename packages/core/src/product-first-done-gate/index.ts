@@ -35,6 +35,7 @@ export {
   evaluateVerifyAcFromPath,
   evaluateVerifyAcFromPlan,
   isVerifyAcRequiredAtCeremonyDepth,
+  resolveOracleScopeKey,
   type VerifyAcResult,
 } from "./evaluate.js";
 export {

@@ -9,7 +9,7 @@
  */
 
 import { existsSync, readFileSync } from "node:fs";
-import { basename, resolve } from "node:path";
+import { basename, isAbsolute, relative, resolve } from "node:path";
 import {
   type EvaluateLiteralAcceptanceOptions,
   evaluateLiteralAcceptanceFromPlan,
@@ -470,20 +470,41 @@ export function evaluateVerifyAcFromPath(
   if (plan === null) {
     return applyOracle(configResult(`verify:ac: xBRIEF missing plan object: ${abs}`), options);
   }
-  const planId = typeof plan.id === "string" && plan.id.trim() ? plan.id.trim() : null;
-  const pathStem = basename(abs)
-    .replace(/\.xbrief\.json$/i, "")
-    .replace(/\.vbrief\.json$/i, "");
-  // Prefer explicit oracleScopeKey, then plan.id, then path stem (#3337).
-  const oracleScopeKey = options.oracleScopeKey?.trim() || planId || pathStem || null;
+  const projectRoot = resolve(options.projectRoot ?? process.cwd());
+  // Path-relative keys stay unique across xbrief/ vs vbrief/ and duplicate plan.id (#3337 Greptile).
+  const oracleScopeKey =
+    options.oracleScopeKey?.trim() || resolveOracleScopeKey(plan, abs, projectRoot);
   const result = evaluateVerifyAcFromPlan(plan, {
     ...options,
     skipAcceptanceEmit: true,
     oracleScopeKey,
   });
   const banked = maybeAttachAcPassBank(result, plan, abs, options);
-  emitAcceptanceOutcome(banked, options, resolve(options.projectRoot ?? process.cwd()));
+  emitAcceptanceOutcome(banked, options, projectRoot);
   return banked;
+}
+
+/**
+ * Unique product-oracle scope key for one active xBRIEF path (#3337).
+ * Relative path is always unique across active roots; plan.id alone is not
+ * (duplicate ids / same stem in xbrief+vbrief). Prefer `id@relPath` when both exist.
+ */
+export function resolveOracleScopeKey(
+  plan: Record<string, unknown>,
+  xbriefPath: string,
+  projectRoot: string,
+): string {
+  const abs = resolve(xbriefPath);
+  const root = resolve(projectRoot);
+  let rel = relative(root, abs).replace(/\\/g, "/");
+  if (rel.length === 0 || rel.startsWith("..") || isAbsolute(rel)) {
+    rel = basename(abs);
+  }
+  const planId = typeof plan.id === "string" && plan.id.trim() ? plan.id.trim() : null;
+  if (planId !== null) {
+    return `${planId}@${rel}`;
+  }
+  return rel;
 }
 
 /**
