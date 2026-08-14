@@ -241,6 +241,41 @@ describe("runTransition", () => {
     expect(data.plan.acceptance.clauses).toHaveLength(1);
   });
 
+  it("emits acceptance_stamp when activate first writes plan.acceptance (#3355)", () => {
+    root = makeRepo();
+    const summary = join(root, "summary.jsonl");
+    const prev = process.env[ENV_RUN_SUMMARY_PATH];
+    process.env[ENV_RUN_SUMMARY_PATH] = summary;
+    try {
+      const path = join(root, "xbrief", "pending", "stamp-write.xbrief.json");
+      writeFile(path, {
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "Hand-authored",
+          status: "pending",
+          narratives: {
+            Overview:
+              "## Acceptance sketch\n- Write the helper to packages/core/src/intake/clause-derivation.ts\n",
+          },
+          items: [],
+        },
+      });
+      const result = runTransition("activate", path);
+      expect(result.ok).toBe(true);
+      const lines = readFileSync(summary, "utf8")
+        .trim()
+        .split(/\r?\n/)
+        .map((l) => JSON.parse(l) as { event: string });
+      expect(lines.some((l) => l.event === "acceptance_stamp")).toBe(true);
+    } finally {
+      if (prev === undefined) {
+        delete process.env[ENV_RUN_SUMMARY_PATH];
+      } else {
+        process.env[ENV_RUN_SUMMARY_PATH] = prev;
+      }
+    }
+  });
+
   it("does not emit acceptance_stamp when activate is refused after derivation (#3360)", () => {
     root = makeRepo();
     const summary = join(root, "summary.jsonl");

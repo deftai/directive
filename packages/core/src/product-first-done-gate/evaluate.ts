@@ -10,6 +10,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { basename, isAbsolute, relative, resolve } from "node:path";
+import { emitAcceptanceStampFromPlan } from "../intake/clause-derivation.js";
 import {
   type EvaluateLiteralAcceptanceOptions,
   evaluateLiteralAcceptanceFromPlan,
@@ -95,6 +96,11 @@ export interface EvaluateVerifyAcOptions extends EvaluateLiteralAcceptanceOption
    */
   readonly skipAcceptanceEmit?: boolean;
   /**
+   * Raw plan.acceptance as observed on the brief (#3355). Distinct from the
+   * synthesized floor: stamp only when the plan actually carries a block.
+   */
+  readonly observedAcceptance?: unknown;
+  /**
    * Active scope key for product-oracle check_id namespacing (#3337).
    * Prefer plan.id; path stem when id is missing. Multi-active verify:ac
    * under one session must not share a single global `verify:ac` check id.
@@ -120,6 +126,8 @@ export function evaluateVerifyAcFromPlan(
   const optionsWithScope: EvaluateVerifyAcOptions = {
     ...options,
     oracleScopeKey: options.oracleScopeKey?.trim() || planId || null,
+    observedAcceptance:
+      options.observedAcceptance !== undefined ? options.observedAcceptance : plan.acceptance,
   };
   const acceptance = readPlanAcceptance(plan);
   const schemaErrors = validatePlanAcceptance(plan.acceptance ?? acceptance);
@@ -295,12 +303,24 @@ function applyEmptyFloorPolicy(
   };
 }
 
-function acceptanceOutcomeOf(result: VerifyAcResult): AcceptanceRunSummaryOutcome | null {
+function acceptanceOutcomeOf(result: VerifyAcResult): AcceptanceRunSummaryOutcome {
   if (result.resolution === "verified-pass") return "verified-pass";
   if (result.resolution === "empty-pass") return "empty-pass";
   if (result.resolution === "soft_empty") return "soft_empty";
   if (result.resolution === "fail") return "fail";
-  return null;
+  if (result.resolution === "config") return "config-error";
+  return "soft-missing";
+}
+
+function emitAcceptanceObservedStamp(options: EvaluateVerifyAcOptions, projectRoot: string): void {
+  if (options.env === undefined) {
+    return;
+  }
+  const dest = options.env[ENV_RUN_SUMMARY_PATH];
+  if (dest === undefined || dest.trim().length === 0) {
+    return;
+  }
+  emitAcceptanceStampFromPlan(projectRoot, { acceptance: options.observedAcceptance }, options.env);
 }
 
 function emitAcceptanceOutcome(
@@ -315,10 +335,6 @@ function emitAcceptanceOutcome(
   if (dest === undefined || dest.trim().length === 0) {
     return;
   }
-  const outcome = acceptanceOutcomeOf(result);
-  if (outcome === null) {
-    return;
-  }
   try {
     const emitter = new RunSummaryEmitter({
       projectRoot,
@@ -329,7 +345,7 @@ function emitAcceptanceOutcome(
     });
     emitter.emitAcceptance({
       resolved_command_count: result.resolvedCommandCount,
-      outcome,
+      outcome: acceptanceOutcomeOf(result),
       source_rung: result.sourceRung,
       none_stated: result.noneStated,
       clause_count: result.clauseOutcomes?.length,
@@ -341,6 +357,16 @@ function emitAcceptanceOutcome(
   } catch {
     // fail-open
   }
+}
+
+/** Outcome on every terminal path; stamp from observed plan.acceptance (#3355). */
+function emitAcceptanceTelemetry(
+  result: VerifyAcResult,
+  options: EvaluateVerifyAcOptions,
+  projectRoot: string,
+): void {
+  emitAcceptanceObservedStamp(options, projectRoot);
+  emitAcceptanceOutcome(result, options, projectRoot);
 }
 
 function applyClauseWalk(result: VerifyAcResult, options: EvaluateVerifyAcOptions): VerifyAcResult {
@@ -394,7 +420,7 @@ function applyOracle(result: VerifyAcResult, options: EvaluateVerifyAcOptions): 
     }
   }
   if (options.skipAcceptanceEmit !== true) {
-    emitAcceptanceOutcome(next, options, projectRoot);
+    emitAcceptanceTelemetry(next, options, projectRoot);
   }
   return next;
 }
@@ -474,13 +500,17 @@ export function evaluateVerifyAcFromPath(
   // Path-relative keys stay unique across xbrief/ vs vbrief/ and duplicate plan.id (#3337 Greptile).
   const oracleScopeKey =
     options.oracleScopeKey?.trim() || resolveOracleScopeKey(plan, abs, projectRoot);
-  const result = evaluateVerifyAcFromPlan(plan, {
+  const emitOptions: EvaluateVerifyAcOptions = {
     ...options,
-    skipAcceptanceEmit: true,
     oracleScopeKey,
+    observedAcceptance: plan.acceptance,
+  };
+  const result = evaluateVerifyAcFromPlan(plan, {
+    ...emitOptions,
+    skipAcceptanceEmit: true,
   });
-  const banked = maybeAttachAcPassBank(result, plan, abs, options);
-  emitAcceptanceOutcome(banked, options, projectRoot);
+  const banked = maybeAttachAcPassBank(result, plan, abs, emitOptions);
+  emitAcceptanceTelemetry(banked, emitOptions, projectRoot);
   return banked;
 }
 

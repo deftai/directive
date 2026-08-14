@@ -4,9 +4,12 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { ENV_RUN_SUMMARY_PATH } from "../run-summary/index.js";
 import {
+  acceptanceFingerprint,
   applyClauseDerivationToPlan,
   collectTaskStatementFromPlan,
   emitAcceptanceStampFromPlan,
+  isMaterialAcceptanceChange,
+  maybeEmitAcceptanceStampFromChange,
   needsClauseDerivation,
 } from "./clause-derivation.js";
 
@@ -193,5 +196,37 @@ describe("applyClauseDerivationToPlan (#3360)", () => {
     process.env[ENV_RUN_SUMMARY_PATH] = "   ";
     emitAcceptanceStampFromPlan(root, plan);
     expect(readFileSync(summary, "utf8").trim().split(/\r?\n/).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("detects first write and material change for state-observed stamps (#3355)", () => {
+    expect(acceptanceFingerprint(null)).toBeNull();
+    expect(isMaterialAcceptanceChange(undefined, null)).toBe(false);
+    const empty = { commands: [], none_stated: true, source_rung: "project_floor" };
+    expect(isMaterialAcceptanceChange(undefined, empty)).toBe(true);
+    expect(isMaterialAcceptanceChange(empty, empty)).toBe(false);
+    expect(
+      isMaterialAcceptanceChange(empty, {
+        ...empty,
+        clauses: [{ id: 1, text: "now derived", artifact_path: "a.ts" }],
+      }),
+    ).toBe(true);
+    const root = mkdtempSync(join(tmpdir(), "deft-3355-stamp-change-"));
+    roots.push(root);
+    const summary = join(root, "summary.jsonl");
+    expect(maybeEmitAcceptanceStampFromChange(root, undefined, empty, {})).toBe(true);
+    expect(existsSync(summary)).toBe(false);
+    expect(
+      maybeEmitAcceptanceStampFromChange(root, empty, empty, { [ENV_RUN_SUMMARY_PATH]: summary }),
+    ).toBe(false);
+    expect(
+      maybeEmitAcceptanceStampFromChange(
+        root,
+        undefined,
+        { ...empty, clauses: [{ id: 1, text: "x", artifact_path: null }] },
+        { [ENV_RUN_SUMMARY_PATH]: summary },
+      ),
+    ).toBe(true);
+    const line = JSON.parse(readFileSync(summary, "utf8").trim()) as { event: string };
+    expect(line.event).toBe("acceptance_stamp");
   });
 });

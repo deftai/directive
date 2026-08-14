@@ -160,8 +160,41 @@ export function applyClauseDerivationToPlan(
   };
 }
 
+/** Stable fingerprint of plan.acceptance for first-write / material-change detection (#3355). */
+export function acceptanceFingerprint(acceptance: unknown): string | null {
+  const rec = asRecord(acceptance);
+  if (rec === null) {
+    return null;
+  }
+  const commands = Array.isArray(rec.commands) ? rec.commands.length : 0;
+  const clauses = Array.isArray(rec.clauses)
+    ? rec.clauses.map((entry, index) => {
+        const row = asRecord(entry);
+        if (row === null) {
+          return `${index}`;
+        }
+        return `${row.id ?? index}:${row.text ?? ""}:${row.artifact_path ?? ""}`;
+      })
+    : [];
+  const rung = typeof rec.source_rung === "string" ? rec.source_rung : "";
+  return `${rung}|${rec.none_stated === true}|${commands}|${clauses.join(";")}`;
+}
+
+/** True when next is a first write or a material change versus previous (#3355). */
+export function isMaterialAcceptanceChange(previous: unknown, next: unknown): boolean {
+  const nextFp = acceptanceFingerprint(next);
+  if (nextFp === null) {
+    return false;
+  }
+  return acceptanceFingerprint(previous) !== nextFp;
+}
+
 /** Fail-open acceptance_stamp emission (same contract as issue:ingest / #3355). */
-export function emitAcceptanceStampFromPlan(projectRoot: string, plan: unknown): void {
+export function emitAcceptanceStampFromPlan(
+  projectRoot: string,
+  plan: unknown,
+  env: NodeJS.ProcessEnv = process.env,
+): void {
   const rec = asRecord(plan);
   if (rec === null) {
     return;
@@ -170,7 +203,6 @@ export function emitAcceptanceStampFromPlan(projectRoot: string, plan: unknown):
   if (acceptance === null) {
     return;
   }
-  const env = process.env;
   const dest = env[ENV_RUN_SUMMARY_PATH];
   if (dest === undefined || dest.trim().length === 0) {
     return;
@@ -192,4 +224,21 @@ export function emitAcceptanceStampFromPlan(projectRoot: string, plan: unknown):
   } catch {
     // fail-open
   }
+}
+
+/**
+ * Emit acceptance_stamp when plan.acceptance is first written or materially changed.
+ * State-observed: callers pass the before/after blocks from any lifecycle verb (#3355).
+ */
+export function maybeEmitAcceptanceStampFromChange(
+  projectRoot: string,
+  previous: unknown,
+  next: unknown,
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
+  if (!isMaterialAcceptanceChange(previous, next)) {
+    return false;
+  }
+  emitAcceptanceStampFromPlan(projectRoot, { acceptance: next }, env);
+  return true;
 }

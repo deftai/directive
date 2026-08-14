@@ -123,8 +123,14 @@ export interface ToolTurnDenominatorRunSummaryPayload {
 /** Product-oracle attempt (#3322). Same emitter as #3319 / #3320. */
 export type VerificationOutcome = "pass" | "fail";
 
-/** verify:ac resolution telemetry (#3334). Distinct from verification pass/fail. */
-export type AcceptanceRunSummaryOutcome = "verified-pass" | "empty-pass" | "soft_empty" | "fail";
+/** verify:ac resolution telemetry (#3334 / #3355). Distinct from verification pass/fail. */
+export type AcceptanceRunSummaryOutcome =
+  | "verified-pass"
+  | "empty-pass"
+  | "soft_empty"
+  | "fail"
+  | "config-error"
+  | "soft-missing";
 
 export interface AcceptanceRunSummaryPayload {
   readonly resolved_command_count: number;

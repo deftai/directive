@@ -11,7 +11,7 @@ import {
 } from "../fs/projection-containment.js";
 import {
   applyClauseDerivationToPlan,
-  emitAcceptanceStampFromPlan,
+  maybeEmitAcceptanceStampFromChange,
 } from "../intake/clause-derivation.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { evaluateCompletedPlanConsistency } from "../lifecycle/completed-consistency.js";
@@ -223,6 +223,8 @@ export function runTransition(
   const nowIso = utcNowIso(now);
 
   // #3360: hand-authored briefs run #3323 clause derivation on activate/promote.
+  // #3355: stamp is state-observed (before vs after), not derivation-notice-bound.
+  const previousAcceptance = planObj.acceptance;
   let derivationNotice = "";
   if (act === "activate" || act === "promote") {
     const derivation = applyClauseDerivationToPlan(planObj, {
@@ -429,8 +431,8 @@ export function runTransition(
       };
     }
     syncSpecificationAfterScopeMove(data, resolvedPath, destPath, vbriefRoot, targetStatus);
-    if (derivationNotice.length > 0) {
-      emitAcceptanceStampFromPlan(projectRoot, planObj);
+    if (act === "activate" || act === "promote") {
+      maybeEmitAcceptanceStampFromChange(projectRoot, previousAcceptance, planObj.acceptance);
     }
     const moveMsg =
       `${actionLabel} ${basename}: ${currentFolder}/ -> ${targetFolder}/ (status: ${targetStatus})` +
@@ -455,8 +457,8 @@ export function runTransition(
   }
 
   const actionLabel = STAY_LABELS[act] ?? act.charAt(0).toUpperCase() + act.slice(1);
-  if (derivationNotice.length > 0) {
-    emitAcceptanceStampFromPlan(projectRoot, planObj);
+  if (act === "activate" || act === "promote") {
+    maybeEmitAcceptanceStampFromChange(projectRoot, previousAcceptance, planObj.acceptance);
   }
   const stayMsg =
     `${actionLabel} ${basename}: stays in ${currentFolder}/ (status: ${targetStatus})` +

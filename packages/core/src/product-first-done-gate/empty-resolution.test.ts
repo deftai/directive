@@ -151,13 +151,20 @@ describe("empty verify:ac resolution (#3334)", () => {
         env: { [ENV_RUN_SUMMARY_PATH]: suitePath },
       },
     );
-    const suiteLine = JSON.parse(readFileSync(suitePath, "utf8").trim()) as {
-      event: string;
-      payload: { outcome: string; resolved_command_count: number };
-    };
-    expect(suiteLine.event).toBe("acceptance");
-    expect(suiteLine.payload.outcome).toBe("empty-pass");
-    expect(suiteLine.payload.resolved_command_count).toBe(0);
+    const suiteLines = readFileSync(suitePath, "utf8")
+      .trim()
+      .split(/\r?\n/)
+      .map(
+        (l) =>
+          JSON.parse(l) as {
+            event: string;
+            payload: { outcome?: string; resolved_command_count?: number };
+          },
+      );
+    const suiteLine = suiteLines.find((l) => l.event === "acceptance");
+    expect(suiteLine?.event).toBe("acceptance");
+    expect(suiteLine?.payload.outcome).toBe("empty-pass");
+    expect(suiteLine?.payload.resolved_command_count).toBe(0);
   });
 
   it("emits acceptance from the path helper after the bank checkpoint", () => {
