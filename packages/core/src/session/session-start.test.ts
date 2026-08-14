@@ -672,6 +672,21 @@ describe("runSessionStart tool_turn_denominator (#3356)", () => {
     expect(denoms[0]?.total_tool_turns).toBe(10);
   });
 
+  it("coerces a sub-unit host maxTurns to 1 instead of dropping the host signal", () => {
+    const root = tempRoot();
+    const out = join(root, "summary.jsonl");
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult()),
+      env: { [ENV_RUN_SUMMARY_PATH]: out },
+      effortBudgetSeams: { hostDescriptor: { maxTurns: 0.5 } },
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(0);
+    const denoms = summaryEvents(out).filter((e) => e.event === "tool_turn_denominator");
+    expect(denoms).toHaveLength(1);
+    expect(denoms[0]?.total_tool_turns).toBe(1);
+  });
+
   it("prefers DEFT_TOTAL_TOOL_TURNS over DEFT_MAX_TURNS", () => {
     const root = tempRoot();
     const out = join(root, "summary.jsonl");

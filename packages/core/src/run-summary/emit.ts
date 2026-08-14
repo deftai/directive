@@ -484,15 +484,15 @@ function isPositiveIntegerDenominator(value: unknown): value is number {
 }
 
 /**
- * Host descriptors (#3266) accept any finite number >= 0. Floor a positive
- * fractional maxTurns so we emit a usable integer instead of falling back to 1.
+ * Host descriptors (#3266) accept any finite number >= 0. Coerce a positive
+ * host budget to a usable integer (>= 1) instead of falling back to the CLI
+ * floor as if no host signal existed.
  */
 function coercePositiveIntegerDenominator(value: unknown): number | undefined {
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
     return undefined;
   }
-  const n = Math.floor(value);
-  return n > 0 ? n : undefined;
+  return Math.max(1, Math.floor(value));
 }
 
 function readPositiveIntegerEnv(env: NodeJS.ProcessEnv, key: string): number | undefined {
