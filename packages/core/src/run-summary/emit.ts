@@ -6,10 +6,14 @@
  * Symlink destinations are refused (no-follow / containment) — fail-open.
  */
 
-import { existsSync, mkdirSync, readFileSync, realpathSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync, unlinkSync } from "node:fs";
 import { basename, dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { readCorePackageVersion } from "../engine-version.js";
-import { containedWrite } from "../fs/contained-write.js";
+import {
+  ContainedWriteError,
+  ContainedWriteErrorCode,
+  containedWrite,
+} from "../fs/contained-write.js";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { type ResolveRunSummaryDestinationOptions, resolveRunSummaryDestination } from "./path.js";
 import {
@@ -163,6 +167,59 @@ function seedSeqFromDestination(destination: RunSummaryDestination): number {
   return countExistingJsonlLines(destination.path);
 }
 
+const SEQ_LOCK_WAIT_MS = 2_000;
+const SEQ_LOCK_SPIN_MS = 15;
+
+/**
+ * Cross-process exclusive lock so count-then-append is one critical section
+ * (#3350 Greptile P1). Fail-open: if the lock cannot be acquired, emit still
+ * proceeds with a best-effort recount.
+ */
+function acquireSeqLock(targetPath: string): () => void {
+  const noop = () => {
+    /* fail-open: no lock held */
+  };
+  try {
+    const targetAbs = resolve(targetPath);
+    const parent = dirname(targetAbs);
+    mkdirSync(parent, { recursive: true });
+    const lockPath = `${targetAbs}.seq.lock`;
+    const deadline = Date.now() + SEQ_LOCK_WAIT_MS;
+    while (true) {
+      try {
+        containedWrite({
+          root: parent,
+          target: lockPath,
+          data: "\0",
+          mode: "create",
+        });
+        return () => {
+          try {
+            unlinkSync(lockPath);
+          } catch {
+            /* ignore */
+          }
+        };
+      } catch (err) {
+        if (
+          err instanceof ContainedWriteError &&
+          err.code === ContainedWriteErrorCode.EXISTS &&
+          Date.now() < deadline
+        ) {
+          const spinEnd = Date.now() + SEQ_LOCK_SPIN_MS;
+          while (Date.now() < spinEnd) {
+            /* brief spin */
+          }
+          continue;
+        }
+        return noop;
+      }
+    }
+  } catch {
+    return noop;
+  }
+}
+
 /**
  * Stateful emitter: one instance tracks seq and write-warning once.
  * File destinations seed seq from the current JSONL line count so multiple
@@ -202,53 +259,60 @@ export class RunSummaryEmitter {
     return this.destination;
   }
 
+  private buildLine(event: RunSummaryEventKind, payload: RunSummaryPayload): RunSummaryLine {
+    const denominator =
+      readPayloadToolTurnDenominator(payload) ?? readEnvToolTurnDenominator(this.env);
+    return {
+      schema_version: RUN_SUMMARY_SCHEMA_VERSION,
+      session_id: this.sessionId,
+      framework_version: this.frameworkVersion,
+      seq: this.seq,
+      ts: this.now().toISOString(),
+      event,
+      payload,
+      ...(denominator !== undefined ? { total_tool_turns: denominator } : {}),
+    };
+  }
+
   emit(event: RunSummaryEventKind, payload: RunSummaryPayload): EmitRunSummaryResult {
     try {
       if (this.destination.kind === "silent") {
         return { emitted: false, destination: this.destination, line: null, warning: false };
       }
-      // Default-path session_start replaces the file — restart seq at 1.
-      if (
-        this.destination.kind === "file" &&
-        event === "session_start" &&
-        this.destination.truncateOnSessionStart
-      ) {
-        this.seq = 0;
-      }
-      this.seq += 1;
-      const denominator =
-        readPayloadToolTurnDenominator(payload) ?? readEnvToolTurnDenominator(this.env);
-      const line: RunSummaryLine = {
-        schema_version: RUN_SUMMARY_SCHEMA_VERSION,
-        session_id: this.sessionId,
-        framework_version: this.frameworkVersion,
-        seq: this.seq,
-        ts: this.now().toISOString(),
-        event,
-        payload,
-        ...(denominator !== undefined ? { total_tool_turns: denominator } : {}),
-      };
-      const text = lineToJson(line);
 
       if (this.destination.kind === "stdout") {
-        this.writeStdout(`${RUN_SUMMARY_STDOUT_PREFIX}${text}`);
+        this.seq += 1;
+        const line = this.buildLine(event, payload);
+        this.writeStdout(`${RUN_SUMMARY_STDOUT_PREFIX}${lineToJson(line)}`);
         return { emitted: true, destination: this.destination, line, warning: false };
       }
 
-      // file destination — no-follow containment (#3282 Greptile P1 security)
+      // file destination — lock count-then-append so concurrent CLI processes
+      // cannot share the same next seq (#3350 Greptile P1).
       const { path, truncateOnSessionStart, explicit } = this.destination;
+      const release = acquireSeqLock(path);
       try {
-        const mode = event === "session_start" && truncateOnSessionStart ? "replace" : "append";
-        writeRunSummaryLine(this.projectRoot, path, text, mode);
+        const replace = event === "session_start" && truncateOnSessionStart;
+        this.seq = replace ? 1 : countExistingJsonlLines(path) + 1;
+        const line = this.buildLine(event, payload);
+        writeRunSummaryLine(
+          this.projectRoot,
+          path,
+          lineToJson(line),
+          replace ? "replace" : "append",
+        );
         return { emitted: true, destination: this.destination, line, warning: false };
       } catch {
         // Symlink / containment refusal and I/O both fail-open.
+        const line = this.buildLine(event, payload);
         if (explicit && !this.warned) {
           this.warned = true;
           this.writeStderr(RUN_SUMMARY_WRITE_WARNING);
           return { emitted: false, destination: this.destination, line, warning: true };
         }
         return { emitted: false, destination: this.destination, line, warning: false };
+      } finally {
+        release();
       }
     } catch {
       return { emitted: false, destination: this.destination, line: null, warning: false };

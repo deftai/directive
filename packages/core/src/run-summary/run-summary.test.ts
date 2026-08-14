@@ -498,6 +498,25 @@ describe("RunSummaryEmitter (#3282)", () => {
     expect(seqs).toEqual([1, 2, 3, 4, 5]);
   });
 
+  it("does not duplicate seq when two constructors seed before either appends (#3350)", () => {
+    const root = freshRoot("run-summary-seq-dual-ctor-");
+    const out = join(root, "summary.jsonl");
+    const base = {
+      projectRoot: root,
+      frameworkVersion: "0.0.0",
+      env: { [ENV_RUN_SUMMARY_PATH]: out },
+    };
+    const first = new RunSummaryEmitter({ ...base, sessionId: "ctor-1" });
+    const second = new RunSummaryEmitter({ ...base, sessionId: "ctor-2" });
+    expect(first.emitCheckInvocation({ target: "a", exit_code: 0, gates: [] }).line?.seq).toBe(1);
+    expect(second.emitCheckInvocation({ target: "b", exit_code: 0, gates: [] }).line?.seq).toBe(2);
+    const seqs = readFileSync(out, "utf8")
+      .trim()
+      .split("\n")
+      .map((l) => (JSON.parse(l) as { seq: number }).seq);
+    expect(seqs).toEqual([1, 2]);
+  });
+
   it("continues seq across emitRunSummaryEvent one-shot calls (#3350)", () => {
     const root = freshRoot("run-summary-seq-oneshot-");
     const out = join(root, "summary.jsonl");
@@ -606,5 +625,20 @@ describe("RunSummaryEmitter (#3282)", () => {
     const result = emitter.emitCheckInvocation({ target: "a", exit_code: 0, gates: [] });
     expect(result.line?.seq).toBe(1);
     expect(result.emitted).toBe(false);
+  });
+
+  it("does not leave a seq lock file after a successful emit (#3350)", () => {
+    const root = freshRoot("run-summary-seq-lock-");
+    const out = join(root, "summary.jsonl");
+    const emitter = new RunSummaryEmitter({
+      projectRoot: root,
+      sessionId: "lock",
+      frameworkVersion: "0.0.0",
+      env: { [ENV_RUN_SUMMARY_PATH]: out },
+    });
+    expect(emitter.emitCheckInvocation({ target: "a", exit_code: 0, gates: [] }).emitted).toBe(
+      true,
+    );
+    expect(existsSync(`${out}.seq.lock`)).toBe(false);
   });
 });
