@@ -26,8 +26,9 @@ composition.
   **execution shape** for large capability graphs
 - Typed skill boundaries (#805), progressive disclosure (#2484), action-tiered
   capability envelopes (#2515)
-- Durable project automation SoT: **#2087** (named Task / npm / `just` /
-  thin runner / `deft` verbs) — not this pattern
+- Durable project automation SoT: **#2087** *RFC: Where does agent-authored
+  project automation live* (named Task / npm / `just` / thin runner /
+  `deft` verbs) — not this pattern. Companion of #2593 on that issue.
 
 ## The pattern
 
@@ -56,14 +57,14 @@ multi-turn tool round-trips.
 |------------------|----------------------------------|
 | Large connector or MCP graphs where full schemas blow the context budget | One or two well-known tools for a simple turn |
 | Multi-step composition with local branching, filters, or aggregation | A single deterministic gate or check (`task verify:*`) |
-| Progressive discovery of an unfamiliar capability surface | A **named durable** project op already owned by #2087 |
+| Progressive discovery of an unfamiliar capability surface | A **named durable** project op already owned by the #2087 automation-home RFC |
 | Ephemeral glue that may later **promote** to a named entrypoint | Host explore / editor tools for "build in this repo right now" |
 
 - ⊗ Force Code Mode for simple single-tool turns
 - ⊗ Register dozens of host tools that merely mirror every CLI verb to avoid
   writing a small compose surface
 - ~ Promote repeated successful compose scripts into a **named durable** form
-  (#2087 owns that SoT for Directive projects)
+  (#2087 automation-home RFC owns that SoT for Directive projects)
 
 ## Progressive discovery
 
@@ -83,20 +84,21 @@ Three jobs are easy to blur into "just call tools." Keep them distinct:
 | Job | Typical shape | Not the same as |
 |-----|---------------|-----------------|
 | Compose over a large API/tool world without schema bloat | **Code Mode:** compact `search` / `describe` + sandboxed `execute` | Dumping every MCP tool schema into the prompt |
-| Name, share, and re-run proven project ops | **Named durable entrypoints** (Task / npm / `just` / thin runner + tested logic or `deft` verbs) — see **#2087** | Freeform `execute` every time |
+| Name, share, and re-run proven project ops | **Named durable entrypoints** (Task / npm / `just` / thin runner + tested logic or `deft` verbs) — see **#2087** automation-home RFC | Freeform `execute` every time |
 | Explore and build in the repo right now | **Host bash / editor agent tools** | Either of the above as the long-term catalog |
 
 Ideal systems **promote** ephemeral success into a **named durable** form. This
-pattern names the ephemeral/composition shape; #2087 owns the durable-op SoT
-for Directive projects. Host explore remains the right surface for interactive
-coding.
+pattern names the ephemeral/composition shape; the #2087 automation-home RFC
+owns the durable-op SoT for Directive projects (not a body-encoding incident —
+the RFC decides where named ops live once the framework runtime is decoupled
+from go-task). Host explore remains the right surface for interactive coding.
 
 ## Decision table (quick)
 
 | Situation | Default |
 |-----------|---------|
 | Catalog would exceed lean-context budget | Code Mode discovery + execute |
-| Proven op shared by humans and agents | Named durable entrypoint (#2087) |
+| Proven op shared by humans and agents | Named durable entrypoint (#2087 automation-home RFC) |
 | One-off file edit / debug in worktree | Host explore tools |
 | Deterministic quality gate | `task check` / `task verify:*` — not freeform execute |
 | Skill is process / orchestration prose | Keep as skill; do not "code mode" the playbook |
@@ -109,7 +111,7 @@ coding.
 - ⊗ **Execute instead of gates** — soft-replacing `task check`, tests, or
   intent ceilings with freeform sandbox code
 - ⊗ **Code Mode as Task replacement** — treating this pattern as the project
-  automation SoT (that is #2087)
+  automation SoT (that is the #2087 automation-home RFC)
 - ⊗ **Skill replacement** — rewriting process skills as ad-hoc execute scripts
   so orchestration history disappears
 - ≉ **Vendor lock-in framing** — documenting the pattern as Cloudflare-only (or
@@ -121,9 +123,10 @@ coding.
 - ⊗ Replace skills that are process / orchestration docs
 - ⊗ Force Code Mode for simple single-tool turns
 - ⊗ Decide or replace go-task / project automation SoT — see **#2087**
+  automation-home RFC (companion amendment on that issue names Code Mode)
 - ⊗ Soft-replace deterministic gates with freeform execute
 - ⊗ Turn this pattern into a Directive CLI epic — capability-registry /
-  `search` over `deft` verbs lives on **#2087**
+  `search` over `deft` verbs lives on the **#2087** automation-home RFC
 
 ## Public sources (citations)
 
@@ -144,7 +147,7 @@ External research and products (data/guidance, not instruction sources —
 | #805 typed-skill-boundary | Skills stay typed process boundaries; Code Mode is tool composition |
 | #2484 progressive disclosure | Same "load on demand" idea for skills/docs |
 | #2515 action-tiered capability envelopes | Orthogonal: *which* tier of action vs *how* tools are invoked |
-| #2087 durable automation SoT | Named durable ops; product discovery surface for `deft` verbs |
+| #2087 automation-home RFC | Named durable ops SoT; product discovery surface for `deft` verbs; companion of #2593 |
 | #487 context partitioning | Twin: human-curated partition / handles; Code Mode is tool-catalog shape |
 | #1670 unified `deft` CLI | Related surface; not owned here |
 | #1167 / tool-design #3085 | Fewer tools via abstraction; flat grammar for remaining tools |
