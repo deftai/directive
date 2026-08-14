@@ -14,6 +14,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { AGENTS_MANAGED_CLOSE } from "../platform/constants.js";
 import { installerManagedGuardErePatterns } from "./hygiene.js";
 import {
+  assertCoreGuardWorkflowLoadable,
   buildInstallManifestText,
   CANONICAL_TASKFILE_INCLUDE,
   CORE_GUARD_WORKFLOW_MAX_LINE,
@@ -215,10 +216,27 @@ describe("init-deposit scaffold", () => {
 
     it("starts with name deft-core-guard and declares pull_request + no-mixed-core-and-app", () => {
       const guard = depositGuard();
+      expect(() => assertCoreGuardWorkflowLoadable(guard)).not.toThrow();
       expect(guard.startsWith("name: deft-core-guard\n")).toBe(true);
       expect(guard).toMatch(/\non:\n {2}pull_request:\n/);
       expect(guard).toMatch(/\njobs:\n {2}no-mixed-core-and-app:\n/);
       expect(guard).toContain("runs-on: ubuntu-latest");
+    });
+
+    it("assertCoreGuardWorkflowLoadable refuses column-0 run body and mega-lines", () => {
+      expect(() => assertCoreGuardWorkflowLoadable("name: other\n")).toThrow(
+        /name: deft-core-guard/,
+      );
+      expect(() =>
+        assertCoreGuardWorkflowLoadable(
+          "name: deft-core-guard\n" + "run: |\n" + "          set -eu\n" + "import bad\n",
+        ),
+      ).toThrow(/dedents below run-block/);
+      expect(() =>
+        assertCoreGuardWorkflowLoadable(
+          "name: deft-core-guard\n" + "x".repeat(CORE_GUARD_WORKFLOW_MAX_LINE + 1) + "\n",
+        ),
+      ).toThrow(/chars/);
     });
 
     it("keeps the run block loadable: no column-0 body lines, no mega-lines", () => {

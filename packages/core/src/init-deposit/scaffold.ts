@@ -610,8 +610,50 @@ const CORE_GUARD_RUN_INDENT = "          ";
 /**
  * Soft max line length for deposited core-guard workflow YAML (#3345).
  * Mega-line allowlist EREs previously sat near ~5k chars; keep well below.
+ * Enforced by {@link assertCoreGuardWorkflowLoadable} before deposit write.
  */
 export const CORE_GUARD_WORKFLOW_MAX_LINE = 500;
+
+/**
+ * Fail closed if a rendered deft-core-guard workflow would not load in GHA
+ * (#3345): any `run: |` content line less indented than the block base, or a
+ * line longer than {@link CORE_GUARD_WORKFLOW_MAX_LINE}.
+ */
+export function assertCoreGuardWorkflowLoadable(content: string): void {
+  if (
+    !content.startsWith("name: deft-core-guard\n") &&
+    !content.startsWith("name: deft-core-guard\r\n")
+  ) {
+    throw new Error("deft-core-guard workflow must start with name: deft-core-guard (#3345)");
+  }
+  let inRun = false;
+  let baseIndent: number | null = null;
+  for (const [index, line] of content.split("\n").entries()) {
+    if (line.length > CORE_GUARD_WORKFLOW_MAX_LINE) {
+      throw new Error(
+        `deft-core-guard workflow line ${index + 1} is ${line.length} chars ` +
+          `(max ${CORE_GUARD_WORKFLOW_MAX_LINE}; #3345 loadable YAML)`,
+      );
+    }
+    if (line.trim() === "run: |") {
+      inRun = true;
+      baseIndent = null;
+      continue;
+    }
+    if (!inRun || line.trim() === "") continue;
+    const lead = line.match(/^( *)/)?.[1]?.length ?? 0;
+    if (baseIndent === null) {
+      baseIndent = lead;
+      continue;
+    }
+    if (lead < baseIndent) {
+      throw new Error(
+        `deft-core-guard workflow line ${index + 1} dedents below run-block base ` +
+          `(indent ${lead} < ${baseIndent}; #3345 YAML load failure class)`,
+      );
+    }
+  }
+}
 
 /**
  * Embedded python3 content check for package.json / lockfiles when co-travelling
@@ -1099,6 +1141,7 @@ export function ensureCodeqlPathsIgnore(projectDir: string, io: InitDepositIo): 
 export function ensureCoreGuardWorkflow(projectDir: string, io: InitDepositIo): boolean {
   const path = projectionTarget(projectDir, CORE_GUARD_WORKFLOW_REL);
   const desired = coreGuardWorkflowContent();
+  assertCoreGuardWorkflowLoadable(desired);
   if (existsSync(path)) {
     const existing = readFileSync(path, "utf8");
     if (!existing.includes("name: deft-core-guard")) {
