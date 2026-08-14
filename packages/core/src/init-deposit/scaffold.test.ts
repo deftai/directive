@@ -12,9 +12,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { AGENTS_MANAGED_CLOSE } from "../platform/constants.js";
+import { installerManagedGuardErePatterns } from "./hygiene.js";
 import {
   buildInstallManifestText,
   CANONICAL_TASKFILE_INCLUDE,
+  CORE_GUARD_WORKFLOW_MAX_LINE,
   coreGuardCheckoutUsesLine,
   depositNeutralization,
   ensureCodeqlPathsIgnore,
@@ -201,6 +203,65 @@ describe("init-deposit scaffold", () => {
     expect(guard).toContain("@deftai/directive");
     expect(guard).toContain("package-lock.json");
     expect(guard).toContain("pnpm-lock.yaml");
+  });
+
+  describe("deft-core-guard workflow load shape (#3345)", () => {
+    function depositGuard(): string {
+      const project = freshRoot("scaffold-guard-load-");
+      const { io } = captureIo();
+      expect(ensureCoreGuardWorkflow(project, io)).toBe(true);
+      return readFileSync(join(project, ".github/workflows/deft-core-guard.yml"), "utf8");
+    }
+
+    it("starts with name deft-core-guard and declares pull_request + no-mixed-core-and-app", () => {
+      const guard = depositGuard();
+      expect(guard.startsWith("name: deft-core-guard\n")).toBe(true);
+      expect(guard).toMatch(/\non:\n {2}pull_request:\n/);
+      expect(guard).toMatch(/\njobs:\n {2}no-mixed-core-and-app:\n/);
+      expect(guard).toContain("runs-on: ubuntu-latest");
+    });
+
+    it("keeps the run block loadable: no column-0 body lines, no mega-lines", () => {
+      const guard = depositGuard();
+      const lines = guard.split("\n");
+      let inRun = false;
+      let baseIndent: number | null = null;
+      for (const line of lines) {
+        if (line.trim() === "run: |") {
+          inRun = true;
+          baseIndent = null;
+          continue;
+        }
+        if (!inRun) continue;
+        if (line.trim() === "") continue;
+        const lead = line.match(/^( *)/)?.[1]?.length ?? 0;
+        if (baseIndent === null) {
+          baseIndent = lead;
+          continue;
+        }
+        // YAML literal blocks end when a content line is less indented than the first.
+        expect(lead).toBeGreaterThanOrEqual(baseIndent);
+        expect(line.length).toBeLessThanOrEqual(CORE_GUARD_WORKFLOW_MAX_LINE);
+      }
+      expect(baseIndent).toBe(10);
+      // Column-0 Python body was the #3345 load killer (pre-fix).
+      expect(guard).not.toMatch(/\nimport json, re, subprocess, sys\n/);
+      expect(guard).toContain(`${" ".repeat(10)}import json, re, subprocess, sys`);
+    });
+
+    it("emits allowlist as one ERE per line (not a single joined mega-pattern)", () => {
+      const guard = depositGuard();
+      const patterns = installerManagedGuardErePatterns();
+      expect(patterns.length).toBeGreaterThan(10);
+      expect(guard).toContain("grep -vE -f");
+      expect(guard).toContain("<<'ALLOW'");
+      for (const sample of ["^AGENTS\\.md$", "^package\\.json$", "^xbrief/\\.deft-version$"]) {
+        expect(patterns).toContain(sample);
+        expect(guard).toContain(sample);
+      }
+      // Joined mega-alternation must not reappear as one shell line.
+      expect(guard).not.toContain(patterns.slice(0, 5).join("|"));
+    });
   });
 
   it("skips AGENTS.md rewrite when the managed section is already current", () => {
