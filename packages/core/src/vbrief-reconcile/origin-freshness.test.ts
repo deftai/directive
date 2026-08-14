@@ -112,6 +112,49 @@ describe("extractGithubIssueOrigin", () => {
   it("returns null when there is no github-issue origin", () => {
     expect(extractGithubIssueOrigin({ plan: { references: [] } })).toBeNull();
     expect(extractGithubIssueOrigin({ plan: {} })).toBeNull();
+    expect(
+      extractGithubIssueOrigin({
+        xBRIEFInfo: { description: "Scope xBRIEF ingested from GitHub issue #3363" },
+        plan: { narratives: { Origin: "Ingested from issue #3363" } },
+      }),
+    ).toBeNull();
+  });
+
+  it("extracts a provenance-only Origin URL when references are absent", () => {
+    expect(
+      extractGithubIssueOrigin({
+        plan: {
+          narratives: {
+            Origin: "Ingested from https://github.com/deftai/directive/issues/3363",
+          },
+        },
+      }),
+    ).toEqual({
+      owner: "deftai",
+      repo: "directive",
+      number: 3363,
+      uri: "https://github.com/deftai/directive/issues/3363",
+      type: "x-xbrief/github-issue",
+    });
+  });
+
+  it("extracts a provenance-only description URL including api.github.com", () => {
+    expect(
+      extractGithubIssueOrigin({
+        xBRIEFInfo: {
+          description: "Ingested from https://api.github.com/repos/o/r/issues/44",
+        },
+        plan: {},
+      }),
+    ).toMatchObject({ owner: "o", repo: "r", number: 44 });
+    expect(
+      extractGithubIssueOrigin({
+        vBRIEFInfo: {
+          description: "Ingested from https://github.com/o/r/issues/45",
+        },
+        plan: {},
+      }),
+    ).toMatchObject({ number: 45 });
   });
 
   it("skips non-object refs, non-github types, and unparseable github refs", () => {
@@ -232,6 +275,27 @@ describe("evaluateOriginFreshness", () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.message).toContain("missing owner/repo");
+  });
+
+  it("fails closed when a provenance-only Origin URL is newer", () => {
+    const brief = {
+      xBRIEFInfo: { version: "0.8", updated: "2026-08-14T16:00:00Z" },
+      plan: {
+        status: "running",
+        narratives: {
+          Origin: "Ingested from https://github.com/deftai/directive/issues/3363",
+        },
+      },
+    };
+    const before = JSON.stringify(brief);
+    const result = evaluateOriginFreshness(brief, {
+      fetchOriginUpdatedAt: () => ({ updatedAt: "2026-08-14T17:00:00Z" }),
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.message).toContain("#3363");
+    expect(result.message).toContain("newer than this xBRIEF");
+    expect(JSON.stringify(brief)).toBe(before);
   });
 
   it("fails closed when timestamps cannot be compared", () => {

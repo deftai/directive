@@ -6,6 +6,8 @@ import {
 import { type CallOptions, type CompletedProcess, call } from "../scm/call.js";
 
 const ISSUE_URL_PATTERN = /https:\/\/github\.com\/([^/\s]+)\/([^/\s]+)\/issues\/(\d+)/;
+const ISSUE_API_URL_PATTERN =
+  /https:\/\/api\.github\.com\/repos\/([^/\s]+)\/([^/\s]+)\/issues\/(\d+)/;
 
 export const ORIGIN_FRESHNESS_REMEDIATION =
   "Re-read the issue body and comments (#2143), then either refresh the brief or record intentional divergence and bump xBRIEFInfo.updated. Do not auto-write origin text onto the brief (#309 D12).";
@@ -62,6 +64,14 @@ export function briefUpdatedOf(payload: Record<string, unknown>): string | null 
 export function extractGithubIssueOrigins(payload: Record<string, unknown>): GithubIssueOrigin[] {
   const origins: GithubIssueOrigin[] = [];
   const seen = new Set<string>();
+  const add = (origin: GithubIssueOrigin): void => {
+    const key = `${origin.owner}/${origin.repo}#${origin.number}`;
+    if (seen.has(key)) {
+      return;
+    }
+    seen.add(key);
+    origins.push(origin);
+  };
   for (const rec of extractReferencesFromVbrief(payload)) {
     const type = String(rec.type ?? "");
     if (!GITHUB_ISSUE_REF_TYPES.has(type)) {
@@ -82,12 +92,13 @@ export function extractGithubIssueOrigins(payload: Record<string, unknown>): Git
         type,
       };
     }
-    const key = `${origin.owner}/${origin.repo}#${origin.number}`;
-    if (seen.has(key)) {
-      continue;
+    add(origin);
+  }
+  for (const text of textualOriginFields(payload)) {
+    const fromText = originFromText(text);
+    if (fromText !== null) {
+      add({ ...fromText, type: "x-xbrief/github-issue" });
     }
-    seen.add(key);
-    origins.push(origin);
   }
   return origins;
 }
@@ -104,17 +115,51 @@ function originFromUri(ref: Record<string, unknown>): Omit<GithubIssueOrigin, "t
     if (typeof value !== "string" || value.length === 0) {
       continue;
     }
-    const match = ISSUE_URL_PATTERN.exec(value);
+    const parsed = originFromText(value);
+    if (parsed !== null) {
+      return parsed;
+    }
+  }
+  return null;
+}
+
+function originFromText(text: string): Omit<GithubIssueOrigin, "type"> | null {
+  for (const pattern of [ISSUE_URL_PATTERN, ISSUE_API_URL_PATTERN]) {
+    const match = pattern.exec(text);
     if (match?.[1] && match[2] && match[3]) {
       return {
         owner: match[1],
         repo: match[2],
         number: Number.parseInt(match[3], 10),
-        uri: value,
+        uri: `https://github.com/${match[1]}/${match[2]}/issues/${match[3]}`,
       };
     }
   }
   return null;
+}
+
+function textualOriginFields(payload: Record<string, unknown>): string[] {
+  const texts: string[] = [];
+  const plan = payload.plan;
+  if (plan !== null && typeof plan === "object" && !Array.isArray(plan)) {
+    const narratives = (plan as Record<string, unknown>).narratives;
+    if (narratives !== null && typeof narratives === "object" && !Array.isArray(narratives)) {
+      const origin = (narratives as Record<string, unknown>).Origin;
+      if (typeof origin === "string" && origin.length > 0) {
+        texts.push(origin);
+      }
+    }
+  }
+  for (const key of ["xBRIEFInfo", "vBRIEFInfo"] as const) {
+    const info = payload[key];
+    if (info !== null && typeof info === "object" && !Array.isArray(info)) {
+      const description = (info as Record<string, unknown>).description;
+      if (typeof description === "string" && description.length > 0) {
+        texts.push(description);
+      }
+    }
+  }
+  return texts;
 }
 
 export function compareOriginFreshness(

@@ -313,6 +313,27 @@ describe("origin freshness (#3363)", () => {
     });
     expect(readFileSync(path, "utf8")).toBe(before);
   });
+
+  it("fails closed when the only origin is a provenance Origin URL", () => {
+    const path = writeVbrief(
+      "active",
+      "3363-origin-text.xbrief.json",
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", updated: "2026-08-14T16:00:00Z" },
+        plan: {
+          status: "running",
+          narratives: {
+            Origin: "Ingested from https://github.com/deftai/directive/issues/3363",
+          },
+        },
+      }),
+    );
+    const result = evaluate(path, {
+      fetchOriginUpdatedAt: () => ({ updatedAt: "2026-08-14T17:00:00Z" }),
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toContain("newer than this xBRIEF");
+  });
 });
 
 describe("evaluate edge branches", () => {
