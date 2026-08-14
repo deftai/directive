@@ -1,6 +1,9 @@
 import { existsSync, mkdirSync, unlinkSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { writeSessionCompletedMarker } from "../check/session-completed-ac.js";
+import {
+  SESSION_COMPLETED_AC_REMEDIATION,
+  writeSessionCompletedMarker,
+} from "../check/session-completed-ac.js";
 import { InstrumentedVbriefCrud, persistCrudMetrics } from "../eval/crud-telemetry.js";
 import {
   assertProjectionContained,
@@ -379,7 +382,12 @@ export function runTransition(
             completedAt: nowIso,
           });
         } catch {
-          /* best-effort marker; check still scans completed/ */
+          try {
+            unlinkSync(destPath);
+          } catch {
+            /* dest rollback after marker failure */
+          }
+          return { ok: false, message: SESSION_COMPLETED_AC_REMEDIATION };
         }
       }
     }

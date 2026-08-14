@@ -288,6 +288,27 @@ describe("runTransition", () => {
     expect(data.plan.metadata.completedAt).toMatch(/Z$/);
   });
 
+  it("fails complete when last-completed marker cannot be written (#3357)", () => {
+    root = makeRepo();
+    const file = writeVbrief(root, "active", "running");
+    writeFileSync(join(root, ".deft"), "not-a-dir", "utf8");
+    const prev = process.env.DEFT_SESSION_ID;
+    process.env.DEFT_SESSION_ID = "sess-marker";
+    try {
+      const result = runTransition("complete", file);
+      expect(result.ok).toBe(false);
+      expect(result.message).toMatch(/#3357|just-completed|soft-skip/);
+      expect(existsSync(file)).toBe(true);
+      expect(existsSync(join(root, "xbrief", "completed", "story.xbrief.json"))).toBe(false);
+    } finally {
+      if (prev === undefined) {
+        delete process.env.DEFT_SESSION_ID;
+      } else {
+        process.env.DEFT_SESSION_ID = prev;
+      }
+    }
+  });
+
   it("fails complete when plan.items remain non-terminal after reconcile (#3242)", () => {
     root = makeRepo();
     const path = join(root, "xbrief", "active", "empty-item-status.xbrief.json");
