@@ -25,6 +25,10 @@ describe("runFakeTrial (#3362)", () => {
     for (const kind of ENROLLED_FIELD_FIXTURE_KINDS) {
       expect(present.has(kind), kind).toBe(true);
     }
+    expect(result.stepOutcomes.length).toBe(DEFAULT_TRIAL_STEPS.length);
+    for (const outcome of result.stepOutcomes) {
+      expect(outcome.emittedKinds).toContain(outcome.declaredKind);
+    }
     expect(result.lines.every((line) => line.schema_version === 1)).toBe(true);
     const seqs = result.lines.map((line) => line.seq);
     expect(seqs).toEqual(seqs.map((_, i) => i + 1));

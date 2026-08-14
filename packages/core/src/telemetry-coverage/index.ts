@@ -10,6 +10,7 @@ export {
   type FakeTrialOptions,
   type FakeTrialResult,
   type FakeTrialStep,
+  type FakeTrialStepOutcome,
   missingEnrolledKinds,
   runFakeTrial,
 } from "./fake-trial.js";

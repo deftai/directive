@@ -184,10 +184,32 @@ describe("evaluateTelemetryCoverage (#3362)", () => {
       kinds: ["session_start"],
       enrolledKinds: ["session_start"],
       trialKinds: ["session_start"],
-      trialResult: { presentKinds: [] },
+      trialResult: { presentKinds: [], stepOutcomes: [] },
     });
     expect(result.code).toBe(1);
     expect(result.findings[0]?.missingFixture).toBe(true);
     expect(result.findings[0]?.remediation).toContain("no field fixture");
+  });
+
+  it("flags a declared step that emitted a different kind", () => {
+    const root = freshDir("tlm-wrong-step-");
+    writeProd(
+      root,
+      "packages/core/src/session/session-start.ts",
+      "emitter.emitSessionStart({ ready: true });\n",
+    );
+    const result = evaluateTelemetryCoverage({
+      projectRoot: root,
+      enforce: true,
+      kinds: ["session_start"],
+      enrolledKinds: ["session_start"],
+      trialKinds: ["session_start"],
+      trialResult: {
+        presentKinds: ["session_start"],
+        stepOutcomes: [{ declaredKind: "session_start", emittedKinds: ["check_invocation"] }],
+      },
+    });
+    expect(result.code).toBe(1);
+    expect(result.findings[0]?.missingFixture).toBe(true);
   });
 });

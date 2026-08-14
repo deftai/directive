@@ -109,12 +109,18 @@ export interface FakeTrialOptions {
   readonly env?: NodeJS.ProcessEnv;
 }
 
+export interface FakeTrialStepOutcome {
+  readonly declaredKind: RunSummaryEventKind;
+  readonly emittedKinds: readonly RunSummaryEventKind[];
+}
+
 export interface FakeTrialResult {
   readonly projectRoot: string;
   readonly destPath: string;
   readonly sessionId: string;
   readonly lines: readonly RunSummaryLine[];
   readonly presentKinds: readonly RunSummaryEventKind[];
+  readonly stepOutcomes: readonly FakeTrialStepOutcome[];
   readonly seqMonotonic: boolean;
   readonly sessionIdStable: boolean;
 }
@@ -170,8 +176,14 @@ export function runFakeTrial(options: FakeTrialOptions = {}): FakeTrialResult {
   };
 
   const first = new RunSummaryEmitter({ projectRoot, sessionId, env });
+  const stepOutcomes: FakeTrialStepOutcome[] = [];
+  let seenLines = 0;
   for (const step of steps) {
     step.invoke(first);
+    const current = parseRunSummaryJsonl(readFileSync(destPath, "utf8"));
+    const emittedKinds = current.slice(seenLines).map((line) => line.event);
+    seenLines = current.length;
+    stepOutcomes.push({ declaredKind: step.kind, emittedKinds });
   }
   const second = new RunSummaryEmitter({ projectRoot, sessionId, env });
   second.emitCheckInvocation({
@@ -192,6 +204,7 @@ export function runFakeTrial(options: FakeTrialOptions = {}): FakeTrialResult {
     sessionId,
     lines,
     presentKinds: [...present],
+    stepOutcomes,
     seqMonotonic: seqIsMonotonic(lines),
     sessionIdStable: sessionIdIsStable(lines, sessionId),
   };

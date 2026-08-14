@@ -38,7 +38,7 @@ export interface TelemetryCoverageOptions {
   /** Skip running the fake trial (unit tests). Production default is to run it. */
   readonly skipTrial?: boolean;
   /** Injected trial result (tests). */
-  readonly trialResult?: Pick<FakeTrialResult, "presentKinds">;
+  readonly trialResult?: Pick<FakeTrialResult, "presentKinds" | "stepOutcomes">;
 }
 
 export interface TelemetryCoverageResult {
@@ -64,6 +64,19 @@ export function remediationFor(
   return `event kind ${subject} has no field fixture — wire it or remove it from the schema.`;
 }
 
+function failedDeclaredSteps(outcomes: FakeTrialResult["stepOutcomes"] | undefined): Set<string> {
+  const failed = new Set<string>();
+  if (outcomes === undefined) {
+    return failed;
+  }
+  for (const outcome of outcomes) {
+    if (!outcome.emittedKinds.includes(outcome.declaredKind)) {
+      failed.add(outcome.declaredKind);
+    }
+  }
+  return failed;
+}
+
 export function evaluateTelemetryCoverage(
   options: TelemetryCoverageOptions,
 ): TelemetryCoverageResult {
@@ -85,12 +98,15 @@ export function evaluateTelemetryCoverage(
   const trialKinds = new Set(options.trialKinds ?? DEFAULT_TRIAL_STEPS.map((step) => step.kind));
   let trialRoot: string | undefined;
   let presentFromTrial: Set<string> | undefined;
+  let failedStepKinds: Set<string> | undefined;
   if (options.trialResult !== undefined) {
     presentFromTrial = new Set(options.trialResult.presentKinds);
+    failedStepKinds = failedDeclaredSteps(options.trialResult.stepOutcomes);
   } else if (options.skipTrial !== true) {
     const trial = runFakeTrial();
     trialRoot = trial.projectRoot;
     presentFromTrial = new Set(trial.presentKinds);
+    failedStepKinds = failedDeclaredSteps(trial.stepOutcomes);
   }
 
   const scan = scanProductionCallers({
@@ -104,7 +120,9 @@ export function evaluateTelemetryCoverage(
     for (const kind of kinds) {
       const missingCaller = (scan.callersByKind[kind] ?? []).length === 0;
       const missingFromTrial = presentFromTrial !== undefined && !presentFromTrial.has(kind);
-      const missingFixture = !enrolled.has(kind) || !trialKinds.has(kind) || missingFromTrial;
+      const brokenDeclaredStep = failedStepKinds?.has(kind) === true;
+      const missingFixture =
+        !enrolled.has(kind) || !trialKinds.has(kind) || missingFromTrial || brokenDeclaredStep;
       if (missingCaller || missingFixture) {
         findings.push({
           subject: kind,
