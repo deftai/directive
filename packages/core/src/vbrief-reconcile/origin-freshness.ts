@@ -55,17 +55,17 @@ export function briefUpdatedOf(payload: Record<string, unknown>): string | null 
   return null;
 }
 
-export function extractGithubIssueOrigin(
-  payload: Record<string, unknown>,
-): GithubIssueOrigin | null {
+export function extractGithubIssueOrigins(payload: Record<string, unknown>): GithubIssueOrigin[] {
   const plan = payload.plan;
   if (plan === null || typeof plan !== "object" || Array.isArray(plan)) {
-    return null;
+    return [];
   }
   const refs = (plan as Record<string, unknown>).references;
   if (!Array.isArray(refs)) {
-    return null;
+    return [];
   }
+  const origins: GithubIssueOrigin[] = [];
+  const seen = new Set<string>();
   for (const ref of refs) {
     if (ref === null || typeof ref !== "object" || Array.isArray(ref)) {
       continue;
@@ -76,22 +76,34 @@ export function extractGithubIssueOrigin(
       continue;
     }
     const fromUri = originFromUri(rec);
-    if (fromUri !== null) {
-      return { ...fromUri, type };
+    let origin: GithubIssueOrigin | null = fromUri !== null ? { ...fromUri, type } : null;
+    if (origin === null) {
+      const number = parseIssueNumber(rec);
+      if (number === null) {
+        continue;
+      }
+      origin = {
+        owner: "",
+        repo: "",
+        number,
+        uri: typeof rec.uri === "string" ? rec.uri : "",
+        type,
+      };
     }
-    const number = parseIssueNumber(rec);
-    if (number === null) {
+    const key = `${origin.owner}/${origin.repo}#${origin.number}`;
+    if (seen.has(key)) {
       continue;
     }
-    return {
-      owner: "",
-      repo: "",
-      number,
-      uri: typeof rec.uri === "string" ? rec.uri : "",
-      type,
-    };
+    seen.add(key);
+    origins.push(origin);
   }
-  return null;
+  return origins;
+}
+
+export function extractGithubIssueOrigin(
+  payload: Record<string, unknown>,
+): GithubIssueOrigin | null {
+  return extractGithubIssueOrigins(payload)[0] ?? null;
 }
 
 function originFromUri(ref: Record<string, unknown>): Omit<GithubIssueOrigin, "type"> | null {
@@ -188,40 +200,42 @@ export function evaluateOriginFreshness(
   if (options.skip === true) {
     return { ok: true, kind: "no-origin" };
   }
-  const origin = extractGithubIssueOrigin(payload);
-  if (origin === null) {
+  const origins = extractGithubIssueOrigins(payload);
+  if (origins.length === 0) {
     return { ok: true, kind: "no-origin" };
   }
   const fetch =
     options.fetchOriginUpdatedAt ??
     ((next) => fetchGithubIssueUpdatedAt(next, { cwd: options.cwd }));
-  const fetched = fetch(origin);
-  if ("error" in fetched) {
-    return {
-      ok: false,
-      kind: "uncomparable",
-      message:
-        `Could not fetch origin GitHub issue #${origin.number} for freshness check: ${fetched.error}. ` +
-        ORIGIN_FRESHNESS_REMEDIATION,
-    };
-  }
   const briefUpdated = briefUpdatedOf(payload);
-  const kind = compareOriginFreshness(briefUpdated, fetched.updatedAt);
-  if (kind === "stale") {
-    return {
-      ok: false,
-      kind,
-      message: formatOriginStaleMessage(origin, fetched.updatedAt, briefUpdated),
-    };
+  for (const origin of origins) {
+    const fetched = fetch(origin);
+    if ("error" in fetched) {
+      return {
+        ok: false,
+        kind: "uncomparable",
+        message:
+          `Could not fetch origin GitHub issue #${origin.number} for freshness check: ${fetched.error}. ` +
+          ORIGIN_FRESHNESS_REMEDIATION,
+      };
+    }
+    const kind = compareOriginFreshness(briefUpdated, fetched.updatedAt);
+    if (kind === "stale") {
+      return {
+        ok: false,
+        kind,
+        message: formatOriginStaleMessage(origin, fetched.updatedAt, briefUpdated),
+      };
+    }
+    if (kind === "uncomparable") {
+      return {
+        ok: false,
+        kind,
+        message:
+          `Could not compare origin GitHub issue #${origin.number} updated_at=${fetched.updatedAt} ` +
+          `to brief updated=${briefUpdated ?? "(missing)"}. ${ORIGIN_FRESHNESS_REMEDIATION}`,
+      };
+    }
   }
-  if (kind === "uncomparable") {
-    return {
-      ok: false,
-      kind,
-      message:
-        `Could not compare origin GitHub issue #${origin.number} updated_at=${fetched.updatedAt} ` +
-        `to brief updated=${briefUpdated ?? "(missing)"}. ${ORIGIN_FRESHNESS_REMEDIATION}`,
-    };
-  }
-  return { ok: true, kind };
+  return { ok: true, kind: "current" };
 }

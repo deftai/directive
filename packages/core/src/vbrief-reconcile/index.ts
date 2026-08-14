@@ -28,6 +28,7 @@ export {
   compareOriginFreshness,
   evaluateOriginFreshness,
   extractGithubIssueOrigin,
+  extractGithubIssueOrigins,
   fetchGithubIssueUpdatedAt,
   formatOriginStaleMessage,
   ORIGIN_FRESHNESS_REMEDIATION,

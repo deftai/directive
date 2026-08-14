@@ -55,6 +55,35 @@ describe("extractGithubIssueOrigin", () => {
     ).toBe("x-vbrief/github-issue");
   });
 
+  it("fails closed when a later github-issue origin is newer", () => {
+    const brief = {
+      xBRIEFInfo: { version: "0.8", updated: "2026-08-14T16:00:00Z" },
+      plan: {
+        status: "running",
+        references: [
+          {
+            type: "x-xbrief/github-issue",
+            uri: "https://github.com/deftai/directive/issues/1",
+          },
+          {
+            type: "x-xbrief/github-issue",
+            uri: "https://github.com/deftai/directive/issues/2",
+          },
+        ],
+      },
+    };
+    const result = evaluateOriginFreshness(brief, {
+      fetchOriginUpdatedAt: (origin) =>
+        origin.number === 2
+          ? { updatedAt: "2026-08-14T17:00:00Z" }
+          : { updatedAt: "2026-08-14T15:00:00Z" },
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.message).toContain("#2");
+    expect(result.message).toContain("newer than this xBRIEF");
+  });
+
   it("returns null when there is no github-issue origin", () => {
     expect(extractGithubIssueOrigin({ plan: { references: [] } })).toBeNull();
     expect(extractGithubIssueOrigin({ plan: {} })).toBeNull();
