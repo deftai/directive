@@ -6,7 +6,7 @@
  * Symlink destinations are refused (no-follow / containment) — fail-open.
  */
 
-import { existsSync, mkdirSync, readFileSync, realpathSync, unlinkSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync, statSync, unlinkSync } from "node:fs";
 import { basename, dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { readCorePackageVersion } from "../engine-version.js";
 import {
@@ -173,8 +173,23 @@ const SEQ_LOCK_SPIN_MS = 15;
 /**
  * Cross-process exclusive lock so count-then-append is one critical section
  * (#3350 Greptile P1). Fail-open: if the lock cannot be acquired, emit still
- * proceeds with a best-effort recount.
+ * proceeds with a best-effort recount. A lock older than the wait window is
+ * treated as abandoned and reclaimed so a crashed holder cannot leave later
+ * writers unlocked forever.
  */
+function tryReclaimStaleLock(lockPath: string): boolean {
+  try {
+    const ageMs = Date.now() - statSync(lockPath).mtimeMs;
+    if (ageMs < SEQ_LOCK_WAIT_MS) {
+      return false;
+    }
+    unlinkSync(lockPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function acquireSeqLock(targetPath: string): () => void {
   const noop = () => {
     /* fail-open: no lock held */
@@ -201,16 +216,17 @@ function acquireSeqLock(targetPath: string): () => void {
           }
         };
       } catch (err) {
-        if (
-          err instanceof ContainedWriteError &&
-          err.code === ContainedWriteErrorCode.EXISTS &&
-          Date.now() < deadline
-        ) {
-          const spinEnd = Date.now() + SEQ_LOCK_SPIN_MS;
-          while (Date.now() < spinEnd) {
-            /* brief spin */
+        if (err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS) {
+          if (Date.now() < deadline) {
+            const spinEnd = Date.now() + SEQ_LOCK_SPIN_MS;
+            while (Date.now() < spinEnd) {
+              /* brief spin */
+            }
+            continue;
           }
-          continue;
+          if (tryReclaimStaleLock(lockPath)) {
+            continue;
+          }
         }
         return noop;
       }

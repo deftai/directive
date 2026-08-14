@@ -1,4 +1,12 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  utimesSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -625,6 +633,25 @@ describe("RunSummaryEmitter (#3282)", () => {
     const result = emitter.emitCheckInvocation({ target: "a", exit_code: 0, gates: [] });
     expect(result.line?.seq).toBe(1);
     expect(result.emitted).toBe(false);
+  });
+
+  it("reclaims a stale seq lock and still emits unique seq (#3350)", () => {
+    const root = freshRoot("run-summary-seq-stale-lock-");
+    const out = join(root, "summary.jsonl");
+    const lock = `${out}.seq.lock`;
+    writeFileSync(lock, "\0", "utf8");
+    const stale = new Date(Date.now() - 10_000);
+    utimesSync(lock, stale, stale);
+    const base = {
+      projectRoot: root,
+      frameworkVersion: "0.0.0",
+      env: { [ENV_RUN_SUMMARY_PATH]: out },
+    };
+    const first = new RunSummaryEmitter({ ...base, sessionId: "stale-1" });
+    const second = new RunSummaryEmitter({ ...base, sessionId: "stale-2" });
+    expect(first.emitCheckInvocation({ target: "a", exit_code: 0, gates: [] }).line?.seq).toBe(1);
+    expect(second.emitCheckInvocation({ target: "b", exit_code: 0, gates: [] }).line?.seq).toBe(2);
+    expect(existsSync(lock)).toBe(false);
   });
 
   it("does not leave a seq lock file after a successful emit (#3350)", () => {

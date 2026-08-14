@@ -44,7 +44,8 @@ export interface RunSummaryBaseFields {
    * Monotonic 1-based sequence for this destination (#3350).
    * File destinations continue from the existing JSONL line count so multiple
    * CLI processes appending to one DEFT_RUN_SUMMARY_PATH share 1..N. Concurrent
-   * file writers serialize count-then-append via a sibling lock.
+   * file writers serialize count-then-append via a sibling lock; abandoned
+   * locks older than the wait window are reclaimed.
    * Stdout destinations stay per-process (each process starts at 1).
    */
   readonly seq: number;
