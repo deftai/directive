@@ -176,9 +176,10 @@ export function collectCeremonyDialConsumerEvidence(
     }
   }
 
-  const modelTier = normalizeCeremonyModelTier(
-    env[ENV_CEREMONY_MODEL_TIER] ?? env[ENV_CEREMONY_MODEL_HINT] ?? env[ENV_HOST_MODEL_TIER],
-  );
+  const modelTier =
+    normalizeCeremonyModelTier(env[ENV_CEREMONY_MODEL_TIER]) ??
+    normalizeCeremonyModelTier(env[ENV_CEREMONY_MODEL_HINT]) ??
+    normalizeCeremonyModelTier(env[ENV_HOST_MODEL_TIER]);
   if (modelTier !== null) {
     reasons.push(`modelTier=${modelTier} from host env`);
   }

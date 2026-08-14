@@ -168,6 +168,16 @@ describe("collectCeremonyDialConsumerEvidence (#3358)", () => {
     expect(evidence.modelTier).toBe("frontier");
   });
 
+  it("falls through an empty ceremony-tier env to a valid host hint", () => {
+    const evidence = collectCeremonyDialConsumerEvidence(tempRoot(), {
+      env: {
+        [ENV_CEREMONY_MODEL_TIER]: " ",
+        [ENV_HOST_MODEL_TIER]: "mid",
+      },
+    });
+    expect(evidence.modelTier).toBe("mid");
+  });
+
   it("ignores an unparsable failing-gate env instead of inventing a size", () => {
     const evidence = collectCeremonyDialConsumerEvidence(tempRoot(), {
       env: { [ENV_FAILING_GATE_COUNT]: "nope" },
