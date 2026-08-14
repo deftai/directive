@@ -70,7 +70,9 @@ export function writeSessionCompletedMarker(
   });
 }
 
-function readSessionCompletedMarker(projectRoot: string): SessionCompletedMarker | null {
+function readSessionCompletedMarker(
+  projectRoot: string,
+): SessionCompletedMarker | "invalid" | null {
   const path = sessionCompletedMarkerPath(projectRoot);
   if (!existsSync(path)) {
     return null;
@@ -82,11 +84,11 @@ function readSessionCompletedMarker(projectRoot: string): SessionCompletedMarker
     const sessionId = typeof rec?.sessionId === "string" ? rec.sessionId.trim() : "";
     const completedAt = typeof rec?.completedAt === "string" ? rec.completedAt.trim() : "";
     if (briefPath.length === 0 || sessionId.length === 0) {
-      return null;
+      return "invalid";
     }
     return { path: briefPath, sessionId, completedAt };
   } catch {
-    return null;
+    return "invalid";
   }
 }
 
@@ -187,7 +189,15 @@ export function resolveSessionCompletedVerifyAcTarget(
   const projectRoot = resolve(input.projectRoot);
   const { sessionId, startedAt } = resolveSession(input);
   const marker = readSessionCompletedMarker(projectRoot);
-  if (marker !== null && sessionId !== null && marker.sessionId === sessionId) {
+  if (marker === "invalid" && sessionId !== null) {
+    return { kind: "cannot", message: SESSION_COMPLETED_AC_REMEDIATION };
+  }
+  if (
+    marker !== null &&
+    marker !== "invalid" &&
+    sessionId !== null &&
+    marker.sessionId === sessionId
+  ) {
     const candidate = readCompletedCandidate(marker.path);
     if (candidate === "unreadable") {
       return { kind: "cannot", message: SESSION_COMPLETED_AC_REMEDIATION };

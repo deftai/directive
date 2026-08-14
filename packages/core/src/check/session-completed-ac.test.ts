@@ -137,6 +137,22 @@ describe("resolveSessionCompletedVerifyAcTarget (#3357)", () => {
     ).toEqual({ kind: "target", path: during });
   });
 
+  it("returns cannot when the last-completed marker is malformed even if other briefs exist", () => {
+    const root = mkdtempSync(join(tmpdir(), "sess-ac-bad-marker-"));
+    writeCompleted(root, "other.xbrief.json", {
+      completedAt: "2026-08-14T10:00:00Z",
+      completedSessionId: "sess-other",
+    });
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(join(root, ".deft", "last-completed.json"), "{not-json", "utf8");
+    expect(
+      resolveSessionCompletedVerifyAcTarget({
+        projectRoot: root,
+        sessionId: "sess-1",
+      }),
+    ).toEqual({ kind: "cannot", message: SESSION_COMPLETED_AC_REMEDIATION });
+  });
+
   it("returns cannot when this session marker path is unreadable even if other briefs exist", () => {
     const root = mkdtempSync(join(tmpdir(), "sess-ac-marker-"));
     writeCompleted(root, "other.xbrief.json", {
