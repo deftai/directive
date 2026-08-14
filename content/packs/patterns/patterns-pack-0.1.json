@@ -14,6 +14,16 @@
       "body": null
     },
     {
+      "id": "code-mode",
+      "title": "Code Mode \u2014 compact search + sandboxed execute (#2593)",
+      "description": "Pattern for **code-mediated tool use**: the model writes and runs code that orchestrates capabilities, instead of requesting each tool call separately against a large static catalog. The public surface stays tiny (typically `search` / `describe` for progressive discovery and `execute` for sandboxed capability calls); the broader capability graph lives behind that surface in typed code.",
+      "triggers": [
+        "code-mode"
+      ],
+      "path": "patterns/code-mode.md",
+      "body": null
+    },
+    {
       "id": "executor-layer-credentials",
       "title": "Executor-layer credentials (#806)",
       "description": "Secrets for privileged operations MUST be bound at the **invocation layer** (the orchestrator, the command definition, the trusted shim that wraps the capability) -- never inside the agent's context window, prompt, filesystem, or globally-inherited environment. The agent receives access to the **capability**, not the **credential**.",

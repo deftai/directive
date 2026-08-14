@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Code Mode pattern (#2593).** `content/patterns/code-mode.md`: compact `search`/`describe` + sandboxed `execute` over large static tool catalogs; progressive discovery; job split (ephemeral compose vs named durable ops #2087 vs host explore); anti-patterns and non-goals; public citations. Pointers from `tool-design.md` complementarity and `llm-app.md` tool-call section. Wave 5 under #3179.
+
+- **Context partitioning + handles (#487).** Names human-curated context partitioning on Select strategy; prefer handles (paths, pack slices, xbrief ids, cache keys) over paste; RLM as optional qualified citation only (not identity rewrite). Short partition→recurse→combine in `long-horizon.md`. Cross-link Code Mode twin. Wave 5 under #3179.
+
 - **#3179 Wave 4 proposer path mapping.** Thin SoT maps skill/playbook propose path onto #1307 / #2436 / #2741 (consume, do not refile): evidence → staged proposal → deferred control bar → PR disposal. Closes Wave 4 mapping AC; dual-credits #2436 written-mapping AC. Path: docs/analysis/2026-08-13-3179-wave4-proposer-path-mapping.md.
 
 - **Continuous Improvement promotion triage (#607).** Learning asks the recurrable-failure question and triages one-off prose (`./lessons.md` inbox, re-read on load; ⊗ hand-edit generated `meta/lessons.md`) vs structural proposals via issue/PR under #3164 gates; optional #666 kaizen pointer; thin agents-entry mirror; agentsMdBudget raised for the pointer. Residual after #3202; does not re-land the Self-Improving stance section.

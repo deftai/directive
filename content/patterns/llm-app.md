@@ -90,8 +90,10 @@ homogeneous, non-nested parameters. Reliability degrades with
 nesting × heterogeneity × cleverness. Provider schema mins/maxes are
 documentation unless the harness validates. Full principle, good/bad
 shapes, and Code Mode complementarity: [../context/tool-design.md](../context/tool-design.md)
-`## Tool-surface grammar (#3085)`. This section stays the security lane;
-do not invent a second vocabulary for the same idea.
+`## Tool-surface grammar (#3085)`. When the catalog itself is the tax, prefer
+[Code Mode](./code-mode.md) (#2593) — compact discovery + sandboxed execute —
+over deeper nested tool packs. This section stays the security lane; do not
+invent a second vocabulary for the same idea.
 
 ## RAG and retrieval
 

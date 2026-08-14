@@ -32,11 +32,39 @@ Externalize intermediate state so it doesn't consume context window.
 
 Load only what's needed, when it's needed.
 
+Directive practices **human-curated context partitioning**: structure the
+world so agents can inspect an index (AGENTS.md → main.md → REFERENCES.md →
+skill scope / pack slices), then load only the slices the task needs. That is
+lazy load by design — partition first, then select — not "paste everything and
+hope attention holds."
+
 - ! **Follow [REFERENCES.md](../../REFERENCES.md)** for lazy-loading guidance
 - ~ Maintain lightweight references (file paths, line numbers, search queries) rather than full file contents
+- ~ Prefer **handles** over paste when the host can dereference: paths, pack
+  slices (`task packs:slice`), xBRIEF ids, cache keys, issue/PR numbers — pass
+  the handle and load on demand instead of inlining large contents
 - ~ Use **targeted retrieval**: `grep`, line ranges, `head`/`tail` — not whole-file reads
 - ⊗ **Speculatively loading files** "just in case"
 - ? Pre-fetch a file only when the next step certainly requires it
+
+**Related patterns (do not conflate):**
+
+- **Code Mode** ([patterns/code-mode.md](../patterns/code-mode.md), #2593) —
+  compact tool discovery + sandboxed execute so large *capability* catalogs
+  do not bloat the prompt. Context partitioning (this section) is about
+  *what docs and state* enter context; Code Mode is about *how tools are
+  invoked*.
+- **RLM (citation only):** Recursive Language Models are one recent research
+  framing of model-driven partition → recurse → combine over a prompt-as-
+  environment ([arxiv:2512.24601](https://arxiv.org/abs/2512.24601); popular
+  write-up: [raw.works/rlms-are-the-new-reasoning-models](https://raw.works/rlms-are-the-new-reasoning-models)).
+  Directive's human-curated partitions are **architecturally related**, not
+  an identity claim that "lazy load is an RLM." Headline claims such as
+  "100× context" are **benchmark-dependent and still being validated** —
+  treat them as motivation for partitioning, not as product guarantees.
+  Model-driven runtime partitioning (the model slices and re-queries without
+  a human-authored index) is a different instantiation from REFERENCES /
+  skill-scope curation.
 
 ## Strategy 3: Compress
 

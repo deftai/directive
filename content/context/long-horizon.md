@@ -35,6 +35,18 @@ When tasks have dependencies, express them as vBRIEF edges:
 - ~ Carry the summary forward, not the full history
 - ≉ Re-reading entire conversation history when a checkpoint exists
 
+## Partition → recurse → combine
+
+For large codebases or long documents, **partition** the work into slices,
+**recurse** (or re-enter) with focused context per slice, then **combine**
+results at a higher checkpoint — rather than stuffing the whole surface into
+one window. This is the long-horizon form of human-curated context
+partitioning ([context.md](./context.md) Strategy 2 Select; research framing
+on #487). Prefer handles and slice summaries over pasting full subtree
+contents. Hierarchical compression of *what already happened* remains
+[fractal-summaries.md](./fractal-summaries.md); do not treat that file as a
+rebrand of external RLM identity.
+
 ## Progress Tracking
 
 - ~ Maintain `./vbrief/plan.vbrief.json` for multi-phase work — this is the session-level tactical plan (the *how right now*)

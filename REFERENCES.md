@@ -183,6 +183,11 @@ Load as needed:
 - Contains: prompt construction (delimiters, parameterized templates), explicit trust tiers (system > few-shot > user > retrieved > web), tool/function-call validation (confused-deputy mitigation), RAG hygiene (no LLM-write-back, provenance), output handling (schema validation, XSS sanitization), multi-agent orchestration (sub-agent-output-is-untrusted), LLM-specific observability
 - Source material: AI Agent Traps paper (`docs/ssrn-6372438.pdf`)
 
+**[patterns/code-mode.md](./content/patterns/code-mode.md)** - Code Mode: compact search + sandboxed execute (#2593)
+- Load: When designing host/MCP tool surfaces or connector-heavy agents where a large static tool catalog would bloat context; choosing code-orchestrated composition vs direct tool calling
+- Contains: progressive discovery (`search`/`describe` + `execute`), when-to-use, job split (ephemeral compose vs named durable ops #2087 vs host explore), anti-patterns, non-goals, public citations
+- Complements: `context/tool-design.md` (arg grammar), lean-context (#847), context partitioning (#487)
+
 **[patterns/role-as-overlay.md](./content/patterns/role-as-overlay.md)** - Role as overlay (#816)
 - Load: When the project applies a persona / role / stance to an LLM call (skill-defined reviewer / builder / summarizer roles, agent-level identities, per-call stance overrides) or designs a multi-turn agent that persists message history across turns
 - Contains: the role-as-system-overlay rule (never role-as-user-message), failure modes of role-injection-as-messages (history pollution, retrieval corruption, context-rot acceleration, false-memory propagation, resumption breakage), the call > session > agent precedence chain, the implementation contract for skills and sub-agent dispatch, and a provider-surface mapping (Anthropic `system`, OpenAI Chat `messages[0] role:system` / Responses `instructions`, Gemini `system_instruction`)
@@ -211,10 +216,11 @@ Load as needed:
 
 ### When Managing Context or Long Tasks
 
-- **[context/context.md](./content/context/context.md)** - Core context engineering strategies (Write, Select, Compress, Isolate)
+- **[context/context.md](./content/context/context.md)** - Core context engineering strategies (Write, Select, Compress, Isolate); human-curated context partitioning + prefer handles (#487)
 - **[context/working-memory.md](./content/context/working-memory.md)** - Scratchpad and externalization patterns with xBRIEF; `xbrief/plan.xbrief.json` + scope xBRIEF relationship
-- **[context/long-horizon.md](./content/context/long-horizon.md)** - Multi-session checkpoint/resume patterns; lifecycle folder conventions
-- **[context/tool-design.md](./content/context/tool-design.md)** - Designing AI-consumable tools; tool-surface grammar (flat params, nesting tax) (#3085)
+- **[context/long-horizon.md](./content/context/long-horizon.md)** - Multi-session checkpoint/resume; partition→recurse→combine for large surfaces
+- **[context/tool-design.md](./content/context/tool-design.md)** - Designing AI-consumable tools; tool-surface grammar (flat params, nesting tax) (#3085); Code Mode complementarity (#2593)
+- **[patterns/code-mode.md](./content/patterns/code-mode.md)** - Code Mode pattern: compact tool discovery + sandboxed execute (#2593)
 - **[context/deterministic-split.md](./content/context/deterministic-split.md)** - LLM vs deterministic responsibility boundaries
 - **[context/fractal-summaries.md](./content/context/fractal-summaries.md)** - Hierarchical memory compression (task → feature → release)
 - **[context/examples.md](./content/context/examples.md)** - Few-shot and behavioral example guidance

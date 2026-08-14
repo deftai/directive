@@ -87,7 +87,8 @@ use parallel invokes when multiple edits are needed.
 
 When composition is large (many steps, dynamic graphs), **do not** invent
 deeper nested tool packs. Prefer fewer tools via code abstraction / Code
-Mode / a host-side program (related: #1167, #2593) and multi-step token
+Mode / a host-side program (related: #1167, #2593; pattern:
+[patterns/code-mode.md](../patterns/code-mode.md)) and multi-step token
 breakpoints (#1170). Those reduce **how many** tools exist; this section
 shapes **how each remaining tool looks** at the dialect layer.
 
@@ -119,7 +120,7 @@ and consumer MCP / product-agent schemas:
 | Concern | Where it lives |
 |---------|----------------|
 | **How each tool's args sample** (this doc) | Flat grammar, low nesting tax |
-| **How many tools** exist | Code Mode / DSL / abstraction (#1167, #2593) |
+| **How many tools** exist | [Code Mode](../patterns/code-mode.md) / DSL / abstraction (#1167, #2593) — compact `search`/`describe` + sandboxed `execute` |
 | **When multi-step burns tokens** | Breakpoints / long-horizon (#1170) |
 | **Security of tool use** | `patterns/llm-app.md` (schema validate, least privilege) |
 | **Protocol / model-tier cost after shape** | Cost-envelope notes (e.g. #3078) |
