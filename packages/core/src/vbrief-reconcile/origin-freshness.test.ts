@@ -277,6 +277,33 @@ describe("evaluateOriginFreshness", () => {
     expect(result.message).toContain("missing owner/repo");
   });
 
+  it("freshness-checks every GitHub issue URL in one Origin field", () => {
+    const brief = {
+      xBRIEFInfo: { version: "0.8", updated: "2026-08-14T16:00:00Z" },
+      plan: {
+        status: "running",
+        narratives: {
+          Origin:
+            "See https://github.com/deftai/directive/issues/1 and https://github.com/deftai/directive/issues/2",
+        },
+      },
+    };
+    const checked: number[] = [];
+    const result = evaluateOriginFreshness(brief, {
+      fetchOriginUpdatedAt: (origin) => {
+        checked.push(origin.number);
+        return origin.number === 2
+          ? { updatedAt: "2026-08-14T17:00:00Z" }
+          : { updatedAt: "2026-08-14T15:00:00Z" };
+      },
+    });
+    expect(checked).toEqual([1, 2]);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.message).toContain("#2");
+    expect(result.message).toContain("newer than this xBRIEF");
+  });
+
   it("fails closed when a provenance-only Origin URL is newer", () => {
     const brief = {
       xBRIEFInfo: { version: "0.8", updated: "2026-08-14T16:00:00Z" },

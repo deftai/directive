@@ -5,9 +5,9 @@ import {
 } from "../intake/reconcile-issues.js";
 import { type CallOptions, type CompletedProcess, call } from "../scm/call.js";
 
-const ISSUE_URL_PATTERN = /https:\/\/github\.com\/([^/\s]+)\/([^/\s]+)\/issues\/(\d+)/;
+const ISSUE_URL_PATTERN = /https:\/\/github\.com\/([^/\s]+)\/([^/\s]+)\/issues\/(\d+)/g;
 const ISSUE_API_URL_PATTERN =
-  /https:\/\/api\.github\.com\/repos\/([^/\s]+)\/([^/\s]+)\/issues\/(\d+)/;
+  /https:\/\/api\.github\.com\/repos\/([^/\s]+)\/([^/\s]+)\/issues\/(\d+)/g;
 
 export const ORIGIN_FRESHNESS_REMEDIATION =
   "Re-read the issue body and comments (#2143), then either refresh the brief or record intentional divergence and bump xBRIEFInfo.updated. Do not auto-write origin text onto the brief (#309 D12).";
@@ -95,8 +95,7 @@ export function extractGithubIssueOrigins(payload: Record<string, unknown>): Git
     add(origin);
   }
   for (const text of textualOriginFields(payload)) {
-    const fromText = originFromText(text);
-    if (fromText !== null) {
+    for (const fromText of originsFromText(text)) {
       add({ ...fromText, type: "x-xbrief/github-issue" });
     }
   }
@@ -123,19 +122,35 @@ function originFromUri(ref: Record<string, unknown>): Omit<GithubIssueOrigin, "t
   return null;
 }
 
-function originFromText(text: string): Omit<GithubIssueOrigin, "type"> | null {
+function originsFromText(text: string): Array<Omit<GithubIssueOrigin, "type">> {
+  const origins: Array<Omit<GithubIssueOrigin, "type">> = [];
+  const seen = new Set<string>();
   for (const pattern of [ISSUE_URL_PATTERN, ISSUE_API_URL_PATTERN]) {
-    const match = pattern.exec(text);
-    if (match?.[1] && match[2] && match[3]) {
-      return {
-        owner: match[1],
-        repo: match[2],
-        number: Number.parseInt(match[3], 10),
-        uri: `https://github.com/${match[1]}/${match[2]}/issues/${match[3]}`,
-      };
+    for (const match of text.matchAll(pattern)) {
+      if (!match[1] || !match[2] || !match[3]) {
+        continue;
+      }
+      const owner = match[1];
+      const repo = match[2];
+      const number = Number.parseInt(match[3], 10);
+      const key = `${owner}/${repo}#${number}`;
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      origins.push({
+        owner,
+        repo,
+        number,
+        uri: `https://github.com/${owner}/${repo}/issues/${number}`,
+      });
     }
   }
-  return null;
+  return origins;
+}
+
+function originFromText(text: string): Omit<GithubIssueOrigin, "type"> | null {
+  return originsFromText(text)[0] ?? null;
 }
 
 function textualOriginFields(payload: Record<string, unknown>): string[] {
