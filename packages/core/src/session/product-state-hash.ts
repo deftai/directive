@@ -177,11 +177,11 @@ function dirtyProductFiles(projectRoot: string, runGit: GitRunner): string[] {
       const code = rec.slice(0, 2);
       const pathPart = rec.slice(3);
       const renamed = code.includes("R") || code.includes("C");
-      let rel = toPosix(pathPart);
+      // -z rename/copy is `XY dest\0orig\0` — keep dest, skip orig.
       if (renamed && i + 1 < parts.length) {
         i += 1;
-        rel = toPosix(parts[i] as string);
       }
+      const rel = toPosix(pathPart);
       if (rel.length === 0 || isExcludedRel(rel)) continue;
       out.push(rel);
     }

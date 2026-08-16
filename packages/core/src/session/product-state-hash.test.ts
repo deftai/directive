@@ -70,6 +70,28 @@ describe("hashProductState (#3387)", () => {
     expect(hashed.files.some((f) => f.startsWith("pkg/"))).toBe(true);
   });
 
+  it("hashes the rename destination from NUL porcelain, not the old source", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-rename-"));
+    mkdirSync(join(root, ".git"), { recursive: true });
+    writeFileSync(join(root, "dest.ts"), "v1\n", "utf8");
+    const plan = { acceptance: { commands: [{ command: "true" }] } };
+    const runGit = (_cwd: string, args: readonly string[]) => {
+      if (args.includes("rev-parse")) {
+        return { code: 0, stdout: "abc123", stderr: "" };
+      }
+      if (args.includes("-z")) {
+        return { code: 0, stdout: "R  dest.ts\0src.ts\0", stderr: "" };
+      }
+      return { code: 0, stdout: "R  src.ts -> dest.ts", stderr: "" };
+    };
+    const first = hashProductState({ projectRoot: root, plan, runGit });
+    expect(first.files).toContain("dest.ts");
+    expect(first.files).not.toContain("src.ts");
+    writeFileSync(join(root, "dest.ts"), "v2\n", "utf8");
+    const second = hashProductState({ projectRoot: root, plan, runGit });
+    expect(second.digest).not.toBe(first.digest);
+  });
+
   it("unquotes C-quoted porcelain dirty paths so later edits change the digest", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-quote-"));
     mkdirSync(join(root, ".git"), { recursive: true });
