@@ -24,12 +24,14 @@ export {
   emitVerifyAcAttempts,
   evaluateProductOracleIntegrity,
   mergeOracleVerdict,
+  methodFingerprintForWalk,
   type OracleIntegrityResultFields,
   type ProductOracleIntegrityVerdict,
   VERIFY_AC_CHECK_ID_PREFIX,
   verifyAcCheckId,
 } from "./evaluate.js";
 export {
+  commandCountFromFingerprint,
   type FlaggedMethodChangePass,
   flagPassAfterFailFromJsonl,
   flagPassAfterFailWithMethodChange,

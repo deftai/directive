@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseRunSummaryJsonl } from "../run-summary/index.js";
 import {
+  commandCountFromFingerprint,
   flagPassAfterFailFromJsonl,
   flagPassAfterFailWithMethodChange,
   readVerificationAttempts,
@@ -64,6 +65,32 @@ describe("flagPassAfterFailWithMethodChange (#3322)", () => {
       },
     ]);
     expect(unresolvedMethodChangePasses(flagged)).toHaveLength(1);
+  });
+
+  it("includes resolved_command_count_delta when the walk shrinks (#3397)", () => {
+    const flagged = flagPassAfterFailFromJsonl(
+      jsonl([
+        {
+          check_id: "eq",
+          method_fingerprint: "vitest run a\0vitest run b\0vitest run c\0deadbeef",
+          outcome: "fail",
+        },
+        {
+          check_id: "eq",
+          method_fingerprint: "true\0deadbeef",
+          outcome: "pass",
+        },
+      ]),
+    );
+    expect(flagged[0]?.resolved_command_count_delta).toBe(-2);
+  });
+
+  it("reads command counts from walk fingerprints and legacy method ids", () => {
+    expect(commandCountFromFingerprint("diff-v1")).toBe(1);
+    expect(commandCountFromFingerprint("true\0/app")).toBe(1);
+    expect(commandCountFromFingerprint("a\0b\0C:\\work")).toBe(2);
+    expect(commandCountFromFingerprint("one\0two\0three")).toBe(3);
+    expect(commandCountFromFingerprint("a\0b\0c\0deadbeef")).toBe(3);
   });
 
   it("treats recorded independent re-derivation as resolved", () => {

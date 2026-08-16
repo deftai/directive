@@ -23,6 +23,23 @@ export interface FlaggedMethodChangePass {
   readonly failed_method: string;
   readonly passed_method: string;
   readonly independent_rederivation: boolean;
+  /** Pass count minus fail count when both fingerprints carry a command list (#3397). */
+  readonly resolved_command_count_delta?: number;
+}
+
+/** Command count encoded in a walk fingerprint (`cmd\0cmd\0cwd-or-hash`). */
+export function commandCountFromFingerprint(fingerprint: string): number {
+  const parts = fingerprint.split("\0");
+  if (parts.length <= 1) {
+    return 1;
+  }
+  const last = parts[parts.length - 1] ?? "";
+  const lastIsCwdOrHash =
+    /^[0-9a-f]{8,64}$/i.test(last) ||
+    last.includes("/") ||
+    last.includes("\\") ||
+    last.includes(":");
+  return lastIsCwdOrHash ? Math.max(1, parts.length - 1) : parts.length;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -99,11 +116,15 @@ export function flagPassAfterFailWithMethodChange(
     }
     const other = [...prior].find((method) => method !== attempt.method_fingerprint);
     if (other !== undefined) {
+      const delta =
+        commandCountFromFingerprint(attempt.method_fingerprint) -
+        commandCountFromFingerprint(other);
       flagged.push({
         check_id: attempt.check_id,
         failed_method: other,
         passed_method: attempt.method_fingerprint,
         independent_rederivation: attempt.independent_rederivation,
+        ...(delta !== 0 ? { resolved_command_count_delta: delta } : {}),
       });
     }
     if (attempt.independent_rederivation || other === undefined) {

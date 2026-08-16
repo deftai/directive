@@ -8,6 +8,7 @@ import {
   emitVerifyAcAttempts,
   evaluateProductOracleIntegrity,
   mergeOracleVerdict,
+  methodFingerprintForWalk,
   resetInProcessVerificationBuffer,
   VERIFY_AC_CHECK_ID_PREFIX,
   verifyAcCheckId,
@@ -49,6 +50,242 @@ describe("verifyAcCheckId (#3337)", () => {
       "verify:ac/3337-verify-ac-scope-check-ids",
     );
     expect(verifyAcCheckId("story-a")).not.toBe(verifyAcCheckId("story-b"));
+  });
+});
+
+describe("emitVerifyAcAttempts (#3397 fail-side fingerprints)", () => {
+  it("emits a walk-level verification event when the walk fails", () => {
+    const root = mkdtempSync(join(tmpdir(), "oracle-fail-walk-"));
+    const path = join(root, "summary.jsonl");
+    const cwd = join(root, "app");
+    emitVerifyAcAttempts({
+      projectRoot: root,
+      sessionId: "sess-fail",
+      env: { [ENV_RUN_SUMMARY_PATH]: path },
+      runs: [
+        {
+          command: "pnpm exec vitest run packages/core/src/verify-ac",
+          cwd,
+          exitCode: 1,
+          stdout: "",
+          stderr: "failed",
+          ok: false,
+          detail: "fail",
+        },
+        {
+          command: "task check",
+          cwd,
+          exitCode: 1,
+          stdout: "",
+          stderr: "failed",
+          ok: false,
+          detail: "fail",
+        },
+        {
+          command: "task verify:forward-coverage",
+          cwd,
+          exitCode: 1,
+          stdout: "",
+          stderr: "failed",
+          ok: false,
+          detail: "fail",
+        },
+      ],
+    });
+    const lines = readFileSync(path, "utf8")
+      .trim()
+      .split(/\r?\n/)
+      .map(
+        (row) =>
+          JSON.parse(row) as {
+            event: string;
+            payload: { outcome: string; method_fingerprint: string };
+          },
+      );
+    expect(lines).toHaveLength(1);
+    expect(lines[0]?.event).toBe("verification");
+    expect(lines[0]?.payload.outcome).toBe("fail");
+    expect(lines[0]?.payload.method_fingerprint).toBe(
+      methodFingerprintForWalk(
+        [
+          "pnpm exec vitest run packages/core/src/verify-ac",
+          "task check",
+          "task verify:forward-coverage",
+        ],
+        cwd,
+      ),
+    );
+    expect(lines[0]?.payload.method_fingerprint).not.toContain(cwd);
+  });
+
+  it("flags the field sequence: 3-command fail then 1-no-op pass", () => {
+    const root = mkdtempSync(join(tmpdir(), "oracle-field-seq-"));
+    const path = join(root, "summary.jsonl");
+    const env = { [ENV_RUN_SUMMARY_PATH]: path, DEFT_SESSION_ID: "sess-field" };
+    const cwd = "/app";
+    const failCmds = ["vitest run a", "vitest run b", "vitest run c"];
+    emitVerifyAcAttempts({
+      projectRoot: root,
+      sessionId: "sess-field",
+      env,
+      runs: failCmds.map((command) => ({
+        command,
+        cwd,
+        exitCode: 1,
+        stdout: "",
+        stderr: "failed",
+        ok: false,
+        detail: "fail",
+      })),
+    });
+    emitVerifyAcAttempts({
+      projectRoot: root,
+      sessionId: "sess-field",
+      env,
+      runs: [
+        {
+          command: "true",
+          cwd,
+          exitCode: 0,
+          stdout: "",
+          stderr: "",
+          ok: true,
+          detail: "ok",
+        },
+      ],
+    });
+    const verdict = evaluateProductOracleIntegrity({ projectRoot: root, env });
+    expect(verdict.ok).toBe(false);
+    expect(verdict.unresolved).toHaveLength(1);
+    expect(verdict.unresolved[0]?.failed_method).toBe(methodFingerprintForWalk(failCmds, cwd));
+    expect(verdict.unresolved[0]?.passed_method).toBe(methodFingerprintForWalk(["true"], cwd));
+    expect(verdict.unresolved[0]?.resolved_command_count_delta).toBe(-2);
+    expect(verdict.message.startsWith("UNRESOLVED product-oracle discrepancy (#3322)")).toBe(true);
+    const merged = mergeOracleVerdict(
+      { ok: true, code: 0, message: "verify:ac passed (#3284) [rung=stated]" },
+      verdict,
+    );
+    expect(merged.message.startsWith("UNRESOLVED product-oracle discrepancy")).toBe(true);
+    expect(merged.message).toMatch(/command_count_delta=-2/);
+  });
+
+  it("hashes mixed cwds so the walk method differs from a single-cwd list", () => {
+    const root = mkdtempSync(join(tmpdir(), "oracle-mixed-cwd-"));
+    const path = join(root, "summary.jsonl");
+    emitVerifyAcAttempts({
+      projectRoot: root,
+      sessionId: "sess-cwd",
+      env: { [ENV_RUN_SUMMARY_PATH]: path },
+      runs: [
+        {
+          command: "true",
+          cwd: "/app",
+          exitCode: 1,
+          stdout: "",
+          stderr: "failed",
+          ok: false,
+          detail: "fail",
+        },
+        {
+          command: "true",
+          cwd: "/other",
+          exitCode: 1,
+          stdout: "",
+          stderr: "failed",
+          ok: false,
+          detail: "fail",
+        },
+      ],
+    });
+    const line = JSON.parse(readFileSync(path, "utf8").trim()) as {
+      payload: { method_fingerprint: string };
+    };
+    expect(line.payload.method_fingerprint).toBe(
+      methodFingerprintForWalk(["true", "true"], "/app\0/other"),
+    );
+    expect(line.payload.method_fingerprint).not.toBe(
+      methodFingerprintForWalk(["true", "true"], "/app"),
+    );
+  });
+
+  it("does not flag an honest same-command product fix", () => {
+    const root = mkdtempSync(join(tmpdir(), "oracle-honest-"));
+    const path = join(root, "summary.jsonl");
+    const env = { [ENV_RUN_SUMMARY_PATH]: path, DEFT_SESSION_ID: "sess-honest" };
+    const cwd = "/app";
+    const cmds = ["vitest run a", "vitest run b", "vitest run c"];
+    emitVerifyAcAttempts({
+      projectRoot: root,
+      sessionId: "sess-honest",
+      env,
+      runs: cmds.map((command) => ({
+        command,
+        cwd,
+        exitCode: 1,
+        stdout: "",
+        stderr: "failed",
+        ok: false,
+        detail: "fail",
+      })),
+    });
+    emitVerifyAcAttempts({
+      projectRoot: root,
+      sessionId: "sess-honest",
+      env,
+      runs: cmds.map((command) => ({
+        command,
+        cwd,
+        exitCode: 0,
+        stdout: "",
+        stderr: "",
+        ok: true,
+        detail: "ok",
+      })),
+    });
+    const verdict = evaluateProductOracleIntegrity({ projectRoot: root, env });
+    expect(verdict.ok).toBe(true);
+    expect(verdict.unresolved).toEqual([]);
+    expect(verdict.flagged).toEqual([]);
+  });
+
+  it("flags a shrinking command set even when the first command stays", () => {
+    const root = mkdtempSync(join(tmpdir(), "oracle-shrink-"));
+    const path = join(root, "summary.jsonl");
+    const env = { [ENV_RUN_SUMMARY_PATH]: path, DEFT_SESSION_ID: "sess-shrink" };
+    const cwd = "/app";
+    emitVerifyAcAttempts({
+      projectRoot: root,
+      sessionId: "sess-shrink",
+      env,
+      runs: ["vitest run a", "vitest run b", "vitest run c"].map((command) => ({
+        command,
+        cwd,
+        exitCode: 1,
+        stdout: "",
+        stderr: "failed",
+        ok: false,
+        detail: "fail",
+      })),
+    });
+    emitVerifyAcAttempts({
+      projectRoot: root,
+      sessionId: "sess-shrink",
+      env,
+      runs: [
+        {
+          command: "vitest run a",
+          cwd,
+          exitCode: 0,
+          stdout: "",
+          stderr: "",
+          ok: true,
+          detail: "ok",
+        },
+      ],
+    });
+    const verdict = evaluateProductOracleIntegrity({ projectRoot: root, env });
+    expect(verdict.ok).toBe(false);
+    expect(verdict.unresolved[0]?.resolved_command_count_delta).toBe(-2);
   });
 });
 
@@ -169,6 +406,14 @@ describe("evaluateProductOracleIntegrity (#3322)", () => {
           ok: false,
           detail: "fail",
         },
+      ],
+    });
+    emitVerifyAcAttempts({
+      projectRoot: root,
+      sessionId: "sess-stdout",
+      env,
+      writeStdout: () => undefined,
+      runs: [
         {
           command: "json-v2",
           cwd: root,
@@ -310,6 +555,14 @@ describe("evaluateProductOracleIntegrity (#3322)", () => {
           ok: false,
           detail: "fail",
         },
+      ],
+    });
+    emitVerifyAcAttempts({
+      projectRoot: root,
+      sessionId: "sess-same",
+      env,
+      scopeKey: "story-a",
+      runs: [
         {
           command: "json-v2",
           cwd: root,

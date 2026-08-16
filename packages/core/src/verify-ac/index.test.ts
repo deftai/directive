@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  commandCountFromFingerprint,
   deriveAcceptanceClauses,
   emitVerifyAcAttempts,
   evaluateProductOracleIntegrity,
   flagPassAfterFailFromJsonl,
   mergeOracleVerdict,
+  methodFingerprintForWalk,
   stampDerivedClausesOnAcceptance,
   VERIFY_AC_CHECK_ID_PREFIX,
   verifyAcCheckId,
@@ -17,6 +19,8 @@ describe("verify-ac public exports (#3322 / #3323 / #3337)", () => {
     expect(typeof evaluateProductOracleIntegrity).toBe("function");
     expect(typeof mergeOracleVerdict).toBe("function");
     expect(typeof emitVerifyAcAttempts).toBe("function");
+    expect(typeof methodFingerprintForWalk).toBe("function");
+    expect(typeof commandCountFromFingerprint).toBe("function");
     expect(typeof deriveAcceptanceClauses).toBe("function");
     expect(typeof walkAcceptanceClauses).toBe("function");
     expect(typeof stampDerivedClausesOnAcceptance).toBe("function");

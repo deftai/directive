@@ -8,7 +8,7 @@
  * dest as no evidence.
  */
 
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { LiteralAcceptanceRunResult } from "../literal-acceptance/types.js";
@@ -46,10 +46,23 @@ export interface OracleIntegrityResultFields {
 }
 
 function formatUnresolved(flag: FlaggedMethodChangePass): string {
+  const delta =
+    typeof flag.resolved_command_count_delta === "number"
+      ? ` command_count_delta=${flag.resolved_command_count_delta}`
+      : "";
   return (
     `check_id=${flag.check_id} fail method=${flag.failed_method} ` +
-    `then pass method=${flag.passed_method} without independent re-derivation`
+    `then pass method=${flag.passed_method} without independent re-derivation${delta}`
   );
+}
+
+/**
+ * Walk-level method fingerprint: command list + cwd hash (#3397 / #3322).
+ * Same shape for fail and pass so an honest product fix does not flag.
+ */
+export function methodFingerprintForWalk(commands: readonly string[], cwd: string): string {
+  const cwdHash = createHash("sha256").update(cwd, "utf8").digest("hex");
+  return `${commands.join("\0")}\0${cwdHash}`;
 }
 
 /** Stable prefix for product-oracle check ids emitted by verify:ac (#3322 / #3337). */
@@ -90,7 +103,8 @@ function inProcessVerificationText(): string | null {
 }
 
 /**
- * Record each executed acceptance command as a verification event (#3322).
+ * Record one walk-level verification event for the executed command set (#3322 / #3397).
+ * Fail and pass use the same method_fingerprint shape (command list + cwd hash).
  * Fail-open: missing dest / write errors never change the AC result.
  * Stdout dest also appends to the same-process buffer so evaluate can
  * inspect this invocation without re-reading a file.
@@ -141,15 +155,21 @@ export function emitVerifyAcAttempts(options: {
       env,
       writeStdout: options.writeStdout,
     });
-    for (const run of options.runs) {
-      const emitted = emitter.emitVerification({
-        check_id: checkId,
-        method_fingerprint: `${run.command}\0${run.cwd}`,
-        outcome: run.ok ? "pass" : "fail",
-      });
-      if (dest.kind === "stdout" && emitted.line !== null) {
-        inProcessVerificationLines.push(JSON.stringify(emitted.line));
-      }
+    // One walk-level event: the method is the command set, not each command.
+    // Per-command emit was blind to a shrinking list that kept the first command (#3397).
+    const commands = options.runs.map((run) => run.command);
+    const firstCwd = options.runs[0]?.cwd ?? "";
+    const cwdKey = options.runs.every((run) => run.cwd === firstCwd)
+      ? firstCwd
+      : options.runs.map((run) => run.cwd).join("\0");
+    const outcome = options.runs.every((run) => run.ok) ? "pass" : "fail";
+    const emitted = emitter.emitVerification({
+      check_id: checkId,
+      method_fingerprint: methodFingerprintForWalk(commands, cwdKey),
+      outcome,
+    });
+    if (dest.kind === "stdout" && emitted.line !== null) {
+      inProcessVerificationLines.push(JSON.stringify(emitted.line));
     }
   } catch {
     // fail-open
