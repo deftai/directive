@@ -2,6 +2,7 @@ import { ContainedWriteError } from "../fs/contained-write.js";
 import type { CompletedProcess } from "../scm/call.js";
 import { call as scmCall } from "../scm/call.js";
 import { pyRepr } from "../scm/py-format.js";
+import { triageCacheRelPath } from "../triage/cache-path.js";
 import {
   DEFAULT_ACTOR,
   DEFAULT_EXPECTED_CLOSE_SIGNAL,
@@ -240,6 +241,11 @@ export function summariseWaves(waveMap: Map<number, number[]>, totalChildren: nu
   return `${parts.length} wave(s): ${parts.join(", ")}`;
 }
 
+/** Layout-aware display path for the slices log actually read or written (#3386). */
+function slicesLogDisplayPath(projectRoot: string): string {
+  return triageCacheRelPath(projectRoot, "slices.jsonl");
+}
+
 function duplicateMessage(umbrella: number, duplicate: Record<string, unknown>): string {
   return (
     `slice:record-existing: umbrella #${umbrella} already has a matching record (slice_id=${String(duplicate.slice_id)}, ` +
@@ -387,7 +393,7 @@ export function runRecordExisting(
     return {
       exitCode: 0,
       stdout:
-        `Wrote vbrief/.eval/slices.jsonl entry for umbrella ` +
+        `Wrote ${slicesLogDisplayPath(resolved.projectRoot)} entry for umbrella ` +
         `#${args.umbrella} (${children.length} children, ${waveSummary}). ` +
         `slice_id=${outcome.sliceId}\n`,
       stderr: "",
@@ -413,6 +419,7 @@ export function runList(args: ListArgs): CommandResult {
     return { exitCode: 2, stdout: "", stderr: `${formatMissingRootError()}\n` };
   }
 
+  const logDisplay = slicesLogDisplayPath(resolved.projectRoot);
   const records = readAll({ path: slicesPath(resolved.projectRoot) });
   if (args.asJson) {
     return { exitCode: 0, stdout: `${pythonJsonPretty(records)}\n`, stderr: "" };
@@ -421,12 +428,12 @@ export function runList(args: ListArgs): CommandResult {
   if (records.length === 0) {
     return {
       exitCode: 0,
-      stdout: "slice:list: no records found in vbrief/.eval/slices.jsonl (file absent or empty).\n",
+      stdout: `slice:list: no records found in ${logDisplay} (file absent or empty).\n`,
       stderr: "",
     };
   }
 
-  const lines = [`slice:list: ${records.length} record(s) in vbrief/.eval/slices.jsonl`];
+  const lines = [`slice:list: ${records.length} record(s) in ${logDisplay}`];
   for (const record of records) {
     const umbrella = record.umbrella ?? "?";
     const actor = record.actor ?? "?";

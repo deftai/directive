@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import type { CompletedProcess } from "../scm/call.js";
+import { DEFAULT_SLICES_LOG_REL_PATH } from "./constants.js";
 import {
   buildChildren,
   childrenSet,
@@ -103,6 +104,8 @@ describe("runRecordExisting", () => {
     );
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("slice_id=aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+    expect(result.stdout).toContain("xbrief/.triage-cache/slices.jsonl");
+    expect(result.stdout).not.toContain("vbrief/.eval/slices.jsonl");
   });
 
   it("dry-run prints preview without writing", () => {
@@ -264,7 +267,10 @@ describe("runRecordExisting", () => {
 describe("runList", () => {
   it("lists seeded records and empty state", () => {
     const root = makeRoot();
-    expect(runList({ projectRoot: root, asJson: false }).stdout).toContain("no records found");
+    const empty = runList({ projectRoot: root, asJson: false });
+    expect(empty.stdout).toContain("no records found");
+    expect(empty.stdout).toContain("xbrief/.triage-cache/slices.jsonl");
+    expect(empty.stdout).not.toContain("vbrief/.eval/slices.jsonl");
     const path = join(root, "xbrief", ".triage-cache", "slices.jsonl");
     writeSliceUnlocked(
       {
@@ -282,8 +288,17 @@ describe("runList", () => {
     const listed = runList({ projectRoot: root, asJson: false });
     expect(listed.stdout).toContain("umbrella=#10");
     expect(listed.stdout).toContain("notes='note'");
+    expect(listed.stdout).toContain("xbrief/.triage-cache/slices.jsonl");
+    expect(listed.stdout).not.toContain("vbrief/.eval/slices.jsonl");
     const json = runList({ projectRoot: root, asJson: true });
     expect(json.stdout).toContain('"umbrella": 10');
+  });
+});
+
+describe("DEFAULT_SLICES_LOG_REL_PATH", () => {
+  it("names the live triage-cache path, not the leftover .eval path (#3386)", () => {
+    expect(DEFAULT_SLICES_LOG_REL_PATH).toBe("xbrief/.triage-cache/slices.jsonl");
+    expect(DEFAULT_SLICES_LOG_REL_PATH).not.toContain(".eval/");
   });
 });
 

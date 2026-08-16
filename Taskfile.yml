@@ -1063,10 +1063,10 @@ tasks:
           CLI_ARGS: "{{.CLI_ARGS}}"
 
   # N7 (#1147): slice:record-existing backfill verb. Retrofits a
-  # vbrief/.eval/slices.jsonl entry for hand-filed umbrella cohorts that
-  # D13's writer (#1132) never saw because they were filed via
-  # `gh issue create` / `issue_write` MCP rather than via a slicing
-  # skill. Companion `slice:list` exposes the read surface.
+  # <lifecycle-root>/.triage-cache/slices.jsonl entry for hand-filed
+  # umbrella cohorts that D13's writer (#1132) never saw because they
+  # were filed via `gh issue create` / `issue_write` MCP rather than via
+  # a slicing skill. Companion `slice:list` exposes the read surface.
   slice:record-existing:
     desc: "Retrofit a slices.jsonl entry for a hand-filed cohort (#1147 / N7). -- task slice:record-existing -- --umbrella=N --children=A,B,C [--wave-1=A,B] [--wave-2=C] [--actor=manual:operator] [--expected-close-signal=all-children-merged] [--sliced-at=ISO] [--notes=TEXT] [--dry-run] [--force] [--skip-validation] [--repo OWNER/NAME]"
     cmds:
@@ -1075,7 +1075,7 @@ tasks:
           CLI_ARGS: "{{.CLI_ARGS}}"
 
   slice:list:
-    desc: "List recorded slices in vbrief/.eval/slices.jsonl (#1147 / N7). -- task slice:list [-- --json]"
+    desc: "List recorded slices in <lifecycle-root>/.triage-cache/slices.jsonl (#1147 / N7). -- task slice:list [-- --json]"
     cmds:
       - task: slice-record:list
         vars:

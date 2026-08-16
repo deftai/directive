@@ -139,7 +139,7 @@ After all issues are created, print a summary table: issue number, title, type, 
 
 - ! When the source plan was sliced into an umbrella + child issues, file the umbrella first, then file its `## Current shape (as of pass-N)` comment per `## Umbrella current-shape convention` in `AGENTS.md` (#1152) so subsequent design passes have a stable edit-in-place surface to update.
 
-### Step 6: Record the cohort in `xbrief/.eval/slices.jsonl` (#1132 / D13)
+### Step 6: Record the cohort in `xbrief/.triage-cache/slices.jsonl` (#1132 / D13)
 
 At slice-completion (after the umbrella + every child issue is filed) call the framework helper to persist a durable cohort record. The record is sibling to the gitignored `candidates.jsonl` but is **tracked in git** (per `xbrief/.eval/README.md`) so a fresh contributor on pass-N can see prior cohort outputs without rebuilding state from closed issues.
 

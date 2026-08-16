@@ -1,5 +1,5 @@
-/** Default slices log path relative to project root. */
-export const DEFAULT_SLICES_LOG_REL_PATH = "vbrief/.eval/slices.jsonl";
+/** Default slices log path relative to an xbrief-layout project root (#1703). */
+export const DEFAULT_SLICES_LOG_REL_PATH = "xbrief/.triage-cache/slices.jsonl";
 
 export const ENV_PROJECT_ROOT = "DEFT_PROJECT_ROOT";
 export const ENV_PROJECT_REPO = "DEFT_PROJECT_REPO";
