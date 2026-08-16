@@ -741,6 +741,13 @@ describe("test_agents_entry_contract", () => {
     expect(template.indexOf(OPEN_MARKER)).toBeLessThan(template.indexOf(CLOSE_MARKER));
   });
 
+  it("xbrief_layout_pins_completed_record_not_next (#3383)", () => {
+    expect(templateManaged).toContain("zero authority over");
+    expect(templateManaged).toContain("what to build next");
+    expect(templateManaged).toContain("#3383");
+    expect(templateManaged).toContain("Treat a completed xBRIEF as the next-build contract");
+  });
+
   it("managed_section_contains_implementation_intent_gate", () => {
     expect(templateManaged).toContain("Implementation Intent Gate");
   });

@@ -25,6 +25,8 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 ## xBRIEF layout (#2034 / #2110)
 
 Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8). `x-vbrief/` tokens read-accepted until migrated.
+! Completed xBRIEFs are record of *what is*, zero authority over *what to build next* (#3383). Current contract = active xBRIEF + human operator live instruction. Depth: `main.md` Persistence; build skill declare-the-contract / halt-and-ask.
+⊗ Treat a completed xBRIEF as the next-build contract.
 
 ## Unmanaged project header (#2065)
 
