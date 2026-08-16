@@ -36,12 +36,17 @@ function gitForSync(options: {
   readonly headOnIntegration?: boolean;
   readonly originDevelop?: boolean;
   readonly destRefPolicy?: Record<string, unknown> | null;
+  readonly destFetchFailTargets?: readonly string[];
   readonly originHead?: string | null;
   readonly originBranches?: readonly string[];
   readonly localBranches?: readonly string[];
 }): GitRunner {
   return (_cwd, args) => {
     if (args[0] === "fetch") {
+      const target = args[args.length - 1] ?? "";
+      if (options.destFetchFailTargets?.includes(target)) {
+        return { code: 1, stdout: "", stderr: "dest fetch failed" };
+      }
       return { code: options.fetchOk === false ? 1 : 0, stdout: "", stderr: "" };
     }
     if (args[0] === "show" && typeof args[1] === "string" && args[1].includes(":")) {
@@ -247,6 +252,23 @@ describe("detectBranchSync (#3388)", () => {
     expect(result.sourceTyped).toBe(false);
   });
 
+  it("failed dest fetch is not a sync even with a dest-ref blob", () => {
+    root = makeProject({ baseBranch: "develop", deliveryBranch: "master" });
+    const result = detectBranchSyncFromProject({
+      projectRoot: root,
+      prBase: "master",
+      headSha: "abc",
+      runGit: gitForSync({
+        destRefPolicy: { baseBranch: "develop", deliveryBranch: "master" },
+        destFetchFailTargets: ["master"],
+        headOnIntegration: true,
+      }),
+    });
+    expect(result.isSync).toBe(false);
+    expect(result.reason).toBe("source-equals-dest");
+    expect(result.sourceTyped).toBe(false);
+  });
+
   it("git dest fallback prefers origin/main over master", () => {
     root = makeProject({ deliveryBranch: "master" });
     const result = detectBranchSyncFromProject({
@@ -317,6 +339,9 @@ describe("deposited core-guard detector fragment (#3388)", () => {
     expect(body).toContain(BRANCH_SYNC_EXEMPTION_PREFIX);
     expect(body).toContain(`origin/' + pr_base + ':${BRANCH_SYNC_POLICY_BLOB}'`);
     expect(body).toContain("('main', 'master')");
+    expect(body).toContain(
+      "if git('fetch', '--quiet', 'origin', pr_base).returncode != 0: sys.exit(1)",
+    );
     expect(body).not.toContain("pathlib");
     expect(body).not.toMatch(/head\s*==\s*['"]develop['"]/);
     expect(body).not.toContain("origin/develop");

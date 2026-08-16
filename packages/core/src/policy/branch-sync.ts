@@ -149,7 +149,20 @@ export function resolveSyncPolicyFromDestRef(options: {
 }): DestRefSyncPolicy {
   const runGit = options.runGit ?? defaultGitRunner;
   const prBase = options.prBase.trim();
-  runGit(options.projectRoot, ["fetch", "--quiet", "origin", prBase]);
+  const fetched = runGit(options.projectRoot, ["fetch", "--quiet", "origin", prBase]);
+  if (fetched.code !== 0) {
+    const dest = resolveGitDefaultDeliveryBranch(options.projectRoot, runGit);
+    const developHint =
+      runGit(options.projectRoot, [
+        "show-ref",
+        "--verify",
+        "--quiet",
+        "refs/remotes/origin/develop",
+      ]).code === 0
+        ? ORIGIN_DEVELOP_HINT
+        : null;
+    return { dest, source: dest, sourceTyped: false, developHint };
+  }
   const shown = runGit(options.projectRoot, [
     "show",
     `origin/${prBase}:${BRANCH_SYNC_POLICY_BLOB}`,
@@ -225,7 +238,7 @@ export function coreGuardBranchSyncPythonBody(): readonly string[] {
     "def git(*a):",
     "    return subprocess.run(['git', *a], capture_output=True, text=True)",
     "dest = source = None",
-    "git('fetch', '--quiet', 'origin', pr_base)",
+    "if git('fetch', '--quiet', 'origin', pr_base).returncode != 0: sys.exit(1)",
     `shown = git('show', 'origin/' + pr_base + ':${BRANCH_SYNC_POLICY_BLOB}')`,
     "if shown.returncode == 0:",
     "    try:",
