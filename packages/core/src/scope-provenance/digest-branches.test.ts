@@ -9,7 +9,6 @@ import {
   approvedScopeRecordPath,
   buildApprovedScopeRecord,
   computeFileScopeDigest,
-  computeTextDigest,
   extractFileScope,
   extractPlanId,
   isHumanApprovalStamp,
@@ -71,7 +70,7 @@ describe("extractFileScope / extractPlanId branches (#3185)", () => {
 });
 
 describe("buildApprovedScopeRecord / disk IO branches (#3185)", () => {
-  it("falls back plan id from basename and optional body digest", () => {
+  it("falls back plan id from basename and does not write xbriefBodyDigest (#3384 F4)", () => {
     // Use POSIX separators so node:path basename is portable on Linux CI
     // (Windows basename also accepts "\\", but Linux treats them as literal).
     const rec = buildApprovedScopeRecord({
@@ -82,7 +81,7 @@ describe("buildApprovedScopeRecord / disk IO branches (#3185)", () => {
     });
     expect(rec.planId).toBe("story");
     expect(rec.xbriefRelPath).toBe("xbrief/active/story.xbrief.json");
-    expect(rec.xbriefBodyDigest).toBe(computeTextDigest('{"plan":{}}'));
+    expect(rec.xbriefBodyDigest).toBeUndefined();
     expect(rec.fileScopeDigest).toBe(computeFileScopeDigest(["z.ts"]));
   });
 

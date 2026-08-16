@@ -33,7 +33,10 @@ export interface ApprovedScopeRecord {
     readonly mintedAt: string;
     readonly mintedVia?: string;
   };
-  /** Digest of the full xBRIEF canonical JSON body (optional stronger pin). */
+  /**
+   * Legacy optional body digest. Wave 1 (#3384 F4) does not write this on new
+   * records. Do not treat it as authority (Wave 2 #3385 / R6).
+   */
   readonly xbriefBodyDigest?: string;
 }
 
@@ -112,6 +115,10 @@ export function buildApprovedScopeRecord(input: {
   readonly payload: unknown;
   readonly approvedAt?: string;
   readonly humanApproval?: ApprovedScopeRecord["humanApproval"];
+  /**
+   * Ignored. Wave 1 (#3384 F4) no longer writes `xbriefBodyDigest` on new records.
+   * Kept so existing callers do not have to drop the field in the same change.
+   */
   readonly xbriefRawText?: string;
 }): ApprovedScopeRecord {
   const planId = extractPlanId(input.payload) ?? basename(input.xbriefRelPath, ".xbrief.json");
@@ -127,15 +134,7 @@ export function buildApprovedScopeRecord(input: {
     fileScopeDigest,
   };
   if (input.humanApproval !== undefined) {
-    return {
-      ...record,
-      humanApproval: input.humanApproval,
-      xbriefBodyDigest:
-        input.xbriefRawText !== undefined ? computeTextDigest(input.xbriefRawText) : undefined,
-    };
-  }
-  if (input.xbriefRawText !== undefined) {
-    return { ...record, xbriefBodyDigest: computeTextDigest(input.xbriefRawText) };
+    return { ...record, humanApproval: input.humanApproval };
   }
   return record;
 }

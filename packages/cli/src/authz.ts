@@ -22,7 +22,7 @@
  * TTY + controlling terminal + `--confirm` + typed phrase `mint`; agent/CI env
  * markers refuse fail-closed. Argv `--confirm` alone is never enough.
  */
-import { closeSync, existsSync, openSync, readSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
 import {
   AFK_TEMPLATE_NAMES,
@@ -34,7 +34,6 @@ import {
   isAfkTemplateName,
   isClosedVerbTemplateName,
   isFinishLoopTemplateName,
-  loadAuthzState,
   mintAfkTemplateGrant,
   mintDecomposeStructuralApplyGrant,
   mintHumanOriginGrant,
@@ -44,6 +43,18 @@ import {
   suspendUatLease,
   toProjectRelativePosix,
 } from "@deftai/directive-core/authz";
+import {
+  type HumanPresenceMintSeams,
+  refuseMintWhileUatActive,
+  refuseNonInteractiveMint,
+  resolveHumanPresenceMintSeams,
+} from "./human-presence-mint.js";
+
+export type { HumanPresenceMintSeams as AuthzMainSeams } from "./human-presence-mint.js";
+export {
+  AUTHZ_AGENT_SHELL_ENV_MARKERS,
+  AUTHZ_INTERACTIVE_CONFIRM_PHRASE,
+} from "./human-presence-mint.js";
 
 interface Parsed {
   cmd: "show" | "uat-start" | "uat-suspend" | "grant" | "revoke";
@@ -72,77 +83,6 @@ interface Parsed {
   /** Explicit operator confirm for non-TTY / agent shells (#3110). */
   confirm: boolean;
   error?: string;
-}
-
-/**
- * Env markers that indicate an agent/host/CI shell even when stdin reports a TTY
- * (pseudo-terminal residual; #3110 Greptile). Presence refuses mutating authz.
- * Expanded for dogfood conf 5/5 — markers are fail-closed (any non-empty value).
- */
-export const AUTHZ_AGENT_SHELL_ENV_MARKERS = [
-  // Coding agents / IDEs
-  "CLAUDECODE",
-  "CLAUDE_CODE",
-  "CLAUDE_CODE_ENTRYPOINT",
-  "CURSOR_AGENT",
-  "CURSOR_TRACE_ID",
-  "CURSOR_SESSION_ID",
-  "AIDER",
-  "CONTINUE_CLI",
-  "CODEX_SANDBOX",
-  "CODEX_CI",
-  "OPENAI_CODEX",
-  "OPENCLAW",
-  "OPENCLAW_STATE_DIR",
-  "DEFT_PROBE_OPENCLAW",
-  "DEFT_HOOK_HOST",
-  "DEFT_AGENT_SHELL",
-  "DEFT_AGENT_RUNTIME",
-  "WARP_SESSION_ID",
-  "WARP_HARNESS",
-  "WARP_RUN_ID",
-  "GEMINI_CLI",
-  "AMP_CLI",
-  "SWARM_AGENT",
-  "AI_AGENT",
-  // CI / automation (never a human interactive operator mint)
-  "CI",
-  "CONTINUOUS_INTEGRATION",
-  "GITHUB_ACTIONS",
-  "GITLAB_CI",
-  "CIRCLECI",
-  "BUILDKITE",
-  "TRAVIS",
-  "JENKINS_URL",
-  "TEAMCITY_VERSION",
-  "TF_BUILD",
-  "APPVEYOR",
-  "BITBUCKET_BUILD_NUMBER",
-  "CODEBUILD_BUILD_ID",
-] as const;
-
-/** Phrase an operator must type on the controlling TTY after --confirm (#3110). */
-export const AUTHZ_INTERACTIVE_CONFIRM_PHRASE = "mint";
-
-/** Testable seams for TTY / agent-shell detection (#3110). */
-export interface AuthzMainSeams {
-  /**
-   * When true, interactive human TTY is present.
-   * Default: both stdin and stdout report isTTY (pseudo-TTY residual; #3110).
-   */
-  readonly isTty?: () => boolean;
-  /** Environ for agent-shell marker detection (default: process.env). */
-  readonly environ?: NodeJS.ProcessEnv;
-  /**
-   * True when a controlling terminal device is available (`/dev/tty` or `CONIN$`).
-   * Default: open/close the platform controlling terminal (fail-closed on error).
-   */
-  readonly hasControllingTerminal?: () => boolean;
-  /**
-   * Read one interactive confirmation line from the operator (trimmed).
-   * Default: one line from stdin. Tests inject a fixed phrase.
-   */
-  readonly readInteractiveConfirm?: () => string | null;
 }
 
 function parseOps(raw: string): AuthzOperation[] {
@@ -369,150 +309,10 @@ function helpText(): string {
   ].join("\n");
 }
 
-function looksLikeAgentShell(environ: NodeJS.ProcessEnv): boolean {
-  for (const key of AUTHZ_AGENT_SHELL_ENV_MARKERS) {
-    const v = environ[key];
-    if (v !== undefined && String(v).trim().length > 0) return true;
-  }
-  return false;
-}
-
-function defaultHasControllingTerminal(): boolean {
-  try {
-    const path = process.platform === "win32" ? "CONIN$" : "/dev/tty";
-    const fd = openSync(path, "r");
-    closeSync(fd);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function defaultReadInteractiveConfirm(): string | null {
-  // Read from the controlling terminal device — not redirected/piped stdin —
-  // so agent-controlled stdin alone cannot supply the confirm phrase (#3110).
-  let fd: number | null = null;
-  try {
-    const path = process.platform === "win32" ? "CONIN$" : "/dev/tty";
-    fd = openSync(path, "r");
-    const buf = Buffer.alloc(256);
-    const n = readSync(fd, buf, 0, buf.length, null);
-    if (n <= 0) return null;
-    return buf.subarray(0, n).toString("utf8").trim();
-  } catch {
-    return null;
-  } finally {
-    if (fd !== null) {
-      try {
-        closeSync(fd);
-      } catch {
-        /* ignore */
-      }
-    }
-  }
-}
-
-/**
- * While any UAT lease is active, refuse ALL mutating authz CLI verbs (#3110).
- *
- * No multi-factor escape: TTY, `--confirm`, and typed phrase never authorize.
- * Self-approval under UAT is impossible by construction — agents with a PTY
- * cannot mint/suspend/revoke operator-cli authority during an active lease.
- * Operators mint fix-cohort grants *before* `uat-start`.
- *
- * Returns exit code when blocked, or null when the command may continue.
- */
-function refuseMutatingAuthzWhileUatActive(projectRoot: string, cmd: Parsed["cmd"]): number | null {
-  if (cmd === "show") return null;
-  const state = loadAuthzState(projectRoot);
-  if (state.uat === null || !state.uat.active) return null;
-  process.stderr.write(
-    `authz:${cmd}: refusing mutating authz while UAT lease is ACTIVE ` +
-      `(campaign=${state.uat.campaignId}). Under active UAT, grant / uat-start / ` +
-      "uat-suspend / revoke are hard-refused — no TTY, --confirm, or phrase path " +
-      "authorizes self-approval (#3110). Mint grants before uat-start; clear the " +
-      "lease out-of-band (edit .deft/authz/state.json as a human outside agent hooks) " +
-      "to end UAT.\n",
-  );
-  return 2;
-}
-
-/**
- * Refuse non-interactive / agent-shell operator-cli stamps outside UAT (#3110).
- *
- * Multi-factor human-presence gate (applies only when UAT lease is inactive):
- * 1. No known agent/CI env markers
- * 2. Interactive TTY (stdin + stdout isTTY)
- * 3. Controlling terminal device present (`/dev/tty` / `CONIN$`)
- * 4. Explicit argv `--confirm` (flag alone never enough)
- * 5. Interactive typed phrase `mint` (argv --confirm alone never enough even on PTY)
- *
- * Fail-closed: if a real human interactive path cannot be proven, refuse mint.
- * Returns an exit code when blocked, or null when the mutation may proceed.
- */
-function refuseNonInteractiveMint(
-  cmd: Parsed["cmd"],
-  isTty: () => boolean,
-  environ: NodeJS.ProcessEnv,
-  confirm: boolean,
-  hasControllingTerminal: () => boolean,
-  readInteractiveConfirm: () => string | null,
-): number | null {
-  if (cmd === "show") return null;
-  if (looksLikeAgentShell(environ)) {
-    process.stderr.write(
-      `authz:${cmd}: refusing operator-cli stamp from an agent/host/CI shell ` +
-        `(detected agent or CI env marker). Mutating authz requires a human interactive ` +
-        "TTY without agent-shell markers, plus --confirm and typed phrase (#3110).\n",
-    );
-    return 2;
-  }
-  const tty = isTty();
-  if (!tty && !confirm) {
-    process.stderr.write(
-      `authz:${cmd}: refusing non-interactive operator-cli stamp. ` +
-        "Mutating authz verbs require interactive TTY, --confirm, and typed phrase " +
-        `'${AUTHZ_INTERACTIVE_CONFIRM_PHRASE}' (#3110).\n`,
-    );
-    return 2;
-  }
-  if (!tty) {
-    process.stderr.write(
-      `authz:${cmd}: refusing non-TTY operator-cli stamp. ` +
-        "--confirm alone never authorizes mint — interactive TTY is required (#3110).\n",
-    );
-    return 2;
-  }
-  if (!confirm) {
-    process.stderr.write(
-      `authz:${cmd}: refusing operator-cli stamp without --confirm. ` +
-        "Interactive TTY alone never authorizes mint — pass --confirm explicitly (#3110).\n",
-    );
-    return 2;
-  }
-  if (!hasControllingTerminal()) {
-    process.stderr.write(
-      `authz:${cmd}: refusing operator-cli stamp without a controlling terminal. ` +
-        "Open a real interactive console (not a headless/agent pipe) to mint (#3110).\n",
-    );
-    return 2;
-  }
-  process.stderr.write(
-    `authz:${cmd}: type '${AUTHZ_INTERACTIVE_CONFIRM_PHRASE}' and press Enter to confirm operator mint: `,
-  );
-  const line = readInteractiveConfirm();
-  const phrase = (line ?? "").trim().toLowerCase();
-  if (phrase !== AUTHZ_INTERACTIVE_CONFIRM_PHRASE) {
-    process.stderr.write(
-      `\nauthz:${cmd}: interactive confirm phrase mismatch (got ${JSON.stringify(line ?? "")}). ` +
-        `Type exactly '${AUTHZ_INTERACTIVE_CONFIRM_PHRASE}' on the controlling TTY (#3110).\n`,
-    );
-    return 2;
-  }
-  return null;
-}
-
-export function main(argv: string[] = process.argv.slice(2), seams: AuthzMainSeams = {}): number {
+export function main(
+  argv: string[] = process.argv.slice(2),
+  seams: HumanPresenceMintSeams = {},
+): number {
   const args = parseArgv(argv);
   if (args.error === "help") {
     process.stdout.write(`${helpText()}\n`);
@@ -524,12 +324,7 @@ export function main(argv: string[] = process.argv.slice(2), seams: AuthzMainSea
     return 2;
   }
 
-  // Both stdin and stdout TTY — agent-allocated single-side PTY is not enough.
-  const isTty =
-    seams.isTty ?? (() => process.stdin.isTTY === true && process.stdout.isTTY === true);
-  const environ = seams.environ ?? process.env;
-  const hasControllingTerminal = seams.hasControllingTerminal ?? defaultHasControllingTerminal;
-  const readInteractiveConfirm = seams.readInteractiveConfirm ?? defaultReadInteractiveConfirm;
+  const resolved = resolveHumanPresenceMintSeams(seams);
   /**
    * Mutating-verb gate stack (#3110):
    * 1. Active UAT → hard refuse (no multi-factor escape; self-approval impossible)
@@ -537,16 +332,17 @@ export function main(argv: string[] = process.argv.slice(2), seams: AuthzMainSea
    * Required-arg validation runs before this so missing --campaign / --ops still report clearly.
    */
   const gateConfirm = (): number | null => {
-    const uatBlocked = refuseMutatingAuthzWhileUatActive(args.projectRoot, args.cmd);
+    if (args.cmd === "show") return null;
+    const uatBlocked = refuseMintWhileUatActive(`authz:${args.cmd}`, args.projectRoot);
     if (uatBlocked !== null) return uatBlocked;
-    return refuseNonInteractiveMint(
-      args.cmd,
-      isTty,
-      environ,
-      args.confirm,
-      hasControllingTerminal,
-      readInteractiveConfirm,
-    );
+    return refuseNonInteractiveMint({
+      verb: `authz:${args.cmd}`,
+      confirm: args.confirm,
+      isTty: resolved.isTty,
+      environ: resolved.environ,
+      hasControllingTerminal: resolved.hasControllingTerminal,
+      readInteractiveConfirm: resolved.readInteractiveConfirm,
+    });
   };
 
   try {

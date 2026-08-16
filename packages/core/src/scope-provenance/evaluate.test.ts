@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   buildApprovedScopeRecord,
@@ -295,5 +298,18 @@ describe("evaluateScopeProvenance (#3145)", () => {
       humanApproval: { kind: "operator", actor: "scott", mintedAt: "2026-08-01T00:00:00Z" },
     });
     expect(parseApprovedScopeRecordRaw(forged)).toBeNull();
+  });
+});
+
+describe("verify:scope-provenance does not read grants (#3384)", () => {
+  it("evaluate and digest sources never look up .deft/authz/grants", () => {
+    const dir = dirname(fileURLToPath(import.meta.url));
+    for (const name of ["evaluate.ts", "digest.ts", "index.ts"]) {
+      const src = readFileSync(join(dir, name), "utf8");
+      expect(src).not.toMatch(/authz\/grants/);
+      expect(src).not.toMatch(/loadAuthzState/);
+      expect(src).not.toMatch(/listActiveHumanGrants/);
+      expect(src).not.toMatch(/from ["'][^"']*authz/);
+    }
   });
 });

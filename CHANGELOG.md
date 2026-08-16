@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`scope:record-approved-scope` uses the #3110 human-presence mint gate (#3384).** Shared TTY / controlling-terminal / `--confirm` / typed `mint` / agent-CI refuse; `--actor` is display-only. New records omit `xbriefBodyDigest`. Wave 1 records have no `intentDigest` and are legacy under #3385. Closes #3384. Refs #3376, #3110.
 - **scope:complete: ancestry on deliveryBranch is delivery; PR base is provenance (#3380).** A merge commit that is an ancestor of refreshed `origin/<deliveryBranch>` completes as delivered even when `prBase` is develop. Ancestry miss stays `merged_to_integration`. Remediations name `--merge-commit` and typed `deliveryBranch`. Documents squash-sync ancestry break. Closes #3380.
 
 - **Failing verify:ac walks emit a walk-level verification fingerprint (#3397).** A fail then a later pass with a different command set on the same check id flags; an honest same-command product fix does not. Shrinking command-set delta is included on the flag. The #3322 detector stays. Closes #3397. Refs #3322, #3396.

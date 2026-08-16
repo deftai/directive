@@ -11,6 +11,12 @@ import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
 import { basename, join, relative, resolve, sep } from "node:path";
 import { scopeProvenance } from "@deftai/directive-core";
 import { isDirectEntrypoint } from "./entrypoint.js";
+import {
+  type HumanPresenceMintSeams,
+  refuseMintWhileUatActive,
+  refuseNonInteractiveMint,
+  resolveHumanPresenceMintSeams,
+} from "./human-presence-mint.js";
 
 /** True when `candidate` is the same as or a descendant of `root` after realpath. */
 export function isPathInsideRoot(root: string, candidate: string): boolean {
@@ -49,16 +55,18 @@ export interface ParsedArgs {
   /** Optional override for recorded xbriefRelPath (defaults: pending→active map). */
   xbriefRelPath: string;
   quiet: boolean;
+  /** Explicit operator confirm for the #3110 human-presence mint (#3384). */
+  confirm: boolean;
   error?: string;
 }
 
 function usage(): string {
   return (
-    "usage: scope:record-approved-scope -- <xbrief-path> --actor <name> " +
+    "usage: scope:record-approved-scope -- <xbrief-path> --actor <name> --confirm " +
     "[--kind operator] [--project-root <dir>] [--xbrief-rel-path <posix>] [--quiet]\n" +
-    "  Writes .deft/approved-scope/<plan-id>.json with a humanApproval stamp (#3205).\n" +
-    "  Agent-shaped stamps are refused. Path-binds to xbrief/active/ by default when " +
-    "the source is under pending/ or active/."
+    "  Writes .deft/approved-scope/<plan-id>.json with a humanApproval stamp (#3205 / #3384).\n" +
+    "  --actor is display only and never authorizes mint. Mint requires a real TTY, " +
+    "controlling terminal, --confirm, and typed phrase mint (#3110). Agent/CI shells refuse."
   );
 }
 
@@ -117,6 +125,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     kind: "operator",
     xbriefRelPath: "",
     quiet: false,
+    confirm: false,
   };
   const positionals: string[] = [];
   for (let i = 0; i < argv.length; i += 1) {
@@ -126,6 +135,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
     }
     if (arg === "--quiet") {
       parsed.quiet = true;
+    } else if (arg === "--confirm") {
+      parsed.confirm = true;
     } else if (arg === "--project-root") {
       const value = argv[i + 1];
       if (value === undefined) {
@@ -184,7 +195,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
   return parsed;
 }
 
-export function run(argv: string[]): number {
+export function run(argv: string[], seams: HumanPresenceMintSeams = {}): number {
   const args = parseArgs(argv);
   if (args.error !== undefined) {
     process.stderr.write(`scope_record_approved_scope: ${args.error}\n`);
@@ -223,6 +234,20 @@ export function run(argv: string[]): number {
     return 2;
   }
 
+  const verb = "scope:record-approved-scope";
+  const uatBlocked = refuseMintWhileUatActive(verb, projectRoot);
+  if (uatBlocked !== null) return uatBlocked;
+  const resolved = resolveHumanPresenceMintSeams(seams);
+  const mintBlocked = refuseNonInteractiveMint({
+    verb,
+    confirm: args.confirm,
+    isTty: resolved.isTty,
+    environ: resolved.environ,
+    hasControllingTerminal: resolved.hasControllingTerminal,
+    readInteractiveConfirm: resolved.readInteractiveConfirm,
+  });
+  if (mintBlocked !== null) return mintBlocked;
+
   const stamp = {
     kind: args.kind.trim(),
     actor: args.actor.trim(),
@@ -254,7 +279,6 @@ export function run(argv: string[]): number {
     xbriefRelPath,
     payload,
     humanApproval: stamp,
-    xbriefRawText: raw,
   });
   const outPath = writeApprovedScopeRecord(projectRoot, record);
   if (!args.quiet) {

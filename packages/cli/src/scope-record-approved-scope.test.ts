@@ -1,7 +1,18 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { startUatLease } from "@deftai/directive-core/authz";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { AUTHZ_AGENT_SHELL_ENV_MARKERS } from "./human-presence-mint.js";
 import {
   isPathInsideRoot,
   parseArgs,
@@ -9,10 +20,20 @@ import {
   run,
 } from "./scope-record-approved-scope.js";
 
+function operatorSeams() {
+  return {
+    isTty: () => true,
+    environ: {},
+    hasControllingTerminal: () => true,
+    readInteractiveConfirm: () => "mint",
+  };
+}
+
 describe("scope-record-approved-scope CLI (#3205)", () => {
   let root: string | undefined;
 
   afterEach(() => {
+    vi.restoreAllMocks();
     if (root !== undefined) {
       rmSync(root, { recursive: true, force: true });
       root = undefined;
@@ -83,33 +104,146 @@ describe("scope-record-approved-scope CLI (#3205)", () => {
     const xb = join(root, "xbrief/pending/story.xbrief.json");
     writeFileSync(xb, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
 
-    const code = run([
-      "xbrief/pending/story.xbrief.json",
-      "--project-root",
-      root,
-      "--actor",
-      "scott",
-    ]);
+    const code = run(
+      ["xbrief/pending/story.xbrief.json", "--project-root", root, "--actor", "scott", "--confirm"],
+      operatorSeams(),
+    );
     expect(code).toBe(0);
     const out = join(root, ".deft/approved-scope/story-1.json");
     const rec = JSON.parse(readFileSync(out, "utf8")) as {
       xbriefRelPath: string;
       humanApproval: { actor: string; kind: string };
       fileScope: string[];
+      xbriefBodyDigest?: string;
+      intentDigest?: string;
     };
     expect(rec.xbriefRelPath).toBe("xbrief/active/story.xbrief.json");
     expect(rec.humanApproval.actor).toBe("scott");
     expect(rec.fileScope).toEqual(["src/a.ts"]);
+    expect(rec.xbriefBodyDigest).toBeUndefined();
+    expect(rec.intentDigest).toBeUndefined();
+    expect(existsSync(join(root, ".deft/authz/grants"))).toBe(false);
 
-    const agentCode = run([
+    const agentCode = run(
+      [
+        "xbrief/pending/story.xbrief.json",
+        "--project-root",
+        root,
+        "--actor",
+        "agent:worker",
+        "--kind",
+        "agent",
+        "--confirm",
+      ],
+      operatorSeams(),
+    );
+    expect(agentCode).toBe(1);
+  });
+
+  it("shared-gate refuse matrix for scope:record-approved-scope (#3384)", () => {
+    root = mkdtempSync(join(tmpdir(), "scope-record-refuse-"));
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    const xb = join(root, "xbrief/pending/story.xbrief.json");
+    writeFileSync(
+      xb,
+      `${JSON.stringify({
+        plan: { id: "story-1", metadata: { swarm: { file_scope: ["src/a.ts"] } } },
+      })}\n`,
+      "utf8",
+    );
+    const argv = [
       "xbrief/pending/story.xbrief.json",
       "--project-root",
       root,
       "--actor",
-      "agent:worker",
-      "--kind",
-      "agent",
-    ]);
-    expect(agentCode).toBe(1);
+      "Flynn",
+      "--confirm",
+    ];
+    const err: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+
+    expect(run(argv, { ...operatorSeams(), environ: { CLAUDECODE: "1" } })).toBe(2);
+    expect(run(argv, { ...operatorSeams(), environ: { CI: "true" } })).toBe(2);
+    expect(run(argv, { ...operatorSeams(), isTty: () => false })).toBe(2);
+    expect(run(argv, { ...operatorSeams(), hasControllingTerminal: () => false })).toBe(2);
+    expect(run(argv, { ...operatorSeams(), readInteractiveConfirm: () => "yes" })).toBe(2);
+    expect(
+      run(
+        ["xbrief/pending/story.xbrief.json", "--project-root", root, "--actor", "Flynn"],
+        operatorSeams(),
+      ),
+    ).toBe(2);
+    expect(err.join("")).toMatch(/agent|CI|TTY|--confirm|controlling terminal|phrase|mint/i);
+    expect(existsSync(join(root, ".deft/approved-scope"))).toBe(false);
+  });
+
+  it("--actor Flynn from an agent/CI shell cannot mint (#3384)", () => {
+    root = mkdtempSync(join(tmpdir(), "scope-record-flynn-"));
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief/pending/story.xbrief.json"),
+      `${JSON.stringify({
+        plan: { id: "story-1", metadata: { swarm: { file_scope: ["src/a.ts"] } } },
+      })}\n`,
+      "utf8",
+    );
+    for (const key of ["CLAUDECODE", "CI", "GITHUB_ACTIONS"] as const) {
+      expect(AUTHZ_AGENT_SHELL_ENV_MARKERS).toContain(key);
+      expect(
+        run(
+          [
+            "xbrief/pending/story.xbrief.json",
+            "--project-root",
+            root,
+            "--actor",
+            "Flynn",
+            "--confirm",
+          ],
+          { ...operatorSeams(), environ: { [key]: "1" } },
+        ),
+      ).toBe(2);
+    }
+    expect(existsSync(join(root, ".deft/approved-scope"))).toBe(false);
+  });
+
+  it("active UAT lease refuses mint with no TTY/confirm/phrase escape (#3384)", () => {
+    root = mkdtempSync(join(tmpdir(), "scope-record-uat-"));
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief/pending/story.xbrief.json"),
+      `${JSON.stringify({
+        plan: { id: "story-1", metadata: { swarm: { file_scope: ["src/a.ts"] } } },
+      })}\n`,
+      "utf8",
+    );
+    startUatLease({ projectRoot: root, campaignId: "uat-3384", actor: "op" });
+    const err: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    expect(
+      run(
+        [
+          "xbrief/pending/story.xbrief.json",
+          "--project-root",
+          root,
+          "--actor",
+          "Flynn",
+          "--confirm",
+        ],
+        operatorSeams(),
+      ),
+    ).toBe(2);
+    expect(err.join("")).toMatch(/UAT lease is ACTIVE/i);
+    expect(existsSync(join(root, ".deft/approved-scope"))).toBe(false);
+    // Grant store may exist from UAT lease, but mint must not add a grant file.
+    const grantsDir = join(root, ".deft/authz/grants");
+    if (existsSync(grantsDir)) {
+      expect(readdirSync(grantsDir).filter((n) => n.endsWith(".json"))).toEqual([]);
+    }
   });
 });
