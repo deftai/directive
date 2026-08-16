@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **UAT Shell residual after #3354: dest-form writers plant authz or kill-switch (#3382).** Under active UAT, residual dest forms (`cmake -E copy`, `script`, `gallery-dl -d`, `megadl --path`, `ncftpget`, `git apply --directory`, VCS checkout writers, editors) that write into `.deft/authz/**` or plant `.deft-directive-disable` / `.no-deft-directive` classify as settings deny (not unclassifiable allow). Unknown write-shaped dest flags (`-d` / `--path` / `--directory`) targeting those paths also fail closed. Ordinary dests such as `/tmp` stay unclassifiable. Already-denied `curl -o` / `nc -o` stay denied. Closes #3382. Refs #3354, #3039.
+
 ### Removed
 
 ## [0.104.0] - 2026-08-14

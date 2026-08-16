@@ -273,11 +273,27 @@ const DOWNLOADER_DECODER_BINS = new Set([
   "sqlite3",
   "crane",
   "objcopy",
+  // #3382 residual after #3354: dest forms that are not generic -o/--output/--outfile.
+  "cmake",
+  "script",
+  "gallery-dl",
+  "megadl",
+  "ncftpget",
+  "svn",
+  "fossil",
+  "bzr",
+  "cvs",
+  "darcs",
+  "ed",
+  "nvim",
+  "nano",
+  "vim",
+  "vi",
 ]);
 
 /**
  * Archive extractors / alt writers that can plant via pathish operands without
- * shell redirects (#3245 / #3288 / #3311 / #3336 / #3354). Used for pathish authz/kill scans (prefer deny)
+ * shell redirects (#3245 / #3288 / #3311 / #3336 / #3354 / #3382). Used for pathish authz/kill scans (prefer deny)
  * and write-shape residual under UAT — not bare curl-class URL fetches.
  */
 const ARCHIVE_ALT_WRITE_BINS = new Set([
@@ -350,10 +366,14 @@ const ARCHIVE_ALT_WRITE_BINS = new Set([
   "sqlite3",
   "crane",
   "objcopy",
+  // #3382 residual: dedicated dest-form writers (not general-purpose cmake/git/editors).
+  "gallery-dl",
+  "megadl",
+  "ncftpget",
 ]);
 
 /**
- * Bins whose pathish operands are scanned for authz/kill destinations (#3213 / #3245 / #3288 / #3311 / #3336 / #3354).
+ * Bins whose pathish operands are scanned for authz/kill destinations (#3213 / #3245 / #3288 / #3311 / #3336 / #3354 / #3382).
  * Prefer a Set over a long `||` chain so coverage counts one membership check, not N branches.
  */
 const PROTECTED_POSITIONAL_BINS = new Set([
@@ -416,6 +436,22 @@ const PROTECTED_POSITIONAL_BINS = new Set([
   "sqlite3",
   "crane",
   "objcopy",
+  // #3382 residual: positional dest writers (cmake copy / script / VCS / editors).
+  "cmake",
+  "script",
+  "gallery-dl",
+  "megadl",
+  "ncftpget",
+  "svn",
+  "fossil",
+  "bzr",
+  "cvs",
+  "darcs",
+  "ed",
+  "nvim",
+  "nano",
+  "vim",
+  "vi",
 ]);
 
 /** wget family (directory-prefix dest flags). */
@@ -433,6 +469,24 @@ const SQLITE3_OUTPUT_META = [".output", ".once"] as const;
 const TAR_FAMILY_BINS = new Set(["tar", "bsdtar", "gtar", "star", "gnutar"]);
 /** xh / httpie family (download-dir dest flags) (#3311). */
 const XH_FAMILY_BINS = new Set(["xh", "httpie"]);
+/** gallery-dl dest-dir flags (#3382). */
+const GALLERY_DL_FAMILY_BINS = new Set(["gallery-dl", "gallery_dl"]);
+const GALLERY_DL_DIR_DEST_FLAGS = new Set(["-d", "--destination", "--dest"]);
+/** megadl dest-path flags (#3382). */
+const MEGADL_FAMILY_BINS = new Set(["megadl"]);
+const MEGADL_PATH_DEST_FLAGS = new Set(["--path"]);
+/**
+ * Extra dest flags harvested on unknown write-shaped bins when dest is protected (#3382).
+ * Not merged into DOWNLOADER_FILE_DEST_FLAGS: curl `-d` is POST data, not a file dest.
+ */
+const GENERIC_PROTECTED_EXTRA_DEST_FLAGS = new Set([
+  "-d",
+  "--dir",
+  "--destination",
+  "--dest",
+  "--path",
+  "--directory",
+]);
 
 /**
  * File destination flags for downloaders/decoders (#3206).
@@ -537,6 +591,8 @@ function isDownloaderDestFlag(flag: string, bin: string, rawFlag?: string): bool
   if (UNZIP_DIR_DEST_BINS.has(bin) && UNZIP_DIR_DEST_FLAGS.has(flag)) return true;
   if (XH_FAMILY_BINS.has(bin) && XH_DIR_DEST_FLAGS.has(flag)) return true;
   if (ATOOL_FAMILY_BINS.has(bin) && ATOOL_DIR_DEST_FLAGS.has(flag)) return true;
+  if (GALLERY_DL_FAMILY_BINS.has(bin) && GALLERY_DL_DIR_DEST_FLAGS.has(flag)) return true;
+  if (MEGADL_FAMILY_BINS.has(bin) && MEGADL_PATH_DEST_FLAGS.has(flag)) return true;
   return false;
 }
 /**
@@ -711,6 +767,12 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
         }
         // aria2c / aria2 attached -dDIR (#3213 / #3288)
         if (ARIA2_FAMILY_BINS.has(bin) && n.startsWith("-d") && n.length > 2) {
+          dests.push(pathishToken(raw.slice(2)));
+          i++;
+          continue;
+        }
+        // gallery-dl attached -dDIR (#3382)
+        if (GALLERY_DL_FAMILY_BINS.has(bin) && n.startsWith("-d") && n.length > 2) {
           dests.push(pathishToken(raw.slice(2)));
           i++;
           continue;
@@ -917,10 +979,15 @@ function pathishIsProtectedDest(pathish: string): boolean {
   return pathishIsAuthzDir(pathish) || pathishMentionsKillSwitch(pathish);
 }
 
+function isGenericProtectedDestFlag(flag: string): boolean {
+  return DOWNLOADER_FILE_DEST_FLAGS.has(flag) || GENERIC_PROTECTED_EXTRA_DEST_FLAGS.has(flag);
+}
+
 /**
- * Fail-closed dest harvest for write-shaped Shell under UAT (#3354).
+ * Fail-closed dest harvest for write-shaped Shell under UAT (#3354 / #3382).
  * Named-bin parsers above are not the only path: any token that looks like
- * `-o` / `--output` / `--outfile` / `--output-file` (or attached `-oDIR`)
+ * `-o` / `--output` / `--outfile` / `--output-file` / `-d` / `--dir` /
+ * `--destination` / `--path` / `--directory` (or attached `-oDIR` / `-dDIR`)
  * whose dest is authz/kill-switch is collected even when the bin is unknown.
  * scp `-o` (OpenSSH option) and cpio `-o` (copy-out) stay excluded.
  */
@@ -952,7 +1019,7 @@ function genericProtectedDests(tokens: readonly string[]): string[] {
     if (n.includes("=") && (n.startsWith("-") || n.startsWith("--"))) {
       const eq = raw.indexOf("=");
       const flag = normalizeToken(raw.slice(0, eq));
-      if (DOWNLOADER_FILE_DEST_FLAGS.has(flag)) {
+      if (isGenericProtectedDestFlag(flag)) {
         const dest = pathishToken(raw.slice(eq + 1));
         if (pathishIsProtectedDest(dest)) dests.push(dest);
       }
@@ -969,7 +1036,12 @@ function genericProtectedDests(tokens: readonly string[]): string[] {
       if (pathishIsProtectedDest(dest)) dests.push(dest);
       continue;
     }
-    if (DOWNLOADER_FILE_DEST_FLAGS.has(n)) {
+    if (n.startsWith("-") && !n.startsWith("--") && n.startsWith("-d") && n.length > 2) {
+      const dest = pathishToken(raw.slice(2));
+      if (pathishIsProtectedDest(dest)) dests.push(dest);
+      continue;
+    }
+    if (isGenericProtectedDestFlag(n)) {
       const next = tokens[i + 1];
       if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
         const dest = pathishToken(next);
