@@ -252,6 +252,18 @@ writeFileSync(process.env.TEST_ENGINE_OUTER_OUT, JSON.stringify({
     expect(guardBlock).not.toMatch(/\[ -f "\{\{\.DEFT_ROOT\}\}\/packages\/cli\/dist\/bin\.js" \]/);
   });
 
+  it("_ts-build ends with a trailing no-op after the outer if/fi (#3381)", () => {
+    const engine = readTask(ENGINE_FILE);
+    const tsBuild = engine.match(/  _ts-build:\n[\s\S]*?(?=\n  [a-zA-Z_])/);
+    expect(tsBuild, "engine _ts-build task").not.toBeNull();
+    const body = tsBuild?.[0] ?? "";
+    expect(body).toMatch(
+      /fi\s*\n\s*: # no-op -- go-task <3\.52\.0 treats untaken last if\/fi as exit 1 \(#3381\)/,
+    );
+    expect(body).toMatch(/is-buildable-source/);
+    expect(body).not.toMatch(/is-buildable-source \|\| exit 0/);
+  });
+
   it("ts.yml routes monorepo scripts through Corepack-aware :engine:pm-run (#2410)", () => {
     const ts = readTask("ts.yml");
     expect(ts).toMatch(/:engine:pm-run/);
