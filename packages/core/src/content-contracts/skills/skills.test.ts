@@ -549,6 +549,35 @@ describe("test_skills", () => {
     expect(text.toLowerCase()).toContain("prohibition");
     expect(text.toLowerCase()).toContain("softer-strength");
   });
+  it("deft_directive_build_declares_active_contract_before_code", () => {
+    const text = readSkill("skills/deft-directive-build/SKILL.md");
+    expect(text).toContain("## Declare the contract (#3383)");
+    expect(text.toLowerCase()).toContain("name the active xbrief");
+    expect(text.toLowerCase()).toContain("quote what it says");
+    expect(text.toLowerCase()).toContain("do not treat a completed file as the contract");
+    const declareIdx = text.indexOf("## Declare the contract (#3383)");
+    const probeIdx = text.indexOf("## Probe-then-fill remote claims (#3120)");
+    expect(declareIdx).toBeGreaterThan(-1);
+    expect(probeIdx).toBeGreaterThan(declareIdx);
+  });
+  it("deft_directive_build_halt_and_ask_active_only", () => {
+    const text = readSkill("skills/deft-directive-build/SKILL.md");
+    const recoveryMatch = /^## Error Recovery[\s\S]*?(?=^## )/m.exec(text);
+    if (!recoveryMatch) {
+      throw new Error("Error Recovery section heading not found");
+    }
+    const recovery = recoveryMatch[0];
+    expect(recovery).toContain("Halt-and-ask");
+    expect(recovery).toContain("#3383");
+    expect(recovery.toLowerCase()).toContain("neither side wins by rank");
+    expect(recovery.toLowerCase()).toContain("also consider x");
+    expect(recovery.toLowerCase()).toContain("human chat turn");
+    expect(recovery.toLowerCase()).toContain("halt report only");
+    expect(recovery).toContain("#3164");
+    expect(recovery.toLowerCase()).toContain("decision:write");
+    expect(recovery.toLowerCase()).not.toContain("outranks");
+    expect(recovery.toLowerCase()).toContain("do not claim the next session cannot re-learn");
+  });
   it("deft_pre_pr_semantic_contradiction_rule", () => {
     const text = readSkill(_PRE_PR_PATH);
     const lower = text.toLowerCase();

@@ -200,10 +200,12 @@ Propagation: the canonical orchestrator preamble at [templates/agent-prompt-prea
 - ! Scope vBRIEFs live in lifecycle folders: `proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`
 - ! Scope vBRIEF filenames MUST follow: `YYYY-MM-DD-descriptive-slug.vbrief.json` (slug rules: [`conventions/vbrief-filenames.md`](./content/conventions/vbrief-filenames.md))
 - ! Playbooks use `playbook-{name}.vbrief.json` (named, not ULID-suffixed)
+- ! Completed xBRIEFs are evidence of what was built — full standing as a record of *what is*, zero authority over *what to build next* (#3383). The current contract is the active xBRIEF plus the human operator's live instruction. Both halves are required.
 - ⊗ Use ULID-suffixed filenames for plan, todo, or continue files
 - ⊗ Place vBRIEF files at workspace root
 - ⊗ Write `SPECIFICATION.md` directly — it MUST be generated from `specification.vbrief.json`
 - ⊗ Move scope vBRIEFs between lifecycle folders without updating `plan.status`
+- ⊗ Treat a completed xBRIEF as the next-build contract, or let it override the active story or the live human instruction
 
 ### Schema version: v0.6 (canonical)
 

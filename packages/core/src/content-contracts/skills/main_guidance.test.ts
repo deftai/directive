@@ -103,3 +103,35 @@ describe("test_main_guidance", () => {
     expect(preambleSection).toContain("main.md");
   });
 });
+
+describe("completed xBRIEF record not next-build (#3383)", () => {
+  const persistence = (() => {
+    const match = /^##\s+vBRIEF Persistence[\s\S]*?(?=^##\s)/m.exec(mainText);
+    if (!match) {
+      throw new Error("vBRIEF Persistence section heading not found");
+    }
+    return match[0];
+  })();
+
+  it("persistence_demotes_completed_xbriefs_to_record", () => {
+    expect(persistence).toContain("Completed xBRIEFs are evidence of what was built");
+    expect(persistence.toLowerCase()).toContain("zero authority over");
+    expect(persistence.toLowerCase()).toContain("what to build next");
+    expect(persistence).toContain("active xBRIEF");
+    expect(persistence.toLowerCase()).toContain("live instruction");
+  });
+
+  it("persistence_forbids_completed_as_next_contract", () => {
+    const mustNotLines = persistence.split("\n").filter((line) => /^\s*(?:-\s+)?⊗\s/.test(line));
+    expect(mustNotLines.join("\n").toLowerCase()).toContain("next-build contract");
+  });
+
+  it("agent_trap_defenses_has_no_live_message_beats_contract_bullet", () => {
+    const trap = /^##\s+Agent Trap Defenses[\s\S]*?(?=^##\s)/m.exec(mainText);
+    if (!trap) {
+      throw new Error("Agent Trap Defenses section heading not found");
+    }
+    expect(trap[0].toLowerCase()).not.toContain("live message beats");
+    expect(trap[0].toLowerCase()).not.toContain("next-build contract");
+  });
+});
