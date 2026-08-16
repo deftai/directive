@@ -82,6 +82,24 @@ describe("hashProductState (#3387)", () => {
     expect(brace.files).toEqual([]);
   });
 
+  it("walks directories matched by a glob so nested edits change the digest", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-globdir-"));
+    mkdirSync(join(root, "frontend", "lib"), { recursive: true });
+    writeFileSync(join(root, "frontend", "app.ts"), "export const app = 1;\n", "utf8");
+    writeFileSync(join(root, "frontend", "lib", "util.ts"), "export const util = 1;\n", "utf8");
+    const plan = {
+      acceptance: { commands: [{ command: "true" }] },
+      metadata: { swarm: { file_scope: ["frontend/*"] } },
+    };
+    const first = hashProductState({ projectRoot: root, plan });
+    expect(first.complete).toBe(true);
+    expect(first.files).toContain("frontend/app.ts");
+    expect(first.files).toContain("frontend/lib/util.ts");
+    writeFileSync(join(root, "frontend", "lib", "util.ts"), "export const util = 2;\n", "utf8");
+    const second = hashProductState({ projectRoot: root, plan });
+    expect(second.digest).not.toBe(first.digest);
+  });
+
   it("uses file_scope when productPaths are omitted", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-scope-"));
     mkdirSync(join(root, "pkg"), { recursive: true });

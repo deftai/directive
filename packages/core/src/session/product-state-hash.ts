@@ -128,16 +128,21 @@ function expandPath(root: string, relOrGlob: string): string[] {
   const rel = toPosix(relOrGlob).replace(/^\.\//, "");
   if (looksLikeGlob(rel)) {
     try {
-      return globSync(rel, { cwd: root })
-        .map((match) => toPosix(relative(root, resolve(root, match))))
-        .filter((posix) => posix.length > 0 && !isExcludedRel(posix))
-        .filter((posix) => {
-          try {
-            return statSync(resolve(root, posix)).isFile();
-          } catch {
-            return false;
-          }
-        });
+      const out: string[] = [];
+      for (const match of globSync(rel, { cwd: root })) {
+        const posix = toPosix(relative(root, resolve(root, match)));
+        if (posix.length === 0 || isExcludedRel(posix)) continue;
+        const absMatch = resolve(root, posix);
+        let st: ReturnType<typeof statSync>;
+        try {
+          st = statSync(absMatch);
+        } catch {
+          continue;
+        }
+        if (st.isFile()) out.push(posix);
+        else if (st.isDirectory()) walkFiles(root, absMatch, out);
+      }
+      return out;
     } catch {
       return [];
     }
