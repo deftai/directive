@@ -473,15 +473,23 @@ export function containedWrite(input: ContainedWriteInput): ContainedWriteResult
  */
 export function containedRemove(input: ContainedRemoveInput): ContainedRemoveResult {
   const { rootAbs, targetAbs } = resolveExistingRoot(input.root, input.target);
-  let exists = false;
   try {
     lstatSync(targetAbs);
-    exists = true;
-  } catch {
-    exists = false;
-  }
-  if (!exists) {
-    return { path: targetAbs, removed: false };
+  } catch (err) {
+    const code =
+      typeof err === "object" && err !== null && "code" in err
+        ? (err as NodeJS.ErrnoException).code
+        : undefined;
+    if (code === "ENOENT") {
+      return { path: targetAbs, removed: false };
+    }
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new ContainedWriteError(`contained write I/O failed: ${msg}`, {
+      code: ContainedWriteErrorCode.IO,
+      root: rootAbs,
+      target: targetAbs,
+      offendingPath: targetAbs,
+    });
   }
   try {
     rmSync(targetAbs, { force: true });
