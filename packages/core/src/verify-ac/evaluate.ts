@@ -159,6 +159,8 @@ export function emitVerifyAcAttempts(options: {
     // Per-command emit was blind to a shrinking list that kept the first command (#3397).
     const commands = options.runs.map((run) => run.command);
     const firstCwd = options.runs[0]?.cwd ?? "";
+    // Hash the cwd key (joined only when cwds differ) so cwd paths never enter
+    // the fingerprint; commandCountFromFingerprint can still count commands.
     const cwdKey = options.runs.every((run) => run.cwd === firstCwd)
       ? firstCwd
       : options.runs.map((run) => run.cwd).join("\0");

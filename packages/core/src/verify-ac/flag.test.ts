@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseRunSummaryJsonl } from "../run-summary/index.js";
+import { methodFingerprintForWalk } from "./evaluate.js";
 import {
   commandCountFromFingerprint,
   flagPassAfterFailFromJsonl,
@@ -91,6 +92,12 @@ describe("flagPassAfterFailWithMethodChange (#3322)", () => {
     expect(commandCountFromFingerprint("a\0b\0C:\\work")).toBe(2);
     expect(commandCountFromFingerprint("one\0two\0three")).toBe(3);
     expect(commandCountFromFingerprint("a\0b\0c\0deadbeef")).toBe(3);
+  });
+
+  it("counts commands from a mixed-cwd walk fingerprint (cwd is hashed, not listed)", () => {
+    const mixed = methodFingerprintForWalk(["true", "false"], "/app\0/other");
+    expect(commandCountFromFingerprint(mixed)).toBe(2);
+    expect(mixed.split("\0")).toHaveLength(3);
   });
 
   it("treats recorded independent re-derivation as resolved", () => {
