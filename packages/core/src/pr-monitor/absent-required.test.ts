@@ -63,6 +63,26 @@ describe("readAbsentRequiredContexts", () => {
     ).toBeNull();
   });
 
+  it("does not treat ci_failures as absent even when failures mention ci_absent_required", () => {
+    expect(
+      readAbsentRequiredContexts({
+        via: "primary",
+        merge_ready: false,
+        failures: [
+          "Required status-check contexts absent on HEAD (ci_absent_required): Greptile Review",
+          "CI failed",
+        ],
+        partial_data: {
+          ci: {
+            ready_state: "ci_failures",
+            absent_required: ["Greptile Review"],
+            pending_required: [],
+          },
+        },
+      }),
+    ).toBeNull();
+  });
+
   it("falls back to failures when partial_data.ci is missing", () => {
     expect(
       readAbsentRequiredContexts({

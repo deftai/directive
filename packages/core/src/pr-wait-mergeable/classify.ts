@@ -13,10 +13,16 @@ export function classifyMonitorOutcome(
     if (monitorPayload.monitor_result === "CAP-REACHED") {
       return ["cap-reached", EXIT_TIMEOUT_OR_ESCALATION] as const;
     }
+    if (monitorPayload.monitor_result === "ABSENT-REQUIRED") {
+      return ["absent-required", EXIT_TIMEOUT_OR_ESCALATION] as const;
+    }
     return ["config-error", EXIT_CONFIG_ERROR] as const;
   }
   if (monitorReturncode === 2) {
     return ["config-error", EXIT_CONFIG_ERROR] as const;
+  }
+  if (monitorReturncode === 4) {
+    return ["absent-required", EXIT_TIMEOUT_OR_ESCALATION] as const;
   }
   if (monitorReturncode === 3) {
     const readiness =

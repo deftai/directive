@@ -65,4 +65,15 @@ describe("classifyMonitorOutcome", () => {
   it("maps unknown monitor exit to config error", () => {
     expect(classifyMonitorOutcome(99, {})).toEqual(["config-error", EXIT_CONFIG_ERROR]);
   });
+
+  it("maps ABSENT-REQUIRED exit 4 to timeout-or-escalation (#3389)", () => {
+    expect(classifyMonitorOutcome(4, { monitor_result: "ABSENT-REQUIRED" })).toEqual([
+      "absent-required",
+      EXIT_TIMEOUT_OR_ESCALATION,
+    ]);
+    expect(classifyMonitorOutcome(1, { monitor_result: "ABSENT-REQUIRED" })).toEqual([
+      "absent-required",
+      EXIT_TIMEOUT_OR_ESCALATION,
+    ]);
+  });
 });

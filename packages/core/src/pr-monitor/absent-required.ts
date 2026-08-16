@@ -43,6 +43,9 @@ export function readAbsentRequiredContexts(
     if (readyState === "ci_absent_required") {
       return stringList(ci.absent_required);
     }
+    // Structured CI present but not absent-required (e.g. ci_failures).
+    // Do not let failure-text mention of ci_absent_required override it.
+    return null;
   }
 
   const failures = Array.isArray(payload.failures) ? payload.failures.map(String) : [];
