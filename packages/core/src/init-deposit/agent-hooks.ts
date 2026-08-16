@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, renameSync, rmSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { assertDepositContained } from "../deposit/contain.js";
-import { containedWrite } from "../fs/contained-write.js";
+import { containedRemove, containedWrite } from "../fs/contained-write.js";
 import type { HookEvent, HookHost } from "../hooks/dispatcher.js";
 import {
   DIRECT_WRITE_HOOK_MATCHER,
@@ -308,6 +308,7 @@ function writeJsonIfChanged(
   projectRoot: string,
   path: string,
   payload: Record<string, unknown>,
+  kind: "wrote" | "stripped",
 ): boolean {
   const next = `${JSON.stringify(payload, null, 2)}\n`;
   if (existsSync(path) && readFileSync(path, "utf8") === next) return false;
@@ -321,6 +322,7 @@ function writeJsonIfChanged(
       target: temporary,
       data: next,
       mode: "replace",
+      mutation: { kind, path },
     });
     renameSync(temporary, path);
   } catch (err) {
@@ -405,7 +407,14 @@ export function writeAgentHookDeposit(
 
   for (const item of prepared) {
     if (item.mode === "skip") continue;
-    if (writeJsonIfChanged(projectRoot, item.absolute, item.payload)) {
+    if (
+      writeJsonIfChanged(
+        projectRoot,
+        item.absolute,
+        item.payload,
+        item.mode === "strip" ? "stripped" : "wrote",
+      )
+    ) {
       if (item.mode === "strip") strippedPaths.push(item.path);
       else changedPaths.push(item.path);
     }
@@ -415,17 +424,10 @@ export function writeAgentHookDeposit(
     ".cursor/hooks/deft-cursor-hook-adapter.mjs",
     ".cursor/hooks/deft-cursor-hook-adapter.test.mjs",
   ] as const;
-  let removedLegacyAdapter = false;
   for (const relative of legacyAdapterPaths) {
     const absolute = join(projectRoot, relative);
     assertDepositContained(projectRoot, absolute);
-    if (existsSync(absolute)) {
-      rmSync(absolute, { force: true });
-      removedLegacyAdapter = true;
-    }
-  }
-  if (removedLegacyAdapter && !changedPaths.includes(AGENT_HOOK_PATHS[2])) {
-    changedPaths.push(AGENT_HOOK_PATHS[2]);
+    containedRemove({ root: projectRoot, target: absolute });
   }
 
   if (changedPaths.length > 0) {

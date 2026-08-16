@@ -27,9 +27,11 @@ import {
   mkdirSync,
   openSync,
   realpathSync,
+  rmSync,
   writeSync,
 } from "node:fs";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
+import { isAtomicWriteTemp, type MutationKind, recordActiveMutation } from "./mutation-ledger.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "./projection-containment.js";
 
 /** Stable machine-readable error codes for contained-write refusals. */
@@ -109,6 +111,33 @@ export interface ContainedWriteInput {
    * {@link assertWriteTargetSafe}.
    */
   readonly followSymlinks?: boolean;
+  /**
+   * Ledger side-effect (#3392). Default records `wrote` when a ledger is bound.
+   * `false` skips. `kind`/`path` override the recorded entry (atomic tmp+rename).
+   */
+  readonly mutation?: false | { readonly kind?: "wrote" | "stripped"; readonly path?: string };
+}
+
+export interface ContainedRemoveInput {
+  /** Absolute containment root (project root, deposit root, or sandbox). */
+  readonly root: string;
+  /**
+   * Remove target. Relative paths are resolved under `root`. Absolute paths
+   * must stay under `root` after normalization.
+   */
+  readonly target: string;
+  /**
+   * Ledger side-effect (#3392). Default records `deleted` when a ledger is bound.
+   * `false` skips. `path` overrides the recorded path.
+   */
+  readonly mutation?: false | { readonly path?: string };
+}
+
+export interface ContainedRemoveResult {
+  /** Absolute path considered for removal. */
+  readonly path: string;
+  /** True when a file existed and was removed. */
+  readonly removed: boolean;
 }
 
 export interface ContainedWriteResult {
@@ -214,6 +243,45 @@ function ensureParents(rootAbs: string, targetAbs: string): void {
 
 function toBuffer(data: string | Buffer, encoding: BufferEncoding): Buffer {
   return Buffer.isBuffer(data) ? data : Buffer.from(data, encoding);
+}
+
+function resolveExistingRoot(root: string, target: string): { rootAbs: string; targetAbs: string } {
+  const rootAbs = resolve(root);
+  try {
+    realpathSync(rootAbs);
+  } catch {
+    throw new ContainedWriteError(`contained write refused: root ${rootAbs} does not exist`, {
+      code: ContainedWriteErrorCode.ROOT_MISSING,
+      root: rootAbs,
+      target: String(target),
+      offendingPath: rootAbs,
+    });
+  }
+  const targetAbs = resolveContainedTarget(rootAbs, target);
+  try {
+    assertWriteTargetSafe(rootAbs, targetAbs);
+  } catch (err) {
+    if (err instanceof ProjectionContainmentError) {
+      throw mapProjectionError(err, rootAbs, targetAbs);
+    }
+    throw err;
+  }
+  return { rootAbs, targetAbs };
+}
+
+function recordWriteMutation(targetAbs: string, mutation: ContainedWriteInput["mutation"]): void {
+  if (mutation === false) return;
+  const kind: Extract<MutationKind, "wrote" | "stripped"> = mutation?.kind ?? "wrote";
+  const path = mutation?.path ?? targetAbs;
+  if (mutation?.path === undefined && isAtomicWriteTemp(path)) return;
+  recordActiveMutation(kind, path);
+}
+
+function recordRemoveMutation(targetAbs: string, mutation: ContainedRemoveInput["mutation"]): void {
+  if (mutation === false) return;
+  const path = mutation?.path ?? targetAbs;
+  if (mutation?.path === undefined && isAtomicWriteTemp(path)) return;
+  recordActiveMutation("deleted", path);
 }
 
 function writeNoFollow(targetAbs: string, buf: Buffer, flags: number): number {
@@ -346,6 +414,7 @@ export function containedWrite(input: ContainedWriteInput): ContainedWriteResult
         constants.O_WRONLY | constants.O_CREAT | constants.O_TRUNC | constants.O_NOFOLLOW,
       );
     }
+    recordWriteMutation(targetAbs, input.mutation);
     return { path: targetAbs, bytesWritten, mode: input.mode };
   } catch (err) {
     if (err instanceof ContainedWriteError) {
@@ -394,4 +463,37 @@ export function containedWrite(input: ContainedWriteInput): ContainedWriteResult
       offendingPath: targetAbs,
     });
   }
+}
+
+/**
+ * Contained remove: resolve under root, refuse symlink escape / out-of-root,
+ * then delete the file. Missing targets are a no-op (not ledgered).
+ *
+ * @throws {ContainedWriteError} on containment refusal
+ */
+export function containedRemove(input: ContainedRemoveInput): ContainedRemoveResult {
+  const { rootAbs, targetAbs } = resolveExistingRoot(input.root, input.target);
+  let exists = false;
+  try {
+    lstatSync(targetAbs);
+    exists = true;
+  } catch {
+    exists = false;
+  }
+  if (!exists) {
+    return { path: targetAbs, removed: false };
+  }
+  try {
+    rmSync(targetAbs, { force: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new ContainedWriteError(`contained write I/O failed: ${msg}`, {
+      code: ContainedWriteErrorCode.IO,
+      root: rootAbs,
+      target: targetAbs,
+      offendingPath: targetAbs,
+    });
+  }
+  recordRemoveMutation(targetAbs, input.mutation);
+  return { path: targetAbs, removed: true };
 }

@@ -10,6 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { runWithMutationLedger, snapshotMutationSummary } from "../fs/mutation-ledger.js";
 import {
   DIRECT_WRITE_TOOL_NAMES,
   isDirectWriteTool,
@@ -142,6 +143,45 @@ describe("writeAgentHookDeposit", () => {
         group.hooks.some((h) => h.timeout === NESTED_HOOK_TIMEOUT_SECONDS),
       ),
     ).toBe(true);
+  });
+
+  it("ledgers adapter deletes even when the writer return is discarded (#3392)", () => {
+    const root = project();
+    mkdirSync(join(root, ".cursor", "hooks"), { recursive: true });
+    writeFileSync(join(root, ".cursor/hooks/deft-cursor-hook-adapter.mjs"), "legacy\n", "utf8");
+    writeFileSync(
+      join(root, ".cursor/hooks/deft-cursor-hook-adapter.test.mjs"),
+      "legacy\n",
+      "utf8",
+    );
+
+    const summary = runWithMutationLedger(root, () => {
+      writeAgentHookDeposit(root);
+      return snapshotMutationSummary();
+    });
+
+    expect(existsSync(join(root, ".cursor/hooks/deft-cursor-hook-adapter.mjs"))).toBe(false);
+    expect(existsSync(join(root, ".cursor/hooks/deft-cursor-hook-adapter.test.mjs"))).toBe(false);
+    expect(summary.deleted).toEqual([
+      ".cursor/hooks/deft-cursor-hook-adapter.mjs",
+      ".cursor/hooks/deft-cursor-hook-adapter.test.mjs",
+    ]);
+    expect(summary.wrote).toEqual(expect.arrayContaining([...AGENT_HOOK_PATHS]));
+    expect(summary.wrote.some((path) => path.includes(".deft-") && path.endsWith(".tmp"))).toBe(
+      false,
+    );
+  });
+
+  it("ledgers stripped host-hook opt-out writes (#3392)", () => {
+    const root = project();
+    writeAgentHookDeposit(root);
+    const policy = { ...DEFAULT_HOST_HOOKS_POLICY, claude: false };
+    const summary = runWithMutationLedger(root, () => {
+      writeAgentHookDeposit(root, { printf: () => undefined }, policy);
+      return snapshotMutationSummary();
+    });
+    expect(summary.stripped).toContain(".claude/settings.json");
+    expect(summary.wrote).not.toContain(".claude/settings.json");
   });
 
   it("repairs legacy Cursor tool.before timeout:5 deposits as drifted (#3246)", () => {

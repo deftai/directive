@@ -17,6 +17,7 @@ import { RESOLUTION_PLAN_SCHEMA_VERSION } from "@deftai/directive-types";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CONTENT_PACKAGE_NAME } from "../deposit/resolve-content.js";
 import { runChecksImpl } from "../doctor/checks.js";
+import { emptyMutationSummary } from "../fs/mutation-ledger.js";
 import { AGENTS_MANAGED_CLOSE } from "../platform/constants.js";
 import type { ClassifySeams } from "../resolution/index.js";
 import type { AgentHookReadinessResult } from "../verify-env/agent-hook-readiness.js";
@@ -825,6 +826,7 @@ describe("runRefreshDeposit", () => {
         legacyLayout: false,
         taskfileWired: false,
         stagedPaths: [],
+        mutations: emptyMutationSummary(),
       },
       { printf: (text) => lines.push(text) },
     );
@@ -855,6 +857,7 @@ describe("runRefreshDeposit", () => {
         legacyLayout: false,
         taskfileWired: false,
         stagedPaths: [],
+        mutations: emptyMutationSummary(),
       },
       { printf: (text) => lines.push(text) },
     );
@@ -1525,5 +1528,65 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     );
 
     expect(existsSync(join(project, ".github", "workflows", "deft-core-guard.yml"))).toBe(true);
+  });
+
+  it("prints Removed/wrote/stripped from the same ledger as refresh JSON (#3392)", async () => {
+    const project = freshRoot("refresh-ledger-");
+    const contentRoot = installFakeContentPackage(project);
+    initGitRepo(project);
+    writeFileSync(
+      join(project, "AGENTS.md"),
+      `# Operator prose\n\n<!-- deft:managed-section v2 -->\nOld body\n${AGENTS_MANAGED_CLOSE}\n`,
+      "utf8",
+    );
+    mkdirSync(join(project, ".cursor", "hooks"), { recursive: true });
+    writeFileSync(join(project, ".cursor/hooks/deft-cursor-hook-adapter.mjs"), "legacy\n", "utf8");
+    writeFileSync(
+      join(project, ".cursor/hooks/deft-cursor-hook-adapter.test.mjs"),
+      "legacy\n",
+      "utf8",
+    );
+
+    const out: string[] = [];
+    const err: string[] = [];
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      writeOut: (text) => out.push(text),
+      writeErr: (text) => err.push(text),
+      seams: {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.53.0",
+        nowIso: () => "2026-08-16T12:00:00Z",
+        gitPorcelain: () => "",
+        evaluateAgentHookReadiness: () => agentHookReadiness(),
+      },
+    });
+
+    expect(code).toBe(0);
+    expect(existsSync(join(project, ".cursor/hooks/deft-cursor-hook-adapter.mjs"))).toBe(false);
+    const payload = parseJsonObject(out.join(""));
+    const mutations = payload.mutations;
+    expect(mutations).toEqual(
+      expect.objectContaining({
+        deleted: [
+          ".cursor/hooks/deft-cursor-hook-adapter.mjs",
+          ".cursor/hooks/deft-cursor-hook-adapter.test.mjs",
+        ],
+      }),
+    );
+    expect(mutations).toEqual(
+      expect.objectContaining({
+        wrote: expect.arrayContaining(["AGENTS.md", ".cursor/hooks.json"]),
+      }),
+    );
+    const printed = err.join("");
+    const deleted = (mutations as { deleted: string[] }).deleted;
+    const wrote = (mutations as { wrote: string[] }).wrote;
+    expect(printed).toContain(`Removed: ${deleted.join(", ")}`);
+    expect(printed).toContain(`wrote: ${wrote.join(", ")}`);
+    expect(printed).not.toMatch(/\.deft-\d+\.tmp/);
   });
 });

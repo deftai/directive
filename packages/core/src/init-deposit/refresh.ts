@@ -20,6 +20,14 @@ import { resolveInstalledContentRoot } from "../deposit/resolve-content.js";
 import { manifestTagToVersion, parseInstallManifest } from "../doctor/manifest.js";
 import { readCorePackageVersion } from "../engine-version.js";
 import { readLiveGeneration, stampLiveGeneration } from "../freshness/generation.js";
+import {
+  activeMutationLedger,
+  formatMutationSummary,
+  type MutationSummary,
+  mutationSummaryJson,
+  runWithMutationLedger,
+  snapshotMutationSummary,
+} from "../fs/mutation-ledger.js";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
 import {
   detectNoDeftDirective,
@@ -107,6 +115,8 @@ export interface RefreshDepositResult {
   readonly legacyLayout: boolean;
   readonly taskfileWired: boolean;
   readonly stagedPaths: string[];
+  /** This-run write/remove ledger (#3392). Same source as printf + JSON. */
+  readonly mutations: MutationSummary;
 }
 
 function hasCanonicalXbriefLifecycle(projectDir: string): boolean {
@@ -555,6 +565,7 @@ export function buildUpdateSummaryJson(input: {
     dirty_tree: false,
     dirty_files: [],
     staged_paths: result.stagedPaths,
+    mutations: mutationSummaryJson(result.mutations),
     backup_path: "",
     previous_version: result.previousDepositVersion ?? "",
     content_version: result.contentVersion,
@@ -583,6 +594,10 @@ export function printUpdateComplete(
   if (result.versionSkewNotice) {
     io.printf(`\n${result.versionSkewNotice}\n`);
   }
+  const mutationText = formatMutationSummary(result.mutations);
+  if (mutationText.length > 0) {
+    io.printf(`\n${mutationText}`);
+  }
   printMigrateNudgeIfNeeded(result.projectDir, io);
   io.printf("\n");
 }
@@ -593,6 +608,9 @@ export async function runRefreshDeposit(
   seams: RefreshDepositSeams = {},
 ): Promise<RefreshDepositResult> {
   const projectDir = resolve(args.projectDir);
+  if (activeMutationLedger() === undefined) {
+    return runWithMutationLedger(projectDir, () => runRefreshDeposit(args, io, seams));
+  }
   const deftDir = join(projectDir, CANONICAL_INSTALL_ROOT);
 
   // #1912: refuse a legacy on-disk layout BEFORE any refresh. The npm CLI never
@@ -798,6 +816,7 @@ export async function runRefreshDeposit(
     legacyLayout: false,
     taskfileWired,
     stagedPaths,
+    mutations: snapshotMutationSummary(),
   };
 }
 
