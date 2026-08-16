@@ -18,7 +18,9 @@ import {
   checkStaleXbriefSchemaDeposit,
   checkTypescript7SideBySide,
   checkXbriefEnvelopeMajorVersion,
+  DOCTOR_ADVISORY_FAIL_CHECKS,
   deriveExitCode,
+  isDoctorAdvisoryFail,
   runChecks,
   runChecksImpl,
   scanXbriefEnvelopeVersions,
@@ -34,6 +36,22 @@ describe("checks", () => {
     expect(
       deriveExitCode([{ name: "completed-open-items", status: "fail", detail: "advisory" }], []),
     ).toBe(0);
+    expect(deriveExitCode([{ name: "legacy-layout", status: "fail", detail: "legacy" }], [])).toBe(
+      0,
+    );
+  });
+
+  it("treats data.advisory true as exit-exempt even when the name is not in the set (#3379)", () => {
+    const synthetic = {
+      name: "synthetic-advisory-only",
+      status: "fail" as const,
+      detail: "advisory bit only",
+      data: { advisory: true },
+    };
+    expect(DOCTOR_ADVISORY_FAIL_CHECKS.has(synthetic.name)).toBe(false);
+    expect(isDoctorAdvisoryFail(synthetic.name, synthetic.data)).toBe(true);
+    expect(deriveExitCode([synthetic], [])).toBe(0);
+    expect(deriveExitCode([{ ...synthetic, data: {} }], [])).toBe(1);
   });
 
   it("fails closed when completed/ plan.status is running (#3242)", () => {
@@ -55,6 +73,8 @@ describe("checks", () => {
       );
       const result = checkCompletedLifecycleConsistency(root);
       expect(result.status).toBe("fail");
+      expect(result.data?.advisory).not.toBe(true);
+      expect(DOCTOR_ADVISORY_FAIL_CHECKS.has(result.name)).toBe(false);
       expect(result.detail).toContain("completed/drift.xbrief.json");
       expect(result.detail).toContain("plan.status=running");
       expect(result.detail).toContain("folder=completed");
@@ -86,6 +106,7 @@ describe("checks", () => {
       expect(itemsCheck.status).toBe("fail");
       expect(itemsCheck.detail).toContain("pending");
       expect(itemsCheck.detail).toContain("completed/open.xbrief.json");
+      expect(itemsCheck.data?.advisory).toBe(true);
       expect(deriveExitCode([itemsCheck], [])).toBe(0);
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -308,9 +329,10 @@ describe("checks", () => {
     expect(result.detail).toContain("UPGRADING.md");
     expect(result.data?.legacy_layout).toBe(true);
     expect(result.data?.legacy_layout_kind).toBe("orphan-deft-version");
+    expect(result.data?.advisory).toBe(true);
   });
 
-  it("runChecksImpl flags a legacy orphan .deft/VERSION layout (exit 1)", () => {
+  it("runChecksImpl flags a legacy orphan .deft/VERSION layout as advisory", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-doc-legacy-"));
     try {
       mkdirSync(join(root, ".deft"), { recursive: true });
@@ -326,6 +348,13 @@ describe("checks", () => {
       const result = runChecksImpl(root, { isDir });
       const legacy = result.checks.find((c) => c.name === "legacy-layout");
       expect(legacy?.status).toBe("fail");
+      expect(legacy?.data?.advisory).toBe(true);
+      expect(legacy).toBeDefined();
+      if (legacy === undefined) {
+        return;
+      }
+      expect(deriveExitCode([legacy], [])).toBe(0);
+      // Sibling hard fail (claimed .deft/core/ is absent) still exits 1.
       expect(result.exitCode).toBe(1);
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -492,6 +521,7 @@ describe("checkGitignoreCoverage (#2206)", () => {
   it("fails when canonical entries are missing", () => {
     const result = checkGitignoreCoverage("/proj", seamsFor("node_modules/\n"));
     expect(result.status).toBe("fail");
+    expect(result.data?.advisory).toBe(true);
     const missing = result.data?.missing as string[];
     expect(missing.length).toBeGreaterThan(0);
     expect(missing).toContain(".deft-cache/");

@@ -142,6 +142,15 @@ export function formatIsoZ(when: Date | null): string {
   return formatUtcIso(when);
 }
 
+/** Dirty doctor / ritual copy: --full re-probes only; do not prescribe a write (#3379). */
+export const DOCTOR_HARD_ERROR_NOTE =
+  "these are hard errors (advisory warnings do not block writes)";
+export const DOCTOR_DIRTY_REPROBE_HINT = "run `deft doctor --full` to re-probe only";
+
+export function dirtyDoctorHint(): string {
+  return `${DOCTOR_HARD_ERROR_NOTE}; ${DOCTOR_DIRTY_REPROBE_HINT}`;
+}
+
 export function renderDoctorStatusLine(decision: ThrottleDecision, now = new Date()): string {
   const ageH = Math.max(Math.floor(decision.ageHours), 0);
   if (decision.dirty) {
@@ -149,7 +158,7 @@ export function renderDoctorStatusLine(decision: ThrottleDecision, now = new Dat
     const warns = Math.max(decision.lastFindingCount - decision.lastErrorCount, 0);
     const errPhrase = `${errs} error${errs !== 1 ? "s" : ""}`;
     const warnPhrase = `${warns} warning${warns !== 1 ? "s" : ""}`;
-    return `[doctor] ran ${ageH}h ago, ${errPhrase} / ${warnPhrase} -- UNRESOLVED; run \`deft doctor --full\` to re-probe or address findings.`;
+    return `[doctor] ran ${ageH}h ago, ${errPhrase} / ${warnPhrase} -- UNRESOLVED; ${DOCTOR_HARD_ERROR_NOTE}. ${DOCTOR_DIRTY_REPROBE_HINT}.`;
   }
   const remainingMs = (decision.nextEligibleAt?.getTime() ?? now.getTime()) - now.getTime();
   const remainingH = Math.max(Math.floor(remainingMs / 3_600_000), 0);

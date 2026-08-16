@@ -41,6 +41,7 @@ import { probeAgentHooksLive } from "../verify-env/agent-hooks-live-probe.js";
 import { agentsRefreshPlan, hasV3ManagedMarker } from "./agents-md.js";
 import {
   checkXbriefEnvelopeMajorVersion,
+  DOCTOR_ADVISORY_FAIL_CHECKS,
   runChecks,
   XBRIEF_ENVELOPE_MAJOR_CHECK,
   XBRIEF_ENVELOPE_MIGRATE_COMMAND,
@@ -56,6 +57,7 @@ import {
 } from "./constants.js";
 import {
   decideThrottle,
+  dirtyDoctorHint,
   formatIsoZ,
   readState,
   renderDoctorStatusLine,
@@ -246,9 +248,7 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
         },
         seams,
       );
-      const hint = decision.dirty
-        ? "run `deft doctor --full` to re-probe or address findings"
-        : "--full forces";
+      const hint = decision.dirty ? dirtyDoctorHint() : "--full forces";
       if (jsonMode) {
         const payload = {
           status: "throttle-skipped",
@@ -851,22 +851,14 @@ function runInstallIntegrityChecks(
           return null;
         }
       });
-    const result = runChecks(projectRoot, { isDir, isFile, readText });
-    // Exit-exempt check fails stay warnings so lastErrorCount stays 0
-    // (gated ritual / PreToolUse). Keep completed-lifecycle-consistency hard.
-    const warningOnFail = new Set([
-      "legacy-layout",
-      "canonical-vendored-npm-signpost",
-      "manifest-version-reportable",
-      "gitignore-coverage",
-      "stale-xbrief-schema-deposit",
-      "typescript-7-side-by-side",
-      "completed-open-items",
-    ]);
+    const result = (seams.runChecks ?? runChecks)(projectRoot, { isDir, isFile, readText });
+    // Advisory fails stay warnings so lastErrorCount stays 0
+    // (gated ritual / PreToolUse). Hard stays hard: completed-lifecycle-consistency.
     for (const entry of (result.checks as Array<Record<string, unknown>>) ?? []) {
       const name = String(entry.name ?? "install-integrity");
       const status = String(entry.status ?? "");
       const detail = String(entry.detail ?? "");
+      const data = (entry.data as Record<string, unknown>) ?? {};
       // Authoritative envelope-major emission is runXbriefEnvelopeVersionCheck
       // (runs for framework repo + consumers). Skip install-integrity duplicate.
       if (name === XBRIEF_ENVELOPE_MAJOR_CHECK) {
@@ -880,7 +872,7 @@ function runInstallIntegrityChecks(
         sink.info(`${name}: skip -- ${detail}`);
         continue;
       }
-      if (warningOnFail.has(name) && status === "fail") {
+      if (status === "fail" && (data.advisory === true || DOCTOR_ADVISORY_FAIL_CHECKS.has(name))) {
         sink.warn(`${name}: ${detail}`);
         addFinding({
           severity: "warning",
@@ -888,7 +880,7 @@ function runInstallIntegrityChecks(
           check: `install-integrity:${name}`,
           install_check: name,
           status,
-          data: (entry.data as Record<string, unknown>) ?? {},
+          data,
         });
         continue;
       }

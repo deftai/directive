@@ -56,6 +56,34 @@ export const XBRIEF_ENVELOPE_MIGRATE_COMMAND = "deft migrate:xbrief" as const;
 /** Doctor check name for envelope major mismatch (Q5 Option 2, #3243). */
 export const XBRIEF_ENVELOPE_MAJOR_CHECK = "xbrief-envelope-version" as const;
 
+/**
+ * One SoT for advisory (exit-exempt) check fails (#3379).
+ * Union of the previous `deriveExitCode` / `cmdDoctor` name lists.
+ * A fail is advisory when `data.advisory === true` or the name is in this set.
+ */
+export const DOCTOR_ADVISORY_FAIL_CHECKS: ReadonlySet<string> = new Set([
+  "legacy-layout",
+  "canonical-vendored-npm-signpost",
+  "manifest-version-reportable",
+  "gitignore-coverage",
+  "stale-xbrief-schema-deposit",
+  "typescript-7-side-by-side",
+  "completed-open-items",
+  "coverage-check-resume-policy",
+]);
+
+/** True when a check fail must stay a warning (not lastErrorCount / exit 1). */
+export function isDoctorAdvisoryFail(
+  name: string,
+  data?: Readonly<Record<string, unknown>> | null,
+): boolean {
+  return data?.advisory === true || DOCTOR_ADVISORY_FAIL_CHECKS.has(name);
+}
+
+function stampAdvisory(data: Record<string, unknown>): Record<string, unknown> {
+  return { ...data, advisory: true };
+}
+
 export interface CheckSeams {
   readonly readText?: (path: string) => string | null;
   readonly isFile?: (path: string) => boolean;
@@ -774,13 +802,13 @@ export function checkLegacyLayout(projectRoot: string, seams: CheckSeams = {}): 
       name: "legacy-layout",
       status: "fail",
       detail: dualLayoutSignpostLine(dualLayout),
-      data: {
+      data: stampAdvisory({
         legacy_layout: true,
         legacy_layout_kind: dualLayout.kind,
         evidence: [...dualLayout.evidence],
         upgrading_doc_url: UPGRADING_DOC_URL,
         go_bridge_releases_url: GO_BRIDGE_RELEASES_URL,
-      },
+      }),
     };
   }
   const detection = detectLegacyLayout(projectRoot, legacySeams);
@@ -796,13 +824,13 @@ export function checkLegacyLayout(projectRoot: string, seams: CheckSeams = {}): 
     name: "legacy-layout",
     status: "fail",
     detail: legacyLayoutSignpostLine(detection),
-    data: {
+    data: stampAdvisory({
       legacy_layout: true,
       legacy_layout_kind: detection.kind,
       evidence: [...detection.evidence],
       upgrading_doc_url: UPGRADING_DOC_URL,
       go_bridge_releases_url: GO_BRIDGE_RELEASES_URL,
-    },
+    }),
   };
 }
 
@@ -852,14 +880,14 @@ export function checkCanonicalVendoredNpmSignpost(
     name: "canonical-vendored-npm-signpost",
     status: "fail",
     detail,
-    data: {
+    data: stampAdvisory({
       canonical_vendored: true,
       npm_managed: false,
       manifest_path: manifestPath,
       sentinel_key: NPM_MANAGED_SENTINEL_KEY,
       sentinel_value: NPM_MANAGED_SENTINEL_VALUE,
       upgrading_doc_url: UPGRADING_DOC_URL,
-    },
+    }),
   };
 }
 
@@ -921,14 +949,14 @@ export function checkManifestVersionReportable(
         "so the framework version is unreportable. This happens on legacy `deft-install` deposits " +
         `made without a release pin (#2294). Run \`${CANONICAL_UPGRADE_COMMAND}\` then \`directive update\` ` +
         `to obtain a pinned npm-managed manifest. See ${UPGRADING_DOC_URL}.`,
-      data: {
+      data: stampAdvisory({
         manifest_path: manifestPath,
         version: null,
         source: reportable.source,
         sha: reportable.sha,
         upgrade_command: CANONICAL_UPGRADE_COMMAND,
         upgrading_doc_url: UPGRADING_DOC_URL,
-      },
+      }),
     };
   }
   return {
@@ -1027,11 +1055,11 @@ export function checkStaleXbriefSchemaDeposit(
     detail:
       `Stale deposited schema at ${STALE_VBRIEF_CORE_SCHEMA_REL} still carries the legacy ${LEGACY_INFO_ROOT_KEY} root key on an already-migrated xbrief/ layout. ` +
       "Run `directive update` to refresh deposited schema files — not `deft migrate:xbrief` (no vbrief/ tree remains to convert).",
-    data: {
+    data: stampAdvisory({
       schema_path: schemaPath,
       convergence_state: convergence.state,
       suggested_fix: "directive update",
-    },
+    }),
   };
 }
 
@@ -1190,11 +1218,11 @@ export function checkTypescript7SideBySide(
       "typescript resolves to 7.x without the @typescript/typescript6 alias while typescript-eslint and eslint are present. " +
       "Until TS 7.1, use the side-by-side alias pattern in languages/typescript.md § TypeScript 7 side-by-side (pre-7.1) " +
       "(Cartograph #111: keep typescript on npm:@typescript/typescript6 and install TS 7 under @typescript/native).",
-    data: {
+    data: stampAdvisory({
       package_json_path: packageJsonPath,
       typescript: typescriptValue,
       suggested_fix: "languages/typescript.md#typescript-7-side-by-side-pre-71",
-    },
+    }),
   };
 }
 
@@ -1247,11 +1275,11 @@ export function checkGitignoreCoverage(projectRoot: string, seams: CheckSeams = 
       `missing (${missing.slice(0, 3).join(", ")}${missing.length > 3 ? ", …" : ""}). ` +
       "Run `directive update` to add the missing entries (idempotent, safe on re-run). " +
       `Full missing list: ${JSON.stringify(missing)}.`,
-    data: {
+    data: stampAdvisory({
       gitignore_path: gitignorePath,
       missing,
       suggested_fix: "directive update",
-    },
+    }),
   };
 }
 
@@ -1377,20 +1405,10 @@ export function checkCoverageCheckResumePolicy(projectRoot: string): CheckResult
 }
 
 export function deriveExitCode(checks: readonly CheckResult[], errors: readonly string[]): number {
-  const exitExempt = new Set([
-    "canonical-vendored-npm-signpost",
-    "manifest-version-reportable",
-    "gitignore-coverage",
-    "stale-xbrief-schema-deposit",
-    "typescript-7-side-by-side",
-    "coverage-check-resume-policy",
-    // Historical pre-#2862 completed/ corpora; hard fail is scope:complete (#3242).
-    "completed-open-items",
-  ]);
   if (errors.length > 0 || checks.some((c) => c.status === "error")) {
     return 2;
   }
-  if (checks.some((c) => c.status === "fail" && !exitExempt.has(c.name))) {
+  if (checks.some((c) => c.status === "fail" && !isDoctorAdvisoryFail(c.name, c.data))) {
     return 1;
   }
   return 0;

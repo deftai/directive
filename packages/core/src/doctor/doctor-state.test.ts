@@ -3,7 +3,10 @@ import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  DOCTOR_DIRTY_REPROBE_HINT,
+  DOCTOR_HARD_ERROR_NOTE,
   decideThrottle,
+  dirtyDoctorHint,
   formatIsoZ,
   readState,
   renderDoctorStatusLine,
@@ -100,6 +103,11 @@ describe("doctor-state", () => {
     const line = renderDoctorStatusLine(dirty);
     expect(line).toContain("1 error");
     expect(line).not.toContain("1 errors");
+    expect(line).toContain(DOCTOR_HARD_ERROR_NOTE);
+    expect(line).toContain(DOCTOR_DIRTY_REPROBE_HINT);
+    expect(line).not.toContain("address findings");
+    expect(dirtyDoctorHint()).toBe(`${DOCTOR_HARD_ERROR_NOTE}; ${DOCTOR_DIRTY_REPROBE_HINT}`);
+    expect(dirtyDoctorHint()).not.toContain("address findings");
   });
 
   it("readState returns null for corrupt json", () => {

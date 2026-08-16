@@ -178,6 +178,18 @@ export interface DoctorSeams {
    * its `plan` object; returns [] when no project definition is present.
    */
   readonly detectPlanExtensionShadows?: (projectRoot: string) => readonly ShadowedPlanExtension[];
+  /**
+   * Override install-integrity `runChecks` for tests (#3379). Default is
+   * `runChecks` from `./checks.js`.
+   */
+  readonly runChecks?: (
+    projectRoot: string,
+    seams?: {
+      readonly readText?: (path: string) => string | null;
+      readonly isFile?: (path: string) => boolean;
+      readonly isDir?: (path: string) => boolean;
+    },
+  ) => Record<string, unknown>;
   /** Read-only agent-host hook registration probe (#2438). */
   readonly evaluateAgentHooks?: (projectRoot: string) => AgentHookHealthResult;
   /** Live hook spawn probe for doctor --full (#2852). */

@@ -41,17 +41,33 @@ describe("cmdDoctor", () => {
 
   it("honours throttle skip when dirty", () => {
     const now = new Date("2026-01-01T12:00:00Z");
-    const exit = cmdDoctor(["--json"], {
-      whichFn: () => "/usr/bin/x",
-      readState: () => ({
-        lastRunAt: new Date("2026-01-01T10:00:00Z"),
-        lastExitCode: 1,
-        lastFindingCount: 2,
-        lastErrorCount: 1,
-      }),
-      now: () => now,
-    });
+    const stdout: string[] = [];
+    const origWrite = process.stdout.write.bind(process.stdout);
+    process.stdout.write = ((chunk: string | Uint8Array): boolean => {
+      stdout.push(typeof chunk === "string" ? chunk : chunk.toString());
+      return true;
+    }) as typeof process.stdout.write;
+    let exit: number;
+    try {
+      exit = cmdDoctor(["--json"], {
+        whichFn: () => "/usr/bin/x",
+        readState: () => ({
+          lastRunAt: new Date("2026-01-01T10:00:00Z"),
+          lastExitCode: 1,
+          lastFindingCount: 2,
+          lastErrorCount: 1,
+        }),
+        now: () => now,
+      });
+    } finally {
+      process.stdout.write = origWrite;
+    }
     expect(exit).toBe(1);
+    const payload = JSON.parse(stdout.join("")) as { hint?: string };
+    expect(payload.hint).toContain("re-probe only");
+    expect(payload.hint).toContain("hard errors");
+    expect(payload.hint).toContain("advisory warnings do not block writes");
+    expect(payload.hint).not.toContain("address findings");
   });
 
   it("bypasses throttle with --full", () => {
@@ -779,6 +795,7 @@ describe("cmdDoctor completed-open-items advisory mapping (#3372)", () => {
     root: string,
     framework: string,
     argv: string[] = ["--full", "--json", "--project-root", root],
+    extraSeams: DoctorSeams = {},
   ): {
     exit: number;
     lastErrorCount: number;
@@ -805,6 +822,7 @@ describe("cmdDoctor completed-open-items advisory mapping (#3372)", () => {
           lastErrorCount = payload.errorCount;
           return null;
         },
+        ...extraSeams,
       });
     } finally {
       process.stdout.write = origWrite;
@@ -899,5 +917,43 @@ describe("cmdDoctor completed-open-items advisory mapping (#3372)", () => {
     expect(finding).toBeDefined();
     expect(finding?.severity).toBe("error");
     expect(String(finding?.message)).toContain("completed/bad.xbrief.json");
+  });
+
+  it("maps a synthetic data.advisory fail (name not in the set) to a warning (#3379)", () => {
+    const { root, framework } = makeConsumer();
+    const synthetic = {
+      name: "synthetic-advisory-only",
+      status: "fail",
+      detail: "advisory bit only",
+      data: { advisory: true },
+    };
+    const seams: DoctorSeams = {
+      runChecks: () => ({
+        project_root: root,
+        install_root: null,
+        exit_code: 0,
+        checks: [synthetic],
+        errors: [],
+      }),
+    };
+    const { exit, lastErrorCount, payload } = runDoctorJson(
+      root,
+      framework,
+      ["--full", "--json", "--project-root", root],
+      seams,
+    );
+    expect(exit).toBe(0);
+    expect(lastErrorCount).toBe(0);
+    expect(payload.ok).toBe(true);
+    const finding = payload.findings?.find(
+      (f) =>
+        f.install_check === "synthetic-advisory-only" ||
+        f.check === "install-integrity:synthetic-advisory-only",
+    );
+    expect(finding).toBeDefined();
+    expect(finding?.severity).toBe("warning");
+    const ritual = runDoctorJson(root, framework, ["--json", "--project-root", root], seams);
+    expect(ritual.exit).toBe(0);
+    expect(ritual.lastErrorCount).toBe(0);
   });
 });
