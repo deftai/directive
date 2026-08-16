@@ -29,6 +29,32 @@ describe("hashProductState (#3387)", () => {
     expect(second.digest).not.toBe(first.digest);
   });
 
+  it("expands glob file_scope and fails closed when the glob matches nothing", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-glob-"));
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src", "a.ts"), "export const a = 1;\n", "utf8");
+    const plan = {
+      acceptance: { commands: [{ command: "true" }] },
+      metadata: { swarm: { file_scope: ["src/*.ts"] } },
+    };
+    const first = hashProductState({ projectRoot: root, plan });
+    expect(first.complete).toBe(true);
+    expect(first.files).toContain("src/a.ts");
+    writeFileSync(join(root, "src", "a.ts"), "export const a = 2;\n", "utf8");
+    const second = hashProductState({ projectRoot: root, plan });
+    expect(second.digest).not.toBe(first.digest);
+
+    const empty = hashProductState({
+      projectRoot: root,
+      plan: {
+        acceptance: { commands: [{ command: "true" }] },
+        metadata: { swarm: { file_scope: ["missing/*.ts"] } },
+      },
+    });
+    expect(empty.complete).toBe(false);
+    expect(empty.files).toEqual([]);
+  });
+
   it("uses file_scope when productPaths are omitted", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-scope-"));
     mkdirSync(join(root, "pkg"), { recursive: true });

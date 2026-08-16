@@ -6,7 +6,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, globSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { defaultGitRunner, type GitRunner, gitHead } from "./git.js";
 
@@ -121,7 +121,22 @@ function fileScopePaths(plan: Record<string, unknown>): string[] {
 
 function expandPath(root: string, relOrGlob: string): string[] {
   const rel = toPosix(relOrGlob).replace(/^\.\//, "");
-  if (rel.includes("*")) return [];
+  if (rel.includes("*") || rel.includes("?")) {
+    try {
+      return globSync(rel, { cwd: root })
+        .map((match) => toPosix(relative(root, resolve(root, match))))
+        .filter((posix) => posix.length > 0 && !isExcludedRel(posix))
+        .filter((posix) => {
+          try {
+            return statSync(resolve(root, posix)).isFile();
+          } catch {
+            return false;
+          }
+        });
+    } catch {
+      return [];
+    }
+  }
   const abs = resolve(root, rel);
   if (!existsSync(abs)) return [rel];
   try {
@@ -191,7 +206,9 @@ export function hashProductState(input: HashProductStateInput): ProductStateHash
   }
 
   const head = existsSync(join(root, ".git")) ? gitHead(root, runGit).head : null;
-  const hasSurface = sorted.length > 0 || head !== null;
+  const specifiedSurface =
+    input.productPaths !== undefined || fileScopePaths(input.plan).length > 0;
+  const hasSurface = specifiedSurface ? sorted.length > 0 : sorted.length > 0 || head !== null;
   const digest = createHash("sha256")
     .update(
       stableJson({
