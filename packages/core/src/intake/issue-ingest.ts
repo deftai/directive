@@ -993,6 +993,7 @@ export function ingestBulk(
     duplicate: [],
     dryrun: [],
     failed: [],
+    notices: [],
   };
 
   for (const issue of filtered) {
@@ -1010,9 +1011,12 @@ export function ingestBulk(
       }
       throw exc;
     }
-    const [result, path, _msg] = ingested;
+    const [result, path, msg] = ingested;
     const rel = path !== null ? path.replace(`${options.vbriefDir}/`, "").replace(/\\/g, "/") : "";
     (summary[result] as string[]).push(rel);
+    if (msg.includes("\n")) {
+      (summary.notices as string[]).push(msg);
+    }
     if (result === "created" && path !== null) {
       const num = Number(issue.number);
       const existing = refs.get(num) ?? [];
@@ -1098,6 +1102,9 @@ export function issueIngestMain(args: IssueIngestCliArgs): number {
     );
     for (const entry of created) {
       process.stdout.write(`  CREATED ${entry}\n`);
+    }
+    for (const notice of (summary.notices as string[] | undefined) ?? []) {
+      process.stdout.write(`${notice}\n`);
     }
     for (const entry of dryrun) {
       process.stdout.write(`  DRY-RUN ${entry}\n`);

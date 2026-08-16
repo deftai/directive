@@ -275,6 +275,7 @@ describe("intake coverage boost", () => {
         },
       );
       expect(summary.total).toBe(1);
+      expect(summary.notices).toEqual([]);
       rmSync(dir, { recursive: true, force: true });
     });
 
