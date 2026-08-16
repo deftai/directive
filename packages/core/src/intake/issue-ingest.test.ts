@@ -12,6 +12,7 @@ import {
   extractPlanItems,
   fetchFromCache,
   fetchIssue,
+  formatIngestCreatedMessage,
   ISSUE_COMMENT_THREAD_KEY,
   ingestOne,
   provenanceIssueNumber,
@@ -35,6 +36,33 @@ function readJsonObject(filePath: string): Record<string, unknown> {
   }
   return parsed as Record<string, unknown>;
 }
+
+describe("formatIngestCreatedMessage (#3398)", () => {
+  it("appends a quality_notice so a refused stamp is not silent", () => {
+    expect(formatIngestCreatedMessage("proposed", "a.xbrief.json", { title: "x" })).toBe(
+      "CREATED proposed/a.xbrief.json",
+    );
+    expect(
+      formatIngestCreatedMessage("proposed", "a.xbrief.json", {
+        acceptance: { quality_notice: "derive clauses from the statement's testable constraints" },
+      }),
+    ).toBe(
+      "CREATED proposed/a.xbrief.json\nderive clauses from the statement's testable constraints",
+    );
+    expect(
+      formatIngestCreatedMessage(
+        "proposed",
+        "a.xbrief.json",
+        {
+          acceptance: {
+            quality_notice: "derive clauses from the statement's testable constraints",
+          },
+        },
+        true,
+      ),
+    ).toMatch(/^DRY-RUN would write/);
+  });
+});
 
 describe("buildIssueVbrief", () => {
   it("maps checkbox body to plan items", () => {

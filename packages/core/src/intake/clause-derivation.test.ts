@@ -376,9 +376,14 @@ describe("statement traceability (#3398)", () => {
     };
     const result = applyClauseQualityForIngest(plan);
     expect(result.applied).toBe(false);
-    const acc = plan.acceptance as { clauses?: unknown; derived_reason?: string };
+    const acc = plan.acceptance as {
+      clauses?: unknown;
+      derived_reason?: string;
+      quality_notice?: string;
+    };
     expect(acc.clauses).toBeUndefined();
     expect(acc.derived_reason).toBe(CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION);
+    expect(acc.quality_notice).toBe(CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION);
   });
 });
 

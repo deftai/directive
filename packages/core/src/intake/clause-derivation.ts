@@ -307,6 +307,7 @@ export function applyClauseQualityForIngest(plan: Record<string, unknown>): Clau
       plan.acceptance = {
         ...existing,
         derived_reason: quality.notice,
+        quality_notice: quality.notice,
       };
     }
   }

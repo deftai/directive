@@ -634,6 +634,30 @@ export function buildIssueVbrief(
   ];
 }
 
+/** Include a refused-stamp remediation on the ingest result so it is not silent. */
+export function formatIngestCreatedMessage(
+  folder: string,
+  filename: string,
+  plan: unknown,
+  dryRun = false,
+): string {
+  const lead = dryRun
+    ? `DRY-RUN would write ${folder}/${filename}`
+    : `CREATED ${folder}/${filename}`;
+  if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
+    return lead;
+  }
+  const acceptance = (plan as { acceptance?: unknown }).acceptance;
+  if (typeof acceptance !== "object" || acceptance === null || Array.isArray(acceptance)) {
+    return lead;
+  }
+  const notice = (acceptance as { quality_notice?: unknown }).quality_notice;
+  if (typeof notice !== "string" || notice.trim().length === 0) {
+    return lead;
+  }
+  return `${lead}\n${notice.trim()}`;
+}
+
 export function targetFilename(
   number: number,
   title: string,
@@ -903,7 +927,7 @@ export function ingestOne(
   const target = join(folderPath, filename);
 
   if (options.dryRun) {
-    return ["dryrun", target, `DRY-RUN would write ${folder}/${filename}`];
+    return ["dryrun", target, formatIngestCreatedMessage(folder, filename, vbrief.plan, true)];
   }
 
   // Gate lifecycle folder + leaf before mkdir/write so folder/parent symlinks
@@ -925,7 +949,7 @@ export function ingestOne(
   mkdirSync(folderPath, { recursive: true });
   writeFileSync(target, `${JSON.stringify(vbrief, null, 2)}\n`, "utf8");
   emitAcceptanceStampFromPlan(projectRoot, vbrief.plan);
-  return ["created", target, `CREATED ${folder}/${filename}`];
+  return ["created", target, formatIngestCreatedMessage(folder, filename, vbrief.plan)];
 }
 
 export function ingestBulk(
