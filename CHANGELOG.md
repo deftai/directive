@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **engine:_ts-build: trailing no-op for go-task <3.52 (#3381).** Older go-task treats an untaken last if/fi as exit 1, so consumer deposits fail every non-runtime `task deft:*`. A colon after the outer fi keeps the skip-build path exit 0. Closes #3381.
+
 - **One SoT for advisory doctor fails; dirty copy no longer says address findings (#3379).** `deriveExitCode` and `cmdDoctor` share `DOCTOR_ADVISORY_FAIL_CHECKS`. A fail is a warning when `data.advisory` is true or the name is in that set. Dirty status / throttle hint names `--full` as re-probe only and says hard errors block writes, advisory warnings do not. Closes #3379. Refs #3372.
 - **`slice:record-existing` / `slice:list` print the live triage-cache slices log, not the leftover `.eval` path (#3386).** Closes #3386.
 - **UAT Shell residual after #3354: dest-form writers plant authz or kill-switch (#3382).** Under active UAT, residual dest forms (`cmake -E copy`, `script`, `gallery-dl -d`, `megadl --path`, `ncftpget`, `git apply --directory`, VCS checkout writers, editors) that write into `.deft/authz/**` or plant `.deft-directive-disable` / `.no-deft-directive` classify as settings deny (not unclassifiable allow). Unknown write-shaped dest flags (`-d` / `--path` / `--directory`) targeting those paths also fail closed. Ordinary dests such as `/tmp` stay unclassifiable. Already-denied `curl -o` / `nc -o` stay denied. Closes #3382. Refs #3354, #3039.

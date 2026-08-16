@@ -55,6 +55,7 @@ tasks:
           fi
           node "{{.TASKFILE_DIR}}/engine-pm-run.cjs" "{{.DEFT_ROOT}}" build --mark-warm
         fi
+        : # no-op -- go-task <3.52.0 treats untaken last if/fi as exit 1 (#3381)
 
   invoke:
     internal: true
