@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`pr-monitor` escalates on sustained `ci_absent_required` instead of polling to cap (#3389).** After a one-poll grace (first-poll absence is normal), consecutive absent required contexts exit `ABSENT-REQUIRED` and name the missing checks. Pending check-runs still wait. Consumes #3234; does not redefine it. Closes #3389.
+
 ### Changed
 
 ### Fixed

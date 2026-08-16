@@ -1,7 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { fakeRunGhForMonitor } from "../pr-merge-readiness/test-gh-fixtures.helpers.js";
 import { cadenceIntervalAfterPoll, cadenceIntervals } from "./cadence.js";
-import { DEFAULT_CADENCE, EXIT_CAP_REACHED, EXIT_CLEAN, EXIT_PR_TERMINAL } from "./constants.js";
+import {
+  DEFAULT_CADENCE,
+  EXIT_ABSENT_REQUIRED,
+  EXIT_CAP_REACHED,
+  EXIT_CLEAN,
+  EXIT_PR_TERMINAL,
+} from "./constants.js";
 import {
   formatPollStatus,
   isTerminalPrState,
@@ -467,6 +473,153 @@ describe("monitor loop", () => {
     expect(emitted).toContain("poll #5");
   });
 
+  it("does not escalate on first-poll ci_absent_required (#3389)", () => {
+    let reads = 0;
+    const clockFn = {
+      now(): number {
+        reads += 1;
+        if (reads <= 2) return 0;
+        return 1000;
+      },
+    };
+    const result = monitor(3389, "deftai/directive", {
+      capMinutes: 0.001,
+      cadence: [[1, 5]],
+      sleepFn: () => undefined,
+      clockFn,
+      callReadinessFn: makeCallLog({
+        via: "primary",
+        merge_ready: false,
+        failures: [
+          "Required status-check contexts absent on HEAD (ci_absent_required): Greptile Review",
+        ],
+        partial_data: {
+          ci: {
+            ready_state: "ci_absent_required",
+            absent_required: ["Greptile Review"],
+            pending_required: [],
+          },
+        },
+      }),
+    });
+    expect(result.exitCode).toBe(EXIT_CAP_REACHED);
+    expect(result.pollCount).toBe(1);
+  });
+
+  it("escalates after consecutive ci_absent_required past the grace window (#3389)", () => {
+    const clock = new FakeClock();
+    const advancingSleep = (s: number) => {
+      clock.value += s;
+    };
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const absent = {
+      via: "primary",
+      merge_ready: false,
+      failures: [
+        "Required status-check contexts absent on HEAD (ci_absent_required): Greptile Review",
+      ],
+      partial_data: {
+        ci: {
+          ready_state: "ci_absent_required",
+          absent_required: ["Greptile Review"],
+          pending_required: [],
+        },
+      },
+    };
+    const result = monitor(3389, "deftai/directive", {
+      capMinutes: 120,
+      cadence: [[1, 10]],
+      sleepFn: advancingSleep,
+      clockFn: clock,
+      callReadinessFn: makeCallLog(absent, absent, absent),
+    });
+    const emitted = stderr.mock.calls.map((c) => String(c[0])).join("");
+    stderr.mockRestore();
+
+    expect(result.exitCode).toBe(EXIT_ABSENT_REQUIRED);
+    expect(result.pollCount).toBe(2);
+    expect(result.payload.monitor_absent_required).toEqual(["Greptile Review"]);
+    expect(emitted).toContain("ABSENT-REQUIRED: Greptile Review");
+  });
+
+  it("still waits when required check-runs are pending (#3389)", () => {
+    const clock = new FakeClock();
+    const advancingSleep = (s: number) => {
+      clock.value += s;
+    };
+    const result = monitor(3389, "deftai/directive", {
+      capMinutes: 1,
+      cadence: [[1, 10]],
+      sleepFn: advancingSleep,
+      clockFn: clock,
+      callReadinessFn: (): PollResult => ({
+        exitCode: 1,
+        payload: {
+          via: "primary",
+          merge_ready: false,
+          failures: ["CI pending"],
+          partial_data: {
+            ci: {
+              ready_state: "not_ready_yet",
+              absent_required: [],
+              pending_required: ["Greptile Review"],
+            },
+          },
+        },
+        rawStdout: "",
+        rawStderr: "",
+      }),
+    });
+    expect(result.exitCode).toBe(EXIT_CAP_REACHED);
+    expect(result.pollCount).toBeGreaterThan(1);
+  });
+
+  it("resets the absent streak when a later poll is no longer absent (#3389)", () => {
+    const clock = new FakeClock();
+    const advancingSleep = (s: number) => {
+      clock.value += s;
+    };
+    const absent = {
+      via: "primary",
+      merge_ready: false,
+      failures: [
+        "Required status-check contexts absent on HEAD (ci_absent_required): Greptile Review",
+      ],
+      partial_data: {
+        ci: {
+          ready_state: "ci_absent_required",
+          absent_required: ["Greptile Review"],
+          pending_required: [],
+        },
+      },
+    };
+    const pending = {
+      via: "primary",
+      merge_ready: false,
+      failures: ["CI pending"],
+      partial_data: {
+        ci: {
+          ready_state: "not_ready_yet",
+          absent_required: [],
+          pending_required: ["Greptile Review"],
+        },
+      },
+    };
+    const result = monitor(3389, "deftai/directive", {
+      capMinutes: 120,
+      cadence: [[1, 10]],
+      sleepFn: advancingSleep,
+      clockFn: clock,
+      callReadinessFn: makeCallLog(absent, pending, {
+        via: "primary",
+        merge_ready: true,
+        failures: [],
+      }),
+    });
+    expect(result.exitCode).toBe(EXIT_CLEAN);
+    expect(result.pollCount).toBe(3);
+  });
+
   it("fails closed via maxPolls when clock never advances (#2652)", () => {
     const clock = new FakeClock();
     const result = monitor(2652, "deftai/directive", {
@@ -482,5 +635,108 @@ describe("monitor loop", () => {
     expect(result.exitCode).toBe(EXIT_CAP_REACHED);
     expect(result.pollCount).toBeGreaterThan(0);
     expect(result.pollCount).toBeLessThan(500);
+  });
+
+  it("early-escalates Greptile decline comment + no check-run (#3389)", () => {
+    const HEAD = "abc1234567890def1234567890abcdef12345678";
+    const declineBody =
+      "<!-- greptile-status -->\n" +
+      "Declined to review: pull request exceeds the maximum size. " +
+      "Greptile Review check-run will not be posted.\n";
+    const runGh = (cmd: readonly string[]) => {
+      const joined = cmd.join(" ");
+      if (joined.includes("graphql")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({
+            data: {
+              repository: {
+                pullRequest: {
+                  reviewThreads: {
+                    pageInfo: { hasNextPage: false, endCursor: null },
+                    nodes: [],
+                  },
+                },
+              },
+            },
+          }),
+          stderr: "",
+        };
+      }
+      if (joined.includes("headRefOid")) {
+        return { returncode: 0, stdout: `${HEAD}\n`, stderr: "" };
+      }
+      if (joined.includes("/comments")) {
+        return { returncode: 0, stdout: declineBody, stderr: "" };
+      }
+      if (joined.includes("/check-runs")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({
+            check_runs: [
+              {
+                name: "TypeScript (build + lint + test)",
+                status: "completed",
+                conclusion: "success",
+              },
+            ],
+          }),
+          stderr: "",
+        };
+      }
+      if (joined.includes("/rules/branches/")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify([
+            {
+              type: "required_status_checks",
+              parameters: {
+                required_status_checks: [{ context: "Greptile Review" }],
+              },
+            },
+          ]),
+          stderr: "",
+        };
+      }
+      if (joined.includes("/protection")) {
+        return { returncode: 1, stdout: "", stderr: "HTTP 404: Not Found" };
+      }
+      if (joined.includes("/pulls/")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({
+            state: "open",
+            merged: false,
+            mergeable: true,
+            mergeable_state: "clean",
+            head: { sha: HEAD },
+            base: { ref: "master" },
+          }),
+          stderr: "",
+        };
+      }
+      return { returncode: 1, stdout: "", stderr: `unexpected: ${joined}` };
+    };
+
+    const clock = new FakeClock();
+    const advancingSleep = (s: number) => {
+      clock.value += s;
+    };
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const result = monitor(3389, "deftai/directive", {
+      capMinutes: 120,
+      cadence: [[1, 10]],
+      sleepFn: advancingSleep,
+      clockFn: clock,
+      runGh,
+    });
+    const emitted = stderr.mock.calls.map((c) => String(c[0])).join("");
+    stderr.mockRestore();
+
+    expect(result.exitCode).toBe(EXIT_ABSENT_REQUIRED);
+    expect(result.exitCode).not.toBe(EXIT_CAP_REACHED);
+    expect(result.pollCount).toBe(2);
+    expect(result.payload.monitor_absent_required).toEqual(["Greptile Review"]);
+    expect(emitted).toContain("ABSENT-REQUIRED: Greptile Review");
   });
 });

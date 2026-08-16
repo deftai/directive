@@ -200,6 +200,10 @@ export function runMonitor(argv: readonly string[], options: RunMonitorOptions =
     if (typeof err === "string" && err.length > 0) {
       lines.push(`  error: ${err}`);
     }
+    const missingRaw = payload.monitor_absent_required;
+    if (Array.isArray(missingRaw) && missingRaw.length > 0) {
+      lines.push(`  missing: ${missingRaw.map(String).join(", ")}`);
+    }
     const failuresRaw = payload.failures;
     if (Array.isArray(failuresRaw)) {
       failuresRaw.forEach((fail, index) => {

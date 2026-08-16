@@ -1,6 +1,13 @@
+export {
+  formatAbsentRequiredMessage,
+  readAbsentRequiredContexts,
+  shouldEscalateAbsentRequired,
+} from "./absent-required.js";
 export { cadenceIntervalAfterPoll, cadenceIntervals } from "./cadence.js";
 export {
+  ABSENT_REQUIRED_GRACE_POLLS,
   DEFAULT_CADENCE,
+  EXIT_ABSENT_REQUIRED,
   EXIT_CAP_REACHED,
   EXIT_CLEAN,
   EXIT_CONFIG_ERROR,

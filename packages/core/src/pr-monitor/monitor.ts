@@ -1,6 +1,12 @@
+import {
+  formatAbsentRequiredMessage,
+  readAbsentRequiredContexts,
+  shouldEscalateAbsentRequired,
+} from "./absent-required.js";
 import { cadenceIntervalAfterPoll, cadenceIntervals } from "./cadence.js";
 import {
   DEFAULT_CADENCE,
+  EXIT_ABSENT_REQUIRED,
   EXIT_CAP_REACHED,
   EXIT_CLEAN,
   EXIT_CONFIG_ERROR,
@@ -187,6 +193,7 @@ export function monitor(
   let lastPayload: Record<string, unknown> = {};
   let lastExit = EXIT_CAP_REACHED;
   let priorCadenceSeconds = cadenceIntervalAfterPoll(1, cadence);
+  let consecutiveAbsentRequired = 0;
 
   while (true) {
     pollIndex += 1;
@@ -219,6 +226,25 @@ export function monitor(
       return { exitCode: EXIT_PR_TERMINAL, payload: lastPayload, pollCount: pollIndex };
     }
 
+    const absentContexts = readAbsentRequiredContexts(lastPayload);
+    if (absentContexts !== null) {
+      consecutiveAbsentRequired += 1;
+      if (shouldEscalateAbsentRequired(consecutiveAbsentRequired)) {
+        const message = formatAbsentRequiredMessage(absentContexts);
+        process.stderr.write(`[monitor_pr] ${message}\n`);
+        return {
+          exitCode: EXIT_ABSENT_REQUIRED,
+          payload: {
+            ...lastPayload,
+            monitor_absent_required: [...absentContexts],
+          },
+          pollCount: pollIndex,
+        };
+      }
+    } else {
+      consecutiveAbsentRequired = 0;
+    }
+
     const elapsedAfterPoll = clockFn.now() - startedAt;
     const remaining = capSeconds - elapsedAfterPoll;
     if (remaining <= 0) {
@@ -245,6 +271,8 @@ export const summaryLabelForExit = (exitCode: number): string => {
       return "PR-TERMINAL";
     case EXIT_CONFIG_ERROR:
       return "CONFIG-ERROR";
+    case EXIT_ABSENT_REQUIRED:
+      return "ABSENT-REQUIRED";
     default:
       return "UNKNOWN";
   }

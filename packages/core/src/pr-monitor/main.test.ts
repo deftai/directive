@@ -131,6 +131,30 @@ describe("runMonitor CLI", () => {
     stdout.mockRestore();
     stderr.mockRestore();
   });
+
+  it("prints ABSENT-REQUIRED missing contexts (#3389)", () => {
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    runMonitor(["1363", "--repo", "deftai/directive"], {
+      monitorFn: () => ({
+        exitCode: 4,
+        payload: {
+          via: "primary",
+          merge_ready: false,
+          failures: [
+            "Required status-check contexts absent on HEAD (ci_absent_required): Greptile Review",
+          ],
+          monitor_absent_required: ["Greptile Review"],
+        },
+        pollCount: 2,
+      }),
+    });
+    const out = String(stdout.mock.calls.map((c) => c[0]).join(""));
+    expect(out).toContain("monitor result: ABSENT-REQUIRED");
+    expect(out).toContain("missing: Greptile Review");
+    stdout.mockRestore();
+    stderr.mockRestore();
+  });
 });
 
 describe("integration monitor with runGh", () => {

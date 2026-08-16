@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import * as computeMod from "../pr-merge-readiness/compute.js";
-import { EXIT_CAP_REACHED, EXIT_CLEAN, EXIT_CONFIG_ERROR, EXIT_PR_TERMINAL } from "./constants.js";
+import {
+  EXIT_ABSENT_REQUIRED,
+  EXIT_CAP_REACHED,
+  EXIT_CLEAN,
+  EXIT_CONFIG_ERROR,
+  EXIT_PR_TERMINAL,
+} from "./constants.js";
 import { parseMonitorArgs, runMonitor } from "./main.js";
 import { formatPollStatus, monitor, summaryLabelForExit } from "./monitor.js";
 import { callReadiness, readinessExitToPoll } from "./readiness.js";
@@ -98,6 +104,7 @@ describe("coverage boost", () => {
     expect(summaryLabelForExit(EXIT_CAP_REACHED)).toBe("CAP-REACHED");
     expect(summaryLabelForExit(EXIT_PR_TERMINAL)).toBe("PR-TERMINAL");
     expect(summaryLabelForExit(EXIT_CONFIG_ERROR)).toBe("CONFIG-ERROR");
+    expect(summaryLabelForExit(EXIT_ABSENT_REQUIRED)).toBe("ABSENT-REQUIRED");
     expect(summaryLabelForExit(99)).toBe("UNKNOWN");
   });
 
