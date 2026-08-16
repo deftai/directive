@@ -8,7 +8,7 @@
  * and scope briefs are never installer-managed; if they reappear in
  * `installerManagedMatchers()`, unit tests and deposit-time assert fail closed.
  *
- * Refs #1576, #1453, #1430, #3029, #3030, #3127, #3117, #3193.
+ * Refs #1576, #1453, #1430, #3029, #3030, #3127, #3117, #3193, #3393.
  */
 
 import { execFileSync } from "node:child_process";
@@ -80,6 +80,12 @@ export function installerManagedMatchers(): InstallerManagedMatcher[] {
     { exact: ".claude/settings.json" },
     { exact: ".grok/hooks/deft.json" },
     { exact: ".cursor/hooks.json" },
+    // Official Cursor adapter only (#3393). Exact paths — not a `.cursor/hooks/`
+    // prefix — so consumer-authored hooks stay app. Consumers using
+    // `pull_request_target` or pinned workflow refs evaluate the deposited
+    // guard from the previous allowlist for one PR; document, do not work around.
+    { exact: ".cursor/hooks/deft-cursor-hook-adapter.mjs" },
+    { exact: ".cursor/hooks/deft-cursor-hook-adapter.test.mjs" },
     { exact: ".codex/hooks.json" },
     // Multi-host slash product files only (#3054 / L8 prefer commit).
     // Exact paths — not directory prefixes — so consumer custom commands under

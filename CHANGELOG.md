@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Official Cursor adapter deletes no longer trip mixed-core-and-app (#3393).** A framework-only update that removes the retired hook adapter is installer-managed, not app. Other consumer hooks stay app-owned. Consumers on `pull_request_target` or pinned workflow refs see the old guard for one PR. Closes #3393. Refs #3378.
+
 - **`scope:record-approved-scope` uses the #3110 human-presence mint gate (#3384).** Shared TTY / controlling-terminal / `--confirm` / typed `mint` / agent-CI refuse; `--actor` is display-only. New records omit `xbriefBodyDigest`. Wave 1 records have no `intentDigest` and are legacy under #3385. Closes #3384. Refs #3376, #3110.
 - **scope:complete: ancestry on deliveryBranch is delivery; PR base is provenance (#3380).** A merge commit that is an ancestor of refreshed `origin/<deliveryBranch>` completes as delivered even when `prBase` is develop. Ancestry miss stays `merged_to_integration`. Remediations name `--merge-commit` and typed `deliveryBranch`. Documents squash-sync ancestry break. Closes #3380.
 

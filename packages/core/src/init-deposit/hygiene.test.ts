@@ -94,6 +94,51 @@ describe(".prettierignore allowlist (#2629)", () => {
   });
 });
 
+describe("exact Cursor adapter allowlist (#3393)", () => {
+  const officialAdapterPaths = [
+    ".cursor/hooks/deft-cursor-hook-adapter.mjs",
+    ".cursor/hooks/deft-cursor-hook-adapter.test.mjs",
+  ] as const;
+
+  it("treats the two official adapter paths as installer-managed", () => {
+    for (const path of officialAdapterPaths) {
+      expect(isInstallerManagedPath(path)).toBe(true);
+    }
+    const ere = installerManagedGuardEre();
+    expect(ere).toContain("\\.cursor/hooks/deft-cursor-hook-adapter\\.mjs$");
+    expect(ere).toContain("\\.cursor/hooks/deft-cursor-hook-adapter\\.test\\.mjs$");
+  });
+
+  it("does not add a .cursor/hooks/ prefix matcher", () => {
+    const prefixes = installerManagedMatchers()
+      .map((matcher) => matcher.prefix)
+      .filter((prefix): prefix is string => Boolean(prefix));
+    expect(prefixes.some((prefix) => prefix.startsWith(".cursor/hooks"))).toBe(false);
+    expect(isInstallerManagedPath(".cursor/hooks/consumer-custom.mjs")).toBe(false);
+    expect(isInstallerManagedPath(".cursor/hooks/other-hook.sh")).toBe(false);
+  });
+
+  it("classifies core + official adapter deletion as not mixed app", () => {
+    const result = classifyMixedCoreAndApp([".deft/core/VERSION", ...officialAdapterPaths]);
+    expect(result.wouldFail).toBe(false);
+    expect(result.app).toHaveLength(0);
+    expect(result.installerManaged).toEqual(expect.arrayContaining([...officialAdapterPaths]));
+  });
+
+  it("keeps other .cursor/hooks/ files as app", () => {
+    const result = classifyMixedCoreAndApp([
+      ".deft/core/VERSION",
+      ".cursor/hooks/consumer-custom.mjs",
+    ]);
+    expect(result.wouldFail).toBe(true);
+    expect(result.app).toEqual([".cursor/hooks/consumer-custom.mjs"]);
+  });
+
+  it("assertInstallerAllowlistHonors1430 still passes", () => {
+    expect(() => assertInstallerAllowlistHonors1430()).not.toThrow();
+  });
+});
+
 describe("upgrade co-travel allowlist (#3127)", () => {
   const pinAndStampPaths = [
     "package.json",
