@@ -141,7 +141,7 @@ After all issues are created, print a summary table: issue number, title, type, 
 
 ### Step 6: Record the cohort in `xbrief/.triage-cache/slices.jsonl` (#1132 / D13)
 
-At slice-completion (after the umbrella + every child issue is filed) call the framework helper to persist a durable cohort record. The record is sibling to the gitignored `candidates.jsonl` but is **tracked in git** (per `xbrief/.eval/README.md`) so a fresh contributor on pass-N can see prior cohort outputs without rebuilding state from closed issues.
+At slice-completion (after the umbrella + every child issue is filed) call the framework helper to persist a durable cohort record. The record is sibling to the gitignored `candidates.jsonl` but is **tracked in git** (per `xbrief/.triage-cache/README.md`) so a fresh contributor on pass-N can see prior cohort outputs without rebuilding state from closed issues.
 
 ```python path=null start=null
 from pathlib import Path
