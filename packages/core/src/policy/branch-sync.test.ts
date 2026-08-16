@@ -6,6 +6,7 @@ import type { GitRunner } from "../session/git.js";
 import {
   applyCoreGuardWithBranchSync,
   BRANCH_SYNC_EXEMPTION_PREFIX,
+  BRANCH_SYNC_POLICY_BLOB,
   coreGuardBranchSyncPythonBody,
   detectBranchSync,
   detectBranchSyncFromProject,
@@ -34,20 +35,51 @@ function gitForSync(options: {
   readonly fetchOk?: boolean;
   readonly headOnIntegration?: boolean;
   readonly originDevelop?: boolean;
+  readonly destRefPolicy?: Record<string, unknown> | null;
+  readonly originHead?: string | null;
+  readonly originBranches?: readonly string[];
+  readonly localBranches?: readonly string[];
 }): GitRunner {
   return (_cwd, args) => {
     if (args[0] === "fetch") {
       return { code: options.fetchOk === false ? 1 : 0, stdout: "", stderr: "" };
     }
+    if (args[0] === "show" && typeof args[1] === "string" && args[1].includes(":")) {
+      if (options.destRefPolicy === null) {
+        return { code: 128, stdout: "", stderr: "missing dest-ref policy" };
+      }
+      const policy = options.destRefPolicy ?? {};
+      return {
+        code: 0,
+        stdout: JSON.stringify({ plan: { title: "P", status: "running", policy } }),
+        stderr: "",
+      };
+    }
     if (args[0] === "merge-base" && args.includes("--is-ancestor")) {
       return { code: options.headOnIntegration === false ? 1 : 0, stdout: "", stderr: "" };
     }
-    if (
-      options.originDevelop &&
-      args[0] === "show-ref" &&
-      args.includes("refs/remotes/origin/develop")
-    ) {
-      return { code: 0, stdout: "", stderr: "" };
+    if (args[0] === "symbolic-ref") {
+      if (options.originHead) {
+        return { code: 0, stdout: options.originHead, stderr: "" };
+      }
+      return { code: 1, stdout: "", stderr: "" };
+    }
+    if (args[0] === "show-ref") {
+      const ref = args[args.length - 1] ?? "";
+      if (options.originDevelop && ref === "refs/remotes/origin/develop") {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      for (const branch of options.originBranches ?? []) {
+        if (ref === `refs/remotes/origin/${branch}`) {
+          return { code: 0, stdout: "", stderr: "" };
+        }
+      }
+      for (const branch of options.localBranches ?? []) {
+        if (ref === `refs/heads/${branch}`) {
+          return { code: 0, stdout: "", stderr: "" };
+        }
+      }
+      return { code: 1, stdout: "", stderr: "" };
     }
     return { code: 1, stdout: "", stderr: "" };
   };
@@ -68,7 +100,11 @@ describe("detectBranchSync (#3388)", () => {
       projectRoot: root,
       prBase: "master",
       headSha: "abc",
-      runGit: gitForSync({ originDevelop: true, headOnIntegration: true }),
+      runGit: gitForSync({
+        destRefPolicy: { deliveryBranch: "master" },
+        originDevelop: true,
+        headOnIntegration: true,
+      }),
     });
     expect(result.isSync).toBe(false);
     expect(result.reason).toBe("source-equals-dest");
@@ -84,7 +120,11 @@ describe("detectBranchSync (#3388)", () => {
       projectRoot: root,
       prBase: "master",
       headSha: "abc",
-      runGit: gitForSync({ originDevelop: true, headOnIntegration: true }),
+      runGit: gitForSync({
+        destRefPolicy: { deliveryBranch: "master" },
+        originDevelop: true,
+        headOnIntegration: true,
+      }),
     });
     expect(result.source).not.toBe("develop");
     expect(result.isSync).toBe(false);
@@ -174,17 +214,55 @@ describe("detectBranchSync (#3388)", () => {
     expect(result.isSync).toBe(false);
   });
 
-  it("project loader uses typed baseBranch", () => {
-    root = makeProject({ baseBranch: "develop", deliveryBranch: "master" });
+  it("project loader uses dest-ref typed baseBranch", () => {
+    root = makeProject({ baseBranch: "attacker", deliveryBranch: "master" });
     const result = detectBranchSyncFromProject({
       projectRoot: root,
       prBase: "master",
       headSha: "abc",
-      runGit: gitForSync({ headOnIntegration: true }),
+      runGit: gitForSync({
+        destRefPolicy: { baseBranch: "develop", deliveryBranch: "master" },
+        headOnIntegration: true,
+      }),
     });
     expect(result.isSync).toBe(true);
     expect(result.sourceTyped).toBe(true);
     expect(result.source).toBe("develop");
+  });
+
+  it("ignores working-tree baseBranch when dest-ref has none", () => {
+    root = makeProject({ baseBranch: "attacker", deliveryBranch: "master" });
+    const result = detectBranchSyncFromProject({
+      projectRoot: root,
+      prBase: "master",
+      headSha: "abc",
+      runGit: gitForSync({
+        destRefPolicy: { deliveryBranch: "master" },
+        headOnIntegration: true,
+      }),
+    });
+    expect(result.isSync).toBe(false);
+    expect(result.reason).toBe("source-equals-dest");
+    expect(result.source).toBe("master");
+    expect(result.sourceTyped).toBe(false);
+  });
+
+  it("git dest fallback prefers origin/main over master", () => {
+    root = makeProject({ deliveryBranch: "master" });
+    const result = detectBranchSyncFromProject({
+      projectRoot: root,
+      prBase: "main",
+      headSha: "abc",
+      runGit: gitForSync({
+        destRefPolicy: null,
+        originBranches: ["main"],
+        headOnIntegration: true,
+      }),
+    });
+    expect(result.dest).toBe("main");
+    expect(result.source).toBe("main");
+    expect(result.isSync).toBe(false);
+    expect(result.reason).toBe("source-equals-dest");
   });
 });
 
@@ -237,6 +315,9 @@ describe("deposited core-guard detector fragment (#3388)", () => {
     expect(body).toContain("merge-base");
     expect(body).toContain("--is-ancestor");
     expect(body).toContain(BRANCH_SYNC_EXEMPTION_PREFIX);
+    expect(body).toContain(`origin/' + pr_base + ':${BRANCH_SYNC_POLICY_BLOB}'`);
+    expect(body).toContain("('main', 'master')");
+    expect(body).not.toContain("pathlib");
     expect(body).not.toMatch(/head\s*==\s*['"]develop['"]/);
     expect(body).not.toContain("origin/develop");
   });

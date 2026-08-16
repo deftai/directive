@@ -7,6 +7,7 @@ import {
   DEFAULT_DELIVERY_BRANCH_FALLBACK,
   FIELD_DELIVERY_BRANCH,
   resolveDeliveryBranch,
+  resolveGitDefaultDeliveryBranch,
 } from "./delivery-branch.js";
 
 function makeProject(policy?: Record<string, unknown>): string {
@@ -65,6 +66,20 @@ describe("resolveDeliveryBranch (#3041)", () => {
 
   it("field constant is plan.policy.deliveryBranch", () => {
     expect(FIELD_DELIVERY_BRANCH).toBe("plan.policy.deliveryBranch");
+  });
+
+  it("git dest fallback prefers origin/main then master (#3388)", () => {
+    root = makeProject({ deliveryBranch: "ignored-by-git-only" });
+    const runGit: GitRunner = (_cwd, args) => {
+      if (args.includes("refs/remotes/origin/main")) {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      return { code: 1, stdout: "", stderr: "" };
+    };
+    expect(resolveGitDefaultDeliveryBranch(root, runGit)).toBe("main");
+    expect(resolveGitDefaultDeliveryBranch(root, () => ({ code: 1, stdout: "", stderr: "" }))).toBe(
+      DEFAULT_DELIVERY_BRANCH_FALLBACK,
+    );
   });
 
   it("rejects empty typed deliveryBranch and falls back", () => {

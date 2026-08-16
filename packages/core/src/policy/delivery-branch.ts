@@ -67,6 +67,14 @@ function defaultBranchCandidates(projectRoot: string, runGit: GitRunner): string
   return candidates;
 }
 
+/** Git-only dest when dest-ref policy has no typed deliveryBranch (#3388). */
+export function resolveGitDefaultDeliveryBranch(
+  projectRoot: string,
+  runGit: GitRunner = defaultGitRunner,
+): string {
+  return defaultBranchCandidates(projectRoot, runGit)[0] ?? DEFAULT_DELIVERY_BRANCH_FALLBACK;
+}
+
 /**
  * Resolve the project's delivery branch (#3041).
  *

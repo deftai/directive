@@ -11,8 +11,12 @@
  */
 
 import { defaultGitRunner, type GitRunner, gitIsAncestor } from "../session/git.js";
-import { resolveBaseBranch } from "./base-branch.js";
-import { resolveDeliveryBranch } from "./delivery-branch.js";
+import { ORIGIN_DEVELOP_HINT } from "./base-branch.js";
+import { resolveGitDefaultDeliveryBranch } from "./delivery-branch.js";
+import { readPlanPolicy } from "./plan-extensions.js";
+
+/** Dest-ref blob used for dest/source. Never the PR working tree (#3388 P1). */
+export const BRANCH_SYNC_POLICY_BLOB = "xbrief/PROJECT-DEFINITION.xbrief.json";
 
 export const BRANCH_SYNC_EXEMPTION_PREFIX =
   "sync PR detected: all commits already guard-checked on";
@@ -100,7 +104,73 @@ export function detectBranchSync(input: DetectBranchSyncInput): BranchSyncDetect
   };
 }
 
-/** Load dest/source from project policy, then run {@link detectBranchSync}. */
+function parseTypedPolicyBranches(jsonText: string): {
+  dest: string | null;
+  source: string | null;
+} {
+  try {
+    const data = JSON.parse(jsonText) as unknown;
+    if (typeof data !== "object" || data === null || Array.isArray(data)) {
+      return { dest: null, source: null };
+    }
+    const policyBlock = readPlanPolicy((data as Record<string, unknown>).plan);
+    if (typeof policyBlock !== "object" || policyBlock === null || Array.isArray(policyBlock)) {
+      return { dest: null, source: null };
+    }
+    const rec = policyBlock as Record<string, unknown>;
+    const destRaw = rec.deliveryBranch;
+    const sourceRaw = rec.baseBranch;
+    return {
+      dest: typeof destRaw === "string" && destRaw.trim().length > 0 ? destRaw.trim() : null,
+      source:
+        typeof sourceRaw === "string" && sourceRaw.trim().length > 0 ? sourceRaw.trim() : null,
+    };
+  } catch {
+    return { dest: null, source: null };
+  }
+}
+
+export interface DestRefSyncPolicy {
+  readonly dest: string;
+  readonly source: string;
+  readonly sourceTyped: boolean;
+  readonly developHint: string | null;
+}
+
+/**
+ * Load dest/source from origin/<prBase>, not the PR checkout.
+ *
+ * A feature PR that rewrites working-tree baseBranch cannot become a sync.
+ */
+export function resolveSyncPolicyFromDestRef(options: {
+  readonly projectRoot: string;
+  readonly prBase: string;
+  readonly runGit?: GitRunner;
+}): DestRefSyncPolicy {
+  const runGit = options.runGit ?? defaultGitRunner;
+  const prBase = options.prBase.trim();
+  runGit(options.projectRoot, ["fetch", "--quiet", "origin", prBase]);
+  const shown = runGit(options.projectRoot, [
+    "show",
+    `origin/${prBase}:${BRANCH_SYNC_POLICY_BLOB}`,
+  ]);
+  const parsed =
+    shown.code === 0 && shown.stdout.length > 0
+      ? parseTypedPolicyBranches(shown.stdout)
+      : { dest: null, source: null };
+  const dest = parsed.dest ?? resolveGitDefaultDeliveryBranch(options.projectRoot, runGit);
+  const sourceTyped = parsed.source !== null;
+  const source = parsed.source ?? dest;
+  const developHint =
+    sourceTyped ||
+    runGit(options.projectRoot, ["show-ref", "--verify", "--quiet", "refs/remotes/origin/develop"])
+      .code !== 0
+      ? null
+      : ORIGIN_DEVELOP_HINT;
+  return { dest, source, sourceTyped, developHint };
+}
+
+/** Load dest/source from dest-ref policy, then run {@link detectBranchSync}. */
 export function detectBranchSyncFromProject(options: {
   readonly projectRoot: string;
   readonly prBase: string;
@@ -108,16 +178,19 @@ export function detectBranchSyncFromProject(options: {
   readonly runGit?: GitRunner;
 }): BranchSyncDetection {
   const runGit = options.runGit ?? defaultGitRunner;
-  const dest = resolveDeliveryBranch(options.projectRoot, runGit).branch;
-  const base = resolveBaseBranch(options.projectRoot, runGit);
+  const policy = resolveSyncPolicyFromDestRef({
+    projectRoot: options.projectRoot,
+    prBase: options.prBase,
+    runGit,
+  });
   return detectBranchSync({
-    dest,
-    source: base.branch,
-    sourceTyped: base.typed,
+    dest: policy.dest,
+    source: policy.source,
+    sourceTyped: policy.sourceTyped,
     prBase: options.prBase,
     headSha: options.headSha,
     projectRoot: options.projectRoot,
-    developHint: base.developHint,
+    developHint: policy.developHint,
     runGit,
   });
 }
@@ -147,15 +220,16 @@ export function applyCoreGuardWithBranchSync(
 /** Compact Python body for the deposited deft-core-guard (#3388). */
 export function coreGuardBranchSyncPythonBody(): readonly string[] {
   return [
-    "import json, pathlib, subprocess, sys",
+    "import json, subprocess, sys",
     "head_sha, pr_base = sys.argv[1], sys.argv[2]",
     "def git(*a):",
     "    return subprocess.run(['git', *a], capture_output=True, text=True)",
     "dest = source = None",
-    "p = pathlib.Path('xbrief/PROJECT-DEFINITION.xbrief.json')",
-    "if p.is_file():",
+    "git('fetch', '--quiet', 'origin', pr_base)",
+    `shown = git('show', 'origin/' + pr_base + ':${BRANCH_SYNC_POLICY_BLOB}')`,
+    "if shown.returncode == 0:",
     "    try:",
-    "        plan = json.loads(p.read_text(encoding='utf-8')).get('plan')",
+    "        plan = json.loads(shown.stdout).get('plan')",
     "    except Exception:",
     "        plan = None",
     "    if isinstance(plan, dict):",
@@ -166,7 +240,19 @@ export function coreGuardBranchSyncPythonBody(): readonly string[] {
     "            if isinstance(s, str) and s.strip(): source = s.strip()",
     "if not dest:",
     "    r = git('symbolic-ref', 'refs/remotes/origin/HEAD', '--short')",
-    "    dest = r.stdout.strip().split('/', 1)[-1] if r.returncode == 0 and r.stdout.strip() else 'master'",
+    "    if r.returncode == 0 and r.stdout.strip():",
+    "        dest = r.stdout.strip().split('/', 1)[-1]",
+    "    else:",
+    "        for n in ('main', 'master'):",
+    "            if git('show-ref', '--verify', '--quiet', 'refs/remotes/origin/' + n).returncode == 0:",
+    "                dest = n",
+    "                break",
+    "        if not dest:",
+    "            for n in ('main', 'master'):",
+    "                if git('show-ref', '--verify', '--quiet', 'refs/heads/' + n).returncode == 0:",
+    "                    dest = n",
+    "                    break",
+    "        if not dest: dest = 'master'",
     "if not source: source = dest",
     "if source == dest or pr_base != dest: sys.exit(1)",
     "if git('fetch', '--quiet', 'origin', source).returncode != 0: sys.exit(1)",
