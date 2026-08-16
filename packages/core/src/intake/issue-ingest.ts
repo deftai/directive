@@ -27,7 +27,7 @@ import {
   MIGRATED_INFO_ROOT_KEY,
   VBRIEF_VERSION,
 } from "../xbrief-migrate/constants.js";
-import { emitAcceptanceStampFromPlan } from "./clause-derivation.js";
+import { applyClauseQualityToPlan, emitAcceptanceStampFromPlan } from "./clause-derivation.js";
 import {
   findAcHeading,
   parseCheckboxItems,
@@ -613,6 +613,7 @@ export function buildIssueVbrief(
       [title, overviewSource].filter((s) => s.length > 0).join("\n\n"),
     );
     Object.assign(plan, derived.plan);
+    applyClauseQualityToPlan(plan);
   } else {
     // No body: still record none_stated acceptance so absence is a decision.
     Object.assign(plan, stampAcceptanceFromLiteralCapture(plan));

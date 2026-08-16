@@ -6,11 +6,16 @@ import { ENV_RUN_SUMMARY_PATH } from "../run-summary/index.js";
 import {
   acceptanceFingerprint,
   applyClauseDerivationToPlan,
+  applyClauseQualityToPlan,
+  CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION,
   collectTaskStatementFromPlan,
   emitAcceptanceStampFromPlan,
+  evaluateAmbiguityAttestation,
   isMaterialAcceptanceChange,
   maybeEmitAcceptanceStampFromChange,
   needsClauseDerivation,
+  prepareClauseStamp,
+  traceClauseProvenance,
 } from "./clause-derivation.js";
 
 /** Multi-clause contract with one two-reading clause (modeled on the #3351 trial). */
@@ -182,12 +187,20 @@ describe("applyClauseDerivationToPlan (#3360)", () => {
     emitAcceptanceStampFromPlan(root, plan);
     const line = JSON.parse(readFileSync(summary, "utf8").trim()) as {
       event: string;
-      payload: { rung: string; none_stated: boolean; clause_count: number };
+      payload: {
+        rung: string;
+        none_stated: boolean;
+        clause_count: number;
+        provenance_counts: { statement: number; implementation: number };
+        ambiguity_attested: boolean;
+      };
     };
     expect(line.event).toBe("acceptance_stamp");
     expect(line.payload.rung).toBe("derived");
     expect(line.payload.none_stated).toBe(true);
     expect(line.payload.clause_count).toBe(3);
+    expect(line.payload.provenance_counts).toEqual({ statement: 3, implementation: 0 });
+    expect(line.payload.ambiguity_attested).toBe(true);
     emitAcceptanceStampFromPlan(root, { title: "no acceptance" });
     emitAcceptanceStampFromPlan(root, null);
     process.env.DEFT_SESSION_ID = "3360-test";
@@ -228,5 +241,167 @@ describe("applyClauseDerivationToPlan (#3360)", () => {
     ).toBe(true);
     const line = JSON.parse(readFileSync(summary, "utf8").trim()) as { event: string };
     expect(line.event).toBe("acceptance_stamp");
+  });
+});
+
+const SYMBOL_GREP_STATEMENT = `## Acceptance
+- Initialize workers from the config
+- Compose output from each worker result
+- Propagate derived quantities to the parent
+`;
+
+const SYMBOL_GREP_CLAUSES = [
+  {
+    id: 1,
+    text: 'class SessionGate source contains helper "bindExpiry"',
+    artifact_path: "src/session-gate.ts",
+    ambiguous: false,
+  },
+  {
+    id: 2,
+    text: 'class WorkerPool source contains helper "partitionByKey"',
+    artifact_path: "src/worker-pool.ts",
+    ambiguous: false,
+  },
+];
+
+describe("statement traceability (#3398)", () => {
+  it("marks derived trial clauses as statement provenance", () => {
+    const plan: Record<string, unknown> = {
+      title: "trial",
+      narratives: { Overview: TRIAL_OVERVIEW },
+    };
+    const result = applyClauseDerivationToPlan(plan);
+    expect(result.applied).toBe(true);
+    expect(result.clauses.every((clause) => clause.provenance === "statement")).toBe(true);
+    const acc = plan.acceptance as {
+      clauses: { provenance: string }[];
+      ambiguity_attestation?: string;
+    };
+    expect(acc.clauses.every((clause) => clause.provenance === "statement")).toBe(true);
+    expect(acc.ambiguity_attestation).toBeUndefined();
+  });
+
+  it("refuses a stamp whose every clause is implementation-provenance", () => {
+    const prepared = prepareClauseStamp(SYMBOL_GREP_CLAUSES, SYMBOL_GREP_STATEMENT);
+    expect(prepared.ok).toBe(false);
+    expect(prepared.provenance_counts).toEqual({ statement: 0, implementation: 2 });
+    expect(prepared.remediation).toBe(CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION);
+    expect(prepared.remediation).toMatch(
+      /derive clauses from the statement's testable constraints/,
+    );
+  });
+
+  it("allows implementation clauses only as a supplement to statement-traceable ones", () => {
+    const implClause = SYMBOL_GREP_CLAUSES[0];
+    if (implClause === undefined) {
+      throw new Error("expected first symbol-grep clause");
+    }
+    const mixed = [
+      {
+        id: 1,
+        text: "Initialize workers from the config",
+        artifact_path: null,
+        ambiguous: false,
+      },
+      implClause,
+    ];
+    const prepared = prepareClauseStamp(mixed, SYMBOL_GREP_STATEMENT);
+    expect(prepared.ok).toBe(true);
+    expect(prepared.provenance_counts).toEqual({ statement: 1, implementation: 1 });
+    expect(prepared.clauses[0]?.provenance).toBe("statement");
+    expect(prepared.clauses[1]?.provenance).toBe("implementation");
+  });
+
+  it("classifies invented identifiers as implementation provenance", () => {
+    expect(
+      traceClauseProvenance(
+        {
+          id: 1,
+          text: 'constructor uses library method "partitionByKey"',
+          artifact_path: "src/pool.ts",
+          ambiguous: false,
+        },
+        SYMBOL_GREP_STATEMENT,
+      ),
+    ).toBe("implementation");
+    expect(
+      traceClauseProvenance(
+        {
+          id: 2,
+          text: "Compose output from each worker result",
+          artifact_path: null,
+          ambiguous: false,
+        },
+        SYMBOL_GREP_STATEMENT,
+      ),
+    ).toBe("statement");
+  });
+
+  it("rolls back an all-implementation quality pass so the stamp cannot persist", () => {
+    const plan: Record<string, unknown> = {
+      title: "impl only",
+      narratives: { Overview: SYMBOL_GREP_STATEMENT },
+      acceptance: {
+        commands: [],
+        none_stated: true,
+        source_rung: "derived",
+        clauses: SYMBOL_GREP_CLAUSES,
+      },
+    };
+    const result = applyClauseQualityToPlan(plan);
+    expect(result.applied).toBe(false);
+    expect(result.notice).toBe(CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION);
+    const acc = plan.acceptance as { clauses?: unknown };
+    expect(acc.clauses).toBeUndefined();
+    expect(applyClauseQualityToPlan({ title: "none" }).applied).toBe(false);
+    expect(
+      applyClauseQualityToPlan({
+        acceptance: { commands: [], none_stated: true, clauses: [] },
+      }).applied,
+    ).toBe(false);
+  });
+});
+
+describe("ambiguity attestation (#3398)", () => {
+  it("records none_found when derivation yields no two-reading clause", () => {
+    const plan: Record<string, unknown> = {
+      narratives: {
+        Overview: `## Acceptance sketch
+- Persist the session token in packages/core/src/session/token.ts
+- Cite CHANGELOG.md under Unreleased
+`,
+      },
+    };
+    const result = applyClauseDerivationToPlan(plan);
+    expect(result.applied).toBe(true);
+    expect(result.clauses.every((clause) => clause.ambiguous === false)).toBe(true);
+    const acc = plan.acceptance as { ambiguity_attestation: string };
+    expect(acc.ambiguity_attestation).toBe("none_found");
+    expect(evaluateAmbiguityAttestation(acc).ok).toBe(true);
+    expect(evaluateAmbiguityAttestation(acc).kind).toBe("none_found");
+  });
+
+  it("treats missing attestation and missing ambiguous readings as a config error", () => {
+    const check = evaluateAmbiguityAttestation({
+      commands: [],
+      none_stated: true,
+      clauses: [{ id: 1, text: "ship the product", artifact_path: null, ambiguous: false }],
+    });
+    expect(check.ok).toBe(false);
+    expect(check.kind).toBe("missing");
+    expect(check.message).toMatch(/config error/);
+    expect(evaluateAmbiguityAttestation(null).kind).toBe("missing");
+    expect(evaluateAmbiguityAttestation("nope").ok).toBe(false);
+  });
+
+  it("accepts an ambiguous clause with readings as the attestation", () => {
+    const plan: Record<string, unknown> = {
+      narratives: { Overview: TRIAL_OVERVIEW },
+    };
+    applyClauseDerivationToPlan(plan);
+    const check = evaluateAmbiguityAttestation(plan.acceptance);
+    expect(check.ok).toBe(true);
+    expect(check.kind).toBe("ambiguous-clause");
   });
 });

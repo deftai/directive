@@ -6,13 +6,47 @@
  * the missing derive step.
  */
 
-import { ENV_RUN_SUMMARY_PATH, RunSummaryEmitter } from "../run-summary/index.js";
+import {
+  type AcceptanceStampRunSummaryPayload,
+  ENV_RUN_SUMMARY_PATH,
+  RunSummaryEmitter,
+} from "../run-summary/index.js";
 import {
   type AcceptanceClause,
   deriveAcceptanceClauses,
   readAcceptanceClauses,
   serializeAcceptanceClauses,
 } from "../verify-ac/clauses.js";
+
+/** One-line remediation when a stamp has no statement-traceable clause (#3398). */
+export const CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION =
+  "derive clauses from the statement's testable constraints";
+
+export type ClauseProvenance = "statement" | "implementation";
+
+export interface ProvenanceCounts {
+  readonly statement: number;
+  readonly implementation: number;
+}
+
+export interface TracedAcceptanceClause extends AcceptanceClause {
+  readonly provenance: ClauseProvenance;
+}
+
+export interface ClauseStampPreparation {
+  readonly ok: boolean;
+  readonly clauses: readonly TracedAcceptanceClause[];
+  readonly provenance_counts: ProvenanceCounts;
+  readonly ambiguity_attestation?: "none_found";
+  readonly remediation?: string;
+}
+
+export interface AmbiguityAttestationCheck {
+  readonly ok: boolean;
+  readonly attested: boolean;
+  readonly kind: "ambiguous-clause" | "none_found" | "missing";
+  readonly message: string;
+}
 
 const NARRATIVE_KEYS = [
   "Overview",
@@ -90,8 +124,178 @@ export function collectTaskStatementFromPlan(plan: Record<string, unknown>): str
 
 export interface ClauseDerivationResult {
   readonly applied: boolean;
-  readonly clauses: readonly AcceptanceClause[];
+  readonly clauses: readonly (AcceptanceClause | TracedAcceptanceClause)[];
   readonly notice: string;
+}
+
+function hasAmbiguousReadings(clause: AcceptanceClause): boolean {
+  return clause.ambiguous === true && (clause.readings?.length ?? 0) > 0;
+}
+
+function extractClauseTokens(text: string): string[] {
+  const found: string[] = [];
+  const seen = new Set<string>();
+  const push = (raw: string): void => {
+    const token = raw.trim();
+    if (token.length < 2 || seen.has(token)) {
+      return;
+    }
+    seen.add(token);
+    found.push(token);
+  };
+  const quoted = /["'`]([^"'`\n]{2,80})["'`]/g;
+  let match = quoted.exec(text);
+  while (match !== null) {
+    push(match[1] ?? "");
+    match = quoted.exec(text);
+  }
+  const pathRe =
+    /(?<![A-Za-z0-9_])((?:[A-Za-z0-9_.-]+\/)+[A-Za-z0-9_.-]+\.[A-Za-z][A-Za-z0-9]+)(?![A-Za-z0-9_])/g;
+  match = pathRe.exec(text);
+  while (match !== null) {
+    push(match[1] ?? "");
+    match = pathRe.exec(text);
+  }
+  const ident = /(?<![A-Za-z0-9_])([A-Za-z_][A-Za-z0-9_]*)(?![A-Za-z0-9_])/g;
+  match = ident.exec(text);
+  while (match !== null) {
+    const token = match[1] ?? "";
+    const camelOrPascal = /[a-z][A-Z]/.test(token) || /[A-Z][a-z]+[A-Z]/.test(token);
+    const codeShaped = camelOrPascal || token.includes("_");
+    if (codeShaped) {
+      push(token);
+    }
+    match = ident.exec(text);
+  }
+  return found;
+}
+
+/** Statement-traceable when the clause text or its identifiers appear in the statement. */
+export function traceClauseProvenance(
+  clause: AcceptanceClause,
+  statement: string,
+): ClauseProvenance {
+  const normClause = clause.text.replace(/\s+/g, " ").trim();
+  const normStatement = statement.replace(/\s+/g, " ").trim();
+  if (normClause.length > 0 && normStatement.includes(normClause)) {
+    return "statement";
+  }
+  const tokens = extractClauseTokens(clause.text);
+  if (tokens.length === 0) {
+    return "implementation";
+  }
+  return tokens.every((token) => statement.includes(token)) ? "statement" : "implementation";
+}
+
+export function countClauseProvenance(
+  clauses: readonly TracedAcceptanceClause[],
+): ProvenanceCounts {
+  let statement = 0;
+  let implementation = 0;
+  for (const clause of clauses) {
+    if (clause.provenance === "statement") {
+      statement += 1;
+    } else {
+      implementation += 1;
+    }
+  }
+  return { statement, implementation };
+}
+
+/** Fail closed when every clause is implementation-provenance; else attest ambiguity. */
+export function prepareClauseStamp(
+  clauses: readonly AcceptanceClause[],
+  statement: string,
+): ClauseStampPreparation {
+  const traced: TracedAcceptanceClause[] = clauses.map((clause) => ({
+    ...clause,
+    provenance: traceClauseProvenance(clause, statement),
+  }));
+  const provenance_counts = countClauseProvenance(traced);
+  if (traced.length > 0 && provenance_counts.statement === 0) {
+    return {
+      ok: false,
+      clauses: traced,
+      provenance_counts,
+      remediation: CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION,
+    };
+  }
+  return {
+    ok: true,
+    clauses: traced,
+    provenance_counts,
+    ambiguity_attestation: traced.some(hasAmbiguousReadings) ? undefined : "none_found",
+  };
+}
+
+const AMBIGUITY_ATTESTATION_MISSING =
+  "verify:ac config error: missing ambiguity attestation; record at least one ambiguous: true clause with readings, or set ambiguity_attestation: none_found";
+
+/** Config-error surface for verify:ac: attestation or an ambiguous clause with readings. */
+export function evaluateAmbiguityAttestation(acceptance: unknown): AmbiguityAttestationCheck {
+  const rec = asRecord(acceptance);
+  if (rec === null) {
+    return { ok: false, attested: false, kind: "missing", message: AMBIGUITY_ATTESTATION_MISSING };
+  }
+  const clauses = readAcceptanceClauses(rec);
+  if (clauses.some(hasAmbiguousReadings)) {
+    return { ok: true, attested: true, kind: "ambiguous-clause", message: "" };
+  }
+  if (rec.ambiguity_attestation === "none_found") {
+    return { ok: true, attested: true, kind: "none_found", message: "" };
+  }
+  return { ok: false, attested: false, kind: "missing", message: AMBIGUITY_ATTESTATION_MISSING };
+}
+
+function serializeTracedClauses(
+  clauses: readonly TracedAcceptanceClause[],
+): Record<string, unknown>[] {
+  return serializeAcceptanceClauses(clauses).map((row, index) => ({
+    ...row,
+    provenance: clauses[index]?.provenance ?? "implementation",
+  }));
+}
+
+/**
+ * Annotate stamped clauses with provenance and an ambiguity attestation.
+ * An all-implementation stamp is stripped (never sufficient alone).
+ */
+export function applyClauseQualityToPlan(plan: Record<string, unknown>): ClauseDerivationResult {
+  const existing = asRecord(plan.acceptance);
+  if (existing === null) {
+    return { applied: false, clauses: [], notice: "" };
+  }
+  const clauses = readAcceptanceClauses(existing);
+  if (clauses.length === 0) {
+    return { applied: false, clauses: [], notice: "" };
+  }
+  const prepared = prepareClauseStamp(clauses, collectTaskStatementFromPlan(plan));
+  if (!prepared.ok) {
+    const next = { ...existing };
+    delete next.clauses;
+    plan.acceptance = next;
+    return {
+      applied: false,
+      clauses: prepared.clauses,
+      notice: prepared.remediation ?? CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION,
+    };
+  }
+  const next: Record<string, unknown> = {
+    ...existing,
+    clauses: serializeTracedClauses(prepared.clauses),
+  };
+  if (
+    prepared.ambiguity_attestation !== undefined &&
+    existing.ambiguity_attestation === undefined
+  ) {
+    next.ambiguity_attestation = prepared.ambiguity_attestation;
+  }
+  plan.acceptance = next;
+  return {
+    applied: true,
+    clauses: prepared.clauses,
+    notice: formatAmbiguousClauseNotice(prepared.clauses),
+  };
 }
 
 function formatAmbiguousClauseNotice(clauses: readonly AcceptanceClause[]): string {
@@ -142,6 +346,7 @@ export function applyClauseDerivationToPlan(
         ? existing.source_rung
         : "stated"
       : "derived";
+  const previousAcceptance = plan.acceptance;
   plan.acceptance = {
     ...(existing ?? {}),
     commands: hasCommands ? commands : [],
@@ -150,13 +355,22 @@ export function applyClauseDerivationToPlan(
     derived_reason: `derived ${clauses.length} independently testable clauses from the task statement before product edit (#3323)`,
     clauses: serializeAcceptanceClauses(clauses),
   };
+  const quality = applyClauseQualityToPlan(plan);
+  if (!quality.applied) {
+    plan.acceptance = previousAcceptance;
+    return {
+      applied: false,
+      clauses: quality.clauses,
+      notice: quality.notice,
+    };
+  }
   if (options.emitStamp !== false && options.projectRoot !== undefined) {
     emitAcceptanceStampFromPlan(options.projectRoot, plan);
   }
   return {
     applied: true,
-    clauses,
-    notice: formatAmbiguousClauseNotice(clauses),
+    clauses: quality.clauses,
+    notice: quality.notice,
   };
 }
 
@@ -215,12 +429,33 @@ export function emitAcceptanceStampFromPlan(
     const emitter = new RunSummaryEmitter({ projectRoot, sessionId, env });
     const commands = Array.isArray(acceptance.commands) ? acceptance.commands.length : 0;
     const clauses = Array.isArray(acceptance.clauses) ? acceptance.clauses.length : 0;
-    emitter.emitAcceptanceStamp({
+    const statement = collectTaskStatementFromPlan(rec);
+    const rawRows = Array.isArray(acceptance.clauses) ? acceptance.clauses : [];
+    const traced = readAcceptanceClauses(acceptance).map((clause, index) => {
+      const row = asRecord(rawRows[index]);
+      const stamped =
+        row?.provenance === "statement" || row?.provenance === "implementation"
+          ? row.provenance
+          : undefined;
+      return {
+        ...clause,
+        provenance:
+          stamped ??
+          (statement.trim().length > 0 ? traceClauseProvenance(clause, statement) : "statement"),
+      };
+    });
+    const payload: AcceptanceStampRunSummaryPayload & {
+      provenance_counts: ProvenanceCounts;
+      ambiguity_attested: boolean;
+    } = {
       rung: typeof acceptance.source_rung === "string" ? acceptance.source_rung : "project_floor",
       none_stated: acceptance.none_stated === true,
       command_count: commands,
       clause_count: clauses,
-    });
+      provenance_counts: countClauseProvenance(traced),
+      ambiguity_attested: evaluateAmbiguityAttestation(acceptance).attested,
+    };
+    emitter.emitAcceptanceStamp(payload);
   } catch {
     // fail-open
   }
