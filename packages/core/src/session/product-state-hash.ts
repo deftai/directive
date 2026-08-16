@@ -153,15 +153,47 @@ function expandPath(root: string, relOrGlob: string): string[] {
   return [rel];
 }
 
+function unquotePorcelainPath(raw: string): string {
+  const trimmed = raw.trim();
+  if (trimmed.length >= 2 && trimmed.startsWith('"') && trimmed.endsWith('"')) {
+    return trimmed.slice(1, -1).replace(/\\([ntr"\\])/g, (_, ch: string) => {
+      if (ch === "n") return "\n";
+      if (ch === "t") return "\t";
+      if (ch === "r") return "\r";
+      return ch;
+    });
+  }
+  return trimmed;
+}
+
 function dirtyProductFiles(projectRoot: string, runGit: GitRunner): string[] {
+  const zed = runGit(projectRoot, ["status", "--porcelain", "-u", "-z"]);
+  const out: string[] = [];
+  if (zed.code === 0 && zed.stdout.length > 0) {
+    const parts = zed.stdout.split("\0").filter((part) => part.length > 0);
+    for (let i = 0; i < parts.length; i += 1) {
+      const rec = parts[i] as string;
+      if (rec.length < 4) continue;
+      const code = rec.slice(0, 2);
+      const pathPart = rec.slice(3);
+      const renamed = code.includes("R") || code.includes("C");
+      let rel = toPosix(pathPart);
+      if (renamed && i + 1 < parts.length) {
+        i += 1;
+        rel = toPosix(parts[i] as string);
+      }
+      if (rel.length === 0 || isExcludedRel(rel)) continue;
+      out.push(rel);
+    }
+    return out;
+  }
   const { code, stdout } = runGit(projectRoot, ["status", "--porcelain", "-u"]);
   if (code !== 0) return [];
-  const out: string[] = [];
   for (const line of stdout.split(/\r?\n/)) {
     if (line.trim().length === 0) continue;
-    const pathPart = line.slice(3).trim();
+    const pathPart = unquotePorcelainPath(line.slice(3));
     const renamed = pathPart.split(" -> ");
-    const rel = toPosix((renamed[renamed.length - 1] ?? pathPart).trim());
+    const rel = toPosix(renamed[renamed.length - 1] ?? pathPart);
     if (rel.length === 0 || isExcludedRel(rel)) continue;
     out.push(rel);
   }
