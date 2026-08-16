@@ -6,6 +6,7 @@ import { ENV_RUN_SUMMARY_PATH } from "../run-summary/index.js";
 import {
   acceptanceFingerprint,
   applyClauseDerivationToPlan,
+  applyClauseQualityForIngest,
   applyClauseQualityToPlan,
   CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION,
   collectTaskStatementFromPlan,
@@ -360,6 +361,24 @@ describe("statement traceability (#3398)", () => {
         acceptance: { commands: [], none_stated: true, clauses: [] },
       }).applied,
     ).toBe(false);
+  });
+
+  it("records the remediation on ingest when an implementation-only stamp is stripped", () => {
+    const plan: Record<string, unknown> = {
+      title: "impl only",
+      narratives: { Overview: SYMBOL_GREP_STATEMENT },
+      acceptance: {
+        commands: [],
+        none_stated: true,
+        source_rung: "derived",
+        clauses: SYMBOL_GREP_CLAUSES,
+      },
+    };
+    const result = applyClauseQualityForIngest(plan);
+    expect(result.applied).toBe(false);
+    const acc = plan.acceptance as { clauses?: unknown; derived_reason?: string };
+    expect(acc.clauses).toBeUndefined();
+    expect(acc.derived_reason).toBe(CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION);
   });
 });
 

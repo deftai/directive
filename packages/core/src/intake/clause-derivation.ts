@@ -298,6 +298,21 @@ export function applyClauseQualityToPlan(plan: Record<string, unknown>): ClauseD
   };
 }
 
+/** Ingest path: strip an implementation-only stamp and record the remediation. */
+export function applyClauseQualityForIngest(plan: Record<string, unknown>): ClauseDerivationResult {
+  const quality = applyClauseQualityToPlan(plan);
+  if (!quality.applied && quality.notice.length > 0) {
+    const existing = asRecord(plan.acceptance);
+    if (existing !== null) {
+      plan.acceptance = {
+        ...existing,
+        derived_reason: quality.notice,
+      };
+    }
+  }
+  return quality;
+}
+
 function formatAmbiguousClauseNotice(clauses: readonly AcceptanceClause[]): string {
   const flagged = clauses.filter((clause) => clause.ambiguous);
   const lines = [
