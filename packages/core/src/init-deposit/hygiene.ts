@@ -15,6 +15,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, rmSync } from "node:fs";
 import { readdir, rm, stat } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
+import { applyCoreGuardWithBranchSync, type BranchSyncDetection } from "../policy/branch-sync.js";
 import { gitPorcelain } from "../story-ready/git.js";
 import { CANONICAL_INSTALL_ROOT, type InitDepositIo } from "./constants.js";
 import { CONSUMER_SKILL_DISCOVERY_INVENTORY } from "./skill-discovery-deposit.js";
@@ -815,6 +816,20 @@ export function classifyMixedCoreAndApp(
     app,
     wouldFail: core.length > 0 && app.length > 0,
   };
+}
+
+/**
+ * Path classifier plus the shared #3388 sync predicate. Feature mixes still
+ * fail; a matching sync PR passes with a loud exemption message.
+ */
+export function classifyMixedCoreAndAppForPr(
+  changedPaths: readonly string[],
+  sync: BranchSyncDetection,
+  matchers: readonly InstallerManagedMatcher[] = installerManagedMatchers(),
+): MixedCoreAndAppClassification & { loudMessage: string | null } {
+  const base = classifyMixedCoreAndApp(changedPaths, matchers);
+  const applied = applyCoreGuardWithBranchSync(base, sync);
+  return { ...base, wouldFail: applied.wouldFail, loudMessage: applied.loudMessage };
 }
 
 /**

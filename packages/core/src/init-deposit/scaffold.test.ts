@@ -223,6 +223,17 @@ describe("init-deposit scaffold", () => {
       expect(guard).toContain("runs-on: ubuntu-latest");
     });
 
+    it("embeds the #3388 evidence-based sync exemption", () => {
+      const guard = depositGuard();
+      expect(guard).toContain("#3388");
+      expect(guard).toContain("BASE_REF:");
+      expect(guard).toContain("merge-base");
+      expect(guard).toContain("--is-ancestor");
+      expect(guard).toContain("sync PR detected: all commits already guard-checked on");
+      expect(guard).not.toMatch(/head\s*==\s*['"]develop['"]/);
+      expect(guard).not.toContain("origin/develop");
+    });
+
     it("assertCoreGuardWorkflowLoadable refuses column-0 run body and mega-lines", () => {
       expect(() => assertCoreGuardWorkflowLoadable("name: other\n")).toThrow(
         /name: deft-core-guard/,

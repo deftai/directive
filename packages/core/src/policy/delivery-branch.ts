@@ -1,9 +1,9 @@
 /**
  * Typed plan.policy.deliveryBranch (#3041).
  *
- * Distinct from swarm/PR `baseBranch` (integration target for PRs / finalize
- * sweep PRs). deliveryBranch is where shipped work must land for a delivered
- * completion disposition.
+ * Distinct from typed `plan.policy.baseBranch` (#3388), the integration-branch
+ * source for the shared branch-sync detector. deliveryBranch is dest: where
+ * shipped work must land for a delivered completion disposition.
  */
 
 import { defaultGitRunner, type GitRunner } from "../session/git.js";

@@ -11,11 +11,13 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { detectBranchSync, formatBranchSyncExemptionMessage } from "../policy/branch-sync.js";
 import {
   assertInstallerAllowlistHonors1430,
   CONSUMER_GUARD_MUST_FIRE,
   classifyMixedCoreAndApp,
   classifyMixedCoreAndAppContentAware,
+  classifyMixedCoreAndAppForPr,
   depositStagePaths,
   findPackageAbsentDepositPaths,
   findPackageAbsentDepositPathsSync,
@@ -164,6 +166,46 @@ describe("upgrade co-travel allowlist (#3127)", () => {
     ]);
     expect(result.wouldFail).toBe(true);
     expect(result.app).toContain("docs/playbooks/my-product.md");
+  });
+
+  it("loudly exempts a matching sync PR via the public detector (#3388)", () => {
+    const sync = detectBranchSync({
+      dest: "master",
+      source: "develop",
+      sourceTyped: true,
+      prBase: "master",
+      headSha: "already-on-develop",
+      projectRoot: "/tmp",
+      runGit: (_cwd, args) => {
+        if (args[0] === "fetch" || args[0] === "merge-base") {
+          return { code: 0, stdout: "", stderr: "" };
+        }
+        return { code: 1, stdout: "", stderr: "" };
+      },
+    });
+    const result = classifyMixedCoreAndAppForPr([".deft/core/VERSION", "src/app.ts"], sync);
+    expect(result.wouldFail).toBe(false);
+    expect(result.loudMessage).toBe(formatBranchSyncExemptionMessage("develop"));
+  });
+
+  it("still fails a feature PR that mixes core with app (#3388)", () => {
+    const notSync = detectBranchSync({
+      dest: "master",
+      source: "develop",
+      sourceTyped: true,
+      prBase: "master",
+      headSha: "feature-sha",
+      projectRoot: "/tmp",
+      runGit: (_cwd, args) => {
+        if (args[0] === "fetch") return { code: 0, stdout: "", stderr: "" };
+        if (args[0] === "merge-base") return { code: 1, stdout: "", stderr: "" };
+        return { code: 1, stdout: "", stderr: "" };
+      },
+    });
+    const result = classifyMixedCoreAndAppForPr([".deft/core/VERSION", "src/app.ts"], notSync);
+    expect(result.wouldFail).toBe(true);
+    expect(result.loudMessage).toBeNull();
+    expect(result.app).toEqual(["src/app.ts"]);
   });
 });
 

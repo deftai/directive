@@ -16,6 +16,7 @@ import {
   ProjectionContainmentError,
 } from "../fs/projection-containment.js";
 import { agentsRefreshPlan } from "../platform/agents-md.js";
+import { renderCoreGuardBranchSyncIfBlock } from "../policy/branch-sync.js";
 import { MIGRATED_ARTIFACT_DIR } from "../xbrief-migrate/constants.js";
 import { CANONICAL_INSTALL_ROOT, type InitDepositIo } from "./constants.js";
 import { assertInstallerAllowlistHonors1430, installerManagedGuardErePatterns } from "./hygiene.js";
@@ -957,9 +958,10 @@ function coreGuardWorkflowContent(): string {
   assertInstallerAllowlistHonors1430();
   const baseSha = githubActionsExpr("github.event.pull_request.base.sha");
   const headSha = githubActionsExpr("github.event.pull_request.head.sha");
+  const baseRef = githubActionsExpr("github.event.pull_request.base.ref");
   return (
     "name: deft-core-guard\n\n" +
-    "# Deft framework guard (#1430 / #3127 / #3193 / #3345): a single PR should not mix changes to the\n" +
+    "# Deft framework guard (#1430 / #3127 / #3193 / #3345 / #3388): a single PR should not mix changes to the\n" +
     "# vendored framework payload (.deft/core/**) with true application/product files.\n" +
     "# One upgrade PR MAY include deposit + installer-managed paths + package.json pin/lock\n" +
     "# + .deft/GENERATION.json when package.json is @deftai/directive* dependency-key pin-only\n" +
@@ -981,6 +983,7 @@ function coreGuardWorkflowContent(): string {
     "        env:\n" +
     `          BASE_SHA: ${baseSha}\n` +
     `          HEAD_SHA: ${headSha}\n` +
+    `          BASE_REF: ${baseRef}\n` +
     "        run: |\n" +
     "          set -eu\n" +
     '          changed=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")\n' +
@@ -989,6 +992,8 @@ function coreGuardWorkflowContent(): string {
     "          core=$(printf '%s\\n' \"$changed\" | grep -E '^\\.deft/core/' || true)\n" +
     `${coreGuardAllowlistShell()}\n` +
     '          if [ -n "$core" ] && [ -n "$app" ]; then\n' +
+    "            # Evidence-based branch-sync exemption (#3388). Not name-only.\n" +
+    `${renderCoreGuardBranchSyncIfBlock(CORE_GUARD_RUN_INDENT)}\n` +
     '            echo "::error title=deft-core guard (#1430)::This PR changes the vendored framework payload (.deft/core/**) AND non-framework files. Split the framework update into its own PR."\n' +
     '            echo "--- framework (.deft/core/**) changes ---"; printf \'%s\\n\' "$core"\n' +
     '            echo "--- non-framework changes ---"; printf \'%s\\n\' "$app"\n' +

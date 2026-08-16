@@ -14,6 +14,11 @@ import {
   inspectAcPassBanking,
 } from "./ac-pass-banking.js";
 import {
+  FIELD_BASE_BRANCH,
+  FIELD_BASE_BRANCH_CLI_ALIAS,
+  inspectBaseBranch,
+} from "./base-branch.js";
+import {
   FIELD_CEREMONY_DIAL,
   FIELD_CEREMONY_DIAL_CLI_ALIAS,
   inspectCeremonyDial,
@@ -81,6 +86,8 @@ import { DEFAULT_WIP_CAP } from "./wip.js";
 export * from "./ac-pass-banking.js";
 export * from "./agents-md-advisory.js";
 export * from "./autonomy.js";
+export * from "./base-branch.js";
+export * from "./branch-sync.js";
 export * from "./capacity.js";
 export * from "./ceremony-dial.js";
 export * from "./ceremony-dial-escalation.js";
@@ -525,6 +532,19 @@ function inspectDeliveryBranchField(
   };
 }
 
+function inspectBaseBranchField(
+  data: Record<string, unknown> | null,
+  projectRoot?: string,
+): PolicyField {
+  const field = inspectBaseBranch(data, projectRoot);
+  return {
+    name: field.name,
+    current: field.current,
+    default: field.default,
+    source: field.source,
+  };
+}
+
 function inspectMinGreptileConfidenceField(
   data: Record<string, unknown> | null,
   projectRoot?: string,
@@ -597,6 +617,7 @@ const REGISTERED_POLICIES: readonly Inspector[] = [
   inspectTriageLabelMirrorField,
   inspectSwarmSubagentBackend,
   inspectDeliveryBranchField,
+  inspectBaseBranchField,
   inspectMinGreptileConfidenceField,
   inspectHostHooksField,
   inspectHostSlashCommandsField,
@@ -649,13 +670,15 @@ export function inspectOnePolicy(name: string, projectRoot: string): PolicyField
                             ? FIELD_HOTFIX_CRITERIA
                             : name === FIELD_DELIVERY_BRANCH_CLI_ALIAS
                               ? FIELD_DELIVERY_BRANCH
-                              : name === FIELD_MIN_GREPTILE_CONFIDENCE_CLI_ALIAS
-                                ? FIELD_MIN_GREPTILE_CONFIDENCE
-                                : name === FIELD_CEREMONY_DIAL_CLI_ALIAS
-                                  ? FIELD_CEREMONY_DIAL
-                                  : name === FIELD_AC_PASS_BANKING_CLI_ALIAS
-                                    ? FIELD_AC_PASS_BANKING
-                                    : name;
+                              : name === FIELD_BASE_BRANCH_CLI_ALIAS
+                                ? FIELD_BASE_BRANCH
+                                : name === FIELD_MIN_GREPTILE_CONFIDENCE_CLI_ALIAS
+                                  ? FIELD_MIN_GREPTILE_CONFIDENCE
+                                  : name === FIELD_CEREMONY_DIAL_CLI_ALIAS
+                                    ? FIELD_CEREMONY_DIAL
+                                    : name === FIELD_AC_PASS_BANKING_CLI_ALIAS
+                                      ? FIELD_AC_PASS_BANKING
+                                      : name;
   for (const field of inspectAllPolicies(projectRoot)) {
     if (field.name === normalized) return field;
   }
