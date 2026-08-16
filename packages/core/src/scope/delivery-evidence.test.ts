@@ -130,6 +130,9 @@ describe("delivery evidence (#3041)", () => {
     const result = runTransition("complete", file, new Date(), { runGit: gitOk() });
     expect(result.ok).toBe(false);
     expect(result.message).toMatch(/Delivery evidence required|#3041/);
+    expect(result.message).toMatch(/--merge-commit/);
+    expect(result.message).toMatch(/policy:show --field=deliveryBranch/);
+    expect(result.message).toMatch(/Do not use --non-delivery for work that shipped/);
     expect(readFileSync(file, "utf8")).toContain("running");
   });
 
@@ -190,10 +193,10 @@ describe("delivery evidence (#3041)", () => {
     expect(data.plan.metadata.completionProvenance.uatVerified).toBeNull();
   });
 
-  it("rejects intermediate-branch PR base as delivery evidence", () => {
+  it("treats intermediate-branch PR base as delivered when ancestry passes (#3380)", () => {
     root = makeRepo();
     const file = writeCodeBearing(root);
-    const result = runTransition("complete", file, new Date(), {
+    const result = runTransition("complete", file, new Date("2026-08-02T12:00:00Z"), {
       runGit: gitOk(),
       deliveryEvidence: {
         prNumber: 7,
@@ -203,8 +206,48 @@ describe("delivery evidence (#3041)", () => {
         deliveryBranch: "master",
       },
     });
-    expect(result.ok).toBe(false);
-    expect(result.message).toMatch(/not the configured delivery branch|intermediate/i);
+    expect(result.ok).toBe(true);
+    const dest = join(root, "xbrief", "completed", "story.xbrief.json");
+    const data = JSON.parse(readFileSync(dest, "utf8")) as {
+      plan: {
+        metadata: {
+          completionProvenance: {
+            disposition: string;
+            handoffState: string;
+            prBase: string;
+          };
+        };
+      };
+    };
+    expect(data.plan.metadata.completionProvenance.disposition).toBe("delivered");
+    expect(data.plan.metadata.completionProvenance.handoffState).toBe("delivered");
+    expect(data.plan.metadata.completionProvenance.prBase).toBe("feature/integration");
+  });
+
+  it("records merged_to_integration when intermediate PR base fails ancestry (#3380)", () => {
+    root = makeRepo();
+    const gate = evaluateDeliveryGate({
+      projectRoot: root,
+      plan: {
+        references: [{ type: "x-xbrief/github-issue", uri: "https://github.com/o/r/issues/1" }],
+      },
+      nowIso: "2026-08-02T12:00:00Z",
+      evidence: {
+        prNumber: 7,
+        prBase: "develop",
+        mergeCommit: "abc",
+        mergedAt: "2026-08-02T11:00:00Z",
+        deliveryBranch: "master",
+      },
+      runGit: gitOk({ notAncestor: true }),
+    });
+    expect(gate.ok).toBe(false);
+    expect(gate.provenance?.disposition).toBe("merged_to_integration");
+    expect(gate.provenance?.handoffState).toBe("merged_to_integration");
+    expect(gate.provenance?.prBase).toBe("develop");
+    expect(gate.message).toMatch(/--merge-commit/);
+    expect(gate.message).toMatch(/policy:show --field=deliveryBranch/);
+    expect(gate.message).not.toMatch(/never shipped|did not ship|work never/i);
   });
 
   it("rejects when remote refresh fails", () => {
@@ -245,6 +288,8 @@ describe("delivery evidence (#3041)", () => {
     });
     expect(gate.ok).toBe(false);
     expect(gate.message).toMatch(/not an ancestor|delivery/i);
+    expect(gate.message).toMatch(/--merge-commit/);
+    expect(gate.provenance?.disposition).toBe("not_delivered");
   });
 
   it("resolveCompletionSessionId prefers DEFT_SESSION_ID then ritual-state (#3357)", () => {

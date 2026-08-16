@@ -65,14 +65,22 @@ framework:
 | **Ship** | PR merge and release — `task pr:*` and [`deft-directive-release`](../skills/deft-directive-release/SKILL.md). |
 | **Issues / Features** | GitHub issues and feature requests mirrored into `.deft-cache/` and surfaced as triage candidates. |
 
-## Delivery integrity vs deploy / UAT (#3041)
+## Delivery integrity vs deploy / UAT (#3041 / #3380)
 
 `scope:complete` and swarm cohort completion mark **lifecycle bookkeeping**, not environment
 green. For **code-bearing** scopes, delivered completion requires durable proof that the
 implementation reached the configured **delivery branch** (`plan.policy.deliveryBranch`,
-defaulting to the repo default branch) — typically: PR `base.ref` equals that branch, and the
-merge commit is an ancestor of the refreshed remote delivery ref. A merge into an intermediate
-feature/integration branch is **not** delivery.
+defaulting to the repo default branch). Ancestry on the refreshed remote delivery ref
+(`origin/<deliveryBranch>`) is delivery. PR `base.ref` / `prBase` is provenance only: a
+develop-targeted scope PR can still complete as delivered when its merge commit is already
+an ancestor of `origin/<deliveryBranch>`. `merged_to_integration` applies only when that
+ancestry fails.
+
+Squash-sync from develop to main can rewrite commits so a develop merge SHA is no longer
+an ancestor of `origin/main`. Wait until the work is reachable on the delivery ref, or
+type `plan.policy.deliveryBranch` to the branch you actually ship from
+(`task policy:show --field=deliveryBranch`). This document does not prescribe a squash-sync
+repair.
 
 Handoff states that Git can assert are distinct: `implemented` → `pr_open` →
 `merged_to_integration` → `delivered`. **Deployed** and **UAT verified** are separate evidence

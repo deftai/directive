@@ -280,7 +280,7 @@ export function verifyDeliveryAncestry(
       ok: false,
       error:
         `merge commit ${mergeCommit} is not an ancestor of refreshed remote delivery ref ` +
-        `${refresh.remoteRef} (${remoteTip}). Intermediate/integration-only merges are not delivery evidence (#3041).`,
+        `${refresh.remoteRef} (${remoteTip}).`,
       remoteTip,
     };
   }
@@ -314,14 +314,24 @@ function buildProvenance(input: {
   };
 }
 
+function deliveryEvidenceRemediation(deliveryBranch: string): string {
+  return (
+    `Pass scope:complete -- --merge-commit <sha> (and --pr <n> if you have one). ` +
+    `When develop is the real delivery target, type plan.policy.deliveryBranch ` +
+    `(task policy:show --field=deliveryBranch). ` +
+    `When ${deliveryBranch} is delivery, wait until the merge commit is an ancestor of ` +
+    `origin/${deliveryBranch}, then complete. Do not use --non-delivery for work that shipped.`
+  );
+}
+
 /**
- * Gate delivered completion for a code-bearing scope (#3041).
+ * Gate delivered completion for a code-bearing scope (#3041 / #3380).
  *
  * Returns ok=true with provenance when:
  * - scope is not code-bearing (provenance may be null or non-code note), OR
  * - explicit non-delivery disposition is provided, OR
- * - durable delivery evidence validates (PR base == deliveryBranch, merge commit
- *   ancestor of refreshed remote delivery ref).
+ * - merge commit is an ancestor of the refreshed remote delivery ref (prBase is
+ *   provenance only; it need not equal deliveryBranch).
  */
 export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGateResult {
   const runGit = options.runGit ?? defaultGitRunner;
@@ -391,10 +401,8 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
       ok: false,
       message:
         `Delivery evidence required for code-bearing scope completion (#3041). ` +
-        `Provide merge/PR delivery proof (merge commit ancestor of remote ` +
-        `'${deliveryBranch}') or an explicit --non-delivery disposition ` +
-        `(${NON_DELIVERY_DISPOSITIONS.join("|")}). ` +
-        `Merged-to-integration alone is not delivery.`,
+        `A merge commit that is an ancestor of refreshed origin/${deliveryBranch} is delivery; ` +
+        `PR base is provenance only. ${deliveryEvidenceRemediation(deliveryBranch)}`,
       provenance: null,
       codeBearing: true,
     };
@@ -424,30 +432,12 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
     }
   }
 
-  if (prBase !== null && prBase !== deliveryBranch) {
-    const provenance = buildProvenance({
-      evidence,
-      deliveryBranch,
-      disposition: "merged_to_integration",
-      handoffState: "merged_to_integration",
-      nowIso: options.nowIso,
-      verifier,
-    });
-    return {
-      ok: false,
-      message:
-        `PR base '${prBase}' is not the configured delivery branch '${deliveryBranch}'. ` +
-        `A merge into an intermediate/feature/integration branch is not delivery evidence (#3041).`,
-      provenance,
-      codeBearing: true,
-    };
-  }
-
   if (mergeCommit === null) {
     return {
       ok: false,
       message:
-        "Delivery evidence missing merge_commit_sha; cannot prove ancestry on delivery branch (#3041).",
+        "Delivery evidence missing merge_commit_sha; cannot prove ancestry on delivery branch (#3041). " +
+        deliveryEvidenceRemediation(deliveryBranch),
       provenance: null,
       codeBearing: true,
     };
@@ -474,9 +464,15 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
   const ancestry = verifyDeliveryAncestry(options.projectRoot, mergeCommit, deliveryBranch, runGit);
   if (!ancestry.ok) {
     const integrationOnly = prBase !== null && prBase !== deliveryBranch;
+    const ancestryMsg = ancestry.error ?? "delivery ancestry check failed";
+    const rem = deliveryEvidenceRemediation(deliveryBranch);
+    const message = integrationOnly
+      ? `${ancestryMsg} PR base '${prBase}' is provenance only; ` +
+        `the merge is not yet on origin/${deliveryBranch}. ${rem}`
+      : `${ancestryMsg} ${rem}`;
     return {
       ok: false,
-      message: ancestry.error ?? "delivery ancestry check failed",
+      message,
       provenance: buildProvenance({
         evidence,
         deliveryBranch,

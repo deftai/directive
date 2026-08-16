@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **scope:complete: ancestry on deliveryBranch is delivery; PR base is provenance (#3380).** A merge commit that is an ancestor of refreshed `origin/<deliveryBranch>` completes as delivered even when `prBase` is develop. Ancestry miss stays `merged_to_integration`. Remediations name `--merge-commit` and typed `deliveryBranch`. Documents squash-sync ancestry break. Closes #3380.
+
 - **Failing verify:ac walks emit a walk-level verification fingerprint (#3397).** A fail then a later pass with a different command set on the same check id flags; an honest same-command product fix does not. Shrinking command-set delta is included on the flag. The #3322 detector stays. Closes #3397. Refs #3322, #3396.
 - **engine:_ts-build: trailing no-op for go-task <3.52 (#3381).** Older go-task treats an untaken last if/fi as exit 1, so consumer deposits fail every non-runtime `task deft:*`. A colon after the outer fi keeps the skip-build path exit 0. Closes #3381.
 - **One SoT for advisory doctor fails; dirty copy no longer says address findings (#3379).** `deriveExitCode` and `cmdDoctor` share `DOCTOR_ADVISORY_FAIL_CHECKS`. A fail is a warning when `data.advisory` is true or the name is in that set. Dirty status / throttle hint names `--full` as re-probe only and says hard errors block writes, advisory warnings do not. Closes #3379. Refs #3372.
