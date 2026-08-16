@@ -88,6 +88,8 @@ export interface AcceptanceEvidenceGateResult {
   readonly ok: boolean;
   readonly message: string;
   readonly reports: readonly CriterionAcceptanceReport[];
+  /** How the #3357 walk obtained AC (#3387). */
+  readonly servedFrom?: "bank" | "cache" | "executed";
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -501,23 +503,27 @@ export function evaluateScopeCompleteAcceptanceWalk(
     ...options,
     checkIntegrated: false,
     captureFromNarratives: options.captureFromNarratives ?? true,
+    reuseMode: options.reuseMode ?? "bank",
   });
   const rejectedCount = walk.rejected?.length ?? 0;
   const hadWork = walk.runs.length > 0 || walk.commands.length > 0 || rejectedCount > 0;
+  const servedFrom = walk.servedFrom ?? "executed";
   if (!stamped && !hadWork) {
     return {
       ok: true,
       message: "Acceptance walk not required (no stamped plan.acceptance) (#3357)",
       reports: [],
+      servedFrom: "executed",
     };
   }
   if (walk.ok) {
-    return { ok: true, message: walk.message, reports: [] };
+    return { ok: true, message: walk.message, reports: [], servedFrom };
   }
   return {
     ok: false,
     message: `${SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION}\n${walk.message}`,
     reports: [],
+    servedFrom,
   };
 }
 

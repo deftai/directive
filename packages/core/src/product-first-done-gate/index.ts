@@ -5,6 +5,7 @@
  * (AC-first, hygiene advisory under pressure, rapid=AC-only).
  */
 
+export type { AcServedFrom } from "../session/verify-ac-session-cache.js";
 export {
   attachPlanAcceptance,
   buildAcceptanceFromIntakeCapture,
