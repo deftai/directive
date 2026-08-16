@@ -55,6 +55,33 @@ describe("hashProductState (#3387)", () => {
     expect(empty.files).toEqual([]);
   });
 
+  it("expands character-class globs and fails closed when brace globs match nothing", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-extglob-"));
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src", "a.ts"), "export const a = 1;\n", "utf8");
+    writeFileSync(join(root, "src", "b.ts"), "export const b = 1;\n", "utf8");
+    const classPlan = {
+      acceptance: { commands: [{ command: "true" }] },
+      metadata: { swarm: { file_scope: ["src/[ab].ts"] } },
+    };
+    const first = hashProductState({ projectRoot: root, plan: classPlan });
+    expect(first.complete).toBe(true);
+    expect(first.files).toEqual(["src/a.ts", "src/b.ts"]);
+    writeFileSync(join(root, "src", "a.ts"), "export const a = 2;\n", "utf8");
+    const second = hashProductState({ projectRoot: root, plan: classPlan });
+    expect(second.digest).not.toBe(first.digest);
+
+    const brace = hashProductState({
+      projectRoot: root,
+      plan: {
+        acceptance: { commands: [{ command: "true" }] },
+        metadata: { swarm: { file_scope: ["src/{missing,also-missing}.ts"] } },
+      },
+    });
+    expect(brace.complete).toBe(false);
+    expect(brace.files).toEqual([]);
+  });
+
   it("uses file_scope when productPaths are omitted", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-scope-"));
     mkdirSync(join(root, "pkg"), { recursive: true });

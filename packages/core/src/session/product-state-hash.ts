@@ -119,9 +119,14 @@ function fileScopePaths(plan: Record<string, unknown>): string[] {
   );
 }
 
+/** `*`/`?` plus class/brace forms so they are not hashed as a missing literal. */
+function looksLikeGlob(rel: string): boolean {
+  return /[*?[\]{}]/.test(rel);
+}
+
 function expandPath(root: string, relOrGlob: string): string[] {
   const rel = toPosix(relOrGlob).replace(/^\.\//, "");
-  if (rel.includes("*") || rel.includes("?")) {
+  if (looksLikeGlob(rel)) {
     try {
       return globSync(rel, { cwd: root })
         .map((match) => toPosix(relative(root, resolve(root, match))))
