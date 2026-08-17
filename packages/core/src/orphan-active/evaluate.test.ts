@@ -263,6 +263,35 @@ describe("evaluate", () => {
     expect(result.code).toBe(0);
   });
 
+  it("fails closed on --issue N when a linked PR lookup fails even if the origin is open", () => {
+    const root = makeRepo();
+    writeBrief(root, "open-issue-unknown-pr.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/1001",
+          type: "x-xbrief/github-issue",
+        },
+        {
+          uri: "https://github.com/deftai/directive/pull/42",
+          type: "x-xbrief/github-pr",
+        },
+      ],
+    });
+    writeCachedIssue(root, "deftai/directive", 1001, "open");
+    const runGh: RunGhFn = () => ({
+      returncode: 1,
+      stdout: "",
+      stderr: "api failed",
+    });
+    const result = evaluate(root, { repo: "deftai/directive", runGh, issue: 1001 });
+    expect(result.code).toBe(1);
+    expect(result.orphans[0]?.reason).toBe("linked PR #42 state could not be resolved");
+    expect(result.message).toContain(
+      "task scope:complete -- xbrief/active/open-issue-unknown-pr.xbrief.json",
+    );
+  });
+
   it("fails closed on --issue N when a linked PR is merged even if an issue is still open", () => {
     const root = makeRepo();
     writeBrief(root, "open-issue-merged-pr.xbrief.json", {

@@ -195,11 +195,20 @@ function assessOrphanSignature(
   if (selectedIssue !== null) {
     for (const pr of prRefs) {
       if (skipGh) {
-        continue;
+        return {
+          orphaned: true,
+          reason: `linked PR #${pr.number} state could not be resolved`,
+        };
       }
       const merged = fetchPrMerged(pr, runGh);
       if (merged === true) {
         return { orphaned: true, reason: `linked PR #${pr.number} is merged` };
+      }
+      if (merged === null) {
+        return {
+          orphaned: true,
+          reason: `linked PR #${pr.number} state could not be resolved`,
+        };
       }
     }
     // --issue N is one origin: sibling open/unknown must not mask it (#3429).

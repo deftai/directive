@@ -112,7 +112,7 @@ describe("run", () => {
     }
   });
 
-  it("returns 0 for --issue N when the issue is open and the linked PR is unmerged", () => {
+  it("returns 0 for --issue N when the issue is open and no PR state is pending", () => {
     const root = buildRepo();
     writeFileSync(
       join(root, "xbrief", "active", "live.xbrief.json"),
@@ -124,10 +124,6 @@ describe("run", () => {
             {
               uri: "https://github.com/deftai/directive/issues/1001",
               type: "x-xbrief/github-issue",
-            },
-            {
-              uri: "https://github.com/deftai/directive/pull/43",
-              type: "x-xbrief/github-pr",
             },
           ],
         },
