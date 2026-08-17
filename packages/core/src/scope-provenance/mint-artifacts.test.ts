@@ -1,7 +1,8 @@
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { containedWrite } from "../fs/contained-write.js";
 import { mintApprovedScopeArtifacts } from "./mint-artifacts.js";
 
 const roots: string[] = [];
@@ -13,22 +14,99 @@ afterEach(() => {
   }
 });
 
+function payload(id: string, title: string) {
+  return {
+    plan: { id, title, metadata: { swarm: { file_scope: ["a.ts"] } } },
+  };
+}
+
+function mint(
+  root: string,
+  body: ReturnType<typeof payload>,
+  publishDest?: Parameters<typeof mintApprovedScopeArtifacts>[0]["publishDest"],
+) {
+  return mintApprovedScopeArtifacts({
+    xbriefRelPath: "xbrief/active/s.xbrief.json",
+    payload: body,
+    rawText: JSON.stringify(body),
+    projectRoot: root,
+    extract: { projectRoot: root },
+    publishDest,
+  });
+}
+
+function leftoverTmps(dir: string): string[] {
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir).filter((name) => name.endsWith(".tmp"));
+}
+
 describe("mint-artifacts file (#3385)", () => {
   it("writes record and preimage together", () => {
     const root = mkdtempSync(join(tmpdir(), "mint-art-"));
     roots.push(root);
-    const payload = {
-      plan: { id: "mint-1", title: "T", metadata: { swarm: { file_scope: ["a.ts"] } } },
-    };
-    const minted = mintApprovedScopeArtifacts({
-      xbriefRelPath: "xbrief/active/s.xbrief.json",
-      payload,
-      rawText: JSON.stringify(payload),
-      projectRoot: root,
-      extract: { projectRoot: root },
-    });
+    const minted = mint(root, payload("mint-1", "T"));
     expect(minted.record.intentDigest).toMatch(/^[0-9a-f]{64}$/);
     const pre = JSON.parse(readFileSync(minted.intentPath, "utf8")) as { algo: string };
     expect(pre.algo).toBe("intent-extract-v1");
+    expect(existsSync(minted.recordPath)).toBe(true);
+  });
+
+  it("first mint: failed record publish leaves neither dest", () => {
+    const root = mkdtempSync(join(tmpdir(), "mint-art-first-fail-"));
+    roots.push(root);
+    let intentPublished = false;
+    expect(() =>
+      mint(root, payload("mint-fail-1", "New"), ({ root: r, target, data }) => {
+        if (target.endsWith(".intent.json")) {
+          intentPublished = true;
+          containedWrite({ root: r, target, data, mode: "replace" });
+          return;
+        }
+        throw new Error("injected record publish failure");
+      }),
+    ).toThrow(/injected record publish failure/);
+    expect(intentPublished).toBe(true);
+    const dir = join(root, ".deft", "approved-scope");
+    expect(existsSync(join(dir, "mint-fail-1.intent.json"))).toBe(false);
+    expect(existsSync(join(dir, "mint-fail-1.json"))).toBe(false);
+    expect(leftoverTmps(dir)).toEqual([]);
+  });
+
+  it("remint: failed record publish restores the prior matching pair", () => {
+    const root = mkdtempSync(join(tmpdir(), "mint-art-remint-fail-"));
+    roots.push(root);
+    const first = mint(root, payload("mint-2", "Old"));
+    const priorIntent = readFileSync(first.intentPath, "utf8");
+    const priorRecord = readFileSync(first.recordPath, "utf8");
+    expect(() =>
+      mint(root, payload("mint-2", "New"), ({ root: r, target, data }) => {
+        if (target.endsWith(".intent.json")) {
+          containedWrite({ root: r, target, data, mode: "replace" });
+          return;
+        }
+        throw new Error("injected remint record failure");
+      }),
+    ).toThrow(/injected remint record failure/);
+    expect(readFileSync(first.intentPath, "utf8")).toBe(priorIntent);
+    expect(readFileSync(first.recordPath, "utf8")).toBe(priorRecord);
+    expect(JSON.parse(priorIntent) as { plan: { title: string } }).toMatchObject({
+      plan: expect.objectContaining({ title: "Old" }),
+    });
+    expect(leftoverTmps(dirname(first.intentPath))).toEqual([]);
+  });
+
+  it("writes both dests on remint when the pair succeeds", () => {
+    const root = mkdtempSync(join(tmpdir(), "mint-art-remint-ok-"));
+    roots.push(root);
+    const first = mint(root, payload("mint-3", "Old"));
+    const second = mint(root, payload("mint-3", "New"));
+    expect(second.recordPath).toBe(first.recordPath);
+    const pre = JSON.parse(readFileSync(second.intentPath, "utf8")) as {
+      plan: { title: string };
+    };
+    expect(pre.plan.title).toBe("New");
+    const rec = JSON.parse(readFileSync(second.recordPath, "utf8")) as { intentDigest: string };
+    expect(rec.intentDigest).toBe(second.record.intentDigest);
+    expect(rec.intentDigest).not.toBe(first.record.intentDigest);
   });
 });

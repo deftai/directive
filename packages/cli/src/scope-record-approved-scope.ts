@@ -289,6 +289,8 @@ export function run(argv: string[], seams: HumanPresenceMintSeams = {}): number 
     args.repo.trim().length > 0 ? args.repo.trim() : undefined,
     projectRoot,
   );
+  // Mint writes record + preimage as one fail-closed pair. A dest-write
+  // failure restores the prior pair or leaves neither dest (#3385 residual).
   let minted: ReturnType<typeof mintApprovedScopeArtifacts>;
   try {
     minted = mintApprovedScopeArtifacts({
