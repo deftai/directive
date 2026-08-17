@@ -10,6 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { runWithMutationLedger, snapshotMutationSummary } from "../fs/mutation-ledger.js";
 import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import {
   assertProjectedSchemaDescriptionsRooted,
@@ -104,6 +105,21 @@ describe("xbrief consumer projections (#2595)", () => {
     const file = join(project, "not-a-schema-dir");
     writeFileSync(file, "plain file\n", "utf8");
     expect(() => assertProjectedSchemaDescriptionsRooted(project, file)).not.toThrow();
+  });
+
+  it("ledgers obsolete schema delete through containedRemove (#3418)", () => {
+    const { project, deftDir } = fixture();
+    const consumerSchemas = join(project, "xbrief", "schemas");
+    mkdirSync(consumerSchemas, { recursive: true });
+    writeFileSync(join(consumerSchemas, "vbrief-core.schema.json"), "stale\n", "utf8");
+
+    const summary = runWithMutationLedger(project, () => {
+      expect(syncConsumerXbriefSchemas(project, deftDir)).toBe(true);
+      return snapshotMutationSummary();
+    });
+
+    expect(existsSync(join(consumerSchemas, "vbrief-core.schema.json"))).toBe(false);
+    expect(summary.deleted).toContain("xbrief/schemas/vbrief-core.schema.json");
   });
 
   it("self-check runs after obsolete vbrief-core.schema.json is removed", () => {

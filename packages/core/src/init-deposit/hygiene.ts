@@ -16,6 +16,11 @@ import { existsSync, readdirSync } from "node:fs";
 import { readdir, rm, stat } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 import { containedRemove } from "../fs/contained-write.js";
+import {
+  activeMutationLedger,
+  type MutationSummary,
+  snapshotMutationSummary,
+} from "../fs/mutation-ledger.js";
 import { applyCoreGuardWithBranchSync, type BranchSyncDetection } from "../policy/branch-sync.js";
 import { gitPorcelain } from "../story-ready/git.js";
 import { CANONICAL_INSTALL_ROOT, type InitDepositIo } from "./constants.js";
@@ -889,20 +894,80 @@ export function classifyMixedCoreAndAppContentAware(
 
 export interface FrameworkStagePathsOptions {
   /**
-   * Include the vendored `.deft/core` payload in the stage set. Defaults to
-   * `true` for init and real payload swaps. No-op updates set this to `false`
-   * so CRLF-only core noise cannot be staged while safe projections are repaired.
+   * Include the vendored `.deft/core` payload in the exist-walk stage set.
+   * Defaults to `true`. Ignored when a mutation ledger is bound (#3394) —
+   * core paths stage only if they appear on this-run ledger.
    */
   readonly includeCore?: boolean;
   /**
-   * Include the project-root ``Taskfile.yml`` in the stage set. Defaults to
-   * ``false``: unlike the other allowlisted paths, ``Taskfile.yml`` is a
-   * consumer-owned file that merely *contains* an installer-managed include
-   * block, so it must only be staged when the installer actually wired that
-   * block this run -- otherwise an unrelated user edit would be silently
-   * ``git add``ed (#1576 review).
+   * Unused (#3394). Ledger intersection stages Taskfile.yml only when this run
+   * mutated it. Kept so existing callers compile. Exist-walk (no ledger) stages
+   * Taskfile.yml when the file exists — do not reintroduce the include skip.
    */
   readonly includeTaskfile?: boolean;
+}
+
+/** True for the vendored payload tree (not the installer-managed allowlist). */
+export function isCoreStagePath(path: string): boolean {
+  const normalized = path.replace(/\\/g, "/");
+  return normalized === ".deft/core" || normalized.startsWith(".deft/core/");
+}
+
+export interface LedgerStageSplit {
+  readonly stagePaths: string[];
+  readonly unstagedRemainder: string[];
+  readonly skippedUntrackedDeletes: string[];
+}
+
+/**
+ * True when `git ls-files` named the path or a descendant (directory prune).
+ * Exact-only membership misses a ledgered directory whose tracked children
+ * are the ls-files hits (#3394 Greptile).
+ */
+export function isTrackedDeletePath(path: string, trackedDeletes: ReadonlySet<string>): boolean {
+  const normalized = path.replace(/\\/g, "/");
+  if (trackedDeletes.has(normalized)) return true;
+  const prefix = normalized.endsWith("/") ? normalized : `${normalized}/`;
+  for (const tracked of trackedDeletes) {
+    if (tracked === normalized || tracked.startsWith(prefix)) return true;
+  }
+  return false;
+}
+
+/**
+ * Split this-run ledger paths into stageable (allowlist or core) vs remainder.
+ * Deleted paths not present in `trackedDeletes` (or under a tracked prefix)
+ * are skipped so one untracked delete cannot fail a batch `git add` (#3394).
+ */
+export function splitLedgerForStaging(
+  summary: MutationSummary,
+  trackedDeletes: ReadonlySet<string> = new Set(),
+): LedgerStageSplit {
+  const seen = new Set<string>();
+  const stagePaths: string[] = [];
+  const unstagedRemainder: string[] = [];
+  const skippedUntrackedDeletes: string[] = [];
+  const deleted = new Set(summary.deleted.map((path) => path.replace(/\\/g, "/")));
+
+  const visit = (raw: string): void => {
+    const path = raw.replace(/\\/g, "/");
+    if (!path || seen.has(path)) return;
+    seen.add(path);
+    if (!isInstallerManagedPath(path) && !isCoreStagePath(path)) {
+      unstagedRemainder.push(path);
+      return;
+    }
+    if (deleted.has(path) && !isTrackedDeletePath(path, trackedDeletes)) {
+      skippedUntrackedDeletes.push(path);
+      return;
+    }
+    stagePaths.push(path);
+  };
+
+  for (const path of summary.wrote) visit(path);
+  for (const path of summary.stripped) visit(path);
+  for (const path of summary.deleted) visit(path);
+  return { stagePaths, unstagedRemainder, skippedUntrackedDeletes };
 }
 
 export function frameworkStagePaths(
@@ -931,7 +996,6 @@ export function frameworkStagePaths(
   }
 
   for (const matcher of installerManagedMatchers()) {
-    if (matcher.exact === "Taskfile.yml" && !options.includeTaskfile) continue;
     if (matcher.exact) {
       add(matcher.exact);
     } else if (matcher.prefix) {
@@ -958,7 +1022,7 @@ export function stageFrameworkPaths(
   const runGitAdd =
     seams.runGitAdd ??
     ((root: string, stagePaths: readonly string[]) => {
-      execFileSync("git", ["add", ...stagePaths], {
+      execFileSync("git", ["add", "--", ...stagePaths], {
         cwd: root,
         encoding: "utf8",
         stdio: ["ignore", "pipe", "pipe"],
@@ -1222,39 +1286,56 @@ export async function pruneStrayDepositPaths(
 
 export const COMMIT_HYGIENE_BRANCH_NAME = "chore/deft-framework-upgrade";
 
+export function printUnstagedLedgerRemainder(
+  io: InitDepositIo,
+  remainder: readonly string[],
+): void {
+  if (remainder.length === 0) return;
+  io.printf("Left unstaged (not installer-managed this run; do not git add -A):\n");
+  for (const path of remainder) {
+    io.printf(`  ${path}\n`);
+  }
+}
+
 export function printCommitGuidance(
   io: InitDepositIo,
   paths: readonly string[],
   staged: boolean,
+  unstagedRemainder: readonly string[] = [],
 ): void {
-  if (paths.length === 0) return;
-  const addCmd = `git add ${paths.join(" ")}`;
-  io.printf(
-    "\nCommit hygiene (#1453, #1671, #3127, #3193): keep the framework upgrade in its OWN branch/PR.\n",
-  );
-  io.printf("Do NOT use `git add -A` -- mixing the payload with product/app files trips the\n");
-  io.printf("deft-core-guard CI check.\n");
-  io.printf(
-    "One upgrade PR MAY co-travel: .deft/core/** + installer-managed deposits + package.json\n",
-  );
-  io.printf(
-    "pin/lock (Directive pin-only + lock follow-through, #3193) + .deft/GENERATION.json.\n",
-  );
-  io.printf("True app/product paths still require a separate PR.\n");
-  if (staged) {
-    io.printf("The installer already staged ONLY these framework + installer-managed paths:\n");
-    io.printf(`  ${addCmd}\n`);
-  } else {
-    io.printf("Stage ONLY these framework + installer-managed paths:\n");
-    io.printf(`  ${addCmd}\n`);
+  if (paths.length === 0 && unstagedRemainder.length === 0) return;
+  if (paths.length > 0) {
+    const addCmd = `git add -- ${paths.join(" ")}`;
+    io.printf(
+      "\nCommit hygiene (#1453, #1671, #3127, #3193, #3394): keep the framework upgrade in its OWN branch/PR.\n",
+    );
+    io.printf("Do NOT use `git add -A` -- mixing the payload with product/app files trips the\n");
+    io.printf("deft-core-guard CI check.\n");
+    io.printf(
+      "One upgrade PR MAY co-travel: .deft/core/** + installer-managed deposits + package.json\n",
+    );
+    io.printf(
+      "pin/lock (Directive pin-only + lock follow-through, #3193) + .deft/GENERATION.json.\n",
+    );
+    io.printf("True app/product paths still require a separate PR.\n");
+    if (staged) {
+      io.printf("The installer already staged ONLY these framework + installer-managed paths:\n");
+      io.printf(`  ${addCmd}\n`);
+    } else {
+      io.printf("Stage ONLY these framework + installer-managed paths:\n");
+      io.printf(`  ${addCmd}\n`);
+    }
+    io.printf("Then take the framework deposit through the full PR lifecycle so deft-core-guard\n");
+    io.printf("evaluates a clean, standalone upgrade PR:\n");
+    io.printf(`  1. Branch: git switch -c ${COMMIT_HYGIENE_BRANCH_NAME}\n`);
+    io.printf('  2. Commit: git commit -m "chore(deft): update framework payload"\n');
+    io.printf(`  3. Push:   git push -u origin ${COMMIT_HYGIENE_BRANCH_NAME}\n`);
+    io.printf('  4. PR:     gh pr create --fill --title "chore(deft): update framework payload"\n');
+    io.printf(
+      "  5. Merge:  gh pr merge --squash --delete-branch   # after deft-core-guard passes\n",
+    );
   }
-  io.printf("Then take the framework deposit through the full PR lifecycle so deft-core-guard\n");
-  io.printf("evaluates a clean, standalone upgrade PR:\n");
-  io.printf(`  1. Branch: git switch -c ${COMMIT_HYGIENE_BRANCH_NAME}\n`);
-  io.printf('  2. Commit: git commit -m "chore(deft): update framework payload"\n');
-  io.printf(`  3. Push:   git push -u origin ${COMMIT_HYGIENE_BRANCH_NAME}\n`);
-  io.printf('  4. PR:     gh pr create --fill --title "chore(deft): update framework payload"\n');
-  io.printf("  5. Merge:  gh pr merge --squash --delete-branch   # after deft-core-guard passes\n");
+  printUnstagedLedgerRemainder(io, unstagedRemainder);
 }
 
 function defaultCachedNames(projectDir: string): string[] {
@@ -1293,6 +1374,28 @@ export interface DepositStagePathsOptions
   extends StageFrameworkPathsSeams,
     FrameworkStagePathsOptions {
   readCachedNames?: (projectDir: string) => string[];
+  /** `git ls-files` seam for filtering untracked ledger deletions (#3394). */
+  readTrackedNames?: (projectDir: string, paths: readonly string[]) => string[];
+  /** Explicit this-run ledger. Defaults to the bound snapshot. */
+  mutations?: MutationSummary;
+  printf?: (text: string) => void;
+}
+
+function defaultTrackedNames(projectDir: string, paths: readonly string[]): string[] {
+  if (paths.length === 0) return [];
+  try {
+    const out = execFileSync("git", ["ls-files", "-z", "--", ...paths], {
+      cwd: projectDir,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    return out
+      .split("\0")
+      .map((entry) => entry.trim().replace(/\\/g, "/"))
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
 }
 
 export function depositStagePaths(
@@ -1302,12 +1405,35 @@ export function depositStagePaths(
   stagePaths: string[];
   staged: boolean;
   stagedPaths: string[];
+  unstagedRemainder: string[];
+  skippedUntrackedDeletes: string[];
 } {
-  const deftDir = join(projectDir, CANONICAL_INSTALL_ROOT);
-  const stagePaths = frameworkStagePaths(projectDir, deftDir, {
-    includeCore: options.includeCore,
-    includeTaskfile: options.includeTaskfile ?? false,
-  });
+  const summary = options.mutations ?? snapshotMutationSummary();
+  const ledgerBound = options.mutations !== undefined || activeMutationLedger() !== undefined;
+
+  let stagePaths: string[];
+  let unstagedRemainder: string[] = [];
+  let skippedUntrackedDeletes: string[] = [];
+
+  if (ledgerBound) {
+    const readTracked = options.readTrackedNames ?? defaultTrackedNames;
+    const tracked = new Set(readTracked(projectDir, summary.deleted));
+    const split = splitLedgerForStaging(summary, tracked);
+    stagePaths = split.stagePaths;
+    unstagedRemainder = split.unstagedRemainder;
+    skippedUntrackedDeletes = split.skippedUntrackedDeletes;
+  } else {
+    const deftDir = join(projectDir, CANONICAL_INSTALL_ROOT);
+    stagePaths = frameworkStagePaths(projectDir, deftDir, {
+      includeCore: options.includeCore,
+    });
+  }
+
+  const leftover = [...unstagedRemainder, ...skippedUntrackedDeletes];
+  if (leftover.length > 0 && options.printf) {
+    printUnstagedLedgerRemainder({ printf: options.printf }, leftover);
+  }
+
   const { staged } = stageFrameworkPaths(projectDir, stagePaths, options);
   const readCachedNames = options.readCachedNames ?? defaultCachedNames;
   const cachedNames = staged ? readCachedNames(projectDir) : [];
@@ -1315,5 +1441,7 @@ export function depositStagePaths(
     stagePaths,
     staged,
     stagedPaths: staged ? actuallyStagedPaths(stagePaths, cachedNames) : [],
+    unstagedRemainder,
+    skippedUntrackedDeletes,
   };
 }
