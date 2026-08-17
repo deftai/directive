@@ -104,7 +104,7 @@ Commit **both** `.deft/approved-scope/<plan-id>.json` and `<plan-id>.intent.json
 
 ## Wave 2 intent pin (#3385)
 
-Mint writes one record and one preimage as a fail-closed pair under a per-plan lock. Dest files rename into place after a bak of the prior pair; a crash mid-publish is recovered on the next mint (prior pair, or neither dest). Dead-owner lock files are reclaimed so recover can run. A dest-write failure restores the previous pair or leaves neither dest. If restore also fails, leftover dests are cleared and the mint error names both failures. `intentDigest` is a checksum of `.deft/approved-scope/<plan-id>.intent.json` (`intent-extract-v1`).
+Mint writes one record and one preimage as a fail-closed pair under a per-plan lock. Both dests land as `.next` first, then dests copy from that pair. A crash mid-publish is recovered without a remint: finish the flip from `.next`, or restore the bak pair (or neither dest). Dead-owner lock files are reclaimed. A dest-write failure restores the previous pair or leaves neither dest. If restore also fails, leftover dests are cleared and the mint error names both failures. `intentDigest` is a checksum of `.deft/approved-scope/<plan-id>.intent.json` (`intent-extract-v1`).
 
 Extracted: `plan.title`, `plan.narratives.*`, `plan.acceptance`, `plan.architecture`, `plan.items[]` `{id,title,summary,narrative,type}`, `plan.id`, resolved parent id (`planRef` raw path is machine), origin `references[]` (no `TrustLevel`), `plan.edges`, swarm `file_scope` plus free-text swarm notes, and any unknown `plan.*` key (pinned wholesale). `plan.tags` is machine.
 

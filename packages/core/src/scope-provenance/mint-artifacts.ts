@@ -1,13 +1,13 @@
 /**
  * One mint writes record + preimage + both digests (#3376 R7 / #3385).
- * Dest publish is fail-closed as a pair under a per-plan lock. Temps land
- * first; dests rename into place only after a durable bak of the prior pair.
- * A crash mid-publish leaves a journal the next mint recovers (prior pair,
- * or neither dest). Caught write failures still restore or clear dests.
+ * Dest publish is two-phase under a per-plan lock: both dests land as
+ * `.next` first, then dests are copied from that pair. A crash leaves
+ * `.next` and/or a bak journal; recover finishes the flip or restores
+ * the prior pair (or neither dest) without waiting for a remint.
+ * Caught write failures still restore or clear dests.
  */
 
-import { randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import {
   ContainedWriteError,
@@ -115,10 +115,8 @@ function snapshotText(path: string): string | null {
 }
 
 function restoreText(root: string, path: string, snapshot: string | null): void {
-  if (snapshot === null) {
-    rmSync(path, { force: true });
-    return;
-  }
+  rmSync(path, { force: true, recursive: true });
+  if (snapshot === null) return;
   containedWrite({
     root,
     target: path,
@@ -168,9 +166,30 @@ export function approvedScopePairJournalPaths(
   };
 }
 
-function replaceDest(tmp: string, dest: string): void {
-  rmSync(dest, { force: true });
-  renameSync(tmp, dest);
+export function approvedScopePairNextPaths(
+  dir: string,
+  intentPath: string,
+  recordPath: string,
+): {
+  readonly intentNext: string;
+  readonly recordNext: string;
+} {
+  return {
+    intentNext: join(dir, `${basename(intentPath)}.next.tmp`),
+    recordNext: join(dir, `${basename(recordPath)}.next.tmp`),
+  };
+}
+
+function publishFromNext(root: string, next: string, dest: string): void {
+  if (!existsSync(next)) {
+    throw new Error(`mint pair next payload missing: ${basename(next)}`);
+  }
+  containedWrite({
+    root,
+    target: dest,
+    data: readFileSync(next, "utf8"),
+    mode: "replace",
+  });
 }
 
 function writeBak(root: string, src: string, bak: string): void {
@@ -192,8 +211,22 @@ function clearJournal(paths: { publishing: string; intentBak: string; recordBak:
   rmSync(paths.recordBak, { force: true });
 }
 
+function pairStemFromPublishingName(name: string): string | null {
+  const match = name.match(/^\.(.+)\.publishing\.bak$/i);
+  return match?.[1] ?? null;
+}
+
+function pairStemFromNextName(name: string): string | null {
+  if (!name.endsWith(".next.tmp")) return null;
+  const base = name.slice(0, -".next.tmp".length);
+  if (base.endsWith(".intent.json")) return base.slice(0, -".intent.json".length);
+  if (base.endsWith(".json")) return base.slice(0, -".json".length);
+  return null;
+}
+
 /**
- * If a prior dest publish left a journal, restore the bak pair or clear dests.
+ * Finish a staged dest flip from `.next`, or restore the bak pair / clear dests.
+ * Does not wait for a remint.
  */
 export function recoverIncompleteApprovedScopePair(input: {
   readonly projectRoot: string;
@@ -203,7 +236,23 @@ export function recoverIncompleteApprovedScopePair(input: {
   const root = resolve(input.projectRoot);
   const dir = approvedScopeDir(input.projectRoot);
   const journal = approvedScopePairJournalPaths(dir, input.intentPath, input.recordPath);
-  if (!existsSync(journal.publishing)) return false;
+  const next = approvedScopePairNextPaths(dir, input.intentPath, input.recordPath);
+  const intentNext = snapshotText(next.intentNext);
+  const recordNext = snapshotText(next.recordNext);
+  if (intentNext !== null && recordNext !== null) {
+    restoreText(root, input.intentPath, intentNext);
+    restoreText(root, input.recordPath, recordNext);
+    rmSync(next.intentNext, { force: true });
+    rmSync(next.recordNext, { force: true });
+    clearJournal(journal);
+    return true;
+  }
+  if (!existsSync(journal.publishing)) {
+    const leftover = intentNext !== null || recordNext !== null;
+    rmSync(next.intentNext, { force: true });
+    rmSync(next.recordNext, { force: true });
+    return leftover;
+  }
   const intentBak = snapshotText(journal.intentBak);
   const recordBak = snapshotText(journal.recordBak);
   if (intentBak !== null || recordBak !== null) {
@@ -213,8 +262,33 @@ export function recoverIncompleteApprovedScopePair(input: {
     rmSync(input.intentPath, { force: true });
     rmSync(input.recordPath, { force: true });
   }
+  rmSync(next.intentNext, { force: true });
+  rmSync(next.recordNext, { force: true });
   clearJournal(journal);
   return true;
+}
+
+/** Recover every incomplete pair under `.deft/approved-scope/`. */
+export function recoverApprovedScopePairs(projectRoot: string): number {
+  const dir = approvedScopeDir(projectRoot);
+  if (!existsSync(dir)) return 0;
+  const stems = new Set<string>();
+  for (const name of readdirSync(dir)) {
+    const fromPub = pairStemFromPublishingName(name);
+    if (fromPub !== null) stems.add(fromPub);
+    const fromNext = pairStemFromNextName(name);
+    if (fromNext !== null) stems.add(fromNext);
+  }
+  let recovered = 0;
+  for (const stem of stems) {
+    const did = recoverIncompleteApprovedScopePair({
+      projectRoot,
+      intentPath: join(dir, `${stem}.intent.json`),
+      recordPath: join(dir, `${stem}.json`),
+    });
+    if (did) recovered += 1;
+  }
+  return recovered;
 }
 
 function ownerPidAlive(lockPath: string): boolean {
@@ -340,8 +414,8 @@ function clearDestPair(input: {
 
 /**
  * Write record + preimage as one fail-closed pair.
- * A per-plan lock serializes dest publish. A journal + bak of the prior
- * pair lets the next mint recover a crash between dest renames.
+ * Phase 1 writes both dests to `.next`. Phase 2 copies dests from that pair.
+ * Recover finishes the flip or restores the bak pair without a remint.
  */
 export function writeApprovedScopePair(input: {
   readonly projectRoot: string;
@@ -362,6 +436,7 @@ export function writeApprovedScopePair(input: {
   const restore = input.restoreDest ?? restoreDestDefault;
   const remove = input.removeDest ?? removeDestDefault;
   const customPublish = input.publishDest;
+  const next = approvedScopePairNextPaths(dir, input.intentPath, input.recordPath);
   withPairLock(root, lockPath, input.lockWaitMs ?? 30_000, () => {
     recoverIncompleteApprovedScopePair({
       projectRoot: input.projectRoot,
@@ -370,17 +445,14 @@ export function writeApprovedScopePair(input: {
     });
     const prevIntent = snapshotText(input.intentPath);
     const prevRecord = snapshotText(input.recordPath);
-    const nonce = randomBytes(4).toString("hex");
-    const intentTmp = join(dir, `.${basename(input.intentPath)}.${process.pid}.${nonce}.tmp`);
-    const recordTmp = join(dir, `.${basename(input.recordPath)}.${process.pid}.${nonce}.tmp`);
     const dests: readonly MintRestoreDestInput[] = [
       { root, target: input.intentPath, snapshot: prevIntent },
       { root, target: input.recordPath, snapshot: prevRecord },
     ];
     let destPublished = false;
     try {
-      writeTempPayload(root, intentTmp, input.intentData);
-      writeTempPayload(root, recordTmp, input.recordData);
+      writeTempPayload(root, next.intentNext, input.intentData);
+      writeTempPayload(root, next.recordNext, input.recordData);
       writeBak(root, input.intentPath, journal.intentBak);
       writeBak(root, input.recordPath, journal.recordBak);
       containedWrite({
@@ -394,8 +466,8 @@ export function writeApprovedScopePair(input: {
         customPublish({ root, target: input.intentPath, data: input.intentData });
         customPublish({ root, target: input.recordPath, data: input.recordData });
       } else {
-        replaceDest(intentTmp, input.intentPath);
-        replaceDest(recordTmp, input.recordPath);
+        publishFromNext(root, next.intentNext, input.intentPath);
+        publishFromNext(root, next.recordNext, input.recordPath);
       }
       clearJournal(journal);
     } catch (err) {
@@ -422,8 +494,8 @@ export function writeApprovedScopePair(input: {
       }
       throw err;
     } finally {
-      rmSync(intentTmp, { force: true });
-      rmSync(recordTmp, { force: true });
+      rmSync(next.intentNext, { force: true });
+      rmSync(next.recordNext, { force: true });
     }
   });
 }

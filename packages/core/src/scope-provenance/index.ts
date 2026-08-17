@@ -42,4 +42,8 @@ export {
 export { computeIntentDigest, INTENT_DIGEST_ALGO } from "./intent-digest.js";
 export { parseJsonRejectingDuplicateKeys } from "./json-tokenizer.js";
 export { allKnownMachineLeaves, KNOWN_MACHINE_WRITERS } from "./known-machine.js";
-export { mintApprovedScopeArtifacts } from "./mint-artifacts.js";
+export {
+  mintApprovedScopeArtifacts,
+  recoverApprovedScopePairs,
+  recoverIncompleteApprovedScopePair,
+} from "./mint-artifacts.js";

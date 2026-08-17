@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Mint writes approved-scope record + preimage as a fail-closed pair (#3385).** Dest publish uses a per-plan lock and rename-swap after a durable bak of the prior pair. A crash mid-publish is recovered on the next mint (prior pair, or neither dest). Dead-owner lock files are reclaimed so that recover can run. A caught dest failure still restores or clears dests as a pair. Residual of PR #3414.
+- **Mint writes approved-scope record + preimage as a fail-closed pair (#3385).** Dest publish is two-phase under a per-plan lock: both dests land as `.next`, then dests copy from that pair. Recover finishes the flip or restores the bak pair (or neither dest) without a remint. Dead-owner lock files are reclaimed. A caught dest failure still restores or clears dests as a pair. Residual of PR #3414.
 - **Obsolete xbrief schema delete is ledgered so update can stage it (#3418).** `syncConsumerXbriefSchemas` removes dest-only `vbrief-core.schema.json` through `containedRemove`. Ledger intersection can `git add` the tracked deletion. Closes #3418. Refs #3394, #3392.
 
 - **Official Cursor adapter deletes no longer trip mixed-core-and-app (#3393).** A framework-only update that removes the retired hook adapter is installer-managed, not app. Other consumer hooks stay app-owned. Consumers on `pull_request_target` or pinned workflow refs see the old guard for one PR. Closes #3393. Refs #3378.

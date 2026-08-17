@@ -26,6 +26,7 @@ import {
   scopeExpansion,
 } from "./digest.js";
 import { bodyDigestIsAuthority, evaluateIntentForXbrief } from "./intent-evaluate.js";
+import { recoverApprovedScopePairs } from "./mint-artifacts.js";
 
 export type ScopeProvenanceViolationKind =
   | "self-authorizing-scope-expansion"
@@ -482,6 +483,7 @@ export function evaluateScopeProvenance(
 ): ScopeProvenanceResult {
   const root = resolve(projectRoot);
   const enforce = options.enforce ?? false;
+  recoverApprovedScopePairs(root);
 
   let changed: string[];
   /** Merge-base ref used for changed-file discovery (null when files injected). */

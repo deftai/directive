@@ -6,8 +6,10 @@ import { containedWrite } from "../fs/contained-write.js";
 import {
   approvedScopePairJournalPaths,
   approvedScopePairLockPath,
+  approvedScopePairNextPaths,
   MintPairRollbackError,
   mintApprovedScopeArtifacts,
+  recoverApprovedScopePairs,
   recoverIncompleteApprovedScopePair,
 } from "./mint-artifacts.js";
 
@@ -217,10 +219,12 @@ describe("mint-artifacts file (#3385)", () => {
     expect(leftoverTmps(dirname(first.intentPath))).toEqual([]);
   });
 
-  it("names put-back failure when a removed dest cannot be restored", () => {
+  it("keeps a journal so recover can heal after dest cleanup fails", () => {
     const root = mkdtempSync(join(tmpdir(), "mint-art-putback-fail-"));
     roots.push(root);
     const first = mint(root, payload("mint-8", "Old"));
+    const priorIntent = readFileSync(first.intentPath, "utf8");
+    const priorRecord = readFileSync(first.recordPath, "utf8");
     let caught: unknown;
     try {
       mint(
@@ -249,9 +253,24 @@ describe("mint-artifacts file (#3385)", () => {
     }
     expect(caught).toBeInstanceOf(MintPairRollbackError);
     expect((caught as Error).message).toMatch(
-      /injected remint record failure[\s\S]*injected restore failure[\s\S]*injected record cleanup failure[\s\S]*removed dests could not be put back/,
+      /injected remint record failure[\s\S]*injected restore failure[\s\S]*injected record cleanup failure/,
     );
-    rmSync(first.intentPath, { recursive: true, force: true });
+    const journal = approvedScopePairJournalPaths(
+      dirname(first.intentPath),
+      first.intentPath,
+      first.recordPath,
+    );
+    expect(existsSync(journal.publishing)).toBe(true);
+    expect(
+      recoverIncompleteApprovedScopePair({
+        projectRoot: root,
+        intentPath: first.intentPath,
+        recordPath: first.recordPath,
+      }),
+    ).toBe(true);
+    expect(readFileSync(first.intentPath, "utf8")).toBe(priorIntent);
+    expect(readFileSync(first.recordPath, "utf8")).toBe(priorRecord);
+    expect(existsSync(journal.publishing)).toBe(false);
   });
 
   it("recovers a remint crash after the first dest so the prior pair returns", () => {
@@ -353,6 +372,60 @@ describe("mint-artifacts file (#3385)", () => {
     ).toMatchObject({
       plan: expect.objectContaining({ title: "New" }),
     });
+  });
+
+  it("finishes dest flip from staged next without remint", () => {
+    const root = mkdtempSync(join(tmpdir(), "mint-art-forward-"));
+    roots.push(root);
+    const first = mint(root, payload("mint-13", "Old"));
+    const dir = dirname(first.intentPath);
+    const next = approvedScopePairNextPaths(dir, first.intentPath, first.recordPath);
+    const journal = approvedScopePairJournalPaths(dir, first.intentPath, first.recordPath);
+    const stagedIntent = readFileSync(first.intentPath, "utf8").replace("Old", "New");
+    const stagedRecord = readFileSync(first.recordPath, "utf8").replace("Old", "New");
+    containedWrite({ root, target: next.intentNext, data: stagedIntent, mode: "replace" });
+    containedWrite({ root, target: next.recordNext, data: stagedRecord, mode: "replace" });
+    containedWrite({ root, target: journal.publishing, data: "publishing\n", mode: "replace" });
+    containedWrite({
+      root,
+      target: first.intentPath,
+      data: readFileSync(first.intentPath, "utf8").replace("Old", "Split"),
+      mode: "replace",
+    });
+    expect(
+      recoverIncompleteApprovedScopePair({
+        projectRoot: root,
+        intentPath: first.intentPath,
+        recordPath: first.recordPath,
+      }),
+    ).toBe(true);
+    expect(readFileSync(first.intentPath, "utf8")).toBe(stagedIntent);
+    expect(readFileSync(first.recordPath, "utf8")).toBe(stagedRecord);
+    expect(existsSync(journal.publishing)).toBe(false);
+    expect(leftoverTmps(dir)).toEqual([]);
+  });
+
+  it("recovers a split pair from the journal without remint", () => {
+    const root = mkdtempSync(join(tmpdir(), "mint-art-scan-recover-"));
+    roots.push(root);
+    const first = mint(root, payload("mint-14", "Old"));
+    const priorIntent = readFileSync(first.intentPath, "utf8");
+    const priorRecord = readFileSync(first.recordPath, "utf8");
+    const dir = dirname(first.intentPath);
+    const journal = approvedScopePairJournalPaths(dir, first.intentPath, first.recordPath);
+    containedWrite({ root, target: journal.intentBak, data: priorIntent, mode: "replace" });
+    containedWrite({ root, target: journal.recordBak, data: priorRecord, mode: "replace" });
+    containedWrite({ root, target: journal.publishing, data: "publishing\n", mode: "replace" });
+    containedWrite({
+      root,
+      target: first.intentPath,
+      data: priorIntent.replace("Old", "Split"),
+      mode: "replace",
+    });
+    expect(recoverApprovedScopePairs(root)).toBe(1);
+    expect(readFileSync(first.intentPath, "utf8")).toBe(priorIntent);
+    expect(readFileSync(first.recordPath, "utf8")).toBe(priorRecord);
+    expect(existsSync(journal.publishing)).toBe(false);
   });
 
   it("reclaims a dead-owner lock and remints the pair", () => {
