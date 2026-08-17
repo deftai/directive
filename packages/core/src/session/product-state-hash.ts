@@ -121,8 +121,9 @@ function walkFiles(root: string, dir: string, out: string[], seen = new Set<stri
  * Node `fs.globSync` omits leading-dot names and has no `{ dot }` option.
  * Each `*` / `?` / `[` segment gets an ordinary and a hidden variant so a
  * later hidden segment (for example app/.config.ts) or a class-selected
- * hidden name (frontend/[ab]* -> .app.ts) stays in the digest. Keep `**`
- * intact and add a recursive hidden-name pattern.
+ * hidden name (frontend/[ab]* -> .app.ts) stays in the digest. Keep **
+ * intact, add a recursive hidden-name pattern, and insert a hidden-dir
+ * hop so ** can descend into .generated-style directories.
  */
 function hiddenSegmentVariant(segment: string): string | null {
   if (segment === "**" || segment.startsWith(".")) return null;
@@ -155,6 +156,8 @@ function globPatternsIncludingDotfiles(pattern: string): readonly string[] {
       );
       patterns.add(dottedTail);
     }
+    // Node glob does not descend into .dirs; one hidden-dir hop after **.
+    patterns.add(pattern.replaceAll("**", "**/.*/**"));
   }
   return [...patterns];
 }
