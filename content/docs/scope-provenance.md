@@ -88,12 +88,40 @@ Flags:
 | `--kind` | no | default `operator`; also `human`, `renewed-approval`, … |
 | `--project-root` | no | defaults via Taskfile to consumer CWD |
 | `--xbrief-rel-path` | no | override path binding; default maps `pending/` → `active/` |
+| `--repo` | no | `owner/name` seed for preimage `approvedRepos` (same source as `issue:emit`) |
 
-Commit the written `.deft/approved-scope/<plan-id>.json` on the **merge base** (or a prior PR) before the implementation PR activates or expands the scoped xBRIEF.
+Commit **both** `.deft/approved-scope/<plan-id>.json` and `<plan-id>.intent.json` on the **merge base** (or a prior PR) before the implementation PR activates or expands the scoped xBRIEF. Read the preimage before you commit — that file is the approved intent.
+
+## Three layers (do not mix)
+
+| Layer | What it is | Who writes it |
+| --- | --- | --- |
+| **Product intent** | What the story asks for — titles, narratives, acceptance, architecture, items, edges, origin refs | Human in the xBRIEF |
+| **Approved derivation** | The extracted preimage + path digest frozen at mint | `scope:record-approved-scope` on a TTY |
+| **Implementation choice** | How the worker codes the story | The implementation PR; must not rewrite pinned intent |
+
+`verify:scope-provenance` compares live extraction to the **base-committed** preimage. It never treats working-tree copies, `xbriefBodyDigest`, or authz grants as authority.
+
+## Wave 2 intent pin (#3385)
+
+Mint writes one record and one preimage as a fail-closed pair under a per-plan lock. Both dests land as `.next` first, then dests copy from that pair. A crash mid-publish is recovered without a remint: finish the flip from `.next`, or restore the bak pair (or neither dest). Dead-owner lock files are reclaimed. A dest-write failure restores the previous pair or leaves neither dest. If restore also fails, leftover dests are cleared and the mint error names both failures. `intentDigest` is a checksum of `.deft/approved-scope/<plan-id>.intent.json` (`intent-extract-v1`).
+
+Extracted: `plan.title`, `plan.narratives.*`, `plan.acceptance`, `plan.architecture`, `plan.items[]` `{id,title,summary,narrative,type}`, `plan.id`, resolved parent id (`planRef` raw path is machine), origin `references[]` (no `TrustLevel`), `plan.edges`, swarm `file_scope` plus free-text swarm notes, and any unknown `plan.*` key (pinned wholesale). `plan.tags` is machine.
+
+Verify:
+
+1. `git show <base>:` for record **and** preimage
+2. Recompute preimage digest vs `intentDigest`
+3. Re-extract the live brief and compare
+4. Same-PR rewrite of record or preimage fails
+5. Duplicate object keys need a real tokenizer (not `JSON.parse`)
+6. `Decisions` and `references[]` are append-only; new github-issue URLs must be in the base `approvedRepos`
+
+First activation with nonempty `file_scope` needs that base-committed pin. Same-PR mint + activate fails.
 
 ### Wave 1 records are legacy under Wave 2 (#3384 / #3385)
 
-Wave 1 mints write the current approved-scope record shape with a human-looking stamp. They do **not** write `xbriefBodyDigest` and they carry **no** `intentDigest`. Under Wave 2 (#3385) those records are **legacy**: later intent edits will warn, then fail; gated remint is the remediation. That is intended, not a bug.
+Wave 1 mints write the path record with a human-looking stamp. They do **not** write `xbriefBodyDigest` and they carry **no** `intentDigest`. Under Wave 2 those records are **legacy**: they authorize **paths only**. Intent edits warn this release, then fail; gated remint is the remediation. That is intended, not a bug. No silent backfill.
 
 ## First-adoption flow (single consumer upgrade)
 
@@ -123,7 +151,7 @@ Emptying `file_scope` to soft-warn past the gate is **not** the supported migrat
 
 ```bash
 task scope:record-approved-scope -- <xbrief-path> --actor <you> --confirm
-git add .deft/approved-scope/<plan-id>.json
+git add .deft/approved-scope/<plan-id>.json .deft/approved-scope/<plan-id>.intent.json
 # merge that commit before (or without) co-changing the active xBRIEF expansion
 ```
 

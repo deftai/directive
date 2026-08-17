@@ -15,6 +15,7 @@ import { join, resolve } from "node:path";
 import { GitCommandError, GitNotFoundError } from "../encoding/git.js";
 import {
   type ApprovedScopeRecord,
+  approvedScopeIntentRel,
   computeFileScopeDigest,
   extractFileScope,
   extractPlanId,
@@ -24,11 +25,22 @@ import {
   readApprovedScopeRecord,
   scopeExpansion,
 } from "./digest.js";
+import { bodyDigestIsAuthority, evaluateIntentForXbrief } from "./intent-evaluate.js";
+import { recoverApprovedScopePairs } from "./mint-artifacts.js";
 
 export type ScopeProvenanceViolationKind =
   | "self-authorizing-scope-expansion"
   | "active-xbrief-modified-without-digest"
-  | "digest-mismatch-without-renewal";
+  | "digest-mismatch-without-renewal"
+  | "intent-drift"
+  | "unclassified-key"
+  | "intent-digest-mismatch"
+  | "duplicate-key"
+  | "duplicate-item-id"
+  | "same-pr-intent-rewrite"
+  | "first-activation-missing-intent-pin"
+  | "legacy-intent-edit"
+  | "intent-parse-error";
 
 export interface ScopeProvenanceFinding {
   readonly xbriefRelPath: string;
@@ -61,6 +73,10 @@ export interface ScopeProvenanceOptions {
   readonly approvedRecords?: readonly ApprovedScopeRecord[];
   /** Inject renewed-approval stamps keyed by planId (test seam). */
   readonly renewedApprovals?: ReadonlyMap<string, ApprovedScopeRecord["humanApproval"]>;
+  /** Inject `git show <base>:<rel>` (test seam; never working-tree). */
+  readonly readAtBase?: (relPath: string) => string | null;
+  /** Optional repo slug seed for live extract (mint uses resolveProjectRepo). */
+  readonly approvedReposSeed?: readonly string[];
 }
 
 function git(args: string[], projectRoot: string): { status: number; stdout: string } {
@@ -292,6 +308,8 @@ export function parseApprovedScopeRecordRaw(raw: string): ApprovedScopeRecord | 
     const scopePaths = rec.fileScope.filter((x): x is string => typeof x === "string");
     const expected = computeFileScopeDigest(scopePaths);
     if (rec.fileScopeDigest !== expected) return null;
+    // xbriefBodyDigest is never authority (#3385 F4 / R6) — ignored if present.
+    bodyDigestIsAuthority(data as ApprovedScopeRecord);
     return data as ApprovedScopeRecord;
   } catch {
     return null;
@@ -465,6 +483,7 @@ export function evaluateScopeProvenance(
 ): ScopeProvenanceResult {
   const root = resolve(projectRoot);
   const enforce = options.enforce ?? false;
+  recoverApprovedScopePairs(root);
 
   let changed: string[];
   /** Merge-base ref used for changed-file discovery (null when files injected). */
@@ -618,6 +637,16 @@ export function evaluateScopeProvenance(
           (n.endsWith(`/${safe}.json`) || n.endsWith(`${safe}.json`))
         );
       });
+    const preimageRel = planId !== null ? approvedScopeIntentRel(planId) : null;
+    const preimageInGitChange =
+      preimageRel !== null &&
+      [...changedSet].some((p) => {
+        const n = normalizeRepoRelPath(p);
+        if (n === preimageRel || n.endsWith(`/${preimageRel}`)) return true;
+        if (planId === null) return false;
+        const safe = planId.replace(/[^a-zA-Z0-9._-]/g, "_");
+        return n.includes("/approved-scope/") && n.endsWith(`/${safe}.intent.json`);
+      });
     // Disk-only / concurrent-rewrite inference (#3205):
     // Authority is the *approval record on the merge base*, not whether the
     // active xBRIEF path existed there. pending→active leaves the active path
@@ -652,7 +681,7 @@ export function evaluateScopeProvenance(
         }
       }
     }
-    const approvalRecordRewritten = approvalInGitChange || approvalDiskOnly;
+    const approvalRecordRewritten = approvalInGitChange || approvalDiskOnly || preimageInGitChange;
 
     const recordMatchesCurrent =
       approved !== null &&
@@ -671,12 +700,12 @@ export function evaluateScopeProvenance(
         kind: "self-authorizing-scope-expansion",
         expandedPaths: currentScope,
         detail:
-          "approved-scope record rewritten in the same change set as the active xBRIEF; " +
+          "approved-scope record or preimage rewritten in the same change set as the active xBRIEF; " +
           "cannot self-authorize via concurrent approval rewrite",
         remediation:
           "Commit human approval via `task scope:record-approved-scope` on the merge base " +
           "(or a prior PR), then activate/expand without rewriting the approval in this " +
-          "change set. Same-PR approval rewrites do not authorize expansion (#3145 / #3205).",
+          "change set. Same-PR approval rewrites do not authorize expansion (#3145 / #3205 / #3385).",
       });
       continue;
     }
@@ -689,6 +718,47 @@ export function evaluateScopeProvenance(
       enforce,
       renewedHumanApproval: renewed ?? (recordMatchesCurrent ? approved?.humanApproval : null),
     });
+
+    const readAtBase = (baseRel: string): string | null => {
+      if (options.readAtBase !== undefined) return options.readAtBase(baseRel);
+      if (discoveryBaseRef === null || discoveryBaseRef === "") return null;
+      try {
+        return readRepoFileAtRef(root, discoveryBaseRef, baseRel);
+      } catch {
+        return null;
+      }
+    };
+    const intentHits = evaluateIntentForXbrief({
+      projectRoot: root,
+      xbriefRelPath: rel,
+      liveRaw: raw,
+      livePayload: payload,
+      planId: planId ?? rel,
+      approved,
+      xbriefModified: modified,
+      approvalRewritten: approvalRecordRewritten,
+      preimageRewritten: preimageInGitChange,
+      currentScopeNonEmpty: normalizeFileScope(extractFileScope(payload)).length > 0,
+      baseRef: discoveryBaseRef,
+      changedFiles: changed,
+      readAtBase,
+      approvedReposSeed: options.approvedReposSeed,
+    });
+    for (const hit of intentHits) {
+      const mapped: ScopeProvenanceFinding = {
+        xbriefRelPath: hit.xbriefRelPath,
+        planId: hit.planId,
+        kind: hit.kind,
+        expandedPaths: [],
+        detail: hit.detail,
+        remediation: hit.remediation,
+      };
+      if (hit.warnOnly) {
+        softFindings.push(mapped);
+      } else {
+        findings.push(mapped);
+      }
+    }
 
     if (finding === null) continue;
 

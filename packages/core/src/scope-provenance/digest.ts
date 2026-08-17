@@ -38,6 +38,10 @@ export interface ApprovedScopeRecord {
    * records. Do not treat it as authority (Wave 2 #3385 / R6).
    */
   readonly xbriefBodyDigest?: string;
+  /** Checksum of the base-committed `.intent.json` preimage (#3385). */
+  readonly intentDigest?: string;
+  /** Digest algorithm name; Wave 2 writes `intent-extract-v1`. */
+  readonly digestAlgo?: string;
 }
 
 export const APPROVED_SCOPE_DIR = ".deft/approved-scope";
@@ -104,9 +108,21 @@ export function approvedScopeDir(projectRoot: string): string {
   return join(resolve(projectRoot), ...APPROVED_SCOPE_DIR.split("/"));
 }
 
+export function approvedScopeSafePlanId(planId: string): string {
+  return planId.replace(/[^a-zA-Z0-9._-]/g, "_");
+}
+
 export function approvedScopeRecordPath(projectRoot: string, planId: string): string {
-  const safe = planId.replace(/[^a-zA-Z0-9._-]/g, "_");
-  return join(approvedScopeDir(projectRoot), `${safe}.json`);
+  return join(approvedScopeDir(projectRoot), `${approvedScopeSafePlanId(planId)}.json`);
+}
+
+/** Repo-relative preimage path. */
+export function approvedScopeIntentRel(planId: string): string {
+  return `.deft/approved-scope/${approvedScopeSafePlanId(planId)}.intent.json`;
+}
+
+export function approvedScopeIntentPath(projectRoot: string, planId: string): string {
+  return join(approvedScopeDir(projectRoot), `${approvedScopeSafePlanId(planId)}.intent.json`);
 }
 
 /** Build an ApprovedScopeRecord from xBRIEF payload + metadata. */
@@ -120,6 +136,8 @@ export function buildApprovedScopeRecord(input: {
    * Kept so existing callers do not have to drop the field in the same change.
    */
   readonly xbriefRawText?: string;
+  readonly intentDigest?: string;
+  readonly digestAlgo?: string;
 }): ApprovedScopeRecord {
   const planId = extractPlanId(input.payload) ?? basename(input.xbriefRelPath, ".xbrief.json");
   const fileScope = normalizeFileScope(extractFileScope(input.payload));
@@ -133,10 +151,14 @@ export function buildApprovedScopeRecord(input: {
     fileScope,
     fileScopeDigest,
   };
+  const withIntent =
+    input.intentDigest !== undefined
+      ? { ...record, intentDigest: input.intentDigest, digestAlgo: input.digestAlgo }
+      : record;
   if (input.humanApproval !== undefined) {
-    return { ...record, humanApproval: input.humanApproval };
+    return { ...withIntent, humanApproval: input.humanApproval };
   }
-  return record;
+  return withIntent;
 }
 
 /** Persist approved-scope record (activation / renewed human approval). */
