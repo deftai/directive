@@ -766,6 +766,8 @@ func TestCoreGuard_AllowlistAuthoritative(t *testing.T) {
 		".gitattributes",
 		".gitignore",
 		"greptile.json",
+		".cursor/hooks/deft-cursor-hook-adapter.mjs",
+		".cursor/hooks/deft-cursor-hook-adapter.test.mjs",
 		codeqlConfigRelPath,
 		coreGuardWorkflowRelPath,
 		"vbrief/.deft-version",
@@ -778,6 +780,7 @@ func TestCoreGuard_AllowlistAuthoritative(t *testing.T) {
 	}
 	notManaged := []string{
 		"src/main.py",
+		".cursor/hooks/consumer-custom.mjs",
 		"README.md",
 		".deft/core/VERSION",
 		"vbrief/PROJECT-DEFINITION.vbrief.json",

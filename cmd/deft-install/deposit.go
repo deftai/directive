@@ -152,6 +152,13 @@ func installerManagedMatchers() []installerManagedMatcher {
 		{exact: ".gitattributes"},
 		{exact: ".gitignore"},
 		{exact: "greptile.json"},
+		// Official Cursor adapter only (#3393). Exact paths — not a
+		// `.cursor/hooks/` prefix — so consumer-authored hooks stay app.
+		// Consumers using pull_request_target or pinned workflow refs
+		// evaluate the deposited guard from the previous allowlist for
+		// one PR; document, do not work around.
+		{exact: ".cursor/hooks/deft-cursor-hook-adapter.mjs"},
+		{exact: ".cursor/hooks/deft-cursor-hook-adapter.test.mjs"},
 		{exact: codeqlConfigRelPath},
 		{exact: coreGuardWorkflowRelPath},
 		// Upgrade co-travel unit (#3127 / #3193): path-allow package/lock +
