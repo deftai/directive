@@ -1455,24 +1455,35 @@ function pathishToken(token: string): string {
 }
 
 /**
- * Collapse `//` and `/./` so equivalent dests still match protected predicates
- * (`.deft//approved-scope/x`, `.deft/./authz/x`) without matching prefix siblings.
- * O(n) — no nested-quantifier regex.
+ * Collapse `//`, `/./`, and `/../` lexically so equivalent dests still match
+ * (`.deft/foo/../approved-scope/x`) without following symlinks or matching
+ * prefix siblings. O(n) — no nested-quantifier regex.
  */
 function canonicalizePathish(pathish: string): string {
   const parts: string[] = [];
   let cur = "";
+  const abs = pathish.startsWith("/");
   for (let i = 0; i <= pathish.length; i++) {
     const c = i < pathish.length ? (pathish[i] as string) : "/";
     if (c === "/" || i === pathish.length) {
-      if (cur.length > 0 && cur !== ".") parts.push(cur);
+      if (cur.length === 0 || cur === ".") {
+        // drop empty and `.`
+      } else if (cur === "..") {
+        if (parts.length > 0 && parts[parts.length - 1] !== "..") {
+          parts.pop();
+        } else if (!abs) {
+          parts.push("..");
+        }
+      } else {
+        parts.push(cur);
+      }
       cur = "";
     } else {
       cur += c;
     }
   }
   const joined = parts.join("/");
-  return pathish.startsWith("/") ? `/${joined}` : joined;
+  return abs ? `/${joined}` : joined;
 }
 
 /**

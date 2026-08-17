@@ -930,6 +930,18 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("git log worktree -- .deft/authz/state.json")).toEqual([]);
     expect(classifyShellAuthzOps("git show submodule -- .deft/authz/state.json")).toEqual([]);
     expect(classifyShellAuthzOps("echo x > .deft/approved-scope-backup/story.json")).toEqual([]);
+    expect(classifyShellAuthzOps("echo x > .deft/foo/../approved-scope/story.json")).toContain(
+      "settings",
+    );
+    expect(
+      classifyShellAuthzOps("cp forged.json .deft/foo/../approved-scope/story.json"),
+    ).toContain("settings");
+    expect(classifyShellAuthzOps("echo x > .deft/foo/../authz/grants/evil.json")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("echo x > .deft/foo/../.deft-directive-disable")).toContain(
+      "settings",
+    );
     expect(classifyShellAuthzOps("echo x > .deft//approved-scope/story.json")).toContain(
       "settings",
     );

@@ -1154,6 +1154,8 @@ describe("UAT residual dest-form writers fail-closed (#3421)", () => {
       "echo x > .deft//approved-scope/story.json",
       "echo x > .deft/./approved-scope/story.json",
       "cp forged.json .deft//approved-scope/story.json",
+      "echo x > .deft/foo/../approved-scope/story.json",
+      "cp forged.json .deft/foo/../approved-scope/story.json",
     ]) {
       const decision = decideHook(
         {
