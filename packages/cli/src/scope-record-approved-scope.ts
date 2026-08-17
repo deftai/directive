@@ -9,7 +9,7 @@
  */
 import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
 import { basename, join, relative, resolve, sep } from "node:path";
-import { scopeProvenance } from "@deftai/directive-core";
+import { scopeProvenance, slice } from "@deftai/directive-core";
 import { isDirectEntrypoint } from "./entrypoint.js";
 import {
   type HumanPresenceMintSeams,
@@ -44,8 +44,7 @@ export function isPathInsideRoot(root: string, candidate: string): boolean {
   return !rel.startsWith("..");
 }
 
-const { buildApprovedScopeRecord, isHumanApprovalStamp, writeApprovedScopeRecord } =
-  scopeProvenance;
+const { isHumanApprovalStamp, mintApprovedScopeArtifacts } = scopeProvenance;
 
 export interface ParsedArgs {
   projectRoot: string;
@@ -57,14 +56,16 @@ export interface ParsedArgs {
   quiet: boolean;
   /** Explicit operator confirm for the #3110 human-presence mint (#3384). */
   confirm: boolean;
+  /** Optional owner/name seed for preimage approvedRepos (#3385 R5). */
+  repo: string;
   error?: string;
 }
 
 function usage(): string {
   return (
     "usage: scope:record-approved-scope -- <xbrief-path> --actor <name> --confirm " +
-    "[--kind operator] [--project-root <dir>] [--xbrief-rel-path <posix>] [--quiet]\n" +
-    "  Writes .deft/approved-scope/<plan-id>.json with a humanApproval stamp (#3205 / #3384).\n" +
+    "[--kind operator] [--project-root <dir>] [--xbrief-rel-path <posix>] [--repo owner/name] [--quiet]\n" +
+    "  Writes .deft/approved-scope/<plan-id>.json and <plan-id>.intent.json (#3205 / #3384 / #3385).\n" +
     "  --actor is display only and never authorizes mint. Mint requires a real TTY, " +
     "controlling terminal, --confirm, and typed phrase mint (#3110). Agent/CI shells refuse."
   );
@@ -126,6 +127,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     xbriefRelPath: "",
     quiet: false,
     confirm: false,
+    repo: "",
   };
   const positionals: string[] = [];
   for (let i = 0; i < argv.length; i += 1) {
@@ -173,6 +175,15 @@ export function parseArgs(argv: string[]): ParsedArgs {
       i += 1;
     } else if (arg?.startsWith("--xbrief-rel-path=")) {
       parsed.xbriefRelPath = arg.slice("--xbrief-rel-path=".length);
+    } else if (arg === "--repo") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ...parsed, error: "argument --repo: expected one argument" };
+      }
+      parsed.repo = value;
+      i += 1;
+    } else if (arg?.startsWith("--repo=")) {
+      parsed.repo = arg.slice("--repo=".length);
     } else if (arg?.startsWith("-")) {
       return { ...parsed, error: `unrecognized argument: ${arg}` };
     } else if (arg !== undefined) {
@@ -226,13 +237,12 @@ export function run(argv: string[], seams: HumanPresenceMintSeams = {}): number 
     process.stderr.write(`scope_record_approved_scope: failed to read xBRIEF: ${String(err)}\n`);
     return 2;
   }
-  let payload: unknown;
-  try {
-    payload = JSON.parse(raw) as unknown;
-  } catch {
-    process.stderr.write("scope_record_approved_scope: xBRIEF is not valid JSON\n");
+  const parsed = scopeProvenance.parseJsonRejectingDuplicateKeys(raw);
+  if (!parsed.ok) {
+    process.stderr.write(`scope_record_approved_scope: ${parsed.error}\n`);
     return 2;
   }
+  const payload = parsed.value;
 
   const verb = "scope:record-approved-scope";
   const uatBlocked = refuseMintWhileUatActive(verb, projectRoot);
@@ -275,22 +285,43 @@ export function run(argv: string[], seams: HumanPresenceMintSeams = {}): number 
     );
     return 2;
   }
-  const record = buildApprovedScopeRecord({
-    xbriefRelPath,
-    payload,
-    humanApproval: stamp,
-  });
-  const outPath = writeApprovedScopeRecord(projectRoot, record);
+  const repoSeed = slice.resolveProjectRepo(
+    args.repo.trim().length > 0 ? args.repo.trim() : undefined,
+    projectRoot,
+  );
+  // Mint writes record + preimage as one fail-closed pair. A dest-write
+  // failure restores the prior pair or leaves neither dest (#3385 residual).
+  let minted: ReturnType<typeof mintApprovedScopeArtifacts>;
+  try {
+    minted = mintApprovedScopeArtifacts({
+      xbriefRelPath,
+      payload,
+      rawText: raw,
+      projectRoot,
+      humanApproval: stamp,
+      extract: {
+        projectRoot,
+        approvedReposSeed: repoSeed !== null ? [repoSeed] : [],
+      },
+    });
+  } catch (err: unknown) {
+    process.stderr.write(`scope_record_approved_scope: ${String(err)}\n`);
+    return 1;
+  }
+  const { record, recordPath, intentPath } = minted;
   if (!args.quiet) {
     process.stdout.write(
-      `scope_record_approved_scope: wrote ${outPath}\n` +
+      `scope_record_approved_scope: wrote ${recordPath}\n` +
+        `  preimage: ${intentPath}\n` +
         `  planId: ${record.planId}\n` +
         `  xbriefRelPath: ${record.xbriefRelPath}\n` +
         `  fileScopeDigest: ${record.fileScopeDigest}\n` +
+        `  intentDigest: ${record.intentDigest ?? ""}\n` +
         `  paths: ${record.fileScope.length}\n` +
         `  humanApproval: ${stamp.kind}/${stamp.actor}\n` +
-        "  Next: commit this file on the merge base (or a prior PR) before " +
-        "activation/expansion in the implementation change set (#3205).\n",
+        "  Read the preimage before you commit. That file is the approved intent (#3385).\n" +
+        "  Next: commit record + preimage on the merge base (or a prior PR) before " +
+        "activation/expansion in the implementation change set (#3205 / #3385).\n",
     );
   }
   return 0;

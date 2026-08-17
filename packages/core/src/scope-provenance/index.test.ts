@@ -6,6 +6,8 @@ describe("scope-provenance index surface (#3145)", () => {
     expect(typeof sp.evaluateScopeProvenance).toBe("function");
     expect(typeof sp.computeFileScopeDigest).toBe("function");
     expect(typeof sp.writeApprovedScopeRecord).toBe("function");
+    expect(typeof sp.mintApprovedScopeArtifacts).toBe("function");
+    expect(typeof sp.compareExtractedIntent).toBe("function");
     expect(sp.APPROVED_SCOPE_DIR).toContain("approved-scope");
   });
 });

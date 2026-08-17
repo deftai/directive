@@ -6,6 +6,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  approvedScopeIntentPath,
+  approvedScopeIntentRel,
   approvedScopeRecordPath,
   buildApprovedScopeRecord,
   computeFileScopeDigest,
@@ -83,6 +85,15 @@ describe("buildApprovedScopeRecord / disk IO branches (#3185)", () => {
     expect(rec.xbriefRelPath).toBe("xbrief/active/story.xbrief.json");
     expect(rec.xbriefBodyDigest).toBeUndefined();
     expect(rec.fileScopeDigest).toBe(computeFileScopeDigest(["z.ts"]));
+    expect(approvedScopeIntentRel("story-1")).toBe(".deft/approved-scope/story-1.intent.json");
+    const recWithIntent = buildApprovedScopeRecord({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      payload: { plan: { id: "story-1", metadata: { swarm: { file_scope: ["z.ts"] } } } },
+      intentDigest: "abc",
+      digestAlgo: "intent-extract-v1",
+    });
+    expect(recWithIntent.intentDigest).toBe("abc");
+    expect(approvedScopeIntentPath(".", "story-1")).toContain("story-1.intent.json");
   });
 
   it("normalizes backslash xbriefRelPath separators without treating them as plan id", () => {
