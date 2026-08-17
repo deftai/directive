@@ -131,6 +131,8 @@ export interface ContainedRemoveInput {
    * `false` skips. `path` overrides the recorded path.
    */
   readonly mutation?: false | { readonly path?: string };
+  /** When true, remove directories recursively. Default `false`. */
+  readonly recursive?: boolean;
 }
 
 export interface ContainedRemoveResult {
@@ -492,7 +494,7 @@ export function containedRemove(input: ContainedRemoveInput): ContainedRemoveRes
     });
   }
   try {
-    rmSync(targetAbs, { force: true });
+    rmSync(targetAbs, { force: true, recursive: input.recursive === true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     throw new ContainedWriteError(`contained write I/O failed: ${msg}`, {

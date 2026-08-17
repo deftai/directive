@@ -424,10 +424,13 @@ export function writeAgentHookDeposit(
     ".cursor/hooks/deft-cursor-hook-adapter.mjs",
     ".cursor/hooks/deft-cursor-hook-adapter.test.mjs",
   ] as const;
+  let adaptersRemoved = 0;
   for (const relative of legacyAdapterPaths) {
     const absolute = join(projectRoot, relative);
     assertDepositContained(projectRoot, absolute);
-    containedRemove({ root: projectRoot, target: absolute });
+    if (containedRemove({ root: projectRoot, target: absolute }).removed) {
+      adaptersRemoved += 1;
+    }
   }
 
   if (changedPaths.length > 0) {
@@ -438,11 +441,11 @@ export function writeAgentHookDeposit(
       `Removed Directive-managed agent hooks (plan.policy.hostHooks opt-out): ${strippedPaths.join(", ")}\n`,
     );
   }
-  if (changedPaths.length === 0 && strippedPaths.length === 0) {
+  if (changedPaths.length === 0 && strippedPaths.length === 0 && adaptersRemoved === 0) {
     io.printf("Directive agent hooks already current.\n");
   }
   return {
-    changed: changedPaths.length + strippedPaths.length > 0,
+    changed: changedPaths.length + strippedPaths.length + adaptersRemoved > 0,
     changedPaths: [...changedPaths, ...strippedPaths],
   };
 }

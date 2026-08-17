@@ -1589,4 +1589,50 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     expect(printed).toContain(`wrote: ${wrote.join(", ")}`);
     expect(printed).not.toMatch(/\.deft-\d+\.tmp/);
   });
+
+  it("includes tree-replace and prune mutations in the refresh snapshot (#3392 residual)", async () => {
+    const project = freshRoot("refresh-ledger-tree-");
+    const contentRoot = installFakeContentPackage(project);
+    mkdirSync(join(contentRoot, "scripts"), { recursive: true });
+    writeFileSync(join(contentRoot, "scripts", "probe.py"), "# probe\n", "utf8");
+    writeFileSync(join(contentRoot, "legacy.pyc"), "\x00\n", "utf8");
+    writeFileSync(join(contentRoot, "run"), "#!/usr/bin/env python3\n", "utf8");
+
+    mkdirSync(join(project, ".deft", "core", "nested"), { recursive: true });
+    writeFileSync(
+      join(project, ".deft", "core", "VERSION"),
+      "tag: 'v0.52.0'\nsha: abc\ninstall_root: '.deft/core'\n",
+      "utf8",
+    );
+    writeFileSync(join(project, ".deft", "core", "main.md"), "# old\n", "utf8");
+    writeFileSync(join(project, ".deft", "core", "nested", "stale.md"), "EVIL\n", "utf8");
+    writeFileSync(join(project, "run"), "#!/usr/bin/env python3\n", "utf8");
+
+    const result = await runRefreshDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
+      { printf: () => {} },
+      {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.53.0",
+        nowIso: () => "2026-08-16T12:00:00Z",
+        gitPorcelain: () => "",
+      },
+    );
+
+    expect(existsSync(join(project, ".deft", "core", "nested", "stale.md"))).toBe(false);
+    expect(existsSync(join(project, ".deft", "core", "scripts"))).toBe(false);
+    expect(existsSync(join(project, ".deft", "core", "legacy.pyc"))).toBe(false);
+    expect(existsSync(join(project, "run"))).toBe(false);
+
+    const { deleted, wrote } = result.mutations;
+    expect(deleted).toEqual(
+      expect.arrayContaining([
+        ".deft/core/nested/stale.md",
+        ".deft/core/scripts",
+        ".deft/core/legacy.pyc",
+        "run",
+      ]),
+    );
+    expect(wrote).toEqual(expect.arrayContaining([".deft/core/main.md"]));
+  });
 });

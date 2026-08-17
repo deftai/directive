@@ -381,6 +381,19 @@ describe("containedRemove (#3392)", () => {
     expect(summary.deleted).toEqual(["gone.txt"]);
   });
 
+  it("removes a directory tree when recursive is true and records deleted", () => {
+    const root = freshDir("cr-rec-");
+    mkdirSync(join(root, "scripts"), { recursive: true });
+    writeFileSync(join(root, "scripts", "probe.py"), "# probe\n", "utf8");
+    const summary = runWithMutationLedger(root, () => {
+      const result = containedRemove({ root, target: "scripts", recursive: true });
+      expect(result.removed).toBe(true);
+      return snapshotMutationSummary();
+    });
+    expect(existsSync(join(root, "scripts"))).toBe(false);
+    expect(summary.deleted).toEqual(["scripts"]);
+  });
+
   it("is a no-op (not ledgered) when the target is missing", () => {
     const root = freshDir("cr-miss-");
     const summary = runWithMutationLedger(root, () => {

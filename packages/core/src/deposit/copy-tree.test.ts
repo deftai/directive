@@ -18,6 +18,7 @@ const itSymlink = it.skipIf(process.platform === "win32");
 // chmod mode bits are not reliably preserved by Node on Windows.
 const itChmod = it.skipIf(process.platform === "win32");
 
+import { runWithMutationLedger, snapshotMutationSummary } from "../fs/mutation-ledger.js";
 import { copyTree, replaceTree } from "./copy-tree.js";
 
 describe("copyTree (#1477 mode-preserving recursive copy)", () => {
@@ -188,5 +189,26 @@ describe("replaceTree (#2913 full-tree swap, Go swapInCore parity)", () => {
     writeFileSync(file, "x", "utf-8");
 
     await expect(replaceTree(file, join(workspace, "dst"))).rejects.toThrow(/not a directory/);
+  });
+
+  it("ledgers dest-only deletes and dest writes when a ledger is bound (#3392)", async () => {
+    const workspace = freshRoot("replace-tree-ledger-");
+    const src = join(workspace, "src");
+    const dst = join(workspace, "dst");
+    mkdirSync(src, { recursive: true });
+    mkdirSync(join(dst, "nested"), { recursive: true });
+    writeFileSync(join(src, "kept.md"), "new\n", "utf-8");
+    writeFileSync(join(dst, "kept.md"), "old\n", "utf-8");
+    writeFileSync(join(dst, "nested", "stale.md"), "EVIL\n", "utf-8");
+
+    const summary = await runWithMutationLedger(workspace, async () => {
+      await replaceTree(src, dst);
+      return snapshotMutationSummary();
+    });
+
+    expect(summary.deleted).toEqual(expect.arrayContaining(["dst/nested/stale.md"]));
+    expect(summary.wrote).toEqual(expect.arrayContaining(["dst/kept.md"]));
+    expect(summary.deleted).not.toEqual([]);
+    expect(summary.wrote).not.toEqual([]);
   });
 });

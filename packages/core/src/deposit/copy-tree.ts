@@ -11,10 +11,11 @@
  * Refs #1942 S1, #1477, #2913.
  */
 
-import { constants } from "node:fs";
+import { constants, type Dirent } from "node:fs";
 import { lstat, mkdir, mkdtemp, open, readdir, readFile, rename, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { recordActiveMutation } from "../fs/mutation-ledger.js";
 
 const DEFAULT_FILE_MODE = 0o644;
 const DEFAULT_DIR_MODE = 0o755;
@@ -112,6 +113,51 @@ async function pathExists(path: string): Promise<boolean> {
   }
 }
 
+/** Posix-relative file and symlink paths under `root` (directories are walked). */
+async function listRelativeFilePaths(root: string): Promise<string[]> {
+  const out: string[] = [];
+  async function walk(dir: string, rel: string): Promise<void> {
+    let entries: Dirent[];
+    try {
+      entries = await readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const childRel = rel.length > 0 ? `${rel}/${entry.name}` : entry.name;
+      if (entry.isDirectory() && !entry.isSymbolicLink()) {
+        await walk(join(dir, entry.name), childRel);
+      } else {
+        out.push(childRel.replace(/\\/g, "/"));
+      }
+    }
+  }
+  await walk(root, "");
+  return out;
+}
+
+async function destOnlyRelativeFiles(src: string, dst: string): Promise<string[]> {
+  const srcSet = new Set(await listRelativeFilePaths(src));
+  return (await listRelativeFilePaths(dst)).filter((rel) => !srcSet.has(rel));
+}
+
+/**
+ * Ledger dest-only deletes and dest writes after a successful swap (#3392).
+ * Observational: dest is already live. Failures must not reject replaceTree.
+ */
+async function ledgerReplacedTree(dst: string, destOnly: readonly string[]): Promise<void> {
+  try {
+    for (const rel of destOnly) {
+      recordActiveMutation("deleted", join(dst, ...rel.split("/")));
+    }
+    for (const rel of await listRelativeFilePaths(dst)) {
+      recordActiveMutation("wrote", join(dst, ...rel.split("/")));
+    }
+  } catch {
+    // Ledger is observational; dest is already live.
+  }
+}
+
 /**
  * Move `src` to `dst`, falling back to copy+remove across devices (EXDEV),
  * mirroring Go `movePayload` used by `swapInCore`.
@@ -160,10 +206,12 @@ export async function replaceTree(src: string, dst: string): Promise<void> {
   let backup: string | null = null;
   /** When true, leave `backup` on disk so an operator can recover after dual failure. */
   let preserveBackupOnExit = false;
+  let destOnly: string[] = [];
   try {
     await copyDirContents(src, staging);
 
     if (await pathExists(dst)) {
+      destOnly = await destOnlyRelativeFiles(src, dst);
       backup = await mkdtemp(join(tmpdir(), "deft-core-bak-"));
       // mkdtemp created an empty dir; remove it so moveTree can rename onto the path.
       await rm(backup, { recursive: true, force: true });
@@ -219,6 +267,7 @@ export async function replaceTree(src: string, dst: string): Promise<void> {
       await rm(backup, { recursive: true, force: true }).catch(() => undefined);
       backup = null;
     }
+    await ledgerReplacedTree(dst, destOnly);
   } finally {
     await rm(staging, { recursive: true, force: true }).catch(() => undefined);
     if (backup !== null && !preserveBackupOnExit) {

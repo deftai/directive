@@ -2,6 +2,7 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { runWithMutationLedger, snapshotMutationSummary } from "../fs/mutation-ledger.js";
 import {
   collectPythonArtifacts,
   isRepoRootPythonRunShim,
@@ -144,6 +145,31 @@ describe("python-free deposit hygiene (#2022 Phase 3)", () => {
     mkdirSync(deposit, { recursive: true });
     writeFileSync(join(deposit, "Taskfile.yml"), "version: '3'\n", "utf8");
     expect(collectPythonArtifacts(deposit)).toEqual([]);
+  });
+
+  it("ledgers prune deletes when a ledger is bound (#3392)", async () => {
+    const project = freshRoot("py-prune-ledger-");
+    const deposit = join(project, ".deft", "core");
+    mkdirSync(join(deposit, "scripts"), { recursive: true });
+    writeFileSync(join(deposit, "scripts", "probe.py"), "# probe\n", "utf8");
+    writeFileSync(join(deposit, "legacy.pyc"), "\x00\n", "utf8");
+    writeFileSync(join(deposit, "run"), "#!/usr/bin/env python3\n", "utf8");
+    writeFileSync(join(project, "run"), "#!/usr/bin/env python3\n", "utf8");
+
+    const summary = await runWithMutationLedger(project, async () => {
+      await prunePythonArtifactsFromDeposit(deposit, project);
+      return snapshotMutationSummary();
+    });
+
+    expect(summary.deleted).toEqual(
+      expect.arrayContaining([
+        ".deft/core/scripts",
+        ".deft/core/legacy.pyc",
+        ".deft/core/run",
+        "run",
+      ]),
+    );
+    expect(summary.deleted).not.toEqual([]);
   });
 
   it("prunePythonArtifactsFromDeposit is a no-op on an already-clean deposit", async () => {
