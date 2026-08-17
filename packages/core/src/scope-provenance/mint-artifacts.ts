@@ -60,13 +60,16 @@ export function mintApprovedScopeArtifacts(input: MintArtifactsInput): MintArtif
   };
   const dir = approvedScopeDir(input.projectRoot);
   mkdirSync(dir, { recursive: true });
-  const recordPath = writeApprovedScopeRecord(input.projectRoot, record);
   const intentPath = approvedScopeIntentPath(input.projectRoot, record.planId);
+  // Preimage first. A later record-write failure leaves a preimage without
+  // intentDigest, which verify ignores. The reverse (record then failed
+  // preimage) would publish a digest with no authority file.
   containedWrite({
     root: resolve(input.projectRoot),
     target: intentPath,
     data: `${JSON.stringify(extracted.preimage, null, 2)}\n`,
     mode: "replace",
   });
+  const recordPath = writeApprovedScopeRecord(input.projectRoot, record);
   return { record, preimage: extracted.preimage, recordPath, intentPath };
 }

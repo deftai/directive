@@ -25,7 +25,7 @@ import {
   readApprovedScopeRecord,
   scopeExpansion,
 } from "./digest.js";
-import { evaluateIntentForXbrief } from "./intent-evaluate.js";
+import { bodyDigestIsAuthority, evaluateIntentForXbrief } from "./intent-evaluate.js";
 
 export type ScopeProvenanceViolationKind =
   | "self-authorizing-scope-expansion"
@@ -308,6 +308,7 @@ export function parseApprovedScopeRecordRaw(raw: string): ApprovedScopeRecord | 
     const expected = computeFileScopeDigest(scopePaths);
     if (rec.fileScopeDigest !== expected) return null;
     // xbriefBodyDigest is never authority (#3385 F4 / R6) — ignored if present.
+    bodyDigestIsAuthority(data as ApprovedScopeRecord);
     return data as ApprovedScopeRecord;
   } catch {
     return null;
