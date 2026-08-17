@@ -47,6 +47,7 @@ import {
   formatSoftAgentsRebindChecklist,
 } from "../session/compact-ritual.js";
 import { detectBranch } from "../session/git.js";
+import { evaluateOccupancyWriteGate } from "../session/occupancy.js";
 import { emitSessionRitualBlockedProcessCost } from "../session/process-cost.js";
 import { markRitualStaleAfterCompact } from "../session/ritual-sentinel.js";
 import { runSessionStartHookWrite } from "../session/session-start-hook.js";
@@ -128,6 +129,8 @@ export type HookDecisionCode =
   /** Host closed stdin with zero bytes — integration failure, not a policy gate (#2864). */
   | "stdin-empty"
   | "ritual-not-ready"
+  /** Product-path write while another live session occupies this worktree (#3433). */
+  | "occupancy-occupied"
   | "scope-not-ready"
   | "write-propose-ready"
   /** Allowlisted assist/scratch write without active xBRIEF (#1802). */
@@ -873,6 +876,27 @@ function inspectMutationGates(
       toolName,
       `Directive could not inspect the gated session ritual: ${String(cause)}. ` +
         formatRitualRecoveryInstruction("cold"),
+    );
+  }
+  const occupancyGate = isSpawnTool(toolName)
+    ? { allow: true, message: null as string | null, occupant: null }
+    : evaluateOccupancyWriteGate(projectRoot, { env: environ });
+  if (!occupancyGate.allow && occupancyGate.message !== null) {
+    const ritualNote = ritual.code !== 0 ? ` Also ritual-not-ready: ${ritual.message}` : "";
+    emitSessionRitualBlockedProcessCost(
+      {
+        toolName,
+        code: "occupancy-occupied",
+        recoveryTier: ritual.recoveryTier === "rearm" ? "rearm" : "cold",
+        detail: occupancyGate.message,
+      },
+      { projectRoot },
+    );
+    return deny(
+      input,
+      "occupancy-occupied",
+      toolName,
+      `Directive denied ${toolName}: ${occupancyGate.message}${ritualNote}`,
     );
   }
   if (ritual.code !== 0) {

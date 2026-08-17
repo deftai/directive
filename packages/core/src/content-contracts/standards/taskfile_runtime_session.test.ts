@@ -15,6 +15,7 @@ const RUNTIME_SESSION_TASKFILES: Readonly<
   Record<string, readonly { task: string; mustNotDependOnBuild?: boolean }[]>
 > = {
   "session.yml": [{ task: "start", mustNotDependOnBuild: true }],
+  "occupancy.yml": [{ task: "steal", mustNotDependOnBuild: true }],
   "triage-summary.yml": [{ task: "summary", mustNotDependOnBuild: true }],
   "triage-welcome.yml": [{ task: "welcome", mustNotDependOnBuild: true }],
   "verify.yml": [
@@ -27,6 +28,8 @@ const RUNTIME_SESSION_TASKFILES: Readonly<
 const RUNTIME_VERB_TOKENS = [
   "session:start",
   "session-start",
+  "occupancy:steal",
+  "occupancy-steal",
   "lifecycle:event",
   "lifecycle-event",
   "verify:session-ritual",

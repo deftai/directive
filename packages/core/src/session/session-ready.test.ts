@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import type { OccupancyDecision } from "./occupancy.js";
 import {
   inferSessionReadyRepo,
   isCacheFreshFailure,
@@ -8,9 +9,25 @@ import {
   SESSION_READY_FAST_PATH,
   SESSION_READY_RECOVERED,
   SESSION_READY_VERIFIED,
+  type SessionReadyOptions,
 } from "./session-ready.js";
 import type { SessionStartResult } from "./session-start.js";
 import type { VerifyResult } from "./verify-session-ritual.js";
+
+function stubOccupancy(): OccupancyDecision {
+  return {
+    action: "claimed",
+    sessionId: "ready-session",
+    record: null,
+    path: "/proj/.deft/occupancy.json",
+    message: "occupancy claimed session ready-session (intent=mutation)",
+    code: 0,
+  };
+}
+
+function ready(projectRoot: string, options: SessionReadyOptions = {}) {
+  return runSessionReady(projectRoot, { applyOccupancy: stubOccupancy, ...options });
+}
 
 function okVerify(overrides: Partial<VerifyResult> = {}): VerifyResult {
   return {
@@ -73,7 +90,7 @@ describe("runSessionReady (#2993)", () => {
     const runStart = vi.fn();
     const fetchAll = vi.fn();
 
-    const result = runSessionReady("/proj", {
+    const result = ready("/proj", {
       inspectRitual,
       verifyRitual,
       runStart,
@@ -95,7 +112,7 @@ describe("runSessionReady (#2993)", () => {
   });
 
   it("does not report the fast path ready when the forced hook gate fails", () => {
-    const result = runSessionReady("/proj", {
+    const result = ready("/proj", {
       inspectRitual: () => okVerify(),
       verifyRitual: () => failVerify("session ritual gated step 'agent_hooks' failed"),
       runStart: vi.fn(),
@@ -108,7 +125,7 @@ describe("runSessionReady (#2993)", () => {
   });
 
   it("refuses a bypassed forced hook gate on the fast path", () => {
-    const result = runSessionReady("/proj", {
+    const result = ready("/proj", {
       inspectRitual: () => okVerify(),
       verifyRitual: () =>
         okVerify({
@@ -137,7 +154,7 @@ describe("runSessionReady (#2993)", () => {
     const verifyRitual = vi.fn(() => okVerify());
     const fetchAll = vi.fn();
 
-    const result = runSessionReady("/proj", {
+    const result = ready("/proj", {
       inspectRitual,
       verifyRitual,
       runStart,
@@ -163,7 +180,7 @@ describe("runSessionReady (#2993)", () => {
     const verifyRitual = vi.fn(() => okVerify());
     const fetchAll = vi.fn();
 
-    const result = runSessionReady("/proj", {
+    const result = ready("/proj", {
       inspectRitual,
       verifyRitual,
       runStart,
@@ -191,7 +208,7 @@ describe("runSessionReady (#2993)", () => {
     const fetchAll = vi.fn(() => ({ issues_written: 3 }));
     const runStart = vi.fn();
 
-    const result = runSessionReady("/proj", {
+    const result = ready("/proj", {
       inspectRitual,
       verifyRitual,
       runStart,
@@ -233,7 +250,7 @@ describe("runSessionReady (#2993)", () => {
         }),
       );
 
-    const result = runSessionReady("/proj", {
+    const result = ready("/proj", {
       inspectRitual,
       verifyRitual,
       fetchAll: vi.fn(() => ({ issues_written: 1 })),
@@ -255,7 +272,7 @@ describe("runSessionReady (#2993)", () => {
     );
     const fetchAll = vi.fn();
 
-    const result = runSessionReady("/proj", {
+    const result = ready("/proj", {
       inspectRitual,
       verifyRitual,
       fetchAll,
@@ -282,7 +299,7 @@ describe("runSessionReady (#2993)", () => {
       }),
     );
 
-    const result = runSessionReady("/proj", {
+    const result = ready("/proj", {
       inspectRitual,
       runStart,
       verifyRitual: vi.fn(),
@@ -299,7 +316,7 @@ describe("runSessionReady (#2993)", () => {
       .fn()
       .mockReturnValueOnce(failVerify("missing"))
       .mockReturnValueOnce(failVerify("missing", { tier: "quick" }));
-    const result = runSessionReady("/proj", {
+    const result = ready("/proj", {
       inspectRitual,
       runStart: () => ({ code: 2, payload: {}, lines: [] }),
     });
@@ -315,7 +332,7 @@ describe("runSessionReady (#2993)", () => {
       .mockReturnValueOnce(okVerify({ tier: "quick" }));
     const verifyRitual = vi.fn(() => failVerify("session ritual gated step 'cache_fresh' failed"));
 
-    const result = runSessionReady("/proj", {
+    const result = ready("/proj", {
       inspectRitual,
       verifyRitual,
       repo: null,
@@ -341,7 +358,7 @@ describe("runSessionReady (#2993)", () => {
       }),
     );
 
-    const result = runSessionReady("/proj", {
+    const result = ready("/proj", {
       inspectRitual,
       verifyRitual,
       fetchAll: vi.fn(),
@@ -364,7 +381,7 @@ describe("runSessionReady (#2993)", () => {
       throw new Error("rate limited");
     });
 
-    const result = runSessionReady("/proj", {
+    const result = ready("/proj", {
       inspectRitual,
       verifyRitual,
       fetchAll,
@@ -385,7 +402,7 @@ describe("runSessionReady (#2993)", () => {
     const verifyRitual = vi.fn(() => failVerify("session ritual gated step 'cache_fresh' failed"));
     const fetchAll = vi.fn();
 
-    const result = runSessionReady("/proj", {
+    const result = ready("/proj", {
       inspectRitual,
       verifyRitual,
       fetchAll,
@@ -409,7 +426,7 @@ describe("runSessionReady (#2993)", () => {
       throw "boom-string";
     });
 
-    const result = runSessionReady("/proj", {
+    const result = ready("/proj", {
       inspectRitual,
       verifyRitual,
       fetchAll,
@@ -433,7 +450,7 @@ describe("runSessionReady (#2993)", () => {
       }),
     );
 
-    const result = runSessionReady("/proj", {
+    const result = ready("/proj", {
       inspectRitual,
       verifyRitual,
       fetchAll: vi.fn(),

@@ -116,6 +116,7 @@ export const CLI_MODULE_VERBS = [
   "lifecycle-stats",
   "session-start",
   "session-ready",
+  "occupancy-steal",
   "plan-sequence",
   "slice",
   "subagent-monitor",
@@ -425,6 +426,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   upgrade: "install-upgrade",
   "session:start": "session-start",
   "session:ready": "session-ready",
+  "occupancy:steal": "occupancy-steal",
   ...FRESHNESS_COLON_ALIASES,
   "lifecycle:event": "lifecycle-event",
   "lifecycle:stats": "lifecycle-stats",
@@ -3009,6 +3011,10 @@ const CURATED_HELP_GROUPS: readonly HelpGroup[] = [
       {
         name: "session:ready",
         summary: "One-shot recovery to gated write-ready (session + ritual + cache)",
+      },
+      {
+        name: "occupancy:steal",
+        summary: "Supersede a live worktree occupancy lease (--confirm --occupant)",
       },
       {
         name: "freshness:report",

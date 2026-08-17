@@ -172,6 +172,9 @@ includes:
   session:
     taskfile: ./tasks/session.yml
     optional: true
+  occupancy:
+    taskfile: ./tasks/occupancy.yml
+    optional: true
   lifecycle:
     taskfile: ./tasks/lifecycle.yml
     optional: true

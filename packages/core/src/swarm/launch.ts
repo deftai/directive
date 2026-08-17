@@ -9,6 +9,7 @@ import {
   stripArtifactSuffix,
 } from "../layout/resolve.js";
 import { evaluate as preflightEvaluate } from "../preflight/evaluate.js";
+import { applyWorktreeOccupancy } from "../session/occupancy.js";
 import { issueNumbersFromPlan, scopeMetadataRank } from "../triage/queue/scope-walk.js";
 import { selectionOrderingKey } from "../triage/queue/selection.js";
 import {
@@ -726,6 +727,18 @@ export function swarmLaunch(args: LaunchArgs): {
         ? dispatchProviderFor(backend.backend_id)
         : null;
   const workerRoleValue = routingFile !== null || backend !== null ? LEAF_CODING_WORKER_ROLE : null;
+
+  const occupancy = applyWorktreeOccupancy(projectRoot, {
+    env: args.environ ?? process.env,
+    intent: "swarm",
+  });
+  if (occupancy.code !== 0) {
+    return {
+      exitCode: EXIT_GATE_FAILED,
+      stdout: "",
+      stderr: `${occupancy.message}\n`,
+    };
+  }
 
   const manifest = buildManifest(ordered, {
     projectRoot,

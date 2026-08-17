@@ -101,6 +101,7 @@ tasks:
           case " ${first_token} " in
             " session:start "|" session-start "|\
             " session:ready "|" session-ready "|\
+            " occupancy:steal "|" occupancy-steal "|\
             " lifecycle:event "|" lifecycle-event "|\
             " verify:session-ritual "|" verify-session-ritual "|\
             " verify:tools "|" verify-tools "|\

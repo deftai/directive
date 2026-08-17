@@ -37,6 +37,7 @@ export const CANONICAL_GITIGNORE_BASELINE: readonly string[] = [
   ".deft/.cli/",
   ".deft/ritual-state.json",
   ".deft/last-session.json",
+  ".deft/occupancy.json",
   ".deft/routing.local.json",
   // #3282: opt-in default run-summary JSONL at repo root (collectible; must not dirty trees).
   ".deft-run-summary.json",

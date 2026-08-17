@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { applyWorktreeOccupancy } from "../session/occupancy.js";
 import { ritualStatePath } from "../session/ritual-sentinel.js";
 import { fixtureCaseById, fixtureCasesFor, HOOK_FIXTURE_CASES } from "./fixtures/index.js";
 import {
@@ -105,6 +106,54 @@ describe("direct-write hook policy", () => {
     expect(decision).toMatchObject({ verdict: "deny", code: "ritual-not-ready" });
     expect(decision.message).toContain("deft session:ready");
     expect(decision.message).toContain("one-shot");
+  });
+
+  it("denies a product-path write when another live session occupies the tree (#3433)", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-occ-"));
+    hookTemps.push(root);
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    applyWorktreeOccupancy(root, {
+      sessionId: "owner",
+      intent: "mutation",
+    });
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: { toolName: "Edit", file_path: join(root, "src", "app.ts") },
+        environ: { DEFT_SESSION_ID: "other" },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-occupied" });
+    expect(decision.message).toContain("Worktree occupied by session owner");
+  });
+
+  it("composes occupancy deny with ritual-not-ready (#3433)", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-occ-ritual-"));
+    hookTemps.push(root);
+    applyWorktreeOccupancy(root, {
+      sessionId: "owner",
+    });
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: { toolName: "Write", file_path: join(root, "src", "app.ts") },
+        environ: { DEFT_SESSION_ID: "other" },
+      },
+      readySeams({
+        inspectRitual: () => ({
+          ...READY_RITUAL,
+          code: 1,
+          message: "ritual state missing",
+        }),
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-occupied" });
+    expect(decision.message).toContain("Also ritual-not-ready");
   });
 
   it("refreshes hook readiness at every mutation dispatch", () => {

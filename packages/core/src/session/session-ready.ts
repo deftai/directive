@@ -18,6 +18,11 @@ import { cacheFetchAll } from "../cache/fetch.js";
 import { formatFrameworkCommand } from "../render/framework-commands.js";
 import type { GitRunner } from "./git.js";
 import {
+  type ApplyOccupancyInput,
+  applyWorktreeOccupancy,
+  type OccupancyDecision,
+} from "./occupancy.js";
+import {
   runSessionStart,
   type SessionStartOptions,
   type SessionStartResult,
@@ -76,6 +81,7 @@ export interface SessionReadyOptions {
     options: VerifySessionRitualOptions,
   ) => VerifyResult;
   readonly runStart?: (projectRoot: string, options: SessionStartOptions) => SessionStartResult;
+  readonly applyOccupancy?: (projectRoot: string, input: ApplyOccupancyInput) => OccupancyDecision;
   readonly fetchAll?: CacheFetchAllSeam;
   readonly inferRepo?: (projectRoot: string) => string | null;
   /** Skip cache recovery even when cache_fresh failed (tests). */
@@ -172,6 +178,54 @@ export function runSessionReady(
   const start = options.runStart ?? runSessionStart;
   const fetchAll = options.fetchAll ?? cacheFetchAll;
   const inferRepo = options.inferRepo ?? ((root) => inferSessionReadyRepo(root, env));
+  const applyOccupancy = options.applyOccupancy ?? applyWorktreeOccupancy;
+  const occupancyInput = (write: boolean): ApplyOccupancyInput => ({
+    env,
+    now,
+    steal: options.sessionStartOptions?.steal,
+    confirm: options.sessionStartOptions?.confirm,
+    occupant: options.sessionStartOptions?.occupant,
+    newSessionId: options.sessionStartOptions?.newSessionId,
+    intent: options.sessionStartOptions?.occupancyIntent ?? "mutation",
+    write,
+  });
+  const previewOccupancy = applyOccupancy(projectRoot, occupancyInput(false));
+  if (previewOccupancy.code !== 0) {
+    const message = previewOccupancy.message;
+    lines.push(message);
+    return {
+      code: previewOccupancy.code,
+      message,
+      path: SESSION_READY_FAILED,
+      lines,
+      steps,
+      duration_ms: elapsedMs(started),
+    };
+  }
+  const claimOnSuccess = (): OccupancyDecision => applyOccupancy(projectRoot, occupancyInput(true));
+  const finishReady = (path: SessionReadyPath, message: string): SessionReadyResult => {
+    const claimed = claimOnSuccess();
+    if (claimed.code !== 0) {
+      lines.push(claimed.message);
+      return {
+        code: claimed.code,
+        message: claimed.message,
+        path: SESSION_READY_FAILED,
+        lines,
+        steps,
+        duration_ms: elapsedMs(started),
+      };
+    }
+    lines.push(message);
+    return {
+      code: 0,
+      message,
+      path,
+      lines,
+      steps,
+      duration_ms: elapsedMs(started),
+    };
+  };
 
   const verifyOpts: VerifySessionRitualOptions = {
     tier: "gated",
@@ -207,16 +261,7 @@ export function runSessionReady(
         duration_ms: elapsedMs(started),
       };
     }
-    const message = "OK session ready (gated ritual already fresh).";
-    lines.push(message);
-    return {
-      code: 0,
-      message,
-      path: SESSION_READY_FAST_PATH,
-      lines,
-      steps,
-      duration_ms: elapsedMs(started),
-    };
+    return finishReady(SESSION_READY_FAST_PATH, "OK session ready (gated ritual already fresh).");
   }
 
   // --- Ensure quick-tier ritual state when missing / stale / drifted ---
@@ -258,16 +303,7 @@ export function runSessionReady(
   steps.push("verify:session-ritual:gated");
   let verifyResult = verify(projectRoot, verifyOpts);
   if (isGatedVerifyActuallyReady(verifyResult)) {
-    const message = "OK session ready (gated ritual verified).";
-    lines.push(message);
-    return {
-      code: 0,
-      message,
-      path: SESSION_READY_VERIFIED,
-      lines,
-      steps,
-      duration_ms: elapsedMs(started),
-    };
+    return finishReady(SESSION_READY_VERIFIED, "OK session ready (gated ritual verified).");
   }
   if (verifyResult.code === 0 && verifyResult.bypassed) {
     const message = bypassedReadyFailure(verifyResult);
@@ -328,16 +364,10 @@ export function runSessionReady(
     steps.push("verify:session-ritual:gated:retry");
     verifyResult = verify(projectRoot, { ...verifyOpts, forceGatedSteps: [] });
     if (isGatedVerifyActuallyReady(verifyResult)) {
-      const message = "OK session ready (recovered via cache refresh).";
-      lines.push(message);
-      return {
-        code: 0,
-        message,
-        path: SESSION_READY_RECOVERED,
-        lines,
-        steps,
-        duration_ms: elapsedMs(started),
-      };
+      return finishReady(
+        SESSION_READY_RECOVERED,
+        "OK session ready (recovered via cache refresh).",
+      );
     }
     if (verifyResult.code === 0 && verifyResult.bypassed) {
       const message = bypassedReadyFailure(verifyResult);

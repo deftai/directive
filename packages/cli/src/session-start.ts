@@ -53,6 +53,10 @@ export interface ParsedSessionStartArgs {
    * the default; also settable via DEFT_SESSION_COMPACT=1.
    */
   compact: boolean;
+  /** #3433: steal the worktree occupancy lease. */
+  steal: boolean;
+  confirm: boolean;
+  occupant: string | null;
   error?: string;
 }
 
@@ -86,6 +90,9 @@ export function parseArgs(argv: readonly string[]): ParsedSessionStartArgs {
     ceremonyDepthOverride: null,
     effortBudgetHost: {},
     compact: false,
+    steal: false,
+    confirm: false,
+    occupant: null,
   };
   const dialInputs: {
     taskSize?: ReturnType<typeof normalizeCeremonyTaskSize>;
@@ -310,6 +317,19 @@ export function parseArgs(argv: readonly string[]): ParsedSessionStartArgs {
     } else if (arg === "--compact") {
       // #3286: terse machine orientation output (opt-in; verbose remains default)
       parsed.compact = true;
+    } else if (arg === "--steal") {
+      parsed.steal = true;
+    } else if (arg === "--confirm") {
+      parsed.confirm = true;
+    } else if (arg === "--occupant") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ...parsed, error: "argument --occupant: expected one argument" };
+      }
+      parsed.occupant = value;
+      i += 1;
+    } else if (arg?.startsWith("--occupant=")) {
+      parsed.occupant = arg.slice("--occupant=".length);
     } else {
       return { ...parsed, error: `unrecognized argument: ${arg}` };
     }
@@ -381,6 +401,9 @@ export function run(argv: readonly string[]): number {
       effortBudgetSeams: { hostDescriptor, environ: process.env },
       // #3286: --compact flag; DEFT_SESSION_COMPACT still resolved inside core.
       compact: args.compact ? true : undefined,
+      steal: args.steal ? true : undefined,
+      confirm: args.confirm ? true : undefined,
+      occupant: args.occupant ?? undefined,
       ...(args.ceremonyDepthOverride !== null
         ? {
             ceremonyDial: selectCeremonyDepth({

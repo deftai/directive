@@ -17,6 +17,9 @@ describe("session-start parseArgs", () => {
     ceremonyDepthOverride: null,
     effortBudgetHost: {},
     compact: false,
+    steal: false,
+    confirm: false,
+    occupant: null,
   };
 
   it("defaults project root to cwd", () => {
@@ -77,6 +80,24 @@ describe("session-start parseArgs", () => {
       withNetwork: false,
       ceremonyTier: "cold",
       ...emptyDial,
+    });
+  });
+
+  it("parses occupancy steal flags (#3433)", () => {
+    expect(
+      parseArgs(["--steal", "--confirm", "--occupant", "abc", "--project-root", "/x"]),
+    ).toEqual({
+      projectRoot: "/x",
+      deferValues: [],
+      emitJson: false,
+      noHistory: false,
+      readOnly: false,
+      withNetwork: false,
+      ceremonyTier: "cold",
+      ...emptyDial,
+      steal: true,
+      confirm: true,
+      occupant: "abc",
     });
   });
 

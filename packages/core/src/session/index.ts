@@ -7,6 +7,7 @@ export * from "./deposit-sha.js";
 export * from "./effort-budget.js";
 export * from "./git.js";
 export * from "./json.js";
+export * from "./occupancy.js";
 export * from "./openclaw-soft-rebind-deposit.js";
 export * from "./orientation-compression.js";
 export * from "./orientation-state.js";

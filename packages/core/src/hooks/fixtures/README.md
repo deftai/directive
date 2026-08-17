@@ -60,6 +60,7 @@ Agents, host adapters, and tests **must** key permission outcomes off `HookDecis
 | `invalid-input` | deny | Malformed / missing tool identity (host-integration) |
 | `stdin-empty` | deny | Host closed stdin with zero bytes (#2864) |
 | `ritual-not-ready` | deny | Gated session ritual not fresh |
+| `occupancy-occupied` | deny | Product-path write while another live session occupies the worktree (#3433) |
 | `scope-not-ready` | deny | No active running scope for in-root write |
 | `write-propose-ready` | allow | Write to proposed lifecycle path allowed |
 | `write-assist-scratch-ready` | allow | Allowlisted assist/scratch write without active xBRIEF (#1802) |

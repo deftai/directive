@@ -232,6 +232,7 @@ describe("ensureUntrackCoreGitignoreLines (#2269)", () => {
     expect(text).toContain(GITIGNORE_DEFT_CORE_LINE);
     expect(text).toContain(".deft/.cli/");
     expect(text).toContain(".deft/ritual-state.json");
+    expect(text).toContain(".deft/occupancy.json");
     expect(text).toContain(".deft-cache/");
   });
 

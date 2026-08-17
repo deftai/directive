@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { runningInsideDeftRepo } from "../doctor/paths.js";
 import { emitSessionEvalReadback } from "../eval/readback.js";
 import { bindSessionGeneration } from "../freshness/bind.js";
@@ -84,6 +83,11 @@ import {
 } from "./effort-budget.js";
 import type { GitRunner } from "./git.js";
 import { defaultGitRunner, gitHead, gitIsAncestor, worktreePath } from "./git.js";
+import {
+  type ApplyOccupancyInput,
+  applyWorktreeOccupancy,
+  type OccupancyDecision,
+} from "./occupancy.js";
 import {
   type OrientationBundle,
   type RunOrientationOptions,
@@ -206,6 +210,12 @@ export interface SessionStartOptions {
   readonly writeHistory?: boolean;
   readonly runGit?: GitRunner;
   readonly newSessionId?: () => string;
+  /** #3433: steal the worktree occupancy lease. Requires confirm + occupant. */
+  readonly steal?: boolean;
+  readonly confirm?: boolean;
+  readonly occupant?: string;
+  readonly occupancyIntent?: ApplyOccupancyInput["intent"];
+  readonly applyOccupancy?: (projectRoot: string, input: ApplyOccupancyInput) => OccupancyDecision;
   readonly runTriageWelcome?: (
     projectRoot: string,
     options: { writeHistory: boolean; now: Date; output: (line: string) => void },
@@ -693,6 +703,66 @@ function resolveEffortBudget(options: SessionStartOptions): {
   }
 }
 
+function occupancyInput(
+  options: SessionStartOptions,
+  now: Date,
+  write: boolean,
+): ApplyOccupancyInput {
+  return {
+    env: options.env,
+    now,
+    newSessionId: options.newSessionId,
+    steal: options.steal,
+    confirm: options.confirm,
+    occupant: options.occupant,
+    intent: options.occupancyIntent ?? "mutation",
+    write,
+  };
+}
+
+function runOccupancy(
+  projectRoot: string,
+  options: SessionStartOptions,
+  now: Date,
+  write: boolean,
+): OccupancyDecision {
+  const apply = options.applyOccupancy ?? applyWorktreeOccupancy;
+  return apply(projectRoot, occupancyInput(options, now, write));
+}
+
+function occupancyDeniedResult(
+  occupancy: OccupancyDecision,
+  environment: EnvironmentContext,
+): SessionStartResult {
+  return {
+    code: occupancy.code,
+    payload: {
+      ready: false,
+      exit_code: occupancy.code,
+      posture: MUTATION_POSTURE,
+      occupancy: {
+        action: occupancy.action,
+        session_id: occupancy.sessionId,
+        occupant_id: occupancy.record?.sessionId ?? null,
+      },
+      environment: environmentContextToDict(environment),
+      message: occupancy.message,
+    },
+    lines: occupancy.message.split("\n"),
+  };
+}
+
+function persistOccupancyOrDeny(
+  projectRoot: string,
+  options: SessionStartOptions,
+  now: Date,
+  environment: EnvironmentContext,
+): OccupancyDecision | SessionStartResult {
+  const occupancy = runOccupancy(projectRoot, options, now, true);
+  if (occupancy.code !== 0) return occupancyDeniedResult(occupancy, environment);
+  return occupancy;
+}
+
 function runReadOnlySessionStart(
   projectRoot: string,
   options: SessionStartOptions,
@@ -783,6 +853,11 @@ function runSessionRearm(
       },
       lines: [formatEnvironmentContext(environment), message],
     };
+  }
+
+  const plannedOccupancy = runOccupancy(projectRoot, options, instant, options.steal === true);
+  if (plannedOccupancy.code !== 0) {
+    return occupancyDeniedResult(plannedOccupancy, environment);
   }
 
   const resolveUserMd =
@@ -889,7 +964,12 @@ function runSessionRearm(
   const gatedSteps = restampSteps(eligibility.state.gatedSteps, instant);
 
   const writeStarted = performance.now();
-  const rearmSessionId = (options.newSessionId ?? randomUUID)();
+  const persistedOccupancy = persistOccupancyOrDeny(projectRoot, options, instant, environment);
+  if ("payload" in persistedOccupancy) {
+    return persistedOccupancy;
+  }
+  // #3433: keep DEFT_SESSION_ID / occupant id. Do not mint a new UUID on re-arm.
+  const rearmSessionId = persistedOccupancy.sessionId;
   // Fresh payload (no rearm_needed / compact_resume_at) clears compact markers (#2992).
   const writePayload: Record<string, unknown> = {
     ...newRitualStatePayload({
@@ -1009,6 +1089,10 @@ function runSessionRearm(
       scm: scmReadinessToDict(scm),
       host_content_surface: hostContentSurfaceToDict(hostSurface.report),
       effort_budget: effortBudgetToDict(effortBudget.budget),
+      occupancy: {
+        action: persistedOccupancy.action,
+        session_id: rearmSessionId,
+      },
       message: code === 0 ? "session ritual re-armed" : "session ritual re-arm failed",
     },
     lines,
@@ -1161,6 +1245,11 @@ export function runSessionStart(
       payload,
       lines: [formatEnvironmentContext(environment), payload.message as string],
     };
+  }
+
+  const plannedOccupancy = runOccupancy(projectRoot, options, instant, options.steal === true);
+  if (plannedOccupancy.code !== 0) {
+    return occupancyDeniedResult(plannedOccupancy, environment);
   }
 
   const quickSteps: Record<string, Record<string, unknown>> = recordDeferredSteps(
@@ -1550,7 +1639,11 @@ export function runSessionStart(
   }
 
   const writeStarted = performance.now();
-  const coldSessionId = (options.newSessionId ?? randomUUID)();
+  const persistedOccupancy = persistOccupancyOrDeny(projectRoot, options, instant, environment);
+  if ("payload" in persistedOccupancy) {
+    return persistedOccupancy;
+  }
+  const coldSessionId = persistedOccupancy.sessionId;
   const dialDict = {
     ...ceremonyDialToDict(ceremonyDialSelection),
     start_tier: ceremonyDialSelection.depth,
@@ -1732,6 +1825,10 @@ export function runSessionStart(
     scm: scmReadinessToDict(scm),
     host_content_surface: hostContentSurfaceToDict(hostSurface.report),
     effort_budget: effortBudgetToDict(effortBudget.budget),
+    occupancy: {
+      action: persistedOccupancy.action,
+      session_id: coldSessionId,
+    },
     message: code === 0 ? "session ritual recorded" : "session ritual failed",
   };
   // #2994: local process-cost event (best-effort; never blocks ceremony).
