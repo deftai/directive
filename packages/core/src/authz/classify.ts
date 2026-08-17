@@ -501,6 +501,31 @@ const PROTECTED_POSITIONAL_BINS = new Set([
   "new-item",
 ]);
 
+/**
+ * Bins whose dest is the last pathish operand (src … dest). A protected
+ * source that writes elsewhere is not a dest plant (#3421 residual).
+ */
+const LAST_POSITIONAL_DEST_BINS = new Set(["aws", "convert", "magick", "mogrify"]);
+const MAGICK_FAMILY_BINS = new Set(["convert", "magick", "mogrify"]);
+const MAGICK_WRITE_DEST_FLAGS = new Set(["-write"]);
+
+/** True when this token is a subcommand of a last-positional dest bin (`aws s3 cp`). */
+function segmentStartedByLastPositionalDest(
+  tokens: readonly string[],
+  tokenIndex: number,
+): boolean {
+  let start = tokenIndex;
+  while (start > 0 && !isShellSegmentBreak(tokens[start - 1] as string)) start--;
+  for (let k = start; k < tokenIndex; k++) {
+    const raw = tokens[k] as string;
+    if (isShellSegmentBreak(raw)) continue;
+    const n = normalizeToken(raw);
+    if (n.startsWith("-")) continue;
+    return LAST_POSITIONAL_DEST_BINS.has(binBareName(raw));
+  }
+  return false;
+}
+
 /** wget family (directory-prefix dest flags). */
 const WGET_FAMILY_BINS = new Set(["wget", "wget2"]);
 /** aria2 family (dir dest flags). */
@@ -655,6 +680,7 @@ function isDownloaderDestFlag(flag: string, bin: string, rawFlag?: string): bool
   if (bin === "fossil" && FOSSIL_WORKDIR_DEST_FLAGS.has(flag)) return true;
   if (PG_DUMP_FAMILY_BINS.has(bin) && PG_DUMP_FILE_DEST_FLAGS.has(flag)) return true;
   if (bin === "new-item" && NEW_ITEM_PATH_DEST_FLAGS.has(flag)) return true;
+  if (MAGICK_FAMILY_BINS.has(bin) && MAGICK_WRITE_DEST_FLAGS.has(flag)) return true;
   return false;
 }
 /**
@@ -922,14 +948,14 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
       // scp / certutil / rclone / archive extractors: pathish operands (quote-aware glued-op cut).
       // Under UAT: any `.deft/authz` / approved-scope / kill-switch pathish is
       // fail-closed settings (prefer deny over dest-parser perfection; #3213 / #3421).
+      // Last-positional dest bins (aws/convert/magick): only the last operand is dest.
       if (collectsProtectedPositionals && !n.startsWith("-")) {
         const cut = firstUnquotedShellOpIndex(raw);
         const cleaned = cut >= 0 ? raw.slice(0, cut) : raw;
         const p = pathishToken(cleaned);
         if (p.length > 0) {
           lastPositionalPath = p;
-          // Fail-closed: protected store/kill/approved-scope pathish anywhere.
-          if (pathishIsProtectedDest(p)) {
+          if (pathishIsProtectedDest(p) && !LAST_POSITIONAL_DEST_BINS.has(bin)) {
             protectedPathish.push(p);
           }
         }
@@ -1251,6 +1277,10 @@ function hasKillSwitchShellWrite(command: string, tokens: readonly string[]): bo
     const binTok = normalizeToken(tokens[ti] as string);
     const bare = binBareName(tokens[ti] as string);
     if (!killWriteBins.has(binTok) && !killWriteBins.has(bare)) continue;
+    // Last-positional dest bins (and their subcommands): dest harvest owns dest vs source.
+    if (LAST_POSITIONAL_DEST_BINS.has(bare) || segmentStartedByLastPositionalDest(tokens, ti)) {
+      continue;
+    }
     for (let tj = ti + 1; tj < tokens.length; tj++) {
       const p = pathishToken(tokens[tj] as string);
       if (pathishMentionsKillSwitch(p)) return true;
@@ -1261,6 +1291,10 @@ function hasKillSwitchShellWrite(command: string, tokens: readonly string[]): bo
         }
       }
     }
+  }
+  // dest harvest already owns dest-last kill plants for last-positional dest bins.
+  if (tokens.some((t) => LAST_POSITIONAL_DEST_BINS.has(binBareName(t)))) {
+    return false;
   }
   // Bare `touch .deft-directive-disable` / `ln -sf x .deft-directive-disable` — path later.
   for (const t of tokens) {
@@ -1574,6 +1608,10 @@ function hasAuthzDirShellWrite(command: string, tokens: readonly string[]): bool
       !SYMLINK_PLANT_BINS.has(bare) &&
       !ARCHIVE_ALT_WRITE_BINS.has(bare)
     ) {
+      continue;
+    }
+    // Last-positional dest bins (and their subcommands): dest harvest owns dest vs source.
+    if (LAST_POSITIONAL_DEST_BINS.has(bare) || segmentStartedByLastPositionalDest(tokens, ti)) {
       continue;
     }
     for (let tj = ti + 1; tj < tokens.length; tj++) {

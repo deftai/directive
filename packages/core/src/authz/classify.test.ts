@@ -964,6 +964,19 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("mogrify -write .deft/authz/grants/evil.json src.png")).toContain(
       "settings",
     );
+    // Last-positional dest bins: protected source that writes elsewhere is not dest plant.
+    expect(classifyShellAuthzOps("aws s3 cp .deft/authz/x /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("convert .deft/authz/x /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("magick .deft/authz/x /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("aws s3 cp .deft/approved-scope/x /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("convert .deft-directive-disable /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("aws s3 cp src .deft/authz/grants/evil.json")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("convert src .deft/approved-scope/story.json")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("magick src .no-deft-directive")).toContain("settings");
     // Approved-scope mint symmetry with Write (#3421 MEDIUM).
     expect(classifyShellAuthzOps("cp forged.json .deft/approved-scope/story.json")).toContain(
       "settings",

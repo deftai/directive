@@ -1100,6 +1100,9 @@ describe("UAT residual dest-form writers fail-closed (#3421)", () => {
       "nvim .deft/authz/grants/evil.json",
       "fossil --workdir .deft/authz/grants open repo.fossil",
       "aws s3 cp s3://evil/x .deft/authz/grants/evil.json",
+      "aws s3 cp src .deft/authz/grants/evil.json",
+      "convert src .deft/approved-scope/story.json",
+      "magick src .no-deft-directive",
     ]) {
       const decision = decideHook(
         {
@@ -1207,6 +1210,11 @@ describe("UAT residual dest-form writers fail-closed (#3421)", () => {
       "git log worktree -- .deft/authz/state.json",
       "echo x > .deft/authz-backup/story.json",
       "echo x > .deft/foo/../authz-backup/story.json",
+      "aws s3 cp .deft/authz/x /tmp/out",
+      "convert .deft/authz/x /tmp/out",
+      "magick .deft/authz/x /tmp/out",
+      "aws s3 cp .deft/approved-scope/x /tmp/out",
+      "convert .deft-directive-disable /tmp/out",
     ]) {
       const decision = decideHook(
         {
