@@ -26,6 +26,8 @@ export interface EvaluateOptions {
   readonly repo?: string | null;
   readonly runGh?: RunGhFn;
   readonly skipGh?: boolean;
+  /** When set, scan only active/running briefs that reference this issue (#3429). */
+  readonly issue?: number | null;
 }
 
 interface ActiveBrief {
@@ -221,19 +223,27 @@ function assessOrphanSignature(
   return { orphaned: false, reason: null };
 }
 
+function briefReferencesIssue(issues: readonly IssueRef[], issue: number): boolean {
+  return issues.some((ref) => ref.number === issue);
+}
+
 function formatRefusal(orphans: readonly OrphanActiveBrief[], projectRoot: string): string {
   const lines = [
     `verify:orphan-active: ${orphans.length} active/running xBRIEF${
       orphans.length === 1 ? "" : "s"
     } look shipped but still consume WIP (project_root=${projectRoot}).`,
     "  Remediation: move each brief out of active/ with lifecycle ownership:",
-    "    task scope:complete -- xbrief/active/<file>.xbrief.json",
+  ];
+  for (const orphan of orphans) {
+    lines.push(`    task scope:complete -- ${orphan.path}`);
+  }
+  lines.push(
     "    task scope:cancel -- xbrief/active/<file>.xbrief.json   # when abandoning",
     "  For stop-at:pr-open workers the orchestrator owns post-merge complete/cancel;",
-    "  for drive-to:merge-ready workers scope:complete is part of the worker unit (#2321).",
+    "  for drive-to:merge-ready workers scope:complete is part of the worker unit (#2321 / #3429).",
     "  Or run task swarm:finalize-cohort / task swarm:complete-cohort after cohort merge.",
     "  Offending briefs:",
-  ];
+  );
   for (const orphan of orphans) {
     lines.push(`    - ${orphan.path} (${orphan.reason})`);
   }
@@ -241,9 +251,10 @@ function formatRefusal(orphans: readonly OrphanActiveBrief[], projectRoot: strin
 }
 
 /**
- * Pure evaluator for orphaned active/running xBRIEF detection (#2321).
+ * Pure evaluator for orphaned active/running xBRIEF detection (#2321 / #3429).
  * Fails when active/ briefs with plan.status==running reference only closed
  * issues and/or a merged PR — the stop-at:pr-open orphan signature.
+ * Pass `issue` to scan one origin after merge.
  */
 export function evaluate(projectRoot: string, options: EvaluateOptions = {}): EvaluateResult {
   const root = resolve(projectRoot);
@@ -299,9 +310,13 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
     };
   }
 
+  const issueFilter = options.issue ?? null;
   const orphans: OrphanActiveBrief[] = [];
   for (const brief of listActiveRunningBriefs(root)) {
     const { issues, prs } = collectGithubRefs(brief.plan, defaultRepo);
+    if (issueFilter !== null && !briefReferencesIssue(issues, issueFilter)) {
+      continue;
+    }
     if (issues.length === 0 && prs.length === 0) {
       continue;
     }
@@ -328,10 +343,11 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
   }
 
   const scanned = listActiveRunningBriefs(root).length;
+  const issueNote = issueFilter === null ? "" : ` for issue #${issueFilter}`;
   return {
     code: 0,
     message:
-      `verify:orphan-active: no orphaned active/running xBRIEFs ` +
+      `verify:orphan-active: no orphaned active/running xBRIEFs${issueNote} ` +
       `(scanned ${scanned} running brief${scanned === 1 ? "" : "s"} in active/).`,
     stream: "stdout",
     orphans: [],

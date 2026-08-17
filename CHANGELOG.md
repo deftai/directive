@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **After-merge orphan-active is a per-issue check (#3429).** `task verify:orphan-active -- --issue N` runs the same gate for one origin and prints `task scope:complete -- <path>`. `drive-to: merge-ready` DONE requires that check exit 0 after merge. Closes #3429. Refs #2321, #1487, #1358.
 - **slices.jsonl umbrellas refresh current-shape and close on `all-children-merged` (#3428).** `task vbrief:reconcile:umbrellas` walks `xbrief/.triage-cache/slices.jsonl` as well as epic xBRIEFs. Forge child state updates the §1152 comment. When the signal is `all-children-merged` and every child is closed, the still-open umbrella gets one REST close plus a comment naming the signal and child numbers. `wave-1-merged` and `manual` stay open. Re-run is a no-op. Closes #3428. Refs #3377, #3378.
 - **No-op acceptance commands fail closed at capture and stamp (#3396).** `true`, `:`, `false`, bare `exit`, and assertion-free `echo`/`printf`/`test` with constant args are refused. One remediation: acceptance commands must be able to fail. `source_rung` is `stated` only with a recorded statement span; a restamp cannot raise the rung without that provenance. Events record `rejected-noop`. Closes #3396. Refs #3267, #3284, #3334, #3387.
 
