@@ -166,9 +166,13 @@ function globToRegExp(pattern: string): RegExp {
   let out = "^";
   while (i < pattern.length) {
     if (pattern.startsWith("**", i)) {
-      out += ".*";
       i += 2;
-      if (pattern[i] === "/") i += 1;
+      if (pattern[i] === "/") {
+        out += "(?:[^/]+/)*";
+        i += 1;
+      } else {
+        out += ".*";
+      }
       continue;
     }
     const c = pattern[i] as string;
@@ -189,7 +193,13 @@ function globToRegExp(pattern: string): RegExp {
         i += 1;
         continue;
       }
-      out += pattern.slice(i, end + 1);
+      const body = pattern.slice(i + 1, end);
+      // Glob [!a] is "not a"; JS [!a] is "!" or "a".
+      if (body.startsWith("!") && body.length > 1) {
+        out += `[^${body.slice(1)}/]`;
+      } else {
+        out += pattern.slice(i, end + 1);
+      }
       i = end + 1;
       continue;
     }
@@ -280,6 +290,20 @@ function expandPath(root: string, relOrGlob: string): string[] {
   return [rel];
 }
 
+function takeOctalByte(body: string, index: number): { value: number; next: number } | null {
+  const first = body[index];
+  if (first === undefined || first < "0" || first > "7") return null;
+  let oct = first;
+  let i = index + 1;
+  while (oct.length < 3 && i < body.length) {
+    const digit = body[i];
+    if (digit === undefined || digit < "0" || digit > "7") break;
+    oct += digit;
+    i += 1;
+  }
+  return { value: Number.parseInt(oct, 8), next: i };
+}
+
 function decodeCEscape(body: string, index: number): { ch: string; next: number } {
   const next = body[index];
   if (next === undefined) return { ch: "\\", next: index };
@@ -287,17 +311,8 @@ function decodeCEscape(body: string, index: number): { ch: string; next: number 
   if (next === "t") return { ch: "\t", next: index + 1 };
   if (next === "r") return { ch: "\r", next: index + 1 };
   if (next === '"' || next === "\\") return { ch: next, next: index + 1 };
-  if (next >= "0" && next <= "7") {
-    let oct = next;
-    let i = index + 1;
-    while (oct.length < 3 && i < body.length) {
-      const digit = body[i];
-      if (digit === undefined || digit < "0" || digit > "7") break;
-      oct += digit;
-      i += 1;
-    }
-    return { ch: String.fromCharCode(Number.parseInt(oct, 8)), next: i };
-  }
+  const oct = takeOctalByte(body, index);
+  if (oct !== null) return { ch: String.fromCharCode(oct.value), next: oct.next };
   return { ch: next, next: index + 1 };
 }
 
@@ -310,6 +325,19 @@ function takePorcelainPathToken(raw: string): { value: string; rest: string } {
     while (i < s.length) {
       const c = s[i] as string;
       if (c === "\\") {
+        const bytes: number[] = [];
+        let j = i;
+        while (s[j] === "\\") {
+          const oct = takeOctalByte(s, j + 1);
+          if (oct === null) break;
+          bytes.push(oct.value);
+          j = oct.next;
+        }
+        if (bytes.length > 0) {
+          out += Buffer.from(bytes).toString("utf8");
+          i = j;
+          continue;
+        }
         const decoded = decodeCEscape(s, i + 1);
         out += decoded.ch;
         i = decoded.next;

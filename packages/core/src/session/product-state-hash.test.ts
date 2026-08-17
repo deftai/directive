@@ -144,6 +144,26 @@ describe("hashProductState (#3387)", () => {
     expect(second.digest).not.toBe(first.digest);
   });
 
+  it("includes a negated-class match under a hidden directory", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-negclass-"));
+    mkdirSync(join(root, "frontend", ".generated"), { recursive: true });
+    writeFileSync(join(root, "frontend", "app.ts"), "export const app = 1;\n", "utf8");
+    writeFileSync(join(root, "frontend", ".generated", "a.ts"), "export const a = 1;\n", "utf8");
+    writeFileSync(join(root, "frontend", ".generated", "b.ts"), "export const b = 1;\n", "utf8");
+    const plan = {
+      acceptance: { commands: [{ command: "true" }] },
+      metadata: { swarm: { file_scope: ["frontend/**/[!a]*.ts"] } },
+    };
+    const first = hashProductState({ projectRoot: root, plan });
+    expect(first.complete).toBe(true);
+    expect(first.files).toContain("frontend/.generated/b.ts");
+    expect(first.files).not.toContain("frontend/.generated/a.ts");
+    expect(first.files).not.toContain("frontend/app.ts");
+    writeFileSync(join(root, "frontend", ".generated", "b.ts"), "export const b = 2;\n", "utf8");
+    const second = hashProductState({ projectRoot: root, plan });
+    expect(second.digest).not.toBe(first.digest);
+  });
+
   it("includes a file under a hidden directory in a recursive ** file glob", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-hiddendir-"));
     mkdirSync(join(root, "frontend", ".generated"), { recursive: true });
@@ -259,6 +279,30 @@ describe("hashProductState (#3387)", () => {
     expect(first.files).toContain("dest.ts");
     expect(first.files).not.toContain("src.ts");
     writeFileSync(join(root, "dest.ts"), "v2\n", "utf8");
+    const second = hashProductState({ projectRoot: root, plan, runGit });
+    expect(second.digest).not.toBe(first.digest);
+  });
+
+  it("decodes UTF-8 octal C-quoted porcelain so later edits change the digest", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-octal-"));
+    mkdirSync(join(root, ".git"), { recursive: true });
+    const name = "caf\u00e9.ts";
+    writeFileSync(join(root, name), "v1\n", "utf8");
+    const plan = { acceptance: { commands: [{ command: "true" }] } };
+    const runGit = (_cwd: string, args: readonly string[]) => {
+      if (args.includes("rev-parse")) {
+        return { code: 0, stdout: "abc123", stderr: "" };
+      }
+      if (args.includes("-z")) {
+        return { code: 1, stdout: "", stderr: "nul unavailable" };
+      }
+      return { code: 0, stdout: '?? "caf\\303\\251.ts"', stderr: "" };
+    };
+    const first = hashProductState({ projectRoot: root, plan, runGit });
+    expect(first.complete).toBe(true);
+    expect(first.files).toContain(name);
+    expect(first.files).not.toContain("caf\u00c3\u00a9.ts");
+    writeFileSync(join(root, name), "v2\n", "utf8");
     const second = hashProductState({ projectRoot: root, plan, runGit });
     expect(second.digest).not.toBe(first.digest);
   });
