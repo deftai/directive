@@ -82,6 +82,24 @@ describe("hashProductState (#3387)", () => {
     expect(brace.files).toEqual([]);
   });
 
+  it("includes a character-class-selected dotfile and invalidates the digest when it changes", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-classdot-"));
+    mkdirSync(join(root, "frontend"), { recursive: true });
+    writeFileSync(join(root, "frontend", "app.ts"), "export const app = 1;\n", "utf8");
+    writeFileSync(join(root, "frontend", ".app.ts"), "export const hidden = 1;\n", "utf8");
+    const plan = {
+      acceptance: { commands: [{ command: "true" }] },
+      metadata: { swarm: { file_scope: ["frontend/[ab]*"] } },
+    };
+    const first = hashProductState({ projectRoot: root, plan });
+    expect(first.complete).toBe(true);
+    expect(first.files).toContain("frontend/app.ts");
+    expect(first.files).toContain("frontend/.app.ts");
+    writeFileSync(join(root, "frontend", ".app.ts"), "export const hidden = 2;\n", "utf8");
+    const second = hashProductState({ projectRoot: root, plan });
+    expect(second.digest).not.toBe(first.digest);
+  });
+
   it("includes a wildcard-selected dotfile and invalidates the digest when it changes", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-dot-"));
     mkdirSync(join(root, "frontend"), { recursive: true });
