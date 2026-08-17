@@ -138,6 +138,29 @@ describe("createDefaultDeps", () => {
     expect(auditText).toContain('"decision":"accept"');
   });
 
+  it("accept() prints ingest quality_notice so a refused stamp is not silent (#3398)", async () => {
+    const { ingestSingleForAccept } = await import("../../intake/issue-ingest.js");
+    const mockIngest = vi.mocked(ingestSingleForAccept);
+    mockIngest.mockReturnValueOnce([
+      "created",
+      "/tmp/3398.xbrief.json",
+      "CREATED proposed/3398.xbrief.json\nderive clauses from the statement's testable constraints",
+    ]);
+    const writes: string[] = [];
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      writes.push(String(chunk));
+      return true;
+    });
+    try {
+      const root = makeRepo();
+      const deps = createDefaultDeps(root);
+      accept(3398, "deftai/directive", deps, { projectRoot: root });
+    } finally {
+      stderr.mockRestore();
+    }
+    expect(writes.join("")).toContain("derive clauses from the statement's testable constraints");
+  });
+
   it("disables upstream gh calls in parity harness mode", () => {
     const prev = process.env.DEFT_TRIAGE_ACTIONS_PARITY;
     process.env.DEFT_TRIAGE_ACTIONS_PARITY = "1";

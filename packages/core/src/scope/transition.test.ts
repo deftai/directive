@@ -9,7 +9,8 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import * as clauseDerivation from "../intake/clause-derivation.js";
 import { ENV_RUN_SUMMARY_PATH } from "../run-summary/index.js";
 import { atomicWriteBrief, readBriefForMutation } from "./brief-io.js";
 import { detectLifecycleFolder, runTransition } from "./transition.js";
@@ -239,6 +240,34 @@ describe("runTransition", () => {
     expect(data.plan.acceptance.source_rung).toBe("stated");
     expect(data.plan.acceptance.commands).toEqual([{ command: "pnpm test" }]);
     expect(data.plan.acceptance.clauses).toHaveLength(1);
+  });
+
+  it("surfaces refused-derivation remediation on activate even when applied is false (#3398)", () => {
+    root = makeRepo();
+    const path = join(root, "xbrief", "pending", "impl-only.xbrief.json");
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "Impl only",
+        status: "pending",
+        narratives: { Overview: "Initialize workers from the config" },
+        items: [],
+      },
+    });
+    const spy = vi.spyOn(clauseDerivation, "applyClauseDerivationToPlan").mockReturnValue({
+      applied: false,
+      clauses: [],
+      notice: clauseDerivation.CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION,
+    });
+    try {
+      const result = runTransition("activate", path);
+      expect(result.ok).toBe(true);
+      expect(result.message).toContain(
+        clauseDerivation.CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION,
+      );
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it("emits acceptance_stamp when activate first writes plan.acceptance (#3355)", () => {

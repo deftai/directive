@@ -199,9 +199,10 @@ describe("intake cli and branch coverage", () => {
           0,
         ),
       );
-      const [result, path] = ingestSingleForAccept(15, "o/r", { projectRoot: root });
+      const [result, path, msg] = ingestSingleForAccept(15, "o/r", { projectRoot: root });
       expect(result).toBe("created");
       expect(path).toContain("xbrief");
+      expect(msg).toMatch(/^CREATED /);
       callSpy.mockRestore();
       rmSync(root, { recursive: true, force: true });
     });

@@ -373,7 +373,16 @@ export function applyClauseDerivationToPlan(
   };
   const quality = applyClauseQualityToPlan(plan);
   if (!quality.applied) {
-    plan.acceptance = previousAcceptance;
+    const existing = asRecord(previousAcceptance);
+    if (existing !== null && quality.notice.length > 0) {
+      plan.acceptance = {
+        ...existing,
+        quality_notice: quality.notice,
+        derived_reason: quality.notice,
+      };
+    } else {
+      plan.acceptance = previousAcceptance;
+    }
     return {
       applied: false,
       clauses: quality.clauses,

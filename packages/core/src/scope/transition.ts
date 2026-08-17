@@ -231,7 +231,7 @@ export function runTransition(
       projectRoot,
       emitStamp: false,
     });
-    if (derivation.applied) {
+    if (derivation.notice.length > 0) {
       derivationNotice = derivation.notice;
     }
   }

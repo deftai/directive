@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { cachePut } from "../cache/operations.js";
 import { FixedClock } from "../cache/test-helpers.js";
 import type { CompletedProcess } from "../scm/call.js";
+import * as scm from "../scm/call.js";
 import {
   buildIssueVbrief,
   enrichIssueWithComments,
@@ -15,6 +16,7 @@ import {
   formatIngestCreatedMessage,
   ISSUE_COMMENT_THREAD_KEY,
   ingestOne,
+  ingestSingleForAccept,
   provenanceIssueNumber,
   ScannerHardFailError,
   stripRenderedIssueHeader,
@@ -61,6 +63,44 @@ describe("formatIngestCreatedMessage (#3398)", () => {
         true,
       ),
     ).toMatch(/^DRY-RUN would write/);
+  });
+
+  it("ingestSingleForAccept returns the quality-notice message from ingestOne (#3398)", () => {
+    const root = mkdtempSync(join(tmpdir(), "accept-notice-"));
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
+    const body = `## Acceptance
+- class SessionGate source contains helper "bindExpiry"
+- class WorkerPool source contains helper "partitionByKey"
+`;
+    const callSpy = vi.spyOn(scm, "call").mockImplementation(() =>
+      completed(
+        JSON.stringify({
+          number: 3398,
+          title: "Accept notice",
+          html_url: "https://github.com/o/r/issues/3398",
+          body,
+          labels: [],
+        }),
+        "",
+        0,
+      ),
+    );
+    try {
+      const [result, path, msg] = ingestSingleForAccept(3398, "o/r", { projectRoot: root });
+      expect(result).toBe("created");
+      expect(path).toBeTruthy();
+      expect(msg).toMatch(/^CREATED /);
+      const written = readJsonObject(path as string);
+      const plan = written.plan as { acceptance?: { quality_notice?: string } };
+      const notice = plan.acceptance?.quality_notice;
+      if (typeof notice === "string" && notice.length > 0) {
+        expect(msg).toContain(notice);
+      }
+    } finally {
+      callSpy.mockRestore();
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
 

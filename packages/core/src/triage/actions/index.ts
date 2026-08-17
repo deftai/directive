@@ -111,7 +111,10 @@ function defaultIssueIngest(): IssueIngest {
       // Delegate to the native TS intake path (#2350). The legacy Python
       // `scripts/issue_ingest.py` shell-out was orphaned when #1933 removed the
       // Python surface, leaving `triage:accept` raising ModuleNotFoundError.
-      const [, path] = ingestSingleForAcceptTs(issueNumber, repo, { projectRoot });
+      const [, path, msg] = ingestSingleForAcceptTs(issueNumber, repo, { projectRoot });
+      if (typeof msg === "string" && msg.includes("\n")) {
+        process.stderr.write(`${msg}\n`);
+      }
       return path;
     },
   };

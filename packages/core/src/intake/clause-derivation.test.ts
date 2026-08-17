@@ -1,7 +1,7 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ENV_RUN_SUMMARY_PATH } from "../run-summary/index.js";
 import {
   acceptanceFingerprint,
@@ -384,6 +384,37 @@ describe("statement traceability (#3398)", () => {
     expect(acc.clauses).toBeUndefined();
     expect(acc.derived_reason).toBe(CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION);
     expect(acc.quality_notice).toBe(CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION);
+  });
+
+  it("keeps refused-stamp remediation on the plan when derivation quality rejects (#3398)", async () => {
+    const clausesMod = await import("../verify-ac/clauses.js");
+    const spy = vi
+      .spyOn(clausesMod, "deriveAcceptanceClauses")
+      .mockReturnValue(SYMBOL_GREP_CLAUSES);
+    try {
+      const plan: Record<string, unknown> = {
+        title: "impl only",
+        narratives: { Overview: SYMBOL_GREP_STATEMENT },
+        acceptance: {
+          commands: [],
+          none_stated: true,
+          source_rung: "derived",
+        },
+      };
+      const result = applyClauseDerivationToPlan(plan);
+      expect(result.applied).toBe(false);
+      expect(result.notice).toBe(CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION);
+      const acc = plan.acceptance as {
+        clauses?: unknown;
+        quality_notice?: string;
+        derived_reason?: string;
+      };
+      expect(acc.clauses).toBeUndefined();
+      expect(acc.quality_notice).toBe(CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION);
+      expect(acc.derived_reason).toBe(CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
 

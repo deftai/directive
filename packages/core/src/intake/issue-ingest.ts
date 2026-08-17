@@ -1153,7 +1153,7 @@ export function ingestSingleForAccept(
     status?: IngestStatus;
     cacheRoot?: string | null;
   } = {},
-): [IngestResult, string | null] {
+): [IngestResult, string | null, string] {
   const root = resolve(options.projectRoot ?? process.cwd());
   const vbriefDir = resolveLifecycleRoot(root);
   mkdirSync(vbriefDir, { recursive: true });
@@ -1167,11 +1167,12 @@ export function ingestSingleForAccept(
       `failed to fetch GitHub issue #${n} from ${repo} (unified cache miss + live gh api fetch failed; see stderr)`,
     );
   }
-  const [result, path] = ingestOne(issue, {
+  // Forward ingestOne's notice-bearing third return so triage:accept can
+  // print a refused-stamp remediation instead of only the decision id (#3398).
+  return ingestOne(issue, {
     vbriefDir,
     status: options.status ?? "proposed",
     repoUrl,
     cwd: root,
   });
-  return [result, path];
 }
