@@ -119,20 +119,31 @@ function walkFiles(root: string, dir: string, out: string[], seen = new Set<stri
 
 /**
  * Node `fs.globSync` omits leading-dot names and has no `{ dot }` option.
- * Pair `*`/`?` with a hidden-name variant so product `.env` files hash.
- * Keep `**` intact (rewriting it to `.*` would break recursion) and add a
- * recursive hidden-name pattern (a trailing `**` also matches `**` + `/` + `.*`).
+ * Each `*` / `?` segment gets an ordinary and a hidden variant so a later
+ * hidden segment under an ordinary wildcard (for example app/.config.ts)
+ * stays in the digest. Keep `**` intact and add a recursive hidden-name
+ * pattern.
  */
+function hiddenSegmentVariant(segment: string): string | null {
+  if (segment === "**" || segment.startsWith(".")) return null;
+  if (segment.startsWith("*") || segment.startsWith("?")) return `.${segment}`;
+  return null;
+}
+
 function globPatternsIncludingDotfiles(pattern: string): readonly string[] {
   const patterns = new Set<string>([pattern]);
-  const protectedStars = pattern.replace(/\*\*/g, "\0");
-  if (/[*?]/.test(protectedStars)) {
-    const hidden = protectedStars
-      .replace(/(^|\/)\*/g, "$1.*")
-      .replace(/(^|\/)\?/g, "$1.?")
-      .replace(/\0/g, "**");
-    patterns.add(hidden);
+  let combos: string[][] = [[]];
+  for (const segment of pattern.split("/")) {
+    const variants = [segment];
+    const hidden = hiddenSegmentVariant(segment);
+    if (hidden !== null) variants.push(hidden);
+    const next: string[][] = [];
+    for (const combo of combos) {
+      for (const variant of variants) next.push([...combo, variant]);
+    }
+    combos = next;
   }
+  for (const combo of combos) patterns.add(combo.join("/"));
   if (pattern.includes("**")) {
     if (/\*\*(?:\/\*)?$/.test(pattern)) {
       patterns.add(pattern.replace(/\*\*(?:\/\*)?$/, "**/.*"));
@@ -204,17 +215,58 @@ function expandPath(root: string, relOrGlob: string): string[] {
   return [rel];
 }
 
-function unquotePorcelainPath(raw: string): string {
-  const trimmed = raw.trim();
-  if (trimmed.length >= 2 && trimmed.startsWith('"') && trimmed.endsWith('"')) {
-    return trimmed.slice(1, -1).replace(/\\([ntr"\\])/g, (_, ch: string) => {
-      if (ch === "n") return "\n";
-      if (ch === "t") return "\t";
-      if (ch === "r") return "\r";
-      return ch;
-    });
+function decodeCEscape(body: string, index: number): { ch: string; next: number } {
+  const next = body[index];
+  if (next === undefined) return { ch: "\\", next: index };
+  if (next === "n") return { ch: "\n", next: index + 1 };
+  if (next === "t") return { ch: "\t", next: index + 1 };
+  if (next === "r") return { ch: "\r", next: index + 1 };
+  if (next === '"' || next === "\\") return { ch: next, next: index + 1 };
+  if (next >= "0" && next <= "7") {
+    let oct = next;
+    let i = index + 1;
+    while (oct.length < 3 && i < body.length) {
+      const digit = body[i];
+      if (digit === undefined || digit < "0" || digit > "7") break;
+      oct += digit;
+      i += 1;
+    }
+    return { ch: String.fromCharCode(Number.parseInt(oct, 8)), next: i };
   }
-  return trimmed;
+  return { ch: next, next: index + 1 };
+}
+
+/** One C-quoted or unquoted porcelain path; stop unquoted tokens at ` -> `. */
+function takePorcelainPathToken(raw: string): { value: string; rest: string } {
+  const s = raw.trimStart();
+  if (s.startsWith('"')) {
+    let i = 1;
+    let out = "";
+    while (i < s.length) {
+      const c = s[i] as string;
+      if (c === "\\") {
+        const decoded = decodeCEscape(s, i + 1);
+        out += decoded.ch;
+        i = decoded.next;
+        continue;
+      }
+      if (c === '"') return { value: out, rest: s.slice(i + 1) };
+      out += c;
+      i += 1;
+    }
+    return { value: out, rest: "" };
+  }
+  const arrow = s.indexOf(" -> ");
+  if (arrow === -1) return { value: s.trimEnd(), rest: "" };
+  return { value: s.slice(0, arrow), rest: s.slice(arrow) };
+}
+
+function porcelainFallbackRel(line: string): string {
+  if (line.length < 3) return "";
+  const first = takePorcelainPathToken(line.slice(3));
+  const after = first.rest.trimStart();
+  if (after.startsWith("->")) return takePorcelainPathToken(after.slice(2)).value;
+  return first.value;
 }
 
 function dirtyProductFiles(projectRoot: string, runGit: GitRunner): string[] {
@@ -242,9 +294,7 @@ function dirtyProductFiles(projectRoot: string, runGit: GitRunner): string[] {
   if (code !== 0) return [];
   for (const line of stdout.split(/\r?\n/)) {
     if (line.trim().length === 0) continue;
-    const pathPart = unquotePorcelainPath(line.slice(3));
-    const renamed = pathPart.split(" -> ");
-    const rel = toPosix(renamed[renamed.length - 1] ?? pathPart);
+    const rel = toPosix(porcelainFallbackRel(line));
     if (rel.length === 0 || isExcludedRel(rel)) continue;
     out.push(rel);
   }

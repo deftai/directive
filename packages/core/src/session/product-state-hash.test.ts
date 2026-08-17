@@ -100,6 +100,32 @@ describe("hashProductState (#3387)", () => {
     expect(second.digest).not.toBe(first.digest);
   });
 
+  it("includes a hidden file under an ordinary mixed-wildcard segment", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-mixdot-"));
+    mkdirSync(join(root, "frontend", "app"), { recursive: true });
+    writeFileSync(join(root, "frontend", "app", "main.ts"), "export const main = 1;\n", "utf8");
+    writeFileSync(
+      join(root, "frontend", "app", ".config.ts"),
+      "export const secret = 1;\n",
+      "utf8",
+    );
+    const plan = {
+      acceptance: { commands: [{ command: "true" }] },
+      metadata: { swarm: { file_scope: ["frontend/*/*.ts"] } },
+    };
+    const first = hashProductState({ projectRoot: root, plan });
+    expect(first.complete).toBe(true);
+    expect(first.files).toContain("frontend/app/main.ts");
+    expect(first.files).toContain("frontend/app/.config.ts");
+    writeFileSync(
+      join(root, "frontend", "app", ".config.ts"),
+      "export const secret = 2;\n",
+      "utf8",
+    );
+    const second = hashProductState({ projectRoot: root, plan });
+    expect(second.digest).not.toBe(first.digest);
+  });
+
   it("includes a nested leading-dot file under a recursive ** scope", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-recdot-"));
     mkdirSync(join(root, "frontend", "a"), { recursive: true });
@@ -189,6 +215,30 @@ describe("hashProductState (#3387)", () => {
     expect(first.files).toContain("dest.ts");
     expect(first.files).not.toContain("src.ts");
     writeFileSync(join(root, "dest.ts"), "v2\n", "utf8");
+    const second = hashProductState({ projectRoot: root, plan, runGit });
+    expect(second.digest).not.toBe(first.digest);
+  });
+
+  it("parses C-quoted rename destinations from non-NUL porcelain", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-qrename-"));
+    mkdirSync(join(root, ".git"), { recursive: true });
+    writeFileSync(join(root, "new name.ts"), "v1\n", "utf8");
+    const plan = { acceptance: { commands: [{ command: "true" }] } };
+    const runGit = (_cwd: string, args: readonly string[]) => {
+      if (args.includes("rev-parse")) {
+        return { code: 0, stdout: "abc123", stderr: "" };
+      }
+      if (args.includes("-z")) {
+        return { code: 1, stdout: "", stderr: "nul unavailable" };
+      }
+      return { code: 0, stdout: 'R  "old name.ts" -> "new name.ts"', stderr: "" };
+    };
+    const first = hashProductState({ projectRoot: root, plan, runGit });
+    expect(first.complete).toBe(true);
+    expect(first.files).toContain("new name.ts");
+    expect(first.files).not.toContain('"new name.ts');
+    expect(first.files).not.toContain("old name.ts");
+    writeFileSync(join(root, "new name.ts"), "v2\n", "utf8");
     const second = hashProductState({ projectRoot: root, plan, runGit });
     expect(second.digest).not.toBe(first.digest);
   });
