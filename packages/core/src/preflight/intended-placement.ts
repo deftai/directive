@@ -159,8 +159,12 @@ export function evaluateIntendedPlacement(
     let st: ReturnType<typeof statSync>;
     try {
       st = statSync(abs);
-    } catch {
-      continue;
+    } catch (err: unknown) {
+      const reason = err instanceof Error ? err.message : String(err);
+      return {
+        ok: false,
+        message: `Could not stat intended file '${declared}': ${reason}. ${INTENDED_PLACEMENT_MISSING_HINT}`,
+      };
     }
     if (!st.isFile()) {
       return {
