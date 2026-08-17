@@ -72,6 +72,30 @@ describe("ScmUmbrellaClient comment create (#2324)", () => {
   });
 });
 
+describe("ScmUmbrellaClient fetchComments pagination (#3428)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("walks later pages so a newest close comment is not dropped", () => {
+    const page1 = Array.from({ length: 100 }, (_, i) => ({ id: i + 1, body: `old-${i}` }));
+    const page2 = [{ id: 101, body: "expected_close_signal=all-children-merged; children: #1" }];
+    vi.spyOn(scm, "call").mockImplementation((_source, _verb, args) => {
+      const path = (args ?? []).join(" ");
+      const page = /[?&]page=(\d+)/.exec(path)?.[1] ?? "1";
+      return {
+        args: [],
+        returncode: 0,
+        stdout: JSON.stringify(page === "2" ? page2 : page === "1" ? page1 : []),
+        stderr: "",
+      };
+    });
+    const comments = new ScmUmbrellaClient().fetchComments("deftai/directive", 3377);
+    expect(comments).toHaveLength(101);
+    expect(comments[100]?.body).toContain("expected_close_signal=");
+  });
+});
+
 describe("ScmUmbrellaClient closeIssue (#3428)", () => {
   afterEach(() => {
     vi.restoreAllMocks();

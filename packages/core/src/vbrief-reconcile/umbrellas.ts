@@ -365,37 +365,47 @@ function hasCurrentShape(body: string): boolean {
   return HEADER_RE.test(body);
 }
 
+function parseCommentPage(data: unknown): Array<{ id: number; body: string }> {
+  if (!Array.isArray(data)) return [];
+  const comments: Array<{ id: number; body: string }> = [];
+  for (const entry of data) {
+    if (
+      typeof entry === "object" &&
+      entry !== null &&
+      !Array.isArray(entry) &&
+      typeof (entry as Record<string, unknown>).id === "number" &&
+      typeof (entry as Record<string, unknown>).body === "string"
+    ) {
+      const rec = entry as Record<string, unknown>;
+      comments.push({ id: rec.id as number, body: rec.body as string });
+    }
+  }
+  return comments;
+}
+
 export class ScmUmbrellaClient implements UmbrellaClient {
   fetchComments(repo: string, issueNumber: number): Array<{ id: number; body: string }> {
-    const proc = call(SCM_SOURCE, "api", [
-      `repos/${repo}/issues/${issueNumber}/comments?per_page=100`,
-    ]);
-    if (proc.returncode !== 0) {
-      throw new UmbrellaScmError(
-        `list comments #${issueNumber} (${repo}) failed: ${(proc.stderr || "").trim()}`,
-      );
-    }
-    let data: unknown;
-    try {
-      data = JSON.parse(proc.stdout || "[]");
-    } catch (exc) {
-      throw new UmbrellaScmError(
-        `list comments #${issueNumber} (${repo}) returned non-JSON: ${String(exc)}`,
-      );
-    }
-    if (!Array.isArray(data)) return [];
     const comments: Array<{ id: number; body: string }> = [];
-    for (const entry of data) {
-      if (
-        typeof entry === "object" &&
-        entry !== null &&
-        !Array.isArray(entry) &&
-        typeof (entry as Record<string, unknown>).id === "number" &&
-        typeof (entry as Record<string, unknown>).body === "string"
-      ) {
-        const rec = entry as Record<string, unknown>;
-        comments.push({ id: rec.id as number, body: rec.body as string });
+    for (let page = 1; page <= 50; page += 1) {
+      const proc = call(SCM_SOURCE, "api", [
+        `repos/${repo}/issues/${issueNumber}/comments?per_page=100&page=${page}`,
+      ]);
+      if (proc.returncode !== 0) {
+        throw new UmbrellaScmError(
+          `list comments #${issueNumber} (${repo}) failed: ${(proc.stderr || "").trim()}`,
+        );
       }
+      let data: unknown;
+      try {
+        data = JSON.parse(proc.stdout || "[]");
+      } catch (exc) {
+        throw new UmbrellaScmError(
+          `list comments #${issueNumber} (${repo}) returned non-JSON: ${String(exc)}`,
+        );
+      }
+      const batch = parseCommentPage(data);
+      comments.push(...batch);
+      if (batch.length < 100) break;
     }
     return comments;
   }
