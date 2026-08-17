@@ -3,7 +3,7 @@
  */
 import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 import { hashProductState } from "./product-state-hash.js";
 
@@ -222,6 +222,32 @@ describe("hashProductState (#3387)", () => {
     expect(second.digest).not.toBe(first.digest);
   });
 
+  it("includes a hidden-dir file under a wildcard prefix before **", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-wildprefix-"));
+    mkdirSync(join(root, "packages", "foo", "src", ".generated"), { recursive: true });
+    writeFileSync(join(root, "packages", "foo", "src", "app.ts"), "export const app = 1;\n", "utf8");
+    writeFileSync(
+      join(root, "packages", "foo", "src", ".generated", "x.ts"),
+      "export const gen = 1;\n",
+      "utf8",
+    );
+    const plan = {
+      acceptance: { commands: [{ command: "true" }] },
+      metadata: { swarm: { file_scope: ["packages/*/src/**/*.ts"] } },
+    };
+    const first = hashProductState({ projectRoot: root, plan });
+    expect(first.complete).toBe(true);
+    expect(first.files).toContain("packages/foo/src/app.ts");
+    expect(first.files).toContain("packages/foo/src/.generated/x.ts");
+    writeFileSync(
+      join(root, "packages", "foo", "src", ".generated", "x.ts"),
+      "export const gen = 2;\n",
+      "utf8",
+    );
+    const second = hashProductState({ projectRoot: root, plan });
+    expect(second.digest).not.toBe(first.digest);
+  });
+
   it("includes a nested leading-dot file under a recursive ** scope", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-recdot-"));
     mkdirSync(join(root, "frontend", "a"), { recursive: true });
@@ -311,6 +337,44 @@ describe("hashProductState (#3387)", () => {
     expect(first.files).toContain("dest.ts");
     expect(first.files).not.toContain("src.ts");
     writeFileSync(join(root, "dest.ts"), "v2\n", "utf8");
+    const second = hashProductState({ projectRoot: root, plan, runGit });
+    expect(second.digest).not.toBe(first.digest);
+  });
+
+  it("hashes invalid-byte names through a byte FS path so later edits change the digest", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-fsbytes-"));
+    mkdirSync(join(root, ".git"), { recursive: true });
+    const nameBytes = Buffer.from([0x66, 0x66, 0xff, 0x2e, 0x74, 0x73]);
+    const name = nameBytes.toString("latin1");
+    const absBytes = Buffer.concat([Buffer.from(`${root}${sep}`, "utf8"), nameBytes]);
+    try {
+      writeFileSync(absBytes, "v1\n");
+    } catch {
+      writeFileSync(join(root, name), "v1\n");
+    }
+    const plan = { acceptance: { commands: [{ command: "true" }] } };
+    const zed = Buffer.concat([
+      Buffer.from("?? ", "utf8"),
+      nameBytes,
+      Buffer.from("\0"),
+    ]).toString("latin1");
+    const runGit = (_cwd: string, args: readonly string[]) => {
+      if (args.includes("rev-parse")) {
+        return { code: 0, stdout: "abc123", stderr: "" };
+      }
+      if (args.includes("-z")) {
+        return { code: 0, stdout: zed, stderr: "" };
+      }
+      return { code: 0, stdout: '?? "ff\\377.ts"', stderr: "" };
+    };
+    const first = hashProductState({ projectRoot: root, plan, runGit });
+    expect(first.complete).toBe(true);
+    expect(first.files).toContain(name);
+    try {
+      writeFileSync(absBytes, "v2\n");
+    } catch {
+      writeFileSync(join(root, name), "v2\n");
+    }
     const second = hashProductState({ projectRoot: root, plan, runGit });
     expect(second.digest).not.toBe(first.digest);
   });

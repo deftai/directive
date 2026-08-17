@@ -7,7 +7,7 @@
 
 import { createHash } from "node:crypto";
 import { existsSync, globSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 import { defaultGitRunner, type GitRunner, gitHead } from "./git.js";
 
 const EXCLUDED_DIR_NAMES = new Set([
@@ -75,11 +75,26 @@ function hashBytes(buf: Buffer): string {
   return createHash("sha256").update(buf).digest("hex");
 }
 
-function readFileHash(abs: string): string {
+/** Join root (UTF-8) to a latin1 rel so invalid filename bytes are not re-encoded. */
+function joinRootRelBytes(root: string, rel: string): Buffer {
+  const sepBuf = Buffer.from(sep);
+  const parts: Buffer[] = [Buffer.from(root, "utf8")];
+  for (const seg of toPosix(rel).split("/")) {
+    if (seg.length === 0 || seg === ".") continue;
+    parts.push(sepBuf, Buffer.from(seg, "latin1"));
+  }
+  return Buffer.concat(parts);
+}
+
+function readFileHash(root: string, rel: string): string {
   try {
-    return hashBytes(readFileSync(abs));
+    return hashBytes(readFileSync(resolve(root, rel)));
   } catch {
-    return "missing";
+    try {
+      return hashBytes(readFileSync(joinRootRelBytes(root, rel)));
+    } catch {
+      return "missing";
+    }
   }
 }
 
@@ -269,6 +284,18 @@ function looksLikeGlob(rel: string): boolean {
   return /[*?[\]{}]/.test(rel);
 }
 
+/** Longest non-glob directory prefix before ** (wildcard mid-path walks from that dir). */
+function literalDirPrefix(rel: string): string {
+  const before = rel.includes("**") ? rel.slice(0, rel.indexOf("**")) : rel;
+  const literal: string[] = [];
+  for (const seg of before.replace(/\/$/, "").split("/")) {
+    if (seg.length === 0) continue;
+    if (looksLikeGlob(seg)) break;
+    literal.push(seg);
+  }
+  return literal.join("/");
+}
+
 function expandPath(root: string, relOrGlob: string): string[] {
   const rel = toPosix(relOrGlob).replace(/^\.\//, "");
   if (looksLikeGlob(rel)) {
@@ -292,7 +319,7 @@ function expandPath(root: string, relOrGlob: string): string[] {
         }
       }
       if (rel.includes("**")) {
-        const prefix = rel.slice(0, rel.indexOf("**")).replace(/\/$/, "");
+        const prefix = literalDirPrefix(rel);
         const startDir = prefix.length === 0 ? root : resolve(root, prefix);
         if (existsSync(startDir)) {
           let st: ReturnType<typeof statSync> | null = null;
@@ -480,7 +507,7 @@ export function hashProductState(input: HashProductStateInput): ProductStateHash
   const sorted = [...files].sort();
   const fileHashes: Record<string, string> = {};
   for (const rel of sorted) {
-    fileHashes[rel] = readFileHash(resolve(root, rel));
+    fileHashes[rel] = readFileHash(root, rel);
   }
 
   const head = existsSync(join(root, ".git")) ? gitHead(root, runGit).head : null;
