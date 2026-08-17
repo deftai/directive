@@ -289,6 +289,23 @@ const DOWNLOADER_DECODER_BINS = new Set([
   "nano",
   "vim",
   "vi",
+  // #3421 residual after #3382: dest forms the harvest missed.
+  "git",
+  "ex",
+  "dos2unix",
+  "unix2dos",
+  "mac2unix",
+  "unix2mac",
+  "aws",
+  "pijul",
+  "pg_dump",
+  "pg_restore",
+  "pg_dumpall",
+  "convert",
+  "magick",
+  "mogrify",
+  "fallocate",
+  "new-item",
 ]);
 
 /**
@@ -370,6 +387,19 @@ const ARCHIVE_ALT_WRITE_BINS = new Set([
   "gallery-dl",
   "megadl",
   "ncftpget",
+  // #3421 residual: dedicated dest-form writers (not general-purpose git/aws/editors).
+  "dos2unix",
+  "unix2dos",
+  "mac2unix",
+  "unix2mac",
+  "pijul",
+  "pg_dump",
+  "pg_restore",
+  "pg_dumpall",
+  "convert",
+  "magick",
+  "mogrify",
+  "fallocate",
 ]);
 
 /**
@@ -452,7 +482,114 @@ const PROTECTED_POSITIONAL_BINS = new Set([
   "nano",
   "vim",
   "vi",
+  // #3421 residual: positional dest writers (aws, convert, New-Item).
+  // git clone/worktree/submodule dests are harvested only on those write subcommands.
+  "ex",
+  "dos2unix",
+  "unix2dos",
+  "mac2unix",
+  "unix2mac",
+  "aws",
+  "pijul",
+  "pg_dump",
+  "pg_restore",
+  "pg_dumpall",
+  "convert",
+  "magick",
+  "mogrify",
+  "fallocate",
+  "new-item",
 ]);
+
+/**
+ * Bins whose dest is the last pathish operand (src … dest). A protected
+ * source that writes elsewhere is not a dest plant (#3421 residual).
+ */
+const LAST_POSITIONAL_DEST_BINS = new Set(["aws", "convert", "magick"]);
+/** Wrappers / assignments before the dest-owning bin (`env aws`, `FOO=1 convert`). */
+const COMMAND_WRAPPER_BINS = new Set([
+  "env",
+  "command",
+  "nice",
+  "nohup",
+  "sudo",
+  "doas",
+  "time",
+  "stdbuf",
+  "timeout",
+  "ionice",
+]);
+
+function isWrapperOrAssignmentToken(raw: string, n: string): boolean {
+  if (COMMAND_WRAPPER_BINS.has(binBareName(raw))) return true;
+  return n.includes("=") && !n.startsWith("-") && !raw.includes("/") && !raw.includes("\\");
+}
+
+/** Wrapper flags that take a separate value (`env -C DIR`, `nice -n N`). */
+const WRAPPER_VALUE_FLAGS = new Set([
+  "-c",
+  "--chdir",
+  "-u",
+  "--unset",
+  "-n",
+  "--adjustment",
+  "-o",
+  "--output",
+  "-i",
+  "--input",
+  "-e",
+  "--error",
+  "-s",
+  "--signal",
+  "-k",
+  "--kill-after",
+]);
+
+/** In-place ImageMagick writer: every protected operand is a dest, not last-only. */
+const MAGICK_FAMILY_BINS = new Set(["convert", "magick", "mogrify"]);
+const MAGICK_WRITE_DEST_FLAGS = new Set(["-write"]);
+
+/** True when this token is a subcommand of a last-positional dest bin (`aws s3 cp`). */
+function tokenEndsShellSegment(token: string): boolean {
+  return isShellSegmentBreak(token) || firstUnquotedShellOpIndex(token) >= 0;
+}
+
+function segmentStartedByLastPositionalDest(
+  tokens: readonly string[],
+  tokenIndex: number,
+): boolean {
+  let start = tokenIndex;
+  while (start > 0 && !tokenEndsShellSegment(tokens[start - 1] as string)) start--;
+  let skipNext = false;
+  let afterWrapper = false;
+  for (let k = start; k < tokenIndex; k++) {
+    const raw = tokens[k] as string;
+    if (isShellSegmentBreak(raw)) continue;
+    const n = normalizeToken(raw);
+    const bare = binBareName(raw);
+    if (skipNext) {
+      skipNext = false;
+      if (LAST_POSITIONAL_DEST_BINS.has(bare)) return true;
+      continue;
+    }
+    if (n.startsWith("-")) {
+      if (!n.includes("=") && WRAPPER_VALUE_FLAGS.has(n)) skipNext = true;
+      continue;
+    }
+    if (isWrapperOrAssignmentToken(raw, n)) {
+      afterWrapper = COMMAND_WRAPPER_BINS.has(bare);
+      continue;
+    }
+    if (LAST_POSITIONAL_DEST_BINS.has(bare)) return true;
+    // timeout 5 aws / similar: skip one non-bin operand after a wrapper.
+    if (afterWrapper) {
+      afterWrapper = false;
+      continue;
+    }
+    return false;
+  }
+  return false;
+}
 
 /** wget family (directory-prefix dest flags). */
 const WGET_FAMILY_BINS = new Set(["wget", "wget2"]);
@@ -476,7 +613,7 @@ const GALLERY_DL_DIR_DEST_FLAGS = new Set(["-d", "--destination", "--dest"]);
 const MEGADL_FAMILY_BINS = new Set(["megadl"]);
 const MEGADL_PATH_DEST_FLAGS = new Set(["--path"]);
 /**
- * Extra dest flags harvested on unknown write-shaped bins when dest is protected (#3382).
+ * Extra dest flags harvested on unknown write-shaped bins when dest is protected (#3382 / #3421).
  * Not merged into DOWNLOADER_FILE_DEST_FLAGS: curl `-d` is POST data, not a file dest.
  */
 const GENERIC_PROTECTED_EXTRA_DEST_FLAGS = new Set([
@@ -486,7 +623,37 @@ const GENERIC_PROTECTED_EXTRA_DEST_FLAGS = new Set([
   "--dest",
   "--path",
   "--directory",
+  "--workdir",
+  "--file",
+  "--separate-git-dir",
 ]);
+/** Bins whose `--file` / `-f` operand is an input, not a dest plant. */
+const READ_SHAPED_FILE_FLAG_BINS = new Set([
+  "grep",
+  "egrep",
+  "fgrep",
+  "rg",
+  "ag",
+  "ack",
+  "get-content",
+  "gc",
+  "cat",
+  "type",
+  "less",
+  "more",
+  "head",
+  "tail",
+]);
+const READ_INPUT_FILE_FLAGS = new Set(["--file", "-f"]);
+/** PowerShell New-Item dest flags (not generic: Get-Content -Path is a read). */
+const NEW_ITEM_PATH_DEST_FLAGS = new Set(["-path", "-literalpath", "--literalpath"]);
+/** git subcommands whose positionals can plant a dest (#3421). */
+const GIT_WRITE_SUBCOMMANDS = new Set(["clone", "worktree", "submodule"]);
+/** fossil dest-dir flags (#3382 PATH form + #3421 --workdir=). */
+const FOSSIL_WORKDIR_DEST_FLAGS = new Set(["--workdir"]);
+/** pg_dump family dest-file flags (#3421). */
+const PG_DUMP_FAMILY_BINS = new Set(["pg_dump", "pg_restore", "pg_dumpall"]);
+const PG_DUMP_FILE_DEST_FLAGS = new Set(["-f", "--file"]);
 
 /**
  * File destination flags for downloaders/decoders (#3206).
@@ -593,6 +760,10 @@ function isDownloaderDestFlag(flag: string, bin: string, rawFlag?: string): bool
   if (ATOOL_FAMILY_BINS.has(bin) && ATOOL_DIR_DEST_FLAGS.has(flag)) return true;
   if (GALLERY_DL_FAMILY_BINS.has(bin) && GALLERY_DL_DIR_DEST_FLAGS.has(flag)) return true;
   if (MEGADL_FAMILY_BINS.has(bin) && MEGADL_PATH_DEST_FLAGS.has(flag)) return true;
+  if (bin === "fossil" && FOSSIL_WORKDIR_DEST_FLAGS.has(flag)) return true;
+  if (PG_DUMP_FAMILY_BINS.has(bin) && PG_DUMP_FILE_DEST_FLAGS.has(flag)) return true;
+  if (bin === "new-item" && NEW_ITEM_PATH_DEST_FLAGS.has(flag)) return true;
+  if (MAGICK_FAMILY_BINS.has(bin) && MAGICK_WRITE_DEST_FLAGS.has(flag)) return true;
   return false;
 }
 /**
@@ -670,7 +841,8 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
     // Segment breaks (`;`/`\n`/glued ops) prevent following-command overwrite.
     let lastPositionalPath: string | null = null;
     const protectedPathish: string[] = [];
-    const collectsProtectedPositionals = PROTECTED_POSITIONAL_BINS.has(bin);
+    const collectsProtectedPositionals =
+      PROTECTED_POSITIONAL_BINS.has(bin) || (bin === "git" && gitHasWriteSubcommand(tokens, i));
     while (i < tokens.length) {
       const raw = tokens[i] as string;
       const n = normalizeToken(raw);
@@ -835,11 +1007,7 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
           if (p.startsWith(prefix) && p.length > prefix.length) {
             const dest = p.slice(prefix.length);
             dests.push(dest);
-            if (
-              dest.includes(".deft/authz") ||
-              dest.includes(".deft-directive-disable") ||
-              dest.includes(".no-deft-directive")
-            ) {
+            if (pathishIsProtectedDest(dest)) {
               protectedPathish.push(dest);
             }
             break;
@@ -852,7 +1020,7 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
         const meta = sqlite3MetaDest(raw, tokens[i + 1]);
         if (meta !== null) {
           dests.push(meta.dest);
-          if (pathishIsAuthzDir(meta.dest) || pathishMentionsKillSwitch(meta.dest)) {
+          if (pathishIsProtectedDest(meta.dest)) {
             protectedPathish.push(meta.dest);
           }
           i += meta.consumedNext ? 2 : 1;
@@ -861,20 +1029,16 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
       }
 
       // scp / certutil / rclone / archive extractors: pathish operands (quote-aware glued-op cut).
-      // Under UAT: any `.deft/authz` / kill-switch pathish is fail-closed settings
-      // (read vs write thrash deferred — prefer deny over dest-parser perfection; #3213 / #3245).
+      // Under UAT: any `.deft/authz` / approved-scope / kill-switch pathish is
+      // fail-closed settings (prefer deny over dest-parser perfection; #3213 / #3421).
+      // Last-positional dest bins (aws/convert/magick): only the last operand is dest.
       if (collectsProtectedPositionals && !n.startsWith("-")) {
         const cut = firstUnquotedShellOpIndex(raw);
         const cleaned = cut >= 0 ? raw.slice(0, cut) : raw;
         const p = pathishToken(cleaned);
         if (p.length > 0) {
           lastPositionalPath = p;
-          // Fail-closed: protected store/kill basenames anywhere in pathish.
-          if (
-            p.includes(".deft/authz") ||
-            p.includes(".deft-directive-disable") ||
-            p.includes(".no-deft-directive")
-          ) {
+          if (pathishIsProtectedDest(p) && !LAST_POSITIONAL_DEST_BINS.has(bin)) {
             protectedPathish.push(p);
           }
         }
@@ -976,19 +1140,82 @@ function hasPolicyAuthorityMutator(tokens: readonly string[]): boolean {
 
 /** True when pathish token names a kill-switch basename (quote-strip resistant). */
 function pathishIsProtectedDest(pathish: string): boolean {
-  return pathishIsAuthzDir(pathish) || pathishMentionsKillSwitch(pathish);
+  return (
+    pathishIsAuthzDir(pathish) ||
+    pathishIsApprovedScopeDir(pathish) ||
+    pathishMentionsKillSwitch(pathish)
+  );
 }
 
 function isGenericProtectedDestFlag(flag: string): boolean {
   return DOWNLOADER_FILE_DEST_FLAGS.has(flag) || GENERIC_PROTECTED_EXTRA_DEST_FLAGS.has(flag);
 }
 
+function isReadShapedInputFileFlag(bin: string, flag: string): boolean {
+  return READ_SHAPED_FILE_FLAG_BINS.has(bin) && READ_INPUT_FILE_FLAGS.has(flag);
+}
+
 /**
- * Fail-closed dest harvest for write-shaped Shell under UAT (#3354 / #3382).
+ * Git globals that do not take a separate value. Unlisted globals consume the
+ * next token so a later dest writer is still seen (#3421 residual).
+ */
+const GIT_PRE_SUBCOMMAND_BOOLEAN_FLAGS = new Set([
+  "--no-pager",
+  "-p",
+  "--paginate",
+  "-P",
+  "--bare",
+  "--help",
+  "-h",
+  "--version",
+  "--literal-pathspecs",
+  "--glob-pathspecs",
+  "--noglob-pathspecs",
+  "--icase-pathspecs",
+  "--no-replace-objects",
+  "--no-optional-locks",
+  "--no-lazy-fetch",
+  "--no-advice",
+  "--quiet",
+  "-q",
+]);
+
+/**
+ * True only when the git *subcommand* (first non-flag token) is a dest writer.
+ * Later operands named clone/worktree/submodule (e.g. `git log worktree -- …`)
+ * are not write subcommands (#3423 residual).
+ * Boolean globals (`--no-pager`) do not consume the next token. Other globals
+ * consume it even when that token spells a subcommand (#3421 residual).
+ */
+function gitHasWriteSubcommand(tokens: readonly string[], start: number): boolean {
+  let i = start;
+  while (i < tokens.length) {
+    const raw = tokens[i] as string;
+    if (isShellSegmentBreak(raw)) return false;
+    const n = normalizeToken(raw);
+    if (n.startsWith("-")) {
+      if (!n.includes("=") && !GIT_PRE_SUBCOMMAND_BOOLEAN_FLAGS.has(n)) {
+        const next = tokens[i + 1];
+        if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
+          i += 2;
+          continue;
+        }
+      }
+      i++;
+      continue;
+    }
+    return GIT_WRITE_SUBCOMMANDS.has(n);
+  }
+  return false;
+}
+
+/**
+ * Fail-closed dest harvest for write-shaped Shell under UAT (#3354 / #3382 / #3421).
  * Named-bin parsers above are not the only path: any token that looks like
  * `-o` / `--output` / `--outfile` / `--output-file` / `-d` / `--dir` /
- * `--destination` / `--path` / `--directory` (or attached `-oDIR` / `-dDIR`)
- * whose dest is authz/kill-switch is collected even when the bin is unknown.
+ * `--destination` / `--path` / `--directory` / `--workdir` / `--file` / `-f`
+ * (or attached `-oDIR` / `-dDIR`) whose dest is authz/kill-switch/approved-scope
+ * is collected even when the bin is unknown.
  * scp `-o` (OpenSSH option) and cpio `-o` (copy-out) stay excluded.
  */
 function genericProtectedDests(tokens: readonly string[]): string[] {
@@ -1019,7 +1246,7 @@ function genericProtectedDests(tokens: readonly string[]): string[] {
     if (n.includes("=") && (n.startsWith("-") || n.startsWith("--"))) {
       const eq = raw.indexOf("=");
       const flag = normalizeToken(raw.slice(0, eq));
-      if (isGenericProtectedDestFlag(flag)) {
+      if (isGenericProtectedDestFlag(flag) && !isReadShapedInputFileFlag(currentBin, flag)) {
         const dest = pathishToken(raw.slice(eq + 1));
         if (pathishIsProtectedDest(dest)) dests.push(dest);
       }
@@ -1041,7 +1268,7 @@ function genericProtectedDests(tokens: readonly string[]): string[] {
       if (pathishIsProtectedDest(dest)) dests.push(dest);
       continue;
     }
-    if (isGenericProtectedDestFlag(n)) {
+    if (isGenericProtectedDestFlag(n) && !isReadShapedInputFileFlag(currentBin, n)) {
       const next = tokens[i + 1];
       if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
         const dest = pathishToken(next);
@@ -1073,8 +1300,9 @@ function sqlite3MetaDest(
 }
 
 function pathishMentionsKillSwitch(pathish: string): boolean {
+  const p = canonicalizePathish(pathish);
   for (const name of KILL_SWITCH_BASENAMES) {
-    if (pathish === name || pathish.endsWith(`/${name}`) || pathish.includes(name)) {
+    if (p === name || p.endsWith(`/${name}`) || p.includes(name)) {
       return true;
     }
   }
@@ -1152,6 +1380,10 @@ function hasKillSwitchShellWrite(command: string, tokens: readonly string[]): bo
     const binTok = normalizeToken(tokens[ti] as string);
     const bare = binBareName(tokens[ti] as string);
     if (!killWriteBins.has(binTok) && !killWriteBins.has(bare)) continue;
+    // Last-positional dest bins (and their subcommands): dest harvest owns dest vs source.
+    if (LAST_POSITIONAL_DEST_BINS.has(bare) || segmentStartedByLastPositionalDest(tokens, ti)) {
+      continue;
+    }
     for (let tj = ti + 1; tj < tokens.length; tj++) {
       const p = pathishToken(tokens[tj] as string);
       if (pathishMentionsKillSwitch(p)) return true;
@@ -1164,8 +1396,16 @@ function hasKillSwitchShellWrite(command: string, tokens: readonly string[]): bo
     }
   }
   // Bare `touch .deft-directive-disable` / `ln -sf x .deft-directive-disable` — path later.
-  for (const t of tokens) {
-    const p = pathishToken(t);
+  // Skip tokens in a last-positional dest segment (dest harvest owns dest vs source).
+  // Other segments still scan so `aws … ; touch .deft-directive-disable` is settings.
+  for (let ti = 0; ti < tokens.length; ti++) {
+    if (
+      LAST_POSITIONAL_DEST_BINS.has(binBareName(tokens[ti] as string)) ||
+      segmentStartedByLastPositionalDest(tokens, ti)
+    ) {
+      continue;
+    }
+    const p = pathishToken(tokens[ti] as string);
     for (const name of KILL_SWITCH_BASENAMES) {
       // Exact basename or ends with /basename
       if (p === name || p.endsWith(`/${name}`)) {
@@ -1356,17 +1596,84 @@ function pathishToken(token: string): string {
 }
 
 /**
- * True when a pathish string targets `.deft/authz` (after quote strip / slash normalize).
- * Quote-split forms like `'.deft/'authz'/grants/x'` become `.deft/authz/grants/x` via pathishToken.
+ * Collapse `//`, `/./`, and `/../` lexically so equivalent dests still match
+ * (`.deft/foo/../approved-scope/x`) without following symlinks or matching
+ * prefix siblings. O(n) — no nested-quantifier regex.
  */
-function pathishIsAuthzDir(pathish: string): boolean {
-  return pathish.includes(".deft/authz");
+function canonicalizePathish(pathish: string): string {
+  const parts: string[] = [];
+  let cur = "";
+  const abs = pathish.startsWith("/");
+  for (let i = 0; i <= pathish.length; i++) {
+    const c = i < pathish.length ? (pathish[i] as string) : "/";
+    if (c === "/" || i === pathish.length) {
+      if (cur.length === 0 || cur === ".") {
+        // drop empty and `.`
+      } else if (cur === "..") {
+        if (parts.length > 0 && parts[parts.length - 1] !== "..") {
+          parts.pop();
+        } else if (!abs) {
+          parts.push("..");
+        }
+      } else {
+        parts.push(cur);
+      }
+      cur = "";
+    } else {
+      cur += c;
+    }
+  }
+  const joined = parts.join("/");
+  return abs ? `/${joined}` : joined;
 }
 
 /**
- * Shell **write** targeting `.deft/authz/` (#3110 AC-3 / #3206 / #3213).
+ * True when a pathish string targets `.deft/authz` (after quote strip / slash normalize).
+ * Quote-split forms like `'.deft/'authz'/grants/x'` become `.deft/authz/grants/x` via pathishToken.
+ */
+/** True when `dir` is a path segment (left-bounded; `foo.deft/authz` is not `.deft/authz`). */
+function pathishHasDirSegment(pathish: string, dir: string): boolean {
+  const p = canonicalizePathish(pathish.trim());
+  if (p === dir || p.startsWith(`${dir}/`) || p.startsWith(`${dir}\\`)) return true;
+  for (let i = 0; i < p.length; i++) {
+    const c = p[i] as string;
+    if (c !== "/" && c !== "\\" && c !== ":" && c !== "=") continue;
+    const rest = p.slice(i + 1);
+    if (rest === dir || rest.startsWith(`${dir}/`) || rest.startsWith(`${dir}\\`)) return true;
+  }
+  return false;
+}
+
+function pathishIsAuthzDir(pathish: string): boolean {
+  return pathishHasDirSegment(pathish, ".deft/authz");
+}
+
+/** True when a pathish string targets `.deft/approved-scope` (#3421 / #3410 mint). */
+function pathishIsApprovedScopeDir(pathish: string): boolean {
+  return pathishHasDirSegment(pathish, ".deft/approved-scope");
+}
+
+function pathishIsSettingsStoreDir(pathish: string): boolean {
+  return pathishIsAuthzDir(pathish) || pathishIsApprovedScopeDir(pathish);
+}
+
+/** True when dest is a settings-store path or a split-path `authz` segment after `.deft`. */
+function destMentionsAuthzSegment(dest: string): boolean {
+  const p = canonicalizePathish(pathishToken(dest).trim());
+  if (pathishIsSettingsStoreDir(p)) return true;
+  const segs = p.split("/").filter((s) => s.length > 0);
+  for (let i = 0; i < segs.length; i++) {
+    if (segs[i] !== "authz") continue;
+    const prev = i > 0 ? (segs[i - 1] as string) : "";
+    if (prev === ".deft" || prev.length === 0) return true;
+  }
+  return false;
+}
+
+/**
+ * Shell **write** targeting `.deft/authz/` or `.deft/approved-scope/` (#3110 / #3421).
  * Pure reads (`cat .deft/authz/state.json`) stay unclassifiable — use `authz:show`.
- * Redirects only count when the destination region contains `.deft/authz`.
+ * Redirects only count when the destination region contains a settings-store dir.
  * Pathish/token checks run even when the raw command lacks contiguous `.deft/authz`
  * text (quote-split residual: `cp x '.deft/'authz'/grants/y'`).
  */
@@ -1393,7 +1700,7 @@ function hasAuthzDirShellWrite(command: string, tokens: readonly string[]): bool
       ) {
         end++;
       }
-      if (hay.slice(j, end).includes(".deft/authz")) return true;
+      if (pathishIsSettingsStoreDir(hay.slice(j, end))) return true;
     }
   }
 
@@ -1413,20 +1720,24 @@ function hasAuthzDirShellWrite(command: string, tokens: readonly string[]): bool
     ) {
       continue;
     }
+    // Last-positional dest bins (and their subcommands): dest harvest owns dest vs source.
+    if (LAST_POSITIONAL_DEST_BINS.has(bare) || segmentStartedByLastPositionalDest(tokens, ti)) {
+      continue;
+    }
     for (let tj = ti + 1; tj < tokens.length; tj++) {
       const p = pathishToken(tokens[tj] as string);
-      if (pathishIsAuthzDir(p)) return true;
+      if (pathishIsSettingsStoreDir(p)) return true;
       for (const prefix of SOCAT_WRITE_ADDR_PREFIXES) {
-        if (p.startsWith(prefix) && pathishIsAuthzDir(p.slice(prefix.length))) {
+        if (p.startsWith(prefix) && pathishIsSettingsStoreDir(p.slice(prefix.length))) {
           return true;
         }
       }
     }
   }
 
-  // Downloader/decoder destinations under .deft/authz (#3206 / #3213 / #3245 archive+alt).
+  // Downloader/decoder destinations under settings-store dirs (#3206 / #3421).
   for (const dest of downloaderDecoderDestinations(tokens)) {
-    if (pathishIsAuthzDir(dest)) return true;
+    if (pathishIsSettingsStoreDir(dest)) return true;
   }
   // Contiguous mention without write shape stays false (reads like cat .deft/authz/…).
   return false;
@@ -1463,6 +1774,7 @@ const INDIRECT_WRITE_BINS = new Set([
   "remove-item",
   "ri",
   "ni",
+  "new-item",
   "sc",
   "mi",
 ]);
@@ -1861,7 +2173,7 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
         ) {
           end++;
         }
-        if (lower.slice(j, end).includes("authz")) {
+        if (destMentionsAuthzSegment(lower.slice(j, end))) {
           found.add("settings");
           break;
         }

