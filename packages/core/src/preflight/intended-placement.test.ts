@@ -1,7 +1,10 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
+
+// Symlinks require elevated privileges on Windows (SeCreateSymbolicLink); skip there.
+const itSymlink = it.skipIf(process.platform === "win32");
 import { FILE_SIZE_REVIEW_TRIGGER_LINES } from "../policy/file-size-thresholds.js";
 import {
   countFileLines,
@@ -153,6 +156,33 @@ describe("evaluateIntendedPlacement (#3424)", () => {
     const result = evaluateIntendedPlacement(planWith(["../outside.ts"]), { projectRoot: root() });
     expect(result.ok).toBe(false);
     expect(result.message).toContain("escapes the project root");
+  });
+
+  itSymlink("rejects an in-root symlink whose realpath is outside the project", () => {
+    const dir = root();
+    const outside = join(dir, "..", `outside-${Date.now()}.ts`);
+    writeLines(outside, 8);
+    temps.push(outside);
+    symlinkSync(outside, join(dir, "alias.ts"));
+    const result = evaluateIntendedPlacement(planWith(["alias.ts"]), { projectRoot: dir });
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("escapes the project root");
+  });
+
+  itSymlink("passes an in-root symlink whose realpath stays inside the project", () => {
+    const dir = root();
+    writeLines(join(dir, "small.ts"), 8);
+    symlinkSync(join(dir, "small.ts"), join(dir, "alias.ts"));
+    const result = evaluateIntendedPlacement(planWith(["alias.ts"]), { projectRoot: dir });
+    expect(result.ok).toBe(true);
+  });
+
+  itSymlink("rejects a dangling in-root symlink instead of treating it as a new file", () => {
+    const dir = root();
+    symlinkSync(join(dir, "missing-target.ts"), join(dir, "alias.ts"));
+    const result = evaluateIntendedPlacement(planWith(["alias.ts"]), { projectRoot: dir });
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("Could not inspect intended file");
   });
 
   it("rejects a declared path that is a directory", () => {

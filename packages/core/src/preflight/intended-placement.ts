@@ -5,8 +5,8 @@
  * Missing declaration/exemption is the reject; size alone is not.
  */
 
-import { readFileSync, statSync } from "node:fs";
-import { isAbsolute, relative, resolve, sep } from "node:path";
+import { lstatSync, readFileSync, realpathSync, statSync } from "node:fs";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { FILE_SIZE_REVIEW_TRIGGER_LINES } from "../policy/file-size-thresholds.js";
 import { findLifecycleRootFromArtifact } from "../scope/parent-lineage.js";
 
@@ -101,6 +101,12 @@ export function resolveProjectRootFromBrief(briefPath: string, explicitRoot?: st
   return resolve(briefPath, "..", "..");
 }
 
+function isContained(parent: string, child: string): boolean {
+  if (parent === child) return true;
+  const rel = relative(parent, child);
+  return rel.length > 0 && !rel.startsWith("..") && !isAbsolute(rel);
+}
+
 function resolveDeclaredFile(projectRoot: string, declared: string): string | null {
   const trimmed = declared.trim();
   if (trimmed.length === 0) return null;
@@ -110,6 +116,91 @@ function resolveDeclaredFile(projectRoot: string, declared: string): string | nu
     return null;
   }
   return abs;
+}
+
+type ContainedInspect =
+  | { kind: "missing" }
+  | { kind: "file"; path: string }
+  | { kind: "reject"; message: string };
+
+/** Lexical path plus lstat/realpath: symlink targets must stay inside the project. */
+function inspectDeclaredFile(
+  projectRoot: string,
+  declared: string,
+  abs: string,
+): ContainedInspect {
+  let projectReal: string;
+  try {
+    projectReal = realpathSync(projectRoot);
+  } catch (err: unknown) {
+    const reason = err instanceof Error ? err.message : String(err);
+    return {
+      kind: "reject",
+      message: `Could not inspect intended file '${declared}': ${reason}. ${INTENDED_PLACEMENT_MISSING_HINT}`,
+    };
+  }
+
+  const rel = relative(projectRoot, abs);
+  const segments = rel.split(/[\\/]+/).filter((segment) => segment.length > 0);
+  let current = resolve(projectRoot);
+  for (const segment of segments) {
+    current = join(current, segment);
+    let info: ReturnType<typeof lstatSync>;
+    try {
+      info = lstatSync(current);
+    } catch (err: unknown) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code === "ENOENT") {
+        return { kind: "missing" };
+      }
+      const reason = err instanceof Error ? err.message : String(err);
+      return {
+        kind: "reject",
+        message: `Could not inspect intended file '${declared}': ${reason}. ${INTENDED_PLACEMENT_MISSING_HINT}`,
+      };
+    }
+    if (info.isSymbolicLink()) {
+      let linkReal: string;
+      try {
+        linkReal = realpathSync(current);
+      } catch (err: unknown) {
+        const reason = err instanceof Error ? err.message : String(err);
+        return {
+          kind: "reject",
+          message: `Could not inspect intended file '${declared}': ${reason}. ${INTENDED_PLACEMENT_MISSING_HINT}`,
+        };
+      }
+      if (!isContained(projectReal, linkReal)) {
+        return {
+          kind: "reject",
+          message: `Intended file '${declared}' escapes the project root. ${INTENDED_PLACEMENT_MISSING_HINT}`,
+        };
+      }
+      current = linkReal;
+    }
+  }
+
+  let st: ReturnType<typeof statSync>;
+  try {
+    st = statSync(current);
+  } catch (err: unknown) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code === "ENOENT") {
+      return { kind: "missing" };
+    }
+    const reason = err instanceof Error ? err.message : String(err);
+    return {
+      kind: "reject",
+      message: `Could not inspect intended file '${declared}': ${reason}. ${INTENDED_PLACEMENT_MISSING_HINT}`,
+    };
+  }
+  if (!st.isFile()) {
+    return {
+      kind: "reject",
+      message: `Intended path '${declared}' is not a regular file. ${INTENDED_PLACEMENT_MISSING_HINT}`,
+    };
+  }
+  return { kind: "file", path: current };
 }
 
 function hasRemediation(placement: IntendedPlacement): boolean {
@@ -153,29 +244,16 @@ export function evaluateIntendedPlacement(
         message: `Intended file '${declared}' escapes the project root. ${INTENDED_PLACEMENT_MISSING_HINT}`,
       };
     }
-    let st: ReturnType<typeof statSync>;
-    try {
-      st = statSync(abs);
-    } catch (err: unknown) {
-      const code = (err as NodeJS.ErrnoException).code;
-      if (code === "ENOENT") {
-        continue;
-      }
-      const reason = err instanceof Error ? err.message : String(err);
-      return {
-        ok: false,
-        message: `Could not inspect intended file '${declared}': ${reason}. ${INTENDED_PLACEMENT_MISSING_HINT}`,
-      };
+    const inspected = inspectDeclaredFile(root, declared, abs);
+    if (inspected.kind === "missing") {
+      continue;
     }
-    if (!st.isFile()) {
-      return {
-        ok: false,
-        message: `Intended path '${declared}' is not a regular file. ${INTENDED_PLACEMENT_MISSING_HINT}`,
-      };
+    if (inspected.kind === "reject") {
+      return { ok: false, message: inspected.message };
     }
     let text: string;
     try {
-      text = readFileSync(abs, "utf8");
+      text = readFileSync(inspected.path, "utf8");
     } catch (err: unknown) {
       const reason = err instanceof Error ? err.message : String(err);
       return {
