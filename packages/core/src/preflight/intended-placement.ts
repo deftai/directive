@@ -5,7 +5,7 @@
  * Missing declaration/exemption is the reject; size alone is not.
  */
 
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { FILE_SIZE_REVIEW_TRIGGER_LINES } from "../policy/file-size-thresholds.js";
 import { findLifecycleRootFromArtifact } from "../scope/parent-lineage.js";
@@ -153,17 +153,18 @@ export function evaluateIntendedPlacement(
         message: `Intended file '${declared}' escapes the project root. ${INTENDED_PLACEMENT_MISSING_HINT}`,
       };
     }
-    if (!existsSync(abs)) {
-      continue;
-    }
     let st: ReturnType<typeof statSync>;
     try {
       st = statSync(abs);
     } catch (err: unknown) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code === "ENOENT") {
+        continue;
+      }
       const reason = err instanceof Error ? err.message : String(err);
       return {
         ok: false,
-        message: `Could not stat intended file '${declared}': ${reason}. ${INTENDED_PLACEMENT_MISSING_HINT}`,
+        message: `Could not inspect intended file '${declared}': ${reason}. ${INTENDED_PLACEMENT_MISSING_HINT}`,
       };
     }
     if (!st.isFile()) {
