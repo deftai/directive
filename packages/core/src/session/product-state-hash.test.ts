@@ -1,7 +1,7 @@
 /**
  * Product-state hash for AC bank reuse (#3387).
  */
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -81,6 +81,44 @@ describe("hashProductState (#3387)", () => {
     expect(brace.complete).toBe(false);
     expect(brace.files).toEqual([]);
   });
+
+  it("includes a wildcard-selected dotfile and invalidates the digest when it changes", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-dot-"));
+    mkdirSync(join(root, "frontend"), { recursive: true });
+    writeFileSync(join(root, "frontend", "app.ts"), "export const app = 1;\n", "utf8");
+    writeFileSync(join(root, "frontend", ".env"), "SECRET=1\n", "utf8");
+    const plan = {
+      acceptance: { commands: [{ command: "true" }] },
+      metadata: { swarm: { file_scope: ["frontend/*"] } },
+    };
+    const first = hashProductState({ projectRoot: root, plan });
+    expect(first.complete).toBe(true);
+    expect(first.files).toContain("frontend/app.ts");
+    expect(first.files).toContain("frontend/.env");
+    writeFileSync(join(root, "frontend", ".env"), "SECRET=2\n", "utf8");
+    const second = hashProductState({ projectRoot: root, plan });
+    expect(second.digest).not.toBe(first.digest);
+  });
+
+  it("terminates when a directory symlink cycle is present", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-cycle-"));
+    mkdirSync(join(root, "frontend"), { recursive: true });
+    writeFileSync(join(root, "frontend", "app.ts"), "export const app = 1;\n", "utf8");
+    const loop = join(root, "frontend", "loop");
+    const target = join(root, "frontend");
+    try {
+      symlinkSync(target, loop, process.platform === "win32" ? "junction" : "dir");
+    } catch {
+      expect.fail("could not create a directory symlink cycle");
+    }
+    const plan = {
+      acceptance: { commands: [{ command: "true" }] },
+      metadata: { swarm: { file_scope: ["frontend"] } },
+    };
+    const hashed = hashProductState({ projectRoot: root, plan });
+    expect(hashed.complete).toBe(true);
+    expect(hashed.files).toContain("frontend/app.ts");
+  }, 3_000);
 
   it("walks directories matched by a glob so nested edits change the digest", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-globdir-"));

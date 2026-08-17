@@ -6,7 +6,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, globSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, globSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { defaultGitRunner, type GitRunner, gitHead } from "./git.js";
 
@@ -83,7 +83,15 @@ function readFileHash(abs: string): string {
   }
 }
 
-function walkFiles(root: string, dir: string, out: string[]): void {
+function walkFiles(root: string, dir: string, out: string[], seen = new Set<string>()): void {
+  let real: string;
+  try {
+    real = realpathSync(dir);
+  } catch {
+    return;
+  }
+  if (seen.has(real)) return;
+  seen.add(real);
   let entries: string[];
   try {
     entries = readdirSync(dir);
@@ -102,11 +110,25 @@ function walkFiles(root: string, dir: string, out: string[]): void {
     }
     if (st.isDirectory()) {
       if (EXCLUDED_DIR_NAMES.has(name)) continue;
-      walkFiles(root, abs, out);
+      walkFiles(root, abs, out, seen);
       continue;
     }
     if (st.isFile()) out.push(rel);
   }
+}
+
+/**
+ * Node `fs.globSync` omits leading-dot names and has no `{ dot }` option.
+ * Pair `*`/`?` with a hidden-name variant so product `.env` files hash.
+ */
+function globPatternsIncludingDotfiles(pattern: string): readonly string[] {
+  const protectedStars = pattern.replace(/\*\*/g, "\0");
+  if (!/[*?]/.test(protectedStars)) return [pattern];
+  const hidden = protectedStars
+    .replace(/(^|\/)\*/g, "$1.*")
+    .replace(/(^|\/)\?/g, "$1.?")
+    .replace(/\0/g, "**");
+  return hidden === pattern ? [pattern] : [pattern, hidden];
 }
 
 function fileScopePaths(plan: Record<string, unknown>): string[] {
@@ -129,18 +151,22 @@ function expandPath(root: string, relOrGlob: string): string[] {
   if (looksLikeGlob(rel)) {
     try {
       const out: string[] = [];
-      for (const match of globSync(rel, { cwd: root })) {
-        const posix = toPosix(relative(root, resolve(root, match)));
-        if (posix.length === 0 || isExcludedRel(posix)) continue;
-        const absMatch = resolve(root, posix);
-        let st: ReturnType<typeof statSync>;
-        try {
-          st = statSync(absMatch);
-        } catch {
-          continue;
+      const seen = new Set<string>();
+      for (const pattern of globPatternsIncludingDotfiles(rel)) {
+        for (const match of globSync(pattern, { cwd: root })) {
+          const posix = toPosix(relative(root, resolve(root, match)));
+          if (posix.length === 0 || isExcludedRel(posix) || seen.has(posix)) continue;
+          seen.add(posix);
+          const absMatch = resolve(root, posix);
+          let st: ReturnType<typeof statSync>;
+          try {
+            st = statSync(absMatch);
+          } catch {
+            continue;
+          }
+          if (st.isFile()) out.push(posix);
+          else if (st.isDirectory()) walkFiles(root, absMatch, out);
         }
-        if (st.isFile()) out.push(posix);
-        else if (st.isDirectory()) walkFiles(root, absMatch, out);
       }
       return out;
     } catch {
