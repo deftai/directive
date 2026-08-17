@@ -1083,6 +1083,7 @@ describe("UAT residual dest-form writers fail-closed (#3421)", () => {
       "git worktree add .deft/authz/grants/evil HEAD",
       "git --attr-source HEAD clone https://example .deft/authz/grants/evil",
       "git --attr-source log clone https://example .deft/authz/grants/evil",
+      "git --unlisted-global log clone https://example .deft/authz/grants/evil",
       "git --shallow-file x clone https://example .deft/authz/grants/evil",
       "git --attr-source HEAD worktree add .deft/authz/grants/evil HEAD",
       "git --shallow-file x submodule add https://example .deft/authz/grants/evil",
