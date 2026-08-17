@@ -132,6 +132,23 @@ describe("evaluateIntendedPlacement (#3424)", () => {
     expect(result.ok).toBe(true);
   });
 
+  it("rejects mixed malformed files entries instead of dropping them", () => {
+    const result = evaluateIntendedPlacement(
+      {
+        metadata: {
+          intended_placement: {
+            schema: INTENDED_PLACEMENT_SCHEMA,
+            files: ["small.ts", 12, ""],
+            module_boundary: "focused module",
+          },
+        },
+      },
+      { projectRoot: root() },
+    );
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("lacks plan.metadata.intended_placement");
+  });
+
   it("rejects a declared path that escapes the project root", () => {
     const result = evaluateIntendedPlacement(planWith(["../outside.ts"]), { projectRoot: root() });
     expect(result.ok).toBe(false);

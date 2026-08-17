@@ -69,7 +69,10 @@ export function readIntendedPlacement(plan: Record<string, unknown>): IntendedPl
   const raw = asRecord(metadata.intended_placement);
   if (raw === null) return null;
   if (!Array.isArray(raw.files)) return null;
-  const files = raw.files.filter((f): f is string => typeof f === "string" && f.trim().length > 0);
+  if (raw.files.some((f) => typeof f !== "string" || f.trim().length === 0)) {
+    return null;
+  }
+  const files = raw.files.map((f) => (f as string).trim());
   return {
     schema: typeof raw.schema === "string" ? raw.schema : undefined,
     files,
@@ -165,7 +168,17 @@ export function evaluateIntendedPlacement(
         message: `Intended path '${declared}' is not a regular file. ${INTENDED_PLACEMENT_MISSING_HINT}`,
       };
     }
-    const lines = countFileLines(readFileSync(abs, "utf8"));
+    let text: string;
+    try {
+      text = readFileSync(abs, "utf8");
+    } catch (err: unknown) {
+      const reason = err instanceof Error ? err.message : String(err);
+      return {
+        ok: false,
+        message: `Could not read intended file '${declared}': ${reason}. ${INTENDED_PLACEMENT_MISSING_HINT}`,
+      };
+    }
+    const lines = countFileLines(text);
     if (lines >= FILE_SIZE_REVIEW_TRIGGER_LINES) {
       over.push(`${declared} (${lines} lines >= ${FILE_SIZE_REVIEW_TRIGGER_LINES})`);
     }
