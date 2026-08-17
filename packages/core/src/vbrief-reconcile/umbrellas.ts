@@ -719,10 +719,12 @@ export function formatCloseComment(signal: string, children: readonly Child[]): 
 function loadLatestSliceRecords(vbriefDir: string): Record<string, unknown>[] {
   const logPath = join(vbriefDir, ".triage-cache", "slices.jsonl");
   if (!existsSync(logPath)) return [];
-  const latest = new Map<number, Record<string, unknown>>();
+  const latest = new Map<string, Record<string, unknown>>();
   for (const rec of readAll({ path: logPath })) {
     const n = rec.umbrella;
-    if (typeof n === "number" && Number.isInteger(n) && n >= 1) latest.set(n, rec);
+    if (typeof n !== "number" || !Number.isInteger(n) || n < 1) continue;
+    const [urlRepo] = parseGithubIssueUri(rec.umbrella_url);
+    latest.set(`${urlRepo ?? ""}:${n}`, rec);
   }
   return [...latest.values()];
 }
@@ -756,9 +758,21 @@ function maybeCloseSliceUmbrella(options: {
   readonly number: number;
   readonly client: UmbrellaClient;
   readonly dryRun: boolean;
+  readonly projectRoot: string;
+  readonly allowCrossRepo: boolean;
+  readonly repoAllowlist?: readonly string[];
+  readonly explicitRepo?: string | null;
 }): "closed" | "unchanged" | "skipped" {
   if (typeof options.client.closeIssue !== "function") return "skipped";
   if (typeof options.client.fetchIssueStates !== "function") return "skipped";
+  const mutateGate = isRepoMutationAllowed(options.repo, options.projectRoot, {
+    allowCrossRepo: options.allowCrossRepo,
+    allowlist: options.repoAllowlist,
+    explicitRepo: options.explicitRepo ?? null,
+  });
+  if (!mutateGate.allowed) {
+    throw new Error(mutateGate.reason ?? `refusing cross-repo mutation on ${options.repo}`);
+  }
   const childNumbers = options.children
     .map((c) => c.issue_number)
     .filter((n): n is number => typeof n === "number");
@@ -776,12 +790,14 @@ function maybeCloseSliceUmbrella(options: {
       ? "unchanged"
       : "skipped";
   }
+  const closeBody = formatCloseComment(ALL_CHILDREN_MERGED, options.children);
   if (!options.dryRun) {
-    options.client.createComment(
-      options.repo,
-      options.number,
-      formatCloseComment(ALL_CHILDREN_MERGED, options.children),
-    );
+    const alreadyCommented = options.client
+      .fetchComments(options.repo, options.number)
+      .some((c) => c.body.trim() === closeBody);
+    if (!alreadyCommented) {
+      options.client.createComment(options.repo, options.number, closeBody);
+    }
     options.client.closeIssue(options.repo, options.number);
   }
   return "closed";
@@ -897,7 +913,6 @@ export function reconcileUmbrellas(
       }
       const key = `${effectiveRepo}:${number}`;
       if (seenIssues.has(key)) continue;
-      seenIssues.add(key);
 
       try {
         const change = reconcileOneEpic(data, index, {
@@ -912,6 +927,7 @@ export function reconcileUmbrellas(
           repoAllowlist: options.repoAllowlist,
           explicitRepo: options.repo ?? null,
         });
+        seenIssues.add(key);
         if (change.action === "unchanged") outcome.unchanged.push(change);
         else outcome.changed.push(change);
       } catch (exc) {
@@ -945,11 +961,14 @@ export function reconcileUmbrellas(
           number,
           client,
           dryRun: options.dryRun ?? false,
+          projectRoot: root,
+          allowCrossRepo: options.allowCrossRepo ?? false,
+          repoAllowlist: options.repoAllowlist,
+          explicitRepo: options.repo ?? null,
         });
         replaceCloseAction(outcome, effectiveRepo, number, closeAction);
         continue;
       }
-      seenIssues.add(key);
       const change = reconcileOneEpic(epicDataFromSlice(effectiveRepo, number, children), index, {
         storyId,
         repo: effectiveRepo,
@@ -962,6 +981,7 @@ export function reconcileUmbrellas(
         repoAllowlist: options.repoAllowlist,
         explicitRepo: options.repo ?? null,
       });
+      seenIssues.add(key);
       const closeAction = maybeCloseSliceUmbrella({
         signal: record.expected_close_signal,
         children,
@@ -969,6 +989,10 @@ export function reconcileUmbrellas(
         number,
         client,
         dryRun: options.dryRun ?? false,
+        projectRoot: root,
+        allowCrossRepo: options.allowCrossRepo ?? false,
+        repoAllowlist: options.repoAllowlist,
+        explicitRepo: options.repo ?? null,
       });
       pushUmbrellaChange(outcome, { ...change, close_action: closeAction });
     } catch (exc) {

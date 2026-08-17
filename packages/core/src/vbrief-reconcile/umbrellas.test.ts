@@ -66,7 +66,13 @@ class FakeUmbrellaClient implements UmbrellaClient {
     this.issueBodies.set(`${repo}:${issueNumber}`, body);
   }
 
+  closeIssueFails = 0;
+
   closeIssue(repo: string, issueNumber: number): void {
+    if (this.closeIssueFails > 0) {
+      this.closeIssueFails -= 1;
+      throw new Error("close failed");
+    }
     const key = `${repo}:${issueNumber}`;
     this.closedIssues.add(key);
     this.issueStates.set(key, "closed");
@@ -807,6 +813,120 @@ describe("reconcileUmbrellas slices.jsonl (#3428)", () => {
     });
     expect(code).toBe(0);
     expect(outcome.skipped_no_ref).toContain("slice-umbrella-3377");
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("does not close a foreign-repo overlap after the epic guard fails", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-umbrella-3428-xrepo-"));
+    seedXbriefLayout(root);
+    writeFileSync(
+      join(root, "xbrief", "active", "epic.xbrief.json"),
+      `${JSON.stringify({
+        plan: {
+          id: "epic-foreign",
+          metadata: { kind: "epic", swarm: { depends_on: [] } },
+          references: [
+            {
+              type: "x-vbrief/github-issue",
+              uri: "https://github.com/other/victim/issues/42",
+            },
+            {
+              type: "x-vbrief/github-issue",
+              uri: "https://github.com/other/victim/issues/43",
+            },
+          ],
+        },
+      })}\n`,
+    );
+    writeSliceRow(root, {
+      ...sliceRow(42, [43], "all-children-merged"),
+      umbrella_url: "https://github.com/other/victim/issues/42",
+      children: [
+        {
+          n: 43,
+          url: "https://github.com/other/victim/issues/43",
+          wave: 1,
+          role: "story",
+        },
+      ],
+    });
+    const client = new FakeUmbrellaClient();
+    client.issueStates.set("other/victim:42", "open");
+    client.issueStates.set("other/victim:43", "closed");
+    const [code, outcome] = reconcileUmbrellas(root, {
+      client,
+      now: "2026-08-17T12:00:00Z",
+      repo: "deftai/directive",
+    });
+    expect(code).toBe(1);
+    expect(outcome.errors.some((e) => /refusing cross-repo mutation/.test(e.message))).toBe(true);
+    expect(client.closedIssues.size).toBe(0);
+    expect(client.fetchComments("other/victim", 42)).toHaveLength(0);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("retries close without posting a second signal comment", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-umbrella-3428-retry-"));
+    seedXbriefLayout(root);
+    writeSliceRow(root, sliceRow(3377, [3388], "all-children-merged"));
+    const client = new FakeUmbrellaClient();
+    client.issueStates.set("deftai/directive:3377", "open");
+    client.issueStates.set("deftai/directive:3388", "closed");
+    client.closeIssueFails = 1;
+    const first = reconcileUmbrellas(root, {
+      client,
+      now: "2026-08-17T12:00:00Z",
+      repo: "deftai/directive",
+    });
+    expect(first[0]).toBe(1);
+    const closeBodies = client
+      .fetchComments("deftai/directive", 3377)
+      .filter((c) => c.body.startsWith("expected_close_signal="));
+    expect(closeBodies).toHaveLength(1);
+    const [code, outcome] = reconcileUmbrellas(root, {
+      client,
+      now: "2026-08-17T12:05:00Z",
+      repo: "deftai/directive",
+    });
+    expect(code).toBe(0);
+    expect(outcome.changed[0]?.close_action).toBe("closed");
+    expect(
+      client
+        .fetchComments("deftai/directive", 3377)
+        .filter((c) => c.body.startsWith("expected_close_signal=")),
+    ).toHaveLength(1);
+    expect(client.closedIssues.has("deftai/directive:3377")).toBe(true);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("keeps same-number umbrellas from different repos", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-umbrella-3428-tworepo-"));
+    seedXbriefLayout(root);
+    writeSliceRow(root, sliceRow(10, [11], "manual"));
+    writeSliceRow(root, {
+      ...sliceRow(10, [12], "manual"),
+      slice_id: "bbbbbbbb-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+      umbrella_url: "https://github.com/other/repo/issues/10",
+      children: [
+        {
+          n: 12,
+          url: "https://github.com/other/repo/issues/12",
+          wave: 1,
+          role: "story",
+        },
+      ],
+    });
+    const client = new FakeUmbrellaClient();
+    const [code, outcome] = reconcileUmbrellas(root, {
+      client,
+      now: "2026-08-17T12:00:00Z",
+      repo: "deftai/directive",
+      allowCrossRepo: true,
+    });
+    expect(code).toBe(0);
+    const issues = new Set(outcome.changed.map((c) => `${c.repo}:${c.issue_number}`));
+    expect(issues.has("deftai/directive:10")).toBe(true);
+    expect(issues.has("other/repo:10")).toBe(true);
     rmSync(root, { recursive: true, force: true });
   });
 
