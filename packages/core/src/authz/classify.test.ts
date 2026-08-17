@@ -930,6 +930,12 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("Get-Content -Path .deft/authz/state.json")).toEqual([]);
     expect(classifyShellAuthzOps("git log -- .deft/authz/state.json")).toEqual([]);
     expect(classifyShellAuthzOps("git log worktree -- .deft/authz/state.json")).toEqual([]);
+    expect(classifyShellAuthzOps("git --no-pager log worktree -- .deft/authz/state.json")).toEqual(
+      [],
+    );
+    expect(
+      classifyShellAuthzOps("aws s3 cp src /tmp/out; touch .deft-directive-disable"),
+    ).toContain("settings");
     expect(
       classifyShellAuthzOps("git --attr-source HEAD clone https://example .deft/authz/grants/evil"),
     ).toContain("settings");

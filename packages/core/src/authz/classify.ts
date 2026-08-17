@@ -511,12 +511,16 @@ const MAGICK_FAMILY_BINS = new Set(["convert", "magick", "mogrify"]);
 const MAGICK_WRITE_DEST_FLAGS = new Set(["-write"]);
 
 /** True when this token is a subcommand of a last-positional dest bin (`aws s3 cp`). */
+function tokenEndsShellSegment(token: string): boolean {
+  return isShellSegmentBreak(token) || firstUnquotedShellOpIndex(token) >= 0;
+}
+
 function segmentStartedByLastPositionalDest(
   tokens: readonly string[],
   tokenIndex: number,
 ): boolean {
   let start = tokenIndex;
-  while (start > 0 && !isShellSegmentBreak(tokens[start - 1] as string)) start--;
+  while (start > 0 && !tokenEndsShellSegment(tokens[start - 1] as string)) start--;
   for (let k = start; k < tokenIndex; k++) {
     const raw = tokens[k] as string;
     if (isShellSegmentBreak(raw)) continue;
@@ -1091,12 +1095,26 @@ function isReadShapedInputFileFlag(bin: string, flag: string): boolean {
   return READ_SHAPED_FILE_FLAG_BINS.has(bin) && READ_INPUT_FILE_FLAGS.has(flag);
 }
 
+/** Git flags before the subcommand that take a separate value token. */
+const GIT_PRE_SUBCOMMAND_VALUE_FLAGS = new Set([
+  "-c",
+  "-C",
+  "--git-dir",
+  "--work-tree",
+  "--namespace",
+  "--exec-path",
+  "--config-env",
+  "--super-prefix",
+  "--attr-source",
+  "--shallow-file",
+]);
+
 /**
  * True only when the git *subcommand* (first non-flag token) is a dest writer.
  * Later operands named clone/worktree/submodule (e.g. `git log worktree -- …`)
  * are not write subcommands (#3423 residual).
- * A separate option value (`--attr-source HEAD`, `--shallow-file x`) is skipped
- * unless that next token is itself a write-sub (#3421 residual).
+ * Value-taking globals (`--attr-source`, `--shallow-file`) skip their value.
+ * Boolean globals (`--no-pager`) do not consume the next token (#3421 residual).
  */
 function gitHasWriteSubcommand(tokens: readonly string[], start: number): boolean {
   let i = start;
@@ -1105,14 +1123,11 @@ function gitHasWriteSubcommand(tokens: readonly string[], start: number): boolea
     if (isShellSegmentBreak(raw)) return false;
     const n = normalizeToken(raw);
     if (n.startsWith("-")) {
-      if (!n.includes("=")) {
+      if (!n.includes("=") && GIT_PRE_SUBCOMMAND_VALUE_FLAGS.has(n)) {
         const next = tokens[i + 1];
         if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
-          const nextN = normalizeToken(next);
-          if (!GIT_WRITE_SUBCOMMANDS.has(nextN)) {
-            i += 2;
-            continue;
-          }
+          i += 2;
+          continue;
         }
       }
       i++;
@@ -1309,13 +1324,17 @@ function hasKillSwitchShellWrite(command: string, tokens: readonly string[]): bo
       }
     }
   }
-  // dest harvest already owns dest-last kill plants for last-positional dest bins.
-  if (tokens.some((t) => LAST_POSITIONAL_DEST_BINS.has(binBareName(t)))) {
-    return false;
-  }
   // Bare `touch .deft-directive-disable` / `ln -sf x .deft-directive-disable` — path later.
-  for (const t of tokens) {
-    const p = pathishToken(t);
+  // Skip tokens in a last-positional dest segment (dest harvest owns dest vs source).
+  // Other segments still scan so `aws … ; touch .deft-directive-disable` is settings.
+  for (let ti = 0; ti < tokens.length; ti++) {
+    if (
+      LAST_POSITIONAL_DEST_BINS.has(binBareName(tokens[ti] as string)) ||
+      segmentStartedByLastPositionalDest(tokens, ti)
+    ) {
+      continue;
+    }
+    const p = pathishToken(tokens[ti] as string);
     for (const name of KILL_SWITCH_BASENAMES) {
       // Exact basename or ends with /basename
       if (p === name || p.endsWith(`/${name}`)) {
