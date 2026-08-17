@@ -1042,11 +1042,40 @@ function isGenericProtectedDestFlag(flag: string): boolean {
   return DOWNLOADER_FILE_DEST_FLAGS.has(flag) || GENERIC_PROTECTED_EXTRA_DEST_FLAGS.has(flag);
 }
 
+/** Git flags before the subcommand that take a separate value token. */
+const GIT_PRE_SUBCOMMAND_VALUE_FLAGS = new Set([
+  "-c",
+  "--git-dir",
+  "--work-tree",
+  "--namespace",
+  "--exec-path",
+  "--config-env",
+  "--super-prefix",
+]);
+
+/**
+ * True only when the git *subcommand* (first non-flag token) is a dest writer.
+ * Later operands named clone/worktree/submodule (e.g. `git log worktree -- …`)
+ * are not write subcommands (#3423 residual).
+ */
 function gitHasWriteSubcommand(tokens: readonly string[], start: number): boolean {
-  for (let i = start; i < tokens.length; i++) {
+  let i = start;
+  while (i < tokens.length) {
     const raw = tokens[i] as string;
     if (isShellSegmentBreak(raw)) return false;
-    if (GIT_WRITE_SUBCOMMANDS.has(normalizeToken(raw))) return true;
+    const n = normalizeToken(raw);
+    if (n.startsWith("-")) {
+      if (!n.includes("=") && GIT_PRE_SUBCOMMAND_VALUE_FLAGS.has(n)) {
+        const next = tokens[i + 1];
+        if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
+          i += 2;
+          continue;
+        }
+      }
+      i++;
+      continue;
+    }
+    return GIT_WRITE_SUBCOMMANDS.has(n);
   }
   return false;
 }
@@ -1142,8 +1171,9 @@ function sqlite3MetaDest(
 }
 
 function pathishMentionsKillSwitch(pathish: string): boolean {
+  const p = canonicalizePathish(pathish);
   for (const name of KILL_SWITCH_BASENAMES) {
-    if (pathish === name || pathish.endsWith(`/${name}`) || pathish.includes(name)) {
+    if (p === name || p.endsWith(`/${name}`) || p.includes(name)) {
       return true;
     }
   }
@@ -1425,19 +1455,41 @@ function pathishToken(token: string): string {
 }
 
 /**
+ * Collapse `//` and `/./` so equivalent dests still match protected predicates
+ * (`.deft//approved-scope/x`, `.deft/./authz/x`) without matching prefix siblings.
+ * O(n) — no nested-quantifier regex.
+ */
+function canonicalizePathish(pathish: string): string {
+  const parts: string[] = [];
+  let cur = "";
+  for (let i = 0; i <= pathish.length; i++) {
+    const c = i < pathish.length ? (pathish[i] as string) : "/";
+    if (c === "/" || i === pathish.length) {
+      if (cur.length > 0 && cur !== ".") parts.push(cur);
+      cur = "";
+    } else {
+      cur += c;
+    }
+  }
+  const joined = parts.join("/");
+  return pathish.startsWith("/") ? `/${joined}` : joined;
+}
+
+/**
  * True when a pathish string targets `.deft/authz` (after quote strip / slash normalize).
  * Quote-split forms like `'.deft/'authz'/grants/x'` become `.deft/authz/grants/x` via pathishToken.
  */
 function pathishIsAuthzDir(pathish: string): boolean {
-  return pathish.includes(".deft/authz");
+  return canonicalizePathish(pathish).includes(".deft/authz");
 }
 
 /** True when a pathish string targets `.deft/approved-scope` (#3421 / #3410 mint). */
 function pathishIsApprovedScopeDir(pathish: string): boolean {
+  const p = canonicalizePathish(pathish);
   return (
-    pathish.includes(".deft/approved-scope/") ||
-    pathish.endsWith(".deft/approved-scope") ||
-    pathish === ".deft/approved-scope"
+    p.includes(".deft/approved-scope/") ||
+    p.endsWith(".deft/approved-scope") ||
+    p === ".deft/approved-scope"
   );
 }
 
