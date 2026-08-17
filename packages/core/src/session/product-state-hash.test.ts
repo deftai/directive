@@ -252,6 +252,51 @@ describe("hashProductState (#3387)", () => {
     expect(second.digest).not.toBe(first.digest);
   });
 
+  it("includes an invalid-byte filename from a directory walk so later edits change the digest", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-walkbytes-"));
+    mkdirSync(join(root, "src"), { recursive: true });
+    const nameBytes = Buffer.from([0x66, 0x66, 0xff, 0x2e, 0x74, 0x73]);
+    const name = nameBytes.toString("latin1");
+    const absBytes = Buffer.concat([Buffer.from(`${root}${sep}src${sep}`, "utf8"), nameBytes]);
+    try {
+      writeFileSync(absBytes, "v1\n");
+    } catch {
+      writeFileSync(join(root, "src", name), "v1\n");
+    }
+    const plan = {
+      acceptance: { commands: [{ command: "true" }] },
+      metadata: { swarm: { file_scope: ["src"] } },
+    };
+    const first = hashProductState({ projectRoot: root, plan });
+    expect(first.complete).toBe(true);
+    expect(first.files).toContain(`src/${name}`);
+    try {
+      writeFileSync(absBytes, "v2\n");
+    } catch {
+      writeFileSync(join(root, "src", name), "v2\n");
+    }
+    const second = hashProductState({ projectRoot: root, plan });
+    expect(second.digest).not.toBe(first.digest);
+  });
+
+  it("treats failed git status as an incomplete surface", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-statusfail-"));
+    mkdirSync(join(root, ".git"), { recursive: true });
+    const plan = { acceptance: { commands: [{ command: "true" }] } };
+    const hashed = hashProductState({
+      projectRoot: root,
+      plan,
+      runGit: (_cwd, args) => {
+        if (args.includes("rev-parse")) {
+          return { code: 0, stdout: "abc123", stderr: "" };
+        }
+        return { code: 128, stdout: "", stderr: "status failed" };
+      },
+    });
+    expect(hashed.complete).toBe(false);
+    expect(hashed.files).toEqual([]);
+  });
+
   it("includes a nested leading-dot file under a recursive ** scope", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-recdot-"));
     mkdirSync(join(root, "frontend", "a"), { recursive: true });

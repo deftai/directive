@@ -98,24 +98,64 @@ function readFileHash(root: string, rel: string): string {
   }
 }
 
-function walkFiles(root: string, dir: string, out: string[], seen = new Set<string>()): void {
+function asPathBuf(path: string | Buffer): Buffer {
+  return Buffer.isBuffer(path) ? path : Buffer.from(path, "utf8");
+}
+
+function joinNameBytes(dir: string | Buffer, name: Buffer): Buffer {
+  const dirBuf = asPathBuf(dir);
+  const sepBuf = Buffer.from(sep);
+  if (dirBuf.length === 0) return name;
+  const last = dirBuf[dirBuf.length - 1];
+  if (last === sepBuf[0]) return Buffer.concat([dirBuf, name]);
+  return Buffer.concat([dirBuf, sepBuf, name]);
+}
+
+function relFromRootBytes(root: string, abs: Buffer): string {
+  const rootBuf = Buffer.from(root, "utf8");
+  const sepByte = Buffer.from(sep)[0] ?? 47;
+  if (abs.length >= rootBuf.length && abs.subarray(0, rootBuf.length).equals(rootBuf)) {
+    let rest = abs.subarray(rootBuf.length);
+    if (rest.length > 0 && rest[0] === sepByte) rest = rest.subarray(1);
+    if (rest.length === 0) return "";
+    const segs: string[] = [];
+    let start = 0;
+    for (let i = 0; i <= rest.length; i += 1) {
+      if (i === rest.length || rest[i] === sepByte) {
+        segs.push(decodeOctalPathBytes(rest.subarray(start, i)));
+        start = i + 1;
+      }
+    }
+    return segs.filter((seg) => seg.length > 0).join("/");
+  }
+  return toPosix(relative(root, abs.toString("utf8")));
+}
+
+function walkFiles(
+  root: string,
+  dir: string | Buffer,
+  out: string[],
+  seen = new Set<string>(),
+): void {
+  const dirBuf = asPathBuf(dir);
   let real: string;
   try {
-    real = realpathSync(dir);
+    real = realpathSync(dirBuf);
   } catch {
     return;
   }
   if (seen.has(real)) return;
   seen.add(real);
-  let entries: string[];
+  let names: Buffer[];
   try {
-    entries = readdirSync(dir);
+    names = readdirSync(dirBuf, { encoding: "buffer" });
   } catch {
     return;
   }
-  for (const name of entries) {
-    const abs = join(dir, name);
-    const rel = toPosix(relative(root, abs));
+  for (const nameBuf of names) {
+    const nameLatin1 = nameBuf.toString("latin1");
+    const abs = joinNameBytes(dirBuf, nameBuf);
+    const rel = relFromRootBytes(root, abs);
     if (isExcludedRel(rel)) continue;
     let st: ReturnType<typeof statSync>;
     try {
@@ -124,7 +164,7 @@ function walkFiles(root: string, dir: string, out: string[], seen = new Set<stri
       continue;
     }
     if (st.isDirectory()) {
-      if (EXCLUDED_DIR_NAMES.has(name)) continue;
+      if (EXCLUDED_DIR_NAMES.has(nameLatin1)) continue;
       walkFiles(root, abs, out, seen);
       continue;
     }
@@ -318,7 +358,7 @@ function expandPath(root: string, relOrGlob: string): string[] {
           else if (st.isDirectory()) walkFiles(root, absMatch, out);
         }
       }
-      if (rel.includes("**")) {
+      {
         const prefix = literalDirPrefix(rel);
         const startDir = prefix.length === 0 ? root : resolve(root, prefix);
         if (existsSync(startDir)) {
@@ -441,36 +481,44 @@ function porcelainFallbackRel(line: string): string {
   return first.value;
 }
 
-function dirtyProductFiles(projectRoot: string, runGit: GitRunner): string[] {
-  const zed = runGit(projectRoot, ["status", "--porcelain", "-u", "-z"]);
+function parseZedPorcelain(stdout: string): string[] {
   const out: string[] = [];
-  if (zed.code === 0 && zed.stdout.length > 0) {
-    const parts = zed.stdout.split("\0").filter((part) => part.length > 0);
-    for (let i = 0; i < parts.length; i += 1) {
-      const rec = parts[i] as string;
-      if (rec.length < 4) continue;
-      const code = rec.slice(0, 2);
-      const pathPart = rec.slice(3);
-      const renamed = code.includes("R") || code.includes("C");
-      // -z rename/copy is `XY dest\0orig\0` — keep dest, skip orig.
-      if (renamed && i + 1 < parts.length) {
-        i += 1;
-      }
-      const rel = toPosix(decodeOctalPathBytes(Buffer.from(pathPart, "latin1")));
-      if (rel.length === 0 || isExcludedRel(rel)) continue;
-      out.push(rel);
+  const parts = stdout.split("\0").filter((part) => part.length > 0);
+  for (let i = 0; i < parts.length; i += 1) {
+    const rec = parts[i] as string;
+    if (rec.length < 4) continue;
+    const code = rec.slice(0, 2);
+    const pathPart = rec.slice(3);
+    const renamed = code.includes("R") || code.includes("C");
+    // -z rename/copy is `XY dest\0orig\0` — keep dest, skip orig.
+    if (renamed && i + 1 < parts.length) {
+      i += 1;
     }
-    return out;
+    const rel = toPosix(decodeOctalPathBytes(Buffer.from(pathPart, "latin1")));
+    if (rel.length === 0 || isExcludedRel(rel)) continue;
+    out.push(rel);
+  }
+  return out;
+}
+
+function dirtyProductFiles(
+  projectRoot: string,
+  runGit: GitRunner,
+): { files: string[]; ok: boolean } {
+  const zed = runGit(projectRoot, ["status", "--porcelain", "-u", "-z"]);
+  if (zed.code === 0) {
+    return { files: parseZedPorcelain(zed.stdout), ok: true };
   }
   const { code, stdout } = runGit(projectRoot, ["status", "--porcelain", "-u"]);
-  if (code !== 0) return [];
+  if (code !== 0) return { files: [], ok: false };
+  const out: string[] = [];
   for (const line of stdout.split(/\r?\n/)) {
     if (line.trim().length === 0) continue;
     const rel = toPosix(porcelainFallbackRel(line));
     if (rel.length === 0 || isExcludedRel(rel)) continue;
     out.push(rel);
   }
-  return out;
+  return { files: out, ok: true };
 }
 
 /**
@@ -481,6 +529,7 @@ export function hashProductState(input: HashProductStateInput): ProductStateHash
   const root = resolve(input.projectRoot);
   const runGit = input.runGit ?? defaultGitRunner;
   const files = new Set<string>();
+  let statusOk = true;
 
   if (input.productPaths !== undefined) {
     for (const rel of input.productPaths) {
@@ -495,7 +544,9 @@ export function hashProductState(input: HashProductStateInput): ProductStateHash
     } else {
       const git = existsSync(join(root, ".git"));
       if (git) {
-        for (const rel of dirtyProductFiles(root, runGit)) files.add(rel);
+        const dirty = dirtyProductFiles(root, runGit);
+        statusOk = dirty.ok;
+        for (const rel of dirty.files) files.add(rel);
       } else {
         const walked: string[] = [];
         walkFiles(root, root, walked);
@@ -513,7 +564,9 @@ export function hashProductState(input: HashProductStateInput): ProductStateHash
   const head = existsSync(join(root, ".git")) ? gitHead(root, runGit).head : null;
   const specifiedSurface =
     input.productPaths !== undefined || fileScopePaths(input.plan).length > 0;
-  const hasSurface = specifiedSurface ? sorted.length > 0 : sorted.length > 0 || head !== null;
+  const hasSurface = specifiedSurface
+    ? sorted.length > 0
+    : statusOk && (sorted.length > 0 || head !== null);
   const digest = createHash("sha256")
     .update(
       stableJson({
