@@ -190,7 +190,44 @@ function assessOrphanSignature(
   projectRoot: string,
   runGh: RunGhFn,
   skipGh: boolean,
+  failClosedUnknown: boolean,
 ): { orphaned: boolean; reason: string | null } {
+  if (failClosedUnknown) {
+    const issueStates = issueRefs.map((ref) => ({
+      ref,
+      state: resolveIssueState(ref, projectRoot, runGh, skipGh),
+    }));
+    if (issueStates.some((row) => row.state === "open")) {
+      return { orphaned: false, reason: null };
+    }
+    for (const pr of prRefs) {
+      if (skipGh) {
+        continue;
+      }
+      const merged = fetchPrMerged(pr, runGh);
+      if (merged === true) {
+        return { orphaned: true, reason: `linked PR #${pr.number} is merged` };
+      }
+    }
+    const unknownIssue = issueStates.find((row) => row.state === null);
+    if (unknownIssue !== undefined) {
+      return {
+        orphaned: true,
+        reason: `issue #${unknownIssue.ref.number} state could not be resolved`,
+      };
+    }
+    if (issueStates.some((row) => row.state === "closed")) {
+      return { orphaned: true, reason: "all referenced issues are closed" };
+    }
+    if (prRefs.length > 0 && skipGh) {
+      return {
+        orphaned: true,
+        reason: `linked PR #${prRefs[0]?.number} state could not be resolved`,
+      };
+    }
+    return { orphaned: false, reason: null };
+  }
+
   for (const pr of prRefs) {
     if (skipGh) {
       continue;
@@ -320,7 +357,14 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
     if (issues.length === 0 && prs.length === 0) {
       continue;
     }
-    const assessment = assessOrphanSignature(issues, prs, root, runGh, skipGh);
+    const assessment = assessOrphanSignature(
+      issues,
+      prs,
+      root,
+      runGh,
+      skipGh,
+      issueFilter !== null,
+    );
     if (assessment.orphaned && assessment.reason !== null) {
       orphans.push({
         path: relBriefPath(brief.path, root),

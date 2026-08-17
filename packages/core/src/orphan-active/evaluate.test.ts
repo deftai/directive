@@ -263,6 +263,25 @@ describe("evaluate", () => {
     expect(result.code).toBe(0);
   });
 
+  it("fails closed on --issue N when origin state cannot be resolved", () => {
+    const root = makeRepo();
+    writeBrief(root, "unknown-state.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/4040",
+          type: "x-xbrief/github-issue",
+        },
+      ],
+    });
+    const result = evaluate(root, { repo: "deftai/directive", skipGh: true, issue: 4040 });
+    expect(result.code).toBe(1);
+    expect(result.orphans[0]?.reason).toBe("issue #4040 state could not be resolved");
+    expect(result.message).toContain(
+      "task scope:complete -- xbrief/active/unknown-state.xbrief.json",
+    );
+  });
+
   it("does not orphan when issue state is unknown", () => {
     const root = makeRepo();
     writeBrief(root, "unknown-state.xbrief.json", {
