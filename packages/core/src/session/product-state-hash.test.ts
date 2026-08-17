@@ -443,6 +443,53 @@ describe("hashProductState (#3387)", () => {
     expect(second.digest).not.toBe(first.digest);
   });
 
+  it("fingerprints an unwalkable gitlink so a new SHA changes the digest", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-gitlink-"));
+    mkdirSync(join(root, ".git"), { recursive: true });
+    const plan = { acceptance: { commands: [{ command: "true" }] } };
+    let sha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const runGit = (_cwd: string, args: readonly string[]) => {
+      if (args.includes("ls-files") && args.includes("--stage")) {
+        return { code: 0, stdout: `160000 ${sha} 0\tvendor/lib`, stderr: "" };
+      }
+      if (args.includes("--verify")) {
+        return { code: 0, stdout: "abc123", stderr: "" };
+      }
+      if (args.includes("-z")) {
+        return { code: 0, stdout: " M vendor/lib\0", stderr: "" };
+      }
+      return { code: 0, stdout: " M vendor/lib", stderr: "" };
+    };
+    const first = hashProductState({ projectRoot: root, plan, runGit });
+    expect(first.complete).toBe(true);
+    expect(first.files).toContain("vendor/lib");
+    sha = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    const second = hashProductState({ projectRoot: root, plan, runGit });
+    expect(second.digest).not.toBe(first.digest);
+  });
+
+  it("does not treat an ordinary porcelain path containing arrow as a rename", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-arrowname-"));
+    mkdirSync(join(root, ".git"), { recursive: true });
+    const plan = { acceptance: { commands: [{ command: "true" }] } };
+    const hashed = hashProductState({
+      projectRoot: root,
+      plan,
+      runGit: (_cwd, args) => {
+        if (args.includes("--verify")) {
+          return { code: 0, stdout: "abc123", stderr: "" };
+        }
+        if (args.includes("-z")) {
+          return { code: 1, stdout: "", stderr: "nul unavailable" };
+        }
+        return { code: 0, stdout: "?? file -> name.ts", stderr: "" };
+      },
+    });
+    expect(hashed.complete).toBe(true);
+    expect(hashed.files).toContain("file -> name.ts");
+    expect(hashed.files).not.toContain("name.ts");
+  });
+
   it("hashes invalid-byte names through a byte FS path so later edits change the digest", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-fsbytes-"));
     mkdirSync(join(root, ".git"), { recursive: true });

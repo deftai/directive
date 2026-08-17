@@ -98,6 +98,27 @@ function readFileHash(root: string, rel: string): string {
   }
 }
 
+/** Unwalkable gitlink (mode 160000): fingerprint the recorded SHA, not missing. */
+function gitlinkFingerprint(root: string, rel: string, runGit: GitRunner): string | null {
+  const staged = runGit(root, ["ls-files", "--stage", "--", rel]);
+  if (staged.code === 0) {
+    const line = staged.stdout.trim().split(/\r?\n/)[0] ?? "";
+    const match = line.match(/^160000\s+([0-9a-f]{40,64})\b/);
+    if (match?.[1]) return `gitlink:${match[1]}`;
+  }
+  const parsed = runGit(root, ["rev-parse", `HEAD:${rel.replace(/\\/g, "/")}`]);
+  if (parsed.code === 0 && /^[0-9a-f]{40,64}$/.test(parsed.stdout.trim())) {
+    return `gitlink:${parsed.stdout.trim()}`;
+  }
+  return null;
+}
+
+function hashProductRel(root: string, rel: string, runGit: GitRunner): string {
+  const file = readFileHash(root, rel);
+  if (file !== "missing") return file;
+  return gitlinkFingerprint(root, rel, runGit) ?? "missing";
+}
+
 function asPathBuf(path: string | Buffer): Buffer {
   return Buffer.isBuffer(path) ? path : Buffer.from(path, "utf8");
 }
@@ -536,7 +557,14 @@ function takePorcelainPathToken(raw: string): { value: string; rest: string } {
 
 function porcelainFallbackRel(line: string): string {
   if (line.length < 3) return "";
-  const first = takePorcelainPathToken(line.slice(3));
+  const code = line.slice(0, 2);
+  const rest = line.slice(3);
+  const renamed = code.includes("R") || code.includes("C");
+  if (!renamed) {
+    if (rest.startsWith('"')) return takePorcelainPathToken(rest).value;
+    return rest.trimEnd();
+  }
+  const first = takePorcelainPathToken(rest);
   const after = first.rest.trimStart();
   if (after.startsWith("->")) return takePorcelainPathToken(after.slice(2)).value;
   return first.value;
@@ -621,7 +649,7 @@ export function hashProductState(input: HashProductStateInput): ProductStateHash
   const sorted = [...files].sort();
   const fileHashes: Record<string, string> = {};
   for (const rel of sorted) {
-    fileHashes[rel] = readFileHash(root, rel);
+    fileHashes[rel] = hashProductRel(root, rel, runGit);
   }
 
   const head = existsSync(join(root, ".git")) ? gitHead(root, runGit).head : null;
