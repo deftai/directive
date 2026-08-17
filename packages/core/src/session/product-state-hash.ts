@@ -172,6 +172,24 @@ function walkFiles(
   }
 }
 
+/** Dirty submodule dirs are not files; walk their contents instead of hashing missing. */
+function expandIfDirectory(root: string, rel: string): string[] {
+  const tryWalk = (dir: string | Buffer): string[] | null => {
+    try {
+      const st = statSync(dir);
+      if (!st.isDirectory()) return null;
+      const walked: string[] = [];
+      walkFiles(root, dir, walked);
+      return walked;
+    } catch {
+      return null;
+    }
+  };
+  const walked = tryWalk(resolve(root, rel)) ?? tryWalk(joinRootRelBytes(root, rel));
+  if (walked === null) return [rel];
+  return walked.length > 0 ? walked : [rel];
+}
+
 /**
  * Node `fs.globSync` omits leading-dot names and has no `{ dot }` option.
  * Each `*` / `?` / `[` segment gets an ordinary and a hidden variant so a
@@ -589,7 +607,9 @@ export function hashProductState(input: HashProductStateInput): ProductStateHash
       if (git) {
         const dirty = dirtyProductFiles(root, runGit);
         statusOk = dirty.ok;
-        for (const rel of dirty.files) files.add(rel);
+        for (const rel of dirty.files) {
+          for (const expanded of expandIfDirectory(root, rel)) files.add(expanded);
+        }
       } else {
         const walked: string[] = [];
         walkFiles(root, root, walked);

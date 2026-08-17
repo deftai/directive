@@ -418,6 +418,31 @@ describe("hashProductState (#3387)", () => {
     expect(second.digest).not.toBe(first.digest);
   });
 
+  it("hashes dirty submodule contents so later edits change the digest", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-submod-"));
+    mkdirSync(join(root, ".git"), { recursive: true });
+    mkdirSync(join(root, "vendor", "lib", ".git"), { recursive: true });
+    mkdirSync(join(root, "vendor", "lib", "src"), { recursive: true });
+    writeFileSync(join(root, "vendor", "lib", "src", "a.ts"), "export const a = 1;\n", "utf8");
+    const plan = { acceptance: { commands: [{ command: "true" }] } };
+    const runGit = (_cwd: string, args: readonly string[]) => {
+      if (args.includes("rev-parse")) {
+        return { code: 0, stdout: "abc123", stderr: "" };
+      }
+      if (args.includes("-z")) {
+        return { code: 0, stdout: " M vendor/lib\0", stderr: "" };
+      }
+      return { code: 0, stdout: " M vendor/lib", stderr: "" };
+    };
+    const first = hashProductState({ projectRoot: root, plan, runGit });
+    expect(first.complete).toBe(true);
+    expect(first.files).toContain("vendor/lib/src/a.ts");
+    expect(first.files).not.toContain("vendor/lib");
+    writeFileSync(join(root, "vendor", "lib", "src", "a.ts"), "export const a = 2;\n", "utf8");
+    const second = hashProductState({ projectRoot: root, plan, runGit });
+    expect(second.digest).not.toBe(first.digest);
+  });
+
   it("hashes invalid-byte names through a byte FS path so later edits change the digest", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-fsbytes-"));
     mkdirSync(join(root, ".git"), { recursive: true });
