@@ -419,11 +419,27 @@ Following a v1.0.0 release, commits:
 
 ! **Anti-thrash during attributed platform outage:** After thrash caps (max 2 re-triggers per #3167), stop automatic empty-commit / close-reopen / rebase loops. Remediation is wait + re-probe HEAD check-runs, not inventing workflow edits to "fix" a global outage.
 
+### Forge-outage drop-back + human report (#3422)
+
+#3167 caps CI-holdout babysit loops. #3180 attributes weather holds. Neither replaces this drop-back.
+
+! When a worker or parent detects a **forge / SCM API outage** — any of: repeated 429/502/503 on REST (`gh api` / `ghx api`); status page `partial_outage` / `major_outage` on API, PRs, Issues, Actions, or Webhooks (#3180 probe); operator standing order that the web/API is unreliable; widespread empty check-runs + `attribution: platform` — then:
+
+1. **Drop back** — stop empty-commit, close/reopen, rebase-to-nudge, tight `pr:watch` / `gh run watch`, GraphQL, and new heartbeat / poller children. Local edit/test/commit MAY continue when it does not need the forge.
+2. **Report once** to the human in the conversation (not a GitHub comment that may also fail). Include: what is down, attribution/incident if known, what is parked, next probe time. Do not re-spam every tick unless status *changes*.
+3. **Re-probe on a timer.** Resolve minutes via `task policy:show --field=forgeOutageRetryMinutes` (USER.md Personal wins over `plan.policy.forgeOutageRetryMinutes` over **30**; minimum 5). One probe per interval. If still out, stay dropped and (at most) a short "still out, next probe at T" note. If recovered, resume GitHub I/O from the parked point — do not replay the thrash loop.
+
+Session / envelope standing orders (this-cohort "use 15m") MAY override one run but MUST NOT become the undocumented product default.
+
+⊗ Tight retry loops "until it works."
+⊗ Empty-commit / close-reopen to "wake" CI during an attributed platform outage (still bound by #3167 caps if a probe happens before attribution).
+⊗ Invent a new interval every session.
+⊗ Send the human to github.com / githubstatus.com as the only remediation.
 ⊗ Merge or `--skip-ci` solely because a status page is red — status is **attribution for wait/thrash policy**, not a second branch-protection oracle (#3180 non-goal).
 ⊗ Blame Blacksmith when status pages show GitHub Actions/Webhooks major outage and Blacksmith runners themselves operational.
 ⊗ Edit workflows or re-push thrash to "fix" a documented global Actions/webhook outage without status-page probe.
 
-**BLOCKED handoff fields** (extend `BLOCKED: ci_weather` in review-cycle): `platform_status_github`, `platform_status_blacksmith`, optional incident URL, `attribution: platform | capacity | repo_config | unknown`. Cross-links: #3167 (weather codes), #3168 (failover arms), #2672 (capacity stall), #2688 (Greptile CLEAN + CI holdout ownership).
+**BLOCKED handoff fields** (extend `BLOCKED: ci_weather` in review-cycle): `platform_status_github`, `platform_status_blacksmith`, optional incident URL, `attribution: platform | capacity | repo_config | unknown`. Cross-links: #3167 (weather codes), #3180 (status attribution), #3168 (failover arms), #2672 (capacity stall), #2688 (Greptile CLEAN + CI holdout ownership).
 
 **Security**:
 - ! Use GitHub Secrets for CI/CD credentials

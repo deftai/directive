@@ -2593,6 +2593,15 @@ describe("test_standards.py", () => {
     expect(text).toContain("#2672");
     expect(text).toContain("#2688");
   });
+
+  it("forge-outage drop-back + human report (#3422)", () => {
+    const text = readText("scm/github.md");
+    expect(text).toContain("Forge-outage drop-back + human report (#3422)");
+    expect(text).toContain("forgeOutageRetryMinutes");
+    expect(text).toContain("Report once");
+    expect(text).toContain("#3167");
+    expect(text).toContain("#3180");
+  });
 });
 
 describe("allMdFiles skip dirs", () => {
