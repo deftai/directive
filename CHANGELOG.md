@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Mint writes approved-scope record + preimage as a fail-closed pair (#3385).** Dest rollback is armed before the first dest write. A failed dest publish restores the previous pair or deletes both dests. A restore failure is not swallowed: leftover dests are cleared as a pair (a partial cleanup puts removed dests back) and the error names both failures. Residual of PR #3414.
+- **Mint writes approved-scope record + preimage as a fail-closed pair (#3385).** Dest publish uses a per-plan lock and rename-swap after a durable bak of the prior pair. A crash mid-publish is recovered on the next mint (prior pair, or neither dest). Dead-owner lock files are reclaimed so that recover can run. A caught dest failure still restores or clears dests as a pair. Residual of PR #3414.
 - **Official Cursor adapter deletes no longer trip mixed-core-and-app (#3393).** A framework-only update that removes the retired hook adapter is installer-managed, not app. Other consumer hooks stay app-owned. Consumers on `pull_request_target` or pinned workflow refs see the old guard for one PR. Closes #3393. Refs #3378.
 
 - **`scope:record-approved-scope` uses the #3110 human-presence mint gate (#3384).** Shared TTY / controlling-terminal / `--confirm` / typed `mint` / agent-CI refuse; `--actor` is display-only. New records omit `xbriefBodyDigest`. Wave 1 records have no `intentDigest` and are legacy under #3385. Closes #3384. Refs #3376, #3110.
