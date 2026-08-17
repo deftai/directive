@@ -13,9 +13,11 @@ import (
 )
 
 // coreGuardPinContentPy is the #3193 content-aware pin/lock checker embedded in
-// the deposited deft-core-guard workflow (python3 on ubuntu-latest).
+// the deposited deft-core-guard workflow (python3 heredoc on ubuntu-latest).
+// Stored as a non-.py embed so this repo does not trip CodeQL Analyze (python) (#3427).
+// Twin of packages/core/src/init-deposit/core-guard-pin-content.ts.
 //
-//go:embed core_guard_pin_content.py
+//go:embed core_guard_pin_content.embed
 var coreGuardPinContentPy string
 
 // coreGlob is the gitignore/linguist/CodeQL-style glob that matches every file
@@ -327,7 +329,7 @@ func guardWouldFail(changed []string) bool {
 //
 // When .deft/core/** is present, package.json / lockfiles are further
 // content-checked for @deftai/directive* pin-only + lock follow-through (#3193)
-// via the embedded python3 script (core_guard_pin_content.py).
+// via the embedded python3 heredoc (core_guard_pin_content.embed).
 func coreGuardWorkflowContent() string {
 	// Indent embedded python for the workflow `run: |` block and wrap in a
 	// single-quoted heredoc so GHA does not expand shell variables inside PY.

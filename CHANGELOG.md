@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Replace leftover Python helpers with committed Node so CodeQL stops Analyze (python) here (#3427).** CI watchdog scripts are `.mjs`; `ci.yml` does not invoke `python3`. Consumer `deft-core-guard` still deposits a `python3` heredoc from a shared Go/TS embed (not a `.py` file). Pin check still matches `isUpgradePinPathContentAllowed`. Org CodeQL languages are unchanged. Closes #3427.
 - **`deft update` stages only this-run installer-managed ledger paths, including tracked deletions (#3394).** Ledger minus allowlist is printed and left unstaged. Untracked deletes are filtered so they cannot fail the batch. Pre-existing consumer edits to Taskfile, package.json, or .gitignore are not staged. Closes #3394. Refs #3378, #3392, #3393.
 
 ### Fixed
