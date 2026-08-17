@@ -1006,6 +1006,18 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("env aws s3 cp src .deft-directive-disable")).toContain(
       "settings",
     );
+    expect(classifyShellAuthzOps("env -C /tmp aws s3 cp .deft/authz/x /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("timeout 5 aws s3 cp .deft/authz/x /tmp/out")).toEqual([]);
+    expect(
+      classifyShellAuthzOps("env -C /tmp aws s3 cp src .deft/authz/grants/evil.json"),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps(
+        "git --list-objects-filter tree:0 clone https://example .deft/authz/grants/evil",
+      ),
+    ).toContain("settings");
+    expect(classifyShellAuthzOps("echo x > foo.deft/authz/story.json")).toEqual([]);
+    expect(classifyShellAuthzOps("echo x > x.deft/approved-scope/story.json")).toEqual([]);
     expect(classifyShellAuthzOps("aws s3 cp src .deft/authz/grants/evil.json")).toContain(
       "settings",
     );

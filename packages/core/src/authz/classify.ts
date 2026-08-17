@@ -525,6 +525,26 @@ function isWrapperOrAssignmentToken(raw: string, n: string): boolean {
   return n.includes("=") && !n.startsWith("-") && !raw.includes("/") && !raw.includes("\\");
 }
 
+/** Wrapper flags that take a separate value (`env -C DIR`, `nice -n N`). */
+const WRAPPER_VALUE_FLAGS = new Set([
+  "-c",
+  "--chdir",
+  "-u",
+  "--unset",
+  "-n",
+  "--adjustment",
+  "-o",
+  "--output",
+  "-i",
+  "--input",
+  "-e",
+  "--error",
+  "-s",
+  "--signal",
+  "-k",
+  "--kill-after",
+]);
+
 /** In-place ImageMagick writer: every protected operand is a dest, not last-only. */
 const MAGICK_FAMILY_BINS = new Set(["convert", "magick", "mogrify"]);
 const MAGICK_WRITE_DEST_FLAGS = new Set(["-write"]);
@@ -540,12 +560,33 @@ function segmentStartedByLastPositionalDest(
 ): boolean {
   let start = tokenIndex;
   while (start > 0 && !tokenEndsShellSegment(tokens[start - 1] as string)) start--;
+  let skipNext = false;
+  let afterWrapper = false;
   for (let k = start; k < tokenIndex; k++) {
     const raw = tokens[k] as string;
     if (isShellSegmentBreak(raw)) continue;
     const n = normalizeToken(raw);
-    if (n.startsWith("-") || isWrapperOrAssignmentToken(raw, n)) continue;
-    return LAST_POSITIONAL_DEST_BINS.has(binBareName(raw));
+    const bare = binBareName(raw);
+    if (skipNext) {
+      skipNext = false;
+      if (LAST_POSITIONAL_DEST_BINS.has(bare)) return true;
+      continue;
+    }
+    if (n.startsWith("-")) {
+      if (!n.includes("=") && WRAPPER_VALUE_FLAGS.has(n)) skipNext = true;
+      continue;
+    }
+    if (isWrapperOrAssignmentToken(raw, n)) {
+      afterWrapper = COMMAND_WRAPPER_BINS.has(bare);
+      continue;
+    }
+    if (LAST_POSITIONAL_DEST_BINS.has(bare)) return true;
+    // timeout 5 aws / similar: skip one non-bin operand after a wrapper.
+    if (afterWrapper) {
+      afterWrapper = false;
+      continue;
+    }
+    return false;
   }
   return false;
 }
@@ -1114,26 +1155,57 @@ function isReadShapedInputFileFlag(bin: string, flag: string): boolean {
   return READ_SHAPED_FILE_FLAG_BINS.has(bin) && READ_INPUT_FILE_FLAGS.has(flag);
 }
 
-/** Git flags before the subcommand that take a separate value token. */
-const GIT_PRE_SUBCOMMAND_VALUE_FLAGS = new Set([
-  "-c",
-  "-C",
-  "--git-dir",
-  "--work-tree",
-  "--namespace",
-  "--exec-path",
-  "--config-env",
-  "--super-prefix",
-  "--attr-source",
-  "--shallow-file",
+/**
+ * Git porcelain tokens that start the subcommand (not option values).
+ * Used so `--no-pager log` keeps `log`, while `--attr-source HEAD clone` skips HEAD.
+ */
+const GIT_SUBCOMMAND_TOKENS = new Set([
+  "clone",
+  "worktree",
+  "submodule",
+  "log",
+  "show",
+  "status",
+  "diff",
+  "fetch",
+  "pull",
+  "push",
+  "add",
+  "commit",
+  "checkout",
+  "switch",
+  "restore",
+  "rebase",
+  "merge",
+  "reset",
+  "stash",
+  "tag",
+  "branch",
+  "remote",
+  "config",
+  "help",
+  "version",
+  "init",
+  "apply",
+  "am",
+  "revert",
+  "cherry-pick",
+  "bisect",
+  "blame",
+  "grep",
+  "mv",
+  "rm",
+  "clean",
+  "notes",
+  "reflog",
+  "sparse-checkout",
 ]);
 
 /**
  * True only when the git *subcommand* (first non-flag token) is a dest writer.
  * Later operands named clone/worktree/submodule (e.g. `git log worktree -- …`)
  * are not write subcommands (#3423 residual).
- * Value-taking globals (`--attr-source`, `--shallow-file`) skip their value.
- * Boolean globals (`--no-pager`) do not consume the next token (#3421 residual).
+ * A following token that is not a git subcommand is an option value (#3421 residual).
  */
 function gitHasWriteSubcommand(tokens: readonly string[], start: number): boolean {
   let i = start;
@@ -1142,11 +1214,14 @@ function gitHasWriteSubcommand(tokens: readonly string[], start: number): boolea
     if (isShellSegmentBreak(raw)) return false;
     const n = normalizeToken(raw);
     if (n.startsWith("-")) {
-      if (!n.includes("=") && GIT_PRE_SUBCOMMAND_VALUE_FLAGS.has(n)) {
+      if (!n.includes("=")) {
         const next = tokens[i + 1];
         if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
-          i += 2;
-          continue;
+          const nextN = normalizeToken(next);
+          if (!GIT_SUBCOMMAND_TOKENS.has(nextN)) {
+            i += 2;
+            continue;
+          }
         }
       }
       i++;
@@ -1579,38 +1654,41 @@ function canonicalizePathish(pathish: string): string {
  * True when a pathish string targets `.deft/authz` (after quote strip / slash normalize).
  * Quote-split forms like `'.deft/'authz'/grants/x'` become `.deft/authz/grants/x` via pathishToken.
  */
+/** True when `dir` is a path segment (left-bounded; `foo.deft/authz` is not `.deft/authz`). */
+function pathishHasDirSegment(pathish: string, dir: string): boolean {
+  const p = canonicalizePathish(pathish.trim());
+  if (p === dir || p.startsWith(`${dir}/`) || p.startsWith(`${dir}\\`)) return true;
+  for (let i = 0; i < p.length; i++) {
+    const c = p[i] as string;
+    if (c !== "/" && c !== "\\" && c !== ":" && c !== "=") continue;
+    const rest = p.slice(i + 1);
+    if (rest === dir || rest.startsWith(`${dir}/`) || rest.startsWith(`${dir}\\`)) return true;
+  }
+  return false;
+}
+
 function pathishIsAuthzDir(pathish: string): boolean {
-  const p = canonicalizePathish(pathish);
-  return p.includes(".deft/authz/") || p.endsWith(".deft/authz") || p === ".deft/authz";
+  return pathishHasDirSegment(pathish, ".deft/authz");
 }
 
 /** True when a pathish string targets `.deft/approved-scope` (#3421 / #3410 mint). */
 function pathishIsApprovedScopeDir(pathish: string): boolean {
-  const p = canonicalizePathish(pathish);
-  return (
-    p.includes(".deft/approved-scope/") ||
-    p.endsWith(".deft/approved-scope") ||
-    p === ".deft/approved-scope"
-  );
+  return pathishHasDirSegment(pathish, ".deft/approved-scope");
 }
 
 function pathishIsSettingsStoreDir(pathish: string): boolean {
   return pathishIsAuthzDir(pathish) || pathishIsApprovedScopeDir(pathish);
 }
 
-/** True when dest is a settings-store path or has an exact `authz` path segment. */
+/** True when dest is a settings-store path or a split-path `authz` segment after `.deft`. */
 function destMentionsAuthzSegment(dest: string): boolean {
   const p = canonicalizePathish(pathishToken(dest).trim());
   if (pathishIsSettingsStoreDir(p)) return true;
-  let cur = "";
-  for (let i = 0; i <= p.length; i++) {
-    const c = i < p.length ? (p[i] as string) : "/";
-    if (c === "/" || i === p.length) {
-      if (cur === "authz") return true;
-      cur = "";
-    } else {
-      cur += c;
-    }
+  const segs = p.split("/").filter((s) => s.length > 0);
+  for (let i = 0; i < segs.length; i++) {
+    if (segs[i] !== "authz") continue;
+    const prev = i > 0 ? (segs[i - 1] as string) : "";
+    if (prev === ".deft" || prev.length === 0) return true;
   }
   return false;
 }
