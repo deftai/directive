@@ -1,7 +1,8 @@
 /**
  * One mint writes record + preimage + both digests (#3376 R7 / #3385).
  * Dest publish is fail-closed as a pair: a write failure restores the prior
- * pair or leaves neither dest (no leftover mismatched authority artifacts).
+ * pair or leaves neither dest. Restore failures are not swallowed: leftover
+ * dests are cleared and the error names both the write and rollback failures.
  */
 
 import { randomBytes } from "node:crypto";
@@ -30,6 +31,35 @@ export interface MintPublishDestInput {
   readonly data: string;
 }
 
+export interface MintRestoreDestInput {
+  readonly root: string;
+  readonly target: string;
+  readonly snapshot: string | null;
+}
+
+export class MintPairRollbackError extends Error {
+  readonly writeError: unknown;
+  readonly restoreError: unknown;
+  readonly clearError: unknown | undefined;
+
+  constructor(writeError: unknown, restoreError: unknown, clearError?: unknown) {
+    const writeMsg = errorMessage(writeError);
+    const restoreMsg = errorMessage(restoreError);
+    const clearSuffix =
+      clearError === undefined
+        ? "; leftover dests were cleared"
+        : `; leftover dests could not be cleared (${errorMessage(clearError)})`;
+    super(
+      `Mint dest publish failed (${writeMsg}); rollback also failed (${restoreMsg})${clearSuffix}. Do not commit a partial approved-scope pair.`,
+    );
+    this.name = "MintPairRollbackError";
+    this.writeError = writeError;
+    this.restoreError = restoreError;
+    this.clearError = clearError;
+    this.cause = writeError;
+  }
+}
+
 export interface MintArtifactsInput {
   readonly xbriefRelPath: string;
   readonly payload: unknown;
@@ -40,9 +70,14 @@ export interface MintArtifactsInput {
   readonly extract?: ExtractIntentOptions;
   /**
    * Test-only dest publish after both temp payloads exist.
-   * Production uses containedWrite replace. Restore never uses this seam.
+   * Production uses containedWrite replace.
    */
   readonly publishDest?: (input: MintPublishDestInput) => void;
+  /**
+   * Test-only dest restore after a dest-publish failure.
+   * Production restores via containedWrite replace / rmSync.
+   */
+  readonly restoreDest?: (input: MintRestoreDestInput) => void;
 }
 
 export interface MintArtifactsResult {
@@ -50,6 +85,10 @@ export interface MintArtifactsResult {
   readonly preimage: IntentPreimage;
   readonly recordPath: string;
   readonly intentPath: string;
+}
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
 }
 
 function snapshotText(path: string): string | null {
@@ -88,10 +127,29 @@ function writeTempPayload(root: string, target: string, data: string): void {
   });
 }
 
+function restoreDestDefault(input: MintRestoreDestInput): void {
+  restoreText(input.root, input.target, input.snapshot);
+}
+
+function clearDestPair(intentPath: string, recordPath: string): void {
+  const failures: string[] = [];
+  for (const path of [intentPath, recordPath]) {
+    try {
+      rmSync(path, { force: true });
+    } catch (err) {
+      failures.push(`${basename(path)}: ${errorMessage(err)}`);
+    }
+  }
+  if (failures.length > 0) {
+    throw new Error(failures.join("; "));
+  }
+}
+
 /**
  * Write record + preimage as one fail-closed pair.
  * Temps land first; dests publish only after both temps exist.
- * Any dest-publish failure restores the snapshotted pair (or deletes both).
+ * Dest-publish failure restores the snapshotted pair.
+ * Restore failure clears leftover dests and names both errors.
  */
 export function writeApprovedScopePair(input: {
   readonly projectRoot: string;
@@ -100,6 +158,7 @@ export function writeApprovedScopePair(input: {
   readonly intentData: string;
   readonly recordData: string;
   readonly publishDest?: (input: MintPublishDestInput) => void;
+  readonly restoreDest?: (input: MintRestoreDestInput) => void;
 }): void {
   const root = resolve(input.projectRoot);
   const dir = approvedScopeDir(input.projectRoot);
@@ -110,20 +169,26 @@ export function writeApprovedScopePair(input: {
   const intentTmp = join(dir, `.${basename(input.intentPath)}.${process.pid}.${nonce}.tmp`);
   const recordTmp = join(dir, `.${basename(input.recordPath)}.${process.pid}.${nonce}.tmp`);
   const publish = input.publishDest ?? publishDestDefault;
-  let destsTouched = false;
+  const restore = input.restoreDest ?? restoreDestDefault;
+  let destPublished = false;
   try {
     writeTempPayload(root, intentTmp, input.intentData);
     writeTempPayload(root, recordTmp, input.recordData);
-    destsTouched = true;
     publish({ root, target: input.intentPath, data: input.intentData });
+    destPublished = true;
     publish({ root, target: input.recordPath, data: input.recordData });
   } catch (err) {
-    if (destsTouched) {
+    if (destPublished) {
       try {
-        restoreText(root, input.intentPath, prevIntent);
-        restoreText(root, input.recordPath, prevRecord);
-      } catch {
-        /* keep the original write error */
+        restore({ root, target: input.intentPath, snapshot: prevIntent });
+        restore({ root, target: input.recordPath, snapshot: prevRecord });
+      } catch (restoreErr) {
+        try {
+          clearDestPair(input.intentPath, input.recordPath);
+        } catch (clearErr) {
+          throw new MintPairRollbackError(err, restoreErr, clearErr);
+        }
+        throw new MintPairRollbackError(err, restoreErr);
       }
     }
     throw err;
@@ -161,6 +226,7 @@ export function mintApprovedScopeArtifacts(input: MintArtifactsInput): MintArtif
     intentData: `${JSON.stringify(extracted.preimage, null, 2)}\n`,
     recordData: `${JSON.stringify(record, null, 2)}\n`,
     publishDest: input.publishDest,
+    restoreDest: input.restoreDest,
   });
   return { record, preimage: extracted.preimage, recordPath, intentPath };
 }

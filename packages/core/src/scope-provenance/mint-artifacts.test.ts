@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { containedWrite } from "../fs/contained-write.js";
-import { mintApprovedScopeArtifacts } from "./mint-artifacts.js";
+import { MintPairRollbackError, mintApprovedScopeArtifacts } from "./mint-artifacts.js";
 
 const roots: string[] = [];
 
@@ -24,6 +24,7 @@ function mint(
   root: string,
   body: ReturnType<typeof payload>,
   publishDest?: Parameters<typeof mintApprovedScopeArtifacts>[0]["publishDest"],
+  restoreDest?: Parameters<typeof mintApprovedScopeArtifacts>[0]["restoreDest"],
 ) {
   return mintApprovedScopeArtifacts({
     xbriefRelPath: "xbrief/active/s.xbrief.json",
@@ -32,6 +33,7 @@ function mint(
     projectRoot: root,
     extract: { projectRoot: root },
     publishDest,
+    restoreDest,
   });
 }
 
@@ -92,6 +94,38 @@ describe("mint-artifacts file (#3385)", () => {
     expect(JSON.parse(priorIntent) as { plan: { title: string } }).toMatchObject({
       plan: expect.objectContaining({ title: "Old" }),
     });
+    expect(leftoverTmps(dirname(first.intentPath))).toEqual([]);
+  });
+
+  it("dest publish + restore failure clears leftover dests and names both errors", () => {
+    const root = mkdtempSync(join(tmpdir(), "mint-art-restore-fail-"));
+    roots.push(root);
+    const first = mint(root, payload("mint-4", "Old"));
+    let caught: unknown;
+    try {
+      mint(
+        root,
+        payload("mint-4", "New"),
+        ({ root: r, target, data }) => {
+          if (target.endsWith(".intent.json")) {
+            containedWrite({ root: r, target, data, mode: "replace" });
+            return;
+          }
+          throw new Error("injected remint record failure");
+        },
+        () => {
+          throw new Error("injected restore failure");
+        },
+      );
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(MintPairRollbackError);
+    expect((caught as Error).message).toMatch(
+      /injected remint record failure[\s\S]*injected restore failure[\s\S]*leftover dests were cleared/,
+    );
+    expect(existsSync(first.intentPath)).toBe(false);
+    expect(existsSync(first.recordPath)).toBe(false);
     expect(leftoverTmps(dirname(first.intentPath))).toEqual([]);
   });
 
