@@ -117,6 +117,7 @@ export * from "./require-human-merge.js";
 export * from "./resolve.js";
 export * from "./runtime-authority.js";
 export * from "./staleness-tickler.js";
+export * from "./sync-default.js";
 export * from "./sync-max-files.js";
 export * from "./value-feedback.js";
 export * from "./value-feedback-autoenable.js";

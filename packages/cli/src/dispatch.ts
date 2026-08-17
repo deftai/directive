@@ -111,6 +111,7 @@ export const CLI_MODULE_VERBS = [
   "release-rollback",
   "scope-lifecycle",
   "scope-record-approved-scope",
+  "scm-sync-default",
   "lifecycle-event",
   "lifecycle-stats",
   "session-start",
@@ -452,6 +453,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "setup:ghx": "setup-ghx",
   "scm:status": "scm-readiness",
   "scm:readiness": "scm-readiness",
+  "scm:sync-default": "scm-sync-default",
 };
 
 /** CLI modules living under verify-source-cli/ or content-validate-cli/ subdirs. */

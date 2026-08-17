@@ -431,6 +431,23 @@ Following a v1.0.0 release, commits:
 - ~ Keep secrets in `secrets/` dir locally (gitignored)
 - ~ Rotate secrets regularly
 
+## Default-branch sync (`scm:sync-default`, #3391)
+
+`task scm:sync-default` opens dest-targeted sync PRs from typed `baseBranch` to `deliveryBranch`. It consumes the shared branch-sync detector (#3388) and `plan.policy.syncMaxFiles` (#3390, default 400; `--max-files` overrides one run).
+
+- Dest = `deliveryBranch`. Source = typed `baseBranch`. Equal or unset source is a no-op.
+- Under the file-count limit: one new PR from the source tip to dest.
+- Over the limit: cut at merge commits when possible so each dest-targeted leg is at or under the threshold. Each leg is a **new branch and a new PR**. After a leg merges, run the verb again; the next leg is still a new PR.
+- ! Each leg must be new when the reviewer first sees it.
+- ⊗ `gh pr edit --base` or close-reopen of an oversized sync PR. Greptile does not re-review on base-only moves.
+- Required checks stay on. The only exemption is the Wave 1 core-guard sync predicate (#3388).
+- No-op when the shared detector says this is not a sync.
+
+```bash
+task scm:sync-default -- --dry-run
+task scm:sync-default -- --max-files 100
+```
+
 ## Branch Protection
 
 **Recommended settings** for `main`:

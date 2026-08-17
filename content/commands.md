@@ -189,6 +189,24 @@ flowchart TD
 
 ---
 
+## Default-branch sync (`scm:sync-default`, #3391)
+
+Open dest-targeted sync PRs from typed `baseBranch` to `deliveryBranch`. Consumes the shared detector (#3388) and `syncMaxFiles` (#3390).
+
+```bash
+task scm:sync-default -- --dry-run
+task scm:sync-default -- --max-files 100
+```
+
+- Under the file-count limit: one new PR from source tip to dest.
+- Over the limit: merge-commit cuts; each dest-based leg is a new branch and a new PR. After a leg merges, run the verb again.
+- ⊗ `gh pr edit --base` or close-reopen of an oversized PR. Each leg must be new when the reviewer first sees it.
+- Required checks stay on except the Wave 1 core-guard sync exemption.
+
+Docs: [scm/github.md](./scm/github.md) § Default-branch sync.
+
+---
+
 ## Structured decision log (#1396)
 
 Lightweight intent-debt records for **significant** choices (architecture, product behavior, security, public/private boundary, data model, runtime topology, hard-to-reverse process). Not every trivial scope. Not ADR migration; leave `docs/decisions/ADR-*.md` alone. Split from lessons (#1513).

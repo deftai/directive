@@ -33,13 +33,9 @@ version: '3'
 # surfaces (--body-file, --add-label, --remove-label, ...) that this
 # stub deliberately does not re-implement; #881 owns the full surface.
 #
-# Forward-compat marker: the ONLY scm:* surface in v1 is the four issue:*
-# commands above plus the #1555 body-posting safety wrapper. PR commands
-# (scm:pr:list/view/merge/close) and any additional scm:* surface are
-# EXPLICITLY deferred to #881; do not add them here. See
-# vbrief/active/2026-05-05-883-story-1-scm-stub.vbrief.json for the full
-# Story 1 scope and vbrief/active/2026-05-05-883-deft-cache-quarantine-v1.vbrief.json
-# for the epic chain context.
+# Forward-compat marker: v1 was issue:* plus #1555 body-posting. #3391
+# adds scm:sync-default (dest-targeted staged sync PRs). Other PR verbs
+# remain #881.
 # ---------------------------------------------------------------------------
 
 vars:
@@ -162,6 +158,16 @@ tasks:
       - task: :engine:invoke
         vars:
           ENGINE_CMD: 'github-body comment-edit {{.CLI_ARGS}}'
+
+  sync-default:
+    desc: "[#3391] Open dest-targeted sync PRs under syncMaxFiles -- new PR per staged leg"
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'scm:sync-default {{.CLI_ARGS}}'
 
   body:pr:edit:
     desc: "[#1555] Safely edit a PR body from --body-file and live gh read-back"
