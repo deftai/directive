@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as scm from "../scm/call.js";
+import * as ghRest from "../scm/gh-rest.js";
 import { ScmUmbrellaClient, UmbrellaScmError } from "./umbrellas.js";
 
 describe("ScmUmbrellaClient comment create (#2324)", () => {
@@ -66,6 +67,27 @@ describe("ScmUmbrellaClient comment create (#2324)", () => {
         stderr: "create readback fail",
       });
     expect(() => new ScmUmbrellaClient().createComment("deftai/cartograph", 18, "body")).toThrow(
+      UmbrellaScmError,
+    );
+  });
+});
+
+describe("ScmUmbrellaClient closeIssue (#3428)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("closes via restCloseIssue PATCH completed", () => {
+    const spy = vi.spyOn(ghRest, "restCloseIssue").mockReturnValue({ state: "closed" });
+    new ScmUmbrellaClient().closeIssue("deftai/directive", 3377);
+    expect(spy).toHaveBeenCalledWith("deftai/directive", 3377, "completed");
+  });
+
+  it("wraps close failures as UmbrellaScmError", () => {
+    vi.spyOn(ghRest, "restCloseIssue").mockImplementation(() => {
+      throw new Error("HTTP 503");
+    });
+    expect(() => new ScmUmbrellaClient().closeIssue("deftai/directive", 3377)).toThrow(
       UmbrellaScmError,
     );
   });

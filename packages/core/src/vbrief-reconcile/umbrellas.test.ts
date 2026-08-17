@@ -4,20 +4,25 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { Child, ForgeIssueState, UmbrellaClient } from "./types.js";
 import {
+  childrenFromSliceRecord,
   classifyPassType,
   computeChildren,
   computeWaves,
+  formatCloseComment,
   isChildOpen,
   parseCurrentShape,
   reconcileBodyChecklist,
   reconcileUmbrellas,
   renderBody,
+  renderUmbrellasReport,
+  shouldCloseOnAllChildrenMerged,
 } from "./umbrellas.js";
 
 class FakeUmbrellaClient implements UmbrellaClient {
   comments = new Map<string, Array<{ id: number; body: string }>>();
   issueBodies = new Map<string, string>();
   issueStates = new Map<string, ForgeIssueState>();
+  closedIssues = new Set<string>();
   private nextId = 1000;
 
   fetchComments(repo: string, issueNumber: number): Array<{ id: number; body: string }> {
@@ -59,6 +64,12 @@ class FakeUmbrellaClient implements UmbrellaClient {
 
   editIssueBody(repo: string, issueNumber: number, body: string): void {
     this.issueBodies.set(`${repo}:${issueNumber}`, body);
+  }
+
+  closeIssue(repo: string, issueNumber: number): void {
+    const key = `${repo}:${issueNumber}`;
+    this.closedIssues.add(key);
+    this.issueStates.set(key, "closed");
   }
 }
 
@@ -457,6 +468,366 @@ describe("isChildOpen forge vs folder (#1649)", () => {
     expect(isChildOpen(c, new Map([[7, "open"]]))).toBe(true);
     expect(isChildOpen(child("y", "completed", [], 8), null)).toBe(false);
     expect(isChildOpen(child("z", "unknown", [], 9), null)).toBe(true);
+  });
+});
+
+function seedXbriefLayout(root: string): void {
+  const active = join(root, "xbrief", "active");
+  mkdirSync(active, { recursive: true });
+  writeFileSync(
+    join(active, "seed.xbrief.json"),
+    `${JSON.stringify({ plan: { id: "seed", metadata: { kind: "story" } } })}\n`,
+  );
+}
+
+function writeSliceRow(root: string, row: Record<string, unknown>): void {
+  const dir = join(root, "xbrief", ".triage-cache");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "slices.jsonl"), `${JSON.stringify(row)}\n`, { flag: "a" });
+}
+
+function sliceChild(n: number): Record<string, unknown> {
+  return {
+    n,
+    url: `https://github.com/deftai/directive/issues/${n}`,
+    wave: 1,
+    role: "story",
+  };
+}
+
+function sliceRow(
+  umbrella: number,
+  children: readonly number[],
+  signal: string,
+): Record<string, unknown> {
+  return {
+    slice_id: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+    umbrella,
+    umbrella_url: `https://github.com/deftai/directive/issues/${umbrella}`,
+    sliced_at: "2026-08-17T00:00:00Z",
+    actor: "manual:operator",
+    children: children.map(sliceChild),
+    expected_close_signal: signal,
+  };
+}
+
+describe("childrenFromSliceRecord (#3428)", () => {
+  it("reads child numbers and skips duplicates", () => {
+    const children = childrenFromSliceRecord({
+      children: [{ n: 3388, role: "a" }, { n: 3388, role: "dup" }, { n: 3389 }, { n: 0 }, "bad"],
+    });
+    expect(children.map((c) => c.issue_number)).toEqual([3388, 3389]);
+    expect(children[0]?.folder).toBe("unknown");
+  });
+
+  it("returns empty when children is missing", () => {
+    expect(childrenFromSliceRecord({})).toEqual([]);
+  });
+});
+
+describe("shouldCloseOnAllChildrenMerged (#3428)", () => {
+  const kids = [child("#1", "unknown", [], 1), child("#2", "unknown", [], 2)];
+
+  it("closes only when every child is forge-closed and the umbrella is open", () => {
+    expect(
+      shouldCloseOnAllChildrenMerged({
+        signal: "all-children-merged",
+        children: kids,
+        forgeStates: new Map([
+          [1, "closed"],
+          [2, "closed"],
+        ]),
+        umbrellaState: "open",
+      }),
+    ).toBe(true);
+  });
+
+  it("refuses manual, wave-1-merged, open children, and already-closed umbrellas", () => {
+    const closedKids = new Map<number, ForgeIssueState>([
+      [1, "closed"],
+      [2, "closed"],
+    ]);
+    expect(
+      shouldCloseOnAllChildrenMerged({
+        signal: "manual",
+        children: kids,
+        forgeStates: closedKids,
+        umbrellaState: "open",
+      }),
+    ).toBe(false);
+    expect(
+      shouldCloseOnAllChildrenMerged({
+        signal: "wave-1-merged",
+        children: kids,
+        forgeStates: closedKids,
+        umbrellaState: "open",
+      }),
+    ).toBe(false);
+    expect(
+      shouldCloseOnAllChildrenMerged({
+        signal: "all-children-merged",
+        children: kids,
+        forgeStates: new Map([
+          [1, "closed"],
+          [2, "open"],
+        ]),
+        umbrellaState: "open",
+      }),
+    ).toBe(false);
+    expect(
+      shouldCloseOnAllChildrenMerged({
+        signal: "all-children-merged",
+        children: kids,
+        forgeStates: closedKids,
+        umbrellaState: "closed",
+      }),
+    ).toBe(false);
+    expect(
+      shouldCloseOnAllChildrenMerged({
+        signal: "all-children-merged",
+        children: [],
+        forgeStates: closedKids,
+        umbrellaState: "open",
+      }),
+    ).toBe(false);
+    expect(
+      shouldCloseOnAllChildrenMerged({
+        signal: "all-children-merged",
+        children: kids,
+        forgeStates: null,
+        umbrellaState: "open",
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("formatCloseComment (#3428)", () => {
+  it("names the signal and sorted child numbers", () => {
+    expect(
+      formatCloseComment("all-children-merged", [
+        child("#2", "unknown", [], 3391),
+        child("#1", "unknown", [], 3388),
+      ]),
+    ).toBe("expected_close_signal=all-children-merged; children: #3388, #3391");
+  });
+});
+
+describe("renderUmbrellasReport close suffix (#3428)", () => {
+  it("prints close=closed on changed rows", () => {
+    const report = renderUmbrellasReport({
+      changed: [
+        {
+          story_id: "slice-umbrella-3377",
+          repo: "deftai/directive",
+          issue_number: 3377,
+          action: "created",
+          pass_n: 1,
+          body: "## Current shape (as of pass-1)",
+          checklist_action: "edited",
+          close_action: "closed",
+        },
+      ],
+      unchanged: [
+        {
+          story_id: "slice-umbrella-3378",
+          repo: "deftai/directive",
+          issue_number: 3378,
+          action: "unchanged",
+          pass_n: 1,
+          body: "## Current shape (as of pass-1)",
+          close_action: "unchanged",
+        },
+      ],
+      skipped_no_ref: [],
+      errors: [],
+      dry_run: false,
+    });
+    expect(report).toContain("close=closed");
+    expect(report).toContain("checklist=edited");
+    expect(report).toContain("close=unchanged");
+  });
+});
+
+describe("reconcileUmbrellas slices.jsonl (#3428)", () => {
+  it("refreshes current-shape and closes all-children-merged umbrellas", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-umbrella-3428-"));
+    seedXbriefLayout(root);
+    writeSliceRow(root, sliceRow(3377, [3388, 3389, 3390, 3391], "all-children-merged"));
+    const client = new FakeUmbrellaClient();
+    client.issueStates.set("deftai/directive:3377", "open");
+    for (const n of [3388, 3389, 3390, 3391]) {
+      client.issueStates.set(`deftai/directive:${n}`, "closed");
+    }
+    const [code, outcome] = reconcileUmbrellas(root, {
+      client,
+      now: "2026-08-17T12:00:00Z",
+      repo: "deftai/directive",
+    });
+    expect(code).toBe(0);
+    expect(outcome.changed).toHaveLength(1);
+    expect(outcome.changed[0]?.action).toBe("created");
+    expect(outcome.changed[0]?.close_action).toBe("closed");
+    expect(outcome.changed[0]?.body).toContain("Child count: 4 (0/4)");
+    expect(outcome.changed[0]?.body).toContain("#3388");
+    expect(client.closedIssues.has("deftai/directive:3377")).toBe(true);
+    const comments = client.fetchComments("deftai/directive", 3377);
+    expect(comments.some((c) => c.body.includes("## Current shape"))).toBe(true);
+    expect(
+      comments.some((c) =>
+        c.body.includes(
+          "expected_close_signal=all-children-merged; children: #3388, #3389, #3390, #3391",
+        ),
+      ),
+    ).toBe(true);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("updates current-shape and leaves manual and wave-1-merged open", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-umbrella-3428-noclose-"));
+    seedXbriefLayout(root);
+    writeSliceRow(root, sliceRow(3378, [3392, 3393], "manual"));
+    writeSliceRow(root, {
+      ...sliceRow(4001, [4002], "wave-1-merged"),
+      slice_id: "bbbbbbbb-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+    });
+    const client = new FakeUmbrellaClient();
+    client.issueStates.set("deftai/directive:3378", "open");
+    client.issueStates.set("deftai/directive:4001", "open");
+    client.issueStates.set("deftai/directive:3392", "closed");
+    client.issueStates.set("deftai/directive:3393", "closed");
+    client.issueStates.set("deftai/directive:4002", "closed");
+    const [code, outcome] = reconcileUmbrellas(root, {
+      client,
+      now: "2026-08-17T12:00:00Z",
+      repo: "deftai/directive",
+    });
+    expect(code).toBe(0);
+    expect(outcome.changed).toHaveLength(2);
+    expect(outcome.changed.every((c) => c.close_action === "skipped")).toBe(true);
+    expect(client.closedIssues.size).toBe(0);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("is a no-op on re-run after close", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-umbrella-3428-idemp-"));
+    seedXbriefLayout(root);
+    writeSliceRow(root, sliceRow(3377, [3388], "all-children-merged"));
+    const client = new FakeUmbrellaClient();
+    client.issueStates.set("deftai/directive:3377", "open");
+    client.issueStates.set("deftai/directive:3388", "closed");
+    const first = reconcileUmbrellas(root, {
+      client,
+      now: "2026-08-17T12:00:00Z",
+      repo: "deftai/directive",
+    });
+    expect(first[1].changed[0]?.close_action).toBe("closed");
+    const commentCount = client.fetchComments("deftai/directive", 3377).length;
+    const [code, outcome] = reconcileUmbrellas(root, {
+      client,
+      now: "2026-08-17T12:05:00Z",
+      repo: "deftai/directive",
+    });
+    expect(code).toBe(0);
+    expect(outcome.unchanged).toHaveLength(1);
+    expect(outcome.unchanged[0]?.close_action).toBe("unchanged");
+    expect(outcome.changed).toHaveLength(0);
+    expect(client.fetchComments("deftai/directive", 3377)).toHaveLength(commentCount);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("closes a slices row even when an epic xBRIEF already refreshed the umbrella", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-umbrella-3428-overlap-"));
+    seedXbriefLayout(root);
+    writeFileSync(
+      join(root, "xbrief", "active", "epic.xbrief.json"),
+      `${JSON.stringify({
+        plan: {
+          id: "epic-3377",
+          metadata: { kind: "epic", swarm: { depends_on: [] } },
+          references: [
+            {
+              type: "x-vbrief/github-issue",
+              uri: "https://github.com/deftai/directive/issues/3377",
+            },
+            {
+              type: "x-vbrief/github-issue",
+              uri: "https://github.com/deftai/directive/issues/3388",
+            },
+          ],
+        },
+      })}\n`,
+    );
+    writeSliceRow(root, sliceRow(3377, [3388], "all-children-merged"));
+    const client = new FakeUmbrellaClient();
+    client.issueStates.set("deftai/directive:3377", "open");
+    client.issueStates.set("deftai/directive:3388", "closed");
+    const [code, outcome] = reconcileUmbrellas(root, {
+      client,
+      now: "2026-08-17T12:00:00Z",
+      repo: "deftai/directive",
+    });
+    expect(code).toBe(0);
+    expect(outcome.changed).toHaveLength(1);
+    expect(outcome.changed[0]?.story_id).toBe("epic-3377");
+    expect(outcome.changed[0]?.close_action).toBe("closed");
+    expect(client.closedIssues.has("deftai/directive:3377")).toBe(true);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("dry-run reports closed without mutating", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-umbrella-3428-dry-"));
+    seedXbriefLayout(root);
+    writeSliceRow(root, sliceRow(3377, [3388], "all-children-merged"));
+    const client = new FakeUmbrellaClient();
+    client.issueStates.set("deftai/directive:3377", "open");
+    client.issueStates.set("deftai/directive:3388", "closed");
+    const [code, outcome] = reconcileUmbrellas(root, {
+      client,
+      now: "2026-08-17T12:00:00Z",
+      repo: "deftai/directive",
+      dryRun: true,
+    });
+    expect(code).toBe(0);
+    expect(outcome.changed[0]?.close_action).toBe("closed");
+    expect(client.closedIssues.size).toBe(0);
+    expect(client.fetchComments("deftai/directive", 3377)).toHaveLength(0);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("skips a slices umbrella with no repo", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-umbrella-3428-norepo-"));
+    seedXbriefLayout(root);
+    writeSliceRow(root, {
+      ...sliceRow(3377, [3388], "all-children-merged"),
+      umbrella_url: "https://example.com/not-github/3377",
+    });
+    const [code, outcome] = reconcileUmbrellas(root, {
+      client: new FakeUmbrellaClient(),
+      now: "2026-08-17T12:00:00Z",
+    });
+    expect(code).toBe(0);
+    expect(outcome.skipped_no_ref).toContain("slice-umbrella-3377");
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("does not close when a child is still open", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-umbrella-3428-open-"));
+    seedXbriefLayout(root);
+    writeSliceRow(root, sliceRow(3377, [3388, 3389], "all-children-merged"));
+    const client = new FakeUmbrellaClient();
+    client.issueStates.set("deftai/directive:3377", "open");
+    client.issueStates.set("deftai/directive:3388", "closed");
+    client.issueStates.set("deftai/directive:3389", "open");
+    const [code, outcome] = reconcileUmbrellas(root, {
+      client,
+      now: "2026-08-17T12:00:00Z",
+      repo: "deftai/directive",
+    });
+    expect(code).toBe(0);
+    expect(outcome.changed[0]?.close_action).toBe("skipped");
+    expect(outcome.changed[0]?.body).toContain("Child count: 2 (1/1)");
+    expect(client.closedIssues.size).toBe(0);
+    rmSync(root, { recursive: true, force: true });
   });
 });
 

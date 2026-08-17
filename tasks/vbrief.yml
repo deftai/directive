@@ -142,8 +142,9 @@ tasks:
           ENGINE_CMD: 'vbrief-reconcile labels --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   reconcile:umbrellas:
-    # Umbrella current-shape auto-update (#1289). Walks every kind=epic
-    # vBRIEF, resolves its children from its x-vbrief/plan references,
+    # Umbrella current-shape auto-update (#1289 / #3428). Walks every
+    # kind=epic vBRIEF and slices.jsonl umbrellas. Epic children come from
+    # x-vbrief/plan / github-issue refs; slices rows already list children.
     # computes the wave structure from the children's swarm.depends_on[]
     # edges, builds the canonical AGENTS.md section-1152 current-shape body
     # (Last updated / Last pass type / Child count / Child-count history /
