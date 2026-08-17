@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -604,8 +605,57 @@ func TestCoreGuard_ContentAwarePinEmbed(t *testing.T) {
 		}
 	}
 	if coreGuardPinContentPy == "" {
-		t.Fatal("go:embed core_guard_pin_content.py must be non-empty")
+		t.Fatal("go:embed core_guard_pin_content.embed must be non-empty")
 	}
+}
+
+// TestCoreGuard_PinContentMatchesTSTwin pins #3427: Go embed and TS SoT
+// cannot drift. Consumer deposit stays a python3 heredoc; this repo has no .py.
+func TestCoreGuard_PinContentMatchesTSTwin(t *testing.T) {
+	tsPath := filepath.Join("..", "..", "packages", "core", "src", "init-deposit", "core-guard-pin-content.ts")
+	raw, err := os.ReadFile(tsPath)
+	if err != nil {
+		t.Fatalf("read TS pin-content SoT: %v", err)
+	}
+	start := strings.Index(string(raw), "[")
+	end := strings.LastIndex(string(raw), "].join")
+	if start < 0 || end < 0 || end <= start {
+		t.Fatal("core-guard-pin-content.ts missing string-array SoT")
+	}
+	var lines []string
+	for _, line := range strings.Split(string(raw[start:end]), "\n") {
+		trim := strings.TrimSpace(line)
+		trim = strings.TrimSuffix(trim, ",")
+		if len(trim) < 2 {
+			continue
+		}
+		if trim[0] != '"' && trim[0] != '\'' {
+			continue
+		}
+		unquoted, err := strconv.Unquote(toDoubleQuoted(trim))
+		if err != nil {
+			t.Fatalf("unquote TS pin-content line %q: %v", trim, err)
+		}
+		lines = append(lines, unquoted)
+	}
+	got := strings.Join(lines, "\n") + "\n"
+	if got != coreGuardPinContentPy {
+		t.Fatalf("Go embed drifted from TS core-guard-pin-content.ts (%d vs %d bytes)", len(coreGuardPinContentPy), len(got))
+	}
+}
+
+// toDoubleQuoted maps a TS single- or double-quoted string literal to a form
+// strconv.Unquote accepts after biome may rewrite JSON.stringify quotes.
+func toDoubleQuoted(lit string) string {
+	if strings.HasPrefix(lit, "\"") {
+		return lit
+	}
+	if len(lit) < 2 || lit[0] != '\'' || lit[len(lit)-1] != '\'' {
+		return lit
+	}
+	inner := strings.ReplaceAll(lit[1:len(lit)-1], "\\'", "'")
+	inner = strings.ReplaceAll(inner, "\"", "\\\"")
+	return "\"" + inner + "\""
 }
 
 // TestCoreGuard_UpgradeCoTravelPinAndGeneration pins #3127: pin + GENERATION

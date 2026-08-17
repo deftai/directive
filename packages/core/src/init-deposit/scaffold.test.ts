@@ -273,9 +273,10 @@ describe("init-deposit scaffold", () => {
         expect(line.length).toBeLessThanOrEqual(CORE_GUARD_WORKFLOW_MAX_LINE);
       }
       expect(baseIndent).toBe(10);
-      // Column-0 Python body was the #3345 load killer (pre-fix).
-      expect(guard).not.toMatch(/\nimport json, re, subprocess, sys\n/);
-      expect(guard).toContain(`${" ".repeat(10)}import json, re, subprocess, sys`);
+      // Column-0 Python body was the #3345 load killer (pre-fix). Shared
+      // Go/TS embed (#3427) is the pretty script, not the old compact one-liner.
+      expect(guard).not.toMatch(/\nimport json\n/);
+      expect(guard).toContain(`${" ".repeat(10)}import json`);
     });
 
     it("emits allowlist as one ERE per line (not a single joined mega-pattern)", () => {

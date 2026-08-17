@@ -9,3 +9,7 @@
 # into the .syso resource).
 deft-install.manifest text eol=lf
 versioninfo.json text eol=lf
+
+# Pin-content SoT is a python3 heredoc body, not a tracked .py file (#3427).
+# Keep Linguist/CodeQL from classifying this repo as Python.
+core_guard_pin_content.embed linguist-generated=true linguist-language=Text

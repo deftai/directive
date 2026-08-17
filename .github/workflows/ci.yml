@@ -131,7 +131,7 @@ jobs:
     name: Capacity watchdog
     runs-on: ubuntu-latest
     # Isolate from primary-lane cancel thrash: this job never needs: primaries
-    # and is not selected by cancel-queued-ci-primary.py needles.
+    # and is not selected by cancel-queued-ci-primary.mjs needles.
     outputs:
       ts_failover: ${{ steps.poll.outputs.ts_failover }}
       go_failover: ${{ steps.poll.outputs.go_failover }}
@@ -155,9 +155,9 @@ jobs:
 
           while true; do
             jobs_json="$(gh api "repos/${REPO}/actions/runs/${RUN_ID}/jobs?per_page=100")"
-            ts_state="$(python3 .github/scripts/classify-ci-job-state.py "typescript (blacksmith primary)" "$jobs_json")"
-            go_state="$(python3 .github/scripts/classify-ci-job-state.py "go (blacksmith primary)" "$jobs_json")"
-            merge_state="$(python3 .github/scripts/classify-ci-job-state.py "merge gate (blacksmith primary)" "$jobs_json")"
+            ts_state="$(node .github/scripts/classify-ci-job-state.mjs "typescript (blacksmith primary)" "$jobs_json")"
+            go_state="$(node .github/scripts/classify-ci-job-state.mjs "go (blacksmith primary)" "$jobs_json")"
+            merge_state="$(node .github/scripts/classify-ci-job-state.mjs "merge gate (blacksmith primary)" "$jobs_json")"
             echo "state ts=${ts_state} go=${go_state} merge=${merge_state} elapsed=${SECONDS}s"
 
             # #3168: cancelled/skipped without a runner claim = capacity death → arm now.
@@ -211,13 +211,13 @@ jobs:
           if [[ "$ts_failover" == "true" || "$go_failover" == "true" || "$merge_failover" == "true" ]]; then
             jobs_json="$(gh api "repos/${REPO}/actions/runs/${RUN_ID}/jobs?per_page=100")"
             if [[ "$ts_failover" == "true" ]]; then
-              python3 .github/scripts/cancel-queued-ci-primary.py "typescript (blacksmith primary)" "$jobs_json"
+              node .github/scripts/cancel-queued-ci-primary.mjs "typescript (blacksmith primary)" "$jobs_json"
             fi
             if [[ "$go_failover" == "true" ]]; then
-              python3 .github/scripts/cancel-queued-ci-primary.py "go (blacksmith primary)" "$jobs_json"
+              node .github/scripts/cancel-queued-ci-primary.mjs "go (blacksmith primary)" "$jobs_json"
             fi
             if [[ "$merge_failover" == "true" ]]; then
-              python3 .github/scripts/cancel-queued-ci-primary.py "merge gate (blacksmith primary)" "$jobs_json"
+              node .github/scripts/cancel-queued-ci-primary.mjs "merge gate (blacksmith primary)" "$jobs_json"
             fi
           fi
 
@@ -272,9 +272,9 @@ jobs:
           # #3340: re-evaluate every required Blacksmith job. Do not skip while
           # TS, Go, or merge-gate is still unclaimed (same-run rerun included).
           jobs_json="$(gh api "repos/${REPO}/actions/runs/${RUN_ID}/jobs?per_page=100")"
-          ts_state="$(python3 .github/scripts/classify-ci-job-state.py "typescript (blacksmith primary)" "$jobs_json")"
-          go_state="$(python3 .github/scripts/classify-ci-job-state.py "go (blacksmith primary)" "$jobs_json")"
-          merge_state="$(python3 .github/scripts/classify-ci-job-state.py "merge gate (blacksmith primary)" "$jobs_json")"
+          ts_state="$(node .github/scripts/classify-ci-job-state.mjs "typescript (blacksmith primary)" "$jobs_json")"
+          go_state="$(node .github/scripts/classify-ci-job-state.mjs "go (blacksmith primary)" "$jobs_json")"
+          merge_state="$(node .github/scripts/classify-ci-job-state.mjs "merge gate (blacksmith primary)" "$jobs_json")"
           echo "re-eval state ts=${ts_state} go=${go_state} merge=${merge_state}"
 
           if [[ "$ts_state" == "queued" || "$ts_state" == "missing" || "$ts_state" == "cancelled_unclaimed" ]]; then
@@ -288,13 +288,13 @@ jobs:
           fi
 
           if [[ "$ts_failover" == "true" ]]; then
-            python3 .github/scripts/cancel-queued-ci-primary.py "typescript (blacksmith primary)" "$jobs_json"
+            node .github/scripts/cancel-queued-ci-primary.mjs "typescript (blacksmith primary)" "$jobs_json"
           fi
           if [[ "$go_failover" == "true" ]]; then
-            python3 .github/scripts/cancel-queued-ci-primary.py "go (blacksmith primary)" "$jobs_json"
+            node .github/scripts/cancel-queued-ci-primary.mjs "go (blacksmith primary)" "$jobs_json"
           fi
           if [[ "$merge_failover" == "true" ]]; then
-            python3 .github/scripts/cancel-queued-ci-primary.py "merge gate (blacksmith primary)" "$jobs_json"
+            node .github/scripts/cancel-queued-ci-primary.mjs "merge gate (blacksmith primary)" "$jobs_json"
           fi
 
           # Normalize empty → false (use if/then so set -e does not abort on false [[ ]])
@@ -407,7 +407,7 @@ jobs:
           FAILOVER_RESULT: ${{ needs.ts-failover.result }}
           PRIMARY_NEEDLE: "typescript (blacksmith primary)"
           SUITE_LABEL: TypeScript
-        run: python3 .github/scripts/resolve-ci-authoritative-lane.py
+        run: node .github/scripts/resolve-ci-authoritative-lane.mjs
 
   go:
     name: Go (test + build)
@@ -425,7 +425,7 @@ jobs:
           FAILOVER_RESULT: ${{ needs.go-failover.result }}
           PRIMARY_NEEDLE: "go (blacksmith primary)"
           SUITE_LABEL: Go
-        run: python3 .github/scripts/resolve-ci-authoritative-lane.py
+        run: node .github/scripts/resolve-ci-authoritative-lane.mjs
 
   merge-gate:
     name: Merge gate (task check)
@@ -443,7 +443,7 @@ jobs:
           FAILOVER_RESULT: ${{ needs.merge-gate-failover.result }}
           PRIMARY_NEEDLE: "merge gate (blacksmith primary)"
           SUITE_LABEL: Merge-gate
-        run: python3 .github/scripts/resolve-ci-authoritative-lane.py
+        run: node .github/scripts/resolve-ci-authoritative-lane.mjs
 
   windows-task-dispatch:
     # Regression guard for #566 / #2068: task dispatch via absolute Taskfile path
