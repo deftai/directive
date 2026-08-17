@@ -122,8 +122,8 @@ function walkFiles(root: string, dir: string, out: string[], seen = new Set<stri
  * Each `*` / `?` / `[` segment gets an ordinary and a hidden variant so a
  * later hidden segment (for example app/.config.ts) or a class-selected
  * hidden name (frontend/[ab]* -> .app.ts) stays in the digest. Keep **
- * intact, add a recursive hidden-name pattern, and insert a hidden-dir
- * hop so ** can descend into .generated-style directories.
+ * intact and add a recursive hidden-name pattern. Hidden directories
+ * under ** are collected by walking the prefix (readdir includes .dirs).
  */
 function hiddenSegmentVariant(segment: string): string | null {
   if (segment === "**" || segment.startsWith(".")) return null;
@@ -156,10 +156,48 @@ function globPatternsIncludingDotfiles(pattern: string): readonly string[] {
       );
       patterns.add(dottedTail);
     }
-    // Node glob does not descend into .dirs; one hidden-dir hop after **.
-    patterns.add(pattern.replaceAll("**", "**/.*/**"));
   }
   return [...patterns];
+}
+
+/** Match a posix relpath; ** includes hidden directory segments. */
+function globToRegExp(pattern: string): RegExp {
+  let i = 0;
+  let out = "^";
+  while (i < pattern.length) {
+    if (pattern.startsWith("**", i)) {
+      out += ".*";
+      i += 2;
+      if (pattern[i] === "/") i += 1;
+      continue;
+    }
+    const c = pattern[i] as string;
+    if (c === "*") {
+      out += "[^/]*";
+      i += 1;
+      continue;
+    }
+    if (c === "?") {
+      out += "[^/]";
+      i += 1;
+      continue;
+    }
+    if (c === "[") {
+      const end = pattern.indexOf("]", i + 1);
+      if (end === -1) {
+        out += "\\[";
+        i += 1;
+        continue;
+      }
+      out += pattern.slice(i, end + 1);
+      i = end + 1;
+      continue;
+    }
+    if ("\\^$+{}()|.".includes(c)) out += `\\${c}`;
+    else out += c;
+    i += 1;
+  }
+  return new RegExp(`${out}$`);
 }
 
 function fileScopePaths(plan: Record<string, unknown>): string[] {
@@ -197,6 +235,28 @@ function expandPath(root: string, relOrGlob: string): string[] {
           }
           if (st.isFile()) out.push(posix);
           else if (st.isDirectory()) walkFiles(root, absMatch, out);
+        }
+      }
+      if (rel.includes("**")) {
+        const prefix = rel.slice(0, rel.indexOf("**")).replace(/\/$/, "");
+        const startDir = prefix.length === 0 ? root : resolve(root, prefix);
+        if (existsSync(startDir)) {
+          let st: ReturnType<typeof statSync> | null = null;
+          try {
+            st = statSync(startDir);
+          } catch {
+            st = null;
+          }
+          if (st?.isDirectory()) {
+            const walked: string[] = [];
+            walkFiles(root, startDir, walked);
+            const re = globToRegExp(rel);
+            for (const file of walked) {
+              if (seen.has(file) || !re.test(file)) continue;
+              seen.add(file);
+              out.push(file);
+            }
+          }
         }
       }
       return out;
