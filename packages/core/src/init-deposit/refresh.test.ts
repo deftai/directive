@@ -160,6 +160,7 @@ describe("printRefreshSideEffects", () => {
     );
     expect(lines.join("")).toContain("AGENTS.md refresh side effects (#1671)");
     expect(lines.join("")).toContain(".deft/core/VERSION");
+    expect(lines.join("")).not.toContain("no post-stage stragglers");
   });
 
   it("prints only the Windows hint for CRLF-only core noise", () => {
@@ -992,7 +993,12 @@ describe("runRefreshDeposit", () => {
       ready: true,
       live_status: "functional",
     });
-    expect(payload.staged_paths).toEqual(expect.arrayContaining(["Taskfile.yml", ".deft/core"]));
+    expect(payload.staged_paths).toEqual(expect.arrayContaining(["Taskfile.yml"]));
+    expect(
+      (payload.staged_paths as string[]).some(
+        (path) => path === ".deft/core" || path.startsWith(".deft/core/"),
+      ),
+    ).toBe(true);
 
     const porcelain = execFileSync("git", ["status", "--porcelain"], {
       cwd: project,
