@@ -349,7 +349,7 @@ function takeOctalByte(body: string, index: number): { value: number; next: numb
 }
 
 /** Valid UTF-8 stays UTF-8; invalid bytes stay latin1 so the path is not U+FFFD. */
-function decodeOctalPathBytes(bytes: readonly number[]): string {
+function decodeOctalPathBytes(bytes: ArrayLike<number>): string {
   const buf = Buffer.from(bytes);
   const utf8 = buf.toString("utf8");
   if (Buffer.from(utf8, "utf8").equals(buf)) return utf8;
@@ -429,7 +429,7 @@ function dirtyProductFiles(projectRoot: string, runGit: GitRunner): string[] {
       if (renamed && i + 1 < parts.length) {
         i += 1;
       }
-      const rel = toPosix(pathPart);
+      const rel = toPosix(decodeOctalPathBytes(Buffer.from(pathPart, "latin1")));
       if (rel.length === 0 || isExcludedRel(rel)) continue;
       out.push(rel);
     }

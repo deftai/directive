@@ -315,6 +315,35 @@ describe("hashProductState (#3387)", () => {
     expect(second.digest).not.toBe(first.digest);
   });
 
+  it("keeps invalid UTF-8 bytes from successful NUL porcelain so later edits change the digest", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-z-badutf8-"));
+    mkdirSync(join(root, ".git"), { recursive: true });
+    const name = Buffer.from([0x66, 0x66, 0xff, 0x2e, 0x74, 0x73]).toString("latin1");
+    writeFileSync(join(root, name), "v1\n");
+    const plan = { acceptance: { commands: [{ command: "true" }] } };
+    const zed = Buffer.concat([
+      Buffer.from("?? ", "utf8"),
+      Buffer.from([0x66, 0x66, 0xff, 0x2e, 0x74, 0x73]),
+      Buffer.from("\0"),
+    ]).toString("latin1");
+    const runGit = (_cwd: string, args: readonly string[]) => {
+      if (args.includes("rev-parse")) {
+        return { code: 0, stdout: "abc123", stderr: "" };
+      }
+      if (args.includes("-z")) {
+        return { code: 0, stdout: zed, stderr: "" };
+      }
+      return { code: 0, stdout: '?? "ff\\377.ts"', stderr: "" };
+    };
+    const first = hashProductState({ projectRoot: root, plan, runGit });
+    expect(first.complete).toBe(true);
+    expect(first.files).toContain(name);
+    expect(first.files).not.toContain("ff\uFFFD.ts");
+    writeFileSync(join(root, name), "v2\n");
+    const second = hashProductState({ projectRoot: root, plan, runGit });
+    expect(second.digest).not.toBe(first.digest);
+  });
+
   it("keeps invalid UTF-8 octal porcelain bytes so later edits change the digest", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-badutf8-"));
     mkdirSync(join(root, ".git"), { recursive: true });
