@@ -77,6 +77,11 @@ import {
   inspectStalenessTickler,
 } from "./staleness-tickler.js";
 import {
+  FIELD_SYNC_MAX_FILES,
+  FIELD_SYNC_MAX_FILES_CLI_ALIAS,
+  inspectSyncMaxFiles,
+} from "./sync-max-files.js";
+import {
   FIELD_VALUE_FEEDBACK,
   FIELD_VALUE_FEEDBACK_CLI_ALIAS,
   inspectValueFeedback,
@@ -112,6 +117,7 @@ export * from "./require-human-merge.js";
 export * from "./resolve.js";
 export * from "./runtime-authority.js";
 export * from "./staleness-tickler.js";
+export * from "./sync-max-files.js";
 export * from "./value-feedback.js";
 export * from "./value-feedback-autoenable.js";
 export * from "./wip.js";
@@ -584,6 +590,19 @@ function inspectAcPassBankingField(
   };
 }
 
+function inspectSyncMaxFilesField(
+  data: Record<string, unknown> | null,
+  projectRoot?: string,
+): PolicyField {
+  const field = inspectSyncMaxFiles(data, projectRoot);
+  return {
+    name: field.name,
+    current: field.current,
+    default: field.default,
+    source: field.source,
+  };
+}
+
 const REGISTERED_POLICIES: readonly Inspector[] = [
   inspectAllowDirectCommits,
   inspectWipCap,
@@ -633,6 +652,7 @@ const REGISTERED_POLICIES: readonly Inspector[] = [
   inspectHotfixCriteriaField,
   inspectCeremonyDialField,
   inspectAcPassBankingField,
+  inspectSyncMaxFilesField,
 ];
 
 /** Walk registered inspectors and return one row per field (#1148). */
@@ -678,7 +698,9 @@ export function inspectOnePolicy(name: string, projectRoot: string): PolicyField
                                     ? FIELD_CEREMONY_DIAL
                                     : name === FIELD_AC_PASS_BANKING_CLI_ALIAS
                                       ? FIELD_AC_PASS_BANKING
-                                      : name;
+                                      : name === FIELD_SYNC_MAX_FILES_CLI_ALIAS
+                                        ? FIELD_SYNC_MAX_FILES
+                                        : name;
   for (const field of inspectAllPolicies(projectRoot)) {
     if (field.name === normalized) return field;
   }
