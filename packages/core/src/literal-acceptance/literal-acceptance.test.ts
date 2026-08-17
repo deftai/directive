@@ -176,7 +176,7 @@ describe("runLiteralAcceptanceCommands", () => {
   });
 
   it("passes when all commands exit 0", () => {
-    const result = runLiteralAcceptanceCommands([{ command: "true", source: "explicit" }], {
+    const result = runLiteralAcceptanceCommands([{ command: "task check", source: "explicit" }], {
       projectRoot: process.cwd(),
       runner: () => ({ exitCode: 0, stdout: "", stderr: "" }),
     });
@@ -216,7 +216,7 @@ describe("runLiteralAcceptanceCommands", () => {
   it("uses stated cwd relative to project root", () => {
     const root = mkdtempSync(join(tmpdir(), "literal-ac-cwd-"));
     let usedCwd = "";
-    runLiteralAcceptanceCommands([{ command: "true", source: "explicit", cwd: "sub" }], {
+    runLiteralAcceptanceCommands([{ command: "task check", source: "explicit", cwd: "sub" }], {
       projectRoot: root,
       runner: (input) => {
         usedCwd = input.cwd;
@@ -588,7 +588,7 @@ describe("branch coverage boost", () => {
     // Absolute cwd
     const absRoot = mkdtempSync(join(tmpdir(), "literal-ac-abs-"));
     let used = "";
-    runLiteralAcceptanceCommands([{ command: "true", source: "explicit", cwd: absRoot }], {
+    runLiteralAcceptanceCommands([{ command: "task check", source: "explicit", cwd: absRoot }], {
       projectRoot: process.cwd(),
       runner: (input) => {
         used = input.cwd;
@@ -612,11 +612,10 @@ describe("branch coverage boost", () => {
     });
   });
 
-  it("defaultLiteralAcceptanceRunner can execute allowlisted true/false", async () => {
+  it("defaultLiteralAcceptanceRunner can execute an allowlisted version probe", async () => {
     const { defaultLiteralAcceptanceRunner } = await import("./run.js");
-    // Prefer true on POSIX; on Windows use pnpm --version (allowlisted).
     const r = defaultLiteralAcceptanceRunner({
-      command: process.platform === "win32" ? "pnpm --version" : "true",
+      command: "pnpm --version",
       cwd: process.cwd(),
     });
     expect(r.exitCode).toBe(0);

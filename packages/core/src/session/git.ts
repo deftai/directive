@@ -9,27 +9,40 @@ export interface GitRunResult {
 
 export type GitRunner = (projectRoot: string, args: readonly string[]) => GitRunResult;
 
+function coerceGitBytes(value: unknown): Buffer {
+  if (Buffer.isBuffer(value)) return value;
+  if (typeof value === "string") return Buffer.from(value, "utf8");
+  return Buffer.alloc(0);
+}
+
+/** `-z` porcelain is byte-oriented; UTF-8 would turn invalid names into U+FFFD. */
+function gitStdoutString(raw: Buffer, args: readonly string[]): string {
+  if (args.includes("-z")) return raw.toString("latin1");
+  const utf8 = raw.toString("utf8");
+  if (Buffer.from(utf8, "utf8").equals(raw)) return utf8.trimEnd();
+  return raw.toString("latin1").trimEnd();
+}
+
 export const defaultGitRunner: GitRunner = (projectRoot, args) => {
   try {
     const stdout = execFileSync("git", [...args], {
       cwd: projectRoot,
-      encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
     });
-    return { code: 0, stdout: stdout.trimEnd(), stderr: "" };
+    return { code: 0, stdout: gitStdoutString(coerceGitBytes(stdout), args), stderr: "" };
   } catch (err: unknown) {
     const e = err as NodeJS.ErrnoException & {
       status?: number;
-      stdout?: string;
-      stderr?: string;
+      stdout?: string | Buffer;
+      stderr?: string | Buffer;
     };
     if (e.code === "ENOENT") {
       return { code: 127, stdout: "", stderr: "git executable not found on PATH" };
     }
     return {
       code: typeof e.status === "number" ? e.status : 2,
-      stdout: typeof e.stdout === "string" ? e.stdout.trimEnd() : "",
-      stderr: typeof e.stderr === "string" ? e.stderr.trimEnd() : "",
+      stdout: gitStdoutString(coerceGitBytes(e.stdout), args),
+      stderr: coerceGitBytes(e.stderr).toString("utf8").trimEnd(),
     };
   }
 };

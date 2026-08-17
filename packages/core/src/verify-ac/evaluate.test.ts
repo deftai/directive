@@ -697,7 +697,7 @@ describe("verify:ac evaluation applies oracle integrity (#3322)", () => {
         id: "3337-verify-ac-scope-check-ids",
         title: "t",
         acceptance: {
-          commands: [{ command: "true" }],
+          commands: [{ command: "task check" }],
           none_stated: true,
           source_rung: "derived",
         },

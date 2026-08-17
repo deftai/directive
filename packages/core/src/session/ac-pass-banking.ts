@@ -60,6 +60,8 @@ export interface AcPassBankRecord {
   readonly scopeId: string;
   readonly bankedAt: string;
   readonly headSha: string | null;
+  /** Product+acceptance digest; missing/empty is stale for #3387 reuse. */
+  readonly productStateHash?: string | null;
   readonly remainingTurns: number | null;
   readonly remainingBudget: number | null;
   readonly maxTurns: number | null;
@@ -101,6 +103,7 @@ export interface BankAcPassInput {
   readonly surplus: SurplusEvaluation;
   readonly nextAction: Exclude<AcPassNextAction, "still_open">;
   readonly headSha?: string | null;
+  readonly productStateHash?: string | null;
   readonly now?: string;
   readonly environ?: Readonly<Record<string, string | undefined>>;
 }
@@ -429,6 +432,7 @@ export function bankAcPass(input: BankAcPassInput): AcPassBankRecord {
     scopeId: input.scopeId,
     bankedAt,
     headSha: input.headSha ?? null,
+    productStateHash: input.productStateHash ?? prior?.productStateHash ?? null,
     remainingTurns: input.budget.remainingTurns,
     remainingBudget: input.budget.remainingBudget,
     maxTurns: input.budget.maxTurns,
@@ -596,6 +600,7 @@ function recoveredStubRecord(
     // valid primary ledger (#3285 Greptile residual).
     bankedAt: "1970-01-01T00:00:00Z",
     headSha: null,
+    productStateHash: null,
     remainingTurns: null,
     remainingBudget: null,
     maxTurns: null,
@@ -915,6 +920,7 @@ export interface MaybeBankOnAcPassInput {
    */
   readonly executableRuns: number;
   readonly quiet?: boolean;
+  readonly productStateHash?: string | null;
 }
 
 export interface MaybeBankOnAcPassResult {
@@ -950,6 +956,7 @@ export function maybeBankOnAcPass(input: MaybeBankOnAcPassInput): MaybeBankOnAcP
     surplus: decision.surplus,
     nextAction,
     headSha: input.headSha ?? null,
+    productStateHash: input.productStateHash ?? null,
     now: input.now,
     environ: input.environ,
   });

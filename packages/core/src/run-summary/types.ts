@@ -130,7 +130,8 @@ export type AcceptanceRunSummaryOutcome =
   | "soft_empty"
   | "fail"
   | "config-error"
-  | "soft-missing";
+  | "soft-missing"
+  | "rejected-noop";
 
 export interface AcceptanceRunSummaryPayload {
   readonly resolved_command_count: number;
@@ -139,6 +140,8 @@ export interface AcceptanceRunSummaryPayload {
   readonly none_stated?: boolean;
   readonly clause_count?: number;
   readonly clause_outcomes?: readonly AcceptanceClauseOutcomeRow[];
+  /** bank | cache | executed — how verify:ac obtained this result (#3387). */
+  readonly served_from?: "bank" | "cache" | "executed";
 }
 
 /** Intake-time stamp: which rung locked, whether commands were stated, counts (#3323). */

@@ -11,6 +11,8 @@ import {
 import { fetchIssueStates, IssueState } from "../intake/reconcile-issues.js";
 import { hasArtifactSuffix, resolveLifecycleRoot, stripArtifactSuffix } from "../layout/resolve.js";
 import { call } from "../scm/call.js";
+import { restCloseIssue } from "../scm/gh-rest.js";
+import { readAll } from "../slice/record.js";
 import { extractIssueRef, parseGithubIssueUri } from "../triage/reconcile/parse-uri.js";
 import { isRepoMutationAllowed } from "./repo-guard.js";
 import type {
@@ -363,37 +365,47 @@ function hasCurrentShape(body: string): boolean {
   return HEADER_RE.test(body);
 }
 
+function parseCommentPage(data: unknown): Array<{ id: number; body: string }> {
+  if (!Array.isArray(data)) return [];
+  const comments: Array<{ id: number; body: string }> = [];
+  for (const entry of data) {
+    if (
+      typeof entry === "object" &&
+      entry !== null &&
+      !Array.isArray(entry) &&
+      typeof (entry as Record<string, unknown>).id === "number" &&
+      typeof (entry as Record<string, unknown>).body === "string"
+    ) {
+      const rec = entry as Record<string, unknown>;
+      comments.push({ id: rec.id as number, body: rec.body as string });
+    }
+  }
+  return comments;
+}
+
 export class ScmUmbrellaClient implements UmbrellaClient {
   fetchComments(repo: string, issueNumber: number): Array<{ id: number; body: string }> {
-    const proc = call(SCM_SOURCE, "api", [
-      `repos/${repo}/issues/${issueNumber}/comments?per_page=100`,
-    ]);
-    if (proc.returncode !== 0) {
-      throw new UmbrellaScmError(
-        `list comments #${issueNumber} (${repo}) failed: ${(proc.stderr || "").trim()}`,
-      );
-    }
-    let data: unknown;
-    try {
-      data = JSON.parse(proc.stdout || "[]");
-    } catch (exc) {
-      throw new UmbrellaScmError(
-        `list comments #${issueNumber} (${repo}) returned non-JSON: ${String(exc)}`,
-      );
-    }
-    if (!Array.isArray(data)) return [];
     const comments: Array<{ id: number; body: string }> = [];
-    for (const entry of data) {
-      if (
-        typeof entry === "object" &&
-        entry !== null &&
-        !Array.isArray(entry) &&
-        typeof (entry as Record<string, unknown>).id === "number" &&
-        typeof (entry as Record<string, unknown>).body === "string"
-      ) {
-        const rec = entry as Record<string, unknown>;
-        comments.push({ id: rec.id as number, body: rec.body as string });
+    for (let page = 1; page <= 50; page += 1) {
+      const proc = call(SCM_SOURCE, "api", [
+        `repos/${repo}/issues/${issueNumber}/comments?per_page=100&page=${page}`,
+      ]);
+      if (proc.returncode !== 0) {
+        throw new UmbrellaScmError(
+          `list comments #${issueNumber} (${repo}) failed: ${(proc.stderr || "").trim()}`,
+        );
       }
+      let data: unknown;
+      try {
+        data = JSON.parse(proc.stdout || "[]");
+      } catch (exc) {
+        throw new UmbrellaScmError(
+          `list comments #${issueNumber} (${repo}) returned non-JSON: ${String(exc)}`,
+        );
+      }
+      const batch = parseCommentPage(data);
+      comments.push(...batch);
+      if (batch.length < 100) break;
     }
     return comments;
   }
@@ -452,6 +464,15 @@ export class ScmUmbrellaClient implements UmbrellaClient {
     } catch (exc) {
       const message = exc instanceof GitHubBodyError ? exc.message : String(exc);
       throw new UmbrellaScmError(`edit issue body #${issueNumber} (${repo}) failed: ${message}`);
+    }
+  }
+
+  closeIssue(repo: string, issueNumber: number): void {
+    try {
+      restCloseIssue(repo, issueNumber, "completed");
+    } catch (exc) {
+      const message = exc instanceof Error ? exc.message : String(exc);
+      throw new UmbrellaScmError(`close issue #${issueNumber} (${repo}) failed: ${message}`);
     }
   }
 }
@@ -652,6 +673,172 @@ export function nowIso(date: Date = new Date()): string {
   return date.toISOString().replace(/\.\d{3}Z$/, "Z");
 }
 
+const ALL_CHILDREN_MERGED = "all-children-merged";
+
+/** Children listed on a slices.jsonl row (#3428). Last write of a duplicate `n` wins. */
+export function childrenFromSliceRecord(record: Record<string, unknown>): Child[] {
+  const raw = record.children;
+  if (!Array.isArray(raw)) return [];
+  const byNumber = new Map<number, Child>();
+  for (const entry of raw) {
+    if (typeof entry !== "object" || entry === null || Array.isArray(entry)) continue;
+    const rec = entry as Record<string, unknown>;
+    const n = rec.n;
+    if (typeof n !== "number" || !Number.isInteger(n) || n < 1) continue;
+    byNumber.set(n, {
+      story_id: `#${n}`,
+      title: `#${n}`,
+      kind: "story",
+      folder: UNKNOWN_FOLDER,
+      depends_on: [],
+      issue_number: n,
+    });
+  }
+  return [...byNumber.values()];
+}
+
+/**
+ * Close only when the slice signal is all-children-merged, the umbrella is
+ * still open, and every child has forge state closed (#3428).
+ */
+export function shouldCloseOnAllChildrenMerged(options: {
+  readonly signal: unknown;
+  readonly children: readonly Child[];
+  readonly forgeStates: ReadonlyMap<number, ForgeIssueState> | null | undefined;
+  readonly umbrellaState: ForgeIssueState | null | undefined;
+}): boolean {
+  if (options.signal !== ALL_CHILDREN_MERGED) return false;
+  if (options.umbrellaState !== "open") return false;
+  if (options.children.length === 0) return false;
+  if (options.forgeStates == null) return false;
+  return options.children.every(
+    (c) =>
+      typeof c.issue_number === "number" && options.forgeStates?.get(c.issue_number) === "closed",
+  );
+}
+
+export function formatCloseComment(signal: string, children: readonly Child[]): string {
+  const nums = children
+    .map((c) => c.issue_number)
+    .filter((n): n is number => typeof n === "number")
+    .sort((a, b) => a - b)
+    .map((n) => `#${n}`);
+  return `expected_close_signal=${signal}; children: ${nums.join(", ")}`;
+}
+
+function loadLatestSliceRecords(vbriefDir: string): Record<string, unknown>[] {
+  const logPath = join(vbriefDir, ".triage-cache", "slices.jsonl");
+  if (!existsSync(logPath)) return [];
+  const latest = new Map<string, Record<string, unknown>>();
+  for (const rec of readAll({ path: logPath })) {
+    const n = rec.umbrella;
+    if (typeof n !== "number" || !Number.isInteger(n) || n < 1) continue;
+    const [urlRepo] = parseGithubIssueUri(rec.umbrella_url);
+    latest.set(`${urlRepo ?? ""}:${n}`, rec);
+  }
+  return [...latest.values()];
+}
+
+function epicDataFromSlice(
+  repo: string,
+  number: number,
+  children: readonly Child[],
+): Record<string, unknown> {
+  const refs = [
+    { type: "x-xbrief/github-issue", uri: `https://github.com/${repo}/issues/${number}` },
+    ...children.map((c) => ({
+      type: "x-xbrief/github-issue",
+      uri: `https://github.com/${repo}/issues/${c.issue_number}`,
+      title: c.title,
+    })),
+  ];
+  return {
+    plan: {
+      id: `slice-umbrella-${number}`,
+      metadata: { kind: "epic" },
+      references: refs,
+    },
+  };
+}
+
+function maybeCloseSliceUmbrella(options: {
+  readonly signal: unknown;
+  readonly children: readonly Child[];
+  readonly repo: string;
+  readonly number: number;
+  readonly client: UmbrellaClient;
+  readonly dryRun: boolean;
+  readonly projectRoot: string;
+  readonly allowCrossRepo: boolean;
+  readonly repoAllowlist?: readonly string[];
+  readonly explicitRepo?: string | null;
+}): "closed" | "unchanged" | "skipped" {
+  if (typeof options.client.closeIssue !== "function") return "skipped";
+  if (typeof options.client.fetchIssueStates !== "function") return "skipped";
+  const mutateGate = isRepoMutationAllowed(options.repo, options.projectRoot, {
+    allowCrossRepo: options.allowCrossRepo,
+    allowlist: options.repoAllowlist,
+    explicitRepo: options.explicitRepo ?? null,
+  });
+  if (!mutateGate.allowed) {
+    throw new Error(mutateGate.reason ?? `refusing cross-repo mutation on ${options.repo}`);
+  }
+  const childNumbers = options.children
+    .map((c) => c.issue_number)
+    .filter((n): n is number => typeof n === "number");
+  const states = options.client.fetchIssueStates(options.repo, [...childNumbers, options.number]);
+  const umbrellaState = states.get(options.number) ?? null;
+  if (
+    !shouldCloseOnAllChildrenMerged({
+      signal: options.signal,
+      children: options.children,
+      forgeStates: states,
+      umbrellaState,
+    })
+  ) {
+    return options.signal === ALL_CHILDREN_MERGED && umbrellaState === "closed"
+      ? "unchanged"
+      : "skipped";
+  }
+  const closeBody = formatCloseComment(ALL_CHILDREN_MERGED, options.children);
+  if (!options.dryRun) {
+    const alreadyCommented = options.client
+      .fetchComments(options.repo, options.number)
+      .some((c) => c.body.trim() === closeBody);
+    if (!alreadyCommented) {
+      options.client.createComment(options.repo, options.number, closeBody);
+    }
+    options.client.closeIssue(options.repo, options.number);
+  }
+  return "closed";
+}
+
+function pushUmbrellaChange(outcome: ReconcileUmbrellasOutcome, change: UmbrellaChange): void {
+  if (change.action === "unchanged" && change.close_action !== "closed") {
+    outcome.unchanged.push(change);
+  } else {
+    outcome.changed.push(change);
+  }
+}
+
+function replaceCloseAction(
+  outcome: ReconcileUmbrellasOutcome,
+  repo: string,
+  issueNumber: number,
+  closeAction: UmbrellaChange["close_action"],
+): void {
+  const match = (c: UmbrellaChange) => c.repo === repo && c.issue_number === issueNumber;
+  for (const list of [outcome.changed, outcome.unchanged]) {
+    const idx = list.findIndex(match);
+    if (idx < 0) continue;
+    const prev = list[idx];
+    if (prev === undefined) return;
+    list.splice(idx, 1);
+    pushUmbrellaChange(outcome, { ...prev, close_action: closeAction });
+    return;
+  }
+}
+
 export interface ReconcileUmbrellasOptions {
   readonly repo?: string | null;
   readonly dryRun?: boolean;
@@ -736,7 +923,6 @@ export function reconcileUmbrellas(
       }
       const key = `${effectiveRepo}:${number}`;
       if (seenIssues.has(key)) continue;
-      seenIssues.add(key);
 
       try {
         const change = reconcileOneEpic(data, index, {
@@ -751,6 +937,7 @@ export function reconcileUmbrellas(
           repoAllowlist: options.repoAllowlist,
           explicitRepo: options.repo ?? null,
         });
+        seenIssues.add(key);
         if (change.action === "unchanged") outcome.unchanged.push(change);
         else outcome.changed.push(change);
       } catch (exc) {
@@ -762,12 +949,81 @@ export function reconcileUmbrellas(
     }
   }
 
+  // slices.jsonl umbrellas have no epic xBRIEF (#3428). Last row per umbrella wins.
+  for (const record of loadLatestSliceRecords(vbriefDir)) {
+    const number = record.umbrella;
+    if (typeof number !== "number") continue;
+    const [urlRepo] = parseGithubIssueUri(record.umbrella_url);
+    const effectiveRepo = urlRepo ?? options.repo ?? null;
+    if (effectiveRepo === null) {
+      outcome.skipped_no_ref.push(`slice-umbrella-${number}`);
+      continue;
+    }
+    const key = `${effectiveRepo}:${number}`;
+    const children = childrenFromSliceRecord(record);
+    const storyId = `slice-umbrella-${number}`;
+    try {
+      if (seenIssues.has(key)) {
+        const closeAction = maybeCloseSliceUmbrella({
+          signal: record.expected_close_signal,
+          children,
+          repo: effectiveRepo,
+          number,
+          client,
+          dryRun: options.dryRun ?? false,
+          projectRoot: root,
+          allowCrossRepo: options.allowCrossRepo ?? false,
+          repoAllowlist: options.repoAllowlist,
+          explicitRepo: options.repo ?? null,
+        });
+        replaceCloseAction(outcome, effectiveRepo, number, closeAction);
+        continue;
+      }
+      const change = reconcileOneEpic(epicDataFromSlice(effectiveRepo, number, children), index, {
+        storyId,
+        repo: effectiveRepo,
+        number,
+        client,
+        dryRun: options.dryRun ?? false,
+        now,
+        projectRoot: root,
+        allowCrossRepo: options.allowCrossRepo ?? false,
+        repoAllowlist: options.repoAllowlist,
+        explicitRepo: options.repo ?? null,
+      });
+      seenIssues.add(key);
+      const closeAction = maybeCloseSliceUmbrella({
+        signal: record.expected_close_signal,
+        children,
+        repo: effectiveRepo,
+        number,
+        client,
+        dryRun: options.dryRun ?? false,
+        projectRoot: root,
+        allowCrossRepo: options.allowCrossRepo ?? false,
+        repoAllowlist: options.repoAllowlist,
+        explicitRepo: options.repo ?? null,
+      });
+      pushUmbrellaChange(outcome, { ...change, close_action: closeAction });
+    } catch (exc) {
+      outcome.errors.push({
+        story_id: storyId,
+        message: exc instanceof Error ? exc.message : String(exc),
+      });
+    }
+  }
+
   return [outcome.errors.length > 0 ? 1 : 0, outcome];
 }
 
 function formatChecklistSuffix(action: UmbrellaChange["checklist_action"]): string {
   if (action === undefined || action === "skipped") return "";
   return `; checklist=${action}`;
+}
+
+function formatCloseSuffix(action: UmbrellaChange["close_action"]): string {
+  if (action === undefined || action === "skipped") return "";
+  return `; close=${action}`;
 }
 
 export function renderUmbrellasReport(outcome: ReconcileUmbrellasOutcome): string {
@@ -779,7 +1035,8 @@ export function renderUmbrellasReport(outcome: ReconcileUmbrellasOutcome): strin
     for (const c of outcome.changed) {
       lines.push(
         `- #${c.issue_number} (${c.repo}) [${c.story_id}]: ${c.action} -> pass-${c.pass_n}` +
-          formatChecklistSuffix(c.checklist_action),
+          formatChecklistSuffix(c.checklist_action) +
+          formatCloseSuffix(c.close_action),
       );
     }
   } else {
@@ -792,7 +1049,8 @@ export function renderUmbrellasReport(outcome: ReconcileUmbrellasOutcome): strin
     for (const c of outcome.unchanged) {
       lines.push(
         `- #${c.issue_number} (${c.repo}) [${c.story_id}]: pass-${c.pass_n}` +
-          formatChecklistSuffix(c.checklist_action),
+          formatChecklistSuffix(c.checklist_action) +
+          formatCloseSuffix(c.close_action),
       );
     }
   } else {
@@ -824,6 +1082,7 @@ export function umbrellasOutcomeToJson(
     action: c.action,
     pass_n: c.pass_n,
     checklist_action: c.checklist_action ?? "skipped",
+    close_action: c.close_action ?? "skipped",
   });
   return {
     changed: outcome.changed.map(toChange),

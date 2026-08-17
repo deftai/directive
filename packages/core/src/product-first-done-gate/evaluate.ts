@@ -14,6 +14,7 @@ import { emitAcceptanceStampFromPlan } from "../intake/clause-derivation.js";
 import {
   type EvaluateLiteralAcceptanceOptions,
   evaluateLiteralAcceptanceFromPlan,
+  isNoopRefusalReason,
   type LiteralAcceptanceGateResult,
   type LiteralAcceptanceRunner,
   runLiteralAcceptanceCommands,
@@ -24,6 +25,17 @@ import {
   RunSummaryEmitter,
 } from "../run-summary/index.js";
 import { maybeBankOnAcPass } from "../session/ac-pass-banking.js";
+import {
+  resolveAcReuse,
+  resolveScopeIdForAcReuse,
+  snapshotFromReuseFields,
+} from "../session/ac-pass-reuse.js";
+import { hashProductState } from "../session/product-state-hash.js";
+import {
+  type AcServedFrom,
+  resolveVerifyAcSessionId,
+  writeVerifyAcSessionCache,
+} from "../session/verify-ac-session-cache.js";
 import {
   type ClauseWalkResult,
   formatClauseWalkMessage,
@@ -51,6 +63,8 @@ export interface VerifyAcResult extends LiteralAcceptanceGateResult {
   readonly resolvedCommandCount: number;
   readonly clauseOutcomes?: readonly ClauseWalkResult[];
   readonly clauseWalked?: boolean;
+  /** How the result was obtained (#3387). */
+  readonly servedFrom?: AcServedFrom;
 }
 
 export interface EvaluateVerifyAcOptions extends EvaluateLiteralAcceptanceOptions {
@@ -106,6 +120,15 @@ export interface EvaluateVerifyAcOptions extends EvaluateLiteralAcceptanceOption
    * under one session must not share a single global `verify:ac` check id.
    */
   readonly oracleScopeKey?: string | null;
+  /**
+   * Reuse a matching #3285 bank / same-session cache (#3387).
+   * - auto (default): cache then bank
+   * - bank: complete walk — bank only
+   * - never: always execute
+   */
+  readonly reuseMode?: "auto" | "bank" | "never";
+  readonly sessionId?: string | null;
+  readonly productPaths?: readonly string[];
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -113,6 +136,116 @@ function asRecord(value: unknown): Record<string, unknown> | null {
     return value as Record<string, unknown>;
   }
   return null;
+}
+
+function tryReuseVerifyAc(
+  plan: Record<string, unknown>,
+  acceptance: PlanAcceptance,
+  options: EvaluateVerifyAcOptions,
+  projectRoot: string,
+): VerifyAcResult | null {
+  const mode = options.reuseMode ?? "auto";
+  if (mode === "never") return null;
+  const reuse = resolveAcReuse({
+    projectRoot,
+    plan,
+    scopeId: options.bankScopeId,
+    sessionId: options.sessionId,
+    env: options.env,
+    productPaths: options.productPaths,
+    allowCache: mode === "auto",
+    allowBank: true,
+  });
+  if (reuse.kind === "miss") return null;
+
+  if (reuse.kind === "cache") {
+    const snap = reuse.cache.snapshot;
+    const cachedAcceptance = readPlanAcceptance({ acceptance: snap.acceptance });
+    return {
+      ok: snap.ok,
+      code: snap.code,
+      message: options.quiet
+        ? ""
+        : snap.message.includes("served_from=")
+          ? snap.message
+          : `${snap.message} served_from=cache`,
+      commands: snap.commands as VerifyAcResult["commands"],
+      runs: snap.runs as VerifyAcResult["runs"],
+      rejected: snap.rejected as VerifyAcResult["rejected"],
+      sourceRung: acceptance.source_rung,
+      noneStated: acceptance.none_stated,
+      acceptance: cachedAcceptance.commands.length > 0 ? cachedAcceptance : acceptance,
+      resolution: "verified-pass",
+      resolvedCommandCount: snap.resolvedCommandCount,
+      servedFrom: "cache",
+    };
+  }
+
+  const commandCount = acceptance.commands.length;
+  if (commandCount === 0) return null;
+  return {
+    ok: true,
+    code: 0,
+    message: options.quiet
+      ? ""
+      : `verify:ac passed (#3284) served_from=bank [rung=${acceptance.source_rung}]`,
+    commands: acceptance.commands.map((c) => ({
+      command: c.command,
+      cwd: c.cwd ?? null,
+      expectedStdout: c.expectedStdout ?? null,
+      expectedExitCode: c.expectedExitCode ?? 0,
+      source: "explicit" as const,
+      sourceSpan: "plan.acceptance.commands",
+    })),
+    runs: [],
+    sourceRung: acceptance.source_rung,
+    noneStated: acceptance.none_stated,
+    acceptance,
+    resolution: "verified-pass",
+    resolvedCommandCount: commandCount,
+    servedFrom: "bank",
+  };
+}
+
+function persistVerifyAcSessionCache(
+  result: VerifyAcResult,
+  options: EvaluateVerifyAcOptions,
+  projectRoot: string,
+  plan: Record<string, unknown>,
+): void {
+  if (!result.ok || result.resolution !== "verified-pass") return;
+  const sessionId = resolveVerifyAcSessionId(options.env, options.sessionId);
+  const resolvedScope = resolveScopeIdForAcReuse(plan, options.bankScopeId);
+  if (sessionId === null || resolvedScope === null) return;
+  const hashed = hashProductState({
+    projectRoot,
+    plan,
+    productPaths: options.productPaths,
+  });
+  if (!hashed.complete) return;
+  try {
+    writeVerifyAcSessionCache({
+      projectRoot,
+      sessionId,
+      scopeId: resolvedScope,
+      productStateHash: hashed.digest,
+      snapshot: snapshotFromReuseFields({
+        ok: result.ok,
+        code: result.code === 2 ? 2 : result.code === 1 ? 1 : 0,
+        message: result.message,
+        commands: result.commands,
+        runs: result.runs,
+        rejected: result.rejected,
+        sourceRung: result.sourceRung,
+        noneStated: result.noneStated,
+        acceptance: result.acceptance,
+        resolution: result.resolution,
+        resolvedCommandCount: result.resolvedCommandCount,
+      }),
+    });
+  } catch {
+    // fail-open: missing cache must not fail a green run
+  }
 }
 
 /**
@@ -126,6 +259,7 @@ export function evaluateVerifyAcFromPlan(
   const optionsWithScope: EvaluateVerifyAcOptions = {
     ...options,
     oracleScopeKey: options.oracleScopeKey?.trim() || planId || null,
+    bankScopeId: options.bankScopeId?.trim() || planId || options.bankScopeId,
     observedAcceptance:
       options.observedAcceptance !== undefined ? options.observedAcceptance : plan.acceptance,
   };
@@ -133,24 +267,33 @@ export function evaluateVerifyAcFromPlan(
   const schemaErrors = validatePlanAcceptance(plan.acceptance ?? acceptance);
   // Only hard-fail schema when an explicit plan.acceptance object exists.
   if (plan.acceptance !== undefined && schemaErrors.length > 0) {
+    const noop = schemaErrors.some((error) => isNoopRefusalReason(error));
     return applyOracle(
       {
         ok: false,
-        code: 2,
-        message: `verify:ac config error (#3284): ${schemaErrors.join("; ")}`,
+        code: noop ? 1 : 2,
+        message: noop
+          ? `verify:ac rejected-noop (#3396): ${schemaErrors.join("; ")}`
+          : `verify:ac config error (#3284): ${schemaErrors.join("; ")}`,
         commands: [],
         runs: [],
         sourceRung: acceptance.source_rung,
         noneStated: acceptance.none_stated,
         acceptance,
-        resolution: "config",
+        resolution: noop ? "rejected-noop" : "config",
         resolvedCommandCount: 0,
       },
       optionsWithScope,
+      plan,
     );
   }
 
   const projectRoot = resolve(optionsWithScope.projectRoot ?? process.cwd());
+
+  const reused = tryReuseVerifyAc(plan, acceptance, optionsWithScope, projectRoot);
+  if (reused !== null) {
+    return applyOracle(reused, optionsWithScope, plan);
+  }
 
   // Prefer shared literal-acceptance path so safety / promotion rules stay one place.
   // Empty plan.acceptance.commands still consults the #3267 rejected ledger
@@ -193,7 +336,11 @@ export function evaluateVerifyAcFromPlan(
         allowTaskStatement: optionsWithScope.allowTaskStatement,
       },
     );
-    return applyOracle(annotate(direct, acceptance, optionsWithScope.quiet), optionsWithScope);
+    return applyOracle(
+      annotate(direct, acceptance, optionsWithScope.quiet),
+      optionsWithScope,
+      plan,
+    );
   }
 
   // Check composition: mid-story unpromoted capture-only may soft-pass so the
@@ -203,7 +350,11 @@ export function evaluateVerifyAcFromPlan(
   if (optionsWithScope.checkIntegrated === true && !base.ok && base.runs.length === 0) {
     const hasRejected = (base.rejected?.length ?? 0) > 0;
     if (hasRejected) {
-      return applyOracle(annotate(base, acceptance, optionsWithScope.quiet), optionsWithScope);
+      return applyOracle(
+        annotate(base, acceptance, optionsWithScope.quiet),
+        optionsWithScope,
+        plan,
+      );
     }
     const unpromoted =
       /capture-only|task_statement|no matching agent-promoted/i.test(base.message) ||
@@ -235,11 +386,12 @@ export function evaluateVerifyAcFromPlan(
           resolvedCommandCount: base.commands.length,
         },
         optionsWithScope,
+        plan,
       );
     }
   }
 
-  return applyOracle(annotate(base, acceptance, optionsWithScope.quiet), optionsWithScope);
+  return applyOracle(annotate(base, acceptance, optionsWithScope.quiet), optionsWithScope, plan);
 }
 
 function classifyResolution(input: {
@@ -309,6 +461,7 @@ function acceptanceOutcomeOf(result: VerifyAcResult): AcceptanceRunSummaryOutcom
   if (result.resolution === "soft_empty") return "soft_empty";
   if (result.resolution === "fail") return "fail";
   if (result.resolution === "config") return "config-error";
+  if (result.resolution === "rejected-noop") return "rejected-noop";
   return "soft-missing";
 }
 
@@ -353,6 +506,7 @@ function emitAcceptanceOutcome(
         id: row.id,
         outcome: row.outcome,
       })),
+      served_from: result.servedFrom ?? "executed",
     });
   } catch {
     // fail-open
@@ -382,8 +536,16 @@ export function emitVerifyAcTerminalOutcome(input: {
 }): void {
   emitAcceptanceOutcome(
     {
-      ok: input.outcome !== "config-error" && input.outcome !== "fail",
-      code: input.outcome === "config-error" ? 2 : input.outcome === "fail" ? 1 : 0,
+      ok:
+        input.outcome !== "config-error" &&
+        input.outcome !== "fail" &&
+        input.outcome !== "rejected-noop",
+      code:
+        input.outcome === "config-error"
+          ? 2
+          : input.outcome === "fail" || input.outcome === "rejected-noop"
+            ? 1
+            : 0,
       message: "",
       commands: [],
       runs: [],
@@ -401,11 +563,13 @@ export function emitVerifyAcTerminalOutcome(input: {
             ? "skipped"
             : input.outcome === "fail"
               ? "fail"
-              : input.outcome === "soft_empty"
-                ? "soft_empty"
-                : input.outcome === "verified-pass"
-                  ? "verified-pass"
-                  : "empty-pass",
+              : input.outcome === "rejected-noop"
+                ? "rejected-noop"
+                : input.outcome === "soft_empty"
+                  ? "soft_empty"
+                  : input.outcome === "verified-pass"
+                    ? "verified-pass"
+                    : "empty-pass",
       resolvedCommandCount: 0,
     },
     { projectRoot: input.projectRoot, env: input.env },
@@ -437,9 +601,33 @@ function applyClauseWalk(result: VerifyAcResult, options: EvaluateVerifyAcOption
   };
 }
 
-function applyOracle(result: VerifyAcResult, options: EvaluateVerifyAcOptions): VerifyAcResult {
+function applyRejectedNoop(result: VerifyAcResult): VerifyAcResult {
+  if (result.resolution === "rejected-noop") {
+    return result;
+  }
+  const rejected = result.rejected ?? [];
+  const fromLedger = rejected.some((row) => isNoopRefusalReason(row.reason));
+  const fromRuns = result.runs.some(
+    (row) => !row.ok && isNoopRefusalReason(row.detail.replace(/^refused:\s*/i, "")),
+  );
+  if (!fromLedger && !fromRuns && !isNoopRefusalReason(result.message)) {
+    return result;
+  }
+  return {
+    ...result,
+    ok: false,
+    code: result.code === 2 ? 2 : 1,
+    resolution: "rejected-noop",
+  };
+}
+
+function applyOracle(
+  result: VerifyAcResult,
+  options: EvaluateVerifyAcOptions,
+  plan: Record<string, unknown> = {},
+): VerifyAcResult {
   const projectRoot = resolve(options.projectRoot ?? process.cwd());
-  const walked = applyClauseWalk(result, options);
+  const walked = applyClauseWalk(applyRejectedNoop(result), options);
   const gated = walked.clauseWalked === true ? walked : applyEmptyFloorPolicy(walked, options);
   // Emit/read disk only when the caller supplied env (CLI passes process.env).
   // Tests stay isolated unless they opt in with env or runSummaryText.
@@ -459,14 +647,24 @@ function applyOracle(result: VerifyAcResult, options: EvaluateVerifyAcOptions): 
       env: options.env,
     });
     next = mergeOracleVerdict(gated, verdict);
-    if (!verdict.ok && next.resolution !== "soft_empty" && next.resolution !== "config") {
+    if (
+      !verdict.ok &&
+      next.resolution !== "soft_empty" &&
+      next.resolution !== "config" &&
+      next.resolution !== "rejected-noop"
+    ) {
       next = { ...next, resolution: "fail" };
     }
   }
+  const stamped: VerifyAcResult = {
+    ...next,
+    servedFrom: next.servedFrom ?? "executed",
+  };
+  persistVerifyAcSessionCache(stamped, options, projectRoot, plan);
   if (options.skipAcceptanceEmit !== true) {
-    emitAcceptanceTelemetry(next, options, projectRoot);
+    emitAcceptanceTelemetry(stamped, options, projectRoot);
   }
-  return next;
+  return stamped;
 }
 
 function annotate(
@@ -505,6 +703,7 @@ function annotate(
       rejectedCount: result.rejected?.length ?? 0,
     }),
     resolvedCommandCount: result.runs.length > 0 ? result.runs.length : commandCount,
+    servedFrom: "executed",
   };
 }
 
@@ -606,11 +805,17 @@ function maybeAttachAcPassBank(
       .replace(/\.xbrief\.json$/i, "")
       .replace(/\.vbrief\.json$/i, "");
   try {
+    const hashed = hashProductState({
+      projectRoot,
+      plan,
+      productPaths: options.productPaths,
+    });
     const banked = maybeBankOnAcPass({
       projectRoot,
       scopeId,
       executableRuns: result.runs.length,
       quiet: options.quiet,
+      productStateHash: hashed.complete ? hashed.digest : null,
     });
     if (options.quiet || banked.notes.length === 0) {
       return result;

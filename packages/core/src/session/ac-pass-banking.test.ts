@@ -352,6 +352,7 @@ describe("re-bank preserves findings + production bridge (#3285)", () => {
       projectRoot: root,
       scopeId: "with-runs",
       executableRuns: 2,
+      productStateHash: "digest-3387",
       environ: {
         [ENV_MAX_TURNS]: "100",
         [ENV_REMAINING_TURNS]: "50",
@@ -360,6 +361,7 @@ describe("re-bank preserves findings + production bridge (#3285)", () => {
     });
     expect(banked.banked).toBe(true);
     expect(banked.bank?.scopeId).toBe("with-runs");
+    expect(banked.bank?.productStateHash).toBe("digest-3387");
     expect(banked.notes.some((n) => n.includes("banked scope="))).toBe(true);
   });
 

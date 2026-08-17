@@ -109,6 +109,12 @@ export interface UmbrellaChange {
    * `unchanged` when already correct, `skipped` when body APIs unavailable.
    */
   readonly checklist_action?: "edited" | "unchanged" | "skipped";
+  /**
+   * slices.jsonl expected_close_signal close (#3428): `closed` when the
+   * umbrella was closed this run, `unchanged` when already closed under
+   * all-children-merged, `skipped` when the signal is not a close.
+   */
+  readonly close_action?: "closed" | "unchanged" | "skipped";
 }
 
 export interface ReconcileUmbrellasOutcome {
@@ -140,4 +146,6 @@ export interface UmbrellaClient {
   fetchIssueBody?(repo: string, issueNumber: number): string;
   /** Optional: write reconciled checklist body (#1649). */
   editIssueBody?(repo: string, issueNumber: number, body: string): void;
+  /** Optional: close an umbrella via REST (#3428). */
+  closeIssue?(repo: string, issueNumber: number): void;
 }

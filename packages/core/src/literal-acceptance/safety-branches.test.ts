@@ -94,9 +94,9 @@ describe("evaluateCommandSafety branch matrix (#3287)", () => {
     expect(evaluateCommandSafety("vitest related foo").ok).toBe(false);
   });
 
-  it("allows bare true/false and classifies executable sources", () => {
-    expect(evaluateCommandSafety("true").ok).toBe(true);
-    expect(evaluateCommandSafety("false").ok).toBe(true);
+  it("refuses no-op first tokens and classifies executable sources", () => {
+    expect(evaluateCommandSafety("true").ok).toBe(false);
+    expect(evaluateCommandSafety("false").ok).toBe(false);
     expect(isExecutableLiteralSource("explicit")).toBe(true);
     expect(isExecutableLiteralSource("verify_commands")).toBe(true);
     expect(isExecutableLiteralSource("task_statement")).toBe(false);

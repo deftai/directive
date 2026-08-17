@@ -19,7 +19,8 @@ export type VerifyAcResolution =
   | "soft_empty"
   | "fail"
   | "config"
-  | "skipped";
+  | "skipped"
+  | "rejected-noop";
 
 /** True when this project check composition includes a suite gate (#3188). */
 export function projectHasSuiteFloor(projectRoot: string): boolean {
@@ -41,7 +42,11 @@ export interface EmptyAcResolutionInput {
 
 /** Zero executable commands, no rejected/unpromoted ledger, not already classified. */
 export function isEmptyAcResolution(input: EmptyAcResolutionInput): boolean {
-  if (input.resolution === "config" || input.resolution === "skipped") {
+  if (
+    input.resolution === "config" ||
+    input.resolution === "skipped" ||
+    input.resolution === "rejected-noop"
+  ) {
     return false;
   }
   if (input.code === 2) {
