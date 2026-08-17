@@ -47,7 +47,7 @@ describe("verify:ac terminal acceptance outcomes (#3355)", () => {
             {
               title: "bad",
               acceptance: {
-                commands: [{ command: "true" }],
+                commands: [{ command: "task check" }],
                 none_stated: true,
                 source_rung: "stated",
               },
@@ -93,7 +93,7 @@ describe("verify:ac terminal acceptance outcomes (#3355)", () => {
             {
               title: "ok",
               acceptance: {
-                commands: [{ command: "true" }],
+                commands: [{ command: "task check" }],
                 none_stated: true,
                 source_rung: "derived",
               },
@@ -116,12 +116,12 @@ describe("verify:ac terminal acceptance outcomes (#3355)", () => {
             {
               title: "wrong",
               acceptance: {
-                commands: [{ command: "false" }],
+                commands: [{ command: "task check" }],
                 none_stated: false,
                 source_rung: "derived",
               },
               metadata: {
-                literal_acceptance_commands: [{ command: "false", source: "explicit" }],
+                literal_acceptance_commands: [{ command: "task check", source: "explicit" }],
               },
             },
             {
@@ -194,7 +194,7 @@ describe("trial-shaped hand-authored acceptance stream (#3355)", () => {
           Overview: "narrative without a list or path",
         },
         acceptance: {
-          commands: [{ command: "true" }],
+          commands: [{ command: "task check" }],
           none_stated: true,
           source_rung: "derived",
           derived_reason: "hand-stamped mid-run (#3355)",

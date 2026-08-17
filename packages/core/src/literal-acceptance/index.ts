@@ -31,7 +31,18 @@ export {
 export {
   type CommandSafetyResult,
   evaluateCommandSafety,
+  evaluateNoopDenylist,
+  evaluateStampAcceptanceSafety,
   isExecutableLiteralSource,
+  isNoopRefusalReason,
+  isVerbatimStatementSpan,
+  NOOP_ACCEPTANCE_REMEDIATION,
+  REJECTED_NOOP_OUTCOME,
+  type RejectedNoopOutcome,
+  type StampAcceptanceCommand,
+  type StampAcceptanceSafetyInput,
+  type StampAcceptanceSafetyResult,
+  type StampSourceRung,
 } from "./safety.js";
 export {
   EXECUTABLE_LITERAL_SOURCES,

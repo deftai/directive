@@ -14,6 +14,7 @@ import { emitAcceptanceStampFromPlan } from "../intake/clause-derivation.js";
 import {
   type EvaluateLiteralAcceptanceOptions,
   evaluateLiteralAcceptanceFromPlan,
+  isNoopRefusalReason,
   type LiteralAcceptanceGateResult,
   type LiteralAcceptanceRunner,
   runLiteralAcceptanceCommands,
@@ -266,17 +267,20 @@ export function evaluateVerifyAcFromPlan(
   const schemaErrors = validatePlanAcceptance(plan.acceptance ?? acceptance);
   // Only hard-fail schema when an explicit plan.acceptance object exists.
   if (plan.acceptance !== undefined && schemaErrors.length > 0) {
+    const noop = schemaErrors.some((error) => isNoopRefusalReason(error));
     return applyOracle(
       {
         ok: false,
-        code: 2,
-        message: `verify:ac config error (#3284): ${schemaErrors.join("; ")}`,
+        code: noop ? 1 : 2,
+        message: noop
+          ? `verify:ac rejected-noop (#3396): ${schemaErrors.join("; ")}`
+          : `verify:ac config error (#3284): ${schemaErrors.join("; ")}`,
         commands: [],
         runs: [],
         sourceRung: acceptance.source_rung,
         noneStated: acceptance.none_stated,
         acceptance,
-        resolution: "config",
+        resolution: noop ? "rejected-noop" : "config",
         resolvedCommandCount: 0,
       },
       optionsWithScope,
@@ -457,6 +461,7 @@ function acceptanceOutcomeOf(result: VerifyAcResult): AcceptanceRunSummaryOutcom
   if (result.resolution === "soft_empty") return "soft_empty";
   if (result.resolution === "fail") return "fail";
   if (result.resolution === "config") return "config-error";
+  if (result.resolution === "rejected-noop") return "rejected-noop";
   return "soft-missing";
 }
 
@@ -531,8 +536,16 @@ export function emitVerifyAcTerminalOutcome(input: {
 }): void {
   emitAcceptanceOutcome(
     {
-      ok: input.outcome !== "config-error" && input.outcome !== "fail",
-      code: input.outcome === "config-error" ? 2 : input.outcome === "fail" ? 1 : 0,
+      ok:
+        input.outcome !== "config-error" &&
+        input.outcome !== "fail" &&
+        input.outcome !== "rejected-noop",
+      code:
+        input.outcome === "config-error"
+          ? 2
+          : input.outcome === "fail" || input.outcome === "rejected-noop"
+            ? 1
+            : 0,
       message: "",
       commands: [],
       runs: [],
@@ -550,11 +563,13 @@ export function emitVerifyAcTerminalOutcome(input: {
             ? "skipped"
             : input.outcome === "fail"
               ? "fail"
-              : input.outcome === "soft_empty"
-                ? "soft_empty"
-                : input.outcome === "verified-pass"
-                  ? "verified-pass"
-                  : "empty-pass",
+              : input.outcome === "rejected-noop"
+                ? "rejected-noop"
+                : input.outcome === "soft_empty"
+                  ? "soft_empty"
+                  : input.outcome === "verified-pass"
+                    ? "verified-pass"
+                    : "empty-pass",
       resolvedCommandCount: 0,
     },
     { projectRoot: input.projectRoot, env: input.env },
@@ -586,13 +601,33 @@ function applyClauseWalk(result: VerifyAcResult, options: EvaluateVerifyAcOption
   };
 }
 
+function applyRejectedNoop(result: VerifyAcResult): VerifyAcResult {
+  if (result.resolution === "rejected-noop") {
+    return result;
+  }
+  const rejected = result.rejected ?? [];
+  const fromLedger = rejected.some((row) => isNoopRefusalReason(row.reason));
+  const fromRuns = result.runs.some(
+    (row) => !row.ok && isNoopRefusalReason(row.detail.replace(/^refused:\s*/i, "")),
+  );
+  if (!fromLedger && !fromRuns && !isNoopRefusalReason(result.message)) {
+    return result;
+  }
+  return {
+    ...result,
+    ok: false,
+    code: result.code === 2 ? 2 : 1,
+    resolution: "rejected-noop",
+  };
+}
+
 function applyOracle(
   result: VerifyAcResult,
   options: EvaluateVerifyAcOptions,
   plan: Record<string, unknown> = {},
 ): VerifyAcResult {
   const projectRoot = resolve(options.projectRoot ?? process.cwd());
-  const walked = applyClauseWalk(result, options);
+  const walked = applyClauseWalk(applyRejectedNoop(result), options);
   const gated = walked.clauseWalked === true ? walked : applyEmptyFloorPolicy(walked, options);
   // Emit/read disk only when the caller supplied env (CLI passes process.env).
   // Tests stay isolated unless they opt in with env or runSummaryText.
@@ -612,7 +647,12 @@ function applyOracle(
       env: options.env,
     });
     next = mergeOracleVerdict(gated, verdict);
-    if (!verdict.ok && next.resolution !== "soft_empty" && next.resolution !== "config") {
+    if (
+      !verdict.ok &&
+      next.resolution !== "soft_empty" &&
+      next.resolution !== "config" &&
+      next.resolution !== "rejected-noop"
+    ) {
       next = { ...next, resolution: "fail" };
     }
   }

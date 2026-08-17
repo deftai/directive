@@ -47,8 +47,6 @@ const ALLOWED_FIRST_TOKENS = new Set([
   "yarn",
   "bun",
   "vitest",
-  "true",
-  "false",
 ]);
 
 /**
@@ -72,9 +70,168 @@ const ALLOWED_WRAPPER_SUBCOMMANDS = new Set([
  */
 const ALLOWED_WRAPPER_PREFIXES = ["verify:", "verify-", "verify "] as const;
 
+/** One remediation when a command cannot fail (#3396). */
+export const NOOP_ACCEPTANCE_REMEDIATION =
+  "acceptance commands must be able to fail; name a command that exercises the artifact";
+
+/** Capture/stamp outcome recorded on the acceptance event (#3396). */
+export const REJECTED_NOOP_OUTCOME = "rejected-noop" as const;
+
+export type RejectedNoopOutcome = typeof REJECTED_NOOP_OUTCOME;
+
 export interface CommandSafetyResult {
   readonly ok: boolean;
   readonly reason: string | null;
+  /** Set when the command is a denylisted no-op (#3396). */
+  readonly outcome?: RejectedNoopOutcome;
+}
+
+/** First tokens that always succeed or always fail without exercising an artifact. */
+const NOOP_FIRST_TOKENS = new Set(["true", "false", ":", "echo", "printf"]);
+
+/** `test` operators that inspect a path (not a constant comparison). */
+const TEST_FILE_OPERATORS = new Set([
+  "-b",
+  "-c",
+  "-d",
+  "-e",
+  "-f",
+  "-g",
+  "-h",
+  "-k",
+  "-L",
+  "-p",
+  "-r",
+  "-S",
+  "-s",
+  "-t",
+  "-u",
+  "-w",
+  "-x",
+]);
+
+function firstTokenAndRest(trimmed: string): { readonly first: string; readonly rest: string } {
+  let end = 0;
+  while (end < trimmed.length && trimmed[end] !== " " && trimmed[end] !== "\t") {
+    end += 1;
+  }
+  return { first: trimmed.slice(0, end).toLowerCase(), rest: trimmed.slice(end).trim() };
+}
+
+function noopRefusal(): CommandSafetyResult {
+  return {
+    ok: false,
+    reason: NOOP_ACCEPTANCE_REMEDIATION,
+    outcome: REJECTED_NOOP_OUTCOME,
+  };
+}
+
+/**
+ * Unconditional no-ops cannot be acceptance oracles (#3396).
+ * `test` with only constant args is a no-op; `test -f path` is an assertion.
+ */
+export function evaluateNoopDenylist(command: string): CommandSafetyResult {
+  if (typeof command !== "string") {
+    return { ok: true, reason: null };
+  }
+  const trimmed = command.trim();
+  if (trimmed.length === 0) {
+    return { ok: true, reason: null };
+  }
+  const { first, rest } = firstTokenAndRest(trimmed);
+  if (NOOP_FIRST_TOKENS.has(first)) {
+    return noopRefusal();
+  }
+  if (first === "exit" && rest.length === 0) {
+    return noopRefusal();
+  }
+  if (first === "test") {
+    const tokens = rest.length === 0 ? [] : rest.split(/\s+/);
+    if (!tokens.some((token) => TEST_FILE_OPERATORS.has(token))) {
+      return noopRefusal();
+    }
+  }
+  return { ok: true, reason: null };
+}
+
+/** True when a refusal reason is the #3396 no-op remediation. */
+export function isNoopRefusalReason(reason: string | null | undefined): boolean {
+  return typeof reason === "string" && reason.includes("acceptance commands must be able to fail");
+}
+
+/**
+ * Capture records verbatim statement spans as fence@ / labeled@ / prompt@ / inline@.
+ * Metadata and plan.acceptance mirrors are not statement provenance.
+ */
+export function isVerbatimStatementSpan(sourceSpan: string | null | undefined): boolean {
+  if (typeof sourceSpan !== "string" || sourceSpan.trim().length === 0) {
+    return false;
+  }
+  return /^(fence|labeled|prompt|inline)@/i.test(sourceSpan.trim());
+}
+
+export type StampSourceRung = "stated" | "derived" | "project_floor";
+
+export interface StampAcceptanceCommand {
+  readonly command: string;
+  readonly source?: string;
+  readonly sourceSpan?: string | null;
+}
+
+export interface StampAcceptanceSafetyInput {
+  readonly commands: readonly StampAcceptanceCommand[];
+  readonly previousRung?: StampSourceRung | null;
+}
+
+export interface StampAcceptanceSafetyResult {
+  readonly ok: boolean;
+  readonly reason: string | null;
+  readonly outcome?: RejectedNoopOutcome;
+  readonly sourceRung: StampSourceRung;
+  readonly hasVerbatimStatementSpan: boolean;
+}
+
+function commandHasStatementProvenance(cmd: StampAcceptanceCommand): boolean {
+  if (cmd.source !== undefined && cmd.source !== "task_statement") {
+    return false;
+  }
+  return isVerbatimStatementSpan(cmd.sourceSpan ?? null);
+}
+
+/**
+ * Stamp-time no-op refuse + stated-only-with-span (#3396).
+ * A restamp cannot raise the rung to stated without a recorded statement span.
+ */
+export function evaluateStampAcceptanceSafety(
+  input: StampAcceptanceSafetyInput,
+): StampAcceptanceSafetyResult {
+  const hasVerbatimStatementSpan = input.commands.some(commandHasStatementProvenance);
+  let sourceRung: StampSourceRung;
+  if (input.commands.length === 0) {
+    sourceRung = input.previousRung ?? "project_floor";
+  } else if (hasVerbatimStatementSpan) {
+    sourceRung = "stated";
+  } else {
+    sourceRung = "derived";
+  }
+  for (const cmd of input.commands) {
+    const noop = evaluateNoopDenylist(cmd.command);
+    if (!noop.ok) {
+      return {
+        ok: false,
+        reason: noop.reason,
+        outcome: REJECTED_NOOP_OUTCOME,
+        sourceRung,
+        hasVerbatimStatementSpan,
+      };
+    }
+  }
+  return {
+    ok: true,
+    reason: null,
+    sourceRung,
+    hasVerbatimStatementSpan,
+  };
 }
 
 /** Whether this provenance is allowed to spawn a shell (#3267). */
@@ -93,6 +250,10 @@ export function evaluateCommandSafety(command: string): CommandSafetyResult {
   const trimmed = command.trim();
   if (trimmed.length > 500) {
     return { ok: false, reason: "command exceeds 500 characters" };
+  }
+  const noop = evaluateNoopDenylist(trimmed);
+  if (!noop.ok) {
+    return noop;
   }
   for (let i = 0; i < trimmed.length; i += 1) {
     const ch = trimmed[i] as string;

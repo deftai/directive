@@ -7,7 +7,11 @@
 
 import {
   attachLiteralAcceptanceCommands,
+  evaluateStampAcceptanceSafety,
+  isNoopRefusalReason,
+  isVerbatimStatementSpan,
   type LiteralAcceptanceCommand,
+  NOOP_ACCEPTANCE_REMEDIATION,
   readStoredLiteralAcceptanceCommands,
 } from "../literal-acceptance/index.js";
 import { readAcceptanceClauses, serializeAcceptanceClauses } from "../verify-ac/clauses.js";
@@ -117,6 +121,12 @@ export function validatePlanAcceptance(value: unknown): string[] {
       "plan.acceptance: none_stated:true with source_rung:stated is contradictory " +
         "(use source_rung:derived when commands are agent-authored under none_stated)",
     );
+  }
+  for (const cmd of commands) {
+    const stamp = evaluateStampAcceptanceSafety({ commands: [{ command: cmd.command }] });
+    if (!stamp.ok && isNoopRefusalReason(stamp.reason)) {
+      errors.push(stamp.reason ?? NOOP_ACCEPTANCE_REMEDIATION);
+    }
   }
   return errors;
 }
@@ -256,12 +266,16 @@ export function attachPlanAcceptance(
 }
 
 /**
- * Build plan.acceptance from intake capture (#3284).
- * Stated commands → none_stated:false, source_rung:stated.
+ * Build plan.acceptance from intake capture (#3284 / #3396).
+ * Stated only when capture recorded a verbatim statement span.
  * No stated commands → none_stated:true, source_rung:project_floor (until agent derives).
  */
 export function buildAcceptanceFromIntakeCapture(
   capturedCommands: readonly AcceptanceCommand[],
+  options: {
+    readonly hasVerbatimStatementSpan?: boolean;
+    readonly previousRung?: AcSourceRung;
+  } = {},
 ): PlanAcceptance {
   if (capturedCommands.length === 0) {
     return {
@@ -272,20 +286,86 @@ export function buildAcceptanceFromIntakeCapture(
         "no shell acceptance commands stated in task text; floor until agent derives AC (#3284 ladder)",
     };
   }
+  const stamp = evaluateStampAcceptanceSafety({
+    commands: capturedCommands.map((cmd) => ({ command: cmd.command })),
+    previousRung: options.previousRung,
+  });
+  if (!stamp.ok) {
+    throw new Error(stamp.reason ?? NOOP_ACCEPTANCE_REMEDIATION);
+  }
+  const sourceRung: AcSourceRung = options.hasVerbatimStatementSpan === true ? "stated" : "derived";
   return {
     commands: capturedCommands,
-    none_stated: false,
-    source_rung: "stated",
-    derived_reason: null,
+    none_stated: sourceRung !== "stated",
+    source_rung: sourceRung,
+    derived_reason:
+      sourceRung === "stated"
+        ? null
+        : "no recorded verbatim statement span; derived not stated (#3396)",
   };
+}
+
+function rawStampCommandStrings(plan: Record<string, unknown>): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const push = (value: unknown): void => {
+    if (typeof value === "string" && value.trim().length > 0) {
+      const command = value.trim();
+      if (seen.has(command)) return;
+      seen.add(command);
+      out.push(command);
+      return;
+    }
+    const rec = asRecord(value);
+    if (rec === null) return;
+    const command = rec.command ?? rec.cmd ?? rec.shell;
+    if (isNonEmptyString(command)) {
+      const trimmed = command.trim();
+      if (seen.has(trimmed)) return;
+      seen.add(trimmed);
+      out.push(trimmed);
+    }
+  };
+  const acceptance = asRecord(plan[PLAN_ACCEPTANCE_KEY]);
+  if (acceptance !== null && Array.isArray(acceptance.commands)) {
+    for (const entry of acceptance.commands) {
+      push(entry);
+    }
+  }
+  const metadata = asRecord(plan.metadata);
+  if (metadata !== null) {
+    const explicit = metadata.literal_acceptance_commands ?? metadata.literalAcceptanceCommands;
+    if (Array.isArray(explicit)) {
+      for (const entry of explicit) {
+        push(entry);
+      }
+    }
+  }
+  return out;
 }
 
 /** Stamp plan.acceptance from existing literal capture after issue ingest. */
 export function stampAcceptanceFromLiteralCapture(
   plan: Record<string, unknown>,
 ): Record<string, unknown> {
+  const previous = asRecord(plan[PLAN_ACCEPTANCE_KEY]);
+  const previousRung = isAcSourceRung(previous?.source_rung) ? previous.source_rung : undefined;
+  const attempted = rawStampCommandStrings(plan);
+  const refuse = evaluateStampAcceptanceSafety({
+    commands: attempted.map((command) => ({ command })),
+    previousRung,
+  });
+  if (!refuse.ok) {
+    throw new Error(refuse.reason ?? NOOP_ACCEPTANCE_REMEDIATION);
+  }
   const literal = readStoredLiteralAcceptanceCommands(plan);
-  const acceptance = buildAcceptanceFromIntakeCapture(literal.map(literalToAcceptance));
+  const hasVerbatimStatementSpan = literal.some(
+    (cmd) => cmd.source === "task_statement" && isVerbatimStatementSpan(cmd.sourceSpan ?? null),
+  );
+  const acceptance = buildAcceptanceFromIntakeCapture(literal.map(literalToAcceptance), {
+    hasVerbatimStatementSpan,
+    previousRung,
+  });
   // Avoid re-mirroring task_statement into verify_commands (ingest strips those).
   const serializable: Record<string, unknown> = {
     commands: acceptance.commands.map((c) => {

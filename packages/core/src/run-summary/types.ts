@@ -130,7 +130,8 @@ export type AcceptanceRunSummaryOutcome =
   | "soft_empty"
   | "fail"
   | "config-error"
-  | "soft-missing";
+  | "soft-missing"
+  | "rejected-noop";
 
 export interface AcceptanceRunSummaryPayload {
   readonly resolved_command_count: number;

@@ -39,7 +39,7 @@ describe("bank-aware complete walk (#3387)", () => {
       title: "trial",
       status: "running",
       acceptance: {
-        commands: [{ command: "true" }],
+        commands: [{ command: "task check" }],
         none_stated: true,
         source_rung: "derived",
       },
@@ -110,7 +110,7 @@ describe("bank-aware complete walk (#3387)", () => {
       id: "3387-stale",
       title: "stale",
       acceptance: {
-        commands: [{ command: "true" }],
+        commands: [{ command: "task check" }],
         none_stated: true,
         source_rung: "derived",
       },
@@ -171,7 +171,7 @@ describe("bank-aware complete walk (#3387)", () => {
         id: "3387-missing-bank",
         title: "missing",
         acceptance: {
-          commands: [{ command: "true" }],
+          commands: [{ command: "task check" }],
           none_stated: true,
           source_rung: "derived",
         },
@@ -200,7 +200,7 @@ describe("bank-aware complete walk (#3387)", () => {
       id: "3387-fscope",
       title: "fscope",
       acceptance: {
-        commands: [{ command: "true" }],
+        commands: [{ command: "task check" }],
         none_stated: true,
         source_rung: "derived",
       },

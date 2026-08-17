@@ -478,13 +478,13 @@ describe("acceptance evidence gate (#3240 / #3305)", () => {
       {
         title: "failing product",
         acceptance: {
-          commands: [{ command: "false", expectedExitCode: 0 }],
+          commands: [{ command: "task check", expectedExitCode: 0 }],
           none_stated: false,
           source_rung: "derived",
         },
         metadata: {
           literal_acceptance_commands: [
-            { command: "false", source: "explicit", expectedExitCode: 0 },
+            { command: "task check", source: "explicit", expectedExitCode: 0 },
           ],
         },
         items: [

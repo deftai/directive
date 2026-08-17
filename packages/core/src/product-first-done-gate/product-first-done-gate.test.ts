@@ -50,10 +50,14 @@ describe("plan.acceptance schema (#3284)", () => {
   });
 
   it("buildAcceptanceFromIntakeCapture marks stated vs floor", () => {
-    const stated = buildAcceptanceFromIntakeCapture([{ command: "pnpm test" }]);
+    const stated = buildAcceptanceFromIntakeCapture([{ command: "pnpm test" }], {
+      hasVerbatimStatementSpan: true,
+    });
     expect(stated.none_stated).toBe(false);
     expect(stated.source_rung).toBe("stated");
     expect(stated.commands).toHaveLength(1);
+    const derived = buildAcceptanceFromIntakeCapture([{ command: "pnpm test" }]);
+    expect(derived.source_rung).toBe("derived");
 
     const floor = buildAcceptanceFromIntakeCapture([]);
     expect(floor.none_stated).toBe(true);
@@ -64,7 +68,13 @@ describe("plan.acceptance schema (#3284)", () => {
     const plan = stampAcceptanceFromLiteralCapture({
       title: "t",
       metadata: {
-        literal_acceptance_commands: [{ command: "task verify:ac", source: "task_statement" }],
+        literal_acceptance_commands: [
+          {
+            command: "task verify:ac",
+            source: "task_statement",
+            sourceSpan: "labeled@L1",
+          },
+        ],
       },
     });
     const acc = readPlanAcceptance(plan);
@@ -77,7 +87,7 @@ describe("plan.acceptance schema (#3284)", () => {
     const plan = attachPlanAcceptance(
       { title: "t", metadata: {} },
       {
-        commands: [{ command: "true" }],
+        commands: [{ command: "task check" }],
         none_stated: true,
         source_rung: "derived",
         derived_reason: "agent-authored AC",
@@ -86,7 +96,7 @@ describe("plan.acceptance schema (#3284)", () => {
     const acc = readPlanAcceptance(plan);
     expect(acc.source_rung).toBe("derived");
     expect(acc.none_stated).toBe(true);
-    expect(acc.commands[0]?.command).toBe("true");
+    expect(acc.commands[0]?.command).toBe("task check");
   });
 });
 
@@ -95,14 +105,14 @@ describe("verify:ac evaluation (#3284)", () => {
     const plan = {
       title: "wrong product",
       acceptance: {
-        commands: [{ command: "false", expectedExitCode: 0 }],
+        commands: [{ command: "task check", expectedExitCode: 0 }],
         none_stated: false,
         source_rung: "derived",
       },
       metadata: {
         // Executable peer so #3267 promotion gate is satisfied.
         literal_acceptance_commands: [
-          { command: "false", source: "explicit", expectedExitCode: 0 },
+          { command: "task check", source: "explicit", expectedExitCode: 0 },
         ],
       },
     };
@@ -120,7 +130,7 @@ describe("verify:ac evaluation (#3284)", () => {
     const plan = {
       title: "ok",
       acceptance: {
-        commands: [{ command: "true" }],
+        commands: [{ command: "task check" }],
         none_stated: true,
         source_rung: "derived",
       },
@@ -184,7 +194,7 @@ describe("verify:ac evaluation (#3284)", () => {
     const plan = {
       title: "bad",
       acceptance: {
-        commands: [{ command: "true" }],
+        commands: [{ command: "task check" }],
         none_stated: true,
         source_rung: "stated",
       },
@@ -342,7 +352,7 @@ describe("coverage boost for product-first helpers (#3284)", () => {
       {
         commands: [
           {
-            command: "true",
+            command: "task check",
             cwd: "sub",
             expectedStdout: "ok",
             expectedExitCode: 1,
@@ -399,7 +409,7 @@ describe("coverage boost for product-first helpers (#3284)", () => {
       metadata: {
         literal_acceptance_commands: [
           {
-            command: "true",
+            command: "task check",
             source: "explicit",
             cwd: "x",
             expectedStdout: "o",
@@ -503,12 +513,12 @@ describe("coverage boost for product-first helpers (#3284)", () => {
     const failed = evaluateVerifyAcFromPlan(
       {
         acceptance: {
-          commands: [{ command: "false" }],
+          commands: [{ command: "task check" }],
           none_stated: true,
           source_rung: "derived",
         },
         metadata: {
-          literal_acceptance_commands: [{ command: "false", source: "explicit" }],
+          literal_acceptance_commands: [{ command: "task check", source: "explicit" }],
         },
       },
       {
@@ -542,12 +552,12 @@ describe("product-first gate ordering contract (#3284)", () => {
       {
         title: "bad product",
         acceptance: {
-          commands: [{ command: "echo should-fail" }],
+          commands: [{ command: "task check" }],
           none_stated: false,
           source_rung: "derived",
         },
         metadata: {
-          literal_acceptance_commands: [{ command: "echo should-fail", source: "explicit" }],
+          literal_acceptance_commands: [{ command: "task check", source: "explicit" }],
         },
       },
       {
@@ -572,7 +582,7 @@ describe("product-first gate ordering contract (#3284)", () => {
         xBRIEFInfo: { version: "0.8" },
         plan: {
           acceptance: {
-            commands: [{ command: "true" }],
+            commands: [{ command: "task check" }],
             none_stated: true,
             source_rung: "derived",
           },

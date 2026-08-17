@@ -96,7 +96,7 @@ describe("empty verify:ac resolution (#3334)", () => {
       {
         title: "ok",
         acceptance: {
-          commands: [{ command: "true" }],
+          commands: [{ command: "task check" }],
           none_stated: true,
           source_rung: "derived",
         },
@@ -177,7 +177,7 @@ describe("empty verify:ac resolution (#3334)", () => {
         plan: {
           title: "t",
           acceptance: {
-            commands: [{ command: "true" }],
+            commands: [{ command: "task check" }],
             none_stated: true,
             source_rung: "derived",
           },
