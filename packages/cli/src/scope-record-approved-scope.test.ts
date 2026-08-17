@@ -48,6 +48,24 @@ describe("scope-record-approved-scope CLI (#3205)", () => {
     expect(a.xbriefPath).toBe("xbrief/active/s.xbrief.json");
   });
 
+  it("requires --repo value", () => {
+    expect(parseArgs(["xbrief/active/s.xbrief.json", "--actor", "scott", "--repo"]).error).toMatch(
+      /--repo/,
+    );
+  });
+
+  it("parses --repo seed", () => {
+    const a = parseArgs([
+      "xbrief/active/s.xbrief.json",
+      "--actor",
+      "scott",
+      "--repo",
+      "deftai/directive",
+    ]);
+    expect(a.error).toBeUndefined();
+    expect(a.repo).toBe("deftai/directive");
+  });
+
   it("requires --actor", () => {
     expect(parseArgs(["xbrief/active/s.xbrief.json"]).error).toMatch(/--actor/);
   });
@@ -104,11 +122,17 @@ describe("scope-record-approved-scope CLI (#3205)", () => {
     const xb = join(root, "xbrief/pending/story.xbrief.json");
     writeFileSync(xb, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
 
+    const printed: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      printed.push(String(c));
+      return true;
+    });
     const code = run(
       ["xbrief/pending/story.xbrief.json", "--project-root", root, "--actor", "scott", "--confirm"],
       operatorSeams(),
     );
     expect(code).toBe(0);
+    expect(printed.join("")).toMatch(/Read the preimage/);
     const out = join(root, ".deft/approved-scope/story-1.json");
     const rec = JSON.parse(readFileSync(out, "utf8")) as {
       xbriefRelPath: string;
@@ -116,12 +140,18 @@ describe("scope-record-approved-scope CLI (#3205)", () => {
       fileScope: string[];
       xbriefBodyDigest?: string;
       intentDigest?: string;
+      digestAlgo?: string;
     };
     expect(rec.xbriefRelPath).toBe("xbrief/active/story.xbrief.json");
     expect(rec.humanApproval.actor).toBe("scott");
     expect(rec.fileScope).toEqual(["src/a.ts"]);
     expect(rec.xbriefBodyDigest).toBeUndefined();
-    expect(rec.intentDigest).toBeUndefined();
+    expect(rec.intentDigest).toMatch(/^[0-9a-f]{64}$/);
+    expect(rec.digestAlgo).toBe("intent-extract-v1");
+    const preimagePath = join(root, ".deft/approved-scope/story-1.intent.json");
+    expect(existsSync(preimagePath)).toBe(true);
+    const preimage = JSON.parse(readFileSync(preimagePath, "utf8")) as { algo: string };
+    expect(preimage.algo).toBe("intent-extract-v1");
     expect(existsSync(join(root, ".deft/authz/grants"))).toBe(false);
 
     const agentCode = run(
@@ -245,5 +275,35 @@ describe("scope-record-approved-scope CLI (#3205)", () => {
     if (existsSync(grantsDir)) {
       expect(readdirSync(grantsDir).filter((n) => n.endsWith(".json"))).toEqual([]);
     }
+  });
+
+  it("refuses duplicate object keys at mint (#3385 F3)", () => {
+    root = mkdtempSync(join(tmpdir(), "scope-record-dup-"));
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief/pending/story.xbrief.json"),
+      '{"plan":{"id":"story-1","id":"other"}}\n',
+      "utf8",
+    );
+    const err: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    expect(
+      run(
+        [
+          "xbrief/pending/story.xbrief.json",
+          "--project-root",
+          root,
+          "--actor",
+          "scott",
+          "--confirm",
+        ],
+        operatorSeams(),
+      ),
+    ).toBe(2);
+    expect(err.join("")).toMatch(/duplicate key/);
+    expect(existsSync(join(root, ".deft/approved-scope"))).toBe(false);
   });
 });

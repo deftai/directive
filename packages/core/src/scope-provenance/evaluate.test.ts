@@ -304,7 +304,15 @@ describe("evaluateScopeProvenance (#3145)", () => {
 describe("verify:scope-provenance does not read grants (#3384)", () => {
   it("evaluate and digest sources never look up .deft/authz/grants", () => {
     const dir = dirname(fileURLToPath(import.meta.url));
-    for (const name of ["evaluate.ts", "digest.ts", "index.ts"]) {
+    for (const name of [
+      "evaluate.ts",
+      "digest.ts",
+      "index.ts",
+      "intent-evaluate.ts",
+      "extract-intent.ts",
+      "compare-intent.ts",
+      "mint-artifacts.ts",
+    ]) {
       const src = readFileSync(join(dir, name), "utf8");
       expect(src).not.toMatch(/authz\/grants/);
       expect(src).not.toMatch(/loadAuthzState/);
