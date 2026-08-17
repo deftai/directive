@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **UAT Shell residual after #3400/#3410: dest-form plant of authz, kill-switch, and approved-scope (#3421).** Under active UAT, residual dest forms (`git clone` / `worktree` / `submodule`, `ex`, `dos2unix -n`, `aws s3 sync` / `s3api get-object`, `pijul`, `pg_dump -f` / `--file`, `convert` / `magick`, `fossil --workdir=`, `New-Item`) that write into `.deft/authz/**`, plant `.deft-directive-disable` / `.no-deft-directive`, or write `.deft/approved-scope/**` classify as settings deny (not unclassifiable allow). Unknown write-shaped dest flags (`--workdir` / `--file` / `-f` / `-Path`) targeting those paths also fail closed. Ordinary dests such as `/tmp` stay unclassifiable. Already-denied `cmake` / `curl -o` / `ed` / `nvim` / `fossil --workdir PATH` / `aws s3 cp` stay denied. Closes #3421. Refs #3382, #3410, #3039.
+
 - **Official Cursor adapter deletes no longer trip mixed-core-and-app (#3393).** A framework-only update that removes the retired hook adapter is installer-managed, not app. Other consumer hooks stay app-owned. Consumers on `pull_request_target` or pinned workflow refs see the old guard for one PR. Closes #3393. Refs #3378.
 
 - **`scope:record-approved-scope` uses the #3110 human-presence mint gate (#3384).** Shared TTY / controlling-terminal / `--confirm` / typed `mint` / agent-CI refuse; `--actor` is display-only. New records omit `xbriefBodyDigest`. Wave 1 records have no `intentDigest` and are legacy under #3385. Closes #3384. Refs #3376, #3110.
