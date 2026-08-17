@@ -21,6 +21,7 @@ import { validateDeprecatedPlaceholders } from "./placeholders.js";
 import {
   runProjectDefinitionHooks,
   validateForgeOutageRetryMinutesOnPlan,
+  validateProjectInvariantsOnPlan,
   validateSessionRitualStalenessHoursOnPlan,
   validateTriageRankingLabelsOnPlan,
   validateWipCapOnPlan,
@@ -331,6 +332,10 @@ describe("vbrief-validate extra coverage", () => {
     expect(
       validateForgeOutageRetryMinutesOnPlan({ policy: { forgeOutageRetryMinutes: 4 } }, fp)[0],
     ).toContain("#3422");
+    expect(validateProjectInvariantsOnPlan({ policy: { projectInvariants: [] } }, fp)).toEqual([]);
+    expect(
+      validateProjectInvariantsOnPlan({ policy: { projectInvariants: [{ id: "x" }] } }, fp)[0],
+    ).toContain("#3425");
     expect(
       validateTriageRankingLabelsOnPlan({ policy: { triageRankingLabels: ["ok"] } }, fp),
     ).toEqual([]);

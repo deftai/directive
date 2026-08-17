@@ -3,6 +3,7 @@ import { validateCoverageDebt } from "../policy/coverage-debt.js";
 import { validateHostHooks } from "../policy/host-hooks.js";
 import { validateHostSlashCommands } from "../policy/host-slash-commands.js";
 import { readPlanPolicy } from "../policy/plan-extensions.js";
+import { parseProjectInvariants } from "../policy/project-invariants.js";
 import { validateRuntimeAuthority } from "../policy/runtime-authority.js";
 import { validateStalenessTickler } from "../policy/staleness-tickler.js";
 import { validateOpenClawProductCommands } from "../slash/openclaw-deposit.js";
@@ -134,6 +135,22 @@ function validateForgeOutageRetryMinutes(value: unknown): string[] {
     return [`plan.policy.forgeOutageRetryMinutes must be >= 5; got ${value}`];
   }
   return [];
+}
+
+/** vbrief_validate hook for ``projectInvariants`` (#3425). */
+export function validateProjectInvariantsOnPlan(plan: unknown, filepath: string): string[] {
+  if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
+    return [];
+  }
+  const policy = readPlanPolicy(plan);
+  if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
+    return [];
+  }
+  if (!("projectInvariants" in (policy as JsonObject))) {
+    return [];
+  }
+  const { errors } = parseProjectInvariants((policy as JsonObject).projectInvariants);
+  return errors.map((err) => `${filepath}: ${err} (#3425)`);
 }
 
 /** vbrief_validate hook for ``forgeOutageRetryMinutes`` (#3422). */
@@ -354,6 +371,11 @@ export function runProjectDefinitionHooks(plan: unknown, filepath: string): stri
   }
   try {
     errors.push(...validateForgeOutageRetryMinutesOnPlan(plan, filepath));
+  } catch {
+    /* hook must not break validation */
+  }
+  try {
+    errors.push(...validateProjectInvariantsOnPlan(plan, filepath));
   } catch {
     /* hook must not break validation */
   }

@@ -34,6 +34,7 @@ export {
   projectDefinitionMutationLock,
   projectDefinitionPath,
 } from "./project-definition-io.js";
+export { loadProjectInvariants, parseProjectInvariantsField } from "./project-invariants-io.js";
 export {
   buildScopeVbriefFromReconciled,
   defaultStatusForFolder,

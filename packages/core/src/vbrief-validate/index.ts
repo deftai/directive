@@ -19,6 +19,7 @@ export { cmdVbriefValidate, runConformance, runValidate } from "./main.js";
 export { validateOriginProvenance } from "./origin.js";
 export {
   validateForgeOutageRetryMinutesOnPlan,
+  validateProjectInvariantsOnPlan,
   validateSessionRitualStalenessHoursOnPlan,
   validateTriageRankingLabelsOnPlan,
   validateWipCapOnPlan,

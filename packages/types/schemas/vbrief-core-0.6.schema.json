@@ -619,6 +619,13 @@
           "minimum": 5,
           "description": "Minutes to wait between GitHub I/O re-probes after a forge outage drop-back (#3422). Default: 30. USER.md Personal wins over this project field. null is unset (same as omit)."
         },
+        "projectInvariants": {
+          "type": "array",
+          "description": "Authored project-level must-not-break contracts (#3425). Empty or omitted is a no-op. Each entry names an id, statement, and contract surface (paths and/or module ids).",
+          "items": {
+            "$ref": "#/$defs/ProjectInvariant"
+          }
+        },
         "requireHumanMerge": {
           "type": "boolean",
           "description": "When true, agents may open PRs but must not merge (#1193). Defaults true when autoDeployOnMerge is also true. Override: policy:allow-bot-merge --confirm or DEFT_ALLOW_BOT_MERGE=1."
@@ -632,6 +639,66 @@
         },
         "projectionProviders": {
           "$ref": "#/$defs/ProjectionProviderPolicies"
+        }
+      },
+      "additionalProperties": true
+    },
+    "ProjectInvariant": {
+      "type": "object",
+      "description": "One authored project invariant (#3425). Contract surface is paths and/or module ids that must not be broken.",
+      "required": ["id", "statement"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contractSurface": {
+          "$ref": "#/$defs/ProjectInvariantContractSurface"
+        },
+        "contract_surface": {
+          "oneOf": [
+            { "$ref": "#/$defs/ProjectInvariantContractSurface" },
+            { "type": "array", "items": { "type": "string" } }
+          ]
+        },
+        "paths": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "moduleIds": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "module_ids": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "ProjectInvariantContractSurface": {
+      "type": "object",
+      "description": "Must-not-break module/contract surface: repository paths and/or codeStructure module ids.",
+      "properties": {
+        "paths": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "pathGlobs": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "moduleIds": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "module_ids": {
+          "type": "array",
+          "items": { "type": "string" }
         }
       },
       "additionalProperties": true

@@ -12,6 +12,7 @@ export * from "./main.js";
 export * from "./open-umbrella-warning.js";
 export * from "./parent-lineage.js";
 export * from "./project-context.js";
+export * from "./project-invariant-coverage.js";
 export * from "./promote-from-issue.js";
 export * from "./promote-path.js";
 export * from "./transition.js";

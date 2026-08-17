@@ -30,6 +30,11 @@ export interface PlanPolicy {
    */
   readonly forgeOutageRetryMinutes?: number | null;
   /**
+   * Authored project-level must-not-break contracts (#3425).
+   * Empty or omitted is a no-op.
+   */
+  readonly projectInvariants?: readonly ProjectInvariant[];
+  /**
    * Engine-vs-pin skew tolerance for the three-band skew policy (#2264).
    *
    * Pre-1.0 the window is measured in minor versions (default 3); post-1.0 it
@@ -104,6 +109,24 @@ export interface PlanPolicy {
   readonly [key: `x-${string}`]: unknown;
 }
 
+/** One authored project invariant (#3425). */
+export interface ProjectInvariantContractSurface {
+  readonly paths?: readonly string[];
+  readonly pathGlobs?: readonly string[];
+  readonly moduleIds?: readonly string[];
+  readonly module_ids?: readonly string[];
+}
+
+export interface ProjectInvariant {
+  readonly id: string;
+  readonly statement: string;
+  readonly contractSurface?: ProjectInvariantContractSurface | readonly string[];
+  readonly contract_surface?: ProjectInvariantContractSurface | readonly string[];
+  readonly paths?: readonly string[];
+  readonly moduleIds?: readonly string[];
+  readonly module_ids?: readonly string[];
+}
+
 export interface ProjectionProviderExpectation {
   readonly provider?: string | Record<string, unknown>;
   readonly name?: string;
@@ -124,6 +147,7 @@ export const REGISTERED_POLICY_FIELD_NAMES = [
   "plan.policy.wipCap",
   "plan.policy.sessionRitualStalenessHours",
   "plan.policy.forgeOutageRetryMinutes",
+  "plan.policy.projectInvariants",
   "plan.policy.triageScope",
   "plan.policy.triageScopeIgnores",
   "plan.policy.triageRankingLabels",

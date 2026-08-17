@@ -36,6 +36,8 @@ export {
 export {
   type HotfixCriteria,
   type PlanPolicy,
+  type ProjectInvariant,
+  type ProjectInvariantContractSurface,
   type ProjectionProviderExpectation,
   type ProjectionProviderPolicy,
   REGISTERED_POLICY_FIELD_NAMES,
