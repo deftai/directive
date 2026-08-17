@@ -1,7 +1,8 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION } from "../intake/clause-derivation.js";
 import { reconcileGraph, renderGraphReport } from "./graph.js";
 import { candidateDepGraph, markCycles } from "./swarm-deps.js";
 import type { Candidate } from "./types.js";
@@ -37,6 +38,7 @@ function writeProjectDef(root: string, wipCap: number): void {
 describe("reconcileGraph", () => {
   const roots: string[] = [];
   afterEach(() => {
+    vi.restoreAllMocks();
     for (const r of roots) rmSync(r, { recursive: true, force: true });
     roots.length = 0;
   });
@@ -96,6 +98,26 @@ describe("reconcileGraph", () => {
     writeBrief(root, "solo", "proposed", []);
     const [, outcome] = reconcileGraph(root, { dryRun: true });
     expect(outcome.promoted).toEqual([]);
+  });
+
+  it("surfaces refused-stamp remediation from a successful promote in the graph report (#3398)", async () => {
+    const transition = await import("../scope/transition.js");
+    vi.spyOn(transition, "runTransition").mockReturnValue({
+      ok: true,
+      message:
+        `Promoted child.xbrief.json: proposed/ -> pending/ (status: pending)\n` +
+        CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION,
+    });
+    const root = mkdtempSync(join(tmpdir(), "deft-graph-"));
+    roots.push(root);
+    writeBrief(root, "dep", "completed");
+    writeBrief(root, "child", "proposed", ["dep"]);
+    const [, outcome] = reconcileGraph(root, { dryRun: false });
+    expect(outcome.promoted).toContain("child");
+    expect(outcome.promotedNotices?.some((n) => n.story_id === "child")).toBe(true);
+    const report = renderGraphReport(outcome);
+    expect(report).toContain("child");
+    expect(report).toContain(CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION);
   });
 });
 

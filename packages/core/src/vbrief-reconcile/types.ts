@@ -57,6 +57,8 @@ export interface Candidate {
 
 export interface ReconcileGraphOutcome {
   promoted: string[];
+  /** Successful promote messages, including refused-stamp remediation (#3398). */
+  promotedNotices?: Array<{ story_id: string; message: string }>;
   deferredWip: string[];
   waiting: Array<{ story_id: string; unresolved: string[] }>;
   cycles: string[];

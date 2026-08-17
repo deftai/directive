@@ -57,6 +57,7 @@ export function reconcileGraph(
       2,
       {
         promoted: [],
+        promotedNotices: [],
         deferredWip: [],
         waiting: [],
         cycles: [],
@@ -89,6 +90,7 @@ export function reconcileGraph(
   const [cap, count] = resolveWipState(root);
   const outcome: ReconcileGraphOutcome = {
     promoted: [],
+    promotedNotices: [],
     deferredWip: [],
     waiting: [],
     cycles: [],
@@ -133,6 +135,9 @@ export function reconcileGraph(
       continue;
     }
     outcome.promoted.push(cand.storyId);
+    if (result.message.trim().length > 0) {
+      outcome.promotedNotices?.push({ story_id: cand.storyId, message: result.message });
+    }
     runningCount += 1;
   }
 
@@ -145,7 +150,18 @@ export function renderGraphReport(outcome: ReconcileGraphOutcome): string {
 
   lines.push(`Promoted${suffix}:`);
   if (outcome.promoted.length > 0) {
-    for (const id of outcome.promoted) lines.push(`- ${id}`);
+    const notices = new Map(
+      (outcome.promotedNotices ?? []).map((n) => [n.story_id, n.message] as const),
+    );
+    for (const id of outcome.promoted) {
+      lines.push(`- ${id}`);
+      const notice = notices.get(id);
+      if (notice !== undefined && notice.trim().length > 0) {
+        for (const line of notice.split(/\r?\n/)) {
+          lines.push(`  ${line}`);
+        }
+      }
+    }
   } else {
     lines.push("- none");
   }
@@ -188,6 +204,10 @@ export function renderGraphReport(outcome: ReconcileGraphOutcome): string {
 export function graphOutcomeToJson(outcome: ReconcileGraphOutcome): Record<string, unknown> {
   return {
     promoted: [...outcome.promoted],
+    promoted_notices: (outcome.promotedNotices ?? []).map((n) => ({
+      story_id: n.story_id,
+      message: n.message,
+    })),
     deferred_wip: [...outcome.deferredWip],
     waiting: outcome.waiting.map((w) => ({ story_id: w.story_id, unresolved: w.unresolved })),
     cycles: [...outcome.cycles],
