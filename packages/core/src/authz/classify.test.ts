@@ -925,6 +925,8 @@ describe("classifyShellAuthzOps (#2944)", () => {
     );
     // Read-shaped peers stay unclassifiable (do not treat input flags / git log as dests).
     expect(classifyShellAuthzOps("grep -f .deft/authz/patterns.txt src.txt")).toEqual([]);
+    expect(classifyShellAuthzOps("grep --file .deft/authz/patterns.txt src.txt")).toEqual([]);
+    expect(classifyShellAuthzOps("grep --file=.deft/authz/patterns.txt src.txt")).toEqual([]);
     expect(classifyShellAuthzOps("Get-Content -Path .deft/authz/state.json")).toEqual([]);
     expect(classifyShellAuthzOps("git log -- .deft/authz/state.json")).toEqual([]);
     expect(classifyShellAuthzOps("git log worktree -- .deft/authz/state.json")).toEqual([]);
@@ -981,6 +983,8 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("mogrify -write .deft/authz/grants/evil.json src.png")).toContain(
       "settings",
     );
+    expect(classifyShellAuthzOps("mogrify .deft/authz/grants/evil.json")).toContain("settings");
+    expect(classifyShellAuthzOps("mogrify .deft/authz/x extra.png")).toContain("settings");
     // Last-positional dest bins: protected source that writes elsewhere is not dest plant.
     expect(classifyShellAuthzOps("aws s3 cp .deft/authz/x /tmp/out")).toEqual([]);
     expect(classifyShellAuthzOps("convert .deft/authz/x /tmp/out")).toEqual([]);

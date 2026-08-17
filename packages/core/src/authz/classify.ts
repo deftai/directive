@@ -505,7 +505,8 @@ const PROTECTED_POSITIONAL_BINS = new Set([
  * Bins whose dest is the last pathish operand (src … dest). A protected
  * source that writes elsewhere is not a dest plant (#3421 residual).
  */
-const LAST_POSITIONAL_DEST_BINS = new Set(["aws", "convert", "magick", "mogrify"]);
+const LAST_POSITIONAL_DEST_BINS = new Set(["aws", "convert", "magick"]);
+/** In-place ImageMagick writer: every protected operand is a dest, not last-only. */
 const MAGICK_FAMILY_BINS = new Set(["convert", "magick", "mogrify"]);
 const MAGICK_WRITE_DEST_FLAGS = new Set(["-write"]);
 
@@ -562,6 +563,24 @@ const GENERIC_PROTECTED_EXTRA_DEST_FLAGS = new Set([
   "--file",
   "--separate-git-dir",
 ]);
+/** Bins whose `--file` / `-f` operand is an input, not a dest plant. */
+const READ_SHAPED_FILE_FLAG_BINS = new Set([
+  "grep",
+  "egrep",
+  "fgrep",
+  "rg",
+  "ag",
+  "ack",
+  "get-content",
+  "gc",
+  "cat",
+  "type",
+  "less",
+  "more",
+  "head",
+  "tail",
+]);
+const READ_INPUT_FILE_FLAGS = new Set(["--file", "-f"]);
 /** PowerShell New-Item dest flags (not generic: Get-Content -Path is a read). */
 const NEW_ITEM_PATH_DEST_FLAGS = new Set(["-path", "-literalpath", "--literalpath"]);
 /** git subcommands whose positionals can plant a dest (#3421). */
@@ -1068,6 +1087,10 @@ function isGenericProtectedDestFlag(flag: string): boolean {
   return DOWNLOADER_FILE_DEST_FLAGS.has(flag) || GENERIC_PROTECTED_EXTRA_DEST_FLAGS.has(flag);
 }
 
+function isReadShapedInputFileFlag(bin: string, flag: string): boolean {
+  return READ_SHAPED_FILE_FLAG_BINS.has(bin) && READ_INPUT_FILE_FLAGS.has(flag);
+}
+
 /**
  * True only when the git *subcommand* (first non-flag token) is a dest writer.
  * Later operands named clone/worktree/submodule (e.g. `git log worktree -- …`)
@@ -1137,7 +1160,7 @@ function genericProtectedDests(tokens: readonly string[]): string[] {
     if (n.includes("=") && (n.startsWith("-") || n.startsWith("--"))) {
       const eq = raw.indexOf("=");
       const flag = normalizeToken(raw.slice(0, eq));
-      if (isGenericProtectedDestFlag(flag)) {
+      if (isGenericProtectedDestFlag(flag) && !isReadShapedInputFileFlag(currentBin, flag)) {
         const dest = pathishToken(raw.slice(eq + 1));
         if (pathishIsProtectedDest(dest)) dests.push(dest);
       }
@@ -1159,7 +1182,7 @@ function genericProtectedDests(tokens: readonly string[]): string[] {
       if (pathishIsProtectedDest(dest)) dests.push(dest);
       continue;
     }
-    if (isGenericProtectedDestFlag(n)) {
+    if (isGenericProtectedDestFlag(n) && !isReadShapedInputFileFlag(currentBin, n)) {
       const next = tokens[i + 1];
       if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
         const dest = pathishToken(next);
