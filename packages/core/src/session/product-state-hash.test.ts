@@ -164,6 +164,38 @@ describe("hashProductState (#3387)", () => {
     expect(second.digest).not.toBe(first.digest);
   });
 
+  it("includes brace-alternative files under a hidden directory", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-brace-"));
+    mkdirSync(join(root, "frontend", ".generated"), { recursive: true });
+    writeFileSync(join(root, "frontend", "app.ts"), "export const app = 1;\n", "utf8");
+    writeFileSync(
+      join(root, "frontend", ".generated", "config.ts"),
+      "export const generated = 1;\n",
+      "utf8",
+    );
+    writeFileSync(
+      join(root, "frontend", ".generated", "config.js"),
+      "export const generatedJs = 1;\n",
+      "utf8",
+    );
+    const plan = {
+      acceptance: { commands: [{ command: "true" }] },
+      metadata: { swarm: { file_scope: ["frontend/**/*.{ts,js}"] } },
+    };
+    const first = hashProductState({ projectRoot: root, plan });
+    expect(first.complete).toBe(true);
+    expect(first.files).toContain("frontend/app.ts");
+    expect(first.files).toContain("frontend/.generated/config.ts");
+    expect(first.files).toContain("frontend/.generated/config.js");
+    writeFileSync(
+      join(root, "frontend", ".generated", "config.js"),
+      "export const generatedJs = 2;\n",
+      "utf8",
+    );
+    const second = hashProductState({ projectRoot: root, plan });
+    expect(second.digest).not.toBe(first.digest);
+  });
+
   it("includes a file under a hidden directory in a recursive ** file glob", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-hiddendir-"));
     mkdirSync(join(root, "frontend", ".generated"), { recursive: true });

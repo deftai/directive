@@ -160,10 +160,38 @@ function globPatternsIncludingDotfiles(pattern: string): readonly string[] {
   return [...patterns];
 }
 
+function closeBraceIndex(pattern: string, open: number): number {
+  let depth = 0;
+  for (let i = open; i < pattern.length; i += 1) {
+    if (pattern[i] === "{") depth += 1;
+    else if (pattern[i] === "}") {
+      depth -= 1;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+function splitBraceAlts(inner: string): string[] {
+  const alts: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < inner.length; i += 1) {
+    if (inner[i] === "{") depth += 1;
+    else if (inner[i] === "}") depth -= 1;
+    else if (inner[i] === "," && depth === 0) {
+      alts.push(inner.slice(start, i));
+      start = i + 1;
+    }
+  }
+  alts.push(inner.slice(start));
+  return alts;
+}
+
 /** Match a posix relpath; ** includes hidden directory segments. */
-function globToRegExp(pattern: string): RegExp {
+function globToRegExpSource(pattern: string): string {
   let i = 0;
-  let out = "^";
+  let out = "";
   while (i < pattern.length) {
     if (pattern.startsWith("**", i)) {
       i += 2;
@@ -203,11 +231,27 @@ function globToRegExp(pattern: string): RegExp {
       i = end + 1;
       continue;
     }
-    if ("\\^$+{}()|.".includes(c)) out += `\\${c}`;
+    if (c === "{") {
+      const end = closeBraceIndex(pattern, i);
+      if (end === -1) {
+        out += "\\{";
+        i += 1;
+        continue;
+      }
+      const alts = splitBraceAlts(pattern.slice(i + 1, end));
+      out += `(?:${alts.map((alt) => globToRegExpSource(alt)).join("|")})`;
+      i = end + 1;
+      continue;
+    }
+    if ("\\^$+()|.".includes(c)) out += `\\${c}`;
     else out += c;
     i += 1;
   }
-  return new RegExp(`${out}$`);
+  return out;
+}
+
+function globToRegExp(pattern: string): RegExp {
+  return new RegExp(`^${globToRegExpSource(pattern)}$`);
 }
 
 function fileScopePaths(plan: Record<string, unknown>): string[] {
