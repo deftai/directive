@@ -100,6 +100,24 @@ describe("hashProductState (#3387)", () => {
     expect(second.digest).not.toBe(first.digest);
   });
 
+  it("includes a nested leading-dot file under a recursive ** scope", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-recdot-"));
+    mkdirSync(join(root, "frontend", "a"), { recursive: true });
+    writeFileSync(join(root, "frontend", "a", "app.ts"), "export const app = 1;\n", "utf8");
+    writeFileSync(join(root, "frontend", "a", ".env"), "SECRET=1\n", "utf8");
+    const plan = {
+      acceptance: { commands: [{ command: "true" }] },
+      metadata: { swarm: { file_scope: ["frontend/**"] } },
+    };
+    const first = hashProductState({ projectRoot: root, plan });
+    expect(first.complete).toBe(true);
+    expect(first.files).toContain("frontend/a/app.ts");
+    expect(first.files).toContain("frontend/a/.env");
+    writeFileSync(join(root, "frontend", "a", ".env"), "SECRET=2\n", "utf8");
+    const second = hashProductState({ projectRoot: root, plan });
+    expect(second.digest).not.toBe(first.digest);
+  });
+
   it("terminates when a directory symlink cycle is present", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-cycle-"));
     mkdirSync(join(root, "frontend"), { recursive: true });

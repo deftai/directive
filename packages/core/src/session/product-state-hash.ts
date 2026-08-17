@@ -120,15 +120,30 @@ function walkFiles(root: string, dir: string, out: string[], seen = new Set<stri
 /**
  * Node `fs.globSync` omits leading-dot names and has no `{ dot }` option.
  * Pair `*`/`?` with a hidden-name variant so product `.env` files hash.
+ * Keep `**` intact (rewriting it to `.*` would break recursion) and add a
+ * recursive hidden-name pattern (a trailing `**` also matches `**` + `/` + `.*`).
  */
 function globPatternsIncludingDotfiles(pattern: string): readonly string[] {
+  const patterns = new Set<string>([pattern]);
   const protectedStars = pattern.replace(/\*\*/g, "\0");
-  if (!/[*?]/.test(protectedStars)) return [pattern];
-  const hidden = protectedStars
-    .replace(/(^|\/)\*/g, "$1.*")
-    .replace(/(^|\/)\?/g, "$1.?")
-    .replace(/\0/g, "**");
-  return hidden === pattern ? [pattern] : [pattern, hidden];
+  if (/[*?]/.test(protectedStars)) {
+    const hidden = protectedStars
+      .replace(/(^|\/)\*/g, "$1.*")
+      .replace(/(^|\/)\?/g, "$1.?")
+      .replace(/\0/g, "**");
+    patterns.add(hidden);
+  }
+  if (pattern.includes("**")) {
+    if (/\*\*(?:\/\*)?$/.test(pattern)) {
+      patterns.add(pattern.replace(/\*\*(?:\/\*)?$/, "**/.*"));
+    } else {
+      const dottedTail = pattern.replace(/(^|\/)([^/]*)$/, (_match, slash: string, name: string) =>
+        name.startsWith(".") ? `${slash}${name}` : `${slash}.${name}`,
+      );
+      patterns.add(dottedTail);
+    }
+  }
+  return [...patterns];
 }
 
 function fileScopePaths(plan: Record<string, unknown>): string[] {
