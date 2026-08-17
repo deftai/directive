@@ -372,6 +372,7 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
   const orphans: OrphanActiveBrief[] = [];
   for (const brief of listActiveRunningBriefs(root)) {
     const { issues, prs } = collectGithubRefs(brief.plan, defaultRepo);
+    // --issue N is one origin: briefs that name that issue. PR-only briefs stay on the unscoped scan (#3429).
     if (issueFilter !== null && !briefReferencesIssue(issues, issueFilter)) {
       continue;
     }
