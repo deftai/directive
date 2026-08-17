@@ -1107,6 +1107,8 @@ describe("UAT residual dest-form writers fail-closed (#3421)", () => {
       "fossil --workdir .deft/authz/grants open repo.fossil",
       "aws s3 cp s3://evil/x .deft/authz/grants/evil.json",
       "aws s3 cp src .deft/authz/grants/evil.json",
+      "sudo aws s3 cp src .deft/authz/grants/evil.json",
+      "env aws s3 cp src .deft-directive-disable",
       "convert src .deft/approved-scope/story.json",
       "magick src .no-deft-directive",
     ]) {
@@ -1221,6 +1223,9 @@ describe("UAT residual dest-form writers fail-closed (#3421)", () => {
       "echo x > .deft/authz-backup/story.json",
       "echo x > .deft/foo/../authz-backup/story.json",
       "aws s3 cp .deft/authz/x /tmp/out",
+      "env aws s3 cp .deft-directive-disable /tmp/out",
+      "env aws s3 cp .deft/authz/x /tmp/out",
+      "FOO=1 aws s3 cp .deft/authz/x /tmp/out",
       "convert .deft/authz/x /tmp/out",
       "magick .deft/authz/x /tmp/out",
       "aws s3 cp .deft/approved-scope/x /tmp/out",

@@ -506,6 +506,25 @@ const PROTECTED_POSITIONAL_BINS = new Set([
  * source that writes elsewhere is not a dest plant (#3421 residual).
  */
 const LAST_POSITIONAL_DEST_BINS = new Set(["aws", "convert", "magick"]);
+/** Wrappers / assignments before the dest-owning bin (`env aws`, `FOO=1 convert`). */
+const COMMAND_WRAPPER_BINS = new Set([
+  "env",
+  "command",
+  "nice",
+  "nohup",
+  "sudo",
+  "doas",
+  "time",
+  "stdbuf",
+  "timeout",
+  "ionice",
+]);
+
+function isWrapperOrAssignmentToken(raw: string, n: string): boolean {
+  if (COMMAND_WRAPPER_BINS.has(binBareName(raw))) return true;
+  return n.includes("=") && !n.startsWith("-") && !raw.includes("/") && !raw.includes("\\");
+}
+
 /** In-place ImageMagick writer: every protected operand is a dest, not last-only. */
 const MAGICK_FAMILY_BINS = new Set(["convert", "magick", "mogrify"]);
 const MAGICK_WRITE_DEST_FLAGS = new Set(["-write"]);
@@ -525,7 +544,7 @@ function segmentStartedByLastPositionalDest(
     const raw = tokens[k] as string;
     if (isShellSegmentBreak(raw)) continue;
     const n = normalizeToken(raw);
-    if (n.startsWith("-")) continue;
+    if (n.startsWith("-") || isWrapperOrAssignmentToken(raw, n)) continue;
     return LAST_POSITIONAL_DEST_BINS.has(binBareName(raw));
   }
   return false;

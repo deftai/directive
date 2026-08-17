@@ -997,6 +997,15 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("magick .deft/authz/x /tmp/out")).toEqual([]);
     expect(classifyShellAuthzOps("aws s3 cp .deft/approved-scope/x /tmp/out")).toEqual([]);
     expect(classifyShellAuthzOps("convert .deft-directive-disable /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("env aws s3 cp .deft-directive-disable /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("env aws s3 cp .deft/authz/x /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("FOO=1 aws s3 cp .deft/authz/x /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("sudo aws s3 cp src .deft/authz/grants/evil.json")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("env aws s3 cp src .deft-directive-disable")).toContain(
+      "settings",
+    );
     expect(classifyShellAuthzOps("aws s3 cp src .deft/authz/grants/evil.json")).toContain(
       "settings",
     );
