@@ -217,6 +217,8 @@ the configured mirror.
 
    **Prettier / format gate (#2534):** managed `.deft/core/` is outside your consumer Prettier gate. `directive init` and `directive update` idempotently deposit or heal a root `.prettierignore` entry for `.deft/core/` so `prettier --check .` (and `task check` when Prettier is wired) does not fail on the vendored framework payload. You do not need to reformat `.deft/core/` after upgrade.
 
+   **Schema rewrite / format before the upgrade PR (#3395):** `deft update` may rewrite consumer-owned `xbrief/schemas/*`. It does **not** run your repo formatter. When the update summary lists rewritten consumer-owned paths, run `task fmt` (or your formatter) **before** opening the upgrade PR so Prettier / `task check` stay green.
+
    > **`deft update` is the single canonical upgrade verb (#2064).** The older `deft install-upgrade` (and its `task upgrade` maintainer alias) now print a one-line notice and delegate to this exact `deft update` path — they no longer have their own semantics. Previously `install-upgrade` only rewrote the marker/manifest without swapping the payload, so on a stale deposit it reported a false "Project already at X. Nothing to do." Use `deft update`; there is nothing `install-upgrade` does that `deft update` does not.
 
 3. **Stamp npm provenance (one-time, idempotent):**
@@ -281,6 +283,8 @@ A normal framework upgrade is **one PR**, not two stacked PRs. The deposited `de
 | Arbitrary playbooks, cast, features | Product scope, not upgrade |
 
 **Do not** split a routine version bump into “deposit-only” then “pin/GENERATION” PRs — that re-creates engine / deposit / pin skew between merges. **Do** keep product feature work on a separate branch/PR from the framework upgrade. Consumers should **not** hand-roll a forked `deft-core-guard.yml` for normal upgrades — the deposited workflow already enforces pin-only + lock follow-through.
+
+**Format before you open the PR (#3395):** if `deft update` listed rewritten consumer-owned `xbrief/schemas/*` paths, run `task fmt` (or your repo formatter) first. Update does not invoke the consumer formatter.
 
 **Load fix (#3345):** if GitHub Actions shows workflow name as the path string `.github/workflows/deft-core-guard.yml` (not `deft-core-guard`), or historical runs are 0s/0 jobs and the required check `no-mixed-core-and-app` never appears on PRs, the deposited workflow failed to load (invalid YAML from an unindented Python heredoc). Run `deft update` (or re-init deposit) so the fixed workflow is rewritten, then open a normal upgrade PR — classic branch protection that requires `no-mixed-core-and-app` can clear once the job posts.
 

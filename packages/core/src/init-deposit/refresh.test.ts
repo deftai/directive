@@ -26,9 +26,11 @@ import { detectXbriefConvergence } from "../xbrief-migrate/detect.js";
 import { type LegacyLayoutDetection, LegacyLayoutRefusedError } from "./legacy-detect.js";
 import {
   buildVersionSkewNotice,
+  formatPrettierSensitiveAnnounce,
   frameworkRefreshSideEffects,
   NOT_INITIALIZED_MESSAGE,
   parseUpdateArgv,
+  prettierSensitiveRewrites,
   printRefreshSideEffects,
   printUpdateComplete,
   runRefreshDeposit,
@@ -864,6 +866,83 @@ describe("runRefreshDeposit", () => {
     expect(lines.join("")).not.toContain("directive migrate");
   });
 
+  it("printUpdateComplete announces prettier-sensitive schema rewrites from the ledger (#3395)", () => {
+    const project = freshRoot("refresh-prettier-announce-");
+    const deftDir = join(project, ".deft", "core");
+    mkdirSync(deftDir, { recursive: true });
+    const mutations = {
+      ...emptyMutationSummary(),
+      wrote: [
+        "AGENTS.md",
+        "xbrief/schemas/xbrief-core-0.8.schema.json",
+        "xbrief/schemas/candidates.schema.json",
+        ".cursor/hooks.json",
+      ],
+    };
+    expect(prettierSensitiveRewrites(mutations)).toEqual([
+      "xbrief/schemas/xbrief-core-0.8.schema.json",
+      "xbrief/schemas/candidates.schema.json",
+    ]);
+    expect(formatPrettierSensitiveAnnounce(prettierSensitiveRewrites(mutations))).toContain(
+      "task fmt",
+    );
+    const lines: string[] = [];
+    printUpdateComplete(
+      {
+        projectDir: project,
+        deftDir,
+        contentVersion: "0.61.0",
+        engineVersion: "0.61.0",
+        previousDepositVersion: "0.60.0",
+        alreadyCurrent: false,
+        strategy: "file-swap",
+        agentsMdUpdated: true,
+        versionSkewNotice: null,
+        legacyLayout: false,
+        taskfileWired: false,
+        stagedPaths: [],
+        mutations,
+      },
+      { printf: (text) => lines.push(text) },
+    );
+    const printed = lines.join("");
+    expect(printed).toContain("Rewritten consumer-owned paths");
+    expect(printed).toContain("task fmt");
+    expect(printed).toContain("xbrief/schemas/xbrief-core-0.8.schema.json");
+    expect(printed).toContain("xbrief/schemas/candidates.schema.json");
+    expect(printed).not.toMatch(/Rewritten consumer-owned paths[\s\S]*AGENTS\.md/);
+  });
+
+  it("printUpdateComplete omits the prettier announce when no schema rewrites landed (#3395)", () => {
+    const project = freshRoot("refresh-prettier-silent-");
+    const deftDir = join(project, ".deft", "core");
+    mkdirSync(deftDir, { recursive: true });
+    const lines: string[] = [];
+    printUpdateComplete(
+      {
+        projectDir: project,
+        deftDir,
+        contentVersion: "0.61.0",
+        engineVersion: "0.61.0",
+        previousDepositVersion: "0.60.0",
+        alreadyCurrent: false,
+        strategy: "file-swap",
+        agentsMdUpdated: true,
+        versionSkewNotice: null,
+        legacyLayout: false,
+        taskfileWired: false,
+        stagedPaths: [],
+        mutations: {
+          ...emptyMutationSummary(),
+          wrote: ["AGENTS.md", ".cursor/hooks.json"],
+        },
+      },
+      { printf: (text) => lines.push(text) },
+    );
+    expect(lines.join("")).not.toContain("Rewritten consumer-owned paths");
+    expect(lines.join("")).not.toContain("task fmt");
+  });
+
   it("wires Taskfile.yml and stages it on upgrade (#1576)", async () => {
     const project = freshRoot("refresh-taskfile-");
     const contentRoot = installFakeContentPackage(project);
@@ -1634,5 +1713,66 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
       ]),
     );
     expect(wrote).toEqual(expect.arrayContaining([".deft/core/main.md"]));
+  });
+
+  it("announces rewritten xbrief/schemas paths from the ledger and does not run prettier (#3395)", async () => {
+    const project = freshRoot("refresh-prettier-ledger-");
+    const contentRoot = installFakeContentPackage(project);
+    writeFileSync(
+      join(contentRoot, "vbrief", "schemas", "candidates.schema.json"),
+      '{"description":"new"}\n',
+      "utf8",
+    );
+    mkdirSync(join(project, "xbrief", "active"), { recursive: true });
+    mkdirSync(join(project, "xbrief", "schemas"), { recursive: true });
+    writeFileSync(
+      join(project, "xbrief", "active", "2026-08-16-seed.xbrief.json"),
+      '{"xBRIEFInfo":{"version":"0.8"},"plan":{"title":"seed","status":"running"}}\n',
+      "utf8",
+    );
+    writeFileSync(
+      join(project, "xbrief", "schemas", "xbrief-core-0.8.schema.json"),
+      "stale-core\n",
+      "utf8",
+    );
+    writeFileSync(
+      join(project, "xbrief", "schemas", "candidates.schema.json"),
+      "stale-cand\n",
+      "utf8",
+    );
+
+    const result = await runRefreshDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
+      { printf: () => {} },
+      {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.53.0",
+        nowIso: () => "2026-08-16T12:00:00Z",
+        gitPorcelain: () => "",
+      },
+    );
+
+    expect(result.mutations.wrote).toEqual(
+      expect.arrayContaining([
+        "xbrief/schemas/xbrief-core-0.8.schema.json",
+        "xbrief/schemas/candidates.schema.json",
+      ]),
+    );
+    expect(prettierSensitiveRewrites(result.mutations)).toEqual(
+      expect.arrayContaining([
+        "xbrief/schemas/xbrief-core-0.8.schema.json",
+        "xbrief/schemas/candidates.schema.json",
+      ]),
+    );
+    const lines: string[] = [];
+    printUpdateComplete(result, { printf: (text) => lines.push(text) });
+    const printed = lines.join("");
+    expect(printed).toContain("Rewritten consumer-owned paths");
+    expect(printed).toContain("task fmt");
+    expect(printed).toContain("xbrief/schemas/xbrief-core-0.8.schema.json");
+    expect(printed).toContain("xbrief/schemas/candidates.schema.json");
+    expect(
+      readFileSync(join(process.cwd(), "packages/core/src/init-deposit/refresh.ts"), "utf8"),
+    ).not.toMatch(/prettier --write|npx prettier|pnpm exec prettier/);
   });
 });

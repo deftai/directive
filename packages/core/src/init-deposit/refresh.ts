@@ -566,12 +566,36 @@ export function buildUpdateSummaryJson(input: {
     dirty_files: [],
     staged_paths: result.stagedPaths,
     mutations: mutationSummaryJson(result.mutations),
+    prettier_sensitive_rewrites: prettierSensitiveRewrites(result.mutations),
     backup_path: "",
     previous_version: result.previousDepositVersion ?? "",
     content_version: result.contentVersion,
     version_skew_notice: result.versionSkewNotice,
     agents_md_updated: result.agentsMdUpdated,
   };
+}
+
+/** Consumer-owned prefixes whose rewrite can fail a repo Prettier/fmt gate (#3395). */
+export const PRETTIER_SENSITIVE_CONSUMER_PREFIXES = ["xbrief/schemas/"] as const;
+
+export const PRETTIER_SENSITIVE_FMT_HINT =
+  "run `task fmt` or your repo formatter before the upgrade PR";
+
+/** Ledger `wrote` paths under prettier-sensitive consumer-owned prefixes. */
+export function prettierSensitiveRewrites(summary: MutationSummary): string[] {
+  return summary.wrote.filter((path) =>
+    PRETTIER_SENSITIVE_CONSUMER_PREFIXES.some(
+      (prefix) => path === prefix.slice(0, -1) || path.startsWith(prefix),
+    ),
+  );
+}
+
+export function formatPrettierSensitiveAnnounce(paths: readonly string[]): string {
+  if (paths.length === 0) return "";
+  return (
+    `Rewritten consumer-owned paths (${PRETTIER_SENSITIVE_FMT_HINT}):\n` +
+    paths.map((path) => `  ${path}\n`).join("")
+  );
 }
 
 export function printUpdateComplete(
@@ -597,6 +621,10 @@ export function printUpdateComplete(
   const mutationText = formatMutationSummary(result.mutations);
   if (mutationText.length > 0) {
     io.printf(`\n${mutationText}`);
+  }
+  const prettierText = formatPrettierSensitiveAnnounce(prettierSensitiveRewrites(result.mutations));
+  if (prettierText.length > 0) {
+    io.printf(`\n${prettierText}`);
   }
   printMigrateNudgeIfNeeded(result.projectDir, io);
   io.printf("\n");
