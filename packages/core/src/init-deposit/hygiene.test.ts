@@ -48,6 +48,7 @@ import {
   stageFrameworkPaths,
 } from "./hygiene.js";
 import { CANONICAL_TASKFILE_INCLUDE } from "./scaffold.js";
+import { syncConsumerXbriefSchemas } from "./xbrief-projections.js";
 
 describe("installer-managed allowlist (#1576)", () => {
   it("treats Taskfile.yml as installer-managed", () => {
@@ -1349,6 +1350,36 @@ describe("ledger intersection staging (#3394)", () => {
     expect(argv[0]?.includes("-A")).toBe(false);
     expect(argv[0]?.[0]).toBe("add");
     expect(argv[0]?.[1]).toBe("--");
+  });
+
+  it("stages a tracked obsolete schema delete as D (#3418)", () => {
+    const project = freshRoot("hygiene-ledger-schema-d-");
+    const deftDir = join(project, ".deft", "core");
+    mkdirSync(join(deftDir, "vbrief", "schemas"), { recursive: true });
+    mkdirSync(join(project, "xbrief", "schemas"), { recursive: true });
+    writeFileSync(
+      join(deftDir, "vbrief", "schemas", "xbrief-core-0.8.schema.json"),
+      "current\n",
+      "utf8",
+    );
+    writeFileSync(join(project, "xbrief", "schemas", "vbrief-core.schema.json"), "stale\n", "utf8");
+    writeFileSync(join(project, "AGENTS.md"), "# Agent\n", "utf8");
+    initGitRepo(project);
+
+    const result = runWithMutationLedger(project, () => {
+      syncConsumerXbriefSchemas(project, deftDir);
+      return depositStagePaths(project);
+    });
+
+    const schemaRel = "xbrief/schemas/vbrief-core.schema.json";
+    expect(result.stagePaths).toContain(schemaRel);
+    expect(result.stagedPaths).toContain(schemaRel);
+    const cached = execFileSync("git", ["diff", "--cached", "--name-status"], {
+      cwd: project,
+      encoding: "utf8",
+    });
+    const deletedLine = cached.split(/\r?\n/).find((row) => row.includes(schemaRel)) ?? "";
+    expect(deletedLine.startsWith("D")).toBe(true);
   });
 });
 

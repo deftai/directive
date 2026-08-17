@@ -6,9 +6,9 @@
  * these repairs.
  */
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import { containedWrite } from "../fs/contained-write.js";
+import { containedRemove, containedWrite } from "../fs/contained-write.js";
 import { assertDestinationNotSymlink } from "../fs/projection-containment.js";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { DEV_FALLBACK } from "../platform/constants.js";
@@ -124,9 +124,7 @@ export function syncConsumerXbriefSchemas(projectDir: string, deftDir: string): 
   }
 
   const obsoleteDestination = join(destinationDir, OBSOLETE_CORE_SCHEMA);
-  assertDestinationNotSymlink(projectDir, obsoleteDestination);
-  if (existsSync(obsoleteDestination)) {
-    rmSync(obsoleteDestination, { force: true });
+  if (containedRemove({ root: projectDir, target: obsoleteDestination }).removed) {
     changed = true;
   }
 
