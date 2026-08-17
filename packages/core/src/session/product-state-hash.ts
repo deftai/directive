@@ -227,6 +227,35 @@ function closeBraceIndex(pattern: string, open: number): number {
   return -1;
 }
 
+function closeParenIndex(pattern: string, open: number): number {
+  let depth = 0;
+  for (let i = open; i < pattern.length; i += 1) {
+    if (pattern[i] === "(") depth += 1;
+    else if (pattern[i] === ")") {
+      depth -= 1;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+function splitExtglobAlts(inner: string): string[] {
+  const alts: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < inner.length; i += 1) {
+    const ch = inner[i];
+    if (ch === "(" || ch === "{") depth += 1;
+    else if (ch === ")" || ch === "}") depth -= 1;
+    else if (ch === "|" && depth === 0) {
+      alts.push(inner.slice(start, i));
+      start = i + 1;
+    }
+  }
+  alts.push(inner.slice(start));
+  return alts;
+}
+
 function splitBraceAlts(inner: string): string[] {
   const alts: string[] = [];
   let depth = 0;
@@ -259,6 +288,20 @@ function globToRegExpSource(pattern: string): string {
       continue;
     }
     const c = pattern[i] as string;
+    if ((c === "@" || c === "*" || c === "+" || c === "?" || c === "!") && pattern[i + 1] === "(") {
+      const end = closeParenIndex(pattern, i + 1);
+      if (end !== -1) {
+        const alts = splitExtglobAlts(pattern.slice(i + 2, end));
+        const body = alts.map((alt) => globToRegExpSource(alt)).join("|");
+        if (c === "@") out += `(?:${body})`;
+        else if (c === "*") out += `(?:${body})*`;
+        else if (c === "+") out += `(?:${body})+`;
+        else if (c === "?") out += `(?:${body})?`;
+        else out += `(?:(?!(?:${body})$)[^/]+)`;
+        i = end + 1;
+        continue;
+      }
+    }
     if (c === "*") {
       out += "[^/]*";
       i += 1;
@@ -319,9 +362,9 @@ function fileScopePaths(plan: Record<string, unknown>): string[] {
   );
 }
 
-/** `*`/`?` plus class/brace forms so they are not hashed as a missing literal. */
+/** `*`/`?` plus class/brace/extglob forms so they are not hashed as a missing literal. */
 function looksLikeGlob(rel: string): boolean {
-  return /[*?[\]{}]/.test(rel);
+  return /[*?[\]{}]/.test(rel) || /[@*+?!]\(/.test(rel);
 }
 
 /** Longest non-glob directory prefix before ** (wildcard mid-path walks from that dir). */

@@ -82,6 +82,34 @@ describe("hashProductState (#3387)", () => {
     expect(brace.files).toEqual([]);
   });
 
+  it("expands extglob file_scope and fails closed when nothing matches", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-extglob-"));
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src", "a.ts"), "export const a = 1;\n", "utf8");
+    writeFileSync(join(root, "src", "b.ts"), "export const b = 1;\n", "utf8");
+    writeFileSync(join(root, "src", "c.ts"), "export const c = 1;\n", "utf8");
+    const plan = {
+      acceptance: { commands: [{ command: "true" }] },
+      metadata: { swarm: { file_scope: ["src/@(a|b).ts"] } },
+    };
+    const first = hashProductState({ projectRoot: root, plan });
+    expect(first.complete).toBe(true);
+    expect(first.files).toEqual(["src/a.ts", "src/b.ts"]);
+    writeFileSync(join(root, "src", "a.ts"), "export const a = 2;\n", "utf8");
+    const second = hashProductState({ projectRoot: root, plan });
+    expect(second.digest).not.toBe(first.digest);
+
+    const empty = hashProductState({
+      projectRoot: root,
+      plan: {
+        acceptance: { commands: [{ command: "true" }] },
+        metadata: { swarm: { file_scope: ["src/@(missing).ts"] } },
+      },
+    });
+    expect(empty.complete).toBe(false);
+    expect(empty.files).toEqual([]);
+  });
+
   it("includes a character-class-selected dotfile and invalidates the digest when it changes", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-classdot-"));
     mkdirSync(join(root, "frontend"), { recursive: true });
