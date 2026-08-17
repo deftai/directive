@@ -294,6 +294,8 @@ including PROJECT-DEFINITION.xbrief.json.
 **Custom Rules**:
 {custom rules or "No custom rules defined yet."}
 
+**Forge outage retry** (optional): `forgeOutageRetryMinutes: 30` — integer minutes, minimum 5. Default 30. Personal wins over `plan.policy.forgeOutageRetryMinutes`. Omit to use project policy or the framework default. Inspect: `task policy:show --field=forgeOutageRetryMinutes`.
+
 ## Defaults (fallback)
 
 Settings in this section are fallback defaults. PROJECT-DEFINITION.xbrief.json overrides these

@@ -279,6 +279,14 @@ describe("test_review_cycle_skill", () => {
     expect(text).toContain("#2688");
   });
 
+  it("forge-outage drop-back + 30m retry (#3422)", () => {
+    const text = readReviewCycleSkill();
+    expect(text).toContain("Forge-outage drop-back (#3422)");
+    expect(text).toContain("forgeOutageRetryMinutes");
+    expect(text).toContain("#3167");
+    expect(text).toContain("#3180");
+  });
+
   it("slizard advisory-only for merge-ready wait (#3167)", () => {
     const text = readReviewCycleSkill();
     expect(text).toContain("SLizard advisory-only for merge-ready wait (#3167)");

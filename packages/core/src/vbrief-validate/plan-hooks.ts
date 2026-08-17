@@ -112,6 +112,53 @@ export function validateSessionRitualStalenessHoursOnPlan(
   return out;
 }
 
+function validateForgeOutageRetryMinutes(value: unknown): string[] {
+  if (value === null || value === undefined) {
+    return [];
+  }
+  if (typeof value !== "number" || !Number.isInteger(value)) {
+    const repr =
+      typeof value === "string"
+        ? pyStrRepr(value)
+        : value === null
+          ? "None"
+          : typeof value === "boolean"
+            ? value
+              ? "True"
+              : "False"
+            : String(value);
+    return [
+      "plan.policy.forgeOutageRetryMinutes must be an integer; got " +
+        `${pythonTypeName(value)} (${repr})`,
+    ];
+  }
+  if (value < 5) {
+    return [`plan.policy.forgeOutageRetryMinutes must be >= 5; got ${value}`];
+  }
+  return [];
+}
+
+/** vbrief_validate hook for ``forgeOutageRetryMinutes`` (#3422). */
+export function validateForgeOutageRetryMinutesOnPlan(plan: unknown, filepath: string): string[] {
+  if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
+    return [];
+  }
+  const policy = readPlanPolicy(plan);
+  if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
+    return [];
+  }
+  if (!("forgeOutageRetryMinutes" in (policy as JsonObject))) {
+    return [];
+  }
+  const out: string[] = [];
+  for (const err of validateForgeOutageRetryMinutes(
+    (policy as JsonObject).forgeOutageRetryMinutes,
+  )) {
+    out.push(`${filepath}: ${err} (#3422)`);
+  }
+  return out;
+}
+
 /** vbrief_validate hook: validate ``plan.policy.triageRankingLabels`` (#1128). */
 export function validateTriageRankingLabelsOnPlan(plan: unknown, filepath: string): string[] {
   if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
@@ -304,6 +351,11 @@ export function runProjectDefinitionHooks(plan: unknown, filepath: string): stri
   }
   try {
     errors.push(...validateSessionRitualStalenessHoursOnPlan(plan, filepath));
+  } catch {
+    /* hook must not break validation */
+  }
+  try {
+    errors.push(...validateForgeOutageRetryMinutesOnPlan(plan, filepath));
   } catch {
     /* hook must not break validation */
   }

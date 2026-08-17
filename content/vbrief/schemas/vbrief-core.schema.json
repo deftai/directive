@@ -614,6 +614,11 @@
           "minimum": 1,
           "description": "Maximum age, in hours, for .deft/ritual-state.json before the fail-closed session ritual verifier requires task session:start to run again. Default: 4."
         },
+        "forgeOutageRetryMinutes": {
+          "type": "integer",
+          "minimum": 5,
+          "description": "Minutes to wait between GitHub I/O re-probes after a forge outage drop-back (#3422). Default: 30. USER.md Personal wins over this project field."
+        },
         "requireHumanMerge": {
           "type": "boolean",
           "description": "When true, agents may open PRs but must not merge (#1193). Defaults true when autoDeployOnMerge is also true. Override: policy:allow-bot-merge --confirm or DEFT_ALLOW_BOT_MERGE=1."

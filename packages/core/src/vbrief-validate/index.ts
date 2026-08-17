@@ -18,6 +18,7 @@ export type { ConformanceCliOptions, ValidateCliOptions } from "./main.js";
 export { cmdVbriefValidate, runConformance, runValidate } from "./main.js";
 export { validateOriginProvenance } from "./origin.js";
 export {
+  validateForgeOutageRetryMinutesOnPlan,
   validateSessionRitualStalenessHoursOnPlan,
   validateTriageRankingLabelsOnPlan,
   validateWipCapOnPlan,
