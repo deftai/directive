@@ -225,7 +225,11 @@ describe("hashProductState (#3387)", () => {
   it("includes a hidden-dir file under a wildcard prefix before **", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-wildprefix-"));
     mkdirSync(join(root, "packages", "foo", "src", ".generated"), { recursive: true });
-    writeFileSync(join(root, "packages", "foo", "src", "app.ts"), "export const app = 1;\n", "utf8");
+    writeFileSync(
+      join(root, "packages", "foo", "src", "app.ts"),
+      "export const app = 1;\n",
+      "utf8",
+    );
     writeFileSync(
       join(root, "packages", "foo", "src", ".generated", "x.ts"),
       "export const gen = 1;\n",
@@ -353,11 +357,9 @@ describe("hashProductState (#3387)", () => {
       writeFileSync(join(root, name), "v1\n");
     }
     const plan = { acceptance: { commands: [{ command: "true" }] } };
-    const zed = Buffer.concat([
-      Buffer.from("?? ", "utf8"),
-      nameBytes,
-      Buffer.from("\0"),
-    ]).toString("latin1");
+    const zed = Buffer.concat([Buffer.from("?? ", "utf8"), nameBytes, Buffer.from("\0")]).toString(
+      "latin1",
+    );
     const runGit = (_cwd: string, args: readonly string[]) => {
       if (args.includes("rev-parse")) {
         return { code: 0, stdout: "abc123", stderr: "" };
