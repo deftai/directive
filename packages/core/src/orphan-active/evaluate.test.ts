@@ -263,6 +263,40 @@ describe("evaluate", () => {
     expect(result.code).toBe(0);
   });
 
+  it("fails closed on --issue N when a linked PR is merged even if an issue is still open", () => {
+    const root = makeRepo();
+    writeBrief(root, "open-issue-merged-pr.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/1001",
+          type: "x-xbrief/github-issue",
+        },
+        {
+          uri: "https://github.com/deftai/directive/pull/42",
+          type: "x-xbrief/github-pr",
+        },
+      ],
+    });
+    writeCachedIssue(root, "deftai/directive", 1001, "open");
+    const runGh: RunGhFn = (cmd) => {
+      if (cmd.join(" ").includes("/pulls/42")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({ merged_at: "2026-08-17T00:00:00Z" }),
+          stderr: "",
+        };
+      }
+      return { returncode: 1, stdout: "", stderr: "unexpected" };
+    };
+    const result = evaluate(root, { repo: "deftai/directive", runGh, issue: 1001 });
+    expect(result.code).toBe(1);
+    expect(result.orphans[0]?.reason).toBe("linked PR #42 is merged");
+    expect(result.message).toContain(
+      "task scope:complete -- xbrief/active/open-issue-merged-pr.xbrief.json",
+    );
+  });
+
   it("fails closed on --issue N when origin state cannot be resolved", () => {
     const root = makeRepo();
     writeBrief(root, "unknown-state.xbrief.json", {

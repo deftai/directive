@@ -193,13 +193,6 @@ function assessOrphanSignature(
   failClosedUnknown: boolean,
 ): { orphaned: boolean; reason: string | null } {
   if (failClosedUnknown) {
-    const issueStates = issueRefs.map((ref) => ({
-      ref,
-      state: resolveIssueState(ref, projectRoot, runGh, skipGh),
-    }));
-    if (issueStates.some((row) => row.state === "open")) {
-      return { orphaned: false, reason: null };
-    }
     for (const pr of prRefs) {
       if (skipGh) {
         continue;
@@ -208,6 +201,13 @@ function assessOrphanSignature(
       if (merged === true) {
         return { orphaned: true, reason: `linked PR #${pr.number} is merged` };
       }
+    }
+    const issueStates = issueRefs.map((ref) => ({
+      ref,
+      state: resolveIssueState(ref, projectRoot, runGh, skipGh),
+    }));
+    if (issueStates.some((row) => row.state === "open")) {
+      return { orphaned: false, reason: null };
     }
     const unknownIssue = issueStates.find((row) => row.state === null);
     if (unknownIssue !== undefined) {
