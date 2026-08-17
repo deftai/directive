@@ -37,6 +37,7 @@ import {
   isPackageJsonDirectivePinOnlyDiff,
   isPackageLockDirectivePinFollowThrough,
   isPnpmLockDirectivePinFollowThrough,
+  isTrackedDeletePath,
   isUpgradePinPathContentAllowed,
   isYarnLockDirectivePinFollowThrough,
   pnpmLockRootDirectDeps,
@@ -1168,6 +1169,24 @@ describe("ledger intersection staging (#3394)", () => {
     expect(split.skippedUntrackedDeletes).toContain("Taskfile.yml");
   });
 
+  it("treats a ledgered directory as tracked when ls-files returns descendants", () => {
+    expect(isTrackedDeletePath(".deft/core/scripts", new Set([".deft/core/scripts/run.py"]))).toBe(
+      true,
+    );
+    expect(isTrackedDeletePath(".deft/core/scripts", new Set([".deft/core/VERSION"]))).toBe(false);
+    const split = splitLedgerForStaging(
+      {
+        wrote: [],
+        stripped: [],
+        deleted: [".deft/core/scripts"],
+        mutations: [],
+      },
+      new Set([".deft/core/scripts/run.py"]),
+    );
+    expect(split.stagePaths).toContain(".deft/core/scripts");
+    expect(split.skippedUntrackedDeletes).not.toContain(".deft/core/scripts");
+  });
+
   it("stages a tracked adapter delete as D", () => {
     const project = freshRoot("hygiene-ledger-adapter-d-");
     mkdirSync(join(project, ".cursor", "hooks"), { recursive: true });
@@ -1187,7 +1206,33 @@ describe("ledger intersection staging (#3394)", () => {
       cwd: project,
       encoding: "utf8",
     });
-    expect(cached).toMatch(new RegExp(`D\\s+${adapterRel.replace(/\./g, "\\.")}`));
+    const deletedLine = cached.split(/\r?\n/).find((row) => row.includes(adapterRel)) ?? "";
+    expect(deletedLine.startsWith("D")).toBe(true);
+  });
+
+  it("stages a tracked directory prune via descendant ls-files hits", () => {
+    const project = freshRoot("hygiene-ledger-dir-d-");
+    mkdirSync(join(project, ".deft", "core", "scripts"), { recursive: true });
+    writeFileSync(join(project, ".deft", "core", "scripts", "run.py"), "print(1)\n", "utf8");
+    writeFileSync(join(project, "AGENTS.md"), "# Agent\n", "utf8");
+    initGitRepo(project);
+    rmSync(join(project, ".deft", "core", "scripts"), { recursive: true, force: true });
+
+    const result = runWithMutationLedger(project, () => {
+      activeMutationLedger()?.record("deleted", join(project, ".deft", "core", "scripts"));
+      return depositStagePaths(project);
+    });
+
+    expect(result.stagePaths).toContain(".deft/core/scripts");
+    expect(result.skippedUntrackedDeletes).not.toContain(".deft/core/scripts");
+    const cached = execFileSync("git", ["diff", "--cached", "--name-status"], {
+      cwd: project,
+      encoding: "utf8",
+    });
+    expect(cached).toContain(".deft/core/scripts/run.py");
+    const deletedLine =
+      cached.split(/\r?\n/).find((row) => row.includes(".deft/core/scripts/run.py")) ?? "";
+    expect(deletedLine.startsWith("D")).toBe(true);
   });
 
   it("does not let an untracked delete abort other staging", () => {

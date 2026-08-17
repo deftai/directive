@@ -920,9 +920,24 @@ export interface LedgerStageSplit {
 }
 
 /**
+ * True when `git ls-files` named the path or a descendant (directory prune).
+ * Exact-only membership misses a ledgered directory whose tracked children
+ * are the ls-files hits (#3394 Greptile).
+ */
+export function isTrackedDeletePath(path: string, trackedDeletes: ReadonlySet<string>): boolean {
+  const normalized = path.replace(/\\/g, "/");
+  if (trackedDeletes.has(normalized)) return true;
+  const prefix = normalized.endsWith("/") ? normalized : `${normalized}/`;
+  for (const tracked of trackedDeletes) {
+    if (tracked === normalized || tracked.startsWith(prefix)) return true;
+  }
+  return false;
+}
+
+/**
  * Split this-run ledger paths into stageable (allowlist or core) vs remainder.
- * Deleted paths not present in `trackedDeletes` are skipped so one untracked
- * delete cannot fail a batch `git add` (#3394).
+ * Deleted paths not present in `trackedDeletes` (or under a tracked prefix)
+ * are skipped so one untracked delete cannot fail a batch `git add` (#3394).
  */
 export function splitLedgerForStaging(
   summary: MutationSummary,
@@ -942,7 +957,7 @@ export function splitLedgerForStaging(
       unstagedRemainder.push(path);
       return;
     }
-    if (deleted.has(path) && !trackedDeletes.has(path)) {
+    if (deleted.has(path) && !isTrackedDeletePath(path, trackedDeletes)) {
       skippedUntrackedDeletes.push(path);
       return;
     }
