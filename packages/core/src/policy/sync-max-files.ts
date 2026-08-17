@@ -7,7 +7,8 @@
  *
  * File-count warn uses the shared #3388 detector. Count is
  * `git diff --name-only origin/<dest>...origin/<source>`. No warn when
- * the detector says this is not a sync.
+ * the detector says this is not a sync. The #3391 verb consumes
+ * evaluateSyncMaxFilesWarn and the maxFiles one-run override.
  */
 
 import { defaultGitRunner, type GitRunner } from "../session/git.js";

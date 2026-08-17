@@ -91,6 +91,11 @@ export interface PlanPolicy {
      */
     readonly override?: "minimal" | "rapid" | "standard" | "elevated" | null;
   };
+  /**
+   * Max files for an integration-to-delivery sync warn (#3390). Unset is 400.
+   * A maxFiles argument overrides one evaluation without writing policy.
+   */
+  readonly syncMaxFiles?: number;
   readonly [key: `x-${string}`]: unknown;
 }
 
@@ -125,4 +130,5 @@ export const REGISTERED_POLICY_FIELD_NAMES = [
   "plan.policy.hotfixCriteria",
   "plan.policy.autoDeployOnMerge",
   "plan.policy.ceremonyDial",
+  "plan.policy.syncMaxFiles",
 ] as const;
