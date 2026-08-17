@@ -348,6 +348,14 @@ function takeOctalByte(body: string, index: number): { value: number; next: numb
   return { value: Number.parseInt(oct, 8), next: i };
 }
 
+/** Valid UTF-8 stays UTF-8; invalid bytes stay latin1 so the path is not U+FFFD. */
+function decodeOctalPathBytes(bytes: readonly number[]): string {
+  const buf = Buffer.from(bytes);
+  const utf8 = buf.toString("utf8");
+  if (Buffer.from(utf8, "utf8").equals(buf)) return utf8;
+  return buf.toString("latin1");
+}
+
 function decodeCEscape(body: string, index: number): { ch: string; next: number } {
   const next = body[index];
   if (next === undefined) return { ch: "\\", next: index };
@@ -378,7 +386,7 @@ function takePorcelainPathToken(raw: string): { value: string; rest: string } {
           j = oct.next;
         }
         if (bytes.length > 0) {
-          out += Buffer.from(bytes).toString("utf8");
+          out += decodeOctalPathBytes(bytes);
           i = j;
           continue;
         }
