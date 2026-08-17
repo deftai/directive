@@ -38,6 +38,11 @@ import {
   FIELD_DELIVERY_BRANCH_CLI_ALIAS,
   inspectDeliveryBranch,
 } from "./delivery-branch.js";
+import {
+  FIELD_FORGE_OUTAGE_RETRY_MINUTES,
+  FIELD_FORGE_OUTAGE_RETRY_MINUTES_CLI_ALIAS,
+  inspectForgeOutageRetryMinutes,
+} from "./forge-outage-retry.js";
 import { FIELD_HOST_HOOKS, FIELD_HOST_HOOKS_CLI_ALIAS, inspectHostHooks } from "./host-hooks.js";
 import {
   FIELD_HOST_SLASH_COMMANDS,
@@ -102,6 +107,7 @@ export * from "./decisions.js";
 export * from "./deft-directive-disable.js";
 export * from "./delivery-branch.js";
 export * from "./disclosure.js";
+export * from "./forge-outage-retry.js";
 export * from "./host-hooks.js";
 export * from "./host-slash-commands.js";
 export * from "./hotfix-criteria.js";
@@ -604,6 +610,19 @@ function inspectSyncMaxFilesField(
   };
 }
 
+function inspectForgeOutageRetryMinutesField(
+  data: Record<string, unknown> | null,
+  projectRoot?: string,
+): PolicyField {
+  const field = inspectForgeOutageRetryMinutes(data, projectRoot);
+  return {
+    name: field.name,
+    current: field.current,
+    default: field.default,
+    source: field.source,
+  };
+}
+
 const REGISTERED_POLICIES: readonly Inspector[] = [
   inspectAllowDirectCommits,
   inspectWipCap,
@@ -654,6 +673,7 @@ const REGISTERED_POLICIES: readonly Inspector[] = [
   inspectCeremonyDialField,
   inspectAcPassBankingField,
   inspectSyncMaxFilesField,
+  inspectForgeOutageRetryMinutesField,
 ];
 
 /** Walk registered inspectors and return one row per field (#1148). */
@@ -701,7 +721,9 @@ export function inspectOnePolicy(name: string, projectRoot: string): PolicyField
                                       ? FIELD_AC_PASS_BANKING
                                       : name === FIELD_SYNC_MAX_FILES_CLI_ALIAS
                                         ? FIELD_SYNC_MAX_FILES
-                                        : name;
+                                        : name === FIELD_FORGE_OUTAGE_RETRY_MINUTES_CLI_ALIAS
+                                          ? FIELD_FORGE_OUTAGE_RETRY_MINUTES
+                                          : name;
   for (const field of inspectAllPolicies(projectRoot)) {
     if (field.name === normalized) return field;
   }

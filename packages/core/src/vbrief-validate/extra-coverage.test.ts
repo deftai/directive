@@ -20,6 +20,7 @@ import {
 import { validateDeprecatedPlaceholders } from "./placeholders.js";
 import {
   runProjectDefinitionHooks,
+  validateForgeOutageRetryMinutesOnPlan,
   validateSessionRitualStalenessHoursOnPlan,
   validateTriageRankingLabelsOnPlan,
   validateWipCapOnPlan,
@@ -324,6 +325,12 @@ describe("vbrief-validate extra coverage", () => {
         fp,
       ),
     ).toEqual([]);
+    expect(
+      validateForgeOutageRetryMinutesOnPlan({ policy: { forgeOutageRetryMinutes: null } }, fp),
+    ).toEqual([]);
+    expect(
+      validateForgeOutageRetryMinutesOnPlan({ policy: { forgeOutageRetryMinutes: 4 } }, fp)[0],
+    ).toContain("#3422");
     expect(
       validateTriageRankingLabelsOnPlan({ policy: { triageRankingLabels: ["ok"] } }, fp),
     ).toEqual([]);
@@ -1194,6 +1201,12 @@ describe("vbrief-validate extra coverage", () => {
         "f",
       )[0],
     ).toContain("'4'");
+    expect(
+      validateForgeOutageRetryMinutesOnPlan({ policy: { forgeOutageRetryMinutes: "15" } }, "f")[0],
+    ).toContain("'15'");
+    expect(
+      validateForgeOutageRetryMinutesOnPlan({ policy: { forgeOutageRetryMinutes: true } }, "f")[0],
+    ).toContain("True");
     expect(
       validateVbriefSchema(
         {

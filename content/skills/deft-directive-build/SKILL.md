@@ -143,6 +143,12 @@ A project is **pre-cutover** if ANY of the following are true. This prose mirror
   Phase 1 before continuing -- do not proceed without user preferences
 - ! Once USER.md exists, continue with the Cost Phase Gate below
 
+### Forge-outage drop-back (#3422)
+
+! On attributed platform outage or repeated REST 429/502/503 during YOLO / through-merge implement: drop GitHub I/O, report once to the human in chat, and re-probe on `plan.policy.forgeOutageRetryMinutes` (default **30**; USER.md Personal wins; min 5; `task policy:show --field=forgeOutageRetryMinutes`). Local edit/test/commit MAY continue. Depth: [`scm/github.md`](../../scm/github.md) § #3180 / #3422. Complements #3167 / #3180.
+
+⊗ Tight retry, empty-commit thrash, or sending the human to github.com as the only remediation.
+
 ## Cost Phase Gate (#739)
 
 ! Before proceeding to File Reading, verify the project has gone through the
@@ -537,4 +543,5 @@ Docs: `docs/decision-log.md` · `xbrief/decisions/README.md`.
 - ⊗ Silently skip deepening for budget without a fail-loud summary note (#3266 / #1006)
 - ⊗ Chase post-bank out-of-scope findings when surplus budget is insufficient — report, do not thrash the banked pass (#3285)
 - ⊗ Skip finalize-on-green after first stated AC pass under a hard budget (#3285)
+- ⊗ Tight forge-outage retry / empty-commit thrash without a one-shot human report (#3422)
 - ⊗ Clear a red product oracle by editing the comparison method then treating the new pass as a pass — record independent re-derivation or fix the product (#3322 / #3156)

@@ -92,6 +92,7 @@ const PROPAGATION_POLICY_KEY_MARKERS = [
   "plan.policy.wipCap",
   "plan.policy.allowDirectCommitsToMaster",
   "plan.policy.sessionRitualStalenessHours",
+  "plan.policy.forgeOutageRetryMinutes",
   "plan.policy.valueFeedback",
   "plan.policy.requireHumanMerge",
 ] as const;

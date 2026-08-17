@@ -34,6 +34,13 @@ task verify:branch || exit 1
 
 The swarm skill creates branches per agent so the guard is mostly informational here, but a malformed PROJECT-DEFINITION (missing `plan.policy` block AND no legacy narrative) is a fail-closed signal worth surfacing before the swarm spawns N agents.
 
+### Forge-outage drop-back (#3422)
+
+! On attributed platform outage or repeated REST 429/502/503: drop GitHub I/O, report once to the human in chat, and re-probe on `plan.policy.forgeOutageRetryMinutes` (default **30**; USER.md Personal wins; min 5; `task policy:show --field=forgeOutageRetryMinutes`). Local work that does not need the forge MAY continue. Depth: [`scm/github.md`](../../scm/github.md) § #3180 / #3422. Complements #3167 / #3180.
+
+⊗ Tight retry, empty-commit thrash, or sending the human to github.com as the only remediation.
+⊗ Auto-merge / `--skip-ci` because a status page is red.
+
 ## Deterministic Questions Contract
 
 ! Every numbered-menu prompt rendered in this skill (Phase 0 Step 0 queue-driven promote prompts (#1142 / N2), Step 0.5 bridge approval gate, Step 5 final-approval gate, Phase 1 Step 3 file-overlap audit gate, Phase 5->6 ready-to-merge gate) MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md): render the canonical numbered menu in chat unless the host UI visibly preserves numeric option labels and returns numeric selections or exact displayed option text. The final two numbered options MUST be `Discuss` and `Back`, in that order. The Discuss-pause semantic is documented verbatim there -- on `Discuss` selection the agent MUST halt the in-progress sequence immediately, prompt `What would you like to discuss?`, and resume only on an explicit user signal. Implicit resumption is forbidden, and fallback chat replies MUST map only to the displayed number or exact displayed option text.
@@ -220,5 +227,6 @@ Named mode **beside** dispatch-and-collect. Canon: [`../../swarm/swarm.md`](../.
 - ⊗ Dual-stop/hard-stop halt without #3273 resume line, or unlimited residual auto-retry without new operator consent (#3273)
 - ⊗ Force a second full dispatch on a retain-capable host solely for a mid-scope gate, or invent retain on one-shot hosts (#3158)
 - ⊗ Use retained-child messaging for mid-run constitution self-edit (#3158 / #3164)
+- ⊗ Tight forge-outage retry / empty-commit thrash without a one-shot human report (#3422)
 
 Full anti-pattern list: [`references/core-ops.md`](references/core-ops.md).
