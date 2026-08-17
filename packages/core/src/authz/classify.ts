@@ -1155,6 +1155,20 @@ function isReadShapedInputFileFlag(bin: string, flag: string): boolean {
   return READ_SHAPED_FILE_FLAG_BINS.has(bin) && READ_INPUT_FILE_FLAGS.has(flag);
 }
 
+/** Git flags before the subcommand that take a separate value token. */
+const GIT_PRE_SUBCOMMAND_VALUE_FLAGS = new Set([
+  "-c",
+  "-C",
+  "--git-dir",
+  "--work-tree",
+  "--namespace",
+  "--exec-path",
+  "--config-env",
+  "--super-prefix",
+  "--attr-source",
+  "--shallow-file",
+]);
+
 /**
  * Git porcelain tokens that start the subcommand (not option values).
  * Used so `--no-pager log` keeps `log`, while `--attr-source HEAD clone` skips HEAD.
@@ -1205,7 +1219,10 @@ const GIT_SUBCOMMAND_TOKENS = new Set([
  * True only when the git *subcommand* (first non-flag token) is a dest writer.
  * Later operands named clone/worktree/submodule (e.g. `git log worktree -- …`)
  * are not write subcommands (#3423 residual).
- * A following token that is not a git subcommand is an option value (#3421 residual).
+ * Known value-taking globals always consume the next token, even when that
+ * token spells a subcommand (`--attr-source log clone`). Boolean globals
+ * (`--no-pager`) do not. Other flags skip a following token only when it is
+ * not a git subcommand (#3421 residual).
  */
 function gitHasWriteSubcommand(tokens: readonly string[], start: number): boolean {
   let i = start;
@@ -1218,7 +1235,7 @@ function gitHasWriteSubcommand(tokens: readonly string[], start: number): boolea
         const next = tokens[i + 1];
         if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
           const nextN = normalizeToken(next);
-          if (!GIT_SUBCOMMAND_TOKENS.has(nextN)) {
+          if (GIT_PRE_SUBCOMMAND_VALUE_FLAGS.has(n) || !GIT_SUBCOMMAND_TOKENS.has(nextN)) {
             i += 2;
             continue;
           }

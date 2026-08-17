@@ -940,6 +940,9 @@ describe("classifyShellAuthzOps (#2944)", () => {
       classifyShellAuthzOps("git --attr-source HEAD clone https://example .deft/authz/grants/evil"),
     ).toContain("settings");
     expect(
+      classifyShellAuthzOps("git --attr-source log clone https://example .deft/authz/grants/evil"),
+    ).toContain("settings");
+    expect(
       classifyShellAuthzOps("git --shallow-file x clone https://example .deft/authz/grants/evil"),
     ).toContain("settings");
     expect(
