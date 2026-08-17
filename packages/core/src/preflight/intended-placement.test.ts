@@ -2,9 +2,6 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-
-// Symlinks require elevated privileges on Windows (SeCreateSymbolicLink); skip there.
-const itSymlink = it.skipIf(process.platform === "win32");
 import { FILE_SIZE_REVIEW_TRIGGER_LINES } from "../policy/file-size-thresholds.js";
 import {
   countFileLines,
@@ -16,6 +13,9 @@ import {
   readIntendedPlacement,
   stampIntendedPlacement,
 } from "./intended-placement.js";
+
+// Symlinks require elevated privileges on Windows (SeCreateSymbolicLink); skip there.
+const itSymlink = it.skipIf(process.platform === "win32");
 
 const temps: string[] = [];
 afterAll(() => {

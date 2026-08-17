@@ -124,11 +124,7 @@ type ContainedInspect =
   | { kind: "reject"; message: string };
 
 /** Lexical path plus lstat/realpath: symlink targets must stay inside the project. */
-function inspectDeclaredFile(
-  projectRoot: string,
-  declared: string,
-  abs: string,
-): ContainedInspect {
+function inspectDeclaredFile(projectRoot: string, declared: string, abs: string): ContainedInspect {
   let projectReal: string;
   try {
     projectReal = realpathSync(projectRoot);
