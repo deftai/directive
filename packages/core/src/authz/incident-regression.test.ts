@@ -1196,6 +1196,9 @@ describe("UAT residual dest-form writers fail-closed (#3421)", () => {
       "New-Item -Path /tmp/out -ItemType File",
       "fallocate -l 1k /tmp/out",
       "unknownwriter --workdir=/tmp/out",
+      "grep -f .deft/authz/patterns.txt src.txt",
+      "Get-Content -Path .deft/authz/state.json",
+      "git log -- .deft/authz/state.json",
     ]) {
       const decision = decideHook(
         {

@@ -482,8 +482,8 @@ const PROTECTED_POSITIONAL_BINS = new Set([
   "nano",
   "vim",
   "vi",
-  // #3421 residual: positional dest writers (git clone/worktree, aws, convert, New-Item).
-  "git",
+  // #3421 residual: positional dest writers (aws, convert, New-Item).
+  // git clone/worktree/submodule dests are harvested only on those write subcommands.
   "ex",
   "dos2unix",
   "unix2dos",
@@ -532,15 +532,15 @@ const GENERIC_PROTECTED_EXTRA_DEST_FLAGS = new Set([
   "--destination",
   "--dest",
   "--path",
-  "-path",
-  "-literalpath",
-  "--literalpath",
   "--directory",
   "--workdir",
   "--file",
-  "-f",
   "--separate-git-dir",
 ]);
+/** PowerShell New-Item dest flags (not generic: Get-Content -Path is a read). */
+const NEW_ITEM_PATH_DEST_FLAGS = new Set(["-path", "-literalpath", "--literalpath"]);
+/** git subcommands whose positionals can plant a dest (#3421). */
+const GIT_WRITE_SUBCOMMANDS = new Set(["clone", "worktree", "submodule"]);
 /** fossil dest-dir flags (#3382 PATH form + #3421 --workdir=). */
 const FOSSIL_WORKDIR_DEST_FLAGS = new Set(["--workdir"]);
 /** pg_dump family dest-file flags (#3421). */
@@ -654,6 +654,7 @@ function isDownloaderDestFlag(flag: string, bin: string, rawFlag?: string): bool
   if (MEGADL_FAMILY_BINS.has(bin) && MEGADL_PATH_DEST_FLAGS.has(flag)) return true;
   if (bin === "fossil" && FOSSIL_WORKDIR_DEST_FLAGS.has(flag)) return true;
   if (PG_DUMP_FAMILY_BINS.has(bin) && PG_DUMP_FILE_DEST_FLAGS.has(flag)) return true;
+  if (bin === "new-item" && NEW_ITEM_PATH_DEST_FLAGS.has(flag)) return true;
   return false;
 }
 /**
@@ -731,7 +732,8 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
     // Segment breaks (`;`/`\n`/glued ops) prevent following-command overwrite.
     let lastPositionalPath: string | null = null;
     const protectedPathish: string[] = [];
-    const collectsProtectedPositionals = PROTECTED_POSITIONAL_BINS.has(bin);
+    const collectsProtectedPositionals =
+      PROTECTED_POSITIONAL_BINS.has(bin) || (bin === "git" && gitHasWriteSubcommand(tokens, i));
     while (i < tokens.length) {
       const raw = tokens[i] as string;
       const n = normalizeToken(raw);
@@ -1038,6 +1040,15 @@ function pathishIsProtectedDest(pathish: string): boolean {
 
 function isGenericProtectedDestFlag(flag: string): boolean {
   return DOWNLOADER_FILE_DEST_FLAGS.has(flag) || GENERIC_PROTECTED_EXTRA_DEST_FLAGS.has(flag);
+}
+
+function gitHasWriteSubcommand(tokens: readonly string[], start: number): boolean {
+  for (let i = start; i < tokens.length; i++) {
+    const raw = tokens[i] as string;
+    if (isShellSegmentBreak(raw)) return false;
+    if (GIT_WRITE_SUBCOMMANDS.has(normalizeToken(raw))) return true;
+  }
+  return false;
 }
 
 /**
@@ -1423,7 +1434,11 @@ function pathishIsAuthzDir(pathish: string): boolean {
 
 /** True when a pathish string targets `.deft/approved-scope` (#3421 / #3410 mint). */
 function pathishIsApprovedScopeDir(pathish: string): boolean {
-  return pathish.includes(".deft/approved-scope");
+  return (
+    pathish.includes(".deft/approved-scope/") ||
+    pathish.endsWith(".deft/approved-scope") ||
+    pathish === ".deft/approved-scope"
+  );
 }
 
 function pathishIsSettingsStoreDir(pathish: string): boolean {

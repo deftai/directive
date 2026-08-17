@@ -920,13 +920,14 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("unknownwriter --file .deft-directive-disable")).toContain(
       "settings",
     );
-    expect(classifyShellAuthzOps("unknownwriter -f .no-deft-directive")).toContain("settings");
-    expect(
-      classifyShellAuthzOps("unknownwriter -LiteralPath .deft/authz/grants/evil.json"),
-    ).toContain("settings");
     expect(classifyShellAuthzOps("unknownwriter --separate-git-dir=.deft/authz/grants")).toContain(
       "settings",
     );
+    // Read-shaped peers stay unclassifiable (do not treat input flags / git log as dests).
+    expect(classifyShellAuthzOps("grep -f .deft/authz/patterns.txt src.txt")).toEqual([]);
+    expect(classifyShellAuthzOps("Get-Content -Path .deft/authz/state.json")).toEqual([]);
+    expect(classifyShellAuthzOps("git log -- .deft/authz/state.json")).toEqual([]);
+    expect(classifyShellAuthzOps("echo x > .deft/approved-scope-backup/story.json")).toEqual([]);
     expect(classifyShellAuthzOps("unix2dos -n src .deft/authz/grants/evil.json")).toContain(
       "settings",
     );
