@@ -928,6 +928,23 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("Get-Content -Path .deft/authz/state.json")).toEqual([]);
     expect(classifyShellAuthzOps("git log -- .deft/authz/state.json")).toEqual([]);
     expect(classifyShellAuthzOps("git log worktree -- .deft/authz/state.json")).toEqual([]);
+    expect(
+      classifyShellAuthzOps("git --attr-source HEAD clone https://example .deft/authz/grants/evil"),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps("git --shallow-file x clone https://example .deft/authz/grants/evil"),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps("git --attr-source HEAD worktree add .deft/authz/grants/evil HEAD"),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps(
+        "git --shallow-file x submodule add https://example .deft/authz/grants/evil",
+      ),
+    ).toContain("settings");
+    expect(classifyShellAuthzOps("git --attr-source HEAD log -- .deft/authz/state.json")).toEqual(
+      [],
+    );
     expect(classifyShellAuthzOps("git show submodule -- .deft/authz/state.json")).toEqual([]);
     expect(classifyShellAuthzOps("echo x > .deft/approved-scope-backup/story.json")).toEqual([]);
     expect(classifyShellAuthzOps("echo x > .deft/authz-backup/story.json")).toEqual([]);

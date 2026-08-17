@@ -1068,21 +1068,12 @@ function isGenericProtectedDestFlag(flag: string): boolean {
   return DOWNLOADER_FILE_DEST_FLAGS.has(flag) || GENERIC_PROTECTED_EXTRA_DEST_FLAGS.has(flag);
 }
 
-/** Git flags before the subcommand that take a separate value token. */
-const GIT_PRE_SUBCOMMAND_VALUE_FLAGS = new Set([
-  "-c",
-  "--git-dir",
-  "--work-tree",
-  "--namespace",
-  "--exec-path",
-  "--config-env",
-  "--super-prefix",
-]);
-
 /**
  * True only when the git *subcommand* (first non-flag token) is a dest writer.
  * Later operands named clone/worktree/submodule (e.g. `git log worktree -- …`)
  * are not write subcommands (#3423 residual).
+ * A separate option value (`--attr-source HEAD`, `--shallow-file x`) is skipped
+ * unless that next token is itself a write-sub (#3421 residual).
  */
 function gitHasWriteSubcommand(tokens: readonly string[], start: number): boolean {
   let i = start;
@@ -1091,11 +1082,14 @@ function gitHasWriteSubcommand(tokens: readonly string[], start: number): boolea
     if (isShellSegmentBreak(raw)) return false;
     const n = normalizeToken(raw);
     if (n.startsWith("-")) {
-      if (!n.includes("=") && GIT_PRE_SUBCOMMAND_VALUE_FLAGS.has(n)) {
+      if (!n.includes("=")) {
         const next = tokens[i + 1];
         if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
-          i += 2;
-          continue;
+          const nextN = normalizeToken(next);
+          if (!GIT_WRITE_SUBCOMMANDS.has(nextN)) {
+            i += 2;
+            continue;
+          }
         }
       }
       i++;
