@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`deft update` stages only this-run installer-managed ledger paths, including tracked deletions (#3394).** Ledger minus allowlist is printed and left unstaged. Untracked deletes are filtered so they cannot fail the batch. Pre-existing consumer edits to Taskfile, package.json, or .gitignore are not staged. Closes #3394. Refs #3378, #3392, #3393.
+
 ### Fixed
 
 - **Official Cursor adapter deletes no longer trip mixed-core-and-app (#3393).** A framework-only update that removes the retired hook adapter is installer-managed, not app. Other consumer hooks stay app-owned. Consumers on `pull_request_target` or pinned workflow refs see the old guard for one PR. Closes #3393. Refs #3378.
