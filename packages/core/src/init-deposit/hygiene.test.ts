@@ -11,7 +11,11 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { runWithMutationLedger, snapshotMutationSummary } from "../fs/mutation-ledger.js";
+import {
+  activeMutationLedger,
+  runWithMutationLedger,
+  snapshotMutationSummary,
+} from "../fs/mutation-ledger.js";
 import { detectBranchSync, formatBranchSyncExemptionMessage } from "../policy/branch-sync.js";
 import {
   assertInstallerAllowlistHonors1430,
@@ -26,21 +30,25 @@ import {
   type InstallerManagedMatcher,
   installerManagedGuardEre,
   installerManagedMatchers,
+  isCoreStagePath,
   isDepositGeneratedMetadata,
   isDirectiveDependencyKey,
   isInstallerManagedPath,
   isPackageJsonDirectivePinOnlyDiff,
   isPackageLockDirectivePinFollowThrough,
   isPnpmLockDirectivePinFollowThrough,
+  isTrackedDeletePath,
   isUpgradePinPathContentAllowed,
   isYarnLockDirectivePinFollowThrough,
   pnpmLockRootDirectDeps,
   prunePackageAbsentDepositPaths,
   pruneStrayDepositPaths,
   reconcileDepositToContentPackage,
+  splitLedgerForStaging,
   stageFrameworkPaths,
 } from "./hygiene.js";
 import { CANONICAL_TASKFILE_INCLUDE } from "./scaffold.js";
+import { syncConsumerXbriefSchemas } from "./xbrief-projections.js";
 
 describe("installer-managed allowlist (#1576)", () => {
   it("treats Taskfile.yml as installer-managed", () => {
@@ -63,7 +71,7 @@ describe("installer-managed allowlist (#1576)", () => {
     }
   });
 
-  it("includes Taskfile.yml in framework stage paths when present", () => {
+  it("includes Taskfile.yml in exist-walk stage paths when present (#3394)", () => {
     const root = mkdtempSync(join(tmpdir(), "hygiene-stage-"));
     try {
       mkdirSync(join(root, ".deft", "core"), { recursive: true });
@@ -74,14 +82,10 @@ describe("installer-managed allowlist (#1576)", () => {
         "version: '3'\ntasks:\n  hello:\n    cmds: [echo hi]\n",
         "utf8",
       );
-      const paths = frameworkStagePaths(root, join(root, ".deft", "core"), {
-        includeTaskfile: true,
-      });
+      const paths = frameworkStagePaths(root, join(root, ".deft", "core"));
       expect(paths).toContain("Taskfile.yml");
       expect(paths).toContain(".deft/core");
       expect(paths).toContain("AGENTS.md");
-      // When the include was not wired this run, Taskfile.yml is excluded.
-      expect(frameworkStagePaths(root, join(root, ".deft", "core"))).not.toContain("Taskfile.yml");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -1001,7 +1005,7 @@ describe("scoped staging", () => {
     );
     expect(readFileSync(join(project, "Taskfile.yml"), "utf8")).toContain("build:");
 
-    const { stagedPaths } = depositStagePaths(project, { includeTaskfile: true });
+    const { stagedPaths } = depositStagePaths(project);
     expect(stagedPaths).toContain("Taskfile.yml");
 
     const porcelain = execFileSync("git", ["status", "--porcelain"], {
@@ -1040,7 +1044,7 @@ describe("scoped staging", () => {
     // Only Taskfile.yml is modified after baseline; AGENTS.md / .deft/core are clean.
     expect(ensureTaskfile(project, { printf: () => {} })).toBe(true);
 
-    const { stagePaths, stagedPaths } = depositStagePaths(project, { includeTaskfile: true });
+    const { stagePaths, stagedPaths } = depositStagePaths(project);
     expect(stagePaths).toContain("AGENTS.md");
     expect(stagedPaths).toContain("Taskfile.yml");
     expect(stagedPaths).not.toContain("AGENTS.md");
@@ -1072,7 +1076,7 @@ describe("scoped staging", () => {
     expect(cached).not.toContain(".deft/core/main.md");
   });
 
-  it("does not stage Taskfile.yml when the include was not wired this run (#1576)", async () => {
+  it("does not stage a dirty Taskfile.yml that this-run ledger did not mutate (#3394)", () => {
     const project = freshRoot("hygiene-unwired-taskfile-");
 
     mkdirSync(join(project, ".deft", "core"), { recursive: true });
@@ -1085,19 +1089,21 @@ describe("scoped staging", () => {
     );
     initGitRepo(project);
 
-    // Simulate an interactive run: the user edits their own Taskfile.yml, but
-    // the installer never wired the deft include (includeTaskfile omitted).
     writeFileSync(
       join(project, "Taskfile.yml"),
       "version: '3'\ntasks:\n  build:\n    cmds: [npm run build]\n  test:\n    cmds: [npm test]\n",
       "utf8",
     );
+    writeFileSync(join(project, "AGENTS.md"), "# Agent\n\nupdated\n", "utf8");
 
-    const { stagePaths, stagedPaths } = depositStagePaths(project);
+    const { stagePaths, stagedPaths } = runWithMutationLedger(project, () => {
+      activeMutationLedger()?.record("wrote", join(project, "AGENTS.md"));
+      return depositStagePaths(project);
+    });
     expect(stagePaths).not.toContain("Taskfile.yml");
     expect(stagedPaths).not.toContain("Taskfile.yml");
+    expect(stagedPaths).toContain("AGENTS.md");
 
-    // The user's Taskfile.yml edit is left un-staged for them to handle.
     const porcelain = execFileSync("git", ["status", "--porcelain"], {
       cwd: project,
       encoding: "utf8",
@@ -1113,6 +1119,267 @@ describe("scoped staging", () => {
     const result = stageFrameworkPaths(project, paths, { gitPorcelain: () => null });
     expect(result.staged).toBe(false);
     expect(existsSync(join(project, ".deft", "core", "main.md"))).toBe(true);
+  });
+});
+
+describe("ledger intersection staging (#3394)", () => {
+  const created: string[] = [];
+
+  afterEach(() => {
+    for (const dir of created.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  function freshRoot(prefix: string): string {
+    const root = mkdtempSync(join(tmpdir(), prefix));
+    created.push(root);
+    return root;
+  }
+
+  function initGitRepo(root: string): void {
+    execFileSync("git", ["init"], { cwd: root });
+    execFileSync("git", ["config", "user.email", "test@example.com"], { cwd: root });
+    execFileSync("git", ["config", "user.name", "Test"], { cwd: root });
+    execFileSync("git", ["add", "-A"], { cwd: root });
+    execFileSync("git", ["commit", "-m", "baseline"], { cwd: root });
+  }
+
+  const adapterRel = ".cursor/hooks/deft-cursor-hook-adapter.mjs";
+
+  it("treats .deft/core paths as stageable", () => {
+    expect(isCoreStagePath(".deft/core")).toBe(true);
+    expect(isCoreStagePath(".deft/core/VERSION")).toBe(true);
+    expect(isCoreStagePath("xbrief/PROJECT-DEFINITION.xbrief.json")).toBe(false);
+  });
+
+  it("splits ledger into allowlist/core vs remainder and skips untracked deletes", () => {
+    const split = splitLedgerForStaging(
+      {
+        wrote: ["AGENTS.md", "xbrief/PROJECT-DEFINITION.xbrief.json"],
+        stripped: [],
+        deleted: [adapterRel, "Taskfile.yml"],
+        mutations: [],
+      },
+      new Set([adapterRel]),
+    );
+    expect(split.stagePaths).toEqual(expect.arrayContaining(["AGENTS.md", adapterRel]));
+    expect(split.stagePaths).not.toContain("xbrief/PROJECT-DEFINITION.xbrief.json");
+    expect(split.stagePaths).not.toContain("Taskfile.yml");
+    expect(split.unstagedRemainder).toContain("xbrief/PROJECT-DEFINITION.xbrief.json");
+    expect(split.skippedUntrackedDeletes).toContain("Taskfile.yml");
+  });
+
+  it("treats a ledgered directory as tracked when ls-files returns descendants", () => {
+    expect(isTrackedDeletePath(".deft/core/scripts", new Set([".deft/core/scripts/run.py"]))).toBe(
+      true,
+    );
+    expect(isTrackedDeletePath(".deft/core/scripts", new Set([".deft/core/VERSION"]))).toBe(false);
+    const split = splitLedgerForStaging(
+      {
+        wrote: [],
+        stripped: [],
+        deleted: [".deft/core/scripts"],
+        mutations: [],
+      },
+      new Set([".deft/core/scripts/run.py"]),
+    );
+    expect(split.stagePaths).toContain(".deft/core/scripts");
+    expect(split.skippedUntrackedDeletes).not.toContain(".deft/core/scripts");
+  });
+
+  it("stages a tracked adapter delete as D", () => {
+    const project = freshRoot("hygiene-ledger-adapter-d-");
+    mkdirSync(join(project, ".cursor", "hooks"), { recursive: true });
+    writeFileSync(join(project, adapterRel), "export {}\n", "utf8");
+    writeFileSync(join(project, "AGENTS.md"), "# Agent\n", "utf8");
+    initGitRepo(project);
+    rmSync(join(project, adapterRel));
+
+    const result = runWithMutationLedger(project, () => {
+      activeMutationLedger()?.record("deleted", join(project, adapterRel));
+      return depositStagePaths(project);
+    });
+
+    expect(result.stagePaths).toContain(adapterRel);
+    expect(result.stagedPaths).toContain(adapterRel);
+    const cached = execFileSync("git", ["diff", "--cached", "--name-status"], {
+      cwd: project,
+      encoding: "utf8",
+    });
+    const deletedLine = cached.split(/\r?\n/).find((row) => row.includes(adapterRel)) ?? "";
+    expect(deletedLine.startsWith("D")).toBe(true);
+  });
+
+  it("stages a tracked directory prune via descendant ls-files hits", () => {
+    const project = freshRoot("hygiene-ledger-dir-d-");
+    mkdirSync(join(project, ".deft", "core", "scripts"), { recursive: true });
+    writeFileSync(join(project, ".deft", "core", "scripts", "run.py"), "print(1)\n", "utf8");
+    writeFileSync(join(project, "AGENTS.md"), "# Agent\n", "utf8");
+    initGitRepo(project);
+    rmSync(join(project, ".deft", "core", "scripts"), { recursive: true, force: true });
+
+    const result = runWithMutationLedger(project, () => {
+      activeMutationLedger()?.record("deleted", join(project, ".deft", "core", "scripts"));
+      return depositStagePaths(project);
+    });
+
+    expect(result.stagePaths).toContain(".deft/core/scripts");
+    expect(result.skippedUntrackedDeletes).not.toContain(".deft/core/scripts");
+    const cached = execFileSync("git", ["diff", "--cached", "--name-status"], {
+      cwd: project,
+      encoding: "utf8",
+    });
+    expect(cached).toContain(".deft/core/scripts/run.py");
+    const deletedLine =
+      cached.split(/\r?\n/).find((row) => row.includes(".deft/core/scripts/run.py")) ?? "";
+    expect(deletedLine.startsWith("D")).toBe(true);
+  });
+
+  it("does not let an untracked delete abort other staging", () => {
+    const project = freshRoot("hygiene-ledger-untracked-del-");
+    mkdirSync(join(project, ".deft", "core"), { recursive: true });
+    writeFileSync(join(project, ".deft", "core", "main.md"), "# Deft\n", "utf8");
+    writeFileSync(join(project, "AGENTS.md"), "# Agent\n", "utf8");
+    initGitRepo(project);
+    writeFileSync(join(project, "AGENTS.md"), "# Agent\n\nupdated\n", "utf8");
+
+    const added: string[][] = [];
+    const result = runWithMutationLedger(project, () => {
+      activeMutationLedger()?.record("wrote", join(project, "AGENTS.md"));
+      activeMutationLedger()?.record("deleted", join(project, adapterRel));
+      return depositStagePaths(project, {
+        runGitAdd: (root, paths) => {
+          added.push([...paths]);
+          execFileSync("git", ["add", "--", ...paths], { cwd: root });
+        },
+      });
+    });
+
+    expect(result.skippedUntrackedDeletes).toContain(adapterRel);
+    expect(result.stagedPaths).toContain("AGENTS.md");
+    expect(added.flat()).not.toContain(adapterRel);
+    expect(added.flat()).toContain("AGENTS.md");
+  });
+
+  it("prints PROJECT-DEFINITION writes and leaves them unstaged", () => {
+    const project = freshRoot("hygiene-ledger-pd-");
+    mkdirSync(join(project, ".deft", "core"), { recursive: true });
+    mkdirSync(join(project, "xbrief"), { recursive: true });
+    writeFileSync(join(project, ".deft", "core", "main.md"), "# Deft\n", "utf8");
+    writeFileSync(join(project, "AGENTS.md"), "# Agent\n", "utf8");
+    writeFileSync(join(project, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "{}\n", "utf8");
+    initGitRepo(project);
+    writeFileSync(join(project, "AGENTS.md"), "# Agent\n\nupdated\n", "utf8");
+    writeFileSync(
+      join(project, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      '{"ok":true}\n',
+      "utf8",
+    );
+
+    const lines: string[] = [];
+    const result = runWithMutationLedger(project, () => {
+      activeMutationLedger()?.record("wrote", join(project, "AGENTS.md"));
+      activeMutationLedger()?.record(
+        "wrote",
+        join(project, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      );
+      return depositStagePaths(project, { printf: (text) => lines.push(text) });
+    });
+
+    expect(result.unstagedRemainder).toContain("xbrief/PROJECT-DEFINITION.xbrief.json");
+    expect(result.stagedPaths).not.toContain("xbrief/PROJECT-DEFINITION.xbrief.json");
+    expect(result.stagedPaths).toContain("AGENTS.md");
+    expect(lines.join("")).toContain("xbrief/PROJECT-DEFINITION.xbrief.json");
+    expect(lines.join("")).toContain("Left unstaged");
+
+    const cached = execFileSync("git", ["diff", "--cached", "--name-only"], {
+      cwd: project,
+      encoding: "utf8",
+    });
+    expect(cached).toContain("AGENTS.md");
+    expect(cached).not.toContain("PROJECT-DEFINITION");
+  });
+
+  it("does not stage untouched dirty package.json or .gitignore", () => {
+    const project = freshRoot("hygiene-ledger-untouched-");
+    mkdirSync(join(project, ".deft", "core"), { recursive: true });
+    writeFileSync(join(project, ".deft", "core", "main.md"), "# Deft\n", "utf8");
+    writeFileSync(join(project, "AGENTS.md"), "# Agent\n", "utf8");
+    writeFileSync(join(project, "package.json"), '{"name":"app"}\n', "utf8");
+    writeFileSync(join(project, ".gitignore"), "node_modules/\n", "utf8");
+    initGitRepo(project);
+
+    writeFileSync(join(project, "package.json"), '{"name":"app","private":true}\n', "utf8");
+    writeFileSync(join(project, ".gitignore"), "node_modules/\ndist/\n", "utf8");
+    writeFileSync(join(project, "AGENTS.md"), "# Agent\n\nupdated\n", "utf8");
+
+    const result = runWithMutationLedger(project, () => {
+      activeMutationLedger()?.record("wrote", join(project, "AGENTS.md"));
+      return depositStagePaths(project);
+    });
+
+    expect(result.stagePaths).toEqual(["AGENTS.md"]);
+    expect(result.stagedPaths).toEqual(["AGENTS.md"]);
+    const cached = execFileSync("git", ["diff", "--cached", "--name-only"], {
+      cwd: project,
+      encoding: "utf8",
+    });
+    expect(cached).toContain("AGENTS.md");
+    expect(cached).not.toContain("package.json");
+    expect(cached).not.toContain(".gitignore");
+  });
+
+  it("never invokes git add -A", () => {
+    const project = freshRoot("hygiene-ledger-no-add-a-");
+    mkdirSync(join(project, ".deft", "core"), { recursive: true });
+    writeFileSync(join(project, "AGENTS.md"), "# Agent\n", "utf8");
+    initGitRepo(project);
+    writeFileSync(join(project, "AGENTS.md"), "# Agent\n\nupdated\n", "utf8");
+
+    const argv: string[][] = [];
+    runWithMutationLedger(project, () => {
+      activeMutationLedger()?.record("wrote", join(project, "AGENTS.md"));
+      depositStagePaths(project, {
+        runGitAdd: (_root, paths) => {
+          argv.push(["add", "--", ...paths]);
+        },
+      });
+    });
+    expect(argv).toHaveLength(1);
+    expect(argv[0]?.includes("-A")).toBe(false);
+    expect(argv[0]?.[0]).toBe("add");
+    expect(argv[0]?.[1]).toBe("--");
+  });
+
+  it("stages a tracked obsolete schema delete as D (#3418)", () => {
+    const project = freshRoot("hygiene-ledger-schema-d-");
+    const deftDir = join(project, ".deft", "core");
+    mkdirSync(join(deftDir, "vbrief", "schemas"), { recursive: true });
+    mkdirSync(join(project, "xbrief", "schemas"), { recursive: true });
+    writeFileSync(
+      join(deftDir, "vbrief", "schemas", "xbrief-core-0.8.schema.json"),
+      "current\n",
+      "utf8",
+    );
+    writeFileSync(join(project, "xbrief", "schemas", "vbrief-core.schema.json"), "stale\n", "utf8");
+    writeFileSync(join(project, "AGENTS.md"), "# Agent\n", "utf8");
+    initGitRepo(project);
+
+    const result = runWithMutationLedger(project, () => {
+      syncConsumerXbriefSchemas(project, deftDir);
+      return depositStagePaths(project);
+    });
+
+    const schemaRel = "xbrief/schemas/vbrief-core.schema.json";
+    expect(result.stagePaths).toContain(schemaRel);
+    expect(result.stagedPaths).toContain(schemaRel);
+    const cached = execFileSync("git", ["diff", "--cached", "--name-status"], {
+      cwd: project,
+      encoding: "utf8",
+    });
+    const deletedLine = cached.split(/\r?\n/).find((row) => row.includes(schemaRel)) ?? "";
+    expect(deletedLine.startsWith("D")).toBe(true);
   });
 });
 

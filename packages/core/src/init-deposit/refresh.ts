@@ -499,8 +499,8 @@ export function printRefreshSideEffects(io: InitDepositIo, effects: RefreshSideE
   }
   io.printf("\nAGENTS.md refresh side effects (#1671): the refresh and framework payload swap\n");
   io.printf("left these framework files with uncommitted changes -- they belong in the\n");
-  io.printf("framework deposit commit (the installer stages them before printing the\n");
-  io.printf("`git add` list below, so there are no post-stage stragglers):\n");
+  io.printf("framework deposit commit (the installer stages this-run installer-managed\n");
+  io.printf("paths; ledger remainder stays unstaged):\n");
   for (const file of effects.files) {
     io.printf(`  ${file}\n`);
   }
@@ -815,13 +815,14 @@ export async function runRefreshDeposit(
     const stagedResult = depositStagePaths(projectDir, {
       includeTaskfile: taskfileWired,
       includeCore: !alreadyCurrent,
+      printf: (text) => io.printf(text),
     });
     stagedPaths = stagedResult.stagedPaths;
     if (!alreadyCurrent) {
       printCommitGuidance(io, stagedResult.stagePaths, stagedResult.staged);
     } else if (stagedResult.stagedPaths.length > 0) {
       io.printf("\nUpdated installer-managed projections for the current framework deposit:\n");
-      io.printf(`  git add ${stagedResult.stagedPaths.join(" ")}\n`);
+      io.printf(`  git add -- ${stagedResult.stagedPaths.join(" ")}\n`);
     }
   }
 
