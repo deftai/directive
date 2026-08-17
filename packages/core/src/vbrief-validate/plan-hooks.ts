@@ -120,13 +120,11 @@ function validateForgeOutageRetryMinutes(value: unknown): string[] {
     const repr =
       typeof value === "string"
         ? pyStrRepr(value)
-        : value === null
-          ? "None"
-          : typeof value === "boolean"
-            ? value
-              ? "True"
-              : "False"
-            : String(value);
+        : typeof value === "boolean"
+          ? value
+            ? "True"
+            : "False"
+          : String(value);
     return [
       "plan.policy.forgeOutageRetryMinutes must be an integer; got " +
         `${pythonTypeName(value)} (${repr})`,

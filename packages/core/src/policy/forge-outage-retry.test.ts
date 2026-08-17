@@ -1,6 +1,7 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   DEFAULT_FORGE_OUTAGE_RETRY_MINUTES,
@@ -108,6 +109,24 @@ describe("forgeOutageRetryMinutes (#3422)", () => {
     });
     expect(resolved.minutes).toBe(40);
     expect(resolved.source).toBe("typed");
+  });
+
+  it("lets published JSON Schemas accept null as unset", () => {
+    const here = fileURLToPath(new URL(".", import.meta.url));
+    const repo = resolve(here, "../../../../");
+    const paths = [
+      join(repo, "content/vbrief/schemas/vbrief-core.schema.json"),
+      join(repo, "packages/types/schemas/vbrief-core-0.6.schema.json"),
+    ];
+    for (const path of paths) {
+      const schema = JSON.parse(readFileSync(path, { encoding: "utf8" })) as {
+        $defs: { Policy: { properties: { forgeOutageRetryMinutes: { type: unknown } } } };
+      };
+      expect(schema.$defs.Policy.properties.forgeOutageRetryMinutes.type).toEqual([
+        "integer",
+        "null",
+      ]);
+    }
   });
 
   it("treats null project policy as default", () => {

@@ -1205,6 +1205,9 @@ describe("vbrief-validate extra coverage", () => {
       validateForgeOutageRetryMinutesOnPlan({ policy: { forgeOutageRetryMinutes: "15" } }, "f")[0],
     ).toContain("'15'");
     expect(
+      validateForgeOutageRetryMinutesOnPlan({ policy: { forgeOutageRetryMinutes: true } }, "f")[0],
+    ).toContain("True");
+    expect(
       validateVbriefSchema(
         {
           xBRIEFInfo: { version: "0.8" },
