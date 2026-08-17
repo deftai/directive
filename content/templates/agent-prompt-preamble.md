@@ -418,6 +418,15 @@ Decision tree:
 
 The probe itself is a `core`-bucket call, so polling it cheaply does not consume GraphQL.
 
+## 7.5 Forge-outage drop-back (#3422)
+
+#3167 caps CI-holdout babysit loops. #3180 attributes weather holds. Neither replaces this drop-back.
+
+! On attributed platform outage (`attribution: platform`) or repeated REST 429/502/503: **drop back** GitHub I/O (empty-commit, close/reopen, tight polls, new poller children), **report once** to the human in chat (what is down, attribution/incident, parked work, next probe time), and **re-probe once per** `plan.policy.forgeOutageRetryMinutes` (default **30**; USER.md Personal wins; min 5; `task policy:show --field=forgeOutageRetryMinutes`). Local work that does not need the forge MAY continue. Depth: `content/scm/github.md` § #3180 / #3422.
+
+⊗ Tight retry, empty-commit thrash, or sending the human to github.com as the only remediation.
+⊗ Auto-merge / `--skip-ci` because a status page is red (#3180).
+
 ## 8. Identity separation -- mode-aware GitHub credential rules (#983 / #1557)
 
 Workers MUST follow the GitHub credential rule recorded in the dispatch envelope's `github_auth_mode` field (§2.7) or launch manifest. The rule prevents maintainer/worker bucket coupling and audit conflation when modes are mixed across a cohort.

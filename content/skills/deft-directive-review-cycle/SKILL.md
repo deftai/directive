@@ -370,6 +370,13 @@ Remediation:
 
 ! **Anti-thrash during attributed platform outage:** After thrash caps, stop automatic re-push loops. Remediation is wait + re-probe HEAD check-runs, not inventing workflow edits for a global outage.
 
+### Forge-outage drop-back (#3422)
+
+! On attributed platform outage (`attribution: platform`) or repeated REST 429/502/503: **drop back** GitHub I/O (empty-commit, close/reopen, tight polls, new poller children), **report once** to the human in chat (what is down, attribution/incident, parked work, next probe time), and **re-probe once per** `plan.policy.forgeOutageRetryMinutes` (default **30**; USER.md Personal wins; min 5; inspect `task policy:show --field=forgeOutageRetryMinutes`). Local work that does not need the forge MAY continue. Depth: [`scm/github.md`](../../scm/github.md) § #3180 / #3422. Complements #3167 (weather codes) and #3180 (status attribution) — does not replace them.
+
+⊗ Tight retry, empty-commit thrash, or sending the human to github.com as the only remediation.
+⊗ Auto-merge / `--skip-ci` because a status page is red.
+
 ⊗ Merge or `--skip-ci` solely because a status page is red — status is attribution for wait/thrash policy, not a second branch-protection oracle.
 ⊗ Blame Blacksmith when GH Actions/Webhooks are the red components and Blacksmith runners are operational.
 ⊗ Edit workflows / empty-commit thrash to "fix" a documented global Actions/webhook outage without a status-page probe.
@@ -820,6 +827,7 @@ task lifecycle:event -- emit plan:approved \
 
 - ⊗ Multi-hour empty-commit / close-reopen thrash after CI weather thrash caps when `ci_never_scheduled` or `ci_cancelled_no_failover` (#3167)
 - ⊗ Workflow thrash or empty-commit spam during attributed platform outage without status-page probe (#3180)
+- ⊗ Tight forge-outage retry / empty-commit thrash without a one-shot human report (#3422)
 - ⊗ Merge or `--skip-ci` solely because a status page is red without check-run evidence (#3180)
 - ⊗ Block merge-ready wait on SLizard alone when Greptile Step 6 is clean (#3167)
 - ⊗ Silent admin / `--skip-ci` merge under Actions outage without audit comment and opt-in authority (#3167)

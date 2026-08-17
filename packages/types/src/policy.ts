@@ -25,6 +25,11 @@ export interface PlanPolicy {
   readonly wipCap?: number;
   readonly sessionRitualStalenessHours?: number | null;
   /**
+   * Forge-outage re-probe interval in minutes (#3422).
+   * Integer, minimum 5, default 30. USER.md Personal wins over this field.
+   */
+  readonly forgeOutageRetryMinutes?: number | null;
+  /**
    * Engine-vs-pin skew tolerance for the three-band skew policy (#2264).
    *
    * Pre-1.0 the window is measured in minor versions (default 3); post-1.0 it
@@ -118,6 +123,7 @@ export const REGISTERED_POLICY_FIELD_NAMES = [
   "plan.policy.allowDirectCommitsToMaster",
   "plan.policy.wipCap",
   "plan.policy.sessionRitualStalenessHours",
+  "plan.policy.forgeOutageRetryMinutes",
   "plan.policy.triageScope",
   "plan.policy.triageScopeIgnores",
   "plan.policy.triageRankingLabels",

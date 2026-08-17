@@ -392,8 +392,8 @@ describe("inspectAllPolicies", () => {
     // deliveryBranch (#3041) + minGreptileConfidence (#3095) + hostSlashCommands (#3054)
     // + openClawProductCommands (#3064) + hostSkillDiscovery (#75) + triageLabelMirror (#1423)
     // + coverageDebt + checkResume (#3189) + ceremonyDial (#3214) + acPassBanking (#3285)
-    // + baseBranch (#3388) + syncMaxFiles (#3390).
-    expect(inspectAllPolicies(r)).toHaveLength(28);
+    // + baseBranch (#3388) + syncMaxFiles (#3390) + forgeOutageRetryMinutes (#3422).
+    expect(inspectAllPolicies(r)).toHaveLength(29);
   });
 
   it("surfaces typed allowDirectCommits", () => {
@@ -452,6 +452,7 @@ describe("inspectAllPolicies", () => {
     expect(registeredPolicyNames()).toContain("plan.policy.acPassBanking");
     expect(registeredPolicyNames()).toContain("plan.policy.baseBranch");
     expect(registeredPolicyNames()).toContain("plan.policy.syncMaxFiles");
+    expect(registeredPolicyNames()).toContain("plan.policy.forgeOutageRetryMinutes");
   });
 
   it("python repr helpers match Python style", () => {

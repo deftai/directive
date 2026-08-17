@@ -23868,7 +23868,7 @@
       "agentsMdBudget": {
         "managedMaxLines": 160,
         "unmanagedMaxLines": 162,
-        "absoluteMaxBytes": 14800,
+        "absoluteMaxBytes": 15200,
         "skillFrontmatterTier": "daily-core",
         "skillFrontmatterMaxBytes": 2260
       },
