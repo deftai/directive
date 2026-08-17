@@ -105,14 +105,17 @@ export function syncDefaultBranchName(
 }
 
 export function parseGithubOwnerRepo(remoteUrl: string): string | null {
-  const trimmed = remoteUrl.trim().replace(/\.git$/i, "");
-  const match = /github\.com[:/]([^/]+)\/([^/]+)$/i.exec(trimmed);
-  if (match === null) return null;
-  const owner = match[1];
-  const repo = match[2];
-  if (owner === undefined || repo === undefined || owner.length === 0 || repo.length === 0) {
-    return null;
-  }
+  const trimmed = remoteUrl.trim();
+  const withoutGit = trimmed.toLowerCase().endsWith(".git") ? trimmed.slice(0, -4) : trimmed;
+  const marker = "github.com";
+  const idx = withoutGit.toLowerCase().lastIndexOf(marker);
+  if (idx < 0) return null;
+  const after = withoutGit.slice(idx + marker.length);
+  const rest = after.startsWith(":") || after.startsWith("/") ? after.slice(1) : after;
+  const parts = rest.split("/").filter((part) => part.length > 0);
+  const owner = parts[0];
+  const repo = parts[1];
+  if (owner === undefined || repo === undefined) return null;
   return `${owner}/${repo}`;
 }
 
@@ -181,8 +184,10 @@ export function cutSyncLegs(options: {
   readonly commits: readonly SyncDefaultCommit[];
   readonly threshold: number;
   readonly countFiles: (left: string, right: string) => number | null;
+  /** When set, later cuts must be descendants of the previous cut. */
+  readonly isAncestor?: (ancestor: string, descendant: string) => boolean;
 }): { readonly legs: readonly SyncDefaultLeg[]; readonly error: string | null } {
-  const { dest, source, destRef, sourceSha, commits, threshold, countFiles } = options;
+  const { dest, source, destRef, sourceSha, commits, threshold, countFiles, isAncestor } = options;
   const legs: SyncDefaultLeg[] = [];
   let left = destRef;
   let guard = 0;
@@ -213,6 +218,9 @@ export function cutSyncLegs(options: {
       left === destRef
         ? commits
         : commits.filter((commit) => {
+            if (isAncestor !== undefined) {
+              return commit.sha !== left && isAncestor(left, commit.sha);
+            }
             const leftIdx = commits.findIndex((row) => row.sha === left);
             const idx = commits.findIndex((row) => row.sha === commit.sha);
             return leftIdx >= 0 ? idx > leftIdx : true;
@@ -303,6 +311,23 @@ export function planSyncDefault(options: {
   });
   const dest = policy.dest;
   const source = policy.source;
+  const fetchedDest = runGit(options.projectRoot, ["fetch", "--quiet", "origin", dest]);
+  if (fetchedDest.code !== 0) {
+    const resolvedEarly = resolveSyncMaxFiles(options.projectRoot, options.maxFiles);
+    return {
+      action: "noop",
+      noopReason: "fetch-failed",
+      dest,
+      source,
+      threshold: resolvedEarly.maxFiles,
+      provenance: resolvedEarly.provenance,
+      totalCount: null,
+      legs: [],
+      nextLegIndex: null,
+      detectorReason: "fetch-failed",
+      message: "scm:sync-default: fetch failed",
+    };
+  }
   const resolved = resolveSyncMaxFiles(options.projectRoot, options.maxFiles);
   const empty = (
     extra: Partial<SyncDefaultPlan> &
@@ -423,6 +448,8 @@ export function planSyncDefault(options: {
         right,
         runGit,
       }).count,
+    isAncestor: (ancestor, descendant) =>
+      gitIsAncestor(options.projectRoot, ancestor, descendant, runGit) === true,
   });
   if (cut.error !== null || cut.legs.length === 0) {
     return empty({
@@ -467,7 +494,7 @@ function matchingOpenPull(
 ): SyncDefaultOpenPull | null {
   for (const pull of pulls) {
     if (pull.baseRef !== dest) continue;
-    if (pull.headSha === leg.sha || pull.headRef === leg.branchName) return pull;
+    if (pull.headRef === leg.branchName && pull.headSha === leg.sha) return pull;
   }
   return null;
 }
@@ -560,7 +587,7 @@ export function syncDefaultPrBody(plan: SyncDefaultPlan, leg: SyncDefaultLeg): s
     `- Dest: \`${plan.dest}\` (deliveryBranch)`,
     `- Source: \`${plan.source}\` (typed baseBranch)`,
     `- Leg ${leg.index} of ${plan.legs.length} at \`${leg.sha}\` (${leg.fileCount} files, cut=${leg.cutKind})`,
-    `- Threshold: syncMaxFiles=${plan.threshold} (${plan.provenance})`,
+    `- Threshold: syncMaxFiles=${plan.threshold} (${plan.provenance.replace(/\r?\n/g, " ")})`,
     "",
     "This PR is new. After it merges, run `task scm:sync-default` again.",
     "The next leg is a new branch and a new PR. Do not retarget or reuse an oversized PR",

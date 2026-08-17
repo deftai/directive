@@ -95,6 +95,14 @@ function gitForPlan(options: {
       if (ancestor === descendant) return { code: 0, stdout: "", stderr: "" };
       if (ancestor === DEST) return { code: 0, stdout: "", stderr: "" };
       if (descendant === "origin/develop" || descendant === TIP) {
+        if (ancestor === TIP || ancestor === M1 || ancestor === M2 || ancestor === DEST) {
+          return { code: 0, stdout: "", stderr: "" };
+        }
+      }
+      const order = [DEST, M1, M2, TIP];
+      const ai = order.indexOf(ancestor);
+      const di = order.indexOf(descendant);
+      if (ai >= 0 && di >= 0 && ai < di) {
         return { code: 0, stdout: "", stderr: "" };
       }
       return { code: 1, stdout: "", stderr: "" };
@@ -176,6 +184,39 @@ describe("cutSyncLegs (#3391)", () => {
     }
   });
 
+  it("skips side-branch commits that are not descendants of the previous cut", () => {
+    const side = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+    const cut = cutSyncLegs({
+      dest: "master",
+      source: "develop",
+      destRef: "origin/master",
+      sourceSha: TIP,
+      commits: [
+        { sha: M1, isMerge: true },
+        { sha: side, isMerge: true },
+        { sha: M2, isMerge: true },
+        { sha: TIP, isMerge: false },
+      ],
+      threshold: 400,
+      countFiles: (left, right) => {
+        if (left === "origin/master" && right === side) return 500;
+        if (left === "origin/master" && right === M1) return 200;
+        if (left === "origin/master" && right === M2) return 450;
+        if (left === "origin/master" && right === TIP) return 900;
+        if (left === M1 && right === M2) return 250;
+        if (left === M1 && right === TIP) return 700;
+        if (left === M2 && right === TIP) return 200;
+        return 900;
+      },
+      isAncestor: (ancestor, descendant) => {
+        if (ancestor === M1) return descendant === M2 || descendant === TIP;
+        return true;
+      },
+    });
+    expect(cut.legs.map((leg) => leg.sha)).toEqual([M1, M2, TIP]);
+    expect(cut.legs.some((leg) => leg.sha === side)).toBe(false);
+  });
+
   it("falls back to a non-merge commit when no merge fits", () => {
     const c1 = "1111111111111111111111111111111111111111";
     const cut = cutSyncLegs({
@@ -235,6 +276,24 @@ describe("planSyncDefault (#3391)", () => {
     });
     expect(plan.action).toBe("noop");
     expect(plan.noopReason).toBe("already-synced");
+  });
+
+  it("fetches the typed dest after dest-ref resolve", () => {
+    root = makeProject();
+    const fetched: string[] = [];
+    const base = gitForPlan({
+      counts: {
+        "origin/master...origin/develop": 12,
+        [`origin/master...${TIP}`]: 12,
+      },
+    });
+    const runGit: GitRunner = (cwd, args) => {
+      if (args[0] === "fetch") fetched.push(args[args.length - 1] ?? "");
+      return base(cwd, args);
+    };
+    planSyncDefault({ projectRoot: root, runGit });
+    expect(fetched).toContain("master");
+    expect(fetched).toContain("develop");
   });
 
   it("plans one dest-targeted PR when the file count is under the limit", () => {
@@ -422,16 +481,16 @@ describe("applySyncDefault (#3391)", () => {
     expect(spy.patched).toEqual([]);
   });
 
-  it("does not retarget or reuse an oversized dest<-source PR", () => {
+  it("does not treat a same-SHA PR on another branch as the generated sync PR", () => {
     root = makeProject();
-    const oversized: SyncDefaultOpenPull = {
+    const otherBranch: SyncDefaultOpenPull = {
       number: 9,
       htmlUrl: "https://github.com/o/r/pull/9",
       headRef: "develop",
-      headSha: TIP,
+      headSha: M1,
       baseRef: "master",
     };
-    const spy = forgeSpy([oversized]);
+    const spy = forgeSpy([otherBranch]);
     const result = applySyncDefault({
       projectRoot: root,
       repo: "o/r",
