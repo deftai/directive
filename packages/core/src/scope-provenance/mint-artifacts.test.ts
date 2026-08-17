@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -25,6 +25,7 @@ function mint(
   body: ReturnType<typeof payload>,
   publishDest?: Parameters<typeof mintApprovedScopeArtifacts>[0]["publishDest"],
   restoreDest?: Parameters<typeof mintApprovedScopeArtifacts>[0]["restoreDest"],
+  removeDest?: Parameters<typeof mintApprovedScopeArtifacts>[0]["removeDest"],
 ) {
   return mintApprovedScopeArtifacts({
     xbriefRelPath: "xbrief/active/s.xbrief.json",
@@ -34,6 +35,7 @@ function mint(
     extract: { projectRoot: root },
     publishDest,
     restoreDest,
+    removeDest,
   });
 }
 
@@ -127,6 +129,121 @@ describe("mint-artifacts file (#3385)", () => {
     expect(existsSync(first.intentPath)).toBe(false);
     expect(existsSync(first.recordPath)).toBe(false);
     expect(leftoverTmps(dirname(first.intentPath))).toEqual([]);
+  });
+
+  it("first dest publish throw after a write still restores the prior pair", () => {
+    const root = mkdtempSync(join(tmpdir(), "mint-art-first-dest-throw-"));
+    roots.push(root);
+    const first = mint(root, payload("mint-5", "Old"));
+    const priorIntent = readFileSync(first.intentPath, "utf8");
+    const priorRecord = readFileSync(first.recordPath, "utf8");
+    expect(() =>
+      mint(root, payload("mint-5", "New"), ({ root: r, target, data }) => {
+        if (target.endsWith(".intent.json")) {
+          containedWrite({ root: r, target, data, mode: "replace" });
+          throw new Error("injected intent publish failure after write");
+        }
+        containedWrite({ root: r, target, data, mode: "replace" });
+      }),
+    ).toThrow(/injected intent publish failure after write/);
+    expect(readFileSync(first.intentPath, "utf8")).toBe(priorIntent);
+    expect(readFileSync(first.recordPath, "utf8")).toBe(priorRecord);
+    expect(leftoverTmps(dirname(first.intentPath))).toEqual([]);
+  });
+
+  it("first mint: first dest publish throw after a write leaves neither dest", () => {
+    const root = mkdtempSync(join(tmpdir(), "mint-art-first-dest-first-mint-"));
+    roots.push(root);
+    expect(() =>
+      mint(root, payload("mint-6", "New"), ({ root: r, target, data }) => {
+        if (target.endsWith(".intent.json")) {
+          containedWrite({ root: r, target, data, mode: "replace" });
+          throw new Error("injected first-mint intent publish failure after write");
+        }
+        containedWrite({ root: r, target, data, mode: "replace" });
+      }),
+    ).toThrow(/injected first-mint intent publish failure after write/);
+    const dir = join(root, ".deft", "approved-scope");
+    expect(existsSync(join(dir, "mint-6.intent.json"))).toBe(false);
+    expect(existsSync(join(dir, "mint-6.json"))).toBe(false);
+    expect(leftoverTmps(dir)).toEqual([]);
+  });
+
+  it("partial dest cleanup puts removed dests back so authority is not split", () => {
+    const root = mkdtempSync(join(tmpdir(), "mint-art-partial-clear-"));
+    roots.push(root);
+    const first = mint(root, payload("mint-7", "Old"));
+    const priorIntent = readFileSync(first.intentPath, "utf8");
+    const priorRecord = readFileSync(first.recordPath, "utf8");
+    let caught: unknown;
+    try {
+      mint(
+        root,
+        payload("mint-7", "New"),
+        ({ root: r, target, data }) => {
+          if (target.endsWith(".intent.json")) {
+            containedWrite({ root: r, target, data, mode: "replace" });
+            return;
+          }
+          throw new Error("injected remint record failure");
+        },
+        () => {
+          throw new Error("injected restore failure");
+        },
+        ({ target }) => {
+          if (target.endsWith(".json") && !target.endsWith(".intent.json")) {
+            throw new Error("injected record cleanup failure");
+          }
+          rmSync(target, { force: true });
+        },
+      );
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(MintPairRollbackError);
+    expect((caught as Error).message).toMatch(
+      /injected remint record failure[\s\S]*injected restore failure[\s\S]*injected record cleanup failure/,
+    );
+    expect(readFileSync(first.intentPath, "utf8")).toBe(priorIntent);
+    expect(readFileSync(first.recordPath, "utf8")).toBe(priorRecord);
+    expect(leftoverTmps(dirname(first.intentPath))).toEqual([]);
+  });
+
+  it("names put-back failure when a removed dest cannot be restored", () => {
+    const root = mkdtempSync(join(tmpdir(), "mint-art-putback-fail-"));
+    roots.push(root);
+    const first = mint(root, payload("mint-8", "Old"));
+    let caught: unknown;
+    try {
+      mint(
+        root,
+        payload("mint-8", "New"),
+        ({ root: r, target, data }) => {
+          if (target.endsWith(".intent.json")) {
+            containedWrite({ root: r, target, data, mode: "replace" });
+            return;
+          }
+          throw new Error("injected remint record failure");
+        },
+        () => {
+          throw new Error("injected restore failure");
+        },
+        ({ target }) => {
+          if (target.endsWith(".json") && !target.endsWith(".intent.json")) {
+            throw new Error("injected record cleanup failure");
+          }
+          rmSync(target, { force: true });
+          mkdirSync(target);
+        },
+      );
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(MintPairRollbackError);
+    expect((caught as Error).message).toMatch(
+      /injected remint record failure[\s\S]*injected restore failure[\s\S]*injected record cleanup failure[\s\S]*removed dests could not be put back/,
+    );
+    rmSync(first.intentPath, { recursive: true, force: true });
   });
 
   it("writes both dests on remint when the pair succeeds", () => {

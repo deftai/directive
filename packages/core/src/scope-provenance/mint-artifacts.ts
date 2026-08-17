@@ -1,8 +1,10 @@
 /**
  * One mint writes record + preimage + both digests (#3376 R7 / #3385).
- * Dest publish is fail-closed as a pair: a write failure restores the prior
- * pair or leaves neither dest. Restore failures are not swallowed: leftover
- * dests are cleared and the error names both the write and rollback failures.
+ * Dest publish is fail-closed as a pair: rollback is armed before the first
+ * dest write. A write failure restores the prior pair or leaves neither dest.
+ * Restore failures are not swallowed: leftover dests are cleared as a pair
+ * (a partial cleanup puts removed dests back) and the error names both the
+ * write and rollback failures.
  */
 
 import { randomBytes } from "node:crypto";
@@ -35,6 +37,11 @@ export interface MintRestoreDestInput {
   readonly root: string;
   readonly target: string;
   readonly snapshot: string | null;
+}
+
+export interface MintRemoveDestInput {
+  readonly root: string;
+  readonly target: string;
 }
 
 export class MintPairRollbackError extends Error {
@@ -78,6 +85,11 @@ export interface MintArtifactsInput {
    * Production restores via containedWrite replace / rmSync.
    */
   readonly restoreDest?: (input: MintRestoreDestInput) => void;
+  /**
+   * Test-only dest remove during rollback cleanup.
+   * Production uses rmSync.
+   */
+  readonly removeDest?: (input: MintRemoveDestInput) => void;
 }
 
 export interface MintArtifactsResult {
@@ -131,13 +143,20 @@ function restoreDestDefault(input: MintRestoreDestInput): void {
   restoreText(input.root, input.target, input.snapshot);
 }
 
-function clearDestPair(intentPath: string, recordPath: string): void {
+function removeDestDefault(input: MintRemoveDestInput): void {
+  rmSync(input.target, { force: true });
+}
+
+function restorePair(
+  restore: (input: MintRestoreDestInput) => void,
+  dests: readonly MintRestoreDestInput[],
+): void {
   const failures: string[] = [];
-  for (const path of [intentPath, recordPath]) {
+  for (const dest of dests) {
     try {
-      rmSync(path, { force: true });
+      restore(dest);
     } catch (err) {
-      failures.push(`${basename(path)}: ${errorMessage(err)}`);
+      failures.push(`${basename(dest.target)}: ${errorMessage(err)}`);
     }
   }
   if (failures.length > 0) {
@@ -145,11 +164,51 @@ function clearDestPair(intentPath: string, recordPath: string): void {
   }
 }
 
+function clearDestPair(input: {
+  readonly root: string;
+  readonly intentPath: string;
+  readonly recordPath: string;
+  readonly prevIntent: string | null;
+  readonly prevRecord: string | null;
+  readonly remove: (input: MintRemoveDestInput) => void;
+}): void {
+  const dests: readonly MintRestoreDestInput[] = [
+    { root: input.root, target: input.intentPath, snapshot: input.prevIntent },
+    { root: input.root, target: input.recordPath, snapshot: input.prevRecord },
+  ];
+  const removed: MintRestoreDestInput[] = [];
+  const failures: string[] = [];
+  for (const dest of dests) {
+    try {
+      input.remove({ root: dest.root, target: dest.target });
+      removed.push(dest);
+    } catch (err) {
+      failures.push(`${basename(dest.target)}: ${errorMessage(err)}`);
+    }
+  }
+  if (failures.length === 0) return;
+  const putBackFailures: string[] = [];
+  for (const dest of removed) {
+    try {
+      restoreDestDefault(dest);
+    } catch (err) {
+      putBackFailures.push(`${basename(dest.target)}: ${errorMessage(err)}`);
+    }
+  }
+  const putBackSuffix =
+    putBackFailures.length > 0
+      ? `; removed dests could not be put back (${putBackFailures.join("; ")})`
+      : "";
+  throw new Error(`${failures.join("; ")}${putBackSuffix}`);
+}
+
 /**
  * Write record + preimage as one fail-closed pair.
  * Temps land first; dests publish only after both temps exist.
- * Dest-publish failure restores the snapshotted pair.
- * Restore failure clears leftover dests and names both errors.
+ * Rollback is armed before the first dest write so a partial first
+ * dest cannot skip restore. Dest-publish failure restores the
+ * snapshotted pair. Restore failure clears leftover dests as a pair
+ * (partial cleanup puts removed dests back) and names both errors.
  */
 export function writeApprovedScopePair(input: {
   readonly projectRoot: string;
@@ -159,6 +218,7 @@ export function writeApprovedScopePair(input: {
   readonly recordData: string;
   readonly publishDest?: (input: MintPublishDestInput) => void;
   readonly restoreDest?: (input: MintRestoreDestInput) => void;
+  readonly removeDest?: (input: MintRemoveDestInput) => void;
 }): void {
   const root = resolve(input.projectRoot);
   const dir = approvedScopeDir(input.projectRoot);
@@ -170,21 +230,32 @@ export function writeApprovedScopePair(input: {
   const recordTmp = join(dir, `.${basename(input.recordPath)}.${process.pid}.${nonce}.tmp`);
   const publish = input.publishDest ?? publishDestDefault;
   const restore = input.restoreDest ?? restoreDestDefault;
+  const remove = input.removeDest ?? removeDestDefault;
+  const dests: readonly MintRestoreDestInput[] = [
+    { root, target: input.intentPath, snapshot: prevIntent },
+    { root, target: input.recordPath, snapshot: prevRecord },
+  ];
   let destPublished = false;
   try {
     writeTempPayload(root, intentTmp, input.intentData);
     writeTempPayload(root, recordTmp, input.recordData);
-    publish({ root, target: input.intentPath, data: input.intentData });
     destPublished = true;
+    publish({ root, target: input.intentPath, data: input.intentData });
     publish({ root, target: input.recordPath, data: input.recordData });
   } catch (err) {
     if (destPublished) {
       try {
-        restore({ root, target: input.intentPath, snapshot: prevIntent });
-        restore({ root, target: input.recordPath, snapshot: prevRecord });
+        restorePair(restore, dests);
       } catch (restoreErr) {
         try {
-          clearDestPair(input.intentPath, input.recordPath);
+          clearDestPair({
+            root,
+            intentPath: input.intentPath,
+            recordPath: input.recordPath,
+            prevIntent,
+            prevRecord,
+            remove,
+          });
         } catch (clearErr) {
           throw new MintPairRollbackError(err, restoreErr, clearErr);
         }
@@ -227,6 +298,7 @@ export function mintApprovedScopeArtifacts(input: MintArtifactsInput): MintArtif
     recordData: `${JSON.stringify(record, null, 2)}\n`,
     publishDest: input.publishDest,
     restoreDest: input.restoreDest,
+    removeDest: input.removeDest,
   });
   return { record, preimage: extracted.preimage, recordPath, intentPath };
 }
