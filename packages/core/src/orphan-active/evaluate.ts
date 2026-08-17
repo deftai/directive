@@ -190,9 +190,9 @@ function assessOrphanSignature(
   projectRoot: string,
   runGh: RunGhFn,
   skipGh: boolean,
-  failClosedUnknown: boolean,
+  selectedIssue: number | null,
 ): { orphaned: boolean; reason: string | null } {
-  if (failClosedUnknown) {
+  if (selectedIssue !== null) {
     for (const pr of prRefs) {
       if (skipGh) {
         continue;
@@ -202,13 +202,25 @@ function assessOrphanSignature(
         return { orphaned: true, reason: `linked PR #${pr.number} is merged` };
       }
     }
+    // --issue N is one origin: sibling open/unknown must not mask it (#3429).
+    const selectedRef = issueRefs.find((ref) => ref.number === selectedIssue);
+    if (selectedRef !== undefined) {
+      const selectedState = resolveIssueState(selectedRef, projectRoot, runGh, skipGh);
+      if (selectedState === null) {
+        return {
+          orphaned: true,
+          reason: `issue #${selectedIssue} state could not be resolved`,
+        };
+      }
+      if (selectedState === "closed") {
+        return { orphaned: true, reason: `issue #${selectedIssue} is closed` };
+      }
+      return { orphaned: false, reason: null };
+    }
     const issueStates = issueRefs.map((ref) => ({
       ref,
       state: resolveIssueState(ref, projectRoot, runGh, skipGh),
     }));
-    if (issueStates.some((row) => row.state === "open")) {
-      return { orphaned: false, reason: null };
-    }
     const unknownIssue = issueStates.find((row) => row.state === null);
     if (unknownIssue !== undefined) {
       return {
@@ -357,14 +369,7 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
     if (issues.length === 0 && prs.length === 0) {
       continue;
     }
-    const assessment = assessOrphanSignature(
-      issues,
-      prs,
-      root,
-      runGh,
-      skipGh,
-      issueFilter !== null,
-    );
+    const assessment = assessOrphanSignature(issues, prs, root, runGh, skipGh, issueFilter);
     if (assessment.orphaned && assessment.reason !== null) {
       orphans.push({
         path: relBriefPath(brief.path, root),

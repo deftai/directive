@@ -180,7 +180,7 @@ describe("evaluate", () => {
     expect(result.orphans).toEqual([
       {
         path: "xbrief/active/shipped-story.xbrief.json",
-        reason: "all referenced issues are closed",
+        reason: "issue #1001 is closed",
       },
     ]);
     expect(result.message).toContain(
@@ -313,6 +313,55 @@ describe("evaluate", () => {
     expect(result.orphans[0]?.reason).toBe("issue #4040 state could not be resolved");
     expect(result.message).toContain(
       "task scope:complete -- xbrief/active/unknown-state.xbrief.json",
+    );
+  });
+
+  it("fails closed on --issue N when the selected origin is unknown even if a sibling is open", () => {
+    const root = makeRepo();
+    writeBrief(root, "multi-origin.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/4040",
+          type: "x-xbrief/github-issue",
+        },
+        {
+          uri: "https://github.com/deftai/directive/issues/2002",
+          type: "x-xbrief/github-issue",
+        },
+      ],
+    });
+    writeCachedIssue(root, "deftai/directive", 2002, "open");
+    const result = evaluate(root, { repo: "deftai/directive", skipGh: true, issue: 4040 });
+    expect(result.code).toBe(1);
+    expect(result.orphans[0]?.reason).toBe("issue #4040 state could not be resolved");
+    expect(result.message).toContain(
+      "task scope:complete -- xbrief/active/multi-origin.xbrief.json",
+    );
+  });
+
+  it("fails closed on --issue N when the selected origin is closed even if a sibling is open", () => {
+    const root = makeRepo();
+    writeBrief(root, "closed-origin-open-sibling.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/1001",
+          type: "x-xbrief/github-issue",
+        },
+        {
+          uri: "https://github.com/deftai/directive/issues/2002",
+          type: "x-xbrief/github-issue",
+        },
+      ],
+    });
+    writeCachedIssue(root, "deftai/directive", 1001, "closed");
+    writeCachedIssue(root, "deftai/directive", 2002, "open");
+    const result = evaluate(root, { repo: "deftai/directive", skipGh: true, issue: 1001 });
+    expect(result.code).toBe(1);
+    expect(result.orphans[0]?.reason).toBe("issue #1001 is closed");
+    expect(result.message).toContain(
+      "task scope:complete -- xbrief/active/closed-origin-open-sibling.xbrief.json",
     );
   });
 
