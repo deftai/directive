@@ -930,6 +930,8 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("git log worktree -- .deft/authz/state.json")).toEqual([]);
     expect(classifyShellAuthzOps("git show submodule -- .deft/authz/state.json")).toEqual([]);
     expect(classifyShellAuthzOps("echo x > .deft/approved-scope-backup/story.json")).toEqual([]);
+    expect(classifyShellAuthzOps("echo x > .deft/authz-backup/story.json")).toEqual([]);
+    expect(classifyShellAuthzOps("echo x > .deft/foo/../authz-backup/story.json")).toEqual([]);
     expect(classifyShellAuthzOps("echo x > .deft/foo/../approved-scope/story.json")).toContain(
       "settings",
     );

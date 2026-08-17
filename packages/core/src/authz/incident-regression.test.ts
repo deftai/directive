@@ -1205,6 +1205,8 @@ describe("UAT residual dest-form writers fail-closed (#3421)", () => {
       "Get-Content -Path .deft/authz/state.json",
       "git log -- .deft/authz/state.json",
       "git log worktree -- .deft/authz/state.json",
+      "echo x > .deft/authz-backup/story.json",
+      "echo x > .deft/foo/../authz-backup/story.json",
     ]) {
       const decision = decideHook(
         {

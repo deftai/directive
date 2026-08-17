@@ -1491,7 +1491,8 @@ function canonicalizePathish(pathish: string): string {
  * Quote-split forms like `'.deft/'authz'/grants/x'` become `.deft/authz/grants/x` via pathishToken.
  */
 function pathishIsAuthzDir(pathish: string): boolean {
-  return canonicalizePathish(pathish).includes(".deft/authz");
+  const p = canonicalizePathish(pathish);
+  return p.includes(".deft/authz/") || p.endsWith(".deft/authz") || p === ".deft/authz";
 }
 
 /** True when a pathish string targets `.deft/approved-scope` (#3421 / #3410 mint). */
@@ -1506,6 +1507,23 @@ function pathishIsApprovedScopeDir(pathish: string): boolean {
 
 function pathishIsSettingsStoreDir(pathish: string): boolean {
   return pathishIsAuthzDir(pathish) || pathishIsApprovedScopeDir(pathish);
+}
+
+/** True when dest is a settings-store path or has an exact `authz` path segment. */
+function destMentionsAuthzSegment(dest: string): boolean {
+  const p = canonicalizePathish(pathishToken(dest).trim());
+  if (pathishIsSettingsStoreDir(p)) return true;
+  let cur = "";
+  for (let i = 0; i <= p.length; i++) {
+    const c = i < p.length ? (p[i] as string) : "/";
+    if (c === "/" || i === p.length) {
+      if (cur === "authz") return true;
+      cur = "";
+    } else {
+      cur += c;
+    }
+  }
+  return false;
 }
 
 /**
@@ -2007,7 +2025,7 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
         ) {
           end++;
         }
-        if (lower.slice(j, end).includes("authz")) {
+        if (destMentionsAuthzSegment(lower.slice(j, end))) {
           found.add("settings");
           break;
         }
