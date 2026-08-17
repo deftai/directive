@@ -421,4 +421,102 @@ describe("containedRemove (#3392)", () => {
     }
     expect(readFileSync(victim, "utf8")).toBe("KEEP\n");
   });
+
+  it("unlinks an in-root leaf directory link without following it", () => {
+    const root = freshDir("cr-junc-intree-");
+    const realDir = join(root, "real-dir");
+    mkdirSync(realDir);
+    writeFileSync(join(realDir, "keep.txt"), "KEEP\n", "utf8");
+    const linkType = process.platform === "win32" ? "junction" : "dir";
+    symlinkSync(realDir, join(root, "alias-dir"), linkType);
+
+    const summary = runWithMutationLedger(root, () => {
+      const result = containedRemove({ root, target: "alias-dir" });
+      expect(result.removed).toBe(true);
+      return snapshotMutationSummary();
+    });
+
+    expect(existsSync(join(root, "alias-dir"))).toBe(false);
+    expect(readFileSync(join(realDir, "keep.txt"), "utf8")).toBe("KEEP\n");
+    expect(summary.deleted).toEqual(["alias-dir"]);
+  });
+
+  it("refuses a parent-directory link on the remove path (junction/dir)", () => {
+    const root = freshDir("cr-junc-parent-root-");
+    const outside = freshDir("cr-junc-parent-out-");
+    const victim = join(outside, "keep.txt");
+    writeFileSync(victim, "KEEP\n", "utf8");
+    const linkType = process.platform === "win32" ? "junction" : "dir";
+    symlinkSync(outside, join(root, "out"), linkType);
+
+    try {
+      containedRemove({ root, target: join("out", "keep.txt") });
+      expect.fail("expected ContainedWriteError");
+    } catch (err) {
+      expect(err).toBeInstanceOf(ContainedWriteError);
+      expect((err as ContainedWriteError).code).toBe(ContainedWriteErrorCode.SYMLINK);
+    }
+    expect(readFileSync(victim, "utf8")).toBe("KEEP\n");
+  });
+
+  itSymlink("unlinks an in-root leaf symlink without following it", () => {
+    const root = freshDir("cr-sym-intree-");
+    const victim = join(root, "real.txt");
+    writeFileSync(victim, "KEEP\n", "utf8");
+    symlinkSync(victim, join(root, "alias.txt"));
+
+    const summary = runWithMutationLedger(root, () => {
+      const result = containedRemove({ root, target: "alias.txt" });
+      expect(result.removed).toBe(true);
+      return snapshotMutationSummary();
+    });
+
+    expect(existsSync(join(root, "alias.txt"))).toBe(false);
+    expect(readFileSync(victim, "utf8")).toBe("KEEP\n");
+    expect(summary.deleted).toEqual(["alias.txt"]);
+  });
+
+  itSymlink("unlinks an in-root leaf symlink that points outside the root", () => {
+    const root = freshDir("cr-sym-out-root-");
+    const outside = freshDir("cr-sym-out-victim-");
+    const victim = join(outside, "outside.txt");
+    writeFileSync(victim, "KEEP\n", "utf8");
+    symlinkSync(victim, join(root, "stale-link.txt"));
+
+    const summary = runWithMutationLedger(root, () => {
+      const result = containedRemove({ root, target: "stale-link.txt" });
+      expect(result.removed).toBe(true);
+      return snapshotMutationSummary();
+    });
+
+    expect(existsSync(join(root, "stale-link.txt"))).toBe(false);
+    expect(readFileSync(victim, "utf8")).toBe("KEEP\n");
+    expect(summary.deleted).toEqual(["stale-link.txt"]);
+  });
+
+  itSymlink("unlinks a dangling in-root leaf symlink", () => {
+    const root = freshDir("cr-sym-dangle-");
+    symlinkSync(join(root, "missing-target.txt"), join(root, "dangle.txt"));
+
+    const result = containedRemove({ root, target: "dangle.txt" });
+    expect(result.removed).toBe(true);
+    expect(existsSync(join(root, "dangle.txt"))).toBe(false);
+  });
+
+  itSymlink("refuses a parent-directory symlink on the remove path", () => {
+    const root = freshDir("cr-sym-parent-root-");
+    const outside = freshDir("cr-sym-parent-out-");
+    const victim = join(outside, "keep.txt");
+    writeFileSync(victim, "KEEP\n", "utf8");
+    symlinkSync(outside, join(root, "out"), "dir");
+
+    try {
+      containedRemove({ root, target: join("out", "keep.txt") });
+      expect.fail("expected ContainedWriteError");
+    } catch (err) {
+      expect(err).toBeInstanceOf(ContainedWriteError);
+      expect((err as ContainedWriteError).code).toBe(ContainedWriteErrorCode.SYMLINK);
+    }
+    expect(readFileSync(victim, "utf8")).toBe("KEEP\n");
+  });
 });

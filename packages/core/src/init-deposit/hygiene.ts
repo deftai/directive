@@ -12,9 +12,10 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { readdir, rm, stat } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
+import { containedRemove } from "../fs/contained-write.js";
 import { applyCoreGuardWithBranchSync, type BranchSyncDetection } from "../policy/branch-sync.js";
 import { gitPorcelain } from "../story-ready/git.js";
 import { CANONICAL_INSTALL_ROOT, type InitDepositIo } from "./constants.js";
@@ -1096,7 +1097,7 @@ async function pruneEmptyParentsForFile(
     const abs = join(deftDir, rel);
     try {
       if (!existsSync(abs) || readdirSync(abs).length !== 0) break;
-      rmSync(abs, { recursive: false, force: true });
+      containedRemove({ root: deftDir, target: abs, mutation: false });
       prunedDirs.push(normalized);
     } catch {
       break;
@@ -1114,6 +1115,9 @@ async function pruneEmptyParentsForFile(
  * Individual removal failures are reported but do not throw — callers that must
  * refuse a VERSION stamp until the deposit matches the content package should
  * use {@link reconcileDepositToContentPackage} (#2913).
+ *
+ * Dest-only file removers go through {@link containedRemove} so a bound
+ * mutation ledger records them (#3392).
  */
 export async function prunePackageAbsentDepositPaths(
   deftDir: string,
@@ -1126,7 +1130,7 @@ export async function prunePackageAbsentDepositPaths(
   const prunedDirs: string[] = [];
   for (const rel of absent) {
     try {
-      rmSync(join(deftDir, rel), { force: true });
+      containedRemove({ root: deftDir, target: join(deftDir, rel) });
       pruned.push(rel);
       prunedDirs.push(...(await pruneEmptyParentsForFile(deftDir, contentDirs, rel)));
     } catch (cause) {

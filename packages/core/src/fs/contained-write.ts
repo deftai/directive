@@ -28,9 +28,10 @@ import {
   openSync,
   realpathSync,
   rmSync,
+  unlinkSync,
   writeSync,
 } from "node:fs";
-import { dirname, isAbsolute, relative, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { isAtomicWriteTemp, type MutationKind, recordActiveMutation } from "./mutation-ledger.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "./projection-containment.js";
 
@@ -247,7 +248,14 @@ function toBuffer(data: string | Buffer, encoding: BufferEncoding): Buffer {
   return Buffer.isBuffer(data) ? data : Buffer.from(data, encoding);
 }
 
-function resolveExistingRoot(root: string, target: string): { rootAbs: string; targetAbs: string } {
+/**
+ * Remove resolver: lexical nest + refuse parent-path symlinks. The leaf may be
+ * a symlink — unlink the link itself (never follow, never abort).
+ */
+function resolveExistingRootForRemove(
+  root: string,
+  target: string,
+): { rootAbs: string; targetAbs: string } {
   const rootAbs = resolve(root);
   try {
     realpathSync(rootAbs);
@@ -260,13 +268,32 @@ function resolveExistingRoot(root: string, target: string): { rootAbs: string; t
     });
   }
   const targetAbs = resolveContainedTarget(rootAbs, target);
-  try {
-    assertWriteTargetSafe(rootAbs, targetAbs);
-  } catch (err) {
-    if (err instanceof ProjectionContainmentError) {
-      throw mapProjectionError(err, rootAbs, targetAbs);
+  const parentAbs = dirname(targetAbs);
+  if (parentAbs !== rootAbs && parentAbs !== targetAbs) {
+    const rel = relative(rootAbs, parentAbs);
+    if (rel.length > 0 && !rel.startsWith("..") && !isAbsolute(rel)) {
+      let current = rootAbs;
+      for (const segment of rel.split(/[\\/]+/).filter((part) => part.length > 0)) {
+        current = join(current, segment);
+        let info: ReturnType<typeof lstatSync>;
+        try {
+          info = lstatSync(current);
+        } catch {
+          break;
+        }
+        if (info.isSymbolicLink()) {
+          throw new ContainedWriteError(
+            `contained write refused: ${current} is a symlink on the remove parent path`,
+            {
+              code: ContainedWriteErrorCode.SYMLINK,
+              root: rootAbs,
+              target: targetAbs,
+              offendingPath: current,
+            },
+          );
+        }
+      }
     }
-    throw err;
   }
   return { rootAbs, targetAbs };
 }
@@ -468,15 +495,17 @@ export function containedWrite(input: ContainedWriteInput): ContainedWriteResult
 }
 
 /**
- * Contained remove: resolve under root, refuse symlink escape / out-of-root,
- * then delete the file. Missing targets are a no-op (not ledgered).
+ * Contained remove: resolve under root, refuse parent-path symlink / out-of-root,
+ * then delete. An in-root leaf symlink is unlinked (not followed, not refused).
+ * Missing targets are a no-op (not ledgered).
  *
  * @throws {ContainedWriteError} on containment refusal
  */
 export function containedRemove(input: ContainedRemoveInput): ContainedRemoveResult {
-  const { rootAbs, targetAbs } = resolveExistingRoot(input.root, input.target);
+  const { rootAbs, targetAbs } = resolveExistingRootForRemove(input.root, input.target);
+  let info: ReturnType<typeof lstatSync>;
   try {
-    lstatSync(targetAbs);
+    info = lstatSync(targetAbs);
   } catch (err) {
     const code =
       typeof err === "object" && err !== null && "code" in err
@@ -494,7 +523,11 @@ export function containedRemove(input: ContainedRemoveInput): ContainedRemoveRes
     });
   }
   try {
-    rmSync(targetAbs, { force: true, recursive: input.recursive === true });
+    if (info.isSymbolicLink()) {
+      unlinkSync(targetAbs);
+    } else {
+      rmSync(targetAbs, { force: true, recursive: input.recursive === true });
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     throw new ContainedWriteError(`contained write I/O failed: ${msg}`, {

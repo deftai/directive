@@ -11,6 +11,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { runWithMutationLedger, snapshotMutationSummary } from "../fs/mutation-ledger.js";
 import { detectBranchSync, formatBranchSyncExemptionMessage } from "../policy/branch-sync.js";
 import {
   assertInstallerAllowlistHonors1430,
@@ -1263,6 +1264,25 @@ describe("package-absent deposit prune (#2804)", () => {
 
     expect(result.pruned).toContain("packages/core/index.ts");
     expect(await findPackageAbsentDepositPaths(deftDir, contentRoot)).toEqual([]);
+  });
+
+  it("ledgers dest-only reconcile removers through containedRemove (#3392)", async () => {
+    const root = freshRoot("package-absent-ledger-");
+    const deftDir = join(root, ".deft", "core");
+    const contentRoot = join(root, "content-pkg");
+    mkdirSync(join(deftDir, "agents"), { recursive: true });
+    writeFileSync(join(deftDir, "agents", "stale-skill.md"), "EVIL\n", "utf8");
+    writeFileSync(join(deftDir, "VERSION"), "v0.84.0\n", "utf8");
+    mkdirSync(contentRoot, { recursive: true });
+    writeFileSync(join(contentRoot, "main.md"), "# Deft\n", "utf8");
+
+    const summary = await runWithMutationLedger(root, async () => {
+      await reconcileDepositToContentPackage(deftDir, contentRoot, { printf: () => {} });
+      return snapshotMutationSummary();
+    });
+
+    expect(existsSync(join(deftDir, "agents", "stale-skill.md"))).toBe(false);
+    expect(summary.deleted).toContain(".deft/core/agents/stale-skill.md");
   });
 });
 
