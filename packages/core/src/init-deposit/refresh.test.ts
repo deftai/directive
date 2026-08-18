@@ -1311,7 +1311,6 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     return hash.digest("hex");
   }
 
-
   function listRelFiles(root: string): string[] {
     const out: string[] = [];
     const walk = (abs: string, rel: string): void => {
@@ -1438,6 +1437,7 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
 
   it("full dry-run leaves the fixture tree byte-identical (#3456)", async () => {
     const project = freshRoot("update-dryrun-hash-");
+    const contentRoot = installFakeContentPackage(project, "0.53.0");
     writeInitializedProject(project, { contentVersion: "0.53.0", pinVersion: "0.53.0" });
     mkdirSync(join(project, "xbrief", "schemas"), { recursive: true });
     mkdirSync(join(project, ".claude", "commands"), { recursive: true });
@@ -1463,9 +1463,8 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
       writeOut: () => undefined,
       writeErr: () => undefined,
       seams: {
-        resolveContentRoot: async () => {
-          throw new Error("resolveContentRoot must NOT run in dry-run mode");
-        },
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.53.0",
       },
     });
 
@@ -1591,6 +1590,15 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
       seams,
     );
     expect(planned.plannedPaths).toEqual(plannedPathsFromSummary(result.mutations));
+    const executeDeleted = [...result.mutations.deleted].sort();
+    expect(executeDeleted).toContain(".deft/core/stale-skill/SKILL.md");
+    expect(executeDeleted.length).toBeGreaterThan(0);
+    // Delete-set parity: every execute delete was planned (not writes-only).
+    expect(planned.plannedPaths.filter((path) => executeDeleted.includes(path))).toEqual(
+      executeDeleted,
+    );
+    const gone = beforeFiles.filter((path) => !listRelFiles(project).includes(path)).sort();
+    expect(executeDeleted).toEqual(gone);
   });
 
   it("dry-run fails closed when the content package cannot be read (#3437)", async () => {
