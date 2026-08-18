@@ -1,4 +1,12 @@
-import { closeSync, existsSync, mkdirSync, openSync, unlinkSync, writeSync } from "node:fs";
+import {
+  closeSync,
+  existsSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  unlinkSync,
+  writeSync,
+} from "node:fs";
 import { dirname } from "node:path";
 
 const threadLocked = { held: false };
@@ -15,6 +23,38 @@ function defaultSleep(ms: number): void {
   }
 }
 
+function lockOwnerPid(lockPath: string): number | null {
+  try {
+    const text = readFileSync(lockPath, { encoding: "utf8" }).trim();
+    if (!/^\d+$/.test(text)) return null;
+    const pid = Number(text);
+    return Number.isInteger(pid) && pid > 0 ? pid : null;
+  } catch {
+    return null;
+  }
+}
+
+function processExists(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (err: unknown) {
+    return (err as NodeJS.ErrnoException).code !== "ESRCH";
+  }
+}
+
+/** Unlink only when the lock file names a PID that is proven dead. */
+function tryReclaimDeadOwner(lockPath: string): boolean {
+  const pid = lockOwnerPid(lockPath);
+  if (pid === null || processExists(pid)) return false;
+  try {
+    unlinkSync(lockPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Serialise appenders across threads AND processes (sidecar lock file). */
 export function withAppendLock<T>(logPath: string, fn: () => T, deps: LockDeps = {}): T {
   const sleepMs = deps.sleepMs ?? defaultSleep;
@@ -27,12 +67,13 @@ export function withAppendLock<T>(logPath: string, fn: () => T, deps: LockDeps =
   }
   threadLocked.held = true;
   let fd: number | undefined;
+  let reclaimedStale = false;
   try {
     const deadline = now() + 30_000;
     while (true) {
       try {
         fd = openSync(lockPath, "wx");
-        writeSync(fd, Buffer.from("\0"));
+        writeSync(fd, Buffer.from(`${process.pid}\n`));
         break;
       } catch (err: unknown) {
         const code = (err as NodeJS.ErrnoException).code;
@@ -40,6 +81,10 @@ export function withAppendLock<T>(logPath: string, fn: () => T, deps: LockDeps =
           throw err;
         }
         if (now() > deadline) {
+          if (!reclaimedStale && tryReclaimDeadOwner(lockPath)) {
+            reclaimedStale = true;
+            continue;
+          }
           throw new Error(`timed out acquiring lock for ${logPath}`);
         }
         sleepMs(20);
@@ -49,15 +94,15 @@ export function withAppendLock<T>(logPath: string, fn: () => T, deps: LockDeps =
   } finally {
     if (fd !== undefined) {
       closeSync(fd);
+      try {
+        if (existsSync(lockPath)) {
+          unlinkSync(lockPath);
+        }
+      } catch {
+        /* best-effort owner cleanup */
+      }
     }
     threadLocked.held = false;
-    try {
-      if (existsSync(lockPath)) {
-        unlinkSync(lockPath);
-      }
-    } catch {
-      /* best-effort */
-    }
   }
 }
 

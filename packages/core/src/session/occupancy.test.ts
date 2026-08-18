@@ -161,6 +161,44 @@ describe("worktree occupancy lease (#3433)", () => {
     expect(evaluateOccupancyWriteGate(root, { now }).allow).toBe(false);
   });
 
+  it("release of an expired lease does not delete a replacement claim", () => {
+    const root = tempRoot();
+    const claimedAt = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "stale", now: claimedAt });
+    const expiredAt = new Date(claimedAt.getTime() + OCCUPANCY_TTL_MS + 1);
+    applyWorktreeOccupancy(root, { sessionId: "fresh", now: expiredAt });
+    const released = releaseOccupancy(root, { sessionId: "stale", now: expiredAt });
+    expect(released.code).toBe(1);
+    expect(released.action).toBe("denied");
+    expect(readOccupancy(root)?.sessionId).toBe("fresh");
+  });
+
+  it("lock-wait timeout does not unlink a live owner lock", () => {
+    const root = tempRoot();
+    const now = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "owner", now });
+    const lockPath = `${occupancyPath(root)}.lock`;
+    writeFileSync(lockPath, `${process.pid}\n`, "utf8");
+    let clock = 0;
+    expect(() =>
+      applyWorktreeOccupancy(root, {
+        sessionId: "owner",
+        now,
+        lockDeps: {
+          now: () => {
+            clock += 31_000;
+            return clock;
+          },
+          sleepMs: () => {
+            /* no-op */
+          },
+        },
+      }),
+    ).toThrow(/timed out acquiring lock/);
+    expect(existsSync(lockPath)).toBe(true);
+    expect(readOccupancy(root)?.sessionId).toBe("owner");
+  });
+
   it("releases a swarm close-out and refuses a foreign live mutation lease", () => {
     const root = tempRoot();
     const now = new Date("2026-08-17T12:00:00Z");
