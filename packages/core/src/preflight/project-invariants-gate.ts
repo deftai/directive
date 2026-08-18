@@ -9,7 +9,10 @@ import { dirname } from "node:path";
 import { extractModulePathGlobs, resolveProjectInvariants } from "../policy/project-invariants.js";
 import { loadProjectDefinition } from "../policy/resolve.js";
 import { extractStoryFileScope } from "../policy/write-fence.js";
-import { findLifecycleRootFromArtifact } from "../scope/parent-lineage.js";
+import {
+  extractChildCoverageDraft,
+  findLifecycleRootFromArtifact,
+} from "../scope/parent-lineage.js";
 import {
   applicableProjectInvariants,
   PROJECT_INVARIANT_DISPOSITIONS,
@@ -31,13 +34,6 @@ export interface ProjectInvariantsGateResult {
 export interface ProjectInvariantsGateOptions {
   readonly projectRoot?: string;
   readonly skip?: boolean;
-}
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-    return value as Record<string, unknown>;
-  }
-  return null;
 }
 
 /**
@@ -91,26 +87,10 @@ export function evaluateProjectInvariantsGate(
   const applicable = applicableProjectInvariants(resolved.invariants, fileScope, modulePathGlobs);
   const applicableIds = applicable.map((a) => a.id);
 
-  const storyRec = asRecord(story);
-  const plan = storyRec !== null ? asRecord(storyRec.plan) : null;
-  const metadata = plan !== null ? asRecord(plan.metadata) : null;
-  const lineage = metadata !== null ? asRecord(metadata.parent_lineage) : null;
-  const draft = {
-    coverage_map:
-      (lineage !== null ? (lineage.coverage_map ?? lineage.coverageMap) : undefined) ??
-      (metadata !== null ? (metadata.coverage_map ?? metadata.coverageMap) : undefined) ??
-      (plan !== null ? (plan.coverage_map ?? plan.coverageMap) : undefined) ??
-      (storyRec !== null ? (storyRec.coverage_map ?? storyRec.coverageMap) : undefined),
-    behavioral_deltas:
-      (lineage !== null ? (lineage.behavioral_deltas ?? lineage.behavioralDeltas) : undefined) ??
-      (metadata !== null ? (metadata.behavioral_deltas ?? metadata.behavioralDeltas) : undefined) ??
-      (plan !== null ? (plan.behavioral_deltas ?? plan.behavioralDeltas) : undefined) ??
-      (storyRec !== null ? (storyRec.behavioral_deltas ?? storyRec.behavioralDeltas) : undefined),
-  };
-
+  const extracted = extractChildCoverageDraft(story);
   const coverage = validateProjectInvariantCoverage({
     applicableIds,
-    draft,
+    draft: extracted.draft ?? {},
   });
   if (coverage.ok) {
     return {

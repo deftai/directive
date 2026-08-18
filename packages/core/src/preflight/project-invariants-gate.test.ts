@@ -206,6 +206,50 @@ describe("evaluateProjectInvariantsGate", () => {
     expect(result.ok).toBe(true);
   });
 
+  it("accepts parentLineage camelCase and nested coverage.coverage_map", () => {
+    const r = root();
+    writeProjectDef(r, {
+      projectInvariants: [
+        {
+          id: "host-load",
+          statement: "Do not break host load.",
+          paths: ["packages/core/src/preflight/**"],
+        },
+      ],
+    });
+    const camel = evaluateProjectInvariantsGate(
+      {
+        plan: {
+          status: "running",
+          metadata: {
+            swarm: { file_scope: ["packages/core/src/preflight"] },
+            parentLineage: {
+              coverage_map: { "host-load": { disposition: "covered" } },
+            },
+          },
+        },
+      },
+      { projectRoot: r },
+    );
+    expect(camel.ok).toBe(true);
+
+    const nested = evaluateProjectInvariantsGate(
+      {
+        plan: {
+          status: "running",
+          metadata: {
+            swarm: { file_scope: ["packages/core/src/preflight"] },
+            coverage: {
+              coverage_map: { "host-load": { disposition: "covered" } },
+            },
+          },
+        },
+      },
+      { projectRoot: r },
+    );
+    expect(nested.ok).toBe(true);
+  });
+
   it("applies the same check to a slice-scoped story", () => {
     const r = root();
     writeProjectDef(r, {
