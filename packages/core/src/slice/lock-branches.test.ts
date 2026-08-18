@@ -4,6 +4,23 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { appendLock, withAppendLock } from "./lock.js";
 
+/** Acquire time after this process start so Linux reuse check stays false. */
+function liveHolderAcquireAtMs(): number {
+  const now = Date.now();
+  try {
+    const stat = fs.readFileSync(`/proc/${process.pid}/stat`, { encoding: "utf8" });
+    const closeParen = stat.lastIndexOf(")");
+    if (closeParen < 0) return now;
+    const startTicks = Number(stat.slice(closeParen + 2).split(" ")[19]);
+    const btime = /(?:^|\n)btime (\d+)/.exec(fs.readFileSync("/proc/stat", { encoding: "utf8" }));
+    if (!Number.isFinite(startTicks) || btime === null) return now;
+    const startMs = Number(btime[1]) * 1000 + (startTicks * 1000) / 100;
+    return Math.min(now, startMs + 2_000);
+  } catch {
+    return now;
+  }
+}
+
 function instantTimeoutDeps(): { now: () => number; sleepMs: () => void } {
   let now = 0;
   return {
@@ -48,7 +65,7 @@ describe("lock branches", () => {
   it("does not reclaim a live holder just because the lock is old", () => {
     const path = join(tmpdir(), `deft-lock-live-old-${Date.now()}.jsonl`);
     const lockPath = `${path}.lock`;
-    fs.writeFileSync(lockPath, `${process.pid}\n${Date.now() - 180_000}\n`);
+    fs.writeFileSync(lockPath, `${process.pid}\n${liveHolderAcquireAtMs()}\n`);
     expect(() => withAppendLock(path, () => undefined, instantTimeoutDeps())).toThrow(
       /timed out acquiring lock/,
     );
