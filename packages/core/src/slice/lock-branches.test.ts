@@ -73,6 +73,36 @@ describe("lock branches", () => {
     expect(fs.readFileSync(lockPath, "utf8")).toContain(String(process.pid));
   });
 
+  it("reclaims an unparseable lock after the hard age cap", () => {
+    const path = join(tmpdir(), `deft-lock-garbage-old-${Date.now()}.jsonl`);
+    const lockPath = `${path}.lock`;
+    fs.writeFileSync(lockPath, "not-a-lock-record");
+    const planted = fs.statSync(lockPath).mtimeMs;
+    let calls = 0;
+    expect(
+      withAppendLock(path, () => "reclaimed", {
+        now: () => {
+          calls += 1;
+          return planted + STALE_LOCK_HARD_CAP_MS + (calls > 1 ? 60_000 : 0);
+        },
+        sleepMs: () => {
+          /* no-op */
+        },
+      }),
+    ).toBe("reclaimed");
+    expect(fs.existsSync(lockPath)).toBe(false);
+  });
+
+  it("does not reclaim a fresh unparseable lock", () => {
+    const path = join(tmpdir(), `deft-lock-garbage-fresh-${Date.now()}.jsonl`);
+    const lockPath = `${path}.lock`;
+    fs.writeFileSync(lockPath, "not-a-lock-record");
+    expect(() => withAppendLock(path, () => undefined, instantTimeoutDeps())).toThrow(
+      /timed out acquiring lock/,
+    );
+    expect(fs.existsSync(lockPath)).toBe(true);
+  });
+
   it("reclaims a live PID only after the hard age cap", () => {
     const path = join(tmpdir(), `deft-lock-hardcap-${Date.now()}.jsonl`);
     fs.writeFileSync(`${path}.lock`, `${process.pid}\ntoken\n1\n`);

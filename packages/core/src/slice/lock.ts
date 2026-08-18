@@ -6,6 +6,7 @@ import {
   openSync,
   readFileSync,
   renameSync,
+  statSync,
   unlinkSync,
   writeSync,
 } from "node:fs";
@@ -97,8 +98,19 @@ function linuxPidStartedAfter(pid: number, acquiredAt: number): boolean {
   }
 }
 
-function isAbandoned(rec: LockRecord, now: number): boolean {
-  if (rec.pid === null) return false;
+function lockMtimeMs(lockPath: string): number | null {
+  try {
+    return statSync(lockPath).mtimeMs;
+  } catch {
+    return null;
+  }
+}
+
+function isAbandoned(rec: LockRecord, now: number, lockPath: string): boolean {
+  if (rec.pid === null) {
+    const mtime = lockMtimeMs(lockPath);
+    return mtime !== null && now - mtime > STALE_LOCK_HARD_CAP_MS;
+  }
   if (!processExists(rec.pid)) return true;
   if (rec.acquiredAt !== null && linuxPidStartedAfter(rec.pid, rec.acquiredAt)) return true;
   if (rec.acquiredAt !== null && now - rec.acquiredAt > STALE_LOCK_HARD_CAP_MS) return true;
@@ -112,7 +124,7 @@ function recordsMatch(a: LockRecord, b: LockRecord): boolean {
 /** Atomic rename reclaim: one waiter wins; losers see ENOENT. */
 function tryReclaimAbandonedOwner(lockPath: string, now: number): boolean {
   const observed = parseLockRecord(lockPath);
-  if (!isAbandoned(observed, now)) return false;
+  if (!isAbandoned(observed, now, lockPath)) return false;
   const quarantine = `${lockPath}.reclaim.${process.pid}.${randomUUID()}`;
   try {
     renameSync(lockPath, quarantine);
@@ -163,7 +175,7 @@ export function withAppendLock<T>(
         const acquiredAt = now();
         writeSync(fd, Buffer.from(`${process.pid}\n${token}\n${acquiredAt}\n`));
         held = { lockPath, pid: process.pid, token, acquiredAt };
-        break;
+        return fn(held);
       } catch (err: unknown) {
         const code = (err as NodeJS.ErrnoException).code;
         if (code !== "EEXIST") {
@@ -179,10 +191,6 @@ export function withAppendLock<T>(
         sleepMs(20);
       }
     }
-    if (held === undefined) {
-      throw new Error(`timed out acquiring lock for ${logPath}`);
-    }
-    return fn(held);
   } finally {
     if (fd !== undefined) {
       closeSync(fd);

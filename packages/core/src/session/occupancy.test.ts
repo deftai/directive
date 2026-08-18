@@ -3,7 +3,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { completeCohort } from "../swarm/complete-cohort.js";
-import { swarmLaunch } from "../swarm/launch.js";
+import {
+  persistLaunchOccupancyRecord,
+  readLaunchOccupancySessionId,
+  swarmLaunch,
+} from "../swarm/launch.js";
 import {
   applyWorktreeOccupancy,
   evaluateOccupancyWriteGate,
@@ -466,5 +470,152 @@ describe("worktree occupancy lease (#3433)", () => {
         now: new Date("2026-08-17T12:00:00Z"),
       }).action,
     ).toBe("denied");
+  });
+
+  it("close-out reads its own cohort slot after another launch overwrites the manifest", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: {} }),
+      "utf8",
+    );
+    writeFileSync(
+      join(root, "xbrief", "active", "story-a.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          id: "story-a",
+          title: "story-a",
+          status: "running",
+          metadata: { kind: "story", swarm: { readiness: "ready" } },
+        },
+      }),
+      "utf8",
+    );
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(
+      join(root, ".deft", "routing.local.json"),
+      JSON.stringify({
+        grok: { "leaf-implementation": { model: "grok-4", mode: "pinned" } },
+      }),
+      "utf8",
+    );
+    const launched = swarmLaunch({
+      stories: ["story-a"],
+      projectRoot: root,
+      autonomous: true,
+      environ: {
+        DEFT_ROUTING_PATH: join(root, ".deft", "routing.local.json"),
+      },
+      preflightGate: () => ({ exitCode: 0, message: "" }),
+      readinessGate: () => ({ exitCode: 0, report: "" }),
+      runtimeAuthProbe: () => ["local-unsandboxed", "host-gh"],
+    });
+    expect(launched.exitCode).toBe(0);
+    const minted = readOccupancy(root)?.sessionId;
+    expect(minted).toBeTruthy();
+    writeFileSync(
+      join(root, ".deft", "swarm-launch-manifest.json"),
+      JSON.stringify([{ occupancy_session_id: "other-launch" }], null, 2),
+      "utf8",
+    );
+    persistLaunchOccupancyRecord(root, {
+      allocation_plan_id: "other-plan",
+      occupancy_session_id: "other-launch",
+      story_ids: ["story-b"],
+      cohort_key: "plan:other-plan",
+    });
+    expect(readLaunchOccupancySessionId(root, { storyIds: ["story-a"] })).toBe(minted);
+    expect(readLaunchOccupancySessionId(root)).toBe("");
+    mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
+    const donePath = join(root, "xbrief", "completed", "story-a.xbrief.json");
+    writeFileSync(
+      donePath,
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { id: "story-a", title: "story-a", status: "completed" },
+      }),
+      "utf8",
+    );
+    vi.stubEnv("DEFT_SESSION_ID", "");
+    const live = completeCohort({
+      stories: [donePath],
+      projectRoot: root,
+      dryRun: false,
+    });
+    vi.unstubAllEnvs();
+    expect(live.exitCode).toBe(0);
+    expect(readOccupancy(root)).toBeNull();
+  });
+
+  it("close-out refuses a missing or foreign cohort occupancy record", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: {} }),
+      "utf8",
+    );
+    writeFileSync(
+      join(root, "xbrief", "active", "story-a.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          id: "story-a",
+          title: "story-a",
+          status: "running",
+          metadata: { kind: "story", swarm: { readiness: "ready" } },
+        },
+      }),
+      "utf8",
+    );
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(
+      join(root, ".deft", "routing.local.json"),
+      JSON.stringify({
+        grok: { "leaf-implementation": { model: "grok-4", mode: "pinned" } },
+      }),
+      "utf8",
+    );
+    const launched = swarmLaunch({
+      stories: ["story-a"],
+      projectRoot: root,
+      autonomous: true,
+      environ: {
+        DEFT_ROUTING_PATH: join(root, ".deft", "routing.local.json"),
+      },
+      preflightGate: () => ({ exitCode: 0, message: "" }),
+      readinessGate: () => ({ exitCode: 0, report: "" }),
+      runtimeAuthProbe: () => ["local-unsandboxed", "host-gh"],
+    });
+    expect(launched.exitCode).toBe(0);
+    expect(readOccupancy(root)?.sessionId).toBeTruthy();
+    rmSync(join(root, ".deft", "swarm-launch-occupancy"), { recursive: true, force: true });
+    writeFileSync(
+      join(root, ".deft", "swarm-launch-manifest.json"),
+      JSON.stringify([{ occupancy_session_id: "other-launch" }], null, 2),
+      "utf8",
+    );
+    mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
+    const donePath = join(root, "xbrief", "completed", "story-a.xbrief.json");
+    writeFileSync(
+      donePath,
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { id: "story-a", title: "story-a", status: "completed" },
+      }),
+      "utf8",
+    );
+    vi.stubEnv("DEFT_SESSION_ID", "");
+    const live = completeCohort({
+      stories: [donePath],
+      projectRoot: root,
+      dryRun: false,
+    });
+    vi.unstubAllEnvs();
+    expect(live.exitCode).toBe(1);
+    expect(live.sweep?.errors.some((err) => err.includes("occupancy:steal"))).toBe(true);
+    expect(readOccupancy(root)?.sessionId).toBeTruthy();
   });
 });

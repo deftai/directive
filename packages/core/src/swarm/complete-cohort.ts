@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
-import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
+import { hasArtifactSuffix, resolveLifecycleRoot, stripArtifactSuffix } from "../layout/resolve.js";
 import { detectLifecycleFolder } from "../scope/decomposed-refs.js";
 import {
   classifyStoredDeliveryDisposition,
@@ -9,9 +9,9 @@ import {
 } from "../scope/delivery-evidence.js";
 import { runTransition, type TransitionOptions } from "../scope/transition.js";
 import { collectChildUris, collectPlanRefs, resolveVbriefRef } from "../scope/vbrief-ref.js";
-import { releaseSwarmOccupancy } from "../session/occupancy.js";
+import { readOccupancy, releaseSwarmOccupancy } from "../session/occupancy.js";
 import { MAX_FIXPOINT_PASSES, TERMINAL_FOLDERS } from "./constants.js";
-import { readLaunchOccupancySessionId } from "./launch.js";
+import { resolveLaunchOccupancySessionId } from "./launch.js";
 
 /** Per-story or default delivery evidence for cohort completion (#3041). */
 export interface CohortDeliveryContext {
@@ -54,6 +54,14 @@ function loadPlan(path: string): Record<string, unknown> | null {
   } catch {
     return null;
   }
+}
+
+function storyIdFromPath(path: string): string {
+  const plan = loadPlan(path);
+  const id = plan !== null && typeof plan.id === "string" ? plan.id.trim() : "";
+  if (id.length > 0) return id;
+  const name = basename(path);
+  return hasArtifactSuffix(name) ? stripArtifactSuffix(name) : name.replace(/\.[^.]+$/, "");
 }
 
 function rel(path: string, projectRoot: string): string {
@@ -547,6 +555,8 @@ export function completeCohort(args: {
   emitJson?: boolean;
   /** Per-story delivery evidence; without it code-bearing stories fail closed (#3041). */
   delivery?: CohortDeliveryContext | null;
+  /** Optional launch allocation plan id so close-out reads this cohort's occupancy slot. */
+  allocationPlanId?: string | null;
 }): { exitCode: number; stdout: string; stderr: string; sweep: SweepResult | null } {
   const projectRoot = resolve(args.projectRoot);
   if (!existsSync(projectRoot)) {
@@ -606,15 +616,32 @@ export function completeCohort(args: {
   result.errors.push(...errors);
 
   if (result.ok && args.dryRun !== true) {
-    const sessionId =
-      process.env.DEFT_SESSION_ID?.trim() || readLaunchOccupancySessionId(projectRoot);
-    const released = releaseSwarmOccupancy(projectRoot, {
-      env: process.env,
-      sessionId,
-    });
-    if (released.code !== 0) {
-      result.ok = false;
-      result.errors.push(released.message);
+    const envSession = process.env.DEFT_SESSION_ID?.trim() ?? "";
+    let sessionId = envSession;
+    if (sessionId.length === 0) {
+      const resolved = resolveLaunchOccupancySessionId(projectRoot, {
+        allocationPlanId: args.allocationPlanId ?? null,
+        storyIds: paths.map(storyIdFromPath),
+      });
+      if (resolved.reason === "ok" && resolved.sessionId.length > 0) {
+        sessionId = resolved.sessionId;
+      } else if (readOccupancy(projectRoot) !== null) {
+        result.ok = false;
+        result.errors.push(
+          "swarm close-out occupancy record is missing or belongs to a different cohort. " +
+            "Steal with occupancy:steal --confirm --occupant <id>.",
+        );
+      }
+    }
+    if (result.ok && sessionId.length > 0) {
+      const released = releaseSwarmOccupancy(projectRoot, {
+        env: process.env,
+        sessionId,
+      });
+      if (released.code !== 0) {
+        result.ok = false;
+        result.errors.push(released.message);
+      }
     }
   }
 
