@@ -157,7 +157,7 @@ Operator-initiated resume after dual-stop / hard stop / conf-hold — not automa
 
 **Leftover classes (A/B/C, #3448):** **class A** named leftover on already-touched files = in-AC residual, auto-continue under standing until floor or same-fingerprint loop. **class B** new subsystem / AC fight = park or follow-up. **class C** score-only = document / same-as-conf-hold. Already-touched leftover is class A unless it needs a new ledger/protocol/story (#2881).
 
-**One-shot vs standing:** one-shot `pursue residual` = one pass then re-stop. Standing (`until floor or loop` / `until greptile meets policy` / `pursue residuals until told otherwise`) applies to **open cohort / ordered-plan units**, not only the last halted PR. Same-fingerprint halt is the loop stop; `#2442` batch cap still applies.
+**One-shot vs standing:** one-shot `pursue residual` = one pass then re-stop. Standing (`until floor or loop` / `until greptile meets policy` / `pursue residuals until told otherwise`) applies to **open cohort / ordered-plan units**, not only the last halted PR. Same-fingerprint halt is **2 consecutive** same-fingerprint re-reviews with no material fix (same as `#2442` no-progress); `#2442` batch cap still applies.
 
 Thin pointer: dual-invoke `pr:merge-ready` / `pr:watch`; spawn **one** residual worker or review-cycle owner per batch; document authorized conf floor for this PR only as human-merge/override trail (⊗ silent policy rewrite; `pr:merge-ready` still uses policy floor). ⊗ Unlimited auto-retry. ⊗ Parent self-implement (#2843).
 

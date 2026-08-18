@@ -125,6 +125,34 @@ describe("standing_residual_floor_3448", () => {
     expect(ops).toContain("standing vs one-shot");
   });
 
+  it("pack_triggers_include_standing_phrases", () => {
+    const pack = JSON.parse(readRepoFile("packs/skills/skills-pack-0.1.json")) as {
+      skills: Array<{ id?: string; triggers?: string[] }>;
+    };
+    const wanted = [
+      "until floor or loop",
+      "until greptile meets policy",
+      "pursue residuals until told otherwise",
+    ];
+    for (const id of ["deft-directive-review-cycle", "deft-directive-swarm"]) {
+      const skill = pack.skills.find((s) => s.id === id);
+      expect(skill, id).toBeDefined();
+      const triggers = skill?.triggers ?? [];
+      for (const phrase of wanted) {
+        expect(triggers, `${id} triggers`).toContain(phrase);
+      }
+    }
+  });
+
+  it("same_fingerprint_halt_is_two_consecutive", () => {
+    const review = readSkill("skills/deft-directive-review-cycle/SKILL.md");
+    const phase4 = readRepoFile("skills/deft-directive-swarm/references/core-phase-4.md");
+    for (const text of [review, phase4]) {
+      expect(text).toMatch(/2 consecutive/);
+      expect(text).toMatch(/not the first recurrence after a real fix/);
+    }
+  });
+
   it("changelog_and_commands_cite_3448", () => {
     const changelog = readRepoFile("CHANGELOG.md");
     expect(changelog).toContain("#3448");
