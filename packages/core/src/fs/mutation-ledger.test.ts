@@ -6,6 +6,7 @@ import {
   activeMutationLedger,
   formatMutationSummary,
   isAtomicWriteTemp,
+  isCollectOnlyActive,
   mutationSummaryJson,
   recordActiveMutation,
   runWithMutationLedger,
@@ -101,5 +102,23 @@ describe("MutationLedger (#3392)", () => {
       expect(snapshotMutationSummary().deleted).toEqual([]);
     });
     expect(activeMutationLedger()).toBeUndefined();
+  });
+
+  it("marks collect-only on the bound ledger (#3437)", () => {
+    const root = freshDir("ml-collect-");
+    expect(
+      runWithMutationLedger(
+        root,
+        () => {
+          expect(isCollectOnlyActive()).toBe(true);
+          return activeMutationLedger()?.collectOnly;
+        },
+        { collectOnly: true },
+      ),
+    ).toBe(true);
+    expect(isCollectOnlyActive()).toBe(false);
+    runWithMutationLedger(root, () => {
+      expect(isCollectOnlyActive()).toBe(false);
+    });
   });
 });

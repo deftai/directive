@@ -11,7 +11,7 @@
  * ⊗ Fake project `.openclaw/commands/` file emitter.
  */
 
-import { existsSync, lstatSync, mkdirSync, readFileSync, renameSync, statSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import {
@@ -20,7 +20,8 @@ import {
   listInScopeSkillsDirs,
   type OpenClawDetectResult,
 } from "../doctor/openclaw-skills.js";
-import { containedRemove, containedWrite } from "../fs/contained-write.js";
+import { containedRemove, containedWrite, finishContainedAtomicReplace } from "../fs/contained-write.js";
+import { isCollectOnlyActive } from "../fs/mutation-ledger.js";
 import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { loadProjectDefinition } from "../policy/resolve.js";
 import {
@@ -191,7 +192,9 @@ function writeSkillArtifact(skillsDir: string, artifact: OpenClawSkillArtifact):
     }
   }
 
-  mkdirSync(skillDir, { recursive: true });
+  if (!isCollectOnlyActive()) {
+    mkdirSync(skillDir, { recursive: true });
+  }
   // Re-check after mkdir: concurrent symlink plant is fail-closed.
   if (skillDirLstatKind(skillDir) === "symlink" && isEscapingSkillSymlink(skillsDir, skillDir)) {
     return "preserved";
@@ -207,7 +210,7 @@ function writeSkillArtifact(skillsDir: string, artifact: OpenClawSkillArtifact):
       data: artifact.skillMarkdown,
       mode: "replace",
     });
-    renameSync(tmp, skillFile);
+    finishContainedAtomicReplace(tmp, skillFile);
   } catch (err) {
     try {
       containedRemove({ root: skillsDir, target: tmp, mutation: false });

@@ -211,4 +211,29 @@ describe("replaceTree (#2913 full-tree swap, Go swapInCore parity)", () => {
     expect(summary.deleted).not.toEqual([]);
     expect(summary.wrote).not.toEqual([]);
   });
+
+  it("collect-only records dest-only deletes and src writes without swapping (#3437)", async () => {
+    const workspace = freshRoot("replace-tree-collect-");
+    const src = join(workspace, "src");
+    const dst = join(workspace, "dst");
+    mkdirSync(src, { recursive: true });
+    mkdirSync(join(dst, "nested"), { recursive: true });
+    writeFileSync(join(src, "kept.md"), "new\n", "utf-8");
+    writeFileSync(join(dst, "kept.md"), "old\n", "utf-8");
+    writeFileSync(join(dst, "nested", "stale.md"), "EVIL\n", "utf-8");
+
+    const summary = await runWithMutationLedger(
+      workspace,
+      async () => {
+        await replaceTree(src, dst);
+        return snapshotMutationSummary();
+      },
+      { collectOnly: true },
+    );
+
+    expect(summary.deleted).toEqual(expect.arrayContaining(["dst/nested/stale.md"]));
+    expect(summary.wrote).toEqual(expect.arrayContaining(["dst/kept.md"]));
+    expect(readFileSync(join(dst, "kept.md"), "utf-8")).toBe("old\n");
+    expect(readFileSync(join(dst, "nested", "stale.md"), "utf-8")).toBe("EVIL\n");
+  });
 });

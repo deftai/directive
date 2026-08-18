@@ -15,7 +15,7 @@ import { constants, type Dirent } from "node:fs";
 import { lstat, mkdir, mkdtemp, open, readdir, readFile, rename, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { recordActiveMutation } from "../fs/mutation-ledger.js";
+import { isCollectOnlyActive, recordActiveMutation } from "../fs/mutation-ledger.js";
 
 const DEFAULT_FILE_MODE = 0o644;
 const DEFAULT_DIR_MODE = 0o755;
@@ -114,13 +114,20 @@ async function pathExists(path: string): Promise<boolean> {
 }
 
 /** Posix-relative file and symlink paths under `root` (directories are walked). */
-async function listRelativeFilePaths(root: string): Promise<string[]> {
+async function listRelativeFilePaths(
+  root: string,
+  options?: { readonly failClosed?: boolean },
+): Promise<string[]> {
   const out: string[] = [];
   async function walk(dir: string, rel: string): Promise<void> {
     let entries: Dirent[];
     try {
       entries = await readdir(dir, { withFileTypes: true });
-    } catch {
+    } catch (err) {
+      if (options?.failClosed === true) {
+        const msg = err instanceof Error ? err.message : String(err);
+        throw new Error(`replaceTree: cannot read ${dir}: ${msg}`);
+      }
       return;
     }
     for (const entry of entries) {
@@ -136,9 +143,26 @@ async function listRelativeFilePaths(root: string): Promise<string[]> {
   return out;
 }
 
-async function destOnlyRelativeFiles(src: string, dst: string): Promise<string[]> {
-  const srcSet = new Set(await listRelativeFilePaths(src));
-  return (await listRelativeFilePaths(dst)).filter((rel) => !srcSet.has(rel));
+async function destOnlyRelativeFiles(
+  src: string,
+  dst: string,
+  options?: { readonly failClosed?: boolean },
+): Promise<string[]> {
+  const srcSet = new Set(await listRelativeFilePaths(src, options));
+  return (await listRelativeFilePaths(dst, options)).filter((rel) => !srcSet.has(rel));
+}
+
+/** Record dest-only deletes and src writes without swapping the tree (#3437). */
+async function collectReplaceTreeMutations(src: string, dst: string): Promise<void> {
+  const destOnly = (await pathExists(dst))
+    ? await destOnlyRelativeFiles(src, dst, { failClosed: true })
+    : [];
+  for (const rel of destOnly) {
+    recordActiveMutation("deleted", join(dst, ...rel.split("/")));
+  }
+  for (const rel of await listRelativeFilePaths(src, { failClosed: true })) {
+    recordActiveMutation("wrote", join(dst, ...rel.split("/")));
+  }
 }
 
 /**
@@ -198,6 +222,11 @@ export async function replaceTree(src: string, dst: string): Promise<void> {
   }
 
   await assertDestinationIsNotSymlink(dst, "replaceTree");
+
+  if (isCollectOnlyActive()) {
+    await collectReplaceTreeMutations(src, dst);
+    return;
+  }
 
   const parent = dirname(dst);
   await mkdir(parent, { recursive: true, mode: DEFAULT_DIR_MODE });

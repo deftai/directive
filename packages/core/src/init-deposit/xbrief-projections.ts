@@ -9,6 +9,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { containedRemove, containedWrite } from "../fs/contained-write.js";
+import { isCollectOnlyActive } from "../fs/mutation-ledger.js";
 import { assertDestinationNotSymlink } from "../fs/projection-containment.js";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { DEV_FALLBACK } from "../platform/constants.js";
@@ -123,7 +124,9 @@ export function syncConsumerXbriefSchemas(projectDir: string, deftDir: string): 
 
   const destinationDir = join(projectDir, MIGRATED_ARTIFACT_DIR, "schemas");
   assertDestinationNotSymlink(projectDir, destinationDir);
-  mkdirSync(destinationDir, { recursive: true });
+  if (!isCollectOnlyActive()) {
+    mkdirSync(destinationDir, { recursive: true });
+  }
 
   let changed = false;
   const plannedRel = new Set<string>();

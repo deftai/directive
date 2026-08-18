@@ -40,12 +40,18 @@ import {
   mkdirSync,
   openSync,
   realpathSync,
+  renameSync,
   rmSync,
   unlinkSync,
   writeSync,
 } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
-import { isAtomicWriteTemp, type MutationKind, recordActiveMutation } from "./mutation-ledger.js";
+import {
+  isAtomicWriteTemp,
+  isCollectOnlyActive,
+  type MutationKind,
+  recordActiveMutation,
+} from "./mutation-ledger.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "./projection-containment.js";
 
 /** Stable machine-readable error codes for contained-write refusals. */
@@ -311,6 +317,12 @@ function resolveExistingRootForRemove(
   return { rootAbs, targetAbs };
 }
 
+/** Rename temp → dest, or no-op under collect-only planning (#3437). */
+export function finishContainedAtomicReplace(temporary: string, dest: string): void {
+  if (isCollectOnlyActive()) return;
+  renameSync(temporary, dest);
+}
+
 function recordWriteMutation(targetAbs: string, mutation: ContainedWriteInput["mutation"]): void {
   if (mutation === false) return;
   const kind: Extract<MutationKind, "wrote" | "stripped"> = mutation?.kind ?? "wrote";
@@ -396,19 +408,22 @@ export function containedWrite(input: ContainedWriteInput): ContainedWriteResult
     throw err;
   }
 
-  const doMkdir = input.mkdir !== false;
+  const collectOnly = isCollectOnlyActive();
+  const doMkdir = input.mkdir !== false && !collectOnly;
   if (doMkdir) {
     ensureParents(rootAbs, targetAbs);
   }
 
   // Re-check after mkdir (parent path could have been created as unexpected type).
-  try {
-    assertWriteTargetSafe(rootAbs, targetAbs);
-  } catch (err) {
-    if (err instanceof ProjectionContainmentError) {
-      throw mapProjectionError(err, rootAbs, targetAbs);
+  if (!collectOnly) {
+    try {
+      assertWriteTargetSafe(rootAbs, targetAbs);
+    } catch (err) {
+      if (err instanceof ProjectionContainmentError) {
+        throw mapProjectionError(err, rootAbs, targetAbs);
+      }
+      throw err;
     }
-    throw err;
   }
 
   const encoding = input.encoding ?? "utf8";
@@ -431,6 +446,12 @@ export function containedWrite(input: ContainedWriteInput): ContainedWriteResult
         offendingPath: targetAbs,
       },
     );
+  }
+
+  // #3437: collect-only records the intended write and skips mkdir/IO.
+  if (collectOnly) {
+    recordWriteMutation(targetAbs, input.mutation);
+    return { path: targetAbs, bytesWritten: buf.length, mode: input.mode };
   }
 
   try {
@@ -534,6 +555,10 @@ export function containedRemove(input: ContainedRemoveInput): ContainedRemoveRes
       target: targetAbs,
       offendingPath: targetAbs,
     });
+  }
+  if (isCollectOnlyActive()) {
+    recordRemoveMutation(targetAbs, input.mutation);
+    return { path: targetAbs, removed: true };
   }
   try {
     if (info.isSymbolicLink()) {

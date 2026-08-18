@@ -68,13 +68,23 @@ function summarizeEntries(entries: readonly MutationEntry[]): MutationSummary {
   return { wrote, stripped, deleted, mutations };
 }
 
+export interface MutationLedgerOptions {
+  /**
+   * Record intended writes/deletes and skip filesystem mutation (#3437).
+   * Used by dry-run planning so the planned set is the execute write path.
+   */
+  readonly collectOnly?: boolean;
+}
+
 /** In-memory ledger for one deposit/refresh run. */
 export class MutationLedger {
   readonly root: string;
+  readonly collectOnly: boolean;
   private readonly recorded: MutationEntry[] = [];
 
-  constructor(root: string) {
+  constructor(root: string, options?: MutationLedgerOptions) {
     this.root = resolve(root);
+    this.collectOnly = options?.collectOnly === true;
   }
 
   record(kind: MutationKind, target: string): void {
@@ -99,8 +109,16 @@ export function activeMutationLedger(): MutationLedger | undefined {
 }
 
 /** Bind a ledger for the duration of `fn` (including awaited continuations). */
-export function runWithMutationLedger<T>(root: string, fn: () => T): T {
-  return storage.run(new MutationLedger(root), fn);
+export function runWithMutationLedger<T>(
+  root: string,
+  fn: () => T,
+  options?: MutationLedgerOptions,
+): T {
+  return storage.run(new MutationLedger(root, options), fn);
+}
+
+export function isCollectOnlyActive(): boolean {
+  return activeMutationLedger()?.collectOnly === true;
 }
 
 export function recordActiveMutation(kind: MutationKind, target: string): void {
@@ -109,6 +127,11 @@ export function recordActiveMutation(kind: MutationKind, target: string): void {
 
 export function snapshotMutationSummary(): MutationSummary {
   return activeMutationLedger()?.summarize() ?? emptyMutationSummary();
+}
+
+/** Sorted union of wrote / stripped / deleted — the planned or staged path set. */
+export function plannedPathsFromSummary(summary: MutationSummary): string[] {
+  return [...new Set([...summary.wrote, ...summary.stripped, ...summary.deleted])].sort();
 }
 
 /** Human summary: `Removed:` plus wrote/stripped. Empty when nothing mutated. */

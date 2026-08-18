@@ -18,6 +18,7 @@ import { dirname, join, relative } from "node:path";
 import { containedRemove } from "../fs/contained-write.js";
 import {
   activeMutationLedger,
+  isCollectOnlyActive,
   type MutationSummary,
   snapshotMutationSummary,
 } from "../fs/mutation-ledger.js";
@@ -1226,6 +1227,8 @@ export async function reconcileDepositToContentPackage(
   io: InitDepositIo,
 ): Promise<PrunePackageAbsentDepositPathsResult> {
   const result = await prunePackageAbsentDepositPaths(deftDir, contentRoot, io);
+  // Collect-only records intended deletes and leaves dest-only paths on disk.
+  if (isCollectOnlyActive()) return result;
   const remaining = await findPackageAbsentDepositPaths(deftDir, contentRoot);
   if (remaining.length > 0) {
     const sample = remaining.slice(0, 5).join(", ");

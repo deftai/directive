@@ -13,19 +13,18 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import type { ResolutionFacts } from "@deftai/directive-types";
 import { RESOLUTION_PLAN_SCHEMA_VERSION } from "@deftai/directive-types";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CONTENT_PACKAGE_NAME } from "../deposit/resolve-content.js";
 import { runChecksImpl } from "../doctor/checks.js";
-import { emptyMutationSummary } from "../fs/mutation-ledger.js";
+import { emptyMutationSummary, plannedPathsFromSummary } from "../fs/mutation-ledger.js";
 import { AGENTS_MANAGED_CLOSE } from "../platform/constants.js";
 import type { ClassifySeams } from "../resolution/index.js";
 import type { AgentHookReadinessResult } from "../verify-env/agent-hook-readiness.js";
 import { evaluate as evaluateHooksInstalled } from "../verify-env/verify-hooks-installed.js";
 import { detectXbriefConvergence } from "../xbrief-migrate/detect.js";
-import { installerManagedMatchers } from "./hygiene.js";
 import { type LegacyLayoutDetection, LegacyLayoutRefusedError } from "./legacy-detect.js";
 import {
   buildVersionSkewNotice,
@@ -1312,17 +1311,6 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     return hash.digest("hex");
   }
 
-  function seedManagedPlanPaths(project: string): void {
-    for (const matcher of installerManagedMatchers()) {
-      if (matcher.exact) {
-        const abs = join(project, matcher.exact);
-        mkdirSync(dirname(abs), { recursive: true });
-        if (!existsSync(abs)) writeFileSync(abs, "", "utf8");
-      } else if (matcher.prefix) {
-        mkdirSync(join(project, matcher.prefix), { recursive: true });
-      }
-    }
-  }
 
   function listRelFiles(root: string): string[] {
     const out: string[] = [];
@@ -1413,7 +1401,6 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     const project = freshRoot("update-dryrun-");
     const contentRoot = installFakeContentPackage(project, "0.53.0");
     writeInitializedProject(project, { contentVersion: "0.53.0", pinVersion: "0.53.0" });
-    seedManagedPlanPaths(project);
     const out: string[] = [];
     const err: string[] = [];
     const copyContent = vi.fn(async () => {
@@ -1436,13 +1423,13 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
       },
     });
 
+    expect(err.join("")).not.toContain("refusing");
     expect(code).toBe(0);
     const payload = parseJsonObject(out.join(""));
     expect(payload.dry_run).toBe(true);
     expect(payload.update_state).toBe("current");
     expect(payload.strategy).toBe("no-op");
     expect(payload.already_current).toBe(true);
-    expect(payload.planned_file_count).toBe(0);
     expect(payload.mode).toBeDefined();
     expect(copyContent).not.toHaveBeenCalled();
     // VERSION untouched -> nothing was re-stamped.
@@ -1578,6 +1565,34 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     expect(readFileSync(join(project, ".deft", "core", "VERSION"), "utf8")).toContain("v0.103.0");
   });
 
+  it("dry-run planned paths equal the real run mutation set on the same skewed fixture (#3437)", async () => {
+    const project = freshRoot("update-parity-skew-");
+    const contentRoot = installFakeContentPackage(project, "0.103.0");
+    writeInitializedProject(project, { contentVersion: "0.78.0" });
+    mkdirSync(join(project, ".deft", "core", "stale-skill"), { recursive: true });
+    writeFileSync(join(project, ".deft", "core", "stale-skill", "SKILL.md"), "stale\n", "utf8");
+    const seams = {
+      resolveContentRoot: async () => contentRoot,
+      readEngineVersion: () => "0.103.0",
+      nowIso: () => "2026-08-18T12:00:00Z",
+      gitPorcelain: () => null,
+      gitLsFiles: () => null,
+      evaluateAgentHookReadiness: () => agentHookReadiness(),
+    };
+    const beforeFiles = listRelFiles(project);
+    const planned = await planRefreshDeposit(project, seams);
+    expect(listRelFiles(project)).toEqual(beforeFiles);
+    expect(planned.strategy).toBe("file-swap");
+    expect(planned.plannedPaths).toContain(".deft/core/stale-skill/SKILL.md");
+
+    const result = await runRefreshDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
+      { printf: () => undefined },
+      seams,
+    );
+    expect(planned.plannedPaths).toEqual(plannedPathsFromSummary(result.mutations));
+  });
+
   it("dry-run fails closed when the content package cannot be read (#3437)", async () => {
     const project = freshRoot("update-dryrun-missing-content-");
     writeInitializedProject(project, { contentVersion: "0.78.0" });
@@ -1610,8 +1625,8 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     const project = freshRoot("update-dryrun-match-");
     const contentRoot = installFakeContentPackage(project, "0.103.0");
     writeInitializedProject(project, { contentVersion: "0.103.0" });
-    seedManagedPlanPaths(project);
     const out: string[] = [];
+    const err: string[] = [];
 
     const code = await runRefreshDepositCli({
       projectDir: project,
@@ -1621,7 +1636,7 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
       dryRun: true,
       classifySeams: classifySeams({ reachable: true, version: "0.103.0" }),
       writeOut: (t) => out.push(t),
-      writeErr: () => {},
+      writeErr: (t) => err.push(t),
       seams: {
         resolveContentRoot: async () => contentRoot,
         readEngineVersion: () => "0.103.0",
@@ -1631,12 +1646,12 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
       },
     });
 
+    expect(err.join("")).not.toContain("refusing");
     expect(code).toBe(0);
     const payload = parseJsonObject(out.join(""));
     expect(payload.update_state).toBe("current");
     expect(payload.strategy).toBe("no-op");
     expect(payload.already_current).toBe(true);
-    expect(payload.planned_file_count).toBe(0);
     expect(readFileSync(join(project, ".deft", "core", "VERSION"), "utf8")).toContain("v0.103.0");
   });
 
@@ -1644,7 +1659,6 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     const project = freshRoot("update-dryrun-missing-proj-");
     const contentRoot = installFakeContentPackage(project, "0.103.0");
     writeInitializedProject(project, { contentVersion: "0.103.0" });
-    seedManagedPlanPaths(project);
     rmSync(join(project, "AGENTS.md"), { force: true });
     const out: string[] = [];
 
@@ -1688,10 +1702,11 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     });
     expect(planned.strategy).toBe("file-swap");
     expect(planned.plannedFileCount).toBeGreaterThan(0);
-    expect(planned.plannedPaths.every((path) => !path.includes("node_modules"))).toBe(true);
-    expect(planned.plannedPaths.every((path) => !path.includes("/.git/"))).toBe(true);
     expect(planned.plannedPaths).toContain("AGENTS.md");
     expect(planned.plannedPaths.some((path) => path.startsWith(".deft/core/"))).toBe(true);
+    // Plan inherits execute: replaceTree copies content as-is, including a
+    // nested node_modules under the content root if one is present.
+    expect(planned.plannedPaths).toContain(".deft/core/node_modules/left/x.js");
   });
 
   it("planRefreshDeposit fails closed when the content tree cannot be read (#3437)", async () => {

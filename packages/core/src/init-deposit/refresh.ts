@@ -9,7 +9,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, renameSync, statSync } from "node:fs";
+import { existsSync, readFileSync, renameSync, statSync } from "node:fs";
 import { platform as osPlatform } from "node:os";
 import { join, resolve } from "node:path";
 import type { ResolutionFacts, ResolutionPlan } from "@deftai/directive-types";
@@ -25,6 +25,7 @@ import {
   formatMutationSummary,
   type MutationSummary,
   mutationSummaryJson,
+  plannedPathsFromSummary,
   runWithMutationLedger,
   snapshotMutationSummary,
 } from "../fs/mutation-ledger.js";
@@ -64,7 +65,6 @@ import { writeAgentHookDeposit } from "./agent-hooks.js";
 import { ensureInitGitignoreLines, type GitLsFiles, isDepositTrackedInGit } from "./gitignore.js";
 import {
   depositStagePaths,
-  installerManagedMatchers,
   isInstallerManagedPath,
   printCommitGuidance,
   reconcileDepositToContentPackage,
@@ -317,51 +317,75 @@ function displayVersion(version: string | null): string {
   return version === null || version.trim() === "" ? "unknown" : normalizeVersion(version);
 }
 
-function listContentRelPaths(root: string): string[] {
-  const out: string[] = [];
-  const walk = (abs: string, rel: string): void => {
-    const entries = readdirSync(abs, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.name === "node_modules" || entry.name === ".git") continue;
-      const nextRel = rel ? `${rel}/${entry.name}` : entry.name;
-      const nextAbs = join(abs, entry.name);
-      if (entry.isSymbolicLink()) continue;
-      if (entry.isDirectory()) {
-        walk(nextAbs, nextRel);
-        continue;
-      }
-      if (entry.isFile()) {
-        out.push(nextRel.replace(/\\/g, "/"));
-      }
-    }
-  };
-  walk(root, "");
-  return out.sort();
-}
+type RefreshDepositMeta = Omit<RefreshDepositPlan, "plannedFileCount" | "plannedPaths">;
 
-/** Installer-managed consumer paths a file-swap refresh also writes (#3437). */
-function plannedInstallerManagedPaths(): string[] {
-  const paths: string[] = [];
-  for (const matcher of installerManagedMatchers()) {
-    if (matcher.exact) paths.push(matcher.exact);
-    else if (matcher.prefix) paths.push(matcher.prefix);
-  }
-  return paths;
-}
-
-function pendingInstallerManagedPaths(projectDir: string): string[] {
-  return plannedInstallerManagedPaths().filter((rel) => !existsSync(join(projectDir, rel)));
-}
-
-function plannedRefreshPaths(
-  strategy: RefreshDepositStrategy,
-  contentRoot: string,
+async function readRefreshDepositMeta(
   projectDir: string,
-): string[] {
-  const pending = pendingInstallerManagedPaths(projectDir);
-  if (strategy === "no-op") return pending.sort();
-  const core = listContentRelPaths(contentRoot).map((rel) => `${CANONICAL_INSTALL_ROOT}/${rel}`);
-  return [...new Set([...core, ...plannedInstallerManagedPaths()])].sort();
+  seams: RefreshDepositSeams = {},
+): Promise<RefreshDepositMeta> {
+  const deftDir = join(resolve(projectDir), CANONICAL_INSTALL_ROOT);
+  const resolveContent = seams.resolveContentRoot ?? resolveInstalledContentRoot;
+  const readEngine = seams.readEngineVersion ?? readCorePackageVersion;
+  const readPackageVersion = seams.readPackageVersion ?? readCorePackageVersion;
+  const contentRoot = await resolveContent();
+  const previousDepositVersion = readRecordedDepositVersion(deftDir);
+  const engineVersion = readEngine();
+  const contentVersion = readContentPackageVersion(contentRoot, readPackageVersion);
+  const versionSkewNotice = buildVersionSkewNotice(
+    engineVersion,
+    contentVersion,
+    previousDepositVersion,
+  );
+  const alreadyCurrent =
+    previousDepositVersion !== null &&
+    normalizeVersion(previousDepositVersion) === normalizeVersion(contentVersion);
+  const strategy: RefreshDepositStrategy = alreadyCurrent ? "no-op" : "file-swap";
+  return {
+    contentRoot,
+    previousDepositVersion,
+    contentVersion,
+    engineVersion,
+    alreadyCurrent,
+    strategy,
+    versionSkewNotice,
+  };
+}
+
+/**
+ * #3452 plan-completeness contract
+ *
+ * The planned set is derived from the same write path the real run uses:
+ * `applyRefreshMutations` under a collect-only #3392 ledger (containedWrite,
+ * containedRemove, replaceTree). Completeness is inherited from execute.
+ * A write that bypasses that chokepoint is a #3392 bug, not a plan gap.
+ *
+ * Fail-closed: an unreadable content root or subtree during planning throws
+ * (CLI exit 1). Never a silent partial count.
+ *
+ * Implementation: collect-only at the chokepoint (not a shared enumerator).
+ */
+async function collectRefreshWriteSet(
+  projectDir: string,
+  meta: RefreshDepositMeta,
+  seams: RefreshDepositSeams,
+  args: Pick<RefreshDepositArgs, "nonInteractive">,
+): Promise<string[]> {
+  const root = resolve(projectDir);
+  return runWithMutationLedger(
+    root,
+    async () => {
+      await applyRefreshMutations({
+        projectDir: root,
+        meta,
+        io: { printf: () => undefined },
+        seams,
+        args,
+        collectOnly: true,
+      });
+      return plannedPathsFromSummary(snapshotMutationSummary());
+    },
+    { collectOnly: true },
+  );
 }
 
 /** Top-level prefix rollup for dry-run blast-radius lines (#3437). */
@@ -386,39 +410,29 @@ function formatPlannedFilesLine(count: number, paths: readonly string[]): string
 }
 
 /**
- * Read-only refresh plan: versions, no-op vs file-swap, and planned paths.
+ * #3452 plan-completeness contract
+ *
+ * The planned set is derived from the same write path the real run uses:
+ * `applyRefreshMutations` under a collect-only #3392 ledger (containedWrite,
+ * containedRemove, replaceTree). Completeness is inherited from execute.
+ * A write that bypasses that chokepoint is a #3392 bug, not a plan gap.
+ *
+ * Fail-closed: an unreadable content root or subtree during planning throws
+ * (CLI exit 1). Never a silent partial count.
+ *
+ * Implementation: collect-only at the chokepoint (not a shared enumerator).
+ *
  * Does not copy, stage, or stamp (#3437).
  */
 export async function planRefreshDeposit(
   projectDir: string,
   seams: RefreshDepositSeams = {},
+  args: Pick<RefreshDepositArgs, "nonInteractive"> = { nonInteractive: true },
 ): Promise<RefreshDepositPlan> {
-  const deftDir = join(resolve(projectDir), CANONICAL_INSTALL_ROOT);
-  const resolveContent = seams.resolveContentRoot ?? resolveInstalledContentRoot;
-  const readEngine = seams.readEngineVersion ?? readCorePackageVersion;
-  const readPackageVersion = seams.readPackageVersion ?? readCorePackageVersion;
-  const contentRoot = await resolveContent();
-  const previousDepositVersion = readRecordedDepositVersion(deftDir);
-  const engineVersion = readEngine();
-  const contentVersion = readContentPackageVersion(contentRoot, readPackageVersion);
-  const versionSkewNotice = buildVersionSkewNotice(
-    engineVersion,
-    contentVersion,
-    previousDepositVersion,
-  );
-  const alreadyCurrent =
-    previousDepositVersion !== null &&
-    normalizeVersion(previousDepositVersion) === normalizeVersion(contentVersion);
-  const strategy: RefreshDepositStrategy = alreadyCurrent ? "no-op" : "file-swap";
-  const plannedPaths = plannedRefreshPaths(strategy, contentRoot, resolve(projectDir));
+  const meta = await readRefreshDepositMeta(projectDir, seams);
+  const plannedPaths = await collectRefreshWriteSet(resolve(projectDir), meta, seams, args);
   return {
-    contentRoot,
-    previousDepositVersion,
-    contentVersion,
-    engineVersion,
-    alreadyCurrent,
-    strategy,
-    versionSkewNotice,
+    ...meta,
     plannedFileCount: plannedPaths.length,
     plannedPaths,
   };
@@ -765,6 +779,131 @@ export function printUpdateComplete(
   io.printf("\n");
 }
 
+interface ApplyRefreshMutationsArgs {
+  readonly projectDir: string;
+  readonly meta: RefreshDepositMeta;
+  readonly io: InitDepositIo;
+  readonly seams: RefreshDepositSeams;
+  readonly args: Pick<RefreshDepositArgs, "nonInteractive">;
+  readonly collectOnly: boolean;
+}
+
+/**
+ * Shared execute write sequence. Collect-only binds the #3392 chokepoint so
+ * planning records the same writes/deletes without mutating the tree.
+ */
+async function applyRefreshMutations(
+  input: ApplyRefreshMutationsArgs,
+): Promise<{ agentsMdUpdated: boolean; taskfileWired: boolean }> {
+  const { projectDir, meta, io, seams, args, collectOnly } = input;
+  const deftDir = join(projectDir, CANONICAL_INSTALL_ROOT);
+  const { contentRoot, contentVersion, alreadyCurrent } = meta;
+  const previousManagedBy = readRecordedManagedBy(deftDir);
+  // File-swap collect-only leaves dest unswapped; derivatives read the new
+  // content package so the planned set matches post-swap execute.
+  const depositSource = collectOnly && !alreadyCurrent ? contentRoot : deftDir;
+
+  if (alreadyCurrent) {
+    if (!collectOnly) {
+      io.printf("[deft update] Framework payload already current; skipping payload copy.\n");
+    }
+    await reconcileDepositToContentPackage(deftDir, contentRoot, io);
+    if (!collectOnly) {
+      migrateLegacyInstallManifest(projectDir, join(deftDir, "VERSION"));
+    }
+    const priorGen = readLiveGeneration(projectDir);
+    const generationMatches =
+      priorGen !== null &&
+      normalizeVersion(priorGen.contentVersion) === normalizeVersion(contentVersion);
+    try {
+      stampLiveGeneration(projectDir, {
+        contentVersion,
+        stampedBy: "directive-update",
+        increment: false,
+      });
+    } catch (err) {
+      if (!generationMatches) {
+        throw err;
+      }
+    }
+  } else {
+    if (collectOnly) {
+      await replaceTree(contentRoot, deftDir);
+    } else {
+      const copyContent = seams.copyContent ?? replaceTree;
+      await copyContent(contentRoot, deftDir);
+      await prunePythonArtifactsFromDeposit(deftDir, projectDir, io);
+    }
+    await reconcileDepositToContentPackage(deftDir, contentRoot, io);
+
+    const nowIso = seams.nowIso ?? (() => new Date().toISOString().replace(/\.\d{3}Z$/, "Z"));
+    const stampedAt = nowIso();
+    const manifestFields: InstallManifestFields = {
+      ref: contentVersion.startsWith("v") ? contentVersion : `v${contentVersion}`,
+      sha: "content-package",
+      tag: contentVersion.startsWith("v") ? contentVersion : `v${contentVersion}`,
+      installRoot: CANONICAL_INSTALL_ROOT,
+      fetchedAt: stampedAt,
+      fetchedBy: "directive-update",
+      ...(previousManagedBy ? { managedBy: previousManagedBy } : {}),
+    };
+    writeInstallManifest(projectDir, deftDir, manifestFields);
+    if (!collectOnly) {
+      migrateLegacyInstallManifest(projectDir, join(deftDir, "VERSION"));
+    }
+    stampLiveGeneration(projectDir, {
+      contentVersion,
+      stampedBy: "directive-update",
+      increment: true,
+      nowIso: stampedAt,
+    });
+  }
+
+  if (alreadyCurrent) {
+    syncExistingBareVersionMarker(projectDir, contentVersion);
+  } else {
+    syncBareVersionMarker(projectDir, contentVersion);
+  }
+  if (hasCanonicalXbriefLifecycle(projectDir)) {
+    syncConsumerXbriefSchemas(projectDir, depositSource);
+    removeStaleMigratedFrameworkNarrative(projectDir);
+  }
+
+  const runOrgForceOn =
+    seams.runOrgForceOn ??
+    ((root) => {
+      runOrgForceOnMigration(root, { actor: "directive-update" });
+    });
+  try {
+    runOrgForceOn(projectDir);
+  } catch {
+    // Policy migration is best-effort; never block framework refresh (#2822).
+  }
+
+  const agentsMdUpdated = writeAgentsMd(projectDir, depositSource, io);
+  writeAgentHookDeposit(projectDir, io);
+  writeMultiHostSkillDiscovery(projectDir, io);
+  writeSlashCommandDeposit(projectDir, io);
+  depositOpenClawSoftRebindSkill({});
+  depositOpenClawL2ProductCommands({
+    projectRoot: projectDir,
+    printf: (t) => io.printf(t),
+  });
+  writeConsumerGitHooks(projectDir, depositSource, io, seams.gitHooks);
+
+  const depositTracked = isDepositTrackedInGit(projectDir, seams.gitLsFiles);
+  const skipGuardWorkflow = depositTracked !== true;
+  await depositNeutralization(projectDir, io, { skipGuardWorkflow });
+  ensureInitGitignoreLines(projectDir, io, { gitLsFiles: seams.gitLsFiles });
+  ensurePrettierIgnoreLines(projectDir, io);
+
+  let taskfileWired = false;
+  if (args.nonInteractive) {
+    taskfileWired = ensureTaskfile(projectDir, io);
+  }
+  return { agentsMdUpdated, taskfileWired };
+}
+
 export async function runRefreshDeposit(
   args: RefreshDepositArgs,
   io: InitDepositIo,
@@ -789,148 +928,23 @@ export async function runRefreshDeposit(
   // the resolved project tree. Writes nothing on refusal.
   assertDepositContained(projectDir, deftDir);
 
-  // #2913: default is full-tree replace (Go swapInCore parity), not additive copyTree.
-  // Injected seams.copyContent still wins (tests / specialized callers).
-  const copyContent = seams.copyContent ?? replaceTree;
-  const planned = await planRefreshDeposit(projectDir, seams);
+  const meta = await readRefreshDepositMeta(projectDir, seams);
   const {
-    contentRoot,
     previousDepositVersion,
     contentVersion,
     engineVersion,
     alreadyCurrent,
     strategy,
     versionSkewNotice,
-  } = planned;
-  const previousManagedBy = readRecordedManagedBy(deftDir);
-
-  if (alreadyCurrent) {
-    io.printf("[deft update] Framework payload already current; skipping payload copy.\n");
-    // #2913: still fail-closed reconcile so dst-only leftovers cannot linger when
-    // VERSION already matches (e.g. pre-#2804 additive deposits). Does not re-stamp.
-    await reconcileDepositToContentPackage(deftDir, contentRoot, io);
-    migrateLegacyInstallManifest(projectDir, join(deftDir, "VERSION"));
-    // #3117: ensure a readable live generation token exists without advancing
-    // when the payload did not swap (already-current). stampLiveGeneration is a
-    // no-op write when the token already matches (keeps git clean under #2118).
-    // If generation is missing or behind VERSION (e.g. prior stamp failed after
-    // VERSION rewrite), fail closed — do not report success with a stale token.
-    const priorGen = readLiveGeneration(projectDir);
-    const generationMatches =
-      priorGen !== null &&
-      normalizeVersion(priorGen.contentVersion) === normalizeVersion(contentVersion);
-    try {
-      stampLiveGeneration(projectDir, {
-        contentVersion,
-        stampedBy: "directive-update",
-        increment: false,
-      });
-    } catch (err) {
-      if (!generationMatches) {
-        throw err;
-      }
-      // Token already matches content; ensure write failure is non-fatal noise.
-    }
-  } else {
-    // Full-tree replace (or injected seam). Additive copy is no longer the default.
-    await copyContent(contentRoot, deftDir);
-    await prunePythonArtifactsFromDeposit(deftDir, projectDir, io);
-    // #2913 / #2804 / #2347: fail-closed delete-not-in-source BEFORE VERSION stamp.
-    // replaceTree already drops dst-only paths; reconcile verifies and covers
-    // additive seams. Throws => no VERSION rewrite (refuse stamp until clean).
-    await reconcileDepositToContentPackage(deftDir, contentRoot, io);
-
-    const nowIso = seams.nowIso ?? (() => new Date().toISOString().replace(/\.\d{3}Z$/, "Z"));
-    const stampedAt = nowIso();
-    const manifestFields: InstallManifestFields = {
-      ref: contentVersion.startsWith("v") ? contentVersion : `v${contentVersion}`,
-      sha: "content-package",
-      tag: contentVersion.startsWith("v") ? contentVersion : `v${contentVersion}`,
-      installRoot: CANONICAL_INSTALL_ROOT,
-      fetchedAt: stampedAt,
-      fetchedBy: "directive-update",
-      ...(previousManagedBy ? { managedBy: previousManagedBy } : {}),
-    };
-    const writtenManifestPath = writeInstallManifest(projectDir, deftDir, manifestFields);
-
-    // #2064: retire a stale legacy .deft/VERSION now that the canonical
-    // .deft/core/VERSION has been rewritten (folded in from install-upgrade so no
-    // manifest behavior is lost by the redirect). Best-effort; never fatal.
-    migrateLegacyInstallManifest(projectDir, writtenManifestPath);
-
-    // #3117: monotonic live generation MUST advance after a successful payload
-    // swap. Suppressing stamp failure would leave a prior bound/live match
-    // reporting `current` while the on-disk payload already changed (Greptile P1).
-    stampLiveGeneration(projectDir, {
-      contentVersion,
-      stampedBy: "directive-update",
-      increment: true,
-      nowIso: stampedAt,
-    });
-  }
-
-  // #2595: payload freshness and consumer derivative freshness are independent.
-  // Always repair these cheap projections, including on the #2118 no-op path.
-  if (alreadyCurrent) {
-    syncExistingBareVersionMarker(projectDir, contentVersion);
-  } else {
-    syncBareVersionMarker(projectDir, contentVersion);
-  }
-  // Do not turn a legacy-only or cache-only support tree into canonical
-  // lifecycle content before migrate:xbrief can transactionally converge it.
-  if (hasCanonicalXbriefLifecycle(projectDir)) {
-    syncConsumerXbriefSchemas(projectDir, deftDir);
-    removeStaleMigratedFrameworkNarrative(projectDir);
-  }
-
-  const runOrgForceOn =
-    seams.runOrgForceOn ??
-    ((root) => {
-      runOrgForceOnMigration(root, { actor: "directive-update" });
-    });
-  try {
-    runOrgForceOn(projectDir);
-  } catch {
-    // Policy migration is best-effort; never block framework refresh (#2822).
-  }
-
-  const agentsMdUpdated = writeAgentsMd(projectDir, deftDir, io);
-  writeAgentHookDeposit(projectDir, io);
-  // #75 residual: multi-host thin skill discovery (mirror `.agents/skills` inventory).
-  writeMultiHostSkillDiscovery(projectDir, io);
-  writeSlashCommandDeposit(projectDir, io);
-  // #3171: OpenClaw soft AGENTS re-bind skill when OC signals present (fail-closed otherwise).
-  depositOpenClawSoftRebindSkill({});
-  // #3064: OpenClaw L2 product-command skills when OC signals present (fail-closed otherwise).
-  depositOpenClawL2ProductCommands({
-    projectRoot: projectDir,
-    printf: (t) => io.printf(t),
+  } = meta;
+  const { agentsMdUpdated, taskfileWired } = await applyRefreshMutations({
+    projectDir,
+    meta,
+    io,
+    seams,
+    args,
+    collectOnly: false,
   });
-  // #2530: root `.githooks/` is a consumer derivative like #2595 marker/schemas —
-  // repair on every refresh, including the already-current no-op path.
-  writeConsumerGitHooks(projectDir, deftDir, io, seams.gitHooks);
-
-  // #2148: the deft-core-guard CI workflow is only meaningful when the deposit
-  // is git-tracked (committed vendor layout). On an npm-managed (gitignored)
-  // deposit it creates untracked noise after every `directive update`. Probe
-  // git-tracked status once and share the result with the gitignore upkeep below.
-  const depositTracked = isDepositTrackedInGit(projectDir, seams.gitLsFiles);
-  const skipGuardWorkflow = depositTracked !== true;
-
-  await depositNeutralization(projectDir, io, { skipGuardWorkflow });
-
-  // #2266: non-destructive `.gitignore` upkeep for framework-owned paths. This
-  // NEVER un-tracks a committed deposit -- `ensureInitGitignoreLines` only writes
-  // `.gitignore` and leaves an already-tracked `.deft/core` tracked. The
-  // destructive `git rm --cached .deft/core` un-track is the deliberate
-  // `migrate --untrack-core` step (#2269), not `update`.
-  ensureInitGitignoreLines(projectDir, io, { gitLsFiles: seams.gitLsFiles });
-  ensurePrettierIgnoreLines(projectDir, io);
-
-  let taskfileWired = false;
-  if (args.nonInteractive) {
-    taskfileWired = ensureTaskfile(projectDir, io);
-  }
 
   const readPorcelain = seams.gitPorcelain ?? gitPorcelain;
   const effects = frameworkRefreshSideEffects(projectDir, {
@@ -1062,7 +1076,9 @@ async function emitDryRunPlan(
   projectDir: string,
   classification: UpdateClassification,
 ): Promise<number> {
-  const planned = await planRefreshDeposit(projectDir, options.seams ?? {});
+  const planned = await planRefreshDeposit(projectDir, options.seams ?? {}, {
+    nonInteractive: options.nonInteractive,
+  });
   const { plan: resolutionPlan } = classification;
   const updateState = updateStateFromFreshness(planned.strategy);
   const header =

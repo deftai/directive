@@ -520,3 +520,42 @@ describe("containedRemove (#3392)", () => {
     expect(readFileSync(victim, "utf8")).toBe("KEEP\n");
   });
 });
+
+describe("containedWrite collect-only (#3437)", () => {
+  it("records a write without creating the file or parent dirs", () => {
+    const root = freshDir("cw-collect-write-");
+    const summary = runWithMutationLedger(
+      root,
+      () => {
+        const result = containedWrite({
+          root,
+          target: join("nested", "out.txt"),
+          data: "planned\n",
+          mode: "create",
+        });
+        expect(result.bytesWritten).toBe("planned\n".length);
+        return snapshotMutationSummary();
+      },
+      { collectOnly: true },
+    );
+    expect(summary.wrote).toEqual(["nested/out.txt"]);
+    expect(existsSync(join(root, "nested"))).toBe(false);
+    expect(existsSync(join(root, "nested", "out.txt"))).toBe(false);
+  });
+
+  it("records a delete without removing the file", () => {
+    const root = freshDir("cw-collect-rm-");
+    writeFileSync(join(root, "keep.txt"), "stay\n", "utf8");
+    const summary = runWithMutationLedger(
+      root,
+      () => {
+        const result = containedRemove({ root, target: "keep.txt" });
+        expect(result.removed).toBe(true);
+        return snapshotMutationSummary();
+      },
+      { collectOnly: true },
+    );
+    expect(summary.deleted).toEqual(["keep.txt"]);
+    expect(readFileSync(join(root, "keep.txt"), "utf8")).toBe("stay\n");
+  });
+});
