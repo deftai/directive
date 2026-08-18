@@ -87,6 +87,7 @@ describe("runTsLane", () => {
       pnpm: "/usr/bin/pnpm",
       runner: runner.run,
       out: () => undefined,
+      reporterExists: () => true,
     });
 
     expect(rc).toBe(0);
@@ -111,6 +112,7 @@ describe("runTsLane", () => {
         pnpm: "/usr/bin/pnpm",
         runner: wrapped,
         out: () => undefined,
+        reporterExists: () => true,
         env: {
           [COVERAGE_DEBT_ENV]: "2618",
           [RELEASE_PREFLIGHT_ENV]: "1",
@@ -158,6 +160,18 @@ describe("runTsLane", () => {
         process.env.DEFT_TS_LANE_COVERAGE_DEBT = prior;
       }
     }
+  });
+
+  it("omits the reporter when the checkout has no reporter source file", () => {
+    const runner = new Runner([0, 0, 0]);
+    const rc = runTsLane("/consumer", {
+      pnpm: "/usr/bin/pnpm",
+      runner: runner.run,
+      out: () => undefined,
+      reporterExists: () => false,
+    });
+    expect(rc).toBe(0);
+    expect(runner.calls[2]?.argv).toEqual(["/usr/bin/pnpm", "run", "test"]);
   });
 
   it("wires a flushed vitest progress reporter onto the test command (#3470)", () => {

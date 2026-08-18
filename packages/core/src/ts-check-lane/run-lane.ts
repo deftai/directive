@@ -22,7 +22,7 @@ import { existsSync } from "node:fs";
 import { posix, win32 } from "node:path";
 import { BRANCH_GATE_BYPASS_ENV, RELEASE_PREFLIGHT_ENV } from "../release/constants.js";
 import { resolveCoverageDebtIssue } from "../vitest-runner/coverage-debt.js";
-import { buildTestLaneCommand } from "./progress.js";
+import { buildTestLaneCommand, resolveTestLaneCommand } from "./progress.js";
 
 /** Release Step-5 vars that must not leak into vitest via inherited pnpm env (#2434). */
 const TS_LANE_POISON_ENV_KEYS = [BRANCH_GATE_BYPASS_ENV, RELEASE_PREFLIGHT_ENV] as const;
@@ -75,6 +75,8 @@ export interface RunTsLaneOptions {
    * DEFT_RELEASE_PREFLIGHT (#2618). Defaults to process.env.
    */
   readonly env?: NodeJS.ProcessEnv;
+  /** Injected reporter-file probe (defaults to existsSync). */
+  readonly reporterExists?: (path: string) => boolean;
 }
 
 /** Windows command shims (.cmd/.bat) need a shell; native executables do not. */
@@ -157,7 +159,9 @@ export function runTsLane(projectRoot: string, options: RunTsLaneOptions): numbe
   }
 
   for (const command of LANE_COMMANDS) {
-    const argv = [pnpm, ...command];
+    const resolved =
+      command[1] === "test" ? resolveTestLaneCommand(projectRoot, options.reporterExists) : command;
+    const argv = [pnpm, ...resolved];
     // Soft-pass via lane-private env (vitest 3 CAC rejects unknown CLI debt tokens).
     // vitest.config reads DEFT_TS_LANE_COVERAGE_DEBT without DEFT_RELEASE_PREFLIGHT
     // (sanitizeTsLaneEnv strips preflight). Refs #2573 / #2618.
@@ -186,17 +190,17 @@ export function runTsLane(projectRoot: string, options: RunTsLaneOptions): numbe
     if (code === null) {
       if (result.error) {
         out(
-          `[ts:check-lane] \`pnpm ${command.join(" ")}\` failed to start: ${result.error.message}`,
+          `[ts:check-lane] \`pnpm ${resolved.join(" ")}\` failed to start: ${result.error.message}`,
         );
         return 1;
       }
       out(
-        `[ts:check-lane] \`pnpm ${command.join(" ")}\` was killed by ${result.signal ?? "a signal"} before exit -- treating as failure.`,
+        `[ts:check-lane] \`pnpm ${resolved.join(" ")}\` was killed by ${result.signal ?? "a signal"} before exit -- treating as failure.`,
       );
       return 1;
     }
     if (code !== 0) {
-      out(`[ts:check-lane] \`pnpm ${command.join(" ")}\` failed (exit ${code}).`);
+      out(`[ts:check-lane] \`pnpm ${resolved.join(" ")}\` failed (exit ${code}).`);
       return code;
     }
   }

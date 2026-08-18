@@ -5,7 +5,8 @@
  * without running the suite.
  */
 
-import { writeSync } from "node:fs";
+import { existsSync, writeSync } from "node:fs";
+import { join } from "node:path";
 
 /** Relative to the repo root; wired onto `pnpm run test` from the lane. */
 export const PROGRESS_REPORTER_RELATIVE_PATH =
@@ -82,4 +83,16 @@ export function buildTestLaneCommand(
   // Do not insert a standalone "--": pnpm forwards it to vitest, which then
   // treats later --reporter flags as file filters (#3470).
   return ["run", "test", "--reporter", reporterPath, "--reporter", "default"];
+}
+
+/** Attach the reporter only when the source file is present (framework checkout). */
+export function resolveTestLaneCommand(
+  projectRoot: string,
+  exists: (path: string) => boolean = existsSync,
+): readonly string[] {
+  const reporterAbs = join(projectRoot, ...PROGRESS_REPORTER_RELATIVE_PATH.split("/"));
+  if (!exists(reporterAbs)) {
+    return ["run", "test"];
+  }
+  return buildTestLaneCommand();
 }

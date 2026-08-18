@@ -10,6 +10,7 @@ export {
   PROGRESS_BAND_PERCENT,
   PROGRESS_REPORTER_RELATIVE_PATH,
   PROGRESS_UNIT,
+  resolveTestLaneCommand,
   writeFlushedLine,
 } from "./progress.js";
 export { TsCheckLaneProgressReporter } from "./progress-reporter.js";

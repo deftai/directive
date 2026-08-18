@@ -7,8 +7,27 @@ import {
   formatProgressLine,
   nextProgressTick,
   PROGRESS_BAND_PERCENT,
+  PROGRESS_REPORTER_RELATIVE_PATH,
+  resolveTestLaneCommand,
   writeFlushedLine,
 } from "./progress.js";
+
+describe("resolveTestLaneCommand", () => {
+  it("omits the reporter when the source file is absent", () => {
+    expect(resolveTestLaneCommand("/consumer", () => false)).toEqual(["run", "test"]);
+  });
+
+  it("wires the reporter when the source file exists", () => {
+    expect(resolveTestLaneCommand("/repo", () => true)).toEqual([
+      "run",
+      "test",
+      "--reporter",
+      PROGRESS_REPORTER_RELATIVE_PATH,
+      "--reporter",
+      "default",
+    ]);
+  });
+});
 
 describe("nextProgressTick", () => {
   it("re-exports the band from the barrel", () => {
