@@ -22,6 +22,7 @@ import { existsSync } from "node:fs";
 import { posix, win32 } from "node:path";
 import { BRANCH_GATE_BYPASS_ENV, RELEASE_PREFLIGHT_ENV } from "../release/constants.js";
 import { resolveCoverageDebtIssue } from "../vitest-runner/coverage-debt.js";
+import { buildTestLaneCommand } from "./progress.js";
 
 /** Release Step-5 vars that must not leak into vitest via inherited pnpm env (#2434). */
 const TS_LANE_POISON_ENV_KEYS = [BRANCH_GATE_BYPASS_ENV, RELEASE_PREFLIGHT_ENV] as const;
@@ -30,10 +31,10 @@ const TS_LANE_POISON_ENV_KEYS = [BRANCH_GATE_BYPASS_ENV, RELEASE_PREFLIGHT_ENV] 
  * Run order is deliberate: lint (cheapest, catches the biome class first),
  * then build, then the test suite.
  */
-export const LANE_COMMANDS: ReadonlyArray<readonly [string, string]> = [
+export const LANE_COMMANDS: ReadonlyArray<readonly string[]> = [
   ["run", "lint"],
   ["run", "build"],
-  ["run", "test"],
+  buildTestLaneCommand(),
 ];
 
 export const SKIP_NOTICE =

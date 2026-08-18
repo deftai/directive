@@ -5,6 +5,14 @@ import {
   RELEASE_PREFLIGHT_ENV,
 } from "../release/constants.js";
 import {
+  buildTestLaneCommand,
+  formatProgressLine,
+  nextProgressTick,
+  PROGRESS_REPORTER_RELATIVE_PATH,
+  writeFlushedLine,
+} from "./progress.js";
+import { TsCheckLaneProgressReporter } from "./progress-reporter.js";
+import {
   LANE_COMMANDS,
   resolvePnpm,
   runTsLane,
@@ -113,7 +121,7 @@ describe("runTsLane", () => {
       expect(runner.calls.map((c) => c.argv)).toEqual([
         ["/usr/bin/pnpm", "run", "lint"],
         ["/usr/bin/pnpm", "run", "build"],
-        ["/usr/bin/pnpm", "run", "test"],
+        ["/usr/bin/pnpm", ...buildTestLaneCommand()],
       ]);
       // Debt env is only active during the test step.
       expect(seenDebt).toEqual([undefined, undefined, "2618"]);
@@ -125,6 +133,42 @@ describe("runTsLane", () => {
         process.env.DEFT_TS_LANE_COVERAGE_DEBT = prior;
       }
     }
+  });
+
+  it("restores a prior DEFT_TS_LANE_COVERAGE_DEBT after the test step", () => {
+    const runner = new Runner([0, 0, 0]);
+    const prior = process.env.DEFT_TS_LANE_COVERAGE_DEBT;
+    process.env.DEFT_TS_LANE_COVERAGE_DEBT = "keep-me";
+    try {
+      const rc = runTsLane("/repo", {
+        pnpm: "/usr/bin/pnpm",
+        runner: runner.run,
+        out: () => undefined,
+        env: {
+          [COVERAGE_DEBT_ENV]: "2618",
+          [RELEASE_PREFLIGHT_ENV]: "1",
+        },
+      });
+      expect(rc).toBe(0);
+      expect(process.env.DEFT_TS_LANE_COVERAGE_DEBT).toBe("keep-me");
+    } finally {
+      if (prior === undefined) {
+        delete process.env.DEFT_TS_LANE_COVERAGE_DEBT;
+      } else {
+        process.env.DEFT_TS_LANE_COVERAGE_DEBT = prior;
+      }
+    }
+  });
+
+  it("wires a flushed vitest progress reporter onto the test command (#3470)", () => {
+    expect(LANE_COMMANDS[2]).toEqual([
+      "run",
+      "test",
+      "--reporter",
+      PROGRESS_REPORTER_RELATIVE_PATH,
+      "--reporter",
+      "default",
+    ]);
   });
 
   it("fails fast on the first non-zero exit", () => {
@@ -241,5 +285,67 @@ describe("resolvePnpm", () => {
       exists: (p) => p === "/usr/bin/pnpm",
     });
     expect(found).toBe("/usr/bin/pnpm");
+  });
+});
+
+describe("ts:check-lane progress ticks (#3470)", () => {
+  it("emits at least two flushed band lines without test names", () => {
+    const writes: string[] = [];
+    let flushes = 0;
+    const sink = {
+      write: (chunk: string) => {
+        writes.push(chunk);
+      },
+      flush: () => {
+        flushes += 1;
+      },
+    };
+
+    const first = nextProgressTick(412, 2060, 0);
+    const second = nextProgressTick(824, 2060, first?.percent ?? 0);
+    expect(first).toEqual({ percent: 20, completed: 412, total: 2060 });
+    expect(second).toEqual({ percent: 40, completed: 824, total: 2060 });
+    if (first === null || second === null) {
+      throw new Error("expected two progress ticks");
+    }
+    expect(formatProgressLine(first)).toBe("ts:check-lane 20% (412/2060 files)");
+    expect(formatProgressLine(second)).toBe("ts:check-lane 40% (824/2060 files)");
+
+    writeFlushedLine(formatProgressLine(first), sink);
+    writeFlushedLine(formatProgressLine(second), sink);
+
+    expect(writes).toEqual([
+      "ts:check-lane 20% (412/2060 files)\n",
+      "ts:check-lane 40% (824/2060 files)\n",
+    ]);
+    expect(flushes).toBe(2);
+    expect(writes.every((line) => !line.includes("should") && !line.includes(".test.ts"))).toBe(
+      true,
+    );
+  });
+
+  it("drives two flushed ticks from the vitest reporter hooks", () => {
+    const writes: string[] = [];
+    let flushes = 0;
+    const reporter = new TsCheckLaneProgressReporter({
+      write: (chunk: string) => {
+        writes.push(chunk);
+      },
+      flush: () => {
+        flushes += 1;
+      },
+    });
+
+    reporter.onTestRunStart(Array.from({ length: 10 }, () => ({})));
+    reporter.onTestModuleEnd();
+    reporter.onTestModuleEnd();
+    reporter.onTestModuleEnd();
+    reporter.onTestModuleEnd();
+
+    expect(writes).toEqual([
+      "ts:check-lane 20% (2/10 files)\n",
+      "ts:check-lane 40% (4/10 files)\n",
+    ]);
+    expect(flushes).toBe(2);
   });
 });
