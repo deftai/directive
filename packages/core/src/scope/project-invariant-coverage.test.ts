@@ -54,6 +54,11 @@ describe("pathGlobsIntersect", () => {
     expect(pathGlobsIntersect("packages/**/*.ts", "content/docs")).toBe(false);
   });
 
+  it("matches a leading **/ suffix against a concrete file_scope", () => {
+    expect(pathGlobsIntersect("**/src/policy", "packages/core/src/policy")).toBe(true);
+    expect(pathGlobsIntersect("**/src/policy", "packages/cli/src/main.ts")).toBe(false);
+  });
+
   it("keeps /* to one path segment", () => {
     expect(pathGlobsIntersect("packages/core/*", "packages/core/foo")).toBe(true);
     expect(pathGlobsIntersect("packages/core/*", "packages/core/foo/bar")).toBe(false);

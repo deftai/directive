@@ -47,6 +47,7 @@ export type GlobDepth = "exact" | "one" | "subtree";
 export interface ClassifiedGlob {
   readonly prefix: string;
   readonly depth: GlobDepth;
+  readonly leadingDoubleStar: boolean;
 }
 
 /**
@@ -57,23 +58,30 @@ export function classifyGlob(glob: string): ClassifiedGlob {
   let p = normalizePath(glob).trim();
   if (p.endsWith("/")) p = p.slice(0, -1);
   if (p === "**") {
-    return { prefix: "", depth: "subtree" };
+    return { prefix: "", depth: "subtree", leadingDoubleStar: true };
+  }
+  if (p.startsWith("**/")) {
+    let rest = p.slice(3);
+    if (rest.endsWith("/*")) rest = rest.slice(0, -2);
+    const inner = rest.indexOf("/**");
+    if (inner >= 0) rest = rest.slice(0, inner);
+    return { prefix: rest, depth: "subtree", leadingDoubleStar: true };
   }
   const starStar = p.indexOf("/**");
   if (starStar >= 0) {
-    return { prefix: p.slice(0, starStar), depth: "subtree" };
+    return { prefix: p.slice(0, starStar), depth: "subtree", leadingDoubleStar: false };
   }
   if (p.endsWith("/*")) {
-    return { prefix: p.slice(0, -2), depth: "one" };
+    return { prefix: p.slice(0, -2), depth: "one", leadingDoubleStar: false };
   }
   if (p.includes("*") || p.includes("?")) {
     const slashStar = p.indexOf("/*");
     if (slashStar >= 0) {
-      return { prefix: p.slice(0, slashStar), depth: "subtree" };
+      return { prefix: p.slice(0, slashStar), depth: "subtree", leadingDoubleStar: false };
     }
-    return { prefix: p, depth: "subtree" };
+    return { prefix: p, depth: "subtree", leadingDoubleStar: false };
   }
-  return { prefix: p, depth: "subtree" };
+  return { prefix: p, depth: "subtree", leadingDoubleStar: false };
 }
 
 /** Strip glob tails so prefix comparison stays path-shaped. */
@@ -114,7 +122,14 @@ export function pathGlobsIntersect(left: string, right: string): boolean {
   if (aUnderB !== null && depthAllows(cb.depth, aUnderB)) return true;
   const bUnderA = remainderUnder(cb.prefix, ca.prefix);
   if (bUnderA !== null && depthAllows(ca.depth, bUnderA)) return true;
+  if (ca.leadingDoubleStar && suffixMatch(cb.prefix, ca.prefix)) return true;
+  if (cb.leadingDoubleStar && suffixMatch(ca.prefix, cb.prefix)) return true;
   return false;
+}
+
+function suffixMatch(path: string, suffix: string): boolean {
+  if (suffix.length === 0 || path.length === 0) return false;
+  return path === suffix || path.endsWith(`/${suffix}`);
 }
 
 function surfacePaths(
