@@ -14,6 +14,17 @@ import {
   PREFLIGHT_USAGE_HINT,
 } from "./evaluate.js";
 import { emitJson as emitJsonFromIndex, evaluate as evaluateFromIndex } from "./index.js";
+import { INTENDED_PLACEMENT_SCHEMA } from "./intended-placement.js";
+
+function underThresholdPlacement(): Record<string, unknown> {
+  return {
+    intended_placement: {
+      schema: INTENDED_PLACEMENT_SCHEMA,
+      files: ["src/new-module.ts"],
+      module_boundary: "new focused module",
+    },
+  };
+}
 
 const temps: string[] = [];
 afterAll(() => {
@@ -37,7 +48,7 @@ describe("evaluate", () => {
     const path = writeVbrief(
       "active",
       "story.xbrief.json",
-      JSON.stringify({ plan: { status: "running" } }),
+      JSON.stringify({ plan: { status: "running", metadata: underThresholdPlacement() } }),
     );
     const result = evaluate(path);
     expect(result.exitCode).toBe(0);
@@ -50,7 +61,11 @@ describe("evaluate", () => {
     const dir = join(root, "xbrief", "active");
     mkdirSync(dir, { recursive: true });
     const path = join(dir, "story.xbrief.json");
-    writeFileSync(path, JSON.stringify({ plan: { status: "running" } }), "utf8");
+    writeFileSync(
+      path,
+      JSON.stringify({ plan: { status: "running", metadata: underThresholdPlacement() } }),
+      "utf8",
+    );
     const result = evaluate(path);
     expect(result.exitCode).toBe(0);
   });
@@ -119,6 +134,18 @@ describe("evaluate", () => {
     const result = evaluate(path);
     expect(result.exitCode).toBe(1);
     expect(result.message).toContain("vBRIEF not found");
+  });
+
+  it("rejects missing intended_placement (#3424)", () => {
+    const path = writeVbrief(
+      "active",
+      "story.xbrief.json",
+      JSON.stringify({ plan: { status: "running" } }),
+    );
+    const result = evaluate(path);
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toContain("intended_placement");
+    expect(result.message).toContain("Record plan.metadata.intended_placement");
   });
 
   it("rejects a directory path", () => {
@@ -209,6 +236,7 @@ describe("parent lineage pre-PR (#3241)", () => {
           planRef: "pending/parent.xbrief.json",
           metadata: {
             kind: "story",
+            ...underThresholdPlacement(),
             parent_lineage: {
               schema: "deft.scope.parent_lineage.v1",
               parent_plan_id: "epic-preflight-lineage",
@@ -346,6 +374,7 @@ describe("origin freshness (#3363)", () => {
         xBRIEFInfo: { version: "0.8", updated },
         plan: {
           status: "running",
+          metadata: underThresholdPlacement(),
           references: [
             {
               type: "x-xbrief/github-issue",
@@ -405,6 +434,7 @@ describe("origin freshness (#3363)", () => {
         xBRIEFInfo: { version: "0.8", updated: "2026-08-14T16:00:00Z" },
         plan: {
           status: "running",
+          metadata: underThresholdPlacement(),
           narratives: {
             Origin: "Ingested from https://github.com/deftai/directive/issues/3363",
           },

@@ -17,7 +17,22 @@ function activeRunning(): string {
   const dir = join(root, "active");
   mkdirSync(dir, { recursive: true });
   const path = join(dir, "story.xbrief.json");
-  writeFileSync(path, JSON.stringify({ plan: { status: "running" } }), "utf8");
+  writeFileSync(
+    path,
+    JSON.stringify({
+      plan: {
+        status: "running",
+        metadata: {
+          intended_placement: {
+            schema: "deft.scope.intended_placement.v1",
+            files: ["src/new-module.ts"],
+            module_boundary: "new focused module",
+          },
+        },
+      },
+    }),
+    "utf8",
+  );
   return path;
 }
 

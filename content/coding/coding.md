@@ -47,7 +47,7 @@ See [../scm/git.md](../scm/git.md) for:
 
 **Modularity:**
 - ! One responsibility per file/module
-- ~ Files <300 lines ideal; <500 lines recommended; <1000 lines a review trigger — split when exceeded unless genuinely single-responsibility (size is a smell, not a hard cap; #1488)
+- ~ Keep files small. Ideal, recommended, and review-trigger line counts are FILE_SIZE_IDEAL_LINES, FILE_SIZE_RECOMMENDED_LINES, and FILE_SIZE_REVIEW_TRIGGER_LINES in the file-size-thresholds policy module (packages/core/src/policy/file-size-thresholds.ts). Split when a file exceeds the review trigger unless it is genuinely single-responsibility (size is a smell, not a hard cap; #1488 / #3424)
 - ! Explicit scope in task descriptions
 - ~ DRY: extract shared abstractions when logic is duplicated across 2+ call sites
 - ⊗ Copy-paste logic with minor variations — parameterise instead
@@ -234,7 +234,7 @@ See [debugging.md](debugging.md) for the full four-phase process, evidence disci
 
 - ⊗ Secrets in code or version control
 - ⊗ Claiming checks passed without running them
-- ⊗ Single files mixing multiple responsibilities (large line count, e.g. >1000 lines, is a trigger to check cohesion — not a defect by itself; #1488)
+- ⊗ Single files mixing multiple responsibilities (line count at or above FILE_SIZE_REVIEW_TRIGGER_LINES is a cohesion review trigger — not a defect by itself; #1488 / #3424)
 - ⊗ Skipping quality checks
 - ⊗ Breaking changes without explicit approval
 - ⊗ Using `grep` command when `rg` or Warp grep available

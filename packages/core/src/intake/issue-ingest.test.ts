@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { cachePut } from "../cache/operations.js";
 import { FixedClock } from "../cache/test-helpers.js";
+import { INTENDED_PLACEMENT_SCHEMA } from "../preflight/intended-placement.js";
 import type { CompletedProcess } from "../scm/call.js";
 import * as scm from "../scm/call.js";
 import {
@@ -124,6 +125,11 @@ describe("buildIssueVbrief", () => {
       { title: "Spec updated", status: "completed" },
     ]);
     expect((plan.narratives as Record<string, string>).Overview).toContain("Acceptance Criteria");
+    const metadata = plan.metadata as {
+      intended_placement?: { schema?: string; files?: unknown };
+    };
+    expect(metadata.intended_placement?.schema).toBe(INTENDED_PLACEMENT_SCHEMA);
+    expect(metadata.intended_placement?.files).toEqual([]);
   });
 
   it("derives numbered clauses at intake when no commands are stated (#3323)", () => {

@@ -5,6 +5,7 @@ import { type ScanFlag, scan } from "../cache/scanner.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { captureAndAttachLiteralAcceptance } from "../literal-acceptance/index.js";
+import { stampIntendedPlacement } from "../preflight/intended-placement.js";
 import { stampAcceptanceFromLiteralCapture } from "../product-first-done-gate/index.js";
 import { type CompletedProcess, call } from "../scm/call.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
@@ -618,6 +619,8 @@ export function buildIssueVbrief(
     // No body: still record none_stated acceptance so absence is a decision.
     Object.assign(plan, stampAcceptanceFromLiteralCapture(plan));
   }
+
+  stampIntendedPlacement(plan);
 
   const infoRootKey = options.infoRootKey ?? LEGACY_INFO_ROOT_KEY;
   const infoVersion = options.infoVersion ?? EMITTED_VBRIEF_VERSION;

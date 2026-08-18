@@ -9,6 +9,16 @@ export {
   formatActivateHint,
   PREFLIGHT_USAGE_HINT,
 } from "./evaluate.js";
+export type { IntendedPlacement, IntendedPlacementResult } from "./intended-placement.js";
+export {
+  emptyIntendedPlacement,
+  evaluateIntendedPlacement,
+  INTENDED_PLACEMENT_MISSING_HINT,
+  INTENDED_PLACEMENT_OVER_TRIGGER_HINT,
+  INTENDED_PLACEMENT_SCHEMA,
+  readIntendedPlacement,
+  stampIntendedPlacement,
+} from "./intended-placement.js";
 export type {
   ProjectInvariantsGateOptions,
   ProjectInvariantsGateResult,

@@ -115,7 +115,7 @@ For each code generation, check:
 - [ ] **Documentation complete**
 - [ ] **No obvious security issues**
 - [ ] **Dependencies justified**
-- [ ] **Files <500 lines** (must be <1000)
+- [ ] **Files stay small** (review trigger, not a hard cap; see file-size-thresholds policy module / #1488 / #3424)
 
 ## 🛠️ Implementation in Warp (TBD)
 

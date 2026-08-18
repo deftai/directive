@@ -417,7 +417,7 @@ Read full files when you need detail:
 
 - ! TDD: write tests first — implementation incomplete without passing tests
 - ! Coverage: ≥85% lines, functions, branches, statements
-- ~ Files: <300 lines ideal, <500 recommended, ! <1000 max
+- ~ Files: stay small; line counts live in the file-size-thresholds policy module (review trigger, not a hard cap; #1488 / #3424)
 - ~ Naming: hyphens for filenames unless language idiom dictates otherwise
 - ! Contracts first: define interfaces/types before implementation
 - ! Secrets: in `secrets/` dir with `.example` templates; ⊗ secrets in code

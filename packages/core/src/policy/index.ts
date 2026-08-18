@@ -112,6 +112,7 @@ export * from "./decisions.js";
 export * from "./deft-directive-disable.js";
 export * from "./delivery-branch.js";
 export * from "./disclosure.js";
+export * from "./file-size-thresholds.js";
 export * from "./forge-outage-retry.js";
 export * from "./host-hooks.js";
 export * from "./host-slash-commands.js";

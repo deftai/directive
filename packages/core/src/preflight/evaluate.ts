@@ -10,6 +10,7 @@ import {
   evaluateOriginFreshness,
   type FetchOriginUpdatedAt,
 } from "../vbrief-reconcile/origin-freshness.js";
+import { evaluateIntendedPlacement, resolveProjectRootFromBrief } from "./intended-placement.js";
 import {
   evaluateProjectInvariantsGate,
   resolveProjectRootForInvariants,
@@ -48,6 +49,8 @@ export interface EvaluateOptions {
   readonly skipOriginFreshness?: boolean;
   /** Skip project-invariant coverage (#3425). Default false. */
   readonly skipProjectInvariants?: boolean;
+  /** Skip intended-placement size check (#3424). Default false. */
+  readonly skipIntendedPlacement?: boolean;
   /** Injected origin fetch for tests. Default: live `gh api` REST. */
   readonly fetchOriginUpdatedAt?: FetchOriginUpdatedAt;
 }
@@ -245,6 +248,20 @@ export function evaluate(vbriefPath: string, options: EvaluateOptions = {}): Eva
       parentLineage: lineage,
       message: buildReject(path, invariants.message),
     };
+  }
+
+  // #3424: declared files vs review-trigger SoT. Missing declaration/exemption
+  // is the reject; size alone is not a hard cap (#1488).
+  if (options.skipIntendedPlacement !== true) {
+    const projectRoot = resolveProjectRootFromBrief(path, options.projectRoot);
+    const placement = evaluateIntendedPlacement(planRecord, { projectRoot });
+    if (!placement.ok) {
+      return {
+        exitCode: 1,
+        parentLineage: lineage,
+        message: buildReject(path, placement.message),
+      };
+    }
   }
 
   // Keep the historical OK line when lineage is N/A (backward-compatible tests / agents).

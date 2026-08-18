@@ -182,7 +182,22 @@ describe("deft-ts active vBRIEF preflight path", () => {
     const activeDir = join(root, "xbrief", "active");
     mkdirSync(activeDir, { recursive: true });
     const vbriefPath = join(activeDir, "story.xbrief.json");
-    writeFileSync(vbriefPath, JSON.stringify({ plan: { status: "running" } }), "utf8");
+    writeFileSync(
+      vbriefPath,
+      JSON.stringify({
+        plan: {
+          status: "running",
+          metadata: {
+            intended_placement: {
+              schema: "deft.scope.intended_placement.v1",
+              files: ["src/new-module.ts"],
+              module_boundary: "new focused module",
+            },
+          },
+        },
+      }),
+      "utf8",
+    );
     const { exitCode } = runDeftTs("vbrief-preflight", ["--vbrief-path", vbriefPath]);
     expect(exitCode).toBe(0);
   });
