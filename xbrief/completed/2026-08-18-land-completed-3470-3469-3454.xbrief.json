@@ -1,0 +1,133 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Land already-completed xBRIEFs for closed issues 3470, 3469, and 3454 so verify:completed-tracked is green.",
+    "updated": "2026-08-18T22:46:10Z"
+  },
+  "plan": {
+    "title": "chore(xbrief): land completed-tracked 3470/3469/3454",
+    "status": "completed",
+    "id": "land-completed-3470-3469-3454",
+    "narratives": {
+      "Description": "Track three already-completed xBRIEFs left untracked after through-merge, plus one CHANGELOG [Unreleased] land line. Does not re-close #3470, #3469, #3454, or #3437.",
+      "Origin": "Operator land-them 2026-08-18 after through-merge left completed artifacts untracked. Allocation land-completed-3470-3469-3454.",
+      "Overview": "Issues #3470, #3469, and #3454 are already closed and merged. Their completed xBRIEFs exist on disk under xbrief/completed/ but are untracked, so the completed-tracked land gate fails. Land those three files and a CHANGELOG line in the same style as the prior land PR. Include this land brief in the same PR as a completed artifact. No product code. No Closes lines for those issues.",
+      "UserStory": "As a maintainer, I want the three leftover completed xBRIEFs tracked on master so the completed-tracked land gate passes.",
+      "ImplementationPlan": "1. Commit the three untracked completed xBRIEFs. 2. Add one CHANGELOG [Unreleased] land line. 3. Complete this land brief in the same PR. 4. Run the completed-tracked land gate against HEAD."
+    },
+    "items": [
+      {
+        "title": "Track the three completed xBRIEFs and CHANGELOG land line",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given HEAD includes the three completed artifacts and this land brief under xbrief/completed/, when the completed-tracked land gate runs against HEAD, then it exits 0. CHANGELOG [Unreleased] has one land line that does not close those already-closed issues.",
+          "Traces": "FR-LAND-3264-1"
+        },
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "xbrief/completed/2026-08-18-3454-feedback-file-context-accumulate.xbrief.json; xbrief/completed/2026-08-18-3469-host-detect-disclosure.xbrief.json; xbrief/completed/2026-08-18-3470-ts-check-lane-progress-indicators.xbrief.json; CHANGELOG.md [Unreleased] land leftover completed-tracked 3470/3469/3454 (no Closes for those issues)",
+          "recorded_at": "2026-08-18T23:45:00Z",
+          "recorded_by": "leaf-implementation/land-completed-3470-3469-3454"
+        }
+      }
+    ],
+    "tags": [
+      "chore",
+      "lifecycle",
+      "process-only"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3264",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3264: completed-tracked land gate (do not re-close)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1358",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1358: post-merge lifecycle (do not re-close)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2321",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2321: orphan-active (do not re-close)"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "task verify:completed-tracked -- --tip HEAD"
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "Operator unit-of-work gate.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Completed xBRIEF for 3454 exists at its stated path.",
+          "artifact_path": "xbrief/completed/2026-08-18-3454-feedback-file-context-accumulate.xbrief.json",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "Completed xBRIEF for 3469 exists at its stated path.",
+          "artifact_path": "xbrief/completed/2026-08-18-3469-host-detect-disclosure.xbrief.json",
+          "ambiguous": false
+        },
+        {
+          "id": 3,
+          "text": "Completed xBRIEF for 3470 exists at its stated path.",
+          "artifact_path": "xbrief/completed/2026-08-18-3470-ts-check-lane-progress-indicators.xbrief.json",
+          "ambiguous": false
+        },
+        {
+          "id": 4,
+          "text": "CHANGELOG land line exists at its stated path and contains \"Does not re-close those issues\".",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-18T22:46:10Z",
+    "metadata": {
+      "kind": "process",
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "xbrief/completed/2026-08-18-3454-feedback-file-context-accumulate.xbrief.json",
+          "xbrief/completed/2026-08-18-3469-host-detect-disclosure.xbrief.json",
+          "xbrief/completed/2026-08-18-3470-ts-check-lane-progress-indicators.xbrief.json",
+          "xbrief/completed/2026-08-18-land-completed-3470-3469-3454.xbrief.json",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "completed-tracked land only; no product code",
+        "cohesion_exemption": "CHANGELOG.md already exceeds the review trigger; this slice only adds the land note."
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "xbrief/completed",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task verify:completed-tracked -- --tip HEAD"
+        ],
+        "expected_outputs": [
+          "three completed xBRIEFs tracked",
+          "CHANGELOG land line",
+          "verify:completed-tracked exit 0"
+        ],
+        "acceptance_criteria_justification": "Operator land-them gate for leftover completed artifacts.",
+        "depends_on": [],
+        "conflict_group": "completed-tracked-land",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "capacityBucket": "hygiene",
+      "completedAt": "2026-08-18T22:46:10Z",
+      "completedSessionId": "9102fb76-1e3b-4c7b-abd9-f3003bcffb1f"
+    }
+  }
+}
