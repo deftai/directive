@@ -336,6 +336,7 @@ describe("project invariants preflight (#3425)", () => {
           metadata: {
             swarm: { file_scope: ["packages/core/src/preflight"] },
             coverage_map: { "host-load": { disposition: "covered" } },
+            ...underThresholdPlacement(),
           },
         },
       }),
@@ -361,7 +362,9 @@ describe("project invariants preflight (#3425)", () => {
       }),
       "utf8",
     );
-    expect(evaluate(path, { skipProjectInvariants: true }).exitCode).toBe(0);
+    expect(
+      evaluate(path, { skipProjectInvariants: true, skipIntendedPlacement: true }).exitCode,
+    ).toBe(0);
   });
 });
 
