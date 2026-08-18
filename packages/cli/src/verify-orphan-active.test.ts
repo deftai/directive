@@ -112,6 +112,37 @@ describe("run", () => {
     }
   });
 
+  it("returns 1 for --issue N on unresolved lookup without printing scope:complete", () => {
+    const root = buildRepo();
+    writeFileSync(
+      join(root, "xbrief", "active", "unknown.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/4040",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    try {
+      expect(
+        run(["--project-root", root, "--repo", "deftai/directive", "--skip-gh", "--issue", "4040"]),
+      ).toBe(1);
+    } finally {
+      const text = err.mock.calls.map((c) => String(c[0])).join("");
+      err.mockRestore();
+      expect(text).toContain("task verify:orphan-active -- --issue 4040");
+      expect(text).not.toContain("task scope:complete -- xbrief/active/unknown.xbrief.json");
+    }
+  });
+
   it("returns 0 for --issue N when the issue is open and no PR state is pending", () => {
     const root = buildRepo();
     writeFileSync(

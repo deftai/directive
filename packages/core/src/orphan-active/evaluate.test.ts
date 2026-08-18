@@ -146,6 +146,7 @@ describe("evaluate", () => {
       {
         path: "xbrief/active/shipped-story.xbrief.json",
         reason: "all referenced issues are closed",
+        kind: "shipped",
       },
     ]);
     expect(result.message).toContain(
@@ -181,6 +182,7 @@ describe("evaluate", () => {
       {
         path: "xbrief/active/shipped-story.xbrief.json",
         reason: "issue #1001 is closed",
+        kind: "shipped",
       },
     ]);
     expect(result.message).toContain(
@@ -287,7 +289,9 @@ describe("evaluate", () => {
     const result = evaluate(root, { repo: "deftai/directive", runGh, issue: 1001 });
     expect(result.code).toBe(1);
     expect(result.orphans[0]?.reason).toBe("linked PR #42 state could not be resolved");
-    expect(result.message).toContain(
+    expect(result.orphans[0]?.kind).toBe("unresolved");
+    expect(result.message).toContain("task verify:orphan-active -- --issue 1001");
+    expect(result.message).not.toContain(
       "task scope:complete -- xbrief/active/open-issue-unknown-pr.xbrief.json",
     );
   });
@@ -321,6 +325,7 @@ describe("evaluate", () => {
     const result = evaluate(root, { repo: "deftai/directive", runGh, issue: 1001 });
     expect(result.code).toBe(1);
     expect(result.orphans[0]?.reason).toBe("linked PR #42 is merged");
+    expect(result.orphans[0]?.kind).toBe("shipped");
     expect(result.message).toContain(
       "task scope:complete -- xbrief/active/open-issue-merged-pr.xbrief.json",
     );
@@ -340,7 +345,9 @@ describe("evaluate", () => {
     const result = evaluate(root, { repo: "deftai/directive", skipGh: true, issue: 4040 });
     expect(result.code).toBe(1);
     expect(result.orphans[0]?.reason).toBe("issue #4040 state could not be resolved");
-    expect(result.message).toContain(
+    expect(result.orphans[0]?.kind).toBe("unresolved");
+    expect(result.message).toContain("task verify:orphan-active -- --issue 4040");
+    expect(result.message).not.toContain(
       "task scope:complete -- xbrief/active/unknown-state.xbrief.json",
     );
   });
@@ -364,7 +371,9 @@ describe("evaluate", () => {
     const result = evaluate(root, { repo: "deftai/directive", skipGh: true, issue: 4040 });
     expect(result.code).toBe(1);
     expect(result.orphans[0]?.reason).toBe("issue #4040 state could not be resolved");
-    expect(result.message).toContain(
+    expect(result.orphans[0]?.kind).toBe("unresolved");
+    expect(result.message).toContain("task verify:orphan-active -- --issue 4040");
+    expect(result.message).not.toContain(
       "task scope:complete -- xbrief/active/multi-origin.xbrief.json",
     );
   });
@@ -389,8 +398,62 @@ describe("evaluate", () => {
     const result = evaluate(root, { repo: "deftai/directive", skipGh: true, issue: 1001 });
     expect(result.code).toBe(1);
     expect(result.orphans[0]?.reason).toBe("issue #1001 is closed");
+    expect(result.orphans[0]?.kind).toBe("shipped");
     expect(result.message).toContain(
       "task scope:complete -- xbrief/active/closed-origin-open-sibling.xbrief.json",
+    );
+  });
+
+  it("prints scope:complete only for shipped briefs when mixed with unresolved lookup", () => {
+    const root = makeRepo();
+    writeBrief(root, "shipped-story.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/1001",
+          type: "x-xbrief/github-issue",
+        },
+      ],
+    });
+    writeBrief(root, "unknown-pr-story.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/1001",
+          type: "x-xbrief/github-issue",
+        },
+        {
+          uri: "https://github.com/deftai/directive/pull/42",
+          type: "x-xbrief/github-pr",
+        },
+      ],
+    });
+    writeCachedIssue(root, "deftai/directive", 1001, "closed");
+    const runGh: RunGhFn = () => ({
+      returncode: 1,
+      stdout: "",
+      stderr: "api failed",
+    });
+    const result = evaluate(root, { repo: "deftai/directive", runGh, issue: 1001 });
+    expect(result.code).toBe(1);
+    expect(result.orphans).toEqual([
+      {
+        path: "xbrief/active/shipped-story.xbrief.json",
+        reason: "issue #1001 is closed",
+        kind: "shipped",
+      },
+      {
+        path: "xbrief/active/unknown-pr-story.xbrief.json",
+        reason: "linked PR #42 state could not be resolved",
+        kind: "unresolved",
+      },
+    ]);
+    expect(result.message).toContain(
+      "task scope:complete -- xbrief/active/shipped-story.xbrief.json",
+    );
+    expect(result.message).toContain("task verify:orphan-active -- --issue 1001");
+    expect(result.message).not.toContain(
+      "task scope:complete -- xbrief/active/unknown-pr-story.xbrief.json",
     );
   });
 

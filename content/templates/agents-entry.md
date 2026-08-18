@@ -92,7 +92,7 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 ⊗ Silent PR-open handback for a worker already scoped `drive-to: merge-ready`.
 ⊗ `stop-at: pr-open` without a named babysit / merge-path owner, or dual review-monitor leases on recovery (#3044 / #2261).
 ⊗ Stand down at CLEAN under human-merge with no reachable post-merge `scope:complete` owner.
-! After merge of issue `#N`, `deft verify:orphan-active -- --issue N` MUST exit 0 before `DONE` (#3429). Exit 1 → run the printed `deft scope:complete -- <path>` or emit `BLOCKED`.
+! After merge of issue `#N`, `deft verify:orphan-active -- --issue N` MUST exit 0 before `DONE` (#3429). Exit 1 shipped → printed `scope:complete`; unresolved lookup → retry / `BLOCKED` (⊗ complete unfinished scope).
 ⊗ Emit `ISSUE: closed` while that brief is still in `active/`.
 
 ## Nuclear-family A2A topology (#3155)

@@ -9,9 +9,12 @@ import { collectGithubRefs, type IssueRef, type PrRef } from "./refs.js";
 
 export type OutputStream = "stdout" | "stderr" | "none";
 
+export type OrphanKind = "shipped" | "unresolved";
+
 export interface OrphanActiveBrief {
   readonly path: string;
   readonly reason: string;
+  readonly kind: OrphanKind;
 }
 
 export interface EvaluateResult {
@@ -184,6 +187,22 @@ function fetchPrMerged(ref: PrRef, runGh: RunGhFn): boolean | null {
   }
 }
 
+interface OrphanAssessment {
+  readonly orphaned: boolean;
+  readonly reason: string | null;
+  readonly kind: OrphanKind | null;
+}
+
+const PASS: OrphanAssessment = { orphaned: false, reason: null, kind: null };
+
+function shipped(reason: string): OrphanAssessment {
+  return { orphaned: true, reason, kind: "shipped" };
+}
+
+function unresolved(reason: string): OrphanAssessment {
+  return { orphaned: true, reason, kind: "unresolved" };
+}
+
 function assessOrphanSignature(
   issueRefs: readonly IssueRef[],
   prRefs: readonly PrRef[],
@@ -191,24 +210,18 @@ function assessOrphanSignature(
   runGh: RunGhFn,
   skipGh: boolean,
   selectedIssue: number | null,
-): { orphaned: boolean; reason: string | null } {
+): OrphanAssessment {
   if (selectedIssue !== null) {
     for (const pr of prRefs) {
       if (skipGh) {
-        return {
-          orphaned: true,
-          reason: `linked PR #${pr.number} state could not be resolved`,
-        };
+        return unresolved(`linked PR #${pr.number} state could not be resolved`);
       }
       const merged = fetchPrMerged(pr, runGh);
       if (merged === true) {
-        return { orphaned: true, reason: `linked PR #${pr.number} is merged` };
+        return shipped(`linked PR #${pr.number} is merged`);
       }
       if (merged === null) {
-        return {
-          orphaned: true,
-          reason: `linked PR #${pr.number} state could not be resolved`,
-        };
+        return unresolved(`linked PR #${pr.number} state could not be resolved`);
       }
     }
     // --issue N is one origin: sibling open/unknown must not mask it (#3429).
@@ -216,15 +229,12 @@ function assessOrphanSignature(
     if (selectedRef !== undefined) {
       const selectedState = resolveIssueState(selectedRef, projectRoot, runGh, skipGh);
       if (selectedState === null) {
-        return {
-          orphaned: true,
-          reason: `issue #${selectedIssue} state could not be resolved`,
-        };
+        return unresolved(`issue #${selectedIssue} state could not be resolved`);
       }
       if (selectedState === "closed") {
-        return { orphaned: true, reason: `issue #${selectedIssue} is closed` };
+        return shipped(`issue #${selectedIssue} is closed`);
       }
-      return { orphaned: false, reason: null };
+      return PASS;
     }
     const issueStates = issueRefs.map((ref) => ({
       ref,
@@ -232,21 +242,15 @@ function assessOrphanSignature(
     }));
     const unknownIssue = issueStates.find((row) => row.state === null);
     if (unknownIssue !== undefined) {
-      return {
-        orphaned: true,
-        reason: `issue #${unknownIssue.ref.number} state could not be resolved`,
-      };
+      return unresolved(`issue #${unknownIssue.ref.number} state could not be resolved`);
     }
     if (issueStates.some((row) => row.state === "closed")) {
-      return { orphaned: true, reason: "all referenced issues are closed" };
+      return shipped("all referenced issues are closed");
     }
     if (prRefs.length > 0 && skipGh) {
-      return {
-        orphaned: true,
-        reason: `linked PR #${prRefs[0]?.number} state could not be resolved`,
-      };
+      return unresolved(`linked PR #${prRefs[0]?.number} state could not be resolved`);
     }
-    return { orphaned: false, reason: null };
+    return PASS;
   }
 
   for (const pr of prRefs) {
@@ -255,53 +259,83 @@ function assessOrphanSignature(
     }
     const merged = fetchPrMerged(pr, runGh);
     if (merged === true) {
-      return { orphaned: true, reason: `linked PR #${pr.number} is merged` };
+      return shipped(`linked PR #${pr.number} is merged`);
     }
   }
 
   if (issueRefs.length === 0) {
-    return { orphaned: false, reason: null };
+    return PASS;
   }
 
   let resolved = 0;
   for (const ref of issueRefs) {
     const state = resolveIssueState(ref, projectRoot, runGh, skipGh);
     if (state === null) {
-      return { orphaned: false, reason: null };
+      return PASS;
     }
     resolved += 1;
     if (state !== "closed") {
-      return { orphaned: false, reason: null };
+      return PASS;
     }
   }
 
   if (resolved > 0) {
-    return { orphaned: true, reason: "all referenced issues are closed" };
+    return shipped("all referenced issues are closed");
   }
-  return { orphaned: false, reason: null };
+  return PASS;
 }
 
 function briefReferencesIssue(issues: readonly IssueRef[], issue: number): boolean {
   return issues.some((ref) => ref.number === issue);
 }
 
-function formatRefusal(orphans: readonly OrphanActiveBrief[], projectRoot: string): string {
-  const lines = [
-    `verify:orphan-active: ${orphans.length} active/running xBRIEF${
-      orphans.length === 1 ? "" : "s"
-    } look shipped but still consume WIP (project_root=${projectRoot}).`,
-    "  Remediation: move each brief out of active/ with lifecycle ownership:",
-  ];
-  for (const orphan of orphans) {
-    lines.push(`    task scope:complete -- ${orphan.path}`);
+function formatRefusal(
+  orphans: readonly OrphanActiveBrief[],
+  projectRoot: string,
+  issueFilter: number | null,
+): string {
+  const shippedOrphans = orphans.filter((orphan) => orphan.kind === "shipped");
+  const unresolvedOrphans = orphans.filter((orphan) => orphan.kind === "unresolved");
+  const noun = orphans.length === 1 ? "" : "s";
+  let headline: string;
+  if (unresolvedOrphans.length > 0 && shippedOrphans.length === 0) {
+    headline = `verify:orphan-active: ${unresolvedOrphans.length} active/running xBRIEF${
+      unresolvedOrphans.length === 1 ? "" : "s"
+    } have unresolved GitHub state (cannot confirm shipped) (project_root=${projectRoot}).`;
+  } else if (shippedOrphans.length > 0 && unresolvedOrphans.length === 0) {
+    headline = `verify:orphan-active: ${shippedOrphans.length} active/running xBRIEF${
+      shippedOrphans.length === 1 ? "" : "s"
+    } look shipped but still consume WIP (project_root=${projectRoot}).`;
+  } else {
+    headline = `verify:orphan-active: ${orphans.length} active/running xBRIEF${noun} failed the after-merge check (project_root=${projectRoot}).`;
   }
-  lines.push(
-    "    task scope:cancel -- xbrief/active/<file>.xbrief.json   # when abandoning",
-    "  For stop-at:pr-open workers the orchestrator owns post-merge complete/cancel;",
-    "  for drive-to:merge-ready workers scope:complete is part of the worker unit (#2321 / #3429).",
-    "  Or run task swarm:finalize-cohort / task swarm:complete-cohort after cohort merge.",
-    "  Offending briefs:",
-  );
+  const lines = [headline];
+  if (shippedOrphans.length > 0) {
+    lines.push(
+      "  Remediation: move each confirmed-shipped brief out of active/ with lifecycle ownership:",
+    );
+    for (const orphan of shippedOrphans) {
+      lines.push(`    task scope:complete -- ${orphan.path}`);
+    }
+    lines.push(
+      "    task scope:cancel -- xbrief/active/<file>.xbrief.json   # when abandoning",
+      "  For stop-at:pr-open workers the orchestrator owns post-merge complete/cancel;",
+      "  for drive-to:merge-ready workers scope:complete is part of the worker unit (#2321 / #3429).",
+      "  Or run task swarm:finalize-cohort / task swarm:complete-cohort after cohort merge.",
+    );
+  }
+  if (unresolvedOrphans.length > 0) {
+    const retry =
+      issueFilter === null
+        ? "task verify:orphan-active"
+        : `task verify:orphan-active -- --issue ${issueFilter}`;
+    lines.push(
+      "  Remediation: retry the GitHub lookup (auth, rate-limit, network, skipGh) then re-run:",
+      `    ${retry}`,
+      "  Do not run task scope:complete until the origin is confirmed closed or the linked PR is confirmed merged.",
+    );
+  }
+  lines.push("  Offending briefs:");
   for (const orphan of orphans) {
     lines.push(`    - ${orphan.path} (${orphan.reason})`);
   }
@@ -312,7 +346,8 @@ function formatRefusal(orphans: readonly OrphanActiveBrief[], projectRoot: strin
  * Pure evaluator for orphaned active/running xBRIEF detection (#2321 / #3429).
  * Fails when active/ briefs with plan.status==running reference only closed
  * issues and/or a merged PR — the stop-at:pr-open orphan signature.
- * Pass `issue` to scan one origin after merge.
+ * Pass `issue` to scan one origin after merge. Confirmed shipped prints
+ * scope:complete; unresolved lookup still exits 1 with a retry remediation.
  */
 export function evaluate(projectRoot: string, options: EvaluateOptions = {}): EvaluateResult {
   const root = resolve(projectRoot);
@@ -380,10 +415,11 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
       continue;
     }
     const assessment = assessOrphanSignature(issues, prs, root, runGh, skipGh, issueFilter);
-    if (assessment.orphaned && assessment.reason !== null) {
+    if (assessment.orphaned && assessment.reason !== null && assessment.kind !== null) {
       orphans.push({
         path: relBriefPath(brief.path, root),
         reason: assessment.reason,
+        kind: assessment.kind,
       });
     }
   }
@@ -391,7 +427,7 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
   if (orphans.length > 0) {
     return {
       code: 1,
-      message: formatRefusal(orphans, root),
+      message: formatRefusal(orphans, root, issueFilter),
       stream: "stderr",
       orphans,
     };

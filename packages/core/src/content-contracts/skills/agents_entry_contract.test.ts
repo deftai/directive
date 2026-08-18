@@ -163,6 +163,7 @@ const AFTER_MERGE_ORPHAN_ACTIVE_MARKERS = [
   "verify:orphan-active -- --issue",
   "ISSUE: closed",
   "#3429",
+  "unresolved",
 ] as const;
 
 const PROPAGATION_ACTION_VERBS = [
