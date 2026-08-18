@@ -8,7 +8,7 @@
  * dest as no evidence.
  */
 
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { LiteralAcceptanceRunResult } from "../literal-acceptance/types.js";
@@ -87,12 +87,10 @@ export function verifyAcCheckId(scopeKey?: string | null): string {
 
 /** Same-process verification JSONL when dest is stdout (`-`). */
 const inProcessVerificationLines: string[] = [];
-let inProcessStdoutSessionId: string | undefined;
 
 /** Test seam: isolate stdout-dest buffer across cases. */
 export function resetInProcessVerificationBuffer(): void {
   inProcessVerificationLines.length = 0;
-  inProcessStdoutSessionId = undefined;
 }
 
 function inProcessVerificationText(): string | null {
@@ -132,18 +130,7 @@ export function emitVerifyAcAttempts(options: {
     const env = options.env ?? process.env;
     const projectRoot = resolve(options.projectRoot);
     const dest = resolveRunSummaryDestination(projectRoot, { env });
-    const explicitSession =
-      options.sessionId?.trim() ||
-      (typeof env.DEFT_SESSION_ID === "string" ? env.DEFT_SESSION_ID.trim() : "");
-    let sessionId = explicitSession;
-    if (!sessionId) {
-      if (dest.kind === "stdout") {
-        inProcessStdoutSessionId ??= randomUUID();
-        sessionId = inProcessStdoutSessionId;
-      } else {
-        sessionId = randomUUID();
-      }
-    }
+    const sessionId = options.sessionId;
     const explicitCheck =
       typeof options.checkId === "string" && options.checkId.trim().length > 0
         ? options.checkId.trim()
@@ -153,6 +140,7 @@ export function emitVerifyAcAttempts(options: {
       projectRoot,
       sessionId,
       env,
+      component: "verify-ac",
       writeStdout: options.writeStdout,
     });
     // One walk-level event: the method is the command set, not each command.

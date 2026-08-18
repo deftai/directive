@@ -612,12 +612,12 @@ describe("runSessionStart tool_turn_denominator (#3356)", () => {
   function summaryEvents(out: string): Array<{
     event: string;
     total_tool_turns?: number;
-    payload: { total_tool_turns?: number };
+    payload: { total_tool_turns?: number; denominator_source?: string };
   }> {
     return parseRunSummaryJsonl(readFileSync(out, "utf8"));
   }
 
-  it("emits a denominator when only DEFT_RUN_SUMMARY_PATH is set", () => {
+  it("emits no denominator when only DEFT_RUN_SUMMARY_PATH is set (#3399)", () => {
     const root = tempRoot();
     const out = join(root, "summary.jsonl");
     const result = runSessionStart(root, {
@@ -633,13 +633,11 @@ describe("runSessionStart tool_turn_denominator (#3356)", () => {
     expect(result.code).toBe(0);
     const events = summaryEvents(out);
     const denoms = events.filter((e) => e.event === "tool_turn_denominator");
-    expect(denoms).toHaveLength(1);
-    expect(denoms[0]?.payload.total_tool_turns).toBe(1);
-    expect(denoms[0]?.total_tool_turns).toBe(1);
+    expect(denoms).toHaveLength(0);
     const share = computeRitualGateShare(events);
-    expect(share.evaluable).toBe(true);
-    expect(share.totalToolTurns).toBe(1);
-    expect(share.share).toBe(0);
+    expect(share.evaluable).toBe(false);
+    expect(share.totalToolTurns).toBeNull();
+    expect(share.share).toBeNull();
   });
 
   it("records DEFT_MAX_TURNS as the session denominator", () => {
@@ -654,6 +652,7 @@ describe("runSessionStart tool_turn_denominator (#3356)", () => {
     const denoms = summaryEvents(out).filter((e) => e.event === "tool_turn_denominator");
     expect(denoms).toHaveLength(1);
     expect(denoms[0]?.total_tool_turns).toBe(50);
+    expect(denoms[0]?.payload.denominator_source).toBe("host_planned");
     expect(computeRitualGateShare(summaryEvents(out)).share).toBe(0);
   });
 
@@ -703,6 +702,7 @@ describe("runSessionStart tool_turn_denominator (#3356)", () => {
     const denoms = summaryEvents(out).filter((e) => e.event === "tool_turn_denominator");
     expect(denoms.length).toBeGreaterThanOrEqual(1);
     expect(denoms.every((e) => e.total_tool_turns === 12)).toBe(true);
+    expect(denoms.some((e) => e.payload.denominator_source === "harness_actual")).toBe(true);
   });
 });
 

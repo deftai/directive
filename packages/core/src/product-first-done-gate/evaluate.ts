@@ -491,10 +491,9 @@ function emitAcceptanceOutcome(
   try {
     const emitter = new RunSummaryEmitter({
       projectRoot,
-      sessionId:
-        (typeof options.env.DEFT_SESSION_ID === "string" && options.env.DEFT_SESSION_ID.trim()) ||
-        "verify-ac",
+      sessionId: options.sessionId,
       env: options.env,
+      component: "verify-ac",
     });
     emitter.emitAcceptance({
       resolved_command_count: result.resolvedCommandCount,

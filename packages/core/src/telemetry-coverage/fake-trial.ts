@@ -98,6 +98,16 @@ export const DEFAULT_TRIAL_STEPS: readonly FakeTrialStep[] = [
       emitter.emitKnownToolTurnDenominator();
     },
   },
+  {
+    kind: "ac_pass_bank",
+    invoke: (emitter) => {
+      emitter.emitAcPassBank({
+        scope_id: "fake-trial",
+        banked_at: "2026-08-16T00:00:00Z",
+        next_action: "finalize_and_ship",
+      });
+    },
+  },
 ];
 
 export interface FakeTrialOptions {

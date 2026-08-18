@@ -14,14 +14,13 @@ import {
   resolveAcPassBanking,
   validateAcPassBanking,
 } from "../policy/ac-pass-banking.js";
+import { parseRunSummaryJsonl } from "../run-summary/share.js";
 import {
-  appendBankEventToRunSummary,
   bankAcPass,
   decidePostBankFinding,
   ENV_RUN_SUMMARY_PATH,
   evaluateAcPassBanking,
   evaluateSurplus,
-  formatBankEventLine,
   maybeBankOnAcPass,
   readAcPassBank,
   recordPostBankFinding,
@@ -223,50 +222,45 @@ describe("post-bank report not chase (#3285)", () => {
   });
 });
 
-describe("bank event telemetry (#3285)", () => {
-  it("formatBankEventLine is JSON with ac_pass_bank type", () => {
-    const line = formatBankEventLine({
-      type: "ac_pass_bank",
-      schemaVersion: 1,
-      scopeId: "story-3285",
-      bankedAt: "2026-08-11T12:00:00Z",
-      nextAction: "finalize_and_ship",
-      hadSurplus: false,
+describe("bank event telemetry (#3285 / #3399)", () => {
+  it("bankAcPass is silent when destination is unset and default path is not covered", () => {
+    const root = tempProject();
+    const budget = detectHardEffortBudget({
+      environ: { [ENV_MAX_TURNS]: "50", [ENV_REMAINING_TURNS]: "8" },
     });
-    const parsed = JSON.parse(line) as Record<string, unknown>;
-    expect(parsed.type).toBe("ac_pass_bank");
-    expect(parsed.issue).toBe(3285);
-    expect(parsed.source).toBe("ac-pass-banking");
+    expect(() =>
+      bankAcPass({
+        projectRoot: root,
+        scopeId: "silent-bank",
+        budget,
+        surplus: evaluateSurplus({ budget }),
+        nextAction: "finalize_and_ship",
+        environ: {},
+      }),
+    ).not.toThrow();
   });
 
-  it("appendBankEventToRunSummary is silent when path unset", () => {
-    const result = appendBankEventToRunSummary({
-      environ: {},
-      event: { type: "ac_pass_bank", schemaVersion: 1 },
-    });
-    expect(result.written).toBe(false);
-    expect(result.path).toBeNull();
-  });
-
-  it("appendBankEventToRunSummary writes when path set", () => {
+  it("bankAcPass writes an enveloped ac_pass_bank line when path is set", () => {
     const root = tempProject();
     const summary = join(root, "run-summary.jsonl");
-    const lines: string[] = [];
-    const result = appendBankEventToRunSummary({
-      environ: { [ENV_RUN_SUMMARY_PATH]: summary },
-      event: {
-        type: "ac_pass_bank",
-        schemaVersion: 1,
-        scopeId: "s1",
-        nextAction: "finalize_and_ship",
-      },
-      writeLine: (_path, line) => {
-        lines.push(line);
-      },
+    const budget = detectHardEffortBudget({
+      environ: { [ENV_MAX_TURNS]: "50", [ENV_REMAINING_TURNS]: "8" },
     });
-    expect(result.written).toBe(true);
+    bankAcPass({
+      projectRoot: root,
+      scopeId: "s1",
+      budget,
+      surplus: evaluateSurplus({ budget }),
+      nextAction: "finalize_and_ship",
+      now: "2026-08-11T12:00:00Z",
+      environ: { [ENV_RUN_SUMMARY_PATH]: summary },
+    });
+    const lines = parseRunSummaryJsonl(readFileSync(summary, "utf8"));
     expect(lines).toHaveLength(1);
-    expect(lines[0]).toContain("ac_pass_bank");
+    expect(lines[0]?.event).toBe("ac_pass_bank");
+    expect(lines[0]?.schema_version).toBe(1);
+    expect(typeof lines[0]?.session_id).toBe("string");
+    expect(lines[0]?.seq).toBe(1);
   });
 
   it("bankAcPass persists durable checkpoint and survives re-read", () => {
@@ -396,22 +390,6 @@ describe("re-bank preserves findings + production bridge (#3285)", () => {
       config: { enabled: true, surplusThreshold: 0.2 },
     });
     expect(tightCost.nextAction).toBe("finalize_and_ship");
-  });
-
-  it("appendBankEventToRunSummary fail-open warns without throwing", () => {
-    const warnings: string[] = [];
-    const result = appendBankEventToRunSummary({
-      environ: { [ENV_RUN_SUMMARY_PATH]: join(tempProject(), "nested", "sum.jsonl") },
-      event: { type: "ac_pass_bank", schemaVersion: 1 },
-      writeLine: () => {
-        throw new Error("disk full");
-      },
-      warn: (m) => {
-        warnings.push(m);
-      },
-    });
-    expect(result.written).toBe(false);
-    expect(warnings.some((w) => w.includes("run-summary write failed"))).toBe(true);
   });
 
   it("readAcPassBank returns null for missing/corrupt records", () => {

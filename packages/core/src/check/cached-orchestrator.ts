@@ -1,5 +1,4 @@
 import { spawnSync } from "node:child_process";
-import { randomUUID } from "node:crypto";
 import { join, resolve } from "node:path";
 import {
   lintShippedRegistry,
@@ -58,7 +57,7 @@ export interface CachedCheckOptions extends CheckOrchestratorSeams {
    * Pass `null` to skip preflight entirely (legacy test paths).
    */
   readonly preflight?: ToolchainPreflightResult | null;
-  /** #3282: session id for run-summary lines (default: new UUID). */
+  /** #3282 / #3399: session id for run-summary lines (default: resolver). */
   readonly sessionId?: string;
   /** #3282: disable run-summary emission (tests). */
   readonly emitRunSummary?: boolean;
@@ -140,7 +139,7 @@ export function dispatchCachedTaskCheck(
   const baseGates = gatesForCheckTarget(target);
   const gates = applyProductFirstGateMode(baseGates, modeResolution.mode, checkGateId);
   const codeVersion = readCorePackageVersion();
-  const sessionId = options.sessionId ?? randomUUID();
+  const sessionId = options.sessionId;
   const gateOutcomes: CheckGateOutcome[] = [];
 
   const emitSummary = (exitCode: number, degraded: boolean): void => {
@@ -151,6 +150,7 @@ export function dispatchCachedTaskCheck(
         sessionId,
         frameworkVersion: codeVersion,
         env: options.env,
+        component: "check",
       });
       emitter.emitCheckInvocation({
         target,

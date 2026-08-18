@@ -447,11 +447,11 @@ export function emitAcceptanceStampFromPlan(
     return;
   }
   try {
-    const sessionId =
-      typeof env.DEFT_SESSION_ID === "string" && env.DEFT_SESSION_ID.trim().length > 0
-        ? env.DEFT_SESSION_ID.trim()
-        : "clause-derivation";
-    const emitter = new RunSummaryEmitter({ projectRoot, sessionId, env });
+    const emitter = new RunSummaryEmitter({
+      projectRoot,
+      env,
+      component: "clause-derivation",
+    });
     const commands = Array.isArray(acceptance.commands) ? acceptance.commands.length : 0;
     const clauses = Array.isArray(acceptance.clauses) ? acceptance.clauses.length : 0;
     const statement = collectTaskStatementFromPlan(rec);

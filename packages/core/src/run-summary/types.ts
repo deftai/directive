@@ -32,6 +32,7 @@ export const RUN_SUMMARY_EVENT_KINDS = [
   "verification",
   "acceptance",
   "acceptance_stamp",
+  "ac_pass_bank",
 ] as const;
 
 export type RunSummaryEventKind = (typeof RUN_SUMMARY_EVENT_KINDS)[number];
@@ -51,6 +52,11 @@ export interface RunSummaryBaseFields {
   readonly seq: number;
   readonly ts: string;
   readonly event: RunSummaryEventKind;
+  /**
+   * Optional emitter label (verify-ac, clause-derivation, …). Not a closed
+   * union — new callers add a string without a schema bump (#3399).
+   */
+  readonly component?: string;
   /**
    * Session total tool/turn count (#3320). Present so ritual+gate share is
    * computable from the summary alone. Absence means the #3286 trigger is unevaluable.
@@ -115,9 +121,29 @@ export interface CheckInvocationRunSummaryPayload {
   readonly clause_outcomes?: readonly AcceptanceClauseOutcomeRow[];
 }
 
-/** Total tool/turn count for the session (#3320). */
+/** How a tool_turn_denominator value was obtained (#3399). */
+export type ToolTurnDenominatorSource = "harness_actual" | "host_planned";
+
+/** Total tool/turn count for the session (#3320 / #3399). */
 export interface ToolTurnDenominatorRunSummaryPayload {
   readonly total_tool_turns: number;
+  readonly denominator_source?: ToolTurnDenominatorSource;
+}
+
+/** Bank checkpoint JSONL payload. Disk ledger stays camelCase (#3387). */
+export interface AcPassBankRunSummaryPayload {
+  readonly scope_id: string;
+  readonly banked_at: string;
+  readonly next_action?: string;
+  readonly had_surplus?: boolean;
+  readonly surplus_threshold?: number;
+  readonly remaining_fraction?: number | null;
+  readonly remaining_turns?: number | null;
+  readonly remaining_budget?: number | null;
+  readonly max_turns?: number | null;
+  readonly max_budget?: number | null;
+  readonly head_sha?: string | null;
+  readonly path?: string;
 }
 
 /** Product-oracle attempt (#3322). Same emitter as #3319 / #3320. */
@@ -172,7 +198,8 @@ export type RunSummaryPayload =
   | ToolTurnDenominatorRunSummaryPayload
   | VerificationRunSummaryPayload
   | AcceptanceRunSummaryPayload
-  | AcceptanceStampRunSummaryPayload;
+  | AcceptanceStampRunSummaryPayload
+  | AcPassBankRunSummaryPayload;
 
 export type RunSummaryLine = RunSummaryBaseFields & {
   readonly payload: RunSummaryPayload;

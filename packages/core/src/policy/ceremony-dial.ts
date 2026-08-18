@@ -1293,13 +1293,6 @@ export function escalateCeremonyDial(
       return;
     }
     try {
-      const audit = readCeremonyDialAudit(projectRoot);
-      const rawSid = (audit.raw as { session_id?: unknown } | null)?.session_id;
-      const sid =
-        options.sessionId ??
-        (typeof rawSid === "string" && rawSid.length > 0
-          ? rawSid
-          : `dial-${Date.now().toString(36)}`);
       const rank: Record<CeremonyDepth, number> = {
         minimal: 0,
         rapid: 1,
@@ -1318,8 +1311,9 @@ export function escalateCeremonyDial(
           : baseReason;
       const emitter = new RunSummaryEmitter({
         projectRoot,
-        sessionId: sid,
+        sessionId: options.sessionId,
         env: options.env,
+        component: "ceremony-dial",
       });
       emitter.emitDialEscalationEvaluation({
         tier: outcome === "escalated" ? options.to : from,
@@ -1375,17 +1369,11 @@ export function escalateCeremonyDial(
   // #3282: event-driven dial_transition line (fail-open).
   if (options.emitRunSummary !== false) {
     try {
-      const audit = readCeremonyDialAudit(projectRoot);
-      const rawSid = (audit.raw as { session_id?: unknown } | null)?.session_id;
-      const sid =
-        options.sessionId ??
-        (typeof rawSid === "string" && rawSid.length > 0
-          ? rawSid
-          : `dial-${Date.now().toString(36)}`);
       const emitter = new RunSummaryEmitter({
         projectRoot,
-        sessionId: sid,
+        sessionId: options.sessionId,
         env: options.env,
+        component: "ceremony-dial",
       });
       emitter.emitDialTransition({
         from,

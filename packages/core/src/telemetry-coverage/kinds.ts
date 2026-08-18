@@ -18,6 +18,7 @@ export const EVENT_KIND_TO_EMITTER_METHODS: Readonly<
   verification: ["emitVerification"],
   acceptance: ["emitAcceptance"],
   acceptance_stamp: ["emitAcceptanceStamp"],
+  ac_pass_bank: ["emitAcPassBank"],
 };
 
 /**
@@ -35,6 +36,7 @@ export const ENROLLED_FIELD_FIXTURE_KINDS: readonly RunSummaryEventKind[] = [
   "verification",
   "acceptance",
   "acceptance_stamp",
+  "ac_pass_bank",
 ];
 
 const GENERIC_EMIT_METHODS = new Set(["emit"]);

@@ -2,16 +2,20 @@ export {
   type EmitRunSummaryResult,
   ENV_MAX_TURNS_DENOMINATOR,
   emitRunSummaryEvent,
+  type ResolvedSessionToolTurnDenominator,
   RunSummaryEmitter,
   type RunSummaryEmitterOptions,
   resolveSessionToolTurnDenominator,
-  SESSION_START_CLI_INVOCATION_DENOMINATOR,
 } from "./emit.js";
 export {
   gitignoreCoversRunSummary,
   type ResolveRunSummaryDestinationOptions,
   resolveRunSummaryDestination,
 } from "./path.js";
+export {
+  type ResolveRunSummarySessionIdInput,
+  resolveRunSummarySessionId,
+} from "./session-id.js";
 export {
   computeRitualGateShare,
   parseRunSummaryJsonl,
@@ -23,6 +27,7 @@ export {
   type AcceptanceRunSummaryOutcome,
   type AcceptanceRunSummaryPayload,
   type AcceptanceStampRunSummaryPayload,
+  type AcPassBankRunSummaryPayload,
   type CheckGateOutcome,
   type CheckInvocationRunSummaryPayload,
   DEFAULT_RUN_SUMMARY_BASENAME,
@@ -42,6 +47,7 @@ export {
   type RunSummaryPayload,
   type SessionStartRunSummaryPayload,
   type ToolTurnDenominatorRunSummaryPayload,
+  type ToolTurnDenominatorSource,
   type VerificationOutcome,
   type VerificationRunSummaryPayload,
 } from "./types.js";

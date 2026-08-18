@@ -16,7 +16,6 @@ import {
   RunSummaryEmitter,
   releaseSeqLockIfOwner,
   resolveSessionToolTurnDenominator,
-  SESSION_START_CLI_INVOCATION_DENOMINATOR,
   tryReclaimSeqLock,
 } from "./emit.js";
 import {
@@ -491,40 +490,48 @@ describe("RunSummaryEmitter (#3282)", () => {
     expect(lines[0]?.total_tool_turns).toBe(12);
   });
 
-  it("resolves session denominator: harness actuals, host budget, then CLI floor (#3356)", () => {
-    expect(resolveSessionToolTurnDenominator({})).toBe(SESSION_START_CLI_INVOCATION_DENOMINATOR);
-    expect(resolveSessionToolTurnDenominator({}, 0)).toBe(SESSION_START_CLI_INVOCATION_DENOMINATOR);
-    expect(resolveSessionToolTurnDenominator({}, 24)).toBe(24);
-    expect(resolveSessionToolTurnDenominator({}, 10.5)).toBe(10.5);
-    expect(resolveSessionToolTurnDenominator({}, 0.5)).toBe(0.5);
-    expect(resolveSessionToolTurnDenominator({ DEFT_MAX_TURNS: "40" }, 24)).toBe(40);
+  it("resolves session denominator: harness actuals, then host planned, else silent (#3399)", () => {
+    expect(resolveSessionToolTurnDenominator({})).toBeUndefined();
+    expect(resolveSessionToolTurnDenominator({}, 0)).toBeUndefined();
+    expect(resolveSessionToolTurnDenominator({}, 24)).toEqual({
+      total_tool_turns: 24,
+      denominator_source: "host_planned",
+    });
+    expect(resolveSessionToolTurnDenominator({}, 10.5)).toEqual({
+      total_tool_turns: 10.5,
+      denominator_source: "host_planned",
+    });
+    expect(resolveSessionToolTurnDenominator({}, 0.5)).toEqual({
+      total_tool_turns: 0.5,
+      denominator_source: "host_planned",
+    });
+    expect(resolveSessionToolTurnDenominator({ DEFT_MAX_TURNS: "40" }, 24)).toEqual({
+      total_tool_turns: 40,
+      denominator_source: "host_planned",
+    });
     expect(
       resolveSessionToolTurnDenominator({ [ENV_TOTAL_TOOL_TURNS]: "12", DEFT_MAX_TURNS: "40" }, 24),
-    ).toBe(12);
+    ).toEqual({
+      total_tool_turns: 12,
+      denominator_source: "harness_actual",
+    });
   });
 
-  it("emits a session denominator without DEFT_TOTAL_TOOL_TURNS (#3356)", () => {
+  it("stays silent when no host or harness denominator is known (#3399)", () => {
     const root = freshRoot("run-summary-session-denom-");
     const out = join(root, "summary.jsonl");
     const emitter = new RunSummaryEmitter({
       projectRoot: root,
-      sessionId: "sess-always",
+      sessionId: "sess-unset",
       frameworkVersion: "0.0.0",
       env: { [ENV_RUN_SUMMARY_PATH]: out },
     });
     const result = emitter.emitSessionToolTurnDenominator();
-    expect(result.emitted).toBe(true);
-    const line = JSON.parse(readFileSync(out, "utf8").trim()) as {
-      event: string;
-      total_tool_turns: number;
-      payload: { total_tool_turns: number };
-    };
-    expect(line.event).toBe("tool_turn_denominator");
-    expect(line.total_tool_turns).toBe(SESSION_START_CLI_INVOCATION_DENOMINATOR);
-    expect(line.payload.total_tool_turns).toBe(SESSION_START_CLI_INVOCATION_DENOMINATOR);
+    expect(result.emitted).toBe(false);
+    expect(existsSync(out)).toBe(false);
   });
 
-  it("emits host planned turns when session:start records DEFT_MAX_TURNS (#3356)", () => {
+  it("emits host planned turns with denominator_source when session:start records DEFT_MAX_TURNS (#3399)", () => {
     const root = freshRoot("run-summary-session-max-");
     const out = join(root, "summary.jsonl");
     const emitter = new RunSummaryEmitter({
@@ -536,8 +543,10 @@ describe("RunSummaryEmitter (#3282)", () => {
     expect(emitter.emitSessionToolTurnDenominator(50).emitted).toBe(true);
     const line = JSON.parse(readFileSync(out, "utf8").trim()) as {
       total_tool_turns: number;
+      payload: { total_tool_turns: number; denominator_source: string };
     };
     expect(line.total_tool_turns).toBe(50);
+    expect(line.payload.denominator_source).toBe("host_planned");
   });
 
   it("continues seq across separate constructors into one file (#3350)", () => {

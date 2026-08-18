@@ -13,13 +13,14 @@
 
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
+import { join, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import {
   type AcPassBankingConfig,
   DEFAULT_SURPLUS_THRESHOLD,
   resolveAcPassBanking,
 } from "../policy/ac-pass-banking.js";
+import { RunSummaryEmitter } from "../run-summary/emit.js";
 import type { HardEffortBudget, VerificationDepthPolicy } from "./effort-budget.js";
 import {
   detectHardEffortBudget,
@@ -471,25 +472,30 @@ export function bankAcPass(input: BankAcPassInput): AcPassBankRecord {
     }
   }
 
-  appendBankEventToRunSummary({
-    environ: input.environ ?? process.env,
-    event: {
-      type: "ac_pass_bank",
-      schemaVersion: AC_PASS_BANK_SCHEMA_VERSION,
-      scopeId: record.scopeId,
-      bankedAt: record.bankedAt,
-      nextAction: record.nextAction,
-      hadSurplus: record.hadSurplus,
-      surplusThreshold: record.surplusThreshold,
-      remainingFraction: input.surplus.remainingFraction,
-      remainingTurns: record.remainingTurns,
-      remainingBudget: record.remainingBudget,
-      maxTurns: record.maxTurns,
-      maxBudget: record.maxBudget,
-      headSha: record.headSha,
+  try {
+    const env = { ...(input.environ ?? process.env) };
+    const emitter = new RunSummaryEmitter({
+      projectRoot: root,
+      env,
+      component: "ac-pass-banking",
+    });
+    emitter.emitAcPassBank({
+      scope_id: record.scopeId,
+      banked_at: record.bankedAt,
+      next_action: record.nextAction,
+      had_surplus: record.hadSurplus,
+      surplus_threshold: record.surplusThreshold,
+      remaining_fraction: input.surplus.remainingFraction,
+      remaining_turns: record.remainingTurns,
+      remaining_budget: record.remainingBudget,
+      max_turns: record.maxTurns,
+      max_budget: record.maxBudget,
+      head_sha: record.headSha,
       path: durablePath,
-    },
-  });
+    });
+  } catch {
+    // fail-open
+  }
 
   return record;
 }
@@ -746,91 +752,6 @@ export function recordPostBankFinding(
     // leave .tmp; journal already durable
   }
   return updated;
-}
-
-export interface BankEventPayload {
-  readonly type: "ac_pass_bank" | "ac_pass_post_bank_finding" | "ac_pass_deepening_skipped";
-  readonly schemaVersion: number;
-  readonly scopeId?: string;
-  readonly bankedAt?: string;
-  readonly nextAction?: string;
-  readonly hadSurplus?: boolean;
-  readonly surplusThreshold?: number;
-  readonly remainingFraction?: number | null;
-  readonly remainingTurns?: number | null;
-  readonly remainingBudget?: number | null;
-  readonly maxTurns?: number | null;
-  readonly maxBudget?: number | null;
-  readonly headSha?: string | null;
-  readonly path?: string;
-  readonly finding?: PostBankFinding;
-  readonly note?: string;
-  readonly [key: string]: unknown;
-}
-
-/**
- * Format one JSONL bank-event line for run-summary telemetry (#3285 / #3282).
- */
-export function formatBankEventLine(event: BankEventPayload): string {
-  return JSON.stringify({
-    ...event,
-    ts: typeof event.bankedAt === "string" ? event.bankedAt : utcIso(),
-    source: "ac-pass-banking",
-    issue: 3285,
-  });
-}
-
-/**
- * Append bank event to DEFT_RUN_SUMMARY_PATH when set.
- * Unset = silent. `-` = stdout. Failures warn once to stderr (fail-open).
- */
-export function appendBankEventToRunSummary(input: {
-  readonly environ?: Readonly<Record<string, string | undefined>>;
-  readonly event: BankEventPayload;
-  readonly writeLine?: (path: string, line: string) => void;
-  readonly warn?: (message: string) => void;
-}): { written: boolean; path: string | null } {
-  const environ = input.environ ?? process.env;
-  const raw = (environ[ENV_RUN_SUMMARY_PATH] ?? "").trim();
-  if (!raw) {
-    return { written: false, path: null };
-  }
-
-  const line = `${formatBankEventLine(input.event)}\n`;
-  if (raw === "-") {
-    process.stdout.write(line);
-    return { written: true, path: "-" };
-  }
-
-  try {
-    if (input.writeLine) {
-      input.writeLine(raw, line);
-    } else {
-      const abs = resolve(raw);
-      const parent = dirname(abs);
-      if (!existsSync(parent)) {
-        mkdirSync(parent, { recursive: true });
-      }
-      // Contain under the parent directory of the summary file.
-      containedWrite({
-        root: parent,
-        target: abs,
-        data: line,
-        mode: "append",
-      });
-    }
-    return { written: true, path: raw };
-  } catch (err: unknown) {
-    const msg =
-      err instanceof ContainedWriteError
-        ? err.message
-        : err instanceof Error
-          ? err.message
-          : String(err);
-    const warn = input.warn ?? ((m: string) => process.stderr.write(`${m}\n`));
-    warn(`[deft ac-pass-banking] run-summary write failed path=${raw}: ${msg} (#3285)`);
-    return { written: false, path: raw };
-  }
 }
 
 /**

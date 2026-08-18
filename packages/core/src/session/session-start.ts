@@ -1639,10 +1639,9 @@ export function runSessionStart(
             }
           : {}),
       });
-      // #3356: always emit a denominator when the destination is live so
-      // share = ritual_events / denominator is computable from the stream.
-      // Prefer DEFT_TOTAL_TOOL_TURNS, then DEFT_MAX_TURNS / host maxTurns,
-      // else this session:start CLI invocation (1).
+      // #3399: emit a denominator only when a host/harness value is known.
+      // Prefer DEFT_TOTAL_TOOL_TURNS (harness_actual), then DEFT_MAX_TURNS /
+      // host maxTurns (host_planned). Unset → no event; share is unevaluable.
       emitter.emitSessionToolTurnDenominator(effortBudget.budget.maxTurns);
       // #3319: evaluate escalate-on-evidence only when #3274 is live. A pin
       // emits nothing so never-evaluated stays distinguishable from declined.

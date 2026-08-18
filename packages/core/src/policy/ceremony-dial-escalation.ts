@@ -135,6 +135,7 @@ export function emitCeremonyDialEscalationEvaluation(
       projectRoot: options.projectRoot,
       sessionId: options.sessionId,
       env: options.env,
+      component: "ceremony-dial",
     });
     emitter.emitDialEscalationEvaluation({
       tier: options.evaluation.tier,

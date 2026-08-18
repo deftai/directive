@@ -17,9 +17,11 @@ import {
 } from "../fs/contained-write.js";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { type ResolveRunSummaryDestinationOptions, resolveRunSummaryDestination } from "./path.js";
+import { resolveRunSummarySessionId } from "./session-id.js";
 import {
   type AcceptanceRunSummaryPayload,
   type AcceptanceStampRunSummaryPayload,
+  type AcPassBankRunSummaryPayload,
   type CheckInvocationRunSummaryPayload,
   type DialEscalationEvaluationRunSummaryPayload,
   type DialTransitionRunSummaryPayload,
@@ -33,12 +35,15 @@ import {
   type RunSummaryPayload,
   type SessionStartRunSummaryPayload,
   type ToolTurnDenominatorRunSummaryPayload,
+  type ToolTurnDenominatorSource,
   type VerificationRunSummaryPayload,
 } from "./types.js";
 
 export interface RunSummaryEmitterOptions extends ResolveRunSummaryDestinationOptions {
   readonly projectRoot: string;
-  readonly sessionId: string;
+  readonly sessionId?: string | null;
+  /** Optional envelope label; not a closed union (#3399). */
+  readonly component?: string;
   readonly frameworkVersion?: string;
   /** Clock seam for tests. */
   readonly now?: () => Date;
@@ -315,6 +320,7 @@ export class RunSummaryEmitter {
   private warned = false;
   private readonly projectRoot: string;
   private readonly sessionId: string;
+  private readonly component?: string;
   private readonly frameworkVersion: string;
   private readonly now: () => Date;
   private readonly destination: RunSummaryDestination;
@@ -324,7 +330,12 @@ export class RunSummaryEmitter {
 
   constructor(options: RunSummaryEmitterOptions) {
     this.projectRoot = options.projectRoot;
-    this.sessionId = options.sessionId;
+    this.sessionId = resolveRunSummarySessionId({
+      projectRoot: options.projectRoot,
+      explicit: options.sessionId,
+      env: options.env,
+    });
+    this.component = options.component?.trim() || undefined;
     this.frameworkVersion = options.frameworkVersion ?? readCorePackageVersion();
     this.now = options.now ?? (() => new Date());
     this.env = options.env ?? process.env;
@@ -354,6 +365,7 @@ export class RunSummaryEmitter {
       ts: this.now().toISOString(),
       event,
       payload,
+      ...(this.component !== undefined ? { component: this.component } : {}),
       ...(denominator !== undefined ? { total_tool_turns: denominator } : {}),
     };
   }
@@ -437,6 +449,10 @@ export class RunSummaryEmitter {
     return this.emit("acceptance_stamp", payload);
   }
 
+  emitAcPassBank(payload: AcPassBankRunSummaryPayload): EmitRunSummaryResult {
+    return this.emit("ac_pass_bank", payload);
+  }
+
   /** Emit the harness-supplied denominator when DEFT_TOTAL_TOOL_TURNS is set. */
   emitKnownToolTurnDenominator(): EmitRunSummaryResult {
     const n = readEnvToolTurnDenominator(this.env);
@@ -447,14 +463,16 @@ export class RunSummaryEmitter {
   }
 
   /**
-   * Always emit a session denominator when the destination is live (#3356).
+   * Emit a session denominator only when a host/harness value is known (#3399).
    * `emitKnownToolTurnDenominator` stays silent unless DEFT_TOTAL_TOOL_TURNS is
-   * set; this caller records host planned turns or the session:start CLI floor.
+   * set; this caller also records DEFT_MAX_TURNS / host maxTurns.
    */
   emitSessionToolTurnDenominator(hostMaxTurns?: number | null): EmitRunSummaryResult {
-    return this.emitToolTurnDenominator({
-      total_tool_turns: resolveSessionToolTurnDenominator(this.env, hostMaxTurns),
-    });
+    const resolved = resolveSessionToolTurnDenominator(this.env, hostMaxTurns);
+    if (resolved === undefined) {
+      return { emitted: false, destination: this.destination, line: null, warning: false };
+    }
+    return this.emitToolTurnDenominator(resolved);
   }
 }
 
@@ -473,9 +491,6 @@ export function readEnvToolTurnDenominator(env: NodeJS.ProcessEnv): number | und
 
 /** Canonical host planned-turn budget recorded at session:start (#3356). */
 export const ENV_MAX_TURNS_DENOMINATOR = "DEFT_MAX_TURNS";
-
-/** session:start is one CLI invocation when no host/harness count is known (#3356). */
-export const SESSION_START_CLI_INVOCATION_DENOMINATOR = 1 as const;
 
 function isPositiveIntegerDenominator(value: unknown): value is number {
   return (
@@ -503,30 +518,35 @@ function readPositiveIntegerEnv(env: NodeJS.ProcessEnv, key: string): number | u
   return isPositiveIntegerDenominator(n) ? n : undefined;
 }
 
+export interface ResolvedSessionToolTurnDenominator {
+  readonly total_tool_turns: number;
+  readonly denominator_source: ToolTurnDenominatorSource;
+}
+
 /**
- * Resolve the session tool/turn denominator (#3356).
+ * Resolve the session tool/turn denominator (#3399).
  *
  * Prefer harness actuals (`DEFT_TOTAL_TOOL_TURNS`), then a host planned-turn
- * budget (`DEFT_MAX_TURNS` or `hostMaxTurns` from the session:start descriptor),
- * else this CLI invocation (1). An emitted proxy beats a perfect unused kind.
+ * budget (`DEFT_MAX_TURNS` or `hostMaxTurns`). Unset → undefined (no event).
+ * Share is unevaluable without a host/harness value.
  */
 export function resolveSessionToolTurnDenominator(
   env: NodeJS.ProcessEnv,
   hostMaxTurns?: number | null,
-): number {
+): ResolvedSessionToolTurnDenominator | undefined {
   const known = readEnvToolTurnDenominator(env);
   if (known !== undefined) {
-    return known;
+    return { total_tool_turns: known, denominator_source: "harness_actual" };
   }
   const planned = readPositiveIntegerEnv(env, ENV_MAX_TURNS_DENOMINATOR);
   if (planned !== undefined) {
-    return planned;
+    return { total_tool_turns: planned, denominator_source: "host_planned" };
   }
   const host = coercePositiveHostDenominator(hostMaxTurns);
   if (host !== undefined) {
-    return host;
+    return { total_tool_turns: host, denominator_source: "host_planned" };
   }
-  return SESSION_START_CLI_INVOCATION_DENOMINATOR;
+  return undefined;
 }
 
 /**
