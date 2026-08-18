@@ -212,6 +212,13 @@ function assessOrphanSignature(
   selectedIssue: number | null,
 ): OrphanAssessment {
   if (selectedIssue !== null) {
+    // Confirmed closed origin is shipped even if a linked PR lookup fails.
+    const selectedRef = issueRefs.find((ref) => ref.number === selectedIssue);
+    const selectedState =
+      selectedRef === undefined ? null : resolveIssueState(selectedRef, projectRoot, runGh, skipGh);
+    if (selectedState === "closed") {
+      return shipped(`issue #${selectedIssue} is closed`);
+    }
     for (const pr of prRefs) {
       if (skipGh) {
         return unresolved(`linked PR #${pr.number} state could not be resolved`);
@@ -225,14 +232,9 @@ function assessOrphanSignature(
       }
     }
     // --issue N is one origin: sibling open/unknown must not mask it (#3429).
-    const selectedRef = issueRefs.find((ref) => ref.number === selectedIssue);
     if (selectedRef !== undefined) {
-      const selectedState = resolveIssueState(selectedRef, projectRoot, runGh, skipGh);
       if (selectedState === null) {
         return unresolved(`issue #${selectedIssue} state could not be resolved`);
-      }
-      if (selectedState === "closed") {
-        return shipped(`issue #${selectedIssue} is closed`);
       }
       return PASS;
     }
