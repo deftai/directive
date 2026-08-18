@@ -198,6 +198,8 @@ export async function replaceTree(src: string, dst: string): Promise<void> {
     throw new Error(`replaceTree: source ${src} is not a directory`);
   }
 
+  await assertDestinationIsNotSymlink(dst, "replaceTree");
+
   if (isPortRecordMode()) {
     const destOnly = (await pathExists(dst)) ? await destOnlyRelativeFiles(src, dst) : [];
     for (const rel of destOnly) {
@@ -208,8 +210,6 @@ export async function replaceTree(src: string, dst: string): Promise<void> {
     }
     return;
   }
-
-  await assertDestinationIsNotSymlink(dst, "replaceTree");
 
   const parent = dirname(dst);
   await mkdir(parent, { recursive: true, mode: DEFAULT_DIR_MODE });
