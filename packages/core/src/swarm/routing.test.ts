@@ -6,6 +6,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import {
   dispatchProviderFromRuntime,
+  emptyHostDetectProbes,
+  HOST_DETECT_PROBE_NAMES,
   loadRoutingFile,
   ROUTING_MODE_HARNESS_DEFAULT,
   ROUTING_MODE_PINNED,
@@ -76,6 +78,46 @@ describe("resolveModelRoute (tri-state by key presence)", () => {
     const r = resolveModelRoute(file, "cursor", "bad-model");
     expect(r.source).toBe("invalid");
   });
+
+  it("reads grok-build harness-default as grok without blocking (#3469)", () => {
+    const grokBuildFile: RoutingFile = {
+      "grok-build": {
+        "leaf-implementation": { model: null, mode: ROUTING_MODE_HARNESS_DEFAULT },
+      },
+    };
+    const r = resolveModelRoute(grokBuildFile, "grok", "leaf-implementation");
+    expect(r.decided).toBe(true);
+    expect(r.model).toBeNull();
+    expect(r.mode).toBe(ROUTING_MODE_HARNESS_DEFAULT);
+    expect(r.source).toBe("harness-default explicit");
+  });
+
+  it("ignores a grok-build pin so the dead key cannot fail-close grok (#3469)", () => {
+    const grokBuildFile: RoutingFile = {
+      "grok-build": {
+        "leaf-implementation": { model: "grok-4.6", mode: ROUTING_MODE_PINNED },
+      },
+    };
+    const r = resolveModelRoute(grokBuildFile, "grok", "leaf-implementation");
+    expect(r.decided).toBe(false);
+    expect(r.source).toBe("undecided");
+    expect(r.error).toBeNull();
+  });
+
+  it("prefers the live grok key over a grok-build file key (#3469)", () => {
+    const both: RoutingFile = {
+      grok: {
+        "leaf-implementation": { model: null, mode: ROUTING_MODE_HARNESS_DEFAULT },
+      },
+      "grok-build": {
+        "leaf-implementation": { model: "grok-4.6", mode: ROUTING_MODE_PINNED },
+      },
+    };
+    const r = resolveModelRoute(both, "grok", "leaf-implementation");
+    expect(r.decided).toBe(true);
+    expect(r.model).toBeNull();
+    expect(r.source).toBe("harness-default explicit");
+  });
 });
 
 describe("dispatchProviderFromRuntime", () => {
@@ -135,6 +177,20 @@ describe("resolveDispatchProvider (#1877 / #2875)", () => {
   it("maps grok-build signals to grok", () => {
     expect(resolveDispatchProvider({ GROK_BUILD: "true" })).toBe("grok");
     expect(resolveDispatchProvider({ DEFT_AGENT_RUNTIME: "grok-build" })).toBe("grok");
+  });
+
+  it("maps the same grok probes probeMonitoringTier already uses (#3469)", () => {
+    expect(resolveDispatchProvider({ DEFT_HAS_SPAWN_SUBAGENT: "1" })).toBe("grok");
+    expect(resolveDispatchProvider({ DEFT_PROBE_GROK_BUILD: "true" })).toBe("grok");
+    expect(resolveDispatchProvider({ DEFT_PROBE_SPAWN_SUBAGENT: "yes" })).toBe("grok");
+  });
+
+  it("lists empty host-detect probes for the honesty line (#3469)", () => {
+    expect(emptyHostDetectProbes({})).toEqual([...HOST_DETECT_PROBE_NAMES]);
+    expect(emptyHostDetectProbes({ GROK_BUILD: "1" })).not.toContain("GROK_BUILD");
+    expect(emptyHostDetectProbes({ DEFT_HAS_SPAWN_SUBAGENT: "true" })).not.toContain(
+      "DEFT_HAS_SPAWN_SUBAGENT",
+    );
   });
 
   it("maps DEFT_AGENT_RUNTIME cloud/headless to cloud-headless", () => {

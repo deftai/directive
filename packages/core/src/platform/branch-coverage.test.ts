@@ -289,8 +289,8 @@ describe("platform-capabilities branch coverage", () => {
         cwd: "/none",
       }).runtimeMode;
     expect(mode({ CURSOR_AGENT: "1" })).toBe("cloud-headless");
-    expect(mode({ GROK_BUILD: "true" })).toBe("cloud-headless");
-    expect(mode({ DEFT_AGENT_RUNTIME: "grok-build" })).toBe("cloud-headless");
+    expect(mode({ GROK_BUILD: "true" })).toBe("local-unsandboxed");
+    expect(mode({ DEFT_AGENT_RUNTIME: "grok-build" })).toBe("local-unsandboxed");
     expect(mode({ DEFT_AGENT_RUNTIME: "cloud" })).toBe("cloud-headless");
     expect(mode({ DEFT_AGENT_RUNTIME: "headless" })).toBe("cloud-headless");
     expect(mode({ GITHUB_ACTIONS: "yes" })).toBe("cloud-headless");

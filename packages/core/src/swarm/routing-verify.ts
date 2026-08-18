@@ -5,15 +5,19 @@
  *   - enforce (pre-dispatch): a hard gate in the pre-`start_agent` /
  *     `swarm:launch` gate stack. Three-state exit:
  *       0 = every in-scope role is decided (pinned or explicit harness-default)
+ *           OR provider is unrecognized (`unknown`) -- disclosure, not a gate (#3469)
  *       1 = at least one in-scope role is undecided / not dispatchable
  *       2 = config error (unreadable / malformed route file)
+ *     Unrecognized host never exits 1/2 solely because the host was unknown.
  */
 import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_OK } from "./constants.js";
 import {
   dispatchProviderFromRuntime,
+  emptyHostDetectProbes,
   HARNESS_BOUND_PROVIDERS,
   loadRoutingFile,
   ROUTING_MODE_HARNESS_DEFAULT,
+  type RoutingFile,
   resolveDispatchProvider,
   resolveModelRoute,
   resolveRoutingPath,
@@ -58,6 +62,39 @@ function resolveProvider(options: VerifyRoutingOptions): string {
   return resolveDispatchProvider(options.environ ?? process.env);
 }
 
+function isUnrecognizedHost(provider: string): boolean {
+  return provider === "unknown";
+}
+
+function formatUsedPin(file: RoutingFile | null, provider: string, role: string): string {
+  const resolution = resolveModelRoute(file, provider, role);
+  if (resolution.decided && resolution.source !== "invalid") {
+    const value = resolution.model ?? "harness-default";
+    return `${provider}.${role}=${value}`;
+  }
+  return `inherit (no ${provider}.${role} pin)`;
+}
+
+/**
+ * Dedicated host-unrecognized honesty line (#3469). Disclosure, not a gate:
+ * names the empty probes, that dispatch is still allowed, and the pin or
+ * inherit that will be used. Must not be folded into "all roles decided."
+ */
+export function formatHostUnrecognizedHonestyLine(options: {
+  environ?: NodeJS.ProcessEnv;
+  provider: string;
+  roles: readonly string[];
+  file: RoutingFile | null;
+}): string {
+  const empty = emptyHostDetectProbes(options.environ ?? process.env);
+  const emptyText = empty.length > 0 ? empty.join(", ") : "(none)";
+  const used = options.roles.map((role) => formatUsedPin(options.file, options.provider, role));
+  return (
+    `[deft routing] host unrecognized (#3469): empty probes: ${emptyText}. ` +
+    `Dispatch still allowed. Using ${used.join("; ")}.`
+  );
+}
+
 export function verifyRouting(options: VerifyRoutingOptions): VerifyRoutingResult {
   const roles = options.roles && options.roles.length > 0 ? options.roles : DEFAULT_GATED_ROLES;
   const provider = resolveProvider(options);
@@ -99,6 +136,16 @@ export function verifyRouting(options: VerifyRoutingOptions): VerifyRoutingResul
     resolvedLines.push(`  ${role}: model ${modelText} (resolved-via ${resolution.source})`);
   }
 
+  const unrecognized = isUnrecognizedHost(provider);
+  const honesty = unrecognized
+    ? formatHostUnrecognizedHonestyLine({
+        environ: options.environ ?? process.env,
+        provider,
+        roles,
+        file: data,
+      })
+    : "";
+
   if (invalid.length > 0 && !options.advise) {
     return {
       exitCode: EXIT_CONFIG_ERROR,
@@ -107,26 +154,30 @@ export function verifyRouting(options: VerifyRoutingOptions): VerifyRoutingResul
   }
 
   if (options.advise) {
+    const note =
+      "[deft routing] NOTE: plan.policy.swarmSubagentBackend enum is deprecated (#1891); use 'task swarm:routing-set' / .deft/routing.local.json instead.";
+    let body: string;
     if (undecided.length === 0 && invalid.length === 0) {
-      return {
-        exitCode: EXIT_OK,
-        report: `[deft routing] provider '${provider}': all ${roles.length} gated role(s) decided.\n[deft routing] NOTE: plan.policy.swarmSubagentBackend enum is deprecated (#1891); use 'task swarm:routing-set' / .deft/routing.local.json instead.`,
-      };
+      body = `[deft routing] provider '${provider}': all ${roles.length} gated role(s) decided.`;
+    } else {
+      const parts: string[] = [];
+      if (undecided.length > 0) {
+        parts.push(`undecided role(s): ${undecided.join(", ")}`);
+      }
+      if (invalid.length > 0) {
+        parts.push(`invalid: ${invalid.length}`);
+      }
+      // Unrecognized host is disclosure: do not force routing-set (#3469).
+      const decide = unrecognized
+        ? "Dispatch still allowed."
+        : `Decide before swarm dispatch: ${ROUTING_SET_CMD}`;
+      body = `[deft routing] provider '${provider}' -- ${parts.join("; ")}. ${decide}`;
     }
-    const parts: string[] = [];
-    if (undecided.length > 0) {
-      parts.push(`undecided role(s): ${undecided.join(", ")}`);
-    }
-    if (invalid.length > 0) {
-      parts.push(`invalid: ${invalid.length}`);
-    }
-    return {
-      exitCode: EXIT_OK,
-      report: `[deft routing] provider '${provider}' -- ${parts.join("; ")}. Decide before swarm dispatch: ${ROUTING_SET_CMD}\n[deft routing] NOTE: plan.policy.swarmSubagentBackend enum is deprecated (#1891); use 'task swarm:routing-set' / .deft/routing.local.json instead.`,
-    };
+    const report = honesty.length > 0 ? `${honesty}\n${body}\n${note}` : `${body}\n${note}`;
+    return { exitCode: EXIT_OK, report };
   }
 
-  if (undecided.length > 0) {
+  if (undecided.length > 0 && !unrecognized) {
     return {
       exitCode: EXIT_GATE_FAILED,
       report:
@@ -136,8 +187,10 @@ export function verifyRouting(options: VerifyRoutingOptions): VerifyRoutingResul
     };
   }
 
-  return {
-    exitCode: EXIT_OK,
-    report: `routing gate: provider '${provider}' -- all gated role(s) decided.\n${resolvedLines.join("\n")}`,
-  };
+  const decidedBody =
+    undecided.length > 0
+      ? `routing gate: provider '${provider}' -- dispatch allowed (host unrecognized is disclosure, not a gate).`
+      : `routing gate: provider '${provider}' -- all gated role(s) decided.\n${resolvedLines.join("\n")}`;
+  const report = honesty.length > 0 ? `${honesty}\n${decidedBody}` : decidedBody;
+  return { exitCode: EXIT_OK, report };
 }

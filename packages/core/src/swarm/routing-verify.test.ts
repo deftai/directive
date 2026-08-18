@@ -145,3 +145,109 @@ describe("verifyRouting (advise posture, never blocks)", () => {
     ).toBe(0);
   });
 });
+
+describe("verifyRouting host-unrecognized honesty (#3469)", () => {
+  const cleanups: string[] = [];
+  afterEach(() => {
+    while (cleanups.length > 0) {
+      const dir = cleanups.pop();
+      if (dir !== undefined) {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    }
+  });
+
+  it("advise prints a dedicated honesty line, names the unknown pin, and exits 0", () => {
+    const { dir, env } = withRouteFile({
+      unknown: { "leaf-implementation": { model: "grok-4.6", mode: "pinned" } },
+    });
+    cleanups.push(dir);
+    const r = verifyRouting({
+      projectRoot: dir,
+      environ: env,
+      provider: "unknown",
+      advise: true,
+    });
+    expect(r.exitCode).toBe(0);
+    expect(r.report).toContain("host unrecognized");
+    expect(r.report).toContain("Dispatch still allowed");
+    expect(r.report).toContain("unknown.leaf-implementation=grok-4.6");
+    expect(r.report).toContain("empty probes:");
+    expect(r.report).toContain("DEFT_HAS_SPAWN_SUBAGENT");
+    expect(r.report).toMatch(/all 1 gated role\(s\) decided/);
+  });
+
+  it("enforce prints the honesty line, names the unknown pin, and exits 0", () => {
+    const { dir, env } = withRouteFile({
+      unknown: { "leaf-implementation": { model: "grok-4.6", mode: "pinned" } },
+    });
+    cleanups.push(dir);
+    const r = verifyRouting({ projectRoot: dir, environ: env, provider: "unknown" });
+    expect(r.exitCode).toBe(0);
+    expect(r.report).toContain("host unrecognized");
+    expect(r.report).toContain("unknown.leaf-implementation=grok-4.6");
+    expect(r.report).toContain("Dispatch still allowed");
+  });
+
+  it("enforce exits 0 with inherit named when the host is unrecognized and unpinned", () => {
+    const dir = mkdtempSync(join(tmpdir(), "routing-verify-"));
+    cleanups.push(dir);
+    const r = verifyRouting({
+      projectRoot: dir,
+      environ: { DEFT_ROUTING_PATH: join(dir, "absent.json") },
+      provider: "unknown",
+    });
+    expect(r.exitCode).toBe(0);
+    expect(r.report).toContain("host unrecognized");
+    expect(r.report).toContain("inherit (no unknown.leaf-implementation pin)");
+    expect(r.report).toContain("Dispatch still allowed");
+    expect(r.report).not.toContain("Decide:");
+  });
+
+  it("resolves an empty probe set as unknown and prints honesty without --provider", () => {
+    const { dir, env } = withRouteFile({
+      unknown: { "leaf-implementation": { model: "grok-4.6", mode: "pinned" } },
+    });
+    cleanups.push(dir);
+    const r = verifyRouting({ projectRoot: dir, environ: env, advise: true });
+    expect(r.exitCode).toBe(0);
+    expect(r.report).toContain("host unrecognized");
+    expect(r.report).toContain("provider 'unknown'");
+    expect(r.report).toContain("unknown.leaf-implementation=grok-4.6");
+  });
+
+  it("does not print the honesty line for a recognized provider", () => {
+    const { dir, env } = withRouteFile({
+      cursor: { "leaf-implementation": { model: "composer-2.5-fast", mode: "pinned" } },
+    });
+    cleanups.push(dir);
+    const r = verifyRouting({
+      projectRoot: dir,
+      environ: { ...env, CURSOR_AGENT: "1" },
+      advise: true,
+    });
+    expect(r.exitCode).toBe(0);
+    expect(r.report).not.toContain("host unrecognized");
+    expect(r.report).toContain("provider 'cursor'");
+  });
+
+  it("does not treat unrecognized host as a config error", () => {
+    const dir = mkdtempSync(join(tmpdir(), "routing-verify-"));
+    cleanups.push(dir);
+    const advise = verifyRouting({
+      projectRoot: dir,
+      environ: { DEFT_ROUTING_PATH: join(dir, "absent.json") },
+      provider: "unknown",
+      advise: true,
+    });
+    const enforce = verifyRouting({
+      projectRoot: dir,
+      environ: { DEFT_ROUTING_PATH: join(dir, "absent.json") },
+      provider: "unknown",
+    });
+    expect(advise.exitCode).toBe(0);
+    expect(enforce.exitCode).toBe(0);
+    expect(advise.report).toContain("host unrecognized");
+    expect(enforce.report).toContain("host unrecognized");
+  });
+});

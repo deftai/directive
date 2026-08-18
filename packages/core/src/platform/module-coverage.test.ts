@@ -375,7 +375,10 @@ describe("platform module coverage", () => {
       "local-unsandboxed",
     );
     expect(classifyRuntimeMode({ DEFT_AGENT_RUNTIME: "headless" }, false)).toBe("cloud-headless");
-    expect(classifyRuntimeMode({ GROK_BUILD: "1" }, false)).toBe("cloud-headless");
+    expect(classifyRuntimeMode({ GROK_BUILD: "1" }, false)).toBe("local-unsandboxed");
+    expect(classifyRuntimeMode({ DEFT_AGENT_RUNTIME: "grok-build" }, false)).toBe(
+      "local-unsandboxed",
+    );
     expect(classifyRuntimeMode({ BUILDKITE: "true" }, false)).toBe("cloud-headless");
     expect(classifyRuntimeMode({ CURSOR_SANDBOX_LANDLOCK_STATUS: "active" }, false)).toBe(
       "cursor-native-sandbox",

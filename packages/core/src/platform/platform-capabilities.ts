@@ -117,9 +117,9 @@ export function classifyIdentityKind(options: {
 
 function isCloudHeadless(environ: Readonly<Record<string, string>>): boolean {
   if (envTruthy(environ, "CURSOR_AGENT")) return true;
-  if (envTruthy(environ, "GROK_BUILD")) return true;
+  // GROK_BUILD / DEFT_AGENT_RUNTIME=grok-build identify a local TUI, not CI (#3469).
   const runtime = (environ.DEFT_AGENT_RUNTIME ?? "").trim().toLowerCase();
-  if (runtime === "grok-build" || runtime === "cloud" || runtime === "headless") return true;
+  if (runtime === "cloud" || runtime === "headless") return true;
   if (envTruthy(environ, "GITHUB_ACTIONS") || envTruthy(environ, "BUILDKITE")) return true;
   return envTruthy(environ, "CI") && !envTruthy(environ, "CURSOR_COMPOSER");
 }

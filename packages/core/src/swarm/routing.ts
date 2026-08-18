@@ -40,6 +40,27 @@ export const ROUTING_FILENAME = "routing.local.json";
 /** Providers whose model is harness-bound -- deft cannot pin or verify a slug. */
 export const HARNESS_BOUND_PROVIDERS = new Set<string>(["grok"]);
 
+/**
+ * Live routing key for Grok Build. A `grok-build` file key is a trap (#3469):
+ * read it as `grok` when the live provider is grok, or ignore it without
+ * blocking launch.
+ */
+export const GROK_ROUTING_KEY = "grok";
+export const GROK_BUILD_FILE_KEY = "grok-build";
+
+/**
+ * Env / probe names that identify Grok Build. Same set `probeMonitoringTier`
+ * already uses, plus `GROK_BUILD` / `DEFT_AGENT_RUNTIME=grok-build`.
+ * Named on the host-unrecognized honesty line when empty (#3469).
+ */
+export const HOST_DETECT_PROBE_NAMES = [
+  "GROK_BUILD",
+  "DEFT_AGENT_RUNTIME",
+  "DEFT_HAS_SPAWN_SUBAGENT",
+  "DEFT_PROBE_GROK_BUILD",
+  "DEFT_PROBE_SPAWN_SUBAGENT",
+] as const;
+
 /** Providers whose per-role model must be decided before sub-agent dispatch (#1739 / #1877 / #2875 / #3134). */
 export const ROUTING_GATED_DISPATCH_PROVIDERS = new Set<string>([
   "cursor",
@@ -137,6 +158,14 @@ function providerBlockOf(
   return block;
 }
 
+export function emptyHostDetectProbes(environ: NodeJS.ProcessEnv = process.env): string[] {
+  return HOST_DETECT_PROBE_NAMES.filter((name) => (environ[name] ?? "").trim().length === 0);
+}
+
+function decisionLooksPinned(decision: RouteDecision): boolean {
+  return typeof decision.model === "string" && decision.model.trim().length > 0;
+}
+
 /**
  * Resolve a (provider, role) route. Tri-state by KEY PRESENCE:
  *   - key present, model "<slug>"      -> pinned
@@ -148,7 +177,24 @@ export function resolveModelRoute(
   provider: string,
   role: string,
 ): RouteResolution {
-  const block = providerBlockOf(file, provider);
+  let block = providerBlockOf(file, provider);
+  if ((block === null || !(role in block)) && provider === GROK_ROUTING_KEY) {
+    const alias = providerBlockOf(file, GROK_BUILD_FILE_KEY);
+    if (alias !== null && role in alias) {
+      const aliasDecision = alias[role];
+      // Dead `grok-build` pins must not fail-close a harness-bound grok
+      // provider (#3469). Read harness-default; ignore a pin.
+      if (
+        typeof aliasDecision === "object" &&
+        aliasDecision !== null &&
+        !Array.isArray(aliasDecision) &&
+        decisionLooksPinned(aliasDecision)
+      ) {
+        return { decided: false, model: null, mode: null, source: "undecided", error: null };
+      }
+      block = alias;
+    }
+  }
   if (block === null || !(role in block)) {
     return { decided: false, model: null, mode: null, source: "undecided", error: null };
   }
@@ -245,8 +291,14 @@ export function resolveDispatchProvider(environ: NodeJS.ProcessEnv = process.env
   ) {
     return "openclaw";
   }
-  if (envTruthy(environ, "GROK_BUILD") || runtime === "grok-build") {
-    return "grok";
+  if (
+    envTruthy(environ, "GROK_BUILD") ||
+    envTruthy(environ, "DEFT_HAS_SPAWN_SUBAGENT") ||
+    envTruthy(environ, "DEFT_PROBE_GROK_BUILD") ||
+    envTruthy(environ, "DEFT_PROBE_SPAWN_SUBAGENT") ||
+    runtime === "grok-build"
+  ) {
+    return GROK_ROUTING_KEY;
   }
   if (runtime === "cloud" || runtime === "headless") {
     return "cloud-headless";
