@@ -545,13 +545,14 @@ export function completeCohort(args: {
   emitJson?: boolean;
   /** Per-story delivery evidence; without it code-bearing stories fail closed (#3041). */
   delivery?: CohortDeliveryContext | null;
-}): { exitCode: number; stdout: string; stderr: string } {
+}): { exitCode: number; stdout: string; stderr: string; sweep: SweepResult | null } {
   const projectRoot = resolve(args.projectRoot);
   if (!existsSync(projectRoot)) {
     return {
       exitCode: 2,
       stdout: "",
       stderr: `Error: project root does not exist: ${projectRoot}\n`,
+      sweep: null,
     };
   }
   if (!existsSync(resolveLifecycleRoot(projectRoot))) {
@@ -559,6 +560,7 @@ export function completeCohort(args: {
       exitCode: 2,
       stdout: "",
       stderr: `Error: no vbrief/ directory under project root: ${projectRoot}\n`,
+      sweep: null,
     };
   }
 
@@ -570,26 +572,27 @@ export function completeCohort(args: {
   if (paths.length === 0) {
     const msg =
       "Error: empty cohort. Pass one or more story vBRIEF paths as positional arguments and/or --cohort <glob>.";
+    const empty: SweepResult = {
+      project_root: projectRoot,
+      dry_run: args.dryRun ?? false,
+      stories: [],
+      parents: [],
+      errors: errors.length > 0 ? errors : [msg],
+      ok: false,
+    };
     if (args.emitJson) {
-      const empty: SweepResult = {
-        project_root: projectRoot,
-        dry_run: args.dryRun ?? false,
-        stories: [],
-        parents: [],
-        errors: errors.length > 0 ? errors : [msg],
-        ok: false,
-      };
       return {
         exitCode: 2,
         stdout: `${JSON.stringify(sweepResultToDict(empty), null, 2)}\n`,
         stderr: "",
+        sweep: empty,
       };
     }
     let stderr = `${msg}\n`;
     for (const err of errors) {
       stderr += `  - ${err}\n`;
     }
-    return { exitCode: 2, stdout: "", stderr };
+    return { exitCode: 2, stdout: "", stderr, sweep: empty };
   }
 
   const result = sweepCohortWithArgs({
@@ -605,11 +608,13 @@ export function completeCohort(args: {
       exitCode: result.ok ? 0 : 1,
       stdout: `${JSON.stringify(sweepResultToDict(result), null, 2)}\n`,
       stderr: "",
+      sweep: result,
     };
   }
   return {
     exitCode: result.ok ? 0 : 1,
     stdout: `${renderSweepText(result)}\n`,
     stderr: "",
+    sweep: result,
   };
 }

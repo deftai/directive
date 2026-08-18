@@ -7,6 +7,7 @@ vi.mock("../scope/transition.js", () => ({
   runTransition: vi.fn((verb: string) => ({ ok: true, message: `${verb} ok` })),
 }));
 
+import { CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION } from "../intake/clause-derivation.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import { runTransition } from "../scope/transition.js";
 import { finalizeCohort } from "./finalize-cohort.js";
@@ -512,6 +513,97 @@ describe("finalizeCohort", () => {
     const storyPath = writeActiveStory(project, "story-e", 2225);
     const code = finalizeCohortMain(["--project-root", project, "--no-commit", storyPath]);
     expect(code).toBe(0);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("forwards refused-stamp sweep details when complete-cohort refuses an implementation-only stamp (#3398)", () => {
+    vi.mocked(runTransition).mockImplementation((verb: string) => {
+      if (verb === "complete") {
+        return { ok: false, message: CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION };
+      }
+      return { ok: true, message: `${verb} ok` };
+    });
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-refuse-"));
+    const storyPath = writeActiveStory(project, "story-impl-only", 3398);
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      noCommit: true,
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.result.sweep).not.toBeNull();
+    expect(result.result.sweep?.stories.some((s) => !s.ok)).toBe(true);
+    expect(result.stdout).toContain(CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION);
+    expect(
+      result.result.errors.some((err) =>
+        err.includes(CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION),
+      ),
+    ).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("prints refused-stamp activate remediation from a successful parent sweep (#3398)", () => {
+    vi.mocked(runTransition).mockImplementation((verb: string) => {
+      if (verb === "activate") {
+        return {
+          ok: true,
+          message:
+            "Activated pending/parent-notice.xbrief.json -> active/.\n" +
+            CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION,
+        };
+      }
+      return { ok: true, message: `${verb} ok` };
+    });
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-notice-"));
+    mkdirSync(join(project, "xbrief", "pending"), { recursive: true });
+    mkdirSync(join(project, "xbrief", "completed"), { recursive: true });
+    writeFileSync(
+      join(project, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "Project",
+          status: "running",
+          policy: { allowDirectCommitsToMaster: false, wipCap: 10 },
+        },
+      }),
+      "utf8",
+    );
+    const childCompleted = join(project, "xbrief", "completed", "child-notice.xbrief.json");
+    writeFileSync(
+      childCompleted,
+      JSON.stringify({
+        plan: {
+          id: "child-notice",
+          title: "child-notice",
+          status: "completed",
+          planRef: "pending/parent-notice.xbrief.json",
+          items: [{ id: "i1", title: "t", status: "done" }],
+        },
+      }),
+      "utf8",
+    );
+    writeFileSync(
+      join(project, "xbrief", "pending", "parent-notice.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          id: "parent-notice",
+          title: "parent-notice",
+          status: "pending",
+          references: [{ type: "x-vbrief/plan", uri: "completed/child-notice.xbrief.json" }],
+          metadata: { kind: "epic" },
+        },
+      }),
+      "utf8",
+    );
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [childCompleted],
+      noCommit: true,
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.result.sweep).not.toBeNull();
+    expect(result.result.sweep?.parents.some((p) => p.action === "activate+complete")).toBe(true);
+    expect(result.stdout).toContain(CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION);
     rmSync(project, { recursive: true, force: true });
   });
 });

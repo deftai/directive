@@ -102,6 +102,19 @@ function oneLine(text: string): string {
   return text.replace(/\r?\n/g, " ");
 }
 
+/** Existing sweep records already carry refused-stamp remediations (#3398). */
+function sweepDetailLines(sweep: SweepResult): string[] {
+  const lines: string[] = [];
+  for (const rec of [...sweep.stories, ...sweep.parents]) {
+    const detail = rec.detail.trim();
+    if (detail.length > 0) {
+      lines.push(`${rec.path}: ${detail}`);
+    }
+  }
+  lines.push(...sweep.errors);
+  return lines;
+}
+
 function parseRepo(repo: string): { owner: string; name: string } | null {
   const slash = repo.indexOf("/");
   if (slash <= 0 || slash >= repo.length - 1) {
@@ -789,8 +802,14 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
         }
       : null,
   });
+  const sweep = sweepResult.sweep;
   if (sweepResult.exitCode !== 0) {
     errors.push("cohort completion sweep failed.");
+    if (sweep !== null) {
+      errors.push(...sweepDetailLines(sweep));
+    } else if (sweepResult.stdout.trim().length > 0) {
+      errors.push(sweepResult.stdout.trim());
+    }
     return buildResponse({
       projectRoot,
       dryRun,
@@ -798,7 +817,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       prNumbers,
       storyPaths,
       closingIssues: [...closingIssues],
-      sweep: null,
+      sweep,
       commitSha: null,
       branch: null,
       prUrl: null,
@@ -846,7 +865,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
     prNumbers,
     storyPaths,
     closingIssues: [...closingIssues],
-    sweep: null,
+    sweep,
     commitSha,
     branch,
     prUrl,
@@ -924,6 +943,20 @@ function buildResponse(input: {
     lines.push("  Stories:");
     for (const path of input.storyPaths) {
       lines.push(`    - ${oneLine(path)}`);
+    }
+  }
+  if (input.sweep !== null) {
+    const records = [...input.sweep.stories, ...input.sweep.parents];
+    if (records.length > 0 || input.sweep.errors.length > 0) {
+      lines.push("  Sweep:");
+      for (const rec of records) {
+        lines.push(
+          `    [${rec.ok ? "ok" : "FAILED"}] ${rec.action} ${rec.path} -- ${oneLine(rec.detail)}`,
+        );
+      }
+      for (const err of input.sweep.errors) {
+        lines.push(`    - ${oneLine(err)}`);
+      }
     }
   }
   if (input.branch !== null) {
