@@ -605,8 +605,8 @@ export function completeCohort(args: {
   result.errors.push(...errors);
 
   if (result.ok && args.dryRun !== true) {
-    const released = releaseOccupancy(projectRoot, { swarmCloseout: true });
-    if (released.code !== 0) {
+    const released = releaseOccupancy(projectRoot, { env: process.env });
+    if (released.code !== 0 && released.action !== "denied") {
       result.ok = false;
       result.errors.push(released.message);
     }

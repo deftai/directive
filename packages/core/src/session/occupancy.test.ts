@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { completeCohort } from "../swarm/complete-cohort.js";
 import { swarmLaunch } from "../swarm/launch.js";
 import {
@@ -169,7 +169,7 @@ describe("worktree occupancy lease (#3433)", () => {
       now,
       intent: "swarm",
     });
-    const released = releaseOccupancy(root, { swarmCloseout: true, now });
+    const released = releaseOccupancy(root, { sessionId: "swarm-parent", now });
     expect(released.code).toBe(0);
     expect(released.action).toBe("released");
     expect(readOccupancy(root)).toBeNull();
@@ -347,11 +347,13 @@ describe("worktree occupancy lease (#3433)", () => {
       }),
       "utf8",
     );
+    vi.stubEnv("DEFT_SESSION_ID", "swarm-parent");
     const live = completeCohort({
       stories: [donePath],
       projectRoot: root,
       dryRun: false,
     });
+    vi.unstubAllEnvs();
     expect(live.exitCode).toBe(0);
     expect(readOccupancy(root)).toBeNull();
   });

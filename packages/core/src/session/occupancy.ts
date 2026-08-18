@@ -7,7 +7,17 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { existsSync, readFileSync, renameSync, rmSync } from "node:fs";
+import {
+  closeSync,
+  existsSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  unlinkSync,
+  writeSync,
+} from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { containedRemove, containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
@@ -166,29 +176,44 @@ export function applyWorktreeOccupancy(
     };
   }
 
-  const record = writeOccupancyRecord(projectRoot, {
-    sessionId: incoming,
-    worktreePath: resolve(projectRoot),
-    intent: input.intent ?? live?.intent ?? "mutation",
-    claimedAt: live?.claimedAt ?? now,
-    heartbeatAt: now,
-    host: input.host ?? live?.host ?? occupancyHost(input.env),
-    address: input.address ?? live?.address ?? occupancyAddress(input.env),
-    retainCapable: input.retainCapable ?? live?.retainCapable ?? false,
-    joinProtocol: input.joinProtocol ?? live?.joinProtocol ?? "none",
+  return withOccupancyLock(projectRoot, () => {
+    const existingLocked = readOccupancy(projectRoot);
+    const liveLocked =
+      existingLocked !== null && !isOccupancyExpired(existingLocked, now) ? existingLocked : null;
+    if (liveLocked !== null && liveLocked.sessionId !== incoming) {
+      return {
+        action: "denied" as const,
+        sessionId: incoming,
+        record: liveLocked,
+        path,
+        message: formatOccupancyRemediation(liveLocked, now),
+        code: 1,
+      };
+    }
+    const record = writeOccupancyRecord(projectRoot, {
+      sessionId: incoming,
+      worktreePath: resolve(projectRoot),
+      intent: input.intent ?? liveLocked?.intent ?? "mutation",
+      claimedAt: liveLocked?.claimedAt ?? now,
+      heartbeatAt: now,
+      host: input.host ?? liveLocked?.host ?? occupancyHost(input.env),
+      address: input.address ?? liveLocked?.address ?? occupancyAddress(input.env),
+      retainCapable: input.retainCapable ?? liveLocked?.retainCapable ?? false,
+      joinProtocol: input.joinProtocol ?? liveLocked?.joinProtocol ?? "none",
+    });
+    const action: OccupancyAction = liveLocked !== null ? "heartbeat" : "claimed";
+    return {
+      action,
+      sessionId: record.sessionId,
+      record,
+      path,
+      message:
+        action === "heartbeat"
+          ? `occupancy heartbeat session ${record.sessionId} (intent=${record.intent})`
+          : `occupancy claimed session ${record.sessionId} (intent=${record.intent})`,
+      code: 0,
+    };
   });
-  const action: OccupancyAction = live !== null ? "heartbeat" : "claimed";
-  return {
-    action,
-    sessionId: record.sessionId,
-    record,
-    path,
-    message:
-      action === "heartbeat"
-        ? `occupancy heartbeat session ${record.sessionId} (intent=${record.intent})`
-        : `occupancy claimed session ${record.sessionId} (intent=${record.intent})`,
-    code: 0,
-  };
 }
 
 export function stealOccupancy(
@@ -232,26 +257,43 @@ export function stealOccupancy(
       code: 1,
     };
   }
-  const incoming = resolveOccupancySessionId(input);
-  const record = writeOccupancyRecord(projectRoot, {
-    sessionId: incoming,
-    worktreePath: resolve(projectRoot),
-    intent: input.intent ?? "mutation",
-    claimedAt: now,
-    heartbeatAt: now,
-    host: input.host ?? occupancyHost(input.env),
-    address: input.address ?? occupancyAddress(input.env),
-    retainCapable: input.retainCapable ?? false,
-    joinProtocol: input.joinProtocol ?? "none",
+  return withOccupancyLock(projectRoot, () => {
+    const existingLocked = readOccupancy(projectRoot);
+    const liveLocked =
+      existingLocked !== null && !isOccupancyExpired(existingLocked, now) ? existingLocked : null;
+    if (liveLocked !== null && liveLocked.sessionId !== named) {
+      return {
+        action: "denied" as const,
+        sessionId: resolveOccupancySessionId(input),
+        record: liveLocked,
+        path,
+        message:
+          `occupancy:steal named occupant ${named} does not match live occupant ${liveLocked.sessionId}.\n` +
+          formatOccupancyRemediation(liveLocked, now),
+        code: 1,
+      };
+    }
+    const incoming = resolveOccupancySessionId(input);
+    const record = writeOccupancyRecord(projectRoot, {
+      sessionId: incoming,
+      worktreePath: resolve(projectRoot),
+      intent: input.intent ?? "mutation",
+      claimedAt: now,
+      heartbeatAt: now,
+      host: input.host ?? occupancyHost(input.env),
+      address: input.address ?? occupancyAddress(input.env),
+      retainCapable: input.retainCapable ?? false,
+      joinProtocol: input.joinProtocol ?? "none",
+    });
+    return {
+      action: "stolen" as const,
+      sessionId: record.sessionId,
+      record,
+      path,
+      message: `occupancy stolen from ${named}; writer is now session ${record.sessionId}`,
+      code: 0,
+    };
   });
-  return {
-    action: "stolen",
-    sessionId: record.sessionId,
-    record,
-    path,
-    message: `occupancy stolen from ${named}; writer is now session ${record.sessionId}`,
-    code: 0,
-  };
 }
 
 export function releaseOccupancy(
@@ -280,8 +322,7 @@ export function releaseOccupancy(
     input.sessionId?.trim() || (input.env ?? process.env).DEFT_SESSION_ID?.trim() || "";
   const expired = isOccupancyExpired(existing, now);
   const owns = caller.length > 0 && caller === existing.sessionId;
-  const swarmClose = input.swarmCloseout === true && existing.intent === "swarm";
-  if (!expired && !owns && !swarmClose) {
+  if (!expired && !owns) {
     return {
       action: "denied",
       sessionId: caller,
@@ -445,4 +486,42 @@ function writeOccupancyRecord(
 function removeOccupancyFile(projectRoot: string): void {
   const root = resolve(projectRoot);
   containedRemove({ root, target: occupancyPath(root) });
+}
+
+function occupancyLockPath(projectRoot: string): string {
+  return `${occupancyPath(projectRoot)}.lock`;
+}
+
+function withOccupancyLock<T>(projectRoot: string, fn: () => T): T {
+  const root = resolve(projectRoot);
+  const lockPath = occupancyLockPath(root);
+  assertWriteTargetSafe(root, lockPath);
+  mkdirSync(dirname(lockPath), { recursive: true });
+  let fd: number;
+  try {
+    fd = openSync(lockPath, "wx");
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code === "EEXIST") {
+      throw new Error(
+        `occupancy lease is busy (${lockPath}). Retry after the other claim finishes.`,
+      );
+    }
+    throw err;
+  }
+  try {
+    writeSync(fd, `${process.pid}\n`);
+    return fn();
+  } finally {
+    try {
+      closeSync(fd);
+    } catch {
+      /* ignore */
+    }
+    try {
+      unlinkSync(lockPath);
+    } catch {
+      /* ignore */
+    }
+  }
 }
