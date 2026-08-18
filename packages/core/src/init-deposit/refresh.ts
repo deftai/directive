@@ -349,8 +349,17 @@ function plannedInstallerManagedPaths(): string[] {
   return paths;
 }
 
-function plannedRefreshPaths(strategy: RefreshDepositStrategy, contentRoot: string): string[] {
-  if (strategy === "no-op") return [];
+function pendingInstallerManagedPaths(projectDir: string): string[] {
+  return plannedInstallerManagedPaths().filter((rel) => !existsSync(join(projectDir, rel)));
+}
+
+function plannedRefreshPaths(
+  strategy: RefreshDepositStrategy,
+  contentRoot: string,
+  projectDir: string,
+): string[] {
+  const pending = pendingInstallerManagedPaths(projectDir);
+  if (strategy === "no-op") return pending.sort();
   const core = listContentRelPaths(contentRoot).map((rel) => `${CANONICAL_INSTALL_ROOT}/${rel}`);
   return [...new Set([...core, ...plannedInstallerManagedPaths()])].sort();
 }
@@ -401,7 +410,7 @@ export async function planRefreshDeposit(
     previousDepositVersion !== null &&
     normalizeVersion(previousDepositVersion) === normalizeVersion(contentVersion);
   const strategy: RefreshDepositStrategy = alreadyCurrent ? "no-op" : "file-swap";
-  const plannedPaths = plannedRefreshPaths(strategy, contentRoot);
+  const plannedPaths = plannedRefreshPaths(strategy, contentRoot, resolve(projectDir));
   return {
     contentRoot,
     previousDepositVersion,

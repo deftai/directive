@@ -13,7 +13,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import type { ResolutionFacts } from "@deftai/directive-types";
 import { RESOLUTION_PLAN_SCHEMA_VERSION } from "@deftai/directive-types";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -25,6 +25,7 @@ import type { ClassifySeams } from "../resolution/index.js";
 import type { AgentHookReadinessResult } from "../verify-env/agent-hook-readiness.js";
 import { evaluate as evaluateHooksInstalled } from "../verify-env/verify-hooks-installed.js";
 import { detectXbriefConvergence } from "../xbrief-migrate/detect.js";
+import { installerManagedMatchers } from "./hygiene.js";
 import { type LegacyLayoutDetection, LegacyLayoutRefusedError } from "./legacy-detect.js";
 import {
   buildVersionSkewNotice,
@@ -1311,6 +1312,18 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     return hash.digest("hex");
   }
 
+  function seedManagedPlanPaths(project: string): void {
+    for (const matcher of installerManagedMatchers()) {
+      if (matcher.exact) {
+        const abs = join(project, matcher.exact);
+        mkdirSync(dirname(abs), { recursive: true });
+        if (!existsSync(abs)) writeFileSync(abs, "", "utf8");
+      } else if (matcher.prefix) {
+        mkdirSync(join(project, matcher.prefix), { recursive: true });
+      }
+    }
+  }
+
   function listRelFiles(root: string): string[] {
     const out: string[] = [];
     const walk = (abs: string, rel: string): void => {
@@ -1400,6 +1413,7 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     const project = freshRoot("update-dryrun-");
     const contentRoot = installFakeContentPackage(project, "0.53.0");
     writeInitializedProject(project, { contentVersion: "0.53.0", pinVersion: "0.53.0" });
+    seedManagedPlanPaths(project);
     const out: string[] = [];
     const err: string[] = [];
     const copyContent = vi.fn(async () => {
@@ -1596,6 +1610,7 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     const project = freshRoot("update-dryrun-match-");
     const contentRoot = installFakeContentPackage(project, "0.103.0");
     writeInitializedProject(project, { contentVersion: "0.103.0" });
+    seedManagedPlanPaths(project);
     const out: string[] = [];
 
     const code = await runRefreshDepositCli({
@@ -1623,6 +1638,40 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     expect(payload.already_current).toBe(true);
     expect(payload.planned_file_count).toBe(0);
     expect(readFileSync(join(project, ".deft", "core", "VERSION"), "utf8")).toContain("v0.103.0");
+  });
+
+  it("matching-version dry-run reports missing managed projections (#3437)", async () => {
+    const project = freshRoot("update-dryrun-missing-proj-");
+    const contentRoot = installFakeContentPackage(project, "0.103.0");
+    writeInitializedProject(project, { contentVersion: "0.103.0" });
+    seedManagedPlanPaths(project);
+    rmSync(join(project, "AGENTS.md"), { force: true });
+    const out: string[] = [];
+
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      dryRun: true,
+      classifySeams: classifySeams({ reachable: true, version: "0.103.0" }),
+      writeOut: (t) => out.push(t),
+      writeErr: () => {},
+      seams: {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.103.0",
+        copyContent: async () => {
+          throw new Error("copyContent must not run in dry-run mode");
+        },
+      },
+    });
+
+    expect(code).toBe(0);
+    const payload = parseJsonObject(out.join(""));
+    expect(payload.update_state).toBe("current");
+    expect(payload.strategy).toBe("no-op");
+    expect(payload.planned_file_count).toBeGreaterThan(0);
+    expect(payload.planned_paths).toContain("AGENTS.md");
   });
 
   it("planRefreshDeposit skips node_modules when listing planned paths (#3437)", async () => {
