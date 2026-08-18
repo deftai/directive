@@ -216,6 +216,17 @@ describe("verifyRouting host-unrecognized honesty (#3469)", () => {
     expect(r.report).toContain("unknown.leaf-implementation=grok-4.6");
   });
 
+  it("enforce exits 0 when only a grok-build pin exists for a grok provider (#3469)", () => {
+    const { dir, env } = withRouteFile({
+      "grok-build": { "leaf-implementation": { model: "grok-4.6", mode: "pinned" } },
+    });
+    cleanups.push(dir);
+    const r = verifyRouting({ projectRoot: dir, environ: env, provider: "grok" });
+    expect(r.exitCode).toBe(0);
+    expect(r.report).not.toContain("undecided");
+    expect(r.report).toContain("all gated role(s) decided");
+  });
+
   it("does not print the honesty line for a recognized provider", () => {
     const { dir, env } = withRouteFile({
       cursor: { "leaf-implementation": { model: "composer-2.5-fast", mode: "pinned" } },

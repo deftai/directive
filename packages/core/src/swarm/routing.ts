@@ -183,14 +183,20 @@ export function resolveModelRoute(
     if (alias !== null && role in alias) {
       const aliasDecision = alias[role];
       // Dead `grok-build` pins must not fail-close a harness-bound grok
-      // provider (#3469). Read harness-default; ignore a pin.
+      // provider (#3469). Read the pin as grok harness-default.
       if (
         typeof aliasDecision === "object" &&
         aliasDecision !== null &&
         !Array.isArray(aliasDecision) &&
         decisionLooksPinned(aliasDecision)
       ) {
-        return { decided: false, model: null, mode: null, source: "undecided", error: null };
+        return {
+          decided: true,
+          model: null,
+          mode: ROUTING_MODE_HARNESS_DEFAULT,
+          source: "harness-default explicit",
+          error: null,
+        };
       }
       block = alias;
     }

@@ -92,15 +92,17 @@ describe("resolveModelRoute (tri-state by key presence)", () => {
     expect(r.source).toBe("harness-default explicit");
   });
 
-  it("ignores a grok-build pin so the dead key cannot fail-close grok (#3469)", () => {
+  it("reads a grok-build pin as grok harness-default so the dead key cannot fail-close (#3469)", () => {
     const grokBuildFile: RoutingFile = {
       "grok-build": {
         "leaf-implementation": { model: "grok-4.6", mode: ROUTING_MODE_PINNED },
       },
     };
     const r = resolveModelRoute(grokBuildFile, "grok", "leaf-implementation");
-    expect(r.decided).toBe(false);
-    expect(r.source).toBe("undecided");
+    expect(r.decided).toBe(true);
+    expect(r.model).toBeNull();
+    expect(r.mode).toBe(ROUTING_MODE_HARNESS_DEFAULT);
+    expect(r.source).toBe("harness-default explicit");
     expect(r.error).toBeNull();
   });
 
