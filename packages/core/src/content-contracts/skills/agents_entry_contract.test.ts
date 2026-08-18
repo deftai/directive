@@ -158,6 +158,13 @@ const THROUGH_MERGE_DISPATCH_MARKERS = [
   "Parent conversation implements or babysits",
 ] as const;
 
+/** After-merge one-origin orphan-active DONE gate (#3429). */
+const AFTER_MERGE_ORPHAN_ACTIVE_MARKERS = [
+  "verify:orphan-active -- --issue",
+  "ISSUE: closed",
+  "#3429",
+] as const;
+
 const PROPAGATION_ACTION_VERBS = [
   "build",
   "implement",
@@ -794,6 +801,11 @@ describe("test_agents_entry_contract", () => {
   it("through_merge_dispatch_markers_present_in_both_files", () => {
     expect(missingMarkers(template, THROUGH_MERGE_DISPATCH_MARKERS)).toEqual([]);
     expect(missingMarkers(agents, THROUGH_MERGE_DISPATCH_MARKERS)).toEqual([]);
+  });
+
+  it("after_merge_orphan_active_markers_present_in_both_files", () => {
+    expect(missingMarkers(template, AFTER_MERGE_ORPHAN_ACTIVE_MARKERS)).toEqual([]);
+    expect(missingMarkers(agents, AFTER_MERGE_ORPHAN_ACTIVE_MARKERS)).toEqual([]);
   });
 
   it("mid_scope_gate_capability_tier_markers_present_in_both_files", () => {

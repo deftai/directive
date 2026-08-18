@@ -160,7 +160,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=eee89641c28f refreshed=2026-08-17T16:05:09Z session=fb4e893a8ebb -->
+<!-- deft:managed-section v3 sha=ab0941fbf5cf refreshed=2026-08-18T00:50:25Z session=90c4e12d63b9 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -254,6 +254,8 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 ⊗ Silent PR-open handback for a worker already scoped `drive-to: merge-ready`.
 ⊗ `stop-at: pr-open` without a named babysit / merge-path owner, or dual review-monitor leases on recovery (#3044 / #2261).
 ⊗ Stand down at CLEAN under human-merge with no reachable post-merge `scope:complete` owner.
+! After merge of issue `#N`, `deft verify:orphan-active -- --issue N` MUST exit 0 before `DONE` (#3429). Exit 1 → run the printed `deft scope:complete -- <path>` or emit `BLOCKED`.
+⊗ Emit `ISSUE: closed` while that brief is still in `active/`.
 
 ## Nuclear-family A2A topology (#3155)
 
