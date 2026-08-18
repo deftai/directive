@@ -55,25 +55,36 @@ export function rewriteProjectedSchemaContent(content: string): string {
     : content;
 }
 
+/** Fail closed when planned (source-rewritten) schema bytes still cite vbrief/.eval/. */
+export function assertPlannedSchemaDescriptionRooted(rel: string, text: string): void {
+  if (text.includes(LEGACY_EVAL_PATH_PREFIX)) {
+    throw new Error(
+      `projected xbrief schema still cites ${LEGACY_EVAL_PATH_PREFIX}: ${join(MIGRATED_ARTIFACT_DIR, "schemas", rel)}`,
+    );
+  }
+}
+
 /**
  * Fail closed when a projected xbrief/schemas file still cites vbrief/.eval/.
  * Upstream vbrief/schemas/ may keep legacy paths; consumer copies must not (#2670).
+ *
+ * `skipRel` is dest files the collect record plans to replace (#3456 plan-note):
+ * never validate stale dest bytes a skipped write would have replaced.
  */
 export function assertProjectedSchemaDescriptionsRooted(
   projectDir: string,
   destinationDir: string,
+  options: { readonly skipRel?: ReadonlySet<string> } = {},
 ): void {
   assertDestinationNotSymlink(projectDir, destinationDir);
   if (!isDirectory(destinationDir)) return;
 
+  const skipRel = options.skipRel;
   for (const rel of collectSchemaFiles(destinationDir)) {
+    if (skipRel?.has(rel)) continue;
     const full = join(destinationDir, rel);
     const text = readFileSync(full, "utf8");
-    if (text.includes(LEGACY_EVAL_PATH_PREFIX)) {
-      throw new Error(
-        `projected xbrief schema still cites ${LEGACY_EVAL_PATH_PREFIX}: ${join(MIGRATED_ARTIFACT_DIR, "schemas", rel)}`,
-      );
-    }
+    assertPlannedSchemaDescriptionRooted(rel, text);
   }
 }
 
@@ -115,11 +126,16 @@ export function syncConsumerXbriefSchemas(projectDir: string, deftDir: string): 
   mkdirSync(destinationDir, { recursive: true });
 
   let changed = false;
+  const plannedRel = new Set<string>();
   for (const rel of collectSchemaFiles(sourceDir)) {
     if (rel === OBSOLETE_CORE_SCHEMA) continue;
     const source = join(sourceDir, rel);
     const destination = join(destinationDir, rel);
     const projected = rewriteProjectedSchemaContent(readFileSync(source, "utf8"));
+    // Planned content is the oracle. Dest bytes a skipped write would replace
+    // are not validated (#3456 plan-note).
+    assertPlannedSchemaDescriptionRooted(rel, projected);
+    plannedRel.add(rel);
     changed = writeFileIfChanged(projectDir, destination, projected) || changed;
   }
 
@@ -128,7 +144,7 @@ export function syncConsumerXbriefSchemas(projectDir: string, deftDir: string): 
     changed = true;
   }
 
-  assertProjectedSchemaDescriptionsRooted(projectDir, destinationDir);
+  assertProjectedSchemaDescriptionsRooted(projectDir, destinationDir, { skipRel: plannedRel });
 
   return changed;
 }

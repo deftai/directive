@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, renameSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, renameSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { assertDepositContained } from "../deposit/contain.js";
 import { containedRemove, containedWrite } from "../fs/contained-write.js";
@@ -327,7 +327,7 @@ function writeJsonIfChanged(
     renameSync(temporary, path);
   } catch (err) {
     try {
-      rmSync(temporary, { force: true });
+      containedRemove({ root: resolve(projectRoot), target: temporary, mutation: false });
     } catch {
       /* best-effort cleanup */
     }

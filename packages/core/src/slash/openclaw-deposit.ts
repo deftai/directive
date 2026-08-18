@@ -11,15 +11,7 @@
  * ⊗ Fake project `.openclaw/commands/` file emitter.
  */
 
-import {
-  existsSync,
-  lstatSync,
-  mkdirSync,
-  readFileSync,
-  renameSync,
-  rmSync,
-  statSync,
-} from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, renameSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import {
@@ -28,7 +20,7 @@ import {
   listInScopeSkillsDirs,
   type OpenClawDetectResult,
 } from "../doctor/openclaw-skills.js";
-import { containedWrite } from "../fs/contained-write.js";
+import { containedRemove, containedWrite } from "../fs/contained-write.js";
 import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { loadProjectDefinition } from "../policy/resolve.js";
 import {
@@ -218,7 +210,7 @@ function writeSkillArtifact(skillsDir: string, artifact: OpenClawSkillArtifact):
     renameSync(tmp, skillFile);
   } catch (err) {
     try {
-      rmSync(tmp, { force: true });
+      containedRemove({ root: skillsDir, target: tmp, mutation: false });
     } catch {
       /* best-effort */
     }
@@ -246,8 +238,9 @@ function stripManagedSkills(skillsDir: string): string[] {
     }
     if (!isManagedOpenClawL2Skill(raw)) continue;
     try {
-      rmSync(skillDir, { recursive: true, force: true });
-      removed.push(skillDir);
+      if (containedRemove({ root: skillsDir, target: skillDir, recursive: true }).removed) {
+        removed.push(skillDir);
+      }
     } catch {
       /* best-effort */
     }

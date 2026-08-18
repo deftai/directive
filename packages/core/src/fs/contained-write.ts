@@ -15,7 +15,20 @@
  * onto this API over bespoke per-sink checks when equivalent. See
  * `docs/reference/contained-write.md`.
  *
- * Refs #2951.
+ * Delete coverage (#3392 / #3456): real dest deletes MUST go through
+ * {@link containedRemove} so a bound ledger (and later collect-only) records
+ * them. Raw `rmSync` on a dest path is a chokepoint bypass.
+ *
+ * Plan-mode zero-mutation (#3456): plan-mode / `deft update --dry-run` MUST
+ * perform zero in-tree filesystem mutations. Temp-file cleanups either use
+ * this chokepoint or live outside the project root. No silent dest-delete
+ * exceptions — route the site or name the exemption here.
+ *
+ * `tryCleanupLegacyDeftTree` is not on the update/dry-run path (classify
+ * refuses `migration-required` first). Its default removeDir still routes
+ * through containedRemove so the site is not a silent exception.
+ *
+ * Refs #2951 / #3392 / #3456.
  */
 
 import {

@@ -14,10 +14,10 @@
  * at a product filename is left untouched.
  */
 
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { assertDepositContained } from "../deposit/contain.js";
-import { containedWrite } from "../fs/contained-write.js";
+import { containedRemove, containedWrite } from "../fs/contained-write.js";
 import {
   type HostSlashCommandsPolicy,
   isHostSlashCommandDepositEnabled,
@@ -173,7 +173,7 @@ function writeHostCommandFileIfChanged(projectRoot: string, file: HostEmittedFil
     renameSync(temporary, absolute);
   } catch (err) {
     try {
-      rmSync(temporary, { force: true });
+      containedRemove({ root: projectRoot, target: temporary, mutation: false });
     } catch {
       /* best-effort cleanup */
     }
@@ -203,8 +203,9 @@ function stripManagedHostCommandFiles(projectRoot: string, hostId: SlashEmitterH
       continue;
     }
     try {
-      rmSync(absolute, { force: true });
-      removed.push(file.relativePath);
+      if (containedRemove({ root: projectRoot, target: absolute }).removed) {
+        removed.push(file.relativePath);
+      }
     } catch {
       /* best-effort */
     }

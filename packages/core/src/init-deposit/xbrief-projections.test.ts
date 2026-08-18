@@ -13,6 +13,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { runWithMutationLedger, snapshotMutationSummary } from "../fs/mutation-ledger.js";
 import { ProjectionContainmentError } from "../fs/projection-containment.js";
 import {
+  assertPlannedSchemaDescriptionRooted,
   assertProjectedSchemaDescriptionsRooted,
   rewriteProjectedSchemaContent,
   syncBareVersionMarker,
@@ -98,6 +99,57 @@ describe("xbrief consumer projections (#2595)", () => {
     expect(() => assertProjectedSchemaDescriptionsRooted(project, consumerSchemas)).toThrow(
       /projected xbrief schema still cites vbrief\/\.eval\//,
     );
+  });
+
+  it("validates planned schema content and skips dest bytes a write would replace (#3456)", () => {
+    const { project, deftDir } = fixture();
+    const consumerSchemas = join(project, "xbrief", "schemas");
+    mkdirSync(consumerSchemas, { recursive: true });
+    writeFileSync(
+      join(consumerSchemas, "xbrief-core-0.8.schema.json"),
+      '{"description":"stale dest still cites vbrief/.eval/candidates.jsonl"}\n',
+      "utf8",
+    );
+    writeFileSync(
+      join(consumerSchemas, "consumer-owned.schema.json"),
+      '{"description":"keep"}\n',
+      "utf8",
+    );
+
+    expect(syncConsumerXbriefSchemas(project, deftDir)).toBe(true);
+    expect(readFileSync(join(consumerSchemas, "xbrief-core-0.8.schema.json"), "utf8")).toBe(
+      "current\n",
+    );
+    expect(readFileSync(join(consumerSchemas, "consumer-owned.schema.json"), "utf8")).toBe(
+      '{"description":"keep"}\n',
+    );
+  });
+
+  it("dest leftover check skips planned replacements and still rejects dest-only leftovers (#3456)", () => {
+    const { project } = fixture();
+    const consumerSchemas = join(project, "xbrief", "schemas");
+    mkdirSync(consumerSchemas, { recursive: true });
+    writeFileSync(
+      join(consumerSchemas, "xbrief-core-0.8.schema.json"),
+      '{"description":"stale dest still cites vbrief/.eval/candidates.jsonl"}\n',
+      "utf8",
+    );
+    writeFileSync(
+      join(consumerSchemas, "leftover.schema.json"),
+      '{"description":"still vbrief/.eval/candidates.jsonl"}\n',
+      "utf8",
+    );
+    expect(() =>
+      assertProjectedSchemaDescriptionsRooted(project, consumerSchemas, {
+        skipRel: new Set(["xbrief-core-0.8.schema.json"]),
+      }),
+    ).toThrow(/leftover\.schema\.json/);
+    expect(() =>
+      assertPlannedSchemaDescriptionRooted(
+        "xbrief-core-0.8.schema.json",
+        '{"description":"xbrief/.eval/candidates.jsonl"}\n',
+      ),
+    ).not.toThrow();
   });
 
   it("assertProjectedSchemaDescriptionsRooted no-ops when destination is not a directory (#2666)", () => {

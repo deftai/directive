@@ -25,11 +25,12 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { rmSync, statSync } from "node:fs";
+import { statSync } from "node:fs";
 import { join } from "node:path";
 import { GO_BRIDGE_RELEASES_URL, UPGRADING_DOC_URL } from "../doctor/constants.js";
 import { extractManagedSection, parseInstallRootFromAgentsMd } from "../doctor/manifest.js";
 import { readTextSafe } from "../doctor/paths.js";
+import { containedRemove } from "../fs/contained-write.js";
 import { gitPorcelain } from "../story-ready/git.js";
 
 /** Non-zero exit code for a use-time legacy-layout refusal (needs-action). */
@@ -410,7 +411,11 @@ export function tryCleanupLegacyDeftTree(
   }
 
   const deftDir = join(projectDir, LEGACY_DEFT_DIR);
-  const removeDir = seams.removeDir ?? ((p: string) => rmSync(p, { recursive: true, force: true }));
+  const removeDir =
+    seams.removeDir ??
+    ((p: string) => {
+      containedRemove({ root: projectDir, target: p, recursive: true });
+    });
   const runGitRm =
     seams.runGitRm ??
     ((root: string, relPath: string) => {

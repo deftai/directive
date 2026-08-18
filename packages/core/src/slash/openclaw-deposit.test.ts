@@ -10,6 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { runWithMutationLedger, snapshotMutationSummary } from "../fs/mutation-ledger.js";
 import { generateOpenClawSkillArtifacts, isManagedOpenClawL2Skill } from "./openclaw-adapter.js";
 import {
   depositOpenClawL2ProductCommands,
@@ -128,6 +129,21 @@ describe("OpenClaw L2 deposit (#3064 D4/D5)", () => {
       policy: false,
     });
     expect(removed.removedPaths.length).toBe(PRODUCT_COMMAND_COUNT + 1);
+  });
+
+  it("ledgers dest deletes through containedRemove (#3456)", () => {
+    const home = makeTemp("oc-l2-ledger-");
+    const state = join(home, ".openclaw");
+    mkdirSync(join(state, "workspace", "skills"), { recursive: true });
+    const opts = { env: { OPENCLAW_STATE_DIR: state }, homeDir: home };
+    depositOpenClawL2ProductCommands({ ...opts, policy: true });
+    const skillsDir = join(state, "workspace", "skills");
+    const summary = runWithMutationLedger(skillsDir, () => {
+      const removed = depositOpenClawL2ProductCommands({ ...opts, policy: false });
+      expect(removed.removedPaths.length).toBe(PRODUCT_COMMAND_COUNT + 1);
+      return snapshotMutationSummary();
+    });
+    expect(summary.deleted.length).toBe(PRODUCT_COMMAND_COUNT + 1);
   });
 
   it("validates policy type", () => {

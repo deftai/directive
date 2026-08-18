@@ -6,15 +6,7 @@
  * forceDeposit for tests). Real directory copy — not symlink-escape into npm.
  */
 
-import {
-  existsSync,
-  lstatSync,
-  mkdirSync,
-  readFileSync,
-  renameSync,
-  rmSync,
-  statSync,
-} from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, renameSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import {
@@ -23,7 +15,7 @@ import {
   listInScopeSkillsDirs,
   type OpenClawDetectResult,
 } from "../doctor/openclaw-skills.js";
-import { containedWrite } from "../fs/contained-write.js";
+import { containedRemove, containedWrite } from "../fs/contained-write.js";
 import {
   formatOpenClawSoftRebindSkillMarkdown,
   isManagedOpenClawSoftRebindSkill,
@@ -146,7 +138,7 @@ export function depositOpenClawSoftRebindSkill(
     if (kind === "symlink" && isEscapingSkillSymlink(skillsDir, skillDir)) {
       // Replace unusable escaping symlink with a real copy.
       try {
-        rmSync(skillDir, { recursive: true, force: true });
+        containedRemove({ root: skillsDir, target: skillDir, recursive: true });
       } catch {
         // best-effort
       }
@@ -183,7 +175,7 @@ export function depositOpenClawSoftRebindSkill(
       renameSync(staging, skillFile);
     } catch (err) {
       try {
-        rmSync(staging, { force: true });
+        containedRemove({ root: skillsDir, target: staging, mutation: false });
       } catch {
         /* best-effort */
       }

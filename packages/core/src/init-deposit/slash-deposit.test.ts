@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { runWithMutationLedger, snapshotMutationSummary } from "../fs/mutation-ledger.js";
 import { emitHostCommandFiles, HOST_COMMAND_LAYOUTS } from "../slash/emitters.js";
 import { isThinWrapperMarkdown } from "../slash/generator.js";
 import { PRODUCT_COMMAND_COUNT } from "../slash/product-set.js";
@@ -155,6 +156,22 @@ describe("writeSlashCommandDeposit (#3054)", () => {
     expect(isInstallerManagedPath(".claude/commands/user-custom.md")).toBe(false);
     // Hook JSON paths remain distinct and still managed.
     expect(isInstallerManagedPath(".claude/settings.json")).toBe(true);
+  });
+
+  it("ledgers dest deletes through containedRemove (#3456)", () => {
+    const root = project();
+    writeSlashCommandDeposit(root);
+    expect(existsSync(join(root, ".claude/commands/deft-continue.md"))).toBe(true);
+    writeProjectDefinition(root, { claude: false });
+
+    const summary = runWithMutationLedger(root, () => {
+      const result = writeSlashCommandDeposit(root);
+      expect(result.removedPaths).toContain(".claude/commands/deft-continue.md");
+      return snapshotMutationSummary();
+    });
+
+    expect(existsSync(join(root, ".claude/commands/deft-continue.md"))).toBe(false);
+    expect(summary.deleted).toContain(".claude/commands/deft-continue.md");
   });
 
   it("does not conflict with agent hook paths", () => {

@@ -1,10 +1,12 @@
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   chmodSync,
   copyFileSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   statSync,
@@ -1253,6 +1255,31 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     );
   }
 
+  function hashFixtureTree(root: string): string {
+    const hash = createHash("sha256");
+    const walk = (dir: string, rel: string): void => {
+      const entries = readdirSync(dir, { withFileTypes: true }).sort((a, b) =>
+        a.name.localeCompare(b.name),
+      );
+      for (const entry of entries) {
+        const nextRel = rel ? `${rel}/${entry.name}` : entry.name;
+        const nextAbs = join(dir, entry.name);
+        if (entry.isDirectory()) {
+          hash.update(`d:${nextRel}\n`);
+          walk(nextAbs, nextRel);
+          continue;
+        }
+        if (entry.isFile()) {
+          hash.update(`f:${nextRel}\n`);
+          hash.update(readFileSync(nextAbs));
+          hash.update("\n");
+        }
+      }
+    };
+    walk(root, "");
+    return hash.digest("hex");
+  }
+
   function classifySeams(engine: { reachable: boolean; version: string | null }): ClassifySeams {
     return { engineProbe: () => engine, preCutoverProbe: () => false };
   }
@@ -1351,6 +1378,43 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     expect(payload.mode).toBeDefined();
     // VERSION untouched -> nothing was re-stamped.
     expect(readFileSync(join(project, ".deft", "core", "VERSION"), "utf8")).toContain("v0.53.0");
+  });
+
+  it("full dry-run leaves the fixture tree byte-identical (#3456)", async () => {
+    const project = freshRoot("update-dryrun-hash-");
+    writeInitializedProject(project, { contentVersion: "0.53.0", pinVersion: "0.53.0" });
+    mkdirSync(join(project, "xbrief", "schemas"), { recursive: true });
+    mkdirSync(join(project, ".claude", "commands"), { recursive: true });
+    writeFileSync(
+      join(project, "xbrief", "schemas", "xbrief-core-0.8.schema.json"),
+      '{"description":"stale dest still cites vbrief/.eval/candidates.jsonl"}\n',
+      "utf8",
+    );
+    writeFileSync(
+      join(project, ".claude", "commands", "deft-continue.md"),
+      "---\ndescription: managed\n---\n\nRead and follow `resilience/continue-here.md`.\n",
+      "utf8",
+    );
+    const before = hashFixtureTree(project);
+
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      dryRun: true,
+      classifySeams: classifySeams({ reachable: true, version: "0.53.0" }),
+      writeOut: () => undefined,
+      writeErr: () => undefined,
+      seams: {
+        resolveContentRoot: async () => {
+          throw new Error("resolveContentRoot must NOT run in dry-run mode");
+        },
+      },
+    });
+
+    expect(code).toBe(0);
+    expect(hashFixtureTree(project)).toBe(before);
   });
 
   it("reports current and refreshes idempotently on an up-to-date install (a2/a5)", async () => {
