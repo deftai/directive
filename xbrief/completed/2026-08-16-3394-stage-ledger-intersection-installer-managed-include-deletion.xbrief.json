@@ -1,0 +1,121 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3394",
+    "updated": "2026-08-17T17:05:19Z"
+  },
+  "plan": {
+    "id": "3394-ledger-staging",
+    "title": "Stage ledger intersection installer-managed (include deletions; print the rest)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Wave 3 of #3378. Stage set is ledger intersection installer-managed, including tracked deletions. Ledger minus allowlist is printed and left unstaged. Blocked by #3392 and #3393.",
+      "UserStory": "As a Directive operator, I want deft update to stage only this-run installer-managed mutations including deletions, so that a hook migration cannot commit half-applied.",
+      "ImplementationPlan": "1. After #3392 and #3393 merge, change staging in packages/core/src/init-deposit/hygiene.ts to ledger intersection installer-managed including tracked deletions. 2. Filter untracked deletes, remove includeTaskfile, print unstaged remainder, then run the init-deposit test suite and the repo quality gate.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3394",
+      "Overview": "Do not start until Wave 1 and Wave 2 land. Do not git add -A. Do not auto-stage PROJECT-DEFINITION.",
+      "Labels": "bug, enhancement, determinism, agent-experience, vendored-deposit, area:installer, area:cli, status:child"
+    },
+    "items": [
+      {
+        "title": "Intersection staging including deletions",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a refresh run, when staging runs, the stage set is ledger intersection installer-managed, including this-run deletions of tracked files via git add -- path. Untracked ledger deletions are not passed to a single batch git add that can fail the whole list. Ledger paths that are not installer-managed are printed and left unstaged.",
+          "Traces": "FR-3394-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/hygiene.test.ts#ledger intersection staging (#3394)",
+          "recorded_at": "2026-08-17T16:58:00Z",
+          "recorded_by": "leaf-implementation/3394"
+        }
+      },
+      {
+        "title": "Stop exist-walk staging",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given an update that does not touch Taskfile, package.json, or .gitignore, when staging runs, pre-existing consumer edits to those files are not git added. includeTaskfile is removed. No git add -A. Refresh does not claim no post-stage stragglers when a this-run deletion was left unstaged. task check passes. CHANGELOG [Unreleased] has a brief note.",
+          "Traces": "FR-3394-2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/hygiene.test.ts#does not stage untouched dirty package.json or .gitignore",
+          "recorded_at": "2026-08-17T16:58:00Z",
+          "recorded_by": "leaf-implementation/3394"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "enhancement",
+      "determinism",
+      "agent-experience",
+      "vendored-deposit",
+      "area:installer",
+      "area:cli",
+      "status:child"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3394",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3394: Stage ledger intersection"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/init-deposit/hygiene.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/init-deposit"
+        ],
+        "expected_outputs": [
+          "ledger intersection staging",
+          "CHANGELOG #3394"
+        ],
+        "depends_on": [
+          "3392-mutation-ledger",
+          "3393-adapter-allowlist"
+        ],
+        "conflict_group": "update-ledger",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3417,
+        "prBase": null,
+        "mergeCommit": "e7f82ce67cd783ebc368eebe6f60f4c8f378d589",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e7f82ce67cd783ebc368eebe6f60f4c8f378d589",
+        "verifiedAt": "2026-08-17T17:05:19Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "25d72b19-ff3b-429f-9f6f-03478a8a3db8"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-17T17:05:19Z",
+      "completedSessionId": "25d72b19-ff3b-429f-9f6f-03478a8a3db8",
+      "capacityBucket": "new-capability"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "collapsed #3394 AC; blocked by 3392 and 3393"
+    },
+    "updated": "2026-08-17T17:05:19Z"
+  }
+}

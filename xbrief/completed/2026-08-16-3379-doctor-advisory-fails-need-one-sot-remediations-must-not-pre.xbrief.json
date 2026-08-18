@@ -1,0 +1,118 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3379",
+    "updated": "2026-08-16T22:38:07Z"
+  },
+  "plan": {
+    "id": "3379-doctor-advisory-sot",
+    "title": "doctor advisory fails need one SoT; remediations must not prescribe a blocked write",
+    "status": "completed",
+    "narratives": {
+      "Description": "Residual of #3372. deriveExitCode and cmdDoctor warningOnFail are two name lists. Replace both with one exported set plus data.advisory. Dirty doctor copy must not tell the operator to edit files when writes are blocked.",
+      "UserStory": "As a Directive operator, I want advisory doctor fails to stay warnings with one name set, so that a gated ritual cannot deadlock writes on bookkeeping that the check itself calls advisory.",
+      "ImplementationPlan": "1. Export DOCTOR_ADVISORY_FAIL_CHECKS from packages/core/src/doctor/checks.ts and make deriveExitCode and cmdDoctor import it. 2. Treat data.advisory true or a set name as advisory, stamp existing advisory fails, fix renderDoctorStatusLine and session:ready copy, then verify with tests.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3379",
+      "Overview": "Authority is the residual-lock comment 5309596896, not the issue body. Do not re-special-case completed-open-items. Do not implement ack ledger.",
+      "Labels": "bug, determinism, doctor, agent-experience, area:cli"
+    },
+    "items": [
+      {
+        "title": "One advisory-fail name set",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given deriveExitCode and cmdDoctor, when they classify a fail, both import one exported name set from packages/core/src/doctor/checks.ts. No inline duplicate list. A fail is advisory when data.advisory is true or the name is in the set. A fixture check with only data.advisory true and a name not in the set exits 0, lastErrorCount 0, severity warning. Names already in today's lists stay warnings. completed-lifecycle-consistency on plan.status drift is still an error.",
+          "Traces": "FR-3379-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/checks.test.ts; packages/core/src/doctor/main.test.ts; PR #3406 Greptile CLEAN 5/5; merge e6d4ca8f562dc2af88a5dc9cbf1dd7e2677f4e22",
+          "recorded_at": "2026-08-16T22:40:00.000Z",
+          "recorded_by": "grok-build-leaf-3379"
+        }
+      },
+      {
+        "title": "Remediation copy does not prescribe a blocked write",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a dirty doctor or gated ritual, when renderDoctorStatusLine and the throttle hint print, they say --full re-probes only and do not say address findings. When lastErrorCount is greater than 0, copy says these are hard errors and advisory warnings do not block writes. session:ready and PreToolUse doctor-step fail text match. CHANGELOG [Unreleased] has a brief note.",
+          "Traces": "FR-3379-2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/doctor/doctor-state.test.ts; PR #3406 Greptile CLEAN 5/5; merge e6d4ca8f562dc2af88a5dc9cbf1dd7e2677f4e22",
+          "recorded_at": "2026-08-16T22:40:00.000Z",
+          "recorded_by": "grok-build-leaf-3379"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "determinism",
+      "doctor",
+      "agent-experience",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3379",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3379: doctor advisory fails need one SoT"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/doctor",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/doctor"
+        ],
+        "expected_outputs": [
+          "one advisory-fail SoT",
+          "CHANGELOG #3379"
+        ],
+        "depends_on": [],
+        "conflict_group": "doctor-advisory",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3406,
+        "prBase": "master",
+        "mergeCommit": "e6d4ca8f562dc2af88a5dc9cbf1dd7e2677f4e22",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e6d4ca8f562dc2af88a5dc9cbf1dd7e2677f4e22",
+        "verifiedAt": "2026-08-16T22:38:07Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "6d5f682c-bf0f-47a5-a6ea-82bf1a3755fa"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-16T22:38:07Z",
+      "completedSessionId": "6d5f682c-bf0f-47a5-a6ea-82bf1a3755fa",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/doctor"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "product AC is targeted doctor vitest; residual-lock items are not clause-walkable",
+      "clauses": []
+    },
+    "updated": "2026-08-16T22:38:07Z"
+  }
+}

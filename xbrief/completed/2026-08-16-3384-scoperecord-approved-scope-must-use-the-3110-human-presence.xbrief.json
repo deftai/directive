@@ -1,0 +1,160 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3384",
+    "updated": "2026-08-16T23:11:50Z"
+  },
+  "plan": {
+    "id": "3384-human-presence-mint",
+    "title": "scope:record-approved-scope must use the #3110 human-presence gate; --actor is display only",
+    "status": "completed",
+    "narratives": {
+      "Description": "Wave 1 of #3376 makes scope:record-approved-scope a real human-origin mint. The existing #3110 refuseNonInteractiveMint gate in packages/cli/src/authz.ts must be extracted into a shared module and called from both authz and this command. --actor is display only and never authorization.",
+      "UserStory": "As a Directive operator, I want scope:record-approved-scope to refuse agent and CI shells the same way authz mint does, so that approved-scope records cannot be stamped without a real TTY plus --confirm and typed phrase mint.",
+      "ImplementationPlan": "1. Extract refuseNonInteractiveMint, AUTHZ_AGENT_SHELL_ENV_MARKERS, controlling-terminal, --confirm, and typed phrase mint from the packages/cli/src/authz.ts module file into a shared module; call it from authz and from packages/cli/src/scope-record-approved-scope.ts. 2. Stop writing xbriefBodyDigest on new records in packages/core/src/scope-provenance/digest.ts, keep verify off grants, add CLI refuse-matrix tests plus docs in content/docs/scope-provenance.md, then verify with vitest and task check.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3384",
+      "Overview": "Implement from #3376 current-shape R7 plus pass-4 F4/F5 (comment 5309237780) and the #3384 issue comment. Do not implement Wave 2 intent extraction. Do not touch packages/core/src/authz (live #3382).",
+      "Labels": "bug, enhancement, security, determinism, agent-experience, area:cli, status:child"
+    },
+    "items": [
+      {
+        "title": "Shared #3110 human-presence gate",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the #3110 gate logic, when authz and scope:record-approved-scope mint, both call one shared module (no copy-paste). Agent/CI env markers (AUTHZ_AGENT_SHELL_ENV_MARKERS), non-TTY, missing controlling terminal, missing --confirm, wrong typed phrase, and active UAT lease all refuse mint. --actor Flynn from an agent/CI shell cannot mint. --actor is never authorization.",
+          "Traces": "FR-3384-1"
+        },
+        "x-directive/evidence": {
+          "kind": "uat",
+          "pointer": "packages/cli/src/human-presence-mint.test.ts#refuses mint while UAT is active",
+          "recorded_at": "2026-08-16T23:07:48Z",
+          "recorded_by": "leaf-implementation/3384"
+        }
+      },
+      {
+        "title": "Mint writes display stamp only; verify ignores grants",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a successful human TTY mint, when the command finishes, it writes .deft/approved-scope/<plan-id>.json with a human-looking stamp and does not write an authz grant. New records do not write xbriefBodyDigest. verify:scope-provenance does not look up .deft/authz/grants.",
+          "Traces": "FR-3384-2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/scope-record-approved-scope.test.ts#no-xbriefBodyDigest",
+          "recorded_at": "2026-08-16T23:07:48Z",
+          "recorded_by": "leaf-implementation/3384"
+        }
+      },
+      {
+        "title": "Docs, tests, and CHANGELOG",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the Wave 1 change, when content/docs/scope-provenance.md is read, it says --actor is display-only, names the TTY/--confirm/mint gate, and states W1-era records carry no intentDigest and are legacy under Wave 2 (#3385). Existing authz grant tests and scope-record tests stay green. New tests cover the shared-gate refuse matrix. CHANGELOG [Unreleased] has a brief note. task check passes.",
+          "Traces": "FR-3384-3"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/human-presence-mint.test.ts + content/docs/scope-provenance.md + CHANGELOG.md [Unreleased] #3384 + CI TypeScript (build + lint + test) success on 2f27b270",
+          "recorded_at": "2026-08-16T23:07:48Z",
+          "recorded_by": "leaf-implementation/3384"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "enhancement",
+      "security",
+      "determinism",
+      "agent-experience",
+      "area:cli",
+      "status:child"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3384",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3384: scope:record-approved-scope must use the #3110 human-presence gate; --actor is display only"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3376",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3376: parent epic (current-shape R7 + pass-4 F4/F5)"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/src/authz.ts",
+          "packages/cli/src/scope-record-approved-scope.ts",
+          "packages/core/src/scope-provenance",
+          "content/docs/scope-provenance.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/cli/src/human-presence-mint.test.ts packages/cli/src/scope-record-approved-scope.test.ts packages/core/src/scope-provenance"
+        ],
+        "expected_outputs": [
+          "shared #3110 gate",
+          "no xbriefBodyDigest on new records",
+          "CHANGELOG #3384"
+        ],
+        "depends_on": [],
+        "conflict_group": "scope-provenance-mint",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3410,
+        "prBase": "master",
+        "mergeCommit": "eeefd9b5cb59dfbc4a751495730d364f6cbc75c4",
+        "deliveryBranch": "master",
+        "deliveryCommit": "eeefd9b5cb59dfbc4a751495730d364f6cbc75c4",
+        "verifiedAt": "2026-08-16T23:11:50Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "6d5f682c-bf0f-47a5-a6ea-82bf1a3755fa"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-16T23:11:50Z",
+      "completedSessionId": "6d5f682c-bf0f-47a5-a6ea-82bf1a3755fa",
+      "capacityBucket": "new-capability"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "collapsed #3384 AC plus pass-4 F4/F5 into three items",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Shared human-presence mint module exists at its stated path",
+          "artifact_path": "packages/cli/src/authz.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "Scope-provenance digest module exists at its stated path",
+          "artifact_path": "packages/core/src/scope-provenance/digest.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 3,
+          "text": "Scope-provenance docs exist at their stated path",
+          "artifact_path": "content/docs/scope-provenance.md",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-16T23:11:50Z"
+  }
+}

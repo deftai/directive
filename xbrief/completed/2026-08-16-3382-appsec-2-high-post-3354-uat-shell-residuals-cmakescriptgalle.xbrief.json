@@ -1,0 +1,148 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3382",
+    "updated": "2026-08-16T21:08:17Z"
+  },
+  "plan": {
+    "id": "3382-uat-shell-residuals",
+    "title": "AppSec: 2 HIGH — post-#3354 UAT Shell residuals (cmake/script/gallery-dl/VCS/editors plant authz + kill-switch)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Post-#3354 UAT Shell still classifies residual write-capable binaries as empty or unclassifiable and allows write-shaped commands. Those residuals use dest forms that generic -o / --output / --outfile harvest does not cover, and they can plant forged .deft/authz grants or a regular-file .deft-directive-disable kill-switch.",
+      "UserStory": "As a Directive operator under active UAT, I want residual dest-form Shell writers and editors to stay fail-closed, so that agents cannot plant authz grants or a kill-switch after the #3354 harvest.",
+      "ImplementationPlan": "1. Update the classify module file packages/core/src/authz/classify.ts so dest parsing covers cmake -E copy, script -q, gallery-dl -d, megadl --path, ncftpget, git apply --directory, VCS checkout writers, and editor plant, and fail-closed on unclassifiable write-shaped Shell under UAT. 2. Add authz classify tests plus decideHook fixtures that assert residual dests settings-deny versus curl -o / nc -o, then verify ordinary /tmp dests stay unclassifiable and add a CHANGELOG note.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3382",
+      "Overview": "## Summary\n\nAppSec scan on **`0c382e91`** (post-**#3354**) found two **HIGH** UAT Shell classification residuals.\n\nUnder active UAT, further write-capable binaries still classify empty / unclassifiable and **allow** write-shaped Shell. That path can plant a forged `.deft/authz` grant or a regular-file `.deft-directive-disable` kill-switch.\n\nThese residuals use dest forms that **#3354's generic `-o` / `--output` / `--outfile` harvest does not cover** (`cmake -E copy` positional dest, `script -q`, `gallery-dl -d`, `megadl --path`, `ncftpget`, `git apply --directory=…`, VCS checkout writers, and editor plant).\n\n**Repo / tip:** `deftai/directive` @ `0c382e91d27308ad374de86092c184e12e4228c9`  \n**Primary code:** `packages/core/src/authz/classify.ts`  \n**Attacker model:** Agent under **active UAT** with PreToolUse Shell hooks\n\n**Already denied after #3354 (do not re-report):** `nc` / `netcat` / `7zz` / `msgfmt` / `msgcat` / `lz4` / `lzop` / `unrar` / `rar` / `aunpack` / `atool` / `ftpget` / `tftp` / `sqlite3` / `crane` / `objcopy` plus dest-flag `-o` / `--output` / `--outfile` on unknown write-shaped bins. Contrast: `curl -o` / `nc -o` remain settings-denied.\n",
+      "Labels": "bug, security, tooling, agent-safety"
+    },
+    "items": [
+      {
+        "title": "UAT residual dest forms deny authz and kill-switch writes",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given active UAT, when listed residual bins (cmake -E copy, script -q, gallery-dl -d, megadl --path, ncftpget, git apply --directory, svn export / fossil open peers, ed / nvim / nano) write into .deft/authz or plant .deft-directive-disable / .no-deft-directive, they classify as settings deny. Dest parsing covers those positional and flag dest forms. Unclassifiable write-shaped Shell under UAT is fail-closed, not silent allow.",
+          "Traces": "FR-3382-1"
+        },
+        "x-directive/evidence": {
+          "kind": "uat",
+          "pointer": "packages/core/src/authz/incident-regression.test.ts#UAT residual dest-form writers fail-closed (#3382)",
+          "recorded_at": "2026-08-16T21:00:00Z",
+          "recorded_by": "leaf-implementation"
+        }
+      },
+      {
+        "title": "Regressions versus already-denied peers and no false deny",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the residual dest-form fix, when Vitest runs authz classify / decideHook regressions, curl -o and nc -o remain settings-denied and ordinary non-authz dests such as /tmp stay unclassifiable or allowed outside UAT write paths.",
+          "Traces": "FR-3382-2"
+        },
+        "x-directive/evidence": {
+          "kind": "uat",
+          "pointer": "pnpm exec vitest run packages/core/src/authz",
+          "recorded_at": "2026-08-16T21:00:00Z",
+          "recorded_by": "leaf-implementation"
+        }
+      },
+      {
+        "title": "CHANGELOG Unreleased security note",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the security fix lands, when CHANGELOG [Unreleased] is read, it has a brief security note for #3382 with no exploit cookbook.",
+          "Traces": "FR-3382-3"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3400",
+          "recorded_at": "2026-08-16T21:00:00Z",
+          "recorded_by": "leaf-implementation"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security",
+      "tooling",
+      "agent-safety"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3382",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3382: AppSec: 2 HIGH — post-#3354 UAT Shell residuals (cmake/script/gallery-dl/VCS/editors plant authz + kill-switch)"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/authz",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/authz"
+        ],
+        "expected_outputs": [
+          "UAT residual dest forms settings-deny",
+          "CHANGELOG #3382"
+        ],
+        "depends_on": [],
+        "conflict_group": "authz-uat-shell",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 3400,
+        "prBase": "master",
+        "mergeCommit": "27f6937dc236303e144594e53877a14ddeca29cb",
+        "deliveryBranch": "master",
+        "deliveryCommit": "27f6937dc236303e144594e53877a14ddeca29cb",
+        "verifiedAt": "2026-08-16T21:08:17Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "48a947af-5506-4885-840b-24714c2394f6"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-16T21:08:17Z",
+      "completedSessionId": "48a947af-5506-4885-840b-24714c2394f6",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "collapsed ingest clauses into three independently testable items for swarm readiness",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Under active UAT, listed residual dest-form binaries that write into .deft/authz or plant .deft-directive-disable / .no-deft-directive classify as settings deny",
+          "artifact_path": "packages/core/src/authz/classify.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "Regression tests cover residual bins versus already-denied peers (curl -o / nc -o) and do not false-deny ordinary non-authz dests such as /tmp",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 3,
+          "text": "CHANGELOG [Unreleased] security note contains \"#3382\" with no exploit cookbook",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-16T21:08:17Z"
+  }
+}

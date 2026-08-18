@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Land completed-tracked artifacts for closed 3382-cohort issues (#3264 / #1358).** 24 already-completed xBRIEFs for closed issues now live under `xbrief/completed/` so `verify:completed-tracked` and post-merge lifecycle see the record. Does not re-close those issues. Refs #2321.
 - **Project-invariant preflight gate (#3425).** `xbrief:preflight` and `verify:story-ready` fail closed when an applicable `plan.policy.projectInvariants` ID has no `coverage_map` disposition. Remediation names the omitted ID. Empty or absent list is a no-op. Drift is the list as of check time. Completeness of declarations only — not truth. Visage load/save and sibling-purpose entries are authored examples, not framework oracles. Docs: `content/docs/project-invariants.md`. Refs #3425.
 - **Typed `plan.policy.projectInvariants` (#3425).** Authored must-not-break list (`id`, statement, contract surface as paths and/or module ids). Empty or absent is a no-op. Scope `coverage_map` reuses covered/deferred/behavioral_delta against applicable IDs; `split` is excluded; `not_applicable` needs a reason. Applicability is contract surface × `file_scope`. Refs #3425.
 - **Announce Prettier-sensitive deposit rewrites (#3395).** `deft update` prints rewritten consumer-owned `xbrief/schemas/*` from the mutation ledger and tells you to run `task fmt` before the upgrade PR. It does not run the consumer formatter. Closes #3395.

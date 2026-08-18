@@ -1,0 +1,128 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3387",
+    "updated": "2026-08-17T20:43:21Z"
+  },
+  "plan": {
+    "id": "3387-bank-aware-complete",
+    "title": "scope:complete acceptance walk must consume the #3285 bank instead of re-executing every command",
+    "status": "completed",
+    "narratives": {
+      "Description": "The #3357 completion walk re-executes every acceptance command with no reuse of verify-ac or the #3285 ac-pass bank. That doubled suites after #3357 and raised benchmark turns and cost with no outcome movement. Keep the fail-closed guarantee. Make the walk bank-aware.",
+      "UserStory": "As a Directive operator, I want scope:complete to accept a fresh green AC bank when product files have not changed, so that acceptance suites do not run twice on the happy path.",
+      "ImplementationPlan": "1. Update the packages/core/src/scope/acceptance-evidence.ts module so evaluateScopeCompleteAcceptanceWalk consults the #3285 bank and product-state hash before calling evaluateVerifyAcFromPlan. 2. Wire same-session from_cache for verify-ac during check composition, add served_from telemetry, and verify with a trial-shaped fixture plus task check.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3387",
+      "Overview": "Thin #3265 fix. Do not weaken #3357 refusal on empty or failing acceptance. Do not touch packages/core/src/scope-provenance (live #3384).",
+      "Labels": "bug, agent-experience"
+    },
+    "items": [
+      {
+        "title": "Bank-aware completion walk",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a banked green AC for this brief and a matching product-state hash, when scope:complete runs, it accepts the bank as the walk result and does not re-execute acceptance commands. Any mismatch, missing bank, or stale hash runs the full walk. Empty or failing acceptance still refuses as today (#3357).",
+          "Traces": "FR-3387-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/product-state-hash.test.ts",
+          "recorded_at": "2026-08-17T20:36:00Z",
+          "recorded_by": "vitest"
+        }
+      },
+      {
+        "title": "Check cache, telemetry, and fixture",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given an unchanged plan and product in one session, when check runs verify:ac after a green result, from_cache can serve it. Acceptance events record served_from bank, cache, or executed. A trial-shaped fixture (activate, implement, verify:ac green, scope:complete, check) executes acceptance commands once. task check passes. CHANGELOG [Unreleased] has a brief note.",
+          "Traces": "FR-3387-2"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3404",
+          "recorded_at": "2026-08-17T20:36:00Z",
+          "recorded_by": "swarm-worker"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3387",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3387: bank-aware scope:complete acceptance walk"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/scope",
+          "packages/core/src/session",
+          "packages/core/src/product-first-done-gate",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/scope packages/core/src/session packages/core/src/product-first-done-gate"
+        ],
+        "expected_outputs": [
+          "bank-aware completion walk",
+          "CHANGELOG #3387"
+        ],
+        "depends_on": [],
+        "conflict_group": "scope-complete-ac",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3404,
+        "prBase": null,
+        "mergeCommit": "4656b99b0acc866e3a0409d967a6a84dec7424e1",
+        "deliveryBranch": "master",
+        "deliveryCommit": "4656b99b0acc866e3a0409d967a6a84dec7424e1",
+        "verifiedAt": "2026-08-17T20:43:21Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "cdc3fd71-52f3-4cd4-81b4-5036603694e3"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-17T20:43:21Z",
+      "completedSessionId": "cdc3fd71-52f3-4cd4-81b4-5036603694e3",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "collapsed #3387 fix sketch into two items",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Bank-aware complete walk exists at its stated path",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "Same-session verify:ac cache exists at its stated path",
+          "artifact_path": "packages/core/src/session/verify-ac-session-cache.ts",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-17T20:43:21Z"
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3395",
+    "updated": "2026-08-17T03:35:54Z"
+  },
+  "plan": {
+    "id": "3395-prettier-announce",
+    "title": "Announce Prettier-sensitive deposit rewrites; do not run consumer formatter",
+    "status": "completed",
+    "narratives": {
+      "Description": "Wave 4 of #3378. Print rewritten consumer-owned paths from the mutation ledger and document task fmt before the upgrade PR. Do not run the consumer formatter from deft update. Blocked by #3392.",
+      "UserStory": "As a Directive operator, I want deft update to name rewritten schema files, so that I can run the repo formatter before the upgrade PR goes red.",
+      "ImplementationPlan": "1. After #3392 merges, print rewritten consumer-owned paths such as xbrief/schemas/* from the mutation ledger in packages/core/src/init-deposit/refresh.ts. 2. Document task fmt before the upgrade PR in content/docs, then verify with pnpm exec vitest run packages/core/src/init-deposit and task check.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3395",
+      "Overview": "Parallel after Wave 1. Do not run consumer Prettier from update. Do not implement staging.",
+      "Labels": "enhancement, determinism, agent-experience, vendored-deposit, area:installer, area:cli, status:child"
+    },
+    "items": [
+      {
+        "title": "Announce rewritten consumer-owned paths",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a refresh that rewrites xbrief/schemas/*, when the update summary is printed, those paths appear from the ledger. deft update does not invoke the consumer Prettier or formatter.",
+          "Traces": "FR-3395-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/refresh.test.ts#3395",
+          "recorded_at": "2026-08-17T03:34:06Z",
+          "recorded_by": "leaf-implementation"
+        }
+      },
+      {
+        "title": "Docs and check",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the announce lands, when docs are read, they say to run task fmt or the repo formatter before opening the upgrade PR. Optional: deposit JSON matches Directive's own Prettier shape. task check passes. CHANGELOG [Unreleased] has a brief note.",
+          "Traces": "FR-3395-2"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3419",
+          "recorded_at": "2026-08-17T03:34:06Z",
+          "recorded_by": "leaf-implementation"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "determinism",
+      "agent-experience",
+      "vendored-deposit",
+      "area:installer",
+      "area:cli",
+      "status:child"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3395",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3395: Announce Prettier-sensitive deposit rewrites"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/init-deposit/refresh.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/init-deposit"
+        ],
+        "expected_outputs": [
+          "schema rewrite announce",
+          "CHANGELOG #3395"
+        ],
+        "depends_on": [
+          "3392-mutation-ledger"
+        ],
+        "conflict_group": "update-ledger",
+        "size": "small",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3419,
+        "prBase": null,
+        "mergeCommit": "eee89641c28f5069c5b99a24b98f9ee0c1ecbe4d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "eee89641c28f5069c5b99a24b98f9ee0c1ecbe4d",
+        "verifiedAt": "2026-08-17T03:35:54Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "420f5624-4b08-4f08-95b0-dd82e21a9260"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-17T03:35:54Z",
+      "completedSessionId": "420f5624-4b08-4f08-95b0-dd82e21a9260",
+      "capacityBucket": "new-capability"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "collapsed #3395 AC; blocked by 3392",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Rewritten consumer-owned paths include \"xbrief/schemas/\"",
+          "artifact_path": "packages/core/src/init-deposit/refresh.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "Docs say to run \"task fmt\" before the upgrade PR",
+          "artifact_path": "content/UPGRADING.md",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-17T03:35:54Z"
+  }
+}

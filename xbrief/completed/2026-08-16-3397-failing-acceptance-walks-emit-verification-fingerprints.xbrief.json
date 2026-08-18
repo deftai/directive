@@ -1,0 +1,128 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3397",
+    "updated": "2026-08-16T22:52:33Z"
+  },
+  "plan": {
+    "id": "3397-fail-side-verification-fingerprint",
+    "title": "Failing acceptance walks emit verification fingerprints so #3322 can flag method-swap",
+    "status": "completed",
+    "narratives": {
+      "Description": "The #3322 detector is blind because failing walks emit no verification event. Field stream shows fail then a later pass with a new fingerprint and nothing to diff. Emit fail-side fingerprints with the same shape as passes.",
+      "UserStory": "As a Directive operator, I want failing acceptance walks to record a verification fingerprint, so that a later pass with a different method is flagged instead of silently certified.",
+      "ImplementationPlan": "1. Change the evaluate module under packages/core/src/verify-ac so a failing walk emits a verification event with the same method_fingerprint shape as a pass. 2. Keep the existing flag.ts detector and lead the gate message with any flagged method change. Confirm with a field-sequence fixture plus the merge-chokepoint quality gate.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3397",
+      "Overview": "Issue body is authority (no comments). Companion of #3396. Do not edit packages/core/src/session or product-first-done-gate (live #3387). Do not refuse no-ops here. An honest same-command product fix must not flag.",
+      "Labels": "bug, agent-safety"
+    },
+    "items": [
+      {
+        "title": "Fail walks emit fingerprints",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a failing acceptance walk, when verify:ac records the result, a verification event is written with method_fingerprint from the command list plus cwd hash, same shape as a pass. The stream no longer has a first verification event that is only the later pass.",
+          "Traces": "FR-3397-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-ac/evaluate.test.ts#emitVerifyAcAttempts (#3397 fail-side fingerprints)",
+          "recorded_at": "2026-08-16T22:50:00Z",
+          "recorded_by": "leaf-implementation/3397"
+        }
+      },
+      {
+        "title": "Method-swap flags; honest fix does not",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a fixture that fails on three commands then passes on a different method for the same check_id, when verify:ac runs, a flagged event appears and output names the method change first. A same-command product edit that then passes does not flag. task check passes. CHANGELOG [Unreleased] has a brief note.",
+          "Traces": "FR-3397-2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-ac/evaluate.test.ts#flags the field sequence",
+          "recorded_at": "2026-08-16T22:50:00Z",
+          "recorded_by": "leaf-implementation/3397"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-safety"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3397",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3397: fail-side verification fingerprints"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/verify-ac",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/verify-ac"
+        ],
+        "expected_outputs": [
+          "fail-side verification fingerprints",
+          "CHANGELOG #3397"
+        ],
+        "depends_on": [],
+        "conflict_group": "verify-ac-fingerprint",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3407,
+        "prBase": "master",
+        "mergeCommit": "ebc46be12fdab109ce6f401ccac89c74454d9afa",
+        "deliveryBranch": "master",
+        "deliveryCommit": "ebc46be12fdab109ce6f401ccac89c74454d9afa",
+        "verifiedAt": "2026-08-16T22:52:33Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-16T22:52:33Z",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/verify-ac"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "stated verify command from #3397 plus collapsed body AC clauses",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Fail-side verification fingerprints exist at its stated path",
+          "artifact_path": "packages/core/src/verify-ac/evaluate.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "Method-swap flag helper exists at its stated path",
+          "artifact_path": "packages/core/src/verify-ac/flag.ts",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-16T22:52:33Z"
+  }
+}

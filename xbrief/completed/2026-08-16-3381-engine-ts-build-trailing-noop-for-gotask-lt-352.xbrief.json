@@ -1,0 +1,121 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3381 lock comment 5309667759",
+    "updated": "2026-08-16T22:44:54Z"
+  },
+  "plan": {
+    "id": "3381-ts-build-trailing-noop",
+    "title": "engine:_ts-build: trailing no-op for go-task <3.52 untaken if/fi",
+    "status": "completed",
+    "narratives": {
+      "Description": "go-task before 3.52 treats an untaken last if/fi as script exit 1. engine:_ts-build still ends on that fi, so every non-runtime task deft:* fails on a consumer deposit. Add a trailing colon no-op after the outer fi.",
+      "UserStory": "As a Directive consumer on Homebrew go-task 3.46.x, I want engine:_ts-build to exit 0 when the deposit is not buildable, so that task deft:* verbs do not fail as if the deposit were broken.",
+      "ImplementationPlan": "1. Edit the tasks/engine.yml _ts-build script so a colon no-op follows the outer fi, with a one-line comment that cites go-task before 3.52 and #3381. 2. Keep the consumer-deposit path from running pnpm or engine-pm-run build, keep the framework-source path building when stale and skipping when warm, then verify with the existing engine tests and task check.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3381",
+      "Overview": "Authority is analysis+lock comment 5309667759, not the issue body. Do not change engine:invoke. Do not invert is-buildable-source. Do not raise a hard min go-task version. Do not hunt other last-if scripts.",
+      "Labels": "bug, agent-experience, tooling, area:cli"
+    },
+    "items": [
+      {
+        "title": "Trailing no-op after the outer fi",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given tasks/engine.yml _ts-build cmds, when the script body is read, a command follows the outer fi. A colon no-op is enough. The comment on that line cites go-task before 3.52.0 and #3381.",
+          "Traces": "FR-3381-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/taskfile_engine_dispatch.test.ts#_ts-build ends with a trailing no-op after the outer if/fi (#3381)",
+          "recorded_at": "2026-08-16T22:43:00Z",
+          "recorded_by": "leaf-implementation/3381"
+        }
+      },
+      {
+        "title": "Deposit no-op and source build paths stay",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a consumer-deposit tree where is-buildable-source exits 1, when engine:_ts-build runs, it does not run pnpm or engine-pm-run build. Given a stale framework-source tree, it still builds. Given a warm dist, ts-build-fresh still skips. task check passes. CHANGELOG [Unreleased] has a brief note.",
+          "Traces": "FR-3381-2"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3409",
+          "recorded_at": "2026-08-16T22:43:00Z",
+          "recorded_by": "leaf-implementation/3381"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "tooling",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3381",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3381: engine:_ts-build trailing no-op"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3381#issuecomment-5309667759",
+        "type": "x-xbrief/github-comment",
+        "title": "Analysis + implementation lock (authority)"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "tasks/engine.yml",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts"
+        ],
+        "expected_outputs": [
+          "trailing no-op on _ts-build",
+          "CHANGELOG #3381"
+        ],
+        "depends_on": [],
+        "conflict_group": "engine-ts-build",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3409,
+        "prBase": "master",
+        "mergeCommit": "fac6e2c6555fa072cd0cbff25bd155a20075f283",
+        "deliveryBranch": "master",
+        "deliveryCommit": "fac6e2c6555fa072cd0cbff25bd155a20075f283",
+        "verifiedAt": "2026-08-16T22:44:54Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "d536592e-c62e-40dd-bc3b-bbc4e2ac5ccd"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-16T22:44:54Z",
+      "completedSessionId": "d536592e-c62e-40dd-bc3b-bbc4e2ac5ccd",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/content-contracts"
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "swarm verify_commands minus recursive task check"
+    },
+    "updated": "2026-08-16T22:44:54Z"
+  }
+}

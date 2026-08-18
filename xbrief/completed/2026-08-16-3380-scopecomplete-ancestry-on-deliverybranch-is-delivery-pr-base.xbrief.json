@@ -1,0 +1,159 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3380 lock comment 5309638161",
+    "updated": "2026-08-16T23:01:38Z"
+  },
+  "plan": {
+    "id": "3380-delivery-ancestry",
+    "title": "scope:complete: ancestry on deliveryBranch is delivery; PR base is provenance",
+    "status": "completed",
+    "narratives": {
+      "Description": "evaluateDeliveryGate short-circuits when prBase !== deliveryBranch before ancestry. Two-hop feature to develop to main cannot complete honestly. Ancestry on the refreshed delivery ref is delivery; prBase is provenance only.",
+      "UserStory": "As a Directive operator on a two-hop integration-then-delivery repo, I want scope:complete to accept a merge commit that is already an ancestor of origin/deliveryBranch even when the scope PR targeted develop, so that shipped work can complete without a lying --non-delivery disposition.",
+      "ImplementationPlan": "1. Change packages/core/src/scope/delivery-evidence.ts so a required mergeCommit that is an ancestor of refreshed origin/deliveryBranch is delivered and prBase is stamped as given. 2. Keep merged_to_integration only when ancestry fails; update remediations, flip the intermediate-prBase test, document in content/docs/directive-lifecycle.md, then verify with packages/core/src/scope/delivery-evidence.test.ts and task check.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3380",
+      "Overview": "Authority is analysis+lock comment 5309638161, not the issue body. Do not infer deliveryBranch from workflows. Do not implement sync-PR conferral. Do not auto-discover linked PRs. Do not change resolveDeliveryBranch order. Do not solve squash-sync. Do not edit packages/core/src/scope/acceptance-evidence.ts (live #3387).",
+      "Labels": "bug, determinism, agent-experience, scm, area:cli, area:vbrief"
+    },
+    "items": [
+      {
+        "title": "Ancestry is delivery; prBase is provenance",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given mergeCommit is required and is an ancestor of refreshed origin/deliveryBranch, when prBase is develop or any non-delivery branch, evaluateDeliveryGate is ok with disposition delivered and prBase stamped as given. Same prBase with failing ancestry is ok false and disposition merged_to_integration; the message does not claim the work never shipped. prBase equal to deliveryBranch with passing ancestry stays delivered.",
+          "Traces": "FR-3380-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/delivery-evidence.test.ts#3380",
+          "recorded_at": "2026-08-16T23:00:30Z",
+          "recorded_by": "leaf-implementation/3380"
+        }
+      },
+      {
+        "title": "Remediations name merge-commit and typed deliveryBranch",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given null evidence, ancestry miss, or integration-only, when fail messages print, they name scope:complete -- --merge-commit and typed plan.policy.deliveryBranch via task policy:show --field=deliveryBranch. They do not treat --non-delivery as the honest path for shipped two-hop work. completed-lifecycle and non-delivery dispositions stay unchanged. Edit CLI complete-path copy only when it still repeats PR-base-equals-deliveryBranch as the rule.",
+          "Traces": "FR-3380-2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/delivery-evidence.test.ts#3380",
+          "recorded_at": "2026-08-16T23:00:30Z",
+          "recorded_by": "leaf-implementation/3380"
+        }
+      },
+      {
+        "title": "Lifecycle doc and check",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given content/docs/directive-lifecycle.md, when the delivery-integrity section is read, ancestry on the delivery ref is delivery, integration prBase is provenance, and squash-sync can break ancestry of develop merge commits. task check passes. CHANGELOG [Unreleased] has a brief note.",
+          "Traces": "FR-3380-3"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/docs/directive-lifecycle.md#3380",
+          "recorded_at": "2026-08-16T23:00:30Z",
+          "recorded_by": "leaf-implementation/3380"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "determinism",
+      "agent-experience",
+      "scm",
+      "area:cli",
+      "area:vbrief"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3380",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3380: ancestry on deliveryBranch is delivery"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3380#issuecomment-5309638161",
+        "type": "x-xbrief/github-comment",
+        "title": "Analysis + implementation lock (authority)"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/scope/delivery-evidence.ts",
+          "packages/core/src/scope/delivery-evidence.test.ts",
+          "content/docs/directive-lifecycle.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/scope/delivery-evidence.test.ts"
+        ],
+        "expected_outputs": [
+          "ancestry-first delivery gate",
+          "CHANGELOG #3380"
+        ],
+        "depends_on": [],
+        "conflict_group": "delivery-evidence",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3411,
+        "prBase": "master",
+        "mergeCommit": "60ba24a391be1e37fd4a4b33fdf63f47a6d2eb49",
+        "deliveryBranch": "master",
+        "deliveryCommit": "60ba24a391be1e37fd4a4b33fdf63f47a6d2eb49",
+        "verifiedAt": "2026-08-16T23:01:38Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "11bbcfdf-c9f8-41a0-8534-99d412446ecb"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-16T23:01:38Z",
+      "completedSessionId": "11bbcfdf-c9f8-41a0-8534-99d412446ecb",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/scope/delivery-evidence.test.ts"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "collapsed lock comment 5309638161 AC into three items plus stated vitest command",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Intermediate prBase plus passing ancestry is \"delivered\"; failing ancestry is \"merged_to_integration\"",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "Null-evidence and fail messages name \"--merge-commit\" and typed \"deliveryBranch\"",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 3,
+          "text": "directive-lifecycle.md states ancestry is delivery and names the \"Squash-sync\" caveat",
+          "artifact_path": "content/docs/directive-lifecycle.md",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-16T23:01:38Z"
+  }
+}

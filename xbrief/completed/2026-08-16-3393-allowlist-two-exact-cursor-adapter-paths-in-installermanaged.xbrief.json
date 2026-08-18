@@ -1,0 +1,130 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3393",
+    "updated": "2026-08-17T00:43:36Z"
+  },
+  "plan": {
+    "id": "3393-adapter-allowlist",
+    "title": "Allowlist two exact Cursor adapter paths in installerManagedMatchers",
+    "status": "completed",
+    "narratives": {
+      "Description": "Wave 2 of #3378. Add two exact adapter paths to installerManagedMatchers so the official hook-migration delete is framework, not app. Do not add a .cursor/hooks/ prefix. Held until live #3388 finishes because that worker is editing hygiene.ts.",
+      "UserStory": "As a Directive operator, I want the official Cursor adapter delete classified as installer-managed, so that a framework-only update PR can pass no-mixed-core-and-app.",
+      "ImplementationPlan": "1. After #3388 merges, add the two exact adapter paths to installerManagedMatchers in packages/core/src/init-deposit/hygiene.ts. 2. Keep assertInstallerAllowlistHonors1430 green, document pull_request_target lag in that file or content/docs, then verify with pnpm exec vitest run packages/core/src/init-deposit and task check.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3393",
+      "Overview": "Epic says no product blocker, but file overlap with live #3388 hygiene.ts holds launch. Do not implement ledger or staging.",
+      "Labels": "bug, enhancement, determinism, agent-experience, vendored-deposit, area:installer, area:cli, status:child"
+    },
+    "items": [
+      {
+        "title": "Exact adapter paths are installer-managed",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given installerManagedMatchers, when the official adapter deletion is classified, .cursor/hooks/deft-cursor-hook-adapter.mjs and .test.mjs are installer-managed. A .cursor/hooks/ prefix is not added. Other files under .cursor/hooks/ stay app. assertInstallerAllowlistHonors1430 still passes.",
+          "Traces": "FR-3393-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "pnpm exec vitest run packages/core/src/init-deposit -- 355 passed; assertInstallerAllowlistHonors1430 green",
+          "recorded_at": "2026-08-16T23:39:00Z",
+          "recorded_by": "vitest"
+        }
+      },
+      {
+        "title": "Docs and check",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the allowlist change, when a framework-only PR includes the official adapter deletion, it is classified as core, not mixed app. Docs or a code comment name the pull_request_target / pinned-ref one-PR lag. task check passes. CHANGELOG [Unreleased] has a brief note.",
+          "Traces": "FR-3393-2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "verify:ac clause walk 2 verified; PR 3413 CI 24 passed / 0 failed; CHANGELOG [Unreleased] #3393",
+          "recorded_at": "2026-08-17T00:42:14Z",
+          "recorded_by": "vitest"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "enhancement",
+      "determinism",
+      "agent-experience",
+      "vendored-deposit",
+      "area:installer",
+      "area:cli",
+      "status:child"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3393",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3393: Allowlist two exact Cursor adapter paths"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/init-deposit/hygiene.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [],
+        "expected_outputs": [
+          "two exact adapter allowlist paths",
+          "CHANGELOG #3393"
+        ],
+        "depends_on": [
+          "3388-branch-sync-detector"
+        ],
+        "conflict_group": "update-ledger",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": null,
+        "prBase": null,
+        "mergeCommit": "0baf611fbd5c97f6703f7d8ec92ba3d34ee4caab",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0baf611fbd5c97f6703f7d8ec92ba3d34ee4caab",
+        "verifiedAt": "2026-08-17T00:43:36Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-17T00:43:36Z",
+      "capacityBucket": "new-capability"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "collapsed #3393 AC; launch waits on live 3388 hygiene overlap",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Two exact adapter paths are \"installer-managed\"; no hooks-dir prefix",
+          "artifact_path": "packages/core/src/init-deposit/hygiene.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "Official adapter delete is core not mixed app; \"pull_request_target\" lag documented",
+          "artifact_path": "packages/core/src/init-deposit/hygiene.ts",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-17T00:43:36Z"
+  }
+}

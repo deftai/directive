@@ -1,0 +1,139 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3388",
+    "updated": "2026-08-16T23:28:12Z"
+  },
+  "plan": {
+    "id": "3388-branch-sync-detector",
+    "title": "Shared branch-sync detector: typed baseBranch + evidence-based sync predicate",
+    "status": "completed",
+    "narratives": {
+      "Description": "Wave 1 of #3377. Shared branch-sync detector for measure/warn, scm:sync-default, and deft-core-guard. Dest is deliveryBranch. Source is new typed plan.policy.baseBranch. Sync predicate is evidence-based: base is dest and head is already on origin/baseBranch after fetch.",
+      "UserStory": "As a Directive operator, I want a single detector that says whether a PR is a branch sync, so that core-guard can exempt union syncs without guessing branch names.",
+      "ImplementationPlan": "1. Add typed plan.policy.baseBranch to the policy module file and a public detector API that fetches then tests dest plus ancestor-on-integration. 2. Wire deft-core-guard to that API with a loud exemption message, keep feature mix fails, then verify with tests and task check.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3388",
+      "Overview": "Implement from #3377 current-shape pass-2 and locked answers. Do not invent integrationBranch. Do not infer origin/develop as identity. Do not ship file-count warn or scm:sync-default.",
+      "Labels": "enhancement, determinism, agent-experience, scm, area:cli, status:child"
+    },
+    "items": [
+      {
+        "title": "Typed baseBranch and public detector",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given plan.policy.baseBranch, when task policy:show --field=baseBranch runs, the typed string field works. Unset baseBranch equals dest and the detector reports not a sync. origin/develop is never load-bearing identity. Predicate: base is dest AND head is reachable from origin/<baseBranch> after fetch. Name-only and label-only exemptions are not implemented.",
+          "Traces": "FR-3388-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/policy/base-branch.test.ts",
+          "recorded_at": "2026-08-16T23:27:30Z",
+          "recorded_by": "leaf-implementation/3388-branch-sync-detector"
+        }
+      },
+      {
+        "title": "Loud core-guard exemption and API ownership",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a matching sync PR, when core-guard runs, it exits 0 and prints that this is a sync whose commits were already guard-checked on the integration branch. A feature PR that mixes .deft/core/** with app still fails. The public detector API is the only source of is-this-a-sync for later children. task check passes. CHANGELOG [Unreleased] has a brief note.",
+          "Traces": "FR-3388-2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/policy/branch-sync.test.ts",
+          "recorded_at": "2026-08-16T23:27:30Z",
+          "recorded_by": "leaf-implementation/3388-branch-sync-detector"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "determinism",
+      "agent-experience",
+      "scm",
+      "area:cli",
+      "status:child"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3388",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3388: Shared branch-sync detector"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3377",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3377: parent epic (current-shape pass-2)"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/policy",
+          "packages/core/src/init-deposit",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/policy packages/core/src/init-deposit"
+        ],
+        "expected_outputs": [
+          "public branch-sync detector",
+          "loud core-guard sync exemption",
+          "CHANGELOG #3388"
+        ],
+        "depends_on": [],
+        "conflict_group": "branch-sync",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": null,
+        "prBase": null,
+        "mergeCommit": "93e7c63e521e7005f1e73d90dfefed4cffdb8bd2",
+        "deliveryBranch": "master",
+        "deliveryCommit": "93e7c63e521e7005f1e73d90dfefed4cffdb8bd2",
+        "verifiedAt": "2026-08-16T23:28:12Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "49bc17b1-448a-4b07-87a4-b23328b9d753"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-16T23:28:12Z",
+      "completedSessionId": "49bc17b1-448a-4b07-87a4-b23328b9d753",
+      "capacityBucket": "new-capability"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/policy packages/core/src/init-deposit"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "collapsed #3388 AC into two items from current-shape R/Q locks; bound shipped artifacts for clause walk",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Typed \"plan.policy.baseBranch\" plus evidence-based sync detector; unset source is no-op",
+          "artifact_path": "packages/core/src/policy/base-branch.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "Core-guard loudly exempts sync PRs via \"classifyMixedCoreAndAppForPr\" and still fails mixed feature PRs",
+          "artifact_path": "packages/core/src/init-deposit/hygiene.ts",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-16T23:28:12Z"
+  }
+}

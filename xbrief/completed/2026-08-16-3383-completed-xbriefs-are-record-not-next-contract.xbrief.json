@@ -1,0 +1,151 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF from #3383 synthesis current-shape comment 5309896677",
+    "updated": "2026-08-16T23:59:15Z"
+  },
+  "plan": {
+    "id": "3383-completed-record-not-next",
+    "title": "Completed xBRIEFs are record, not the next-build contract; halt on chat-vs-active only",
+    "status": "completed",
+    "narratives": {
+      "Description": "One thin guidance story from the #3383 synthesis. Demote completed xBRIEFs to historical record. Before code, name the active story. Halt and ask only when the live human turn conflicts with a specific MUST in the active story.",
+      "UserStory": "As a Directive operator, I want completed stories treated as what was built, not what to build next, so that a later completed brief cannot silently override my live instruction.",
+      "ImplementationPlan": "1. Add a demotion bullet under main.md ## vBRIEF Persistence: completed files have full standing as record of what is and zero authority over what to build next. 2. In content/skills/deft-directive-build/SKILL.md add declare-the-contract next to probe-then-fill and halt-and-ask in Error Recovery, then verify with content tests and task check.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3383",
+      "Overview": "Authority is synthesis comment 5309896677 (final current shape). Operator add 3383 is disposition. Do not implement the issue body. No outranks language. No Agent Trap Defenses home. No pairwise completed/ scan. No LLM detector. Do not promise next-session cannot re-learn B. Do not file follow-ups in this PR. Operator equals human interactive chat; headless/swarm is halt report only. Product override never overrides gates (#3164).",
+      "Labels": "guidance"
+    },
+    "items": [
+      {
+        "title": "Demotion bullet in vBRIEF Persistence",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given main.md ## vBRIEF Persistence, when an agent reads it, completed xBRIEFs are evidence of what was built with zero authority over what to build next. The current contract is the active xBRIEF plus the human operator live instruction. Agent Trap Defenses does not gain a live-message-beats-contract bullet.",
+          "Traces": "FR-3383-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/main_guidance.test.ts persistence_demotes_completed_xbriefs_to_record + persistence_forbids_completed_as_next_contract + agent_trap_defenses_has_no_live_message_beats_contract_bullet; shipped main.md ## vBRIEF Persistence; PR #3412 merge 386db19ae2f15d0cbb81e369ab7bad199057b81e",
+          "recorded_at": "2026-08-16T23:58:30Z",
+          "recorded_by": "swarm/3382-through-merge/3383-completed-record-not-next"
+        }
+      },
+      {
+        "title": "Declare the contract before writing code",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given deft-directive-build next to probe-then-fill, when an operator instruction would cause code writes, the agent names the active xBRIEF and quotes what it says about that behavior before writing. If there is no active story, there is nothing to name and the agent does not treat a completed file as the contract.",
+          "Traces": "FR-3383-2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/skills.test.ts deft_directive_build_declares_active_contract_before_code; shipped content/skills/deft-directive-build/SKILL.md ## Declare the contract (#3383); PR #3412 merge 386db19ae2f15d0cbb81e369ab7bad199057b81e",
+          "recorded_at": "2026-08-16T23:58:30Z",
+          "recorded_by": "swarm/3382-through-merge/3383-completed-record-not-next"
+        }
+      },
+      {
+        "title": "Halt-and-ask on chat vs active only",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given Error Recovery, when implementing the active story would break a specific current-turn instruction, or implementing the turn would break a specific MUST or forbidden in the active story, the agent halts, quotes both sides, and asks which is controlling. Also consider X against a silent story is not a conflict. Operator means human interactive chat; headless or swarm envelopes get a halt report only. An operator turn can change product behavior, never gates. Standing change uses a proposed xBRIEF or decision:write; a this-session-only exception stays in the session record. Guidance does not claim the next session cannot re-learn B. task check passes. CHANGELOG [Unreleased] has a brief note.",
+          "Traces": "FR-3383-3"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/skills.test.ts deft_directive_build_halt_and_ask_active_only; CHANGELOG [Unreleased] #3383; CI merge-gate task check:merge success on bbb47b5fb62e; PR #3412 merge 386db19ae2f15d0cbb81e369ab7bad199057b81e",
+          "recorded_at": "2026-08-16T23:58:30Z",
+          "recorded_by": "swarm/3382-through-merge/3383-completed-record-not-next"
+        }
+      }
+    ],
+    "tags": [
+      "guidance"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3383",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3383: completed xBRIEF vs live operator intent"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3383#issuecomment-5309896677",
+        "type": "x-xbrief/github-comment",
+        "title": "Synthesis — current shape (authority)"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "main.md",
+          "content/skills/deft-directive-build/SKILL.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts"
+        ],
+        "expected_outputs": [
+          "demotion bullet",
+          "declare-the-contract",
+          "halt-and-ask on active only",
+          "CHANGELOG #3383"
+        ],
+        "depends_on": [],
+        "conflict_group": "guidance-completed-record",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3412,
+        "prBase": null,
+        "mergeCommit": "386db19ae2f15d0cbb81e369ab7bad199057b81e",
+        "deliveryBranch": "master",
+        "deliveryCommit": "386db19ae2f15d0cbb81e369ab7bad199057b81e",
+        "verifiedAt": "2026-08-16T23:59:15Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-16T23:59:15Z",
+      "capacityBucket": "new-capability"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "collapsed synthesis 5309896677 into three items",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Completed xBRIEFs are record of what is, with \"zero authority over\" \"what to build next\"",
+          "artifact_path": "main.md",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "Before code, \"name the active xBRIEF\" and \"quote what it says\"",
+          "artifact_path": "content/skills/deft-directive-build/SKILL.md",
+          "ambiguous": false
+        },
+        {
+          "id": 3,
+          "text": "Halt only on a specific chat-vs-active conflict; \"Neither side wins by rank\"; swarm is \"halt report only\"",
+          "artifact_path": "content/skills/deft-directive-build/SKILL.md",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-16T23:59:15Z"
+  }
+}

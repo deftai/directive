@@ -1,0 +1,107 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3428",
+    "updated": "2026-08-17T19:53:36Z"
+  },
+  "plan": {
+    "id": "3428-slices-umbrella-close-signal",
+    "title": "slices.jsonl expected_close_signal never updates or closes GitHub umbrellas",
+    "status": "completed",
+    "narratives": {
+      "Description": "Hand-filed GitHub umbrellas recorded only in slices.jsonl never get current-shape refresh or origin close when all children close. reconcile:umbrellas walks only epic xBRIEFs. expected_close_signal is write-only.",
+      "UserStory": "As a maintainer, I want slices-only umbrellas to refresh current-shape and close when expected_close_signal says so, so #3377/#3378 do not stay stale after every child lands.",
+      "ImplementationPlan": "Extend existing task vbrief:reconcile:umbrellas. Walk slices.jsonl umbrellas. Refresh §1152 current-shape from forge child open/closed. If expected_close_signal is all-children-merged and every child is closed and the umbrella is open, close it with one comment naming the signal and child numbers. wave-1-merged and manual stay no-close. No new verb. No invented epic xBRIEF. No child-PR Closes (#701).",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3428 (body authority; 0 comments)",
+      "Overview": "KISS: one existing verb. One check: after reconcile, umbrella state matches the signal. One remediation: task vbrief:reconcile:umbrellas.",
+      "Labels": "bug"
+    },
+    "items": [
+      {
+        "title": "Walk slices.jsonl umbrellas in reconcile:umbrellas",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a slices.jsonl row with no epic xBRIEF, when task vbrief:reconcile:umbrellas runs, it refreshes that umbrella's current-shape from forge child open/closed the same way as an epic-xBRIEF path.",
+          "Traces": "FR-3428-1"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3431 merge f6f73371c0653b5485f0eb07d41b37ad1eb5b55d; packages/core/src/vbrief-reconcile/umbrellas.ts slices.jsonl walk",
+          "recorded_at": "2026-08-17T21:18:56Z",
+          "recorded_by": "parent@3382-cohort"
+        }
+      },
+      {
+        "title": "Honor expected_close_signal",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given expected_close_signal=all-children-merged and every child issue closed and the umbrella still open, when reconcile runs, it closes the umbrella with one comment citing the signal and child numbers. Given expected_close_signal=manual, current-shape updates and the umbrella stays open. Re-run is a no-op.",
+          "Traces": "FR-3428-2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/vbrief-reconcile/umbrellas.test.ts expected_close_signal; PR https://github.com/deftai/directive/pull/3431",
+          "recorded_at": "2026-08-17T21:18:56Z",
+          "recorded_by": "parent@3382-cohort"
+        }
+      }
+    ],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3428",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3428: slices.jsonl expected_close_signal"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/vbrief-reconcile",
+          "packages/core/src/slice",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/vbrief-reconcile/umbrellas.test.ts packages/core/src/vbrief-reconcile/umbrellas-create-comment.test.ts",
+          "task check"
+        ],
+        "expected_outputs": [
+          "slices.jsonl umbrellas in reconcile",
+          "all-children-merged closes umbrella",
+          "CHANGELOG #3428"
+        ],
+        "depends_on": [],
+        "conflict_group": "umbrella-reconcile",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "collapsed #3428 ACs; body is authority (no comments)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "reconcile:umbrellas walks slices.jsonl umbrellas and refreshes current-shape from forge child state",
+          "artifact_path": "packages/core/src/vbrief-reconcile/umbrellas.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "all-children-merged closes the open umbrella; manual does not; re-run is a no-op",
+          "artifact_path": "packages/core/src/vbrief-reconcile/umbrellas.ts",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-17T19:53:36Z"
+  }
+}

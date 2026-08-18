@@ -1,0 +1,128 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3396",
+    "updated": "2026-08-17T22:27:18Z"
+  },
+  "plan": {
+    "id": "3396-noop-acceptance-denylist",
+    "title": "No-op acceptance commands refused at capture and stamp; stated requires statement provenance",
+    "status": "completed",
+    "narratives": {
+      "Description": "Capture and stamp admit unconditional no-ops such as true and let them be rung stated. Field sequence: real commands fail, restamp with true, walk passes, bank and check certify. Deny no-ops and keep stated only with a recorded statement span.",
+      "UserStory": "As a Directive operator, I want no-op acceptance commands refused at capture and stamp, so that a restamp cannot launder a failing walk into a stated green bank.",
+      "ImplementationPlan": "1. Extend the packages/core/src/literal-acceptance/safety.ts module so true, false, colon, bare exit, and assertion-free echo/printf/test-constant fail closed with one remediation. 2. Keep source_rung stated only when capture recorded a verbatim statement span, emit outcome rejected-noop, then verify with a field-sequence fixture and task check.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3396",
+      "Overview": "Issue body is authority (no comments). Companion of #3397 (method-swap detector) and #3398 (clause quality). Do not edit packages/core/src/session (live #3387). Do not edit packages/core/src/intake/clause-derivation.ts (parallel #3398).",
+      "Labels": "bug, agent-safety"
+    },
+    "items": [
+      {
+        "title": "No-op denylist at capture and stamp",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given commands true, colon, false, bare exit, or assertion-free echo/printf/test with constant args, when capture or stamp runs, the verb fails closed and names that acceptance commands must be able to fail. A field-sequence fixture (real commands fail, then a no-op restamp) is refused. An acceptance event records outcome rejected-noop.",
+          "Traces": "FR-3396-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/literal-acceptance/noop-denylist.test.ts",
+          "recorded_at": "2026-08-17T22:25:00Z",
+          "recorded_by": "leaf-worker/3396"
+        }
+      },
+      {
+        "title": "Stated rung needs a statement span",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a stamp with no recorded verbatim span from the task statement, when the rung is written, the record is derived never stated. A restamp after a failing walk does not raise the rung without new provenance. task check passes. CHANGELOG [Unreleased] has a brief note.",
+          "Traces": "FR-3396-2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/literal-acceptance/noop-denylist.test.ts",
+          "recorded_at": "2026-08-17T22:25:00Z",
+          "recorded_by": "leaf-worker/3396"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-safety"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3396",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3396: no-op acceptance denylist"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/literal-acceptance",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/literal-acceptance"
+        ],
+        "expected_outputs": [
+          "no-op denylist",
+          "CHANGELOG #3396"
+        ],
+        "depends_on": [
+          "3387-bank-aware-complete"
+        ],
+        "conflict_group": "literal-acceptance-safety",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3435,
+        "prBase": null,
+        "mergeCommit": "9e1bf9364a39b9cd2f469fba1d937201e13f59f7",
+        "deliveryBranch": "master",
+        "deliveryCommit": "9e1bf9364a39b9cd2f469fba1d937201e13f59f7",
+        "verifiedAt": "2026-08-17T22:27:18Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "476b5aba-1fa1-4c04-a0be-3182c2044160"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-17T22:27:18Z",
+      "completedSessionId": "476b5aba-1fa1-4c04-a0be-3182c2044160",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "collapsed #3396 body AC into two items",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Denylisted no-op commands fail closed at capture and stamp with rejected-noop at its stated path",
+          "artifact_path": "packages/core/src/literal-acceptance/safety.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "Stated rung requires a recorded statement span; restamp cannot raise rung without it",
+          "artifact_path": "packages/core/src/literal-acceptance/safety.ts",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-17T22:27:18Z"
+  }
+}

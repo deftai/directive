@@ -1,0 +1,129 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3425",
+    "updated": "2026-08-18T01:33:01Z"
+  },
+  "plan": {
+    "id": "3425-project-invariants",
+    "title": "Agents in a shared product must inherit assumed project knowledge",
+    "status": "completed",
+    "narratives": {
+      "Description": "Isolated agents do not inherit authored project invariants, so they can break sibling contracts. First ship is a typed plan.policy.projectInvariants list plus coverage_map dispositions and a preflight fail-closed on missing applicable IDs.",
+      "UserStory": "As a swarm parent, I want every story to declare how it treats applicable project invariants, so that a slice cannot ship without naming the contracts it must not break.",
+      "ImplementationPlan": "Story A schema. Story B+C gate and docs. Close-time file five parked issues.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3425",
+      "Overview": "Pass-1 first slice: typed projectInvariants plus preflight fail-closed. Parked items filed as follow-up issues.",
+      "CurrentShape": "Pass-1 locked. Story A merged PR 3441. Story B+C merged PR 3442. Parked 3443-3447."
+    },
+    "items": [
+      {
+        "title": "Story A: typed plan.policy.projectInvariants + coverage_map reuse + applicability intersection",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given PROJECT-DEFINITION, when plan.policy.projectInvariants is parsed, each entry has id, statement, and contract surface. Empty or absent list is valid. Scope coverage_map reuses covered/deferred/behavioral_delta against those ids. Given a scope file_scope with no intersection, when applicability is computed then no disposition is required.",
+          "Traces": "FR-3425-A"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3441",
+          "recorded_at": "2026-08-18T00:41:31Z",
+          "recorded_by": "grok-build-3425"
+        }
+      },
+      {
+        "title": "Story B+C: preflight/story-ready fail-closed + docs and Visage examples",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given an applicable invariant with no disposition, the implementation-intent gate and story-start gate fail closed and name the omitted id. An id added after authoring fails at the next gate. Docs state the honesty limit. Visage entries are authored examples only.",
+          "Traces": "FR-3425-B"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3442",
+          "recorded_at": "2026-08-18T01:20:00Z",
+          "recorded_by": "grok-build-3425"
+        }
+      },
+      {
+        "title": "Close-time: file five parked follow-up issues with Refs #3425",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given parent scope:complete, when #3425 is closed then five parked items exist as separate GitHub issues with Refs #3425 and their numbers are listed on the close comment.",
+          "Traces": "FR-3425-PARK"
+        },
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "https://github.com/deftai/directive/issues/3443 https://github.com/deftai/directive/issues/3444 https://github.com/deftai/directive/issues/3445 https://github.com/deftai/directive/issues/3446 https://github.com/deftai/directive/issues/3447",
+          "recorded_at": "2026-08-18T01:25:00Z",
+          "recorded_by": "grok-build-3425"
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3425",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3425: Agents in a shared product must inherit assumed project knowledge"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3425#issuecomment-5321347438",
+        "type": "x-xbrief/current-shape",
+        "title": "Current shape (pass-1) for #3425"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/policy",
+          "packages/core/src/scope",
+          "packages/core/src/vbrief-build",
+          "packages/core/src/preflight",
+          "packages/core/src/story-ready",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [],
+        "expected_outputs": [
+          "plan.policy.projectInvariants",
+          "coverage_map project ids",
+          "preflight missing-id fail-closed",
+          "parked follow-up issues",
+          "CHANGELOG #3425"
+        ],
+        "depends_on": [],
+        "conflict_group": "project-invariants",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "acceptance_criteria_justification": "Locked pass-1 has 7 body ACs sequenced as Story A (schema) then Story B+C (gate+docs) plus a close-time parked-issue checklist from the decomposition comment."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3442,
+        "prBase": null,
+        "mergeCommit": "60ff21bbea5c34e24a0727d5310cc1b08ed62bba",
+        "deliveryBranch": "master",
+        "deliveryCommit": "60ff21bbea5c34e24a0727d5310cc1b08ed62bba",
+        "verifiedAt": "2026-08-18T01:33:01Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "f2ef010e-4000-47cd-914e-3d8d53de043e"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-18T01:33:01Z",
+      "completedSessionId": "f2ef010e-4000-47cd-914e-3d8d53de043e",
+      "capacityBucket": "new-capability"
+    },
+    "updated": "2026-08-18T01:33:01Z"
+  }
+}

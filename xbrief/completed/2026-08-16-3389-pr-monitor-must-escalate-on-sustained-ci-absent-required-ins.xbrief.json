@@ -1,0 +1,134 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3389",
+    "updated": "2026-08-16T21:45:02Z"
+  },
+  "plan": {
+    "id": "3389-absent-required-escalate",
+    "title": "pr-monitor must escalate on sustained ci_absent_required instead of polling to cap",
+    "status": "completed",
+    "narratives": {
+      "Description": "Wave 4 of #3377, parallel. #3234 already classifies ci_absent_required. pr-monitor does not consume it and polls to CAP-REACHED. Escalate early when absence persists past a short grace window.",
+      "UserStory": "As a Directive operator, I want pr-monitor to exit when a required review context never appears, so that an oversized Greptile decline does not burn the minute cap.",
+      "ImplementationPlan": "1. Update the packages/core/src/pr-monitor module file so sustained ci_absent_required exits before the minute cap with a distinct message listing missing contexts. 2. Keep first-poll absence and pending runs waiting, add the Greptile decline-comment regression, then verify with tests and task check.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3389",
+      "Overview": "Consume #3234; do not redefine it. Do not ship staged sync. Parallel to Waves 1-3.",
+      "Labels": "enhancement, determinism, agent-experience, scm, area:cli, status:child"
+    },
+    "items": [
+      {
+        "title": "Sustained absent-required early escalate",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given ci_absent_required that persists across consecutive polls past a short grace window, when pr-monitor runs, it exits before the minute cap with a distinct code or message listing missing contexts. First-poll or short-window absence does not escalate. Pending check-runs still wait.",
+          "Traces": "FR-3389-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/pr-monitor/monitor.test.ts#3389",
+          "recorded_at": "2026-08-16T21:35:00Z",
+          "recorded_by": "leaf-implementation/3389"
+        }
+      },
+      {
+        "title": "Regression and unchanged terminals",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given required context Greptile Review plus a decline comment and no check-run, when the monitor polls, it early-escalates and does not reach CAP-REACHED. CLEAN, PR merged, and config-error paths stay unchanged. task check passes. CHANGELOG [Unreleased] has a brief note.",
+          "Traces": "FR-3389-2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/pr-monitor/monitor.test.ts#3389-greptile-decline",
+          "recorded_at": "2026-08-16T21:35:00Z",
+          "recorded_by": "leaf-implementation/3389"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "determinism",
+      "agent-experience",
+      "scm",
+      "area:cli",
+      "status:child"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3389",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3389: pr-monitor sustained ci_absent_required"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3377",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3377: parent epic"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/pr-monitor",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/pr-monitor",
+          "task check"
+        ],
+        "expected_outputs": [
+          "early escalate on sustained absent required",
+          "CHANGELOG #3389"
+        ],
+        "depends_on": [],
+        "conflict_group": "pr-monitor",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 3401,
+        "prBase": "master",
+        "mergeCommit": "1e7e92d904a86d3ae906f300a1aeca5d5bc1ef2b",
+        "deliveryBranch": "master",
+        "deliveryCommit": "1e7e92d904a86d3ae906f300a1aeca5d5bc1ef2b",
+        "verifiedAt": "2026-08-16T21:45:02Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-16T21:45:02Z",
+      "capacityBucket": "new-capability"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "collapsed #3389 AC into two items",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Sustained ci_absent_required exits before cap; first-poll absence does not",
+          "artifact_path": "packages/core/src/pr-monitor",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "Greptile decline plus no check-run early-escalates; CLEAN and merged paths unchanged",
+          "artifact_path": null,
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-16T21:45:02Z"
+  }
+}

@@ -1,0 +1,160 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3427",
+    "updated": "2026-08-17T20:14:38Z"
+  },
+  "plan": {
+    "id": "3427-py-helpers-to-ts",
+    "title": "Replace leftover Python helpers with TypeScript so CodeQL stops Analyze (python) on this repo",
+    "status": "completed",
+    "narratives": {
+      "Description": "CodeQL default setup schedules Analyze (python) on every deftai/directive PR because eight leftover .py helpers are committed. The product is TypeScript/Go. Other deftai repos use Python — do not change org CodeQL. This repo only: port the CI scripts to Node and stop committing core_guard_pin_content.py.",
+      "UserStory": "As a Directive maintainer, I want no tracked Python in this repo, so that CodeQL default setup stops scheduling Analyze (python) here while sister Python repos keep their language set.",
+      "ImplementationPlan": "1. Replace .github/scripts classify/cancel/resolve Python plus tests with committed Node (.mjs or built JS). Keep stdout states missing/queued/started/done/cancelled_unclaimed and runner_name-only claim (#3340). Never cancel a claimed job (#2652). Wire ci.yml off python3. 2. Stop committing cmd/deft-install/core_guard_pin_content.py and _test.py. Keep consumer deposit as a python3 heredoc (ubuntu-latest) or emit from the TS SoT isUpgradePinPathContentAllowed; update deposit.go, deposit_test.go, and scaffold.ts together so the two strings cannot drift. 3. git ls-files '*.py' empty; CHANGELOG [Unreleased]; verify watchdog + pin-content tests and task check.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3427",
+      "Overview": "Minimum for CodeQL here is no tracked .py files. Consumer deft-core-guard may still emit a python3 heredoc (not a .py file in this repo). Do not change org CodeQL. Do not delete helpers without replacement. Not a drive-by on #3387.",
+      "Labels": "enhancement, ci-cd, harness"
+    },
+    "items": [
+      {
+        "title": "Port CI watchdog scripts off python3",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given ci.yml capacity watchdog and aggregator resolve jobs, when they run on ubuntu-latest, they invoke committed Node (not python3). Classifier stdout states stay missing, queued, started, done, cancelled_unclaimed. Claim is runner_name only. Claimed jobs are never cancelled. Former test_*.py coverage lives in vitest.",
+          "Traces": "FR-3427-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/ci-watchdog.test.ts#ci.yml-node-watchdog",
+          "recorded_at": "2026-08-17T20:13:00Z",
+          "recorded_by": "leaf-implementation:grok-4.6"
+        }
+      },
+      {
+        "title": "Stop committing core_guard_pin_content.py",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given git ls-files '*.py', when run on this repo after the change, the list is empty. Pin/lock content check still matches isUpgradePinPathContentAllowed. deposit.go, deposit_test.go, and scaffold.ts stay in sync. Consumer deposit may keep a python3 heredoc; this repo has no .py file. Org CodeQL languages are unchanged.",
+          "Traces": "FR-3427-2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/core-guard-pin-content.test.ts#no-tracked-py",
+          "recorded_at": "2026-08-17T20:13:00Z",
+          "recorded_by": "leaf-implementation:grok-4.6"
+        }
+      },
+      {
+        "title": "Tests, changelog, and check",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the ports, when watchdog and pin-content tests run, behavior matches the old Python. CHANGELOG [Unreleased] notes #3427. task check passes. New SHAs do not schedule Analyze (python).",
+          "Traces": "FR-3427-3"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/ci-watchdog.test.ts+core-guard-pin-content.test.ts;CHANGELOG.md#3427;https://github.com/deftai/directive/pull/3430",
+          "recorded_at": "2026-08-17T20:13:00Z",
+          "recorded_by": "leaf-implementation:grok-4.6"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "ci-cd",
+      "harness"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3427",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3427: replace leftover Python helpers with TypeScript"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3193",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3193: pin-content SoT"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          ".github/scripts",
+          ".github/workflows/ci.yml",
+          "cmd/deft-install",
+          "packages/core/src/init-deposit",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/init-deposit/core-guard-pin-content.test.ts packages/core/src/init-deposit/ci-watchdog.test.ts"
+        ],
+        "expected_outputs": [
+          "no tracked .py",
+          "ci.yml without python3",
+          "CHANGELOG #3427"
+        ],
+        "depends_on": [],
+        "conflict_group": "py-helpers-to-ts",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3430,
+        "prBase": null,
+        "mergeCommit": "ca836a227817cc735c2b3ee6faea8da41d8fc23e",
+        "deliveryBranch": "master",
+        "deliveryCommit": "ca836a227817cc735c2b3ee6faea8da41d8fc23e",
+        "verifiedAt": "2026-08-17T20:14:38Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "e5ca983d-2db3-4909-8ff1-3da27ffbdb7f"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-17T20:14:38Z",
+      "completedSessionId": "e5ca983d-2db3-4909-8ff1-3da27ffbdb7f",
+      "capacityBucket": "new-capability"
+    },
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/init-deposit/core-guard-pin-content.test.ts packages/core/src/init-deposit/ci-watchdog.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "collapsed #3427 ACs; body is authority (no comments)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "ci.yml invokes committed Node watchdog scripts and keeps the 'cancelled_unclaimed' failover state",
+          "artifact_path": ".github/workflows/ci.yml",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "Installer deposit embeds 'core_guard_pin_content.embed' instead of a tracked .py file",
+          "artifact_path": "cmd/deft-install/deposit.go",
+          "ambiguous": false
+        },
+        {
+          "id": 3,
+          "text": "CHANGELOG [Unreleased] notes '#3427'",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-17T20:14:38Z"
+  }
+}

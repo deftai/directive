@@ -1,0 +1,128 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3386",
+    "updated": "2026-08-16T21:50:34Z"
+  },
+  "plan": {
+    "id": "3386-slice-path-print",
+    "title": "slice:record-existing / slice:list print vbrief/.eval/slices.jsonl but write xbrief/.triage-cache/slices.jsonl",
+    "status": "completed",
+    "narratives": {
+      "Description": "slice:record-existing and slice:list print the leftover vbrief/.eval/slices.jsonl path. Writes go through resolveTriageCachePath to xbrief/.triage-cache/slices.jsonl. Only the stdout and DEFAULT_SLICES_LOG_REL_PATH are stale.",
+      "UserStory": "As a Directive operator, I want slice:record-existing and slice:list to print the path they actually read or wrote, so that I can find the record after an umbrella slice.",
+      "ImplementationPlan": "1. Change packages/core/src/slice/existing.ts and constants.ts so printed paths come from resolveTriageCachePath, not the stale DEFAULT_SLICES_LOG_REL_PATH string. 2. Update help, Taskfile, and skill prose that still cite vbrief/.eval/slices.jsonl, then verify with vitest on packages/core/src/slice and task check.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3386",
+      "Overview": "AFK print-path fix. Do not move the file back under .eval or change the #1703 triage-cache layout.",
+      "Labels": "bug, agent-experience, area:cli, area:vbrief"
+    },
+    "items": [
+      {
+        "title": "Stdout names the real slices.jsonl path",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given an xbrief-layout repo, when slice:record-existing or slice:list runs, stdout names the path actually read or written (xbrief/.triage-cache/slices.jsonl or vbrief/.triage-cache/slices.jsonl). DEFAULT_SLICES_LOG_REL_PATH and callers do not claim vbrief/.eval/slices.jsonl as the live path.",
+          "Traces": "FR-3386-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "pnpm exec vitest run packages/core/src/slice",
+          "recorded_at": "2026-08-16T21:47:35Z",
+          "recorded_by": "vitest"
+        }
+      },
+      {
+        "title": "Prose and check",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the print-path fix, when help, Taskfile, and skill prose for this verb are read, they point at .triage-cache/ not vbrief/.eval/. Existing existing.test.ts path assertions stay green. task check passes. CHANGELOG [Unreleased] has a brief note.",
+          "Traces": "FR-3386-2"
+        },
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/3402",
+          "recorded_at": "2026-08-16T21:47:35Z",
+          "recorded_by": "greptile"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "area:cli",
+      "area:vbrief"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3386",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3386: slice:record-existing / slice:list print stale vbrief/.eval path"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/slice",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/slice"
+        ],
+        "expected_outputs": [
+          "layout-aware slices.jsonl print",
+          "CHANGELOG #3386"
+        ],
+        "depends_on": [],
+        "conflict_group": "slice-log-path",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3402,
+        "prBase": "master",
+        "mergeCommit": "4155bb750d896f3b9b7f948397c65fc8a439a97c",
+        "deliveryBranch": "master",
+        "deliveryCommit": "4155bb750d896f3b9b7f948397c65fc8a439a97c",
+        "verifiedAt": "2026-08-16T21:50:34Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "48a947af-5506-4885-840b-24714c2394f6"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-16T21:50:34Z",
+      "completedSessionId": "48a947af-5506-4885-840b-24714c2394f6",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "collapsed #3386 AC into two items",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "slice:record-existing and slice:list print the layout-aware triage-cache path they actually use; shipped implementation exists",
+          "artifact_path": "packages/core/src/slice/existing.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "Help and skill prose no longer cite vbrief/.eval/slices.jsonl; task check passes",
+          "artifact_path": null,
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-16T21:50:34Z"
+  }
+}

@@ -1,0 +1,144 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3391",
+    "updated": "2026-08-17T03:03:07Z"
+  },
+  "plan": {
+    "id": "3391-scm-sync-default",
+    "title": "scm:sync-default: staged default-branch sync as new PRs under syncMaxFiles",
+    "status": "completed",
+    "narratives": {
+      "Description": "Wave 3 of #3377. scm:sync-default opens one sync PR when under the file-count limit, or staged new-PR legs at merge-commit cuts when over. Never retarget or reuse an oversized PR. Blocked by #3388 and #3390.",
+      "UserStory": "As a Directive operator, I want scm:sync-default to open reviewable new PRs under the file limit, so that a develop-to-default sync cannot deadlock on a Greptile size decline.",
+      "ImplementationPlan": "1. After #3388 and #3390 merge, add scm:sync-default in packages/cli and packages/core using the shared detector and plan.policy.syncMaxFiles. 2. Cut merge-commit legs as new branches and new PRs, document the new-PR-per-leg rule in content/docs or scm docs, then verify the policy suite and the merge-chokepoint hygiene gate.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3391",
+      "Overview": "Do not start until #3388 and #3390 are merged. Do not bypass rulesets. Do not implement pr-monitor.",
+      "Labels": "enhancement, determinism, agent-experience, scm, area:cli, status:child"
+    },
+    "items": [
+      {
+        "title": "Staged new-PR sync legs",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the shared detector and syncMaxFiles or --max-files, when over limit, scm:sync-default cuts at merge commits when possible so each leg file-count is at or under the threshold. Each leg is a new branch and new PR. No gh pr edit --base or close-reopen of the oversized PR. Under limit: one PR from source tip to dest. No-op when the detector says no sync.",
+          "Traces": "FR-3391-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/policy/sync-default.test.ts; PR #3416 merge a835231f3e3b9324fc66329a9238e31e5511ff0d",
+          "recorded_at": "2026-08-17T03:01:00Z",
+          "recorded_by": "leaf-implementation/3391"
+        }
+      },
+      {
+        "title": "Docs and check",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the verb lands, when docs are read, they say each leg must be new when the reviewer first sees it. Required checks are not disabled except via the Wave 1 core-guard exemption. The merge-chokepoint hygiene gate passes. CHANGELOG [Unreleased] has a brief note.",
+          "Traces": "FR-3391-2"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "content/scm/github.md + content/commands.md + CHANGELOG.md; PR #3416 merge a835231f3e3b9324fc66329a9238e31e5511ff0d",
+          "recorded_at": "2026-08-17T03:01:00Z",
+          "recorded_by": "leaf-implementation/3391"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "determinism",
+      "agent-experience",
+      "scm",
+      "area:cli",
+      "status:child"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3391",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3391: scm:sync-default"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3388",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3388: Wave 1 blocker"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3390",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3390: Wave 2 blocker"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/core/src",
+          "tasks",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/policy/sync-default.test.ts"
+        ],
+        "expected_outputs": [
+          "scm:sync-default new-PR legs",
+          "CHANGELOG #3391"
+        ],
+        "depends_on": [
+          "3388-branch-sync-detector",
+          "3390-sync-max-files-warn"
+        ],
+        "conflict_group": "branch-sync",
+        "size": "large",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3416,
+        "prBase": null,
+        "mergeCommit": "a835231f3e3b9324fc66329a9238e31e5511ff0d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a835231f3e3b9324fc66329a9238e31e5511ff0d",
+        "verifiedAt": "2026-08-17T03:03:07Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "2bad7b48-75c9-41a7-9209-be9d54d1cc97"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-17T03:03:07Z",
+      "completedSessionId": "2bad7b48-75c9-41a7-9209-be9d54d1cc97",
+      "capacityBucket": "new-capability"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "collapsed #3391 AC; blocked by 3388 and 3390; clauses are the AC (vitest policy suite already run locally)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Over-limit sync opens new-PR legs under syncMaxFiles; under-limit opens one PR. Shipped in 'new branch and a new PR' / 'gh pr edit --base'.",
+          "artifact_path": "packages/core/src/policy/sync-default.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "Docs require a new PR per leg; each leg must be 'new when the reviewer first sees it'.",
+          "artifact_path": "content/scm/github.md",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-17T03:03:07Z"
+  }
+}

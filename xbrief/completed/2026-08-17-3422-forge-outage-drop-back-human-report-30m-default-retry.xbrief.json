@@ -1,0 +1,165 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3422",
+    "updated": "2026-08-17T18:41:13Z"
+  },
+  "plan": {
+    "id": "3422-forge-outage-drop-back",
+    "title": "Forge-outage drop-back + human report + 30m default retry (USER.md / project override)",
+    "status": "completed",
+    "narratives": {
+      "Description": "YOLO / drive-to:merge-ready workers still thrash GitHub I/O during a forge outage. #3167 capped CI-weather babysit loops and #3180 added status-page attribution, but neither encodes drop-back, a one-shot human report, or a configurable retry clock. Default retry is 30 minutes; USER.md Personal wins over plan.policy.forgeOutageRetryMinutes over the framework default.",
+      "UserStory": "As a Directive operator running autonomous through-merge work, I want workers to drop back, tell me the forge is down, and re-probe on a 30-minute default I can override in USER.md or PROJECT-DEFINITION, so that outages do not burn tokens on empty commits and tight polls.",
+      "ImplementationPlan": "1. Extend content/scm/github.md § #3180 and pin the same rule in swarm, review-cycle, and build skill sources (edit packs, then render): on attributed platform outage or repeated 429/502/503, drop back GitHub I/O, report once to the human in chat, and re-probe on the resolved interval. Pointers in content/templates/agents-entry.md and agent-prompt-preamble.md; run task agents:refresh. 2. Add typed plan.policy.forgeOutageRetryMinutes (integer minutes, min 5, default 30) in schemas, packages/types/src/policy.ts, and packages/core/src/policy; USER.md Personal override documented in setup USER.md template; task policy:show --field=forgeOutageRetryMinutes. Precedence: USER.md Personal, then project policy, then 30. 3. Tests for resolve/show/precedence plus CHANGELOG [Unreleased]; verify with policy tests and task check. v1 does not add scm:outage-probe.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3422",
+      "Overview": "Complements #3167 and #3180; does not replace weather codes or status attribution. Optional helper (task scm:outage-probe) is a non-goal for v1. Local edit/test/commit may continue; forge-mutating retries must wait the interval.",
+      "Labels": "enhancement, determinism, agent-experience, harness, scm, area:skills, area:guidance"
+    },
+    "items": [
+      {
+        "title": "Drop-back + one human report + interval re-probe",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given attributed platform outage or repeated 429/502/503 on REST, when a YOLO or through-merge worker would otherwise poll, empty-commit, close/reopen, or spawn a heartbeat child, it stops forge I/O, reports once in the conversation (what is down, attribution or incident if known, what is parked, next probe time), and issues at most one probe per resolved interval. Local work that does not need the forge may continue. Related docs cite #3167 and #3180 as complementary.",
+          "Traces": "FR-3422-1"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3426 merge 2f0c1e613ed5ae1558a8983a3c78281323985833 — content/scm/github.md § #3422 drop-back + one human report + interval re-probe; pack pins in swarm/review-cycle/build",
+          "recorded_at": "2026-08-17T18:40:00Z",
+          "recorded_by": "agent/leaf-implementation/3422-forge-outage-drop-back"
+        }
+      },
+      {
+        "title": "Typed 30m default with USER.md and project override",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given no overrides, forgeOutageRetryMinutes resolves to 30. USER.md Personal wins over plan.policy.forgeOutageRetryMinutes, which wins over the 30-minute default. task policy:show --field=forgeOutageRetryMinutes prints the resolved value. Schema and PlanPolicy include the field (integer minutes, minimum 5). Setup USER.md template documents the Personal override.",
+          "Traces": "FR-3422-2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/policy/forge-outage-retry.test.ts — default 30, min 5, USER.md Personal over typed over default; JSON Schema accepts null as unset; task policy:show --field=forgeOutageRetryMinutes",
+          "recorded_at": "2026-08-17T18:40:00Z",
+          "recorded_by": "agent/leaf-implementation/3422-forge-outage-drop-back"
+        }
+      },
+      {
+        "title": "Tests, changelog, and check",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the policy and guidance changes, when policy resolve/show tests and agents-entry contract pins run, default 30, min 5, and precedence are covered. CHANGELOG [Unreleased] has a brief note for #3422. task check passes.",
+          "Traces": "FR-3422-3"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3426 merge 2f0c1e613ed5ae1558a8983a3c78281323985833 — CHANGELOG [Unreleased] #3422; Merge gate (task check) success on c3a40cf7; Greptile 5/5",
+          "recorded_at": "2026-08-17T18:40:00Z",
+          "recorded_by": "agent/leaf-implementation/3422-forge-outage-drop-back"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "determinism",
+      "agent-experience",
+      "harness",
+      "scm"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3422",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3422: forge-outage drop-back + 30m retry"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3167",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3167: CI weather + babysit thrash caps"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3180",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3180: status-page attribution"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/scm/github.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/templates/agents-entry.md",
+          "content/templates/agent-prompt-preamble.md",
+          "content/vbrief/schemas/vbrief-core.schema.json",
+          "packages/types/src/policy.ts",
+          "packages/types/schemas/vbrief-core-0.6.schema.json",
+          "packages/core/src/policy",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [],
+        "expected_outputs": [
+          "drop-back + report + 30m re-probe rule",
+          "forgeOutageRetryMinutes policy + USER.md override",
+          "CHANGELOG #3422"
+        ],
+        "depends_on": [],
+        "conflict_group": "forge-outage-drop-back",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3426,
+        "prBase": null,
+        "mergeCommit": "2f0c1e613ed5ae1558a8983a3c78281323985833",
+        "deliveryBranch": "master",
+        "deliveryCommit": "2f0c1e613ed5ae1558a8983a3c78281323985833",
+        "verifiedAt": "2026-08-17T18:41:13Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "1beac7ff-a05b-4fc9-9324-a62561e70d4e"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-17T18:41:13Z",
+      "completedSessionId": "1beac7ff-a05b-4fc9-9324-a62561e70d4e",
+      "capacityBucket": "new-capability"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "collapsed #3422 ACs; body is authority (no comments); v1 excludes optional scm:outage-probe",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Forge-outage drop-back rule exists at its stated path",
+          "artifact_path": "content/scm/github.md",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "forgeOutageRetryMinutes resolver exists at its stated path",
+          "artifact_path": "packages/core/src/policy/forge-outage-retry.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 3,
+          "text": "CHANGELOG Unreleased note exists at its stated path",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-17T18:41:13Z"
+  }
+}

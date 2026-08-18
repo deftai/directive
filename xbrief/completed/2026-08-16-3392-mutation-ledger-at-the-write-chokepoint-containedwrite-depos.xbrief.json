@@ -1,0 +1,140 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3392",
+    "updated": "2026-08-17T02:11:06Z"
+  },
+  "plan": {
+    "id": "3392-mutation-ledger",
+    "title": "Mutation ledger at the write chokepoint (containedWrite / deposit remove)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Wave 1 of #3378. Wrap write and remove so every deposit mutation is typed wrote, stripped, or deleted as a side effect of the operation. Unledgered mutation is impossible. The discarded writeAgentHookDeposit return is the existence proof. Same ledger feeds printf and structured refresh JSON.",
+      "UserStory": "As a Directive operator, I want deft update to record every deposit write and delete in one ledger, so that a tracked adapter removal cannot stay invisible or unstaged.",
+      "ImplementationPlan": "1. Wrap packages/core/src/fs/contained-write.ts and the deposit remove path so each op appends a typed ledger entry. 2. Consume that ledger in refresh.ts and agent-hooks.ts for Removed/wrote/stripped printf and structured JSON, without editing hygiene.ts (live #3388). Verify with tests and the framework-source check lane.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3392",
+      "Overview": "Implement from #3378 current-shape and ledger design comment 5309516574. Do not implement staging, allowlist, or Prettier. Do not edit hygiene.ts while #3388 is live.",
+      "Labels": "bug, enhancement, determinism, agent-experience, vendored-deposit, area:installer, area:cli, status:child"
+    },
+    "items": [
+      {
+        "title": "Chokepoint ledger on write and remove",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a write or remove through the deposit chokepoint, when the op finishes, a typed ledger entry wrote, stripped, or deleted is always appended. A mutator cannot discard mutations: ignored writeAgentHookDeposit return still ledgers.",
+          "Traces": "FR-3392-1"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3403 merged as 15bbbc90; tests packages/core/src/fs/contained-write.test.ts",
+          "recorded_at": "2026-08-17T01:56:35Z",
+          "recorded_by": "leaf-implementation"
+        }
+      },
+      {
+        "title": "Printf and JSON from the same ledger",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a refresh run, when the human summary and structured refresh JSON are produced, both come from the same ledger, not a post-hoc existsSync walk. Summary prints Removed plus wrote/stripped. Tests cover write, strip, delete, ignored-return still ledgers, and JSON/printf agreement. The framework-source check lane passes. CHANGELOG [Unreleased] has a brief note.",
+          "Traces": "FR-3392-2"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3403 merged as 15bbbc90; tests packages/core/src/init-deposit/refresh.test.ts",
+          "recorded_at": "2026-08-17T01:56:35Z",
+          "recorded_by": "leaf-implementation"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "enhancement",
+      "determinism",
+      "agent-experience",
+      "vendored-deposit",
+      "area:installer",
+      "area:cli",
+      "status:child"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3392",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3392: Mutation ledger at the write chokepoint"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3378",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3378: parent epic"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/fs",
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/fs packages/core/src/init-deposit"
+        ],
+        "expected_outputs": [
+          "typed mutation ledger",
+          "Removed: in update summary",
+          "CHANGELOG #3392"
+        ],
+        "depends_on": [],
+        "conflict_group": "update-ledger",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3403,
+        "prBase": null,
+        "mergeCommit": "15bbbc90b5bfe97563d429097ebdeab2dc8e2e29",
+        "deliveryBranch": "master",
+        "deliveryCommit": "15bbbc90b5bfe97563d429097ebdeab2dc8e2e29",
+        "verifiedAt": "2026-08-17T02:11:06Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "88b53dea-47be-4694-9ec3-f7ff21113c94"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-17T02:11:06Z",
+      "completedSessionId": "88b53dea-47be-4694-9ec3-f7ff21113c94",
+      "capacityBucket": "new-capability"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "collapsed #3392 AC into two items",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Deposit write/remove always ledgers via \"containedRemove\" and \"recordActiveMutation\"; ignored writer return still ledgers",
+          "artifact_path": "packages/core/src/fs/contained-write.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "Printf and refresh JSON come from the same ledger via \"snapshotMutationSummary\"",
+          "artifact_path": "packages/core/src/init-deposit/refresh.ts",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-17T02:11:06Z"
+  }
+}

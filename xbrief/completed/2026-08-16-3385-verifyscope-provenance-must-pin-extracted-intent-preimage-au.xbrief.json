@@ -1,0 +1,174 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3385",
+    "updated": "2026-08-17T19:18:10Z"
+  },
+  "plan": {
+    "id": "3385-intent-pin",
+    "title": "verify:scope-provenance must pin extracted intent (preimage authority, not denylist-strip)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Wave 2 of #3376 pins extracted intent for the scope provenance gate. Mint writes a base-committed preimage at .deft/approved-scope/PLAN-ID.intent.json; intentDigest is a checksum. Verify re-extracts the live brief and compares to that preimage. This story waits until #3384 is merged.",
+      "UserStory": "As a Directive operator, I want the scope provenance gate to compare live brief intent to a base-committed preimage, so that same-PR rewrites and post-approval structure cannot silently expand approved scope.",
+      "ImplementationPlan": "1. After #3384 merges, extend the packages/core/src/scope-provenance module and packages/cli/src/scope-record-approved-scope.ts so one mint writes record plus preimage plus both digests. 2. Add verify compare tests for R1-R6 as amended by pass-4 F1-F4, then verify with vitest and task check.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3385",
+      "Overview": "Implement from #3376 current-shape R1-R6 plus pass-4 F1-F4 (comment 5309237780 wins over the issue body). Do not start until #3384 is merged. Do not invent a second mint verb.",
+      "Labels": "enhancement, design, security, determinism, agent-experience, area:cli, area:vbrief, status:child"
+    },
+    "items": [
+      {
+        "title": "Extraction spec and preimage write (R1 + F1)",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given Wave 2 mint, when scope:record-approved-scope runs after #3384, it extracts the R1 allowlist plus unknown non-machine keys into .deft/approved-scope/<plan-id>.intent.json. Known-machine keys are not hash inputs. plan.tags is machine; plan.edges is extracted. Verify fails unclassified key only for unknown keys absent from the base preimage. Growing the known-machine list does not change existing digests and requires a same-PR writer test.",
+          "Traces": "FR-3385-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "pnpm exec vitest run packages/core/src/scope-provenance",
+          "recorded_at": "2026-08-17T19:16:32Z",
+          "recorded_by": "swarm-3385-intent-pin"
+        }
+      },
+      {
+        "title": "Preimage authority, first activation, refs (R2-R5 + F2/F3)",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a minted record and preimage, when verify runs, it reads both via git show base and never working-tree copies. intentDigest is a checksum of the preimage. Same-PR rewrite fails. Duplicate keys require a real tokenizer (F3). First activation with nonempty scope requires a base-committed pin. planRef stores parent plan.id. References and Decisions follow R5; closed ref-type set reuses packages/core/src/intake/reconcile-issues.ts (F2).",
+          "Traces": "FR-3385-2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "pnpm exec vitest run packages/core/src/scope-provenance",
+          "recorded_at": "2026-08-17T19:16:32Z",
+          "recorded_by": "swarm-3385-intent-pin"
+        }
+      },
+      {
+        "title": "Migration, docs, and check (R6 + F4 remainder)",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given legacy records with no intentDigest, when verify runs, they authorize paths only. No silent backfill. Intent edits against legacy records warn then fail with gated remint. Old xbriefBodyDigest is never read as authority. Docs separate product intent, approved derivation, and implementation choice. Mint output tells the operator to read the preimage. task check passes.",
+          "Traces": "FR-3385-3"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "task check",
+          "recorded_at": "2026-08-17T19:16:32Z",
+          "recorded_by": "swarm-3385-intent-pin"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design",
+      "security",
+      "determinism",
+      "agent-experience",
+      "area:cli",
+      "area:vbrief",
+      "status:child"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3385",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3385: verify:scope-provenance must pin extracted intent (preimage authority, not denylist-strip)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3384",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3384: Wave 1 blocker"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3376",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3376: parent epic (current-shape R1-R6 + pass-4 F1-F4)"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/core/src/scope-provenance",
+          "packages/cli/src/scope-record-approved-scope.ts",
+          "content/docs/scope-provenance.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/scope-provenance"
+        ],
+        "expected_outputs": [
+          "intent preimage pin",
+          "CHANGELOG #3385"
+        ],
+        "depends_on": [
+          "3384-human-presence-mint"
+        ],
+        "conflict_group": "scope-provenance-mint",
+        "size": "large",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3414,
+        "prBase": null,
+        "mergeCommit": "05de671928edca797ccda3ae0a1b022ab9f475c6",
+        "deliveryBranch": "master",
+        "deliveryCommit": "05de671928edca797ccda3ae0a1b022ab9f475c6",
+        "verifiedAt": "2026-08-17T19:18:10Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "e430ea8c-2448-4b61-b0d6-e689bb734b97"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-17T19:18:10Z",
+      "completedSessionId": "e430ea8c-2448-4b61-b0d6-e689bb734b97",
+      "capacityBucket": "new-capability"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/scope-provenance"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "collapsed R1-R6 plus pass-4 F1-F4 into three items; blocked by 3384",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Mint writes extraction-spec preimage; unknown keys extract; unclassified key only for post-approval unknowns",
+          "artifact_path": "packages/core/src/scope-provenance/mint-artifacts.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "Verify uses git show base preimage authority; first activation and R4/R5 hold",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 3,
+          "text": "Legacy records path-only; docs and task check pass",
+          "artifact_path": "content/docs/scope-provenance.md",
+          "ambiguous": false
+        },
+        {
+          "id": 4,
+          "text": "The mint helper exists at its stated path",
+          "artifact_path": "packages/core/src/scope-provenance/mint-artifacts.ts",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-17T19:18:10Z"
+  }
+}

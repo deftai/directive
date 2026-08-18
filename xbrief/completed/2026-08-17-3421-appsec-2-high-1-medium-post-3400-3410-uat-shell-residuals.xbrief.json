@@ -1,0 +1,142 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3421",
+    "updated": "2026-08-17T20:12:36Z"
+  },
+  "plan": {
+    "id": "3421-uat-shell-residuals",
+    "title": "UAT Shell residuals after #3400/#3410: dest-form plant of authz, kill-switch, and approved-scope",
+    "status": "completed",
+    "narratives": {
+      "Description": "AppSec on eee89641 found two HIGH UAT Shell classification residuals and one MEDIUM mint-path asymmetry. Residual dest forms after #3400 still classify empty and allow write-shaped Shell that can plant .deft/authz or a kill-switch. Shell can also forge .deft/approved-scope while Write is denied.",
+      "UserStory": "As a Directive operator under active UAT, I want residual write-shaped Shell dests that plant authz, kill-switch, or approved-scope to classify as settings deny, so that #3400 and #3410 cannot be bypassed by dest forms the harvest missed.",
+      "ImplementationPlan": "1. Extend dest-form harvest in packages/core/src/authz/classify.ts for git clone/worktree/submodule, ex, dos2unix -n, aws s3 sync / s3api get-object, pijul, pg_dump -f/--file, convert/magick, fossil --workdir=, New-Item authz dests, and peers. 2. Under UAT fail-closed on unclassifiable write-shaped Shell; classify kill-switch and .deft/approved-scope pathish as settings deny. 3. Add vitest in packages/core/src/authz and CHANGELOG, then verify with the authz vitest suite and the merge-gate.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3421",
+      "Overview": "Do not re-do #3400 named peers (cmake/script/gallery-dl/git apply --directory/editors). Do not write an exploit cookbook. Prefer fail-closed on unclassifiable write-shaped Shell under UAT. Ordinary /tmp dests stay unclassifiable.",
+      "Labels": "bug, security, tooling, agent-safety"
+    },
+    "items": [
+      {
+        "title": "Residual dest forms cannot plant authz or kill-switch",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given active UAT, when residual bins write into .deft/authz/** or plant .deft-directive-disable / .no-deft-directive, classify returns settings deny, not unclassifiable allow. Dest parsing covers git clone/worktree/submodule, ex, dos2unix -n, aws s3 sync / s3api get-object, pijul, pg_dump -f/--file, convert/magick, fossil --workdir=, New-Item authz dests, and peers. Unclassifiable write-shaped Shell under UAT is fail-closed. cmake / curl -o / ed / nvim / fossil --workdir PATH / aws s3 cp stay settings-denied. /tmp dests outside those paths stay unclassifiable.",
+          "Traces": "FR-3421-1"
+        },
+        "x-directive/evidence": {
+          "kind": "uat",
+          "pointer": "packages/core/src/authz/classify.test.ts + incident-regression.test.ts dest-form matrix; PR https://github.com/deftai/directive/pull/3423 merge 06f426869ced3b088c7244e4a1e69d563ae74d5a",
+          "recorded_at": "2026-08-17T19:58:16Z",
+          "recorded_by": "leaf-implementation@3421"
+        }
+      },
+      {
+        "title": "Shell cannot forge approved-scope while Write is denied",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given active UAT, when Shell writes .deft/approved-scope/**, classify is settings deny matching Write. A forged Shell mint cannot satisfy provenance approval without the shared #3110 human-presence mint.",
+          "Traces": "FR-3421-2"
+        },
+        "x-directive/evidence": {
+          "kind": "uat",
+          "pointer": "packages/core/src/authz/incident-regression.test.ts approved-scope Shell/Write symmetry; PR https://github.com/deftai/directive/pull/3423 merge 06f426869ced3b088c7244e4a1e69d563ae74d5a",
+          "recorded_at": "2026-08-17T19:58:16Z",
+          "recorded_by": "leaf-implementation@3421"
+        }
+      },
+      {
+        "title": "Tests, changelog, and check",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the classify changes, when vitest runs packages/core/src/authz, residual bins vs already-denied peers are covered. CHANGELOG [Unreleased] has a brief security note with no exploit cookbook. The merge-gate check is green.",
+          "Traces": "FR-3421-3"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "pnpm exec vitest run packages/core/src/authz 180/180; CHANGELOG [Unreleased] #3421; merge-gate check success on 3bb3f9f5",
+          "recorded_at": "2026-08-17T19:58:16Z",
+          "recorded_by": "leaf-implementation@3421"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security",
+      "tooling",
+      "agent-safety"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3421",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3421: post-#3400/#3410 UAT Shell residuals"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3382",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3382: prior dest-form harvest"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3410",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3410: human-presence mint"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/authz",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/authz"
+        ],
+        "expected_outputs": [
+          "residual dest-form deny",
+          "approved-scope Shell/Write symmetry",
+          "CHANGELOG #3421"
+        ],
+        "depends_on": [],
+        "conflict_group": "authz-classify",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3423,
+        "prBase": null,
+        "mergeCommit": "06f426869ced3b088c7244e4a1e69d563ae74d5a",
+        "deliveryBranch": "master",
+        "deliveryCommit": "06f426869ced3b088c7244e4a1e69d563ae74d5a",
+        "verifiedAt": "2026-08-17T20:12:36Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "d28be0eb-4471-41de-99d4-ac3f107370b3"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-17T20:12:36Z",
+      "completedSessionId": "d28be0eb-4471-41de-99d4-ac3f107370b3",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/authz"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "literal authz vitest is the executable AC; clause-derived HIGH+MEDIUM ACs are covered by that suite",
+      "clauses": []
+    },
+    "updated": "2026-08-17T20:12:36Z"
+  }
+}

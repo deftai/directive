@@ -1,0 +1,122 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3390",
+    "updated": "2026-08-17T01:25:24Z"
+  },
+  "plan": {
+    "id": "3390-sync-max-files-warn",
+    "title": "Warn when integration-to-delivery file-count exceeds syncMaxFiles",
+    "status": "completed",
+    "narratives": {
+      "Description": "Wave 2 of #3377. Measure file-count divergence between baseBranch and deliveryBranch and warn before reviewer file limits. Threshold is plan.policy.syncMaxFiles, default 400. Blocked by #3388.",
+      "UserStory": "As a Directive operator, I want a file-count warn before a default-branch sync crosses reviewer limits, so that I can sync while the PR is still reviewable.",
+      "ImplementationPlan": "1. After #3388 merges, add typed plan.policy.syncMaxFiles default 400 and a file-count warn that uses the shared detector. 2. Print count plus threshold provenance, honor --max-files, skip when the detector says no sync, then verify with tests and task check.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3390",
+      "Overview": "Do not start until #3388 is merged. Do not open or split PRs. Do not probe Greptile or SLizard APIs.",
+      "Labels": "enhancement, determinism, agent-experience, scm, area:cli, status:child"
+    },
+    "items": [
+      {
+        "title": "File-count warn with typed threshold",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given source and dest from the shared detector, when file count is git diff --name-only origin/dest...origin/source, a warn fires when count exceeds syncMaxFiles. Unset threshold is 400. Output includes count and provenance default vs policy. --max-files overrides one run without writing policy. No warn when the detector says no sync.",
+          "Traces": "FR-3390-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/policy/sync-max-files.test.ts",
+          "recorded_at": "2026-08-16T23:55:00.000Z",
+          "recorded_by": "leaf-implementation/3390"
+        }
+      },
+      {
+        "title": "Docs and check",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the warn lands, when docs are read, they say set 100 if SLizard is a required check. No vendor constants or API probing. task check passes. CHANGELOG [Unreleased] has a brief note.",
+          "Traces": "FR-3390-2"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b74e641c64eec73f4d63e43e414c949decc60157",
+          "recorded_at": "2026-08-16T23:55:00.000Z",
+          "recorded_by": "leaf-implementation/3390"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "determinism",
+      "agent-experience",
+      "scm",
+      "area:cli",
+      "status:child"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3390",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3390: syncMaxFiles warn"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3388",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3388: Wave 1 blocker"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/policy",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/policy"
+        ],
+        "expected_outputs": [
+          "syncMaxFiles warn",
+          "CHANGELOG #3390"
+        ],
+        "depends_on": [
+          "3388-branch-sync-detector"
+        ],
+        "conflict_group": "branch-sync",
+        "size": "small",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3415,
+        "prBase": null,
+        "mergeCommit": "b74e641c64eec73f4d63e43e414c949decc60157",
+        "deliveryBranch": "master",
+        "deliveryCommit": "b74e641c64eec73f4d63e43e414c949decc60157",
+        "verifiedAt": "2026-08-17T01:25:24Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-17T01:25:24Z",
+      "capacityBucket": "new-capability"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "issue #3390 AC is prose, not shell commands; blocked by 3388",
+      "clauses": []
+    },
+    "updated": "2026-08-17T01:25:24Z"
+  }
+}
