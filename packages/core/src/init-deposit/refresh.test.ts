@@ -1512,6 +1512,7 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     expect(payload.planned_file_count).toBeGreaterThan(0);
     expect(Array.isArray(payload.planned_paths)).toBe(true);
     expect((payload.planned_paths as string[]).length).toBeGreaterThan(0);
+    expect(payload.planned_paths).toContain("AGENTS.md");
     expect(payload.resolution_mode).toBeDefined();
     expect(String(payload.version_skew_notice ?? "")).toMatch(/0\.78\.0/);
     const human = err.join("");
@@ -1640,20 +1641,22 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     expect(planned.plannedFileCount).toBeGreaterThan(0);
     expect(planned.plannedPaths.every((path) => !path.includes("node_modules"))).toBe(true);
     expect(planned.plannedPaths.every((path) => !path.includes("/.git/"))).toBe(true);
+    expect(planned.plannedPaths).toContain("AGENTS.md");
+    expect(planned.plannedPaths.some((path) => path.startsWith(".deft/core/"))).toBe(true);
   });
 
-  it("planRefreshDeposit treats an unreadable content root as zero planned paths (#3437)", async () => {
+  it("planRefreshDeposit fails closed when the content tree cannot be read (#3437)", async () => {
     const project = freshRoot("update-plan-unreadable-");
     writeInitializedProject(project, { contentVersion: "0.78.0" });
     const fileRoot = join(project, "not-a-dir.txt");
     writeFileSync(fileRoot, "x\n", "utf8");
-    const planned = await planRefreshDeposit(project, {
-      resolveContentRoot: async () => fileRoot,
-      readEngineVersion: () => "0.103.0",
-      readPackageVersion: () => "0.103.0",
-    });
-    expect(planned.strategy).toBe("file-swap");
-    expect(planned.plannedFileCount).toBe(0);
+    await expect(
+      planRefreshDeposit(project, {
+        resolveContentRoot: async () => fileRoot,
+        readEngineVersion: () => "0.103.0",
+        readPackageVersion: () => "0.103.0",
+      }),
+    ).rejects.toThrow();
   });
 
   it("reports current and refreshes idempotently on an up-to-date install (a2/a5)", async () => {

@@ -9,7 +9,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { type Dirent, existsSync, readdirSync, readFileSync, renameSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, renameSync, statSync } from "node:fs";
 import { platform as osPlatform } from "node:os";
 import { join, resolve } from "node:path";
 import type { ResolutionFacts, ResolutionPlan } from "@deftai/directive-types";
@@ -64,6 +64,7 @@ import { writeAgentHookDeposit } from "./agent-hooks.js";
 import { ensureInitGitignoreLines, type GitLsFiles, isDepositTrackedInGit } from "./gitignore.js";
 import {
   depositStagePaths,
+  installerManagedMatchers,
   isInstallerManagedPath,
   printCommitGuidance,
   reconcileDepositToContentPackage,
@@ -319,12 +320,7 @@ function displayVersion(version: string | null): string {
 function listContentRelPaths(root: string): string[] {
   const out: string[] = [];
   const walk = (abs: string, rel: string): void => {
-    let entries: Dirent[];
-    try {
-      entries = readdirSync(abs, { withFileTypes: true });
-    } catch {
-      return;
-    }
+    const entries = readdirSync(abs, { withFileTypes: true });
     for (const entry of entries) {
       if (entry.name === "node_modules" || entry.name === ".git") continue;
       const nextRel = rel ? `${rel}/${entry.name}` : entry.name;
@@ -341,6 +337,22 @@ function listContentRelPaths(root: string): string[] {
   };
   walk(root, "");
   return out.sort();
+}
+
+/** Installer-managed consumer paths a file-swap refresh also writes (#3437). */
+function plannedInstallerManagedPaths(): string[] {
+  const paths: string[] = [];
+  for (const matcher of installerManagedMatchers()) {
+    if (matcher.exact) paths.push(matcher.exact);
+    else if (matcher.prefix) paths.push(matcher.prefix);
+  }
+  return paths;
+}
+
+function plannedRefreshPaths(strategy: RefreshDepositStrategy, contentRoot: string): string[] {
+  if (strategy === "no-op") return [];
+  const core = listContentRelPaths(contentRoot).map((rel) => `${CANONICAL_INSTALL_ROOT}/${rel}`);
+  return [...new Set([...core, ...plannedInstallerManagedPaths()])].sort();
 }
 
 /** Top-level prefix rollup for dry-run blast-radius lines (#3437). */
@@ -389,10 +401,7 @@ export async function planRefreshDeposit(
     previousDepositVersion !== null &&
     normalizeVersion(previousDepositVersion) === normalizeVersion(contentVersion);
   const strategy: RefreshDepositStrategy = alreadyCurrent ? "no-op" : "file-swap";
-  const plannedPaths =
-    strategy === "file-swap"
-      ? listContentRelPaths(contentRoot).map((rel) => `${CANONICAL_INSTALL_ROOT}/${rel}`)
-      : [];
+  const plannedPaths = plannedRefreshPaths(strategy, contentRoot);
   return {
     contentRoot,
     previousDepositVersion,
