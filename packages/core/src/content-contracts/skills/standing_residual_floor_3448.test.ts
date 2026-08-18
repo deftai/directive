@@ -147,10 +147,15 @@ describe("standing_residual_floor_3448", () => {
   it("same_fingerprint_halt_is_two_consecutive", () => {
     const review = readSkill("skills/deft-directive-review-cycle/SKILL.md");
     const phase4 = readRepoFile("skills/deft-directive-swarm/references/core-phase-4.md");
+    const swarm = readSkill("skills/deft-directive-swarm/SKILL.md");
     for (const text of [review, phase4]) {
       expect(text).toMatch(/2 consecutive/);
       expect(text).toMatch(/not the first recurrence after a real fix/);
+      expect(text).toMatch(/different loop class/);
     }
+    expect(swarm).toMatch(/2 consecutive/);
+    expect(swarm).toMatch(/3\+/);
+    expect(swarm).toMatch(/different loop class/);
   });
 
   it("changelog_and_commands_cite_3448", () => {

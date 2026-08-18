@@ -238,7 +238,7 @@ Operator-initiated resume after conf-hold, residual dual-stop, or hard-stop exit
 4. Re-evaluate Step 6; merge when **policy** floor + gates met, or human-merge after the documented PR-local floor is met in the bot body; else halt again with a fresh resume line (leftover class + resolved floor + standing vs one-shot).
 5. Post-merge `scope:complete` when this owner holds lifecycle (#2321 / #3264).
 
-! **Same-fingerprint halt is the loop stop (#3448 / #2442):** after a real fix, a *new* leftover MAY take another batch. Halt when the **same** primary leftover fingerprint appears on **2 consecutive** re-reviews with no material fix (same as the `#2442` no-progress stop — not the first recurrence after a real fix). `#2442` batch cap (max 3 fix-batches) still applies.
+! **Same-fingerprint halt is the loop stop (#3448 / #2442):** after a real fix, a *new* leftover MAY take another batch. Halt when the **same** primary leftover fingerprint appears on **2 consecutive** re-reviews with no material fix (this skill's Greptile fix-batch no-progress stop — not the first recurrence after a real fix). Swarm monitor no-progress stays **3+** (different loop class). `#2442` batch cap (max 3 fix-batches) still applies.
 
 ! Dual-stop re-entry: one residual pass then re-stop without new consent **unless** a standing order is active **and** the leftover is class A with a **new** fingerprint under the `#2442` cap. Fresh operator consent required for another one-shot pass, or after same-fingerprint / cap halt.
 
