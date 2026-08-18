@@ -248,6 +248,22 @@ describe("evaluateProjectInvariantsGate", () => {
       { projectRoot: r },
     );
     expect(nested.ok).toBe(true);
+
+    const nestedCamel = evaluateProjectInvariantsGate(
+      {
+        plan: {
+          status: "running",
+          metadata: {
+            swarm: { file_scope: ["packages/core/src/preflight"] },
+            coverage: {
+              coverageMap: { "host-load": { disposition: "covered" } },
+            },
+          },
+        },
+      },
+      { projectRoot: r },
+    );
+    expect(nestedCamel.ok).toBe(true);
   });
 
   it("applies the same check to a slice-scoped story", () => {

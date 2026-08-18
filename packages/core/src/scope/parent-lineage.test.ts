@@ -114,6 +114,18 @@ describe("parent-lineage helpers (#3241)", () => {
     expect(extracted.source).toBe("plan.metadata.parent_lineage");
   });
 
+  it("extractChildCoverageDraft accepts nested coverage.coverageMap", () => {
+    const extracted = extractChildCoverageDraft({
+      plan: {
+        metadata: {
+          coverage: { coverageMap: fullCoverageMap },
+        },
+      },
+    });
+    expect(extracted.hasCoverageMapKey).toBe(true);
+    expect(extracted.draft?.coverage_map).toEqual(fullCoverageMap);
+  });
+
   it("resolveParentPathFromRef rejects absolute and .. traversal", () => {
     const root = join(tmpdir(), "lifecycle-root");
     expect(resolveParentPathFromRef("../escape.json", root).error).toMatch(/traversal/);

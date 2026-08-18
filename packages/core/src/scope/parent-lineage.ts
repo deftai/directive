@@ -137,22 +137,23 @@ export function extractChildCoverageDraft(child: unknown): {
   candidates.push({ source: "root", obj: root });
 
   for (const c of candidates) {
+    const nestedCoverage = asRecord(c.obj.coverage);
     const hasMap =
       "coverage_map" in c.obj ||
       "coverageMap" in c.obj ||
-      asRecord(c.obj.coverage)?.coverage_map !== undefined;
+      nestedCoverage?.coverage_map !== undefined ||
+      nestedCoverage?.coverageMap !== undefined;
     if (!hasMap) continue;
-    const coverageNested = asRecord(c.obj.coverage);
     const coverage_map =
       c.obj.coverage_map ??
       c.obj.coverageMap ??
-      coverageNested?.coverage_map ??
-      coverageNested?.coverageMap;
+      nestedCoverage?.coverage_map ??
+      nestedCoverage?.coverageMap;
     const behavioral_deltas =
       c.obj.behavioral_deltas ??
       c.obj.behavioralDeltas ??
-      coverageNested?.behavioral_deltas ??
-      coverageNested?.behavioralDeltas;
+      nestedCoverage?.behavioral_deltas ??
+      nestedCoverage?.behavioralDeltas;
     return {
       draft: {
         coverage_map,
