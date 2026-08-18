@@ -7,7 +7,7 @@ import {
   countFileLines,
   emptyIntendedPlacement,
   evaluateIntendedPlacement,
-  INTENDED_PLACEMENT_MISSING_HINT,
+  INTENDED_PLACEMENT_GRANDFATHER_HINT,
   INTENDED_PLACEMENT_OVER_TRIGGER_HINT,
   INTENDED_PLACEMENT_SCHEMA,
   readIntendedPlacement,
@@ -86,18 +86,18 @@ describe("intended-placement field (#3424)", () => {
 });
 
 describe("evaluateIntendedPlacement (#3424)", () => {
-  it("rejects a missing placement field", () => {
+  it("grandfathers a missing placement field as a warning", () => {
     const result = evaluateIntendedPlacement({ status: "running" }, { projectRoot: root() });
-    expect(result.ok).toBe(false);
-    expect(result.message).toContain("lacks plan.metadata.intended_placement");
-    expect(result.message).toContain(INTENDED_PLACEMENT_MISSING_HINT);
+    expect(result.ok).toBe(true);
+    expect(result.warning).toBe(true);
+    expect(result.message).toBe(INTENDED_PLACEMENT_GRANDFATHER_HINT);
   });
 
-  it("rejects empty files (no declared files to key on)", () => {
+  it("passes an ingest scaffold with empty files (pending)", () => {
     const result = evaluateIntendedPlacement(planWith([]), { projectRoot: root() });
-    expect(result.ok).toBe(false);
-    expect(result.message).toContain("files is empty");
-    expect(result.message).toContain(INTENDED_PLACEMENT_MISSING_HINT);
+    expect(result.ok).toBe(true);
+    expect(result.warning).toBeUndefined();
+    expect(result.message).toContain("pending");
   });
 
   it("passes a declared file under the review-trigger threshold", () => {
@@ -149,7 +149,8 @@ describe("evaluateIntendedPlacement (#3424)", () => {
       { projectRoot: root() },
     );
     expect(result.ok).toBe(false);
-    expect(result.message).toContain("lacks plan.metadata.intended_placement");
+    expect(result.message).toContain("files[1]");
+    expect(result.message).toContain("not a non-empty string");
   });
 
   it("rejects a declared path that escapes the project root", () => {
@@ -166,15 +167,16 @@ describe("evaluateIntendedPlacement (#3424)", () => {
     symlinkSync(outside, join(dir, "alias.ts"));
     const result = evaluateIntendedPlacement(planWith(["alias.ts"]), { projectRoot: dir });
     expect(result.ok).toBe(false);
-    expect(result.message).toContain("escapes the project root");
+    expect(result.message).toContain("is a symlink");
   });
 
-  itSymlink("passes an in-root symlink whose realpath stays inside the project", () => {
+  itSymlink("rejects an in-root symlink even when the target stays inside the project", () => {
     const dir = root();
     writeLines(join(dir, "small.ts"), 8);
     symlinkSync(join(dir, "small.ts"), join(dir, "alias.ts"));
     const result = evaluateIntendedPlacement(planWith(["alias.ts"]), { projectRoot: dir });
-    expect(result.ok).toBe(true);
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("is a symlink");
   });
 
   itSymlink("rejects a dangling in-root symlink instead of treating it as a new file", () => {
@@ -182,7 +184,7 @@ describe("evaluateIntendedPlacement (#3424)", () => {
     symlinkSync(join(dir, "missing-target.ts"), join(dir, "alias.ts"));
     const result = evaluateIntendedPlacement(planWith(["alias.ts"]), { projectRoot: dir });
     expect(result.ok).toBe(false);
-    expect(result.message).toContain("Could not inspect intended file");
+    expect(result.message).toContain("is a symlink");
   });
 
   itSymlink(
@@ -198,7 +200,7 @@ describe("evaluateIntendedPlacement (#3424)", () => {
       symlinkSync(outside, declared);
       const result = evaluateIntendedPlacement(planWith(["small.ts"]), { projectRoot: dir });
       expect(result.ok).toBe(false);
-      expect(result.message).toContain("escapes the project root");
+      expect(result.message).toContain("is a symlink");
     },
   );
 

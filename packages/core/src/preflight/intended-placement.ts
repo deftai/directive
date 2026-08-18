@@ -2,19 +2,30 @@
  * xBRIEF intended-placement field + preflight check (#3424).
  *
  * Preflight keys on declared files vs FILE_SIZE_REVIEW_TRIGGER_LINES.
- * Missing declaration/exemption is the reject; size alone is not.
+ * Size alone is not a hard cap (#1488).
+ *
+ * ## Error policy
+ * Every anomaly on a declared file fails closed (exit 1 + remediation hint).
+ * Never throw. Never silent-skip. The only skip is first-touch `lstat` ENOENT
+ * (planned-new file — nothing to measure). If `lstat` succeeded and a later
+ * operation fails, that is an inconsistency → exit 1.
+ *
+ * ## Threat model
+ * Preflight is a quality gate the agent runs against its own declared plan
+ * in its own worktree. A concurrent local process that can swap symlinks
+ * mid-check can trivially edit the vBRIEF itself. Adversarial-local-attacker
+ * TOCTOU is a **non-goal** beyond the fd discipline below. Windows symlink
+ * creation requires elevation.
+ *
+ * ## fd discipline
+ * `lstat` rejects symlink entries outright. Resolve + containment-check once.
+ * `openSync(abs, O_RDONLY | O_NOFOLLOW)` (plain `O_RDONLY` where `O_NOFOLLOW`
+ * is undefined, i.e. Windows). `fstatSync(fd)` confirms a regular file; read
+ * from that same fd.
  */
 
-import {
-  closeSync,
-  constants,
-  fstatSync,
-  lstatSync,
-  openSync,
-  readFileSync,
-  realpathSync,
-} from "node:fs";
-import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import { closeSync, constants, fstatSync, lstatSync, openSync, readFileSync } from "node:fs";
+import { isAbsolute, relative, resolve, sep } from "node:path";
 import { FILE_SIZE_REVIEW_TRIGGER_LINES } from "../policy/file-size-thresholds.js";
 import { findLifecycleRootFromArtifact } from "../scope/parent-lineage.js";
 
@@ -25,6 +36,9 @@ export const INTENDED_PLACEMENT_MISSING_HINT =
 
 export const INTENDED_PLACEMENT_OVER_TRIGGER_HINT =
   "Record plan.metadata.intended_placement.split_plan or cohesion_exemption. Size alone is not a fail-closed cap (#1488 / #3424).";
+
+export const INTENDED_PLACEMENT_GRANDFATHER_HINT =
+  "Pre-#3424 brief: intended_placement is missing (warning). Ingest now stamps the field; record files[] before new work.";
 
 export interface IntendedPlacement {
   readonly schema?: string;
@@ -37,7 +51,14 @@ export interface IntendedPlacement {
 export interface IntendedPlacementResult {
   readonly ok: boolean;
   readonly message: string;
+  /** Grandfathered missing field — evaluate stays exit 0 and surfaces this. */
+  readonly warning?: boolean;
 }
+
+export type ParsedIntendedPlacement =
+  | { kind: "missing" }
+  | { kind: "malformed"; message: string }
+  | { kind: "ok"; placement: IntendedPlacement };
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (typeof value === "object" && value !== null && !Array.isArray(value)) {
@@ -71,25 +92,55 @@ export function stampIntendedPlacement(plan: Record<string, unknown>): void {
   };
 }
 
-export function readIntendedPlacement(plan: Record<string, unknown>): IntendedPlacement | null {
+export function parseIntendedPlacement(plan: Record<string, unknown>): ParsedIntendedPlacement {
   const metadata = asRecord(plan.metadata);
-  if (metadata === null) return null;
-  const raw = asRecord(metadata.intended_placement);
-  if (raw === null) return null;
-  if (!Array.isArray(raw.files)) return null;
-  if (raw.files.some((f) => typeof f !== "string" || f.trim().length === 0)) {
-    return null;
+  if (metadata === null) return { kind: "missing" };
+  if (!("intended_placement" in metadata) || metadata.intended_placement === undefined) {
+    return { kind: "missing" };
   }
-  const files = raw.files.map((f) => (f as string).trim());
+  const raw = asRecord(metadata.intended_placement);
+  if (raw === null) {
+    return {
+      kind: "malformed",
+      message: `intended_placement is not an object. ${INTENDED_PLACEMENT_MISSING_HINT}`,
+    };
+  }
+  if (!Array.isArray(raw.files)) {
+    return {
+      kind: "malformed",
+      message: `intended_placement.files is not an array. ${INTENDED_PLACEMENT_MISSING_HINT}`,
+    };
+  }
+  const files: string[] = [];
+  for (let i = 0; i < raw.files.length; i++) {
+    const entry = raw.files[i];
+    if (typeof entry !== "string" || entry.trim().length === 0) {
+      return {
+        kind: "malformed",
+        message: `intended_placement.files[${i}] is not a non-empty string. ${INTENDED_PLACEMENT_MISSING_HINT}`,
+      };
+    }
+    files.push(entry.trim());
+  }
   return {
-    schema: typeof raw.schema === "string" ? raw.schema : undefined,
-    files,
-    module_boundary: isNonEmptyString(raw.module_boundary) ? raw.module_boundary.trim() : undefined,
-    split_plan: isNonEmptyString(raw.split_plan) ? raw.split_plan.trim() : undefined,
-    cohesion_exemption: isNonEmptyString(raw.cohesion_exemption)
-      ? raw.cohesion_exemption.trim()
-      : undefined,
+    kind: "ok",
+    placement: {
+      schema: typeof raw.schema === "string" ? raw.schema : undefined,
+      files,
+      module_boundary: isNonEmptyString(raw.module_boundary)
+        ? raw.module_boundary.trim()
+        : undefined,
+      split_plan: isNonEmptyString(raw.split_plan) ? raw.split_plan.trim() : undefined,
+      cohesion_exemption: isNonEmptyString(raw.cohesion_exemption)
+        ? raw.cohesion_exemption.trim()
+        : undefined,
+    },
   };
+}
+
+export function readIntendedPlacement(plan: Record<string, unknown>): IntendedPlacement | null {
+  const parsed = parseIntendedPlacement(plan);
+  return parsed.kind === "ok" ? parsed.placement : null;
 }
 
 export function countFileLines(text: string): number {
@@ -107,12 +158,6 @@ export function resolveProjectRootFromBrief(briefPath: string, explicitRoot?: st
     return resolve(lifecycle, "..");
   }
   return resolve(briefPath, "..", "..");
-}
-
-function isContained(parent: string, child: string): boolean {
-  if (parent === child) return true;
-  const rel = relative(parent, child);
-  return rel.length > 0 && !rel.startsWith("..") && !isAbsolute(rel);
 }
 
 function resolveDeclaredFile(projectRoot: string, declared: string): string | null {
@@ -138,33 +183,55 @@ function rejectInspect(declared: string, reason: string): ContainedInspect {
   };
 }
 
-function rejectEscape(declared: string): ContainedInspect {
-  return {
-    kind: "reject",
-    message: `Intended file '${declared}' escapes the project root. ${INTENDED_PLACEMENT_MISSING_HINT}`,
-  };
+function errnoCode(err: unknown): string | undefined {
+  return (err as NodeJS.ErrnoException).code;
 }
 
-/** Open + fstat + realpath revalidate + read the same fd so a later symlink swap cannot change the bytes. */
-function readPinnedContainedFile(
-  declared: string,
-  current: string,
-  projectReal: string,
-): ContainedInspect {
-  const flags = constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0);
-  let fd: number;
+function errReason(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+/**
+ * lstat (first-touch ENOENT = planned-new skip) → reject symlink →
+ * open+fstat+read the same fd. Later ENOENT is inconsistency, not skip.
+ */
+function inspectDeclaredFile(declared: string, abs: string): ContainedInspect {
+  let info: ReturnType<typeof lstatSync>;
   try {
-    fd = openSync(current, flags);
+    info = lstatSync(abs);
   } catch (err: unknown) {
-    const code = (err as NodeJS.ErrnoException).code;
-    if (code === "ENOENT") {
+    if (errnoCode(err) === "ENOENT") {
       return { kind: "missing" };
     }
+    return rejectInspect(declared, errReason(err));
+  }
+  if (info.isSymbolicLink()) {
+    return {
+      kind: "reject",
+      message: `Intended path '${declared}' is a symlink. ${INTENDED_PLACEMENT_MISSING_HINT}`,
+    };
+  }
+  if (!info.isFile()) {
+    return {
+      kind: "reject",
+      message: `Intended path '${declared}' is not a regular file. ${INTENDED_PLACEMENT_MISSING_HINT}`,
+    };
+  }
+
+  const nofollow = constants.O_NOFOLLOW;
+  const flags = constants.O_RDONLY | (typeof nofollow === "number" ? nofollow : 0);
+  let fd: number;
+  try {
+    fd = openSync(abs, flags);
+  } catch (err: unknown) {
+    const code = errnoCode(err);
     if (code === "ELOOP" || code === "EMLINK") {
-      return rejectEscape(declared);
+      return {
+        kind: "reject",
+        message: `Intended path '${declared}' is a symlink. ${INTENDED_PLACEMENT_MISSING_HINT}`,
+      };
     }
-    const reason = err instanceof Error ? err.message : String(err);
-    return rejectInspect(declared, reason);
+    return rejectInspect(declared, errReason(err));
   }
   try {
     const st = fstatSync(fd);
@@ -174,23 +241,9 @@ function readPinnedContainedFile(
         message: `Intended path '${declared}' is not a regular file. ${INTENDED_PLACEMENT_MISSING_HINT}`,
       };
     }
-    let openedReal: string;
-    try {
-      openedReal = realpathSync(current);
-    } catch (err: unknown) {
-      const reason = err instanceof Error ? err.message : String(err);
-      return rejectInspect(declared, reason);
-    }
-    if (!isContained(projectReal, openedReal)) {
-      return rejectEscape(declared);
-    }
     return { kind: "file", text: readFileSync(fd, "utf8") };
   } catch (err: unknown) {
-    const reason = err instanceof Error ? err.message : String(err);
-    return {
-      kind: "reject",
-      message: `Could not read intended file '${declared}': ${reason}. ${INTENDED_PLACEMENT_MISSING_HINT}`,
-    };
+    return rejectInspect(declared, errReason(err));
   } finally {
     try {
       closeSync(fd);
@@ -198,50 +251,6 @@ function readPinnedContainedFile(
       // already closed or invalid
     }
   }
-}
-
-/** Lexical path plus lstat/realpath: symlink targets must stay inside the project. */
-function inspectDeclaredFile(projectRoot: string, declared: string, abs: string): ContainedInspect {
-  let projectReal: string;
-  try {
-    projectReal = realpathSync(projectRoot);
-  } catch (err: unknown) {
-    const reason = err instanceof Error ? err.message : String(err);
-    return rejectInspect(declared, reason);
-  }
-
-  const rel = relative(projectRoot, abs);
-  const segments = rel.split(/[\\/]+/).filter((segment) => segment.length > 0);
-  let current = resolve(projectRoot);
-  for (const segment of segments) {
-    current = join(current, segment);
-    let info: ReturnType<typeof lstatSync>;
-    try {
-      info = lstatSync(current);
-    } catch (err: unknown) {
-      const code = (err as NodeJS.ErrnoException).code;
-      if (code === "ENOENT") {
-        return { kind: "missing" };
-      }
-      const reason = err instanceof Error ? err.message : String(err);
-      return rejectInspect(declared, reason);
-    }
-    if (info.isSymbolicLink()) {
-      let linkReal: string;
-      try {
-        linkReal = realpathSync(current);
-      } catch (err: unknown) {
-        const reason = err instanceof Error ? err.message : String(err);
-        return rejectInspect(declared, reason);
-      }
-      if (!isContained(projectReal, linkReal)) {
-        return rejectEscape(declared);
-      }
-      current = linkReal;
-    }
-  }
-
-  return readPinnedContainedFile(declared, current, projectReal);
 }
 
 function hasRemediation(placement: IntendedPlacement): boolean {
@@ -255,17 +264,22 @@ export function evaluateIntendedPlacement(
   plan: Record<string, unknown>,
   options: { projectRoot: string },
 ): IntendedPlacementResult {
-  const placement = readIntendedPlacement(plan);
-  if (placement === null) {
+  const parsed = parseIntendedPlacement(plan);
+  if (parsed.kind === "missing") {
     return {
-      ok: false,
-      message: `xBRIEF lacks plan.metadata.intended_placement. ${INTENDED_PLACEMENT_MISSING_HINT}`,
+      ok: true,
+      warning: true,
+      message: INTENDED_PLACEMENT_GRANDFATHER_HINT,
     };
   }
+  if (parsed.kind === "malformed") {
+    return { ok: false, message: parsed.message };
+  }
+  const placement = parsed.placement;
   if (placement.files.length === 0) {
     return {
-      ok: false,
-      message: `xBRIEF intended_placement.files is empty — preflight has no declared files to key on. ${INTENDED_PLACEMENT_MISSING_HINT}`,
+      ok: true,
+      message: "intended placement pending (ingest scaffold; no declared files)",
     };
   }
   if (!isNonEmptyString(placement.module_boundary)) {
@@ -285,7 +299,7 @@ export function evaluateIntendedPlacement(
         message: `Intended file '${declared}' escapes the project root. ${INTENDED_PLACEMENT_MISSING_HINT}`,
       };
     }
-    const inspected = inspectDeclaredFile(root, declared, abs);
+    const inspected = inspectDeclaredFile(declared, abs);
     if (inspected.kind === "missing") {
       continue;
     }

@@ -250,8 +250,9 @@ export function evaluate(vbriefPath: string, options: EvaluateOptions = {}): Eva
     };
   }
 
-  // #3424: declared files vs review-trigger SoT. Missing declaration/exemption
-  // is the reject; size alone is not a hard cap (#1488).
+  // #3424: declared files vs review-trigger SoT. Missing field is grandfathered
+  // (warning). Inspect anomalies fail closed. Size alone is not a hard cap (#1488).
+  let placementWarning: string | undefined;
   if (options.skipIntendedPlacement !== true) {
     const projectRoot = resolveProjectRootFromBrief(path, options.projectRoot);
     const placement = evaluateIntendedPlacement(planRecord, { projectRoot });
@@ -262,10 +263,13 @@ export function evaluate(vbriefPath: string, options: EvaluateOptions = {}): Eva
         message: buildReject(path, placement.message),
       };
     }
+    if (placement.warning === true) {
+      placementWarning = placement.message;
+    }
   }
 
   // Keep the historical OK line when lineage is N/A (backward-compatible tests / agents).
-  const message = lineage.applicable
+  let message = lineage.applicable
     ? `OK ${path} -- ready for implementation. parent lineage OK ` +
       `(${lineage.parent_requirement_ids.length} req IDs` +
       (lineage.negative_invariant_ids.length > 0
@@ -273,6 +277,9 @@ export function evaluate(vbriefPath: string, options: EvaluateOptions = {}): Eva
         : "") +
       `).`
     : `OK ${path} -- ready for implementation.`;
+  if (placementWarning !== undefined) {
+    message = `${message} ${placementWarning}`;
+  }
 
   return {
     exitCode: 0,

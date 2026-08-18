@@ -6,6 +6,7 @@ import { afterAll, describe, expect, it } from "vitest";
 // chmodSync does not reliably block file reads on Windows; skip chmod-dependent tests there.
 const itChmod = it.skipIf(process.platform === "win32");
 
+import { buildIssueVbrief } from "../intake/issue-ingest.js";
 import {
   ELIGIBLE_STATUS,
   emitJson,
@@ -14,7 +15,11 @@ import {
   PREFLIGHT_USAGE_HINT,
 } from "./evaluate.js";
 import { emitJson as emitJsonFromIndex, evaluate as evaluateFromIndex } from "./index.js";
-import { INTENDED_PLACEMENT_SCHEMA } from "./intended-placement.js";
+import {
+  INTENDED_PLACEMENT_GRANDFATHER_HINT,
+  INTENDED_PLACEMENT_SCHEMA,
+  stampIntendedPlacement,
+} from "./intended-placement.js";
 
 function underThresholdPlacement(): Record<string, unknown> {
   return {
@@ -136,16 +141,37 @@ describe("evaluate", () => {
     expect(result.message).toContain("vBRIEF not found");
   });
 
-  it("rejects missing intended_placement (#3424)", () => {
+  it("grandfathers a missing intended_placement on a pre-existing brief (#3424)", () => {
     const path = writeVbrief(
       "active",
       "story.xbrief.json",
       JSON.stringify({ plan: { status: "running" } }),
     );
     const result = evaluate(path);
-    expect(result.exitCode).toBe(1);
-    expect(result.message).toContain("intended_placement");
-    expect(result.message).toContain("Record plan.metadata.intended_placement");
+    expect(result.exitCode).toBe(0);
+    expect(result.message).toContain(INTENDED_PLACEMENT_GRANDFATHER_HINT);
+  });
+
+  it("preflights a freshly ingested brief end-to-end (#3424)", () => {
+    const [vbrief] = buildIssueVbrief(
+      {
+        number: 3424,
+        title: "fresh ingest placement",
+        url: "https://github.com/deftai/directive/issues/3424",
+        body: "## Acceptance\n- [ ] Record intended placement\n",
+        labels: [],
+      },
+      "active",
+      "https://github.com/deftai/directive",
+    );
+    const plan = vbrief.plan as Record<string, unknown>;
+    plan.status = "running";
+    stampIntendedPlacement(plan);
+    const path = writeVbrief("active", "ingested.xbrief.json", JSON.stringify(vbrief));
+    const result = evaluate(path, { skipOriginFreshness: true });
+    expect(result.exitCode).toBe(0);
+    expect(result.message).toContain("ready for implementation");
+    expect(result.message).not.toContain("lacks plan.metadata.intended_placement");
   });
 
   it("rejects a directory path", () => {
