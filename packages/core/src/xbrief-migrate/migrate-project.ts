@@ -1,6 +1,6 @@
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import { containedWrite } from "../fs/contained-write.js";
+import { containedRemove, containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { checkGitClean } from "../migrate-preflight/index.js";
 import { applyAgentsRefresh } from "../platform/agents-md.js";
@@ -88,9 +88,7 @@ export function shouldOmitLegacyMigrationFile(relativePath: string): boolean {
  */
 export function removeStaleMigratedFrameworkNarrative(projectRoot: string): boolean {
   const stale = join(projectRoot, MIGRATED_ARTIFACT_DIR, OBSOLETE_FRAMEWORK_NARRATIVE_FILENAME);
-  if (!existsSync(stale)) return false;
-  rmSync(stale, { force: true });
-  return true;
+  return containedRemove({ root: projectRoot, target: stale }).removed;
 }
 
 function mapRelativePath(relativePath: string): string {

@@ -1430,6 +1430,8 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
       "---\ndescription: managed\n---\n\nRead and follow `resilience/continue-here.md`.\n",
       "utf8",
     );
+    const staleNarrative = join(project, "xbrief", "vbrief.md");
+    writeFileSync(staleNarrative, "# obsolete migrated framework narrative\n", "utf8");
     const before = hashFixtureTree(project);
 
     const code = await runRefreshDepositCli({
@@ -1448,6 +1450,7 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     });
 
     expect(code).toBe(0);
+    expect(existsSync(staleNarrative)).toBe(true);
     expect(hashFixtureTree(project)).toBe(before);
   });
 

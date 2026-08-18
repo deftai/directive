@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "update-dry-run-plan",
+  "decision": "deft update --dry-run plan is construction-level collection via one injected write/remove/exec port. PR 3453 is replace after architecture-independent salvage. #3437 stays open until the replacement that implements ADR-004 merges.",
+  "governingRule": {
+    "description": "Dry-run fidelity is a property of construction, not helper discipline. Dest mutations on the deft update path go through one injected write/remove/exec port. Collect-only mode and a labeled two-tree dest-vs-content-package diff are rejected.",
+    "path": "docs/decisions/ADR-004-update-dry-run-plan.md",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Revive collect-only planning on PR 3453",
+      "whyNot": "Five bypass instances; omission-shaped; fs-import ban cannot see child_process. The fifth (git config on dry-run) proved the write surface is not one category."
+    },
+    {
+      "option": "Labeled pure-read dest-vs-content-package diff",
+      "whyNot": "Dest membership is dest-aware writer logic (~16 files / ~30 branches). The exclusions contract is omission-shaped. Cannot answer which dest files are deleted vs preserved."
+    },
+    {
+      "option": "Materialize-and-diff (scratch dir + same write code)",
+      "whyNot": "Every side effect must be root-parameterized; git config already is not; scratch would need a git repo. Honest form collapses into the port."
+    },
+    {
+      "option": "Defer architecture and keep parking 3453",
+      "whyNot": "#3437 remains a lying dry-run for file-level blast radius. Version-skew (#3464) is not the whole consumer question."
+    }
+  ],
+  "whyWinner": "The port records dest membership from the same construction that executes. Static ban plus zero-mutation fixture make bypass CI-red, including git config. Three accepted conditions (enforcement legs, consolidation not introduction, honest label) stay unweakened. Salvage independent 3453 pieces first; close 3453 unmerged; keep #3437 open until the replacement PR.",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-08-18-3462-adr-004-salvage.xbrief.json"
+  ],
+  "timestamp": "2026-08-18T15:52:41Z",
+  "revisitTrigger": "If a later inventory finds dest-mutating injectors on the update path beyond the three recorded seams, amend ADR-004. Re-open only if a later ADR shows the port's migration cost worse than root-parameterizing git config and $HOME OpenClaw.",
+  "tags": [
+    "architecture",
+    "dry-run",
+    "update",
+    "adr-004"
+  ],
+  "relatedIssues": [
+    3462,
+    3437,
+    3452,
+    3392,
+    3458
+  ]
+}
