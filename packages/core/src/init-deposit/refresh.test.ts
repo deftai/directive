@@ -27,7 +27,9 @@ import { evaluate as evaluateHooksInstalled } from "../verify-env/verify-hooks-i
 import { detectXbriefConvergence } from "../xbrief-migrate/detect.js";
 import { type LegacyLayoutDetection, LegacyLayoutRefusedError } from "./legacy-detect.js";
 import {
+  buildDepositVersionSkewHeadline,
   buildVersionSkewNotice,
+  depositRefreshPending,
   formatPrettierSensitiveAnnounce,
   frameworkRefreshSideEffects,
   NOT_INITIALIZED_MESSAGE,
@@ -108,6 +110,27 @@ describe("buildVersionSkewNotice", () => {
   it("returns null when versions align", () => {
     expect(buildVersionSkewNotice("0.55.0", "0.55.0", "0.55.0")).toBeNull();
     expect(buildVersionSkewNotice("0.55.0", "0.55.0", null)).toBeNull();
+  });
+});
+
+describe("deposit version-skew headline (#3437 tier-1)", () => {
+  it("pending when recorded deposit and content disagree", () => {
+    expect(depositRefreshPending("0.78.0", "0.103.0")).toBe(true);
+    expect(depositRefreshPending("v0.78.0", "0.78.0")).toBe(false);
+    expect(depositRefreshPending(null, "0.103.0")).toBe(true);
+    expect(depositRefreshPending("", "0.103.0")).toBe(true);
+  });
+
+  it("leads with manifest X -> content Y when versions disagree", () => {
+    const headline = buildDepositVersionSkewHeadline("0.78.0", "0.103.0");
+    expect(headline).toMatch(/Version skew/);
+    expect(headline).toMatch(/0\.78\.0/);
+    expect(headline).toMatch(/->/);
+    expect(headline).toMatch(/0\.103\.0/);
+    expect(buildDepositVersionSkewHeadline("0.103.0", "0.103.0")).toBeNull();
+    expect(buildDepositVersionSkewHeadline(null, "0.103.0")).toMatch(
+      /unknown -> content 0\.103\.0/,
+    );
   });
 });
 
@@ -1351,9 +1374,13 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
 
   it("--dry-run prints the classified plan without executing the refresh (a5)", async () => {
     const project = freshRoot("update-dryrun-");
+    const contentRoot = installFakeContentPackage(project, "0.53.0");
     writeInitializedProject(project, { contentVersion: "0.53.0", pinVersion: "0.53.0" });
     const out: string[] = [];
     const err: string[] = [];
+    const copyContent = vi.fn(async () => {
+      throw new Error("copyContent must not run in dry-run mode");
+    });
 
     const code = await runRefreshDepositCli({
       projectDir: project,
@@ -1365,9 +1392,9 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
       writeOut: (t) => out.push(t),
       writeErr: (t) => err.push(t),
       seams: {
-        resolveContentRoot: async () => {
-          throw new Error("resolveContentRoot must NOT run in dry-run mode");
-        },
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.53.0",
+        copyContent,
       },
     });
 
@@ -1376,12 +1403,20 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     expect(payload.dry_run).toBe(true);
     expect(payload.update_state).toBe("current");
     expect(payload.mode).toBeDefined();
+    expect(payload.previous_version).toMatch(/0\.53\.0/);
+    expect(payload.content_version).toMatch(/0\.53\.0/);
+    expect(payload.deposit_refresh_pending).toBe(false);
+    expect(payload).not.toHaveProperty("strategy");
+    expect(payload).not.toHaveProperty("planned_paths");
+    expect(payload).not.toHaveProperty("planned_file_count");
+    expect(copyContent).not.toHaveBeenCalled();
     // VERSION untouched -> nothing was re-stamped.
     expect(readFileSync(join(project, ".deft", "core", "VERSION"), "utf8")).toContain("v0.53.0");
   });
 
   it("full dry-run leaves the fixture tree byte-identical (#3456)", async () => {
     const project = freshRoot("update-dryrun-hash-");
+    const contentRoot = installFakeContentPackage(project, "0.53.0");
     writeInitializedProject(project, { contentVersion: "0.53.0", pinVersion: "0.53.0" });
     mkdirSync(join(project, "xbrief", "schemas"), { recursive: true });
     mkdirSync(join(project, ".claude", "commands"), { recursive: true });
@@ -1407,14 +1442,96 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
       writeOut: () => undefined,
       writeErr: () => undefined,
       seams: {
-        resolveContentRoot: async () => {
-          throw new Error("resolveContentRoot must NOT run in dry-run mode");
-        },
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.53.0",
       },
     });
 
     expect(code).toBe(0);
     expect(hashFixtureTree(project)).toBe(before);
+  });
+
+  it("skewed-manifest dry-run leads with version skew and deposit_refresh_pending (#3437)", async () => {
+    const project = freshRoot("update-dryrun-skew-");
+    const contentRoot = installFakeContentPackage(project, "0.103.0");
+    writeInitializedProject(project, { contentVersion: "0.78.0", pinVersion: "0.103.0" });
+    const beforeVersion = readFileSync(join(project, ".deft", "core", "VERSION"), "utf8");
+    const beforeAgents = readFileSync(join(project, "AGENTS.md"), "utf8");
+    const out: string[] = [];
+    const err: string[] = [];
+    const copyContent = vi.fn(async () => {
+      throw new Error("copyContent must not run in dry-run mode");
+    });
+
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      dryRun: true,
+      classifySeams: classifySeams({ reachable: true, version: "0.103.0" }),
+      writeOut: (t) => out.push(t),
+      writeErr: (t) => err.push(t),
+      seams: {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.103.0",
+        copyContent,
+      },
+    });
+
+    expect(code).toBe(0);
+    const payload = parseJsonObject(out.join(""));
+    expect(payload.dry_run).toBe(true);
+    expect(payload.previous_version).toMatch(/0\.78\.0/);
+    expect(payload.content_version).toMatch(/0\.103\.0/);
+    expect(payload.deposit_refresh_pending).toBe(true);
+    expect(payload).not.toHaveProperty("strategy");
+    expect(payload).not.toHaveProperty("planned_paths");
+    expect(payload).not.toHaveProperty("planned_file_count");
+    const firstLine =
+      err
+        .join("")
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .find((line) => line.length > 0) ?? "";
+    expect(firstLine).toMatch(/Version skew/);
+    expect(firstLine).toMatch(/0\.78\.0/);
+    expect(firstLine).toMatch(/->/);
+    expect(firstLine).toMatch(/0\.103\.0/);
+    expect(copyContent).not.toHaveBeenCalled();
+    expect(readFileSync(join(project, ".deft", "core", "VERSION"), "utf8")).toBe(beforeVersion);
+    expect(readFileSync(join(project, "AGENTS.md"), "utf8")).toBe(beforeAgents);
+  });
+
+  it("dry-run fails closed when content version cannot be read (#3437)", async () => {
+    const project = freshRoot("update-dryrun-readfail-");
+    writeInitializedProject(project, { contentVersion: "0.78.0", pinVersion: "0.103.0" });
+    const beforeVersion = readFileSync(join(project, ".deft", "core", "VERSION"), "utf8");
+    const out: string[] = [];
+    const err: string[] = [];
+
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      dryRun: true,
+      classifySeams: classifySeams({ reachable: true, version: "0.103.0" }),
+      writeOut: (t) => out.push(t),
+      writeErr: (t) => err.push(t),
+      seams: {
+        resolveContentRoot: async () => {
+          throw new Error("content root missing");
+        },
+      },
+    });
+
+    expect(code).toBe(1);
+    const payload = parseJsonObject(out.join(""));
+    expect(payload.success).toBe(false);
+    expect(payload.error_code).toBe("refresh_deposit_failed");
+    expect(err.join("")).toMatch(/content root missing/);
+    expect(readFileSync(join(project, ".deft", "core", "VERSION"), "utf8")).toBe(beforeVersion);
   });
 
   it("reports current and refreshes idempotently on an up-to-date install (a2/a5)", async () => {

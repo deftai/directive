@@ -532,6 +532,45 @@ export function buildVersionSkewNotice(
   return null;
 }
 
+function displayVersion(version: string | null): string {
+  return version === null || version.trim() === "" ? "unknown" : normalizeVersion(version);
+}
+
+/** True when recorded deposit version and content package version disagree (#3437). */
+export function depositRefreshPending(
+  previousDepositVersion: string | null,
+  contentVersion: string,
+): boolean {
+  if (previousDepositVersion === null || previousDepositVersion.trim() === "") return true;
+  return normalizeVersion(previousDepositVersion) !== normalizeVersion(contentVersion);
+}
+
+/** First-line dry-run headline when deposit manifest and content disagree (#3437). */
+export function buildDepositVersionSkewHeadline(
+  previousDepositVersion: string | null,
+  contentVersion: string,
+): string | null {
+  if (!depositRefreshPending(previousDepositVersion, contentVersion)) return null;
+  return (
+    `[deft update] Version skew: deposit manifest ${displayVersion(previousDepositVersion)}` +
+    ` -> content ${displayVersion(contentVersion)}`
+  );
+}
+
+async function readDryRunVersions(
+  projectDir: string,
+  seams: RefreshDepositSeams = {},
+): Promise<{ previousVersion: string | null; contentVersion: string }> {
+  const deftDir = join(resolve(projectDir), CANONICAL_INSTALL_ROOT);
+  const resolveContent = seams.resolveContentRoot ?? resolveInstalledContentRoot;
+  const readPackageVersion = seams.readPackageVersion ?? readCorePackageVersion;
+  const contentRoot = await resolveContent();
+  return {
+    previousVersion: readRecordedDepositVersion(deftDir),
+    contentVersion: readContentPackageVersion(contentRoot, readPackageVersion),
+  };
+}
+
 export function buildUpdateSummaryJson(input: {
   result: RefreshDepositResult;
   options: RefreshDepositArgs;
@@ -928,13 +967,22 @@ function emitMigrationRequired(
 }
 
 /** Emit the classified plan for `--dry-run`/`--plan` without executing the refresh. */
-function emitDryRunPlan(
+async function emitDryRunPlan(
   options: RunRefreshDepositCliOptions,
   io: InitDepositIo,
   projectDir: string,
   classification: UpdateClassification,
-): number {
+): Promise<number> {
+  const { previousVersion, contentVersion } = await readDryRunVersions(
+    projectDir,
+    options.seams ?? {},
+  );
+  const refreshPending = depositRefreshPending(previousVersion, contentVersion);
+  const skewHeadline = buildDepositVersionSkewHeadline(previousVersion, contentVersion);
   const { state, plan: resolutionPlan } = classification;
+  if (skewHeadline) {
+    io.printf(`${skewHeadline}\n`);
+  }
   io.printf(`\n[deft update] dry-run -- classified plan (no changes written):\n`);
   io.printf(`  State        : ${state}\n`);
   io.printf(`  Mode         : ${resolutionPlan.mode}\n`);
@@ -953,6 +1001,9 @@ function emitDryRunPlan(
           update_state: state,
           mode: resolutionPlan.mode,
           project_dir: projectDir,
+          previous_version: previousVersion ?? "",
+          content_version: contentVersion,
+          deposit_refresh_pending: refreshPending,
           next_action: resolutionPlan.nextAction,
           warnings: resolutionPlan.warnings,
         },
@@ -1023,7 +1074,18 @@ export async function runRefreshDepositCli(options: RunRefreshDepositCliOptions)
       return emitMigrationRequired(options, io, projectDir, classification);
     }
     if (options.dryRun) {
-      return emitDryRunPlan(options, io, projectDir, classification);
+      try {
+        return await emitDryRunPlan(options, io, projectDir, classification);
+      } catch (cause) {
+        const message = cause instanceof Error ? cause.message : String(cause);
+        options.writeErr(`directive update: ${message}\n`);
+        if (options.jsonOut) {
+          options.writeOut(
+            `${JSON.stringify({ success: false, error: message, error_code: "refresh_deposit_failed" }, null, 2)}\n`,
+          );
+        }
+        return 1;
+      }
     }
     // #2266 a3: self-heal a mismatched / unreachable engine via the keystone
     // global-first ladder before the refresh proceeds.
