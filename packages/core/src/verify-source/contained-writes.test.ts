@@ -86,6 +86,12 @@ describe("evaluateContainedWrites (#2951)", () => {
     expect(CONTAINED_WRITES_ALLOWLIST).toContain("packages/core/src/fs/contained-write.ts");
   });
 
+  it("allowlists intended-placement read-only fd pin (#3424)", () => {
+    expect(CONTAINED_WRITES_ALLOWLIST).toContain(
+      "packages/core/src/preflight/intended-placement.ts",
+    );
+  });
+
   it("does not allowlist a path that merely ends with an allowlisted suffix", () => {
     const root = freshDir("cw-verify-endswith-");
     const spoof = join(root, "packages", "core", "src", "evil", "packages", "core", "src", "fs");

@@ -50,6 +50,8 @@ export const CONTAINED_WRITES_ALLOWLIST: readonly string[] = [
   // Implementation modules for containment + contained write.
   "packages/core/src/fs/contained-write.ts",
   "packages/core/src/fs/projection-containment.ts",
+  // #3424: read-only O_NOFOLLOW fd pin in intended-placement inspect (not a write sink).
+  "packages/core/src/preflight/intended-placement.ts",
   // Deposit tree copy / contain primitives (low-level install sinks).
   "packages/core/src/deposit/copy-tree.ts",
   "packages/core/src/deposit/contain.ts",
