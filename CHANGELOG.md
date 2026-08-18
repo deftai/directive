@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Standing residual until resolved Greptile floor or same-fingerprint loop (#3448).** Review-cycle and swarm leftover classes A/B/C: already-touched-file leftovers stay in-AC (class A) until the resolved `#3095` floor (policy > dogfood 5 > consumer default 4) or the same leftover fingerprint repeats. Standing-order phrases (`until floor or loop` / `until greptile meets policy` / `pursue residuals until told otherwise`) apply to open cohort/plan units; one-shot `pursue residual` stays one pass. Halt-report resume line names leftover class, resolved floor, and standing vs one-shot. No new skill or verb. Refs #3273, #2881, #3095, #2442.
 - **Replace leftover Python helpers with committed Node so CodeQL stops Analyze (python) here (#3427).** CI watchdog scripts are `.mjs`; `ci.yml` does not invoke `python3`. Consumer `deft-core-guard` still deposits a `python3` heredoc from a shared Go/TS embed (not a `.py` file). Pin check still matches `isUpgradePinPathContentAllowed`. Org CodeQL languages are unchanged. Closes #3427.
 - **`deft update` stages only this-run installer-managed ledger paths, including tracked deletions (#3394).** Ledger minus allowlist is printed and left unstaged. Untracked deletes are filtered so they cannot fail the batch. Pre-existing consumer edits to Taskfile, package.json, or .gitignore are not staged. Closes #3394. Refs #3378, #3392, #3393.
 

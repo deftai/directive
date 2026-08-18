@@ -74,24 +74,37 @@ tools: explore=0 commit=3 verify=0 coordinate=0 unknown=1 | anomalies: commit-wi
 
 ! When the failure stop fires: **halt** automatic repair/re-dispatch; emit an **operator-visible halt report** (what was tried, current stage, missing evidence, human decision needed). Prefer `BLOCKED:` over thin `DONE` when the unit cannot reach merge-ready inside the envelope.
 
-! **Halt-report resume line (MUST, #3273 / AC6):** Terminal dual-stop / hard-stop / conf-residual halt reports MUST end with a copy-pasteable operator resume affordance so agents discover the follow-up path without prior chat memory:
+! **Halt-report resume line (MUST, #3273 / #3448):** Terminal dual-stop / hard-stop / conf-residual halt reports MUST end with a copy-pasteable operator resume affordance so agents discover the follow-up path without prior chat memory:
 
 ```
-RESUME: residual=<class> conf=<n/5|n/a> PR=<url>
-Operator may re-authorize **one residual pass** with: pursue residual | follow-up hard-stop | same as conf-hold | continue dual-stopped PR
+RESUME: residual=<class> leftover=<A|B|C> conf=<n/5|n/a> floor=<resolved min|n/a> standing=<yes|one-shot> PR=<url>
+Operator may re-authorize **one residual pass** (one-shot) with: pursue residual | follow-up hard-stop | same as conf-hold | continue dual-stopped PR
+Standing order (open cohort/plan units, class A until resolved floor or same-fingerprint loop): until floor or loop | until greptile meets policy | pursue residuals until told otherwise
 Skill: deft-directive-swarm § Operator follow-up after dual-stop / hard stop (#3273) · deft-directive-review-cycle same section
 ```
 
-Residual class examples: `review_cycle_cap` / `greptile_p0_p1` / `conf_floor` / `no_progress` / `ci_weather` / `thin_done`.
+Residual class examples: `review_cycle_cap` / `greptile_p0_p1` / `conf_floor` / `no_progress` / `ci_weather` / `thin_done`. Leftover class: **class A** already-touched in-AC residual · **class B** new subsystem / AC fight · **class C** score-only.
 
 ### Operator follow-up after dual-stop / hard stop (#3273)
 
-Operator-initiated resume after dual-stop, hard-stop, or conf-floor residual — **not** automatic re-thrash. Primary discovery is the halt-report resume line above; this section holds the steps. Portable for consumer deposit and maintainer tree (`task` / `deft` dual-invoke; no framework-monorepo-only path).
+Operator-initiated resume after dual-stop, hard-stop, or conf-floor residual — **not** automatic re-thrash. Primary discovery is the halt-report resume line above; this section holds the steps. Portable for consumer deposit and maintainer tree (`task` / `deft` dual-invoke; no framework-monorepo-only path). Continue-until target is the **resolved `#3095` floor** (`plan.policy.review.minGreptileConfidence`: typed project policy > framework dogfood **5** > consumer default **4**; inspect `task policy:show --field=minGreptileConfidence` / `deft policy:show --field=minGreptileConfidence`). ⊗ Hard-code 5/5. ⊗ Lower project policy to clear one PR.
 
-**Triggers:** pursue residual · follow-up hard-stop · same as conf-hold · continue dual-stopped PR · re-babysit residual
+**Leftover classes (A/B/C, #3448):**
 
-**One residual pass (then re-stop):**
-1. Ground-truth: dual-invoke `pr:merge-ready` / `pr:watch --one-shot` on the PR (CLI `deft` first, then `task deft:` — see review-cycle #2893).
+| Class | What it is | Auto-continue? |
+|-------|------------|----------------|
+| **class A** — named leftover on already-touched files | Wrong remediation, dropped field, fixture, same-module hole on files this PR already owns | **in-AC residual.** Continue until the resolved floor or same-fingerprint loop |
+| **class B** — new subsystem / AC fight | New ledger, protocol, cross-cutting contract, or work that expands story meaning | Park or file follow-up. Do not expand mid-babysit |
+| **class C** — score-only, no concrete finding | Confidence below the resolved floor, 0 P0/P1, no named leftover | Document / same-as-conf-hold / operator floor this-PR-only. Not unbounded redesign |
+
+! **Already-touched leftover is class A (#2881 / #3448):** a leftover on files **already in the PR** is class A unless it needs a new ledger, protocol, or story.
+
+**One-shot vs standing (#3448):**
+- **One-shot** triggers: pursue residual · follow-up hard-stop · same as conf-hold · continue dual-stopped PR · re-babysit residual — **one** pass on the unit that just halted, then re-stop. Do not silently widen.
+- **Standing** triggers: **until floor or loop** · **until greptile meets policy** · **pursue residuals until told otherwise** — class A leftovers on **every open unit in the active cohort / ordered plan** keep moving until the resolved floor or the same primary leftover fingerprint repeats. Class B/C stay parked unless the operator names them.
+
+**One residual pass (then re-stop, or one standing batch):**
+1. Ground-truth: dual-invoke `pr:merge-ready` / `pr:watch --one-shot` on the PR (CLI `deft` first, then `task deft:` — see review-cycle #2893). Classify leftover A/B/C.
 2. If a delivery attempt is still active, cancel then begin with the **same unit ids** (exit 0 required before residual spawn) (#3228 / #3143):
    ```
    task swarm:pre-dispatch -- --scope-id <story-or-issue-or-xbrief-id> --target-id <worktree-path-or-branch> --action cancel
@@ -99,14 +112,17 @@ Operator-initiated resume after dual-stop, hard-stop, or conf-floor residual —
    ```
 3. Spawn **one** active residual worker or review-cycle owner (not sleep-only re-poll as the only work). Monitor MUST NOT self-implement product fixes after merge-ready leaf handback (#2843).
 4. If the operator authorized a conf floor for **this PR only** (e.g. ≥4/5): post a PR audit comment naming the floor, HEAD SHA, and who authorized it. That comment is the **human-merge / documented-override trail** — it does **not** rewrite `plan.policy.review.minGreptileConfidence` or make `pr:merge-ready` / `pr:watch` exit CLEAN below policy. Merge still requires policy CLEAN, bot-merge authority + override path, or human merge after the documented floor is met in the bot body. ⊗ Silent policy edit of `minGreptileConfidence` for one residual.
-5. Wait re-review; merge when policy floor + gates met (or human-merge after documented PR-local floor). Run `scope:complete` + lifecycle land when in scope (#3264 / finalize).
+5. Wait re-review; merge when policy floor + gates met (or human-merge after documented PR-local floor). Run `scope:complete` + lifecycle land when in scope (#3264 / finalize). Halt reports MUST include leftover class + resolved floor + standing vs one-shot.
 
-! Dual-stop re-entry: after the residual pass (+ re-review wait), if still blocked, halt again with a fresh resume line. Another pass requires **new** operator consent.
+! **Same-fingerprint halt is the loop stop (#3448 / #2442):** after a real fix, a *new* leftover MAY take another batch. The same primary leftover fingerprint repeating is the endless-loop stop. `#2442` batch cap (max 3 repair actions) still applies.
+
+! Dual-stop re-entry: after the residual pass (+ re-review wait), if still blocked, halt again with a fresh resume line. Another **one-shot** pass requires **new** operator consent. A **standing** order MAY continue class A with a **new** fingerprint under the `#2442` cap.
 
 ⊗ Unlimited auto-retry after dual-stop without new operator consent (#3273 / #2442).
 ⊗ Sleep-only multi-hour re-poll as the sole residual work.
 ⊗ Parent/monitor self-implement after merge-ready leaf handback (#2843).
 ⊗ Lower project-wide `minGreptileConfidence` for one residual.
+⊗ Treat one-shot `pursue residual` as a standing order, or park a class A leftover on already-touched files because the score is below 5.
 
 ! Composes with minimal-subgraph repair (#2439): repairs stay minimal **and** dual-stop bounded. Mechanical delivery/acceptance circuit breaker: **#3143** `packages/core/src/delivery-attempt/` (`evaluatePreDispatch`). Docs: `docs/delivery-attempt.md`.
 

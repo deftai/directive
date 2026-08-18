@@ -158,8 +158,9 @@ CONSTRAINTS:
 - ⊗ Full dual-source re-QC solely because the harness re-delivered the same settle event (#3092)
 - ⊗ Run multi-iteration repair, monitor, or implement-fix loops without a dual-stop failure envelope (max iterations and/or no-progress and/or budget) (#2442)
 - ⊗ Silently continue, re-dispatch, or open another identical attempt after the failure stop fires — halt with an operator-visible report (what was tried, what is missing, what human decision is needed) (#2442)
-- ⊗ Emit a dual-stop / hard-stop / conf-residual terminal halt report **without** the #3273 resume line (residual class + example phrases pursue residual / follow-up hard-stop / same as conf-hold / continue dual-stopped PR + skill section pointer) — primary discovery path; see `core-phase-4.md` Operator follow-up after dual-stop / hard stop
+- ⊗ Emit a dual-stop / hard-stop / conf-residual terminal halt report **without** the #3273 resume line (leftover class + residual class + resolved floor + standing vs one-shot + example phrases pursue residual / follow-up hard-stop / same as conf-hold / continue dual-stopped PR / until floor or loop + skill section pointer) — primary discovery path; see `core-phase-4.md` Operator follow-up after dual-stop / hard stop (#3448)
 - ⊗ Unlimited auto-retry or parent self-implement after dual-stop without new operator consent (#3273 / #2843 / #2442)
+- ⊗ Hard-code 5/5 as the continue-until target, treat one-shot `pursue residual` as standing, or park a class A already-touched leftover as a new story (#3448 / #2881 / #3095)
 - ⊗ Treat dual-stop skill defaults as a durable delivery-attempt ledger — mechanical cross-revision circuit breaker is #3143 (`packages/core/src/delivery-attempt/`), not prompt-only thrashing control (#2442)
 - ⊗ Spawn a second implement leaf without `task swarm:pre-dispatch` exit 0, or while exit 1 (`DENY_DUPLICATE_ACTIVE`) — gate is authoritative (#3228 / #3143); takeover is cancel-then-begin, not dual active
 - ⊗ Force a second full dispatch on a retain-capable host solely because a mid-scope approval gate exists — re-message the live child (message-later / steer-mid-flight) instead (#3158)
