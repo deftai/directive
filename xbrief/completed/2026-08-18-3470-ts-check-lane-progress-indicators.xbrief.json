@@ -1,0 +1,172 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Coarse progress lines inside ts:check-lane so a long task check is observable without stopping it.",
+    "updated": "2026-08-18T22:04:37Z"
+  },
+  "plan": {
+    "title": "feat(check): ts:check-lane progress indicators",
+    "status": "completed",
+    "id": "3470-ts-check-lane-progress",
+    "narratives": {
+      "Description": "feat(check): emit coarse percent/count progress from ts:check-lane during the vitest suite. A parent that snapshots the log mid-run must see a later band than the #3188 start line without stopping the process.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3470. Operator swarm 2026-08-18 through-merge cohort with #3469 and #3454.",
+      "Overview": "After the #3188 start-of-suite log line, the TypeScript suite prints almost nothing until it finishes. A parent that snapshots the log cannot tell whether the suite is 10 percent done, stuck, or still healthy.\n\n#3188 already logs start of the suite. This story logs progress inside the suite. Prefer vitest's own reporter/hook if it can emit percent-complete without a custom runner. Else a thin wrapper that counts completed files. Line-buffered. Windows + Grok Build capture (#1353) in scope: one line per tick, no pipes in the wrapper.\n\nOut of scope: making the suite faster; SHA suite stamp/resume (#3187); moving more work out of the suite; per-test live UI / TTY spinner.",
+      "UserStory": "As an agent running task check, I want coarse progress lines at 10% or 20% of known files or tests, so that I can tell a long suite is healthy without interrupting it.",
+      "ImplementationPlan": "1. Find where ts:check-lane invokes vitest at packages/core/src/ts-check-lane/run-lane.ts. 2. Emit flushed progress lines at 10 percent or 20 percent of known work, naming the lane, percent, and file or test count. 3. Prefer vitest reporter/hook; do not dump every test name; do not change pass/fail. 4. Tests in run-lane.test.ts covering cadence + flush. 5. CHANGELOG. Tracking: #3470."
+    },
+    "items": [
+      {
+        "title": "Emit coarse flushed progress during the vitest suite",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given ts:check-lane is running the vitest suite, when known work advances through each 10% or 20% band, then stdout emits one flushed line naming the lane, percent, and count (files or tests). A log snapshot mid-run shows a later band than the #3188 start line.",
+          "Traces": "FR-3470-1"
+        },
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "task check 2026-08-18 emitted ts:check-lane 20/40/60/80/100% (202/404/606/808/1010 files) after the #3188 start line; PR 3475 merged 1907fe769c3a240321213844da4c79b98805ad43",
+          "recorded_at": "2026-08-18T22:03:00Z",
+          "recorded_by": "leaf-implementation/3470-ts-check-lane-progress"
+        }
+      },
+      {
+        "title": "Progress is line-buffered and silent on pass/fail",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given the progress reporter, when a tick fires, then the line is flushed immediately (no pipe wrapper). Pass/fail of the suite is unchanged. The reporter does not dump every test name.",
+          "Traces": "FR-3470-2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/ts-check-lane/progress.test.ts writeFlushedLine; progress-reporter.test.ts; task check 1004 files / 14058 passed, 6 files / 149 skipped, 0 failed",
+          "recorded_at": "2026-08-18T22:03:00Z",
+          "recorded_by": "leaf-implementation/3470-ts-check-lane-progress"
+        }
+      },
+      {
+        "title": "Tests and CHANGELOG",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given the ship, when tests run, then run-lane.test.ts covers at least two ticks and a flush. CHANGELOG [Unreleased] cites #3470.",
+          "Traces": "FR-3470-3"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/ts-check-lane/run-lane.test.ts; CHANGELOG.md [Unreleased] #3470; PR 3475",
+          "recorded_at": "2026-08-18T22:03:00Z",
+          "recorded_by": "leaf-implementation/3470-ts-check-lane-progress"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "determinism",
+      "agent-experience",
+      "urgent"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3470",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3470: ts:check-lane suite is silent after start"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3188",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3188: start-of-suite log (already shipped)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1353",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1353: Windows Grok Build capture"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Issue #3470 expected shape plus field evidence.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "ts:check-lane emits flushed percent/count progress lines during the vitest suite at its stated path.",
+          "artifact_path": "packages/core/src/ts-check-lane/run-lane.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "Progress ticks are tested without changing pass/fail at its stated path.",
+          "artifact_path": "packages/core/src/ts-check-lane/run-lane.test.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 3,
+          "text": "CHANGELOG cites #3470 at its stated path.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-18T22:04:37Z",
+    "metadata": {
+      "kind": "story",
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/ts-check-lane/run-lane.ts",
+          "packages/core/src/ts-check-lane/run-lane.test.ts",
+          "packages/core/src/ts-check-lane/index.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "ts-check-lane owns suite progress; do not change check orchestrator start line (#3188) or consumer gate lists",
+        "cohesion_exemption": "CHANGELOG.md already exceeds the review trigger; this slice only adds the #3470 ship note."
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/ts-check-lane"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/ts-check-lane/run-lane.test.ts"
+        ],
+        "expected_outputs": [
+          "flushed percent/count progress lines",
+          "unchanged pass/fail",
+          "CHANGELOG #3470"
+        ],
+        "acceptance_criteria_justification": "Issue #3470 expected progress lines plus tests.",
+        "depends_on": [],
+        "conflict_group": "ts-check-lane",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "capacityBucket": "new-capability",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3475,
+        "prBase": null,
+        "mergeCommit": "1907fe769c3a240321213844da4c79b98805ad43",
+        "deliveryBranch": "master",
+        "deliveryCommit": "1907fe769c3a240321213844da4c79b98805ad43",
+        "verifiedAt": "2026-08-18T22:04:37Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "d62ce82f-7378-4c5c-b50e-08fd37088d79"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-18T22:04:37Z",
+      "completedSessionId": "d62ce82f-7378-4c5c-b50e-08fd37088d79"
+    }
+  }
+}

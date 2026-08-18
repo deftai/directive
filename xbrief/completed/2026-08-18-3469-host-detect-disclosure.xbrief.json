@@ -1,0 +1,208 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Host detect honesty: unrecognized Grok Build TUI is disclosure, not a launch gate.",
+    "updated": "2026-08-18T21:05:34Z"
+  },
+  "plan": {
+    "title": "fix(routing): host-unknown disclosure not gate",
+    "status": "completed",
+    "id": "3469-host-detect-disclosure",
+    "narratives": {
+      "Description": "fix(routing): unrecognized host prints a dedicated honesty line and still allows launch. Unknown pins stay valid and must be named; launch and ritual must not fail closed solely because the host was unrecognized.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3469 plus amendment comment 5333065723. Operator swarm 2026-08-18 through-merge cohort with #3470 and #3454.",
+      "Overview": "A live Grok Build session resolved the routing provider as unknown because the TUI set neither GROK_BUILD nor DEFT_AGENT_RUNTIME. Routing then used unknown pins instead of the grok harness-default rows. Operator-accepted posture: disclosure, not a gate. Unknown pins stay valid. Read comments before implementing. Amendment 5333065723 rewrote Proposed in place.",
+      "UserStory": "As an operator on Grok Build TUI, I want a dedicated honesty line when the host is unrecognized, so that I can continue launch using the named unknown pin.",
+      "ImplementationPlan": "1. Dedicated honesty line on routing advise and enforce when provider is unknown. Names host unrecognized, empty probes, dispatch still allowed, and the pin or inherit used. Exit 0. 2. resolveDispatchProvider honors DEFT_HAS_SPAWN_SUBAGENT, DEFT_PROBE_GROK_BUILD, DEFT_PROBE_SPAWN_SUBAGENT. 3. Live routing key is grok; grok-build file key is read as grok or ignored. 4. GROK_BUILD is not cloud-headless. 5. Unknown pins stay valid and named. 6. Tests plus CHANGELOG. Closes issue 3469."
+    },
+    "items": [
+      {
+        "title": "Dedicated honesty line; exit 0; unknown pins named",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given provider unknown (or empty probe set), when verify:routing runs in advise or enforce / swarm:launch, then a dedicated line names host unrecognized, empty env/probes, that dispatch is allowed, and the pin or inherit that will be used. Exit is 0. unknown.leaf-implementation pins remain valid.",
+          "Traces": "FR-3469-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/swarm/routing-verify.test.ts#host-unrecognized-honesty",
+          "recorded_at": "2026-08-18T21:04:31Z",
+          "recorded_by": "leaf-implementation/3469"
+        }
+      },
+      {
+        "title": "One probe list with monitoring-tier signals",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given DEFT_HAS_SPAWN_SUBAGENT or DEFT_PROBE_GROK_BUILD or DEFT_PROBE_SPAWN_SUBAGENT is set, when resolveDispatchProvider runs, then provider is grok (same signals probeMonitoringTier already uses). GROK_BUILD and DEFT_AGENT_RUNTIME=grok-build still work.",
+          "Traces": "FR-3469-2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/swarm/routing.test.ts#probe-alignment",
+          "recorded_at": "2026-08-18T21:04:31Z",
+          "recorded_by": "leaf-implementation/3469"
+        }
+      },
+      {
+        "title": "grok-build file key is not a trap; local TUI is not cloud-headless",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given routing.local.json has a grok-build key, when the live provider is grok, then that key is read as grok or ignored without blocking launch. classifyRuntimeMode does not treat GROK_BUILD alone as cloud-headless.",
+          "Traces": "FR-3469-3"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/swarm/routing.test.ts#grok-build-alias",
+          "recorded_at": "2026-08-18T21:04:31Z",
+          "recorded_by": "leaf-implementation/3469"
+        }
+      },
+      {
+        "title": "Tests and CHANGELOG",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given the ship, when tests run, then routing.test.ts / routing-verify.test.ts cover honesty line + exit 0 + probe alignment + no cloud-headless from GROK_BUILD alone. CHANGELOG [Unreleased] cites #3469.",
+          "Traces": "FR-3469-4"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/swarm/routing-verify.test.ts#tests-and-changelog",
+          "recorded_at": "2026-08-18T21:04:31Z",
+          "recorded_by": "leaf-implementation/3469"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "determinism",
+      "agent-experience",
+      "grok-build",
+      "harness",
+      "urgent"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3469",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3469: Grok Build TUI detected as routing provider unknown"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3469#issuecomment-5333065723",
+        "type": "x-xbrief/refs",
+        "title": "Amendment: disclosure, not a gate"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1739",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1739: routing file"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3124",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3124: anti-swallow precedent"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Issue #3469 body Proposed plus amendment 5333065723.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "verify:routing prints a dedicated host-unrecognized honesty line and exits 0 at its stated path.",
+          "artifact_path": "packages/core/src/swarm/routing-verify.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "resolveDispatchProvider honors DEFT_HAS_SPAWN_SUBAGENT / DEFT_PROBE_GROK_BUILD / DEFT_PROBE_SPAWN_SUBAGENT at its stated path.",
+          "artifact_path": "packages/core/src/swarm/routing.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 3,
+          "text": "GROK_BUILD alone is not cloud-headless at its stated path.",
+          "artifact_path": "packages/core/src/platform/platform-capabilities.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 4,
+          "text": "CHANGELOG cites #3469 at its stated path.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-18T21:05:34Z",
+    "metadata": {
+      "kind": "story",
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/swarm/routing.ts",
+          "packages/core/src/swarm/routing-verify.ts",
+          "packages/core/src/swarm/routing.test.ts",
+          "packages/core/src/swarm/routing-verify.test.ts",
+          "packages/core/src/platform/platform-capabilities.ts",
+          "packages/core/src/platform/module-coverage.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "routing detect + honesty line + classifyRuntimeMode GROK_BUILD carve-out; do not fail-close launch",
+        "cohesion_exemption": "CHANGELOG.md already exceeds the review trigger; this slice only adds the #3469 ship note."
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/swarm/routing.ts",
+          "packages/core/src/swarm/routing-verify.ts",
+          "packages/core/src/swarm/routing.test.ts",
+          "packages/core/src/swarm/routing-verify.test.ts",
+          "packages/core/src/platform/platform-capabilities.ts",
+          "packages/core/src/platform/module-coverage.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/swarm/routing.test.ts packages/core/src/swarm/routing-verify.test.ts packages/core/src/platform/module-coverage.test.ts",
+          "task verify:routing"
+        ],
+        "expected_outputs": [
+          "honesty line exit 0",
+          "probe-list alignment",
+          "GROK_BUILD not cloud-headless",
+          "CHANGELOG #3469"
+        ],
+        "acceptance_criteria_justification": "Issue #3469 Proposed plus disclosure-not-gate amendment.",
+        "depends_on": [],
+        "conflict_group": "routing-detect",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "capacityBucket": "defect-fix",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3474,
+        "prBase": null,
+        "mergeCommit": "cbae6e53b4fa0b3eefb7a7a13be1b1dc1d4f2f69",
+        "deliveryBranch": "master",
+        "deliveryCommit": "cbae6e53b4fa0b3eefb7a7a13be1b1dc1d4f2f69",
+        "verifiedAt": "2026-08-18T21:05:34Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-18T21:05:34Z"
+    }
+  }
+}

@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Land leftover completed-tracked artifacts for closed 3470/3469/3454 (#3264 / #1358).** Three already-completed xBRIEFs (3470 ts:check-lane progress, 3469 host-detect disclosure, 3454 feedback:file --context) now live under `xbrief/completed/` so `verify:completed-tracked` sees the record. Does not re-close those issues. Refs #2321.
 - **ts:check-lane emits coarse flushed progress during the vitest suite (#3470).** After the #3188 start line, the lane prints percent/count ticks every 20% of collected files (`ts:check-lane 20% (412/2060 files)`). Line-buffered via `writeSync`; pass/fail is unchanged. Closes #3470.
 - **Worktree occupancy lease (#3433).** Mutation `session:start` / `session:ready` claim gitignored `.deft/occupancy.json`. A second mutation session on the same tree fails closed. Same-session re-arm heartbeats and keeps `DEFT_SESSION_ID`. Steal with `occupancy:steal --confirm --occupant`. Expired heartbeat (20 min) is free. PreToolUse denies product-path writes for a foreign live occupant. `swarm:launch` claims `intent: swarm`; finalize/complete-cohort release. Closes #3433.
 - **Land completed-tracked artifacts for closed 3382-cohort issues (#3264 / #1358).** 24 already-completed xBRIEFs for closed issues now live under `xbrief/completed/` so `verify:completed-tracked` and post-merge lifecycle see the record. Does not re-close those issues. Refs #2321.

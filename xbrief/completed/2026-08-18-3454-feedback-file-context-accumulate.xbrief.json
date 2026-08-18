@@ -1,0 +1,149 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "feedback:file repeated --context flags must accumulate instead of last-wins.",
+    "updated": "2026-08-18T20:49:49Z"
+  },
+  "plan": {
+    "title": "fix(cli): feedback:file --context accumulates",
+    "status": "completed",
+    "id": "3454-feedback-context-accumulate",
+    "narratives": {
+      "Description": "fix(cli): repeated --context flags on feedback:file accumulate instead of last-wins. The existing context string schema stays a string by joining collected values at parse or render time.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3454. Split from #3437. Operator swarm 2026-08-18 through-merge cohort with #3470 and #3469. Do not close #3437.",
+      "Overview": "`feedback:file` repeated `--context` flags silently keep only the last value. Location: packages/core/src/value/feedback-file.ts:353-356 — `out.context = argv[++i]` (and the `--context=` branch) assign a scalar.\n\nPreferred fix: collect values and join with newlines (or `; `) at parse or render time so the existing `context?: string` schema stays a string. Alternative: fail closed with `argument --context: specified multiple times`.\n\nOut of scope: the #3437 dry-run honesty gap; changing --summary / --expected / --actual / --notes repeat semantics unless they share the same helper. Do not close #3437.",
+      "UserStory": "As an operator filing feedback with two --context flags, I want both values in the filed issue body, so that the last flag does not silently drop the first.",
+      "ImplementationPlan": "1. Accumulate --context and --context= into an array; join at parse or render. 2. Keep context?: string schema. 3. Test two flags (space-separated and --context=) in feedback-file.test.ts near the existing --context case (~line 218). 4. CHANGELOG. Closes #3454 only. ⊗ Close #3437."
+    },
+    "items": [
+      {
+        "title": "Repeated --context accumulates",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given `task feedback:file --context a --context b` (and the `--context=` form), when argv is parsed, then both values are kept (joined) rather than last-wins.",
+          "Traces": "FR-3454-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "pnpm exec vitest run packages/core/src/value/feedback-file.test.ts — 22 passed; parseFeedbackFileArgs joins two --context and --context= values",
+          "recorded_at": "2026-08-18T20:46:00Z",
+          "recorded_by": "agent/3454-feedback-context-accumulate"
+        }
+      },
+      {
+        "title": "Tests and CHANGELOG; do not close #3437",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given the ship, when tests run, then feedback-file.test.ts covers two --context flags in both forms. CHANGELOG [Unreleased] cites #3454. The PR Closes line names #3454 only.",
+          "Traces": "FR-3454-2"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3473 merge 58234460f7ef73d7cd0e19b2db39c5fdaab94a9d — CHANGELOG [Unreleased] cites #3454; PR Closes #3454 only",
+          "recorded_at": "2026-08-18T20:46:00Z",
+          "recorded_by": "agent/3454-feedback-context-accumulate"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3454",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3454: feedback:file --context flag dropping repeats"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3437",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3437: adjacent nit only — do not close"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Issue #3454 expected accumulate behavior.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Repeated --context flags accumulate at its stated path.",
+          "artifact_path": "packages/core/src/value/feedback-file.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "Tests cover two --context flags at its stated path.",
+          "artifact_path": "packages/core/src/value/feedback-file.test.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 3,
+          "text": "CHANGELOG cites #3454 at its stated path.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-18T20:49:49Z",
+    "metadata": {
+      "kind": "story",
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/value/feedback-file.ts",
+          "packages/core/src/value/feedback-file.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "feedback-file argv parse for --context only; do not change dry-run or other flags unless they share the helper",
+        "cohesion_exemption": "CHANGELOG.md already exceeds the review trigger; this slice only adds the #3454 ship note."
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/value/feedback-file.ts",
+          "packages/core/src/value/feedback-file.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/value/feedback-file.test.ts"
+        ],
+        "expected_outputs": [
+          "accumulated --context",
+          "CHANGELOG #3454"
+        ],
+        "acceptance_criteria_justification": "Issue #3454 last-wins bug.",
+        "depends_on": [],
+        "conflict_group": "feedback-file-cli",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "capacityBucket": "defect-fix",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3473,
+        "prBase": null,
+        "mergeCommit": "58234460f7ef73d7cd0e19b2db39c5fdaab94a9d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "58234460f7ef73d7cd0e19b2db39c5fdaab94a9d",
+        "verifiedAt": "2026-08-18T20:49:49Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "6a5d458f-df62-4e5a-8e95-78511d9b5286"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-18T20:49:49Z",
+      "completedSessionId": "6a5d458f-df62-4e5a-8e95-78511d9b5286"
+    }
+  }
+}
