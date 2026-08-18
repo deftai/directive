@@ -5,7 +5,15 @@
  * Missing declaration/exemption is the reject; size alone is not.
  */
 
-import { lstatSync, readFileSync, realpathSync, statSync } from "node:fs";
+import {
+  closeSync,
+  constants,
+  fstatSync,
+  lstatSync,
+  openSync,
+  readFileSync,
+  realpathSync,
+} from "node:fs";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { FILE_SIZE_REVIEW_TRIGGER_LINES } from "../policy/file-size-thresholds.js";
 import { findLifecycleRootFromArtifact } from "../scope/parent-lineage.js";
@@ -120,8 +128,77 @@ function resolveDeclaredFile(projectRoot: string, declared: string): string | nu
 
 type ContainedInspect =
   | { kind: "missing" }
-  | { kind: "file"; path: string }
+  | { kind: "file"; text: string }
   | { kind: "reject"; message: string };
+
+function rejectInspect(declared: string, reason: string): ContainedInspect {
+  return {
+    kind: "reject",
+    message: `Could not inspect intended file '${declared}': ${reason}. ${INTENDED_PLACEMENT_MISSING_HINT}`,
+  };
+}
+
+function rejectEscape(declared: string): ContainedInspect {
+  return {
+    kind: "reject",
+    message: `Intended file '${declared}' escapes the project root. ${INTENDED_PLACEMENT_MISSING_HINT}`,
+  };
+}
+
+/** Open + fstat + realpath revalidate + read the same fd so a later symlink swap cannot change the bytes. */
+function readPinnedContainedFile(
+  declared: string,
+  current: string,
+  projectReal: string,
+): ContainedInspect {
+  const flags = constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0);
+  let fd: number;
+  try {
+    fd = openSync(current, flags);
+  } catch (err: unknown) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code === "ENOENT") {
+      return { kind: "missing" };
+    }
+    if (code === "ELOOP" || code === "EMLINK") {
+      return rejectEscape(declared);
+    }
+    const reason = err instanceof Error ? err.message : String(err);
+    return rejectInspect(declared, reason);
+  }
+  try {
+    const st = fstatSync(fd);
+    if (!st.isFile()) {
+      return {
+        kind: "reject",
+        message: `Intended path '${declared}' is not a regular file. ${INTENDED_PLACEMENT_MISSING_HINT}`,
+      };
+    }
+    let openedReal: string;
+    try {
+      openedReal = realpathSync(current);
+    } catch (err: unknown) {
+      const reason = err instanceof Error ? err.message : String(err);
+      return rejectInspect(declared, reason);
+    }
+    if (!isContained(projectReal, openedReal)) {
+      return rejectEscape(declared);
+    }
+    return { kind: "file", text: readFileSync(fd, "utf8") };
+  } catch (err: unknown) {
+    const reason = err instanceof Error ? err.message : String(err);
+    return {
+      kind: "reject",
+      message: `Could not read intended file '${declared}': ${reason}. ${INTENDED_PLACEMENT_MISSING_HINT}`,
+    };
+  } finally {
+    try {
+      closeSync(fd);
+    } catch {
+      // already closed or invalid
+    }
+  }
+}
 
 /** Lexical path plus lstat/realpath: symlink targets must stay inside the project. */
 function inspectDeclaredFile(projectRoot: string, declared: string, abs: string): ContainedInspect {
@@ -130,10 +207,7 @@ function inspectDeclaredFile(projectRoot: string, declared: string, abs: string)
     projectReal = realpathSync(projectRoot);
   } catch (err: unknown) {
     const reason = err instanceof Error ? err.message : String(err);
-    return {
-      kind: "reject",
-      message: `Could not inspect intended file '${declared}': ${reason}. ${INTENDED_PLACEMENT_MISSING_HINT}`,
-    };
+    return rejectInspect(declared, reason);
   }
 
   const rel = relative(projectRoot, abs);
@@ -150,10 +224,7 @@ function inspectDeclaredFile(projectRoot: string, declared: string, abs: string)
         return { kind: "missing" };
       }
       const reason = err instanceof Error ? err.message : String(err);
-      return {
-        kind: "reject",
-        message: `Could not inspect intended file '${declared}': ${reason}. ${INTENDED_PLACEMENT_MISSING_HINT}`,
-      };
+      return rejectInspect(declared, reason);
     }
     if (info.isSymbolicLink()) {
       let linkReal: string;
@@ -161,42 +232,16 @@ function inspectDeclaredFile(projectRoot: string, declared: string, abs: string)
         linkReal = realpathSync(current);
       } catch (err: unknown) {
         const reason = err instanceof Error ? err.message : String(err);
-        return {
-          kind: "reject",
-          message: `Could not inspect intended file '${declared}': ${reason}. ${INTENDED_PLACEMENT_MISSING_HINT}`,
-        };
+        return rejectInspect(declared, reason);
       }
       if (!isContained(projectReal, linkReal)) {
-        return {
-          kind: "reject",
-          message: `Intended file '${declared}' escapes the project root. ${INTENDED_PLACEMENT_MISSING_HINT}`,
-        };
+        return rejectEscape(declared);
       }
       current = linkReal;
     }
   }
 
-  let st: ReturnType<typeof statSync>;
-  try {
-    st = statSync(current);
-  } catch (err: unknown) {
-    const code = (err as NodeJS.ErrnoException).code;
-    if (code === "ENOENT") {
-      return { kind: "missing" };
-    }
-    const reason = err instanceof Error ? err.message : String(err);
-    return {
-      kind: "reject",
-      message: `Could not inspect intended file '${declared}': ${reason}. ${INTENDED_PLACEMENT_MISSING_HINT}`,
-    };
-  }
-  if (!st.isFile()) {
-    return {
-      kind: "reject",
-      message: `Intended path '${declared}' is not a regular file. ${INTENDED_PLACEMENT_MISSING_HINT}`,
-    };
-  }
-  return { kind: "file", path: current };
+  return readPinnedContainedFile(declared, current, projectReal);
 }
 
 function hasRemediation(placement: IntendedPlacement): boolean {
@@ -247,17 +292,7 @@ export function evaluateIntendedPlacement(
     if (inspected.kind === "reject") {
       return { ok: false, message: inspected.message };
     }
-    let text: string;
-    try {
-      text = readFileSync(inspected.path, "utf8");
-    } catch (err: unknown) {
-      const reason = err instanceof Error ? err.message : String(err);
-      return {
-        ok: false,
-        message: `Could not read intended file '${declared}': ${reason}. ${INTENDED_PLACEMENT_MISSING_HINT}`,
-      };
-    }
-    const lines = countFileLines(text);
+    const lines = countFileLines(inspected.text);
     if (lines >= FILE_SIZE_REVIEW_TRIGGER_LINES) {
       over.push(`${declared} (${lines} lines >= ${FILE_SIZE_REVIEW_TRIGGER_LINES})`);
     }

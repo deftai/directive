@@ -185,6 +185,23 @@ describe("evaluateIntendedPlacement (#3424)", () => {
     expect(result.message).toContain("Could not inspect intended file");
   });
 
+  itSymlink(
+    "rejects when a declared file is replaced by an outside-root symlink before open",
+    () => {
+      const dir = root();
+      const declared = join(dir, "small.ts");
+      writeLines(declared, FILE_SIZE_REVIEW_TRIGGER_LINES + 5);
+      const outside = join(dir, "..", `swap-${Date.now()}.ts`);
+      writeLines(outside, 3);
+      temps.push(outside);
+      rmSync(declared);
+      symlinkSync(outside, declared);
+      const result = evaluateIntendedPlacement(planWith(["small.ts"]), { projectRoot: dir });
+      expect(result.ok).toBe(false);
+      expect(result.message).toContain("escapes the project root");
+    },
+  );
+
   it("rejects a declared path that is a directory", () => {
     const dir = root();
     const nested = join(dir, "pkg");
