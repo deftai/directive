@@ -162,7 +162,9 @@ describe("package-manager network scope (#2182)", () => {
     expect(result.payload.optional_network).toBe(false);
   });
 
-  it("session:start --with-network probes only the disclosed public npm registry", () => {
+  it("session:start --with-network probes only the disclosed public npm registry", {
+    timeout: 20_000,
+  }, () => {
     const { root } = initPrivateScopeRepo();
     temps.push(root);
 

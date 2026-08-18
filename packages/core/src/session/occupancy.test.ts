@@ -178,7 +178,7 @@ describe("worktree occupancy lease (#3433)", () => {
     const now = new Date("2026-08-17T12:00:00Z");
     applyWorktreeOccupancy(root, { sessionId: "owner", now });
     const lockPath = `${occupancyPath(root)}.lock`;
-    writeFileSync(lockPath, `${process.pid}\n`, "utf8");
+    writeFileSync(lockPath, `${process.pid}\n${Date.now()}\n`, "utf8");
     let clock = 0;
     expect(() =>
       applyWorktreeOccupancy(root, {

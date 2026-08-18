@@ -4,12 +4,16 @@ import {
   mkdirSync,
   openSync,
   readFileSync,
+  statSync,
   unlinkSync,
   writeSync,
 } from "node:fs";
 import { dirname } from "node:path";
 
 const threadLocked = { held: false };
+
+/** Critical sections are milliseconds; a lock older than this is abandoned (covers PID reuse). */
+export const STALE_LOCK_MS = 120_000;
 
 export interface LockDeps {
   readonly sleepMs?: (ms: number) => void;
@@ -23,12 +27,24 @@ function defaultSleep(ms: number): void {
   }
 }
 
-function lockOwnerPid(lockPath: string): number | null {
+function parseLockRecord(lockPath: string): { pid: number | null; acquiredAt: number | null } {
   try {
-    const text = readFileSync(lockPath, { encoding: "utf8" }).trim();
-    if (!/^\d+$/.test(text)) return null;
-    const pid = Number(text);
-    return Number.isInteger(pid) && pid > 0 ? pid : null;
+    const lines = readFileSync(lockPath, { encoding: "utf8" }).trim().split(/\r?\n/);
+    const pidRaw = Number(lines[0]);
+    const acquiredRaw = Number(lines[1]);
+    return {
+      pid: Number.isInteger(pidRaw) && pidRaw > 0 ? pidRaw : null,
+      acquiredAt: Number.isInteger(acquiredRaw) && acquiredRaw > 0 ? acquiredRaw : null,
+    };
+  } catch {
+    return { pid: null, acquiredAt: null };
+  }
+}
+
+function lockAgeMs(lockPath: string, acquiredAt: number | null, now: number): number | null {
+  if (acquiredAt !== null) return Math.max(0, now - acquiredAt);
+  try {
+    return Math.max(0, now - statSync(lockPath).mtimeMs);
   } catch {
     return null;
   }
@@ -43,10 +59,13 @@ function processExists(pid: number): boolean {
   }
 }
 
-/** Unlink only when the lock file names a PID that is proven dead. */
-function tryReclaimDeadOwner(lockPath: string): boolean {
-  const pid = lockOwnerPid(lockPath);
-  if (pid === null || processExists(pid)) return false;
+/** Unlink only a dead-PID lock or a lock older than STALE_LOCK_MS (PID reuse / abandoned). */
+function tryReclaimStaleOwner(lockPath: string, now: number): boolean {
+  const { pid, acquiredAt } = parseLockRecord(lockPath);
+  const age = lockAgeMs(lockPath, acquiredAt, now);
+  const pidDead = pid !== null && !processExists(pid);
+  const abandoned = age !== null && age > STALE_LOCK_MS;
+  if (!pidDead && !abandoned) return false;
   try {
     unlinkSync(lockPath);
     return true;
@@ -73,7 +92,7 @@ export function withAppendLock<T>(logPath: string, fn: () => T, deps: LockDeps =
     while (true) {
       try {
         fd = openSync(lockPath, "wx");
-        writeSync(fd, Buffer.from(`${process.pid}\n`));
+        writeSync(fd, Buffer.from(`${process.pid}\n${now()}\n`));
         break;
       } catch (err: unknown) {
         const code = (err as NodeJS.ErrnoException).code;
@@ -81,7 +100,7 @@ export function withAppendLock<T>(logPath: string, fn: () => T, deps: LockDeps =
           throw err;
         }
         if (now() > deadline) {
-          if (!reclaimedStale && tryReclaimDeadOwner(lockPath)) {
+          if (!reclaimedStale && tryReclaimStaleOwner(lockPath, now())) {
             reclaimedStale = true;
             continue;
           }

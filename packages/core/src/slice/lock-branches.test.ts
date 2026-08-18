@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { appendLock, withAppendLock } from "./lock.js";
+import { appendLock, STALE_LOCK_MS, withAppendLock } from "./lock.js";
 
 function instantTimeoutDeps(): { now: () => number; sleepMs: () => void } {
   let now = 0;
@@ -40,8 +40,25 @@ describe("lock branches", () => {
 
   it("reclaims a lock only when the owner PID is proven dead", () => {
     const path = join(tmpdir(), `deft-lock-dead-${Date.now()}.jsonl`);
-    fs.writeFileSync(`${path}.lock`, "2147483646\n");
+    fs.writeFileSync(`${path}.lock`, "2147483646\n1\n");
     expect(withAppendLock(path, () => "reclaimed", instantTimeoutDeps())).toBe("reclaimed");
+    expect(fs.existsSync(`${path}.lock`)).toBe(false);
+  });
+
+  it("reclaims a live-PID lock only after the lock is older than STALE_LOCK_MS", () => {
+    const path = join(tmpdir(), `deft-lock-abandoned-${Date.now()}.jsonl`);
+    fs.writeFileSync(`${path}.lock`, `${process.pid}\n1\n`);
+    let clock = 0;
+    const staleDeps = {
+      now: () => {
+        clock += STALE_LOCK_MS + 80_000;
+        return clock;
+      },
+      sleepMs: () => {
+        /* no-op */
+      },
+    };
+    expect(withAppendLock(path, () => "reclaimed", staleDeps)).toBe("reclaimed");
     expect(fs.existsSync(`${path}.lock`)).toBe(false);
   });
 
