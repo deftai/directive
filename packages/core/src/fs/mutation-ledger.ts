@@ -11,7 +11,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { isAbsolute, relative, resolve } from "node:path";
 
-export const MUTATION_KINDS = ["wrote", "stripped", "deleted"] as const;
+export const MUTATION_KINDS = ["wrote", "stripped", "deleted", "chmod", "exec"] as const;
 export type MutationKind = (typeof MUTATION_KINDS)[number];
 
 export interface MutationEntry {
@@ -23,6 +23,8 @@ export interface MutationSummary {
   readonly wrote: readonly string[];
   readonly stripped: readonly string[];
   readonly deleted: readonly string[];
+  readonly chmod: readonly string[];
+  readonly exec: readonly string[];
   readonly mutations: readonly MutationEntry[];
 }
 
@@ -43,7 +45,7 @@ export function toLedgerPath(root: string, target: string): string {
 }
 
 export function emptyMutationSummary(): MutationSummary {
-  return { wrote: [], stripped: [], deleted: [], mutations: [] };
+  return { wrote: [], stripped: [], deleted: [], chmod: [], exec: [], mutations: [] };
 }
 
 function summarizeEntries(entries: readonly MutationEntry[]): MutationSummary {
@@ -56,6 +58,8 @@ function summarizeEntries(entries: readonly MutationEntry[]): MutationSummary {
   const wrote: string[] = [];
   const stripped: string[] = [];
   const deleted: string[] = [];
+  const chmod: string[] = [];
+  const exec: string[] = [];
   const mutations: MutationEntry[] = [];
   for (const path of order) {
     const kind = latest.get(path);
@@ -63,9 +67,11 @@ function summarizeEntries(entries: readonly MutationEntry[]): MutationSummary {
     mutations.push({ kind, path });
     if (kind === "wrote") wrote.push(path);
     else if (kind === "stripped") stripped.push(path);
+    else if (kind === "chmod") chmod.push(path);
+    else if (kind === "exec") exec.push(path);
     else deleted.push(path);
   }
-  return { wrote, stripped, deleted, mutations };
+  return { wrote, stripped, deleted, chmod, exec, mutations };
 }
 
 /** In-memory ledger for one deposit/refresh run. */
@@ -93,9 +99,19 @@ export class MutationLedger {
 }
 
 const storage = new AsyncLocalStorage<MutationLedger>();
+const recordModeStorage = new AsyncLocalStorage<boolean>();
 
 export function activeMutationLedger(): MutationLedger | undefined {
   return storage.getStore();
+}
+
+/** ADR-004: dest-mutating port calls record and skip dest IO. */
+export function runInPortRecordMode<T>(fn: () => T): T {
+  return recordModeStorage.run(true, fn);
+}
+
+export function isPortRecordMode(): boolean {
+  return recordModeStorage.getStore() === true;
 }
 
 /** Bind a ledger for the duration of `fn` (including awaited continuations). */
@@ -123,6 +139,12 @@ export function formatMutationSummary(summary: MutationSummary): string {
   if (summary.stripped.length > 0) {
     lines.push(`stripped: ${summary.stripped.join(", ")}`);
   }
+  if (summary.chmod.length > 0) {
+    lines.push(`chmod: ${summary.chmod.join(", ")}`);
+  }
+  if (summary.exec.length > 0) {
+    lines.push(`exec: ${summary.exec.join(", ")}`);
+  }
   return lines.length > 0 ? `${lines.join("\n")}\n` : "";
 }
 
@@ -130,10 +152,14 @@ export function mutationSummaryJson(summary: MutationSummary): {
   wrote: string[];
   stripped: string[];
   deleted: string[];
+  chmod: string[];
+  exec: string[];
 } {
   return {
     wrote: [...summary.wrote],
     stripped: [...summary.stripped],
     deleted: [...summary.deleted],
+    chmod: [...summary.chmod],
+    exec: [...summary.exec],
   };
 }

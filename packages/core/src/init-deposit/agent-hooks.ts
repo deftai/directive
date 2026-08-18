@@ -1,7 +1,7 @@
-import { existsSync, readFileSync, renameSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { assertDepositContained } from "../deposit/contain.js";
-import { containedRemove, containedWrite } from "../fs/contained-write.js";
+import { containedRemove, containedRename, containedWrite } from "../fs/contained-write.js";
 import type { HookEvent, HookHost } from "../hooks/dispatcher.js";
 import {
   DIRECT_WRITE_HOOK_MATCHER,
@@ -324,7 +324,12 @@ function writeJsonIfChanged(
       mode: "replace",
       mutation: { kind, path },
     });
-    renameSync(temporary, path);
+    containedRename({
+      root: resolve(projectRoot),
+      from: temporary,
+      to: path,
+      mutation: false,
+    });
   } catch (err) {
     try {
       containedRemove({ root: resolve(projectRoot), target: temporary, mutation: false });

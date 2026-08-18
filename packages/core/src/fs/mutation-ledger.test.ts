@@ -55,6 +55,8 @@ describe("MutationLedger (#3392)", () => {
     expect(summary.wrote).toEqual(["a.txt"]);
     expect(summary.stripped).toEqual(["b.txt"]);
     expect(summary.deleted).toEqual(["c.txt"]);
+    expect(summary.chmod).toEqual([]);
+    expect(summary.exec).toEqual([]);
     expect(summary.mutations).toEqual([
       { kind: "wrote", path: "a.txt" },
       { kind: "stripped", path: "b.txt" },
@@ -67,6 +69,8 @@ describe("MutationLedger (#3392)", () => {
       wrote: ["AGENTS.md"],
       stripped: [".claude/settings.json"],
       deleted: [".cursor/hooks/deft-cursor-hook-adapter.mjs"],
+      chmod: [],
+      exec: [],
       mutations: [
         { kind: "wrote" as const, path: "AGENTS.md" },
         { kind: "stripped" as const, path: ".claude/settings.json" },

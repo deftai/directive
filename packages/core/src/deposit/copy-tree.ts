@@ -15,7 +15,8 @@ import { constants, type Dirent } from "node:fs";
 import { lstat, mkdir, mkdtemp, open, readdir, readFile, rename, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { recordActiveMutation } from "../fs/mutation-ledger.js";
+import { containedRemove, containedWrite } from "../fs/contained-write.js";
+import { isPortRecordMode, recordActiveMutation } from "../fs/mutation-ledger.js";
 
 const DEFAULT_FILE_MODE = 0o644;
 const DEFAULT_DIR_MODE = 0o755;
@@ -195,6 +196,17 @@ export async function replaceTree(src: string, dst: string): Promise<void> {
   const srcInfo = await stat(src);
   if (!srcInfo.isDirectory()) {
     throw new Error(`replaceTree: source ${src} is not a directory`);
+  }
+
+  if (isPortRecordMode()) {
+    const destOnly = (await pathExists(dst)) ? await destOnlyRelativeFiles(src, dst) : [];
+    for (const rel of destOnly) {
+      containedRemove({ root: dst, target: rel });
+    }
+    for (const rel of await listRelativeFilePaths(src)) {
+      containedWrite({ root: dst, target: rel, data: "", mode: "replace" });
+    }
+    return;
   }
 
   await assertDestinationIsNotSymlink(dst, "replaceTree");

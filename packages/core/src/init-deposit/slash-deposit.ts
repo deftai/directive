@@ -14,10 +14,15 @@
  * at a product filename is left untouched.
  */
 
-import { existsSync, mkdirSync, readFileSync, renameSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { assertDepositContained } from "../deposit/contain.js";
-import { containedRemove, containedWrite } from "../fs/contained-write.js";
+import {
+  containedMkdir,
+  containedRemove,
+  containedRename,
+  containedWrite,
+} from "../fs/contained-write.js";
 import {
   type HostSlashCommandsPolicy,
   isHostSlashCommandDepositEnabled,
@@ -159,7 +164,7 @@ function writeHostCommandFileIfChanged(projectRoot: string, file: HostEmittedFil
   }
 
   const parent = dirname(absolute);
-  mkdirSync(parent, { recursive: true });
+  containedMkdir({ root: projectRoot, target: parent });
   // Atomic replace via temp under project root (#2951).
   const tmpName = `${basename(absolute)}.deft-${process.pid}.tmp`;
   const temporary = join(parent, tmpName);
@@ -170,7 +175,12 @@ function writeHostCommandFileIfChanged(projectRoot: string, file: HostEmittedFil
       data: file.contents,
       mode: "replace",
     });
-    renameSync(temporary, absolute);
+    containedRename({
+      root: projectRoot,
+      from: temporary,
+      to: absolute,
+      mutation: false,
+    });
   } catch (err) {
     try {
       containedRemove({ root: projectRoot, target: temporary, mutation: false });

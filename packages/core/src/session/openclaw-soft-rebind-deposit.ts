@@ -6,7 +6,7 @@
  * forceDeposit for tests). Real directory copy — not symlink-escape into npm.
  */
 
-import { existsSync, lstatSync, mkdirSync, readFileSync, renameSync, statSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import {
@@ -15,7 +15,12 @@ import {
   listInScopeSkillsDirs,
   type OpenClawDetectResult,
 } from "../doctor/openclaw-skills.js";
-import { containedRemove, containedWrite } from "../fs/contained-write.js";
+import {
+  containedMkdir,
+  containedRemove,
+  containedRename,
+  containedWrite,
+} from "../fs/contained-write.js";
 import {
   formatOpenClawSoftRebindSkillMarkdown,
   isManagedOpenClawSoftRebindSkill,
@@ -161,7 +166,7 @@ export function depositOpenClawSoftRebindSkill(
       }
     }
 
-    mkdirSync(skillDir, { recursive: true });
+    containedMkdir({ root: skillsDir, target: skillDir });
     const tmpName = `SKILL.md.deft-${process.pid}-${Date.now().toString(36)}.tmp`;
     const staging = join(skillDir, tmpName);
     try {
@@ -172,7 +177,7 @@ export function depositOpenClawSoftRebindSkill(
         data: expected,
         mode: "replace",
       });
-      renameSync(staging, skillFile);
+      containedRename({ root: skillsDir, from: staging, to: skillFile, mutation: false });
     } catch (err) {
       try {
         containedRemove({ root: skillsDir, target: staging, mutation: false });

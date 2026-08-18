@@ -39,6 +39,8 @@ import {
   printUpdateComplete,
   runRefreshDeposit,
   runRefreshDepositCli,
+  UPDATE_DRY_RUN_EXCLUSIONS,
+  UPDATE_DRY_RUN_EXCLUSIONS_LABEL,
   UPDATE_REFUSED_EXIT_CODE,
   updateStateFromPlan,
 } from "./refresh.js";
@@ -1409,9 +1411,19 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     expect(payload).not.toHaveProperty("strategy");
     expect(payload).not.toHaveProperty("planned_paths");
     expect(payload).not.toHaveProperty("planned_file_count");
+    expect(payload.exclusions).toEqual([...UPDATE_DRY_RUN_EXCLUSIONS]);
+    expect(payload.mutations).toEqual(
+      expect.objectContaining({
+        wrote: expect.any(Array),
+        deleted: expect.any(Array),
+        chmod: expect.any(Array),
+        exec: expect.any(Array),
+      }),
+    );
     expect(copyContent).not.toHaveBeenCalled();
     // VERSION untouched -> nothing was re-stamped.
     expect(readFileSync(join(project, ".deft", "core", "VERSION"), "utf8")).toContain("v0.53.0");
+    expect(err.join("")).toContain(UPDATE_DRY_RUN_EXCLUSIONS_LABEL);
   });
 
   it("full dry-run leaves the fixture tree byte-identical (#3456)", async () => {
@@ -1419,6 +1431,12 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     const contentRoot = installFakeContentPackage(project, "0.53.0");
     writeInitializedProject(project, { contentVersion: "0.53.0", pinVersion: "0.53.0" });
     mkdirSync(join(project, "xbrief", "schemas"), { recursive: true });
+    mkdirSync(join(project, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(project, "xbrief", "active", "example.xbrief.json"),
+      '{"xBRIEFInfo":{"version":"0.8"}}\n',
+      "utf8",
+    );
     mkdirSync(join(project, ".claude", "commands"), { recursive: true });
     writeFileSync(
       join(project, "xbrief", "schemas", "xbrief-core-0.8.schema.json"),
@@ -1433,6 +1451,7 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     const staleNarrative = join(project, "xbrief", "vbrief.md");
     writeFileSync(staleNarrative, "# obsolete migrated framework narrative\n", "utf8");
     const before = hashFixtureTree(project);
+    const out: string[] = [];
 
     const code = await runRefreshDepositCli({
       projectDir: project,
@@ -1441,7 +1460,7 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
       upgrade: true,
       dryRun: true,
       classifySeams: classifySeams({ reachable: true, version: "0.53.0" }),
-      writeOut: () => undefined,
+      writeOut: (t) => out.push(t),
       writeErr: () => undefined,
       seams: {
         resolveContentRoot: async () => contentRoot,
@@ -1452,6 +1471,10 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     expect(code).toBe(0);
     expect(existsSync(staleNarrative)).toBe(true);
     expect(hashFixtureTree(project)).toBe(before);
+    const payload = parseJsonObject(out.join(""));
+    const deleted = (payload.mutations as { deleted: string[] }).deleted;
+    expect(deleted).toContain("xbrief/vbrief.md");
+    expect(payload.exclusions).toEqual([...UPDATE_DRY_RUN_EXCLUSIONS]);
   });
 
   it("skewed-manifest dry-run leads with version skew and deposit_refresh_pending (#3437)", async () => {
@@ -1462,10 +1485,6 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     const beforeAgents = readFileSync(join(project, "AGENTS.md"), "utf8");
     const out: string[] = [];
     const err: string[] = [];
-    const copyContent = vi.fn(async () => {
-      throw new Error("copyContent must not run in dry-run mode");
-    });
-
     const code = await runRefreshDepositCli({
       projectDir: project,
       jsonOut: true,
@@ -1478,7 +1497,6 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
       seams: {
         resolveContentRoot: async () => contentRoot,
         readEngineVersion: () => "0.103.0",
-        copyContent,
       },
     });
 
@@ -1491,6 +1509,9 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     expect(payload).not.toHaveProperty("strategy");
     expect(payload).not.toHaveProperty("planned_paths");
     expect(payload).not.toHaveProperty("planned_file_count");
+    expect(payload.exclusions).toEqual([...UPDATE_DRY_RUN_EXCLUSIONS]);
+    const mutations = payload.mutations as { wrote: string[]; deleted: string[] };
+    expect(mutations.wrote.length + mutations.deleted.length).toBeGreaterThan(0);
     const firstLine =
       err
         .join("")
@@ -1501,7 +1522,7 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     expect(firstLine).toMatch(/0\.78\.0/);
     expect(firstLine).toMatch(/->/);
     expect(firstLine).toMatch(/0\.103\.0/);
-    expect(copyContent).not.toHaveBeenCalled();
+    expect(err.join("")).toContain(UPDATE_DRY_RUN_EXCLUSIONS_LABEL);
     expect(readFileSync(join(project, ".deft", "core", "VERSION"), "utf8")).toBe(beforeVersion);
     expect(readFileSync(join(project, "AGENTS.md"), "utf8")).toBe(beforeAgents);
   });

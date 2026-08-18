@@ -9,7 +9,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, renameSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { platform as osPlatform } from "node:os";
 import { join, resolve } from "node:path";
 import type { ResolutionFacts, ResolutionPlan } from "@deftai/directive-types";
@@ -20,11 +20,13 @@ import { resolveInstalledContentRoot } from "../deposit/resolve-content.js";
 import { manifestTagToVersion, parseInstallManifest } from "../doctor/manifest.js";
 import { readCorePackageVersion } from "../engine-version.js";
 import { readLiveGeneration, stampLiveGeneration } from "../freshness/generation.js";
+import { containedRename } from "../fs/contained-write.js";
 import {
   activeMutationLedger,
   formatMutationSummary,
   type MutationSummary,
   mutationSummaryJson,
+  runInPortRecordMode,
   runWithMutationLedger,
   snapshotMutationSummary,
 } from "../fs/mutation-ledger.js";
@@ -132,6 +134,7 @@ export type RefreshDepositStrategy = "file-swap" | "no-op";
 
 export interface RefreshDepositSeams {
   resolveContentRoot?: () => Promise<string>;
+  /** Folded into the dest port (ADR-004). Default {@link replaceTree} records dest writes/removes. */
   copyContent?: (src: string, dst: string) => Promise<void>;
   readPackageVersion?: () => string;
   readEngineVersion?: () => string;
@@ -146,7 +149,7 @@ export interface RefreshDepositSeams {
   gitLsFiles?: GitLsFiles;
   /** #2530: injected git config seams for {@link writeConsumerGitHooks}. */
   gitHooks?: GitHooksSeams;
-  /** #2822: optional seam for trusted-org policy force-on migration. */
+  /** #2822: optional seam. Default {@link runOrgForceOnMigration} already writes via containedWrite. */
   runOrgForceOn?: (projectRoot: string) => void;
   /** Post-deposit functional readiness gate (#3100). */
   evaluateAgentHookReadiness?: (projectRoot: string) => AgentHookReadinessResult;
@@ -338,7 +341,11 @@ function migrateLegacyInstallManifest(projectDir: string, canonicalManifestPath:
       parseInstallManifest(readFileSync(canonical, "utf8")),
     );
     if (legacyVersion !== null && legacyVersion === canonicalVersion) return;
-    renameSync(legacy, join(projectDir, ".deft", "VERSION.premigrate"));
+    containedRename({
+      root: projectDir,
+      from: legacy,
+      to: join(projectDir, ".deft", "VERSION.premigrate"),
+    });
   } catch {
     // best-effort
   }
@@ -966,7 +973,16 @@ function emitMigrationRequired(
   return UPDATE_REFUSED_EXIT_CODE;
 }
 
-/** Emit the classified plan for `--dry-run`/`--plan` without executing the refresh. */
+/**
+ * Dest effects the port cannot yet capture (ADR-004 condition 3).
+ * Shrink as sites fold; never drop the printed label.
+ */
+export const UPDATE_DRY_RUN_EXCLUSIONS = ["openclaw-home-skills"] as const;
+
+export const UPDATE_DRY_RUN_EXCLUSIONS_LABEL =
+  "Excluded from dest plan (not yet captured by the port): OpenClaw $HOME skills.";
+
+/** Emit the classified plan plus recorded port dest mutations (ADR-004). */
 async function emitDryRunPlan(
   options: RunRefreshDepositCliOptions,
   io: InitDepositIo,
@@ -980,10 +996,14 @@ async function emitDryRunPlan(
   const refreshPending = depositRefreshPending(previousVersion, contentVersion);
   const skewHeadline = buildDepositVersionSkewHeadline(previousVersion, contentVersion);
   const { state, plan: resolutionPlan } = classification;
+  const silentIo: InitDepositIo = { printf: () => undefined };
+  const result = await runInPortRecordMode(() =>
+    runRefreshDeposit(options, silentIo, options.seams ?? {}),
+  );
   if (skewHeadline) {
     io.printf(`${skewHeadline}\n`);
   }
-  io.printf(`\n[deft update] dry-run -- classified plan (no changes written):\n`);
+  io.printf(`\n[deft update] dry-run -- dest plan (recorded port calls, no changes written):\n`);
   io.printf(`  State        : ${state}\n`);
   io.printf(`  Mode         : ${resolutionPlan.mode}\n`);
   io.printf(`  Root cause   : ${resolutionPlan.nextAction.rootCause}\n`);
@@ -991,6 +1011,13 @@ async function emitDryRunPlan(
   for (const warning of resolutionPlan.warnings) {
     io.printf(`  Warning      : ${warning}\n`);
   }
+  const mutationText = formatMutationSummary(result.mutations);
+  if (mutationText.length > 0) {
+    io.printf(`\n${mutationText}`);
+  } else {
+    io.printf(`\nNo dest mutations recorded.\n`);
+  }
+  io.printf(`\n${UPDATE_DRY_RUN_EXCLUSIONS_LABEL}\n`);
   if (options.jsonOut) {
     options.writeOut(
       `${JSON.stringify(
@@ -1006,6 +1033,8 @@ async function emitDryRunPlan(
           deposit_refresh_pending: refreshPending,
           next_action: resolutionPlan.nextAction,
           warnings: resolutionPlan.warnings,
+          mutations: mutationSummaryJson(result.mutations),
+          exclusions: [...UPDATE_DRY_RUN_EXCLUSIONS],
         },
         null,
         2,

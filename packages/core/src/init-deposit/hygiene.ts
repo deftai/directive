@@ -15,7 +15,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
 import { readdir, rm, stat } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
-import { containedRemove } from "../fs/contained-write.js";
+import { containedDestExec, containedRemove } from "../fs/contained-write.js";
 import {
   activeMutationLedger,
   type MutationSummary,
@@ -967,6 +967,8 @@ export function splitLedgerForStaging(
   for (const path of summary.wrote) visit(path);
   for (const path of summary.stripped) visit(path);
   for (const path of summary.deleted) visit(path);
+  for (const path of summary.chmod) visit(path);
+  for (const path of summary.exec) visit(path);
   return { stagePaths, unstagedRemainder, skippedUntrackedDeletes };
 }
 
@@ -1022,11 +1024,15 @@ export function stageFrameworkPaths(
   const runGitAdd =
     seams.runGitAdd ??
     ((root: string, stagePaths: readonly string[]) => {
-      execFileSync("git", ["add", "--", ...stagePaths], {
-        cwd: root,
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "pipe"],
+      const result = containedDestExec({
+        root,
+        destTarget: join(".git", "index"),
+        file: "git",
+        args: ["add", "--", ...stagePaths],
       });
+      if (!result.ok) {
+        throw new Error("git add failed");
+      }
     });
   try {
     runGitAdd(projectDir, paths);

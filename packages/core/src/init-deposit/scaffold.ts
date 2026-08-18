@@ -6,11 +6,17 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
-import { mkdir, readdir, rm, stat } from "node:fs/promises";
+import { existsSync, readFileSync, statSync } from "node:fs";
+import { readdir, stat } from "node:fs/promises";
 import { platform } from "node:os";
 import { join, relative, resolve } from "node:path";
-import { containedWrite } from "../fs/contained-write.js";
+import {
+  containedChmod,
+  containedDestExec,
+  containedMkdir,
+  containedRemove,
+  containedWrite,
+} from "../fs/contained-write.js";
 import {
   assertDestinationNotSymlink,
   ProjectionContainmentError,
@@ -269,7 +275,7 @@ export function writeAgentsMd(projectDir: string, deftDir: string, io: InitDepos
 async function ensureVbriefLifecycleDirs(projectDir: string): Promise<void> {
   for (const sub of VBRIEF_LIFECYCLE_DIRS) {
     const dir = projectionTarget(projectDir, MIGRATED_ARTIFACT_DIR, sub);
-    await mkdir(dir, { recursive: true, mode: 0o755 });
+    containedMkdir({ root: projectDir, target: dir });
     const gitkeep = join(dir, ".gitkeep");
     try {
       await stat(gitkeep);
@@ -315,12 +321,12 @@ export async function writeConsumerVbrief(
     return schemasChanged;
   }
 
-  mkdirSync(consumerVbrief, { recursive: true });
+  containedMkdir({ root: projectDir, target: consumerVbrief });
 
   if (!vbriefMdPresent) {
     const fwVbriefMd = join(deftDir, "vbrief", "vbrief.md");
     if (existsSync(fwVbriefMd)) {
-      copyFileSync(fwVbriefMd, vbriefMdDst);
+      containedProjectWrite(projectDir, vbriefMdDst, readFileSync(fwVbriefMd));
     } else {
       containedProjectWrite(projectDir, vbriefMdDst, VBRIEF_README_BODY);
     }
@@ -464,7 +470,7 @@ export function writeConsumerGitHooks(
       try {
         const mode = statSync(dst).mode & 0o777;
         if ((mode & 0o111) === 0) {
-          chmodSync(dst, HOOK_FILE_MODE);
+          containedChmod({ root: projectDir, target: dst, mode: HOOK_FILE_MODE });
           filesDeposited = true;
         }
       } catch {
@@ -486,14 +492,13 @@ export function writeConsumerGitHooks(
     });
   const setHooksPath =
     seams.setHooksPath ??
-    ((dir: string, value: string) => {
-      try {
-        execFileSync("git", ["-C", dir, "config", "core.hooksPath", value], { encoding: "utf8" });
-        return true;
-      } catch {
-        return false;
-      }
-    });
+    ((dir: string, value: string) =>
+      containedDestExec({
+        root: dir,
+        destTarget: join(".git", "config"),
+        file: "git",
+        args: ["-C", dir, "config", "core.hooksPath", value],
+      }).ok);
 
   const target = ".githooks";
   const current = getHooksPath(projectDir) ?? "";
@@ -927,7 +932,7 @@ export async function pruneFrameworkSelfTests(
   } catch {
     return false;
   }
-  await rm(path, { recursive: true, force: true });
+  containedRemove({ root: projectDir, target: path, recursive: true });
   io.printf(
     `Removed vendored framework self-tests (${FRAMEWORK_SELF_TEST_REL}) from the consumer deposit (#1474).\n`,
   );
@@ -948,7 +953,7 @@ export async function pruneVendoredTsTests(projectDir: string, io: InitDepositIo
       if (entry.isDirectory()) {
         await walk(full);
       } else if (entry.isFile() && VENDORED_TS_TEST_RE.test(entry.name)) {
-        await rm(full, { force: true });
+        containedRemove({ root: projectDir, target: full });
         removed += 1;
       }
     }

@@ -16,13 +16,13 @@
  * `docs/reference/contained-write.md`.
  *
  * Delete coverage (#3392 / #3456): real dest deletes MUST go through
- * {@link containedRemove} so a bound ledger (and later collect-only) records
+ * {@link containedRemove} so a bound ledger (and ADR-004 record mode) records
  * them. Raw `rmSync` on a dest path is a chokepoint bypass.
  *
- * Plan-mode zero-mutation (#3456): plan-mode / `deft update --dry-run` MUST
- * perform zero in-tree filesystem mutations. Temp-file cleanups either use
- * this chokepoint or live outside the project root. No silent dest-delete
- * exceptions — route the site or name the exemption here.
+ * Plan-mode zero-mutation (#3456 / ADR-004): `deft update --dry-run` binds
+ * this port in record mode (`runInPortRecordMode`). Dest write / remove /
+ * chmod / dest-mutating exec record and skip dest IO. Temp-file cleanups
+ * either use this chokepoint or live outside the project root.
  *
  * `tryCleanupLegacyDeftTree` is not on the update/dry-run path (classify
  * refuses `migration-required` first). Its default removeDir still routes
@@ -31,7 +31,9 @@
  * Refs #2951 / #3392 / #3456.
  */
 
+import { execFileSync } from "node:child_process";
 import {
+  chmodSync,
   closeSync,
   constants,
   existsSync,
@@ -40,12 +42,18 @@ import {
   mkdirSync,
   openSync,
   realpathSync,
+  renameSync,
   rmSync,
   unlinkSync,
   writeSync,
 } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
-import { isAtomicWriteTemp, type MutationKind, recordActiveMutation } from "./mutation-ledger.js";
+import {
+  isAtomicWriteTemp,
+  isPortRecordMode,
+  type MutationKind,
+  recordActiveMutation,
+} from "./mutation-ledger.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "./projection-containment.js";
 
 /** Stable machine-readable error codes for contained-write refusals. */
@@ -162,6 +170,36 @@ export interface ContainedWriteResult {
   /** Number of bytes written in this call (not total file size for append). */
   readonly bytesWritten: number;
   readonly mode: ContainedWriteMode;
+}
+
+export interface ContainedChmodInput {
+  readonly root: string;
+  readonly target: string;
+  readonly mode: number;
+  readonly mutation?: false | { readonly path?: string };
+}
+
+export interface ContainedRenameInput {
+  readonly root: string;
+  readonly from: string;
+  readonly to: string;
+  /**
+   * Default records `wrote` on `to`. `false` skips (caller already ledgered).
+   */
+  readonly mutation?: false | { readonly kind?: "wrote" | "stripped"; readonly path?: string };
+}
+
+export interface ContainedDestExecInput {
+  readonly root: string;
+  /** Dest path this exec mutates (e.g. `.git/config`). */
+  readonly destTarget: string;
+  readonly file: string;
+  readonly args: readonly string[];
+}
+
+export interface ContainedDestExecResult {
+  readonly ok: boolean;
+  readonly stdout: string;
 }
 
 const VALID_MODES: ReadonlySet<ContainedWriteMode> = new Set(["create", "replace", "append"]);
@@ -396,6 +434,29 @@ export function containedWrite(input: ContainedWriteInput): ContainedWriteResult
     throw err;
   }
 
+  const encoding = input.encoding ?? "utf8";
+  const buf = toBuffer(input.data, encoding);
+  if (isPortRecordMode()) {
+    if (input.mode === "create") {
+      try {
+        lstatSync(targetAbs);
+        throw new ContainedWriteError(
+          `contained write refused: target ${targetAbs} already exists (mode=create)`,
+          {
+            code: ContainedWriteErrorCode.EXISTS,
+            root: rootAbs,
+            target: targetAbs,
+            offendingPath: targetAbs,
+          },
+        );
+      } catch (err) {
+        if (err instanceof ContainedWriteError) throw err;
+      }
+    }
+    recordWriteMutation(targetAbs, input.mutation);
+    return { path: targetAbs, bytesWritten: buf.length, mode: input.mode };
+  }
+
   const doMkdir = input.mkdir !== false;
   if (doMkdir) {
     ensureParents(rootAbs, targetAbs);
@@ -411,8 +472,6 @@ export function containedWrite(input: ContainedWriteInput): ContainedWriteResult
     throw err;
   }
 
-  const encoding = input.encoding ?? "utf8";
-  const buf = toBuffer(input.data, encoding);
   let exists = false;
   try {
     lstatSync(targetAbs);
@@ -535,6 +594,10 @@ export function containedRemove(input: ContainedRemoveInput): ContainedRemoveRes
       offendingPath: targetAbs,
     });
   }
+  if (isPortRecordMode()) {
+    recordRemoveMutation(targetAbs, input.mutation);
+    return { path: targetAbs, removed: true };
+  }
   try {
     if (info.isSymbolicLink()) {
       unlinkSync(targetAbs);
@@ -552,4 +615,94 @@ export function containedRemove(input: ContainedRemoveInput): ContainedRemoveRes
   }
   recordRemoveMutation(targetAbs, input.mutation);
   return { path: targetAbs, removed: true };
+}
+
+/**
+ * Contained mkdir: nest under root. Record mode skips dest IO (dirs are not
+ * dest-file membership). Live path creates recursively.
+ */
+export function containedMkdir(input: { readonly root: string; readonly target: string }): {
+  path: string;
+} {
+  const targetAbs = resolveContainedTarget(input.root, input.target);
+  if (isPortRecordMode()) {
+    return { path: targetAbs };
+  }
+  mkdirSync(targetAbs, { recursive: true });
+  return { path: targetAbs };
+}
+
+/**
+ * Contained chmod: resolve under root, refuse parent-path symlink / out-of-root,
+ * then set mode. Record mode records `chmod` and skips dest IO.
+ */
+export function containedChmod(input: ContainedChmodInput): { path: string } {
+  const { rootAbs, targetAbs } = resolveExistingRootForRemove(input.root, input.target);
+  if (input.mutation !== false) {
+    recordActiveMutation("chmod", input.mutation?.path ?? targetAbs);
+  }
+  if (isPortRecordMode()) {
+    return { path: targetAbs };
+  }
+  try {
+    chmodSync(targetAbs, input.mode);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new ContainedWriteError(`contained write I/O failed: ${msg}`, {
+      code: ContainedWriteErrorCode.IO,
+      root: rootAbs,
+      target: targetAbs,
+      offendingPath: targetAbs,
+    });
+  }
+  return { path: targetAbs };
+}
+
+/**
+ * Contained rename: both paths must nest under root. Record mode records
+ * `wrote` on `to` (unless `mutation: false`) and skips dest IO.
+ */
+export function containedRename(input: ContainedRenameInput): { from: string; to: string } {
+  const fromAbs = resolveContainedTarget(input.root, input.from);
+  const toAbs = resolveContainedTarget(input.root, input.to);
+  if (input.mutation !== false) {
+    const kind: Extract<MutationKind, "wrote" | "stripped"> = input.mutation?.kind ?? "wrote";
+    recordActiveMutation(kind, input.mutation?.path ?? toAbs);
+  }
+  if (isPortRecordMode()) {
+    return { from: fromAbs, to: toAbs };
+  }
+  try {
+    renameSync(fromAbs, toAbs);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new ContainedWriteError(`contained write I/O failed: ${msg}`, {
+      code: ContainedWriteErrorCode.IO,
+      root: resolve(input.root),
+      target: toAbs,
+      offendingPath: toAbs,
+    });
+  }
+  return { from: fromAbs, to: toAbs };
+}
+
+/**
+ * Dest-mutating exec (git config, git add, …). Record mode records `exec` on
+ * `destTarget` and skips the child process. Allowlisted as the port impl.
+ */
+export function containedDestExec(input: ContainedDestExecInput): ContainedDestExecResult {
+  const targetAbs = resolveContainedTarget(input.root, input.destTarget);
+  recordActiveMutation("exec", targetAbs);
+  if (isPortRecordMode()) {
+    return { ok: true, stdout: "" };
+  }
+  try {
+    const stdout = execFileSync(input.file, [...input.args], {
+      encoding: "utf8",
+      cwd: resolve(input.root),
+    });
+    return { ok: true, stdout };
+  } catch {
+    return { ok: false, stdout: "" };
+  }
 }

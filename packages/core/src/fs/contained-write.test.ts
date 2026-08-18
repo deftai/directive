@@ -17,11 +17,18 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   ContainedWriteError,
   ContainedWriteErrorCode,
+  containedChmod,
+  containedDestExec,
   containedRemove,
+  containedRename,
   containedWrite,
   resolveContainedTarget,
 } from "./contained-write.js";
-import { runWithMutationLedger, snapshotMutationSummary } from "./mutation-ledger.js";
+import {
+  runInPortRecordMode,
+  runWithMutationLedger,
+  snapshotMutationSummary,
+} from "./mutation-ledger.js";
 
 // Symlinks require elevated privileges on Windows (SeCreateSymbolicLink); skip there.
 const itSymlink = it.skipIf(process.platform === "win32");
@@ -518,5 +525,42 @@ describe("containedRemove (#3392)", () => {
       expect((err as ContainedWriteError).code).toBe(ContainedWriteErrorCode.SYMLINK);
     }
     expect(readFileSync(victim, "utf8")).toBe("KEEP\n");
+  });
+});
+
+describe("port record mode (ADR-004)", () => {
+  it("records dest write/remove/chmod/exec/rename and skips dest IO", () => {
+    const root = freshDir("cw-record-");
+    writeFileSync(join(root, "keep.txt"), "KEEP\n", "utf8");
+    const summary = runWithMutationLedger(root, () =>
+      runInPortRecordMode(() => {
+        containedWrite({ root, target: "new.txt", data: "NEW\n", mode: "create" });
+        containedRemove({ root, target: "keep.txt" });
+        containedChmod({ root, target: "hook.sh", mode: 0o755 });
+        containedDestExec({
+          root,
+          destTarget: join(".git", "config"),
+          file: "git",
+          args: ["config", "core.hooksPath", ".githooks"],
+        });
+        containedRename({ root, from: "keep.txt", to: "moved.txt" });
+        return snapshotMutationSummary();
+      }),
+    );
+    expect(existsSync(join(root, "new.txt"))).toBe(false);
+    expect(readFileSync(join(root, "keep.txt"), "utf8")).toBe("KEEP\n");
+    expect(existsSync(join(root, "moved.txt"))).toBe(false);
+    expect(summary.wrote).toEqual(expect.arrayContaining(["new.txt", "moved.txt"]));
+    expect(summary.deleted).toEqual(["keep.txt"]);
+    expect(summary.chmod).toEqual(["hook.sh"]);
+    expect(summary.exec).toEqual([".git/config"]);
+  });
+
+  it("containedChmod sets mode when not in record mode", () => {
+    const root = freshDir("cw-chmod-");
+    const path = join(root, "hook.sh");
+    writeFileSync(path, "#!/bin/sh\n", "utf8");
+    containedChmod({ root, target: "hook.sh", mode: 0o644 });
+    expect(existsSync(path)).toBe(true);
   });
 });
