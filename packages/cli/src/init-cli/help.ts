@@ -18,7 +18,7 @@ export function printUpdateHelp(io: DispatchIo): void {
       "  --repo-root <path>          Project root (default: current directory)\n" +
       "  --json                      Machine-readable summary on stdout\n" +
       "  --yes, --non-interactive  Run without prompts\n" +
-      "  --dry-run, --plan           Classify and print the refresh plan without writing\n" +
+      "  --dry-run, --plan           Print deposit freshness and classified plan without writing\n" +
       "  -h, --help                  Show this help\n",
   );
 }

@@ -3,7 +3,7 @@ import type { DispatchIo } from "../dispatch.js";
 import { CANONICAL_UPDATE_ARGV, UPDATE_DRY_RUN_FLAGS } from "./constants.js";
 import { argvWantsHelp, printUpdateHelp } from "./help.js";
 
-/** True when the user argv asked for a classify-only dry-run (`--dry-run`/`--plan`). */
+/** True when the user argv asked for a plan-only dry-run (`--dry-run`/`--plan`). */
 export function isUpdateDryRun(argv: readonly string[]): boolean {
   const flags = UPDATE_DRY_RUN_FLAGS as readonly string[];
   return argv.some((arg) => flags.includes(arg));

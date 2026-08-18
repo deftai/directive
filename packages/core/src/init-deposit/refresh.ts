@@ -9,7 +9,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, renameSync, statSync } from "node:fs";
+import { type Dirent, existsSync, readdirSync, readFileSync, renameSync, statSync } from "node:fs";
 import { platform as osPlatform } from "node:os";
 import { join, resolve } from "node:path";
 import type { ResolutionFacts, ResolutionPlan } from "@deftai/directive-types";
@@ -300,6 +300,117 @@ function readRecordedDepositVersion(deftDir: string): string | null {
   }
 }
 
+export interface RefreshDepositPlan {
+  readonly contentRoot: string;
+  readonly previousDepositVersion: string | null;
+  readonly contentVersion: string;
+  readonly engineVersion: string;
+  readonly alreadyCurrent: boolean;
+  readonly strategy: RefreshDepositStrategy;
+  readonly versionSkewNotice: string | null;
+  readonly plannedFileCount: number;
+  readonly plannedPaths: string[];
+}
+
+function displayVersion(version: string | null): string {
+  return version === null || version.trim() === "" ? "unknown" : normalizeVersion(version);
+}
+
+function listContentRelPaths(root: string): string[] {
+  const out: string[] = [];
+  const walk = (abs: string, rel: string): void => {
+    let entries: Dirent[];
+    try {
+      entries = readdirSync(abs, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (entry.name === "node_modules" || entry.name === ".git") continue;
+      const nextRel = rel ? `${rel}/${entry.name}` : entry.name;
+      const nextAbs = join(abs, entry.name);
+      if (entry.isSymbolicLink()) continue;
+      if (entry.isDirectory()) {
+        walk(nextAbs, nextRel);
+        continue;
+      }
+      if (entry.isFile()) {
+        out.push(nextRel.replace(/\\/g, "/"));
+      }
+    }
+  };
+  walk(root, "");
+  return out.sort();
+}
+
+/** Top-level prefix rollup for dry-run blast-radius lines (#3437). */
+export function rollupPlannedPathPrefixes(paths: readonly string[]): string[] {
+  const counts = new Map<string, number>();
+  for (const path of paths) {
+    const normalized = path.replace(/\\/g, "/");
+    const slash = normalized.indexOf("/");
+    const prefix = slash === -1 ? normalized : `${normalized.slice(0, slash)}/`;
+    counts.set(prefix, (counts.get(prefix) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([prefix, count]) => (count > 1 ? `${prefix} ${count}` : prefix));
+}
+
+function formatPlannedFilesLine(count: number, paths: readonly string[]): string {
+  if (count === 0) return "0 will be rewritten";
+  const rollup = rollupPlannedPathPrefixes(paths);
+  const suffix = rollup.length > 0 ? ` (${rollup.join(", ")})` : "";
+  return `${count} will be rewritten${suffix}`;
+}
+
+/**
+ * Read-only refresh plan: versions, no-op vs file-swap, and planned paths.
+ * Does not copy, stage, or stamp (#3437).
+ */
+export async function planRefreshDeposit(
+  projectDir: string,
+  seams: RefreshDepositSeams = {},
+): Promise<RefreshDepositPlan> {
+  const deftDir = join(resolve(projectDir), CANONICAL_INSTALL_ROOT);
+  const resolveContent = seams.resolveContentRoot ?? resolveInstalledContentRoot;
+  const readEngine = seams.readEngineVersion ?? readCorePackageVersion;
+  const readPackageVersion = seams.readPackageVersion ?? readCorePackageVersion;
+  const contentRoot = await resolveContent();
+  const previousDepositVersion = readRecordedDepositVersion(deftDir);
+  const engineVersion = readEngine();
+  const contentVersion = readContentPackageVersion(contentRoot, readPackageVersion);
+  const versionSkewNotice = buildVersionSkewNotice(
+    engineVersion,
+    contentVersion,
+    previousDepositVersion,
+  );
+  const alreadyCurrent =
+    previousDepositVersion !== null &&
+    normalizeVersion(previousDepositVersion) === normalizeVersion(contentVersion);
+  const strategy: RefreshDepositStrategy = alreadyCurrent ? "no-op" : "file-swap";
+  const plannedPaths =
+    strategy === "file-swap"
+      ? listContentRelPaths(contentRoot).map((rel) => `${CANONICAL_INSTALL_ROOT}/${rel}`)
+      : [];
+  return {
+    contentRoot,
+    previousDepositVersion,
+    contentVersion,
+    engineVersion,
+    alreadyCurrent,
+    strategy,
+    versionSkewNotice,
+    plannedFileCount: plannedPaths.length,
+    plannedPaths,
+  };
+}
+
+/** Deposit freshness owns `State` / `update_state`; file-swap is never `current` (#3437). */
+export function updateStateFromFreshness(strategy: RefreshDepositStrategy): UpdateState {
+  return strategy === "file-swap" ? "updated" : "current";
+}
+
 /** Prior `managed_by` provenance sentinel from the deposit manifest, if any (#2056). */
 function readRecordedManagedBy(deftDir: string): string | null {
   const manifestPath = join(deftDir, "VERSION");
@@ -537,14 +648,16 @@ export function buildUpdateSummaryJson(input: {
   options: RefreshDepositArgs;
   updateState: UpdateState | undefined;
   readiness: AgentHookReadinessResult | undefined;
+  resolutionMode?: string;
 }): Record<string, unknown> {
-  const { result, options, updateState, readiness } = input;
+  const { result, options, updateState, readiness, resolutionMode } = input;
   return {
     success: readiness ? readiness.code === 0 : true,
     deposit_completed: true,
     ...(readiness ? { agent_hook_readiness: agentHookReadinessJson(readiness) } : {}),
     action: "upgrade",
     ...(updateState ? { update_state: updateState } : {}),
+    ...(resolutionMode ? { resolution_mode: resolutionMode } : {}),
     version: result.engineVersion,
     project_dir: result.projectDir,
     deft_dir: result.deftDir,
@@ -602,6 +715,7 @@ export function printUpdateComplete(
   result: RefreshDepositResult,
   io: InitDepositIo,
   updateState?: UpdateState,
+  resolution?: { readonly mode: string; readonly rootCause: string },
 ): void {
   io.printf(
     result.alreadyCurrent
@@ -613,6 +727,9 @@ export function printUpdateComplete(
   io.printf(`  Strategy     : ${result.strategy}\n`);
   if (updateState) {
     io.printf(`  State        : ${updateState}\n`);
+  }
+  if (resolution) {
+    io.printf(`  Resolution   : ${resolution.mode} (${resolution.rootCause})\n`);
   }
   io.printf(`  AGENTS.md    : ${result.agentsMdUpdated ? "updated" : "already current"}\n`);
   if (result.versionSkewNotice) {
@@ -654,27 +771,20 @@ export async function runRefreshDeposit(
   // the resolved project tree. Writes nothing on refusal.
   assertDepositContained(projectDir, deftDir);
 
-  const resolveContent = seams.resolveContentRoot ?? resolveInstalledContentRoot;
   // #2913: default is full-tree replace (Go swapInCore parity), not additive copyTree.
   // Injected seams.copyContent still wins (tests / specialized callers).
   const copyContent = seams.copyContent ?? replaceTree;
-  const readEngine = seams.readEngineVersion ?? readCorePackageVersion;
-  const readPackageVersion = seams.readPackageVersion ?? readCorePackageVersion;
-
-  const contentRoot = await resolveContent();
-  const previousDepositVersion = readRecordedDepositVersion(deftDir);
-  const previousManagedBy = readRecordedManagedBy(deftDir);
-  const engineVersion = readEngine();
-  const contentVersion = readContentPackageVersion(contentRoot, readPackageVersion);
-  const versionSkewNotice = buildVersionSkewNotice(
-    engineVersion,
-    contentVersion,
+  const planned = await planRefreshDeposit(projectDir, seams);
+  const {
+    contentRoot,
     previousDepositVersion,
-  );
-  const alreadyCurrent =
-    previousDepositVersion !== null &&
-    normalizeVersion(previousDepositVersion) === normalizeVersion(contentVersion);
-  const strategy: RefreshDepositStrategy = alreadyCurrent ? "no-op" : "file-swap";
+    contentVersion,
+    engineVersion,
+    alreadyCurrent,
+    strategy,
+    versionSkewNotice,
+  } = planned;
+  const previousManagedBy = readRecordedManagedBy(deftDir);
 
   if (alreadyCurrent) {
     io.printf("[deft update] Framework payload already current; skipping payload copy.\n");
@@ -927,18 +1037,33 @@ function emitMigrationRequired(
   return UPDATE_REFUSED_EXIT_CODE;
 }
 
-/** Emit the classified plan for `--dry-run`/`--plan` without executing the refresh. */
-function emitDryRunPlan(
+/** Emit deposit freshness + classified plan for `--dry-run`/`--plan` without writing. */
+async function emitDryRunPlan(
   options: RunRefreshDepositCliOptions,
   io: InitDepositIo,
   projectDir: string,
   classification: UpdateClassification,
-): number {
-  const { state, plan: resolutionPlan } = classification;
-  io.printf(`\n[deft update] dry-run -- classified plan (no changes written):\n`);
-  io.printf(`  State        : ${state}\n`);
-  io.printf(`  Mode         : ${resolutionPlan.mode}\n`);
-  io.printf(`  Root cause   : ${resolutionPlan.nextAction.rootCause}\n`);
+): Promise<number> {
+  const planned = await planRefreshDeposit(projectDir, options.seams ?? {});
+  const { plan: resolutionPlan } = classification;
+  const updateState = updateStateFromFreshness(planned.strategy);
+  const header =
+    planned.strategy === "file-swap"
+      ? "[deft update] dry-run -- pending file-swap (no writes this run):"
+      : "[deft update] dry-run -- classified plan (no changes would be written):";
+  io.printf(`\n${header}\n`);
+  io.printf(
+    `  Manifest     : ${displayVersion(planned.previousDepositVersion)} -> ${displayVersion(planned.contentVersion)}\n`,
+  );
+  io.printf(`  Strategy     : ${planned.strategy}\n`);
+  io.printf(
+    `  Files        : ${formatPlannedFilesLine(planned.plannedFileCount, planned.plannedPaths)}\n`,
+  );
+  io.printf(`  State        : ${updateState}\n`);
+  io.printf(`  Resolution   : ${resolutionPlan.mode} (${resolutionPlan.nextAction.rootCause})\n`);
+  if (planned.versionSkewNotice) {
+    io.printf(`${planned.versionSkewNotice}\n`);
+  }
   io.printf(`  Remediation  : ${resolutionPlan.nextAction.remediation}\n`);
   for (const warning of resolutionPlan.warnings) {
     io.printf(`  Warning      : ${warning}\n`);
@@ -950,9 +1075,17 @@ function emitDryRunPlan(
           success: true,
           action: "update",
           dry_run: true,
-          update_state: state,
+          update_state: updateState,
           mode: resolutionPlan.mode,
+          resolution_mode: resolutionPlan.mode,
           project_dir: projectDir,
+          previous_version: planned.previousDepositVersion ?? "",
+          content_version: planned.contentVersion,
+          strategy: planned.strategy,
+          already_current: planned.alreadyCurrent,
+          planned_file_count: planned.plannedFileCount,
+          planned_paths: planned.plannedPaths,
+          version_skew_notice: planned.versionSkewNotice,
           next_action: resolutionPlan.nextAction,
           warnings: resolutionPlan.warnings,
         },
@@ -1023,7 +1156,18 @@ export async function runRefreshDepositCli(options: RunRefreshDepositCliOptions)
       return emitMigrationRequired(options, io, projectDir, classification);
     }
     if (options.dryRun) {
-      return emitDryRunPlan(options, io, projectDir, classification);
+      try {
+        return await emitDryRunPlan(options, io, projectDir, classification);
+      } catch (cause) {
+        const message = cause instanceof Error ? cause.message : String(cause);
+        options.writeErr(`directive update: ${message}\n`);
+        if (options.jsonOut) {
+          options.writeOut(
+            `${JSON.stringify({ success: false, error: message, error_code: "refresh_deposit_failed" }, null, 2)}\n`,
+          );
+        }
+        return 1;
+      }
     }
     // #2266 a3: self-heal a mismatched / unreachable engine via the keystone
     // global-first ladder before the refresh proceeds.
@@ -1042,16 +1186,27 @@ export async function runRefreshDepositCli(options: RunRefreshDepositCliOptions)
       result.projectDir,
       options.seams?.evaluateAgentHookReadiness ?? evaluateAgentHookReadiness,
     );
-    const state: UpdateState | undefined = result.alreadyCurrent
-      ? "current"
-      : classification?.state;
+    const state = updateStateFromFreshness(result.strategy);
+    const resolution = classification
+      ? { mode: classification.plan.mode, rootCause: classification.plan.nextAction.rootCause }
+      : undefined;
     if (options.jsonOut) {
       options.writeOut(
-        `${JSON.stringify(buildUpdateSummaryJson({ result, options, updateState: state, readiness }), null, 2)}\n`,
+        `${JSON.stringify(
+          buildUpdateSummaryJson({
+            result,
+            options,
+            updateState: state,
+            readiness,
+            resolutionMode: classification?.plan.mode,
+          }),
+          null,
+          2,
+        )}\n`,
       );
-      printUpdateComplete(result, { printf: options.writeErr }, state);
+      printUpdateComplete(result, { printf: options.writeErr }, state, resolution);
     } else {
-      printUpdateComplete(result, io, state);
+      printUpdateComplete(result, io, state, resolution);
     }
     const readinessOut = options.jsonOut
       ? options.writeErr

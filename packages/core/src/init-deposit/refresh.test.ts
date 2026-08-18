@@ -32,12 +32,15 @@ import {
   frameworkRefreshSideEffects,
   NOT_INITIALIZED_MESSAGE,
   parseUpdateArgv,
+  planRefreshDeposit,
   prettierSensitiveRewrites,
   printRefreshSideEffects,
   printUpdateComplete,
+  rollupPlannedPathPrefixes,
   runRefreshDeposit,
   runRefreshDepositCli,
   UPDATE_REFUSED_EXIT_CODE,
+  updateStateFromFreshness,
   updateStateFromPlan,
 } from "./refresh.js";
 
@@ -89,6 +92,30 @@ describe("parseUpdateArgv", () => {
     expect(parsed.upgrade).toBe(true);
     expect(parsed.nonInteractive).toBe(true);
     expect(parsed.jsonOut).toBe(true);
+  });
+});
+
+describe("updateStateFromFreshness (#3437)", () => {
+  it("maps file-swap to updated and no-op to current", () => {
+    expect(updateStateFromFreshness("file-swap")).toBe("updated");
+    expect(updateStateFromFreshness("no-op")).toBe("current");
+  });
+});
+
+describe("rollupPlannedPathPrefixes", () => {
+  it("counts top-level prefixes", () => {
+    expect(
+      rollupPlannedPathPrefixes([
+        ".deft/core/main.md",
+        ".deft/core/VERSION",
+        "AGENTS.md",
+        ".githooks/pre-commit",
+      ]),
+    ).toEqual([".deft/ 2", ".githooks/", "AGENTS.md"]);
+  });
+
+  it("returns empty when there are no planned paths", () => {
+    expect(rollupPlannedPathPrefixes([])).toEqual([]);
   });
 });
 
@@ -1220,10 +1247,10 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     return pkgDir;
   }
 
-  /** Write a minimal initialized install (deposit + managed AGENTS.md + committed pin). */
+  /** Write a minimal initialized install (deposit + managed AGENTS.md + optional pin). */
   function writeInitializedProject(
     project: string,
-    opts: { contentVersion: string; pinVersion: string; sha?: string },
+    opts: { contentVersion: string; pinVersion?: string | null; sha?: string },
   ): void {
     const deftDir = join(project, ".deft", "core");
     mkdirSync(join(deftDir, "templates"), { recursive: true });
@@ -1250,7 +1277,11 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     );
     writeFileSync(
       join(project, "package.json"),
-      JSON.stringify({ private: true, devDependencies: { "@deftai/directive": opts.pinVersion } }),
+      JSON.stringify(
+        opts.pinVersion
+          ? { private: true, devDependencies: { "@deftai/directive": opts.pinVersion } }
+          : { private: true },
+      ),
       "utf8",
     );
   }
@@ -1278,6 +1309,22 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     };
     walk(root, "");
     return hash.digest("hex");
+  }
+
+  function listRelFiles(root: string): string[] {
+    const out: string[] = [];
+    const walk = (abs: string, rel: string): void => {
+      for (const entry of readdirSync(abs, { withFileTypes: true })) {
+        const nextRel = rel ? `${rel}/${entry.name}` : entry.name;
+        if (entry.isDirectory()) {
+          walk(join(abs, entry.name), nextRel);
+          continue;
+        }
+        out.push(nextRel.replace(/\\/g, "/"));
+      }
+    };
+    walk(root, "");
+    return out.sort();
   }
 
   function classifySeams(engine: { reachable: boolean; version: string | null }): ClassifySeams {
@@ -1351,9 +1398,13 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
 
   it("--dry-run prints the classified plan without executing the refresh (a5)", async () => {
     const project = freshRoot("update-dryrun-");
+    const contentRoot = installFakeContentPackage(project, "0.53.0");
     writeInitializedProject(project, { contentVersion: "0.53.0", pinVersion: "0.53.0" });
     const out: string[] = [];
     const err: string[] = [];
+    const copyContent = vi.fn(async () => {
+      throw new Error("copyContent must not run in dry-run mode");
+    });
 
     const code = await runRefreshDepositCli({
       projectDir: project,
@@ -1365,9 +1416,9 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
       writeOut: (t) => out.push(t),
       writeErr: (t) => err.push(t),
       seams: {
-        resolveContentRoot: async () => {
-          throw new Error("resolveContentRoot must NOT run in dry-run mode");
-        },
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.53.0",
+        copyContent,
       },
     });
 
@@ -1375,7 +1426,11 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     const payload = parseJsonObject(out.join(""));
     expect(payload.dry_run).toBe(true);
     expect(payload.update_state).toBe("current");
+    expect(payload.strategy).toBe("no-op");
+    expect(payload.already_current).toBe(true);
+    expect(payload.planned_file_count).toBe(0);
     expect(payload.mode).toBeDefined();
+    expect(copyContent).not.toHaveBeenCalled();
     // VERSION untouched -> nothing was re-stamped.
     expect(readFileSync(join(project, ".deft", "core", "VERSION"), "utf8")).toContain("v0.53.0");
   });
@@ -1415,6 +1470,190 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
 
     expect(code).toBe(0);
     expect(hashFixtureTree(project)).toBe(before);
+  });
+
+  it("skewed-manifest dry-run reports a pending file-swap, not classifier current (#3437)", async () => {
+    const project = freshRoot("update-dryrun-skew-");
+    const contentRoot = installFakeContentPackage(project, "0.103.0");
+    writeInitializedProject(project, { contentVersion: "0.78.0" });
+    const beforeFiles = listRelFiles(project);
+    const beforeVersion = readFileSync(join(project, ".deft", "core", "VERSION"), "utf8");
+    const beforeAgents = readFileSync(join(project, "AGENTS.md"), "utf8");
+    const out: string[] = [];
+    const err: string[] = [];
+    const copyContent = vi.fn(async () => {
+      throw new Error("copyContent must not run in dry-run mode");
+    });
+
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      dryRun: true,
+      classifySeams: classifySeams({ reachable: true, version: "0.103.0" }),
+      writeOut: (t) => out.push(t),
+      writeErr: (t) => err.push(t),
+      seams: {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.103.0",
+        copyContent,
+      },
+    });
+
+    expect(code).toBe(0);
+    const payload = parseJsonObject(out.join(""));
+    expect(payload.dry_run).toBe(true);
+    expect(payload.update_state).toBe("updated");
+    expect(payload.strategy).toBe("file-swap");
+    expect(payload.already_current).toBe(false);
+    expect(payload.previous_version).toMatch(/0\.78\.0/);
+    expect(payload.content_version).toMatch(/0\.103\.0/);
+    expect(payload.planned_file_count).toBeGreaterThan(0);
+    expect(Array.isArray(payload.planned_paths)).toBe(true);
+    expect((payload.planned_paths as string[]).length).toBeGreaterThan(0);
+    expect(payload.resolution_mode).toBeDefined();
+    expect(String(payload.version_skew_notice ?? "")).toMatch(/0\.78\.0/);
+    const human = err.join("");
+    expect(human).toMatch(/file-swap/i);
+    expect(human).toMatch(/0\.78\.0/);
+    expect(human).toMatch(/0\.103\.0/);
+    expect(human).toMatch(/will be rewritten/);
+    expect(human).toMatch(/State\s+:\s+updated/);
+    expect(human).not.toMatch(/State\s+:\s+current/);
+    expect(copyContent).not.toHaveBeenCalled();
+    expect(readFileSync(join(project, ".deft", "core", "VERSION"), "utf8")).toBe(beforeVersion);
+    expect(readFileSync(join(project, "AGENTS.md"), "utf8")).toBe(beforeAgents);
+    expect(listRelFiles(project)).toEqual(beforeFiles);
+  });
+
+  it("real update on a skewed pin-less tree does not print State current (#3437)", async () => {
+    const project = freshRoot("update-real-skew-");
+    const contentRoot = installFakeContentPackage(project, "0.103.0");
+    writeInitializedProject(project, { contentVersion: "0.78.0" });
+    const out: string[] = [];
+    const err: string[] = [];
+
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      classifySeams: classifySeams({ reachable: true, version: "0.103.0" }),
+      writeOut: (t) => out.push(t),
+      writeErr: (t) => err.push(t),
+      seams: {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.103.0",
+        nowIso: () => "2026-08-18T12:00:00Z",
+        gitPorcelain: () => null,
+        gitLsFiles: () => null,
+        evaluateAgentHookReadiness: () => agentHookReadiness(),
+      },
+    });
+
+    expect(code).toBe(0);
+    const payload = parseJsonObject(out.join(""));
+    expect(payload.update_state).toBe("updated");
+    expect(payload.update_state).not.toBe("current");
+    expect(payload.strategy).toBe("file-swap");
+    expect(payload.already_current).toBe(false);
+    expect(err.join("")).toMatch(/State\s+:\s+updated/);
+    expect(err.join("")).not.toMatch(/State\s+:\s+current/);
+    expect(readFileSync(join(project, ".deft", "core", "VERSION"), "utf8")).toContain("v0.103.0");
+  });
+
+  it("dry-run fails closed when the content package cannot be read (#3437)", async () => {
+    const project = freshRoot("update-dryrun-missing-content-");
+    writeInitializedProject(project, { contentVersion: "0.78.0" });
+    const out: string[] = [];
+    const err: string[] = [];
+
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      dryRun: true,
+      classifySeams: classifySeams({ reachable: true, version: "0.103.0" }),
+      writeOut: (t) => out.push(t),
+      writeErr: (t) => err.push(t),
+      seams: {
+        resolveContentRoot: async () => {
+          throw new Error("content package missing");
+        },
+      },
+    });
+
+    expect(code).toBe(1);
+    expect(err.join("")).toContain("content package missing");
+    expect(parseJsonObject(out.join("")).success).toBe(false);
+    expect(readFileSync(join(project, ".deft", "core", "VERSION"), "utf8")).toContain("v0.78.0");
+  });
+
+  it("matching-version dry-run may report current with a zero planned file count (#3437)", async () => {
+    const project = freshRoot("update-dryrun-match-");
+    const contentRoot = installFakeContentPackage(project, "0.103.0");
+    writeInitializedProject(project, { contentVersion: "0.103.0" });
+    const out: string[] = [];
+
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      dryRun: true,
+      classifySeams: classifySeams({ reachable: true, version: "0.103.0" }),
+      writeOut: (t) => out.push(t),
+      writeErr: () => {},
+      seams: {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.103.0",
+        copyContent: async () => {
+          throw new Error("copyContent must not run in dry-run mode");
+        },
+      },
+    });
+
+    expect(code).toBe(0);
+    const payload = parseJsonObject(out.join(""));
+    expect(payload.update_state).toBe("current");
+    expect(payload.strategy).toBe("no-op");
+    expect(payload.already_current).toBe(true);
+    expect(payload.planned_file_count).toBe(0);
+    expect(readFileSync(join(project, ".deft", "core", "VERSION"), "utf8")).toContain("v0.103.0");
+  });
+
+  it("planRefreshDeposit skips node_modules when listing planned paths (#3437)", async () => {
+    const project = freshRoot("update-plan-skip-nm-");
+    const contentRoot = installFakeContentPackage(project, "0.103.0");
+    mkdirSync(join(contentRoot, "node_modules", "left"), { recursive: true });
+    writeFileSync(join(contentRoot, "node_modules", "left", "x.js"), "nope\n", "utf8");
+    mkdirSync(join(contentRoot, ".git"), { recursive: true });
+    writeFileSync(join(contentRoot, ".git", "HEAD"), "ref: refs/heads/main\n", "utf8");
+    writeInitializedProject(project, { contentVersion: "0.78.0" });
+    const planned = await planRefreshDeposit(project, {
+      resolveContentRoot: async () => contentRoot,
+      readEngineVersion: () => "0.103.0",
+    });
+    expect(planned.strategy).toBe("file-swap");
+    expect(planned.plannedFileCount).toBeGreaterThan(0);
+    expect(planned.plannedPaths.every((path) => !path.includes("node_modules"))).toBe(true);
+    expect(planned.plannedPaths.every((path) => !path.includes("/.git/"))).toBe(true);
+  });
+
+  it("planRefreshDeposit treats an unreadable content root as zero planned paths (#3437)", async () => {
+    const project = freshRoot("update-plan-unreadable-");
+    writeInitializedProject(project, { contentVersion: "0.78.0" });
+    const fileRoot = join(project, "not-a-dir.txt");
+    writeFileSync(fileRoot, "x\n", "utf8");
+    const planned = await planRefreshDeposit(project, {
+      resolveContentRoot: async () => fileRoot,
+      readEngineVersion: () => "0.103.0",
+      readPackageVersion: () => "0.103.0",
+    });
+    expect(planned.strategy).toBe("file-swap");
+    expect(planned.plannedFileCount).toBe(0);
   });
 
   it("reports current and refreshes idempotently on an up-to-date install (a2/a5)", async () => {
