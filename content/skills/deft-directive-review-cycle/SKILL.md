@@ -229,7 +229,7 @@ Operator-initiated resume after conf-hold, residual dual-stop, or hard-stop exit
 
 **One-shot vs standing (#3448):**
 - **One-shot** triggers: pursue residual · follow-up hard-stop · same as conf-hold · continue dual-stopped PR · re-babysit residual — **one** pass on the unit that just halted, then re-stop. Do not silently widen.
-- **Standing** triggers: **until floor or loop** · **until greptile meets policy** · **pursue residuals until told otherwise** — class A leftovers on **every open unit in the active cohort / ordered plan** keep moving until the resolved floor or the same primary leftover fingerprint repeats. Class B/C stay parked unless the operator names them.
+- **Standing** triggers: **until floor or loop** · **until greptile meets policy** · **pursue residuals until told otherwise** — class A leftovers on **every open unit in the active cohort / ordered plan** keep moving until the resolved floor or the same primary leftover fingerprint appears on **2 consecutive** re-reviews with no material fix (not the first recurrence after a real fix). Class B/C stay parked unless the operator names them.
 
 **One residual pass under operator consent (one-shot, or one standing batch):**
 1. Ground-truth: dual-invoke `pr:merge-ready` / `pr:watch --one-shot` (#2893). Classify leftover A/B/C (#2881 table above).

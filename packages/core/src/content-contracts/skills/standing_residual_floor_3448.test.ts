@@ -158,6 +158,16 @@ describe("standing_residual_floor_3448", () => {
     expect(swarm).toMatch(/different loop class/);
   });
 
+  it("standing_order_names_two_consecutive_not_bare_repeats", () => {
+    const review = readSkill("skills/deft-directive-review-cycle/SKILL.md");
+    const phase4 = readRepoFile("skills/deft-directive-swarm/references/core-phase-4.md");
+    const commands = readRepoFile("commands.md");
+    for (const text of [review, phase4, commands]) {
+      expect(text).not.toMatch(/fingerprint repeats/);
+      expect(text).toMatch(/Standing[\s\S]{0,700}2 consecutive/);
+    }
+  });
+
   it("changelog_and_commands_cite_3448", () => {
     const changelog = readRepoFile("CHANGELOG.md");
     expect(changelog).toContain("#3448");
