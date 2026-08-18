@@ -374,6 +374,27 @@ export function evaluateOccupancyWriteGate(
   };
 }
 
+/** Close-out uses the persisted swarm occupant id when DEFT_SESSION_ID is unset. */
+export function releaseSwarmOccupancy(
+  projectRoot: string,
+  input: {
+    readonly env?: NodeJS.ProcessEnv;
+    readonly now?: Date;
+    readonly lockDeps?: LockDeps;
+  } = {},
+): OccupancyDecision {
+  const env = input.env ?? process.env;
+  const occupant = readOccupancy(projectRoot);
+  const persisted = occupant !== null && occupant.intent === "swarm" ? occupant.sessionId : "";
+  const envId = env.DEFT_SESSION_ID?.trim() || "";
+  return releaseOccupancy(projectRoot, {
+    env,
+    now: input.now,
+    lockDeps: input.lockDeps,
+    sessionId: envId || persisted,
+  });
+}
+
 export function runOccupancySteal(
   projectRoot: string,
   input: ApplyOccupancyInput = {},

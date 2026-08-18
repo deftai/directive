@@ -9,7 +9,7 @@ import {
 } from "../scope/delivery-evidence.js";
 import { runTransition, type TransitionOptions } from "../scope/transition.js";
 import { collectChildUris, collectPlanRefs, resolveVbriefRef } from "../scope/vbrief-ref.js";
-import { releaseOccupancy } from "../session/occupancy.js";
+import { releaseSwarmOccupancy } from "../session/occupancy.js";
 import { MAX_FIXPOINT_PASSES, TERMINAL_FOLDERS } from "./constants.js";
 
 /** Per-story or default delivery evidence for cohort completion (#3041). */
@@ -605,7 +605,7 @@ export function completeCohort(args: {
   result.errors.push(...errors);
 
   if (result.ok && args.dryRun !== true) {
-    const released = releaseOccupancy(projectRoot, { env: process.env });
+    const released = releaseSwarmOccupancy(projectRoot, { env: process.env });
     if (released.code !== 0) {
       result.ok = false;
       result.errors.push(released.message);

@@ -14,6 +14,7 @@ import {
   occupancyPath,
   readOccupancy,
   releaseOccupancy,
+  releaseSwarmOccupancy,
   resolveOccupancySessionId,
   stealOccupancy,
 } from "./occupancy.js";
@@ -394,5 +395,73 @@ describe("worktree occupancy lease (#3433)", () => {
     vi.unstubAllEnvs();
     expect(live.exitCode).toBe(0);
     expect(readOccupancy(root)).toBeNull();
+  });
+
+  it("close-out releases a minted swarm lease without DEFT_SESSION_ID", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: {} }),
+      "utf8",
+    );
+    writeFileSync(
+      join(root, "xbrief", "active", "story-a.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          id: "story-a",
+          title: "story-a",
+          status: "running",
+          metadata: { kind: "story", swarm: { readiness: "ready" } },
+        },
+      }),
+      "utf8",
+    );
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(
+      join(root, ".deft", "routing.local.json"),
+      JSON.stringify({
+        grok: { "leaf-implementation": { model: "grok-4", mode: "pinned" } },
+      }),
+      "utf8",
+    );
+    const launched = swarmLaunch({
+      stories: ["story-a"],
+      projectRoot: root,
+      autonomous: true,
+      environ: {
+        DEFT_ROUTING_PATH: join(root, ".deft", "routing.local.json"),
+      },
+      preflightGate: () => ({ exitCode: 0, message: "" }),
+      readinessGate: () => ({ exitCode: 0, report: "" }),
+      runtimeAuthProbe: () => ["local-unsandboxed", "host-gh"],
+    });
+    expect(launched.exitCode).toBe(0);
+    const minted = readOccupancy(root)?.sessionId;
+    expect(minted).toBeTruthy();
+    expect(minted).not.toBe("");
+    mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
+    const donePath = join(root, "xbrief", "completed", "story-a.xbrief.json");
+    writeFileSync(
+      donePath,
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { id: "story-a", title: "story-a", status: "completed" },
+      }),
+      "utf8",
+    );
+    vi.stubEnv("DEFT_SESSION_ID", "");
+    const live = completeCohort({
+      stories: [donePath],
+      projectRoot: root,
+      dryRun: false,
+    });
+    vi.unstubAllEnvs();
+    expect(live.exitCode).toBe(0);
+    expect(readOccupancy(root)).toBeNull();
+    expect(
+      releaseSwarmOccupancy(root, { env: {}, now: new Date("2026-08-17T12:00:00Z") }).action,
+    ).toBe("released");
   });
 });

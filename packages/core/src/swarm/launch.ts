@@ -732,6 +732,7 @@ export function swarmLaunch(args: LaunchArgs): {
     env: args.environ ?? process.env,
     intent: "swarm",
   });
+  // occupancy.json session_id is the persist close-out reads (even if DEFT_SESSION_ID was unset).
   if (occupancy.code !== 0) {
     return {
       exitCode: EXIT_GATE_FAILED,
