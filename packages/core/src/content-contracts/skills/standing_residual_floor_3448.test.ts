@@ -144,27 +144,33 @@ describe("standing_residual_floor_3448", () => {
     }
   });
 
-  it("same_fingerprint_halt_is_two_consecutive", () => {
+  it("same_fingerprint_stop_is_single_source", () => {
     const review = readSkill("skills/deft-directive-review-cycle/SKILL.md");
     const phase4 = readRepoFile("skills/deft-directive-swarm/references/core-phase-4.md");
     const swarm = readSkill("skills/deft-directive-swarm/SKILL.md");
-    for (const text of [review, phase4]) {
-      expect(text).toMatch(/2 consecutive/);
-      expect(text).toMatch(/not the first recurrence after a real fix/);
-      expect(text).toMatch(/different loop class/);
+    const commands = readRepoFile("commands.md");
+    expect(review).toContain("Same-fingerprint stop (normative, #3448 / #2442)");
+    expect(review).toContain("2 consecutive re-review observations");
+    expect(review).toContain("same primary fingerprint");
+    expect(review).toContain("no material fix between");
+    expect(review).toContain("Blocked handoffs count as observations");
+    for (const text of [phase4, swarm, commands]) {
+      expect(text).toContain("deft-directive-review-cycle/SKILL.md");
+      expect(text).toMatch(/Same-fingerprint stop|Dual stop/);
+      expect(text).not.toContain("Blocked handoffs count as observations");
+      expect(text).not.toMatch(/2 consecutive re-review observations/);
+      expect(text).not.toMatch(/same-fingerprint halt is \*\*2 consecutive\*\*/);
+      expect(text).not.toMatch(/no-progress stays \*\*3\+\*\*/);
     }
-    expect(swarm).toMatch(/2 consecutive/);
-    expect(swarm).toMatch(/3\+/);
-    expect(swarm).toMatch(/different loop class/);
   });
 
-  it("standing_order_names_two_consecutive_not_bare_repeats", () => {
+  it("standing_order_cites_stop_not_bare_repeats", () => {
     const review = readSkill("skills/deft-directive-review-cycle/SKILL.md");
     const phase4 = readRepoFile("skills/deft-directive-swarm/references/core-phase-4.md");
     const commands = readRepoFile("commands.md");
     for (const text of [review, phase4, commands]) {
       expect(text).not.toMatch(/fingerprint repeats/);
-      expect(text).toMatch(/Standing[\s\S]{0,700}2 consecutive/);
+      expect(text).toMatch(/Standing[\s\S]{0,700}Same-fingerprint stop/);
     }
   });
 

@@ -142,7 +142,7 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 
 ! Default failure envelope for repair/monitor class work (unless the operator or xBRIEF names a stricter one):
 - **max iterations:** 3 monitor repair actions (re-dispatch, takeover complete, re-trigger review) for the same leaf/PR failure class, **or**
-- **no-progress:** same error / same Greptile P0-P1 fingerprint / same idle state **3+** times with no material worktree or review change (composes with Phase 4 "stuck in an error loop" takeover trigger), **or**
+- **no-progress:** same error / same idle state **3+** times with no material worktree or review change (composes with Phase 4 "stuck in an error loop" takeover trigger). Same-fingerprint Greptile residual uses [`deft-directive-review-cycle/SKILL.md`](../deft-directive-review-cycle/SKILL.md) Dual stop — **Same-fingerprint stop**. **or**
 - **budget:** existing poll caps (`pr:watch` max-wait, Greptile service-error single retry + escalate) count as budget stops -- do not invent a second unbounded poll loop outside them.
 
 ! On failure stop: halt automatic continuation; emit an operator-visible report (what was tried, what is missing, what human decision is needed). ⊗ Silent re-dispatch or infinite monitor continuation after the envelope is exhausted.
@@ -157,7 +157,7 @@ Operator-initiated resume after dual-stop / hard stop / conf-hold — not automa
 
 **Leftover classes (A/B/C, #3448):** **class A** named leftover on already-touched files = in-AC residual, auto-continue under standing until floor or same-fingerprint loop. **class B** new subsystem / AC fight = park or follow-up. **class C** score-only = document / same-as-conf-hold. Already-touched leftover is class A unless it needs a new ledger/protocol/story (#2881).
 
-**One-shot vs standing:** one-shot `pursue residual` = one pass then re-stop. Standing (`until floor or loop` / `until greptile meets policy` / `pursue residuals until told otherwise`) applies to **open cohort / ordered-plan units**, not only the last halted PR. Review-cycle same-fingerprint halt is **2 consecutive** same-fingerprint re-reviews with no material fix. Swarm monitor no-progress stays **3+** (different loop class). `#2442` batch cap still applies.
+**One-shot vs standing:** one-shot `pursue residual` = one pass then re-stop. Standing (`until floor or loop` / `until greptile meets policy` / `pursue residuals until told otherwise`) applies to **open cohort / ordered-plan units**, not only the last halted PR. Same-fingerprint stop: [`deft-directive-review-cycle/SKILL.md`](../deft-directive-review-cycle/SKILL.md) Dual stop (normative). `#2442` batch cap still applies.
 
 Thin pointer: dual-invoke `pr:merge-ready` / `pr:watch`; spawn **one** residual worker or review-cycle owner per batch; document authorized conf floor for this PR only as human-merge/override trail (⊗ silent policy rewrite; `pr:merge-ready` still uses policy floor). ⊗ Unlimited auto-retry. ⊗ Parent self-implement (#2843).
 

@@ -69,7 +69,7 @@ tools: explore=0 commit=3 verify=0 coordinate=0 unknown=1 | anomalies: commit-wi
 | Stop | Default |
 |------|---------|
 | max iterations | **3** repair actions for the same leaf/PR failure class (resume prompt, takeover complete-remaining-steps, re-dispatch replacement, review re-trigger) |
-| no-progress | same error / same Greptile finding class / same idle stage **3+** times with no material worktree or review change |
+| no-progress | same error / same idle stage **3+** times with no material worktree or review change. Same-fingerprint Greptile residual: [`deft-directive-review-cycle/SKILL.md`](../../deft-directive-review-cycle/SKILL.md) Dual stop — **Same-fingerprint stop** |
 | budget | honor `pr:watch` / poll max-wait and Greptile service-error single-retry+escalate caps; do not nest an unbounded poll outside them |
 
 ! When the failure stop fires: **halt** automatic repair/re-dispatch; emit an **operator-visible halt report** (what was tried, current stage, missing evidence, human decision needed). Prefer `BLOCKED:` over thin `DONE` when the unit cannot reach merge-ready inside the envelope.
@@ -101,7 +101,7 @@ Operator-initiated resume after dual-stop, hard-stop, or conf-floor residual —
 
 **One-shot vs standing (#3448):**
 - **One-shot** triggers: pursue residual · follow-up hard-stop · same as conf-hold · continue dual-stopped PR · re-babysit residual — **one** pass on the unit that just halted, then re-stop. Do not silently widen.
-- **Standing** triggers: **until floor or loop** · **until greptile meets policy** · **pursue residuals until told otherwise** — class A leftovers on **every open unit in the active cohort / ordered plan** keep moving until the resolved floor or the same primary leftover fingerprint appears on **2 consecutive** re-reviews with no material fix (not the first recurrence after a real fix). Class B/C stay parked unless the operator names them.
+- **Standing** triggers: **until floor or loop** · **until greptile meets policy** · **pursue residuals until told otherwise** — class A leftovers on **every open unit in the active cohort / ordered plan** keep moving until the resolved floor or the **Same-fingerprint stop** in [`deft-directive-review-cycle/SKILL.md`](../../deft-directive-review-cycle/SKILL.md) Dual stop. Class B/C stay parked unless the operator names them.
 
 **One residual pass (then re-stop, or one standing batch):**
 1. Ground-truth: dual-invoke `pr:merge-ready` / `pr:watch --one-shot` on the PR (CLI `deft` first, then `task deft:` — see review-cycle #2893). Classify leftover A/B/C.
@@ -114,7 +114,7 @@ Operator-initiated resume after dual-stop, hard-stop, or conf-floor residual —
 4. If the operator authorized a conf floor for **this PR only** (e.g. ≥4/5): post a PR audit comment naming the floor, HEAD SHA, and who authorized it. That comment is the **human-merge / documented-override trail** — it does **not** rewrite `plan.policy.review.minGreptileConfidence` or make `pr:merge-ready` / `pr:watch` exit CLEAN below policy. Merge still requires policy CLEAN, bot-merge authority + override path, or human merge after the documented floor is met in the bot body. ⊗ Silent policy edit of `minGreptileConfidence` for one residual.
 5. Wait re-review; merge when policy floor + gates met (or human-merge after documented PR-local floor). Run `scope:complete` + lifecycle land when in scope (#3264 / finalize). Halt reports MUST include leftover class + resolved floor + standing vs one-shot.
 
-! **Same-fingerprint halt is the loop stop (#3448 / #2442):** after a real fix, a *new* leftover MAY take another batch. Review-cycle residual halt is **2 consecutive** same-fingerprint re-reviews with no material fix (not the first recurrence after a real fix). This monitor table's no-progress stop stays **3+** (different loop class). `#2442` batch cap (max 3 repair actions) still applies.
+! **Same-fingerprint stop:** [`deft-directive-review-cycle/SKILL.md`](../../deft-directive-review-cycle/SKILL.md) Dual stop — review fix loops (#2442) (normative). ⊗ Spawn another continuation leaf after a same-fingerprint `BLOCKED` handoff. `#2442` batch cap (max 3 repair actions) still applies.
 
 ! Dual-stop re-entry: after the residual pass (+ re-review wait), if still blocked, halt again with a fresh resume line. Another **one-shot** pass requires **new** operator consent. A **standing** order MAY continue class A with a **new** fingerprint under the `#2442` cap.
 

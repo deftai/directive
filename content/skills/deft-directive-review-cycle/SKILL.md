@@ -211,7 +211,7 @@ Review fix cycles are multi-iteration work and MUST carry dual stop (`main.md` `
 
 | Loop class | Success stop | Default failure stop |
 |------------|--------------|----------------------|
-| Greptile / bot fix batch (Step 3 → re-review) | No P0/P1 on current HEAD; confidence meets `minGreptileConfidence` | **max 3** fix-batch iterations across the whole review ownership (do **not** reset the counter on push when the same primary fingerprint remains) **or** **2** consecutive re-reviews with the same primary P0/P1 fingerprint and no material fix |
+| Greptile / bot fix batch (Step 3 → re-review) | No P0/P1 on current HEAD; confidence meets `minGreptileConfidence` | **max 3** fix-batch iterations across the whole review ownership (do **not** reset the counter on push when the same primary fingerprint remains) **or** the **Same-fingerprint stop** (below) |
 | Confidence-only hold (0 P0/P1, score below floor) | Confidence meets floor, or operator chooses document/accept path | **max 1** optional polish pass, then stop (do not redesign unbounded — see confidence-only holds above) |
 
 **On failure stop:**
@@ -229,7 +229,7 @@ Operator-initiated resume after conf-hold, residual dual-stop, or hard-stop exit
 
 **One-shot vs standing (#3448):**
 - **One-shot** triggers: pursue residual · follow-up hard-stop · same as conf-hold · continue dual-stopped PR · re-babysit residual — **one** pass on the unit that just halted, then re-stop. Do not silently widen.
-- **Standing** triggers: **until floor or loop** · **until greptile meets policy** · **pursue residuals until told otherwise** — class A leftovers on **every open unit in the active cohort / ordered plan** keep moving until the resolved floor or the same primary leftover fingerprint appears on **2 consecutive** re-reviews with no material fix (not the first recurrence after a real fix). Class B/C stay parked unless the operator names them.
+- **Standing** triggers: **until floor or loop** · **until greptile meets policy** · **pursue residuals until told otherwise** — class A leftovers on **every open unit in the active cohort / ordered plan** keep moving until the resolved floor or the **Same-fingerprint stop** (this skill, Dual stop). Class B/C stay parked unless the operator names them.
 
 **One residual pass under operator consent (one-shot, or one standing batch):**
 1. Ground-truth: dual-invoke `pr:merge-ready` / `pr:watch --one-shot` (#2893). Classify leftover A/B/C (#2881 table above).
@@ -238,7 +238,8 @@ Operator-initiated resume after conf-hold, residual dual-stop, or hard-stop exit
 4. Re-evaluate Step 6; merge when **policy** floor + gates met, or human-merge after the documented PR-local floor is met in the bot body; else halt again with a fresh resume line (leftover class + resolved floor + standing vs one-shot).
 5. Post-merge `scope:complete` when this owner holds lifecycle (#2321 / #3264).
 
-! **Same-fingerprint halt is the loop stop (#3448 / #2442):** after a real fix, a *new* leftover MAY take another batch. Halt when the **same** primary leftover fingerprint appears on **2 consecutive** re-reviews with no material fix (this skill's Greptile fix-batch no-progress stop — not the first recurrence after a real fix). Swarm monitor no-progress stays **3+** (different loop class). `#2442` batch cap (max 3 fix-batches) still applies.
+! **Same-fingerprint stop (normative, #3448 / #2442):** **2 consecutive re-review observations**, **same primary fingerprint**, **no material fix between**. **Blocked handoffs count as observations.** After a real fix, a *new* leftover MAY take another batch. `#2442` batch cap (max 3 fix-batches) still applies.
+⊗ Restate a competing 2-vs-3 same-fingerprint threshold, or treat a `BLOCKED` handoff as not counting toward the stop.
 
 ! Dual-stop re-entry: one residual pass then re-stop without new consent **unless** a standing order is active **and** the leftover is class A with a **new** fingerprint under the `#2442` cap. Fresh operator consent required for another one-shot pass, or after same-fingerprint / cap halt.
 
