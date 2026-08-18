@@ -560,14 +560,6 @@ export function resolveLaunchOccupancySessionId(
   return { sessionId: matches[0]?.occupancy_session_id ?? "", reason: "ok" };
 }
 
-/** Close-out identity for this cohort only — never a slot another launch can overwrite. */
-export function readLaunchOccupancySessionId(
-  projectRoot: string,
-  query: LaunchOccupancyQuery = {},
-): string {
-  return resolveLaunchOccupancySessionId(projectRoot, query).sessionId;
-}
-
 export function buildManifest(
   resolved: readonly ResolvedStory[],
   options: {

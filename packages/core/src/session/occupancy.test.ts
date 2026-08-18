@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { completeCohort } from "../swarm/complete-cohort.js";
 import {
   persistLaunchOccupancyRecord,
-  readLaunchOccupancySessionId,
+  resolveLaunchOccupancySessionId,
   swarmLaunch,
 } from "../swarm/launch.js";
 import {
@@ -526,8 +526,8 @@ describe("worktree occupancy lease (#3433)", () => {
       story_ids: ["story-b"],
       cohort_key: "plan:other-plan",
     });
-    expect(readLaunchOccupancySessionId(root, { storyIds: ["story-a"] })).toBe(minted);
-    expect(readLaunchOccupancySessionId(root)).toBe("");
+    expect(resolveLaunchOccupancySessionId(root, { storyIds: ["story-a"] }).sessionId).toBe(minted);
+    expect(resolveLaunchOccupancySessionId(root).sessionId).toBe("");
     mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
     const donePath = join(root, "xbrief", "completed", "story-a.xbrief.json");
     writeFileSync(
