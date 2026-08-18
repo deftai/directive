@@ -20,7 +20,11 @@ import {
   listInScopeSkillsDirs,
   type OpenClawDetectResult,
 } from "../doctor/openclaw-skills.js";
-import { containedRemove, containedWrite, finishContainedAtomicReplace } from "../fs/contained-write.js";
+import {
+  containedRemove,
+  containedWrite,
+  finishContainedAtomicReplace,
+} from "../fs/contained-write.js";
 import { isCollectOnlyActive } from "../fs/mutation-ledger.js";
 import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { loadProjectDefinition } from "../policy/resolve.js";

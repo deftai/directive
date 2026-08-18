@@ -17,7 +17,11 @@
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { assertDepositContained } from "../deposit/contain.js";
-import { containedRemove, containedWrite, finishContainedAtomicReplace } from "../fs/contained-write.js";
+import {
+  containedRemove,
+  containedWrite,
+  finishContainedAtomicReplace,
+} from "../fs/contained-write.js";
 import { isCollectOnlyActive } from "../fs/mutation-ledger.js";
 import {
   type HostSlashCommandsPolicy,
