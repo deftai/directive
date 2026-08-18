@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Drive-to DONE requires completed-tracked on the delivery tip (#3476).** `task verify:completed-tracked -- --issue N` checks one origin against `origin/<deliveryBranch>`, not feature-worktree HEAD. Exit 1 plus missing tracked land is not DONE; remediate with `task swarm:finalize-cohort` or a lifecycle PR. Parent last-leaf close without that land is a failed close. `scope:complete` stays filesystem-only. Verb stays off `task check`. `agentsMdBudget.absoluteMaxBytes` 15400→15700 for the managed pointer. Closes #3476. Refs #3264, #1358, #3429.
 - **Lifecycle-only land skips `task check` (#3476).** Completed/cancelled xBRIEF residue lands with `task swarm:finalize-cohort` or a lifecycle PR gated by `verify:completed-tracked --tip HEAD`. Not the drive-to story envelope and not the TypeScript suite. Refs #3264 / #1358.
 - **Land leftover completed-tracked artifacts for closed 3470/3469/3454 (#3264 / #1358).** Three already-completed xBRIEFs (3470 ts:check-lane progress, 3469 host-detect disclosure, 3454 feedback:file --context) now live under `xbrief/completed/` so `verify:completed-tracked` sees the record. Does not re-close those issues. Refs #2321.
 - **ts:check-lane emits coarse flushed progress during the vitest suite (#3470).** After the #3188 start line, the lane prints percent/count ticks every 20% of collected files (`ts:check-lane 20% (412/2060 files)`). Line-buffered via `writeSync`; pass/fail is unchanged. Closes #3470.

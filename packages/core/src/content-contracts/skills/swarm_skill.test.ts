@@ -661,6 +661,21 @@ describe("test_swarm_skill", () => {
     const block = _phase6_block(_read_swarm());
     expect(block).toContain(token);
   });
+  it("swarm_phase6_drive_to_last_leaf_close_requires_completed_tracked_3476", () => {
+    const block = _phase6_block(_read_swarm());
+    expect(block).toContain("Drive-to last-leaf close (#3476)");
+    expect(block).toContain("task swarm:finalize-cohort");
+    expect(block).toContain("task verify:completed-tracked");
+    expect(block).toContain("origin/<deliveryBranch>");
+    expect(block).toContain("failed close");
+    expect(block).toContain("scope:complete` stays filesystem-only");
+    expect(block).toMatch(/⊗[^\n]*drive-to[^\n]*#3476/);
+    const anti = _read_swarm();
+    const antiStart = anti.indexOf("## Anti-Patterns");
+    expect(antiStart).not.toBe(-1);
+    expect(anti.slice(antiStart)).toContain("#3476");
+    expect(anti.slice(antiStart)).toContain("verify:completed-tracked");
+  });
   it("swarm_phase6_lifecycle_commit_step_is_required_rule", () => {
     const block = _phase6_block(_read_swarm());
     const start = block.indexOf(

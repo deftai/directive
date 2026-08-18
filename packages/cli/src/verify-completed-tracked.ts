@@ -7,17 +7,28 @@ interface ParsedArgs {
   projectRoot: string;
   repo: string | null;
   tip: string | null;
+  issue: number | null;
   quiet: boolean;
   skipGh: boolean;
   error?: string;
 }
 
-/** Parse verify-completed-tracked CLI args (#3264). */
+function parseIssueNumber(raw: string): number | null {
+  const trimmed = raw.startsWith("#") ? raw.slice(1) : raw;
+  if (!/^\d+$/.test(trimmed)) {
+    return null;
+  }
+  const value = Number(trimmed);
+  return Number.isInteger(value) && value > 0 ? value : null;
+}
+
+/** Parse verify-completed-tracked CLI args (#3264 / #3476). */
 export function parseArgs(argv: string[]): ParsedArgs {
   const parsed: ParsedArgs = {
     projectRoot: ".",
     repo: null,
     tip: null,
+    issue: null,
     quiet: false,
     skipGh: false,
   };
@@ -54,6 +65,24 @@ export function parseArgs(argv: string[]): ParsedArgs {
       i += 1;
     } else if (arg?.startsWith("--tip=")) {
       parsed.tip = arg.slice("--tip=".length);
+    } else if (arg === "--issue") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ...parsed, error: "argument --issue: expected one argument" };
+      }
+      const issue = parseIssueNumber(value);
+      if (issue === null) {
+        return { ...parsed, error: `argument --issue: expected a positive integer, got ${value}` };
+      }
+      parsed.issue = issue;
+      i += 1;
+    } else if (arg?.startsWith("--issue=")) {
+      const value = arg.slice("--issue=".length);
+      const issue = parseIssueNumber(value);
+      if (issue === null) {
+        return { ...parsed, error: `argument --issue: expected a positive integer, got ${value}` };
+      }
+      parsed.issue = issue;
     } else {
       return { ...parsed, error: `unrecognized argument: ${arg}` };
     }
@@ -74,6 +103,7 @@ export function run(argv: string[]): number {
     quiet: args.quiet,
     repo: args.repo,
     tip: args.tip,
+    issue: args.issue,
     skipGh: args.skipGh,
   });
 

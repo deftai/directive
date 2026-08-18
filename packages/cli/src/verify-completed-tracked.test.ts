@@ -51,6 +51,7 @@ describe("parseArgs", () => {
       projectRoot: ".",
       repo: null,
       tip: null,
+      issue: null,
       quiet: false,
       skipGh: false,
     });
@@ -65,6 +66,8 @@ describe("parseArgs", () => {
         "deftai/directive",
         "--tip",
         "origin/master",
+        "--issue",
+        "3476",
         "--quiet",
         "--skip-gh",
       ]),
@@ -72,6 +75,7 @@ describe("parseArgs", () => {
       projectRoot: "/root",
       repo: "deftai/directive",
       tip: "origin/master",
+      issue: 3476,
       quiet: true,
       skipGh: true,
     });
@@ -79,16 +83,27 @@ describe("parseArgs", () => {
 
   it("parses equals-form flags", () => {
     expect(
-      parseArgs(["--project-root=/root", "--repo=deftai/directive", "--tip=origin/main"]),
+      parseArgs([
+        "--project-root=/root",
+        "--repo=deftai/directive",
+        "--tip=origin/main",
+        "--issue=#3476",
+      ]),
     ).toMatchObject({
       projectRoot: "/root",
       repo: "deftai/directive",
       tip: "origin/main",
+      issue: 3476,
     });
   });
 
   it("errors when --tip is missing its value", () => {
     expect(parseArgs(["--tip"]).error).toMatch(/--tip/);
+  });
+
+  it("rejects a non-positive --issue", () => {
+    expect(parseArgs(["--issue", "0"]).error).toContain("positive integer");
+    expect(parseArgs(["--issue"]).error).toContain("expected one argument");
   });
 });
 
@@ -139,5 +154,46 @@ describe("run", () => {
 
   it("returns 2 for bad args", () => {
     expect(silentRun(["--bogus"])).toBe(2);
+  });
+
+  it("returns 1 for --issue N when only that closed issue is untracked", () => {
+    const root = buildRepo();
+    writeFileSync(
+      join(root, "xbrief", "completed", "orphan.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          status: "completed",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/3476",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    mkdirSync(join(root, ".deft-cache", "github-issue", "deftai", "directive", "3476"), {
+      recursive: true,
+    });
+    writeFileSync(
+      join(root, ".deft-cache", "github-issue", "deftai", "directive", "3476", "raw.json"),
+      JSON.stringify({ number: 3476, state: "closed" }),
+      "utf8",
+    );
+    expect(
+      silentRun([
+        "--project-root",
+        root,
+        "--repo",
+        "deftai/directive",
+        "--tip",
+        "HEAD",
+        "--skip-gh",
+        "--issue",
+        "3476",
+      ]),
+    ).toBe(1);
   });
 });

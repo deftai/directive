@@ -130,7 +130,7 @@ Orchestrator dispatch doctrine (#1880): `docs/analysis/2026-07-02-agents-md-inci
 
 - ! **Through-merge worker dispatch (#3032):** On **through merge** / **drive to merge** / land-ship / **drive-to: merge-ready** story intent, parent MUST dispatch a merge-ready worker via the **swarm/solo-worker launch path** even if **cohort size is 1** (worktree, preflight, pre-pr, review-cycle, merge/`scope:complete`); parent MUST NOT implement as the leaf. ⊗ Parent conversation implements or babysits product fix/CI loops when subagent/worktree dispatch is available (#3032 / #1880 Gap C).
 - ! **Worker-owns-lifecycle (Gap C):** When dispatching an implementation worker, the envelope MUST declare `stop-at: pr-open` OR `drive-to: merge-ready` (default for story work). Workers scoped `drive-to: merge-ready` own PR + review cycle + fix batches through merge-ready as ONE unit of work — they spawn their own review poller per review-cycle monitoring tiers; the orchestrator MUST NOT hand back at PR-open and re-dispatch separate leaf agents for review/fixes.
-- ! **Post-merge scope lifecycle (#2321 / Gap C):** Workers scoped `stop-at: pr-open` MUST NOT run `scope:complete` before exit; the orchestrator (or Phase 6 `task swarm:finalize-cohort` / `task swarm:complete-cohort`) MUST run `scope:complete` or `scope:cancel` after merge. Workers scoped `drive-to: merge-ready` (or `drive-to: merge`) MUST include `scope:complete` in their unit of work. `task verify:orphan-active` fails closed on active/running briefs whose issues are closed or linked PR is merged.
+- ! **Post-merge scope lifecycle (#2321 / Gap C):** Workers scoped `stop-at: pr-open` MUST NOT run `scope:complete` before exit; the orchestrator (or Phase 6 `task swarm:finalize-cohort` / `task swarm:complete-cohort`) MUST run `scope:complete` or `scope:cancel` after merge. Workers scoped `drive-to: merge-ready` (or `drive-to: merge`) MUST include `scope:complete` in their unit of work. `task verify:orphan-active` fails closed on active/running briefs whose issues are closed or linked PR is merged. Drive-to DONE also requires `task verify:completed-tracked -- --issue N` on `origin/<deliveryBranch>` (#3476).
 - ! **Background dispatch (Gap D):** Long-running workers (>~3 min: implementation, fix batches, review-cycle owners, pollers) MUST dispatch independently / in the background (on Cursor: Task tool `run_in_background: true`) so the conversation channel stays interactive; foreground dispatch is for short tasks only.
 - ! **Deliberate model routing:** Before ANY sub-agent dispatch (cohort OR single), make a deliberate per-`worker_role` routing decision via `task verify:routing` / `task swarm:routing-set` — never silently inherit the parent model. Deterministic gate enforcement is #1877; this bullet is behavioral doctrine only.
 - ⊗ Re-dispatch separate review/fix leaf agents after a `drive-to: merge-ready` implementation worker exits at PR-open (#1880 Gap C).
@@ -160,7 +160,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=f0acd3f89b8c refreshed=2026-08-18T02:03:52Z session=ae059d1b6089 -->
+<!-- deft:managed-section v3 sha=1907fe769c3a refreshed=2026-08-18T22:26:57Z session=43595180dafd -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -254,7 +254,7 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 ⊗ Silent PR-open handback for a worker already scoped `drive-to: merge-ready`.
 ⊗ `stop-at: pr-open` without a named babysit / merge-path owner, or dual review-monitor leases on recovery (#3044 / #2261).
 ⊗ Stand down at CLEAN under human-merge with no reachable post-merge `scope:complete` owner.
-! After merge of issue `#N`, `deft verify:orphan-active -- --issue N` MUST exit 0 before `DONE` (#3429). Exit 1 shipped → printed `scope:complete`; unresolved lookup → retry / `BLOCKED` (⊗ complete unfinished scope).
+! After merge of issue `#N`, `deft verify:orphan-active -- --issue N` MUST exit 0 before `DONE` (#3429). After `scope:complete`, `deft verify:completed-tracked -- --issue N` MUST exit 0 on `origin/<deliveryBranch>` before `DONE` (#3476). Exit 1 shipped → printed `scope:complete`; missing tracked land → `swarm:finalize-cohort` or a lifecycle PR; unresolved lookup → retry / `BLOCKED` (⊗ complete unfinished scope).
 ⊗ Emit `ISSUE: closed` while that brief is still in `active/`.
 
 ## Nuclear-family A2A topology (#3155)

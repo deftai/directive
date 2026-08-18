@@ -166,6 +166,14 @@ const AFTER_MERGE_ORPHAN_ACTIVE_MARKERS = [
   "unresolved",
 ] as const;
 
+/** Drive-to DONE completed-tracked on delivery tip (#3476). */
+const AFTER_MERGE_COMPLETED_TRACKED_MARKERS = [
+  "verify:completed-tracked -- --issue",
+  "origin/<deliveryBranch>",
+  "#3476",
+  "swarm:finalize-cohort",
+] as const;
+
 const PROPAGATION_ACTION_VERBS = [
   "build",
   "implement",
@@ -807,6 +815,11 @@ describe("test_agents_entry_contract", () => {
   it("after_merge_orphan_active_markers_present_in_both_files", () => {
     expect(missingMarkers(template, AFTER_MERGE_ORPHAN_ACTIVE_MARKERS)).toEqual([]);
     expect(missingMarkers(agents, AFTER_MERGE_ORPHAN_ACTIVE_MARKERS)).toEqual([]);
+  });
+
+  it("after_merge_completed_tracked_markers_present_in_both_files", () => {
+    expect(missingMarkers(template, AFTER_MERGE_COMPLETED_TRACKED_MARKERS)).toEqual([]);
+    expect(missingMarkers(agents, AFTER_MERGE_COMPLETED_TRACKED_MARKERS)).toEqual([]);
   });
 
   it("mid_scope_gate_capability_tier_markers_present_in_both_files", () => {

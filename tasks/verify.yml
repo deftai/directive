@@ -483,7 +483,7 @@ tasks:
           ENGINE_CMD: 'verify:orphan-active --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   completed-tracked:
-    desc: "Fail-closed completed-tracked land guard (#3264 / #1358 recurrence). Closed scoped GitHub issues with a known lifecycle xBRIEF origin must have a tracked xbrief/completed/ or xbrief/cancelled/ artifact on the delivery tip. Remediation: task swarm:finalize-cohort or a lifecycle PR. Three-state exit (0 clean / 1 missing land / 2 config). Pass --skip-gh to rely on triage cache only; --tip to override delivery tip."
+    desc: "Fail-closed completed-tracked land guard (#3264 / #1358 / #3476). Closed scoped GitHub issues with a known lifecycle xBRIEF origin must have a tracked xbrief/completed/ or xbrief/cancelled/ artifact on the delivery tip. --issue N is the drive-to DONE form. Remediation: task swarm:finalize-cohort or a lifecycle PR. Three-state exit (0 clean / 1 missing land / 2 config). Pass --skip-gh to rely on triage cache only; --tip to override delivery tip."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
       - task: :engine:_ts-build

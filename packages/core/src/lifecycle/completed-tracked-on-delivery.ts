@@ -62,6 +62,11 @@ export interface EvaluateCompletedTrackedOptions {
   readonly repo?: string | null;
   /** Explicit delivery tip ref (e.g. origin/master). Overrides policy/git default. */
   readonly tip?: string | null;
+  /**
+   * When set, check only this issue number (#3476 drive-to DONE).
+   * Sibling unlanded closed issues do not fail the per-issue scan.
+   */
+  readonly issue?: number | null;
   readonly runGh?: RunGhFn;
   readonly skipGh?: boolean;
   readonly runGit?: GitRunner;
@@ -365,6 +370,19 @@ function issuesFromBlobPaths(
   return hits;
 }
 
+function filterOriginsByIssue(
+  originMap: Map<string, MissingCompletedLand>,
+  issue: number,
+): Map<string, MissingCompletedLand> {
+  const out = new Map<string, MissingCompletedLand>();
+  for (const [key, entry] of originMap) {
+    if (entry.issue.number === issue) {
+      out.set(key, entry);
+    }
+  }
+  return out;
+}
+
 function mergeOrigins(hits: readonly OriginHit[]): Map<string, MissingCompletedLand> {
   const map = new Map<string, { issue: IssueRef; origins: Set<string> }>();
   for (const hit of hits) {
@@ -472,20 +490,7 @@ export function evaluateCompletedTracked(
     runGit,
     `tip:${tip}`,
   );
-  const originMap = mergeOrigins([...localHits, ...tipNonterminalHits]);
-
-  if (originMap.size === 0) {
-    if (quiet) {
-      return { code: 0, message: "", stream: "none", missing: [], tip };
-    }
-    return {
-      code: 0,
-      message: "verify:completed-tracked: no scoped lifecycle origins found; nothing to check.",
-      stream: "stdout",
-      missing: [],
-      tip,
-    };
-  }
+  let originMap = mergeOrigins([...localHits, ...tipNonterminalHits]);
 
   // Delivery tip only — the land invariant is post-merge tip truth (#3264 AC).
   // Lifecycle PRs that commit completed/ on a feature branch are not expected
@@ -502,6 +507,53 @@ export function evaluateCompletedTracked(
     `tip:${tip}`,
   );
   const landedKeys = new Set(tipTerminalHits.map((h) => issueKey(h.issue)));
+
+  const issueFilter = options.issue ?? null;
+  if (issueFilter !== null) {
+    if (!Number.isInteger(issueFilter) || issueFilter <= 0) {
+      return {
+        code: 2,
+        message: `verify:completed-tracked: --issue must be a positive integer (got ${issueFilter})`,
+        stream: "stderr",
+        missing: [],
+        tip,
+      };
+    }
+    originMap = filterOriginsByIssue(originMap, issueFilter);
+    // Drive-to DONE must not green-skip a named origin with no local brief
+    // (#3476). Synthesize the requested issue so closed+unlanded fails.
+    if (originMap.size === 0) {
+      if (defaultRepo === null) {
+        return {
+          code: 2,
+          message:
+            `verify:completed-tracked: --issue ${issueFilter} requires --repo or a resolvable ` +
+            "origin remote when no scoped xBRIEF origin is present.",
+          stream: "stderr",
+          missing: [],
+          tip,
+        };
+      }
+      const synthetic: MissingCompletedLand = {
+        issue: { repo: defaultRepo, number: issueFilter },
+        origins: [`--issue ${issueFilter}`],
+      };
+      originMap.set(issueKey(synthetic.issue), synthetic);
+    }
+  }
+
+  if (originMap.size === 0) {
+    if (quiet) {
+      return { code: 0, message: "", stream: "none", missing: [], tip };
+    }
+    return {
+      code: 0,
+      message: "verify:completed-tracked: no scoped lifecycle origins found; nothing to check.",
+      stream: "stdout",
+      missing: [],
+      tip,
+    };
+  }
 
   const missing: MissingCompletedLand[] = [];
   for (const [key, entry] of originMap) {

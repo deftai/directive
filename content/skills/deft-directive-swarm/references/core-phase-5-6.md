@@ -265,9 +265,12 @@ task swarm:finalize-cohort -- --stories <issue-or-path>... --repo <owner/repo>
 
 The finalize surface runs the same `completeCohort(...)` engine as `task swarm:complete-cohort`, fast-forwards the local base branch, creates a `swarm/finalize/<label>` feature branch (branch policy #747 safe), commits the `xbrief/` lifecycle moves, and auto-opens the sweep PR. Pass `--no-commit` to sweep only (manual Step 2b), or `--no-open-pr` to commit locally without opening the PR. Gate on exit 0 plus green `task xbrief:validate` before declaring the swarm closed.
 
+! **Drive-to last-leaf close (#3476):** After the last `drive-to: merge-ready` leaf of a cohort announces, parent `done` without same-turn `task swarm:finalize-cohort` (or a land PR already proving `task verify:completed-tracked` green on `origin/<deliveryBranch>`) is a **failed close**. Narrative-only `done` under #2934 is not enough when completed xBRIEFs exist only as untracked worktree residue. `scope:complete` stays filesystem-only -- do not teach every leaf to commit on master. Keep `verify:completed-tracked` off `task check`.
+
 ! **Manual fallback (#1487):** `task swarm:complete-cohort` remains the idempotent manual primitive when finalize automation is unavailable or you need a dry-run preview of transitions only. The headless path above replaces the historical requirement to hand-author a separate `chore(xbrief)` sweep PR every cycle.
 
 ⊗ Declare a swarm closed while any cohort story xBRIEF remains in `xbrief/active/` or any fully-childless decompose-created epic parent remains in `xbrief/pending/` -- run `task swarm:complete-cohort` and confirm `task xbrief:validate` is green first (#1487).
+⊗ After the last `drive-to` leaf, emit parent `done` without finalize-cohort / completed-tracked green on the delivery tip -- that is a failed close (#3476).
 
 ### Step 2: Close Issues and Update Origins
 

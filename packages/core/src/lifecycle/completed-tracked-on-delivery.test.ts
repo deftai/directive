@@ -398,6 +398,99 @@ describe("evaluateCompletedTracked (#3264)", () => {
     expect(headTip.code).toBe(0);
   });
 
+  it("scopes --issue N so a sibling unlanded closed issue does not fail (#3476)", () => {
+    const root = makeGitRepo();
+    writeBrief(root, "completed", "landed.xbrief.json", issuePlan(9101));
+    writeBrief(root, "completed", "sibling-untracked.xbrief.json", issuePlan(9102));
+    writeCachedIssue(root, "deftai/directive", 9101, "closed");
+    writeCachedIssue(root, "deftai/directive", 9102, "closed");
+    git(root, ["add", "xbrief/completed/landed.xbrief.json"]);
+    git(root, ["commit", "-q", "-m", "land 9101 only"]);
+    const scoped = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      tip: "HEAD",
+      issue: 9101,
+    });
+    expect(scoped.code).toBe(0);
+    expect(scoped.missing).toEqual([]);
+    const sibling = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      tip: "HEAD",
+      issue: 9102,
+    });
+    expect(sibling.code).toBe(1);
+    expect(sibling.missing[0]?.issue.number).toBe(9102);
+  });
+
+  it("fails --issue N when completed is only on feature HEAD, not delivery tip (#3476)", () => {
+    const root = makeGitRepo();
+    const deliveryTip = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: root,
+      encoding: "utf8",
+    }).trim();
+    writeBrief(root, "completed", "laptop-only.xbrief.json", issuePlan(9103));
+    writeCachedIssue(root, "deftai/directive", 9103, "closed");
+    git(root, ["add", "xbrief/completed/laptop-only.xbrief.json"]);
+    git(root, ["commit", "-q", "-m", "feature-only land"]);
+    const result = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      tip: deliveryTip,
+      issue: 9103,
+    });
+    expect(result.code).toBe(1);
+    expect(result.missing[0]?.issue.number).toBe(9103);
+    expect(result.message).toContain("task swarm:finalize-cohort");
+    const featureHead = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      tip: "HEAD",
+      issue: 9103,
+    });
+    expect(featureHead.code).toBe(0);
+  });
+
+  it("fails --issue N with no local origin when the issue is closed and unlanded (#3476)", () => {
+    const root = makeGitRepo();
+    writeCachedIssue(root, "deftai/directive", 9104, "closed");
+    const result = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      tip: "HEAD",
+      issue: 9104,
+    });
+    expect(result.code).toBe(1);
+    expect(result.missing[0]?.issue.number).toBe(9104);
+    expect(result.missing[0]?.origins).toContain("--issue 9104");
+  });
+
+  it("does not fail --issue N when the named issue is still open and unlanded", () => {
+    const root = makeGitRepo();
+    writeCachedIssue(root, "deftai/directive", 9105, "open");
+    const result = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      tip: "HEAD",
+      issue: 9105,
+    });
+    expect(result.code).toBe(0);
+    expect(result.missing).toEqual([]);
+  });
+
+  it("returns config error for a non-positive --issue", () => {
+    const root = makeGitRepo();
+    const result = evaluateCompletedTracked(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      tip: "HEAD",
+      issue: 0,
+    });
+    expect(result.code).toBe(2);
+    expect(result.message).toContain("positive integer");
+  });
+
   it("fails closed when live gh fails for an unlanded origin (#3264 conf residual)", () => {
     const root = makeGitRepo();
     writeBrief(root, "completed", "stale-open-live-fail.xbrief.json", issuePlan(9080));

@@ -92,6 +92,14 @@ describe("test_agent_prompt_preamble_template", () => {
       "Emit `DONE` from a `drive-to: merge-ready` worker while merge-ready is false",
     );
   });
+  it("template_drive_to_done_requires_completed_tracked_on_delivery_tip_3476", () => {
+    expect(templateText).toContain("verify:completed-tracked -- --issue");
+    expect(templateText).toContain("origin/<deliveryBranch>");
+    expect(templateText).toContain("#3476");
+    expect(templateText).toContain("task swarm:finalize-cohort");
+    expect(templateText).toContain("not feature-worktree HEAD");
+    expect(templateText).toContain("scope:complete` stays filesystem-only");
+  });
   it("template_thin_done_and_parent_tool_first_2943", () => {
     expect(templateText).toContain("Thin DONE is not success (#2943)");
     expect(templateText).toContain("Parent tool-first after leaf completion (#2943");
