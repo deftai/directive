@@ -461,7 +461,10 @@ describe("worktree occupancy lease (#3433)", () => {
     expect(live.exitCode).toBe(0);
     expect(readOccupancy(root)).toBeNull();
     expect(
-      releaseSwarmOccupancy(root, { env: {}, now: new Date("2026-08-17T12:00:00Z") }).action,
-    ).toBe("released");
+      releaseSwarmOccupancy(root, {
+        env: {},
+        now: new Date("2026-08-17T12:00:00Z"),
+      }).action,
+    ).toBe("denied");
   });
 });

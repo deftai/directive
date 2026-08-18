@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { appendLock, withAppendLock } from "./lock.js";
+import { appendLock, STALE_LOCK_HARD_CAP_MS, withAppendLock } from "./lock.js";
 
 /** Acquire time after this process start so Linux reuse check stays false. */
 function liveHolderAcquireAtMs(): number {
@@ -71,6 +71,24 @@ describe("lock branches", () => {
     );
     expect(fs.existsSync(lockPath)).toBe(true);
     expect(fs.readFileSync(lockPath, "utf8")).toContain(String(process.pid));
+  });
+
+  it("reclaims a live PID only after the hard age cap", () => {
+    const path = join(tmpdir(), `deft-lock-hardcap-${Date.now()}.jsonl`);
+    fs.writeFileSync(`${path}.lock`, `${process.pid}\ntoken\n1\n`);
+    let clock = 0;
+    expect(
+      withAppendLock(path, () => "reclaimed", {
+        now: () => {
+          clock += STALE_LOCK_HARD_CAP_MS + 60_000;
+          return clock;
+        },
+        sleepMs: () => {
+          /* no-op */
+        },
+      }),
+    ).toBe("reclaimed");
+    expect(fs.existsSync(`${path}.lock`)).toBe(false);
   });
 
   it("appendLock alias matches withAppendLock", () => {

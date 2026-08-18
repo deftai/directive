@@ -1,9 +1,11 @@
+import { randomUUID } from "node:crypto";
 import {
   closeSync,
   existsSync,
   mkdirSync,
   openSync,
   readFileSync,
+  renameSync,
   unlinkSync,
   writeSync,
 } from "node:fs";
@@ -11,9 +13,25 @@ import { dirname } from "node:path";
 
 const threadLocked = { held: false };
 
+/** 10× occupancy heartbeat TTL. Off-Linux PID reuse / stalled holder reclaim. */
+export const STALE_LOCK_HARD_CAP_MS = 20 * 60 * 1000 * 10;
+
 export interface LockDeps {
   readonly sleepMs?: (ms: number) => void;
   readonly now?: () => number;
+}
+
+export interface HeldLock {
+  readonly lockPath: string;
+  readonly pid: number;
+  readonly token: string;
+  readonly acquiredAt: number;
+}
+
+export interface LockRecord {
+  readonly pid: number | null;
+  readonly token: string;
+  readonly acquiredAt: number | null;
 }
 
 function defaultSleep(ms: number): void {
@@ -23,17 +41,34 @@ function defaultSleep(ms: number): void {
   }
 }
 
-function parseLockRecord(lockPath: string): { pid: number | null; acquiredAt: number | null } {
+export function parseLockRecord(lockPath: string): LockRecord {
   try {
     const lines = readFileSync(lockPath, { encoding: "utf8" }).trim().split(/\r?\n/);
     const pidRaw = Number(lines[0]);
+    const pid = Number.isInteger(pidRaw) && pidRaw > 0 ? pidRaw : null;
+    if (lines.length >= 3) {
+      const acquiredRaw = Number(lines[2]);
+      return {
+        pid,
+        token: lines[1] ?? "",
+        acquiredAt: Number.isInteger(acquiredRaw) && acquiredRaw > 0 ? acquiredRaw : null,
+      };
+    }
     const acquiredRaw = Number(lines[1]);
     return {
-      pid: Number.isInteger(pidRaw) && pidRaw > 0 ? pidRaw : null,
+      pid,
+      token: "",
       acquiredAt: Number.isInteger(acquiredRaw) && acquiredRaw > 0 ? acquiredRaw : null,
     };
   } catch {
-    return { pid: null, acquiredAt: null };
+    return { pid: null, token: "", acquiredAt: null };
+  }
+}
+
+export function assertAppendLockOwned(held: HeldLock): void {
+  const rec = parseLockRecord(held.lockPath);
+  if (rec.pid !== held.pid || rec.token !== held.token || rec.token.length === 0) {
+    throw new Error(`lock compromised: ${held.lockPath}`);
   }
 }
 
@@ -46,7 +81,6 @@ function processExists(pid: number): boolean {
   }
 }
 
-/** Linux-only: process start after lock acquire means this PID reused the slot. */
 function linuxPidStartedAfter(pid: number, acquiredAt: number): boolean {
   try {
     const stat = readFileSync(`/proc/${pid}/stat`, { encoding: "utf8" });
@@ -63,23 +97,51 @@ function linuxPidStartedAfter(pid: number, acquiredAt: number): boolean {
   }
 }
 
-/** Unlink only an abandoned lock: dead PID, or Linux PID reuse. Never age-reclaim a live holder. */
-function tryReclaimAbandonedOwner(lockPath: string): boolean {
-  const { pid, acquiredAt } = parseLockRecord(lockPath);
-  if (pid === null) return false;
-  const abandoned =
-    !processExists(pid) || (acquiredAt !== null && linuxPidStartedAfter(pid, acquiredAt));
-  if (!abandoned) return false;
+function isAbandoned(rec: LockRecord, now: number): boolean {
+  if (rec.pid === null) return false;
+  if (!processExists(rec.pid)) return true;
+  if (rec.acquiredAt !== null && linuxPidStartedAfter(rec.pid, rec.acquiredAt)) return true;
+  if (rec.acquiredAt !== null && now - rec.acquiredAt > STALE_LOCK_HARD_CAP_MS) return true;
+  return false;
+}
+
+function recordsMatch(a: LockRecord, b: LockRecord): boolean {
+  return a.pid === b.pid && a.token === b.token && a.acquiredAt === b.acquiredAt;
+}
+
+/** Atomic rename reclaim: one waiter wins; losers see ENOENT. */
+function tryReclaimAbandonedOwner(lockPath: string, now: number): boolean {
+  const observed = parseLockRecord(lockPath);
+  if (!isAbandoned(observed, now)) return false;
+  const quarantine = `${lockPath}.reclaim.${process.pid}.${randomUUID()}`;
   try {
-    unlinkSync(lockPath);
-    return true;
+    renameSync(lockPath, quarantine);
   } catch {
     return false;
   }
+  const quarantined = parseLockRecord(quarantine);
+  if (recordsMatch(observed, quarantined)) {
+    try {
+      unlinkSync(quarantine);
+    } catch {
+      /* already gone */
+    }
+    return true;
+  }
+  try {
+    renameSync(quarantine, lockPath);
+  } catch {
+    /* best-effort restore */
+  }
+  return false;
 }
 
 /** Serialise appenders across threads AND processes (sidecar lock file). */
-export function withAppendLock<T>(logPath: string, fn: () => T, deps: LockDeps = {}): T {
+export function withAppendLock<T>(
+  logPath: string,
+  fn: (held: HeldLock) => T,
+  deps: LockDeps = {},
+): T {
   const sleepMs = deps.sleepMs ?? defaultSleep;
   const now = deps.now ?? Date.now;
   const lockPath = `${logPath}.lock`;
@@ -90,13 +152,17 @@ export function withAppendLock<T>(logPath: string, fn: () => T, deps: LockDeps =
   }
   threadLocked.held = true;
   let fd: number | undefined;
+  let held: HeldLock | undefined;
   let reclaimedStale = false;
   try {
     const deadline = now() + 30_000;
     while (true) {
       try {
         fd = openSync(lockPath, "wx");
-        writeSync(fd, Buffer.from(`${process.pid}\n${now()}\n`));
+        const token = randomUUID();
+        const acquiredAt = now();
+        writeSync(fd, Buffer.from(`${process.pid}\n${token}\n${acquiredAt}\n`));
+        held = { lockPath, pid: process.pid, token, acquiredAt };
         break;
       } catch (err: unknown) {
         const code = (err as NodeJS.ErrnoException).code;
@@ -104,7 +170,7 @@ export function withAppendLock<T>(logPath: string, fn: () => T, deps: LockDeps =
           throw err;
         }
         if (now() > deadline) {
-          if (!reclaimedStale && tryReclaimAbandonedOwner(lockPath)) {
+          if (!reclaimedStale && tryReclaimAbandonedOwner(lockPath, now())) {
             reclaimedStale = true;
             continue;
           }
@@ -113,16 +179,22 @@ export function withAppendLock<T>(logPath: string, fn: () => T, deps: LockDeps =
         sleepMs(20);
       }
     }
-    return fn();
+    if (held === undefined) {
+      throw new Error(`timed out acquiring lock for ${logPath}`);
+    }
+    return fn(held);
   } finally {
     if (fd !== undefined) {
       closeSync(fd);
+    }
+    if (held !== undefined) {
       try {
+        assertAppendLockOwned(held);
         if (existsSync(lockPath)) {
           unlinkSync(lockPath);
         }
       } catch {
-        /* best-effort owner cleanup */
+        /* not ours anymore */
       }
     }
     threadLocked.held = false;

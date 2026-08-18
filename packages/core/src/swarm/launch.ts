@@ -414,6 +414,32 @@ function defaultWorktree(projectRoot: string, sid: string): string {
   return join(projectRoot, ".deft-scratch", "worktrees", safeSegment(sid)).replace(/\\/g, "/");
 }
 
+export const SWARM_LAUNCH_MANIFEST_RELPATH = [".deft", "swarm-launch-manifest.json"] as const;
+
+export function swarmLaunchManifestPath(projectRoot: string): string {
+  return join(resolve(projectRoot), ...SWARM_LAUNCH_MANIFEST_RELPATH);
+}
+
+export function readLaunchOccupancySessionId(projectRoot: string): string {
+  const path = swarmLaunchManifestPath(projectRoot);
+  try {
+    if (!existsSync(path)) return "";
+    const payload: unknown = JSON.parse(readFileSync(path, { encoding: "utf8" }));
+    if (
+      Array.isArray(payload) &&
+      payload.length > 0 &&
+      payload[0] !== null &&
+      typeof payload[0] === "object"
+    ) {
+      const id = (payload[0] as Record<string, unknown>).occupancy_session_id;
+      return typeof id === "string" ? id.trim() : "";
+    }
+  } catch {
+    return "";
+  }
+  return "";
+}
+
 export function buildManifest(
   resolved: readonly ResolvedStory[],
   options: {
@@ -432,6 +458,7 @@ export function buildManifest(
     modelSource?: string | null;
     runtimeMode?: string | null;
     githubAuthMode?: string | null;
+    occupancySessionId?: string | null;
   },
 ): Record<string, unknown>[] {
   const cohortVbriefs = resolved.map((s) => s.relpath);
@@ -463,6 +490,9 @@ export function buildManifest(
       branch: deriveBranch(options.group ?? null, story.story_id),
       allocation_context: allocationContext,
     };
+    if (options.occupancySessionId !== undefined && options.occupancySessionId !== null) {
+      entry.occupancy_session_id = options.occupancySessionId;
+    }
     if (options.subagentBackend !== undefined && options.subagentBackend !== null) {
       entry.subagent_backend = options.subagentBackend;
     }
@@ -732,7 +762,6 @@ export function swarmLaunch(args: LaunchArgs): {
     env: args.environ ?? process.env,
     intent: "swarm",
   });
-  // occupancy.json session_id is the persist close-out reads (even if DEFT_SESSION_ID was unset).
   if (occupancy.code !== 0) {
     return {
       exitCode: EXIT_GATE_FAILED,
@@ -757,9 +786,26 @@ export function swarmLaunch(args: LaunchArgs): {
     modelSource,
     runtimeMode,
     githubAuthMode,
+    occupancySessionId: occupancy.sessionId,
   });
 
   const rendered = `${JSON.stringify(manifest, null, 2)}\n`;
+
+  try {
+    mkdirSync(dirname(swarmLaunchManifestPath(projectRoot)), { recursive: true });
+    containedWrite({
+      root: projectRoot,
+      target: join(...SWARM_LAUNCH_MANIFEST_RELPATH),
+      data: rendered,
+      mode: "replace",
+    });
+  } catch (exc: unknown) {
+    return {
+      exitCode: EXIT_CONFIG_ERROR,
+      stdout: "",
+      stderr: `Error: could not persist launch occupancy_session_id: ${String(exc)}\n`,
+    };
+  }
 
   if (args.output !== undefined && args.output !== null) {
     try {
