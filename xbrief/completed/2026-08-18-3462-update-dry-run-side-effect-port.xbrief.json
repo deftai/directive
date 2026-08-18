@@ -1,0 +1,247 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Replacement story for halted PR 3453 — implement ADR-004 side-effect port so deft update dry-run plan is recorded dest mutations.",
+    "updated": "2026-08-18T18:22:27Z"
+  },
+  "plan": {
+    "title": "feat(update): dry-run plan via side-effect port (ADR-004)",
+    "status": "completed",
+    "narratives": {
+      "Description": "feat(update): dry-run plan via side-effect port (ADR-004) — construction-level collection; 3453 prior art; closes #3437",
+      "Origin": "Operator-accepted #3462 Current shape + ADR-004. Replaces halted PR 3453 collect-only. Comment 5331467144 (2026-08-18T17:01:50Z) only records ADR-004 landing on master via PR #3466 — confirmation, not an AC change. Intentional divergence: this replacement brief already implements ADR-004.",
+      "Overview": "PR 3453 collect-only failed after five bypasses. #3462 critic + operator acceptance chose the side-effect port: every dest mutation on deft update goes through one injected write/remove/exec interface; dry-run records those calls. #3437 stays open until this PR merges.\n\nADR-004 conditions (must land):\n1. Enforcement legs: static ban extended to dest-mutating child_process/git (allowlist = port module only) plus the zero-mutation fixture.\n2. Migration is consolidation: fold the 3 existing dest-mutating seams (GitHooksSeams, copyContent, runOrgForceOn) into the port; do not wrap a fourth abstraction. containedWrite/containedRemove is the chokepoint to extend.\n3. Honest exclusions label survives and shrinks; content-contract test; never silently disappears.\n\nPrior art: PR 3453 (road not taken), #3458 precursor, #3464 version-skew headline.",
+      "UserStory": "As a consumer running deft update --dry-run, I want the plan to be the dest mutations the real run would make (including deletes vs preserves), so I can see blast radius without a lying collect-only mode.",
+      "ImplementationPlan": "1. Extend containedWrite/containedRemove (or the named port module) to dest-mutating exec/chmod. 2. Fold GitHooksSeams, copyContent, runOrgForceOn into that port. 3. Dry-run binds the port in record mode; planned dest set = recorded calls. 4. Extend the static ban to child_process/git dest mutations; allowlist = port module(s) only. 5. Printed exclusions label + content-contract; shrink as sites fold. 6. Zero-mutation fixture stays green. 7. CHANGELOG. Closes #3437. ⊗ Collect-only revival. ⊗ Labeled two-tree dest-vs-content-package plan."
+    },
+    "items": [
+      {
+        "title": "Port covers dest write, remove, chmod, and dest-mutating git/exec",
+        "status": "completed",
+        "effort": "L",
+        "narrative": {
+          "Acceptance": "Given the update path, when a dest file write, dest remove, chmod, or dest-mutating git config runs, then it goes through the port module. Dry-run records the call and does not mutate dest.",
+          "Traces": "FR-3462-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/fs/contained-write.ts + packages/core/src/fs/contained-write.test.ts (record-mode write/remove/chmod/exec)",
+          "recorded_at": "2026-08-18T18:20:00Z",
+          "recorded_by": "leaf-implementation@3382-through-merge"
+        }
+      },
+      {
+        "title": "Fold the three inventoried seams",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given GitHooksSeams, copyContent, and runOrgForceOn, when the replacement lands, then those seams call the port rather than a new parallel wrapper. ADR-004 inventory count stays 3 unless the ADR is amended.",
+          "Traces": "FR-3462-2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/scaffold.ts + packages/core/src/init-deposit/refresh.ts (GitHooksSeams, copyContent, runOrgForceOn fold into containedWrite/Remove)",
+          "recorded_at": "2026-08-18T18:20:00Z",
+          "recorded_by": "leaf-implementation@3382-through-merge"
+        }
+      },
+      {
+        "title": "Static ban covers child_process dest mutations",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given a dest-mutating execFileSync git invocation on the update path outside the port module, when the contract test runs, then it fails. The fs-only ban remaining green while git config mutates is the instance-5 failure this AC forbids.",
+          "Traces": "FR-3462-3"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/dry-run-chokepoint.contract.test.ts",
+          "recorded_at": "2026-08-18T18:20:00Z",
+          "recorded_by": "leaf-implementation@3382-through-merge"
+        }
+      },
+      {
+        "title": "Zero-mutation fixture remains the runtime backstop",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given the planted xbrief/vbrief.md hash fixture, when deft update --dry-run runs, then the tree is byte-identical.",
+          "Traces": "FR-3462-4"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/refresh.test.ts (planted xbrief/vbrief.md zero-mutation fixture)",
+          "recorded_at": "2026-08-18T18:20:00Z",
+          "recorded_by": "leaf-implementation@3382-through-merge"
+        }
+      },
+      {
+        "title": "Honest exclusions label with shrinking contract",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given a dest effect the port cannot yet capture, when dry-run prints, then the exclusions label names it and a content-contract test fails if the category is missing. The label never disappears silently.",
+          "Traces": "FR-3462-5"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/refresh.ts UPDATE_DRY_RUN_EXCLUSIONS + content-contract in packages/core/src/init-deposit/refresh.test.ts",
+          "recorded_at": "2026-08-18T18:20:00Z",
+          "recorded_by": "leaf-implementation@3382-through-merge"
+        }
+      },
+      {
+        "title": "CHANGELOG and Closes #3437",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given the ship, when the replacement PR merges, then CHANGELOG [Unreleased] cites #3462 / ADR-004 and GitHub closes #3437.",
+          "Traces": "FR-3462-6"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3468 merge 19f03eeea597782861a0118cf845aecb050156db; CHANGELOG [Unreleased] ADR-004; issue #3437 closed 2026-08-18T18:18:51Z",
+          "recorded_at": "2026-08-18T18:20:00Z",
+          "recorded_by": "leaf-implementation@3382-through-merge"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "vendored-deposit",
+      "area:installer",
+      "area:cli",
+      "determinism"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3462",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3462: dry-run side-effect architecture"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3437",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3437: dry-run must not lie (closes when this story merges)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/3453",
+        "type": "x-xbrief/refs",
+        "title": "PR 3453 prior art (collect-only, replaced)"
+      },
+      {
+        "uri": "docs/decisions/ADR-004-update-dry-run-plan.md",
+        "type": "x-xbrief/refs",
+        "title": "ADR-004"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "ADR-004 conditions + #3462 accepted Current shape.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Dest write, remove, chmod, and dest-mutating git/exec on the update path go through the port at its stated path.",
+          "artifact_path": "packages/core/src/fs/contained-write.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "GitHooksSeams, copyContent, and runOrgForceOn fold into the port at its stated path.",
+          "artifact_path": "packages/core/src/init-deposit/refresh.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 3,
+          "text": "Static ban fails on dest-mutating git/exec outside the port module at its stated path.",
+          "artifact_path": "packages/core/src/init-deposit/dry-run-chokepoint.contract.test.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 4,
+          "text": "Planted xbrief/vbrief.md dry-run fixture stays byte-identical at its stated path.",
+          "artifact_path": "packages/core/src/init-deposit/refresh.test.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 5,
+          "text": "Printed exclusions label + content-contract at its stated path.",
+          "artifact_path": "packages/core/src/init-deposit/refresh.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 6,
+          "text": "CHANGELOG cites #3462 / ADR-004 at its stated path.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-18T18:22:27Z",
+    "id": "3462-update-dry-run-side-effect-port",
+    "metadata": {
+      "kind": "story",
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/fs/contained-write.ts",
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/core/src/init-deposit/scaffold.ts",
+          "packages/core/src/init-deposit/dry-run-chokepoint.contract.test.ts",
+          "packages/core/src/init-deposit/refresh.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "contained-write port extended to exec/chmod; update-path seams fold into that module; dry-run records port calls",
+        "cohesion_exemption": "CHANGELOG.md already exceeds the review trigger; this slice only adds the ADR-004 ship note."
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/core/src/fs/contained-write.ts",
+          "packages/core/src/init-deposit",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/init-deposit/dry-run-chokepoint.contract.test.ts packages/core/src/fs/contained-write.test.ts"
+        ],
+        "expected_outputs": [
+          "port-recorded dry-run dest set",
+          "extended static ban",
+          "zero-mutation fixture",
+          "exclusions label contract",
+          "CHANGELOG ADR-004"
+        ],
+        "acceptance_criteria_justification": "ADR-004 three conditions plus #3437 close-on-replacement.",
+        "depends_on": [],
+        "conflict_group": "init-deposit-refresh",
+        "size": "large",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3468,
+        "prBase": null,
+        "mergeCommit": "19f03eeea597782861a0118cf845aecb050156db",
+        "deliveryBranch": "master",
+        "deliveryCommit": "19f03eeea597782861a0118cf845aecb050156db",
+        "verifiedAt": "2026-08-18T18:22:27Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "79ed844e-12c2-4040-8790-b3fb2a479bb9"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-18T18:22:27Z",
+      "completedSessionId": "79ed844e-12c2-4040-8790-b3fb2a479bb9",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

@@ -1,0 +1,120 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3429",
+    "updated": "2026-08-17T19:53:41Z"
+  },
+  "plan": {
+    "id": "3429-orphan-active-merge-path",
+    "title": "merged story leaves xBRIEF in active/ because orphan-active is not on the merge path",
+    "status": "completed",
+    "narratives": {
+      "Description": "verify:orphan-active exists and is on pre-push task check, which is too early. After squash-merge the issue closes and the brief stays running in active/. Workers emit DONE with ISSUE: closed without scope:complete.",
+      "UserStory": "As a through-merge parent, I want one after-merge orphan-active check per closed issue, so a shipped story cannot leave a running xBRIEF in active/.",
+      "ImplementationPlan": "Add --issue N to verify:orphan-active (same check, one origin). Fail closed. Print the exact task scope:complete -- <path> line. drive-to: merge-ready DONE is illegal unless that check is exit 0 after merge. Parent runs the same check on MERGE / ISSUE-closed handback before the next dispatch. No new verb. No new ritual. swarm:complete-cohort stays the batch sweeper.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3429 (body authority; 0 comments)",
+      "Overview": "KISS: one existing gate, called after merge. One check: task verify:orphan-active -- --issue N. One remediation: task scope:complete -- <path>.",
+      "Labels": "bug"
+    },
+    "items": [
+      {
+        "title": "Add --issue N to verify:orphan-active",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given an active/ running brief whose origin issue is closed, when task verify:orphan-active -- --issue N runs, exit is 1 and output names task scope:complete -- <that-path>. Given --issue N with a still-open issue and unmerged PR, exit is 0 for that origin.",
+          "Traces": "FR-3429-1"
+        },
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "PR 3432 merged 02f91b6738773774b8ffe134a2f100354f48c7e4; worktree CLI accepts --issue 3429; parent vendored CLI still lacks the flag until checkout updates",
+          "recorded_at": "2026-08-18T04:06:39Z",
+          "recorded_by": "leaf-implementation/3382-through-merge"
+        }
+      },
+      {
+        "title": "After-merge DONE requires orphan-active exit 0",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a merge-ready worker that squash-merged and closed #N, when it emits DONE, xbrief/active/ no longer holds that brief (it is in completed/) or the handback is BLOCKED with the complete error. Preamble / swarm after-merge contract names the same one check plus scope:complete remediation.",
+          "Traces": "FR-3429-2"
+        },
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "https://github.com/deftai/directive/pull/3432 merged; issue 3429 closed; completing brief out of active/ as after-merge DONE contract",
+          "recorded_at": "2026-08-18T04:06:39Z",
+          "recorded_by": "leaf-implementation/3382-through-merge"
+        }
+      }
+    ],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3429",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3429: orphan-active not on merge path"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/orphan-active",
+          "packages/cli/src/verify-orphan-active.ts",
+          "packages/cli/src/verify-orphan-active.test.ts",
+          "tasks/verify.yml",
+          "content/templates/agent-prompt-preamble.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/orphan-active packages/cli/src/verify-orphan-active.test.ts",
+          "task check"
+        ],
+        "expected_outputs": [
+          "verify:orphan-active --issue N",
+          "after-merge DONE contract",
+          "CHANGELOG #3429"
+        ],
+        "depends_on": [],
+        "conflict_group": "orphan-active-merge",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-08-18T04:19:53Z",
+      "completionProvenance": {
+        "disposition": "delivered",
+        "prNumber": 3432,
+        "mergeCommit": "02f91b6738773774b8ffe134a2f100354f48c7e4",
+        "deliveryBranch": "master",
+        "deliveryCommit": "02f91b6738773774b8ffe134a2f100354f48c7e4",
+        "verifiedAt": "2026-08-18T04:19:53Z",
+        "verifier": "leaf-implementation/3382-through-merge (scope:complete hung on git fetch; file moved after origin/master ancestor check)"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "collapsed #3429 ACs; body is authority (no comments)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "verify:orphan-active --issue N fails closed on a closed-origin active brief and prints scope:complete -- <path>",
+          "artifact_path": "packages/cli/src/verify-orphan-active.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "After-merge DONE is illegal while that brief remains in active/; remediation is scope:complete",
+          "artifact_path": "content/templates/agent-prompt-preamble.md",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-17T19:53:41Z"
+  }
+}

@@ -1,0 +1,199 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Land ADR-004 and salvage architecture-independent pieces from halted PR 3453. Does not implement the side-effect port or close #3437 / PR 3453.",
+    "created": "2026-08-18T18:00:00Z",
+    "updated": "2026-08-18T16:58:50Z"
+  },
+  "plan": {
+    "id": "3462-adr-004-salvage",
+    "title": "ADR-004 land + 3453 architecture-independent salvage",
+    "status": "completed",
+    "narratives": {
+      "Description": "Keep the parent-authored ADR-004. Record it in the structured decision log. Salvage only architecture-independent pieces from halted PR 3453: route removeStaleMigratedFrameworkNarrative through containedRemove, land a narrowed static import-ban on that function, and plant the obsolete migrated narrative in the existing dry-run byte-identical fixture. Do not implement collect-only, planRefreshDeposit, planned_paths, strategy, or collectReplaceTreeMutations. Do not close #3437 or merge/close PR 3453.",
+      "UserStory": "As a maintainer landing the accepted dry-run architecture, I want ADR-004 and the independent 3453 salvage on master so the replacement story can start from a recorded decision and a correct dest-delete chokepoint.",
+      "ImplementationPlan": "1) Record decision JSON via task decision:write --body-file. 2) Route removeStaleMigratedFrameworkNarrative through containedRemove. 3) Land a contract test that bans raw dest-mutating node:fs only on that function. 4) Plant the obsolete migrated narrative in the #3456 dry-run hash test. 5) CHANGELOG [Unreleased] process/docs line citing #3462 / ADR-004.",
+      "Origin": "Operator acceptance of #3462 Current shape (pass-2) plus salvage-then-close-3453 instruction. Prior art SHA 2f6e4ce11b73f158f9f5e1ddf738ad98c558161b.",
+      "Decisions": "- xbrief/decisions/2026-08-18-update-dry-run-plan.decision.json — deft update --dry-run plan is construction-level collection via one injected write/remove/exec port. PR 3453 is replace after architecture-independent salvage. #3437 stays open until the replacement that implements ADR-004 merges."
+    },
+    "items": [
+      {
+        "title": "Land ADR-004 and structured decision record",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "docs/decisions/ADR-004-update-dry-run-plan.md remains the parent-authored text (three conditions unweakened). xbrief/decisions/2026-08-18-update-dry-run-plan.decision.json exists from task decision:write. CHANGELOG [Unreleased] has a process/docs line citing #3462 / ADR-004."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3466 merge 422f074d421cccfecd4fd1e07400007917bb2a63",
+          "recorded_at": "2026-08-18T16:58:47Z",
+          "recorded_by": "3462-adr-salvage-review-monitor"
+        }
+      },
+      {
+        "title": "Route removeStaleMigratedFrameworkNarrative through containedRemove",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "packages/core/src/xbrief-migrate/migrate-project.ts removeStaleMigratedFrameworkNarrative deletes via containedRemove and does not call rmSync. Existing migrate-project.test.ts stale-narrative test still passes."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3466 merge 422f074d421cccfecd4fd1e07400007917bb2a63",
+          "recorded_at": "2026-08-18T16:58:47Z",
+          "recorded_by": "3462-adr-salvage-review-monitor"
+        }
+      },
+      {
+        "title": "Narrow static dest-mutation ban on that function",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "A contract test fails if removeStaleMigratedFrameworkNarrative uses raw dest-mutating node:fs (rmSync, writeFileSync, renameSync, copyFileSync, …). It does not walk all of init-deposit/** and does not require collectReplaceTreeMutations."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3466 merge 422f074d421cccfecd4fd1e07400007917bb2a63",
+          "recorded_at": "2026-08-18T16:58:47Z",
+          "recorded_by": "3462-adr-salvage-review-monitor"
+        }
+      },
+      {
+        "title": "Plant obsolete narrative in dry-run hash fixture",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "The existing test full dry-run leaves the fixture tree byte-identical (#3456) plants the obsolete migrated narrative. After dry-run the planted file still exists and the tree hash is unchanged."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3466 merge 422f074d421cccfecd4fd1e07400007917bb2a63",
+          "recorded_at": "2026-08-18T16:58:47Z",
+          "recorded_by": "3462-adr-salvage-review-monitor"
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3462",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3462: ADR for update dry-run plan architecture"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#3462"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "docs/decisions/ADR-004-update-dry-run-plan.md",
+          "xbrief/decisions/2026-08-18-update-dry-run-plan.decision.json",
+          "packages/core/src/xbrief-migrate/migrate-project.ts",
+          "packages/core/src/init-deposit/dry-run-chokepoint.contract.test.ts",
+          "packages/core/src/init-deposit/refresh.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [],
+        "expected_outputs": [
+          "ADR-004 on disk",
+          "decision JSON",
+          "containedRemove on removeStaleMigratedFrameworkNarrative",
+          "narrowed import-ban test",
+          "planted obsolete-narrative dry-run fixture",
+          "CHANGELOG #3462"
+        ],
+        "depends_on": [],
+        "conflict_group": "update-dry-run-salvage",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "docs/decisions/ADR-004-update-dry-run-plan.md",
+          "xbrief/decisions/2026-08-18-update-dry-run-plan.decision.json",
+          "packages/core/src/xbrief-migrate/migrate-project.ts",
+          "packages/core/src/init-deposit/dry-run-chokepoint.contract.test.ts",
+          "packages/core/src/init-deposit/refresh.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "ADR-004 plus architecture-independent dest-delete salvage for removeStaleMigratedFrameworkNarrative. No collect-only planner and no side-effect port.",
+        "cohesion_exemption": "CHANGELOG.md and refresh.test.ts already exceed FILE_SIZE_REVIEW_TRIGGER_LINES. This story adds one Unreleased line and plants one dry-run fixture in the existing #3456 test. Splitting those files is out of scope."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3466,
+        "prBase": null,
+        "mergeCommit": "422f074d421cccfecd4fd1e07400007917bb2a63",
+        "deliveryBranch": "master",
+        "deliveryCommit": "422f074d421cccfecd4fd1e07400007917bb2a63",
+        "verifiedAt": "2026-08-18T16:58:50Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "ecee7bd1-db84-47f0-8f6f-910a2755c5a7"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-18T16:58:50Z",
+      "completedSessionId": "ecee7bd1-db84-47f0-8f6f-910a2755c5a7",
+      "capacityBucket": "new-capability"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 1 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "docs/decisions/ADR-004-update-dry-run-plan.md exists with the three accepted conditions unweakened.",
+          "artifact_path": "docs/decisions/ADR-004-update-dry-run-plan.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "xbrief/decisions/2026-08-18-update-dry-run-plan.decision.json exists from task decision:write.",
+          "artifact_path": "xbrief/decisions/2026-08-18-update-dry-run-plan.decision.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "removeStaleMigratedFrameworkNarrative deletes via containedRemove.",
+          "artifact_path": "packages/core/src/xbrief-migrate/migrate-project.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "A contract test bans raw dest-mutating node:fs on removeStaleMigratedFrameworkNarrative only.",
+          "artifact_path": "packages/core/src/init-deposit/dry-run-chokepoint.contract.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "The #3456 dry-run hash test plants the obsolete migrated narrative and asserts it survives dry-run.",
+          "artifact_path": "packages/core/src/init-deposit/refresh.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "CHANGELOG [Unreleased] cites #3462 / ADR-004.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-08-18T16:58:50Z"
+  }
+}

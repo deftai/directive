@@ -1,0 +1,186 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #3456 — chokepoint-coverage precursor",
+    "updated": "2026-08-18T05:36:43Z"
+  },
+  "plan": {
+    "id": "3456-chokepoint-coverage",
+    "title": "Chokepoint coverage: dest deletes, plan-mode zero-mutation, schema planned-content",
+    "status": "completed",
+    "narratives": {
+      "Description": "Precursor for #3437 / PR #3453. Route named dest deletes through containedRemove, chokepoint or relocate temp cleanups, do not validate stale dest in plan mode, document or route legacy-detect, extend the #3392 header, and add a keystone hash test that a full dry-run leaves the fixture tree identical.",
+      "UserStory": "As a Directive operator, I want plan-mode and dest deletes to go through the write chokepoint, so that dry-run cannot mutate the tree and collect-only records deletes.",
+      "ImplementationPlan": "1. Route slash-deposit dest deletes and the OpenClaw helper equivalents through containedRemove. 2. Route agent-hooks and slash-deposit temp cleanups through containedRemove or write temps outside the project root. 3. Route legacy-detect removeDir through containedRemove. 4. Validate schema projection against planned content; skip dest bytes a skipped write would replace. 5. Keystone: hash fixture tree before and after a full dry-run; assert identical. 6. Extend the #3392 chokepoint header with delete-coverage and plan-mode zero-mutation. 7. CHANGELOG [Unreleased].",
+      "Origin": "https://github.com/deftai/directive/issues/3456",
+      "Overview": "Scoped precursor. Do not replace #3437 derive-the-plan. Do not fold the --context nit. Do not instance-chase beyond the enumerated sites without the zero-mutation test. Do not touch occupancy.ts, intended-placement.ts, or the 3440/3436 worktrees."
+    },
+    "items": [
+      {
+        "title": "Dest deletes through containedRemove",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given the named dest-delete sites in slash-deposit.ts and the OpenClaw helpers, when they remove a real dest, they call containedRemove (or an equivalent chokepoint that collect-only records).",
+          "Traces": "FR-3456-1"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3458 merged as 82bd37f3; tests slash-deposit.test.ts / openclaw-deposit.test.ts",
+          "recorded_at": "2026-08-18T05:33:15Z",
+          "recorded_by": "leaf-implementation"
+        }
+      },
+      {
+        "title": "Temp cleanups and plan-mode zero-mutation",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given temp cleanups in agent-hooks.ts and slash-deposit.ts, when they run, they go through the chokepoint or the temps live outside the project root. After this story, plan-mode / deft update --dry-run performs zero in-tree filesystem mutations (keystone hash test).",
+          "Traces": "FR-3456-2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/refresh.test.ts full dry-run leaves the fixture tree byte-identical (#3456)",
+          "recorded_at": "2026-08-18T05:33:15Z",
+          "recorded_by": "leaf-implementation"
+        }
+      },
+      {
+        "title": "legacy-detect routed or documented",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given legacy-detect.ts removeDir, when dry-run would run, it is either routed through containedRemove or the exemption is stated in the chokepoint header. No silent exceptions.",
+          "Traces": "FR-3456-3"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3458 merged as 82bd37f3; contained-write.ts header + legacy-detect containedRemove",
+          "recorded_at": "2026-08-18T05:33:15Z",
+          "recorded_by": "leaf-implementation"
+        }
+      },
+      {
+        "title": "Schema planned-content validation",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given schema projection, when dest still has bytes a skipped write would replace, validation uses planned content or skips dest validation with an explicit plan-note. Stale dest is never the oracle for a skipped write.",
+          "Traces": "FR-3456-4"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/xbrief-projections.test.ts planned-content / skipRel (#3456)",
+          "recorded_at": "2026-08-18T05:33:15Z",
+          "recorded_by": "leaf-implementation"
+        }
+      },
+      {
+        "title": "Header + CHANGELOG",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "The #3392 chokepoint header states delete-coverage and the plan-mode zero-mutation invariant. CHANGELOG [Unreleased] cites #3456.",
+          "Traces": "FR-3456-5"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3458 merged as 82bd37f3; CHANGELOG [Unreleased] #3456",
+          "recorded_at": "2026-08-18T05:33:15Z",
+          "recorded_by": "leaf-implementation"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "determinism",
+      "area:installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3456",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3456: chokepoint-coverage gap"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/fs/contained-write.ts",
+          "packages/core/src/init-deposit/slash-deposit.ts",
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/init-deposit/legacy-detect.ts",
+          "packages/core/src/init-deposit/xbrief-projections.ts",
+          "packages/core/src/slash/openclaw-deposit.ts",
+          "packages/core/src/session/openclaw-soft-rebind-deposit.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/init-deposit/slash-deposit.test.ts packages/core/src/init-deposit/xbrief-projections.test.ts packages/core/src/init-deposit/refresh.test.ts packages/core/src/init-deposit/legacy-detect.test.ts packages/core/src/slash/openclaw-deposit.test.ts packages/core/src/session/openclaw-soft-rebind-deposit.test.ts packages/core/src/init-deposit/agent-hooks.test.ts"
+        ],
+        "expected_outputs": [
+          "dest deletes via containedRemove",
+          "zero-mutation dry-run hash test",
+          "CHANGELOG #3456"
+        ],
+        "depends_on": [],
+        "conflict_group": "update-chokepoint",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3458,
+        "prBase": null,
+        "mergeCommit": "82bd37f3c4fa22f576c686032eaa59eb087302dd",
+        "deliveryBranch": "master",
+        "deliveryCommit": "82bd37f3c4fa22f576c686032eaa59eb087302dd",
+        "verifiedAt": "2026-08-18T05:36:43Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "e3e86dd1-d651-49bd-a5ac-bb4c92bf97fc"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-18T05:36:43Z",
+      "completedSessionId": "e3e86dd1-d651-49bd-a5ac-bb4c92bf97fc",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "issue #3456 AC is product assertions, not shell commands",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Named dest deletes go through \"containedRemove\"",
+          "artifact_path": "packages/core/src/init-deposit/slash-deposit.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "Keystone hash test \"full dry-run leaves the fixture tree byte-identical (#3456)\"",
+          "artifact_path": "packages/core/src/init-deposit/refresh.test.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 3,
+          "text": "Schema projection uses \"#3456 plan-note\" and skips dest bytes a skipped write would replace",
+          "artifact_path": "packages/core/src/init-deposit/xbrief-projections.ts",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-18T05:36:43Z"
+  }
+}

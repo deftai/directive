@@ -1,0 +1,132 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3399",
+    "updated": "2026-08-18T04:17:56Z"
+  },
+  "plan": {
+    "id": "3399-stream-consistency-envelope",
+    "title": "Run-summary stream: one session_id, component field, ac_pass_bank envelope, no fake denominator",
+    "status": "completed",
+    "narratives": {
+      "Description": "session_id currently carries component names. ac_pass_bank lines skip the envelope. tool_turn_denominator emits total_tool_turns 1 when the host env is unset. Make the stream one identity plus a component field, wrap bank events, and stay silent when the denominator env is unset.",
+      "UserStory": "As a Directive operator reading a trial stream, I want one session identity and a uniform envelope on every line, so that envelope-keyed consumers do not drop bank events or compute a share above 100 percent.",
+      "ImplementationPlan": "1. Add resolveRunSummarySessionId (option, DEFT_SESSION_ID, ritual-state, JSONL tail, mint last) and put every production emitter on it including check and dial; add optional component. 2. Emit ac_pass_bank through RunSummaryEmitter; delete JSONL sidecar writer; leave disk ledger. 3. Stop fallback-1 denominator; emit only known host/harness value with denominator_source; update #3352 text. 4. Fail-first tests + CHANGELOG.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3399",
+      "Overview": "Issue body is authority (no comments). Wait for #3387 (session ac_pass_bank) and #3398 (clause-derivation session_id call site). Do not invent a new identity scheme beyond #3350.\n\n#3387 and #3398 / PR #3408 are done. Implement the 2026-08-18 critique comment on #3399, not the first recommended-fix comment as written.\n\nLocked implement note:\n1. Identity: resolveRunSummarySessionId on every production emitter including check and dial. Order: explicit option, DEFT_SESSION_ID, ritual-state session_id, last session_id in destination JSONL, only then mint. Do not cite #3350 as the identity store. component is optional envelope sugar. Do not close the component union.\n2. Bank: delete the JSONL sidecar writer. Emit ac_pass_bank through RunSummaryEmitter. Leave the disk ledger camelCase. Do not enroll unemitted sibling kinds. Extend #3362 fixture.\n3. Denominator: kill the fallback 1. Emit only a known host/harness value, add denominator_source (harness_actual | host_planned), update #3352 procedure text. Do not claim the private collector already exports the var.\n4. Rebase onto current master (#3435 already touched verify-ac/evaluate.ts; #3408 is merged). Tests: resolver + production callers with DEFT_SESSION_ID unset and ritual-state present + bank through emitter + env-unset denominator. Fake-trial alone is not enough.",
+      "Labels": "bug"
+    },
+    "items": [
+      {
+        "title": "One session identity and a component field",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a trial stream, when every line is read, session_id is the workspace-session identity via resolveRunSummarySessionId and never the strings verify-ac or clause-derivation. Those names appear in a component field. Exactly one session identity is present.",
+          "Traces": "FR-3399-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "pnpm exec vitest run packages/core/src/run-summary — session-id.test.ts + production-callers.test.ts; PR https://github.com/deftai/directive/pull/3455",
+          "recorded_at": "2026-08-18T04:16:04Z",
+          "recorded_by": "agent/leaf-implementation/3399-run-summary-envelope"
+        }
+      },
+      {
+        "title": "Bank envelope and silent unset denominator",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given ac_pass_bank emission, when the line is written via emitAcPassBank, it uses schema_version session_id seq ts and event ac_pass_bank plus payload. Given an unset host denominator env, when the run ends, no tool_turn_denominator event is emitted. A trial fixture asserts uniform envelope, one session identity, and silence when the env is unset. task check passes. CHANGELOG [Unreleased] has a brief note.",
+          "Traces": "FR-3399-2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/ac-pass-banking.test.ts + run-summary.test.ts env-unset denominator; task check 13921 passed; PR https://github.com/deftai/directive/pull/3455 merge af25efcd",
+          "recorded_at": "2026-08-18T04:16:04Z",
+          "recorded_by": "agent/leaf-implementation/3399-run-summary-envelope"
+        }
+      }
+    ],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3399",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3399: run-summary stream consistency"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/core/src/run-summary",
+          "packages/core/src/session/ac-pass-banking.ts",
+          "packages/core/src/intake/clause-derivation.ts",
+          "packages/core/src/product-first-done-gate/evaluate.ts",
+          "packages/core/src/verify-ac/evaluate.ts",
+          "packages/core/src/telemetry-coverage",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/run-summary packages/core/src/session/ac-pass-banking.test.ts packages/core/src/intake/clause-derivation.test.ts packages/core/src/verify-ac packages/core/src/telemetry-coverage"
+        ],
+        "expected_outputs": [
+          "uniform run-summary envelope",
+          "CHANGELOG #3399"
+        ],
+        "depends_on": [],
+        "conflict_group": "run-summary-envelope",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3455,
+        "prBase": null,
+        "mergeCommit": "af25efcd0c31ffdbda64ef7403aa625b0ae9d9e9",
+        "deliveryBranch": "master",
+        "deliveryCommit": "af25efcd0c31ffdbda64ef7403aa625b0ae9d9e9",
+        "verifiedAt": "2026-08-18T04:17:56Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "aace4ca6-877d-439e-8ab7-be7b57eca0ef"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-18T04:17:56Z",
+      "completedSessionId": "aace4ca6-877d-439e-8ab7-be7b57eca0ef",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/run-summary packages/core/src/session/ac-pass-banking.test.ts packages/core/src/intake/clause-derivation.test.ts packages/core/src/verify-ac packages/core/src/telemetry-coverage"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "collapsed #3399 body AC into two items; scoped vitest is the executable check",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "session_id is workspace identity via \"resolveRunSummarySessionId\"; component names go in a component field",
+          "artifact_path": "packages/core/src/run-summary/session-id.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "ac_pass_bank uses the standard envelope via \"emitAcPassBank\"; unset denominator env emits nothing",
+          "artifact_path": "packages/core/src/session/ac-pass-banking.ts",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-18T04:17:56Z"
+  }
+}

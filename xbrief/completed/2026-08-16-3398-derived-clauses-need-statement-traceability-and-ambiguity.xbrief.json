@@ -1,0 +1,130 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3398",
+    "updated": "2026-08-18T02:47:42Z"
+  },
+  "plan": {
+    "id": "3398-clause-statement-traceability",
+    "title": "Derived clauses need statement traceability and an ambiguity attestation",
+    "status": "completed",
+    "narratives": {
+      "Description": "Clause derivation produced implementation symbol-grep clauses that all verified while the product failed. Ambiguity fields were never populated. Require statement-traceable clauses and an explicit ambiguity attestation.",
+      "UserStory": "As a Directive operator, I want derived clauses to trace to the task statement and to attest ambiguity, so that a stamp of the agent's own symbols cannot pass while the product fails.",
+      "ImplementationPlan": "1. Change the packages/core/src/intake/clause-derivation.ts module so clause tokens must appear in the captured statement or the clause is provenance implementation and never sufficient alone. 2. Require at least one ambiguous true clause with readings or ambiguity_attestation none_found on plan.acceptance, emit provenance_counts, then verify with a fixture and task check.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3398",
+      "Overview": "Issue body is authority (no comments). Command-side companion is #3396. Do not edit packages/core/src/session or product-first-done-gate (live #3387). Do not invent smarter ambiguity detection.",
+      "Labels": "bug, agent-experience"
+    },
+    "items": [
+      {
+        "title": "Statement traceability at stamp",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a statement with testable constraints, when derivation stamps clauses, those clauses are statement-traceable. A stamp whose every clause is provenance implementation fails closed with one remediation that says derive clauses from the statement's testable constraints. Pure symbol-grep clauses over the artifact source are refused.",
+          "Traces": "FR-3398-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/intake/clause-derivation.test.ts#implementation-only",
+          "recorded_at": "2026-08-18T02:45:00Z",
+          "recorded_by": "leaf-implementation/3398"
+        }
+      },
+      {
+        "title": "Ambiguity attestation and telemetry",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a stamped plan.acceptance, when verify:ac runs, the record has at least one ambiguous true clause with readings or an explicit ambiguity_attestation none_found; absence of both is a config error. The acceptance_stamp payload records provenance_counts and ambiguity_attested. task check passes. CHANGELOG [Unreleased] has a brief note.",
+          "Traces": "FR-3398-2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/intake/clause-derivation.test.ts#ambiguity-attestation",
+          "recorded_at": "2026-08-18T02:45:00Z",
+          "recorded_by": "leaf-implementation/3398"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3398",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3398: statement-traceable derived clauses"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/intake",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/intake"
+        ],
+        "expected_outputs": [
+          "statement-traceable clauses",
+          "ambiguity attestation",
+          "CHANGELOG #3398"
+        ],
+        "depends_on": [],
+        "conflict_group": "clause-derivation-quality",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3408,
+        "prBase": null,
+        "mergeCommit": "6429826e5b4c1a3813b7f905357a7c6c7c6fb5e0",
+        "deliveryBranch": "master",
+        "deliveryCommit": "6429826e5b4c1a3813b7f905357a7c6c7c6fb5e0",
+        "verifiedAt": "2026-08-18T02:47:42Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "0e233d83-d101-457c-b7af-a7118735c08e"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-18T02:47:42Z",
+      "completedSessionId": "0e233d83-d101-457c-b7af-a7118735c08e",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "collapsed #3398 body AC into two items",
+      "ambiguity_attestation": "none_found",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Implementation-only clause stamps fail closed; statement-traceable clauses stamp. Artifact exists at packages/core/src/intake/clause-derivation.ts",
+          "artifact_path": "packages/core/src/intake/clause-derivation.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Missing ambiguity fields and attestation is a verify:ac config error. Artifact exists at packages/core/src/intake/clause-derivation.ts",
+          "artifact_path": "packages/core/src/intake/clause-derivation.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ]
+    },
+    "updated": "2026-08-18T02:47:42Z"
+  }
+}

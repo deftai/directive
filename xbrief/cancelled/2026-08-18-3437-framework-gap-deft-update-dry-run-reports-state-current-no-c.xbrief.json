@@ -1,0 +1,150 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3437",
+    "updated": "2026-08-18T17:00:12Z"
+  },
+  "plan": {
+    "title": "[framework-gap] deft update --dry-run reports 'State: current / no changes written' immediately before the real run rewrites 1,585 files",
+    "status": "cancelled",
+    "narratives": {
+      "Description": "[framework-gap] deft update --dry-run reports 'State: current / no changes written' immediately before the real run rewrites 1,585 files",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3437",
+      "Overview": "## Summary\n\ndeft update --dry-run reports 'State: current / no changes written' immediately before the real run rewrites 1,585 files\n\n## Context\n\nConsumer repo on a vendored deposit whose recorded install manifest had drifted to v0.78.0 while the deposited content was newer; engine 0.103.0 at the time. The gated session ritual failed on agent_hooks registration drift across claude/cursor/grok/codex. The remediation it prints is 'run deft update (or directive init) to refresh project hooks', which reads as a narrow hook-registration repair -- so --dry-run was run first specifically to preview the blast radius before touching anything.\n\n## Expected behavior\n\n--dry-run should classify the file-level effect before it happens: a changed-file count and the top-level paths involved, or at minimum 'manifest 0.78.0 -> content 0.103.0, N files will be rewritten'. A caller running --dry-run specifically to preview blast radius should not be told 'no changes written' when 1,585 files are about to be rewritten.\n\n## Actual behavior / gap\n\ndeft update --dry-run printed the header '[deft update] dry-run -- classified plan (no changes written)' with State: current, Mode: proceed, Root cause: 'engine 0.103.0 reachable; no pin to reconcile against', and JSON 'dry_run: true, update_state: current'. Nothing signalled a pending file-level rewrite. The real deft update then staged 1,585 files: 1,485 under .deft/, plus .claude/, .cursor/, .grok/, a newly created .codex/, .github/skills/, AGENTS.md, .githooks/pre-commit and pre-push, .gitignore, .prettierignore, xbrief/schemas/ and xbrief/.deft-version. It reported previous_version 0.78.0 -> content_version 0.103.0.\n\n## Session notes\n\nImpact: a routine documentation-only release cut became an unplanned framework deposit upgrade that had to be split onto its own branch to keep it out of the release commit. That branch is now permanently unmergeable in this repo -- Greptile is a required status context on main, it declines review above 500 changed files, and it posts its refusal as a PR comment rather than a status, so the required context can never go green. 'State: current' is especially misleading when the recorded manifest and the deposited content disagree by 25 minor versions; that skew is arguably the headline the dry-run should lead with. Separately, a --dry-run --json field carrying the planned changed-file list would let consumers gate on blast radius in CI. Minor adjacent nit found while filing this: repeated --context flags on feedback:file silently keep only the last value rather than accumulating.\n\n---\n_Filed via `task feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-08-18T01:45:21Z)\n\n## Triage analysis + recommended fix (2026-08-17)\n\nHandoff for a swarm. Validity checked against **released v0.104.0**, **unreleased `origin/master`**, and **open PRs**. Disposition (`triage:accept`) is not done here — another swarm is live on this checkout.\n\n### Validity: still-open\n\nThe incident is real and the code still lies.\n\nConsumer: install manifest recorded `v0.78.0`, deposited content was already `v0.103.0`, engine `0.103.0`. Operator ran `deft update --dry-run` to preview blast radius. Dry-run printed:\n\n```\n[deft update] dry-run -- classified plan (no changes written)\n  State        : current\n  Mode         : proceed\n  Root cause   : engine 0.103.0 reachable; no pin to reconcile against\n```\n\nJSON: `dry_run: true, update_state: current`. The real run then rewrote **1,585 files** (`previous_version 0.78.0` → `content_version 0.103.0`).\n\n`--dry-run` never computes the file-level plan. It classifies via the #2266 four-state spine and returns before `runRefreshDeposit`.\n\n### Root cause\n\nTwo different “current” checks, and dry-run only runs the wrong one.\n\n1. **Classifier (`classifyUpdateState` / `updateStateFromPlan`)** — `packages/core/src/init-deposit/refresh.ts`. `resolutionPlan.mode === \"proceed\"` becomes `update_state: \"current\"`. In `packages/core/src/resolution/plan.ts` that mode means **engine reachable, no `package.json` pin to reconcile**. It is not deposit freshness.\n\n2. **Refresh freshness (`alreadyCurrent`)** — same file, `runRefreshDeposit`. `alreadyCurrent` is `normalizeVersion(previousDepositVersion) === normalizeVersion(contentVersion)` (`readRecordedDepositVersion` vs content package). On skew this is a **file-swap**.\n\nDry-run path (`runRefreshDepositCli`): after not-initialized / migration-required, `if (options.dryRun) return emitDryRunPlan(...)`. That printer only emits classifier state. It does not read the install manifest, does not compare content version, does not print `buildVersionSkewNotice`, and does not estimate staged paths.\n\nThe header phrase `no changes written` is technically true of a dry-run and reads as **no changes would be written**.\n\nThe real run can also print `State: current` after a rewrite. After the write:\n\n```ts\nconst state = result.alreadyCurrent ? \"current\" : classification?.state;\n```\n\nWhen `alreadyCurrent` is false, `state` falls back to the classifier (`current`). `#3378` already showed this on a real `0.99.0` → `0.103.0` rewrite. Dry-run is worse: it does not even print the version-skew line the real run prints.\n\n`#2266` documented `current` as “initialized and already up to date; refresh is a no-op.” The implementation never matched that sentence for pin-less consumers.\n\n### Against released / unreleased / in-flight\n\n| Layer | What exists | Closes this? |\n| --- | --- | --- |\n| Released **v0.104.0** (2026-08-14) | `#2266` shipped `--dry-run` as a four-state classifier | No. That ship is the misleading contract. |\n| Unreleased **origin/master** | `#3378` children: `#3392` mutation ledger, `#3393` Cursor adapter allowlist, `#3394` ledger staging, `#3395` Prettier rewrite announce, plus `#3417` tracked-deletion staging | No. Those report **after** a write. `emitDryRunPlan` on origin is unchanged. |\n| In-flight open PRs | `#3440` occupancy lease, `#3436` file-placement, `#3432` orphan-active, `#3408` clause traceability | No overlap. |\n\nRelated, not duplicates:\n\n- `#3378` (closed) — post-write honesty. Residual: `State: current` still means the wrong thing.\n- `#3379` (closed) — doctor remediations that sent the operator to `update`.\n- `#2595` (closed) — v0.78 stale schema/marker. Different bug.\n\n### Adjacent nit — file separately\n\n`feedback:file` repeated `--context` flags silently keep only the last value. Do **not** fold that into this story.\n\n### Recommended fix\n\nKeep the #2266 four-state classifier. Do not let it be the only dry-run story, and do not let it override deposit freshness on the `State:` line.\n\n**1. Compute the refresh plan on dry-run (read-only).** Extract a read-only planner from `runRefreshDeposit` (or call the existing readers without copy/stage/write):\n\n- `previousDepositVersion` (`readRecordedDepositVersion`)\n- `contentVersion` (`readContentPackageVersion`)\n- `alreadyCurrent` + `strategy` (`no-op` vs `file-swap`) — same predicate as the real run\n- `versionSkewNotice` (`buildVersionSkewNotice`)\n- planned blast radius: changed-file **count** + top-level path prefixes (`.deft/`, `.claude/`, `.cursor/`, `.grok/`, `.codex/`, `AGENTS.md`, `.githooks/`, `xbrief/schemas/`, …). A full 1,585-path dump is optional behind `--json`.\n\nDry-run must not write, stage, or stamp.\n\n**2. Print honesty first.** `emitDryRunPlan` should lead with deposit freshness, then classifier:\n\n```\n[deft update] dry-run -- classified plan (no changes written)\n  Manifest     : 0.78.0 -> 0.103.0\n  Strategy     : file-swap\n  Files        : 1585 will be rewritten (.deft/ 1485, .claude/, .cursor/, …)\n  State        : updated\n  Resolution   : proceed (engine 0.103.0 reachable; no pin to reconcile)\n```\n\nRules:\n\n- If `strategy === \"file-swap\"`, `State` / `update_state` MUST be `updated`. ⊗ `current`.\n- ⊗ Use “no changes written” as the only signal that nothing *would* change. Keep it as a dry-run adverb only, or drop it when a rewrite is planned.\n- Always print version skew on dry-run when the notice would fire on the real run.\n- `--json` MUST include `previous_version`, `content_version`, `strategy`, `already_current`, `planned_file_count`, and `planned_paths` (full list or top-level rollup + count). Consumers gate CI on blast radius.\n\n**3. Same `State:` rule on the real run.** After a file-swap, do not print classifier `current`. Use deposit freshness for `State` / `update_state`. Keep spine mode as a separate `Resolution` / `resolution_mode` field so #2266 pin/engine diagnosis is not lost.\n\n**4. Tests (fail first).** Fixture: deposit present, install manifest `0.78.0`, content package `0.103.0`, engine reachable, no pin.\n\n- `deft update --dry-run` / `--json`: `update_state !== \"current\"`, `strategy === \"file-swap\"`, `previous_version` / `content_version` present, `planned_file_count > 0`, no writes.\n- Same fixture without `--dry-run`: file-swap still happens; printed `State` is not `current`.\n- Already-matching manifest+content: dry-run may say `current` and `planned_file_count === 0`.\n- Existing #2266 not-initialized / migration-required dry-run refusals unchanged.\n\nOwner files: `packages/core/src/init-deposit/refresh.ts` (+ `refresh.test.ts`), printer/JSON helpers in the same module. Do not re-implement `classify()` / `plan()`.\n\n### Suggested AC\n\n- Given a vendored deposit whose install manifest version ≠ content package version, when `deft update --dry-run` (and `--json`) runs, then it reports a pending file-swap with previous→content versions and a planned file count / top-level paths, `update_state` is `updated`, and the tree is unchanged.\n- Given the same tree, when `deft update` runs for real, then `State` / `update_state` is not `current`.\n- Given manifest version == content version and no pending installer-managed writes, when `--dry-run` runs, then it may report `current` and a zero planned file count.\n- Given not-initialized or migration-required, `--dry-run` still refuses on the #2266 path and writes nothing.\n\n### Lean\n\n**Accept** as a new story (residual of #2266 / #3378, not a reopen). Do not mark duplicate of #3378. Split the `feedback:file --context` nit.",
+      "Labels": "bug, determinism, agent-experience, vendored-deposit, area:installer, area:cli",
+      "UserStory": "As a consumer operator, I want deft update --dry-run to report a pending file-swap and blast radius when the install manifest and deposited content disagree, so I do not treat State: current as a no-op before a 1,585-file rewrite.",
+      "ImplementationPlan": "Follow the #3437 comment recommended fix. Keep the #2266 four-state classifier. Extract a read-only refresh planner from runRefreshDeposit (previousDepositVersion, contentVersion, alreadyCurrent, strategy, versionSkewNotice, planned file count + top-level prefixes). emitDryRunPlan leads with deposit freshness; strategy file-swap MUST print update_state updated, never current. Same State rule on the real run after a file-swap. JSON includes previous_version, content_version, strategy, already_current, planned_file_count, planned_paths. Tests fail first on the 0.78 vs 0.103 fixture. Owner: packages/core/src/init-deposit/refresh.ts. Do not re-implement classify()/plan(). Do not fold the feedback:file --context nit."
+    },
+    "items": [
+      {
+        "title": "Skewed-manifest dry-run reports pending file-swap",
+        "status": "cancelled",
+        "narrative": {
+          "Acceptance": "Given a vendored deposit whose install manifest version is not the content package version, when deft update --dry-run (and --json) runs, then it reports a pending file-swap with previous to content versions and a planned file count / top-level paths, update_state is updated, and the tree is unchanged.",
+          "Traces": "FR-3437-1"
+        }
+      },
+      {
+        "title": "Real update after a file-swap does not print State current",
+        "status": "cancelled",
+        "narrative": {
+          "Acceptance": "Given the same skewed tree, when deft update runs for real, then State / update_state is not current.",
+          "Traces": "FR-3437-2"
+        }
+      },
+      {
+        "title": "Matching versions dry-run may be current with zero planned files",
+        "status": "cancelled",
+        "narrative": {
+          "Acceptance": "Given manifest version equals content version and no pending installer-managed writes, when --dry-run runs, then it may report current and a zero planned file count.",
+          "Traces": "FR-3437-3"
+        }
+      },
+      {
+        "title": "Not-initialized and migration-required dry-run still refuse",
+        "status": "cancelled",
+        "narrative": {
+          "Acceptance": "Given not-initialized or migration-required, when --dry-run runs, then it still refuses on the #2266 path and writes nothing.",
+          "Traces": "FR-3437-4"
+        }
+      },
+      {
+        "title": "CHANGELOG Unreleased note",
+        "status": "cancelled",
+        "narrative": {
+          "Acceptance": "Given the ship, when the PR is ready then CHANGELOG [Unreleased] records a brief release-notes line for #3437.",
+          "Traces": "FR-3437-5"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "determinism",
+      "agent-experience",
+      "vendored-deposit",
+      "area:installer",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3437",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3437: [framework-gap] deft update --dry-run reports 'State: current / no changes written' immediately before the real run rewrites 1,585 files"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "Suggested AC from #3437 implement comment (statement-traceable; not classifier prose).",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Given a vendored deposit whose install manifest version is not the content package version, when deft update --dry-run (and --json) runs, then it reports a pending file-swap with previous to content versions and a planned file count / top-level paths, update_state is updated, and the tree is unchanged.",
+          "artifact_path": "packages/core/src/init-deposit/refresh.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "Given the same skewed tree, when deft update runs for real, then State / update_state is not current.",
+          "artifact_path": "packages/core/src/init-deposit/refresh.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 3,
+          "text": "Given manifest version equals content version and no pending installer-managed writes, when --dry-run runs, then it may report current and a zero planned file count.",
+          "artifact_path": "packages/core/src/init-deposit/refresh.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 4,
+          "text": "Given not-initialized or migration-required, when --dry-run runs, then it still refuses on the #2266 path and writes nothing.",
+          "artifact_path": "packages/core/src/init-deposit/refresh.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 5,
+          "text": "Given the ship, when the PR is ready then CHANGELOG [Unreleased] records a brief release-notes line for #3437.",
+          "artifact_path": "packages/core/src/init-deposit/refresh.ts",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-18T17:00:12Z",
+    "id": "3437-update-dry-run-honesty",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/core/src/init-deposit/refresh.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/init-deposit",
+          "task check"
+        ],
+        "expected_outputs": [
+          "dry-run file-swap plan",
+          "update_state updated on skew",
+          "planned_file_count",
+          "real-run State not current after swap",
+          "CHANGELOG #3437"
+        ],
+        "acceptance_criteria_justification": "Four statement-traceable ACs from the #3437 implement comment plus CHANGELOG. Keep #2266 classifier. Do not include the feedback:file --context nit.",
+        "depends_on": [],
+        "conflict_group": "init-deposit-refresh",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      }
+    }
+  }
+}

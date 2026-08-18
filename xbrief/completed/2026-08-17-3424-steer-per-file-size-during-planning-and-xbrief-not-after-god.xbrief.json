@@ -1,0 +1,235 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3424",
+    "updated": "2026-08-18T04:40:29Z"
+  },
+  "plan": {
+    "id": "3424-file-placement-preflight",
+    "title": "Steer per-file size during planning and xBRIEF, not after god files form",
+    "status": "completed",
+    "narratives": {
+      "Description": "Steer per-file size during planning and xBRIEF, not after god files form",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3424",
+      "Overview": "## Problem\n\nDirective already treats large files as a smell (review trigger around 1000 lines; one-responsibility-per-file is the hard rule). In consumer projects that stay on current Directive, files still grow into god files anyway.\n\nThe usual recovery is to split and rebuild after the fact. That produces regressions and bug-fix work that should not have been necessary.\n\n## Desired behavior\n\nKeep per-file size down as work proceeds, not after a file has already become large.\n\nDirective should have more insight and control during:\n\n- module planning\n- xBRIEF authoring\n- implementation\n\nso new work is scoped and placed into files that stay small, instead of landing in (or creating) oversized modules.\n\n## Why this is not #1488\n\n#1488 correctly demoted the 1000-line **MUST** to a cohesion review trigger. This issue is not asking to restore a hard line cap.\n\nIt is asking for **upstream prevention**: planning and xBRIEF should make file-size and module-boundary choices *before* and *during* implementation, so operators are not forced into late, regression-prone splits.\n\n## First slice (locked)\n\nSequenced, same issue: placement field first, then preflight keyed on it.\n\n- xBRIEF intended-placement field (intended files / module boundary)\n- One machine-readable threshold SoT (policy module; `coding.md` prose references it)\n- Preflight / story-ready check keyed on declared files vs that SoT\n- Remediation is a recorded split plan or cohesion exemption, not a size-only fail-closed\n- Companion: drop stale hard-cap phrasing in `deft-directive-build/SKILL.md` and `meta/ralph.md`\n\n## Follow-up (not this issue)\n\n- Implementation guidance that prefers new focused files over extending an oversized module\n- A live signal (doctor, check, or review trigger) when a change pushes a file further past the review threshold\n\nAcceptance criteria (locked)\n\n- [ ] xBRIEF records intended file placement and module boundary before code lands (new field; same slice as the check). Preflight has declared files to key on.\n- [ ] One machine-readable threshold source of truth exists (policy module). `coding.md` prose references that SoT, not three independent numbers.\n- [ ] Preflight or story-ready check stats the declared files against that SoT.\n- [ ] A scope that names a file already over the review-trigger threshold cannot pass preflight without a recorded split plan or cohesion exemption.\n- [ ] The check does not fail closed on size alone. Missing declaration or exemption is the reject; a recorded split plan or cohesion exemption is the remediation. The #1488 cohesion-over-hard-cap stance stays.\n- [ ] Stale hard-cap phrasing is gone from `content/skills/deft-directive-build/SKILL.md` (`! <1000 max`) and `content/meta/ralph.md` (`must be <1000`); both match `coding.md` (#1488).\n- [ ] Tests cover: missing placement field cannot preflight; declared over-trigger file without exemption rejects with a remediation hint; recorded split plan or exemption passes; files under the threshold pass; no restore of a hard line cap.\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-08-17T19:36:02Z)\n\n## Triage note (read-only; no local ingest)\n\n**Validity: still-open.** No comments before this one, no labels, no local xBRIEF, no linked PR. This is not already shipped.\n\n[#1488](https://github.com/deftai/directive/issues/1488) is closed and did a different job: it demoted the 1000-line MUST to a cohesion review trigger in `coding/coding.md`. That change is in the tree. There is still no planning, xBRIEF, preflight, or story-ready check that records file placement or stops a scope from growing an already-large file.\n\n### Problem\n\nConsumer projects still grow god files, then pay for late splits and the bugs that come with them. This issue wants size and module-boundary choices made during planning, xBRIEF, and implementation — not after the file is already huge. It is explicit that this is **not** a request to restore a hard line cap.\n\n### Acceptance (sketch, not locked)\n\n- A deterministic place records and enforces file-size / module-boundary intent *before* code lands\n- After-the-fact god-file splits are no longer the default recovery\n- The #1488 cohesion-over-hard-cap stance stays\n\nDirections in the issue are also unlocked: xBRIEF template field, preflight/story-ready flag, implementation guidance, live doctor/check signal.\n\n### Lean: accept, then slice thin\n\nThe gap is real and distinct from #1488. Do not reject or mark duplicate. Do not take all four directions as one story.\n\nFirst ship should be **one fail-closed check plus one remediation** — most likely a preflight or story-ready flag when a scope is about to grow a file already over the review trigger, or a required xBRIEF \"intended files / expected cohesion\" field. The rest can be follow-ups.\n\nLocal triage accept was **not** run (another swarm owns this checkout).\n\n### Comment by @MScottAdams (2026-08-17T21:15:21Z)\n\n## Critique of the triage note above (read-only; no local ingest)\n\nVerification first: the triage's load-bearing claims check out. The #1488 demotion is in-tree (`content/coding/coding.md:50`, `:237`). Preflight today checks active-folder + running status, intent ceiling, parent lineage (#3241), and origin freshness (#3363) — nothing about file size or placement (`packages/core/src/preflight/evaluate.ts`). The xBRIEF create path has no intended-files field. Accept-don't-dupe is the right lean.\n\nFive corrections/additions before this becomes a story:\n\n### 1. The two first-slice candidates are a dependency chain, not alternatives\n\nThe lean hedges: \"a preflight or story-ready flag … **or** a required xBRIEF 'intended files' field.\" But preflight can only stat files the scope declares, and no placement field exists today — the check has nothing to key on without the field. Correct sequencing: xBRIEF placement field first (or same slice), then the preflight check that consumes it. Shipped as either/or, the check side lands with no input.\n\n### 2. Stale hard-cap phrasings contradict the stance this issue says must be preserved\n\n- `content/skills/deft-directive-build/SKILL.md:414` — still `! <1000 max` (RFC2119 bang)\n- `content/meta/ralph.md:118` — still \"(must be <1000)\"\n\nBoth are pre-#1488 phrasing that survived the demotion. They prove the prose already drifted once, and they undercut any new mechanism claiming cohesion-over-cap. Cheap companion fix; should ride with or precede the first slice.\n\n### 3. No threshold source of truth named\n\n`coding.md` carries three numbers (300/500/1000) in prose. A machine check needs one machine-readable value. The first slice must define where the number lives (a policy module the content prose references), or the check and the docs drift exactly as in point 2.\n\n### 4. \"Fail-closed\" vs. #1488 is a collision, not a pairing\n\nA fail-closed block on \"scope touches a >1000-line file\" is the hard cap reintroduced at scope granularity — the thing #1488 removed. Resolution: the check blocks until the scope **declares** either a split plan or a cohesion exemption; it never blocks on size alone. That mirrors how intent-ceiling and parent-lineage rejects already pair a reason with an actionable hint in `evaluate.ts`, and it keeps acceptance bullet 3 honest.\n\n### 5. Premise and acceptance bullet 2 are unverifiable as written\n\n\"Consumer projects still grow god files\" is accepted on assertion — no incident or consumer repo cited. And \"after-the-fact splits are no longer the default recovery path\" has no baseline and no way to verify in a release. Bullet 2 should be replaced with something checkable, e.g. \"a scope naming an over-trigger file cannot pass preflight without a placement declaration or recorded exemption.\"\n\n### Revised lean\n\nSingle sequenced slice: xBRIEF intended-placement field → preflight check keyed on it (stat declared files against one threshold SoT), with a declared split-plan / cohesion-exemption escape hatch as the remediation. Companion cleanup: fix the two stale hard-cap phrasings. Everything else in the issue's directions list (doctor signal, implementation guidance) stays follow-up.\n\nWhat the triage does well and should keep: read-only discipline, the explicit swarm-ownership note, the verified #1488 delta, and refusing to bundle all four directions into one story.\n\nLocal triage accept was **not** run (another swarm owns this checkout).\n\n\n### Comment by @MScottAdams (2026-08-17T21:25:05Z)\n\nLock sequenced first-slice AC: placement field then preflight keyed on it; declaration/exemption remediation not a size-only fail-closed; replace unverifiable recovery bullet; fix stale hard-cap phrasing. Full AC on following comment.\n\n### Comment by @MScottAdams (2026-08-17T21:25:12Z)\n\n## Needs AC (triage)\n\nThe gap is accepted. The body sketch is not shippable as-is. Please lock the first slice to this, then we can accept:\n\n1. **xBRIEF intended-placement field first** (or same slice). Record intended files / module boundary before code. Preflight cannot stat files the scope does not declare.\n2. **Then a preflight / story-ready check** keyed on that field. Compare declared files to **one machine-readable threshold SoT** (not the three prose numbers in `coding.md`).\n3. **Remediation is a declaration, not a size cap.** The check blocks until the scope records a split plan or a cohesion exemption. It must not fail closed on “file already >N lines” alone — that would restore the #1488 hard cap.\n4. **Replace body bullet 2** (“after-the-fact splits are no longer the default recovery”) with something checkable, e.g. “a scope naming an over-trigger file cannot pass preflight without a placement declaration or recorded exemption.”\n5. **Companion in the same slice:** drop stale hard-cap phrasing in `content/skills/deft-directive-build/SKILL.md` (`! <1000 max`) and `content/meta/ralph.md` (`must be <1000`). Align them with `coding.md` (#1488).\n\nDoctor / live review signals and implementation-guidance extras stay follow-up.\n\nReply on this issue when those ACs are in the body (or confirm this comment is the SoT) and we will `triage:accept`.\n\n\n### Comment by @MScottAdams (2026-08-17T21:33:28Z)\n\n## AC now in the body\n\nLocked first-slice acceptance criteria are in the issue body (`Acceptance criteria (locked)`, seven checkboxes). The sketch is gone.\n\nMatches the Needs AC lock: placement field first, then preflight keyed on it; one machine-readable threshold SoT; declaration/exemption remediation (not a size-only fail-closed); checkable over-trigger preflight rule; stale hard-cap phrasing companion; tests.\n\nDoctor / live review signals and extra implementation guidance stay follow-up.\n\nReady for `triage:accept`. Local ingest was **not** run (another swarm owns this checkout)."
+    },
+    "items": [
+      {
+        "title": "xBRIEF records intended file placement and module boundary before code lands (new field; same slice as the check). Preflight has declared files to key on.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/preflight/intended-placement.test.ts#reads files and module_boundary; PR #3436 merge 6c09b90a",
+          "recorded_at": "2026-08-18T04:38:00Z",
+          "recorded_by": "review-monitor/3436"
+        }
+      },
+      {
+        "title": "One machine-readable threshold source of truth exists (policy module). `coding.md` prose references that SoT, not three independent numbers.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/policy/file-size-thresholds.test.ts; content/coding/coding.md references FILE_SIZE_THRESHOLDS; PR #3436 merge 6c09b90a",
+          "recorded_at": "2026-08-18T04:38:00Z",
+          "recorded_by": "review-monitor/3436"
+        }
+      },
+      {
+        "title": "Preflight or story-ready check stats the declared files against that SoT.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/preflight/intended-placement.test.ts#passes a declared file under the review-trigger threshold; PR #3436 merge 6c09b90a",
+          "recorded_at": "2026-08-18T04:38:00Z",
+          "recorded_by": "review-monitor/3436"
+        }
+      },
+      {
+        "title": "A scope that names a file already over the review-trigger threshold cannot pass preflight without a recorded split plan or cohesion exemption.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/preflight/intended-placement.test.ts#rejects a declared over-trigger file without exemption and hints remediation; PR #3436 merge 6c09b90a",
+          "recorded_at": "2026-08-18T04:38:00Z",
+          "recorded_by": "review-monitor/3436"
+        }
+      },
+      {
+        "title": "The check does not fail closed on size alone. Missing declaration or exemption is the reject; a recorded split plan or cohesion exemption is the remediation. The #1488 cohesion-over-hard-cap stance stays.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/preflight/intended-placement.test.ts#passes an over-trigger file when a split plan is recorded; PR #3436 merge 6c09b90a",
+          "recorded_at": "2026-08-18T04:38:00Z",
+          "recorded_by": "review-monitor/3436"
+        }
+      },
+      {
+        "title": "Stale hard-cap phrasing is gone from `content/skills/deft-directive-build/SKILL.md` (`! <1000 max`) and `content/meta/ralph.md` (`must be <1000`); both match `coding.md` (#1488).",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/skills/deft-directive-build/SKILL.md + content/meta/ralph.md; PR #3436 merge 6c09b90a",
+          "recorded_at": "2026-08-18T04:38:00Z",
+          "recorded_by": "review-monitor/3436"
+        }
+      },
+      {
+        "title": "Tests cover: missing placement field cannot preflight; declared over-trigger file without exemption rejects with a remediation hint; recorded split plan or exemption passes; files under the threshold pass; no restore of a hard line cap.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/preflight/intended-placement.test.ts (grandfather, over-trigger reject, split/exemption pass, under-threshold pass); PR #3436 merge 6c09b90a",
+          "recorded_at": "2026-08-18T04:38:00Z",
+          "recorded_by": "review-monitor/3436"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/policy/file-size-thresholds.ts",
+          "packages/core/src/preflight/intended-placement.ts",
+          "packages/core/src/preflight/evaluate.ts",
+          "packages/core/src/intake/issue-ingest.ts",
+          "content/packs/rules/rules-pack-0.1.json",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/coding/coding.md",
+          "content/skills/deft-directive-build/SKILL.md",
+          "content/meta/ralph.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "preflight + file-size-thresholds policy module; coding.md and companion prose reference that SoT",
+        "cohesion_exemption": "issue-ingest.ts, rules-pack JSON, and CHANGELOG.md already exceed the review trigger; this slice only stamps intended_placement and updates file-size rule text, not a module split."
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/preflight",
+          "packages/core/src/intake",
+          "content/coding/coding.md",
+          "content/skills/deft-directive-build/SKILL.md",
+          "content/meta/ralph.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/preflight"
+        ],
+        "expected_outputs": [
+          "intended-placement field",
+          "threshold SoT + preflight",
+          "stale hard-cap phrasing gone",
+          "CHANGELOG #3424"
+        ],
+        "depends_on": [],
+        "conflict_group": "file-placement-preflight",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3436,
+        "prBase": null,
+        "mergeCommit": "6c09b90a2de107410884284d84c92857ebd04271",
+        "deliveryBranch": "master",
+        "deliveryCommit": "6c09b90a2de107410884284d84c92857ebd04271",
+        "verifiedAt": "2026-08-18T04:40:29Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "54fe792a-3668-46b3-b091-4fd802433d6c"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-18T04:40:29Z",
+      "completedSessionId": "54fe792a-3668-46b3-b091-4fd802433d6c",
+      "capacityBucket": "new-capability"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3424",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3424: Steer per-file size during planning and xBRIEF, not after god files form"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 8 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "xBRIEF records intended file placement and module boundary before code lands (new field; same slice as the check). Preflight has declared files to key on.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "One machine-readable threshold source of truth exists (policy module). `coding.md` prose references that SoT, not three independent numbers.",
+          "artifact_path": "content/coding/coding.md",
+          "ambiguous": false
+        },
+        {
+          "id": 3,
+          "text": "Preflight or story-ready check stats the declared files against that SoT.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 4,
+          "text": "A scope that names a file already over the review-trigger threshold cannot pass preflight without a recorded split plan or cohesion exemption.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 5,
+          "text": "The check does not fail closed on size alone. Missing declaration or exemption is the reject; a recorded split plan or cohesion exemption is the remediation. The #1488 cohesion-over-hard-cap stance stays.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 6,
+          "text": "Stale hard-cap phrasing is gone from `content/skills/deft-directive-build/SKILL.md` (`! <1000 max`) and `content/meta/ralph.md` (`must be <1000`); both match `coding.md` (#1488).",
+          "artifact_path": "content/skills/deft-directive-build/SKILL.md",
+          "ambiguous": true,
+          "readings": [
+            {
+              "text": "Stale hard-cap phrasing is gone from `content/skills/deft-directive-build/SKILL.md` (`! <1000 max`) and `content/meta/ralph.md` (`must be <1000`); both match `coding.md` (#1488). [reading: content/skills/deft-directive-build/SKILL.md]",
+              "artifact_path": "content/skills/deft-directive-build/SKILL.md"
+            },
+            {
+              "text": "Stale hard-cap phrasing is gone from `content/skills/deft-directive-build/SKILL.md` (`! <1000 max`) and `content/meta/ralph.md` (`must be <1000`); both match `coding.md` (#1488). [reading: content/meta/ralph.md]",
+              "artifact_path": "content/meta/ralph.md"
+            },
+            {
+              "text": "Stale hard-cap phrasing is gone from `content/skills/deft-directive-build/SKILL.md` (`! <1000 max`) and `content/meta/ralph.md` (`must be <1000`); both match `coding.md` (#1488). [reading: coding.md]",
+              "artifact_path": "coding.md"
+            }
+          ],
+          "chosen_reading": 0
+        },
+        {
+          "id": 7,
+          "text": "Tests cover: missing placement field cannot preflight; declared over-trigger file without exemption rejects with a remediation hint; recorded split plan or exemption passes; files under the threshold pass; no restore of a hard line cap.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 8,
+          "text": "--",
+          "artifact_path": null,
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-18T04:40:29Z"
+  }
+}

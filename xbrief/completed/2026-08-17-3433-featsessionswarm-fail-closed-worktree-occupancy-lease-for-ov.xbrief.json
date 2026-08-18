@@ -1,0 +1,334 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3433",
+    "updated": "2026-08-18T05:00:10Z"
+  },
+  "plan": {
+    "id": "3433-worktree-occupancy-lease",
+    "title": "feat(session,swarm): fail-closed worktree occupancy lease for overlapping mutation sessions",
+    "status": "completed",
+    "narratives": {
+      "Description": "A second mutation session:start on a shared checkout can steal ritual-state and become the writer. Add a gitignored worktree occupancy lease so mutation ceremony fail-closes unless the newcomer is the same session, the heartbeat expired, or they steal with --confirm.",
+      "UserStory": "As a swarm parent, I want one live writer per worktree, so that a second mutation session cannot overwrite ritual-state or race the index.",
+      "ImplementationPlan": "1. Add occupancy claim/deny/steal/TTL in packages/core/src/session and wire mutation session:start/session:ready. 2. Add the PreToolUse deny in packages/core/src/hooks/dispatcher.ts. 3. Claim intent swarm in packages/core/src/swarm/launch.ts and release on finalize/complete. 4. Verify with unit tests for claim, conflict, expire, steal, read-only, heartbeat, and swarm claim/release.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3433",
+      "Overview": "## Summary\n\nA swarm parent (or any mutation session) on a shared checkout and a second session that starts mutation `session:start` can both believe they own the same worktree. Existing file locks and freshness binds do not prevent that.\n\nAdd a **worktree occupancy lease**. Mutation ceremony fail-closes when another live occupant exists, unless the newcomer presents an explicit grant. Coordinated overlap is allowed only when the environment can actually reach the occupant.\n\nThis issue is the first ship: claim / deny / steal / TTL. A join-request protocol is the follow-up, not this PR.\n\n## Problem\n\nSwarm isolates **workers** (one worktree per leaf, file-overlap audit). It does not isolate the **parent checkout**.\n\nThe swarm parent usually sits on the primary tree and keeps mutating shared local state: ritual, freshness bind, `xbrief/` lifecycle, cache, CHANGELOG, worktree add/remove, merge close-out.\n\nA second interactive session that runs mutation `session:start` on that same tree is treated as the new owner:\n\n- Cold `session:start` always mints a new `session_id` and overwrites `.deft/ritual-state.json`. There is no occupant check.\n- Re-arm can inherit the live parent's ritual when worktree + HEAD look continuous, so the newcomer never notices the parent is still live.\n\nOn one worktree these cannot be shared even if the agents \"agree\" in chat:\n\n- git HEAD and the index\n- the dirty tree\n- `.deft/ritual-state.json` (single slot)\n\nResulting failures: stolen ritual / hook deny-or-wrong-allow, branch or index races during worktree add or cohort close-out, `xbrief/` lifecycle races, CHANGELOG races, `scope:complete` against the other session's leftovers.\n\nThe same class applies to **any** two mutation sessions, not only swarm-vs-implement. Swarm is the loud case.\n\n## Why existing protections are not enough\n\n| Existing | What it serializes | Gap |\n|---|---|---|\n| Swarm worktrees + file-overlap audit | Parallel leaf writers | Not a second parent on the same tree |\n| #1260 PROJECT-DEFINITION lock | Short RMW of one JSON file | Not session ownership |\n| #1329 `agents:refresh` lock | Managed AGENTS block RMW | Same |\n| #3117 freshness bind + `DEFT_SESSION_ID` | Stops one session certifying another as current | Does not stop the second session from writing |\n| #2814 review-owner lease | One babysitter per PR (GitHub sticky comment) | Different resource; right lease *shape* |\n| #2176 read-only default | Helps only if the second session stays read-only | Mutation `session:start` is the opposite |\n| #2849 dirty-worktree checkpoints | Recoverable dirty state on handoff (open, deferred) | Adjacent; not live two-owner occupancy |\n\nFile locks prevent torn writes. They do not prevent two agents from both believing they own the tree.\n\n## Design\n\n### Principle\n\nOne live **writer** per worktree. Other sessions may attach, wait, work in another worktree, stay read-only, or steal. They must not start a second mutation ritual on the same tree without a grant.\n\nSwarm is one occupant class (`intent: swarm`), not a special lock. Any mutation occupant counts.\n\nThis is the same idea as the review-owner lease (#2814), but the source of truth is the **local worktree**, not GitHub. Two sessions on one checkout share a filesystem. Two clones do not share this hazard.\n\nCross-session coordination stays nuclear-family (#3155): parent / sibling / child, or a durable artifact the occupant actually watches. Do not invent a peer mesh between unrelated Grok/Cursor tabs.\n\n### Source of truth\n\nGitignored occupancy record at the worktree root, e.g. `.deft/occupancy.json`.\n\nDo **not** overload `.deft/ritual-state.json`. Ritual is \"this session completed ceremony.\" Occupancy is \"who may mutate this tree right now.\" Those lifetimes differ (ritual stale-after-hours vs heartbeat TTL).\n\nKeep `#3117` session-bind as-is.\n\nSuggested fields:\n\n- `session_id` (same id `session:start` already prints)\n- `worktree_path`\n- `intent`: `mutation` | `swarm` | `review`\n- `claimed_at`, `heartbeat_at`\n- `host` / `address` (agent id, session name, or `none`)\n- `retain_capable` (boolean)\n- `join_protocol`: `none` | `heartbeat-file` | `parent-message`\n- optional `scope` (stories, path globs) for a later disjoint grant\n\nAtomic write; same contained-write discipline as ritual-state.\n\n### One fail-closed check (#3265)\n\nOn mutation `session:start` and `session:ready`:\n\n1. Read occupancy for this worktree.\n2. None, or heartbeat expired -> claim and continue.\n3. Occupant `session_id` is this session -> heartbeat and continue (re-arm / compact recovery).\n4. Another live occupant and no grant -> **exit non-zero**. Print occupant id, intent, age, and the remediation string.\n\nRemediation:\n\n```text\nWorktree occupied by session <id> (intent=<swarm|mutation>, heartbeat <Ns> ago).\nStay read-only (`session:start --read-only`), use another worktree,\nqueue a join (`occupancy:request`), or steal (`occupancy:steal --confirm`).\n```\n\nv1 may name `occupancy:request` in the string even if the join verb lands in the follow-up. v1 must implement steal, read-only, and \"use another worktree.\"\n\nAlso:\n\n- PreToolUse deny code beside `ritual-not-ready` (a second tab that skips `session:start` and just writes still hits the hook).\n- `swarm:launch` / Phase 0 **claims** occupancy (`intent: swarm`) before dispatch.\n- Phase 6 / `swarm:finalize-cohort` / `swarm:complete-cohort` **releases** it.\n- Crash recovery is the TTL, not an honor system. Suggest 15-30 minutes without heartbeat; swarm parent heartbeats on Phase 4 ticks.\n\n### Grants (allow path)\n\nSame-tree second writer is never a grant. Coordination cannot make two indexes or two ritual-states safe.\n\n| Grant | When it is real | What it permits |\n|---|---|---|\n| Same session | `DEFT_SESSION_ID` matches the lease | Re-arm, continue |\n| Attach | Caller is child/sibling, or names the occupant as parent | Existing swarm. Children still use their own worktrees |\n| Queue | Occupant has `join_protocol: heartbeat-file` or `parent-message` | Newcomer waits. Occupant accepts, parks, or refuses |\n| Disjoint worktree | Occupant grants a slice | Newcomer mutates only in another worktree |\n| Read-only / assist | #2176 / #1802 | No claim |\n| Steal | `--confirm` after naming the occupant | Newcomer becomes writer; old lease superseded |\n\nChat is not a grant.\n\n### Environment gate\n\nAsk \"can this occupant be reached?\" not \"is anyone else running?\" Same capability-gate idea as #3158 (retain vs split-dispatch).\n\n| Situation | Live path? | Allow |\n|---|---|---|\n| Swarm parent + its workers | Yes (nuclear family, worktrees) | Attach, as today |\n| Retain-capable host; parent can re-message the occupant | Yes | Attach or queue |\n| Occupant is a swarm/monitor loop that heartbeats the occupancy file | Yes (artifact-mediated) | Queue or disjoint worktree |\n| Second Grok/Cursor tab, same folder, no shared parent | No (`join_protocol: none`) | Read-only, new worktree, or steal |\n| Grok Build `spawn_subagent` (one-shot, no inbox) | Workers never own the parent tree | Not a join inbox |\n| Two clones / two machines | Trees already isolated | Local occupancy only; GitHub leases stay as they are |\n| Occupant heartbeat expired | No live owner | Treat as free, or steal-with-warning if dirty |\n\nDo not invent message-later on hosts that cannot do it.\n\n## Acceptance (first ship)\n\n- [ ] Mutation `session:start` / `session:ready` claim occupancy on this worktree.\n- [ ] A second mutation `session:start` on the same worktree with a different `session_id` and no grant exits non-zero and prints the remediation string (occupant id, intent, heartbeat age).\n- [ ] `--read-only` does not claim and does not fail closed on a live occupant.\n- [ ] Same `DEFT_SESSION_ID` re-arm / continue heartbeats and succeeds. Re-arm MUST keep the occupant `session_id` (`DEFT_SESSION_ID` or the existing occupant id). It MUST NOT mint a new UUID that would look like a different occupant.\n- [ ] `--steal --confirm` (or `occupancy:steal --confirm`) supersedes the lease after naming the occupant.\n- [ ] Expired heartbeat is treated as free (claim succeeds). Suggested TTL 15-30 minutes.\n- [ ] PreToolUse denies product-path writes when occupied by a different live session (new deny code; compose with `ritual-not-ready`).\n- [ ] `task swarm:launch` claims `intent: swarm` before emitting the manifest; finalize/complete-cohort releases.\n- [ ] Occupancy file is gitignored / local-only (installer ignore deposit if needed).\n- [ ] Unit tests: claim, conflict, expire, steal, read-only does not claim, swarm claim/release, same-session heartbeat.\n- [ ] Session-routing / mutable-ritual pointer in `content/commands.md`. Swarm skill Phase 0 / Phase 6 one-liners (claim/release), not a new process essay.\n- [ ] CHANGELOG `[Unreleased]` release-notes line.\n\n## Out of scope (follow-up)\n\n- Automatic join negotiation between silent tabs (`occupancy:request` / occupant `grant|refuse`). Name it in the remediation; do not implement in this PR unless it stays tiny.\n- Cross-clone / cross-machine locks (wrong SoT).\n- Merging this into #2849 dirty-worktree checkpoints.\n- Skill-only \"please do not overlap\" with no `task` gate (#3265).\n- Sharing ritual-state across two mutation sessions.\n- Locking every `git` or file write.\n- Open-mesh A2A between unrelated sessions (#3155 / #480).\n\n## Implementation pointers\n\n- `packages/core/src/session/` -- claim at mutation start\n- `packages/core/src/hooks/dispatcher.ts` -- PreToolUse deny\n- `packages/core/src/swarm/launch.ts` + finalize/complete -- claim/release\n- `content/commands.md` Session routing / Mutable ritual\n- `content/skills/deft-directive-swarm/` Phase 0 / Phase 6\n\n## Implement note (triage lock)\n\nRe-arm today mints a new UUID unless a test injects `newSessionId` (`packages/core/src/session/session-start.ts` cold ~1553, re-arm ~892). Same-session heartbeat must keep `DEFT_SESSION_ID` / the occupant id. Do not treat a successful re-arm overwrite of `ritual-state.json` as occupancy continuity.\n\n## Refs\n\n- #2176 read-only default until mutation\n- #3117 freshness bind isolation (complementary, not a substitute)\n- #1260 / #1329 file-level RMW locks\n- #2814 review-owner lease (shape analogue; GitHub SoT for PRs)\n- #2849 dirty-worktree checkpoints (adjacent, deferred; do not merge)\n- #3155 nuclear-family A2A\n- #3158 retain vs split-dispatch capability gate\n- #3265 thin fail-closed (one check + one remediation)\n- #2180 ephemeral posture / ceremony at mutation boundaries\n\n",
+      "Labels": "enhancement, design, swarm, determinism, harness, agent-safety, area:cli"
+    },
+    "items": [
+      {
+        "title": "Mutation `session:start` / `session:ready` claim occupancy on this worktree.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a free worktree, when mutation session:start or session:ready runs, occupancy is claimed for this session_id.",
+          "Traces": "FR-3433-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts",
+          "recorded_at": "2026-08-18T04:48:10.496Z",
+          "recorded_by": "grok-build:3433"
+        }
+      },
+      {
+        "title": "A second mutation `session:start` on the same worktree with a different `session_id` and no grant exits non-zero and prints the remediation string (occupant id, intent, heartbeat age).",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a live occupant, when a different session_id starts mutation ceremony with no grant, exit is non-zero and the remediation names occupant id, intent, and heartbeat age.",
+          "Traces": "FR-3433-2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts",
+          "recorded_at": "2026-08-18T04:48:10.496Z",
+          "recorded_by": "grok-build:3433"
+        }
+      },
+      {
+        "title": "`--read-only` does not claim and does not fail closed on a live occupant.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a live occupant, when session:start --read-only runs, it succeeds and does not write occupancy.",
+          "Traces": "FR-3433-3"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts",
+          "recorded_at": "2026-08-18T04:48:10.496Z",
+          "recorded_by": "grok-build:3433"
+        }
+      },
+      {
+        "title": "Same `DEFT_SESSION_ID` re-arm / continue heartbeats and succeeds. Re-arm MUST keep the occupant `session_id` (`DEFT_SESSION_ID` or the existing occupant id). It MUST NOT mint a new UUID that would look like a different occupant.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given DEFT_SESSION_ID matches the occupant, when re-arm or continue runs, occupancy heartbeats and session_id is unchanged. Re-arm must not mint a new UUID.",
+          "Traces": "FR-3433-4"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts",
+          "recorded_at": "2026-08-18T04:48:10.496Z",
+          "recorded_by": "grok-build:3433"
+        }
+      },
+      {
+        "title": "`--steal --confirm` (or `occupancy:steal --confirm`) supersedes the lease after naming the occupant.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a named live occupant, when occupancy:steal --confirm (or session:start --steal --confirm) runs, the newcomer becomes the writer.",
+          "Traces": "FR-3433-5"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts",
+          "recorded_at": "2026-08-18T04:48:10.496Z",
+          "recorded_by": "grok-build:3433"
+        }
+      },
+      {
+        "title": "Expired heartbeat is treated as free (claim succeeds). Suggested TTL 15-30 minutes.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given an occupancy record whose heartbeat is older than the TTL, when mutation session:start runs, claim succeeds.",
+          "Traces": "FR-3433-6"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts",
+          "recorded_at": "2026-08-18T04:48:10.496Z",
+          "recorded_by": "grok-build:3433"
+        }
+      },
+      {
+        "title": "PreToolUse denies product-path writes when occupied by a different live session (new deny code; compose with `ritual-not-ready`).",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a different live occupant, when PreToolUse sees a product-path write, it denies with the new occupancy code and still composes with ritual-not-ready.",
+          "Traces": "FR-3433-7"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts",
+          "recorded_at": "2026-08-18T04:48:10.496Z",
+          "recorded_by": "grok-build:3433"
+        }
+      },
+      {
+        "title": "`task swarm:launch` claims `intent: swarm` before emitting the manifest; finalize/complete-cohort releases.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given swarm:launch on a free tree, occupancy intent is swarm before the manifest is written. finalize-cohort or complete-cohort releases it.",
+          "Traces": "FR-3433-8"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts",
+          "recorded_at": "2026-08-18T04:48:10.496Z",
+          "recorded_by": "grok-build:3433"
+        }
+      },
+      {
+        "title": "Occupancy file is gitignored / local-only (installer ignore deposit if needed).",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a claimed tree, .deft/occupancy.json is gitignored and is not committed.",
+          "Traces": "FR-3433-9"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts",
+          "recorded_at": "2026-08-18T04:48:10.496Z",
+          "recorded_by": "grok-build:3433"
+        }
+      },
+      {
+        "title": "Unit tests: claim, conflict, expire, steal, read-only does not claim, swarm claim/release, same-session heartbeat.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the occupancy module, when the unit tests run they record claim, conflict, expire, steal, read-only no-claim, swarm claim/release, and same-session heartbeat without a new UUID.",
+          "Traces": "FR-3433-10"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts",
+          "recorded_at": "2026-08-18T04:48:10.496Z",
+          "recorded_by": "grok-build:3433"
+        }
+      },
+      {
+        "title": "Session-routing / mutable-ritual pointer in `content/commands.md`. Swarm skill Phase 0 / Phase 6 one-liners (claim/release), not a new process essay.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the first ship, when the docs land then commands.md Session routing / Mutable ritual points at the occupancy check and the swarm skill Phase 0 and Phase 6 each have a claim/release one-liner.",
+          "Traces": "FR-3433-11"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts",
+          "recorded_at": "2026-08-18T04:48:10.496Z",
+          "recorded_by": "grok-build:3433"
+        }
+      },
+      {
+        "title": "CHANGELOG `[Unreleased]` release-notes line.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the first ship, when the PR is ready then CHANGELOG [Unreleased] records a brief release-notes line for #3433.",
+          "Traces": "FR-3433-12"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3440",
+          "recorded_at": "2026-08-18T04:48:10.496Z",
+          "recorded_by": "grok-build:3433"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design",
+      "swarm",
+      "determinism",
+      "harness",
+      "agent-safety",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3433",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3433: feat(session,swarm): fail-closed worktree occupancy lease for overlapping mutation sessions"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "Worktree occupied by session <id> (intent=<swarm|mutation>, heartbeat <Ns> ago)",
+          "reason": "shell metacharacter \"<\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L90:text"
+        },
+        {
+          "command": "Stay read-only (`session:start --read-only`), use another worktree,",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L90:text"
+        },
+        {
+          "command": "queue a join (`occupancy:request`), or steal (`occupancy:steal --confirm`)",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L90:text"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/session",
+          "packages/core/src/hooks",
+          "packages/core/src/swarm",
+          "content/commands.md",
+          "content/skills/deft-directive-swarm",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/session packages/core/src/hooks packages/core/src/swarm",
+          "task check"
+        ],
+        "expected_outputs": [
+          "occupancy lease claim/deny/steal/TTL",
+          "re-arm keeps occupant session_id",
+          "PreToolUse occupancy deny",
+          "swarm launch claim + finalize release",
+          "CHANGELOG #3433"
+        ],
+        "acceptance_criteria_justification": "Locked first-ship AC is 12 checkboxes on #3433 (claim, conflict, read-only, same-session heartbeat without minting a UUID, steal, expire, PreToolUse, swarm claim/release, gitignore, tests, docs, CHANGELOG). Join protocol stays out of scope.",
+        "depends_on": [],
+        "conflict_group": "occupancy-lease",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3440,
+        "prBase": null,
+        "mergeCommit": "084371c0dc1cd34f70aa0f570113b9d1f206b815",
+        "deliveryBranch": "master",
+        "deliveryCommit": "084371c0dc1cd34f70aa0f570113b9d1f206b815",
+        "verifiedAt": "2026-08-18T05:00:10Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "8c27577a-5290-4928-a1be-10154132c95c"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-18T05:00:10Z",
+      "completedSessionId": "8c27577a-5290-4928-a1be-10154132c95c",
+      "capacityBucket": "new-capability"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 8 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Cold `session:start` always mints a new `session_id` and overwrites `.deft/ritual-state.json`. There is no occupant check.",
+          "artifact_path": ".deft/ritual-state.json",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "`.deft/ritual-state.json` (single slot)",
+          "artifact_path": ".deft/ritual-state.json",
+          "ambiguous": false
+        },
+        {
+          "id": 3,
+          "text": "Session-routing / mutable-ritual pointer in `content/commands.md`. Swarm skill Phase 0 / Phase 6 one-liners (claim/release), not a new process essay.",
+          "artifact_path": "content/commands.md",
+          "ambiguous": false
+        },
+        {
+          "id": 4,
+          "text": "`packages/core/src/session/` -- claim at mutation start",
+          "artifact_path": "packages/core/src/session/",
+          "ambiguous": false
+        },
+        {
+          "id": 5,
+          "text": "`packages/core/src/hooks/dispatcher.ts` -- PreToolUse deny",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 6,
+          "text": "`packages/core/src/swarm/launch.ts` + finalize/complete -- claim/release",
+          "artifact_path": "packages/core/src/swarm/launch.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 7,
+          "text": "`content/commands.md` Session routing / Mutable ritual",
+          "artifact_path": "content/commands.md",
+          "ambiguous": false
+        },
+        {
+          "id": 8,
+          "text": "`content/skills/deft-directive-swarm/` Phase 0 / Phase 6",
+          "artifact_path": "content/skills/deft-directive-swarm/",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-18T05:00:10Z"
+  }
+}

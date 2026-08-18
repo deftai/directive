@@ -1,0 +1,267 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3448",
+    "updated": "2026-08-18T05:12:00Z"
+  },
+  "plan": {
+    "title": "feat(review-cycle,swarm): standing residual until resolved conf floor or same-fingerprint loop",
+    "status": "completed",
+    "narratives": {
+      "Description": "feat(review-cycle,swarm): standing residual until resolved conf floor or same-fingerprint loop",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3448",
+      "Overview": "## Summary\n\n`#3273` made dual-stop resume discoverable, but **pursue residual** is still **one pass then park**. A through-merge / drive-to:merge-ready cohort then leaves PRs sitting at **below the resolved Greptile floor** when the bot still names **one leftover on files the PR already touches**.\n\nThat reading is wrong for **directive dogfood (5/5)** and for **consumers** (default **4/5**, or whatever `plan.policy.review.minGreptileConfidence` is). The floor is already resolved by `#3095`. The missing rule is **when to keep going** vs **when to park**.\n\nField class (2026-08-18, deftai/directive): after `pursue residuals until told otherwise or an endless loop`, the parent kept moving CI-red / dirty PRs and **parked** PR 3432 and PR 3408 at 4/5. Both had a single concrete leftover on already-touched files. The operator had to re-point: work those until 5/5 or loop.\n\n## Problem\n\nThree rules collide and no skill says which wins:\n\n| Rule | What an agent does |\n|------|--------------------|\n| Dogfood / `#3095` floor | PR is not CLEAN below resolved `minGreptileConfidence` |\n| `#3273` | `pursue residual` = **one** pass on the unit that just dual-stopped, then re-stop |\n| `#2881` | Confidence-only hold (0 P0/P1) = at most one polish; out-of-AC = follow-up issue, do not expand |\n\nSo a standing order like **pursue residuals until a loop** gets read as **only new leftovers** (CI red, dirty rebase, operator-named hole). A 4/5 (or consumer 3/5) PR with one named file leftover waits for the human to re-point.\n\n`#2881` also over-fires: **dropped return value / wrong remediation on a file this PR already owns** gets labeled new-subsystem and parked. The P0 carve-out (defect on already-touched files) should have won.\n\n## Goals\n\n1. **Portable floor.** Keep going until confidence meets the **resolved** `#3095` floor (`plan.policy.review.minGreptileConfidence`: typed project policy > framework-source dogfood **5** > consumer default **4`). ⊗ Hard-code 5/5. ⊗ Lower the project policy to clear one PR.\n2. **Typed leftovers** so park vs continue is not invented:\n   - **A — named leftover on already-touched files** (wrong remediation, dropped field, fixture, same-module hole) → **in-AC residual**. Keep going until floor or same-fingerprint loop.\n   - **B — new subsystem / AC fight** → park or file a follow-up. Do not expand mid-babysit.\n   - **C — score-only, no concrete finding** → document / same-as-conf-hold / operator floor for this PR only (`#3273` step 3). Not unbounded redesign.\n3. **Standing-order shape** distinct from one-shot `pursue residual`:\n   - One-shot: one pass, then re-stop (`#3273` today).\n   - Standing: **until resolved floor or same primary fingerprint repeats** (and/or dual-stop batch cap). Applies to **every open unit in the active cohort / ordered plan**, not only the PR that just halted.\n4. **Same-fingerprint halt** is the endless-loop stop. A *new* leftover after a real fix may take another batch (still capped by `#2442`).\n5. **Consumer + maintainer.** Same deposit skills. Works when the floor is 4, 5, or a project override. No `deftai/directive`-only path.\n6. **Low-token.** Extend the existing `#3273` / `#2881` sections. No new skill, no new verb.\n\n## Non-goals\n\n- Removing dual-stop or auto-retry forever\n- Silent edit of `minGreptileConfidence`\n- Treating every 4/5 prose complaint as a new story\n- Parent self-implement after a merge-ready leaf (`#2843` / `#3032`)\n\n## Recommended KISS fix\n\nIn `deft-directive-review-cycle` and `deft-directive-swarm` § Operator follow-up after dual-stop (`#3273`) + Out-of-AC (`#2881`):\n\n1. Add the A/B/C leftover classes (one short table).\n2. Name the standing-order phrases: **until floor or loop** / **until greptile meets policy** / **pursue residuals until told otherwise** → class A units keep moving to the **resolved** floor; class B/C stay parked unless the operator names them.\n3. One-shot `pursue residual` stays one pass (do not silently widen `#3273`).\n4. `#2881` P0 carve-out: a leftover on **files already in the PR** is class A unless it needs a new ledger/protocol/story.\n5. Halt-report resume line: include leftover class + resolved floor + whether standing-order is active.\n6. Content-contract tests for the markers. CHANGELOG process/skills note.\n\nInspect floor with existing `task policy:show --field=minGreptileConfidence` / `deft policy:show --field=minGreptileConfidence`.\n\n## Acceptance\n\n- [ ] **AC1** Review-cycle + swarm `#3273` / `#2881` text names leftover classes A/B/C and which ones auto-continue.\n- [ ] **AC2** Continue-until target is the **resolved `#3095` floor**, not a hard-coded 5. Consumer default 4, dogfood 5, project override honored. Tests or fixtures assert the wording is floor-relative.\n- [ ] **AC3** Standing-order phrases are distinct from one-shot `pursue residual` and apply to open cohort/plan units, not only the last halted PR.\n- [ ] **AC4** Same-fingerprint halt is the loop stop; `#2442` batch cap still applies.\n- [ ] **AC5** `#2881` carve-out: already-touched-file leftover is class A (in-AC residual), not new-subsystem by default.\n- [ ] **AC6** Portable: consumer deposit + maintainer tree; dual-invoke `task` / `deft`; no framework-monorepo-only required path.\n- [ ] **AC7** Halt-report resume line includes leftover class + resolved floor + standing vs one-shot.\n- [ ] **AC8** CHANGELOG cites this issue under process/skills.\n- [ ] **AC9** Skill/content-contract tests assert the new markers (same pattern as `#3273`).\n\n## Refs\n\n- #2881 out-of-AC / conf-only holds\n- #3095 minGreptileConfidence (policy > dogfood 5 > consumer 4)\n- #3225 advisory should-not-merge\n- #3273 operator follow-up after dual-stop (one residual pass)\n- #2442 dual stop\n- #3265 thin fail-closed\n- Field: PR 3432 / PR 3408 parked at 4/5 until operator re-pointed (2026-08-18)\n\n",
+      "Labels": "enhancement, swarm, agent-experience",
+      "UserStory": "As a through-merge parent on directive or a consumer, I want residual follow-up to keep going until the resolved Greptile floor or the same leftover fingerprint repeats, so parked 4/5 (or consumer 3/5) PRs with one named leftover on already-touched files do not wait for a second human re-point.",
+      "ImplementationPlan": "1. Extend review-cycle and swarm #3273 / #2881 sections with leftover classes A/B/C and standing-order phrases distinct from one-shot pursue residual. 2. Continue-until target is resolved minGreptileConfidence (#3095), never a hard-coded 5. 3. Halt-report resume line includes leftover class + resolved floor + standing vs one-shot. 4. Content-contract tests for the markers; CHANGELOG process/skills note. No new skill or verb."
+    },
+    "items": [
+      {
+        "title": "**AC1** Review-cycle + swarm `#3273` / `#2881` text names leftover classes A/B/C and which ones auto-continue.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "**AC1** Review-cycle + swarm `#3273` / `#2881` text names leftover classes A/B/C and which ones auto-continue.",
+          "Traces": "FR-3448-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/standing_residual_floor_3448.test.ts",
+          "recorded_at": "2026-08-18T05:11:00Z",
+          "recorded_by": "leaf-worker/3448"
+        }
+      },
+      {
+        "title": "**AC2** Continue-until target is the **resolved `#3095` floor**, not a hard-coded 5. Consumer default 4, dogfood 5, project override honored. Tests or fixtures assert the wording is floor-relative.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "**AC2** Continue-until target is the **resolved `#3095` floor**, not a hard-coded 5. Consumer default 4, dogfood 5, project override honored. Tests or fixtures assert the wording is floor-relative.",
+          "Traces": "FR-3448-2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/standing_residual_floor_3448.test.ts",
+          "recorded_at": "2026-08-18T05:11:00Z",
+          "recorded_by": "leaf-worker/3448"
+        }
+      },
+      {
+        "title": "**AC3** Standing-order phrases are distinct from one-shot `pursue residual` and apply to open cohort/plan units, not only the last halted PR.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "**AC3** Standing-order phrases are distinct from one-shot `pursue residual` and apply to open cohort/plan units, not only the last halted PR.",
+          "Traces": "FR-3448-3"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/standing_residual_floor_3448.test.ts",
+          "recorded_at": "2026-08-18T05:11:00Z",
+          "recorded_by": "leaf-worker/3448"
+        }
+      },
+      {
+        "title": "**AC4** Same-fingerprint halt is the loop stop; `#2442` batch cap still applies.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "**AC4** Same-fingerprint halt is the loop stop; `#2442` batch cap still applies.",
+          "Traces": "FR-3448-4"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/standing_residual_floor_3448.test.ts",
+          "recorded_at": "2026-08-18T05:11:00Z",
+          "recorded_by": "leaf-worker/3448"
+        }
+      },
+      {
+        "title": "**AC5** `#2881` carve-out: already-touched-file leftover is class A (in-AC residual), not new-subsystem by default.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "**AC5** `#2881` carve-out: already-touched-file leftover is class A (in-AC residual), not new-subsystem by default.",
+          "Traces": "FR-3448-5"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/standing_residual_floor_3448.test.ts",
+          "recorded_at": "2026-08-18T05:11:00Z",
+          "recorded_by": "leaf-worker/3448"
+        }
+      },
+      {
+        "title": "**AC6** Portable: consumer deposit + maintainer tree; dual-invoke `task` / `deft`; no framework-monorepo-only required path.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "**AC6** Portable: consumer deposit + maintainer tree; dual-invoke `task` / `deft`; no framework-monorepo-only required path.",
+          "Traces": "FR-3448-6"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/standing_residual_floor_3448.test.ts",
+          "recorded_at": "2026-08-18T05:11:00Z",
+          "recorded_by": "leaf-worker/3448"
+        }
+      },
+      {
+        "title": "**AC7** Halt-report resume line includes leftover class + resolved floor + standing vs one-shot.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "**AC7** Halt-report resume line includes leftover class + resolved floor + standing vs one-shot.",
+          "Traces": "FR-3448-7"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/standing_residual_floor_3448.test.ts",
+          "recorded_at": "2026-08-18T05:11:00Z",
+          "recorded_by": "leaf-worker/3448"
+        }
+      },
+      {
+        "title": "**AC8** CHANGELOG cites this issue under process/skills.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "**AC8** CHANGELOG cites this issue under process/skills.",
+          "Traces": "FR-3448-8"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3451",
+          "recorded_at": "2026-08-18T05:10:33Z",
+          "recorded_by": "leaf-worker/3448"
+        }
+      },
+      {
+        "title": "**AC9** Skill/content-contract tests assert the new markers (same pattern as `#3273`).",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "**AC9** Skill/content-contract tests assert the new markers (same pattern as `#3273`).",
+          "Traces": "FR-3448-9"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/standing_residual_floor_3448.test.ts",
+          "recorded_at": "2026-08-18T05:11:00Z",
+          "recorded_by": "leaf-worker/3448"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "swarm",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3448",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3448: feat(review-cycle,swarm): standing residual until resolved conf floor or same-fingerprint loop"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 9 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "AC1 Review-cycle + swarm `#3273` / `#2881` text names leftover classes A/B/C and which ones auto-continue.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "AC2 Continue-until target is the resolved `#3095` floor, not a hard-coded 5. Consumer default 4, dogfood 5, project override honored. Tests or fixtures assert the wording is floor-relative.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 3,
+          "text": "AC3 Standing-order phrases are distinct from one-shot `pursue residual` and apply to open cohort/plan units, not only the last halted PR.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 4,
+          "text": "AC4 Same-fingerprint halt is the loop stop; `#2442` batch cap still applies.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 5,
+          "text": "AC5 `#2881` carve-out: already-touched-file leftover is class A (in-AC residual), not new-subsystem by default.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 6,
+          "text": "AC6 Portable: consumer deposit + maintainer tree; dual-invoke `task` / `deft`; no framework-monorepo-only required path.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 7,
+          "text": "AC7 Halt-report resume line includes leftover class + resolved floor + standing vs one-shot.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 8,
+          "text": "AC8 CHANGELOG cites this issue under process/skills.",
+          "artifact_path": null,
+          "ambiguous": false
+        },
+        {
+          "id": 9,
+          "text": "AC9 Skill/content-contract tests assert the new markers (same pattern as `#3273`).",
+          "artifact_path": null,
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-18T02:09:44Z",
+    "id": "3448-residual-floor-loop",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/skills/deft-directive-review-cycle",
+          "content/skills/deft-directive-swarm",
+          "content/templates",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check"
+        ],
+        "expected_outputs": [
+          "A/B/C leftover classes",
+          "standing-order vs one-shot pursue residual",
+          "floor-relative continue-until (#3095)",
+          "halt-report class+floor+standing",
+          "CHANGELOG #3448"
+        ],
+        "acceptance_criteria_justification": "Nine AC checkboxes on #3448: leftover classes, resolved floor (not hard-coded 5), standing-order vs one-shot, same-fingerprint halt, #2881 carve-out, portable consumer+maintainer, halt-report fields, CHANGELOG, content-contract tests.",
+        "depends_on": [],
+        "conflict_group": "review-residual-policy",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "d670a5479217611182b1cef4088e61291b2b61fb",
+        "prNumber": 3451,
+        "prBase": "master",
+        "mergeCommit": "21c3504bc8622672dcb01e43b6935217d3b4d2ea",
+        "deliveryBranch": "master",
+        "deliveryCommit": "21c3504bc8622672dcb01e43b6935217d3b4d2ea",
+        "verifiedAt": "2026-08-18T05:10:33Z",
+        "verifier": "leaf-worker/3448",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      }
+    }
+  }
+}

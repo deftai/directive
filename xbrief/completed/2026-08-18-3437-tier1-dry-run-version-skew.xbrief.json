@@ -1,0 +1,177 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Tier-1 cherry-pick: dry-run version-skew headline for #3437. File-level planning stays on #3462. Do not close #3437.",
+    "updated": "2026-08-18T15:23:15Z"
+  },
+  "plan": {
+    "id": "3437-tier1-dry-run-version-skew",
+    "title": "Dry-run version-skew headline (tier-1 of #3437)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Consumer honesty only: deft update --dry-run must lead with deposit-manifest vs content-package version skew when they disagree. Independent cherry-pick from halted PR 3453. File-level planning (planned_paths / planned_file_count / strategy) waits on #3462. Do not close #3437.",
+      "UserStory": "As a consumer, I want --dry-run to say 'manifest X -> content Y' when those versions disagree, so I am not told the tree is current immediately before a 1,585-file rewrite.",
+      "ImplementationPlan": "1. In emitDryRunPlan (or a thin equivalent that does not call collect-only / planRefreshDeposit / applyRefreshMutations) read recorded deposit version vs content package version. 2. When they disagree, print that skew as the first dry-run line. 3. JSON: previous_version, content_version, deposit_refresh_pending. 4. Do not emit strategy, planned_paths, or planned_file_count. 5. CHANGELOG [Unreleased]. 6. PR Refs #3437, not Closes. Prior art: halted PR 3453 reads only.",
+      "Origin": "Dispatch envelope for #3437 tier-1; comments: triage 2026-08-17 and design follow-up #3462. Consumer issue remains open.",
+      "Overview": "Uncontested printer honesty. Extract version reads from halted PR 3453, not the collect-only planner.",
+      "Labels": "bug, determinism, agent-experience, vendored-deposit, area:installer, area:cli"
+    },
+    "items": [
+      {
+        "title": "Two version reads on dry-run",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given an initialized deposit, when deft update --dry-run runs, emitDryRunPlan (or a thin equivalent) reads recorded deposit version and content package version without calling collect-only, planRefreshDeposit, or applyRefreshMutations.",
+          "Traces": "FR-3437-T1-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/refresh.test.ts deposit version-skew headline; readDryRunVersions",
+          "recorded_at": "2026-08-18T15:19:00Z",
+          "recorded_by": "grok-build-3437-tier1"
+        }
+      },
+      {
+        "title": "Skew is the first dry-run line",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given deposit manifest 0.78.0 and content package 0.103.0, when --dry-run prints human output, the first line reports the skew as manifest 0.78.0 -> content 0.103.0. Given matching versions, that headline is omitted.",
+          "Traces": "FR-3437-T1-2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/refresh.test.ts skewed-manifest dry-run leads with version skew",
+          "recorded_at": "2026-08-18T15:19:00Z",
+          "recorded_by": "grok-build-3437-tier1"
+        }
+      },
+      {
+        "title": "JSON freshness fields without plan machinery",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given --dry-run --json, the payload includes previous_version, content_version, and deposit_refresh_pending (true iff versions disagree). It does not emit strategy, planned_paths, or planned_file_count. The tree is unchanged.",
+          "Traces": "FR-3437-T1-3"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3464 merge 9053a4ade4949d48097186a63cc5a4f837eed9bb",
+          "recorded_at": "2026-08-18T15:19:13Z",
+          "recorded_by": "grok-build-3437-tier1"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "determinism",
+      "agent-experience",
+      "vendored-deposit",
+      "area:installer",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3437",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3437: deft update --dry-run reports State current before a 1,585-file rewrite"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3462",
+        "type": "x-xbrief/related",
+        "title": "Issue #3462: file-level dry-run planning ADR"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/3453",
+        "type": "x-xbrief/related",
+        "title": "PR #3453: halted prior art (collect-only dry-run)"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/core/src/init-deposit/refresh.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "init-deposit refresh dry-run printer",
+        "cohesion_exemption": "Printer-only version-skew headline in the existing refresh module. refresh.ts, refresh.test.ts, and CHANGELOG.md are already over FILE_SIZE_REVIEW_TRIGGER_LINES. File-level planning and any split wait on #3462."
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/core/src/init-deposit/refresh.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/init-deposit/refresh.test.ts"
+        ],
+        "expected_outputs": [
+          "dry-run version-skew first line",
+          "deposit_refresh_pending JSON",
+          "CHANGELOG #3437 tier-1"
+        ],
+        "depends_on": [],
+        "conflict_group": "update-dry-run-printer",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3464,
+        "prBase": null,
+        "mergeCommit": "9053a4ade4949d48097186a63cc5a4f837eed9bb",
+        "deliveryBranch": "master",
+        "deliveryCommit": "9053a4ade4949d48097186a63cc5a4f837eed9bb",
+        "verifiedAt": "2026-08-18T15:23:15Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "69249d57-d8ad-4e3e-a5e8-609828b04a08"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-18T15:23:15Z",
+      "completedSessionId": "69249d57-d8ad-4e3e-a5e8-609828b04a08",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/init-deposit/refresh.test.ts"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "Dispatch envelope plus #3437 comments: version-skew headline only; file-level planning is #3462.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "dry-run uses 'readDryRunVersions' for recorded deposit vs content package version",
+          "artifact_path": "packages/core/src/init-deposit/refresh.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "when versions disagree, first dry-run line comes from 'buildDepositVersionSkewHeadline'",
+          "artifact_path": "packages/core/src/init-deposit/refresh.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 3,
+          "text": "JSON includes 'previous_version', 'content_version', and 'deposit_refresh_pending'",
+          "artifact_path": "packages/core/src/init-deposit/refresh.ts",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-18T15:23:15Z"
+  }
+}
