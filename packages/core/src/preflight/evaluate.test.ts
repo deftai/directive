@@ -254,6 +254,89 @@ describe("preflight index barrel", () => {
   });
 });
 
+describe("project invariants preflight (#3425)", () => {
+  function writeProjectWithInvariant(root: string, id: string, paths: string[]): void {
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          policy: {
+            projectInvariants: [{ id, statement: "must not break", paths }],
+          },
+        },
+      }),
+      "utf8",
+    );
+  }
+
+  it("fails closed when an applicable ID has no disposition", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-preflight-inv-"));
+    temps.push(root);
+    writeProjectWithInvariant(root, "host-load", ["packages/core/src/preflight/**"]);
+    const dir = join(root, "xbrief", "active");
+    mkdirSync(dir, { recursive: true });
+    const path = join(dir, "story.xbrief.json");
+    writeFileSync(
+      path,
+      JSON.stringify({
+        plan: {
+          status: "running",
+          metadata: { swarm: { file_scope: ["packages/core/src/preflight"] } },
+        },
+      }),
+      "utf8",
+    );
+    const result = evaluate(path);
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toContain("host-load");
+    expect(result.message).toMatch(/coverage_map/);
+  });
+
+  it("passes when the applicable ID is covered", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-preflight-inv-ok-"));
+    temps.push(root);
+    writeProjectWithInvariant(root, "host-load", ["packages/core/src/preflight/**"]);
+    const dir = join(root, "xbrief", "active");
+    mkdirSync(dir, { recursive: true });
+    const path = join(dir, "story.xbrief.json");
+    writeFileSync(
+      path,
+      JSON.stringify({
+        plan: {
+          status: "running",
+          metadata: {
+            swarm: { file_scope: ["packages/core/src/preflight"] },
+            coverage_map: { "host-load": { disposition: "covered" } },
+          },
+        },
+      }),
+      "utf8",
+    );
+    expect(evaluate(path).exitCode).toBe(0);
+  });
+
+  it("honours skipProjectInvariants", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-preflight-inv-skip-"));
+    temps.push(root);
+    writeProjectWithInvariant(root, "host-load", ["packages/core/src/preflight/**"]);
+    const dir = join(root, "xbrief", "active");
+    mkdirSync(dir, { recursive: true });
+    const path = join(dir, "story.xbrief.json");
+    writeFileSync(
+      path,
+      JSON.stringify({
+        plan: {
+          status: "running",
+          metadata: { swarm: { file_scope: ["packages/core/src/preflight"] } },
+        },
+      }),
+      "utf8",
+    );
+    expect(evaluate(path, { skipProjectInvariants: true }).exitCode).toBe(0);
+  });
+});
+
 describe("origin freshness (#3363)", () => {
   function writeOriginBrief(updated: string): string {
     return writeVbrief(

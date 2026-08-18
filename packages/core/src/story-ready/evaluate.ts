@@ -1,6 +1,10 @@
 import { type PathLike, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
+  evaluateProjectInvariantsGate,
+  resolveProjectRootForInvariants,
+} from "../preflight/project-invariants-gate.js";
+import {
   evaluateParentLineage,
   formatParentLineageLine,
   type ParentLineageResult,
@@ -35,6 +39,8 @@ export interface EvaluateOptions {
   readonly projectRoot?: string;
   /** Skip parent-lineage check (tests / opt-out). Default false. */
   readonly skipParentLineage?: boolean;
+  /** Skip project-invariant coverage (#3425). Default false. */
+  readonly skipProjectInvariants?: boolean;
 }
 
 function checkVbrief(
@@ -230,6 +236,19 @@ export function evaluate(vbriefPath: PathLike, options: EvaluateOptions = {}): E
         `not ready: ${lineage.message}` +
         (lineage.defect_class !== null ? ` [defect_class=${lineage.defect_class}]` : "") +
         `\n${formatParentLineageLine(lineage)}`,
+    };
+  }
+
+  const invariants = evaluateProjectInvariantsGate(vbriefCheck.payload, {
+    projectRoot: resolveProjectRootForInvariants(vbriefCheck.path, options.projectRoot),
+    skip: options.skipProjectInvariants === true,
+  });
+  if (!invariants.ok) {
+    return {
+      exitCode: 1,
+      dispatchKind: null,
+      parentLineage: lineage,
+      message: `not ready: ${invariants.message}`,
     };
   }
 

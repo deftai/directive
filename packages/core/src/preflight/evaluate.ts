@@ -10,6 +10,10 @@ import {
   evaluateOriginFreshness,
   type FetchOriginUpdatedAt,
 } from "../vbrief-reconcile/origin-freshness.js";
+import {
+  evaluateProjectInvariantsGate,
+  resolveProjectRootForInvariants,
+} from "./project-invariants-gate.js";
 
 /** Canonical eligibility folder — only vbrief/active/ may spawn implementation. */
 export const ACTIVE_FOLDER = "active";
@@ -42,6 +46,8 @@ export interface EvaluateOptions {
   readonly skipParentLineage?: boolean;
   /** Skip origin timestamp freshness (#3363). Default false. */
   readonly skipOriginFreshness?: boolean;
+  /** Skip project-invariant coverage (#3425). Default false. */
+  readonly skipProjectInvariants?: boolean;
   /** Injected origin fetch for tests. Default: live `gh api` REST. */
   readonly fetchOriginUpdatedAt?: FetchOriginUpdatedAt;
 }
@@ -225,6 +231,19 @@ export function evaluate(vbriefPath: string, options: EvaluateOptions = {}): Eva
       exitCode: 1,
       parentLineage: lineage,
       message: buildReject(path, originFreshness.message),
+    };
+  }
+
+  // #3425: fail closed when an applicable project invariant has no disposition.
+  const invariants = evaluateProjectInvariantsGate(record, {
+    projectRoot: resolveProjectRootForInvariants(path, options.projectRoot),
+    skip: options.skipProjectInvariants === true,
+  });
+  if (!invariants.ok) {
+    return {
+      exitCode: 1,
+      parentLineage: lineage,
+      message: buildReject(path, invariants.message),
     };
   }
 

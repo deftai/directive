@@ -369,6 +369,92 @@ describe("evaluate", () => {
     expect(result.parentLineage?.ok).toBe(true);
     expect(result.parentLineage?.applicable).toBe(true);
   });
+
+  it("fails closed when an applicable project invariant ID is omitted (#3425)", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-sr-inv-"));
+    temps.push(base);
+    mkdirSync(join(base, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(base, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          policy: {
+            projectInvariants: [
+              {
+                id: "host-load",
+                statement: "Do not break host load.",
+                paths: ["packages/core/src/story-ready/**"],
+              },
+            ],
+          },
+        },
+      }),
+      "utf8",
+    );
+    const dir = join(base, "xbrief", "active");
+    mkdirSync(dir, { recursive: true });
+    const path = join(dir, "story.xbrief.json");
+    writeFileSync(
+      path,
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "T",
+          items: [],
+          status: "running",
+          metadata: { swarm: { file_scope: ["packages/core/src/story-ready"] } },
+        },
+      }),
+      "utf8",
+    );
+    const result = evaluate(path, { gitStatus: CLEAN_TREE, projectRoot: base });
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toContain("host-load");
+    expect(result.message).toMatch(/coverage_map/);
+  });
+
+  it("passes when the applicable project invariant is covered (#3425)", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-sr-inv-ok-"));
+    temps.push(base);
+    mkdirSync(join(base, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(base, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          policy: {
+            projectInvariants: [
+              {
+                id: "host-load",
+                statement: "Do not break host load.",
+                paths: ["packages/core/src/story-ready/**"],
+              },
+            ],
+          },
+        },
+      }),
+      "utf8",
+    );
+    const dir = join(base, "xbrief", "active");
+    mkdirSync(dir, { recursive: true });
+    const path = join(dir, "story.xbrief.json");
+    writeFileSync(
+      path,
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "T",
+          items: [],
+          status: "running",
+          metadata: {
+            swarm: { file_scope: ["packages/core/src/story-ready"] },
+            coverage_map: { "host-load": { disposition: "covered" } },
+          },
+        },
+      }),
+      "utf8",
+    );
+    expect(evaluate(path, { gitStatus: CLEAN_TREE, projectRoot: base }).exitCode).toBe(0);
+  });
 });
 
 describe("gitPorcelain", () => {

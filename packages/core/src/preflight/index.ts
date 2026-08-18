@@ -9,3 +9,12 @@ export {
   formatActivateHint,
   PREFLIGHT_USAGE_HINT,
 } from "./evaluate.js";
+export type {
+  ProjectInvariantsGateOptions,
+  ProjectInvariantsGateResult,
+} from "./project-invariants-gate.js";
+export {
+  evaluateProjectInvariantsGate,
+  PROJECT_INVARIANT_REMEDIATION,
+  resolveProjectRootForInvariants,
+} from "./project-invariants-gate.js";
