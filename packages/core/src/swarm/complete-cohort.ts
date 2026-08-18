@@ -321,6 +321,7 @@ function completeParent(args: CompleteParentArgs): TransitionRecord {
 
   let current = parentPath;
   let action = "complete";
+  let activateNotice = "";
   if (folder === "pending") {
     action = "activate+complete";
     const activateResult = runTransition("activate", current);
@@ -333,6 +334,7 @@ function completeParent(args: CompleteParentArgs): TransitionRecord {
         detail: `activate failed: ${activateResult.message}`,
       };
     }
+    activateNotice = activateResult.message.trim();
     current = join(vbriefDir, "active", parentPath.split(/[/\\]/).pop() ?? "");
   }
 
@@ -345,12 +347,16 @@ function completeParent(args: CompleteParentArgs): TransitionRecord {
   if (completeResult.ok) {
     settled.add(resolve(join(vbriefDir, "completed", parentPath.split(/[/\\]/).pop() ?? "")));
   }
+  const detail =
+    activateNotice.length > 0
+      ? `${activateNotice}\n${completeResult.message}`
+      : completeResult.message;
   return {
     kind: "epic",
     path: relpath,
     action: completeResult.ok ? action : "failed",
     ok: completeResult.ok,
-    detail: completeResult.message,
+    detail,
   };
 }
 

@@ -170,6 +170,55 @@ describe("complete cohort live sweep with mocked transition", () => {
     rmSync(project, { recursive: true, force: true });
   });
 
+  it("keeps refused-stamp activate remediation on activate+complete (#3398)", () => {
+    vi.mocked(runTransition).mockImplementation((verb: string) => {
+      if (verb === "activate") {
+        return {
+          ok: true,
+          message:
+            "Activated pending/parent-notice.xbrief.json -> active/.\nRefused implementation-only clause stamp; derive clauses from the statement's testable constraints.",
+        };
+      }
+      return { ok: true, message: `${verb} ok` };
+    });
+    const project = mkdtempSync(join(tmpdir(), "sw-act-notice-"));
+    mkdirSync(join(project, "xbrief", "pending"), { recursive: true });
+    mkdirSync(join(project, "xbrief", "completed"), { recursive: true });
+    const childCompleted = join(project, "xbrief", "completed", "child-notice.xbrief.json");
+    writeFileSync(
+      childCompleted,
+      JSON.stringify({
+        plan: {
+          id: "child-notice",
+          title: "child-notice",
+          status: "completed",
+          planRef: "pending/parent-notice.xbrief.json",
+          items: [{ id: "i1", title: "t", status: "done" }],
+        },
+      }),
+      "utf8",
+    );
+    writeFileSync(
+      join(project, "xbrief", "pending", "parent-notice.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          id: "parent-notice",
+          title: "parent-notice",
+          status: "pending",
+          references: [{ type: "x-vbrief/plan", uri: "completed/child-notice.xbrief.json" }],
+          metadata: { kind: "epic" },
+        },
+      }),
+      "utf8",
+    );
+    const sweep = sweepCohort([childCompleted], project, false);
+    const parent = sweep.parents.find((p) => p.action === "activate+complete");
+    expect(parent?.ok).toBe(true);
+    expect(parent?.detail).toContain("derive clauses from the statement's testable constraints");
+    expect(parent?.detail).toContain("complete ok");
+    rmSync(project, { recursive: true, force: true });
+  });
+
   it("reports failed transition", () => {
     vi.mocked(runTransition).mockReturnValueOnce({ ok: false, message: "transition failed" });
     const project = mkdtempSync(join(tmpdir(), "sw-fail-"));
