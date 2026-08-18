@@ -6,7 +6,7 @@
  * Applicability is a pure intersection of contract surface × file_scope.
  */
 
-import { matchAny, matchPath, normalizePath } from "../orchestration/pathspec.js";
+import { matchPath, normalizePath } from "../orchestration/pathspec.js";
 import type { ProjectInvariant } from "../policy/project-invariants.js";
 import { type CoverageMapEntry, parseBehavioralDeltas, parseCoverageMap } from "./coverage-map.js";
 
@@ -42,17 +42,62 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+export type GlobDepth = "exact" | "one" | "subtree";
+
+export interface ClassifiedGlob {
+  readonly prefix: string;
+  readonly depth: GlobDepth;
+}
+
+/**
+ * Classify a path/glob without regular expressions (CodeQL js/polynomial-redos).
+ * Unstarred paths are directory prefixes (file_scope semantics).
+ */
+export function classifyGlob(glob: string): ClassifiedGlob {
+  let p = normalizePath(glob).trim();
+  if (p.endsWith("/")) p = p.slice(0, -1);
+  if (p === "**") {
+    return { prefix: "", depth: "subtree" };
+  }
+  const starStar = p.indexOf("/**");
+  if (starStar >= 0) {
+    return { prefix: p.slice(0, starStar), depth: "subtree" };
+  }
+  if (p.endsWith("/*")) {
+    return { prefix: p.slice(0, -2), depth: "one" };
+  }
+  if (p.includes("*") || p.includes("?")) {
+    const slashStar = p.indexOf("/*");
+    if (slashStar >= 0) {
+      return { prefix: p.slice(0, slashStar), depth: "subtree" };
+    }
+    return { prefix: p, depth: "subtree" };
+  }
+  return { prefix: p, depth: "subtree" };
+}
+
 /** Strip glob tails so prefix comparison stays path-shaped. */
 export function normalizeGlobAsPath(glob: string): string {
-  return normalizePath(glob)
-    .replace(/\/\*\*.*$/, "")
-    .replace(/\/\*$/, "")
-    .replace(/\/$/, "");
+  return classifyGlob(glob).prefix;
+}
+
+function remainderUnder(child: string, parent: string): string | null {
+  if (child === parent) return "";
+  const stem = parent.length === 0 ? "" : `${parent}/`;
+  if (parent.length === 0) return child;
+  if (!child.startsWith(stem)) return null;
+  return child.slice(stem.length);
+}
+
+function depthAllows(depth: GlobDepth, remainder: string): boolean {
+  if (depth === "subtree") return true;
+  if (depth === "exact") return remainder.length === 0;
+  return remainder.length > 0 && !remainder.includes("/");
 }
 
 /**
  * True when two path/glob strings can name a shared tree.
- * Bidirectional glob match plus directory-prefix overlap.
+ * `/*` is one segment; `/**` / unstarred file_scope paths are subtrees.
  */
 export function pathGlobsIntersect(left: string, right: string): boolean {
   const a = normalizePath(left).trim();
@@ -61,12 +106,14 @@ export function pathGlobsIntersect(left: string, right: string): boolean {
   if (a === b) return true;
   if (matchPath(a, b) || matchPath(b, a)) return true;
 
-  const ap = normalizeGlobAsPath(a);
-  const bp = normalizeGlobAsPath(b);
-  if (ap.length === 0 || bp.length === 0) return false;
-  if (ap === bp) return true;
-  if (matchAny([a], bp) || matchAny([b], ap)) return true;
-  if (ap.startsWith(`${bp}/`) || bp.startsWith(`${ap}/`)) return true;
+  const ca = classifyGlob(a);
+  const cb = classifyGlob(b);
+  if (ca.prefix.length === 0 && cb.prefix.length === 0) return true;
+
+  const aUnderB = remainderUnder(ca.prefix, cb.prefix);
+  if (aUnderB !== null && depthAllows(cb.depth, aUnderB)) return true;
+  const bUnderA = remainderUnder(cb.prefix, ca.prefix);
+  if (bUnderA !== null && depthAllows(ca.depth, bUnderA)) return true;
   return false;
 }
 
@@ -266,8 +313,12 @@ export function validateProjectInvariantCoverage(opts: {
   );
   errors.push(...deltaErrors);
 
+  const applicableSet = new Set(applicableIds);
   const byId = new Map<string, CoverageMapEntry>();
   for (const entry of entries) {
+    if (!applicableSet.has(entry.parent_requirement_id)) {
+      continue;
+    }
     if (entry.disposition === "split") {
       errors.push(
         `coverage_map[${entry.parent_requirement_id}]: disposition split is excluded at project level`,

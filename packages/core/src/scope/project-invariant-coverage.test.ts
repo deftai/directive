@@ -48,6 +48,16 @@ describe("pathGlobsIntersect", () => {
     expect(pathGlobsIntersect("packages/cli", "packages/core")).toBe(false);
     expect(pathGlobsIntersect("", "packages/core")).toBe(false);
   });
+
+  it("treats **/*.ts as a subtree under the prefix", () => {
+    expect(pathGlobsIntersect("packages/**/*.ts", "packages/core")).toBe(true);
+    expect(pathGlobsIntersect("packages/**/*.ts", "content/docs")).toBe(false);
+  });
+
+  it("keeps /* to one path segment", () => {
+    expect(pathGlobsIntersect("packages/core/*", "packages/core/foo")).toBe(true);
+    expect(pathGlobsIntersect("packages/core/*", "packages/core/foo/bar")).toBe(false);
+  });
 });
 
 describe("applicableProjectInvariants", () => {
@@ -138,7 +148,7 @@ describe("validateProjectInvariantCoverage", () => {
     expect(result.ok).toBe(true);
   });
 
-  it("rejects split at project level", () => {
+  it("rejects split at project level only for applicable IDs", () => {
     const result = validateProjectInvariantCoverage({
       applicableIds: ["a"],
       draft: {
@@ -149,6 +159,17 @@ describe("validateProjectInvariantCoverage", () => {
     });
     expect(result.ok).toBe(false);
     expect(result.errors.join(" ")).toMatch(/split is excluded at project level/);
+
+    const parentSplit = validateProjectInvariantCoverage({
+      applicableIds: ["a"],
+      draft: {
+        coverage_map: {
+          a: { disposition: "covered" },
+          "req-parent": { disposition: "split", split_group: "g", part: "1" },
+        },
+      },
+    });
+    expect(parentSplit.ok).toBe(true);
   });
 
   it("accepts not_applicable only with a reason", () => {
