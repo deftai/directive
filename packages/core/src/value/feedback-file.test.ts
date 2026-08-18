@@ -227,6 +227,21 @@ describe("feedback-file CLI", () => {
     expect(parsed.confirm).toBe(true);
   });
 
+  it("accumulates two space-separated --context flags", () => {
+    const parsed = parseFeedbackFileArgs(["--context", "first", "--context", "second"]);
+    expect(parsed.context).toBe("first\nsecond");
+  });
+
+  it("accumulates two --context= flags", () => {
+    const parsed = parseFeedbackFileArgs(["--context=first", "--context=second"]);
+    expect(parsed.context).toBe("first\nsecond");
+  });
+
+  it("keeps prior --context when a later flag has no value", () => {
+    const parsed = parseFeedbackFileArgs(["--context", "kept", "--context"]);
+    expect(parsed.context).toBe("kept");
+  });
+
   it("returns config error when summary missing", () => {
     expect(feedbackFileMain([])).toBe(2);
   });

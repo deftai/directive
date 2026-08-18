@@ -337,10 +337,18 @@ export interface FeedbackFileCliArgs {
   error?: string;
 }
 
+/** Join repeated --context values; schema stays `context?: string` (#3454). */
+const CONTEXT_JOIN = "\n";
+
+function appendContextValue(collected: string[], value: string | undefined): void {
+  if (typeof value === "string") collected.push(value);
+}
+
 /** Parse argv for feedback:file. */
 export function parseFeedbackFileArgs(argv: readonly string[]): FeedbackFileCliArgs {
   const out: FeedbackFileCliArgs = {};
   const positionals: string[] = [];
+  const contextValues: string[] = [];
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i] as string;
     if (arg === "--confirm") out.confirm = true;
@@ -351,9 +359,9 @@ export function parseFeedbackFileArgs(argv: readonly string[]): FeedbackFileCliA
     } else if (arg?.startsWith("--summary=")) {
       out.summary = arg.slice("--summary=".length);
     } else if (arg === "--context") {
-      out.context = argv[++i];
+      appendContextValue(contextValues, argv[++i]);
     } else if (arg?.startsWith("--context=")) {
-      out.context = arg.slice("--context=".length);
+      appendContextValue(contextValues, arg.slice("--context=".length));
     } else if (arg === "--expected") {
       out.expected = argv[++i];
     } else if (arg?.startsWith("--expected=")) {
@@ -384,6 +392,9 @@ export function parseFeedbackFileArgs(argv: readonly string[]): FeedbackFileCliA
   }
   if ((out.summary === undefined || out.summary.trim().length === 0) && positionals.length > 0) {
     out.summary = positionals.join(" ");
+  }
+  if (contextValues.length > 0) {
+    out.context = contextValues.join(CONTEXT_JOIN);
   }
   return out;
 }

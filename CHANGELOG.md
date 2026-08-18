@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`feedback:file` repeated `--context` flags accumulate (#3454).** Collected values join with newlines so `context` stays a string. Closes #3454.
 - **`deft update --dry-run` leads with deposit vs content version skew (#3437).** When the recorded install manifest and the content package disagree, that line is first (`manifest X -> content Y`). `--json` adds `previous_version`, `content_version`, and `deposit_refresh_pending`. No file-level plan (`strategy` / `planned_paths` / `planned_file_count`) — that waits on #3462. Refs #3437. Prior art: halted PR 3453.
 - **Init-deposit dest deletes go through the write chokepoint (#3456).** Named dest deletes and temp cleanups use `containedRemove`. Schema projection validates planned content, not stale dest a skipped write would replace. Plan-mode / `deft update --dry-run` leaves the tree unchanged (keystone hash). Closes #3456. Refs #3392, #3437.
 - **Occupancy lock races (#3433).** Release re-reads under the occupancy lock so close-out cannot delete a replacement claim. Lock wait unlinks only a lock this waiter acquired, or a lock whose owner PID is proven dead — not a live writer.
