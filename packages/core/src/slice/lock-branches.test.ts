@@ -48,7 +48,7 @@ describe("lock branches", () => {
   it("does not reclaim a live holder just because the lock is old", () => {
     const path = join(tmpdir(), `deft-lock-live-old-${Date.now()}.jsonl`);
     const lockPath = `${path}.lock`;
-    fs.writeFileSync(lockPath, `${process.pid}\n1\n`);
+    fs.writeFileSync(lockPath, `${process.pid}\n${Date.now() - 180_000}\n`);
     expect(() => withAppendLock(path, () => undefined, instantTimeoutDeps())).toThrow(
       /timed out acquiring lock/,
     );
