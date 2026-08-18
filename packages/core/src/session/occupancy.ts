@@ -7,20 +7,11 @@
  */
 
 import { randomUUID } from "node:crypto";
-import {
-  closeSync,
-  existsSync,
-  mkdirSync,
-  openSync,
-  readFileSync,
-  renameSync,
-  rmSync,
-  unlinkSync,
-  writeSync,
-} from "node:fs";
+import { existsSync, readFileSync, renameSync, rmSync, unlinkSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { containedRemove, containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
+import { withAppendLock } from "../slice/lock.js";
 import { stableJson } from "./json.js";
 import { parseTimestamp, timestampIso } from "./time.js";
 
@@ -488,40 +479,20 @@ function removeOccupancyFile(projectRoot: string): void {
   containedRemove({ root, target: occupancyPath(root) });
 }
 
-function occupancyLockPath(projectRoot: string): string {
-  return `${occupancyPath(projectRoot)}.lock`;
-}
-
 function withOccupancyLock<T>(projectRoot: string, fn: () => T): T {
-  const root = resolve(projectRoot);
-  const lockPath = occupancyLockPath(root);
-  assertWriteTargetSafe(root, lockPath);
-  mkdirSync(dirname(lockPath), { recursive: true });
-  let fd: number;
+  const target = occupancyPath(projectRoot);
   try {
-    fd = openSync(lockPath, "wx");
+    return withAppendLock(target, fn);
   } catch (err) {
-    const code = (err as NodeJS.ErrnoException).code;
-    if (code === "EEXIST") {
-      throw new Error(
-        `occupancy lease is busy (${lockPath}). Retry after the other claim finishes.`,
-      );
-    }
-    throw err;
-  }
-  try {
-    writeSync(fd, `${process.pid}\n`);
-    return fn();
-  } finally {
-    try {
-      closeSync(fd);
-    } catch {
-      /* ignore */
+    const message = err instanceof Error ? err.message : String(err);
+    if (!message.includes("timed out acquiring lock")) {
+      throw err;
     }
     try {
-      unlinkSync(lockPath);
+      unlinkSync(`${target}.lock`);
     } catch {
-      /* ignore */
+      /* stale lock already gone */
     }
+    return withAppendLock(target, fn);
   }
 }

@@ -606,7 +606,7 @@ export function completeCohort(args: {
 
   if (result.ok && args.dryRun !== true) {
     const released = releaseOccupancy(projectRoot, { env: process.env });
-    if (released.code !== 0 && released.action !== "denied") {
+    if (released.code !== 0) {
       result.ok = false;
       result.errors.push(released.message);
     }
