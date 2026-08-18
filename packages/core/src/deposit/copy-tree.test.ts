@@ -220,6 +220,8 @@ describe("replaceTree (#2913 full-tree swap, Go swapInCore parity)", () => {
     mkdirSync(join(dst, "nested"), { recursive: true });
     writeFileSync(join(src, "kept.md"), "new\n", "utf-8");
     writeFileSync(join(dst, "kept.md"), "old\n", "utf-8");
+    writeFileSync(join(src, "same.md"), "same\n", "utf-8");
+    writeFileSync(join(dst, "same.md"), "same\n", "utf-8");
     writeFileSync(join(dst, "nested", "stale.md"), "EVIL\n", "utf-8");
 
     const summary = await runWithMutationLedger(
@@ -233,7 +235,35 @@ describe("replaceTree (#2913 full-tree swap, Go swapInCore parity)", () => {
 
     expect(summary.deleted).toEqual(expect.arrayContaining(["dst/nested/stale.md"]));
     expect(summary.wrote).toEqual(expect.arrayContaining(["dst/kept.md"]));
+    expect(summary.wrote).not.toContain("dst/same.md");
     expect(readFileSync(join(dst, "kept.md"), "utf-8")).toBe("old\n");
+    expect(readFileSync(join(dst, "same.md"), "utf-8")).toBe("same\n");
     expect(readFileSync(join(dst, "nested", "stale.md"), "utf-8")).toBe("EVIL\n");
+  });
+
+  it("collect-only fails closed when a src file cannot be read (#3437)", async () => {
+    const workspace = freshRoot("replace-tree-unreadable-");
+    const src = join(workspace, "src");
+    const dst = join(workspace, "dst");
+    mkdirSync(src, { recursive: true });
+    mkdirSync(dst, { recursive: true });
+    writeFileSync(join(src, "ok.md"), "new\n", "utf-8");
+    const blocked = join(src, "blocked.md");
+    writeFileSync(blocked, "secret\n", "utf-8");
+    writeFileSync(join(dst, "ok.md"), "old\n", "utf-8");
+    chmodSync(blocked, 0o000);
+
+    try {
+      await expect(
+        runWithMutationLedger(
+          workspace,
+          async () => replaceTree(src, dst),
+          { collectOnly: true },
+        ),
+      ).rejects.toThrow(/cannot read|EACCES|EPERM|permission/i);
+      expect(readFileSync(join(dst, "ok.md"), "utf-8")).toBe("old\n");
+    } finally {
+      chmodSync(blocked, 0o644);
+    }
   });
 });

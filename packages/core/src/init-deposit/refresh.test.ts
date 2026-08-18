@@ -1442,6 +1442,16 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     mkdirSync(join(project, "xbrief", "schemas"), { recursive: true });
     mkdirSync(join(project, ".claude", "commands"), { recursive: true });
     writeFileSync(
+      join(project, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      '{"xBRIEFInfo":{"version":"0.8"}}\n',
+      "utf8",
+    );
+    writeFileSync(
+      join(project, "xbrief", "vbrief.md"),
+      "# obsolete framework narrative\n",
+      "utf8",
+    );
+    writeFileSync(
       join(project, "xbrief", "schemas", "xbrief-core-0.8.schema.json"),
       '{"description":"stale dest still cites vbrief/.eval/candidates.jsonl"}\n',
       "utf8",
@@ -1570,6 +1580,8 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     writeInitializedProject(project, { contentVersion: "0.78.0" });
     mkdirSync(join(project, ".deft", "core", "stale-skill"), { recursive: true });
     writeFileSync(join(project, ".deft", "core", "stale-skill", "SKILL.md"), "stale\n", "utf8");
+    writeFileSync(join(contentRoot, "unchanged-sentinel.md"), "same-bytes\n", "utf8");
+    writeFileSync(join(project, ".deft", "core", "unchanged-sentinel.md"), "same-bytes\n", "utf8");
     const seams = {
       resolveContentRoot: async () => contentRoot,
       readEngineVersion: () => "0.103.0",
@@ -1583,6 +1595,7 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     expect(listRelFiles(project)).toEqual(beforeFiles);
     expect(planned.strategy).toBe("file-swap");
     expect(planned.plannedPaths).toContain(".deft/core/stale-skill/SKILL.md");
+    expect(planned.plannedPaths).not.toContain(".deft/core/unchanged-sentinel.md");
 
     const result = await runRefreshDeposit(
       { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
