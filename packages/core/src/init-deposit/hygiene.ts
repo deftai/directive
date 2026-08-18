@@ -18,6 +18,7 @@ import { dirname, join, relative } from "node:path";
 import { containedDestExec, containedRemove } from "../fs/contained-write.js";
 import {
   activeMutationLedger,
+  isPortRecordMode,
   type MutationSummary,
   snapshotMutationSummary,
 } from "../fs/mutation-ledger.js";
@@ -1234,6 +1235,10 @@ export async function reconcileDepositToContentPackage(
   const result = await prunePackageAbsentDepositPaths(deftDir, contentRoot, io);
   const remaining = await findPackageAbsentDepositPaths(deftDir, contentRoot);
   if (remaining.length > 0) {
+    if (isPortRecordMode()) {
+      // Dest IO was skipped; dest-only paths stay on disk and are already ledgered.
+      return result;
+    }
     const sample = remaining.slice(0, 5).join(", ");
     const more = remaining.length > 5 ? ` (+${remaining.length - 5} more)` : "";
     throw new Error(

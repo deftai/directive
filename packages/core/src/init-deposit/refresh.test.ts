@@ -1527,6 +1527,37 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     expect(readFileSync(join(project, "AGENTS.md"), "utf8")).toBe(beforeAgents);
   });
 
+  it("skewed dry-run records dest-only core deletes without failing reconcile (ADR-004)", async () => {
+    const project = freshRoot("update-dryrun-destonly-");
+    const contentRoot = installFakeContentPackage(project, "0.103.0");
+    writeInitializedProject(project, { contentVersion: "0.78.0", pinVersion: "0.103.0" });
+    const destOnly = join(project, ".deft", "core", "stale-agent.md");
+    writeFileSync(destOnly, "EVIL\n", "utf8");
+    const before = readFileSync(destOnly, "utf8");
+    const out: string[] = [];
+
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      dryRun: true,
+      classifySeams: classifySeams({ reachable: true, version: "0.103.0" }),
+      writeOut: (t) => out.push(t),
+      writeErr: () => undefined,
+      seams: {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.103.0",
+      },
+    });
+
+    expect(code).toBe(0);
+    expect(readFileSync(destOnly, "utf8")).toBe(before);
+    const payload = parseJsonObject(out.join(""));
+    const deleted = (payload.mutations as { deleted: string[] }).deleted;
+    expect(deleted.some((path) => path.replace(/\\/g, "/").endsWith("stale-agent.md"))).toBe(true);
+  });
+
   it("dry-run fails closed when content version cannot be read (#3437)", async () => {
     const project = freshRoot("update-dryrun-readfail-");
     writeInitializedProject(project, { contentVersion: "0.78.0", pinVersion: "0.103.0" });
