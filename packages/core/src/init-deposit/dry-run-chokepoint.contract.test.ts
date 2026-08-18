@@ -80,7 +80,9 @@ describe("dry-run dest-mutation chokepoint (#3437 / #3392 / #3458)", () => {
       if (rel === "xbrief-migrate/migrate-project.ts") {
         const body = extractFunctionBody(source, "removeStaleMigratedFrameworkNarrative");
         expect(body, `${rel} must export removeStaleMigratedFrameworkNarrative`).not.toBeNull();
-        violations.push(...destMutationHits(body ?? "", `${rel}#removeStaleMigratedFrameworkNarrative`));
+        violations.push(
+          ...destMutationHits(body ?? "", `${rel}#removeStaleMigratedFrameworkNarrative`),
+        );
         continue;
       }
       if (rel === "deposit/copy-tree.ts") {

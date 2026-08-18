@@ -241,7 +241,7 @@ describe("replaceTree (#2913 full-tree swap, Go swapInCore parity)", () => {
     expect(readFileSync(join(dst, "nested", "stale.md"), "utf-8")).toBe("EVIL\n");
   });
 
-  it("collect-only fails closed when a src file cannot be read (#3437)", async () => {
+  itChmod("collect-only fails closed when a src file cannot be read (#3437)", async () => {
     const workspace = freshRoot("replace-tree-unreadable-");
     const src = join(workspace, "src");
     const dst = join(workspace, "dst");
@@ -255,11 +255,7 @@ describe("replaceTree (#2913 full-tree swap, Go swapInCore parity)", () => {
 
     try {
       await expect(
-        runWithMutationLedger(
-          workspace,
-          async () => replaceTree(src, dst),
-          { collectOnly: true },
-        ),
+        runWithMutationLedger(workspace, async () => replaceTree(src, dst), { collectOnly: true }),
       ).rejects.toThrow(/cannot read|EACCES|EPERM|permission/i);
       expect(readFileSync(join(dst, "ok.md"), "utf-8")).toBe("old\n");
     } finally {

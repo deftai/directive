@@ -152,34 +152,70 @@ async function destOnlyRelativeFiles(
   return (await listRelativeFilePaths(dst, options)).filter((rel) => !srcSet.has(rel));
 }
 
-/** Record dest-only deletes and src writes without swapping the tree (#3437). */
-async function collectReplaceTreeMutations(src: string, dst: string): Promise<void> {
-  const destOnly = (await pathExists(dst))
-    ? await destOnlyRelativeFiles(src, dst, { failClosed: true })
-    : [];
-  for (const rel of destOnly) {
-    recordActiveMutation("deleted", join(dst, ...rel.split("/")));
+async function readSourceFileOrThrow(path: string): Promise<Buffer> {
+  try {
+    return await readFile(path);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`replaceTree: cannot read ${path}: ${msg}`);
   }
-  for (const rel of await listRelativeFilePaths(src, { failClosed: true })) {
-    recordActiveMutation("wrote", join(dst, ...rel.split("/")));
+}
+
+async function destContentMatches(dstPath: string, srcBuf: Buffer): Promise<boolean> {
+  try {
+    const destInfo = await lstat(dstPath);
+    if (destInfo.isSymbolicLink() || destInfo.isDirectory()) return false;
+    return (await readFile(dstPath)).equals(srcBuf);
+  } catch {
+    return false;
   }
 }
 
 /**
- * Ledger dest-only deletes and dest writes after a successful swap (#3392).
- * Observational: dest is already live. Failures must not reject replaceTree.
+ * Same comparison execute and collect-only use: dest-only deletes plus src
+ * files whose dest bytes differ. Unreadable src fails closed (#3437).
  */
-async function ledgerReplacedTree(dst: string, destOnly: readonly string[]): Promise<void> {
-  try {
-    for (const rel of destOnly) {
-      recordActiveMutation("deleted", join(dst, ...rel.split("/")));
+async function planReplaceTreeMutations(
+  src: string,
+  dst: string,
+): Promise<{ deleted: string[]; wrote: string[] }> {
+  const destOnly = (await pathExists(dst))
+    ? await destOnlyRelativeFiles(src, dst, { failClosed: true })
+    : [];
+  const wrote: string[] = [];
+  for (const rel of await listRelativeFilePaths(src, { failClosed: true })) {
+    const srcPath = join(src, ...rel.split("/"));
+    const dstPath = join(dst, ...rel.split("/"));
+    let srcInfo: Awaited<ReturnType<typeof lstat>>;
+    try {
+      srcInfo = await lstat(srcPath);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(`replaceTree: cannot read ${srcPath}: ${msg}`);
     }
-    for (const rel of await listRelativeFilePaths(dst)) {
-      recordActiveMutation("wrote", join(dst, ...rel.split("/")));
-    }
-  } catch {
-    // Ledger is observational; dest is already live.
+    if (srcInfo.isSymbolicLink()) continue;
+    const srcBuf = await readSourceFileOrThrow(srcPath);
+    if (await destContentMatches(dstPath, srcBuf)) continue;
+    wrote.push(rel);
   }
+  return { deleted: destOnly, wrote };
+}
+
+function recordReplaceTreePlan(
+  dst: string,
+  planned: { readonly deleted: readonly string[]; readonly wrote: readonly string[] },
+): void {
+  for (const rel of planned.deleted) {
+    recordActiveMutation("deleted", join(dst, ...rel.split("/")));
+  }
+  for (const rel of planned.wrote) {
+    recordActiveMutation("wrote", join(dst, ...rel.split("/")));
+  }
+}
+
+/** Record dest-only deletes and content-changing src writes without swapping (#3437). */
+async function collectReplaceTreeMutations(src: string, dst: string): Promise<void> {
+  recordReplaceTreePlan(dst, await planReplaceTreeMutations(src, dst));
 }
 
 /**
@@ -227,6 +263,7 @@ export async function replaceTree(src: string, dst: string): Promise<void> {
     await collectReplaceTreeMutations(src, dst);
     return;
   }
+  const planned = await planReplaceTreeMutations(src, dst);
 
   const parent = dirname(dst);
   await mkdir(parent, { recursive: true, mode: DEFAULT_DIR_MODE });
@@ -235,12 +272,10 @@ export async function replaceTree(src: string, dst: string): Promise<void> {
   let backup: string | null = null;
   /** When true, leave `backup` on disk so an operator can recover after dual failure. */
   let preserveBackupOnExit = false;
-  let destOnly: string[] = [];
   try {
     await copyDirContents(src, staging);
 
     if (await pathExists(dst)) {
-      destOnly = await destOnlyRelativeFiles(src, dst);
       backup = await mkdtemp(join(tmpdir(), "deft-core-bak-"));
       // mkdtemp created an empty dir; remove it so moveTree can rename onto the path.
       await rm(backup, { recursive: true, force: true });
@@ -296,7 +331,7 @@ export async function replaceTree(src: string, dst: string): Promise<void> {
       await rm(backup, { recursive: true, force: true }).catch(() => undefined);
       backup = null;
     }
-    await ledgerReplacedTree(dst, destOnly);
+    recordReplaceTreePlan(dst, planned);
   } finally {
     await rm(staging, { recursive: true, force: true }).catch(() => undefined);
     if (backup !== null && !preserveBackupOnExit) {

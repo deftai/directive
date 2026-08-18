@@ -6,7 +6,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { mkdir, readdir, rm, stat } from "node:fs/promises";
 import { platform } from "node:os";
 import { join, relative, resolve } from "node:path";
@@ -320,7 +320,7 @@ export async function writeConsumerVbrief(
   if (!vbriefMdPresent) {
     const fwVbriefMd = join(deftDir, "vbrief", "vbrief.md");
     if (existsSync(fwVbriefMd)) {
-      copyFileSync(fwVbriefMd, vbriefMdDst);
+      containedProjectWrite(projectDir, vbriefMdDst, readFileSync(fwVbriefMd));
     } else {
       containedProjectWrite(projectDir, vbriefMdDst, VBRIEF_README_BODY);
     }

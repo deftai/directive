@@ -1446,11 +1446,7 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
       '{"xBRIEFInfo":{"version":"0.8"}}\n',
       "utf8",
     );
-    writeFileSync(
-      join(project, "xbrief", "vbrief.md"),
-      "# obsolete framework narrative\n",
-      "utf8",
-    );
+    writeFileSync(join(project, "xbrief", "vbrief.md"), "# obsolete framework narrative\n", "utf8");
     writeFileSync(
       join(project, "xbrief", "schemas", "xbrief-core-0.8.schema.json"),
       '{"description":"stale dest still cites vbrief/.eval/candidates.jsonl"}\n',

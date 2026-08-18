@@ -15,9 +15,11 @@
  * onto this API over bespoke per-sink checks when equivalent. See
  * `docs/reference/contained-write.md`.
  *
- * Delete coverage (#3392 / #3456): real dest deletes MUST go through
- * {@link containedRemove} so a bound ledger (and later collect-only) records
- * them. Raw `rmSync` on a dest path is a chokepoint bypass.
+ * Delete coverage (#3392 / #3456 / #3458 / #3437): real dest deletes MUST go
+ * through {@link containedRemove} so a bound ledger (and collect-only) records
+ * them. Raw `rmSync` on a dest path is a **statically banned** chokepoint
+ * bypass — the dry-run contract test fails the import/call, not just a review
+ * comment. Route the site through this file.
  *
  * Plan-mode zero-mutation (#3456): plan-mode / `deft update --dry-run` MUST
  * perform zero in-tree filesystem mutations. Temp-file cleanups either use
@@ -28,7 +30,7 @@
  * refuses `migration-required` first). Its default removeDir still routes
  * through containedRemove so the site is not a silent exception.
  *
- * Refs #2951 / #3392 / #3456.
+ * Refs #2951 / #3392 / #3456 / #3458 / #3437.
  */
 
 import {

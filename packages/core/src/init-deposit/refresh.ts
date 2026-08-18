@@ -9,7 +9,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, renameSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { platform as osPlatform } from "node:os";
 import { join, resolve } from "node:path";
 import type { ResolutionFacts, ResolutionPlan } from "@deftai/directive-types";
@@ -20,6 +20,7 @@ import { resolveInstalledContentRoot } from "../deposit/resolve-content.js";
 import { manifestTagToVersion, parseInstallManifest } from "../doctor/manifest.js";
 import { readCorePackageVersion } from "../engine-version.js";
 import { readLiveGeneration, stampLiveGeneration } from "../freshness/generation.js";
+import { containedRemove, containedWrite } from "../fs/contained-write.js";
 import {
   activeMutationLedger,
   formatMutationSummary,
@@ -481,7 +482,14 @@ function migrateLegacyInstallManifest(projectDir: string, canonicalManifestPath:
       parseInstallManifest(readFileSync(canonical, "utf8")),
     );
     if (legacyVersion !== null && legacyVersion === canonicalVersion) return;
-    renameSync(legacy, join(projectDir, ".deft", "VERSION.premigrate"));
+    const premigrate = join(projectDir, ".deft", "VERSION.premigrate");
+    containedWrite({
+      root: projectDir,
+      target: premigrate,
+      data: readFileSync(legacy),
+      mode: "replace",
+    });
+    containedRemove({ root: projectDir, target: legacy });
   } catch {
     // best-effort
   }
