@@ -103,6 +103,11 @@ export function parseArgs(argv: string[]): ParsedArgs {
   return parsed;
 }
 
+/** True when the ritual failure is the gated cache_fresh step (#3506 / #3507). */
+export function isCacheFreshFailureMessage(message: string): boolean {
+  return message.includes("cache_fresh") || message.includes("cache-fresh");
+}
+
 /** Run the gate and return the process exit code. */
 export function run(argv: string[], deps: VerifySessionRitualRunDeps = {}): number {
   const args = parseArgs(argv);
@@ -127,7 +132,11 @@ export function run(argv: string[], deps: VerifySessionRitualRunDeps = {}): numb
     }
   } else if (result.code === 1) {
     const recovery = formatRitualRecoveryInstruction(result.recoveryTier ?? "cold");
-    process.stderr.write(`${result.message}\n${recovery}\n${formatCacheFreshDeferSoftPath()}\n`);
+    const lines = [result.message, recovery];
+    if (isCacheFreshFailureMessage(result.message)) {
+      lines.push(formatCacheFreshDeferSoftPath());
+    }
+    process.stderr.write(`${lines.join("\n")}\n`);
   } else {
     process.stderr.write(`${result.message}\n`);
   }

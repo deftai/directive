@@ -94,6 +94,22 @@ describe("run ritual failure (#3506)", () => {
     err.mockRestore();
   });
 
+  it("omits cache_fresh defer copy when the failed step is not cache_fresh", () => {
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    expect(
+      run(["--tier=gated"], {
+        verifySessionRitual: () =>
+          failedCacheFreshResult({
+            message: "session ritual gated step 'doctor' failed: doctor exited 1",
+          }),
+      }),
+    ).toBe(1);
+    const stderr = err.mock.calls.join("");
+    expect(stderr).toContain("session:ready");
+    expect(stderr).not.toContain("cache_fresh=<reason>");
+    err.mockRestore();
+  });
+
   it("emits recovery_tier on --json without changing parse-error exit 2", () => {
     const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
     const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
