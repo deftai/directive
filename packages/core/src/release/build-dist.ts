@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import {
+  createReadStream,
   createWriteStream,
   existsSync,
   lstatSync,
@@ -17,9 +18,22 @@ import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 
 type ArchiverInstance = {
   pipe: (dest: ReturnType<typeof createWriteStream>) => void;
-  file: (path: string | Buffer, opts: { name: string }) => void;
+  file: (path: string, opts: { name: string }) => void;
+  append: (source: NodeJS.ReadableStream | Buffer, opts: { name: string }) => void;
   finalize: () => void | Promise<void>;
   on: (event: "error", handler: (err: Error) => void) => void;
+};
+
+type ZipArchiveEntryLike = {
+  name: string | Buffer | null;
+  getGeneralPurposeBit: () => { useUTF8ForNames: (on: boolean) => void };
+  setName: (name: string, prependSlash?: boolean) => void;
+};
+
+type ZipArchiveEntryCtor = new (name?: string) => ZipArchiveEntryLike;
+
+type TarHeaders = {
+  encodePax: (opts: { name?: string; linkname?: string; pax?: Record<string, string> }) => Buffer;
 };
 
 // archiver v8 dropped the v7 `archiver(format, options)` factory in favour of
@@ -110,7 +124,127 @@ function shouldSkipRel(
   );
 }
 
-export type ArchiveSourceEntry = { absPath: string | Buffer; archiveRel: string };
+export type ArchiveSourceEntry = {
+  absPath: string | Buffer;
+  archiveRel: string;
+  archiveRelBytes: Buffer;
+};
+
+/** Private-use mark so archiver's string `name` can carry raw member bytes. */
+export const ARCHIVE_BINARY_NAME_MARK = "\uF000";
+
+export function flattenContentPrefixBytes(relBytes: Buffer): Buffer {
+  const contentDir = Buffer.from("content", "utf8");
+  if (relBytes.equals(contentDir)) return Buffer.from(relBytes);
+  const prefix = Buffer.from(CONTENT_PREFIX, "utf8");
+  if (relBytes.length >= prefix.length && relBytes.subarray(0, prefix.length).equals(prefix)) {
+    return Buffer.from(relBytes.subarray(prefix.length));
+  }
+  return Buffer.from(relBytes);
+}
+
+export function isValidUtf8Buffer(buf: Buffer): boolean {
+  return Buffer.from(buf.toString("utf8"), "utf8").equals(buf);
+}
+
+export function archiveMemberBytes(archiveRelBytes: Buffer): Buffer {
+  return Buffer.concat([Buffer.from(`${ARCHIVE_ROOT}/`, "utf8"), archiveRelBytes]);
+}
+
+/** Archiver `file()`/`append` name: UTF-8 text, or marked latin1 of raw bytes. */
+export function archiverEntryName(memberBytes: Buffer): string {
+  if (isValidUtf8Buffer(memberBytes)) return memberBytes.toString("utf8");
+  return `${ARCHIVE_BINARY_NAME_MARK}${memberBytes.toString("latin1")}`;
+}
+
+function paxRawRecord(key: string, value: Buffer): Buffer {
+  const keyword = Buffer.from(` ${key}=`, "utf8");
+  const nl = Buffer.from("\n", "utf8");
+  let digits = 1;
+  for (;;) {
+    const total = digits + keyword.length + value.length + nl.length;
+    const lenStr = String(total);
+    if (lenStr.length === digits) {
+      return Buffer.concat([Buffer.from(lenStr, "utf8"), keyword, value, nl]);
+    }
+    digits = lenStr.length;
+  }
+}
+
+function loadZipArchiveEntry(): ZipArchiveEntryCtor {
+  const archiverReq = createRequire(import.meta.url);
+  const zipReq = createRequire(archiverReq.resolve("archiver"));
+  const commons = createRequire(zipReq.resolve("zip-stream"))("compress-commons") as {
+    ZipArchiveEntry?: ZipArchiveEntryCtor;
+    default?: { ZipArchiveEntry?: ZipArchiveEntryCtor };
+  };
+  const cls = commons.ZipArchiveEntry ?? commons.default?.ZipArchiveEntry;
+  if (cls?.prototype?.setName) return cls;
+  throw new Error("build-dist: cannot load ZipArchiveEntry for byte-preserving member names");
+}
+
+function loadTarHeaders(): TarHeaders {
+  const archiverReq = createRequire(import.meta.url);
+  const zipReq = createRequire(archiverReq.resolve("archiver"));
+  const tarMain = zipReq.resolve("tar-stream");
+  const loaded = createRequire(tarMain)("./headers.js") as TarHeaders;
+  if (typeof loaded.encodePax !== "function") {
+    throw new Error("build-dist: cannot load tar-stream headers.encodePax");
+  }
+  return loaded;
+}
+
+/**
+ * Archiver only accepts a string `name` and UTF-8-encodes it. For invalid
+ * git path bytes we mark a latin1 string and write those bytes where
+ * zip-stream / tar-stream already copy a Buffer (`setName` / PAX path).
+ */
+function installBytePreservingMemberNames(): () => void {
+  const ZipArchiveEntry = loadZipArchiveEntry();
+  const origSetName = ZipArchiveEntry.prototype.setName;
+  ZipArchiveEntry.prototype.setName = function (
+    this: ZipArchiveEntryLike,
+    name: string,
+    prependSlash = false,
+  ) {
+    if (typeof name === "string" && name.charCodeAt(0) === ARCHIVE_BINARY_NAME_MARK.charCodeAt(0)) {
+      this.name = Buffer.from(name.slice(ARCHIVE_BINARY_NAME_MARK.length), "latin1");
+      this.getGeneralPurposeBit().useUTF8ForNames(true);
+      return;
+    }
+    return origSetName.call(this, name, prependSlash);
+  };
+
+  const headers = loadTarHeaders();
+  const origEncodePax = headers.encodePax.bind(headers);
+  headers.encodePax = (opts) => {
+    if (
+      typeof opts.name === "string" &&
+      opts.name.charCodeAt(0) === ARCHIVE_BINARY_NAME_MARK.charCodeAt(0)
+    ) {
+      const pathRec = paxRawRecord(
+        "path",
+        Buffer.from(opts.name.slice(ARCHIVE_BINARY_NAME_MARK.length), "latin1"),
+      );
+      const rest = origEncodePax({ ...opts, name: undefined });
+      return Buffer.concat([pathRec, rest]);
+    }
+    return origEncodePax(opts);
+  };
+
+  return () => {
+    ZipArchiveEntry.prototype.setName = origSetName;
+    headers.encodePax = origEncodePax;
+  };
+}
+
+function addArchiveFile(archive: ArchiverInstance, absPath: string | Buffer, name: string): void {
+  if (Buffer.isBuffer(absPath)) {
+    archive.append(createReadStream(absPath), { name });
+    return;
+  }
+  archive.file(absPath, { name });
+}
 
 /** Original `ls-files -z` segment bytes plus the display/skip string. */
 export type GitLsFilesPath = {
@@ -378,7 +512,11 @@ function toArchiveEntry(
     return null;
   }
   if (st == null || !st.isFile()) return null;
-  return { absPath: real, archiveRel: flattenContentPrefix(relPosix) };
+  return {
+    absPath: real,
+    archiveRel: flattenContentPrefix(relPosix),
+    archiveRelBytes: flattenContentPrefixBytes(bytes),
+  };
 }
 
 /**
@@ -491,6 +629,8 @@ export type BuildArchiveOptions = {
   readonly generatedAllowlist?: readonly string[];
   /** Progress sink; default silent so unit tests stay quiet (#2953). */
   readonly onProgress?: (p: BuildProgress) => void;
+  readonly spawn?: GitLsFilesZSpawn;
+  readonly fs?: ArchiveFsLookup;
 };
 
 /**
@@ -521,6 +661,8 @@ function resolveBuildOptions(options: readonly string[] | BuildArchiveOptions = 
   extraExcludes: readonly string[];
   generatedAllowlist: readonly string[];
   onProgress: (p: BuildProgress) => void;
+  spawn: GitLsFilesZSpawn | undefined;
+  fs: ArchiveFsLookup | undefined;
 } {
   // Backward-compatible: 4th arg may be a bare extra-excludes array (pre-#2953).
   if (isExtraExcludesList(options)) {
@@ -528,12 +670,16 @@ function resolveBuildOptions(options: readonly string[] | BuildArchiveOptions = 
       extraExcludes: options,
       generatedAllowlist: DEFAULT_GENERATED_ALLOWLIST,
       onProgress: () => {},
+      spawn: undefined,
+      fs: undefined,
     };
   }
   return {
     extraExcludes: options.extraExcludes ?? [],
     generatedAllowlist: options.generatedAllowlist ?? DEFAULT_GENERATED_ALLOWLIST,
     onProgress: options.onProgress ?? (() => {}),
+    spawn: options.spawn,
+    fs: options.fs,
   };
 }
 
@@ -543,41 +689,47 @@ export async function buildArchive(
   fmt: "tar" | "zip",
   options: readonly string[] | BuildArchiveOptions = {},
 ): Promise<string> {
-  const { extraExcludes, generatedAllowlist, onProgress } = resolveBuildOptions(options);
+  const { extraExcludes, generatedAllowlist, onProgress, spawn, fs } = resolveBuildOptions(options);
   const output = outputPath(root, version, fmt);
   mkdirSync(dirname(output), { recursive: true });
   if (existsSync(output)) {
     unlinkSync(output);
   }
   onProgress({ stage: "scan", detail: "enumerating tracked source files" });
-  const entries = resolveArchiveEntries(root, { extraExcludes, generatedAllowlist });
+  const entries = resolveArchiveEntries(root, { extraExcludes, generatedAllowlist, spawn, fs });
   const total = entries.length;
   onProgress({ stage: "scan", detail: `found ${total} files`, current: total, total });
 
-  await new Promise<void>((resolvePromise, reject) => {
-    const out = createWriteStream(output);
-    const archive =
-      fmt === "zip"
-        ? new ZipArchive({ zlib: { level: 9 } })
-        : new TarArchive({ gzip: true, gzipOptions: { level: 9 } });
-    out.on("close", () => resolvePromise());
-    out.on("error", (err: Error) => reject(err));
-    archive.on("error", (err: Error) => reject(err));
-    archive.pipe(out);
-    onProgress({ stage: "pack", detail: `format=${fmt}`, current: 0, total });
-    // Progress ticks every ~5% (or every 250 files) so long packs do not look hung.
-    const tickEvery = Math.max(1, Math.min(250, Math.ceil(total / 20)));
-    let i = 0;
-    for (const { absPath, archiveRel } of entries) {
-      archive.file(absPath, { name: `${ARCHIVE_ROOT}/${archiveRel}` });
-      i += 1;
-      if (i === total || i % tickEvery === 0) {
-        onProgress({ stage: "pack", current: i, total });
+  const uninstallNameHook = installBytePreservingMemberNames();
+  try {
+    await new Promise<void>((resolvePromise, reject) => {
+      const out = createWriteStream(output);
+      const archive =
+        fmt === "zip"
+          ? new ZipArchive({ zlib: { level: 9 } })
+          : new TarArchive({ gzip: true, gzipOptions: { level: 9 } });
+      out.on("close", () => resolvePromise());
+      out.on("error", (err: Error) => reject(err));
+      archive.on("error", (err: Error) => reject(err));
+      archive.pipe(out);
+      onProgress({ stage: "pack", detail: `format=${fmt}`, current: 0, total });
+      // Progress ticks every ~5% (or every 250 files) so long packs do not look hung.
+      const tickEvery = Math.max(1, Math.min(250, Math.ceil(total / 20)));
+      let i = 0;
+      for (const { absPath, archiveRel, archiveRelBytes } of entries) {
+        const memberBytes = archiveMemberBytes(archiveRelBytes ?? Buffer.from(archiveRel, "utf8"));
+        addArchiveFile(archive, absPath, archiverEntryName(memberBytes));
+        i += 1;
+        if (i === total || i % tickEvery === 0) {
+          onProgress({ stage: "pack", current: i, total });
+        }
       }
-    }
-    onProgress({ stage: "finalize", detail: output });
-    void archive.finalize();
-  });
+      onProgress({ stage: "finalize", detail: output });
+      void archive.finalize();
+    });
+  } finally {
+    uninstallNameHook();
+  }
 
   onProgress({ stage: "done", detail: output, current: total, total });
   return output;

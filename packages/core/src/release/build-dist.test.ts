@@ -12,16 +12,22 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { gunzipSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 import {
+  ARCHIVE_BINARY_NAME_MARK,
+  archiveMemberBytes,
+  archiverEntryName,
   assertArchiveEntriesTrackedOrGenerated,
   buildArchive,
   containedAbsPath,
   DEFAULT_EXCLUDES,
   DEFAULT_GENERATED_ALLOWLIST,
   emitBuildProgress,
+  flattenContentPrefixBytes,
   fsLookupPath,
   GIT_LS_FILES_Z_ENCODING,
+  isValidUtf8Buffer,
   iterSourceFiles,
   joinRootAndRelBytes,
   listGitTrackedFiles,
@@ -45,7 +51,9 @@ function gitCommitAll(root: string, message = "init"): void {
   });
 }
 
-function payloadFingerprint(entries: Array<{ absPath: string; archiveRel: string }>): string {
+function payloadFingerprint(
+  entries: Array<{ absPath: string | Buffer; archiveRel: string }>,
+): string {
   const hash = createHash("sha256");
   for (const entry of entries) {
     hash.update(entry.archiveRel);
@@ -78,6 +86,64 @@ function zipMemberNames(zipPath: string): string[] {
     offset += 46 + nameLen + extraLen + commentLen;
   }
   return names.sort();
+}
+
+function zipMemberNameBytes(zipPath: string): Buffer[] {
+  const buf = readFileSync(zipPath);
+  let eocd = -1;
+  for (let i = buf.length - 22; i >= 0; i -= 1) {
+    if (buf.readUInt32LE(i) === 0x06054b50) {
+      eocd = i;
+      break;
+    }
+  }
+  if (eocd < 0) throw new Error("zip EOCD not found");
+  const count = buf.readUInt16LE(eocd + 10);
+  let offset = buf.readUInt32LE(eocd + 16);
+  const names: Buffer[] = [];
+  for (let n = 0; n < count; n += 1) {
+    if (buf.readUInt32LE(offset) !== 0x02014b50) throw new Error("zip central header corrupt");
+    const nameLen = buf.readUInt16LE(offset + 28);
+    const extraLen = buf.readUInt16LE(offset + 30);
+    const commentLen = buf.readUInt16LE(offset + 32);
+    names.push(Buffer.from(buf.subarray(offset + 46, offset + 46 + nameLen)));
+    offset += 46 + nameLen + extraLen + commentLen;
+  }
+  return names;
+}
+
+function tarMemberNameBytes(tarGzPath: string): Buffer[] {
+  const buf = gunzipSync(readFileSync(tarGzPath));
+  const names: Buffer[] = [];
+  let offset = 0;
+  while (offset + 512 <= buf.length) {
+    const header = buf.subarray(offset, offset + 512);
+    if (header.every((b) => b === 0)) break;
+    const typeflag = header[156];
+    const sizeField = header.subarray(124, 136).toString("ascii").replace(/\0/g, "").trim();
+    const size = Number.parseInt(sizeField, 8) || 0;
+    const padded = Math.ceil(size / 512) * 512;
+    if (typeflag === 0x78) {
+      let body = buf.subarray(offset + 512, offset + 512 + size);
+      while (body.length > 0) {
+        let i = 0;
+        while (i < body.length && body[i] !== 0x20) i += 1;
+        const recLen = Number.parseInt(body.subarray(0, i).toString("ascii"), 10);
+        if (!recLen || recLen > body.length) break;
+        const rec = body.subarray(0, recLen);
+        const eq = rec.indexOf(0x3d, i + 1);
+        if (eq > 0 && rec.subarray(i + 1, eq).toString("utf8") === "path") {
+          names.push(Buffer.from(rec.subarray(eq + 1, rec.length - 1)));
+        }
+        body = body.subarray(recLen);
+      }
+    } else {
+      const nul = header.subarray(0, 100).indexOf(0);
+      names.push(Buffer.from(header.subarray(0, nul < 0 ? 100 : nul)));
+    }
+    offset += 512 + padded;
+  }
+  return names;
 }
 
 describe("build-dist helpers", () => {
@@ -530,6 +596,83 @@ describe("build-dist helpers", () => {
     );
     expect(joinedRootAndRel).toBe(true);
     expect(entries.map((e) => e.archiveRel)).toContain(invalid.toString("latin1"));
+    expect(
+      entries
+        .find((e) => e.archiveRel === invalid.toString("latin1"))
+        ?.archiveRelBytes.equals(invalid),
+    ).toBe(true);
+  });
+
+  it("flattenContentPrefixBytes strips a content/ prefix without utf8-decoding", () => {
+    const invalid = Buffer.from([0x66, 0x6f, 0x6f, 0xff, 0x2e, 0x74, 0x78, 0x74]);
+    const underContent = Buffer.concat([Buffer.from("content/", "utf8"), invalid]);
+    expect(flattenContentPrefixBytes(underContent).equals(invalid)).toBe(true);
+    expect(flattenContentPrefixBytes(invalid).equals(invalid)).toBe(true);
+    expect(
+      flattenContentPrefixBytes(Buffer.from("content", "utf8")).equals(
+        Buffer.from("content", "utf8"),
+      ),
+    ).toBe(true);
+  });
+
+  it("archiverEntryName marks non-utf8 member bytes and leaves valid utf8 unmarked", () => {
+    const cafe = archiveMemberBytes(Buffer.from("café.txt", "utf8"));
+    expect(isValidUtf8Buffer(cafe)).toBe(true);
+    expect(archiverEntryName(cafe)).toBe("deft/café.txt");
+    expect(archiverEntryName(cafe).startsWith(ARCHIVE_BINARY_NAME_MARK)).toBe(false);
+    const invalid = Buffer.from([0x66, 0x6f, 0x6f, 0xff, 0x2e, 0x74, 0x78, 0x74]);
+    const member = archiveMemberBytes(invalid);
+    expect(isValidUtf8Buffer(member)).toBe(false);
+    const named = archiverEntryName(member);
+    expect(named.startsWith(ARCHIVE_BINARY_NAME_MARK)).toBe(true);
+    expect(Buffer.from(named.slice(ARCHIVE_BINARY_NAME_MARK.length), "latin1").equals(member)).toBe(
+      true,
+    );
+  });
+
+  it("zip and tar member names keep invalid -z path bytes", async () => {
+    const root = fixtureProject();
+    const invalid = Buffer.from([0x66, 0x6f, 0x6f, 0xff, 0x2e, 0x74, 0x78, 0x74]);
+    const payload = Buffer.concat([
+      Buffer.from("README.md"),
+      Buffer.from([0]),
+      Buffer.from("content/doc.md"),
+      Buffer.from([0]),
+      invalid,
+      Buffer.from([0]),
+    ]);
+    const spawn = (): { status: number; stdout: Buffer; stderr: Buffer } => ({
+      status: 0,
+      stdout: payload,
+      stderr: Buffer.alloc(0),
+    });
+    const standIn = realpathSync(join(root, "README.md"));
+    const fsLookup = {
+      realpathSync: (
+        path: string | Buffer,
+        options?: { encoding?: BufferEncoding | "buffer" | null },
+      ): string | Buffer => {
+        if (Buffer.isBuffer(path)) {
+          return options?.encoding === "buffer" ? Buffer.from(standIn, "utf8") : standIn;
+        }
+        return options?.encoding === "buffer"
+          ? realpathSync(path, { encoding: "buffer" })
+          : realpathSync(path);
+      },
+      lstatSync: (path: string | Buffer) => {
+        if (Buffer.isBuffer(path)) return lstatSync(standIn);
+        return lstatSync(path);
+      },
+    };
+    const zip = await buildArchive(root, "1.0.0", "zip", { spawn, fs: fsLookup });
+    const tar = await buildArchive(root, "1.0.1", "tar", { spawn, fs: fsLookup });
+    const expected = archiveMemberBytes(invalid);
+    const corrupted = Buffer.from(expected.toString("latin1"), "utf8");
+    expect(corrupted.equals(expected)).toBe(false);
+    expect(zipMemberNameBytes(zip).some((n) => n.equals(expected))).toBe(true);
+    expect(zipMemberNameBytes(zip).some((n) => n.equals(corrupted))).toBe(false);
+    expect(tarMemberNameBytes(tar).some((n) => n.equals(expected))).toBe(true);
+    expect(tarMemberNameBytes(tar).some((n) => n.equals(corrupted))).toBe(false);
   });
 
   it("splitGitLsFilesZ drops empty segments and keeps a trailing unterminated path", () => {
