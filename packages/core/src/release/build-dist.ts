@@ -8,7 +8,7 @@ import {
 } from "node:fs";
 import { createRequire } from "node:module";
 import { platform } from "node:os";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { NON_PRODUCT_DIRS } from "../fs/non-product-dirs.js";
 import { runGit } from "./git.js";
 
@@ -120,10 +120,7 @@ export function listGitTrackedFiles(root: string): string[] {
     const detail = result.stderr.trim() || result.stdout.trim() || "unknown error";
     throw new Error(`git ls-files failed in ${root}: ${detail}`);
   }
-  return result.stdout
-    .split("\0")
-    .map((line) => line.replace(/\r?\n/g, "").trim())
-    .filter((line) => line.length > 0);
+  return result.stdout.split("\0").filter((line) => line.length > 0);
 }
 
 /**
@@ -149,8 +146,20 @@ export type ResolveArchiveEntriesOptions = {
   readonly generatedAllowlist?: readonly string[];
 };
 
+/** Resolve a POSIX rel path under root, or null if it escapes (#3490 review). */
+export function containedAbsPath(root: string, relPosix: string): string | null {
+  if (relPosix.includes("\0")) return null;
+  const parts = relPosix.split(/[/\\]/);
+  if (parts.some((part) => part === "..")) return null;
+  const absPath = resolve(root, ...parts.filter((part) => part.length > 0 && part !== "."));
+  const rel = relative(resolve(root), absPath);
+  if (rel.startsWith("..") || isAbsolute(rel)) return null;
+  return absPath;
+}
+
 function toArchiveEntry(root: string, relPosix: string): ArchiveSourceEntry | null {
-  const absPath = join(root, ...relPosix.split("/"));
+  const absPath = containedAbsPath(root, relPosix);
+  if (absPath === null) return null;
   let st: ReturnType<typeof statSync>;
   try {
     st = statSync(absPath);
@@ -186,6 +195,9 @@ export function resolveArchiveEntries(
   }
   for (const relPosix of generatedAllowlist) {
     if (seen.has(relPosix)) continue;
+    if (containedAbsPath(root, relPosix) === null) {
+      throw new Error(`build-dist: generated allowlist path escapes the archive root: ${relPosix}`);
+    }
     const entry = toArchiveEntry(root, relPosix);
     if (entry === null) continue;
     entries.push(entry);

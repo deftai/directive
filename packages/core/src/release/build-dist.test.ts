@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import {
   assertArchiveEntriesTrackedOrGenerated,
   buildArchive,
+  containedAbsPath,
   DEFAULT_EXCLUDES,
   DEFAULT_GENERATED_ALLOWLIST,
   emitBuildProgress,
@@ -345,5 +346,29 @@ describe("build-dist helpers", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-build-dist-main-nogit-"));
     writeFileSync(join(root, "README.md"), "# hi\n");
     expect(await main(["--version", "1.0.0", "--format", "zip", "--root", root])).toBe(1);
+  });
+
+  it("containedAbsPath rejects parent traversal", () => {
+    const root = fixtureProject();
+    expect(containedAbsPath(root, "README.md")).toBe(join(root, "README.md"));
+    expect(containedAbsPath(root, "../secret.txt")).toBeNull();
+    expect(containedAbsPath(root, "content/../../secret.txt")).toBeNull();
+  });
+
+  it("generated allowlist paths that escape the root fail closed", () => {
+    const root = fixtureProject();
+    expect(() => resolveArchiveEntries(root, { generatedAllowlist: ["../outside.txt"] })).toThrow(
+      /escapes the archive root/,
+    );
+  });
+
+  it("listGitTrackedFiles preserves internal spaces in filenames", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-build-dist-space-"));
+    mkdirSync(join(root, "content"), { recursive: true });
+    writeFileSync(join(root, "README.md"), "# hi\n");
+    writeFileSync(join(root, "content", "doc.md"), "hello\n");
+    writeFileSync(join(root, "has space.txt"), "x\n");
+    gitCommitAll(root);
+    expect(listGitTrackedFiles(root)).toContain("has space.txt");
   });
 });
