@@ -70,10 +70,7 @@
       "swarm": {
         "readiness": "ready",
         "parallel_safe": true,
-        "file_scope": [
-          "packages/core/src/authz",
-          "CHANGELOG.md"
-        ],
+        "file_scope": [],
         "verify_commands": [
           "pnpm exec vitest run packages/core/src/authz"
         ],
