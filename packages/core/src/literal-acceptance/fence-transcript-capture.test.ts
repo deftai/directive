@@ -173,6 +173,18 @@ describe("output-shaped fences are not captured (#3511)", () => {
     expect(detailed.commands.map((c) => c.command)).not.toContain(PHANTOM_BIOME_MIGRATE);
   });
 
+  it("does not let a 4-backtick fence suppress later labeled commands (#3511 P1)", () => {
+    const text = [
+      "````",
+      "inner fence content that is not a command",
+      "````",
+      "verify: task check",
+      "Please run `pnpm test` before done.",
+    ].join("\n");
+    const cmds = captureLiteralAcceptanceCommandsDetailed(text).commands.map((c) => c.command);
+    expect(cmds).toEqual(expect.arrayContaining(["task check", "pnpm test"]));
+  });
+
   it("still captures a genuine acceptance fence without transcript markers", () => {
     const text = [
       "## Acceptance",

@@ -218,15 +218,15 @@ function isTranscriptOutputLine(line: string): boolean {
 /** Per-line mask: true for body lines inside ``` / ~~~ fences (not the markers). */
 function fenceBodyMask(lines: readonly string[]): boolean[] {
   const mask = Array.from({ length: lines.length }, () => false);
-  let inFence = false;
+  let open: FenceOpen | null = null;
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i] ?? "";
-    if (!inFence) {
-      if (matchFenceOpen(line) !== null) inFence = true;
+    if (open === null) {
+      open = matchFenceOpen(line);
       continue;
     }
-    if (matchFenceClose(line)) {
-      inFence = false;
+    if (matchFenceClose(line, open)) {
+      open = null;
       continue;
     }
     mask[i] = true;
@@ -284,41 +284,38 @@ function flushFenceBody(
  */
 function extractFromFences(text: string, requireRegion: boolean, buckets: CaptureBuckets): void {
   const lines = text.split(/\r?\n/);
-  let inFence = false;
-  let fenceLang = "";
+  let open: FenceOpen | null = null;
   let regionActive = !requireRegion;
   let fenceStartLine = 0;
   let fenceBody: string[] = [];
 
   const flush = (): void => {
-    if (!inFence) return;
-    flushFenceBody(fenceBody, fenceLang, fenceStartLine, requireRegion, regionActive, buckets);
-    inFence = false;
-    fenceLang = "";
+    if (open === null) return;
+    flushFenceBody(fenceBody, open.lang, fenceStartLine, requireRegion, regionActive, buckets);
+    open = null;
     fenceBody = [];
   };
 
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i] ?? "";
     const heading = matchMarkdownHeading(line);
-    if (heading !== null && !inFence) {
+    if (heading !== null && open === null) {
       regionActive = requireRegion ? isRegionHeading(heading.text) : true;
       continue;
     }
 
     const fenceOpen = matchFenceOpen(line);
-    if (fenceOpen !== null && !inFence) {
-      inFence = true;
-      fenceLang = fenceOpen.lang;
+    if (fenceOpen !== null && open === null) {
+      open = fenceOpen;
       fenceStartLine = i + 1;
       fenceBody = [];
       continue;
     }
-    if (inFence && matchFenceClose(line)) {
+    if (open !== null && matchFenceClose(line, open)) {
       flush();
       continue;
     }
-    if (!inFence) continue;
+    if (open === null) continue;
     fenceBody.push(line);
   }
   flush();
@@ -339,25 +336,37 @@ function isShellFenceLang(lang: string): boolean {
   );
 }
 
-/** Linear fence open: ```lang or ~~~lang */
-function matchFenceOpen(line: string): { lang: string } | null {
-  const t = line.trimEnd();
-  if (t.startsWith("```")) {
-    const rest = t.slice(3).trim().toLowerCase();
-    if (rest.includes(" ") || rest.includes("\t")) return null;
-    return { lang: rest };
-  }
-  if (t.startsWith("~~~")) {
-    const rest = t.slice(3).trim().toLowerCase();
-    if (rest.includes(" ") || rest.includes("\t")) return null;
-    return { lang: rest };
-  }
-  return null;
+interface FenceOpen {
+  readonly lang: string;
+  readonly marker: "`" | "~";
+  readonly length: number;
 }
 
-function matchFenceClose(line: string): boolean {
+/**
+ * CommonMark fence open: 3+ backticks or tildes, then an optional info string.
+ * Longer openers (````) must close with the same marker at >= that length (#3511 P1).
+ */
+function matchFenceOpen(line: string): FenceOpen | null {
+  const body = line.trimEnd().trimStart();
+  if (body.length < 3) return null;
+  const first = body[0];
+  if (first !== "`" && first !== "~") return null;
+  const marker: "`" | "~" = first;
+  let length = 0;
+  while (length < body.length && body[length] === marker) length += 1;
+  if (length < 3) return null;
+  const rest = body.slice(length).trim().toLowerCase();
+  if (rest.includes(" ") || rest.includes("\t")) return null;
+  if (rest.includes(marker)) return null;
+  return { lang: rest, marker, length };
+}
+
+function matchFenceClose(line: string, open: FenceOpen): boolean {
   const t = line.trim();
-  return t === "```" || t === "~~~";
+  let length = 0;
+  while (length < t.length && t[length] === open.marker) length += 1;
+  if (length < open.length) return false;
+  return t.slice(length).trim().length === 0;
 }
 
 function matchMarkdownHeading(line: string): { level: number; text: string } | null {
