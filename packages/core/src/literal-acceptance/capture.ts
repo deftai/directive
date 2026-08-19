@@ -83,6 +83,8 @@ interface CaptureBuckets {
   readonly seen: Set<string>;
   readonly rejected: RejectedLiteralCommand[];
   readonly rejectedSeen: Set<string>;
+  /** Prompt lines skipped because the fence was transcript-shaped (#3511). */
+  transcriptPromptSkipped: number;
 }
 
 function recordRejected(
@@ -288,7 +290,10 @@ function flushFenceBody(
   const transcript = body.some((line) => isTranscriptOutputLine(line));
   for (const line of body) {
     if (isFenceCommentOrBlank(line)) continue;
-    if (transcript && isPromptLine(line)) continue;
+    if (transcript && isPromptLine(line)) {
+      buckets.transcriptPromptSkipped += 1;
+      continue;
+    }
     if (isTranscriptOutputLine(line)) continue;
     captureFenceBodyLine(line, fenceLang, fenceStartLine, buckets);
   }
@@ -465,6 +470,7 @@ function emptyBuckets(): CaptureBuckets {
     seen: new Set<string>(),
     rejected: [],
     rejectedSeen: new Set<string>(),
+    transcriptPromptSkipped: 0,
   };
 }
 
@@ -472,6 +478,8 @@ function emptyBuckets(): CaptureBuckets {
 export interface CaptureLiteralAcceptanceResult {
   readonly commands: readonly LiteralAcceptanceCommand[];
   readonly rejected: readonly RejectedLiteralCommand[];
+  /** Prompt lines skipped inside a transcript-shaped fence (#3511). */
+  readonly transcriptPromptSkipped: number;
 }
 
 /**
@@ -482,7 +490,7 @@ export function captureLiteralAcceptanceCommandsDetailed(
   taskStatement: string,
 ): CaptureLiteralAcceptanceResult {
   if (!isNonEmptyString(taskStatement)) {
-    return { commands: [], rejected: [] };
+    return { commands: [], rejected: [], transcriptPromptSkipped: 0 };
   }
   const buckets = emptyBuckets();
 
@@ -493,7 +501,11 @@ export function captureLiteralAcceptanceCommandsDetailed(
   extractFromLabeledLines(taskStatement, buckets);
   extractInlineVerifySpans(taskStatement, buckets);
 
-  return { commands: buckets.out, rejected: buckets.rejected };
+  return {
+    commands: buckets.out,
+    rejected: buckets.rejected,
+    transcriptPromptSkipped: buckets.transcriptPromptSkipped,
+  };
 }
 
 /**
@@ -521,7 +533,7 @@ export function readStoredLiteralAcceptanceDetailed(
   plan: Record<string, unknown> | null | undefined,
 ): CaptureLiteralAcceptanceResult {
   if (plan === null || plan === undefined || typeof plan !== "object") {
-    return { commands: [], rejected: [] };
+    return { commands: [], rejected: [], transcriptPromptSkipped: 0 };
   }
   const buckets = emptyBuckets();
 
@@ -578,7 +590,11 @@ export function readStoredLiteralAcceptanceDetailed(
   }
 
   walkPlanItems(plan.items, "items", buckets);
-  return { commands: buckets.out, rejected: buckets.rejected };
+  return {
+    commands: buckets.out,
+    rejected: buckets.rejected,
+    transcriptPromptSkipped: buckets.transcriptPromptSkipped,
+  };
 }
 
 function walkPlanItems(items: unknown, pathPrefix: string, buckets: CaptureBuckets): void {

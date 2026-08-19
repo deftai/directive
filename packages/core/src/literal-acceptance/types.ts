@@ -85,6 +85,8 @@ export interface LiteralAcceptanceGateResult {
    * ledger, and must not sniff the rendered message for their reasons (#3497).
    */
   readonly advisoryRejected?: readonly RejectedLiteralCommand[];
+  /** Prompt lines skipped inside a transcript-shaped fence (#3511). */
+  readonly transcriptPromptSkipped?: number;
 }
 
 /** Metadata key for operator-visible rejected command ledger (#3267). */

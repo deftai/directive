@@ -51,6 +51,8 @@ export interface ResolvedLiteralAcceptance {
    * Reported, never blocking. Structured-field rejections stay on `rejected`.
    */
   readonly advisoryRejected: readonly RejectedLiteralCommand[];
+  /** Prompt lines skipped inside a transcript-shaped fence (#3511). */
+  readonly transcriptPromptSkipped: number;
 }
 
 /**
@@ -85,7 +87,12 @@ export function resolveLiteralAcceptanceDetailed(
 ): ResolvedLiteralAcceptance {
   const raw = resolveRawLiteralAcceptance(plan, options);
   const split = partitionRejected(raw.rejected);
-  return { commands: raw.commands, rejected: split.blocking, advisoryRejected: split.advisory };
+  return {
+    commands: raw.commands,
+    rejected: split.blocking,
+    advisoryRejected: split.advisory,
+    transcriptPromptSkipped: raw.transcriptPromptSkipped,
+  };
 }
 
 function resolveRawLiteralAcceptance(
@@ -94,6 +101,7 @@ function resolveRawLiteralAcceptance(
 ): {
   readonly commands: readonly LiteralAcceptanceCommand[];
   readonly rejected: readonly RejectedLiteralCommand[];
+  readonly transcriptPromptSkipped: number;
 } {
   const stored = readStoredLiteralAcceptanceDetailed(plan);
   if (options.captureFromNarratives === false) {
@@ -147,7 +155,11 @@ function resolveRawLiteralAcceptance(
     rejectedSeen.add(k);
     rejected.push(r);
   }
-  return { commands, rejected };
+  return {
+    commands,
+    rejected,
+    transcriptPromptSkipped: captured.transcriptPromptSkipped,
+  };
 }
 
 /**
@@ -248,6 +260,7 @@ export function evaluateLiteralAcceptanceFromPlan(
     code,
     rejected: resolved.rejected,
     advisoryRejected: resolved.advisoryRejected,
+    transcriptPromptSkipped: resolved.transcriptPromptSkipped,
     message,
   };
   if (options.quiet === true && withRejected.ok) {

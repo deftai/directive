@@ -13,6 +13,10 @@ export const EMPTY_AC_CAUSE = "no acceptance stamped — floor is empty in this 
 export const EMPTY_AC_REMEDY =
   "stamp plan.acceptance via clause derivation (scope:activate / scope:promote runs #3323, or task issue:ingest)";
 
+export const TRANSCRIPT_EMPTY_CAUSE = "transcript skip left zero captured commands";
+export const TRANSCRIPT_EMPTY_REMEDY =
+  "stamp real acceptance commands; suite-floor empty-pass does not apply when a transcript fence dropped prompt lines (#3511)";
+
 export type VerifyAcResolution =
   | "verified-pass"
   | "empty-pass"
@@ -65,5 +69,15 @@ export function formatSoftEmptyMessage(acceptance: PlanAcceptance, quiet?: boole
   return (
     `verify:ac ${EMPTY_AC_OUTCOME} (#3334) [rung=${acceptance.source_rung}]: ` +
     `${EMPTY_AC_CAUSE}. ${EMPTY_AC_REMEDY}.`
+  );
+}
+
+export function formatTranscriptEmptyMessage(acceptance: PlanAcceptance, quiet?: boolean): string {
+  if (quiet) {
+    return "";
+  }
+  return (
+    `verify:ac FAILED (#3511) [rung=${acceptance.source_rung}]: ` +
+    `${TRANSCRIPT_EMPTY_CAUSE}. ${TRANSCRIPT_EMPTY_REMEDY}.`
   );
 }

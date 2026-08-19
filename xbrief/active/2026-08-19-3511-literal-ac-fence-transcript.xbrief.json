@@ -1,0 +1,97 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Residual scope xBRIEF for GitHub issue #3511 — with-floor empty-after-transcript-skip gate and Greptile FP close-out",
+    "updated": "2026-08-19T20:42:18Z"
+  },
+  "plan": {
+    "id": "3511-literal-ac-fence-transcript",
+    "title": "Fenced terminal transcript is not blocking acceptance; with-floor empty skip must not silently pass",
+    "status": "running",
+    "narratives": {
+      "Description": "Residual for PR 3518: a transcript skip that leaves zero captured commands on a project with a suite floor must not silently empty-pass. Greptile fence-closer and whole-fence findings are false positives. Mixed-fence prompt skip is intended.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3511",
+      "Overview": "Product capture already skips output-shaped fences and prompt lines inside a transcript fence (#3511). Residual: if that skip leaves ZERO captured commands on a project WITH a suite floor, verify:ac must not silently empty-pass. #3334 soft_empty covers no-suite-floor. Do not weaken transcript detection. Do not change the safety allowlist. Fence closer length >= open.length is CommonMark and already correct. flushFenceBody has no whole-fence early return.",
+      "Labels": "bug, determinism"
+    },
+    "items": [
+      {
+        "id": "with-floor-transcript-empty",
+        "title": "With-floor empty-after-transcript-skip does not silently pass",
+        "effort": "S",
+        "status": "pending"
+      },
+      {
+        "id": "greptile-fp",
+        "title": "Label two Greptile findings FP; evidence mixed-fence prompt skip as intended",
+        "effort": "S",
+        "status": "pending"
+      }
+    ],
+    "tags": [
+      "bug",
+      "determinism"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3511",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3511: fenced terminal output in an issue body becomes phantom AC commands and permanently blocks scope:complete"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/3518",
+        "type": "x-xbrief/github-pr",
+        "title": "PR #3518"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/product-first-done-gate/fence-transcript-ac.test.ts packages/core/src/literal-acceptance/fence-transcript-capture.test.ts packages/core/src/product-first-done-gate/empty-resolution.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "A fence whose transcript skip leaves zero captured commands on a project with a suite floor does not silently empty-pass.",
+          "artifact_path": "packages/core/src/product-first-done-gate/fence-transcript-ac.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "A genuine command beside a comment in an acceptance fence still captures; transcript prompt skip stays.",
+          "artifact_path": "packages/core/src/literal-acceptance/fence-transcript-capture.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ]
+    },
+    "metadata": {
+      "swarm": {
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/product-first-done-gate/fence-transcript-ac.test.ts packages/core/src/literal-acceptance/fence-transcript-capture.test.ts packages/core/src/product-first-done-gate/empty-resolution.test.ts"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/product-first-done-gate/fence-transcript-ac.test.ts",
+          "packages/core/src/product-first-done-gate/evaluate.ts",
+          "packages/core/src/product-first-done-gate/empty-resolution.ts",
+          "packages/core/src/product-first-done-gate/empty-resolution.test.ts",
+          "packages/core/src/literal-acceptance/capture.ts",
+          "packages/core/src/literal-acceptance/evaluate.ts",
+          "packages/core/src/literal-acceptance/types.ts",
+          "packages/core/src/literal-acceptance/fence-transcript-capture.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "CHANGELOG.md is the append-only release log; this residual may extend the existing #3511 Unreleased bullet and does not split the file."
+      }
+    },
+    "updated": "2026-08-19T20:42:18Z"
+  }
+}
