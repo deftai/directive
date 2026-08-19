@@ -2,12 +2,12 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3459",
-    "updated": "2026-08-19T19:05:17Z"
+    "updated": "2026-08-19T19:37:35Z"
   },
   "plan": {
     "id": "3459-uat-shell-residuals",
     "title": "UAT Shell residuals after #3421: dest-form plant of authz, kill-switch, and approved-scope",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "AppSec on 82bd37f3 found two HIGH UAT Shell classification residuals and one MEDIUM mint-path asymmetry. Residual dest forms after #3421 still classify empty and allow write-shaped Shell that can plant .deft/authz or a kill-switch. Residual Shell writers can also forge .deft/approved-scope while Write is denied.",
       "UserStory": "As a Directive operator under active UAT, I want residual write-shaped Shell dests that plant authz, kill-switch, or approved-scope to classify as settings deny, so that #3421 cannot be bypassed by dest forms the harvest missed.",
@@ -19,26 +19,44 @@
     "items": [
       {
         "title": "Residual dest forms cannot plant authz or kill-switch",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given active UAT, when residual bins write into .deft/authz/** or plant .deft-directive-disable / .no-deft-directive, classify returns settings deny, not unclassifiable allow. Dest parsing covers GNU g* coreutils prefixes (ginstall, gcp), gh/glab/hub clone, iwr -OutFile, fsutil, cmd copy, tsx/ts-node, npm pack --pack-destination when dest is protected. Unclassifiable write-shaped Shell under UAT is fail-closed. install / cp / git clone / Set-Content stay settings-denied. /tmp dests outside those paths stay unclassifiable.",
           "Traces": "FR-3459-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/authz/classify.test.ts + incident-regression.test.ts #3459 dest-form matrix; PR https://github.com/deftai/directive/pull/3521 merge a788b7f898a67cfb1f1c8111de9fec75adcac2f1",
+          "recorded_at": "2026-08-19T19:38:00Z",
+          "recorded_by": "leaf-implementation@3459"
         }
       },
       {
         "title": "Shell cannot forge approved-scope while Write is denied",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given active UAT, when residual Shell writers target .deft/approved-scope/**, classify is settings deny matching Write. A forged Shell mint cannot satisfy provenance approval without the shared #3110 human-presence mint.",
           "Traces": "FR-3459-2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/authz/incident-regression.test.ts approved-scope Shell/Write symmetry + origin.test.ts #3459/#3110; PR https://github.com/deftai/directive/pull/3521 merge a788b7f898a67cfb1f1c8111de9fec75adcac2f1",
+          "recorded_at": "2026-08-19T19:38:00Z",
+          "recorded_by": "leaf-implementation@3459"
         }
       },
       {
         "title": "Tests and changelog",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the classify changes, when vitest runs packages/core/src/authz, residual bins vs already-denied peers are covered. CHANGELOG [Unreleased] has a brief security note with no exploit cookbook.",
           "Traces": "FR-3459-3"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "pnpm exec vitest run packages/core/src/authz 186/186; CHANGELOG [Unreleased] #3459; PR https://github.com/deftai/directive/pull/3521 merge a788b7f898a67cfb1f1c8111de9fec75adcac2f1",
+          "recorded_at": "2026-08-19T19:38:00Z",
+          "recorded_by": "leaf-implementation@3459"
         }
       }
     ],
@@ -96,7 +114,27 @@
         "module_boundary": "typescript-engine",
         "cohesion_exemption": "classify.ts dest harvest and its matching classify/incident-regression matrices already exceed FILE_SIZE_REVIEW_TRIGGER_LINES. Residual dest forms after #3421 must land beside the existing harvest, not in a split module. CHANGELOG.md already exceeds the trigger; this slice only adds the #3459 security note."
       },
-      "capacityBucket": "technical-debt"
+      "capacityBucket": "technical-debt",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3521,
+        "prBase": null,
+        "mergeCommit": "a788b7f898a67cfb1f1c8111de9fec75adcac2f1",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a788b7f898a67cfb1f1c8111de9fec75adcac2f1",
+        "verifiedAt": "2026-08-19T19:37:35Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "61e17af2-3934-461c-a132-1d7c546c809a"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-19T19:37:35Z",
+      "completedSessionId": "61e17af2-3934-461c-a132-1d7c546c809a"
     },
     "acceptance": {
       "commands": [
@@ -116,6 +154,6 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-08-19T19:05:17Z"
+    "updated": "2026-08-19T19:37:35Z"
   }
 }

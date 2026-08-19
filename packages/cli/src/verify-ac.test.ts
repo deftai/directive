@@ -2,7 +2,20 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { parseArgs, run } from "./verify-ac.js";
+import { clampVerifyAcExit, parseArgs, run } from "./verify-ac.js";
+
+describe("clampVerifyAcExit (#3449)", () => {
+  it("maps a printed pass to exit 0 even when the raw code is 201", () => {
+    expect(clampVerifyAcExit(true, 201)).toBe(0);
+    expect(clampVerifyAcExit(true, 0)).toBe(0);
+  });
+
+  it("keeps fail/config inside 0/1/2", () => {
+    expect(clampVerifyAcExit(false, 1)).toBe(1);
+    expect(clampVerifyAcExit(false, 201)).toBe(1);
+    expect(clampVerifyAcExit(false, 2)).toBe(2);
+  });
+});
 
 describe("verify:ac parseArgs (#3284)", () => {
   it("parses soft-missing, quiet, capture-only, project-root", () => {
@@ -229,5 +242,78 @@ describe("verify:ac run (#3284)", () => {
     expect(joined).toMatch(/source_rung/);
     expect(joined).toMatch(/stated/);
     expect(joined).toMatch(/task check/);
+  });
+
+  it("capture-only reports executor commands from plan.acceptance when the ledger is empty (#3449)", () => {
+    const root = mkdtempSync(join(tmpdir(), "verify-ac-cap-empty-ledger-"));
+    const active = join(root, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+    const path = join(active, "story.xbrief.json");
+    writeFileSync(
+      path,
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "t",
+          acceptance: {
+            commands: [{ command: "pnpm --version" }],
+            none_stated: false,
+            source_rung: "stated",
+          },
+          metadata: {},
+          items: [],
+        },
+      }),
+      "utf8",
+    );
+    const chunks: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      chunks.push(String(c));
+      return true;
+    });
+    expect(run(["--project-root", root, "--capture-only", path])).toBe(0);
+    const parsed = JSON.parse(chunks.join("")) as {
+      count: number;
+      commands: { command: string }[];
+      acceptance_commands: { command: string }[];
+    };
+    expect(parsed.acceptance_commands).toHaveLength(1);
+    expect(parsed.count).toBe(1);
+    expect(parsed.commands).toHaveLength(1);
+    expect(parsed.commands[0]?.command).toBe("pnpm --version");
+  });
+
+  it("runs stated plan.acceptance.commands and exits 0 on pass (#3449)", () => {
+    const root = mkdtempSync(join(tmpdir(), "verify-ac-stated-run-"));
+    const active = join(root, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+    writeFileSync(
+      join(active, "story.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "t",
+          acceptance: {
+            commands: [{ command: "pnpm --version" }],
+            none_stated: false,
+            source_rung: "stated",
+          },
+          metadata: {},
+          items: [],
+        },
+      }),
+      "utf8",
+    );
+    const prevSummary = process.env.DEFT_RUN_SUMMARY_PATH;
+    delete process.env.DEFT_RUN_SUMMARY_PATH;
+    try {
+      expect(run(["--project-root", root, "--quiet"])).toBe(0);
+    } finally {
+      if (prevSummary === undefined) {
+        delete process.env.DEFT_RUN_SUMMARY_PATH;
+      } else {
+        process.env.DEFT_RUN_SUMMARY_PATH = prevSummary;
+      }
+    }
   });
 });

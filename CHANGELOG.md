@@ -54,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`verify:ac` runs stated `plan.acceptance.commands` and stays in exit 0/1/2 (#3449).** The executor only injected that array for `derived`/`project_floor`, so a `rung=stated` brief with nine commands printed `passed` / `no stated commands` and never ran them. Empty literal ledger now falls through to `plan.acceptance.commands`. Printed pass is exit 0; other codes clamp to 1 or 2. `check` `cause:` skips go-task `engine:_ts-build` script echo and names the verb. Closes #3449. Refs #3284, #3267, #3334, #3497.
 - **Land leftover completed-tracked artifact for #3506 (#3264 / #1358).** The #3506 xBRIEF stayed in `xbrief/active/` after squash of PR 3517. Moved to `xbrief/completed/`. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Release archive is tracked files plus an explicit generated-output allowlist (#3490).** `buildArchive` no longer packs every untracked file that misses a basename denylist. Untracked host trees cannot change the artifact. A surprise untracked path in the resolved set fails closed. Closes #3490. Refs #3487, #2953.
 - **Consumer AGENTS.md names `session:ready` on the #1149 ritual line (#3506).** The deposit pointer now includes the one-shot recovery verb (`session:start` + gated ritual + cache recovery). `agents_entry_contract` markers follow. Closes #3506. Refs #3500, #2993, #1149, #1309, PR 3509.

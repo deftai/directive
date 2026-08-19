@@ -58,6 +58,7 @@ export function extractGateCause(
   stderr: string,
   exitCode: number,
   spawnError?: string,
+  gateId?: string,
 ): string {
   if (spawnError !== undefined && spawnError.length > 0) {
     // Normalize common missing-binary messages without path dumps.
@@ -73,12 +74,37 @@ export function extractGateCause(
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
+  const useful: string[] = [];
   for (const line of combined) {
     if (looksLikeEnvLeak(line)) continue;
     if (line.startsWith("check:")) continue;
-    return sanitizeCauseLine(line);
+    if (isGoTaskWrapperNoise(line)) continue;
+    useful.push(line);
+  }
+  const gateHint = gateId?.trim() ?? "";
+  if (gateHint.length > 0) {
+    const named = useful.find((line) => line.includes(gateHint));
+    if (named !== undefined) {
+      return sanitizeCauseLine(named);
+    }
+  }
+  if (useful.length > 0) {
+    return sanitizeCauseLine(useful[0] as string);
   }
   return `gate exited ${exitCode} without a diagnostic message`;
+}
+
+/** go-task echoes `task: [engine:_ts-build] set -eu` plus the script body (#3449). */
+function isGoTaskWrapperNoise(line: string): boolean {
+  if (/^task: \[/.test(line)) return true;
+  if (/^set -eu$/.test(line)) return true;
+  if (/^: #/.test(line)) return true;
+  if (/^# /.test(line) || /^#\t/.test(line)) return true;
+  if (/^(bin|root_pkg|is_buildable_source|first_token|is_runtime_verb|global_cli)=/.test(line)) {
+    return true;
+  }
+  if (/^(if |elif |else$|fi$|then$)/.test(line)) return true;
+  return false;
 }
 
 function looksLikeEnvLeak(line: string): boolean {
@@ -131,6 +157,7 @@ export function formatNamedCauseFailure(input: {
     input.stderr ?? "",
     input.exitCode,
     input.spawnError,
+    input.gateId,
   );
   const remedy = remedyForGate(input.gateId, cause);
   const lines = [

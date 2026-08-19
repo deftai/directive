@@ -117,6 +117,13 @@ function listActiveXbriefs(projectRoot: string): FindActiveXbriefResult {
   };
 }
 
+/** Three-state exit: pass=0, fail=1, config=2. A printed pass must not leak 201. */
+export function clampVerifyAcExit(ok: boolean, code: number): number {
+  if (ok) return 0;
+  if (code === 2) return 2;
+  return 1;
+}
+
 /** Evaluate one or many xBRIEF paths; return worst non-zero code (fail closed). */
 function evaluatePaths(
   paths: readonly string[],
@@ -150,9 +157,10 @@ function evaluatePaths(
         process.stderr.write(`${result.message}\n`);
       }
     }
-    if (result.code !== 0 && (worst === 0 || result.code > worst)) {
+    const code = clampVerifyAcExit(result.ok, result.code);
+    if (code !== 0 && (worst === 0 || code > worst)) {
       // Prefer code 1 (fail) over 2 when both present — still non-zero.
-      worst = result.code;
+      worst = code;
     }
   }
   return worst;
@@ -274,14 +282,25 @@ export function run(argv: string[]): number {
         }
         const acceptance = readPlanAcceptance(plan);
         const resolved = resolveLiteralAcceptanceDetailed(plan, { captureFromNarratives: true });
+        // Executor reads plan.acceptance.commands when the #3267 ledger is empty (#3449).
+        const executorCommands =
+          resolved.commands.length > 0
+            ? resolved.commands
+            : acceptance.commands.map((c) => ({
+                command: c.command,
+                source: "explicit" as const,
+                sourceSpan: "plan.acceptance.commands",
+                cwd: c.cwd ?? null,
+                expectedExitCode: c.expectedExitCode ?? 0,
+              }));
         reports.push({
           xbrief: xbriefPath,
           source_rung: acceptance.source_rung,
           none_stated: acceptance.none_stated,
           acceptance_commands: acceptance.commands,
-          count: resolved.commands.length,
+          count: executorCommands.length,
           rejected_count: resolved.rejected.length,
-          commands: resolved.commands.map((c) => ({
+          commands: executorCommands.map((c) => ({
             command: c.command,
             source: c.source,
             sourceSpan: c.sourceSpan ?? null,
