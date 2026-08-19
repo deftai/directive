@@ -306,6 +306,13 @@ const DOWNLOADER_DECODER_BINS = new Set([
   "mogrify",
   "fallocate",
   "new-item",
+  // #3459 residual after #3421: GNU g* peers, forge clone, iwr, fsutil.
+  "iwr",
+  "invoke-webrequest",
+  "fsutil",
+  "gh",
+  "glab",
+  "hub",
 ]);
 
 /**
@@ -400,6 +407,10 @@ const ARCHIVE_ALT_WRITE_BINS = new Set([
   "magick",
   "mogrify",
   "fallocate",
+  // #3459 residual: dest writers that are not general-purpose gh/cmd.
+  "iwr",
+  "invoke-webrequest",
+  "fsutil",
 ]);
 
 /**
@@ -499,6 +510,11 @@ const PROTECTED_POSITIONAL_BINS = new Set([
   "mogrify",
   "fallocate",
   "new-item",
+  // #3459 residual: positional dest writers (fsutil createnew, iwr dest flags).
+  // gh/glab/hub clone dests are harvested only on the clone subcommand.
+  "iwr",
+  "invoke-webrequest",
+  "fsutil",
 ]);
 
 /**
@@ -521,7 +537,7 @@ const COMMAND_WRAPPER_BINS = new Set([
 ]);
 
 function isWrapperOrAssignmentToken(raw: string, n: string): boolean {
-  if (COMMAND_WRAPPER_BINS.has(binBareName(raw))) return true;
+  if (COMMAND_WRAPPER_BINS.has(writeBinName(raw))) return true;
   return n.includes("=") && !n.startsWith("-") && !raw.includes("/") && !raw.includes("\\");
 }
 
@@ -626,6 +642,7 @@ const GENERIC_PROTECTED_EXTRA_DEST_FLAGS = new Set([
   "--workdir",
   "--file",
   "--separate-git-dir",
+  "--pack-destination",
 ]);
 /** Bins whose `--file` / `-f` operand is an input, not a dest plant. */
 const READ_SHAPED_FILE_FLAG_BINS = new Set([
@@ -649,6 +666,8 @@ const READ_INPUT_FILE_FLAGS = new Set(["--file", "-f"]);
 const NEW_ITEM_PATH_DEST_FLAGS = new Set(["-path", "-literalpath", "--literalpath"]);
 /** git subcommands whose positionals can plant a dest (#3421). */
 const GIT_WRITE_SUBCOMMANDS = new Set(["clone", "worktree", "submodule"]);
+/** Forge CLIs whose `clone` dest is harvested like git clone (#3459). */
+const FORGE_CLONE_BINS = new Set(["gh", "glab", "hub"]);
 /** fossil dest-dir flags (#3382 PATH form + #3421 --workdir=). */
 const FOSSIL_WORKDIR_DEST_FLAGS = new Set(["--workdir"]);
 /** pg_dump family dest-file flags (#3421). */
@@ -669,6 +688,8 @@ const DOWNLOADER_FILE_DEST_FLAGS = new Set([
   "-out",
   "--out",
   "--outfile",
+  // PowerShell iwr/Invoke-WebRequest -OutFile (single-dash long form) (#3459).
+  "-outfile",
   // unar single-dash long form; GNU/others use --output-directory.
   "-output-directory",
   "--output-directory",
@@ -718,11 +739,43 @@ function binBareName(token: string): string {
   return base.endsWith(".exe") ? base.slice(0, -4) : base;
 }
 
+/**
+ * GNU coreutils g* prefixes (Homebrew `ginstall`, `gcp`).
+ * Stems only — `git` / `gh` / `gpg` do not map to `it` / `h` / `pg` (#3459).
+ */
+const GNU_COREUTILS_WRITE_STEMS = new Set([
+  "cp",
+  "mv",
+  "rm",
+  "rmdir",
+  "unlink",
+  "shred",
+  "truncate",
+  "chmod",
+  "chown",
+  "dd",
+  "tee",
+  "install",
+  "ln",
+  "link",
+  "mkdir",
+  "touch",
+]);
+
+function writeBinName(token: string): string {
+  const bare = binBareName(token);
+  if (bare.length > 1 && bare.startsWith("g")) {
+    const stem = bare.slice(1);
+    if (GNU_COREUTILS_WRITE_STEMS.has(stem)) return stem;
+  }
+  return bare;
+}
+
 /** True when token names a downloader/decoder bin (bare or path-qualified). */
 function isDownloaderDecoderBin(token: string): boolean {
   const n = normalizeToken(token);
   if (n.startsWith("-")) return false;
-  return DOWNLOADER_DECODER_BINS.has(binBareName(token));
+  return DOWNLOADER_DECODER_BINS.has(writeBinName(token));
 }
 
 /**
@@ -830,7 +883,7 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
       i++;
       continue;
     }
-    const bin = binBareName(tokens[i] as string);
+    const bin = writeBinName(tokens[i] as string);
     i++;
     // xxd reverse mode writes; without -r, path positionals are dump inputs (read).
     let xxdReverse = false;
@@ -842,7 +895,9 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
     let lastPositionalPath: string | null = null;
     const protectedPathish: string[] = [];
     const collectsProtectedPositionals =
-      PROTECTED_POSITIONAL_BINS.has(bin) || (bin === "git" && gitHasWriteSubcommand(tokens, i));
+      PROTECTED_POSITIONAL_BINS.has(bin) ||
+      (bin === "git" && gitHasWriteSubcommand(tokens, i)) ||
+      (FORGE_CLONE_BINS.has(bin) && forgeHasCloneSubcommand(tokens, i));
     while (i < tokens.length) {
       const raw = tokens[i] as string;
       const n = normalizeToken(raw);
@@ -915,7 +970,8 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
       // Skip for scp (OpenSSH -oOption=Value attached forms are not file dests).
       // 7z requires attached -oDIR (#3245).
       if (bin !== "scp" && n.startsWith("-") && !n.startsWith("--") && n.length > 2) {
-        if (n.startsWith("-out") && n.length > 4 && !n.startsWith("-output")) {
+        // `-outfile` is PowerShell -OutFile (next token is dest), not attached -outFILE (#3459).
+        if (n.startsWith("-out") && n.length > 4 && !n.startsWith("-output") && n !== "-outfile") {
           dests.push(pathishToken(raw.slice(4)));
           i++;
           continue;
@@ -1210,6 +1266,36 @@ function gitHasWriteSubcommand(tokens: readonly string[], start: number): boolea
 }
 
 /**
+ * True when this forge-CLI segment is a clone dest writer
+ * (`gh repo clone`, `glab repo clone`, `hub clone`) (#3459).
+ * `clone` as a later flag value (`gh pr create --title clone`) is not a dest writer.
+ */
+function forgeHasCloneSubcommand(tokens: readonly string[], start: number): boolean {
+  const nonFlags: string[] = [];
+  let i = start;
+  while (i < tokens.length) {
+    const raw = tokens[i] as string;
+    if (isShellSegmentBreak(raw)) break;
+    const n = normalizeToken(raw);
+    if (n.startsWith("-")) {
+      if (!n.includes("=") && (GH_VALUE_FLAGS.has(raw) || GH_VALUE_FLAGS.has(n))) {
+        const next = tokens[i + 1];
+        if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
+          i += 2;
+          continue;
+        }
+      }
+      i++;
+      continue;
+    }
+    nonFlags.push(n);
+    i++;
+  }
+  if (nonFlags[0] === "clone") return true;
+  return nonFlags[0] === "repo" && nonFlags[1] === "clone";
+}
+
+/**
  * Fail-closed dest harvest for write-shaped Shell under UAT (#3354 / #3382 / #3421).
  * Named-bin parsers above are not the only path: any token that looks like
  * `-o` / `--output` / `--outfile` / `--output-file` / `-d` / `--dir` /
@@ -1232,14 +1318,14 @@ function genericProtectedDests(tokens: readonly string[]): string[] {
     }
     if (!n.startsWith("-")) {
       if (isDownloaderDecoderBin(raw)) {
-        currentBin = binBareName(raw);
+        currentBin = writeBinName(raw);
       } else if (
         currentBin.length === 0 &&
         !raw.includes("/") &&
         !raw.includes("\\") &&
         n.length > 0
       ) {
-        currentBin = binBareName(raw);
+        currentBin = writeBinName(raw);
       }
     }
     if (currentBin === "scp" || currentBin === "cpio") continue;
@@ -1378,7 +1464,7 @@ function hasKillSwitchShellWrite(command: string, tokens: readonly string[]): bo
   ]);
   for (let ti = 0; ti < tokens.length; ti++) {
     const binTok = normalizeToken(tokens[ti] as string);
-    const bare = binBareName(tokens[ti] as string);
+    const bare = writeBinName(tokens[ti] as string);
     if (!killWriteBins.has(binTok) && !killWriteBins.has(bare)) continue;
     // Last-positional dest bins (and their subcommands): dest harvest owns dest vs source.
     if (LAST_POSITIONAL_DEST_BINS.has(bare) || segmentStartedByLastPositionalDest(tokens, ti)) {
@@ -1400,7 +1486,7 @@ function hasKillSwitchShellWrite(command: string, tokens: readonly string[]): bo
   // Other segments still scan so `aws … ; touch .deft-directive-disable` is settings.
   for (let ti = 0; ti < tokens.length; ti++) {
     if (
-      LAST_POSITIONAL_DEST_BINS.has(binBareName(tokens[ti] as string)) ||
+      LAST_POSITIONAL_DEST_BINS.has(writeBinName(tokens[ti] as string)) ||
       segmentStartedByLastPositionalDest(tokens, ti)
     ) {
       continue;
@@ -1414,8 +1500,8 @@ function hasKillSwitchShellWrite(command: string, tokens: readonly string[]): bo
           hasWriteShape(command, tokens) ||
           lower.includes("touch") ||
           lower.includes("new-item") ||
-          SYMLINK_PLANT_BINS.has(binBareName(tokens[0] as string)) ||
-          tokens.some((tok) => SYMLINK_PLANT_BINS.has(binBareName(tok)))
+          SYMLINK_PLANT_BINS.has(writeBinName(tokens[0] as string)) ||
+          tokens.some((tok) => SYMLINK_PLANT_BINS.has(writeBinName(tok)))
         ) {
           return true;
         }
@@ -1447,7 +1533,10 @@ function isProgrammaticWriteBinToken(token: string): boolean {
     bare === "perl" ||
     bare === "ruby" ||
     bare === "pwsh" ||
-    bare === "powershell"
+    bare === "powershell" ||
+    bare === "tsx" ||
+    bare === "ts-node" ||
+    bare === "tsnode"
   ) {
     return true;
   }
@@ -1710,7 +1799,7 @@ function hasAuthzDirShellWrite(command: string, tokens: readonly string[]): bool
   // must not fail-open as unclassifiable (SLizard residual). ARCHIVE_ALT_WRITE_BINS: tar/rclone
   // residual pathish without dest-flag perfection thrash.
   for (let ti = 0; ti < tokens.length; ti++) {
-    const bare = binBareName(tokens[ti] as string);
+    const bare = writeBinName(tokens[ti] as string);
     const n = normalizeToken(tokens[ti] as string);
     if (
       !INDIRECT_WRITE_BINS.has(n) &&
@@ -1777,6 +1866,12 @@ const INDIRECT_WRITE_BINS = new Set([
   "new-item",
   "sc",
   "mi",
+  // #3459 residual: Windows copy / fsutil / touch / TS runners.
+  "copy",
+  "fsutil",
+  "touch",
+  "tsx",
+  "ts-node",
 ]);
 
 /**
@@ -1820,7 +1915,7 @@ function hasEnvExpansion(command: string): boolean {
 function hasWriteShape(command: string, tokens: readonly string[]): boolean {
   if (command.includes(">")) return true;
   for (const t of tokens) {
-    const bare = binBareName(t);
+    const bare = writeBinName(t);
     if (INDIRECT_WRITE_BINS.has(normalizeToken(t)) || INDIRECT_WRITE_BINS.has(bare)) return true;
     // #3245: archive extractors / alt downloaders are write-shaped (defense-in-depth for
     // unclassifiable plant paths under UAT — not bare curl $URL which stays non-write-shaped).
