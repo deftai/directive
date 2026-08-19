@@ -7,6 +7,8 @@ import { resolve } from "node:path";
 import {
   captureLiteralAcceptanceCommandsDetailed,
   formatRejectedLedger,
+  hasStructuredAcceptanceCommands,
+  isProseDerivedRejection,
   readStoredLiteralAcceptanceDetailed,
 } from "./capture.js";
 import { runLiteralAcceptanceCommands } from "./run.js";
@@ -40,6 +42,41 @@ function planOf(data: Record<string, unknown>): Record<string, unknown> | null {
   return asRecord(data.plan);
 }
 
+/** Resolved literal-AC view: executable commands plus the blocking / advisory ledgers. */
+export interface ResolvedLiteralAcceptance {
+  readonly commands: readonly LiteralAcceptanceCommand[];
+  /** Safety-rejected entries that block completion. */
+  readonly rejected: readonly RejectedLiteralCommand[];
+  /**
+   * Prose-derived rejections demoted to advisory because the author stated
+   * structured acceptance commands (#3484). Reported, never blocking.
+   */
+  readonly advisoryRejected: readonly RejectedLiteralCommand[];
+}
+
+/**
+ * Structured beats scraped (#3484): when `swarm.verify_commands` /
+ * `plan.acceptance.commands` are stated, prose-derived rejections are demoted to
+ * advisory. The author already said what to run; a scraper misreading their prose
+ * must not be able to block completion. Rejections from structured fields keep
+ * blocking — those are real commands the author asked for.
+ */
+function partitionRejected(
+  plan: Record<string, unknown>,
+  rejected: readonly RejectedLiteralCommand[],
+): { blocking: RejectedLiteralCommand[]; advisory: RejectedLiteralCommand[] } {
+  if (!hasStructuredAcceptanceCommands(plan)) {
+    return { blocking: [...rejected], advisory: [] };
+  }
+  const blocking: RejectedLiteralCommand[] = [];
+  const advisory: RejectedLiteralCommand[] = [];
+  for (const r of rejected) {
+    if (isProseDerivedRejection(r)) advisory.push(r);
+    else blocking.push(r);
+  }
+  return { blocking, advisory };
+}
+
 /**
  * Resolve commands + rejected ledger.
  * Stored first; when captureFromNarratives is true (default), also re-scan narratives
@@ -47,6 +84,15 @@ function planOf(data: Record<string, unknown>): Record<string, unknown> | null {
  * (Greptile conf residual).
  */
 export function resolveLiteralAcceptanceDetailed(
+  plan: Record<string, unknown>,
+  options: { readonly captureFromNarratives?: boolean } = {},
+): ResolvedLiteralAcceptance {
+  const raw = resolveRawLiteralAcceptance(plan, options);
+  const split = partitionRejected(plan, raw.rejected);
+  return { commands: raw.commands, rejected: split.blocking, advisoryRejected: split.advisory };
+}
+
+function resolveRawLiteralAcceptance(
   plan: Record<string, unknown>,
   options: { readonly captureFromNarratives?: boolean } = {},
 ): {
@@ -156,6 +202,16 @@ export function evaluateLiteralAcceptanceFromPlan(
       `(promote a safe alternative or remove from the task statement).\n` +
       ledger +
       (result.message.length > 0 ? `\n${result.message}` : "");
+  }
+  // Prose-derived rejections demoted by structured acceptance (#3484) are reported,
+  // never blocking — visibility without a terminal gate on a scraper misread.
+  if (resolved.advisoryRejected.length > 0) {
+    const advisory =
+      `Literal acceptance advisory (#3484): ${resolved.advisoryRejected.length} ` +
+      `prose-derived capture(s) were safety-rejected but do NOT block — this plan states ` +
+      `structured acceptance commands (swarm.verify_commands / plan.acceptance.commands).\n` +
+      formatRejectedLedger(resolved.advisoryRejected);
+    message = message.length > 0 ? `${message}\n${advisory}` : advisory;
   }
   const withRejected: LiteralAcceptanceGateResult = {
     ...result,

@@ -141,6 +141,13 @@ export function run(argv: string[]): number {
           reason: r.reason,
           sourceSpan: r.sourceSpan ?? null,
         })),
+        // Prose-derived captures demoted by structured acceptance commands (#3484).
+        advisory_rejected_count: resolved.advisoryRejected.length,
+        advisory_rejected: resolved.advisoryRejected.map((r) => ({
+          command: r.command,
+          reason: r.reason,
+          sourceSpan: r.sourceSpan ?? null,
+        })),
       };
       process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
       if (resolved.rejected.length > 0) {

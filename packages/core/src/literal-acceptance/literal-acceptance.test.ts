@@ -29,7 +29,7 @@ pnpm exec vitest run packages/core/src/literal-acceptance
 task check
 \`\`\`
 
-Also run: verify: pnpm test
+verify: pnpm test
 
 Self-chosen approximations are not enough — use the stated commands.
 `;
@@ -390,7 +390,7 @@ describe("command safety (#3267 P1)", () => {
     const { captureLiteralAcceptanceCommandsDetailed } = await import("./capture.js");
     // docker is not allowlisted for execute, but normalize must preserve `.`
     const detailed = captureLiteralAcceptanceCommandsDetailed(
-      "verify: pnpm test .\nAlso: verify: task check.",
+      "verify: pnpm test .\nverify: task check.",
     );
     // sentence period after task check strips; path `.` after pnpm test preserved if captured
     expect(detailed.commands.some((c) => c.command === "task check")).toBe(true);

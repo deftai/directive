@@ -189,20 +189,6 @@ function matchLabeledCommand(line: string): string | null {
   return line.slice(i).trimEnd();
 }
 
-/** Mid-line `verify: cmd` (e.g. "Also run: verify: task check"). */
-function matchMidlineLabeled(line: string): string | null {
-  const low = line.toLowerCase();
-  for (const kw of LABELED_KEYWORDS) {
-    if (kw === "run" || kw === "check") continue; // too ambiguous mid-line
-    const needle = `${kw}:`;
-    const idx = low.indexOf(needle);
-    if (idx < 0) continue;
-    const rest = line.slice(idx + needle.length).trim();
-    if (rest.length > 0) return rest;
-  }
-  return null;
-}
-
 /** `$ cmd` or `> cmd` prompt lines. */
 function matchPromptCommand(line: string): string | null {
   let i = skipWs(line, 0);
@@ -319,17 +305,22 @@ function matchMarkdownHeading(line: string): { level: number; text: string } | n
   return { level, text: line.slice(level + 1).trim() };
 }
 
-/** Extract from labeled lines and `$` prompts anywhere in the statement. */
+/**
+ * Extract from labeled lines and `$` prompts anywhere in the statement.
+ *
+ * A labeled command MUST start its own line (after an optional bullet / number
+ * marker). Mid-line label capture is deliberately not attempted (#3484): a
+ * `verify:<verb>` token inside ordinary prose has no terminator, so the capture
+ * swallowed the rest of the paragraph and the phantom then blocked completion on
+ * the safety ledger. Commands stated mid-sentence must live in a fence, a `$`
+ * prompt, or an inline backtick span — all of which have real delimiters.
+ */
 function extractFromLabeledLines(text: string, buckets: CaptureBuckets): void {
   const lines = text.split(/\r?\n/);
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i] ?? "";
     let capturedLabeled = false;
-    let labeledBody = matchLabeledCommand(line);
-    if (labeledBody === null && matchPromptCommand(line) === null) {
-      // Avoid treating `$ task verify:branch` as labeled "branch".
-      labeledBody = matchMidlineLabeled(line);
-    }
+    const labeledBody = matchLabeledCommand(line);
     if (labeledBody !== null) {
       const normalized = normalizeCommand(labeledBody);
       if (normalized !== null && looksLikeShellCommand(normalized)) {
@@ -727,6 +718,51 @@ function toSerializable(cmd: LiteralAcceptanceCommand): Record<string, unknown> 
     row.sourceSpan = cmd.sourceSpan;
   }
   return row;
+}
+
+/**
+ * Provenance prefixes stamped by the free-text scrapers in this module.
+ * Anything carrying one of these spans came from prose, not from a structured
+ * acceptance field the author wrote on purpose (#3484).
+ */
+const PROSE_SPAN_PREFIXES = ["labeled@", "prompt@", "inline@", "fence@"] as const;
+
+/** True when a rejected ledger entry was scraped from narrative prose (#3484). */
+export function isProseDerivedRejection(rejected: RejectedLiteralCommand): boolean {
+  const span = rejected.sourceSpan;
+  if (span === null || span === undefined) return false;
+  return PROSE_SPAN_PREFIXES.some((prefix) => span.startsWith(prefix));
+}
+
+function hasNonEmptyCommandList(raw: unknown): boolean {
+  if (typeof raw === "string") return raw.trim().length > 0;
+  if (!Array.isArray(raw)) return false;
+  for (const entry of raw) {
+    if (typeof entry === "string" && entry.trim().length > 0) return true;
+    const rec = asRecord(entry);
+    if (rec === null) continue;
+    if (isNonEmptyString(rec.command ?? rec.cmd ?? rec.shell)) return true;
+  }
+  return false;
+}
+
+/**
+ * True when the author stated acceptance commands structurally — `swarm.verify_commands`
+ * or `plan.acceptance.commands` (#3484). Structured beats scraped: when this holds, a
+ * prose-derived capture is advisory and must not block completion.
+ */
+export function hasStructuredAcceptanceCommands(
+  plan: Record<string, unknown> | null | undefined,
+): boolean {
+  const rec = asRecord(plan);
+  if (rec === null) return false;
+  const acceptance = asRecord(rec.acceptance);
+  if (acceptance !== null && hasNonEmptyCommandList(acceptance.commands)) return true;
+  const metadata = asRecord(rec.metadata);
+  if (metadata === null) return false;
+  const swarm = asRecord(metadata.swarm);
+  if (swarm === null) return false;
+  return hasNonEmptyCommandList(swarm.verify_commands);
 }
 
 /** Format rejected ledger for CLI / complete-gate messages. */

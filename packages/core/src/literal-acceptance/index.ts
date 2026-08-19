@@ -12,6 +12,8 @@ export {
   captureLiteralAcceptanceCommands,
   captureLiteralAcceptanceCommandsDetailed,
   formatRejectedLedger,
+  hasStructuredAcceptanceCommands,
+  isProseDerivedRejection,
   readStoredLiteralAcceptanceCommands,
   readStoredLiteralAcceptanceDetailed,
 } from "./capture.js";
@@ -20,6 +22,7 @@ export {
   evaluateLiteralAcceptanceFromPath,
   evaluateLiteralAcceptanceFromPlan,
   isLiteralAcceptanceRequiredAtCeremonyDepth,
+  type ResolvedLiteralAcceptance,
   resolveLiteralAcceptanceCommands,
   resolveLiteralAcceptanceDetailed,
 } from "./evaluate.js";

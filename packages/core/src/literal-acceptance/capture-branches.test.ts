@@ -61,7 +61,7 @@ describe("captureLiteralAcceptanceCommands branch matrix (#3287)", () => {
     expect(cmds.some((c) => c.command === "task check")).toBe(true);
   });
 
-  it("parses numbered and bullet labeled lines plus mid-line verify:", () => {
+  it("parses numbered and bullet labeled lines; ignores mid-line verify: (#3484)", () => {
     const text = [
       "1. verify: task check",
       "2) command: task doctor",
@@ -78,11 +78,12 @@ describe("captureLiteralAcceptanceCommands branch matrix (#3287)", () => {
         "task doctor",
         "pnpm test",
         "task help",
-        "task --version",
         "task verify:branch",
         "pnpm --version",
       ]),
     );
+    // Mid-line label has no terminator — not captured (#3484).
+    expect(cmds).not.toContain("task --version");
   });
 
   it("extracts inline backtick spans next to verify/run language", () => {
