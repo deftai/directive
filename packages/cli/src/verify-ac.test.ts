@@ -256,7 +256,7 @@ describe("verify:ac run (#3284)", () => {
         plan: {
           title: "t",
           acceptance: {
-            commands: [{ command: "task --version" }],
+            commands: [{ command: "pnpm --version" }],
             none_stated: false,
             source_rung: "stated",
           },
@@ -280,7 +280,7 @@ describe("verify:ac run (#3284)", () => {
     expect(parsed.acceptance_commands).toHaveLength(1);
     expect(parsed.count).toBe(1);
     expect(parsed.commands).toHaveLength(1);
-    expect(parsed.commands[0]?.command).toBe("task --version");
+    expect(parsed.commands[0]?.command).toBe("pnpm --version");
   });
 
   it("runs stated plan.acceptance.commands and exits 0 on pass (#3449)", () => {
@@ -294,7 +294,7 @@ describe("verify:ac run (#3284)", () => {
         plan: {
           title: "t",
           acceptance: {
-            commands: [{ command: "task --version" }],
+            commands: [{ command: "pnpm --version" }],
             none_stated: false,
             source_rung: "stated",
           },
@@ -304,6 +304,16 @@ describe("verify:ac run (#3284)", () => {
       }),
       "utf8",
     );
-    expect(run(["--project-root", root, "--quiet"])).toBe(0);
+    const prevSummary = process.env.DEFT_RUN_SUMMARY_PATH;
+    delete process.env.DEFT_RUN_SUMMARY_PATH;
+    try {
+      expect(run(["--project-root", root, "--quiet"])).toBe(0);
+    } finally {
+      if (prevSummary === undefined) {
+        delete process.env.DEFT_RUN_SUMMARY_PATH;
+      } else {
+        process.env.DEFT_RUN_SUMMARY_PATH = prevSummary;
+      }
+    }
   });
 });
