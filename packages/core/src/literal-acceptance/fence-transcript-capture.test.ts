@@ -219,6 +219,39 @@ describe("output-shaped fences are not captured (#3511)", () => {
       ]),
     );
   });
+
+  it("captures fence commands that contain --fail-fast rather than treating them as FAIL output (#3511)", () => {
+    const text = [
+      "## Acceptance",
+      "```bash",
+      "pnpm test --fail-fast",
+      "$ pnpm exec vitest run packages/core --failOnError",
+      "task check --no-fail",
+      "```",
+    ].join("\n");
+    const cmds = captureLiteralAcceptanceCommandsDetailed(text).commands.map((c) => c.command);
+    expect(cmds).toEqual(
+      expect.arrayContaining([
+        "pnpm test --fail-fast",
+        "pnpm exec vitest run packages/core --failOnError",
+        "task check --no-fail",
+      ]),
+    );
+  });
+
+  it("still skips actual FAIL / Error: transcript output (#3511)", () => {
+    const text = ["```", "FAIL  packages/foo.test.ts", "FAILED tests/x", "Error: boom", "```"].join(
+      "\n",
+    );
+    const detailed = captureLiteralAcceptanceCommandsDetailed(text);
+    const all = [
+      ...detailed.commands.map((c) => c.command),
+      ...detailed.rejected.map((r) => r.command),
+    ];
+    expect(all).not.toContain("FAIL  packages/foo.test.ts");
+    expect(all).not.toContain("FAILED tests/x");
+    expect(all).not.toContain("Error: boom");
+  });
 });
 
 describe("prose/fence-derived rejections are advisory without structured commands (#3511)", () => {

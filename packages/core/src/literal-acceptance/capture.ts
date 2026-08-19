@@ -207,6 +207,8 @@ const BOX_DRAWING_RE = /[\u2500-\u257F\u2580-\u259F]/;
 /**
  * True when a fence line is log/transcript, not a stated command (#3511).
  * `[1/13]` / `[ts:check-lane]`, box drawing, or FAIL/FAILED/Error:.
+ * Flag tokens (--fail-fast, --failOnError, --no-fail) are not FAIL output:
+ * `\bFAIL` matches between `-` and `f`.
  */
 function isTranscriptOutputLine(line: string): boolean {
   const t = line.trim();
@@ -214,7 +216,8 @@ function isTranscriptOutputLine(line: string): boolean {
   if (t.startsWith("#") || t.startsWith("//")) return false;
   if (/^\[[^\]]{1,80}\]/.test(t)) return true;
   if (BOX_DRAWING_RE.test(t)) return true;
-  if (/\b(?:FAILED|FAIL|Error:)/i.test(t)) return true;
+  const withoutFlags = t.replace(/(^|\s)--[\w-]+/g, "$1");
+  if (/\b(?:FAILED|FAIL|Error:)/i.test(withoutFlags)) return true;
   return false;
 }
 
