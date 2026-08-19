@@ -50,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Fenced terminal transcript is not blocking acceptance (#3511).** Output-shaped fences (`[1/13]`, box drawing, `FAIL`/`Error:`) are not captured as stated commands. A prose/fence/inline safety rejection is advisory even when the plan has no structured `verify_commands`. A genuinely unsafe command in a structured field still blocks. The #3502 and #3506 phantom ledgers complete without `--force` or rewriting the issue. Ledger `waived`/`not_applicable` disposition remains leftover. Closes #3511. Refs #3484, #3497, #3502, #3267.
 - **Consumer AGENTS.md names `session:ready` on the #1149 ritual line (#3506).** The deposit pointer now includes the one-shot recovery verb (`session:start` + gated ritual + cache recovery). `agents_entry_contract` markers follow. Closes #3506. Refs #3500, #2993, #1149, #1309, PR 3509.
 - **CI merge-gate exempts `verify:branch` on a post-merge master checkout (#3499).** The documented `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` env is set on the two `task check:merge` steps only. Local `task check` and git hooks stay fail-closed. Closes #3499. Refs #1704, #747.
 - **Land leftover completed-tracked artifact for #3502 (#3264 / #1358).** The #3502 xBRIEF stayed in `xbrief/active/` after squash, so `verify:orphan-active` failed on later PRs. Moved to `xbrief/completed/`. Does not reopen or recut that issue. Refs #2321.

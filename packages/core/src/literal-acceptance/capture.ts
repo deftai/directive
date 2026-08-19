@@ -199,9 +199,88 @@ function matchPromptCommand(line: string): string | null {
   return line.slice(i).trimEnd();
 }
 
+/** Box-drawing / block elements used in terminal UIs (━, │, …). */
+const BOX_DRAWING_RE = /[\u2500-\u257F\u2580-\u259F]/;
+
+/**
+ * True when a fence line is log/transcript, not a stated command (#3511).
+ * `[1/13]` / `[ts:check-lane]`, box drawing, or FAIL/FAILED/Error:.
+ */
+function isTranscriptOutputLine(line: string): boolean {
+  const t = line.trim();
+  if (t.length === 0) return false;
+  if (/^\[[^\]]{1,80}\]/.test(t)) return true;
+  if (BOX_DRAWING_RE.test(t)) return true;
+  if (/\b(?:FAILED|FAIL|Error:)/i.test(t)) return true;
+  return false;
+}
+
+/** Per-line mask: true for body lines inside ``` / ~~~ fences (not the markers). */
+function fenceBodyMask(lines: readonly string[]): boolean[] {
+  const mask = Array.from({ length: lines.length }, () => false);
+  let inFence = false;
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i] ?? "";
+    if (!inFence) {
+      if (matchFenceOpen(line) !== null) inFence = true;
+      continue;
+    }
+    if (matchFenceClose(line)) {
+      inFence = false;
+      continue;
+    }
+    mask[i] = true;
+  }
+  return mask;
+}
+
+function captureFenceBodyLine(
+  line: string,
+  fenceLang: string,
+  fenceStartLine: number,
+  buckets: CaptureBuckets,
+): void {
+  const trimmed = line.trim();
+  if (trimmed.length === 0 || trimmed.startsWith("#") || trimmed.startsWith("//")) {
+    return;
+  }
+  let body = trimmed;
+  if (body.startsWith("$ ") || body.startsWith("> ")) {
+    body = body.slice(2).trim();
+  }
+  const normalized = normalizeCommand(body);
+  if (normalized === null) return;
+  const langOk = isShellFenceLang(fenceLang);
+  if (!looksLikeShellCommand(normalized) && (fenceLang === "" || !langOk)) return;
+  pushUnique(
+    buckets,
+    normalized,
+    "task_statement",
+    `fence@L${fenceStartLine}${fenceLang ? `:${fenceLang}` : ""}`,
+  );
+}
+
+function flushFenceBody(
+  body: readonly string[],
+  fenceLang: string,
+  fenceStartLine: number,
+  requireRegion: boolean,
+  regionActive: boolean,
+  buckets: CaptureBuckets,
+): void {
+  if (requireRegion && !regionActive) return;
+  if (!isShellFenceLang(fenceLang)) return;
+  // Whole-fence skip: mixed transcript + `$ suggested-fix` is still output (#3511).
+  if (body.some((line) => isTranscriptOutputLine(line))) return;
+  for (const line of body) {
+    captureFenceBodyLine(line, fenceLang, fenceStartLine, buckets);
+  }
+}
+
 /**
  * Walk fenced ``` / ~~~ blocks; keep fence body lines that look like shell.
  * When `requireRegion` is true, only fences under an acceptance/verify heading.
+ * Output-shaped fences (progress tags, box drawing, FAIL/Error:) are skipped (#3511).
  */
 function extractFromFences(text: string, requireRegion: boolean, buckets: CaptureBuckets): void {
   const lines = text.split(/\r?\n/);
@@ -209,6 +288,15 @@ function extractFromFences(text: string, requireRegion: boolean, buckets: Captur
   let fenceLang = "";
   let regionActive = !requireRegion;
   let fenceStartLine = 0;
+  let fenceBody: string[] = [];
+
+  const flush = (): void => {
+    if (!inFence) return;
+    flushFenceBody(fenceBody, fenceLang, fenceStartLine, requireRegion, regionActive, buckets);
+    inFence = false;
+    fenceLang = "";
+    fenceBody = [];
+  };
 
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i] ?? "";
@@ -223,41 +311,17 @@ function extractFromFences(text: string, requireRegion: boolean, buckets: Captur
       inFence = true;
       fenceLang = fenceOpen.lang;
       fenceStartLine = i + 1;
+      fenceBody = [];
       continue;
     }
     if (inFence && matchFenceClose(line)) {
-      inFence = false;
-      fenceLang = "";
+      flush();
       continue;
     }
     if (!inFence) continue;
-    if (requireRegion && !regionActive) continue;
-
-    // Skip comment-only fence lines.
-    const trimmed = line.trim();
-    if (trimmed.length === 0 || trimmed.startsWith("#") || trimmed.startsWith("//")) {
-      continue;
-    }
-    // Shell-ish langs always accepted; unknown langs need CLI shape.
-    const langOk = isShellFenceLang(fenceLang);
-    if (!langOk && fenceLang !== "") continue;
-
-    // Strip leading prompt markers inside fences.
-    let body = trimmed;
-    if (body.startsWith("$ ") || body.startsWith("> ")) {
-      body = body.slice(2).trim();
-    }
-    const normalized = normalizeCommand(body);
-    if (normalized === null) continue;
-    if (!looksLikeShellCommand(normalized) && (fenceLang === "" || !langOk)) continue;
-
-    pushUnique(
-      buckets,
-      normalized,
-      "task_statement",
-      `fence@L${fenceStartLine}${fenceLang ? `:${fenceLang}` : ""}`,
-    );
+    fenceBody.push(line);
   }
+  flush();
 }
 
 function isShellFenceLang(lang: string): boolean {
@@ -317,7 +381,9 @@ function matchMarkdownHeading(line: string): { level: number; text: string } | n
  */
 function extractFromLabeledLines(text: string, buckets: CaptureBuckets): void {
   const lines = text.split(/\r?\n/);
+  const inFence = fenceBodyMask(lines);
   for (let i = 0; i < lines.length; i += 1) {
+    if (inFence[i] === true) continue;
     const line = lines[i] ?? "";
     let capturedLabeled = false;
     const labeledBody = matchLabeledCommand(line);
@@ -346,7 +412,9 @@ function extractFromLabeledLines(text: string, buckets: CaptureBuckets): void {
  */
 function extractInlineVerifySpans(text: string, buckets: CaptureBuckets): void {
   const lines = text.split(/\r?\n/);
+  const inFence = fenceBodyMask(lines);
   for (let i = 0; i < lines.length; i += 1) {
+    if (inFence[i] === true) continue;
     const line = lines[i] ?? "";
     if (!/\b(verify|run|execute|acceptance)\b/i.test(line)) continue;
     let pos = 0;
@@ -748,8 +816,8 @@ function hasNonEmptyCommandList(raw: unknown): boolean {
 
 /**
  * True when the author stated acceptance commands structurally — `swarm.verify_commands`
- * or `plan.acceptance.commands` (#3484). Structured beats scraped: when this holds, a
- * prose-derived capture is advisory and must not block completion.
+ * or `plan.acceptance.commands` (#3484). Still used by intake/tests; demotion of
+ * prose-derived rejections no longer depends on this (#3511).
  */
 export function hasStructuredAcceptanceCommands(
   plan: Record<string, unknown> | null | undefined,
