@@ -399,4 +399,23 @@ describe("build-dist helpers", () => {
       /resolves outside the archive root/,
     );
   });
+
+  it("generated allowlist file under a symlinked ancestor directory fails closed", () => {
+    const root = fixtureProject();
+    const outsideDir = mkdtempSync(join(tmpdir(), "deft-build-dist-outdir-"));
+    writeFileSync(join(outsideDir, "secret.txt"), "secret\n");
+    const linkDir = join(root, "linkdir");
+    try {
+      symlinkSync(outsideDir, linkDir, "dir");
+    } catch {
+      try {
+        symlinkSync(outsideDir, linkDir);
+      } catch {
+        return;
+      }
+    }
+    expect(() =>
+      resolveArchiveEntries(root, { generatedAllowlist: ["linkdir/secret.txt"] }),
+    ).toThrow(/resolves outside the archive root/);
+  });
 });

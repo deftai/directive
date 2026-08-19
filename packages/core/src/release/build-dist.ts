@@ -167,32 +167,24 @@ export function containedAbsPath(root: string, relPosix: string): string | null 
 function toArchiveEntry(root: string, relPosix: string): ArchiveSourceEntry | null {
   const absPath = containedAbsPath(root, relPosix);
   if (absPath === null) return null;
-  let st: ReturnType<typeof lstatSync>;
+  let real: string;
   try {
-    st = lstatSync(absPath);
+    // realpath resolves leaf and ancestor symlinks before the file-type check.
+    real = realpathSync(absPath);
   } catch {
     return null;
   }
-  if (st.isSymbolicLink()) {
-    let real: string;
-    try {
-      real = realpathSync(absPath);
-    } catch {
-      return null;
-    }
-    if (!isInsideRoot(root, real)) {
-      throw new Error(`build-dist: path resolves outside the archive root: ${relPosix}`);
-    }
-    try {
-      st = lstatSync(real);
-    } catch {
-      return null;
-    }
-    if (!st.isFile()) return null;
-    return { absPath: real, archiveRel: flattenContentPrefix(relPosix) };
+  if (!isInsideRoot(root, real)) {
+    throw new Error(`build-dist: path resolves outside the archive root: ${relPosix}`);
+  }
+  let st: ReturnType<typeof lstatSync>;
+  try {
+    st = lstatSync(real);
+  } catch {
+    return null;
   }
   if (!st.isFile()) return null;
-  return { absPath, archiveRel: flattenContentPrefix(relPosix) };
+  return { absPath: real, archiveRel: flattenContentPrefix(relPosix) };
 }
 
 /**
