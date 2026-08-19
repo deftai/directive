@@ -2,7 +2,12 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { evaluateVerifyStubs, scanFileForStubs, sortedRglob } from "./verify-stubs.js";
+import {
+  EXCLUDE_DIRS,
+  evaluateVerifyStubs,
+  scanFileForStubs,
+  sortedRglob,
+} from "./verify-stubs.js";
 
 describe("evaluateVerifyStubs", () => {
   let root: string | undefined;
@@ -145,6 +150,34 @@ describe("sortedRglob", () => {
       writeFileSync(join(root, "a", "m.go"), "", "utf8");
       const paths = sortedRglob(root);
       expect(paths).toEqual(["a/m.go", "b/z.go"]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  // Asserts on the walk, not on the per-file filter in scanFileForStubs. #2953
+  // added these names to EXCLUDE_DIRS but left the walk descending into them,
+  // and no test noticed because every exclusion assertion targeted the filter
+  // (#3481). A regression here means the walk enumerates swarm worktrees again.
+  it("does not descend into excluded directories", () => {
+    const root = mkdtempSync(join(tmpdir(), "rglob-prune-"));
+    try {
+      mkdirSync(join(root, "pkg"), { recursive: true });
+      writeFileSync(join(root, "pkg", "keep.go"), "", "utf8");
+      for (const excluded of [".deft-scratch", "swarm-worktrees", "node_modules", ".git"]) {
+        mkdirSync(join(root, excluded, "nested", "deeper"), { recursive: true });
+        writeFileSync(join(root, excluded, "top.go"), "", "utf8");
+        writeFileSync(join(root, excluded, "nested", "deeper", "buried.go"), "", "utf8");
+      }
+      mkdirSync(join(root, "pkg", "sub", "node_modules"), { recursive: true });
+      writeFileSync(join(root, "pkg", "sub", "node_modules", "dep.go"), "", "utf8");
+
+      const paths = sortedRglob(root);
+
+      expect(paths).toEqual(["pkg/keep.go"]);
+      for (const rel of paths) {
+        expect(rel.split("/").some((p) => EXCLUDE_DIRS.has(p))).toBe(false);
+      }
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
