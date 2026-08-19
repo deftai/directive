@@ -1,0 +1,200 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Drive-to DONE must require tracked completed xBRIEF on the delivery tip.",
+    "updated": "2026-08-19T02:55:53Z"
+  },
+  "plan": {
+    "title": "fix(swarm): drive-to DONE requires completed-tracked on delivery tip",
+    "status": "completed",
+    "id": "3476-drive-to-done-completed-tracked",
+    "narratives": {
+      "Description": "fix(swarm): a drive-to:merge-ready DONE is not valid while the completed xBRIEF is only untracked on the laptop. Cohort close without finalize-cohort / completed-tracked green is a failed close.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3476. Operator through-merge 2026-08-18. Recurrence of closed #3264 / #1358 on the drive-to path.",
+      "Overview": "drive-to workers run scope:complete after the product PR merges. That verb is filesystem-only. verify:orphan-active goes green. verify:completed-tracked is not on task check and not in the DONE contract. Master never gets the artifact until a later land PR.\n\nDesigned land path already exists: Phase 6 Step 2b and task swarm:finalize-cohort. Leaves do not run it. Parent can emit done under #2934 without it.\n\nProposed: (1) Drive-to DONE includes completed-tracked against origin/deliveryBranch, not feature-worktree HEAD. (2) scope:complete stays fs-only. (3) After last drive-to leaf, parent done without finalize-cohort / completed-tracked green is a failed close. (4) Keep completed-tracked off task check.\n\n⊗ Teach every leaf to commit on master. ⊗ Put completed-tracked on task check. ⊗ Re-close #3454/#3469/#3470.",
+      "UserStory": "As a swarm parent after a through-merge leaf, I want DONE to fail until the completed xBRIEF is tracked on the delivery tip, so that we do not need another land-completed PR for every cohort.",
+      "ImplementationPlan": "1. Preamble + swarm Phase 6: drive-to DONE requires verify:completed-tracked against origin/<deliveryBranch> (add --issue N if missing). 2. Parent last-leaf close requires same-turn finalize-cohort or completed-tracked green. 3. scope:complete stays fs-only. 4. Keep the verb off check:framework-source / check:consumer. 5. Tests + CHANGELOG. Closes #3476."
+    },
+    "items": [
+      {
+        "title": "Drive-to DONE requires completed-tracked on delivery tip",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given a drive-to:merge-ready leaf that has merged and run scope:complete, when the completed file is only untracked in the feature worktree, then DONE is forbidden. verify:completed-tracked against origin/<deliveryBranch> (per-issue if that flag exists) must be exit 0 before DONE.",
+          "Traces": "FR-3476-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/lifecycle/completed-tracked-on-delivery.test.ts -- --issue N resolves origin/<deliveryBranch>, not feature HEAD; merged ddf601c1 (PR #3478)",
+          "recorded_at": "2026-08-19T00:35:00Z",
+          "recorded_by": "orchestrator/3476"
+        }
+      },
+      {
+        "title": "Parent last-leaf close requires finalize or tracked land",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given the last drive-to leaf of a cohort has announced, when the parent emits cohort done, then same-turn finalize-cohort (or a land PR already proving completed-tracked green) is required. Narrative-only done is a failed close.",
+          "Traces": "FR-3476-2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/swarm_skill.test.ts + core-phase-5-6.md last-leaf close contract; merged ddf601c1 (PR #3478)",
+          "recorded_at": "2026-08-19T00:35:00Z",
+          "recorded_by": "orchestrator/3476"
+        }
+      },
+      {
+        "title": "scope:complete stays fs-only; completed-tracked stays off task check",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given this ship, when scope:complete runs, then it still does not git commit. check:framework-source and check:consumer still do not depend on verify:completed-tracked.",
+          "Traces": "FR-3476-3"
+        },
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "PR #3478 -- verify:completed-tracked absent from check:framework-source deps in Taskfile.yml; scope:complete unchanged (filesystem-only)",
+          "recorded_at": "2026-08-19T00:35:00Z",
+          "recorded_by": "orchestrator/3476"
+        }
+      },
+      {
+        "title": "Tests and CHANGELOG",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given the ship, when tests run, then completed-tracked / preamble or content-contract coverage proves DONE/close cannot go green on untracked laptop residue. CHANGELOG [Unreleased] cites #3476.",
+          "Traces": "FR-3476-4"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ddf601c17b7cc7ccd37da222efc47330c734973a -- 37 tests green (lifecycle + CLI verb), CHANGELOG [Unreleased] entries",
+          "recorded_at": "2026-08-19T00:35:00Z",
+          "recorded_by": "orchestrator/3476"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "determinism"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3476",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3476: drive-to DONE leaves completed xBRIEFs untracked"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3264",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3264: closed detector"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1358",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1358: closed Phase 6 commit+push"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Issue #3476 Proposed plus field evidence.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Drive-to DONE requires completed-tracked on the delivery tip at its stated path.",
+          "artifact_path": "content/templates/agent-prompt-preamble.md",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "Parent last-leaf close requires finalize-cohort or completed-tracked green at its stated path.",
+          "artifact_path": "content/skills/deft-directive-swarm/references/core-phase-5-6.md",
+          "ambiguous": false
+        },
+        {
+          "id": 3,
+          "text": "completed-tracked stays off consumer and framework check lists at its stated path.",
+          "artifact_path": "packages/core/src/check/gate-lists.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 4,
+          "text": "CHANGELOG cites #3476 at its stated path.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-19T02:55:53Z",
+    "metadata": {
+      "kind": "story",
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/templates/agent-prompt-preamble.md",
+          "content/templates/agents-entry.md",
+          "content/skills/deft-directive-swarm/references/core-phase-5-6.md",
+          "packages/core/src/lifecycle/completed-tracked-on-delivery.ts",
+          "packages/cli/src/verify-completed-tracked.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "DONE/close contract plus optional --issue on completed-tracked; scope:complete stays fs-only; verb stays off task check",
+        "cohesion_exemption": "CHANGELOG.md already exceeds the review trigger; this slice only adds the #3476 ship note. agents-entry if the preamble pin is consumer-visible (#1309)."
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/templates/agent-prompt-preamble.md",
+          "content/templates/agents-entry.md",
+          "content/skills/deft-directive-swarm/references/core-phase-5-6.md",
+          "packages/core/src/lifecycle/completed-tracked-on-delivery.ts",
+          "packages/core/src/lifecycle/completed-tracked-on-delivery.test.ts",
+          "packages/cli/src/verify-completed-tracked.ts",
+          "packages/cli/src/verify-completed-tracked.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/lifecycle/completed-tracked-on-delivery.test.ts packages/cli/src/verify-completed-tracked.test.ts"
+        ],
+        "expected_outputs": [
+          "DONE requires delivery-tip completed-tracked",
+          "parent close requires finalize",
+          "verb off task check",
+          "CHANGELOG #3476"
+        ],
+        "acceptance_criteria_justification": "Issue #3476 Proposed.",
+        "depends_on": [],
+        "conflict_group": "completed-tracked-done",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "capacityBucket": "defect-fix",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3478,
+        "prBase": null,
+        "mergeCommit": "ddf601c17b7cc7ccd37da222efc47330c734973a",
+        "deliveryBranch": "master",
+        "deliveryCommit": "6834161760398948b73e8c079024ac30d5bc2546",
+        "verifiedAt": "2026-08-19T02:55:53Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "4842159f-c649-4c04-aeb7-682440cf4fda"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-19T02:55:53Z",
+      "completedSessionId": "4842159f-c649-4c04-aeb7-682440cf4fda"
+    }
+  }
+}
