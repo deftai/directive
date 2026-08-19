@@ -5,8 +5,18 @@ import {
   type DirectivePosture,
   emitBypassWarning,
   emitVerifyJson,
+  formatCacheFreshDeferSoftPath,
+  formatRitualRecoveryInstruction,
+  type VerifyResult,
   verifySessionRitual,
 } from "@deftai/directive-core/session";
+
+export interface VerifySessionRitualRunDeps {
+  readonly verifySessionRitual?: (
+    projectRoot: string,
+    options: { tier: "quick" | "gated"; posture?: DirectivePosture },
+  ) => VerifyResult;
+}
 
 interface ParsedArgs {
   projectRoot: string;
@@ -94,14 +104,15 @@ export function parseArgs(argv: string[]): ParsedArgs {
 }
 
 /** Run the gate and return the process exit code. */
-export function run(argv: string[]): number {
+export function run(argv: string[], deps: VerifySessionRitualRunDeps = {}): number {
   const args = parseArgs(argv);
   if (args.error !== undefined) {
     process.stderr.write(`verify_session_ritual: ${args.error}\n`);
     return 2;
   }
   const projectRoot = resolve(args.projectRoot);
-  const result = verifySessionRitual(projectRoot, {
+  const verify = deps.verifySessionRitual ?? verifySessionRitual;
+  const result = verify(projectRoot, {
     tier: args.tier,
     posture: args.posture ?? undefined,
   });
@@ -114,6 +125,9 @@ export function run(argv: string[]): number {
     if (!warningNeeded) {
       process.stdout.write(`${result.message}\n`);
     }
+  } else if (result.code === 1) {
+    const recovery = formatRitualRecoveryInstruction(result.recoveryTier ?? "cold");
+    process.stderr.write(`${result.message}\n${recovery}\n${formatCacheFreshDeferSoftPath()}\n`);
   } else {
     process.stderr.write(`${result.message}\n`);
   }

@@ -261,6 +261,7 @@ describe("session coverage boost", () => {
     expect(bypass.bypassed).toBe(true);
     expect(emitBypassWarning(bypass).length).toBeGreaterThan(0);
     expect(JSON.parse(emitVerifyJson(gated)).ready).toBe(true);
+    expect(JSON.parse(emitVerifyJson(gated))).toHaveProperty("recovery_tier");
   });
 
   it("resolveSessionRitualStalenessHours and resume evaluator", () => {

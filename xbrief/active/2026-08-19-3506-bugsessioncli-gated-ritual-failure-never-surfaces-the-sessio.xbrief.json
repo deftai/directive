@@ -1,0 +1,244 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3506",
+    "updated": "2026-08-19T16:42:46Z"
+  },
+  "plan": {
+    "title": "bug(session,cli): gated ritual failure never surfaces the session:ready one-shot -- recovery line is hook-path only",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(session,cli): gated ritual failure never surfaces the session:ready one-shot -- recovery line is hook-path only",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3506",
+      "Overview": "**TL;DR: `verify:session-ritual --tier=gated` computes `recoveryTier`, and the framework already has a one-shot recovery line naming `deft session:ready` — but the direct CLI path prints neither. Only the PreToolUse hook path emits it. AGENTS.md tells agents to run the ritual command directly, so they see the cache-level `cache fetch-all` hint and hand-roll the two-step recovery. Reported in #3500.**\n\n## What happens\n\n1. `verifySessionRitual(root, {tier:\"gated\"})` runs the `cache_fresh` gated entrypoint inline — `packages/core/src/session/verify-session-ritual.ts:45-49`.\n2. `verify:cache-fresh` fails (age or drift). The recorded step message is the cache-level text ending in ``Recovery: run `deft cache fetch-all …` `` — `packages/core/src/preflight-cache/evaluate.ts:340-348`, `:551-561`.\n3. `evaluateLoadedState` returns `code: 1` with `recoveryTier: \"cold\"` — `verify-session-ritual.ts:246-256`.\n4. The CLI writes `result.message` to stderr and stops — `packages/cli/src/verify-session-ritual.ts:117`. `formatRitualRecoveryInstruction()` is never called, and `emitVerifyJson` omits `recovery_tier`.\n\n`formatRitualRecoveryInstruction(\"cold\")` returns exactly the line that would have prevented the redo:\n\n> Recovery: run `deft session:ready` (one-shot: session:start + gated ritual + cache recovery as needed).\n\nIts only non-test caller is the hook dispatcher — `packages/core/src/hooks/dispatcher.ts:919`.\n\n## Why it matters\n\n`deft session:ready` (#2993) already composes fetch-all + re-verify in one verb. The capability shipped; the pointer never reached the surface operators actually use. #3500 reports the cost as a full stop plus a manual redo — avoidable with existing machinery, no gate weakened.\n\nSecond order: the consumer deposit entry names `session:start` and `verify:session-ritual` but never `session:ready` — `content/templates/agents-entry.md:19`. A consumer agent has no path to discover it.\n\n## Acceptance -- 2 clauses\n\nTwo surfaces, one root cause. Both clauses are in scope for this issue; expected as **one PR** (~60 lines across three files). ⊗ Close on clause 1 alone -- that is a false green on #3500.\n\n### Clause 1 -- CLI surface emits the recovery line\n\n`packages/cli/src/verify-session-ritual.ts` -- on non-zero exit, append `formatRitualRecoveryInstruction(result.recoveryTier ?? \"cold\")` to the stderr write. Add `recovery_tier` to `emitVerifyJson` (`packages/core/src/session/verify-session-ritual.ts:603`).\n\nAlso unconditional copy: when `cache_fresh` is the failing gated step, name the sanctioned soft path (`deft session:start -- --defer cache_fresh=<reason>`, audited) alongside the fetch-all hint. **No branch required** -- the gated argv is the constant `[\"verify:cache-fresh\"]` (`verify-session-ritual.ts:45-49`), so `--for-issue` is never present at this boundary. (An earlier draft of this issue implied a conditional; see the correction on #3507.)\n\nVerify:\n\n```\ndeft verify:session-ritual -- --tier=gated\ndeft verify:session-ritual -- --tier=gated --json\n```\n\n- Non-zero exit on `cache_fresh` prints the `deft session:ready` one-shot recovery line.\n- `--json` carries `recovery_tier`.\n- New test asserts the recovery line on the direct CLI path. No test covers this today, which is how the hook path and the direct path diverged silently (`test-debt`).\n\n### Clause 2 -- consumer deposit names the one-shot\n\n`content/templates/agents-entry.md` -- add the `deft session:ready` pointer to the #1149 ritual line, then `task agents:refresh`. Mirror into `AGENTS.md` per #1309.\n\nVerify:\n\n```\ntask agents:refresh\ntask check\n```\n\n- `agents-entry.md` names `deft session:ready`; `agents_entry_contract` marker list updated (`pointerHints` on `id: \"session-ritual-1149\"`, and the `deft`/`task` pair in `PROPAGATION_COMMAND_MARKERS` if the dual surface applies).\n- Deposit regenerates clean; no `agents_entry_contract` failures.\n\n**Sizing note.** 2 clauses -> size M under #3323/#3358 evidence. Clause 1 is Low, clause 2 is Medium (961-line contract test; per-section coupling unverified). If clause 2 proves worse than Medium, split it out **then** as a follow-up child of #3500 -- ⊗ pre-split on speculation.\n\n⊗ Do not auto-defer `cache_fresh` -- `packages/core/src/policy/ceremony-dial.ts:129-133`. This issue is surfacing and copy, not gate relaxation.\n\n## Partial delivery -- clause 1 may merge alone\n\nClause 1 is Low complexity and delivers the whole of #3500's reported relief. It MAY ship in its own PR, ahead of clause 2, while this issue stays OPEN.\n\n**Worker contract for a clause-1-only PR:**\n\n1. PR body uses `Tracking: #3506` (or `Refs #3506`). ⊗ `Closes` / `Fixes` / `Resolves`.\n2. Run `task pr:check-closing-keywords` before push. Non-zero exit is a **hard refusal** -- rewrite the body/commits until clean (`commands.md` § pre-PR; #737 / #3015 intent mode). Real closing keywords require CLI `--allow-close`; body trailers are not an authorization path.\n3. ⊗ `task scope:complete`. The story xBRIEF stays in `xbrief/active/` at `plan.status: running` for clause 2. One story, two merges, one completion.\n\n⊗ Write a conditional closing keyword such as `Closes #3506 (clause 1 only)` / `Closes #3506 Phase A`. GitHub ignores the qualifier and auto-closes, orphaning clause 2 -- the recurring incident class this gate exists for (`content/skills/deft-directive-pre-pr/SKILL.md:151`, `:236`; prior incidents #697, #401, #700, #735 each needed manual reopen).\n\n**Why this issue is not split into two children.** Nothing about partial delivery requires it. Parent #3500 auto-closes on `ALL_CHILDREN_MERGED` via the umbrella reconcile path (`packages/core/src/vbrief-reconcile/umbrellas.ts:764`), which is **child-granular, not clause-granular** -- so a clause-1-only merge correctly leaves this issue open and the epic untouched, with no configuration. Two children would instead let #3500 close with clause 2 landed as a separate green, losing the fact that both clauses are one defect on two surfaces.\n\nRelates #3500 (parent), #2993 (`session:ready`), #1149 (ritual), #1309 (propagation), #3214 (do-not-defer anchor), #3507 (argv correction).\n\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-08-19T16:24:29Z)\n\n## Body edited: acceptance restructured into 2 explicit clauses\n\nFlagging because a silent body edit does not notify watchers.\n\n- **Clause 1** -- CLI surface emits the recovery line (`recovery_tier` in `--json`, plus the `--defer` soft-path copy). Low.\n- **Clause 2** -- consumer deposit names the one-shot (`agents-entry.md` + `agents:refresh` + marker list, #1309). Medium.\n\nBoth stay in this issue, expected as one PR (~60 lines / three files). Rationale: one defect on two surfaces -- the pointer exists and reaches only one of its two call sites -- so splitting by surface leaves two issues that each read as partial, and clause 2 is the half that gets orphaned. Stamped clause count 2 -> size M for the #3323 / #3358 evidence path.\n\nAlso corrected in the body: the \"Fix\" step that said *when no `--for-issue` was supplied* implied a conditional. The gated argv is the constant `[\"verify:cache-fresh\"]` (`packages/core/src/session/verify-session-ritual.ts:45-49`), so `--for-issue` is never present at this boundary and the copy is unconditional -- no branch to write. Same root finding as the correction on #3507.\n\n⊗ Close on clause 1 alone.\n\n\n### Comment by @MScottAdams (2026-08-19T16:34:45Z)\n\n## Body edited: added a \"Partial delivery\" section\n\nFlagging because a silent body edit does not notify watchers.\n\n**Clause 1 may now ship in its own PR ahead of clause 2, with this issue staying OPEN.** Clause 1 is Low complexity and carries the whole of #3500's reported relief, so there is a real gain in not waiting for the contract-gated half.\n\nThe worker contract is three lines: `Tracking: #3506` not `Closes`; `task pr:check-closing-keywords` treated as a hard refusal before push; no `scope:complete` until clause 2. Full text and the incident rationale are in the body.\n\nThis does **not** change the earlier call to keep both clauses in one issue -- the reasoning is recorded in the new section. Parent #3500's umbrella auto-close is child-granular (`ALL_CHILDREN_MERGED`), so a clause-1-only merge leaves this issue and the epic in the correct state with no configuration.",
+      "Labels": "bug, documentation, test-debt, Workflow, agent-experience, area:cli, area:guidance, status:child"
+    },
+    "items": [],
+    "tags": [
+      "bug",
+      "documentation",
+      "test-debt",
+      "Workflow",
+      "agent-experience",
+      "area:cli",
+      "area:guidance",
+      "status:child"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3506",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3506: bug(session,cli): gated ritual failure never surfaces the session:ready one-shot -- recovery line is hook-path only"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [
+        {
+          "command": "deft verify:session-ritual -- --tier=gated",
+          "source": "task_statement",
+          "sourceSpan": "fence@L36"
+        },
+        {
+          "command": "deft verify:session-ritual -- --tier=gated --json",
+          "source": "task_statement",
+          "sourceSpan": "fence@L36"
+        },
+        {
+          "command": "task check",
+          "source": "task_statement",
+          "sourceSpan": "fence@L51"
+        }
+      ],
+      "literal_acceptance_rejected": [
+        {
+          "command": "task agents:refresh",
+          "reason": "wrapper subcommand must be check|doctor|verify:*|help|--version (scope/policy/swarm/scm/merge and other ambient-authority verbs denied)",
+          "sourceSpan": "fence@L51"
+        },
+        {
+          "command": "Recovery: run `deft session:ready` (one-shot: session:start + gated ritual + cache recovery as needed)",
+          "reason": "shell metacharacter \"`\" is not allowed in literal AC commands",
+          "sourceSpan": "prompt@L14"
+        },
+        {
+          "command": "verify:session-ritual --tier=gated",
+          "reason": "path-like first token is not allowlisted",
+          "sourceSpan": "inline@L3"
+        },
+        {
+          "command": "deft session:ready",
+          "reason": "wrapper subcommand must be check|doctor|verify:*|help|--version (scope/policy/swarm/scm/merge and other ambient-authority verbs denied)",
+          "sourceSpan": "inline@L3"
+        },
+        {
+          "command": "cache fetch-all",
+          "reason": "first token \"cache\" is not in the literal-AC allowlist",
+          "sourceSpan": "inline@L3"
+        },
+        {
+          "command": "verifySessionRitual(root, {tier:\"gated\"})",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "deft cache fetch-all …",
+          "reason": "wrapper subcommand must be check|doctor|verify:*|help|--version (scope/policy/swarm/scm/merge and other ambient-authority verbs denied)",
+          "sourceSpan": "inline@L8"
+        },
+        {
+          "command": "code: 1",
+          "reason": "path-like first token is not allowlisted",
+          "sourceSpan": "inline@L9"
+        },
+        {
+          "command": "recoveryTier: \"cold\"",
+          "reason": "path-like first token is not allowlisted",
+          "sourceSpan": "inline@L9"
+        },
+        {
+          "command": "formatRitualRecoveryInstruction(result.recoveryTier ?? \"cold\")",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "inline@L30"
+        },
+        {
+          "command": "deft session:start -- --defer cache_fresh=<reason>",
+          "reason": "shell metacharacter \"<\" is not allowed in literal AC commands",
+          "sourceSpan": "inline@L32"
+        },
+        {
+          "command": "task pr:check-closing-keywords",
+          "reason": "wrapper subcommand must be check|doctor|verify:*|help|--version (scope/policy/swarm/scm/merge and other ambient-authority verbs denied)",
+          "sourceSpan": "inline@L70"
+        }
+      ],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      }
+    },
+    "acceptance": {
+      "commands": [
+        {
+          "command": "deft verify:session-ritual -- --tier=gated"
+        },
+        {
+          "command": "deft verify:session-ritual -- --tier=gated --json"
+        },
+        {
+          "command": "task check"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "derived 10 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "*TL;DR: `verify:session-ritual --tier=gated` computes `recoveryTier`, and the framework already has a one-shot recovery line naming `deft session:ready` — but the direct CLI path prints neither. Only the PreToolUse hook path emits it. AGENTS.md tells agents to run the ritual command directly, so they see the cache-level `cache fetch-all` hint and hand-roll the two-step recovery. Reported in #3500.",
+          "artifact_path": "AGENTS.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "`verifySessionRitual(root, {tier:\"gated\"})` runs the `cache_fresh` gated entrypoint inline — `packages/core/src/session/verify-session-ritual.ts:45-49`.",
+          "artifact_path": "packages/core/src/session/verify-session-ritual.ts:45-49",
+          "ambiguous": true,
+          "readings": [
+            {
+              "text": "`verifySessionRitual(root, {tier:\"gated\"})` runs the `cache_fresh` gated entrypoint inline — `packages/core/src/session/verify-session-ritual.ts:45-49`. [reading: packages/core/src/session/verify-session-ritual.ts:45-49]",
+              "artifact_path": "packages/core/src/session/verify-session-ritual.ts:45-49"
+            },
+            {
+              "text": "`verifySessionRitual(root, {tier:\"gated\"})` runs the `cache_fresh` gated entrypoint inline — `packages/core/src/session/verify-session-ritual.ts:45-49`. [reading: packages/core/src/session/verify-session-ritual.ts]",
+              "artifact_path": "packages/core/src/session/verify-session-ritual.ts"
+            }
+          ],
+          "chosen_reading": 0,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "`verify:cache-fresh` fails (age or drift). The recorded step message is the cache-level text ending in ``Recovery: run `deft cache fetch-all …` `` — `packages/core/src/preflight-cache/evaluate.ts:340-348`, `:551-561`.",
+          "artifact_path": "packages/core/src/preflight-cache/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "`evaluateLoadedState` returns `code: 1` with `recoveryTier: \"cold\"` — `verify-session-ritual.ts:246-256`.",
+          "artifact_path": "verify-session-ritual.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "The CLI writes `result.message` to stderr and stops — `packages/cli/src/verify-session-ritual.ts:117`. `formatRitualRecoveryInstruction()` is never called, and `emitVerifyJson` omits `recovery_tier`.",
+          "artifact_path": "packages/cli/src/verify-session-ritual.ts:117",
+          "ambiguous": true,
+          "readings": [
+            {
+              "text": "The CLI writes `result.message` to stderr and stops — `packages/cli/src/verify-session-ritual.ts:117`. `formatRitualRecoveryInstruction()` is never called, and `emitVerifyJson` omits `recovery_tier`. [reading: packages/cli/src/verify-session-ritual.ts:117]",
+              "artifact_path": "packages/cli/src/verify-session-ritual.ts:117"
+            },
+            {
+              "text": "The CLI writes `result.message` to stderr and stops — `packages/cli/src/verify-session-ritual.ts:117`. `formatRitualRecoveryInstruction()` is never called, and `emitVerifyJson` omits `recovery_tier`. [reading: packages/cli/src/verify-session-ritual.ts]",
+              "artifact_path": "packages/cli/src/verify-session-ritual.ts"
+            }
+          ],
+          "chosen_reading": 0,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "`agents-entry.md` names `deft session:ready`; `agents_entry_contract` marker list updated (`pointerHints` on `id: \"session-ritual-1149\"`, and the `deft`/`task` pair in `PROPAGATION_COMMAND_MARKERS` if the dual surface applies).",
+          "artifact_path": "agents-entry.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Run `task pr:check-closing-keywords` before push. Non-zero exit is a hard refusal -- rewrite the body/commits until clean (`commands.md` § pre-PR; #737 / #3015 intent mode). Real closing keywords require CLI `--allow-close`; body trailers are not an authorization path.",
+          "artifact_path": "commands.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "⊗ `task scope:complete`. The story xBRIEF stays in `xbrief/active/` at `plan.status: running` for clause 2. One story, two merges, one completion.",
+          "artifact_path": "xbrief/active/",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "*Why this issue is not split into two children. Nothing about partial delivery requires it. Parent #3500 auto-closes on `ALL_CHILDREN_MERGED` via the umbrella reconcile path (`packages/core/src/vbrief-reconcile/umbrellas.ts:764`), which is child-granular, not clause-granular -- so a clause-1-only merge correctly leaves this issue open and the epic untouched, with no configuration. Two children would instead let #3500 close with clause 2 landed as a separate green, losing the fact that both clauses are one defect on two surfaces.",
+          "artifact_path": "packages/core/src/vbrief-reconcile/umbrellas.ts:764",
+          "ambiguous": true,
+          "readings": [
+            {
+              "text": "*Why this issue is not split into two children. Nothing about partial delivery requires it. Parent #3500 auto-closes on `ALL_CHILDREN_MERGED` via the umbrella reconcile path (`packages/core/src/vbrief-reconcile/umbrellas.ts:764`), which is child-granular, not clause-granular -- so a clause-1-only merge correctly leaves this issue open and the epic untouched, with no configuration. Two children would instead let #3500 close with clause 2 landed as a separate green, losing the fact that both clauses are one defect on two surfaces. [reading: packages/core/src/vbrief-reconcile/umbrellas.ts:764]",
+              "artifact_path": "packages/core/src/vbrief-reconcile/umbrellas.ts:764"
+            },
+            {
+              "text": "*Why this issue is not split into two children. Nothing about partial delivery requires it. Parent #3500 auto-closes on `ALL_CHILDREN_MERGED` via the umbrella reconcile path (`packages/core/src/vbrief-reconcile/umbrellas.ts:764`), which is child-granular, not clause-granular -- so a clause-1-only merge correctly leaves this issue open and the epic untouched, with no configuration. Two children would instead let #3500 close with clause 2 landed as a separate green, losing the fact that both clauses are one defect on two surfaces. [reading: packages/core/src/vbrief-reconcile/umbrellas.ts]",
+              "artifact_path": "packages/core/src/vbrief-reconcile/umbrellas.ts"
+            }
+          ],
+          "chosen_reading": 0,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Clause 2 -- consumer deposit names the one-shot (`agents-entry.md` + `agents:refresh` + marker list, #1309). Medium.",
+          "artifact_path": "agents-entry.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ]
+    },
+    "updated": "2026-08-19T16:42:46Z"
+  }
+}

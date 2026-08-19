@@ -7,12 +7,15 @@ import type { GitRunResult } from "./git.js";
 import {
   defaultGitRunner,
   emitVerifyJson,
+  formatCacheFreshDeferSoftPath,
+  formatRitualRecoveryInstruction,
   GATED_ENTRYPOINT_COMMANDS,
   type GitRunner,
   inspectSessionRitual,
   newRitualStatePayload,
   readRitualState,
   ritualStep,
+  type VerifyResult,
   verifySessionRitual,
   writeRitualState,
 } from "./index.js";
@@ -356,7 +359,36 @@ describe("verify session ritual", () => {
     });
     expect(result.code).toBe(0);
     expect(JSON.parse(emitVerifyJson(result)).ready).toBe(true);
+    expect(JSON.parse(emitVerifyJson(result)).recovery_tier).toBeNull();
     rmSync(root, { recursive: true, force: true });
+  });
+
+  it("emitVerifyJson carries recovery_tier (#3506)", () => {
+    const failed: VerifyResult = {
+      code: 1,
+      message: "session ritual gated step 'cache_fresh' failed",
+      tier: "gated",
+      statePath: "/tmp/ritual-state.json",
+      bypassed: false,
+      wouldFailCode: null,
+      posture: "mutation",
+      ritualStateRequired: true,
+      recoveryTier: "cold",
+    };
+    const payload = JSON.parse(emitVerifyJson(failed)) as Record<string, unknown>;
+    expect(payload.recovery_tier).toBe("cold");
+    expect(payload.ready).toBe(false);
+    expect(payload.exit_code).toBe(1);
+    expect(payload.tier).toBe("gated");
+    expect(payload.message).toBe(failed.message);
+    expect(payload.state_path).toBe(failed.statePath);
+    expect(payload.bypassed).toBe(false);
+    expect(payload.would_fail_code).toBeNull();
+    expect(payload.posture).toBe("mutation");
+    expect(payload.ritual_state_required).toBe(true);
+    expect(formatRitualRecoveryInstruction("cold")).toContain("session:ready");
+    expect(formatCacheFreshDeferSoftPath()).toContain("--defer cache_fresh=<reason>");
+    expect(formatCacheFreshDeferSoftPath()).toContain("audited");
   });
 
   it("bypass returns success with would_fail_code", () => {
