@@ -367,6 +367,11 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "verify:no-task-runtime": "verify-no-task-runtime",
   "vbrief:validate": "vbrief-validate",
   "vbrief:preflight": "vbrief-preflight",
+  // xbrief:-prefixed aliases for the canonical post-#2109 lifecycle spelling.
+  // xbrief:validate closes the #3483 gap: the swarm skill named it at MUST
+  // level but only vbrief:validate resolved.
+  "xbrief:validate": "vbrief-validate",
+  "xbrief:activate": "vbrief-activate",
   "xbrief:preflight": "vbrief-preflight",
   "xbrief:create": "xbrief-create",
   "xbrief:verify": "xbrief-verify",

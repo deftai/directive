@@ -142,9 +142,12 @@ includes:
   vbrief:
     taskfile: ./tasks/vbrief.yml
     optional: false
+  # Non-optional (#3483): the swarm skill names xbrief:validate / xbrief:activate
+  # / xbrief:preflight at MUST/⊗ level, so a silently-omitted include would
+  # reproduce the opaque exit-200 "task does not exist" failure at cohort close.
   xbrief:
     taskfile: ./tasks/xbrief.yml
-    optional: true
+    optional: false
   prd:
     taskfile: ./tasks/prd.yml
     optional: true
