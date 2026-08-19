@@ -1,21 +1,13 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { NON_PRODUCT_DIRS } from "../fs/non-product-dirs.js";
 
-export const EXCLUDE_DIRS = new Set([
-  "tests",
-  "vendor",
-  ".git",
-  "backup",
-  "history",
-  "node_modules",
-  ".venv",
-  "__pycache__",
-  "dist",
-  "scripts",
-  // Swarm / agent worktrees are not product source (#2953, #1656).
-  ".deft-scratch",
-  "swarm-worktrees",
-]);
+/**
+ * Shared "not product source" core (#3487) plus the directories only the stub
+ * scan treats as non-product: fixtures/tests, vendored trees, the history
+ * archive, and operator scripts.
+ */
+export const EXCLUDE_DIRS = new Set([...NON_PRODUCT_DIRS, "tests", "vendor", "history", "scripts"]);
 
 export const EXTENSIONS = new Set([".py", ".go", ".sh"]);
 

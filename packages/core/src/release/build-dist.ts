@@ -9,6 +9,7 @@ import {
 import { createRequire } from "node:module";
 import { platform } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
+import { NON_PRODUCT_DIRS } from "../fs/non-product-dirs.js";
 
 type ArchiverInstance = {
   pipe: (dest: ReturnType<typeof createWriteStream>) => void;
@@ -27,23 +28,15 @@ type ArchiverModule = {
 
 const { ZipArchive, TarArchive } = createRequire(import.meta.url)("archiver") as ArchiverModule;
 
-export const DEFAULT_EXCLUDES = new Set([
-  ".git",
-  "dist",
-  "backup",
-  "node_modules",
-  "__pycache__",
-  ".venv",
-  "htmlcov",
-  ".pytest_cache",
-  ".mypy_cache",
-  ".ruff_cache",
-  ".coverage",
-  "coverage",
-  // Scratch worktrees are never shippable framework content (#2953).
-  ".deft-scratch",
-  "swarm-worktrees",
-]);
+/**
+ * Shared "not product source" core (#3487) plus the coverage artifacts only the
+ * release archive names. Scratch and agent worktrees are never shippable
+ * framework content (#2953); no tracked path lives under any core entry, so the
+ * shared core removes only untracked operator state from the archive.
+ *
+ * Callers may still widen this per run via `extraExcludes` / `--exclude-extra`.
+ */
+export const DEFAULT_EXCLUDES = new Set([...NON_PRODUCT_DIRS, "htmlcov", ".coverage", "coverage"]);
 
 export const DEFAULT_EXCLUDED_PATH_PREFIXES = [
   "history/archive",
