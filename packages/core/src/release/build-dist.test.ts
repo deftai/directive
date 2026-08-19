@@ -1,9 +1,11 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   statSync,
   symlinkSync,
   writeFileSync,
@@ -18,8 +20,10 @@ import {
   DEFAULT_EXCLUDES,
   DEFAULT_GENERATED_ALLOWLIST,
   emitBuildProgress,
+  fsLookupPath,
   GIT_LS_FILES_Z_ENCODING,
   iterSourceFiles,
+  joinRootAndRelBytes,
   listGitTrackedFiles,
   main,
   outputPath,
@@ -422,6 +426,63 @@ describe("build-dist helpers", () => {
     expect(seen[0]?.encoding).toBeNull();
     expect(seen[0]?.args).toContain("-z");
     expect(paths).toEqual(["café.txt", invalid.toString("latin1")]);
+  });
+
+  it("fsLookupPath keeps invalid -z bytes as a Buffer instead of utf8", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-build-dist-lookup-"));
+    const invalid = Buffer.from([0x66, 0x6f, 0x6f, 0xff, 0x2e, 0x74, 0x78, 0x74]);
+    const lookup = fsLookupPath(root, invalid.toString("latin1"), invalid);
+    expect(Buffer.isBuffer(lookup)).toBe(true);
+    expect((lookup as Buffer).includes(0xff)).toBe(true);
+    expect(Buffer.from(String(lookup), "utf8").includes(0xff)).toBe(false);
+    const utf8Rel = Buffer.from("README.md", "utf8");
+    const utf8Lookup = fsLookupPath(root, "README.md", utf8Rel);
+    expect(typeof utf8Lookup).toBe("string");
+    expect(joinRootAndRelBytes(root, invalid).includes(0xff)).toBe(true);
+  });
+
+  it("invalid-byte -z paths survive list and contained resolve", () => {
+    const root = fixtureProject();
+    const invalid = Buffer.from([0x66, 0x6f, 0x6f, 0xff, 0x2e, 0x74, 0x78, 0x74]);
+    const payload = Buffer.concat([
+      Buffer.from("README.md"),
+      Buffer.from([0]),
+      invalid,
+      Buffer.from([0]),
+    ]);
+    const spawn = (): { status: number; stdout: Buffer; stderr: Buffer } => ({
+      status: 0,
+      stdout: payload,
+      stderr: Buffer.alloc(0),
+    });
+    const realpathArgs: Array<string | Buffer> = [];
+    const lstatArgs: Array<string | Buffer> = [];
+    const standIn = realpathSync(join(root, "README.md"));
+    const entries = resolveArchiveEntries(root, {
+      spawn,
+      fs: {
+        realpathSync: (path, options) => {
+          realpathArgs.push(path);
+          if (Buffer.isBuffer(path)) {
+            return options?.encoding === "buffer" ? Buffer.from(standIn, "utf8") : standIn;
+          }
+          return options?.encoding === "buffer"
+            ? realpathSync(path, { encoding: "buffer" })
+            : realpathSync(path);
+        },
+        lstatSync: (path) => {
+          lstatArgs.push(path);
+          if (Buffer.isBuffer(path)) return lstatSync(standIn);
+          return lstatSync(path);
+        },
+      },
+    });
+    const bytePreserving = [...realpathArgs, ...lstatArgs].some(
+      (arg) => Buffer.isBuffer(arg) && arg.includes(0xff),
+    );
+    expect(bytePreserving).toBe(true);
+    expect(entries.map((e) => e.archiveRel)).toContain("README.md");
+    expect(entries.map((e) => e.archiveRel)).toContain(invalid.toString("latin1"));
   });
 
   it("splitGitLsFilesZ drops empty segments and keeps a trailing unterminated path", () => {

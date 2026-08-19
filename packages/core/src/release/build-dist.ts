@@ -11,13 +11,13 @@ import {
 } from "node:fs";
 import { createRequire } from "node:module";
 import { platform } from "node:os";
-import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { NON_PRODUCT_DIRS } from "../fs/non-product-dirs.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 
 type ArchiverInstance = {
   pipe: (dest: ReturnType<typeof createWriteStream>) => void;
-  file: (path: string, opts: { name: string }) => void;
+  file: (path: string | Buffer, opts: { name: string }) => void;
   finalize: () => void | Promise<void>;
   on: (event: "error", handler: (err: Error) => void) => void;
 };
@@ -110,7 +110,31 @@ function shouldSkipRel(
   );
 }
 
-export type ArchiveSourceEntry = { absPath: string; archiveRel: string };
+export type ArchiveSourceEntry = { absPath: string | Buffer; archiveRel: string };
+
+/** Original `ls-files -z` segment bytes plus the display/skip string. */
+export type GitLsFilesPath = {
+  readonly relPosix: string;
+  readonly bytes: Buffer;
+};
+
+export type ArchiveFsLookup = {
+  realpathSync: (
+    path: string | Buffer,
+    options?: { encoding?: BufferEncoding | "buffer" | null },
+  ) => string | Buffer;
+  lstatSync: (path: string | Buffer) => ReturnType<typeof lstatSync>;
+};
+
+const defaultArchiveFs: ArchiveFsLookup = {
+  realpathSync: (path, options) => {
+    if (options?.encoding === "buffer") {
+      return realpathSync(path, { encoding: "buffer" });
+    }
+    return realpathSync(path);
+  },
+  lstatSync: (path) => lstatSync(path),
+};
 
 /** `-z` stdout is a NUL-separated byte stream; never UTF-8-decode it whole. */
 export const GIT_LS_FILES_Z_ENCODING = null;
@@ -139,22 +163,29 @@ export function decodeGitLsFilesPath(segment: Buffer): string {
   return segment.toString("latin1");
 }
 
-/** Split a raw `git ls-files -z` Buffer on 0x00, then decode each path. */
-export function splitGitLsFilesZ(stdout: Buffer): string[] {
-  const paths: string[] = [];
+/** Split a raw `git ls-files -z` Buffer on 0x00, keeping original path bytes. */
+export function splitGitLsFilesZRecords(stdout: Buffer): GitLsFilesPath[] {
+  const paths: GitLsFilesPath[] = [];
   let start = 0;
   for (let i = 0; i < stdout.length; i += 1) {
     if (stdout[i] === 0) {
       if (i > start) {
-        paths.push(decodeGitLsFilesPath(stdout.subarray(start, i)));
+        const bytes = Buffer.from(stdout.subarray(start, i));
+        paths.push({ relPosix: decodeGitLsFilesPath(bytes), bytes });
       }
       start = i + 1;
     }
   }
   if (start < stdout.length) {
-    paths.push(decodeGitLsFilesPath(stdout.subarray(start)));
+    const bytes = Buffer.from(stdout.subarray(start));
+    paths.push({ relPosix: decodeGitLsFilesPath(bytes), bytes });
   }
   return paths;
+}
+
+/** Split a raw `git ls-files -z` Buffer on 0x00, then decode each path. */
+export function splitGitLsFilesZ(stdout: Buffer): string[] {
+  return splitGitLsFilesZRecords(stdout).map((p) => p.relPosix);
 }
 
 function spawnTextFromMaybeBuffer(value: Buffer | string | null | undefined): string {
@@ -169,10 +200,14 @@ function bufferFromSpawnStdout(value: Buffer | string | null | undefined): Buffe
 }
 
 /**
- * Return `git ls-files -z` paths in POSIX form. Fail closed when git cannot
- * enumerate tracked files -- a walk would pack host-local untracked state (#3490).
+ * Return `git ls-files -z` paths with original bytes. Fail closed when git
+ * cannot enumerate tracked files -- a walk would pack host-local untracked
+ * state (#3490).
  */
-export function listGitTrackedFiles(root: string, spawn: GitLsFilesZSpawn = spawnSync): string[] {
+export function listGitTrackedPathRecords(
+  root: string,
+  spawn: GitLsFilesZSpawn = spawnSync,
+): GitLsFilesPath[] {
   // Pin to root/.git so a nested --root cannot walk up and pack a parent repo.
   const result = spawn("git", ["-C", root, "--git-dir=.git", "--work-tree=.", "ls-files", "-z"], {
     encoding: GIT_LS_FILES_Z_ENCODING,
@@ -188,7 +223,12 @@ export function listGitTrackedFiles(root: string, spawn: GitLsFilesZSpawn = spaw
       "unknown error";
     throw new Error(`git ls-files failed in ${root}: ${detail}`);
   }
-  return splitGitLsFilesZ(bufferFromSpawnStdout(result.stdout));
+  return splitGitLsFilesZRecords(bufferFromSpawnStdout(result.stdout));
+}
+
+/** Return `git ls-files -z` paths in POSIX form. */
+export function listGitTrackedFiles(root: string, spawn: GitLsFilesZSpawn = spawnSync): string[] {
+  return listGitTrackedPathRecords(root, spawn).map((p) => p.relPosix);
 }
 
 /**
@@ -199,8 +239,9 @@ export function assertArchiveEntriesTrackedOrGenerated(
   root: string,
   rels: readonly string[],
   generatedAllowlist: readonly string[] = DEFAULT_GENERATED_ALLOWLIST,
+  spawn: GitLsFilesZSpawn = spawnSync,
 ): void {
-  const tracked = new Set(listGitTrackedFiles(root));
+  const tracked = new Set(listGitTrackedFiles(root, spawn));
   const allowed = new Set(generatedAllowlist);
   const surprise = rels.filter((rel) => !tracked.has(rel) && !allowed.has(rel));
   if (surprise.length > 0) {
@@ -212,6 +253,8 @@ export type ResolveArchiveEntriesOptions = {
   readonly extraExcludes?: readonly string[];
   readonly excludedPrefixes?: readonly string[];
   readonly generatedAllowlist?: readonly string[];
+  readonly spawn?: GitLsFilesZSpawn;
+  readonly fs?: ArchiveFsLookup;
 };
 
 function isInsideRoot(root: string, absPath: string): boolean {
@@ -220,12 +263,66 @@ function isInsideRoot(root: string, absPath: string): boolean {
 }
 
 /** Canonicalize the supplied archive root once per resolve (#3490 review). */
-function canonicalArchiveRoot(root: string): string {
+function canonicalArchiveRoot(root: string, fs: ArchiveFsLookup): string {
   try {
-    return realpathSync(root);
+    const real = fs.realpathSync(root);
+    return typeof real === "string" ? real : real.toString("utf8");
   } catch {
     throw new Error(`build-dist: cannot resolve archive root: ${root}`);
   }
+}
+
+/** Join a UTF-8 root with original git path bytes; convert POSIX `/` to OS sep. */
+export function joinRootAndRelBytes(root: string, relBytes: Buffer): Buffer {
+  const rootBuf = Buffer.from(resolve(root), "utf8");
+  const sepByte = sep.charCodeAt(0);
+  const converted = Buffer.from(relBytes);
+  if (sep !== "/") {
+    for (let i = 0; i < converted.length; i += 1) {
+      if (converted[i] === 0x2f) converted[i] = sepByte;
+    }
+  }
+  if (converted.length === 0) return rootBuf;
+  const rootEndsSep = rootBuf.length > 0 && rootBuf[rootBuf.length - 1] === sepByte;
+  const relStartsSep = converted[0] === sepByte;
+  if (rootEndsSep && relStartsSep) return Buffer.concat([rootBuf, converted.subarray(1)]);
+  if (rootEndsSep || relStartsSep) return Buffer.concat([rootBuf, converted]);
+  return Buffer.concat([rootBuf, Buffer.from([sepByte]), converted]);
+}
+
+/**
+ * String path when the `-z` segment is valid UTF-8; otherwise a Buffer that
+ * keeps the original filename bytes for fs lookup (#3490 residual).
+ */
+export function fsLookupPath(
+  root: string,
+  relPosix: string,
+  bytes: Buffer,
+): string | Buffer | null {
+  const contained = containedAbsPath(root, relPosix);
+  if (contained === null) return null;
+  if (Buffer.from(relPosix, "utf8").equals(bytes)) return contained;
+  return joinRootAndRelBytes(root, bytes);
+}
+
+function isInsideResolved(canonicalRoot: string, real: string | Buffer): boolean {
+  if (typeof real === "string") return isInsideRoot(canonicalRoot, real);
+  const rootBuf = Buffer.from(canonicalRoot, "utf8");
+  const sepByte = sep.charCodeAt(0);
+  if (real.equals(rootBuf)) return true;
+  const prefix =
+    rootBuf.length > 0 && rootBuf[rootBuf.length - 1] === sepByte
+      ? rootBuf
+      : Buffer.concat([rootBuf, Buffer.from([sepByte])]);
+  if (real.length < prefix.length) return false;
+  if (real.subarray(0, prefix.length).equals(prefix)) return true;
+  if (process.platform === "win32") {
+    return (
+      real.subarray(0, prefix.length).toString("utf8").toLowerCase() ===
+      prefix.toString("utf8").toLowerCase()
+    );
+  }
+  return false;
 }
 
 /** Resolve a POSIX rel path under root, or null if it escapes (#3490 review). */
@@ -246,24 +343,29 @@ function toArchiveEntry(
   root: string,
   canonicalRoot: string,
   relPosix: string,
+  bytes: Buffer,
+  fs: ArchiveFsLookup,
 ): ArchiveSourceEntry | null {
-  const absPath = containedAbsPath(root, relPosix);
-  if (absPath === null) return null;
-  let real: string;
+  const lookup = fsLookupPath(root, relPosix, bytes);
+  if (lookup === null) return null;
+  let real: string | Buffer;
   try {
     // realpath resolves leaf and ancestor symlinks before the file-type check.
-    real = realpathSync(absPath);
+    // Buffer lookup keeps invalid filename bytes; a string would re-encode UTF-8.
+    real = Buffer.isBuffer(lookup)
+      ? fs.realpathSync(lookup, { encoding: "buffer" })
+      : fs.realpathSync(lookup);
   } catch {
     return null;
   }
   // Compare against the canonical root so a symlink *to* the checkout is
   // inside, while a symlink *out of* the tree still throws.
-  if (!isInsideRoot(canonicalRoot, real)) {
+  if (!isInsideResolved(canonicalRoot, real)) {
     throw new Error(`build-dist: path resolves outside the archive root: ${relPosix}`);
   }
   let st: ReturnType<typeof lstatSync>;
   try {
-    st = lstatSync(real);
+    st = fs.lstatSync(real);
   } catch {
     return null;
   }
@@ -282,14 +384,16 @@ export function resolveArchiveEntries(
   const excludes = new Set([...DEFAULT_EXCLUDES, ...(options.extraExcludes ?? [])]);
   const excludedPrefixes = options.excludedPrefixes ?? DEFAULT_EXCLUDED_PATH_PREFIXES;
   const generatedAllowlist = options.generatedAllowlist ?? DEFAULT_GENERATED_ALLOWLIST;
-  const canonicalRoot = canonicalArchiveRoot(root);
-  const tracked = listGitTrackedFiles(root);
+  const spawn = options.spawn ?? spawnSync;
+  const fs = options.fs ?? defaultArchiveFs;
+  const canonicalRoot = canonicalArchiveRoot(root, fs);
+  const tracked = listGitTrackedPathRecords(root, spawn);
   const entries: ArchiveSourceEntry[] = [];
   const sourceRels: string[] = [];
   const seen = new Set<string>();
-  for (const relPosix of tracked) {
+  for (const { relPosix, bytes } of tracked) {
     if (shouldSkipRel(relPosix, excludes, excludedPrefixes)) continue;
-    const entry = toArchiveEntry(root, canonicalRoot, relPosix);
+    const entry = toArchiveEntry(root, canonicalRoot, relPosix, bytes, fs);
     if (entry === null) continue;
     entries.push(entry);
     sourceRels.push(relPosix);
@@ -300,13 +404,13 @@ export function resolveArchiveEntries(
     if (containedAbsPath(root, relPosix) === null) {
       throw new Error(`build-dist: generated allowlist path escapes the archive root: ${relPosix}`);
     }
-    const entry = toArchiveEntry(root, canonicalRoot, relPosix);
+    const entry = toArchiveEntry(root, canonicalRoot, relPosix, Buffer.from(relPosix, "utf8"), fs);
     if (entry === null) continue;
     entries.push(entry);
     sourceRels.push(relPosix);
     seen.add(relPosix);
   }
-  assertArchiveEntriesTrackedOrGenerated(root, sourceRels, generatedAllowlist);
+  assertArchiveEntriesTrackedOrGenerated(root, sourceRels, generatedAllowlist, spawn);
   entries.sort((a, b) => a.archiveRel.localeCompare(b.archiveRel));
   return entries;
 }
