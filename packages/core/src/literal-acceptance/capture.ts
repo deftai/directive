@@ -205,10 +205,20 @@ function matchPromptCommand(line: string): string | null {
 const BOX_DRAWING_RE = /[\u2500-\u257F\u2580-\u259F]/;
 
 /**
+ * Drop GNU-style long flags and their following value so `--filter fail`
+ * is not classified as FAIL transcript output (#3511).
+ * Covers `--flag`, `--flag=value`, and `--flag value` (value not another flag).
+ */
+function stripLongFlags(line: string): string {
+  return line.replace(/(^|\s)--[\w-]+(?:=[^\s]+|\s+(?!-)[^\s]+)?/g, "$1");
+}
+
+/**
  * True when a fence line is log/transcript, not a stated command (#3511).
  * `[1/13]` / `[ts:check-lane]`, box drawing, or FAIL/FAILED/Error:.
- * Flag tokens (--fail-fast, --failOnError, --no-fail) are not FAIL output:
- * `\bFAIL` matches between `-` and `f`.
+ * Flag tokens (--fail-fast, --failOnError, --no-fail) and flag values
+ * (`--filter fail`, `--grep FAIL`) are not FAIL output: `\bFAIL` matches
+ * between `-` and `f`, and leftover values still match after name-only strip.
  */
 function isTranscriptOutputLine(line: string): boolean {
   const t = line.trim();
@@ -216,7 +226,7 @@ function isTranscriptOutputLine(line: string): boolean {
   if (t.startsWith("#") || t.startsWith("//")) return false;
   if (/^\[[^\]]{1,80}\]/.test(t)) return true;
   if (BOX_DRAWING_RE.test(t)) return true;
-  const withoutFlags = t.replace(/(^|\s)--[\w-]+/g, "$1");
+  const withoutFlags = stripLongFlags(t);
   if (/\b(?:FAILED|FAIL|Error:)/i.test(withoutFlags)) return true;
   return false;
 }

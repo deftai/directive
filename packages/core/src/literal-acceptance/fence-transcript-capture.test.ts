@@ -239,6 +239,27 @@ describe("output-shaped fences are not captured (#3511)", () => {
     );
   });
 
+  it("captures fence commands whose flag values are fail / FAIL (#3511)", () => {
+    const text = [
+      "## Acceptance",
+      "```bash",
+      "pnpm exec vitest run --filter fail",
+      "$ pnpm exec vitest run --grep FAIL",
+      "pnpm exec vitest run --testNamePattern fail",
+      "$ task check",
+      "```",
+    ].join("\n");
+    const cmds = captureLiteralAcceptanceCommandsDetailed(text).commands.map((c) => c.command);
+    expect(cmds).toEqual(
+      expect.arrayContaining([
+        "pnpm exec vitest run --filter fail",
+        "pnpm exec vitest run --grep FAIL",
+        "pnpm exec vitest run --testNamePattern fail",
+        "task check",
+      ]),
+    );
+  });
+
   it("still skips actual FAIL / Error: transcript output (#3511)", () => {
     const text = ["```", "FAIL  packages/foo.test.ts", "FAILED tests/x", "Error: boom", "```"].join(
       "\n",
