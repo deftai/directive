@@ -1,0 +1,124 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3459",
+    "updated": "2026-08-19T19:05:17Z"
+  },
+  "plan": {
+    "id": "3459-uat-shell-residuals",
+    "title": "UAT Shell residuals after #3421: dest-form plant of authz, kill-switch, and approved-scope",
+    "status": "running",
+    "narratives": {
+      "Description": "AppSec on 82bd37f3 found two HIGH UAT Shell classification residuals and one MEDIUM mint-path asymmetry. Residual dest forms after #3421 still classify empty and allow write-shaped Shell that can plant .deft/authz or a kill-switch. Residual Shell writers can also forge .deft/approved-scope while Write is denied.",
+      "UserStory": "As a Directive operator under active UAT, I want residual write-shaped Shell dests that plant authz, kill-switch, or approved-scope to classify as settings deny, so that #3421 cannot be bypassed by dest forms the harvest missed.",
+      "ImplementationPlan": "1. Extend dest-form harvest in packages/core/src/authz/classify.ts for GNU g* coreutils prefixes (ginstall, gcp), gh/glab/hub clone, iwr -OutFile, fsutil, cmd copy, tsx/ts-node, npm pack --pack-destination. 2. Under UAT fail-closed on unclassifiable write-shaped Shell targeting protected dests; classify kill-switch and .deft/approved-scope pathish as settings deny. 3. Add vitest in packages/core/src/authz and a brief CHANGELOG security note, then verify with the authz vitest suite. Do not re-do #3421 named peers (install/cp/git clone/Set-Content/echo).",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3459",
+      "Overview": "Do not re-do #3421 named peers (install/cp/git clone/Set-Content/echo approved-scope). Do not write an exploit cookbook. Prefer fail-closed on unclassifiable write-shaped Shell under UAT. Ordinary /tmp dests stay unclassifiable.",
+      "Labels": "bug, security, tooling, agent-safety"
+    },
+    "items": [
+      {
+        "title": "Residual dest forms cannot plant authz or kill-switch",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given active UAT, when residual bins write into .deft/authz/** or plant .deft-directive-disable / .no-deft-directive, classify returns settings deny, not unclassifiable allow. Dest parsing covers GNU g* coreutils prefixes (ginstall, gcp), gh/glab/hub clone, iwr -OutFile, fsutil, cmd copy, tsx/ts-node, npm pack --pack-destination when dest is protected. Unclassifiable write-shaped Shell under UAT is fail-closed. install / cp / git clone / Set-Content stay settings-denied. /tmp dests outside those paths stay unclassifiable.",
+          "Traces": "FR-3459-1"
+        }
+      },
+      {
+        "title": "Shell cannot forge approved-scope while Write is denied",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given active UAT, when residual Shell writers target .deft/approved-scope/**, classify is settings deny matching Write. A forged Shell mint cannot satisfy provenance approval without the shared #3110 human-presence mint.",
+          "Traces": "FR-3459-2"
+        }
+      },
+      {
+        "title": "Tests and changelog",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the classify changes, when vitest runs packages/core/src/authz, residual bins vs already-denied peers are covered. CHANGELOG [Unreleased] has a brief security note with no exploit cookbook.",
+          "Traces": "FR-3459-3"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security",
+      "tooling",
+      "agent-safety"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3459",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3459: post-#3421 UAT Shell residuals"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3421",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3421: prior dest-form harvest"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3410",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3410: human-presence mint"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/authz",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/authz"
+        ],
+        "expected_outputs": [
+          "residual dest-form deny",
+          "approved-scope Shell/Write symmetry",
+          "CHANGELOG #3459"
+        ],
+        "depends_on": [],
+        "conflict_group": "authz-classify",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/authz/classify.ts",
+          "packages/core/src/authz/classify.test.ts",
+          "packages/core/src/authz/incident-regression.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "classify.ts dest harvest and its matching classify/incident-regression matrices already exceed FILE_SIZE_REVIEW_TRIGGER_LINES. Residual dest forms after #3421 must land beside the existing harvest, not in a split module. CHANGELOG.md already exceeds the trigger; this slice only adds the #3459 security note."
+      },
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/authz"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "derived 1 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Extend dest-form harvest in packages/core/src/authz/classify.ts for GNU g* coreutils prefixes (ginstall, gcp), gh/glab/hub clone, iwr -OutFile, fsutil, cmd copy, tsx/ts-node, npm pack --pack-destination. 2. Under UAT fail-closed on unclassifiable write-shaped Shell targeting protected dests; classify kill-switch and .deft/approved-scope pathish as settings deny. 3. Add vitest in packages/core/src/authz and a brief CHANGELOG security note, then verify with the authz vitest suite. Do not re-do #3421 named peers (install/cp/git clone/Set-Content/echo).",
+          "artifact_path": "packages/core/src/authz/classify.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-08-19T19:05:17Z"
+  }
+}

