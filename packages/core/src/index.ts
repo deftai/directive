@@ -42,6 +42,12 @@ export {
   containedWrite,
   resolveContainedTarget,
 } from "./fs/contained-write.js";
+// #3487: single source of truth for walk exclusions, shared by every gate.
+export {
+  AGENT_HOST_WORKING_DIRS,
+  AGENT_SCRATCH_DIRS,
+  NON_PRODUCT_DIRS,
+} from "./fs/non-product-dirs.js";
 export {
   assertDestinationNotSymlink,
   assertDirectoryNotSymlink,
