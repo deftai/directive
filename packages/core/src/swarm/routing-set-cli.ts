@@ -16,7 +16,20 @@ import {
   writeModelDecision,
 } from "./routing.js";
 
-export function routingSetMain(argv: string[] = process.argv.slice(2)): number {
+/**
+ * `routing set` CLI entry.
+ *
+ * `environ` is the same injected-environment seam `resolveDispatchProvider` and
+ * `resolveRoutingPath` already carry (default `process.env`, so production
+ * behaviour is unchanged). Tests drive this entry with a constructed
+ * environment instead of subtracting known host vars from the ambient one --
+ * a denylist that silently rots every time a new host signal is added (#3494,
+ * after #3134 / #3492).
+ */
+export function routingSetMain(
+  argv: string[] = process.argv.slice(2),
+  environ: NodeJS.ProcessEnv = process.env,
+): number {
   let projectRoot = ".";
   let provider: string | null = null;
   let role: string | null = null;
@@ -65,7 +78,7 @@ export function routingSetMain(argv: string[] = process.argv.slice(2)): number {
     // Same key as launch + verify:routing: OPENCLAW / sessions_spawn → openclaw
     // (#2875 Greptile P1). Do not map via runtimeMode alone — OpenClaw-only envs
     // are often local-unsandboxed while still dispatching under provider openclaw.
-    resolvedProvider = resolveDispatchProvider(process.env);
+    resolvedProvider = resolveDispatchProvider(environ);
   }
 
   if (harnessDefault) {
@@ -84,7 +97,7 @@ export function routingSetMain(argv: string[] = process.argv.slice(2)): number {
   }
 
   const root = resolve(projectRoot);
-  const path = resolveRoutingPath(root);
+  const path = resolveRoutingPath(root, environ);
   try {
     writeModelDecision(root, path, resolvedProvider, role, {
       model,
