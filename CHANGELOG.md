@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **UAT Shell residual after #3421: extra dest writers plant authz, kill-switch, and approved-scope (#3459).** Under active UAT, write-shaped Shell dests that #3421 missed classify as settings deny when they target `.deft/authz/**`, kill-switch basenames, or `.deft/approved-scope/**`. GNU coreutils `g*` prefixes and unknown dest flags targeting those paths fail closed. Ordinary dests such as `/tmp` stay unclassifiable. Already-denied `install` / `cp` / `git clone` / `Set-Content` stay denied. Closes #3459. Refs #3421, #3410, #3039.
+
 ### Added
 
 - **Drive-to DONE requires completed-tracked on the delivery tip (#3476).** `task verify:completed-tracked -- --issue N` checks one origin against `origin/<deliveryBranch>`, not feature-worktree HEAD. Exit 1 plus missing tracked land is not DONE; remediate with `task swarm:finalize-cohort` or a lifecycle PR. Parent last-leaf close without that land is a failed close. `scope:complete` stays filesystem-only. Verb stays off `task check`. `agentsMdBudget.absoluteMaxBytes` 15400→15700 for the managed pointer. Closes #3476. Refs #3264, #1358, #3429.

