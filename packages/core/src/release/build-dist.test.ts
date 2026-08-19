@@ -383,6 +383,16 @@ describe("build-dist helpers", () => {
     const root = fixtureProject();
     expect(containedAbsPath(root, "content/doc.md")).toBe(join(root, "content", "doc.md"));
     expect(containedAbsPath(root, "content/../README.md")).toBeNull();
+    // Git index paths are `/`-separated (gitglossary "path"). A literal `\` is
+    // a filename byte. Splitting on `\` would pack a POSIX file named `foo\bar`
+    // as nested segments and could escape the root. On win32, Node resolve
+    // still fail-closes OS-separator `..\` via isInsideRoot.
+    const winEscape = "content\\..\\..\\secret.txt";
+    if (process.platform === "win32") {
+      expect(containedAbsPath(root, winEscape)).toBeNull();
+    } else {
+      expect(containedAbsPath(root, winEscape)).toBe(join(root, winEscape));
+    }
   });
 
   it("generated allowlist symlink to a file outside the root fails closed", () => {
@@ -417,5 +427,40 @@ describe("build-dist helpers", () => {
     expect(() =>
       resolveArchiveEntries(root, { generatedAllowlist: ["linkdir/secret.txt"] }),
     ).toThrow(/resolves outside the archive root/);
+  });
+
+  function trySymlinkDir(target: string, link: string): boolean {
+    try {
+      symlinkSync(target, link, "dir");
+      return true;
+    } catch {
+      try {
+        symlinkSync(target, link, "junction");
+        return true;
+      } catch {
+        try {
+          symlinkSync(target, link);
+          return true;
+        } catch {
+          return false;
+        }
+      }
+    }
+  }
+
+  it("archive via a symlink root matches the real checkout (#3490)", async () => {
+    const realRoot = fixtureProject();
+    const holder = mkdtempSync(join(tmpdir(), "deft-build-dist-linkroot-"));
+    const linkRoot = join(holder, "link-root");
+    if (!trySymlinkDir(realRoot, linkRoot)) return;
+
+    const viaReal = resolveArchiveEntries(realRoot);
+    const viaLink = resolveArchiveEntries(linkRoot);
+    expect(viaLink.map((e) => e.archiveRel)).toEqual(viaReal.map((e) => e.archiveRel));
+    expect(payloadFingerprint(viaLink)).toBe(payloadFingerprint(viaReal));
+
+    const zipReal = await buildArchive(realRoot, "1.0.0", "zip");
+    const zipLink = await buildArchive(linkRoot, "1.0.1", "zip");
+    expect(zipMemberNames(zipLink)).toEqual(zipMemberNames(zipReal));
   });
 });

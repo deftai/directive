@@ -153,10 +153,22 @@ function isInsideRoot(root: string, absPath: string): boolean {
   return !rel.startsWith("..") && !isAbsolute(rel);
 }
 
+/** Canonicalize the supplied archive root once per resolve (#3490 review). */
+function canonicalArchiveRoot(root: string): string {
+  try {
+    return realpathSync(root);
+  } catch {
+    throw new Error(`build-dist: cannot resolve archive root: ${root}`);
+  }
+}
+
 /** Resolve a POSIX rel path under root, or null if it escapes (#3490 review). */
 export function containedAbsPath(root: string, relPosix: string): string | null {
   if (relPosix.includes("\0")) return null;
-  // Git paths are POSIX: only `/` is a separator. A literal `\` is a filename byte.
+  // Git index paths are POSIX (`/` only). A literal `\` is a filename byte
+  // (gitglossary "path"); splitting on `\` would pack `foo\bar` as nested
+  // path segments and could escape the root. Node resolve still fail-closes
+  // OS-separator `..\` via isInsideRoot.
   const parts = relPosix.split("/");
   if (parts.some((part) => part === "..")) return null;
   const absPath = resolve(root, ...parts.filter((part) => part.length > 0 && part !== "."));
@@ -164,7 +176,11 @@ export function containedAbsPath(root: string, relPosix: string): string | null 
   return absPath;
 }
 
-function toArchiveEntry(root: string, relPosix: string): ArchiveSourceEntry | null {
+function toArchiveEntry(
+  root: string,
+  canonicalRoot: string,
+  relPosix: string,
+): ArchiveSourceEntry | null {
   const absPath = containedAbsPath(root, relPosix);
   if (absPath === null) return null;
   let real: string;
@@ -174,7 +190,9 @@ function toArchiveEntry(root: string, relPosix: string): ArchiveSourceEntry | nu
   } catch {
     return null;
   }
-  if (!isInsideRoot(root, real)) {
+  // Compare against the canonical root so a symlink *to* the checkout is
+  // inside, while a symlink *out of* the tree still throws.
+  if (!isInsideRoot(canonicalRoot, real)) {
     throw new Error(`build-dist: path resolves outside the archive root: ${relPosix}`);
   }
   let st: ReturnType<typeof lstatSync>;
@@ -198,13 +216,14 @@ export function resolveArchiveEntries(
   const excludes = new Set([...DEFAULT_EXCLUDES, ...(options.extraExcludes ?? [])]);
   const excludedPrefixes = options.excludedPrefixes ?? DEFAULT_EXCLUDED_PATH_PREFIXES;
   const generatedAllowlist = options.generatedAllowlist ?? DEFAULT_GENERATED_ALLOWLIST;
+  const canonicalRoot = canonicalArchiveRoot(root);
   const tracked = listGitTrackedFiles(root);
   const entries: ArchiveSourceEntry[] = [];
   const sourceRels: string[] = [];
   const seen = new Set<string>();
   for (const relPosix of tracked) {
     if (shouldSkipRel(relPosix, excludes, excludedPrefixes)) continue;
-    const entry = toArchiveEntry(root, relPosix);
+    const entry = toArchiveEntry(root, canonicalRoot, relPosix);
     if (entry === null) continue;
     entries.push(entry);
     sourceRels.push(relPosix);
@@ -215,7 +234,7 @@ export function resolveArchiveEntries(
     if (containedAbsPath(root, relPosix) === null) {
       throw new Error(`build-dist: generated allowlist path escapes the archive root: ${relPosix}`);
     }
-    const entry = toArchiveEntry(root, relPosix);
+    const entry = toArchiveEntry(root, canonicalRoot, relPosix);
     if (entry === null) continue;
     entries.push(entry);
     sourceRels.push(relPosix);
