@@ -369,7 +369,7 @@ function toArchiveEntry(
   } catch {
     return null;
   }
-  if (!st.isFile()) return null;
+  if (st == null || !st.isFile()) return null;
   return { absPath: real, archiveRel: flattenContentPrefix(relPosix) };
 }
 
