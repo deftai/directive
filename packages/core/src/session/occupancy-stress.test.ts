@@ -48,13 +48,10 @@ describe("occupancy concurrency stress (#3433)", () => {
     const rounds = 6;
     const jobs = Array.from({ length: workers }, (_, i) => {
       return new Promise<void>((resolve, reject) => {
-        const viteNode = fileURLToPath(
-          new URL(
-            "../../../../node_modules/.pnpm/node_modules/vite-node/vite-node.mjs",
-            import.meta.url,
-          ),
-        );
-        const child = spawn(process.execPath, [viteNode, workerFile], {
+        // vitest 4 dropped vite-node (#3480); tsx is the spawn runner for this
+        // TypeScript child worker.
+        const tsxCli = fileURLToPath(import.meta.resolve("tsx/cli"));
+        const child = spawn(process.execPath, [tsxCli, workerFile], {
           env: {
             ...process.env,
             OCCUPANCY_STRESS_ROOT: root,

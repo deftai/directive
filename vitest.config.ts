@@ -12,18 +12,15 @@ const testEnvironment =
 
 // Native Windows full-suite + coverage runs can pass every test yet exit non-zero when
 // fork workers saturate the coordinator and onTaskUpdate RPC acks time out. Cap fork
-// workers for headroom, widen teardown, and ignore unhandled worker RPC flakes when
-// the assertion suite is otherwise green (Vitest 3.2.6 has no rpcTimeout knob).
-// Refs #2546.
+// workers for headroom (same cap with or without coverage), widen teardown, and ignore
+// unhandled worker RPC flakes when the assertion suite is otherwise green. Refs #2546.
 const isWin32 = process.platform === "win32";
 const winMaxWorkers = Math.max(1, Math.min(12, Math.floor(cpus().length * 0.25)));
 
-// Coverage chunk writes land in coverage/.tmp; on win32 parallel forks can race the
-// directory away mid-suite (ENOENT after a green run). Serialize coverage processing,
-// tighten fork caps when --coverage is on, and globalSetup keeps .tmp present plus
-// mkdir-before-chunk-write (vitest 3.2.x gap; upstream fix vitest-dev/vitest#10117
-// in vitest 4.x — upgrade path tracked in #2634).
-// Refs #2580, #2634.
+// Coverage chunk writes land in coverage/.tmp. Vitest 4.x includes the upstream
+// mkdir fix (vitest-dev/vitest#10117 / #2634). Keep win32 globalSetup keepalive
+// until a full coverage run proves the directory race is gone. Do not serialize
+// files or coverage processing (#3480). Refs #2580, #2634, #3480.
 const coverageEnabled = process.argv.some(
   (arg) => arg === "--coverage" || arg.startsWith("--coverage."),
 );
@@ -31,8 +28,8 @@ const coverageDebt = resolveCoverageDebtIssue(process.argv, process.env);
 if (coverageDebt.kind === "invalid") {
   throw new Error(`coverage-debt: ${coverageDebt.reason}`);
 }
-// Lane-private env (#2618 / vitest 3): ts-check-lane sets DEFT_TS_LANE_COVERAGE_DEBT
-// because vitest 3 CAC rejects unknown --allow-coverage-debt CLI tokens.
+// Lane-private env (#2618): ts-check-lane sets DEFT_TS_LANE_COVERAGE_DEBT because
+// vitest CAC rejects unknown --allow-coverage-debt CLI tokens.
 const laneDebtRaw = process.env.DEFT_TS_LANE_COVERAGE_DEBT;
 const laneDebtIssue =
   laneDebtRaw !== undefined && /^\d+$/.test(laneDebtRaw.trim())
@@ -52,14 +49,12 @@ const coverageThresholds = {
   lines: 85,
   functions: 85,
   // Fail-closed at 85 on all platforms; hairline misses use --allow-coverage-debt=#N (#2573).
-  // Win32 uses capped workers under --coverage (#2546/#2634) for coordinator headroom, but the
-  // floor is identical to Linux CI — a local 84.91% vs CI-green gap was uncovered branches, not
-  // threshold asymmetry (#2630).
+  // Win32 worker caps are coordinator headroom only (#2546); the floor is identical to
+  // Linux CI — a local 84.91% vs CI-green gap was uncovered branches, not threshold
+  // asymmetry (#2630).
   branches: 85,
   statements: 85,
 } as const;
-const winActiveMaxWorkers =
-  isWin32 && coverageEnabled ? Math.max(1, Math.min(4, winMaxWorkers)) : winMaxWorkers;
 const win32CoverageTmpSetup = resolve(
   import.meta.dirname,
   "packages/core/src/vitest-runner/win32-coverage-tmp-setup.ts",
@@ -196,20 +191,14 @@ export default defineConfig({
       : {}),
     ...(isWin32
       ? {
-          maxWorkers: winActiveMaxWorkers,
+          maxWorkers: winMaxWorkers,
           teardownTimeout: 60_000,
           dangerouslyIgnoreUnhandledErrors: true,
           ...(coverageEnabled
             ? {
                 globalSetup: [win32CoverageTmpSetup],
-                fileParallelism: false,
               }
             : {}),
-          poolOptions: {
-            forks: {
-              maxForks: winActiveMaxWorkers,
-            },
-          },
         }
       : {}),
     ...(coverageEnabled && coverageDebtIssue !== null
@@ -226,7 +215,6 @@ export default defineConfig({
         "packages/core/src/**/*.helpers.ts",
       ],
       reporter: ["text", "text-summary"],
-      ...(isWin32 && coverageEnabled ? { processingConcurrency: 1 } : {}),
       thresholds:
         coverageDebtIssue !== null
           ? { lines: 0, functions: 0, branches: 0, statements: 0 }

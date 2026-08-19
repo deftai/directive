@@ -162,7 +162,7 @@ export function runTsLane(projectRoot: string, options: RunTsLaneOptions): numbe
     const resolved =
       command[1] === "test" ? resolveTestLaneCommand(projectRoot, options.reporterExists) : command;
     const argv = [pnpm, ...resolved];
-    // Soft-pass via lane-private env (vitest 3 CAC rejects unknown CLI debt tokens).
+    // Soft-pass via lane-private env (vitest CAC rejects unknown CLI debt tokens).
     // vitest.config reads DEFT_TS_LANE_COVERAGE_DEBT without DEFT_RELEASE_PREFLIGHT
     // (sanitizeTsLaneEnv strips preflight). Refs #2573 / #2618.
     const prevDebt = process.env.DEFT_TS_LANE_COVERAGE_DEBT;

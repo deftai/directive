@@ -97,7 +97,7 @@ describe("runTsLane", () => {
     expect(runner.calls.every((c) => c.cwd === "/repo")).toBe(true);
   });
 
-  it("stamps DEFT_TS_LANE_COVERAGE_DEBT for test when release Step-5 env is set (#2618 / vitest 3)", () => {
+  it("stamps DEFT_TS_LANE_COVERAGE_DEBT for test when release Step-5 env is set (#2618)", () => {
     const runner = new Runner([0, 0, 0]);
     const seenDebt: Array<string | undefined> = [];
     const prior = process.env.DEFT_TS_LANE_COVERAGE_DEBT;

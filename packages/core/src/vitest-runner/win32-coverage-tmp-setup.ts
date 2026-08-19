@@ -15,11 +15,10 @@ export function ensureCoverageTmpDir(coverageTmpDir: string = defaultCoverageTmp
 }
 
 /**
- * Vitest 3.2.x writes coverage chunks without mkdir'ing the parent directory
- * (fixed upstream in vitest 4.x — vitest-dev/vitest#10117). On Windows the
- * directory can disappear between clean() and writeFile under release-scale
+ * Vitest 4.x includes the upstream mkdir (vitest-dev/vitest#10117). On Windows the
+ * directory can still disappear between clean() and writeFile under release-scale
  * load; mkdir immediately before chunk writes closes that race without
- * soft-failing real threshold failures (#2634).
+ * soft-failing real threshold failures (#2634 / #3480).
  */
 export function installCoverageTmpWriteGuard(): () => void {
   const originalWriteFile = fsPromises.writeFile.bind(fsPromises);
@@ -41,8 +40,8 @@ export function installCoverageTmpWriteGuard(): () => void {
 /**
  * Win32 globalSetup for coverage runs (#2580, hardened #2634).
  *
- * Keepalive mkdir plus a writeFile guard mirror vitest 4's defensive mkdir until
- * directive upgrades past vitest@3 (see vitest.config.ts #2634 upgrade note).
+ * Keepalive mkdir plus a writeFile guard remain until a full win32 coverage
+ * run proves vitest 4's #10117 mkdir is enough on its own (#3480).
  */
 export default function setup(): () => void {
   if (process.platform !== "win32") return () => {};

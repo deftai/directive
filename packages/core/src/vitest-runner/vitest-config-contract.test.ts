@@ -14,16 +14,17 @@ describe("vitest.config.ts Windows runner contract (#2546)", () => {
   });
 
   it("caps fork parallelism on win32 for coordinator headroom", () => {
-    expect(source).toMatch(/maxWorkers:\s*winActiveMaxWorkers/);
-    expect(source).toMatch(/maxForks:\s*winActiveMaxWorkers/);
+    expect(source).toMatch(/maxWorkers:\s*winMaxWorkers/);
     expect(source).toMatch(/cpus\(\)\.length\s*\*\s*0\.25/);
     expect(source).toMatch(/Math\.min\(12/);
+    expect(source).not.toMatch(/winActiveMaxWorkers/);
+    expect(source).not.toMatch(/poolOptions/);
+    expect(source).not.toMatch(/maxForks/);
   });
 
-  it("keeps forks on win32 and ignores unhandled worker RPC flakes when tests are green", () => {
+  it("keeps forks default on win32 and ignores unhandled worker RPC flakes when tests are green", () => {
     expect(source).not.toMatch(/pool:\s*"threads"/);
     expect(source).toMatch(/dangerouslyIgnoreUnhandledErrors:\s*true/);
-    expect(source).toMatch(/forks:/);
   });
 
   it("widens teardownTimeout on win32 for heavy coverage runs", () => {
@@ -39,10 +40,11 @@ describe("vitest.config.ts Windows coverage tmp contract (#2580)", () => {
     expect(source).toMatch(/coverage\/\.tmp/);
   });
 
-  it("serializes coverage processing and tightens workers when --coverage is on", () => {
-    expect(source).toMatch(/processingConcurrency:\s*1/);
+  it("does not serialize file parallelism or coverage processing on win32 (#3480)", () => {
+    expect(source).not.toMatch(/processingConcurrency:\s*1/);
+    expect(source).not.toMatch(/fileParallelism:\s*false/);
+    expect(source).not.toMatch(/winActiveMaxWorkers/);
     expect(source).toMatch(/coverageEnabled/);
-    expect(source).toMatch(/fileParallelism:\s*false/);
     expect(source).toMatch(/win32CoverageTmpSetup/);
   });
 
