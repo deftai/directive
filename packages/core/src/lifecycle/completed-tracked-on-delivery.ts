@@ -276,13 +276,17 @@ export function resolveDeliveryTip(
       return { tip: candidate, error: null };
     }
   }
-  // Last resort: HEAD of current checkout (still a real tip for fixtures).
-  if (refExists(projectRoot, "HEAD", runGit)) {
-    return { tip: "HEAD", error: null };
-  }
+  // ⊗ HEAD fallback (#3478 review). This gate exists to prove an artifact landed
+  // on the delivery tip rather than on feature-worktree HEAD; falling back to
+  // HEAD when the delivery ref is missing (shallow clone, unfetched worktree,
+  // fetch-depth:1 checkout) checks the very branch whose land is in question and
+  // silently passes. Unresolvable delivery tip must fail closed -- pass an
+  // explicit --tip (e.g. --tip HEAD for an in-flight land PR) to opt in.
   return {
     tip: null,
-    error: `could not resolve delivery tip for branch '${branch}' (no origin/${branch}, ${branch}, or HEAD)`,
+    error:
+      `could not resolve delivery tip for branch '${branch}' (no origin/${branch} or ${branch}); ` +
+      "fetch the delivery branch or pass an explicit --tip",
   };
 }
 
@@ -370,15 +374,29 @@ function issuesFromBlobPaths(
   return hits;
 }
 
+/**
+ * Narrow the origin map to the requested issue.
+ *
+ * Matching is repo-scoped when the caller's repo is known (#3478 review): a
+ * corpus entry for another repository's same-numbered issue must NOT survive
+ * this filter. Letting it through leaves `originMap` non-empty, which suppresses
+ * the synthesis below and makes the gate resolve the wrong `repo#number` --
+ * a foreign open issue then green-skips an unlanded local one.
+ */
 function filterOriginsByIssue(
   originMap: Map<string, MissingCompletedLand>,
   issue: number,
+  repo: string | null,
 ): Map<string, MissingCompletedLand> {
   const out = new Map<string, MissingCompletedLand>();
   for (const [key, entry] of originMap) {
-    if (entry.issue.number === issue) {
-      out.set(key, entry);
+    if (entry.issue.number !== issue) {
+      continue;
     }
+    if (repo !== null && entry.issue.repo !== repo) {
+      continue;
+    }
+    out.set(key, entry);
   }
   return out;
 }
@@ -519,7 +537,7 @@ export function evaluateCompletedTracked(
         tip,
       };
     }
-    originMap = filterOriginsByIssue(originMap, issueFilter);
+    originMap = filterOriginsByIssue(originMap, issueFilter, defaultRepo);
     // Drive-to DONE must not green-skip a named origin with no local brief
     // (#3476). Synthesize the requested issue so closed+unlanded fails.
     if (originMap.size === 0) {
@@ -564,10 +582,20 @@ export function evaluateCompletedTracked(
     if (state === "open") {
       continue;
     }
-    // Closed: always fail. Unknown with live expected (!skipGh): also fail —
-    // cannot prove the issue is still open, so do not green-skip land debt
-    // (#3264 Greptile residual on live lookup failure).
-    if (state === "closed" || (state === null && !skipGh)) {
+    // Closed: always fail.
+    //
+    // Unknown: fail when live lookup was expected (!skipGh) -- cannot prove the
+    // issue is still open, so do not green-skip land debt (#3264 Greptile
+    // residual on live lookup failure).
+    //
+    // Unknown also fails for an explicitly named --issue even under --skip-gh
+    // (#3478 review): that is the drive-to DONE form, where the caller asserts
+    // this specific issue is done. An uncached issue must not exit 0 there --
+    // otherwise --skip-gh silently turns the DONE gate into a no-op. The
+    // unscoped corpus scan keeps the offline allowance, since a cold cache
+    // legitimately knows nothing about most scoped issues.
+    const unknownIsTerminal = !skipGh || issueFilter !== null;
+    if (state === "closed" || (state === null && unknownIsTerminal)) {
       missing.push(entry);
     }
   }
