@@ -80,12 +80,13 @@ export interface LiteralAcceptanceGateResult {
   /** Safety-rejected shell-shaped lines (fail-loud ledger; may be empty). */
   readonly rejected?: readonly RejectedLiteralCommand[];
   /**
-   * Prose-derived rejections demoted to advisory because the plan states structured
-   * acceptance commands (#3484). Reported, never blocking — consumers MUST NOT read
-   * these back as a blocking ledger, and must not sniff the rendered message for
-   * their reasons (#3497).
+   * Prose/fence/inline-derived rejections demoted to advisory (#3484 / #3511).
+   * Reported, never blocking — consumers MUST NOT read these back as a blocking
+   * ledger, and must not sniff the rendered message for their reasons (#3497).
    */
   readonly advisoryRejected?: readonly RejectedLiteralCommand[];
+  /** Prompt lines skipped inside a transcript-shaped fence (#3511). */
+  readonly transcriptPromptSkipped?: number;
 }
 
 /** Metadata key for operator-visible rejected command ledger (#3267). */

@@ -156,7 +156,7 @@ describe("structured acceptance beats scraped prose (#3484)", () => {
     expect(result.message).toContain("advisory");
   });
 
-  it("keeps a prose-derived rejection blocking when no structured commands exist", () => {
+  it("demotes a prose-derived rejection even when no structured commands exist (#3511)", () => {
     const plan = {
       title: "t",
       metadata: {
@@ -171,8 +171,8 @@ describe("structured acceptance beats scraped prose (#3484)", () => {
       items: [],
     };
     const resolved = resolveLiteralAcceptanceDetailed(plan, { captureFromNarratives: false });
-    expect(resolved.rejected.map((r) => r.command)).toEqual([PHANTOM_OVERVIEW]);
-    expect(resolved.advisoryRejected).toEqual([]);
+    expect(resolved.rejected).toEqual([]);
+    expect(resolved.advisoryRejected.map((r) => r.command)).toEqual([PHANTOM_OVERVIEW]);
   });
 
   it("still blocks on an unsafe command stated in a structured field", () => {

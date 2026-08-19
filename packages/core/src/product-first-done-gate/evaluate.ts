@@ -57,6 +57,7 @@ import {
 } from "./acceptance-resolver.js";
 import {
   formatSoftEmptyMessage,
+  formatTranscriptEmptyMessage,
   isEmptyAcResolution,
   projectHasSuiteFloor,
   type VerifyAcResolution,
@@ -466,6 +467,17 @@ function applyEmptyFloorPolicy(
   }
   const projectRoot = resolve(options.projectRoot ?? process.cwd());
   const suiteFloor = options.hasSuiteFloor ?? projectHasSuiteFloor(projectRoot);
+  const skippedPrompts = result.transcriptPromptSkipped ?? 0;
+  if (suiteFloor && skippedPrompts > 0) {
+    return {
+      ...result,
+      ok: false,
+      code: 1,
+      message: options.quiet === true ? "" : formatTranscriptEmptyMessage(result.acceptance),
+      resolution: "fail",
+      resolvedCommandCount: 0,
+    };
+  }
   if (suiteFloor) {
     return {
       ...result,
