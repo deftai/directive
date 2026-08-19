@@ -185,6 +185,24 @@ describe("output-shaped fences are not captured (#3511)", () => {
     expect(cmds).toEqual(expect.arrayContaining(["task check", "pnpm test"]));
   });
 
+  it("still captures a genuine command next to a comment in an acceptance fence", () => {
+    const text = [
+      "## Acceptance",
+      "```bash",
+      "pnpm exec vitest run packages/core/src/literal-acceptance",
+      "# Error: last run was red — rerun this command",
+      "$ task check",
+      "```",
+    ].join("\n");
+    const cmds = captureLiteralAcceptanceCommandsDetailed(text).commands.map((c) => c.command);
+    expect(cmds).toEqual(
+      expect.arrayContaining([
+        "pnpm exec vitest run packages/core/src/literal-acceptance",
+        "task check",
+      ]),
+    );
+  });
+
   it("still captures a genuine acceptance fence without transcript markers", () => {
     const text = [
       "## Acceptance",

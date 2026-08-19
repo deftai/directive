@@ -209,10 +209,21 @@ const BOX_DRAWING_RE = /[\u2500-\u257F\u2580-\u259F]/;
 function isTranscriptOutputLine(line: string): boolean {
   const t = line.trim();
   if (t.length === 0) return false;
+  if (t.startsWith("#") || t.startsWith("//")) return false;
   if (/^\[[^\]]{1,80}\]/.test(t)) return true;
   if (BOX_DRAWING_RE.test(t)) return true;
   if (/\b(?:FAILED|FAIL|Error:)/i.test(t)) return true;
   return false;
+}
+
+function isFenceCommentOrBlank(line: string): boolean {
+  const t = line.trim();
+  return t.length === 0 || t.startsWith("#") || t.startsWith("//");
+}
+
+function isPromptLine(line: string): boolean {
+  const t = line.trim();
+  return t.startsWith("$ ") || t.startsWith("> ");
 }
 
 /** Per-line mask: true for body lines inside ``` / ~~~ fences (not the markers). */
@@ -270,9 +281,15 @@ function flushFenceBody(
 ): void {
   if (requireRegion && !regionActive) return;
   if (!isShellFenceLang(fenceLang)) return;
-  // Whole-fence skip: mixed transcript + `$ suggested-fix` is still output (#3511).
-  if (body.some((line) => isTranscriptOutputLine(line))) return;
+  // Transcript lines are skipped. `$`/`>` prompts inside a transcript fence are
+  // suggested-fixes (biome migrate), not stated AC (#3511). Comments do not
+  // mark a fence as transcript, so a genuine command next to `# Error:` still
+  // captures.
+  const transcript = body.some((line) => isTranscriptOutputLine(line));
   for (const line of body) {
+    if (isFenceCommentOrBlank(line)) continue;
+    if (transcript && isPromptLine(line)) continue;
+    if (isTranscriptOutputLine(line)) continue;
     captureFenceBodyLine(line, fenceLang, fenceStartLine, buckets);
   }
 }
