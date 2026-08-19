@@ -1,17 +1,70 @@
-import { mkdirSync, mkdtempSync, statSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  assertArchiveEntriesTrackedOrGenerated,
   buildArchive,
   DEFAULT_EXCLUDES,
+  DEFAULT_GENERATED_ALLOWLIST,
   emitBuildProgress,
   iterSourceFiles,
+  listGitTrackedFiles,
   main,
   outputPath,
   parseExtraExcludes,
+  resolveArchiveEntries,
   selectFormat,
+  UntrackedArchiveEntryError,
 } from "./build-dist.js";
+
+function gitCommitAll(root: string, message = "init"): void {
+  execFileSync("git", ["init"], { cwd: root, stdio: "ignore" });
+  execFileSync("git", ["config", "user.email", "test@example.com"], { cwd: root, stdio: "ignore" });
+  execFileSync("git", ["config", "user.name", "test"], { cwd: root, stdio: "ignore" });
+  execFileSync("git", ["add", "-A"], { cwd: root, stdio: "ignore" });
+  execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-m", message], {
+    cwd: root,
+    stdio: "ignore",
+  });
+}
+
+function payloadFingerprint(entries: Array<{ absPath: string; archiveRel: string }>): string {
+  const hash = createHash("sha256");
+  for (const entry of entries) {
+    hash.update(entry.archiveRel);
+    hash.update("\0");
+    hash.update(readFileSync(entry.absPath));
+    hash.update("\0");
+  }
+  return hash.digest("hex");
+}
+
+function zipMemberNames(zipPath: string): string[] {
+  const buf = readFileSync(zipPath);
+  let eocd = -1;
+  for (let i = buf.length - 22; i >= 0; i -= 1) {
+    if (buf.readUInt32LE(i) === 0x06054b50) {
+      eocd = i;
+      break;
+    }
+  }
+  if (eocd < 0) throw new Error("zip EOCD not found");
+  const count = buf.readUInt16LE(eocd + 10);
+  let offset = buf.readUInt32LE(eocd + 16);
+  const names: string[] = [];
+  for (let n = 0; n < count; n += 1) {
+    if (buf.readUInt32LE(offset) !== 0x02014b50) throw new Error("zip central header corrupt");
+    const nameLen = buf.readUInt16LE(offset + 28);
+    const extraLen = buf.readUInt16LE(offset + 30);
+    const commentLen = buf.readUInt16LE(offset + 32);
+    names.push(buf.subarray(offset + 46, offset + 46 + nameLen).toString("utf8"));
+    offset += 46 + nameLen + extraLen + commentLen;
+  }
+  return names.sort();
+}
 
 describe("build-dist helpers", () => {
   it("selectFormat honors explicit arg and defaults", () => {
@@ -94,9 +147,10 @@ describe("build-dist helpers", () => {
   it("buildArchive succeeds when coverage/.tmp is present", async () => {
     const root = mkdtempSync(join(tmpdir(), "deft-build-dist-coverage-archive-"));
     mkdirSync(join(root, "content"), { recursive: true });
-    mkdirSync(join(root, "coverage", ".tmp"), { recursive: true });
     writeFileSync(join(root, "README.md"), "# fixture\n");
     writeFileSync(join(root, "content", "doc.md"), "hello\n");
+    gitCommitAll(root);
+    mkdirSync(join(root, "coverage", ".tmp"), { recursive: true });
     writeFileSync(join(root, "coverage", ".tmp", "coverage-2.json"), "{}\n");
 
     const out = await buildArchive(root, "9.9.9", "zip");
@@ -124,6 +178,7 @@ describe("build-dist helpers", () => {
     mkdirSync(join(root, "content"), { recursive: true });
     writeFileSync(join(root, "README.md"), "# fixture\n");
     writeFileSync(join(root, "content", "doc.md"), "hello\n");
+    gitCommitAll(root);
     const stages: string[] = [];
     await buildArchive(root, "1.0.0", "zip", {
       onProgress: (p) => {
@@ -165,6 +220,7 @@ describe("build-dist helpers", () => {
     mkdirSync(join(root, "content"), { recursive: true });
     writeFileSync(join(root, "README.md"), "# fixture\n");
     writeFileSync(join(root, "content", "doc.md"), "hello\n");
+    gitCommitAll(root);
     return root;
   }
 
@@ -189,5 +245,105 @@ describe("build-dist helpers", () => {
     const root = fixtureProject();
     expect(await main(["--version", "9.9.9", "--format", "zip", "--root", root])).toBe(0);
     expect(statSync(outputPath(root, "9.9.9", "zip")).size).toBeGreaterThan(0);
+  });
+
+  it("DEFAULT_GENERATED_ALLOWLIST is empty so generated outputs must be named", () => {
+    expect(DEFAULT_GENERATED_ALLOWLIST).toEqual([]);
+  });
+
+  it("listGitTrackedFiles fails closed outside a git work tree", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-build-dist-nogit-"));
+    writeFileSync(join(root, "README.md"), "# hi\n");
+    expect(() => listGitTrackedFiles(root)).toThrow(/git ls-files failed/);
+  });
+
+  it("listGitTrackedFiles fails closed when --root is not the repository root", () => {
+    const root = fixtureProject();
+    expect(() => listGitTrackedFiles(join(root, "content"))).toThrow(/git ls-files failed/);
+  });
+
+  it("resolveArchiveEntries packs tracked files and ignores untracked host trees (#3490)", () => {
+    const root = fixtureProject();
+    mkdirSync(join(root, ".claude", "worktrees", "agent"), { recursive: true });
+    mkdirSync(join(root, ".deft-scratch", "worktrees", "story"), { recursive: true });
+    mkdirSync(join(root, ".new-agent-host"), { recursive: true });
+    writeFileSync(join(root, ".claude", "settings.local.json"), "{}\n");
+    writeFileSync(join(root, ".claude", "worktrees", "agent", "noise.md"), "x\n");
+    writeFileSync(join(root, ".deft-scratch", "worktrees", "story", "scratch.md"), "x\n");
+    writeFileSync(join(root, ".new-agent-host", "state.json"), "{}\n");
+    writeFileSync(join(root, "untracked-root.txt"), "surprise\n");
+
+    const rels = resolveArchiveEntries(root).map((e) => e.archiveRel);
+    expect(rels).toContain("README.md");
+    expect(rels).toContain("doc.md");
+    expect(rels.some((r) => r.includes(".claude"))).toBe(false);
+    expect(rels.some((r) => r.includes(".deft-scratch"))).toBe(false);
+    expect(rels.some((r) => r.includes(".new-agent-host"))).toBe(false);
+    expect(rels).not.toContain("untracked-root.txt");
+  });
+
+  it("archive contents match with and without extra untracked directories (#3490)", async () => {
+    const root = fixtureProject();
+    const cleanEntries = resolveArchiveEntries(root);
+    const cleanZip = await buildArchive(root, "1.0.0", "zip");
+    const cleanNames = zipMemberNames(cleanZip);
+    const cleanFp = payloadFingerprint(cleanEntries);
+
+    mkdirSync(join(root, ".claude", "worktrees", "agent"), { recursive: true });
+    mkdirSync(join(root, ".deft-scratch", "worktrees", "story"), { recursive: true });
+    mkdirSync(join(root, ".new-agent-host"), { recursive: true });
+    writeFileSync(join(root, ".claude", "settings.local.json"), "secret\n");
+    writeFileSync(join(root, ".claude", "worktrees", "agent", "nested.ts"), "x\n");
+    writeFileSync(join(root, ".deft-scratch", "worktrees", "story", "scratch.md"), "x\n");
+    writeFileSync(join(root, ".new-agent-host", "state.json"), "{}\n");
+
+    const dirtyEntries = resolveArchiveEntries(root);
+    const dirtyZip = await buildArchive(root, "1.0.0", "zip");
+    expect(dirtyEntries.map((e) => e.archiveRel)).toEqual(cleanEntries.map((e) => e.archiveRel));
+    expect(payloadFingerprint(dirtyEntries)).toBe(cleanFp);
+    expect(zipMemberNames(dirtyZip)).toEqual(cleanNames);
+  });
+
+  it("assertArchiveEntriesTrackedOrGenerated fails closed on surprise untracked files", () => {
+    const root = fixtureProject();
+    writeFileSync(join(root, "secret.txt"), "nope\n");
+    expect(() => assertArchiveEntriesTrackedOrGenerated(root, ["README.md", "secret.txt"])).toThrow(
+      UntrackedArchiveEntryError,
+    );
+    expect(() => assertArchiveEntriesTrackedOrGenerated(root, ["README.md", "secret.txt"])).toThrow(
+      /secret\.txt/,
+    );
+  });
+
+  it("generated allowlist files may be packed even when untracked", async () => {
+    const root = fixtureProject();
+    writeFileSync(join(root, "generated.out"), "built\n");
+    const rels = resolveArchiveEntries(root, { generatedAllowlist: ["generated.out"] }).map(
+      (e) => e.archiveRel,
+    );
+    expect(rels).toContain("generated.out");
+    const out = await buildArchive(root, "1.0.0", "zip", {
+      generatedAllowlist: ["generated.out"],
+    });
+    expect(zipMemberNames(out)).toContain("deft/generated.out");
+  });
+
+  it("defence in depth still skips tracked paths under excluded basenames", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-build-dist-excluded-tracked-"));
+    mkdirSync(join(root, "node_modules", "pkg"), { recursive: true });
+    mkdirSync(join(root, "content"), { recursive: true });
+    writeFileSync(join(root, "README.md"), "# hi\n");
+    writeFileSync(join(root, "content", "doc.md"), "hello\n");
+    writeFileSync(join(root, "node_modules", "pkg", "index.js"), "x\n");
+    gitCommitAll(root);
+    const rels = resolveArchiveEntries(root).map((e) => e.archiveRel);
+    expect(rels).toContain("README.md");
+    expect(rels).not.toContain("node_modules/pkg/index.js");
+  });
+
+  it("main returns 1 when git ls-files cannot run", async () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-build-dist-main-nogit-"));
+    writeFileSync(join(root, "README.md"), "# hi\n");
+    expect(await main(["--version", "1.0.0", "--format", "zip", "--root", root])).toBe(1);
   });
 });

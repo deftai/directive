@@ -10,6 +10,7 @@ import { createRequire } from "node:module";
 import { platform } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { NON_PRODUCT_DIRS } from "../fs/non-product-dirs.js";
+import { runGit } from "./git.js";
 
 type ArchiverInstance = {
   pipe: (dest: ReturnType<typeof createWriteStream>) => void;
@@ -31,8 +32,8 @@ const { ZipArchive, TarArchive } = createRequire(import.meta.url)("archiver") as
 /**
  * Shared "not product source" core (#3487) plus the coverage artifacts only the
  * release archive names. Scratch and agent worktrees are never shippable
- * framework content (#2953); no tracked path lives under any core entry, so the
- * shared core removes only untracked operator state from the archive.
+ * framework content (#2953). The archive set is git-tracked files (#3490); this
+ * denylist is defence in depth, including for a tracked path under a core name.
  *
  * Callers may still widen this per run via `extraExcludes` / `--exclude-extra`.
  */
@@ -44,8 +45,29 @@ export const DEFAULT_EXCLUDED_PATH_PREFIXES = [
   "vbrief/cancelled",
 ] as const;
 
+/**
+ * Generated outputs that may be packed even when untracked. Empty by default:
+ * the release archive is a source distribution, so extra outputs must be named
+ * explicitly (#3490).
+ */
+export const DEFAULT_GENERATED_ALLOWLIST: readonly string[] = [];
+
 export const ARCHIVE_ROOT = "deft";
 export const CONTENT_PREFIX = "content/";
+
+/** Raised when the resolved archive set contains an untracked surprise (#3490). */
+export class UntrackedArchiveEntryError extends Error {
+  readonly paths: readonly string[];
+
+  constructor(paths: readonly string[]) {
+    const listed = paths.join(", ");
+    super(
+      `build-dist: refusing to pack untracked files not on the generated-output allowlist: ${listed}`,
+    );
+    this.name = "UntrackedArchiveEntryError";
+    this.paths = paths;
+  }
+}
 
 const VENDORED_TS_TEST_RE = /\.(test|spec)\.(c|m)?[jt]sx?$/i;
 
@@ -67,6 +89,112 @@ function isVendoredTsTest(relPosix: string): boolean {
   }
   const basename = relPosix.split("/").pop() ?? "";
   return VENDORED_TS_TEST_RE.test(basename);
+}
+
+function pathHasExcludedComponent(relPosix: string, excludes: ReadonlySet<string>): boolean {
+  return relPosix.split("/").some((part) => excludes.has(part));
+}
+
+function shouldSkipRel(
+  relPosix: string,
+  excludes: ReadonlySet<string>,
+  excludedPrefixes: readonly string[],
+): boolean {
+  return (
+    pathHasExcludedComponent(relPosix, excludes) ||
+    matchesExcludedPrefix(relPosix, excludedPrefixes) ||
+    isVendoredTsTest(relPosix)
+  );
+}
+
+export type ArchiveSourceEntry = { absPath: string; archiveRel: string };
+
+/**
+ * Return `git ls-files -z` paths in POSIX form. Fail closed when git cannot
+ * enumerate tracked files -- a walk would pack host-local untracked state (#3490).
+ */
+export function listGitTrackedFiles(root: string): string[] {
+  // Pin to root/.git so a nested --root cannot walk up and pack a parent repo.
+  const result = runGit(root, ["--git-dir=.git", "--work-tree=.", "ls-files", "-z"]);
+  if (result.status !== 0) {
+    const detail = result.stderr.trim() || result.stdout.trim() || "unknown error";
+    throw new Error(`git ls-files failed in ${root}: ${detail}`);
+  }
+  return result.stdout
+    .split("\0")
+    .map((line) => line.replace(/\r?\n/g, "").trim())
+    .filter((line) => line.length > 0);
+}
+
+/**
+ * Fail closed when any resolved archive path is untracked and not on the
+ * generated-output allowlist (#3490).
+ */
+export function assertArchiveEntriesTrackedOrGenerated(
+  root: string,
+  rels: readonly string[],
+  generatedAllowlist: readonly string[] = DEFAULT_GENERATED_ALLOWLIST,
+): void {
+  const tracked = new Set(listGitTrackedFiles(root));
+  const allowed = new Set(generatedAllowlist);
+  const surprise = rels.filter((rel) => !tracked.has(rel) && !allowed.has(rel));
+  if (surprise.length > 0) {
+    throw new UntrackedArchiveEntryError(surprise);
+  }
+}
+
+export type ResolveArchiveEntriesOptions = {
+  readonly extraExcludes?: readonly string[];
+  readonly excludedPrefixes?: readonly string[];
+  readonly generatedAllowlist?: readonly string[];
+};
+
+function toArchiveEntry(root: string, relPosix: string): ArchiveSourceEntry | null {
+  const absPath = join(root, ...relPosix.split("/"));
+  let st: ReturnType<typeof statSync>;
+  try {
+    st = statSync(absPath);
+  } catch {
+    return null;
+  }
+  if (!st.isFile()) return null;
+  return { absPath, archiveRel: flattenContentPrefix(relPosix) };
+}
+
+/**
+ * Derive the archive file set from git-tracked paths plus an explicit
+ * generated-output allowlist. The basename denylist remains defence in depth.
+ */
+export function resolveArchiveEntries(
+  root: string,
+  options: ResolveArchiveEntriesOptions = {},
+): ArchiveSourceEntry[] {
+  const excludes = new Set([...DEFAULT_EXCLUDES, ...(options.extraExcludes ?? [])]);
+  const excludedPrefixes = options.excludedPrefixes ?? DEFAULT_EXCLUDED_PATH_PREFIXES;
+  const generatedAllowlist = options.generatedAllowlist ?? DEFAULT_GENERATED_ALLOWLIST;
+  const tracked = listGitTrackedFiles(root);
+  const entries: ArchiveSourceEntry[] = [];
+  const sourceRels: string[] = [];
+  const seen = new Set<string>();
+  for (const relPosix of tracked) {
+    if (shouldSkipRel(relPosix, excludes, excludedPrefixes)) continue;
+    const entry = toArchiveEntry(root, relPosix);
+    if (entry === null) continue;
+    entries.push(entry);
+    sourceRels.push(relPosix);
+    seen.add(relPosix);
+  }
+  for (const relPosix of generatedAllowlist) {
+    if (seen.has(relPosix)) continue;
+    const entry = toArchiveEntry(root, relPosix);
+    if (entry === null) continue;
+    entries.push(entry);
+    sourceRels.push(relPosix);
+    seen.add(relPosix);
+  }
+  assertArchiveEntriesTrackedOrGenerated(root, sourceRels, generatedAllowlist);
+  entries.sort((a, b) => a.archiveRel.localeCompare(b.archiveRel));
+  return entries;
 }
 
 export function iterSourceFiles(
@@ -133,6 +261,8 @@ export type BuildProgress = {
 
 export type BuildArchiveOptions = {
   readonly extraExcludes?: readonly string[];
+  /** Untracked generated outputs that may be packed (#3490). */
+  readonly generatedAllowlist?: readonly string[];
   /** Progress sink; default silent so unit tests stay quiet (#2953). */
   readonly onProgress?: (p: BuildProgress) => void;
 };
@@ -163,14 +293,20 @@ function isExtraExcludesList(
 
 function resolveBuildOptions(options: readonly string[] | BuildArchiveOptions = {}): {
   extraExcludes: readonly string[];
+  generatedAllowlist: readonly string[];
   onProgress: (p: BuildProgress) => void;
 } {
   // Backward-compatible: 4th arg may be a bare extra-excludes array (pre-#2953).
   if (isExtraExcludesList(options)) {
-    return { extraExcludes: options, onProgress: () => {} };
+    return {
+      extraExcludes: options,
+      generatedAllowlist: DEFAULT_GENERATED_ALLOWLIST,
+      onProgress: () => {},
+    };
   }
   return {
     extraExcludes: options.extraExcludes ?? [],
+    generatedAllowlist: options.generatedAllowlist ?? DEFAULT_GENERATED_ALLOWLIST,
     onProgress: options.onProgress ?? (() => {}),
   };
 }
@@ -181,15 +317,14 @@ export async function buildArchive(
   fmt: "tar" | "zip",
   options: readonly string[] | BuildArchiveOptions = {},
 ): Promise<string> {
-  const { extraExcludes, onProgress } = resolveBuildOptions(options);
-  const excludes = new Set([...DEFAULT_EXCLUDES, ...extraExcludes]);
+  const { extraExcludes, generatedAllowlist, onProgress } = resolveBuildOptions(options);
   const output = outputPath(root, version, fmt);
   mkdirSync(dirname(output), { recursive: true });
   if (existsSync(output)) {
     unlinkSync(output);
   }
-  onProgress({ stage: "scan", detail: "enumerating source files" });
-  const entries = iterSourceFiles(root, excludes);
+  onProgress({ stage: "scan", detail: "enumerating tracked source files" });
+  const entries = resolveArchiveEntries(root, { extraExcludes, generatedAllowlist });
   const total = entries.length;
   onProgress({ stage: "scan", detail: `found ${total} files`, current: total, total });
 

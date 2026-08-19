@@ -1,0 +1,83 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3490",
+    "updated": "2026-08-19T19:20:00Z"
+  },
+  "plan": {
+    "title": "fix(release): build-dist packs untracked files — denylist model ships host-local state into the archive",
+    "status": "running",
+    "narratives": {
+      "Description": "fix(release): build-dist packs untracked files — denylist model ships host-local state into the archive",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3490",
+      "Overview": "## Summary\n\n`buildArchive` (release Step 8) walks the working tree with a **basename denylist** and no notion of which files are tracked. Every untracked file whose directory is not explicitly listed is packed into the release archive.\n\nMeasured on this host right now: **39,680 untracked files under `.claude/` alone**, zero of them tracked. That includes `.claude/settings.local.json` and full nested source checkouts under `.claude/worktrees/<agent-id>/`.\n\n#3487 / PR #3489 adds `.claude` to the shared exclusion set, which removes today's largest instance. **The class remains:** the next untracked directory that isn't on the list ships too.\n\n## Evidence\n\n`packages/core/src/release/build-dist.ts`:\n\n```\n89      names = readdirSync(dir).sort();\n94      if (excludes.has(name)) continue;\n```\n\nThat is the entire filter. No `git ls-files`, no `.gitignore` awareness, no tracked-file check.\n\n```\n$ git ls-files .claude | wc -l\n0\n$ find .claude -type f | wc -l\n39680\n```\n\nThe count grows with use — it was ~28,700 earlier in the same session and rose as agent worktrees were created. Any host-specific untracked tree scales the archive without bound.\n\n## Why a denylist is the wrong model here\n\nThis is a **source distribution archive**. The set of things that belong in it is \"files this project tracks\", which git already knows exactly. Enumerating what to leave out means:\n\n- every new tool that drops a working directory needs a framework release to be excluded\n- correctness depends on developer-host layout, so the artifact differs between machines\n- the failure is silent — an over-large archive is not obviously wrong at build time\n\nAn allowlist derived from `git ls-files` inverts this: unknown directories are excluded by default, and the archive is reproducible across hosts.\n\n## Security note, stated carefully\n\nI did not read file contents and am not claiming a disclosed secret. But the shape is unfavourable: `.claude/settings.local.json` is local, host-specific, and never intended for distribution, and agent worktrees can contain arbitrary working state. A release cut from a developer machine — which is how this project cuts releases, since the release verbs run locally — embeds whatever untracked state that machine happens to hold. Worth treating as a release-integrity issue with a privacy edge rather than a pure size bug.\n\n## Proposed change\n\n1. **Derive the archive file set from `git ls-files`** (plus any deliberately-generated build outputs the release needs, added explicitly). Keep the exclusion set as defence in depth, not as the primary mechanism.\n2. **Fail closed on surprise:** if the resolved file set contains anything untracked and not on an explicit generated-output allowlist, error rather than pack it.\n3. **Assert reproducibility:** a test that an archive built from a checkout with extra untracked directories present matches one built without them.\n\n## Acceptance\n\n- Archive contents are identical whether or not `.claude/`, `.deft-scratch/`, or any other untracked tree exists in the checkout.\n- Adding a new agent-host working directory to a developer machine cannot change a release artifact.\n- Building with an unexpected untracked file in the resolved set fails rather than shipping it.\n\n## Notes\n\nFound while reviewing PR #3489 (#3487), which correctly adds `.claude` to the shared exclusion set. That fix is right and should land on its own; this issue is the underlying model.\n\nRefs #3487 / PR #3489 (adds `.claude`; the immediate mitigation)\nRefs #2953 / #2954 (added `.deft-scratch` to the same denylist for the same reason — the pattern repeating is the point)\n\n",
+      "Labels": "bug, determinism"
+    },
+    "items": [],
+    "tags": [
+      "bug",
+      "determinism"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3490",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3490: fix(release): build-dist packs untracked files — denylist model ships host-local state into the archive"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3487",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3487"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2953",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2953"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/release/build-dist.ts",
+          "packages/core/src/release/build-dist.test.ts"
+        ],
+        "module_boundary": "typescript-engine"
+      },
+      "literal_acceptance_note": "Issue #3490 stated prose AC only. Ingest scraped evidence fences (readdirSync / git ls-files | wc) as commands; those are not acceptance commands."
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Archive contents are identical whether or not `.claude/`, `.deft-scratch/`, or any other untracked tree exists in the checkout.",
+          "artifact_path": "packages/core/src/release/build-dist.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Adding a new agent-host working directory to a developer machine cannot change a release artifact.",
+          "artifact_path": "packages/core/src/release/build-dist.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Building with an unexpected untracked file in the resolved set fails rather than shipping it.",
+          "artifact_path": "packages/core/src/release/build-dist.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ]
+    },
+    "updated": "2026-08-19T19:06:33Z"
+  }
+}

@@ -50,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Release archive is tracked files plus an explicit generated-output allowlist (#3490).** `buildArchive` no longer packs every untracked file that misses a basename denylist. Untracked host trees cannot change the artifact. A surprise untracked path in the resolved set fails closed. Closes #3490. Refs #3487, #2953.
 - **Consumer AGENTS.md names `session:ready` on the #1149 ritual line (#3506).** The deposit pointer now includes the one-shot recovery verb (`session:start` + gated ritual + cache recovery). `agents_entry_contract` markers follow. Closes #3506. Refs #3500, #2993, #1149, #1309, PR 3509.
 - **CI merge-gate exempts `verify:branch` on a post-merge master checkout (#3499).** The documented `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` env is set on the two `task check:merge` steps only. Local `task check` and git hooks stay fail-closed. Closes #3499. Refs #1704, #747.
 - **Land leftover completed-tracked artifact for #3502 (#3264 / #1358).** The #3502 xBRIEF stayed in `xbrief/active/` after squash, so `verify:orphan-active` failed on later PRs. Moved to `xbrief/completed/`. Does not reopen or recut that issue. Refs #2321.
