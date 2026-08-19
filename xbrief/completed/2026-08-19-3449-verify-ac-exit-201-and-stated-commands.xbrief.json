@@ -2,12 +2,12 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for GitHub issue #3449 — verify:ac exit 201 on pass and stated plan.acceptance.commands never executed",
-    "updated": "2026-08-19T19:18:34Z"
+    "updated": "2026-08-19T20:07:56Z"
   },
   "plan": {
     "id": "3449-verify-ac-exit-201",
     "title": "verify:ac exits 201 on a passing run and never executes stated plan.acceptance.commands",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "verify:ac exits 201 on a passing run and never executes the stated plan.acceptance.commands it resolves",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3449",
@@ -19,19 +19,37 @@
         "id": "stated-commands-run",
         "title": "Execute stated plan.acceptance.commands when the literal ledger is empty",
         "effort": "M",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/product-first-done-gate.test.ts",
+          "recorded_at": "2026-08-19T20:10:00Z",
+          "recorded_by": "leaf-implementation/3449"
+        }
       },
       {
         "id": "exit-0-1-2",
         "title": "Exit 0 on printed pass; keep verify:ac exits in 0/1/2",
         "effort": "S",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/verify-ac.test.ts",
+          "recorded_at": "2026-08-19T20:10:00Z",
+          "recorded_by": "leaf-implementation/3449"
+        }
       },
       {
         "id": "check-cause-verb",
         "title": "check cause names the failing verb, not engine:_ts-build set -eu",
         "effort": "S",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/check/named-cause.test.ts",
+          "recorded_at": "2026-08-19T20:10:00Z",
+          "recorded_by": "leaf-implementation/3449"
+        }
       }
     ],
     "tags": [
@@ -95,8 +113,29 @@
         ],
         "module_boundary": "typescript-engine",
         "cohesion_exemption": "CHANGELOG.md is the append-only release log; this slice adds one [Unreleased] bullet for #3449 and does not split the file."
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3523,
+        "prBase": null,
+        "mergeCommit": "03e27aad46d3d0e2b3c6ceb125e00eccd9783204",
+        "deliveryBranch": "master",
+        "deliveryCommit": "03e27aad46d3d0e2b3c6ceb125e00eccd9783204",
+        "verifiedAt": "2026-08-19T20:07:56Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "54a6c3fe-fbc8-48ba-9200-2259e12e4160"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-19T20:07:56Z",
+      "completedSessionId": "54a6c3fe-fbc8-48ba-9200-2259e12e4160",
+      "capacityBucket": "technical-debt"
     },
-    "updated": "2026-08-19T19:18:34Z"
+    "updated": "2026-08-19T20:07:56Z"
   }
 }
