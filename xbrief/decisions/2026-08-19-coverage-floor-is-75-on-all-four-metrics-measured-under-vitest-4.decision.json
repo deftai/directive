@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "coverage-floor-is-75-on-all-four-metrics-measured-under-vitest-4",
+  "decision": "Coverage floor is 75 on all four metrics, measured under vitest 4 AST-aware remapping. The floor is a collapse detector; per-change rigor belongs in the diff gate.",
+  "governingRule": {
+    "description": "A coverage percentage is not comparable across instruments",
+    "path": null,
+    "rfc2119": null
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Hold 85 and write the tests to reach it under vitest 4"
+    },
+    {
+      "option": "Derive the floor as last-measured minus 2pp, giving branches 79"
+    },
+    {
+      "option": "Flat 80 to match the dart/elixir/julia/kotlin recommendation"
+    }
+  ],
+  "whyWinner": "Holding 85 means covering about 2500 branches vitest 3 never counted, which is satisfying a ruler rather than reducing risk; percentage-driven tests select for trivial branches and impose refactor drag proportional to count. The derived 79 is self-calibrating but anchored to nothing external, which was the original complaint. 75 is an external published anchor. The same suite reads 85.35 percent branches under vitest 3 v8-to-istanbul and 81.23 percent under vitest 4 ast-v8-to-istanbul, covered branches rising 46194 to 50892 while the denominator grew 54121 to 62651, so the old number was never comparable to the new one.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-08-19T17:55:59Z",
+  "revisitTrigger": "When verify:forward-coverage becomes real diff coverage (#3514), revisit whether 75 is still right; the low floor is justified by a diff gate that does not yet exist at that strength"
+}
