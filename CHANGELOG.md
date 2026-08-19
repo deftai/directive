@@ -50,6 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`verify:ac` runs stated `plan.acceptance.commands` and stays in exit 0/1/2 (#3449).** The executor only injected that array for `derived`/`project_floor`, so a `rung=stated` brief with nine commands printed `passed` / `no stated commands` and never ran them. Empty literal ledger now falls through to `plan.acceptance.commands`. Printed pass is exit 0; other codes clamp to 1 or 2. `check` `cause:` skips go-task `engine:_ts-build` script echo and names the verb. Closes #3449. Refs #3284, #3267, #3334, #3497.
+
 - **Consumer AGENTS.md names `session:ready` on the #1149 ritual line (#3506).** The deposit pointer now includes the one-shot recovery verb (`session:start` + gated ritual + cache recovery). `agents_entry_contract` markers follow. Closes #3506. Refs #3500, #2993, #1149, #1309, PR 3509.
 - **CI merge-gate exempts `verify:branch` on a post-merge master checkout (#3499).** The documented `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` env is set on the two `task check:merge` steps only. Local `task check` and git hooks stay fail-closed. Closes #3499. Refs #1704, #747.
 - **Land leftover completed-tracked artifact for #3502 (#3264 / #1358).** The #3502 xBRIEF stayed in `xbrief/active/` after squash, so `verify:orphan-active` failed on later PRs. Moved to `xbrief/completed/`. Does not reopen or recut that issue. Refs #2321.

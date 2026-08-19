@@ -204,13 +204,80 @@ describe("verify:ac evaluation (#3284)", () => {
     expect(result.code).toBe(2);
   });
 
-  it("check-integrated soft-passes unpromoted task_statement capture-only", () => {
+  it("runs stated plan.acceptance.commands when the literal ledger is empty (#3449)", () => {
+    const command = "pnpm exec vitest run packages/core/src/check";
+    const ran: string[] = [];
+    const result = evaluateVerifyAcFromPlan(
+      {
+        title: "stated ledger-empty",
+        acceptance: {
+          commands: [{ command }],
+          none_stated: false,
+          source_rung: "stated",
+        },
+        metadata: {},
+      },
+      {
+        projectRoot: process.cwd(),
+        runner: ({ command: cmd }) => {
+          ran.push(cmd);
+          return { exitCode: 0, stdout: "ok", stderr: "" };
+        },
+        captureFromNarratives: false,
+        hasSuiteFloor: true,
+        bankOnPass: false,
+        reuseMode: "never",
+      },
+    );
+    expect(ran).toEqual([command]);
+    expect(result.ok).toBe(true);
+    expect(result.code).toBe(0);
+    expect(result.runs).toHaveLength(1);
+  });
+
+  it("runs stated plan.acceptance.commands even when the ledger is unpromoted (#3449)", () => {
+    const command = "pnpm exec vitest run packages/core/src";
     const plan = {
       title: "mid-flight story",
       acceptance: {
-        commands: [{ command: "pnpm exec vitest run packages/core/src" }],
+        commands: [{ command }],
         none_stated: false,
         source_rung: "stated",
+      },
+      metadata: {
+        literal_acceptance_commands: [{ command, source: "task_statement" }],
+      },
+    };
+    const runner = () => ({ exitCode: 0, stdout: "ok", stderr: "" });
+    const standalone = evaluateVerifyAcFromPlan(plan, {
+      captureFromNarratives: false,
+      runner,
+      hasSuiteFloor: true,
+      bankOnPass: false,
+      reuseMode: "never",
+    });
+    expect(standalone.ok).toBe(true);
+    expect(standalone.code).toBe(0);
+    expect(standalone.runs.length).toBe(1);
+    const integrated = evaluateVerifyAcFromPlan(plan, {
+      captureFromNarratives: false,
+      checkIntegrated: true,
+      runner,
+      hasSuiteFloor: true,
+      bankOnPass: false,
+      reuseMode: "never",
+    });
+    expect(integrated.ok).toBe(true);
+    expect(integrated.runs.length).toBe(1);
+  });
+
+  it("check-integrated still soft-passes ledger-only unpromoted capture (#3449)", () => {
+    const plan = {
+      title: "ledger only",
+      acceptance: {
+        commands: [],
+        none_stated: true,
+        source_rung: "project_floor",
       },
       metadata: {
         literal_acceptance_commands: [
@@ -218,11 +285,19 @@ describe("verify:ac evaluation (#3284)", () => {
         ],
       },
     };
-    const standalone = evaluateVerifyAcFromPlan(plan, { captureFromNarratives: false });
+    const standalone = evaluateVerifyAcFromPlan(plan, {
+      captureFromNarratives: false,
+      hasSuiteFloor: true,
+      bankOnPass: false,
+      reuseMode: "never",
+    });
     expect(standalone.ok).toBe(false);
     const integrated = evaluateVerifyAcFromPlan(plan, {
       captureFromNarratives: false,
       checkIntegrated: true,
+      hasSuiteFloor: true,
+      bankOnPass: false,
+      reuseMode: "never",
     });
     expect(integrated.ok).toBe(true);
     expect(integrated.message).toMatch(/check-integrated|capture-only/i);
@@ -504,7 +579,12 @@ describe("coverage boost for product-first helpers (#3284)", () => {
           literal_acceptance_commands: [{ command: "pnpm test", source: "task_statement" }],
         },
       },
-      { checkIntegrated: true, quiet: true, captureFromNarratives: false },
+      {
+        checkIntegrated: true,
+        quiet: true,
+        captureFromNarratives: false,
+        runner: () => ({ exitCode: 0, stdout: "", stderr: "" }),
+      },
     );
     expect(integratedQuiet.ok).toBe(true);
     expect(integratedQuiet.message).toBe("");

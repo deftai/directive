@@ -1,0 +1,102 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #3449 — verify:ac exit 201 on pass and stated plan.acceptance.commands never executed",
+    "updated": "2026-08-19T19:18:34Z"
+  },
+  "plan": {
+    "id": "3449-verify-ac-exit-201",
+    "title": "verify:ac exits 201 on a passing run and never executes stated plan.acceptance.commands",
+    "status": "running",
+    "narratives": {
+      "Description": "verify:ac exits 201 on a passing run and never executes the stated plan.acceptance.commands it resolves",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3449",
+      "Overview": "Two independent defects compound on consumer @deftai/directive 0.104.0 (darwin, deftai/agentsentri).\n\n1. verify:ac prints passed with zero failed clauses then exits 201. Documented contract is three-state 0/1/2. go-task historically wraps a failed inner command as TaskRunError 201; the CLI must still emit only 0/1/2, and a printed pass must be exit 0.\n2. --capture-only resolves plan.acceptance.commands (acceptance_commands: 9, source_rung: stated) while the executor ledger is empty (commands: 0, rejected: 0). evaluateVerifyAcFromPlan injects plan.acceptance.commands as source=explicit only for derived/project_floor, so stated commands never run. The literal runner then prints 'no stated commands (nothing to run)'.\n\ncheck cause: quotes the engine:_ts-build script body (set -eu) instead of the failing verify:ac verb.\n\nFix: run non-empty plan.acceptance.commands as explicit when the literal ledger produced no runs and no blocking rejects; clamp CLI exits to 0/1/2 with ok implying 0; skip go-task cmd-echo lines in check cause extraction.\n\nDo not edit literal-acceptance/evaluate.ts, capture.ts, or safety.ts (live #3511).",
+      "Labels": "bug, determinism, agent-experience, area:cli"
+    },
+    "items": [
+      {
+        "id": "stated-commands-run",
+        "title": "Execute stated plan.acceptance.commands when the literal ledger is empty",
+        "effort": "M",
+        "status": "pending"
+      },
+      {
+        "id": "exit-0-1-2",
+        "title": "Exit 0 on printed pass; keep verify:ac exits in 0/1/2",
+        "effort": "S",
+        "status": "pending"
+      },
+      {
+        "id": "check-cause-verb",
+        "title": "check cause names the failing verb, not engine:_ts-build set -eu",
+        "effort": "S",
+        "status": "pending"
+      }
+    ],
+    "tags": [
+      "bug",
+      "determinism",
+      "agent-experience",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3449",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3449: verify:ac exits 201 on a passing run and never executes stated plan.acceptance.commands"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/product-first-done-gate/product-first-done-gate.test.ts packages/cli/src/verify-ac.test.ts packages/core/src/check/named-cause.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Exit 0 when the clause walk reports no failures and the verb prints passed; keep exits inside 0/1/2.",
+          "artifact_path": "packages/cli/src/verify-ac.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Execute the commands that --capture-only resolves from plan.acceptance.commands, or say which key the executor reads.",
+          "artifact_path": "packages/core/src/product-first-done-gate/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Have check's cause: attribute the failing verb rather than quoting the engine:_ts-build script body.",
+          "artifact_path": "packages/core/src/check/named-cause.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ]
+    },
+    "metadata": {
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/cli/src/verify-ac.ts",
+          "packages/cli/src/verify-ac.test.ts",
+          "packages/core/src/product-first-done-gate/evaluate.ts",
+          "packages/core/src/product-first-done-gate/product-first-done-gate.test.ts",
+          "packages/core/src/literal-acceptance/run.ts",
+          "packages/core/src/check/named-cause.ts",
+          "packages/core/src/check/named-cause.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "CHANGELOG.md is the append-only release log; this slice adds one [Unreleased] bullet for #3449 and does not split the file."
+      }
+    },
+    "updated": "2026-08-19T19:18:34Z"
+  }
+}
