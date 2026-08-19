@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3490",
-    "updated": "2026-08-19T19:20:00Z"
+    "updated": "2026-08-19T23:32:22Z"
   },
   "plan": {
     "title": "fix(release): build-dist packs untracked files — denylist model ships host-local state into the archive",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "fix(release): build-dist packs untracked files — denylist model ships host-local state into the archive",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3490",
@@ -47,7 +47,28 @@
         ],
         "module_boundary": "typescript-engine"
       },
-      "literal_acceptance_note": "Issue #3490 stated prose AC only. Ingest scraped evidence fences (readdirSync / git ls-files | wc) as commands; those are not acceptance commands."
+      "literal_acceptance_note": "Issue #3490 stated prose AC only. Ingest scraped evidence fences (readdirSync / git ls-files | wc) as commands; those are not acceptance commands.",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3520,
+        "prBase": null,
+        "mergeCommit": "511332b0a66cb3dbd31f3c061a45a6b01e6557ba",
+        "deliveryBranch": "master",
+        "deliveryCommit": "511332b0a66cb3dbd31f3c061a45a6b01e6557ba",
+        "verifiedAt": "2026-08-19T23:32:22Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "79dc9782-bede-48be-9fab-fb308aa31af2"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-19T23:32:22Z",
+      "completedSessionId": "79dc9782-bede-48be-9fab-fb308aa31af2",
+      "capacityBucket": "technical-debt"
     },
     "acceptance": {
       "commands": [],
@@ -78,6 +99,6 @@
         }
       ]
     },
-    "updated": "2026-08-19T19:06:33Z"
+    "updated": "2026-08-19T23:32:22Z"
   }
 }
