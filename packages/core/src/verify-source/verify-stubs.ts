@@ -88,7 +88,16 @@ function hasReturnNull(text: string): boolean {
   return false;
 }
 
-/** Recursive sorted rglob mirroring `sorted(Path(".").rglob("*"))`. */
+/**
+ * Recursive sorted rglob mirroring `sorted(Path(".").rglob("*"))`, pruning
+ * `EXCLUDE_DIRS` before recursing.
+ *
+ * Pruning is load-bearing, not an optimisation of a filter applied later: on a
+ * host with a populated `.deft-scratch/` the unpruned walk enumerates every
+ * swarm worktree (millions of entries) only to discard them per-file. #2953
+ * added `.deft-scratch` / `swarm-worktrees` to `EXCLUDE_DIRS` for exactly this
+ * reason but left the walk descending into them (#3481).
+ */
 export function sortedRglob(root: string): string[] {
   const out: string[] = [];
   function walk(dir: string, relPrefix: string): void {
@@ -108,6 +117,9 @@ export function sortedRglob(root: string): string[] {
         continue;
       }
       if (st.isDirectory()) {
+        if (EXCLUDE_DIRS.has(name)) {
+          continue;
+        }
         walk(full, rel);
       } else {
         out.push(rel);
