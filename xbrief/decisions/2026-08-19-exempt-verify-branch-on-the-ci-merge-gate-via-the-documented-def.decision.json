@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "exempt-verify-branch-on-the-ci-merge-gate-via-the-documented-def",
+  "decision": "Exempt verify:branch on the CI merge-gate via the documented DEFT_ALLOW_DEFAULT_BRANCH_COMMIT env (Option A).",
+  "governingRule": {
+    "description": "verify:branch is an authoring-posture gate (#747). A read-only CI verification checkout is not authoring.",
+    "path": ".github/workflows/ci.yml",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Option B: drop verify:branch from check:framework-source",
+      "whyNot": "Removes the authoring-posture check from the composed local gate as well as CI."
+    },
+    {
+      "option": "Option C: do not run check:merge post-merge on master",
+      "whyNot": "Drops post-merge confirmation that the merged result is green."
+    }
+  ],
+  "whyWinner": "The operator picked Option A. Post-merge master checkout is verification, not authoring. The documented env already exists for release self-auth (#867 / #2386). Scoping it to the two merge-gate steps keeps local task check and hooks fail-closed.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-08-19T18:15:09Z",
+  "revisitTrigger": "If post-merge master verification is removed (Option C) or verify:branch leaves the composed check (Option B).",
+  "tags": [
+    "process",
+    "ci",
+    "branch-policy"
+  ],
+  "relatedIssues": [
+    3499
+  ]
+}
