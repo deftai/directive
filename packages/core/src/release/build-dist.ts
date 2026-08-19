@@ -1,8 +1,10 @@
 import {
   createWriteStream,
   existsSync,
+  lstatSync,
   mkdirSync,
   readdirSync,
+  realpathSync,
   statSync,
   unlinkSync,
 } from "node:fs";
@@ -146,25 +148,48 @@ export type ResolveArchiveEntriesOptions = {
   readonly generatedAllowlist?: readonly string[];
 };
 
+function isInsideRoot(root: string, absPath: string): boolean {
+  const rel = relative(resolve(root), absPath);
+  return !rel.startsWith("..") && !isAbsolute(rel);
+}
+
 /** Resolve a POSIX rel path under root, or null if it escapes (#3490 review). */
 export function containedAbsPath(root: string, relPosix: string): string | null {
   if (relPosix.includes("\0")) return null;
-  const parts = relPosix.split(/[/\\]/);
+  // Git paths are POSIX: only `/` is a separator. A literal `\` is a filename byte.
+  const parts = relPosix.split("/");
   if (parts.some((part) => part === "..")) return null;
   const absPath = resolve(root, ...parts.filter((part) => part.length > 0 && part !== "."));
-  const rel = relative(resolve(root), absPath);
-  if (rel.startsWith("..") || isAbsolute(rel)) return null;
+  if (!isInsideRoot(root, absPath)) return null;
   return absPath;
 }
 
 function toArchiveEntry(root: string, relPosix: string): ArchiveSourceEntry | null {
   const absPath = containedAbsPath(root, relPosix);
   if (absPath === null) return null;
-  let st: ReturnType<typeof statSync>;
+  let st: ReturnType<typeof lstatSync>;
   try {
-    st = statSync(absPath);
+    st = lstatSync(absPath);
   } catch {
     return null;
+  }
+  if (st.isSymbolicLink()) {
+    let real: string;
+    try {
+      real = realpathSync(absPath);
+    } catch {
+      return null;
+    }
+    if (!isInsideRoot(root, real)) {
+      throw new Error(`build-dist: path resolves outside the archive root: ${relPosix}`);
+    }
+    try {
+      st = lstatSync(real);
+    } catch {
+      return null;
+    }
+    if (!st.isFile()) return null;
+    return { absPath: real, archiveRel: flattenContentPrefix(relPosix) };
   }
   if (!st.isFile()) return null;
   return { absPath, archiveRel: flattenContentPrefix(relPosix) };

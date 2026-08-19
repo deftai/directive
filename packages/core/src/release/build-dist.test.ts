@@ -1,6 +1,13 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -370,5 +377,26 @@ describe("build-dist helpers", () => {
     writeFileSync(join(root, "has space.txt"), "x\n");
     gitCommitAll(root);
     expect(listGitTrackedFiles(root)).toContain("has space.txt");
+  });
+
+  it("containedAbsPath treats only POSIX slashes as separators", () => {
+    const root = fixtureProject();
+    expect(containedAbsPath(root, "content/doc.md")).toBe(join(root, "content", "doc.md"));
+    expect(containedAbsPath(root, "content/../README.md")).toBeNull();
+  });
+
+  it("generated allowlist symlink to a file outside the root fails closed", () => {
+    const root = fixtureProject();
+    const outside = join(mkdtempSync(join(tmpdir(), "deft-build-dist-out-")), "secret.txt");
+    writeFileSync(outside, "secret\n");
+    const link = join(root, "generated.out");
+    try {
+      symlinkSync(outside, link);
+    } catch {
+      return;
+    }
+    expect(() => resolveArchiveEntries(root, { generatedAllowlist: ["generated.out"] })).toThrow(
+      /resolves outside the archive root/,
+    );
   });
 });
