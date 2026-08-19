@@ -312,7 +312,12 @@ const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
     shape: "doc",
     header: "Session-start ritual (#1149)",
     canonicalHome: "commands.md",
-    pointerHints: ["deft session:start", "deft verify:session-ritual", "deft session:ready", "#1149"],
+    pointerHints: [
+      "deft session:start",
+      "deft verify:session-ritual",
+      "deft session:ready",
+      "#1149",
+    ],
     canonicalBodyMarkers: [
       "sessionRitualStalenessHours",
       "DEFT_SESSION_RITUAL_SKIP",
