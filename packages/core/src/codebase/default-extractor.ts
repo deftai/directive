@@ -9,6 +9,7 @@ import {
   statSync,
 } from "node:fs";
 import { isAbsolute, join, relative, resolve } from "node:path";
+import { NON_PRODUCT_DIRS } from "../fs/non-product-dirs.js";
 import { resolveProjectDefinitionPath } from "../layout/resolve.js";
 import { extractCodeStructure, loadJsonFile } from "../verify-source/code-structure-validate.js";
 import { sortedStringifyPretty } from "./json.js";
@@ -24,21 +25,12 @@ export const MAX_IMPORT_SCAN_BYTES = 262_144;
 export const MAX_FILES_PER_MODULE = 100;
 export const MAX_EVIDENCE_PER_EDGE = 5;
 
-export const SKIP_DIRS = new Set([
-  ".git",
-  ".mypy_cache",
-  ".pytest_cache",
-  ".ruff_cache",
-  ".venv",
-  "__pycache__",
-  "build",
-  "dist",
-  "node_modules",
-  // Swarm / agent worktrees are not source modules (#2953, #1656).
-  ".deft-scratch",
-  // Legacy swarm worktree root name (pre-.deft-scratch layout).
-  "swarm-worktrees",
-]);
+/**
+ * Shared "not product source" core (#3487) plus `build`, which only the
+ * codebase extractor treats as non-source. Agent worktrees are not source
+ * modules (#2953, #1656).
+ */
+export const SKIP_DIRS = new Set([...NON_PRODUCT_DIRS, "build"]);
 
 export const LANGUAGE_BY_SUFFIX: Readonly<Record<string, string>> = {
   ".go": "Go",

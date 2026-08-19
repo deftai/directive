@@ -1,23 +1,17 @@
 import { type Dirent, existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
+import { NON_PRODUCT_DIRS } from "../fs/non-product-dirs.js";
 import { extractLinkTargets, shouldSkipLinkTarget } from "./link-parser.js";
 import type { EvaluateResult } from "./types.js";
 
-const EXCLUDE_DIRS = new Set([
-  ".git",
-  "backup",
-  "node_modules",
-  ".venv",
-  "__pycache__",
-  "dist",
-  ".planning",
-  "specs",
-  // Swarm / agent worktrees are not framework content; walking them
-  // during release Step 5 / task check is pure wall-clock waste (#2953, #1656).
-  ".deft-scratch",
-  // Legacy swarm worktree root name (pre-.deft-scratch layout).
-  "swarm-worktrees",
-]);
+/**
+ * Shared "not product source" core (#3487) plus the two directories only the
+ * link walk skips: generated planning projections and `specs/`.
+ *
+ * Walking agent worktrees during release Step 5 / `task check` is pure
+ * wall-clock waste (#2953, #1656, #3481).
+ */
+export const EXCLUDE_DIRS = new Set([...NON_PRODUCT_DIRS, ".planning", "specs"]);
 
 export interface BrokenLink {
   readonly file: string;
