@@ -164,6 +164,45 @@ export function resolveLiteralAcceptanceCommands(
   return [...resolveLiteralAcceptanceDetailed(plan, options).commands];
 }
 
+/**
+ * Marker that opens the #3484 advisory block. Consumers strip from here to the end
+ * before any free-text inspection of a literal-AC message: the block quotes refusal
+ * reasons that were explicitly demoted and must not be read back as blocking (#3497).
+ */
+export const LITERAL_ACCEPTANCE_ADVISORY_MARKER = "Literal acceptance advisory (#3484):";
+
+/** Render the #3484 advisory block (reported, never blocking). */
+export function formatLiteralAcceptanceAdvisory(
+  advisory: readonly RejectedLiteralCommand[],
+): string {
+  if (advisory.length === 0) return "";
+  return (
+    `${LITERAL_ACCEPTANCE_ADVISORY_MARKER} ${advisory.length} ` +
+    `prose-derived capture(s) were safety-rejected but do NOT block — this plan states ` +
+    `structured acceptance commands (swarm.verify_commands / plan.acceptance.commands).\n` +
+    formatRejectedLedger(advisory)
+  );
+}
+
+/** Append the #3484 advisory block to a message tail. */
+export function appendLiteralAcceptanceAdvisory(
+  message: string,
+  advisory: readonly RejectedLiteralCommand[],
+): string {
+  const block = formatLiteralAcceptanceAdvisory(advisory);
+  if (block.length === 0) return message;
+  return message.length > 0 ? `${message}\n${block}` : block;
+}
+
+/**
+ * Drop the #3484 advisory block from a rendered message.
+ * The block is always the tail, so an index cut is exact.
+ */
+export function stripLiteralAcceptanceAdvisory(message: string): string {
+  const at = message.indexOf(LITERAL_ACCEPTANCE_ADVISORY_MARKER);
+  return at === -1 ? message : message.slice(0, at);
+}
+
 function appendRejectedNote(message: string, rejected: readonly RejectedLiteralCommand[]): string {
   const ledger = formatRejectedLedger(rejected);
   if (ledger.length === 0) return message;
@@ -206,18 +245,14 @@ export function evaluateLiteralAcceptanceFromPlan(
   // Prose-derived rejections demoted by structured acceptance (#3484) are reported,
   // never blocking — visibility without a terminal gate on a scraper misread.
   if (resolved.advisoryRejected.length > 0) {
-    const advisory =
-      `Literal acceptance advisory (#3484): ${resolved.advisoryRejected.length} ` +
-      `prose-derived capture(s) were safety-rejected but do NOT block — this plan states ` +
-      `structured acceptance commands (swarm.verify_commands / plan.acceptance.commands).\n` +
-      formatRejectedLedger(resolved.advisoryRejected);
-    message = message.length > 0 ? `${message}\n${advisory}` : advisory;
+    message = appendLiteralAcceptanceAdvisory(message, resolved.advisoryRejected);
   }
   const withRejected: LiteralAcceptanceGateResult = {
     ...result,
     ok,
     code,
     rejected: resolved.rejected,
+    advisoryRejected: resolved.advisoryRejected,
     message,
   };
   if (options.quiet === true && withRejected.ok) {

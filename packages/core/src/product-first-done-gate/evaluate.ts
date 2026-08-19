@@ -12,12 +12,15 @@ import { existsSync, readFileSync } from "node:fs";
 import { basename, isAbsolute, relative, resolve } from "node:path";
 import { emitAcceptanceStampFromPlan } from "../intake/clause-derivation.js";
 import {
+  appendLiteralAcceptanceAdvisory,
   type EvaluateLiteralAcceptanceOptions,
   evaluateLiteralAcceptanceFromPlan,
   isNoopRefusalReason,
   type LiteralAcceptanceGateResult,
   type LiteralAcceptanceRunner,
+  type RejectedLiteralCommand,
   runLiteralAcceptanceCommands,
+  stripLiteralAcceptanceAdvisory,
 } from "../literal-acceptance/index.js";
 import {
   type AcceptanceRunSummaryOutcome,
@@ -47,6 +50,11 @@ import {
   mergeOracleVerdict,
 } from "../verify-ac/evaluate.js";
 import { readPlanAcceptance, validatePlanAcceptance } from "./acceptance.js";
+import {
+  clauseWalkBlocks,
+  formatAcceptanceVerdict,
+  resolveAcceptanceVerdict,
+} from "./acceptance-resolver.js";
 import {
   formatSoftEmptyMessage,
   isEmptyAcResolution,
@@ -336,8 +344,19 @@ export function evaluateVerifyAcFromPlan(
         allowTaskStatement: optionsWithScope.allowTaskStatement,
       },
     );
+    // Carry the #3484 demotion forward: the direct path replaces `base`, and the
+    // advisory ledger must stay visible (reported, never blocking) (#3497).
+    const advisory: readonly RejectedLiteralCommand[] = base.advisoryRejected ?? [];
+    const directWithAdvisory: LiteralAcceptanceGateResult = {
+      ...direct,
+      advisoryRejected: advisory,
+      message:
+        optionsWithScope.quiet === true
+          ? direct.message
+          : appendLiteralAcceptanceAdvisory(direct.message, advisory),
+    };
     return applyOracle(
-      annotate(direct, acceptance, optionsWithScope.quiet),
+      annotate(directWithAdvisory, acceptance, optionsWithScope.quiet),
       optionsWithScope,
       plan,
     );
@@ -584,7 +603,17 @@ function applyClauseWalk(result: VerifyAcResult, options: EvaluateVerifyAcOption
   const projectRoot = resolve(options.projectRoot ?? process.cwd());
   const report = walkAcceptanceClauses(clauses, projectRoot);
   const message = options.quiet ? result.message : formatClauseWalkMessage(report, result.message);
-  const ok = result.ok && report.ok;
+  // #3497: a clause the static walk cannot decide is evidence of nothing. It blocks
+  // only when nothing else verified the product; a green executable acceptance run
+  // already is the product-first oracle. Failed clauses still block unconditionally.
+  const blocked = clauseWalkBlocks({
+    failed: report.failed.length,
+    verified: report.verified.length,
+    walked: report.clauses.length,
+    hasGreenExecutableRun:
+      result.ok && result.runs.length > 0 && result.runs.every((run) => run.ok),
+  });
+  const ok = result.ok && !blocked;
   return {
     ...result,
     ok,
@@ -609,7 +638,13 @@ function applyRejectedNoop(result: VerifyAcResult): VerifyAcResult {
   const fromRuns = result.runs.some(
     (row) => !row.ok && isNoopRefusalReason(row.detail.replace(/^refused:\s*/i, "")),
   );
-  if (!fromLedger && !fromRuns && !isNoopRefusalReason(result.message)) {
+  // #3484 / #3497: the advisory block quotes refusal reasons that were deliberately
+  // demoted because the plan states structured acceptance commands. Sniffing the
+  // rendered message resurrected them as a blocking no-op verdict — verify:ac
+  // refused while its own output said "do NOT block". Read the blocking ledgers,
+  // and inspect only the non-advisory part of the message.
+  const fromMessage = isNoopRefusalReason(stripLiteralAcceptanceAdvisory(result.message));
+  if (!fromLedger && !fromRuns && !fromMessage) {
     return result;
   }
   return {
@@ -618,6 +653,27 @@ function applyRejectedNoop(result: VerifyAcResult): VerifyAcResult {
     code: result.code === 2 ? 2 : 1,
     resolution: "rejected-noop",
   };
+}
+
+/**
+ * Make the rendered message agree with the verdict (#3497).
+ *
+ * `annotate` stamps "verify:ac passed" from the sub-gate result, but later stages
+ * (clause walk, no-op ledger, oracle integrity) can still flip `ok`. The old output
+ * left the stale "passed" lead in place, so scope:complete printed four passing lines
+ * and then refused. Re-label the lead and name the deciding predicate.
+ */
+function labelVerdict(result: VerifyAcResult): string {
+  const verdict = resolveAcceptanceVerdict(result);
+  if (verdict.ok) {
+    return result.message;
+  }
+  const relabelled = result.message.replace(
+    /verify:ac passed \(#3284\)/g,
+    "verify:ac FAILED (#3284)",
+  );
+  const line = formatAcceptanceVerdict(verdict);
+  return relabelled.length > 0 ? `${relabelled}\n${line}` : line;
 }
 
 function applyOracle(
@@ -657,6 +713,7 @@ function applyOracle(
   }
   const stamped: VerifyAcResult = {
     ...next,
+    message: options.quiet === true ? next.message : labelVerdict(next),
     servedFrom: next.servedFrom ?? "executed",
   };
   persistVerifyAcSessionCache(stamped, options, projectRoot, plan);

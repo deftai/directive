@@ -79,6 +79,13 @@ export interface LiteralAcceptanceGateResult {
   readonly runs: readonly LiteralAcceptanceRunResult[];
   /** Safety-rejected shell-shaped lines (fail-loud ledger; may be empty). */
   readonly rejected?: readonly RejectedLiteralCommand[];
+  /**
+   * Prose-derived rejections demoted to advisory because the plan states structured
+   * acceptance commands (#3484). Reported, never blocking — consumers MUST NOT read
+   * these back as a blocking ledger, and must not sniff the rendered message for
+   * their reasons (#3497).
+   */
+  readonly advisoryRejected?: readonly RejectedLiteralCommand[];
 }
 
 /** Metadata key for operator-visible rejected command ledger (#3267). */

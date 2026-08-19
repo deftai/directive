@@ -14,6 +14,18 @@ export {
   validatePlanAcceptance,
 } from "./acceptance.js";
 export {
+  type AcceptanceGateProfileOptions,
+  type AcceptancePredicate,
+  type AcceptanceReaderProfile,
+  type AcceptanceReading,
+  type AcceptanceVerdict,
+  clauseWalkBlocks,
+  formatAcceptanceVerdict,
+  resolveAcceptanceGateProfile,
+  resolveAcceptanceVerdict,
+  resolvedAcceptanceCommandCount,
+} from "./acceptance-resolver.js";
+export {
   applyProductFirstGateMode,
   isHygieneGate,
   isProductAcGate,

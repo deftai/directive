@@ -18,6 +18,7 @@ import {
   emitVerifyAcTerminalOutcome,
   evaluateVerifyAcFromPath,
   readPlanAcceptance,
+  resolveAcceptanceGateProfile,
 } from "@deftai/directive-core/product-first-done-gate";
 
 interface ParsedArgs {
@@ -126,6 +127,9 @@ function evaluatePaths(
   },
 ): number {
   let worst = 0;
+  // One shared option profile per reader (#3497) — scope:complete resolves its own
+  // profile from the same table, so the two readers cannot drift apart again.
+  const profile = resolveAcceptanceGateProfile(options.softMissingXbrief ? "check" : "standalone");
   for (const path of paths) {
     if (!options.quiet && paths.length > 1) {
       process.stdout.write(`verify:ac — evaluating ${path}\n`);
@@ -134,7 +138,9 @@ function evaluatePaths(
       projectRoot: options.projectRoot,
       quiet: options.quiet,
       softMissingXbrief: options.softMissingXbrief,
-      checkIntegrated: options.softMissingXbrief,
+      checkIntegrated: profile.checkIntegrated,
+      captureFromNarratives: profile.captureFromNarratives,
+      reuseMode: profile.reuseMode,
       env: process.env,
     });
     if (result.message.length > 0) {

@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -630,5 +630,150 @@ describe("cross-gate namespaced evidence + vbrief-conformance (#3305)", () => {
     const gate = evaluateAcceptanceEvidenceGate(bareDoc.plan);
     expect(gate.ok).toBe(false);
     expect(gate.reports[0]?.outcome).toBe("missing");
+  });
+});
+
+describe("scope:complete acceptance parity with verify:ac (#3497)", () => {
+  let root = "";
+  afterEach(() => {
+    if (root.length > 0) {
+      rmSync(root, { recursive: true, force: true });
+      root = "";
+    }
+  });
+
+  const greenRunner = () => ({ exitCode: 0, stdout: "", stderr: "" });
+  const redRunner = () => ({ exitCode: 1, stdout: "", stderr: "product wrong" });
+
+  /** Prose clauses with no bound artifact path — every one walks `unverifiable`. */
+  const unverifiableClauses = [
+    { id: 1, text: "the env seam is honored", artifact_path: null, ambiguous: false },
+    { id: 2, text: "the helper reads the seam", artifact_path: null, ambiguous: false },
+    { id: 3, text: "no host denylist remains", artifact_path: null, ambiguous: false },
+    { id: 4, text: "behaviour is unchanged elsewhere", artifact_path: null, ambiguous: false },
+  ];
+
+  function derivedPlan(acceptanceExtras: Record<string, unknown> = {}): Record<string, unknown> {
+    return {
+      id: "3497-parity",
+      title: "derived acceptance",
+      acceptance: {
+        commands: [{ command: "pnpm exec vitest run packages/core/src/swarm/" }],
+        none_stated: false,
+        source_rung: "derived",
+        clauses: unverifiableClauses,
+        ...acceptanceExtras,
+      },
+      metadata: {
+        literal_acceptance_commands: [
+          { command: "pnpm exec vitest run packages/core/src/swarm/", source: "explicit" },
+        ],
+      },
+      items: [],
+    };
+  }
+
+  const walkOptions = {
+    projectRoot: process.cwd(),
+    captureFromNarratives: false,
+    hasSuiteFloor: true,
+    bankOnPass: false,
+    reuseMode: "never" as const,
+  };
+
+  it("completes derived acceptance whose stated command exits 0 (#3497 primary)", () => {
+    const walk = evaluateScopeCompleteAcceptanceWalk(derivedPlan(), {
+      ...walkOptions,
+      runner: greenRunner,
+    });
+    expect(walk.ok).toBe(true);
+    expect(walk.predicate).toBe("executable-pass");
+    expect(walk.message).not.toContain(SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION);
+  });
+
+  it("completes end to end through scope:complete with a green stated command (#3497)", () => {
+    root = makeRepo();
+    const file = writeActive(
+      root,
+      "green-ac.xbrief.json",
+      [
+        withDisposition(
+          { title: "Waived item", status: "pending" },
+          {
+            disposition: "waived",
+            reason: "operator waived the item",
+            provenance: humanProv,
+            recorded_at: "2026-08-19T12:00:00Z",
+          },
+        ),
+      ],
+      {
+        acceptance: {
+          commands: [{ command: "pnpm --version" }],
+          none_stated: false,
+          source_rung: "derived",
+          clauses: unverifiableClauses,
+        },
+        metadata: {
+          literal_acceptance_commands: [{ command: "pnpm --version", source: "explicit" }],
+        },
+      },
+    );
+    const result = runTransition("complete", file);
+    expect(result.message).not.toContain("refuses empty or failing");
+    expect(result.ok).toBe(true);
+    expect(existsSync(join(root, "xbrief", "completed", "green-ac.xbrief.json"))).toBe(true);
+  });
+
+  it("still refuses genuinely empty acceptance and names the predicate (#3497)", () => {
+    const walk = evaluateScopeCompleteAcceptanceWalk(
+      {
+        id: "3497-empty",
+        title: "empty acceptance",
+        acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
+        items: [],
+      },
+      { ...walkOptions, hasSuiteFloor: false, runner: greenRunner },
+    );
+    expect(walk.ok).toBe(false);
+    expect(walk.predicate).toBe("empty-acceptance");
+    expect(walk.message).toContain("empty-acceptance");
+    expect(walk.message).toContain("plan.acceptance.commands=0");
+  });
+
+  it("still refuses genuinely failing acceptance and names the predicate (#3497)", () => {
+    const walk = evaluateScopeCompleteAcceptanceWalk(derivedPlan(), {
+      ...walkOptions,
+      runner: redRunner,
+    });
+    expect(walk.ok).toBe(false);
+    expect(walk.predicate).toBe("commands-failed");
+    expect(walk.message).toContain("commands-failed");
+    expect(walk.message).toContain("pnpm exec vitest run packages/core/src/swarm/");
+  });
+
+  it("still refuses a clause the shipped artifact contradicts, green command or not (#3323)", () => {
+    const walk = evaluateScopeCompleteAcceptanceWalk(
+      derivedPlan({
+        clauses: [
+          {
+            id: 1,
+            text: "packages/core/src/not-shipped-3497.ts exists at the stated path",
+            artifact_path: "packages/core/src/not-shipped-3497.ts",
+            ambiguous: false,
+          },
+        ],
+      }),
+      { ...walkOptions, runner: greenRunner },
+    );
+    expect(walk.ok).toBe(false);
+    expect(walk.predicate).toBe("clause-walk-failed");
+    expect(walk.message).toContain("1 failed");
+  });
+
+  it("no longer asserts 'empty or failing' and no longer tells verify:ac to stamp (#3497)", () => {
+    expect(SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION).not.toContain("refuses empty or failing");
+    expect(SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION).toContain("it does not stamp");
+    expect(SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION).toContain("disposition is not a substitute");
   });
 });

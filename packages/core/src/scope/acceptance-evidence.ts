@@ -16,6 +16,12 @@
 import { isHumanOrigin } from "../authz/origin.js";
 import type { GrantOrigin } from "../authz/types.js";
 import {
+  type AcceptancePredicate,
+  formatAcceptanceVerdict,
+  resolveAcceptanceGateProfile,
+  resolveAcceptanceVerdict,
+} from "../product-first-done-gate/acceptance-resolver.js";
+import {
   type EvaluateVerifyAcOptions,
   evaluateVerifyAcFromPlan,
 } from "../product-first-done-gate/evaluate.js";
@@ -90,6 +96,8 @@ export interface AcceptanceEvidenceGateResult {
   readonly reports: readonly CriterionAcceptanceReport[];
   /** How the #3357 walk obtained AC (#3387). */
   readonly servedFrom?: "bank" | "cache" | "executed";
+  /** Which acceptance check decided the walk (#3497). Undefined when no walk ran. */
+  readonly predicate?: AcceptancePredicate;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -480,30 +488,41 @@ function walkItems(items: unknown, pathPrefix: string, reports: CriterionAccepta
 }
 
 /**
- * One remediation when scope:complete cannot accept empty or failing product AC (#3357).
- * Item-level disposition is not a substitute for the acceptance walk.
+ * Standing contract for scope:complete's acceptance precondition (#3357 / #3497).
+ *
+ * It no longer asserts a predicate ("empty or failing") — the actual predicate is
+ * named per refusal by the shared resolver. It also no longer tells operators to
+ * stamp by running verify:ac: verify:ac is the verifier and never writes the brief
+ * (a verifier that authors the acceptance it then checks is not a gate). Stamping
+ * happens at intake / promote via clause derivation (#3323).
  */
 export const SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION =
-  "Run task verify:ac -- <completing-xbrief> and stamp executable plan.acceptance; scope:complete refuses empty or failing acceptance (disposition is not a substitute) (#3357)";
+  "scope:complete requires executable plan.acceptance that runs green; stamp commands on " +
+  "plan.acceptance.commands (or plan.metadata.swarm.verify_commands) — task verify:ac verifies, " +
+  "it does not stamp — then re-run task verify:ac -- <completing-xbrief> " +
+  "(disposition is not a substitute) (#3357/#3497)";
 
 /**
  * Hard precondition for scope:complete (#3357 / #3267 / #3284).
  *
- * Runs the same verify:ac walk check uses. Disposition on plan items does not
- * skip it. Briefs with no stamped plan.acceptance and no executable commands
- * keep the legacy #3267 "nothing to run" pass so existing evidence-only
- * fixtures stay valid.
+ * Runs the same verify:ac walk check uses, through the one shared option profile and
+ * the one shared verdict resolver (#3497) — so scope:complete can no longer report a
+ * different story than verify:ac about the same artifact. Disposition on plan items
+ * does not skip it. Briefs with no stamped plan.acceptance and no executable commands
+ * keep the legacy #3267 "nothing to run" pass so existing evidence-only fixtures stay
+ * valid.
  */
 export function evaluateScopeCompleteAcceptanceWalk(
   plan: Record<string, unknown>,
   options: EvaluateVerifyAcOptions = {},
 ): AcceptanceEvidenceGateResult {
   const stamped = plan.acceptance !== undefined;
+  const profile = resolveAcceptanceGateProfile("complete");
   const walk = evaluateVerifyAcFromPlan(plan, {
     ...options,
-    checkIntegrated: false,
-    captureFromNarratives: options.captureFromNarratives ?? true,
-    reuseMode: options.reuseMode ?? "bank",
+    checkIntegrated: profile.checkIntegrated,
+    captureFromNarratives: options.captureFromNarratives ?? profile.captureFromNarratives,
+    reuseMode: options.reuseMode ?? profile.reuseMode,
   });
   const rejectedCount = walk.rejected?.length ?? 0;
   const hadWork = walk.runs.length > 0 || walk.commands.length > 0 || rejectedCount > 0;
@@ -516,14 +535,26 @@ export function evaluateScopeCompleteAcceptanceWalk(
       servedFrom: "executed",
     };
   }
+  const verdict = resolveAcceptanceVerdict(walk);
   if (walk.ok) {
-    return { ok: true, message: walk.message, reports: [], servedFrom };
+    return {
+      ok: true,
+      message: walk.message,
+      reports: [],
+      servedFrom,
+      predicate: verdict.predicate,
+    };
   }
   return {
     ok: false,
-    message: `${SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION}\n${walk.message}`,
+    // Name the check that refused and the value it read BEFORE the standing
+    // contract, so the first line the operator sees is the actual cause (#3497).
+    message:
+      `scope:complete refused acceptance — ${formatAcceptanceVerdict(verdict)}\n` +
+      `${SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION}\n${walk.message}`,
     reports: [],
     servedFrom,
+    predicate: verdict.predicate,
   };
 }
 

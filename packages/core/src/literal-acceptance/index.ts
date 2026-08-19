@@ -18,13 +18,17 @@ export {
   readStoredLiteralAcceptanceDetailed,
 } from "./capture.js";
 export {
+  appendLiteralAcceptanceAdvisory,
   type EvaluateLiteralAcceptanceOptions,
   evaluateLiteralAcceptanceFromPath,
   evaluateLiteralAcceptanceFromPlan,
+  formatLiteralAcceptanceAdvisory,
   isLiteralAcceptanceRequiredAtCeremonyDepth,
+  LITERAL_ACCEPTANCE_ADVISORY_MARKER,
   type ResolvedLiteralAcceptance,
   resolveLiteralAcceptanceCommands,
   resolveLiteralAcceptanceDetailed,
+  stripLiteralAcceptanceAdvisory,
 } from "./evaluate.js";
 export {
   defaultLiteralAcceptanceRunner,
