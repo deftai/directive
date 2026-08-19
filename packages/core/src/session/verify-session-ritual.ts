@@ -119,6 +119,15 @@ export function formatRitualRecoveryInstruction(tier: SessionCeremonyTier = "col
   );
 }
 
+/**
+ * Sanctioned audited defer copy for gated `cache_fresh` failure (#3506 / #3507).
+ * The gated argv is always `["verify:cache-fresh"]`, so this is unconditional.
+ */
+export function formatCacheFreshDeferSoftPath(): string {
+  const cmd = formatFrameworkCommand(["session:start", "--", "--defer", "cache_fresh=<reason>"]);
+  return `Soft path (audited): \`${cmd}\`.`;
+}
+
 function runGatedStep(
   projectRoot: string,
   payload: Record<string, unknown>,
@@ -611,6 +620,7 @@ export function emitVerifyJson(result: VerifyResult): string {
     would_fail_code: result.wouldFailCode,
     posture: result.posture,
     ritual_state_required: result.ritualStateRequired,
+    recovery_tier: result.recoveryTier ?? null,
   });
 }
 

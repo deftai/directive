@@ -85,10 +85,47 @@ describe("vitest.config.ts Windows coverage tmp regression (#2634)", () => {
 describe("vitest.config.ts coverage threshold contract (#2573)", () => {
   const source = readFileSync(configPath, "utf8");
 
-  it("sets branches threshold to 85 on all platforms (no win32 carve)", () => {
+  // #3512: asserts the INVARIANT (one floor, no platform carve), not a literal
+  // number. The previous form pinned `branches: 85`, so every recalibration had
+  // to edit the test that exists to protect the rule — and a literal tells you
+  // nothing about whether the rule still holds.
+  it("applies one uniform threshold on all platforms (no win32 carve)", () => {
     expect(source).toContain("#2573");
-    expect(source).toMatch(/branches:\s*85/);
-    expect(source).not.toMatch(/isWin32\s*\?\s*84\.85/);
+    // No platform-conditional value anywhere in the threshold block.
+    expect(source).not.toMatch(/(?:branches|lines|functions|statements):\s*isWin32/);
+    expect(source).not.toMatch(/isWin32\s*\?\s*\d+(?:\.\d+)?\s*:/);
+
+    const block = /const coverageThresholds\s*=\s*\{([\s\S]*?)\}\s*as const;/.exec(source)?.[1];
+    expect(block).toBeDefined();
+    const values = [...(block ?? "").matchAll(/(\w+):\s*(\d+(?:\.\d+)?)/g)].map(([, k, v]) => [
+      k,
+      Number(v),
+    ]);
+    expect(values.map(([k]) => k).sort()).toEqual(["branches", "functions", "lines", "statements"]);
+    expect(new Set(values.map(([, v]) => v)).size).toBe(1);
+  });
+
+  // #3512 (Greptile review): the const above is not what Vitest receives — the
+  // effective value comes from the `thresholds:` ternary, whose other arm is the
+  // #2573 coverage-debt zero soft-pass. A carve introduced THERE
+  // (`isWin32 ? { ...coverageThresholds, branches: 70 } : coverageThresholds`)
+  // leaves the const uniform and would slip past the assertion above.
+  it("passes the uniform const through to Vitest with no platform carve", () => {
+    const effective = /thresholds:[\s\S]*?coverageThresholds,/.exec(source)?.[0] ?? "";
+    // Empty means the assignment no longer resolves to the uniform const at all.
+    expect(effective).not.toBe("");
+    expect(effective).not.toMatch(/isWin32/);
+    // The only permitted alternate arm is the coverage-debt zero soft-pass.
+    expect(effective).toMatch(/coverageDebtIssue/);
+  });
+
+  // #3512: a coverage percentage is meaningless without the instrument that
+  // produced it — vitest 3 and vitest 4 read the same suite as 85.35% and
+  // 81.23% branches. The floor must carry that provenance in-file.
+  it("stamps the instrument the floor was measured under", () => {
+    expect(source).toMatch(/INSTRUMENT:/);
+    expect(source).toMatch(/vitest 4/i);
+    expect(source).toMatch(/remapping/i);
   });
 
   it("documents coverage-debt soft-pass gate", () => {
@@ -100,10 +137,14 @@ describe("vitest.config.ts coverage threshold contract (#2573)", () => {
 describe("vitest.config.ts Windows vs CI branch parity (#2630)", () => {
   const source = readFileSync(configPath, "utf8");
 
-  it("uses the same 85% branch threshold on win32 and Linux CI", () => {
+  // #3512: same reasoning as the #2573 contract above — assert parity, not a
+  // literal. #2630's finding was that a local-vs-CI gap was uncovered branches,
+  // NOT threshold asymmetry; the invariant worth protecting is that no
+  // platform-conditional floor is ever reintroduced.
+  it("uses the same branch threshold on win32 and Linux CI", () => {
     expect(source).toContain("#2630");
-    expect(source).toMatch(/branches:\s*85/);
-    expect(source).not.toMatch(/isWin32\s*\?\s*84\.85/);
+    expect(source).not.toMatch(/(?:branches|lines|functions|statements):\s*isWin32/);
+    expect(source).not.toMatch(/isWin32\s*\?\s*\d+(?:\.\d+)?\s*:/);
   });
 
   it("documents that win32 runner caps affect timing only, not the coverage floor", () => {

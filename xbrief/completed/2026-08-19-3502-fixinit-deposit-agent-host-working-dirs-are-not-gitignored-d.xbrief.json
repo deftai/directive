@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "fix(init-deposit): agent-host working dirs are not gitignored — dirty tree blocks releases for every consumer",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "fix(init-deposit): agent-host working dirs are not gitignored — dirty tree blocks releases for every consumer",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3502",
@@ -117,6 +117,6 @@
         }
       ]
     },
-    "updated": "2026-08-19T15:35:58Z"
+    "updated": "2026-08-19T17:10:02Z"
   }
 }
