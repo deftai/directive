@@ -23,6 +23,7 @@ const FIXTURES_DIR = join(
 
 const PROPAGATION_COMMAND_MARKERS: ReadonlyArray<readonly [string, string]> = [
   ["deft session:start", "task session:start"],
+  ["deft session:ready", "task session:ready"],
   ["deft verify:session-ritual", "task verify:session-ritual"],
   ["deft verify:tools", "task verify:tools"],
   ["deft triage:welcome --onboard", "task triage:welcome --onboard"],
@@ -58,6 +59,7 @@ const PROPAGATION_COMMAND_MARKERS: ReadonlyArray<readonly [string, string]> = [
 
 const CONSUMER_FORBIDDEN_BARE_TASK_MARKERS = [
   "task session:start",
+  "task session:ready",
   "task verify:session-ritual",
   "task verify:tools",
   "task doctor",
@@ -310,7 +312,7 @@ const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
     shape: "doc",
     header: "Session-start ritual (#1149)",
     canonicalHome: "commands.md",
-    pointerHints: ["deft session:start", "deft verify:session-ritual", "#1149"],
+    pointerHints: ["deft session:start", "deft verify:session-ritual", "deft session:ready", "#1149"],
     canonicalBodyMarkers: [
       "sessionRitualStalenessHours",
       "DEFT_SESSION_RITUAL_SKIP",

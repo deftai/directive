@@ -16,7 +16,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Session-start ritual (#1149)
 
-! On **mutation** session start, run `deft session:start`; before code-writing or `start_agent` dispatch run `deft verify:session-ritual -- --tier=gated` (stale after `plan.policy.sessionRitualStalenessHours`; records `deft verify:tools` / `deft doctor` / `deft verify:cache-fresh` / `deft agents:refresh` / `npm i -g @deftai/directive@latest`; #1149 / #1348) — `.deft/core/commands.md` § Session-start ritual. ! SCM mirror tip (#3124): restate existence + get-the-most user-visible when tip fires (depth `commands.md`). ⊗ Absorb tip without restating.
+! On **mutation** session start, run `deft session:start`; before code-writing or `start_agent` dispatch run `deft verify:session-ritual -- --tier=gated` (stale after `plan.policy.sessionRitualStalenessHours`; records `deft verify:tools` / `deft doctor` / `deft verify:cache-fresh` / `deft agents:refresh` / `npm i -g @deftai/directive@latest`; #1149 / #1348) — `.deft/core/commands.md` § Session-start ritual. Recovery: `deft session:ready` (one-shot: start + gated ritual + cache recovery; #2993). ! SCM mirror tip (#3124): restate existence + get-the-most user-visible when tip fires (depth `commands.md`). ⊗ Absorb tip without restating.
 
 ## WIP cap
 

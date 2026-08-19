@@ -21,7 +21,7 @@ Same rules as the managed `## Session routing (#2176)` below: at session start, 
 
 ## Session-start ritual (#1149)
 
-Same as managed `## Session-start ritual` below; substitute `task` for `deft` (`task session:start`, `task verify:session-ritual -- --tier=gated`, `task verify:tools`, `task doctor`, `task verify:cache-fresh`, `task agents:refresh`, `npm i -g @deftai/directive@latest`).
+Same as managed `## Session-start ritual` below; substitute `task` for `deft` (`task session:start`, `task session:ready`, `task verify:session-ritual -- --tier=gated`, `task verify:tools`, `task doctor`, `task verify:cache-fresh`, `task agents:refresh`, `npm i -g @deftai/directive@latest`).
 
 ## Session routing (#2176)
 
@@ -160,7 +160,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=1907fe769c3a refreshed=2026-08-18T22:26:57Z session=43595180dafd -->
+<!-- deft:managed-section v3 sha=d7c319d80b34 refreshed=2026-08-19T18:43:20Z session=db8e52419d40 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -178,7 +178,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Session-start ritual (#1149)
 
-! On **mutation** session start, run `deft session:start`; before code-writing or `start_agent` dispatch run `deft verify:session-ritual -- --tier=gated` (stale after `plan.policy.sessionRitualStalenessHours`; records `deft verify:tools` / `deft doctor` / `deft verify:cache-fresh` / `deft agents:refresh` / `npm i -g @deftai/directive@latest`; #1149 / #1348) — `.deft/core/commands.md` § Session-start ritual. ! SCM mirror tip (#3124): restate existence + get-the-most user-visible when tip fires (depth `commands.md`). ⊗ Absorb tip without restating.
+! On **mutation** session start, run `deft session:start`; before code-writing or `start_agent` dispatch run `deft verify:session-ritual -- --tier=gated` (stale after `plan.policy.sessionRitualStalenessHours`; records `deft verify:tools` / `deft doctor` / `deft verify:cache-fresh` / `deft agents:refresh` / `npm i -g @deftai/directive@latest`; #1149 / #1348) — `.deft/core/commands.md` § Session-start ritual. Recovery: `deft session:ready` (one-shot: start + gated ritual + cache recovery; #2993). ! SCM mirror tip (#3124): restate existence + get-the-most user-visible when tip fires (depth `commands.md`). ⊗ Absorb tip without restating.
 
 ## WIP cap
 

@@ -50,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Consumer AGENTS.md names `session:ready` on the #1149 ritual line (#3506).** The deposit pointer now includes the one-shot recovery verb (`session:start` + gated ritual + cache recovery). `agents_entry_contract` markers follow. Closes #3506. Refs #3500, #2993, #1149, #1309, PR 3509.
 - **CI merge-gate exempts `verify:branch` on a post-merge master checkout (#3499).** The documented `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` env is set on the two `task check:merge` steps only. Local `task check` and git hooks stay fail-closed. Closes #3499. Refs #1704, #747.
 - **Land leftover completed-tracked artifact for #3502 (#3264 / #1358).** The #3502 xBRIEF stayed in `xbrief/active/` after squash, so `verify:orphan-active` failed on later PRs. Moved to `xbrief/completed/`. Does not reopen or recut that issue. Refs #2321.
 - **Gated ritual CLI failure prints `session:ready` recovery (#3506).** Direct `verify:session-ritual --tier=gated` now appends the one-shot recovery line and the audited `session:start -- --defer cache_fresh=<reason>` soft path. `--json` includes `recovery_tier`. Tracking: #3506. Refs #3500, #2993, #1149, #3507.
