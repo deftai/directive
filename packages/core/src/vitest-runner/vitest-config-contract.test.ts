@@ -103,6 +103,20 @@ describe("vitest.config.ts coverage threshold contract (#2573)", () => {
     expect(new Set(values.map(([, v]) => v)).size).toBe(1);
   });
 
+  // #3512 (Greptile review): the const above is not what Vitest receives — the
+  // effective value comes from the `thresholds:` ternary, whose other arm is the
+  // #2573 coverage-debt zero soft-pass. A carve introduced THERE
+  // (`isWin32 ? { ...coverageThresholds, branches: 70 } : coverageThresholds`)
+  // leaves the const uniform and would slip past the assertion above.
+  it("passes the uniform const through to Vitest with no platform carve", () => {
+    const effective = /thresholds:[\s\S]*?coverageThresholds,/.exec(source)?.[0] ?? "";
+    // Empty means the assignment no longer resolves to the uniform const at all.
+    expect(effective).not.toBe("");
+    expect(effective).not.toMatch(/isWin32/);
+    // The only permitted alternate arm is the coverage-debt zero soft-pass.
+    expect(effective).toMatch(/coverageDebtIssue/);
+  });
+
   // #3512: a coverage percentage is meaningless without the instrument that
   // produced it — vitest 3 and vitest 4 read the same suite as 85.35% and
   // 81.23% branches. The floor must carry that provenance in-file.
