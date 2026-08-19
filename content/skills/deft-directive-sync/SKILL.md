@@ -238,7 +238,7 @@ directive doctor
    - Top-level `xBRIEFInfo` envelope with `version` field present
    - `plan` object with `title`, `status`, and `items` fields present
    - `plan.status` values from valid enum: draft, proposed, approved, pending, running, completed, blocked, cancelled
-3. ~ Use `task xbrief:validate` if available for deeper validation
+3. ~ Use `task xbrief:validate` for deeper validation
 4. ! Report any validation failures with file name and specific violation
 
 ⊗ Overwrite or modify project-level `./xbrief/*.xbrief.json` files -- those are project data, not framework files. Report issues and let the user decide how to fix them.

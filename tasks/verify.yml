@@ -165,6 +165,26 @@ tasks:
         vars:
           ENGINE_CMD: 'verify:branch --project-root "{{.USER_WORKING_DIR}}" --allow-missing-project-definition'
 
+  gh-auth:
+    # Worker-envelope GitHub auth validation (#1557). Thin task wrapper over the
+    # existing `github-auth-modes` engine verb, added by #3483: the swarm skill
+    # named `task verify:gh-auth` at MUST/⊗ level (references/core-phase-3.md
+    # Step 3, references/core-ops.md) but only the engine verb ever shipped, so
+    # the documented invocation exited 200 ("task does not exist").
+    #
+    # NOTE: NO `sources:` / `generates:` per conventions/task-caching.md --
+    # this probes live process/network state through {{.CLI_ARGS}} flags and a
+    # cached skip would return a stale verdict.
+    desc: "Validate GitHub auth from the worker envelope (#1557): host-gh vs injected-token mode, gh auth status, and API reachability. Fails closed on missing_injected_token in cloud-headless. -- task verify:gh-auth [-- --json] [--repo OWNER/NAME] [--github-auth-mode host-gh|injected-token]"
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      # Bare CLI_ARGS per the verify:encoding convention -- go-task shell-escapes pass-through args.
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'github-auth-modes {{.CLI_ARGS}}'
+
   routing:
     desc: "Operator coding sub-agent model routing gate (#1739). Pre-dispatch (default): fails when a dispatched worker role has no decision in .deft/routing.local.json. Pass --advise for the non-blocking session-start disclosure; --roles a,b to widen the gated set; --provider to override the runtime."
     dir: '{{.USER_WORKING_DIR}}'

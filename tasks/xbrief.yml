@@ -5,6 +5,29 @@ vars:
 
 tasks:
 
+  validate:
+    # Canonical xBRIEF lifecycle validation verb (#3483).
+    # Mirrors tasks/vbrief.yml validate exactly; callers use:
+    #   task xbrief:validate
+    # Legacy `task vbrief:validate` remains accepted for the same gate and is
+    # what CONSUMER_CHECK_GATES / `task check` still wire (gate ids are stable).
+    #
+    # The #2109 vbrief -> xbrief rename added xbrief:-prefixed verbs where the
+    # surface was rewritten (xbrief:preflight), but validate never got its
+    # alias while the swarm skill prose was updated as if it had -- leaving
+    # four MUST/⊗-level cohort-close instructions naming a verb that did not
+    # resolve. Refs #1487 (the recurrence the cohort-close gate prevents).
+    desc: "Validate xBRIEF lifecycle folder structure and cross-file consistency. Alias of vbrief:validate with xbrief-first naming (#3483)."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      # Layout-aware (#2109 part 2a): pass --project-root and let the engine
+      # resolve the lifecycle dir (xbrief when migrated, else vbrief).
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'xbrief:validate --project-root "{{.USER_WORKING_DIR}}"'
+
   preflight:
     # Canonical #810 implementation-intent gate for the xBRIEF lifecycle (#2449).
     # Mirrors tasks/vbrief.yml preflight; callers use:
@@ -18,3 +41,23 @@ tasks:
       - task: :engine:invoke
         vars:
           ENGINE_CMD: 'xbrief:preflight --vbrief-path {{.CLI_ARGS}}'
+
+  activate:
+    # Implementation-intent activation companion to xbrief:preflight (#3483).
+    # Mirrors tasks/vbrief.yml activate; callers use:
+    #   task xbrief:activate -- xbrief/pending/<story>.xbrief.json
+    # This is the redirect the preflight failure message names, and the swarm
+    # skill names it at MUST level (references/core-phase-0.md Step 1) -- so it
+    # has to resolve under the xbrief: spelling, not just vbrief:.
+    #
+    # NOTE: NO `sources:` / `generates:` per conventions/task-caching.md --
+    # the xBRIEF path is a user-facing {{.CLI_ARGS}} argument and a cached
+    # skip would silently swallow it.
+    desc: "Activate an xBRIEF: pending/ -> active/ (status: running). Idempotent. Alias of vbrief:activate with xbrief-first naming (#810 / #3483)."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'xbrief:activate {{.CLI_ARGS}}'
