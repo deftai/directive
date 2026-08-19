@@ -88,7 +88,7 @@ function zipMemberNames(zipPath: string): string[] {
   return names.sort();
 }
 
-function zipMemberNameBytes(zipPath: string): Buffer[] {
+function zipMemberHeaders(zipPath: string): Array<{ name: Buffer; utf8Flag: boolean }> {
   const buf = readFileSync(zipPath);
   let eocd = -1;
   for (let i = buf.length - 22; i >= 0; i -= 1) {
@@ -100,16 +100,20 @@ function zipMemberNameBytes(zipPath: string): Buffer[] {
   if (eocd < 0) throw new Error("zip EOCD not found");
   const count = buf.readUInt16LE(eocd + 10);
   let offset = buf.readUInt32LE(eocd + 16);
-  const names: Buffer[] = [];
+  const members: Array<{ name: Buffer; utf8Flag: boolean }> = [];
   for (let n = 0; n < count; n += 1) {
     if (buf.readUInt32LE(offset) !== 0x02014b50) throw new Error("zip central header corrupt");
+    const flags = buf.readUInt16LE(offset + 8);
     const nameLen = buf.readUInt16LE(offset + 28);
     const extraLen = buf.readUInt16LE(offset + 30);
     const commentLen = buf.readUInt16LE(offset + 32);
-    names.push(Buffer.from(buf.subarray(offset + 46, offset + 46 + nameLen)));
+    members.push({
+      name: Buffer.from(buf.subarray(offset + 46, offset + 46 + nameLen)),
+      utf8Flag: (flags & 0x0800) !== 0,
+    });
     offset += 46 + nameLen + extraLen + commentLen;
   }
-  return names;
+  return members;
 }
 
 function tarMemberNameBytes(tarGzPath: string): Buffer[] {
@@ -669,8 +673,11 @@ describe("build-dist helpers", () => {
     const expected = archiveMemberBytes(invalid);
     const corrupted = Buffer.from(expected.toString("latin1"), "utf8");
     expect(corrupted.equals(expected)).toBe(false);
-    expect(zipMemberNameBytes(zip).some((n) => n.equals(expected))).toBe(true);
-    expect(zipMemberNameBytes(zip).some((n) => n.equals(corrupted))).toBe(false);
+    const zipHeaders = zipMemberHeaders(zip);
+    expect(zipHeaders.some((m) => m.name.equals(expected))).toBe(true);
+    expect(zipHeaders.some((m) => m.name.equals(corrupted))).toBe(false);
+    const invalidZip = zipHeaders.find((m) => m.name.equals(expected));
+    expect(invalidZip?.utf8Flag).toBe(false);
     expect(tarMemberNameBytes(tar).some((n) => n.equals(expected))).toBe(true);
     expect(tarMemberNameBytes(tar).some((n) => n.equals(corrupted))).toBe(false);
   });

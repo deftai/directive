@@ -208,8 +208,9 @@ function installBytePreservingMemberNames(): () => void {
     prependSlash = false,
   ) {
     if (typeof name === "string" && name.charCodeAt(0) === ARCHIVE_BINARY_NAME_MARK.charCodeAt(0)) {
+      // Raw bytes, not UTF-8: leave the ZIP language-encoding flag off so
+      // extractors do not decode 0xFF-class names as UTF-8.
       this.name = Buffer.from(name.slice(ARCHIVE_BINARY_NAME_MARK.length), "latin1");
-      this.getGeneralPurposeBit().useUTF8ForNames(true);
       return;
     }
     return origSetName.call(this, name, prependSlash);
