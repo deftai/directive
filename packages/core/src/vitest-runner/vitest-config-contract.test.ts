@@ -99,12 +99,7 @@ describe("vitest.config.ts coverage threshold contract (#2573)", () => {
       k,
       Number(v),
     ]);
-    expect(values.map(([k]) => k).sort()).toEqual([
-      "branches",
-      "functions",
-      "lines",
-      "statements",
-    ]);
+    expect(values.map(([k]) => k).sort()).toEqual(["branches", "functions", "lines", "statements"]);
     expect(new Set(values.map(([, v]) => v)).size).toBe(1);
   });
 
