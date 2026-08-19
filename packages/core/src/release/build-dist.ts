@@ -262,19 +262,23 @@ function isInsideRoot(root: string, absPath: string): boolean {
   return !rel.startsWith("..") && !isAbsolute(rel);
 }
 
+type CanonicalArchiveRoot = { readonly text: string; readonly bytes: Buffer };
+
 /** Canonicalize the supplied archive root once per resolve (#3490 review). */
-function canonicalArchiveRoot(root: string, fs: ArchiveFsLookup): string {
+function canonicalArchiveRoot(root: string, fs: ArchiveFsLookup): CanonicalArchiveRoot {
   try {
-    const real = fs.realpathSync(root);
-    return typeof real === "string" ? real : real.toString("utf8");
+    const real = fs.realpathSync(root, { encoding: "buffer" });
+    if (Buffer.isBuffer(real)) {
+      return { text: real.toString("utf8"), bytes: real };
+    }
+    return { text: real, bytes: Buffer.from(real, "utf8") };
   } catch {
     throw new Error(`build-dist: cannot resolve archive root: ${root}`);
   }
 }
 
-/** Join a UTF-8 root with original git path bytes; convert POSIX `/` to OS sep. */
-export function joinRootAndRelBytes(root: string, relBytes: Buffer): Buffer {
-  const rootBuf = Buffer.from(resolve(root), "utf8");
+/** Join canonical root bytes with original git path bytes; convert POSIX `/` to OS sep. */
+export function joinRootAndRelBytes(rootBytes: Buffer, relBytes: Buffer): Buffer {
   const sepByte = sep.charCodeAt(0);
   const converted = Buffer.from(relBytes);
   if (sep !== "/") {
@@ -282,12 +286,12 @@ export function joinRootAndRelBytes(root: string, relBytes: Buffer): Buffer {
       if (converted[i] === 0x2f) converted[i] = sepByte;
     }
   }
-  if (converted.length === 0) return rootBuf;
-  const rootEndsSep = rootBuf.length > 0 && rootBuf[rootBuf.length - 1] === sepByte;
+  if (converted.length === 0) return rootBytes;
+  const rootEndsSep = rootBytes.length > 0 && rootBytes[rootBytes.length - 1] === sepByte;
   const relStartsSep = converted[0] === sepByte;
-  if (rootEndsSep && relStartsSep) return Buffer.concat([rootBuf, converted.subarray(1)]);
-  if (rootEndsSep || relStartsSep) return Buffer.concat([rootBuf, converted]);
-  return Buffer.concat([rootBuf, Buffer.from([sepByte]), converted]);
+  if (rootEndsSep && relStartsSep) return Buffer.concat([rootBytes, converted.subarray(1)]);
+  if (rootEndsSep || relStartsSep) return Buffer.concat([rootBytes, converted]);
+  return Buffer.concat([rootBytes, Buffer.from([sepByte]), converted]);
 }
 
 /**
@@ -298,22 +302,26 @@ export function fsLookupPath(
   root: string,
   relPosix: string,
   bytes: Buffer,
+  rootBytes?: Buffer,
 ): string | Buffer | null {
   const contained = containedAbsPath(root, relPosix);
   if (contained === null) return null;
   if (Buffer.from(relPosix, "utf8").equals(bytes)) return contained;
-  return joinRootAndRelBytes(root, bytes);
+  return joinRootAndRelBytes(rootBytes ?? Buffer.from(resolve(root), "utf8"), bytes);
 }
 
-function isInsideResolved(canonicalRoot: string, real: string | Buffer): boolean {
+function isInsideResolved(
+  canonicalRoot: string,
+  canonicalBytes: Buffer,
+  real: string | Buffer,
+): boolean {
   if (typeof real === "string") return isInsideRoot(canonicalRoot, real);
-  const rootBuf = Buffer.from(canonicalRoot, "utf8");
   const sepByte = sep.charCodeAt(0);
-  if (real.equals(rootBuf)) return true;
+  if (real.equals(canonicalBytes)) return true;
   const prefix =
-    rootBuf.length > 0 && rootBuf[rootBuf.length - 1] === sepByte
-      ? rootBuf
-      : Buffer.concat([rootBuf, Buffer.from([sepByte])]);
+    canonicalBytes.length > 0 && canonicalBytes[canonicalBytes.length - 1] === sepByte
+      ? canonicalBytes
+      : Buffer.concat([canonicalBytes, Buffer.from([sepByte])]);
   if (real.length < prefix.length) return false;
   if (real.subarray(0, prefix.length).equals(prefix)) return true;
   if (process.platform === "win32") {
@@ -341,12 +349,12 @@ export function containedAbsPath(root: string, relPosix: string): string | null 
 
 function toArchiveEntry(
   root: string,
-  canonicalRoot: string,
+  canonicalRoot: CanonicalArchiveRoot,
   relPosix: string,
   bytes: Buffer,
   fs: ArchiveFsLookup,
 ): ArchiveSourceEntry | null {
-  const lookup = fsLookupPath(root, relPosix, bytes);
+  const lookup = fsLookupPath(root, relPosix, bytes, canonicalRoot.bytes);
   if (lookup === null) return null;
   let real: string | Buffer;
   try {
@@ -360,7 +368,7 @@ function toArchiveEntry(
   }
   // Compare against the canonical root so a symlink *to* the checkout is
   // inside, while a symlink *out of* the tree still throws.
-  if (!isInsideResolved(canonicalRoot, real)) {
+  if (!isInsideResolved(canonicalRoot.text, canonicalRoot.bytes, real)) {
     throw new Error(`build-dist: path resolves outside the archive root: ${relPosix}`);
   }
   let st: ReturnType<typeof lstatSync>;

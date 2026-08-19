@@ -438,7 +438,15 @@ describe("build-dist helpers", () => {
     const utf8Rel = Buffer.from("README.md", "utf8");
     const utf8Lookup = fsLookupPath(root, "README.md", utf8Rel);
     expect(typeof utf8Lookup).toBe("string");
-    expect(joinRootAndRelBytes(root, invalid).includes(0xff)).toBe(true);
+    expect(joinRootAndRelBytes(Buffer.from(root, "utf8"), invalid).includes(0xff)).toBe(true);
+  });
+
+  it("joinRootAndRelBytes keeps non-utf8 bytes from the canonical root", () => {
+    const rootBytes = Buffer.from([0x2f, 0x74, 0x6d, 0x70, 0x2f, 0x72, 0xff, 0x6f, 0x6f, 0x74]);
+    const rel = Buffer.from([0x61, 0xff, 0x2e, 0x74]);
+    const joined = joinRootAndRelBytes(rootBytes, rel);
+    expect(joined.subarray(0, rootBytes.length).equals(rootBytes)).toBe(true);
+    expect(Buffer.from(rootBytes.toString("utf8"), "utf8").equals(rootBytes)).toBe(false);
   });
 
   it("invalid-byte -z paths survive list and contained resolve", () => {
@@ -482,6 +490,45 @@ describe("build-dist helpers", () => {
     );
     expect(bytePreserving).toBe(true);
     expect(entries.map((e) => e.archiveRel)).toContain("README.md");
+    expect(entries.map((e) => e.archiveRel)).toContain(invalid.toString("latin1"));
+  });
+
+  it("invalid-byte -z lookup joins canonical root bytes not utf8(resolve(root))", () => {
+    const root = fixtureProject();
+    const invalid = Buffer.from([0x66, 0x6f, 0x6f, 0xff, 0x2e, 0x74, 0x78, 0x74]);
+    const payload = Buffer.concat([invalid, Buffer.from([0])]);
+    const spawn = (): { status: number; stdout: Buffer; stderr: Buffer } => ({
+      status: 0,
+      stdout: payload,
+      stderr: Buffer.alloc(0),
+    });
+    const standIn = realpathSync(join(root, "README.md"));
+    const rootBytes = Buffer.concat([Buffer.from(realpathSync(root), "utf8"), Buffer.from([0xff])]);
+    const realpathArgs: Array<string | Buffer> = [];
+    const entries = resolveArchiveEntries(root, {
+      spawn,
+      fs: {
+        realpathSync: (path, options) => {
+          realpathArgs.push(path);
+          if (typeof path === "string") {
+            if (options?.encoding === "buffer") return rootBytes;
+            return realpathSync(path);
+          }
+          return options?.encoding === "buffer" ? path : path.toString("latin1");
+        },
+        lstatSync: (path) => {
+          if (Buffer.isBuffer(path)) return lstatSync(standIn);
+          return lstatSync(path);
+        },
+      },
+    });
+    const joinedRootAndRel = realpathArgs.some(
+      (arg) =>
+        Buffer.isBuffer(arg) &&
+        arg.includes(0xff) &&
+        arg.subarray(0, rootBytes.length).equals(rootBytes),
+    );
+    expect(joinedRootAndRel).toBe(true);
     expect(entries.map((e) => e.archiveRel)).toContain(invalid.toString("latin1"));
   });
 
