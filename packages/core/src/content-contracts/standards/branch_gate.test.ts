@@ -114,4 +114,83 @@ describe("test_branch_gate.py", () => {
     expect(text).toContain('"allowDirectCommitsToMaster":');
     expect(text).toContain('"$ref": "#/$defs/Policy"');
   });
+  it("ci merge-gate check:merge steps set the documented default-branch exemption (#3499)", () => {
+    const ci = readText(".github/workflows/ci.yml");
+    const envBlocks = checkMergeStepEnvBlocks(ci);
+    expect(envBlocks, "expected two task check:merge steps (primary + failover)").toHaveLength(2);
+    for (const [i, block] of envBlocks.entries()) {
+      expect(block, `check:merge step ${i} missing documented exemption`).toMatch(
+        /DEFT_ALLOW_DEFAULT_BRANCH_COMMIT:\s*"1"/,
+      );
+    }
+  });
+  it("workflow-level env does not set DEFT_ALLOW_DEFAULT_BRANCH_COMMIT (#3499)", () => {
+    const ci = readText(".github/workflows/ci.yml");
+    const workflowEnv = workflowLevelEnvBlock(ci);
+    expect(workflowEnv).not.toContain("DEFT_ALLOW_DEFAULT_BRANCH_COMMIT");
+  });
+  it("local authoring path stays fail-closed without the env (#3499 / #747)", () => {
+    const agents = readText("AGENTS.md");
+    const hook = readText(".githooks/pre-commit");
+    const taskfile = readText("Taskfile.yml");
+    const readme = readText("README.md");
+    expect(hook).toContain("run_deft verify:branch");
+    expect(taskfile).toContain("verify:branch");
+    expect(agents).toContain("verify:branch");
+    expect(agents).toContain("DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1");
+    expect(readme).toMatch(/Emergency bypass/i);
+    expect(readme).toContain("DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1");
+  });
 });
+
+/** Top-level `env:` block that precedes `jobs:` in ci.yml. */
+function workflowLevelEnvBlock(ci: string): string {
+  const lines = ci.split("\n");
+  let start = -1;
+  let end = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (start < 0 && lines[i] === "env:") {
+      start = i + 1;
+    }
+    if (start >= 0 && lines[i] === "jobs:") {
+      end = i;
+      break;
+    }
+  }
+  if (start < 0 || end < 0) {
+    throw new Error("workflow-level env: block not found before jobs:");
+  }
+  return lines.slice(start, end).join("\n");
+}
+
+/**
+ * Env blocks immediately under each `run: task check:merge` step.
+ * Indentation-scoped so a later job-level `env:` is not collected.
+ */
+function checkMergeStepEnvBlocks(ci: string): string[] {
+  const lines = ci.split("\n");
+  const blocks: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (!/^\s+run:\s+task check:merge\s*$/.test(lines[i] ?? "")) {
+      continue;
+    }
+    const envLine = lines[i + 1] ?? "";
+    const envMatch = envLine.match(/^(\s+)env:\s*$/);
+    if (!envMatch) {
+      throw new Error(`task check:merge at line ${i + 1} has no following env:`);
+    }
+    const indent = envMatch[1] ?? "";
+    const childIndent = `${indent}  `;
+    const collected: string[] = [];
+    for (let j = i + 2; j < lines.length; j++) {
+      const line = lines[j] ?? "";
+      if (line.trim() === "" || line.startsWith(`${indent}#`) || line.startsWith(childIndent)) {
+        collected.push(line);
+        continue;
+      }
+      break;
+    }
+    blocks.push(collected.join("\n"));
+  }
+  return blocks;
+}

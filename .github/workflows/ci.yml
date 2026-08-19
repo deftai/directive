@@ -119,6 +119,10 @@ jobs:
         run: task check:merge
         env:
           GH_TOKEN: ${{ github.token }}
+          # #3499 / #747: merge-gate CI is a read-only verification checkout,
+          # not authoring. Documented exemption only. Local `task check` /
+          # hooks stay fail-closed on master.
+          DEFT_ALLOW_DEFAULT_BRANCH_COMMIT: "1"
 
   # -------------------------------------------------------------------------
   # Capacity watchdog: GH-hosted, independent of primary job cancellation
@@ -384,6 +388,10 @@ jobs:
         run: task check:merge
         env:
           GH_TOKEN: ${{ github.token }}
+          # #3499 / #747: merge-gate CI is a read-only verification checkout,
+          # not authoring. Documented exemption only. Local `task check` /
+          # hooks stay fail-closed on master.
+          DEFT_ALLOW_DEFAULT_BRANCH_COMMIT: "1"
 
   # -------------------------------------------------------------------------
   # Authoritative aggregators — ONLY these jobs use the branch-protection
