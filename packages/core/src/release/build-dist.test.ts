@@ -18,6 +18,7 @@ import {
   DEFAULT_EXCLUDES,
   DEFAULT_GENERATED_ALLOWLIST,
   emitBuildProgress,
+  GIT_LS_FILES_Z_ENCODING,
   iterSourceFiles,
   listGitTrackedFiles,
   main,
@@ -25,6 +26,7 @@ import {
   parseExtraExcludes,
   resolveArchiveEntries,
   selectFormat,
+  splitGitLsFilesZ,
   UntrackedArchiveEntryError,
 } from "./build-dist.js";
 
@@ -377,6 +379,101 @@ describe("build-dist helpers", () => {
     writeFileSync(join(root, "has space.txt"), "x\n");
     gitCommitAll(root);
     expect(listGitTrackedFiles(root)).toContain("has space.txt");
+  });
+
+  it("listGitTrackedFiles keeps a non-ASCII tracked path intact", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-build-dist-utf8-"));
+    mkdirSync(join(root, "content"), { recursive: true });
+    writeFileSync(join(root, "README.md"), "# hi\n");
+    writeFileSync(join(root, "content", "doc.md"), "hello\n");
+    writeFileSync(join(root, "café.txt"), "x\n");
+    gitCommitAll(root);
+    expect(listGitTrackedFiles(root)).toContain("café.txt");
+  });
+
+  it("splitGitLsFilesZ keeps bytes that whole-stream utf8 decode would replace", () => {
+    const segment = Buffer.from([0x66, 0x6f, 0x6f, 0xff, 0x2e, 0x74, 0x78, 0x74]);
+    const raw = Buffer.concat([segment, Buffer.from([0])]);
+    const naive = raw
+      .toString("utf8")
+      .split("\0")
+      .filter((line) => line.length > 0);
+    const faithful = segment.toString("latin1");
+    expect(naive[0]).not.toBe(faithful);
+    expect(splitGitLsFilesZ(raw)).toEqual([faithful]);
+  });
+
+  it("listGitTrackedFiles splits a Buffer -z payload without utf8 encoding", () => {
+    expect(GIT_LS_FILES_Z_ENCODING).toBeNull();
+    const cafe = Buffer.from("café.txt", "utf8");
+    const invalid = Buffer.from([0x66, 0x6f, 0x6f, 0xff, 0x2e, 0x74, 0x78, 0x74]);
+    const payload = Buffer.concat([cafe, Buffer.from([0]), invalid, Buffer.from([0])]);
+    const seen: Array<{ encoding: unknown; args: readonly string[] }> = [];
+    const spawn = (
+      _command: string,
+      args: readonly string[],
+      options: { encoding: null },
+    ): { status: number; stdout: Buffer; stderr: Buffer } => {
+      seen.push({ encoding: options.encoding, args });
+      return { status: 0, stdout: payload, stderr: Buffer.alloc(0) };
+    };
+    const paths = listGitTrackedFiles("/unused-root", spawn);
+    expect(seen).toHaveLength(1);
+    expect(seen[0]?.encoding).toBeNull();
+    expect(seen[0]?.args).toContain("-z");
+    expect(paths).toEqual(["café.txt", invalid.toString("latin1")]);
+  });
+
+  it("splitGitLsFilesZ drops empty segments and keeps a trailing unterminated path", () => {
+    const raw = Buffer.from("a.txt\0\0b.txt", "utf8");
+    expect(splitGitLsFilesZ(raw)).toEqual(["a.txt", "b.txt"]);
+    expect(splitGitLsFilesZ(Buffer.alloc(0))).toEqual([]);
+  });
+
+  it("listGitTrackedFiles accepts string stdout and fails closed on spawn errors", () => {
+    expect(
+      listGitTrackedFiles("/unused-root", () => ({
+        status: 0,
+        stdout: "ok.txt\0",
+        stderr: "",
+      })),
+    ).toEqual(["ok.txt"]);
+    expect(
+      listGitTrackedFiles("/unused-root", () => ({
+        status: 0,
+        stdout: null,
+        stderr: null,
+      })),
+    ).toEqual([]);
+    expect(() =>
+      listGitTrackedFiles("/unused-root", () => ({
+        status: 1,
+        stdout: Buffer.from("ignored"),
+        stderr: Buffer.from("fatal: boom\n"),
+      })),
+    ).toThrow(/git ls-files failed.*fatal: boom/);
+    expect(() =>
+      listGitTrackedFiles("/unused-root", () => ({
+        status: 1,
+        stdout: "stdout-detail",
+        stderr: "",
+      })),
+    ).toThrow(/stdout-detail/);
+    expect(() =>
+      listGitTrackedFiles("/unused-root", () => ({
+        status: null,
+        stdout: null,
+        stderr: null,
+        error: new Error("ENOENT"),
+      })),
+    ).toThrow(/ENOENT/);
+    expect(() =>
+      listGitTrackedFiles("/unused-root", () => ({
+        status: 1,
+        stdout: null,
+        stderr: null,
+      })),
+    ).toThrow(/unknown error/);
   });
 
   it("containedAbsPath treats only POSIX slashes as separators", () => {

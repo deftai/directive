@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import {
   createWriteStream,
   existsSync,
@@ -12,7 +13,7 @@ import { createRequire } from "node:module";
 import { platform } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { NON_PRODUCT_DIRS } from "../fs/non-product-dirs.js";
-import { runGit } from "./git.js";
+import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 
 type ArchiverInstance = {
   pipe: (dest: ReturnType<typeof createWriteStream>) => void;
@@ -111,18 +112,83 @@ function shouldSkipRel(
 
 export type ArchiveSourceEntry = { absPath: string; archiveRel: string };
 
+/** `-z` stdout is a NUL-separated byte stream; never UTF-8-decode it whole. */
+export const GIT_LS_FILES_Z_ENCODING = null;
+
+export type GitLsFilesZSpawn = (
+  command: string,
+  args: readonly string[],
+  options: {
+    encoding: null;
+    timeout?: number;
+    maxBuffer?: number;
+    stdio?: readonly ["ignore", "pipe", "pipe"];
+  },
+) => {
+  status: number | null;
+  stdout?: Buffer | string | null;
+  stderr?: Buffer | string | null;
+  error?: Error | null;
+  signal?: NodeJS.Signals | null;
+};
+
+/** Decode one `ls-files -z` segment; keep non-UTF-8 bytes as latin1. */
+export function decodeGitLsFilesPath(segment: Buffer): string {
+  const utf8 = segment.toString("utf8");
+  if (Buffer.from(utf8, "utf8").equals(segment)) return utf8;
+  return segment.toString("latin1");
+}
+
+/** Split a raw `git ls-files -z` Buffer on 0x00, then decode each path. */
+export function splitGitLsFilesZ(stdout: Buffer): string[] {
+  const paths: string[] = [];
+  let start = 0;
+  for (let i = 0; i < stdout.length; i += 1) {
+    if (stdout[i] === 0) {
+      if (i > start) {
+        paths.push(decodeGitLsFilesPath(stdout.subarray(start, i)));
+      }
+      start = i + 1;
+    }
+  }
+  if (start < stdout.length) {
+    paths.push(decodeGitLsFilesPath(stdout.subarray(start)));
+  }
+  return paths;
+}
+
+function spawnTextFromMaybeBuffer(value: Buffer | string | null | undefined): string {
+  if (Buffer.isBuffer(value)) return value.toString("utf8");
+  return typeof value === "string" ? value : "";
+}
+
+function bufferFromSpawnStdout(value: Buffer | string | null | undefined): Buffer {
+  if (Buffer.isBuffer(value)) return value;
+  if (typeof value === "string") return Buffer.from(value, "utf8");
+  return Buffer.alloc(0);
+}
+
 /**
  * Return `git ls-files -z` paths in POSIX form. Fail closed when git cannot
  * enumerate tracked files -- a walk would pack host-local untracked state (#3490).
  */
-export function listGitTrackedFiles(root: string): string[] {
+export function listGitTrackedFiles(root: string, spawn: GitLsFilesZSpawn = spawnSync): string[] {
   // Pin to root/.git so a nested --root cannot walk up and pack a parent repo.
-  const result = runGit(root, ["--git-dir=.git", "--work-tree=.", "ls-files", "-z"]);
-  if (result.status !== 0) {
-    const detail = result.stderr.trim() || result.stdout.trim() || "unknown error";
+  const result = spawn("git", ["-C", root, "--git-dir=.git", "--work-tree=.", "ls-files", "-z"], {
+    encoding: GIT_LS_FILES_Z_ENCODING,
+    timeout: 30_000,
+    maxBuffer: SUBPROCESS_MAX_BUFFER,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  if (result.status !== 0 || result.error) {
+    const detail =
+      spawnTextFromMaybeBuffer(result.stderr).trim() ||
+      spawnTextFromMaybeBuffer(result.stdout).trim() ||
+      result.error?.message ||
+      "unknown error";
     throw new Error(`git ls-files failed in ${root}: ${detail}`);
   }
-  return result.stdout.split("\0").filter((line) => line.length > 0);
+  return splitGitLsFilesZ(bufferFromSpawnStdout(result.stdout));
 }
 
 /**
