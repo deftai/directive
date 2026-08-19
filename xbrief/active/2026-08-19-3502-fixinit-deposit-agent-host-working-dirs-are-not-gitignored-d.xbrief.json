@@ -1,0 +1,122 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3502",
+    "updated": "2026-08-19T15:35:58Z"
+  },
+  "plan": {
+    "title": "fix(init-deposit): agent-host working dirs are not gitignored — dirty tree blocks releases for every consumer",
+    "status": "running",
+    "narratives": {
+      "Description": "fix(init-deposit): agent-host working dirs are not gitignored — dirty tree blocks releases for every consumer",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3502",
+      "Overview": "## Summary\n\n`.claude/worktrees/` and `.claude/settings.local.json` are not in the deposited `.gitignore` baseline. Any project that dispatches agent subagents therefore has a permanently dirty working tree, which **refuses `task release` at Step 1** and adds standing noise to every `git status`.\n\n#3487 fixed what Directive's *walks* enumerate. It did not touch what *git* sees. This is the other half.\n\n## Evidence\n\nObserved on this repo during the v0.105.0 cut:\n\n```\n[1/13] Pre-flight git status... FAIL (working tree is dirty; commit/stash or pass --allow-dirty)\n```\n\nThe dirty entries were four `.claude/worktrees/agent-*/` checkouts. `git ls-files .claude` returns **0** — nothing under it is tracked here, yet it blocks the release.\n\nA second, distinct failure from the same directory: a nested `biome.json` inside an agent worktree was picked up by biome's **configuration discovery**, which runs independently of `biome.json`'s `includes` allowlist:\n\n```\n[ts:check-lane] `pnpm run lint` failed (exit 1).\n  .claude/worktrees/agent-<id>/biome.json configuration ━━━━━━━━\n  $ biome migrate --write\n```\n\nThree of five release attempts were lost to state under `.claude/`.\n\n## Scope — selective, never blanket\n\n⊗ Ignoring `.claude/` wholesale. Directive **deposits into it**:\n\n- `.claude/settings.json` — `init-deposit/agent-hooks.ts:28`, tracked as an exact managed path in `hygiene.ts:87`\n- `.claude/skills/` — `init-deposit/skill-discovery-hosts.ts`\n- `.claude/commands/` — the #55 slash-command paths\n\nBlanket-ignoring would make Directive's own managed deposits invisible to git — the same failure the #1144 hybrid policy already forbids for `.triage-cache/` and `.eval/`, and which `setup.go:314-321` documents at length for the eval entries.\n\nAdd exactly two selective entries:\n\n```\n.claude/worktrees/\n.claude/settings.local.json\n```\n\n`settings.local.json` matches the existing `.local.` convention already used for `.deft/routing.local.json`. `worktrees/` is transient agent checkouts and is never source.\n\n## Where the list lives — three surfaces\n\nThe baseline is duplicated, and the comments say so:\n\n| Surface | Location |\n|---|---|\n| TypeScript | `packages/core/src/init-deposit/gitignore.ts:34` — `CANONICAL_GITIGNORE_BASELINE` |\n| Go installer | `cmd/deft-install/setup.go:355` — `canonicalGitignoreLines` |\n| Python bootstrap | `scripts/_triage_bootstrap_gitignore.py` — named in `setup.go:320` as \"the single source of truth the bootstrap + relocator rails consume\" |\n\n`setup.go:309-311` says it \"mirrors scripts/relocate.py::GITIGNORE_LINES\"; a parity test is referenced. Whichever of these is genuinely canonical, the entries must land consistently — and if the parity guard does not already cover these two lines, extend it.\n\nThis is the same duplicated-list class as #3487 (four exclusion sets), #3490 (build-dist denylist), and #3494 (host denylist in a test).\n\n## Also needed: this repo's own `.gitignore`\n\n`deftai/directive` is not a consumer deposit, so it does not inherit `CANONICAL_GITIGNORE_BASELINE` reconciliation. The two lines must be added to the framework repo's `.gitignore` directly, or the framework keeps hitting the bug it ships the fix for.\n\n## Acceptance\n\n- A project with `.claude/worktrees/<agent-id>/` present has a clean `git status` and passes release Step 1.\n- `.claude/settings.json`, `.claude/skills/`, `.claude/commands/` remain trackable — verified, not assumed.\n- The entries are present in every surface the parity guard covers, and the guard covers them.\n- `deftai/directive`'s own `.gitignore` carries them.\n\n## Not in scope\n\nBiome's nested-configuration discovery is a separate mechanism from file inclusion and is not fixed by gitignoring. Once agent worktrees are ignored they will still be *on disk*; if a stray nested `biome.json` can still break `pnpm run lint`, that needs its own handling.\n\nRefs #3487, #3490, #3494, #1144, #1942, #2264\n\n",
+      "Labels": "bug, determinism"
+    },
+    "items": [],
+    "tags": [
+      "bug",
+      "determinism"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3502",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3502: fix(init-deposit): agent-host working dirs are not gitignored — dirty tree blocks releases for every consumer"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3487",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3487"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "[1/13] Pre-flight git status... FAIL (working tree is dirty; commit/stash or pass --allow-dirty)",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L13"
+        },
+        {
+          "command": "[ts:check-lane] `pnpm run lint` failed (exit 1)",
+          "reason": "shell metacharacter \"`\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L21"
+        },
+        {
+          "command": ".claude/worktrees/agent-<id>/biome.json configuration ━━━━━━━━",
+          "reason": "shell metacharacter \"<\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L21"
+        },
+        {
+          "command": "biome migrate --write",
+          "reason": "first token \"biome\" is not in the literal-AC allowlist",
+          "sourceSpan": "fence@L21"
+        },
+        {
+          "command": "pnpm run lint",
+          "reason": "package-manager args must be test|exec vitest|run test|run check|--version (arbitrary scripts/network install denied for ambient-authority)",
+          "sourceSpan": "inline@L22"
+        }
+      ],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "A project with `.claude/worktrees/<agent-id>/` present has a clean `git status` and passes release Step 1.",
+          "artifact_path": ".claude/worktrees/<agent-id>/",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "`.claude/settings.json`, `.claude/skills/`, `.claude/commands/` remain trackable — verified, not assumed.",
+          "artifact_path": ".claude/settings.json",
+          "ambiguous": true,
+          "readings": [
+            {
+              "text": "`.claude/settings.json`, `.claude/skills/`, `.claude/commands/` remain trackable — verified, not assumed. [reading: .claude/settings.json]",
+              "artifact_path": ".claude/settings.json"
+            },
+            {
+              "text": "`.claude/settings.json`, `.claude/skills/`, `.claude/commands/` remain trackable — verified, not assumed. [reading: .claude/skills/]",
+              "artifact_path": ".claude/skills/"
+            },
+            {
+              "text": "`.claude/settings.json`, `.claude/skills/`, `.claude/commands/` remain trackable — verified, not assumed. [reading: .claude/commands/]",
+              "artifact_path": ".claude/commands/"
+            }
+          ],
+          "chosen_reading": 0,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The entries are present in every surface the parity guard covers, and the guard covers them.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "`deftai/directive`'s own `.gitignore` carries them.",
+          "artifact_path": "deftai/directive",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ]
+    },
+    "updated": "2026-08-19T15:35:58Z"
+  }
+}

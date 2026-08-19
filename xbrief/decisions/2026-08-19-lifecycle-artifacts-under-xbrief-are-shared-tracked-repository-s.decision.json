@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "lifecycle-artifacts-under-xbrief-are-shared-tracked-repository-s",
+  "decision": "Lifecycle artifacts under xbrief/ are shared, tracked repository state. No per-clone ignore mechanism may hide a lifecycle root.",
+  "governingRule": {
+    "description": "#1144 hybrid: selective per-file ignores are permitted; blanket directory ignores are not",
+    "path": null,
+    "rfc2119": null
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Treat active/ as per-maintainer work-in-progress and let each clone suppress it locally"
+    },
+    {
+      "option": "Move the suppression to .gitignore so every clone shares it"
+    }
+  ],
+  "whyWinner": "406 commits have touched xbrief/active/ and 543 distinct active-brief paths have been committed, so shared tracking is the established practice, not an accident. The swarm design requires it: a parent cannot monitor leaves whose briefs it cannot see. Per-clone suppression makes identical commands behave differently between maintainers, which is the hardest drift class to diagnose -- found here only by accident, three weeks after the fact.",
+  "confidence": "high",
+  "timestamp": "2026-08-19T15:53:59Z",
+  "revisitTrigger": "Someone names a concrete case where hiding a lifecycle root is correct; that would require a documented opt-out in the #3505 detector",
+  "issueRefs": [
+    "https://github.com/deftai/directive/issues/3504",
+    "https://github.com/deftai/directive/issues/3505",
+    "https://github.com/deftai/directive/issues/3495"
+  ]
+}
