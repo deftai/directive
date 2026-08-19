@@ -320,14 +320,12 @@ export function evaluateVerifyAcFromPlan(
     quiet: optionsWithScope.quiet,
   });
 
-  // When literal path had nothing executable but plan.acceptance has derived commands,
-  // run them directly with source=explicit semantics.
-  if (
-    base.ok &&
-    base.runs.length === 0 &&
-    acceptance.commands.length > 0 &&
-    (acceptance.source_rung === "derived" || acceptance.source_rung === "project_floor")
-  ) {
+  // When the literal ledger produced no runs, execute non-empty plan.acceptance.commands
+  // as source=explicit. The documented key is plan.acceptance.commands (#3284 / #3449);
+  // the #3267 ledger is a parallel store and can be empty while stated commands exist.
+  // Stated was previously excluded, so rung=stated + empty ledger printed "nothing to run".
+  // Do not override a blocking rejected ledger or a config error.
+  if (shouldRunPlanAcceptanceDirectly(base, acceptance)) {
     const runner: LiteralAcceptanceRunner | undefined = optionsWithScope.runner;
     const direct = runLiteralAcceptanceCommands(
       acceptance.commands.map((c) => ({
@@ -411,6 +409,17 @@ export function evaluateVerifyAcFromPlan(
   }
 
   return applyOracle(annotate(base, acceptance, optionsWithScope.quiet), optionsWithScope, plan);
+}
+
+function shouldRunPlanAcceptanceDirectly(
+  base: LiteralAcceptanceGateResult,
+  acceptance: PlanAcceptance,
+): boolean {
+  if (acceptance.commands.length === 0) return false;
+  if (base.runs.length > 0) return false;
+  if (base.code === 2) return false;
+  if ((base.rejected?.length ?? 0) > 0) return false;
+  return true;
 }
 
 function classifyResolution(input: {

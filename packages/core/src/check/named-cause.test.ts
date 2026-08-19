@@ -72,4 +72,22 @@ describe("named-cause gate failures (#3282)", () => {
   it("returns a generic remedy for unknown gates", () => {
     expect(remedyForGate("unknown:gate", "something broke")).toMatch(/Re-run the gate/);
   });
+
+  it("attributes verify:ac instead of quoting engine:_ts-build (#3449)", () => {
+    const msg = formatNamedCauseFailure({
+      gateId: "verify:ac",
+      exitCode: 201,
+      stdout:
+        "task: [engine:_ts-build] set -eu\n" +
+        "set -eu\n" +
+        "# #3324: consumer-deposit marker\n" +
+        "if node tasks/engine-invoke.cjs is-buildable-source /repo; then\n" +
+        "verify:ac passed (#3284) [rung=stated]\n" +
+        "Literal acceptance-command gate: no stated commands (nothing to run) (#3284/#3267)\n",
+      stderr: "",
+    });
+    expect(msg.cause).toMatch(/verify:ac/);
+    expect(msg.cause).not.toMatch(/engine:_ts-build/);
+    expect(msg.cause).not.toMatch(/set -eu/);
+  });
 });

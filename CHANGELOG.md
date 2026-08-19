@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **UAT Shell residual after #3421: extra dest writers plant authz, kill-switch, and approved-scope (#3459).** Under active UAT, write-shaped Shell dests that #3421 missed classify as settings deny when they target `.deft/authz/**`, kill-switch basenames, or `.deft/approved-scope/**`. GNU coreutils `g*` prefixes and unknown dest flags targeting those paths fail closed. Ordinary dests such as `/tmp` stay unclassifiable. Already-denied `install` / `cp` / `git clone` / `Set-Content` stay denied. Closes #3459. Refs #3421, #3410, #3039.
+
 ### Added
 
 - **Drive-to DONE requires completed-tracked on the delivery tip (#3476).** `task verify:completed-tracked -- --issue N` checks one origin against `origin/<deliveryBranch>`, not feature-worktree HEAD. Exit 1 plus missing tracked land is not DONE; remediate with `task swarm:finalize-cohort` or a lifecycle PR. Parent last-leaf close without that land is a failed close. `scope:complete` stays filesystem-only. Verb stays off `task check`. `agentsMdBudget.absoluteMaxBytes` 15400→15700 for the managed pointer. Closes #3476. Refs #3264, #1358, #3429.
@@ -50,6 +54,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`verify:ac` runs stated `plan.acceptance.commands` and stays in exit 0/1/2 (#3449).** The executor only injected that array for `derived`/`project_floor`, so a `rung=stated` brief with nine commands printed `passed` / `no stated commands` and never ran them. Empty literal ledger now falls through to `plan.acceptance.commands`. Printed pass is exit 0; other codes clamp to 1 or 2. `check` `cause:` skips go-task `engine:_ts-build` script echo and names the verb. Closes #3449. Refs #3284, #3267, #3334, #3497.
+- **Land leftover completed-tracked artifact for #3506 (#3264 / #1358).** The #3506 xBRIEF stayed in `xbrief/active/` after squash of PR 3517. Moved to `xbrief/completed/`. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Fenced terminal transcript is not blocking acceptance (#3511).** Output-shaped fences (`[1/13]`, box drawing, `FAIL`/`Error:`) are not captured as stated commands. A prose/fence/inline safety rejection is advisory even when the plan has no structured `verify_commands`. A genuinely unsafe command in a structured field still blocks. The #3502 and #3506 phantom ledgers complete without `--force` or rewriting the issue. Ledger `waived`/`not_applicable` disposition remains leftover. Closes #3511. Refs #3484, #3497, #3502, #3267.
 - **Consumer AGENTS.md names `session:ready` on the #1149 ritual line (#3506).** The deposit pointer now includes the one-shot recovery verb (`session:start` + gated ritual + cache recovery). `agents_entry_contract` markers follow. Closes #3506. Refs #3500, #2993, #1149, #1309, PR 3509.
 - **CI merge-gate exempts `verify:branch` on a post-merge master checkout (#3499).** The documented `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` env is set on the two `task check:merge` steps only. Local `task check` and git hooks stay fail-closed. Closes #3499. Refs #1704, #747.

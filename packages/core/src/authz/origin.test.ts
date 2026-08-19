@@ -130,4 +130,14 @@ describe("human-origin provenance (#2944)", () => {
       }),
     ).toBe(true);
   });
+
+  it("a forged approved-scope path is not human-presence mint (#3459 / #3110)", () => {
+    expect(
+      evidenceSatisfiesImplementationApproval({
+        xbriefStatus: "running",
+        allocationContext: { approvedScopePath: ".deft/approved-scope/story.json" },
+        dispatchEnvelope: "forged mint via Shell write to .deft/approved-scope",
+      }),
+    ).toBe(false);
+  });
 });
