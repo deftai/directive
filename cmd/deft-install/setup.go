@@ -363,6 +363,12 @@ var canonicalGitignoreLines = []string{
 	// per-project, never committed. MUST stay file-specific so the
 	// trackable .deft/core/ framework payload is unaffected.
 	".deft/routing.local.json",
+	// Agent-host working state (#3502) -- MUST equal the `.claude/` entries in
+	// CANONICAL_GITIGNORE_BASELINE (packages/core/src/init-deposit/gitignore.ts).
+	// Selective only: `.claude/settings.json`, `.claude/skills/` and
+	// `.claude/commands/` are managed deposits and must stay trackable.
+	".claude/worktrees/",
+	".claude/settings.local.json",
 	// #3282: default run-summary JSONL at repo root (collectible harness path).
 	".deft-run-summary.json",
 	// Selective vbrief/.eval/* entries -- legacy layout path still deposited for

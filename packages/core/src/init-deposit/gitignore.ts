@@ -39,6 +39,14 @@ export const CANONICAL_GITIGNORE_BASELINE: readonly string[] = [
   ".deft/last-session.json",
   ".deft/occupancy.json",
   ".deft/routing.local.json",
+  // Agent-host working state (#3502). Selective, NEVER blanket `.claude/`:
+  // `.claude/settings.json`, `.claude/skills/` and `.claude/commands/` are
+  // MANAGED DEPOSITS (agent-hooks.ts / skill-discovery-hosts.ts) and must stay
+  // trackable -- same #1144 hybrid rule that forbids blanket `.eval/`.
+  // Un-ignored agent worktrees leave a permanently dirty tree, which refuses
+  // release Step 1 for every consumer that dispatches subagents.
+  ".claude/worktrees/",
+  ".claude/settings.local.json",
   // #3282: opt-in default run-summary JSONL at repo root (collectible; must not dirty trees).
   ".deft-run-summary.json",
   // Temporary test/local kill-switch — must stay untracked (#3039).

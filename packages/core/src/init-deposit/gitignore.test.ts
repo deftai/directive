@@ -384,4 +384,29 @@ describe("init-deposit gitignore projection containment (#2839)", () => {
     // The in-tree victim the symlink pointed at is never diverted-onto.
     expect(readFileSync(victim, "utf8")).toBe("KEEP\n");
   });
+  // #3502: agent-host working state is ignored SELECTIVELY. A blanket
+  // `.claude/` entry would hide `.claude/settings.json`, `.claude/skills/`
+  // and `.claude/commands/` -- managed deposits written by agent-hooks.ts and
+  // skill-discovery-hosts.ts -- which is the same failure the #1144 hybrid
+  // policy forbids for `.eval/` and `.triage-cache/`.
+  it("ignores agent-host working state without blanketing managed .claude deposits", () => {
+    expect(CANONICAL_GITIGNORE_BASELINE).toContain(".claude/worktrees/");
+    expect(CANONICAL_GITIGNORE_BASELINE).toContain(".claude/settings.local.json");
+
+    for (const blanket of [".claude/", ".claude", "/.claude/", "/.claude"]) {
+      expect(CANONICAL_GITIGNORE_BASELINE).not.toContain(blanket);
+    }
+
+    // Managed deposit paths must not be covered by any baseline entry.
+    for (const managed of [
+      ".claude/settings.json",
+      ".claude/skills/foo/SKILL.md",
+      ".claude/commands/bar.md",
+    ]) {
+      const covering = CANONICAL_GITIGNORE_BASELINE.filter((line) =>
+        managed.startsWith(line.replace(/^\//, "")),
+      );
+      expect(covering).toEqual([]);
+    }
+  });
 });
