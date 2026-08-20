@@ -160,7 +160,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=d7c319d80b34 refreshed=2026-08-19T18:43:20Z session=db8e52419d40 -->
+<!-- deft:managed-section v3 sha=17bafad6327d refreshed=2026-08-20T04:24:08Z session=ade3ecef62dc -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -283,7 +283,7 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ## Branch policy & branch verification
 
-! Feature branches — `deft verify:branch`, `deft verify:forward-coverage`, `deft coverage:hotspots`, hooks, `deft check` (#746 / #747) — `.deft/core/scm/github.md` § Branch policy.
+! Feature branches — `deft verify:branch`, `deft verify:forward-coverage` (90% warn-first changed-branch coverage, not the 75 floor, #3514), `deft coverage:hotspots`, hooks, `deft check` (#746 / #747) — `.deft/core/scm/github.md` § Branch policy.
 ! Test placement + scope provenance (#3145) — `deft verify:test-boundary`, `deft verify:scope-provenance`, `deft verify:consumer-check-contract` (docs: `docs/test-boundary.md`, `docs/scope-provenance.md`, `docs/consumer-check-contract.md`); defaults warn-only until authored policy.
 
 ## Branch Policy Disclosure (#746)
