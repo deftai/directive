@@ -355,20 +355,21 @@ describe("hashProductState (#3387)", () => {
     expect(neither.files).toEqual([]);
   });
 
-  it("ignores run-summary telemetry so emit after bank does not miss (#3558)", () => {
+  it("ignores default run-summary telemetry but not other root jsonl (#3558)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-3558-psh-jsonl-"));
     mkdirSync(join(root, "src"), { recursive: true });
     writeFileSync(join(root, "src", "app.txt"), "v1\n", "utf8");
     const plan = { acceptance: { commands: [{ command: "true" }] } };
     const first = hashProductState({ projectRoot: root, plan });
     writeFileSync(join(root, ".deft-run-summary.json"), "{}\n", "utf8");
-    writeFileSync(join(root, "summary.jsonl"), "{}\n", "utf8");
-    const second = hashProductState({ projectRoot: root, plan });
+    const afterTelemetry = hashProductState({ projectRoot: root, plan });
     expect(first.complete).toBe(true);
-    expect(second.digest).toBe(first.digest);
-    expect(second.files).toContain("src/app.txt");
-    expect(second.files).not.toContain(".deft-run-summary.json");
-    expect(second.files).not.toContain("summary.jsonl");
+    expect(afterTelemetry.digest).toBe(first.digest);
+    expect(afterTelemetry.files).not.toContain(".deft-run-summary.json");
+    writeFileSync(join(root, "events.jsonl"), "{}\n", "utf8");
+    const afterProductJsonl = hashProductState({ projectRoot: root, plan });
+    expect(afterProductJsonl.digest).not.toBe(first.digest);
+    expect(afterProductJsonl.files).toContain("events.jsonl");
   });
 
   it("includes a nested leading-dot file under a recursive ** scope", () => {

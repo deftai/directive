@@ -7,7 +7,7 @@
 
 import { createHash } from "node:crypto";
 import { existsSync, globSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
-import { join, relative, resolve, sep } from "node:path";
+import { basename, join, relative, resolve, sep } from "node:path";
 import { defaultGitRunner, type GitRunner, gitHead } from "./git.js";
 
 const EXCLUDED_DIR_NAMES = new Set([
@@ -69,10 +69,8 @@ function isExcludedRel(rel: string): boolean {
   if (posix === "." || posix.length === 0) return false;
   const first = posix.split("/")[0] ?? "";
   if (EXCLUDED_DIR_NAMES.has(first)) return true;
-  const base = posix.split("/").pop() ?? "";
+  const base = basename(posix);
   if (EXCLUDED_FILE_NAMES.has(base)) return true;
-  // Root JSONL is run-summary telemetry, not product state.
-  if (!posix.includes("/") && posix.endsWith(".jsonl")) return true;
   return EXCLUDED_PATH_PREFIXES.some(
     (prefix) => posix === prefix.slice(0, -1) || posix.startsWith(prefix),
   );
