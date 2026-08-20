@@ -8,16 +8,21 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { GitRunner } from "../session/git.js";
 import {
+  derivedLifecycleIgnoreProbesFromPatterns,
   displayIgnoreSource,
   evaluateLifecycleVisible,
+  expandGitignoreGlobToConcrete,
   formatLifecycleVisibleSessionLines,
+  ignorePatternLooksLifecycleRelevant,
   indexFlagKind,
   isSelectiveLifecyclePath,
   LIFECYCLE_PROBE_SENTINEL,
   LIFECYCLE_PROBE_SENTINEL_VBRIEF,
+  LIFECYCLE_PROBE_STEM,
   lifecycleIgnoreProbeRelPaths,
   lifecycleRootForRelPath,
   lifecycleRootRelPaths,
+  MAX_DERIVED_LIFECYCLE_IGNORE_PROBES,
   parseCheckIgnoreVerboseLine,
   parseLsFilesVerboseRecord,
 } from "./evaluate.js";
@@ -138,6 +143,45 @@ describe("parsers (#3505)", () => {
       "xbrief/active/",
     );
     expect(lifecycleRootForRelPath("README.md")).toBeNull();
+  });
+
+  it("expands date-range ignore globs into one matching concrete path", () => {
+    expect(expandGitignoreGlobToConcrete("xbrief/pending/2026-06-*.xbrief.json")).toBe(
+      `xbrief/pending/2026-06-${LIFECYCLE_PROBE_STEM}.xbrief.json`,
+    );
+    expect(expandGitignoreGlobToConcrete("2025-*.xbrief.json")).toBe(
+      `2025-${LIFECYCLE_PROBE_STEM}.xbrief.json`,
+    );
+    expect(expandGitignoreGlobToConcrete("xbrief/active/2026-??-??-*.xbrief.json")).toBe(
+      `xbrief/active/2026-00-00-${LIFECYCLE_PROBE_STEM}.xbrief.json`,
+    );
+    expect(expandGitignoreGlobToConcrete("**/2026-07-*.xbrief.json")).toBe(
+      `2026-07-${LIFECYCLE_PROBE_STEM}.xbrief.json`,
+    );
+    expect(expandGitignoreGlobToConcrete("xbrief/pending/202[56]-*.xbrief.json")).toBe(
+      `xbrief/pending/2025-${LIFECYCLE_PROBE_STEM}.xbrief.json`,
+    );
+    expect(expandGitignoreGlobToConcrete("[!]*.xbrief.json")).toBe(
+      `0${LIFECYCLE_PROBE_STEM}.xbrief.json`,
+    );
+    expect(expandGitignoreGlobToConcrete("!xbrief/pending/2026-06-*.xbrief.json")).toBeNull();
+    expect(ignorePatternLooksLifecycleRelevant("xbrief/pending/2026-06-*.xbrief.json")).toBe(true);
+    expect(ignorePatternLooksLifecycleRelevant("2025-*.xbrief.json")).toBe(true);
+    expect(ignorePatternLooksLifecycleRelevant("*.log")).toBe(false);
+    expect(ignorePatternLooksLifecycleRelevant("xbrief/.triage-cache/*.jsonl")).toBe(false);
+  });
+
+  it("derives bounded stage probes from ignore globs instead of extra hard-coded dates", () => {
+    const june = derivedLifecycleIgnoreProbesFromPatterns(["xbrief/pending/2026-06-*.xbrief.json"]);
+    expect(june).toEqual([`xbrief/pending/2026-06-${LIFECYCLE_PROBE_STEM}.xbrief.json`]);
+    const year2025 = derivedLifecycleIgnoreProbesFromPatterns(["2025-*.xbrief.json"]);
+    expect(year2025.every((p) => p.startsWith("xbrief/") && p.endsWith(".xbrief.json"))).toBe(true);
+    expect(year2025).toContain(`xbrief/pending/2025-${LIFECYCLE_PROBE_STEM}.xbrief.json`);
+    expect(year2025).not.toContain(`vbrief/pending/2025-${LIFECYCLE_PROBE_STEM}.xbrief.json`);
+    const many = derivedLifecycleIgnoreProbesFromPatterns(
+      Array.from({ length: 80 }, (_, i) => `xbrief/pending/${i}-*.xbrief.json`),
+    );
+    expect(many).toHaveLength(MAX_DERIVED_LIFECYCLE_IGNORE_PROBES);
   });
 });
 
@@ -450,6 +494,31 @@ describe("evaluateLifecycleVisible with injected git (#3505)", () => {
     expect(result.findings.some((f) => f.path === "xbrief/active/")).toBe(true);
   });
 
+  it("passes a derived month-range probe to check-ignore", () => {
+    const root = freshDir("lv-derived-");
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    writeFileSync(join(root, ".gitignore"), "xbrief/pending/2026-06-*.xbrief.json\n", "utf8");
+    const derived = `xbrief/pending/2026-06-${LIFECYCLE_PROBE_STEM}.xbrief.json`;
+    const result = evaluateLifecycleVisible({
+      projectRoot: root,
+      enforce: true,
+      runGit: fakeGit((_r, args) => {
+        if (args[0] === "check-ignore") {
+          expect(args).toContain(derived);
+          return {
+            code: 0,
+            stdout: `.gitignore:1:xbrief/pending/2026-06-*.xbrief.json\t${derived}`,
+            stderr: "",
+          };
+        }
+        return { code: 0, stdout: "", stderr: "" };
+      }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.findings[0]?.path).toBe("xbrief/pending/");
+    expect(result.findings[0]?.rule).toBe("xbrief/pending/2026-06-*.xbrief.json");
+  });
+
   it("reports a file-only ignore glob via the brief-shaped sentinel", () => {
     const root = freshDir("lv-fileglob-");
     mkdirSync(join(root, "xbrief", "active"), { recursive: true });
@@ -612,6 +681,14 @@ describe("evaluateLifecycleVisible live git fixtures (#3505)", () => {
     ).toBe(true);
   });
 
+  it("does not trip on an unrelated basename glob such as *.log", () => {
+    const root = initLifecycleRepo();
+    writeFileSync(join(root, ".gitignore"), "*.log\n", "utf8");
+    const result = evaluateLifecycleVisible({ projectRoot: root, enforce: true });
+    expect(result.findings).toEqual([]);
+    expect(result.code).toBe(0);
+  });
+
   it("does not trip on deliberate .triage-cache jsonl gitignore entries", () => {
     const root = initLifecycleRepo();
     mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
@@ -658,5 +735,23 @@ describe("evaluateLifecycleVisible live git fixtures (#3505)", () => {
     expect(
       result.findings.some((f) => f.path.startsWith("vbrief/") && f.rule.includes("*.vbrief.json")),
     ).toBe(true);
+  });
+
+  it("reports a month-range glob that misses the fixed 2026-01-01 sentinel", () => {
+    const root = initLifecycleRepo();
+    writeFileSync(join(root, ".gitignore"), "xbrief/pending/2026-06-*.xbrief.json\n", "utf8");
+    const result = evaluateLifecycleVisible({ projectRoot: root, enforce: true });
+    expect(result.code).toBe(1);
+    expect(
+      result.findings.some((f) => f.path === "xbrief/pending/" && f.rule.includes("2026-06-")),
+    ).toBe(true);
+  });
+
+  it("reports a year-prefixed glob that is not 2026", () => {
+    const root = initLifecycleRepo();
+    writeFileSync(join(root, ".git", "info", "exclude"), "2025-*.xbrief.json\n", "utf8");
+    const result = evaluateLifecycleVisible({ projectRoot: root, enforce: true });
+    expect(result.code).toBe(1);
+    expect(result.findings.some((f) => f.rule.includes("2025-"))).toBe(true);
   });
 });
