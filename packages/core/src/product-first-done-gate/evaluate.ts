@@ -10,7 +10,11 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { basename, isAbsolute, relative, resolve } from "node:path";
-import { emitAcceptanceStampFromPlan } from "../intake/clause-derivation.js";
+import {
+  emitAcceptanceStampFromPlan,
+  MISSING_AMBIGUITY_ATTESTATION_CAUSE,
+  stampedAmbiguityAttestationError,
+} from "../intake/clause-derivation.js";
 import {
   appendLiteralAcceptanceAdvisory,
   type EvaluateLiteralAcceptanceOptions,
@@ -74,6 +78,8 @@ export interface VerifyAcResult extends LiteralAcceptanceGateResult {
   readonly clauseWalked?: boolean;
   /** How the result was obtained (#3387). */
   readonly servedFrom?: AcServedFrom;
+  /** Config-error cause when resolution is config (#3559). */
+  readonly cause?: string;
 }
 
 export interface EvaluateVerifyAcOptions extends EvaluateLiteralAcceptanceOptions {
@@ -298,6 +304,31 @@ export function evaluateVerifyAcFromPlan(
   }
 
   const projectRoot = resolve(optionsWithScope.projectRoot ?? process.cwd());
+
+  const attestationError = stampedAmbiguityAttestationError(
+    optionsWithScope.observedAcceptance !== undefined
+      ? optionsWithScope.observedAcceptance
+      : plan.acceptance,
+  );
+  if (attestationError !== null) {
+    return applyOracle(
+      {
+        ok: false,
+        code: 2,
+        message: optionsWithScope.quiet === true ? "" : attestationError.message,
+        commands: [],
+        runs: [],
+        sourceRung: acceptance.source_rung,
+        noneStated: acceptance.none_stated,
+        acceptance,
+        resolution: "config",
+        resolvedCommandCount: 0,
+        cause: attestationError.cause ?? MISSING_AMBIGUITY_ATTESTATION_CAUSE,
+      },
+      optionsWithScope,
+      plan,
+    );
+  }
 
   const reused = tryReuseVerifyAc(plan, acceptance, optionsWithScope, projectRoot);
   if (reused !== null) {
@@ -546,6 +577,7 @@ function emitAcceptanceOutcome(
         outcome: row.outcome,
       })),
       served_from: result.servedFrom ?? "executed",
+      ...(result.cause !== undefined ? { cause: result.cause } : {}),
     });
   } catch {
     // fail-open

@@ -661,6 +661,7 @@ describe("scope:complete acceptance parity with verify:ac (#3497)", () => {
         commands: [{ command: "pnpm exec vitest run packages/core/src/swarm/" }],
         none_stated: false,
         source_rung: "derived",
+        ambiguity_attestation: "none_found",
         clauses: unverifiableClauses,
         ...acceptanceExtras,
       },
@@ -712,6 +713,7 @@ describe("scope:complete acceptance parity with verify:ac (#3497)", () => {
           commands: [{ command: "pnpm --version" }],
           none_stated: false,
           source_rung: "derived",
+          ambiguity_attestation: "none_found",
           clauses: unverifiableClauses,
         },
         metadata: {

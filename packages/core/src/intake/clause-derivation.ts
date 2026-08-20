@@ -41,11 +41,16 @@ export interface ClauseStampPreparation {
   readonly remediation?: string;
 }
 
+export const MISSING_AMBIGUITY_ATTESTATION_CAUSE = "missing_ambiguity_attestation" as const;
+export const AMBIGUITY_ATTESTATION_REMEDIATION = "record ambiguity readings or attest none_found";
+
 export interface AmbiguityAttestationCheck {
   readonly ok: boolean;
   readonly attested: boolean;
   readonly kind: "ambiguous-clause" | "none_found" | "missing";
   readonly message: string;
+  readonly cause?: typeof MISSING_AMBIGUITY_ATTESTATION_CAUSE;
+  readonly remediation?: string;
 }
 
 const NARRATIVE_KEYS = [
@@ -228,14 +233,24 @@ export function prepareClauseStamp(
   };
 }
 
-const AMBIGUITY_ATTESTATION_MISSING =
-  "verify:ac config error: missing ambiguity attestation; record at least one ambiguous: true clause with readings, or set ambiguity_attestation: none_found";
+const AMBIGUITY_ATTESTATION_MISSING = `verify:ac config error: missing ambiguity attestation; ${AMBIGUITY_ATTESTATION_REMEDIATION}`;
+
+function missingAttestationCheck(): AmbiguityAttestationCheck {
+  return {
+    ok: false,
+    attested: false,
+    kind: "missing",
+    message: AMBIGUITY_ATTESTATION_MISSING,
+    cause: MISSING_AMBIGUITY_ATTESTATION_CAUSE,
+    remediation: AMBIGUITY_ATTESTATION_REMEDIATION,
+  };
+}
 
 /** Config-error surface for verify:ac: attestation or an ambiguous clause with readings. */
 export function evaluateAmbiguityAttestation(acceptance: unknown): AmbiguityAttestationCheck {
   const rec = asRecord(acceptance);
   if (rec === null) {
-    return { ok: false, attested: false, kind: "missing", message: AMBIGUITY_ATTESTATION_MISSING };
+    return missingAttestationCheck();
   }
   const clauses = readAcceptanceClauses(rec);
   if (clauses.some(hasAmbiguousReadings)) {
@@ -244,7 +259,25 @@ export function evaluateAmbiguityAttestation(acceptance: unknown): AmbiguityAtte
   if (rec.ambiguity_attestation === "none_found") {
     return { ok: true, attested: true, kind: "none_found", message: "" };
   }
-  return { ok: false, attested: false, kind: "missing", message: AMBIGUITY_ATTESTATION_MISSING };
+  return missingAttestationCheck();
+}
+
+/**
+ * Fail-closed check for a *stamped* plan.acceptance (#3559).
+ * Command-only / empty floor blocks are not stamps; they keep the empty-resolution path.
+ */
+export function stampedAmbiguityAttestationError(
+  acceptance: unknown,
+): AmbiguityAttestationCheck | null {
+  const rec = asRecord(acceptance);
+  if (rec === null) {
+    return null;
+  }
+  if (readAcceptanceClauses(rec).length === 0) {
+    return null;
+  }
+  const check = evaluateAmbiguityAttestation(rec);
+  return check.ok ? null : check;
 }
 
 function serializeTracedClauses(

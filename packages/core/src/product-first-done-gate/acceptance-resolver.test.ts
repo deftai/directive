@@ -193,6 +193,7 @@ describe("verify:ac message agrees with its verdict (#3497)", () => {
           commands: [{ command: "pnpm exec vitest run packages/core/src/swarm/" }],
           none_stated: false,
           source_rung: "derived",
+          ambiguity_attestation: "none_found",
           clauses: [
             {
               id: 1,

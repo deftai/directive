@@ -168,6 +168,8 @@ export interface AcceptanceRunSummaryPayload {
   readonly clause_outcomes?: readonly AcceptanceClauseOutcomeRow[];
   /** bank | cache | executed — how verify:ac obtained this result (#3387). */
   readonly served_from?: "bank" | "cache" | "executed";
+  /** Config-error cause when outcome is config-error (#3559). */
+  readonly cause?: string;
 }
 
 /** Intake-time stamp: which rung locked, whether commands were stated, counts (#3323). */

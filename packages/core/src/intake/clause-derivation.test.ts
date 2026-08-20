@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ENV_RUN_SUMMARY_PATH } from "../run-summary/index.js";
 import {
+  AMBIGUITY_ATTESTATION_REMEDIATION,
   acceptanceFingerprint,
   applyClauseDerivationToPlan,
   applyClauseQualityForIngest,
@@ -13,9 +14,11 @@ import {
   emitAcceptanceStampFromPlan,
   evaluateAmbiguityAttestation,
   isMaterialAcceptanceChange,
+  MISSING_AMBIGUITY_ATTESTATION_CAUSE,
   maybeEmitAcceptanceStampFromChange,
   needsClauseDerivation,
   prepareClauseStamp,
+  stampedAmbiguityAttestationError,
   traceClauseProvenance,
 } from "./clause-derivation.js";
 
@@ -445,9 +448,33 @@ describe("ambiguity attestation (#3398)", () => {
     });
     expect(check.ok).toBe(false);
     expect(check.kind).toBe("missing");
+    expect(check.cause).toBe(MISSING_AMBIGUITY_ATTESTATION_CAUSE);
+    expect(check.remediation).toBe(AMBIGUITY_ATTESTATION_REMEDIATION);
     expect(check.message).toMatch(/config error/);
+    expect(check.message).toContain(AMBIGUITY_ATTESTATION_REMEDIATION);
     expect(evaluateAmbiguityAttestation(null).kind).toBe("missing");
+    expect(evaluateAmbiguityAttestation(null).cause).toBe(MISSING_AMBIGUITY_ATTESTATION_CAUSE);
     expect(evaluateAmbiguityAttestation("nope").ok).toBe(false);
+  });
+
+  it("treats only clause stamps as attestation config errors", () => {
+    expect(stampedAmbiguityAttestationError({ commands: [], none_stated: true })).toBeNull();
+    expect(stampedAmbiguityAttestationError(null)).toBeNull();
+    const missing = stampedAmbiguityAttestationError({
+      commands: [],
+      none_stated: true,
+      clauses: [{ id: 1, text: "ship the product", artifact_path: null, ambiguous: false }],
+    });
+    expect(missing?.ok).toBe(false);
+    expect(missing?.cause).toBe(MISSING_AMBIGUITY_ATTESTATION_CAUSE);
+    expect(
+      stampedAmbiguityAttestationError({
+        commands: [],
+        none_stated: true,
+        ambiguity_attestation: "none_found",
+        clauses: [{ id: 1, text: "ship the product", artifact_path: null, ambiguous: false }],
+      }),
+    ).toBeNull();
   });
 
   it("accepts an ambiguous clause with readings as the attestation", () => {
