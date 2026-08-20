@@ -86,6 +86,24 @@ describe("test_probe_skill", () => {
     expect(text).toContain("deft-directive-probe/SKILL.md");
     const missing = _REQUIRED_TRIGGERS.filter((t) => !text.includes(t));
     expect(missing.length).toBe(0);
+    const probeRow = text
+      .split("\n")
+      .find((line) => line.includes("deft-directive-probe/SKILL.md"));
+    expect(probeRow).toBeDefined();
+    expect(probeRow).toContain("deft probe-session");
+    expect(probeRow?.toLowerCase()).not.toContain("task probe");
+  });
+  it("probe_skill_waiver_keeps_no_artifact_guard_without_cli_must", () => {
+    const text = readRepoFile(_PROBE_PATH);
+    expect(text).toMatch(/Waiver[\s\S]*#3556/);
+    expect(text.includes("No-Artifact Guard") || text.toLowerCase().includes("no-artifact")).toBe(
+      true,
+    );
+    const mustLines = text.split("\n").filter((line) => line.includes("deft probe-session"));
+    expect(mustLines.length).toBeGreaterThan(0);
+    for (const line of mustLines) {
+      expect(line).not.toMatch(/^\s*- !/);
+    }
   });
   it("probe_skill_exit_block_present", () => {
     const text = readRepoFile(_PROBE_PATH);

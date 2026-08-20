@@ -18,6 +18,12 @@ export type ProbeState = typeof STATE_INTERROGATE | typeof STATE_COMPLETE;
 
 export const VALID_DECISION_STATUSES = new Set(["locked", "deferred", "risk-accepted"]);
 
+/** Live CLI teach-string (#3556). The Python helper was deleted. */
+const PROBE_SESSION_START = "`deft probe-session start --target <scope>`";
+const PROBE_SESSION_RECORD = "`deft probe-session record ...`";
+const PROBE_SESSION_COMPLETE = "`deft probe-session complete`";
+const NO_SESSION_START = `No active probe session. Start one with ${PROBE_SESSION_START}.`;
+
 export class ProbeHandoffBlockedError extends Error {
   readonly session: ProbeSession | null;
 
@@ -296,9 +302,7 @@ export function recordDecision(
 ): ProbeSession {
   const session = readSession(projectRoot);
   if (session === null) {
-    throw new ProbeHandoffBlockedError(
-      "No active probe session. Start one with `uv run python scripts/probe_session.py start --target <scope>`.",
-    );
+    throw new ProbeHandoffBlockedError(NO_SESSION_START);
   }
   if (session.state !== STATE_INTERROGATE) {
     throw new ProbeHandoffBlockedError(
@@ -330,9 +334,7 @@ export function recordDecision(
 export function setCurrentBranch(projectRoot: string, branch: string): ProbeSession {
   const session = readSession(projectRoot);
   if (session === null) {
-    throw new ProbeHandoffBlockedError(
-      "No active probe session. Start one with `uv run python scripts/probe_session.py start --target <scope>`.",
-    );
+    throw new ProbeHandoffBlockedError(NO_SESSION_START);
   }
   if (session.state !== STATE_INTERROGATE) {
     throw new ProbeHandoffBlockedError(
@@ -348,9 +350,7 @@ export function setCurrentBranch(projectRoot: string, branch: string): ProbeSess
 export function markComplete(projectRoot: string, now?: Date): ProbeSession {
   const session = readSession(projectRoot);
   if (session === null) {
-    throw new ProbeHandoffBlockedError(
-      "No active probe session. Start one with `uv run python scripts/probe_session.py start --target <scope>`.",
-    );
+    throw new ProbeHandoffBlockedError(NO_SESSION_START);
   }
   if (session.state === STATE_COMPLETE) {
     return session;
@@ -373,7 +373,7 @@ function blockedMessage(session: ProbeSession | null, action: string): string {
   if (session === null) {
     return (
       `Probe handoff blocked for ${action}: no active probe session. ` +
-      "Start interrogation with `uv run python scripts/probe_session.py start --target <scope>` " +
+      `Start interrogation with ${PROBE_SESSION_START} ` +
       "and finish with `... complete` only after transition criteria are met."
     );
   }
@@ -383,9 +383,9 @@ function blockedMessage(session: ProbeSession | null, action: string): string {
     `currentBranch=${pythonRepr(session.current_branch)}, ` +
     `resolvedDecisions=${session.resolved_decisions.length}). ` +
     "Continue interrogation until transition criteria are met, record decisions " +
-    "with `uv run python scripts/probe_session.py record ...`, then run " +
-    "`uv run python scripts/probe_session.py complete` before writing artifacts " +
-    "or updating completedStrategies.probe in plan.vbrief.json."
+    `with ${PROBE_SESSION_RECORD}, then run ` +
+    `${PROBE_SESSION_COMPLETE} before writing artifacts ` +
+    "or updating completedStrategies.probe in plan.xbrief.json."
   );
 }
 
@@ -404,7 +404,7 @@ export function guardProbeArtifact(projectRoot: string, artifactPath: string): P
 export function guardPlanProbeRegistration(projectRoot: string): ProbeSession {
   return requireHandoffAllowed(
     projectRoot,
-    "completedStrategies.probe registration in plan.vbrief.json",
+    "completedStrategies.probe registration in plan.xbrief.json",
   );
 }
 

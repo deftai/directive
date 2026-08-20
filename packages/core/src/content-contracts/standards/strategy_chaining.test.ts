@@ -198,7 +198,9 @@ describe("test_strategy_chaining.py", () => {
   describe("TestProbeMechanicalGuard", () => {
     const text = readText("strategies/probe.md");
     it("test_probe_strategy_documents_mechanical_guard_module", () => {
-      expect(text).toContain("scripts/probe_session.py");
+      expect(text).not.toContain("scripts/probe_session.py");
+      expect(text).not.toContain("uv run python");
+      expect(text).toContain("deft probe-session");
       expect(
         text.includes("Mechanical guard") || text.toLowerCase().includes("mechanical guard"),
       ).toBe(true);
@@ -212,11 +214,26 @@ describe("test_strategy_chaining.py", () => {
       expect(text).toContain("guard-artifact");
       expect(text).toContain("guard-plan-registration");
       expect(text).toContain("completedStrategies.probe");
+      expect(text).toContain("xbrief/proposed/{scope}-probe.xbrief.json");
+      expect(text).toContain("deft probe-session guard-artifact");
     });
     it("test_probe_strategy_documents_recovery_path", () => {
       expect(text.includes("Recovery") || text.toLowerCase().includes("recovery")).toBe(true);
-      expect(text).toContain("probe_session.py complete");
+      expect(text).toContain("deft probe-session complete");
       expect(text.toLowerCase()).toContain("transition criteria");
+    });
+    it("test_probe_strategy_live_contract_xbrief_and_waiver", () => {
+      expect(text).toMatch(/Waiver[\s\S]*#3556/);
+      expect(text).toContain("xbrief/plan.xbrief.json");
+      expect(text).not.toContain("vbrief/proposed/{scope}-probe");
+      const pack = JSON.parse(readText("packs/strategies/strategies-pack-0.1.json")) as {
+        strategies: Array<{ id: string; body: string }>;
+      };
+      const probe = pack.strategies.find((s) => s.id === "probe");
+      expect(probe).toBeDefined();
+      expect(probe?.body).not.toContain("scripts/probe_session.py");
+      expect(probe?.body).toContain("deft probe-session");
+      expect(probe?.body).toContain("xbrief/proposed/{scope}-probe.xbrief.json");
     });
   });
 });

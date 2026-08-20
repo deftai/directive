@@ -43,6 +43,8 @@ While probe completion criteria (below) are NOT met:
 
 ! Read existing context and interrogate only — artifacts land in the Output phase after completion.
 
+**Waiver (#3556):** This skill keeps the no-artifact guard and does not require `deft probe-session`. The probe strategy names `deft probe-session`. Silence is not agreement.
+
 ## Workflow
 
 ### Step 1: Establish the plan

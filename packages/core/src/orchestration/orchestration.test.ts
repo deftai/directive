@@ -17,6 +17,7 @@ import {
   parseProbeSessionArgs,
   readSession,
   recordDecision,
+  requireHandoffAllowed,
   STATE_COMPLETE,
   STATE_INTERROGATE,
   setCurrentBranch,
@@ -202,6 +203,55 @@ describe("subagent-monitor", () => {
 });
 
 describe("probe-session", () => {
+  it("error strings teach deft probe-session not the deleted python file", () => {
+    const root = mkdtempSync(join(tmpdir(), "probe-teach-"));
+    const assertLiveCli = (err: unknown) => {
+      expect(err).toBeInstanceOf(ProbeHandoffBlockedError);
+      const message = err instanceof Error ? err.message : String(err);
+      expect(message).toContain("deft probe-session");
+      expect(message).not.toContain("probe_session.py");
+      expect(message).not.toContain("uv run python");
+    };
+    try {
+      recordDecision(root, { question: "Q?", answer: "A.", status: "locked" });
+      expect.fail("expected ProbeHandoffBlockedError");
+    } catch (err) {
+      assertLiveCli(err);
+    }
+    try {
+      setCurrentBranch(root, "tokens");
+      expect.fail("expected ProbeHandoffBlockedError");
+    } catch (err) {
+      assertLiveCli(err);
+    }
+    try {
+      markComplete(root);
+      expect.fail("expected ProbeHandoffBlockedError");
+    } catch (err) {
+      assertLiveCli(err);
+    }
+    try {
+      requireHandoffAllowed(root, "guard-artifact");
+      expect.fail("expected ProbeHandoffBlockedError");
+    } catch (err) {
+      assertLiveCli(err);
+      const message = err instanceof Error ? err.message : String(err);
+      expect(message).toContain("deft probe-session start");
+      expect(message).toContain("complete");
+    }
+    startSession(root, { target: "auth-probe", currentBranch: "main" });
+    try {
+      requireHandoffAllowed(root, "guard-plan-registration");
+      expect.fail("expected ProbeHandoffBlockedError");
+    } catch (err) {
+      assertLiveCli(err);
+      const message = err instanceof Error ? err.message : String(err);
+      expect(message).toContain("deft probe-session record");
+      expect(message).toContain("deft probe-session complete");
+    }
+    rmSync(root, { recursive: true, force: true });
+  });
+
   it("blocks artifact handoff until complete", () => {
     const root = mkdtempSync(join(tmpdir(), "probe-"));
     startSession(root, {
