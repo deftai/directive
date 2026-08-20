@@ -1,0 +1,152 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3504",
+    "updated": "2026-08-20T03:59:09Z"
+  },
+  "plan": {
+    "title": "bug(lifecycle): .git/info/exclude blanket-hides xbrief/active/ on this clone — lifecycle artifacts silently untrackable",
+    "status": "completed",
+    "narratives": {
+      "Description": "This clone's .git/info/exclude blanket-hides xbrief/active/ so lifecycle artifacts cannot be committed without -f. The issue is operator-local, not a product change. Prevention detector is #3505. This story removes the bad exclude lines, keeps legitimate scratch entries, and records evidence.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3504",
+      "Overview": "## Summary\n\n`.git/info/exclude` on the `deftai/directive` maintainer clone contains a bare **`xbrief/active/`** line. Every xBRIEF in `active/` is therefore invisible to git on that machine — `git add -A` silently skips them, `git status` never shows them, and no lifecycle artifact created there can be committed without `-f`.\n\n`.git/info/exclude` is per-clone and never committed, so this machine's lifecycle behaviour silently diverges from every other maintainer's.\n\n## Evidence\n\n```\n$ git check-ignore -v xbrief/active/2026-08-19-3502-....xbrief.json\n.git/info/exclude:33:xbrief/active/\txbrief/active/2026-08-19-3502-....xbrief.json\n```\n\nThe file holds two distinct populations:\n\n| Entries | Assessment |\n|---|---|\n| `WORKER-PROMPT.md`, `DESIGN-NOTE-3214-1581-ordering.md`, `allocation-context-3205.md` | **Legitimate.** Personal scratch notes — exactly what `.git/info/exclude` is for. |\n| Eight individually-named briefs dated 2026-08-07 → 2026-08-09, plus the bare `xbrief/active/` line | **Problematic.** Lifecycle artifacts. |\n\n## This is not a convention\n\nActive briefs are shared, tracked artifacts:\n\n- **406 commits** have touched `xbrief/active/*`\n- **543 distinct active brief paths** have been committed historically\n- #1358's recurrence record is literally *\"An uncommitted lifecycle record is invisible to every other clone and re-surfaces as lifecycle-sync drift at the next release\"*\n- `verify:orphan-active`, `verify:completed-tracked` (#3264 / #3476) and the Phase 6 Step 2b sweep all read **tracked** artifacts\n- A parent cannot monitor leaves whose briefs it cannot see — the swarm design assumes shared visibility\n\nIf per-maintainer suppression were intended policy it would live in `.gitignore`, where everyone gets it, not in a per-clone file that changes behaviour between machines.\n\nThe shape suggests escalation rather than policy: briefs excluded one at a time during a busy 3-day cohort, then the folder blanketed. That is inference — `.git/info/exclude` has no history — but the narrow date range and the ordering fit it.\n\n## Observed consequences\n\n- The #3502 brief was silently skipped by `git add -A` while committing its own PR.\n- The #3476 brief \"was never tracked on master\" — it could not be.\n- It materially amends **#3495**: that issue concluded the lifecycle gates are blind to *unscoped* work. On this clone, *scoped* work was also being made invisible before any gate ran.\n- The #3476 invariant — untracked completed residue is not land — is defeatable on this machine before the gate executes.\n\n## Remediation (operator-local; not a code change)\n\nRemove the `xbrief/active/` line and the eight brief entries from `.git/info/exclude`. Keep the three scratch-note lines.\n\nPrevention is tracked separately — see the companion detector issue.\n\nRefs #3495, #3476, #3264, #1358, #1396\n\n",
+      "Labels": "bug, determinism",
+      "UserStory": "As a maintainer, I want xbrief/active visible to git on this clone, so that lifecycle briefs can be committed without force-add.",
+      "ImplementationPlan": "1. Edit the exclude file at .git/info/exclude: remove the bare xbrief/active/ line and any individually named active-brief entries; keep WORKER-PROMPT.md, DESIGN-NOTE-3214-1581-ordering.md, and allocation-context-3205.md.\n2. Verify with git check-ignore -v that an active brief is no longer ignored, comment evidence on #3504, and close the issue. Do not build the #3505 detector."
+    },
+    "items": [
+      {
+        "title": "Blanket exclude line removed",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When git check-ignore -v runs against a file under xbrief/active/, it no longer reports .git/info/exclude matching the bare xbrief/active/ rule."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "git check-ignore -v xbrief/active/2026-08-20-3504-buglifecycle-gitinfoexclude-blanket-hides-xbriefactive-on-th.xbrief.json -> exit 1 empty stdout (was .git/info/exclude:19:xbrief/active/)",
+          "recorded_at": "2026-08-20T03:56:20Z",
+          "recorded_by": "swarm-leaf-3504"
+        }
+      },
+      {
+        "title": "Scratch notes stay excluded",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When git check-ignore -v runs against WORKER-PROMPT.md, DESIGN-NOTE-3214-1581-ordering.md, and allocation-context-3205.md, those scratch notes remain excluded."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "git check-ignore -v allocation-context-3205.md WORKER-PROMPT.md DESIGN-NOTE-3214-1581-ordering.md still match .git/info/exclude",
+          "recorded_at": "2026-08-20T03:56:20Z",
+          "recorded_by": "swarm-leaf-3504"
+        }
+      },
+      {
+        "title": "Evidence posted and issue closed",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When the remediation is done, issue #3504 has a comment with check-ignore evidence and the issue is closed."
+        },
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "https://github.com/deftai/directive/issues/3504#issuecomment-5351154213 ; issue state=closed closed_at=2026-08-20T03:55:17Z",
+          "recorded_at": "2026-08-20T03:56:20Z",
+          "recorded_by": "swarm-leaf-3504"
+        }
+      },
+      {
+        "title": "Do not duplicate the detector",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When this story finishes, it has not implemented verify:lifecycle-visible; that remains #3505."
+        },
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "no verify:lifecycle-visible implementation; detector remains #3505; packages/core/src authz/policy/lifecycle-visible untouched",
+          "recorded_at": "2026-08-20T03:56:20Z",
+          "recorded_by": "swarm-leaf-3504"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "determinism"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3504",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3504: bug(lifecycle): .git/info/exclude blanket-hides xbrief/active/ on this clone — lifecycle artifacts silently untrackable"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3495",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3495"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "git check-ignore -v xbrief/active/2026-08-19-3502-....xbrief.json",
+          "reason": "first token \"git\" is not in the literal-AC allowlist",
+          "sourceSpan": "fence@L11"
+        },
+        {
+          "command": ".git/info/exclude:33:xbrief/active/\txbrief/active/2026-08-19-3502-....xbrief.json",
+          "reason": "path-like first token is not allowlisted",
+          "sourceSpan": "fence@L11"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/docs/xbrief-lifecycle-visibility.md"
+        ],
+        "verify_commands": [],
+        "expected_outputs": [
+          "check-ignore no longer matches xbrief/active/; scratch notes still match"
+        ],
+        "depends_on": [],
+        "conflict_group": "exclude-3504",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Issue-ingested local remediation; FR traces live in GitHub #3504."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": null,
+        "prBase": null,
+        "mergeCommit": null,
+        "deliveryBranch": "master",
+        "deliveryCommit": null,
+        "verifiedAt": "2026-08-20T03:59:09Z",
+        "verifier": "scope:complete",
+        "disposition": "accepted_not_delivered",
+        "handoffState": "implemented",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "acccb0a3-54f2-4bb3-bae0-b30d6496b1f9"
+      },
+      "deliveryDisposition": "accepted_not_delivered",
+      "handoffState": "implemented",
+      "completedAt": "2026-08-20T03:59:09Z",
+      "completedSessionId": "acccb0a3-54f2-4bb3-bae0-b30d6496b1f9",
+      "capacityBucket": "technical-debt"
+    },
+    "updated": "2026-08-20T03:59:09Z",
+    "id": "2026-08-20-3504-buglifecycle-gitinfoexclude-blanket-hides-xbriefactive-on-th"
+  }
+}

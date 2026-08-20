@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Gated `cache_fresh` skips the live drift probe only when no work selection is in play (#3507).** The gated argv is no longer a constant `verify:cache-fresh` with missing `--for-issue` as a fake discriminator. An explicit `--work-selection` / `--skip-drift-probe` flag is threaded from active story xBRIEF, unexhausted plan-sequence, or an injectable detector. Age staleness stays hard. Ritual state records `drift_probe: skipped-no-work-selection` as a distinct field, never `deferred_reason`. The probe re-arms when work selection appears. Closes #3507. Refs #3500, #1149, #3214, #1886.
+- **Land leftover completed-tracked artifact for #3504 (#3264 / #1358).** The #3504 xBRIEF stayed untracked after the operator-local `.git/info/exclude` remediation and issue close. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #3507 (#3264 / #1358).** The #3507 xBRIEF stayed untracked after squash of PR 3535. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #3527 (#3264 / #1358).** The #3527 xBRIEF stayed untracked after squash of PR 3531. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
 
