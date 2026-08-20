@@ -7,10 +7,58 @@ export type ChangedLineMap = Map<string, Set<number>>;
 
 const HUNK_RE = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/;
 
+/** Decode a Git C-quoted path (`"foo\\tbar"` → `foo\tbar`). */
+export function unescapeGitQuotedPath(raw: string): string {
+  const s = raw.trim();
+  if (!(s.startsWith('"') && s.endsWith('"') && s.length >= 2)) {
+    return s;
+  }
+  const inner = s.slice(1, -1);
+  let out = "";
+  for (let i = 0; i < inner.length; i += 1) {
+    const ch = inner[i];
+    if (ch !== "\\") {
+      out += ch;
+      continue;
+    }
+    const next = inner[i + 1];
+    if (next === undefined) {
+      out += "\\";
+      break;
+    }
+    i += 1;
+    if (next === "n") {
+      out += "\n";
+    } else if (next === "t") {
+      out += "\t";
+    } else if (next === "r") {
+      out += "\r";
+    } else if (next === "\\" || next === '"') {
+      out += next;
+    } else if (next >= "0" && next <= "7") {
+      let oct = next;
+      const a = inner[i + 1];
+      const b = inner[i + 2];
+      if (a !== undefined && a >= "0" && a <= "7") {
+        oct += a;
+        i += 1;
+        if (b !== undefined && b >= "0" && b <= "7") {
+          oct += b;
+          i += 1;
+        }
+      }
+      out += String.fromCharCode(Number.parseInt(oct, 8));
+    } else {
+      out += next;
+    }
+  }
+  return out;
+}
+
 /** Strip git `a/` `b/` prefixes and quotes from a `+++` path. */
 export function stripGitDiffPath(raw: string): string {
-  let s = raw.trim();
-  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+  let s = unescapeGitQuotedPath(raw.trim());
+  if (s.startsWith("'") && s.endsWith("'") && s.length >= 2) {
     s = s.slice(1, -1);
   }
   const prefixed = /^[abiwc]\/(.*)$/.exec(s);

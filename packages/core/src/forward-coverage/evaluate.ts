@@ -263,13 +263,14 @@ function mergeChangedLines(into: ChangedLineMap, from: ChangedLineMap): void {
 }
 
 /**
- * Added and modified new-file line numbers in the diff scope.
- * Untracked files in head mode count as fully added.
+ * Added, modified, and renamed new-file line numbers in the diff scope.
+ * Untracked files in head mode count as fully added. Rename-classified
+ * edits (`--diff-filter=AMR`) still contribute their added lines.
  */
 function changedLinesByFile(projectRoot: string, mode: ForwardCoverageMode): ChangedLineMap {
   const maps: ChangedLineMap = new Map();
   if (mode === "staged") {
-    const diff = git(["diff", "--cached", "-U0", "--diff-filter=AM", "--no-color"], projectRoot);
+    const diff = git(["diff", "--cached", "-U0", "--diff-filter=AMR", "--no-color"], projectRoot);
     if (diff.status === 0) {
       mergeChangedLines(maps, parseUnifiedDiffAddedLines(diff.stdout));
     }
@@ -277,7 +278,7 @@ function changedLinesByFile(projectRoot: string, mode: ForwardCoverageMode): Cha
   }
   const hasHead = git(["rev-parse", "--verify", "-q", "HEAD"], projectRoot).status === 0;
   if (hasHead) {
-    const diff = git(["diff", "-U0", "--diff-filter=AM", "--no-color", "HEAD"], projectRoot);
+    const diff = git(["diff", "-U0", "--diff-filter=AMR", "--no-color", "HEAD"], projectRoot);
     if (diff.status === 0) {
       mergeChangedLines(maps, parseUnifiedDiffAddedLines(diff.stdout));
     }

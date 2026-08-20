@@ -283,6 +283,45 @@ describe("evaluateForwardCoverage", () => {
     expect(result.missing.map((m) => m.path)).toEqual(["src/foo.ts"]);
   });
 
+  it("reports uncovered branches on a renamed and edited source file", () => {
+    const root = buildRepo({
+      "src/old.ts": "export const foo = 1;\n",
+      "src/old.test.ts": "import { foo } from './old';\n",
+    });
+    stage(root);
+    execFileSync("git", ["commit", "-q", "-m", "seed"], { cwd: root });
+    execFileSync("git", ["mv", "src/old.ts", "src/new.ts"], { cwd: root });
+    writeFileSync(
+      join(root, "src/new.ts"),
+      "export const foo = 1;\nexport const bar = true ? 1 : 0;\n",
+    );
+    stage(root);
+    mkdirSync(join(root, "coverage"), { recursive: true });
+    writeFileSync(
+      join(root, "coverage", "coverage-final.json"),
+      JSON.stringify({
+        "src/new.ts": {
+          path: "src/new.ts",
+          b: { "0": [1, 0] },
+          branchMap: {
+            "0": {
+              type: "cond-expr",
+              line: 2,
+              loc: { start: { line: 2 } },
+              locations: [{ start: { line: 2 } }, { start: { line: 2 } }],
+            },
+          },
+        },
+      }),
+      "utf8",
+    );
+    const result = evaluateForwardCoverage(root, { mode: "staged", enforceDiffCoverage: true });
+    expect(result.exitCode).toBe(1);
+    expect(result.diffCoverage?.uncovered.map((u) => `${u.path}:${u.line}`)).toEqual([
+      "src/new.ts:2",
+    ]);
+  });
+
   it("does not report uncovered branches on unchanged lines of a modified file", () => {
     const root = buildRepo({
       "src/foo.ts": "export const foo = true ? 1 : 0;\nexport const keep = 1;\n",

@@ -4,6 +4,7 @@ import {
   countFileLines,
   parseUnifiedDiffAddedLines,
   stripGitDiffPath,
+  unescapeGitQuotedPath,
 } from "./diff-lines.js";
 
 describe("stripGitDiffPath", () => {
@@ -13,6 +14,12 @@ describe("stripGitDiffPath", () => {
 
   it("strips quoted git paths", () => {
     expect(stripGitDiffPath('"b/src/foo.ts"')).toBe("src/foo.ts");
+  });
+
+  it("decodes Git C-quoted escapes before matching coverage paths", () => {
+    expect(unescapeGitQuotedPath('"b/src/foo\\tbar.ts"')).toBe("b/src/foo\tbar.ts");
+    expect(stripGitDiffPath('"b/src/foo\\tbar.ts"')).toBe("src/foo\tbar.ts");
+    expect(stripGitDiffPath('"b/src/weird\\"name.ts"')).toBe('src/weird"name.ts');
   });
 
   it("leaves unprefixed paths intact", () => {
