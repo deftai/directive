@@ -1499,3 +1499,150 @@ describe("UAT residual dest-form writers fail-closed (#3459)", () => {
     }
   });
 });
+
+describe("UAT residual dest-form writers fail-closed (#3545)", () => {
+  function uatSeams() {
+    const state = activeUatState();
+    return readySeams({
+      loadAuthzState: () => state,
+      loadAuthzGrants: () => [],
+      loadRuntimeAuthority: () => ({
+        enabled: false,
+        allowPaths: [],
+        denyPaths: [],
+        scopes: { edits: true, push: true, merge: true },
+      }),
+    });
+  }
+
+  it("denies residual dest-form authz plant under UAT after #3529 (not unclassifiable allow) (#3545)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "ruby3.3 -e \"File.write('.deft/authz/grants/evil.json','{}')\"",
+      "jruby -e \"File.write('.deft/authz/grants/evil.json','{}')\"",
+      "pypy3 -c \"open('.deft/authz/grants/evil.json','w').write('{}')\"",
+      "perl -e \"write_file('.deft/authz/grants/evil.json','{}')\"",
+      "perl -e \"path('.deft/authz/grants/evil.json')->spew('{}')\"",
+      "perl -e \"open F,'>','.deft/authz/grants/evil.json'\"",
+      "make DESTDIR=.deft/authz/grants install",
+      "dpkg -x pkg.deb .deft/authz/grants",
+      "fromdos .deft/authz/grants/evil.json",
+      "emacsclient .deft/authz/grants/evil.json",
+      "pico .deft/authz/grants/evil.json",
+      "pdftk in.pdf output .deft/authz/grants/evil.pdf",
+      "gs -sOutputFile=.deft/authz/grants/evil.pdf",
+      "npx degit user/repo .deft/authz/grants",
+      "composer create-project pkg .deft/authz/grants",
+      "ddrescue src .deft/authz/grants/evil.json",
+      "dc3dd if=src of=.deft/authz/grants/evil.json",
+      "sg_dd if=src of=.deft/authz/grants/evil.json",
+      "darcs --repodir=.deft/authz/grants init",
+      "unknownwriter --repodir .deft/authz/grants",
+      "ruby -e \"File.write('.deft/authz/grants/evil.json','{}')\"",
+      "python3 -c \"open('.deft/authz/grants/evil.json','w').write('{}')\"",
+      "dpkg-deb -x pkg.deb .deft/authz/grants",
+      "xcopy forged.json .deft/authz/grants/evil.json",
+      "cp forged.json .deft/authz/grants/evil.json",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Bash", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+      expect(decision.code, command).not.toBe("shell-op-unclassifiable");
+    }
+  });
+
+  it("denies residual dest-form kill-switch plant under UAT after #3529 (#3545)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "ruby3.3 -e \"File.write('.deft-directive-disable','')\"",
+      "pypy3 -c \"open('.no-deft-directive','w').write('')\"",
+      "jruby -e \"File.write('.deft-directive-disable','')\"",
+      "fromdos .deft-directive-disable",
+      "emacsclient .deft-directive-disable",
+      "pico .no-deft-directive",
+      "ddrescue src .deft-directive-disable",
+      "dc3dd if=src of=.no-deft-directive",
+      "npx degit user/repo .deft-directive-disable",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Shell", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+      expect(decision.code, command).not.toBe("shell-op-unclassifiable");
+    }
+  });
+
+  it("denies residual Shell approved-scope mint under UAT matching Write (#3545)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "ruby3.3 -e \"File.write('.deft/approved-scope/story.json','{}')\"",
+      "fromdos .deft/approved-scope/story.json",
+      "npx degit user/repo .deft/approved-scope",
+      "make DESTDIR=.deft/approved-scope install",
+      "darcs --repodir=.deft/approved-scope init",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Bash", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+      expect(decision.code, command).not.toBe("shell-op-unclassifiable");
+    }
+  });
+
+  it("still allows ordinary residual dest-form dest under UAT after #3529 (non-authz) (#3545)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "fromdos /tmp/out",
+      "todos /tmp/out",
+      "emacsclient /tmp/out",
+      "pico /tmp/out",
+      "dpkg -x pkg.deb /tmp/out",
+      "make DESTDIR=/tmp/out install",
+      "npx degit user/repo /tmp/out",
+      "composer create-project pkg /tmp/out",
+      "ddrescue src /tmp/out",
+      "darcs --repodir=/tmp/out init",
+      "unknownwriter --repodir /tmp/out",
+      'ruby3.3 -e "puts 1"',
+      'pypy3 -c "print(1)"',
+      "perl -e 'print 1;'",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "Bash",
+            tool_input: { command },
+          },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("allow");
+      expect(decision.code, command).toBe("shell-op-unclassifiable");
+    }
+  });
+});

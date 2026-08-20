@@ -190,6 +190,26 @@ const POLICY_AUTHORITY_MUTATORS = new Set([
 const KILL_SWITCH_BASENAMES = [".deft-directive-disable", ".no-deft-directive"] as const;
 
 /**
+ * Dest-form writers #3529 harvest missed (#3545). Shared across downloader,
+ * archive-alt, positional, and indirect-write membership so a named-peer
+ * allowlist cannot be the only fail-closed path.
+ */
+const UAT_RESIDUAL_DEST_WRITE_BINS_3545 = [
+  "fromdos",
+  "todos",
+  "emacsclient",
+  "pico",
+  "pdftk",
+  "gs",
+  "dpkg",
+  "degit",
+  "composer",
+  "ddrescue",
+  "dc3dd",
+  "sg_dd",
+] as const;
+
+/**
  * Downloaders / decoders / remote-copy tools that can plant files without shell
  * redirects (#3206 / #3213 / #3245). Not in INDIRECT_WRITE_BINS: those feed hasWriteShape
  * and would classify bare `curl $URL` as a store write via opaque-expansion heuristics.
@@ -328,6 +348,8 @@ const DOWNLOADER_DECODER_BINS = new Set([
   "extrac32",
   "makecab",
   "replace",
+  // #3545 residual after #3529: dest-form writers harvest missed.
+  ...UAT_RESIDUAL_DEST_WRITE_BINS_3545,
 ]);
 
 /**
@@ -439,6 +461,8 @@ const ARCHIVE_ALT_WRITE_BINS = new Set([
   "extrac32",
   "makecab",
   "replace",
+  // #3545 residual: dest writers that are not general-purpose cmd/git.
+  ...UAT_RESIDUAL_DEST_WRITE_BINS_3545,
 ]);
 
 /**
@@ -558,6 +582,8 @@ const PROTECTED_POSITIONAL_BINS = new Set([
   "extrac32",
   "makecab",
   "replace",
+  // #3545 residual: positional dest writers (fromdos/dpkg/degit/ddrescue).
+  ...UAT_RESIDUAL_DEST_WRITE_BINS_3545,
 ]);
 
 /**
@@ -695,6 +721,10 @@ const GENERIC_PROTECTED_EXTRA_DEST_FLAGS = new Set([
   "-destinationpath",
   "-filepath",
   "--prefix",
+  // #3545 residual dest flags (VCS repo dest + ghostscript output).
+  "--repodir",
+  "--repo-dir",
+  "-soutputfile",
 ]);
 /** Bins whose `--file` / `-f` operand is an input, not a dest plant. */
 const READ_SHAPED_FILE_FLAG_BINS = new Set([
@@ -1277,6 +1307,9 @@ function isGenericProtectedDestFlag(flag: string): boolean {
   return DOWNLOADER_FILE_DEST_FLAGS.has(flag) || GENERIC_PROTECTED_EXTRA_DEST_FLAGS.has(flag);
 }
 
+/** Env-style dest keys harvested even without a leading `--` (`make DESTDIR=`). */
+const DEST_ASSIGNMENT_KEYS = new Set(["destdir", "prefix", "install_root", "dest_dir"]);
+
 function isReadShapedInputFileFlag(bin: string, flag: string): boolean {
   return READ_SHAPED_FILE_FLAG_BINS.has(bin) && READ_INPUT_FILE_FLAGS.has(flag);
 }
@@ -1441,6 +1474,19 @@ function genericProtectedDests(tokens: readonly string[]): string[] {
       }
     }
     if (isScpFamilyBin(currentBin) || currentBin === "cpio") continue;
+    // Env-style dest assignments (`DESTDIR=`, `PREFIX=`) without a leading dash (#3545).
+    if (n.includes("=") && !n.startsWith("-")) {
+      const eq = raw.indexOf("=");
+      const keyRaw = raw.slice(0, eq);
+      if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(keyRaw)) {
+        const key = normalizeToken(keyRaw);
+        if (DEST_ASSIGNMENT_KEYS.has(key)) {
+          const dest = pathishToken(raw.slice(eq + 1));
+          if (pathishIsProtectedDest(dest)) dests.push(dest);
+        }
+      }
+      continue;
+    }
     if (n.includes("=") && (n.startsWith("-") || n.startsWith("--"))) {
       const eq = raw.indexOf("=");
       const flag = normalizeToken(raw.slice(0, eq));
@@ -1646,6 +1692,9 @@ function isProgrammaticWriteBinToken(token: string): boolean {
     bare === "nodejs" ||
     bare === "perl" ||
     bare === "ruby" ||
+    bare === "jruby" ||
+    bare === "pypy" ||
+    bare === "pypy3" ||
     bare === "pwsh" ||
     bare === "powershell" ||
     bare === "tsx" ||
@@ -1665,6 +1714,10 @@ function isProgrammaticWriteBinToken(token: string): boolean {
   if (/^node\d+$/.test(bare)) return true;
   if (/^php\d+(\.\d+)*$/.test(bare)) return true;
   if (/^lua\d+(\.\d+)*$/.test(bare)) return true;
+  // #3545 residual: versioned ruby / jruby / pypy (bare `ruby` already matched).
+  if (/^ruby\d+(\.\d+)*$/.test(bare)) return true;
+  if (/^jruby\d+(\.\d+)*$/.test(bare)) return true;
+  if (bare.startsWith("pypy3.") || /^pypy\d+(\.\d+)*$/.test(bare)) return true;
   return false;
 }
 
@@ -1763,6 +1816,83 @@ function includesOutsideQuotes(haystack: string, needle: string): boolean {
 }
 
 /**
+ * Perl `open F,">dest"` / `open FH, '>'` without parens (#3545).
+ * Quote-aware so `print 'open F,>'` is not a write. O(n).
+ */
+function hasPerlBareOpenWrite(haystack: string): boolean {
+  let inSingle = false;
+  let inDouble = false;
+  for (let i = 0; i < haystack.length; i++) {
+    const c = haystack[i] as string;
+    if (c === "\\" && i + 1 < haystack.length && (inSingle || inDouble)) {
+      i++;
+      continue;
+    }
+    if (c === "'" && !inDouble) {
+      inSingle = !inSingle;
+      continue;
+    }
+    if (c === '"' && !inSingle) {
+      inDouble = !inDouble;
+      continue;
+    }
+    if (inSingle || inDouble) continue;
+    if (!haystack.startsWith("open", i)) continue;
+    if (i > 0) {
+      const prev = haystack[i - 1] as string;
+      if ((prev >= "a" && prev <= "z") || (prev >= "0" && prev <= "9") || prev === "_") continue;
+    }
+    let j = i + 4;
+    while (j < haystack.length) {
+      const w = haystack[j] as string;
+      if (w === " " || w === "\t" || w === "\n" || w === "\r") {
+        j++;
+        continue;
+      }
+      break;
+    }
+    const identStart = j;
+    while (j < haystack.length) {
+      const ch = haystack[j] as string;
+      if (
+        (ch >= "a" && ch <= "z") ||
+        (ch >= "A" && ch <= "Z") ||
+        (ch >= "0" && ch <= "9") ||
+        ch === "_"
+      ) {
+        j++;
+        continue;
+      }
+      break;
+    }
+    if (j === identStart) continue;
+    while (j < haystack.length) {
+      const w = haystack[j] as string;
+      if (w === " " || w === "\t") {
+        j++;
+        continue;
+      }
+      break;
+    }
+    if (j >= haystack.length || haystack[j] !== ",") continue;
+    j++;
+    while (j < haystack.length) {
+      const w = haystack[j] as string;
+      if (w === " " || w === "\t") {
+        j++;
+        continue;
+      }
+      break;
+    }
+    const q = haystack[j];
+    if ((q === "'" || q === '"') && j + 1 < haystack.length && haystack[j + 1] === ">") {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * True when command uses a programmatic bin with a **write** API, optionally with
  * path-obfuscation markers (base64/bytes/chr). Pure reads / print-only stay unclassifiable.
  *
@@ -1804,6 +1934,19 @@ function hasWriteCapableProgrammaticShell(command: string, tokens: readonly stri
     lower.includes("path.write(") ||
     lower.includes("file.write(") ||
     lower.includes("spurt") ||
+    interpreterScriptPayloads(tokens).some((p) => {
+      const pl = p.toLowerCase();
+      return (
+        includesIdentCall(pl, "write_file") ||
+        includesIdentCall(pl, "spew") ||
+        includesOutsideQuotes(pl, "->spew") ||
+        hasPerlBareOpenWrite(pl)
+      );
+    }) ||
+    includesIdentCall(lower, "write_file") ||
+    includesIdentCall(lower, "spew") ||
+    includesOutsideQuotes(lower, "->spew") ||
+    hasPerlBareOpenWrite(lower) ||
     lower.includes(">>") ||
     lower.includes("unlink(") ||
     lower.includes("rmsync") ||
@@ -1844,7 +1987,15 @@ function hasWriteCapableProgrammaticShell(command: string, tokens: readonly stri
       lower.includes('mode="a') ||
       lower.includes("mode=w"));
 
-  const writeish = writeApi || openWriteMode;
+  // Perl `open F,">dest"` — `open(` is absent; `-e` payloads with spaces split tokens (#3545).
+  const perlBareOpenWrite =
+    (lower.includes("open ") || lower.includes("open\t")) &&
+    (lower.includes(",'>") ||
+      lower.includes(',">') ||
+      lower.includes(", '>") ||
+      lower.includes(', ">'));
+
+  const writeish = writeApi || openWriteMode || perlBareOpenWrite;
 
   // Path construction that hides the destination from literal classifiers.
   const obfuscatedPath =
@@ -2083,6 +2234,8 @@ const INDIRECT_WRITE_BINS = new Set([
   "extrac32",
   "makecab",
   "replace",
+  // #3545 residual: dest writers (fromdos/dpkg/degit/ddrescue).
+  ...UAT_RESIDUAL_DEST_WRITE_BINS_3545,
 ]);
 
 /**
@@ -2282,17 +2435,7 @@ function hasProgrammaticAuthzEnvWrite(command: string, tokens: readonly string[]
   const lower = command.toLowerCase();
   let hasProg = false;
   for (const t of tokens) {
-    const n = normalizeToken(t);
-    if (
-      n === "python" ||
-      n === "python3" ||
-      n === "node" ||
-      n === "nodejs" ||
-      n === "perl" ||
-      n === "ruby" ||
-      n === "pwsh" ||
-      n === "powershell"
-    ) {
+    if (isProgrammaticWriteBinToken(t)) {
       hasProg = true;
       break;
     }

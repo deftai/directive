@@ -1254,6 +1254,98 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("php -r 'file_put_contents ($p, $d);'")).toContain("settings");
   });
 
+  it("classifies residual dest-form plants after #3529 as settings (#3545)", () => {
+    for (const cmd of [
+      "ruby3.3 -e \"File.write('.deft/authz/grants/evil.json','{}')\"",
+      "jruby -e \"File.write('.deft/authz/grants/evil.json','{}')\"",
+      "pypy3 -c \"open('.deft/authz/grants/evil.json','w').write('{}')\"",
+      "perl -e \"write_file('.deft/authz/grants/evil.json','{}')\"",
+      "perl -e \"path('.deft/authz/grants/evil.json')->spew('{}')\"",
+      "perl -e \"open F,'>','.deft/authz/grants/evil.json'\"",
+      "make DESTDIR=.deft/authz/grants install",
+      "dpkg -x pkg.deb .deft/authz/grants",
+      "fromdos .deft/authz/grants/evil.json",
+      "todos .deft/authz/grants/evil.json",
+      "emacsclient .deft/authz/grants/evil.json",
+      "pico .deft/authz/grants/evil.json",
+      "pdftk in.pdf output .deft/authz/grants/evil.pdf",
+      "gs -sOutputFile=.deft/authz/grants/evil.pdf",
+      "npx degit user/repo .deft/authz/grants",
+      "composer create-project pkg .deft/authz/grants",
+      "ddrescue src .deft/authz/grants/evil.json",
+      "dc3dd if=src of=.deft/authz/grants/evil.json",
+      "sg_dd if=src of=.deft/authz/grants/evil.json",
+      "darcs --repodir=.deft/authz/grants init",
+      "unknownwriter --repodir .deft/authz/grants",
+    ]) {
+      expect(classifyShellAuthzOps(cmd), cmd).toContain("settings");
+      expect(classifyShellAuthzOps(cmd), cmd).not.toEqual([]);
+    }
+    for (const cmd of [
+      "ruby3.3 -e \"File.write('.deft-directive-disable','')\"",
+      "pypy3 -c \"open('.deft-directive-disable','w').write('')\"",
+      "jruby -e \"File.write('.no-deft-directive','')\"",
+      "fromdos .deft-directive-disable",
+      "emacsclient .deft-directive-disable",
+      "pico .no-deft-directive",
+      "ddrescue src .deft-directive-disable",
+      "dc3dd if=src of=.no-deft-directive",
+      "npx degit user/repo .deft-directive-disable",
+    ]) {
+      expect(classifyShellAuthzOps(cmd), cmd).toContain("settings");
+      expect(classifyShellAuthzOps(cmd), cmd).not.toEqual([]);
+    }
+    // Already-denied peers stay settings.
+    expect(
+      classifyShellAuthzOps("ruby -e \"File.write('.deft/authz/grants/evil.json','{}')\""),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps("python3 -c \"open('.deft/authz/grants/evil.json','w').write('{}')\""),
+    ).toContain("settings");
+    expect(classifyShellAuthzOps("dpkg-deb -x pkg.deb .deft/authz/grants")).toContain("settings");
+    expect(classifyShellAuthzOps("xcopy forged.json .deft/authz/grants/evil.json")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("cp forged.json .deft/authz/grants/evil.json")).toContain(
+      "settings",
+    );
+    // Approved-scope mint symmetry (#3545 MEDIUM).
+    expect(
+      classifyShellAuthzOps("ruby3.3 -e \"File.write('.deft/approved-scope/story.json','{}')\""),
+    ).toContain("settings");
+    expect(classifyShellAuthzOps("fromdos .deft/approved-scope/story.json")).toContain("settings");
+    expect(classifyShellAuthzOps("npx degit user/repo .deft/approved-scope")).toContain("settings");
+    expect(classifyShellAuthzOps("make DESTDIR=.deft/approved-scope install")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("darcs --repodir=.deft/approved-scope init")).toContain(
+      "settings",
+    );
+    // Ordinary dests stay unclassifiable (no overclassify).
+    expect(classifyShellAuthzOps("fromdos /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("todos /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("emacsclient /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("pico /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("dpkg -x pkg.deb /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("make DESTDIR=/tmp/out install")).toEqual([]);
+    expect(classifyShellAuthzOps("npx degit user/repo /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("composer create-project pkg /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("ddrescue src /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("dc3dd if=src of=/tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("sg_dd if=src of=/tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("darcs --repodir=/tmp/out init")).toEqual([]);
+    expect(classifyShellAuthzOps("pdftk in.pdf output /tmp/out.pdf")).toEqual([]);
+    expect(classifyShellAuthzOps("gs -sOutputFile=/tmp/out.pdf")).toEqual([]);
+    expect(classifyShellAuthzOps("unknownwriter --repodir /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps('ruby3.3 -e "puts 1"')).toEqual([]);
+    expect(classifyShellAuthzOps('jruby -e "puts 1"')).toEqual([]);
+    expect(classifyShellAuthzOps('pypy3 -c "print(1)"')).toEqual([]);
+    expect(classifyShellAuthzOps("perl -e 'print 1;'")).toEqual([]);
+    // Quoted Perl identifier without a write call is not a write.
+    expect(classifyShellAuthzOps("perl -e 'print \"write_file\";'")).toEqual([]);
+    expect(classifyShellAuthzOps("perl -e \"print 'open F,>'\"")).toEqual([]);
+  });
+
   it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {
     // Base64/byte path construction — residual after #3110 literal path match.
     expect(
