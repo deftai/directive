@@ -53,11 +53,23 @@ Pure TS gate. **Allow** only when:
 
 Agent-authored grants and lifecycle/dispatch tokens **never** satisfy.
 
-## Enforcement: `release-publish`
+## Enforcement: tag-push / npm publish (`task release`)
+
+`task release` calls the same `release-publish` closed-verb gate **before**
+`git tag` + `git push --atomic` of `v*` (Step 10–11). That push fires
+`.github/workflows/npm-publish.yml` and is irrevocable (#3527 / #1972).
+`--skip-tag` and `--dry-run` do not require a grant. The grant is **not**
+spent here so a later draft flip can inherit it.
+
+The v0.105.0 cut ran Steps 10–13 with no authz; npm was live before the
+draft-flip check ran. That sequence is now a fail-closed test.
+
+## Enforcement: `release-publish` draft flip
 
 `deft release-publish` / `task release:publish` calls the gate **after** a draft
 is found and **before** `draft=false` (draft→public). Already-published NOOP and
-dry-run do not require a grant.
+dry-run do not require a grant. This check is **not** deleted when the tag-push
+gate lands — placement, not strength.
 
 ```text
 [publish] Closed-verb gate release-publish vX.Y.Z... FAIL (closed-verb-deny-missing: …)

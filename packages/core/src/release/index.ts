@@ -2,6 +2,7 @@
 
 export * from "./auto-hatch.js";
 export * from "./build-dist.js";
+export * from "./closed-verb-gate.js";
 export * from "./constants.js";
 export * from "./coverage-debt-ledger.js";
 export * from "./flags.js";

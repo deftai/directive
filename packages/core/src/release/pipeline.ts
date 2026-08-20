@@ -11,6 +11,7 @@ import {
   reasonLooksLikeTimeout,
 } from "./auto-hatch.js";
 import { prependUpgradeBanner, promoteChangelog, sectionForVersion } from "./changelog.js";
+import { assertTagPushClosedVerb } from "./closed-verb-gate.js";
 import {
   EXIT_CONFIG_ERROR,
   EXIT_OK,
@@ -469,6 +470,13 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
       emit(9, label, `FAIL (${reason})`);
       return EXIT_VIOLATION;
     }
+  }
+
+  // Step 10–11 boundary: closed-verb gate before tag + atomic push (#3527).
+  // npm publish fires on tag push; draft-flip `release:publish` stays (#1095).
+  const tagPushGate = assertTagPushClosedVerb(config, seams);
+  if (tagPushGate !== EXIT_OK) {
+    return tagPushGate;
   }
 
   // Step 10: git tag.

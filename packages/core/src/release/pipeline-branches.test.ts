@@ -24,6 +24,7 @@ function baseSeams(overrides: ReleaseSeams = {}): ReleaseSeams {
     refreshRoadmap: () => [true, "ok"],
     runBuild: () => [true, "ok"],
     todayIso: () => "2026-04-28",
+    closedVerbEnv: { DEFT_ALLOW_RELEASE_PUBLISH: "1" },
     ...overrides,
   };
 }
