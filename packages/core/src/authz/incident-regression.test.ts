@@ -1525,6 +1525,8 @@ describe("UAT residual dest-form writers fail-closed (#3545)", () => {
       "perl -e \"path('.deft/authz/grants/evil.json')->spew('{}')\"",
       "perl -e \"open F,'>','.deft/authz/grants/evil.json'\"",
       "make DESTDIR=.deft/authz/grants install",
+      "env DESTDIR=.deft/authz/grants make install",
+      "sudo make DESTDIR=.deft/authz/grants install",
       "dpkg -x pkg.deb .deft/authz/grants",
       "fromdos .deft/authz/grants/evil.json",
       "emacsclient .deft/authz/grants/evil.json",

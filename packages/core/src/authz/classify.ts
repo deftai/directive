@@ -1310,18 +1310,29 @@ function isGenericProtectedDestFlag(flag: string): boolean {
 /** Env-style dest keys harvested even without a leading `--` (`make DESTDIR=`). */
 const DEST_ASSIGNMENT_KEYS = new Set(["destdir", "prefix", "install_root", "dest_dir"]);
 /** Bins whose DESTDIR=/PREFIX= assignment is a dest plant (not `echo DESTDIR=…`). */
-const DEST_ASSIGNMENT_OWNER_BINS = new Set(["make", "gmake", "cmake", "ninja", "meson", "install"]);
+const DEST_ASSIGNMENT_OWNER_BINS = new Set(["make", "gmake"]);
 
-/** First command bin in the current shell segment, skipping env assigns. */
+/** First dest-assignment owner in the current segment, skipping env assigns and wrappers. */
 function segmentDestAssignmentOwner(tokens: readonly string[], tokenIndex: number): string {
   let start = tokenIndex;
   while (start > 0 && !tokenEndsShellSegment(tokens[start - 1] as string)) start--;
+  let skipNext = false;
   for (let k = start; k < tokens.length; k++) {
     const raw = tokens[k] as string;
     if (tokenEndsShellSegment(raw)) break;
+    if (skipNext) {
+      skipNext = false;
+      continue;
+    }
     const n = normalizeToken(raw);
-    if (n.startsWith("-") || isEnvAssign(raw)) continue;
-    return writeBinName(raw);
+    if (n.startsWith("-")) {
+      if (!n.includes("=") && WRAPPER_VALUE_FLAGS.has(n)) skipNext = true;
+      continue;
+    }
+    if (isEnvAssign(raw)) continue;
+    const bare = writeBinName(raw);
+    if (COMMAND_WRAPPER_BINS.has(bare)) continue;
+    return bare;
   }
   return "";
 }

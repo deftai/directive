@@ -1349,6 +1349,12 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("true PREFIX=.deft/approved-scope")).toEqual([]);
     expect(classifyShellAuthzOps("echo DESTDIR=.deft/authz/grants make")).toEqual([]);
     expect(classifyShellAuthzOps("DESTDIR=.deft/authz/grants make install")).toContain("settings");
+    expect(classifyShellAuthzOps("env DESTDIR=.deft/authz/grants make install")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("sudo make DESTDIR=.deft/authz/grants install")).toContain(
+      "settings",
+    );
   });
 
   it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {
