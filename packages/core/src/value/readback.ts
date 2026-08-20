@@ -508,19 +508,25 @@ function attachCeremonyCost(
   ceremonyCost: CeremonyCostRollup,
   format: "text" | "json" | undefined,
 ): ValueShowResult {
-  if (format === "json" && !result.gated && result.trend !== null) {
+  if (format === "json") {
+    const payload =
+      result.trend !== null
+        ? {
+            ...result.trend,
+            ceremonyCost,
+            process_cost_events: PROCESS_COST_EVENT_NAMES,
+            gated: result.gated,
+          }
+        : {
+            ceremonyCost,
+            process_cost_events: PROCESS_COST_EVENT_NAMES,
+            gated: result.gated,
+            empty: result.empty,
+          };
     return {
       ...result,
       ceremonyCost,
-      text: `${JSON.stringify(
-        {
-          ...result.trend,
-          ceremonyCost,
-          process_cost_events: PROCESS_COST_EVENT_NAMES,
-        },
-        null,
-        2,
-      )}\n`,
+      text: `${JSON.stringify(payload, null, 2)}\n`,
     };
   }
   return {

@@ -379,7 +379,7 @@ describe("ceremony-cost reader (#3508)", () => {
     });
     expect(rollup.windowLabel).toBe("week");
     expect(rollup.lastColdDurationMs).toBeNull();
-    expect(rollup.lastRearmDurationMs).toBe(9);
+    expect(rollup.lastRearmDurationMs).toBeNull();
     expect(rollup.blockedRitualCount).toBe(1);
     expect(rollup.recoveryTierDistribution).toEqual({ unspecified: 1 });
   });

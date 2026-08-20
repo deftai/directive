@@ -319,8 +319,13 @@ describe("value:show trend readout", () => {
     expect(result.text).toContain("CLI process time");
     const gatedJson = runValueShow({ projectRoot: root, format: "json" });
     expect(gatedJson.exitCode).toBe(1);
-    expect(gatedJson.text).toContain("CLI process time");
-    expect(gatedJson.text.trim().startsWith("{")).toBe(false);
+    expect(gatedJson.text.trim().startsWith("{")).toBe(true);
+    const parsed = JSON.parse(gatedJson.text) as {
+      gated: boolean;
+      ceremonyCost: { kind: string };
+    };
+    expect(parsed.gated).toBe(true);
+    expect(parsed.ceremonyCost.kind).toBe("cli_process_time");
   });
 
   it("composes ceremony-cost rollup from process-cost events (#3508)", () => {

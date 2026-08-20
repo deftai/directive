@@ -275,7 +275,7 @@ export function computeCeremonyCostRollup(options: {
       }
       const at = parseDetectedAt(record);
       if (at === null) {
-        return true;
+        return false;
       }
       return at.getTime() >= sinceMs;
     });
