@@ -64,10 +64,11 @@ const coverageDebtTeardown = resolve(
 // no further insight — so a high aggregate floor buys less than it costs.
 //
 // ROLE: this floor is a COLLAPSE DETECTOR, not a quality ratchet. Per-change
-// rigor belongs in the diff gate. Note that control is not yet at full strength
-// — verify:forward-coverage (#1310) is new-file-existence only, not diff
-// coverage (#3514) — so ~6pp of aggregate erosion could occur before this
-// fires. That gap is knowingly accepted and watched via `task coverage:hotspots`.
+// rigor belongs in the diff gate: `verify:forward-coverage` (#3514) reports
+// uncovered added/modified branches against a 90% per-diff threshold
+// (warn-first; `--enforce` fail-closes). That 90% is coverage of new code;
+// this 75 floor is the aggregate collapse detector. They are not
+// interchangeable. New-file existence stays fail-closed (#1310).
 //
 // Hairline misses still use --allow-coverage-debt=#N (#2573).
 const coverageThresholds = {

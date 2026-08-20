@@ -146,4 +146,177 @@ describe("evaluateForwardCoverage", () => {
     temps.push(root);
     expect(evaluateForwardCoverage(root, { mode: "staged" }).exitCode).toBe(2);
   });
+
+  it("reports uncovered branches on a modified existing file without failing (warn-first)", () => {
+    const root = buildRepo({
+      "src/foo.ts": "export const foo = 1;\n",
+      "src/foo.test.ts": "import { foo } from './foo';\n",
+    });
+    stage(root);
+    execFileSync("git", ["commit", "-q", "-m", "seed"], { cwd: root });
+    writeFileSync(
+      join(root, "src/foo.ts"),
+      "export const foo = 1;\nexport const bar = true ? 1 : 0;\n",
+    );
+    stage(root);
+    mkdirSync(join(root, "coverage"), { recursive: true });
+    writeFileSync(
+      join(root, "coverage", "coverage-final.json"),
+      JSON.stringify({
+        "src/foo.ts": {
+          path: "src/foo.ts",
+          b: { "0": [1, 0] },
+          branchMap: {
+            "0": {
+              type: "cond-expr",
+              line: 2,
+              loc: { start: { line: 2 } },
+              locations: [{ start: { line: 2 } }, { start: { line: 2 } }],
+            },
+          },
+        },
+      }),
+      "utf8",
+    );
+    const result = evaluateForwardCoverage(root, { mode: "staged" });
+    expect(result.exitCode).toBe(0);
+    expect(result.message).toContain("uncovered changed branch");
+    expect(result.message).toContain("src/foo.ts:2");
+    expect(result.message).toContain("ADVISORY");
+    expect(result.diffCoverage?.uncovered.map((u) => `${u.path}:${u.line}`)).toEqual([
+      "src/foo.ts:2",
+    ]);
+  });
+
+  it("fails closed on uncovered changed branches when enforceDiffCoverage is set", () => {
+    const root = buildRepo({
+      "src/foo.ts": "export const foo = 1;\n",
+      "src/foo.test.ts": "import { foo } from './foo';\n",
+    });
+    stage(root);
+    execFileSync("git", ["commit", "-q", "-m", "seed"], { cwd: root });
+    writeFileSync(
+      join(root, "src/foo.ts"),
+      "export const foo = 1;\nexport const bar = true ? 1 : 0;\n",
+    );
+    stage(root);
+    mkdirSync(join(root, "coverage"), { recursive: true });
+    writeFileSync(
+      join(root, "coverage", "coverage-final.json"),
+      JSON.stringify({
+        "src/foo.ts": {
+          path: "src/foo.ts",
+          b: { "0": [1, 0] },
+          branchMap: {
+            "0": {
+              type: "cond-expr",
+              line: 2,
+              loc: { start: { line: 2 } },
+              locations: [{ start: { line: 2 } }, { start: { line: 2 } }],
+            },
+          },
+        },
+      }),
+      "utf8",
+    );
+    const result = evaluateForwardCoverage(root, { mode: "staged", enforceDiffCoverage: true });
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toContain("FAIL: --enforce");
+  });
+
+  it("passes a well-covered new file with a matching test when the report is clean", () => {
+    const root = buildRepo({
+      "src/foo.ts": "export const foo = true ? 1 : 0;\n",
+      "src/foo.test.ts": "import { foo } from './foo';\n",
+    });
+    stage(root);
+    mkdirSync(join(root, "coverage"), { recursive: true });
+    writeFileSync(
+      join(root, "coverage", "coverage-final.json"),
+      JSON.stringify({
+        "src/foo.ts": {
+          path: "src/foo.ts",
+          b: { "0": [1, 1] },
+          branchMap: {
+            "0": {
+              type: "cond-expr",
+              line: 1,
+              loc: { start: { line: 1 } },
+              locations: [{ start: { line: 1 } }, { start: { line: 1 } }],
+            },
+          },
+        },
+      }),
+      "utf8",
+    );
+    const result = evaluateForwardCoverage(root, { mode: "staged" });
+    expect(result.exitCode).toBe(0);
+    expect(result.missing).toEqual([]);
+    expect(result.diffCoverage?.uncovered).toEqual([]);
+    expect(result.message).toContain("all have forward coverage");
+  });
+
+  it("still fails existence when a new source file has no test even if diff coverage is clean", () => {
+    const root = buildRepo({ "src/foo.ts": "export const foo = true ? 1 : 0;\n" });
+    stage(root);
+    mkdirSync(join(root, "coverage"), { recursive: true });
+    writeFileSync(
+      join(root, "coverage", "coverage-final.json"),
+      JSON.stringify({
+        "src/foo.ts": {
+          path: "src/foo.ts",
+          b: { "0": [1, 1] },
+          branchMap: {
+            "0": {
+              type: "cond-expr",
+              line: 1,
+              loc: { start: { line: 1 } },
+              locations: [{ start: { line: 1 } }, { start: { line: 1 } }],
+            },
+          },
+        },
+      }),
+      "utf8",
+    );
+    const result = evaluateForwardCoverage(root, { mode: "staged" });
+    expect(result.exitCode).toBe(1);
+    expect(result.missing.map((m) => m.path)).toEqual(["src/foo.ts"]);
+  });
+
+  it("does not report uncovered branches on unchanged lines of a modified file", () => {
+    const root = buildRepo({
+      "src/foo.ts": "export const foo = true ? 1 : 0;\nexport const keep = 1;\n",
+      "src/foo.test.ts": "import { foo } from './foo';\n",
+    });
+    stage(root);
+    execFileSync("git", ["commit", "-q", "-m", "seed"], { cwd: root });
+    writeFileSync(
+      join(root, "src/foo.ts"),
+      "export const foo = true ? 1 : 0;\nexport const keep = 2;\n",
+    );
+    stage(root);
+    mkdirSync(join(root, "coverage"), { recursive: true });
+    writeFileSync(
+      join(root, "coverage", "coverage-final.json"),
+      JSON.stringify({
+        "src/foo.ts": {
+          path: "src/foo.ts",
+          b: { "0": [1, 0] },
+          branchMap: {
+            "0": {
+              type: "cond-expr",
+              line: 1,
+              loc: { start: { line: 1 } },
+              locations: [{ start: { line: 1 } }, { start: { line: 1 } }],
+            },
+          },
+        },
+      }),
+      "utf8",
+    );
+    const result = evaluateForwardCoverage(root, { mode: "staged" });
+    expect(result.exitCode).toBe(0);
+    expect(result.diffCoverage?.uncovered).toEqual([]);
+    expect(result.message).not.toContain("uncovered changed branch");
+  });
 });

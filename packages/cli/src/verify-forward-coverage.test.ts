@@ -54,6 +54,14 @@ describe("parseArgs", () => {
   it("parses --staged and --quiet", () => {
     expect(parseArgs(["--staged", "--quiet"])).toMatchObject({ mode: "staged", quiet: true });
   });
+  it("parses --enforce and --help", () => {
+    expect(parseArgs(["--enforce"]).enforce).toBe(true);
+    expect(parseArgs(["--help"]).help).toBe(true);
+  });
+  it("parses --coverage-dir and --coverage-report", () => {
+    expect(parseArgs(["--coverage-dir", "/c"]).coverageDir).toBe("/c");
+    expect(parseArgs(["--coverage-report=/r.json"]).coverageReport).toBe("/r.json");
+  });
   it("parses --project-root and --allow-list in space and = forms", () => {
     expect(parseArgs(["--project-root", "/x"]).projectRoot).toBe("/x");
     expect(parseArgs(["--project-root=/y"]).projectRoot).toBe("/y");
@@ -93,5 +101,41 @@ describe("run", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-cli-fwdcov-nogit-"));
     temps.push(root);
     expect(silentRun(["--staged", "--project-root", root])).toBe(2);
+  });
+  it("returns 0 for --help", () => {
+    expect(silentRun(["--help"])).toBe(0);
+  });
+  it("returns 0 warn-first when a modified file has uncovered changed branches", () => {
+    const root = repo({
+      "src/foo.ts": "export const foo = 1;\n",
+      "src/foo.test.ts": "import { foo } from './foo';\n",
+    });
+    execFileSync("git", ["commit", "-q", "-m", "seed"], { cwd: root });
+    writeFileSync(
+      join(root, "src/foo.ts"),
+      "export const foo = 1;\nexport const bar = true ? 1 : 0;\n",
+    );
+    execFileSync("git", ["add", "-A"], { cwd: root });
+    mkdirSync(join(root, "coverage"), { recursive: true });
+    writeFileSync(
+      join(root, "coverage", "coverage-final.json"),
+      JSON.stringify({
+        "src/foo.ts": {
+          path: "src/foo.ts",
+          b: { "0": [1, 0] },
+          branchMap: {
+            "0": {
+              type: "cond-expr",
+              line: 2,
+              loc: { start: { line: 2 } },
+              locations: [{ start: { line: 2 } }, { start: { line: 2 } }],
+            },
+          },
+        },
+      }),
+      "utf8",
+    );
+    expect(silentRun(["--staged", "--project-root", root])).toBe(0);
+    expect(silentRun(["--staged", "--enforce", "--project-root", root])).toBe(1);
   });
 });

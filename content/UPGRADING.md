@@ -643,7 +643,7 @@ After `deft update` / deposit, consumer projects gain:
 - `deft coverage:hotspots` (and deposited `task coverage:hotspots`) — cheap branch headroom + hotspot report from the latest `coverage/coverage-final.json`; `--json` for agents.
 - Updated `deft-directive-pre-pr` guidance — run targeted coverage on changed modules first, exercise both sides of new branches, aim for ≥ project floor + 0.3–0.5pp headroom, then use `coverage:hotspots` before full `task check`.
 
-This complements (does not replace) `deft verify:forward-coverage` (#1310) or `--allow-coverage-debt=#N` (#2573).
+This complements (does not replace) `deft verify:forward-coverage` (#1310 / #3514) or `--allow-coverage-debt=#N` (#2573). The 90% per-diff threshold on changed branches is not the 75 global floor.
 
 ---
 

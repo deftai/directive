@@ -1,22 +1,46 @@
 /**
- * forward-coverage/evaluate.ts -- deterministic forward-coverage gate (#1310).
+ * forward-coverage/evaluate.ts -- deterministic forward-coverage gate
+ * (#1310 / #3514).
  *
- * Migrates the prose-tier "new source files MUST include corresponding test
- * files in the same PR" rule (AGENTS.md) to deterministic enforcement,
- * mirroring `verify:encoding` (#798) and `verify:branch` (#747).
+ * Two halves:
+ *  1. Fail-closed new-file existence (#1310): each NEW source file
+ *     (`*.py` / `*.go` / `*.ts` / `*.tsx`, excluding tests and `*.d.ts`)
+ *     must ship a corresponding test file in the same diff.
+ *  2. Warn-first diff coverage (#3514): intersect `coverage-final.json`
+ *     with added/modified lines and report uncovered changed branches.
+ *     Default threshold is 90% of those branches. That 90% is per-change
+ *     coverage of new code; the project vitest floor (75) is a collapse
+ *     detector for the aggregate -- they are not interchangeable.
  *
- * Behaviour (v1 = NEW-file granularity only, to keep false positives near
- * zero): read the staged (`--staged`) or HEAD-relative diff; for each NEW
- * source file (`*.py` / `*.go` / `*.ts` / `*.tsx`, excluding test files and
- * `*.d.ts`), assert a corresponding test file was added in the SAME diff.
- * Three-state exit: 0 clean / 1 missing forward coverage / 2 config error.
+ * Missing coverage reports skip the diff half (existence still runs).
+ * Pass `enforceDiffCoverage` / `--enforce` to fail closed on uncovered
+ * changed branches. Three-state exit: 0 clean or warn / 1 missing
+ * existence (or enforced diff findings) / 2 config error.
  */
 
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { basename } from "node:path";
+import { basename, join } from "node:path";
 import { GitCommandError, GitNotFoundError } from "../encoding/git.js";
 import { fnmatchCase } from "../encoding/text.js";
+import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
+import {
+  type DiffCoverageReport,
+  evaluateDiffCoverage,
+  hasDiffCoverageFindings,
+} from "./diff-coverage.js";
+import {
+  allLinesChanged,
+  type ChangedLineMap,
+  countFileLines,
+  parseUnifiedDiffAddedLines,
+} from "./diff-lines.js";
+
+export {
+  DEFAULT_DIFF_COVERAGE_THRESHOLD,
+  type DiffCoverageReport,
+  type UncoveredChangedBranch,
+} from "./diff-coverage.js";
 
 /** Diff scope: `staged` = index vs HEAD; `head` = working tree + index vs HEAD. */
 export type ForwardCoverageMode = "head" | "staged";
@@ -34,11 +58,18 @@ export interface ForwardCoverageResult {
   readonly exitCode: 0 | 1 | 2;
   readonly missing: MissingCoverage[];
   readonly message: string;
+  readonly diffCoverage: DiffCoverageReport | null;
 }
 
 export interface ForwardCoverageOptions {
   readonly mode?: ForwardCoverageMode;
   readonly allowListPath?: string | null;
+  /** Fail closed on uncovered changed branches. Default warn-only. */
+  readonly enforceDiffCoverage?: boolean;
+  /** Override coverage-final.json path. Default `<root>/coverage/coverage-final.json`. */
+  readonly coverageReportPath?: string | null;
+  /** Per-diff branch threshold. Default 90 -- not the 75 global floor. */
+  readonly diffThreshold?: number;
 }
 
 /** Source-file extensions in scope for v1. */
@@ -150,6 +181,7 @@ function git(args: string[], projectRoot: string): { status: number; stdout: str
     cwd: projectRoot,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
+    maxBuffer: SUBPROCESS_MAX_BUFFER,
   });
   if (result.error !== undefined) {
     const e = result.error as NodeJS.ErrnoException;
@@ -216,7 +248,90 @@ function addedFiles(projectRoot: string, mode: ForwardCoverageMode): string[] {
 }
 
 function configError(message: string): ForwardCoverageResult {
-  return { exitCode: 2, missing: [], message };
+  return { exitCode: 2, missing: [], message, diffCoverage: null };
+}
+
+function mergeChangedLines(into: ChangedLineMap, from: ChangedLineMap): void {
+  for (const [path, lines] of from) {
+    const posix = path.replace(/\\/g, "/");
+    const set = into.get(posix) ?? new Set<number>();
+    for (const n of lines) {
+      set.add(n);
+    }
+    into.set(posix, set);
+  }
+}
+
+/**
+ * Added and modified new-file line numbers in the diff scope.
+ * Untracked files in head mode count as fully added.
+ */
+function changedLinesByFile(projectRoot: string, mode: ForwardCoverageMode): ChangedLineMap {
+  const maps: ChangedLineMap = new Map();
+  if (mode === "staged") {
+    const diff = git(["diff", "--cached", "-U0", "--diff-filter=AM", "--no-color"], projectRoot);
+    if (diff.status === 0) {
+      mergeChangedLines(maps, parseUnifiedDiffAddedLines(diff.stdout));
+    }
+    return maps;
+  }
+  const hasHead = git(["rev-parse", "--verify", "-q", "HEAD"], projectRoot).status === 0;
+  if (hasHead) {
+    const diff = git(["diff", "-U0", "--diff-filter=AM", "--no-color", "HEAD"], projectRoot);
+    if (diff.status === 0) {
+      mergeChangedLines(maps, parseUnifiedDiffAddedLines(diff.stdout));
+    }
+  }
+  for (const rel of toLines(
+    gitOrThrow(["ls-files", "--others", "--exclude-standard"], projectRoot),
+  )) {
+    const posix = rel.replace(/\\/g, "/");
+    let content: string;
+    try {
+      content = readFileSync(join(projectRoot, posix), "utf8");
+    } catch {
+      continue;
+    }
+    const set = maps.get(posix) ?? new Set<number>();
+    for (const n of allLinesChanged(countFileLines(content))) {
+      set.add(n);
+    }
+    maps.set(posix, set);
+  }
+  return maps;
+}
+
+function formatDiffCoverage(report: DiffCoverageReport, enforce: boolean): string {
+  if (!report.reportPresent) {
+    return "";
+  }
+  const findings = hasDiffCoverageFindings(report);
+  if (!findings && report.changedBranchTotal === 0) {
+    return "";
+  }
+  const pct = report.percent.toFixed(2);
+  const roles =
+    `  The ${report.threshold}% per-diff threshold covers added/modified branches; the 75 global ` +
+    "floor is a collapse detector for the aggregate -- they are not interchangeable (#3514 / #3512).";
+  if (!findings) {
+    return (
+      `verify_forward_coverage: diff coverage ${pct}% of ${report.changedBranchTotal} ` +
+      `changed branch(es) (threshold ${report.threshold}%).\n${roles}`
+    );
+  }
+  const header =
+    `verify_forward_coverage: ${report.uncovered.length} uncovered changed branch(es) ` +
+    `(diff ${pct}% vs ${report.threshold}% threshold).\n${roles}`;
+  const body = report.uncovered
+    .slice(0, 20)
+    .map((u) => `  ${u.path}:${u.line} (${u.type} #${u.branchId}[${u.pathIndex}])`)
+    .join("\n");
+  const more = report.uncovered.length > 20 ? `\n  ... ${report.uncovered.length - 20} more` : "";
+  const posture = enforce
+    ? "FAIL: --enforce is set; cover the changed branches or raise the tests (#3514)."
+    : "ADVISORY (warn-only): exit 0 for the diff half. Pass --enforce to fail closed (#3514). " +
+      "New-file existence remains fail-closed.";
+  return `${header}\n${body}${more}\n${posture}`;
 }
 
 /**
@@ -252,8 +367,10 @@ export function evaluateForwardCoverage(
   }
 
   let added: string[];
+  let changedLines: ChangedLineMap;
   try {
     added = addedFiles(projectRoot, mode);
+    changedLines = changedLinesByFile(projectRoot, mode);
   } catch (err: unknown) {
     if (err instanceof GitNotFoundError) {
       return configError(
@@ -292,6 +409,25 @@ export function evaluateForwardCoverage(
     }
   }
 
+  const sourceChanged: ChangedLineMap = new Map();
+  for (const [rel, lines] of changedLines) {
+    if (!isSourceFile(rel) || isAllowListed(rel, allowGlobs)) {
+      continue;
+    }
+    sourceChanged.set(rel, lines);
+  }
+
+  const coverageReportPath =
+    options.coverageReportPath ?? join(projectRoot, "coverage", "coverage-final.json");
+  const enforce = options.enforceDiffCoverage === true;
+  const diffCoverage = evaluateDiffCoverage({
+    projectRoot,
+    coverageReportPath,
+    changedLinesByFile: sourceChanged,
+    threshold: options.diffThreshold,
+  });
+  const diffSection = formatDiffCoverage(diffCoverage, enforce);
+
   if (missing.length > 0) {
     const header =
       `verify_forward_coverage: ${missing.length} new source file(s) added without a ` +
@@ -302,14 +438,16 @@ export function evaluateForwardCoverage(
     const body = missing
       .map((m) => `  ${m.path}\n    expected one of: ${m.expectedTests.join(", ")}`)
       .join("\n");
-    return { exitCode: 1, missing, message: `${header}\n${body}` };
+    const message =
+      diffSection === "" ? `${header}\n${body}` : `${header}\n${body}\n${diffSection}`;
+    return { exitCode: 1, missing, message, diffCoverage };
   }
 
-  return {
-    exitCode: 0,
-    missing,
-    message:
-      `verify_forward_coverage: ${checked} new source file(s) checked -- ` +
-      "all have forward coverage in the diff (#1310).",
-  };
+  const existence =
+    `verify_forward_coverage: ${checked} new source file(s) checked -- ` +
+    "all have forward coverage in the diff (#1310).";
+  const findings = hasDiffCoverageFindings(diffCoverage);
+  const exitCode: 0 | 1 = enforce && findings ? 1 : 0;
+  const message = diffSection === "" ? existence : `${existence}\n${diffSection}`;
+  return { exitCode, missing, message, diffCoverage };
 }

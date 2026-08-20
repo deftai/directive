@@ -503,7 +503,7 @@ Three consumer-facing surfaces enforce the branch-policy contract:
 - `deft verify:branch` — refuses default-branch commit unless `plan.policy.allowDirectCommitsToMaster = true` (typed) or `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1`.
 - `.githooks/pre-commit` / `pre-push` — installed via `deft setup`; verify via `deft verify:hooks-installed`. After a framework upgrade, run `deft update` to refresh hook templates (#2049).
 - `deft policy:show --field=allowDirectCommitsToMaster` — inspect policy; `deft policy:allow-direct-commits -- --confirm` writes typed override with audit row.
-- `deft verify:forward-coverage` — forward-coverage gate (#1310), wired into `deft check` + pre-commit (`--staged`); document exceptions via `--allow-list <path>`.
+- `deft verify:forward-coverage` — fail-closed new-source-file existence (#1310) plus warn-first diff coverage of added/modified branches (#3514). Intersects `coverage/coverage-final.json` with the diff (90% per-change branch threshold). That 90% is not the 75 global floor. Wired into `deft check` + pre-commit (`--staged`); `--enforce` fail-closes the diff half; `--allow-list <path>` documents exceptions.
 
 When `plan.policy.allowDirectCommitsToMaster = true`, the agent MUST surface at session start (after alignment confirmation):
 

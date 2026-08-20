@@ -37,7 +37,8 @@ const GATE_REMEDIES: Readonly<Record<string, string>> = {
     "Move tests to the allowed placement or update plan.policy test-boundary allowlist",
   "verify:scope-provenance": "Record approved scope provenance for the failing paths",
   "verify:consumer-check-contract": "Align consumer Taskfile includes with the required gate graph",
-  "verify:forward-coverage": "Add tests covering new source files (task verify:forward-coverage)",
+  "verify:forward-coverage":
+    "Add tests for new source files and uncovered changed branches (task verify:forward-coverage)",
   "verify:scm-boundary": "Move SCM mutations off GraphQL-heavy paths or wait for rate-limit reset",
   "verify:license-sync": "Sync LICENSE / package license fields",
   "verify:agents-md-budget":

@@ -227,12 +227,12 @@ tasks:
           ENGINE_CMD: 'verify:encoding --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   forward-coverage:
-    desc: "Forward-coverage gate (#1310): fail when a NEW source file (scripts/, src/, cmd/, packages/*/src, or *.py/*.go/*.ts/*.tsx, excluding *.test.ts / *_test.go / test_*.py / *.d.ts) is added without a corresponding test in the SAME diff. Migrates the prose 'new source files MUST include tests' rule to deterministic enforcement, mirroring verify:encoding (#798) / verify:branch (#747). Defaults to the HEAD-relative diff; pass --staged for the pre-commit invocation. Three-state exit (0 clean / 1 missing forward coverage / 2 config error)."
+    desc: "Forward-coverage gate (#1310 / #3514): fail-closed when a NEW source file is added without a corresponding test in the SAME diff; also report uncovered added/modified branches by intersecting coverage-final.json with the diff (warn-first; --enforce fail-closes). The 90% per-diff threshold is not the 75 global floor. Defaults to the HEAD-relative diff; pass --staged for pre-commit. Three-state exit (0 clean or warn / 1 missing existence or enforced diff findings / 2 config error)."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
       - task: :engine:_ts-build
     # Per `conventions/task-caching.md`: NO `sources:` / `generates:` because
-    # user-facing flags (--staged / --head / --allow-list <path> / --quiet) MUST
+    # user-facing flags (--staged / --head / --allow-list <path> / --quiet / --enforce) MUST
     # NOT be silently swallowed by go-task's incremental-build cache (same
     # rationale as verify:encoding above).
     cmds:
