@@ -1344,6 +1344,9 @@ describe("classifyShellAuthzOps (#2944)", () => {
     // Quoted Perl identifier without a write call is not a write.
     expect(classifyShellAuthzOps("perl -e 'print \"write_file\";'")).toEqual([]);
     expect(classifyShellAuthzOps("perl -e \"print 'open F,>'\"")).toEqual([]);
+    // DESTDIR= on a non-writer is not a dest plant (Greptile P1 #3545).
+    expect(classifyShellAuthzOps("echo DESTDIR=.deft/authz/grants")).toEqual([]);
+    expect(classifyShellAuthzOps("true PREFIX=.deft/approved-scope")).toEqual([]);
   });
 
   it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {

@@ -1309,6 +1309,17 @@ function isGenericProtectedDestFlag(flag: string): boolean {
 
 /** Env-style dest keys harvested even without a leading `--` (`make DESTDIR=`). */
 const DEST_ASSIGNMENT_KEYS = new Set(["destdir", "prefix", "install_root", "dest_dir"]);
+/** Bins whose DESTDIR=/PREFIX= assignment is a dest plant (not `echo DESTDIR=…`). */
+const DEST_ASSIGNMENT_OWNER_BINS = new Set(["make", "gmake", "cmake", "ninja", "meson", "install"]);
+
+function tokensIncludeDestAssignmentOwner(tokens: readonly string[]): boolean {
+  for (const t of tokens) {
+    const bare = writeBinName(t);
+    if (DEST_ASSIGNMENT_OWNER_BINS.has(bare)) return true;
+    if (ARCHIVE_ALT_WRITE_BINS.has(bare) || INDIRECT_WRITE_BINS.has(bare)) return true;
+  }
+  return false;
+}
 
 function isReadShapedInputFileFlag(bin: string, flag: string): boolean {
   return READ_SHAPED_FILE_FLAG_BINS.has(bin) && READ_INPUT_FILE_FLAGS.has(flag);
@@ -1461,7 +1472,7 @@ function genericProtectedDests(tokens: readonly string[]): string[] {
       currentBin = "";
       continue;
     }
-    if (!n.startsWith("-")) {
+    if (!n.startsWith("-") && !isEnvAssign(raw)) {
       if (isDownloaderDecoderBin(raw)) {
         currentBin = writeBinName(raw);
       } else if (
@@ -1480,7 +1491,7 @@ function genericProtectedDests(tokens: readonly string[]): string[] {
       const keyRaw = raw.slice(0, eq);
       if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(keyRaw)) {
         const key = normalizeToken(keyRaw);
-        if (DEST_ASSIGNMENT_KEYS.has(key)) {
+        if (DEST_ASSIGNMENT_KEYS.has(key) && tokensIncludeDestAssignmentOwner(tokens)) {
           const dest = pathishToken(raw.slice(eq + 1));
           if (pathishIsProtectedDest(dest)) dests.push(dest);
         }

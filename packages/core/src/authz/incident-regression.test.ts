@@ -1628,6 +1628,8 @@ describe("UAT residual dest-form writers fail-closed (#3545)", () => {
       'ruby3.3 -e "puts 1"',
       'pypy3 -c "print(1)"',
       "perl -e 'print 1;'",
+      "echo DESTDIR=.deft/authz/grants",
+      "true PREFIX=.deft/approved-scope",
     ]) {
       const decision = decideHook(
         {
