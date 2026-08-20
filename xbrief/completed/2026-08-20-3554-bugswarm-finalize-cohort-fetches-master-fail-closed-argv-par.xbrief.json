@@ -1,0 +1,223 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3554",
+    "updated": "2026-08-20T20:53:54Z"
+  },
+  "plan": {
+    "title": "bug(swarm): finalize-cohort fetches master; fail-closed argv (parent #3547)",
+    "status": "completed",
+    "narratives": {
+      "Description": "finalize-cohort prints the resolved delivery branch then fetches origin/master for the lifecycle sweep. The CLI also drops unknown flags, so equals-form overrides and --help never behave as operators expect.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3554",
+      "Overview": "## Parent\n\n#3547 (tracker, child A -- defect 2)\n\n## What to build\n\n`task swarm:finalize-cohort` prints the resolved delivery branch (`main` on this class of repo) and then fetches `origin/master` for the lifecycle-sweep base. The printed delivery path uses `resolveDeliveryBranch()`. The sweep `baseBranch` is a separate knob that still defaults to the literal `\"master\"` in both the CLI and the library. The CLI always passes its initialized `\"master\"` into the library, so a library-only default fix changes nothing.\n\nUnknown flags are dropped. `--base-branch=main` (equals form) is ignored; `--dry-run=true` and `--no-commit=1` are dropped and the command runs live. `--help` / `-h` are not recognized.\n\nDo not silently equate sweep-base with delivery proof (#3041). Keep `--base-branch` as the explicit override.\n\nCite (origin/master): `packages/core/src/swarm/finalize-cohort.ts:448`, `packages/core/src/swarm/finalize-cohort-cli.ts:12`, `:31-71`.\n\n## Acceptance criteria\n\n- [ ] CLI and library default sweep `baseBranch` via `resolveDeliveryBranch(projectRoot)`, not the literal `\"master\"`\n- [ ] `--base-branch` (space and equals form) remains the explicit override\n- [ ] Unrecognized arguments fail closed using the existing `unrecognized argument:` convention (covers `--dry-run=true`, `--no-commit=1`, `--base-branch=main` if equals form is not handled, and other unknown flags)\n- [ ] `--help` / `-h` print usage and exit 0 before `syncBaseBranch` or any git mutation\n- [ ] Command output prints the sweep base alongside the delivery branch\n- [ ] When `--base-branch` is omitted, sweep base equals the resolved delivery branch. When `--base-branch` is explicit and differs, print both and proceed (override is intentional -- do not refuse)\n- [ ] Regression: on a repo whose delivery branch is `main`, a default (no `--base-branch`) run does not `git fetch origin master`\n- [ ] All new tests pass\n- [ ] `task check` passes\n\n## Type\n\nAFK\n\n## Blocked by\n\nNone -- can start immediately. Highest operational need on this tracker.\n\n## Out of scope\n\n- `scope:complete` delivery-branch resolution (already uses `resolveDeliveryBranch` / #3041)\n- Strategy corpus / probe / spec-validate leftover-rename work (children B, C, D)\n- Expanding the ritual-state / occupancy footnote from #3547\n\n",
+      "Labels": "bug, swarm, status:child",
+      "UserStory": "As a consumer on a main default branch, I want finalize-cohort to fetch the resolved delivery branch and reject unknown flags, so that cohort close does not fail on a hardcoded master fallback.",
+      "ImplementationPlan": "1. Update the finalize-cohort CLI module and library file so baseBranch defaults via resolveDeliveryBranch(projectRoot) instead of literal master. 2. Parse equals-form flags and fail closed on unrecognized arguments; handle --help/-h before git mutation; print sweep base. 3. Add tests under packages/core/src/swarm that verify a main-delivery repo rejects fetch origin master by default."
+    },
+    "items": [
+      {
+        "title": "Default sweep base via resolveDeliveryBranch",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When --base-branch is omitted, finalize-cohort returns the resolved delivery branch as sweep base and rejects git fetch origin master on a main-delivery repo."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/swarm/finalize-cohort.test.ts",
+          "recorded_at": "2026-08-20T20:52:54Z",
+          "recorded_by": "vitest"
+        }
+      },
+      {
+        "title": "Equals-form and fail-closed argv",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When --base-branch=main is passed, the CLI honors it; when --dry-run=true, --no-commit=1, or an unknown flag is passed, the command fails closed with unrecognized argument; when --help or -h is passed, it returns usage and emits no git mutation."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/swarm/finalize-cohort.test.ts",
+          "recorded_at": "2026-08-20T20:52:54Z",
+          "recorded_by": "vitest"
+        }
+      },
+      {
+        "title": "Print sweep base",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When the command runs, output shows the sweep base alongside the delivery branch; when an explicit --base-branch differs, it still proceeds after it emits both names."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/swarm/finalize-cohort.test.ts",
+          "recorded_at": "2026-08-20T20:52:54Z",
+          "recorded_by": "vitest"
+        }
+      },
+      {
+        "title": "Tests and check",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When targeted swarm tests run, they validate default main fetch and argv parse; when task check runs, it returns exit 0; CHANGELOG Unreleased records the fix."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/swarm/finalize-cohort.test.ts",
+          "recorded_at": "2026-08-20T20:52:54Z",
+          "recorded_by": "vitest"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "status:child"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3554",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3554: bug(swarm): finalize-cohort fetches master; fail-closed argv (parent #3547)"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "unrecognized argument:",
+          "reason": "first token \"unrecognized\" is not in the literal-AC allowlist",
+          "sourceSpan": "inline@L21"
+        },
+        {
+          "command": "git fetch origin master",
+          "reason": "first token \"git\" is not in the literal-AC allowlist",
+          "sourceSpan": "inline@L25"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/swarm/finalize-cohort.ts",
+          "packages/core/src/swarm/finalize-cohort-cli.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/swarm"
+        ],
+        "expected_outputs": [
+          "finalize-cohort defaults sweep base to resolved delivery branch; unknown flags fail closed"
+        ],
+        "depends_on": [],
+        "conflict_group": "finalize-cohort-3554",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Issue-ingested story; FR traces live in GitHub #3554."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3560,
+        "prBase": null,
+        "mergeCommit": "6eeb5a7744929adbbcbede5cd2ccad80378fa503",
+        "deliveryBranch": "master",
+        "deliveryCommit": "6eeb5a7744929adbbcbede5cd2ccad80378fa503",
+        "verifiedAt": "2026-08-20T20:53:54Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "03fcbf37-1a11-4a8e-b676-424c94f8ec20"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-20T20:53:54Z",
+      "completedSessionId": "03fcbf37-1a11-4a8e-b676-424c94f8ec20",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 9 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "CLI and library default sweep `baseBranch` via `resolveDeliveryBranch(projectRoot)`, not the literal `\"master\"`",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "`--base-branch` (space and equals form) remains the explicit override",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Unrecognized arguments fail closed using the existing `unrecognized argument:` convention (covers `--dry-run=true`, `--no-commit=1`, `--base-branch=main` if equals form is not handled, and other unknown flags)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "`--help` / `-h` print usage and exit 0 before `syncBaseBranch` or any git mutation",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Command output prints the sweep base alongside the delivery branch",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "When `--base-branch` is omitted, sweep base equals the resolved delivery branch. When `--base-branch` is explicit and differs, print both and proceed (override is intentional -- do not refuse)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Regression: on a repo whose delivery branch is `main`, a default (no `--base-branch`) run does not `git fetch origin master`",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "All new tests pass",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "`task check` passes",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-08-20T20:53:54Z",
+    "id": "issue-3554"
+  }
+}
