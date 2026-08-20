@@ -1527,6 +1527,7 @@ describe("UAT residual dest-form writers fail-closed (#3545)", () => {
       "make DESTDIR=.deft/authz/grants install",
       "env DESTDIR=.deft/authz/grants make install",
       "sudo make DESTDIR=.deft/authz/grants install",
+      "timeout 5 make DESTDIR=.deft/authz/grants install",
       "dpkg -x pkg.deb .deft/authz/grants",
       "fromdos .deft/authz/grants/evil.json",
       "emacsclient .deft/authz/grants/evil.json",

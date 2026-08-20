@@ -1332,6 +1332,9 @@ function segmentDestAssignmentOwner(tokens: readonly string[], tokenIndex: numbe
     if (isEnvAssign(raw)) continue;
     const bare = writeBinName(raw);
     if (COMMAND_WRAPPER_BINS.has(bare)) continue;
+    if (DEST_ASSIGNMENT_OWNER_BINS.has(bare)) return bare;
+    // timeout 5 / ionice class operands — skip, then keep looking for make.
+    if (bare.length > 0 && bare[0] !== undefined && bare[0] >= "0" && bare[0] <= "9") continue;
     return bare;
   }
   return "";
