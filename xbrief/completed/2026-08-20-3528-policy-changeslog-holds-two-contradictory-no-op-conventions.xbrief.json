@@ -1,0 +1,207 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3528",
+    "updated": "2026-08-20T03:17:35Z"
+  },
+  "plan": {
+    "title": "policy-changes.log holds two contradictory no-op conventions; 63 of 236 rows record nothing (#1250 vs typed-policy writers)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Typed-policy writers append meta/policy-changes.log even on no-op while the #1250 welcome path suppresses those rows. That contradiction dirties the tree during task check and dilutes a security ledger. Pick one convention, record it, and stop no-op appends from leaving a tracked dirty file.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3528",
+      "Overview": "## Summary\n\n`meta/policy-changes.log` carries two contradictory no-op conventions. The typed-policy verbs append an audit row even when nothing changed; the #1250 welcome path suppresses it. Neither is recorded as a decision. The \"always append\" side dominates, and 63 of the ledger's 236 rows now record that nothing happened.\n\nThe operational cost is that a read-only-in-effect verb dirties a tracked file, which trips release Step 1 pre-flight.\n\n## Observed\n\nDuring the v0.105.0 cut, `task check` ran a `product-signal:enable` and left the tree dirty with:\n\n```\n2026-08-20T00:28:20Z actor=task product-signal:enable productSignal.enabled=true\n  sinkRepo=deftai/product-signal previous={\"enabled\":true,\"sinkRepo\":\"deftai/product-signal\"}\n```\n\nNew value equals previous value.\n\nLedger composition (236 rows):\n\n| Rows | Verb | Real transitions |\n|---|---|---|\n| 64 | `product-signal:enable` | **1** (the initial `previous=null` on 2026-07-23) |\n| 45 | `policy:enforce-branches` | 45 \u2014 genuine |\n| 45 | `policy:allow-direct-commits` | 45 \u2014 genuine |\n| 82 | assorted `actor=deft` one-offs | genuine |\n\nThe 90 enforce/allow rows are repetitive but legitimate \u2014 they are the release ritual flipping branch protection off and back on, and each is a real state change. The no-op population is the 63 `product-signal:enable` rows.\n\n## This is deliberate, which is the actual problem\n\n`packages/core/src/policy/product-signal.ts:256-276` computes `changedFlag`, guards the PROJECT-DEFINITION write on it, then appends unconditionally:\n\n```ts\nconst changedFlag =\n  previousNormalized.enabled !== nextBlock.enabled ||\n  previousNormalized.sinkRepo !== nextBlock.sinkRepo;\npolicyBlock.productSignal = nextBlock;\nif (changedFlag) {\n  atomicWriteProjectDefinition(path, data);   // write is guarded\n}\n...\nappendAuditLog(projectRoot, parts.join(\" \"));  // append is not\n```\n\nand says so to the operator:\n\n```\nno-op: value already matched (audit entry still appended for trail).\n```\n\nThe same shape and the same string appear in `ceremony-dial.ts:756`, `value-feedback.ts:405`, and `require-human-merge.ts:422`. So the typed-policy family consistently chose \"record the attempt.\"\n\n#1250 chose the opposite for the wipCap welcome path (`packages/core/src/triage/welcome/onboard.ts:115`), where accepting the default deliberately does **not** materialize the field or write a row.\n\nBoth positions are defensible. Recording attempts has real value for a security-relevant ledger \u2014 \"who tried to flip this and when\" is not nothing. Suppressing no-ops keeps the trail readable. What is not defensible is holding both in the same file with no decision explaining which applies where.\n\n## Why it matters beyond tidiness\n\n1. **Tree dirtying before a release.** The append happens during `task check`, so a verb that changed no state leaves a tracked file modified. Release Step 1 is `git status --porcelain`, so this must be reverted or committed before every cut. It surfaced exactly that way on v0.105.0.\n2. **Signal dilution in a security artifact.** This ledger is the audit trail for `allowDirectCommitsToMaster` transitions (#746/#747) and was hardened against symlink redirection in #2470. It is meant to be read during incident review. A quarter of it saying \"nothing changed\" is the failure mode audit logs die of.\n3. **The `previous=` field already carries the information.** A reader can distinguish a real transition from a no-op by comparing new against `previous` \u2014 but only by parsing every row, which is what suppression or an explicit token would avoid.\n\n## Proposed change\n\nPick one convention and record it. Either direction closes this:\n\n**Option A \u2014 suppress no-ops.** Guard `appendAuditLog` on `changedFlag` in the four typed-policy writers, matching #1250. Simplest, and makes the ledger all-signal.\n\n**Option B \u2014 keep recording attempts, mark them.** Add an explicit `changed=true|false` token to the row and keep appending. `content/UPGRADING.md:868` documents exactly this token for the `actor=triage-welcome` rows, so the format precedent already exists in-tree. A reader greps `changed=true` for the transition history. This preserves the \"who tried\" value that the current copy is reaching for.\n\n**Either way**, the no-op append must stop dirtying the tree during `task check`, or `product-signal:enable` should not run there at all.\n\nOption B is the better fit if the \"for trail\" intent is genuine, because it keeps the evidence and makes it filterable. Option A is right if that intent was never load-bearing.\n\n\u2297 Rewriting or pruning existing rows. The ledger is append-only by design (#746) and hardened (#2470); historical no-op rows stay.\n\n## Acceptance\n\n- One convention applies to every writer of `meta/policy-changes.log`, recorded as a decision (`task decision:write`) naming which and why.\n- `#1250`'s welcome path and the typed-policy verbs agree.\n- A `product-signal:enable` that changes nothing does not leave a tracked file modified after `task check`.\n- If Option B: rows carry a machine-readable changed token, and `content/UPGRADING.md:868`'s existing `changed=` documentation is generalized to cover them.\n- Existing rows are untouched.\n\n## Affected writers\n\n- `packages/core/src/policy/product-signal.ts:275`\n- `packages/core/src/policy/ceremony-dial.ts:756`\n- `packages/core/src/policy/value-feedback.ts:405`\n- `packages/core/src/policy/require-human-merge.ts:422`\n- `packages/core/src/policy/org-force-on-migration.ts:565`\n- shared sink: `packages/core/src/policy/resolve.ts:208` (`appendAuditLog`)\n\nRefs #746, #747, #1250, #1186, #2470, #2980\n\n",
+      "Labels": "bug, process, source-of-truth",
+      "UserStory": "As a maintainer, I want one recorded no-op convention for policy-changes.log, so that task check cannot dirty a security ledger when nothing changed.",
+      "ImplementationPlan": "1. Guard appendAuditLog in packages/core/src/policy/product-signal.ts and sibling writers on changedFlag or stamp changed=true|false, matching the #1250 welcome module.\n2. Add tests that assert a no-op product-signal:enable leaves meta/policy-changes.log unmodified and existing rows stay intact.",
+      "Decisions": "- xbrief/decisions/2026-08-20-policy-changes-log-records-real-transitions-only-written-rows-st.decision.json \u2014 Policy-changes.log records real transitions only. Written rows stamp changed=true. No-op verbs do not append."
+    },
+    "items": [
+      {
+        "title": "Record one ledger convention",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When the story lands, task decision:write records which no-op convention applies to every writer of meta/policy-changes.log and why."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3536",
+          "recorded_at": "2026-08-20T04:55:49Z",
+          "recorded_by": "leaf-worker/3528"
+        }
+      },
+      {
+        "title": "Writers and welcome path agree",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When a typed-policy verb and the #1250 welcome path run, both follow the same recorded convention instead of contradictory append versus suppress behavior."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/policy",
+          "recorded_at": "2026-08-20T04:51:01Z",
+          "recorded_by": "leaf-worker/3528"
+        }
+      },
+      {
+        "title": "No-op enable does not dirty the tree",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When product-signal:enable matches the current value during task check, git status returns a clean tree for meta/policy-changes.log."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/policy/product-signal.test.ts",
+          "recorded_at": "2026-08-20T04:51:01Z",
+          "recorded_by": "leaf-worker/3528"
+        }
+      },
+      {
+        "title": "Historical rows stay",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When the convention ships, existing ledger rows remain byte-identical and are not rewritten or pruned."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/policy/product-signal.test.ts",
+          "recorded_at": "2026-08-20T04:51:01Z",
+          "recorded_by": "leaf-worker/3528"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "process",
+      "source-of-truth"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3528",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3528: policy-changes.log holds two contradictory no-op conventions; 63 of 236 rows record nothing (#1250 vs typed-policy writers)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/746",
+        "type": "x-xbrief/refs",
+        "title": "Issue #746"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [
+        {
+          "command": "task check",
+          "source": "verify_commands",
+          "sourceSpan": "swarm.verify_commands"
+        },
+        {
+          "command": "task check",
+          "source": "task_statement",
+          "sourceSpan": "inline@L73"
+        }
+      ],
+      "literal_acceptance_rejected": [
+        {
+          "command": "2026-08-20T00:28:20Z actor=task product-signal:enable productSignal.enabled=true",
+          "reason": "path-like first token is not allowlisted",
+          "sourceSpan": "fence@L13"
+        },
+        {
+          "command": "sinkRepo=deftai/product-signal previous={\"enabled\":true,\"sinkRepo\":\"deftai/product-signal\"}",
+          "reason": "shell metacharacter \"{\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L13"
+        },
+        {
+          "command": "no-op: value already matched (audit entry still appended for trail)",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L49"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/policy",
+          "task check"
+        ],
+        "expected_outputs": [
+          "policy writer tests pass and no-op enable leaves the ledger clean or marked"
+        ],
+        "depends_on": [],
+        "conflict_group": "policy-audit-3528",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Issue-ingested story; FR traces live in GitHub #3528 acceptance."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/policy"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "Re-derived the executable command away from recursive `task check` (that string is the merge-chokepoint, not a product oracle; invoking it from verify:ac deadlocks). Independent oracle: the story verify_commands for the policy writers. Clauses unchanged (#3322 / #3323).",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "One convention applies to every writer of `meta/policy-changes.log`, recorded as a decision (`task decision:write`) naming which and why.",
+          "artifact_path": "meta/policy-changes.log",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "`#1250`'s welcome path and the typed-policy verbs agree.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "A `product-signal:enable` that changes nothing does not leave a tracked file modified after `task check`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Real policy-change rows stamp the machine-readable token \"changed=true\" in content/UPGRADING.md.",
+          "artifact_path": "content/UPGRADING.md",
+          "ambiguous": true,
+          "readings": [
+            {
+              "text": "If Option B: rows carry a machine-readable changed token, and `content/UPGRADING.md:868`'s existing `changed=` documentation is generalized to cover them. [reading: content/UPGRADING.md:868]",
+              "artifact_path": "content/UPGRADING.md:868"
+            },
+            {
+              "text": "If Option B: rows carry a machine-readable changed token, and `content/UPGRADING.md:868`'s existing `changed=` documentation is generalized to cover them (shipped token \"changed=true\"). [reading: content/UPGRADING.md]",
+              "artifact_path": "content/UPGRADING.md"
+            }
+          ],
+          "chosen_reading": 1,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Existing rows are untouched.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ]
+    },
+    "updated": "2026-08-20T05:10:00Z",
+    "id": "2026-08-20-3528-policy-changeslog-holds-two-contradictory-no-op-conventions"
+  }
+}
