@@ -307,22 +307,68 @@ describe("hashProductState (#3387)", () => {
     expect(second.digest).not.toBe(first.digest);
   });
 
-  it("treats failed git status as an incomplete surface", () => {
-    const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-statusfail-"));
+  it("falls back to a product-file walk when git status fails (#3558)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3558-psh-statusfail-"));
     mkdirSync(join(root, ".git"), { recursive: true });
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src", "app.txt"), "v1\n", "utf8");
     const plan = { acceptance: { commands: [{ command: "true" }] } };
-    const hashed = hashProductState({
+    const failingGit = (headOk: boolean) => (_cwd: string, args: readonly string[]) => {
+      if (args.includes("rev-parse")) {
+        return headOk
+          ? { code: 0, stdout: "abc123", stderr: "" }
+          : { code: 128, stdout: "", stderr: "no HEAD" };
+      }
+      return { code: 128, stdout: "", stderr: "status failed" };
+    };
+    const withFiles = hashProductState({
       projectRoot: root,
       plan,
-      runGit: (_cwd, args) => {
-        if (args.includes("rev-parse")) {
-          return { code: 0, stdout: "abc123", stderr: "" };
-        }
-        return { code: 128, stdout: "", stderr: "status failed" };
-      },
+      runGit: failingGit(false),
     });
-    expect(hashed.complete).toBe(false);
-    expect(hashed.files).toEqual([]);
+    expect(withFiles.complete).toBe(true);
+    expect(withFiles.files).toContain("src/app.txt");
+    writeFileSync(join(root, "src", "app.txt"), "v2\n", "utf8");
+    const afterEdit = hashProductState({
+      projectRoot: root,
+      plan,
+      runGit: failingGit(false),
+    });
+    expect(afterEdit.digest).not.toBe(withFiles.digest);
+
+    const emptyRoot = mkdtempSync(join(tmpdir(), "deft-3558-psh-statusfail-empty-"));
+    mkdirSync(join(emptyRoot, ".git"), { recursive: true });
+    const headOnly = hashProductState({
+      projectRoot: emptyRoot,
+      plan,
+      runGit: failingGit(true),
+    });
+    expect(headOnly.complete).toBe(true);
+    expect(headOnly.files).toEqual([]);
+
+    const neither = hashProductState({
+      projectRoot: emptyRoot,
+      plan,
+      runGit: failingGit(false),
+    });
+    expect(neither.complete).toBe(false);
+    expect(neither.files).toEqual([]);
+  });
+
+  it("ignores run-summary telemetry so emit after bank does not miss (#3558)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3558-psh-jsonl-"));
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src", "app.txt"), "v1\n", "utf8");
+    const plan = { acceptance: { commands: [{ command: "true" }] } };
+    const first = hashProductState({ projectRoot: root, plan });
+    writeFileSync(join(root, ".deft-run-summary.json"), "{}\n", "utf8");
+    writeFileSync(join(root, "summary.jsonl"), "{}\n", "utf8");
+    const second = hashProductState({ projectRoot: root, plan });
+    expect(first.complete).toBe(true);
+    expect(second.digest).toBe(first.digest);
+    expect(second.files).toContain("src/app.txt");
+    expect(second.files).not.toContain(".deft-run-summary.json");
+    expect(second.files).not.toContain("summary.jsonl");
   });
 
   it("includes a nested leading-dot file under a recursive ** scope", () => {

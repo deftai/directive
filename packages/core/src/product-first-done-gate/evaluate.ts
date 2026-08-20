@@ -37,6 +37,7 @@ import {
   resolveScopeIdForAcReuse,
   snapshotFromReuseFields,
 } from "../session/ac-pass-reuse.js";
+import { gitHead } from "../session/git.js";
 import { hashProductState } from "../session/product-state-hash.js";
 import {
   type AcServedFrom,
@@ -80,6 +81,8 @@ export interface VerifyAcResult extends LiteralAcceptanceGateResult {
   readonly servedFrom?: AcServedFrom;
   /** Config-error cause when resolution is config (#3559). */
   readonly cause?: string;
+  /** Reuse-gate miss cause when servedFrom is executed (#3558). */
+  readonly missReason?: string;
 }
 
 export interface EvaluateVerifyAcOptions extends EvaluateLiteralAcceptanceOptions {
@@ -578,6 +581,7 @@ function emitAcceptanceOutcome(
       })),
       served_from: result.servedFrom ?? "executed",
       ...(result.cause !== undefined ? { cause: result.cause } : {}),
+      miss_reason: (result.servedFrom ?? "executed") === "executed" ? result.missReason : undefined,
     });
   } catch {
     // fail-open
@@ -764,10 +768,26 @@ function applyOracle(
       next = { ...next, resolution: "fail" };
     }
   }
+  const servedFrom = next.servedFrom ?? "executed";
+  let missReason = next.missReason;
+  if (servedFrom === "executed" && (missReason === undefined || missReason.length === 0)) {
+    const reuse = resolveAcReuse({
+      projectRoot,
+      plan,
+      scopeId: options.bankScopeId,
+      sessionId: options.sessionId,
+      env: options.env,
+      productPaths: options.productPaths,
+      allowCache: (options.reuseMode ?? "auto") === "auto",
+      allowBank: true,
+    });
+    if (reuse.kind === "miss") missReason = reuse.reason;
+  }
   const stamped: VerifyAcResult = {
     ...next,
     message: options.quiet === true ? next.message : labelVerdict(next),
-    servedFrom: next.servedFrom ?? "executed",
+    servedFrom,
+    missReason: servedFrom === "executed" ? missReason : undefined,
   };
   persistVerifyAcSessionCache(stamped, options, projectRoot, plan);
   if (options.skipAcceptanceEmit !== true) {
@@ -890,8 +910,8 @@ export function resolveOracleScopeKey(
 }
 
 /**
- * After executable AC pass, FINALIZE the banking checkpoint (#3285).
- * Soft/advisory passes with zero runs do not bank. Fail-open on ledger errors.
+ * After verified-pass, FINALIZE the banking checkpoint (#3285 / #3558).
+ * Soft/advisory empty-pass still skips. Ledger I/O failures fail closed.
  */
 function maybeAttachAcPassBank(
   result: VerifyAcResult,
@@ -902,7 +922,7 @@ function maybeAttachAcPassBank(
   if (options.bankOnPass === false) {
     return result;
   }
-  if (!result.ok || result.runs.length === 0) {
+  if (!result.ok || result.resolution !== "verified-pass") {
     return result;
   }
   const projectRoot = resolve(options.projectRoot ?? process.cwd());
@@ -923,8 +943,11 @@ function maybeAttachAcPassBank(
       projectRoot,
       scopeId,
       executableRuns: result.runs.length,
+      verifiedPass: true,
       quiet: options.quiet,
       productStateHash: hashed.complete ? hashed.digest : null,
+      environ: options.env,
+      headSha: gitHead(projectRoot).head,
     });
     if (options.quiet || banked.notes.length === 0) {
       return result;

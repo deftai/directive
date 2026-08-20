@@ -234,6 +234,95 @@ describe("bank-aware complete walk (#3387)", () => {
     expect(executions).toBe(1);
   });
 
+  it("git-status failure still banks then serves; product edit forces executed (#3558)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3558-gitfail-"));
+    // Broken gitdir so `git status` fails without walking a parent checkout.
+    writeFileSync(join(root, ".git"), "gitdir: missing-gitdir\n", "utf8");
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src", "product.txt"), "v1\n", "utf8");
+
+    const plan: Record<string, unknown> = {
+      id: "3558-gitfail",
+      title: "gitfail",
+      status: "running",
+      acceptance: {
+        commands: [{ command: "task check" }],
+        none_stated: true,
+        source_rung: "derived",
+      },
+      metadata: {},
+    };
+    const brief = writeBrief(root, plan);
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    const summary = join(root, ".deft", "summary.jsonl");
+    let executions = 0;
+    const runner = () => {
+      executions += 1;
+      return { exitCode: 0, stdout: "ok", stderr: "" };
+    };
+    const env = {
+      DEFT_SESSION_ID: "sess-3558-gitfail",
+      [ENV_RUN_SUMMARY_PATH]: summary,
+    };
+
+    const verified = evaluateVerifyAcFromPath(brief, {
+      projectRoot: root,
+      captureFromNarratives: false,
+      runner,
+      env,
+      hasSuiteFloor: true,
+    });
+    expect(verified.ok).toBe(true);
+    expect(verified.servedFrom).toBe("executed");
+    expect(verified.missReason).toBeTruthy();
+    expect(executions).toBe(1);
+
+    const complete = evaluateScopeCompleteAcceptanceWalk(plan, {
+      projectRoot: root,
+      captureFromNarratives: false,
+      runner,
+      env,
+      hasSuiteFloor: true,
+    });
+    expect(complete.ok).toBe(true);
+    expect(complete.servedFrom).toBe("bank");
+    expect(executions).toBe(1);
+
+    const check = evaluateVerifyAcFromPlan(plan, {
+      projectRoot: root,
+      captureFromNarratives: false,
+      runner,
+      env,
+      hasSuiteFloor: true,
+      reuseMode: "auto",
+    });
+    expect(check.ok).toBe(true);
+    expect(check.servedFrom).toBe("cache");
+    expect(executions).toBe(1);
+
+    const lines = parseJsonl(summary);
+    const acceptance = lines.filter((line) => line.event === "acceptance");
+    const sources = acceptance.map((line) => line.payload.served_from);
+    expect(sources).toContain("executed");
+    expect(sources).toContain("bank");
+    expect(sources).toContain("cache");
+    const executed = acceptance.find((line) => line.payload.served_from === "executed");
+    expect(typeof executed?.payload.miss_reason).toBe("string");
+    expect(String(executed?.payload.miss_reason).length).toBeGreaterThan(0);
+    expect(lines.some((line) => line.event === "ac_pass_bank")).toBe(true);
+
+    writeFileSync(join(root, "src", "product.txt"), "v2\n", "utf8");
+    const stale = evaluateScopeCompleteAcceptanceWalk(plan, {
+      projectRoot: root,
+      captureFromNarratives: false,
+      runner,
+      env,
+      hasSuiteFloor: true,
+    });
+    expect(stale.servedFrom).toBe("executed");
+    expect(executions).toBe(2);
+  });
+
   it("hashProductState changes when a product file changes", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-3387-hash-"));
     mkdirSync(join(root, "src"), { recursive: true });

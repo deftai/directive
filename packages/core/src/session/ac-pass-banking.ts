@@ -27,6 +27,7 @@ import {
   formatDeepeningSkippedNote,
   recommendVerificationDepth,
 } from "./effort-budget.js";
+import { gitHead } from "./git.js";
 
 /** Durable bank ledger directory (gitignored under `.deft/`). */
 export const AC_PASS_BANK_DIR = ".deft/ac-pass-banks";
@@ -842,6 +843,11 @@ export interface MaybeBankOnAcPassInput {
   readonly executableRuns: number;
   readonly quiet?: boolean;
   readonly productStateHash?: string | null;
+  /**
+   * Bank a verified-pass walk even when no shell runs were recorded (#3558).
+   * Soft/advisory empty passes still skip via executableRuns === 0.
+   */
+  readonly verifiedPass?: boolean;
 }
 
 export interface MaybeBankOnAcPassResult {
@@ -857,7 +863,7 @@ export interface MaybeBankOnAcPassResult {
  * Throws on I/O failure so verify:ac can fail closed (checkpoint mandatory).
  */
 export function maybeBankOnAcPass(input: MaybeBankOnAcPassInput): MaybeBankOnAcPassResult {
-  if (input.executableRuns <= 0) {
+  if (input.executableRuns <= 0 && input.verifiedPass !== true) {
     return { banked: false, decision: null, bank: null, notes: [] };
   }
   const budget = input.budget ?? detectHardEffortBudget({ environ: input.environ ?? process.env });
@@ -876,7 +882,7 @@ export function maybeBankOnAcPass(input: MaybeBankOnAcPassInput): MaybeBankOnAcP
     budget,
     surplus: decision.surplus,
     nextAction,
-    headSha: input.headSha ?? null,
+    headSha: input.headSha !== undefined ? input.headSha : gitHead(input.projectRoot).head,
     productStateHash: input.productStateHash ?? null,
     now: input.now,
     environ: input.environ,

@@ -357,6 +357,16 @@ describe("re-bank preserves findings + production bridge (#3285)", () => {
     expect(banked.bank?.scopeId).toBe("with-runs");
     expect(banked.bank?.productStateHash).toBe("digest-3387");
     expect(banked.notes.some((n) => n.includes("banked scope="))).toBe(true);
+
+    const verifiedZeroRuns = maybeBankOnAcPass({
+      projectRoot: root,
+      scopeId: "verified-zero",
+      executableRuns: 0,
+      verifiedPass: true,
+      productStateHash: "digest-3558",
+    });
+    expect(verifiedZeroRuns.banked).toBe(true);
+    expect(verifiedZeroRuns.bank?.productStateHash).toBe("digest-3558");
   });
 
   it("sanitizeScopeIdForFilename collapses unsafe chars without ReDoS", () => {

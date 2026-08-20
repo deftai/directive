@@ -170,6 +170,8 @@ export interface AcceptanceRunSummaryPayload {
   readonly served_from?: "bank" | "cache" | "executed";
   /** Config-error cause when outcome is config-error (#3559). */
   readonly cause?: string;
+  /** Reuse-gate miss cause when served_from is executed (#3558). */
+  readonly miss_reason?: string;
 }
 
 /** Intake-time stamp: which rung locked, whether commands were stated, counts (#3323). */

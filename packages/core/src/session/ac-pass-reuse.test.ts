@@ -126,4 +126,37 @@ describe("resolveAcReuse (#3387)", () => {
     });
     expect(bankOnly.kind).toBe("bank");
   });
+
+  it("serves a bank after git-status failure by walking product files (#3558)", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, ".git"), { recursive: true });
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src", "app.txt"), "ok\n", "utf8");
+    const plan = {
+      id: "gitfail-scope",
+      acceptance: { commands: [{ command: "true" }] },
+    };
+    const runGit = (_cwd: string, args: readonly string[]) => {
+      if (args.includes("rev-parse")) {
+        return { code: 128, stdout: "", stderr: "no HEAD" };
+      }
+      return { code: 128, stdout: "", stderr: "status failed" };
+    };
+    const hashed = hashProductState({ projectRoot: root, plan, runGit });
+    expect(hashed.complete).toBe(true);
+    maybeBankOnAcPass({
+      projectRoot: root,
+      scopeId: "gitfail-scope",
+      executableRuns: 0,
+      verifiedPass: true,
+      productStateHash: hashed.digest,
+    });
+    const hit = resolveAcReuse({ projectRoot: root, plan, runGit });
+    expect(hit.kind).toBe("bank");
+
+    writeFileSync(join(root, "src", "app.txt"), "changed\n", "utf8");
+    const miss = resolveAcReuse({ projectRoot: root, plan, runGit });
+    expect(miss.kind).toBe("miss");
+    expect(miss.reason).toMatch(/mismatch/);
+  });
 });

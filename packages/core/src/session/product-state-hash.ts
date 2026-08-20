@@ -23,6 +23,9 @@ const EXCLUDED_DIR_NAMES = new Set([
 
 const EXCLUDED_PATH_PREFIXES = ["xbrief/", "vbrief/", ".deft/", ".git/"];
 
+/** Telemetry files must not invalidate a green bank (#3558). */
+const EXCLUDED_FILE_NAMES = new Set([".deft-run-summary.json"]);
+
 export interface HashProductStateInput {
   readonly projectRoot: string;
   readonly plan: Record<string, unknown>;
@@ -66,6 +69,10 @@ function isExcludedRel(rel: string): boolean {
   if (posix === "." || posix.length === 0) return false;
   const first = posix.split("/")[0] ?? "";
   if (EXCLUDED_DIR_NAMES.has(first)) return true;
+  const base = posix.split("/").pop() ?? "";
+  if (EXCLUDED_FILE_NAMES.has(base)) return true;
+  // Root JSONL is run-summary telemetry, not product state.
+  if (!posix.includes("/") && posix.endsWith(".jsonl")) return true;
   return EXCLUDED_PATH_PREFIXES.some(
     (prefix) => posix === prefix.slice(0, -1) || posix.startsWith(prefix),
   );
@@ -634,9 +641,18 @@ export function hashProductState(input: HashProductStateInput): ProductStateHash
       const git = existsSync(join(root, ".git"));
       if (git) {
         const dirty = dirtyProductFiles(root, runGit);
-        statusOk = dirty.ok;
-        for (const rel of dirty.files) {
-          for (const expanded of expandIfDirectory(root, rel)) files.add(expanded);
+        if (dirty.ok) {
+          statusOk = true;
+          for (const rel of dirty.files) {
+            for (const expanded of expandIfDirectory(root, rel)) files.add(expanded);
+          }
+        } else {
+          // git status failed (containers, missing git, safe.directory).
+          // Walk product files instead of miss-forever (#3558 / #3549).
+          const walked: string[] = [];
+          walkFiles(root, root, walked);
+          for (const rel of walked) files.add(rel);
+          statusOk = true;
         }
       } else {
         const walked: string[] = [];
@@ -646,7 +662,7 @@ export function hashProductState(input: HashProductStateInput): ProductStateHash
     }
   }
 
-  const sorted = [...files].sort();
+  const sorted = [...files].filter((rel) => !isExcludedRel(rel)).sort();
   const fileHashes: Record<string, string> = {};
   for (const rel of sorted) {
     fileHashes[rel] = hashProductRel(root, rel, runGit);
