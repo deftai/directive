@@ -1,0 +1,204 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3559",
+    "updated": "2026-08-20T20:50:06Z"
+  },
+  "plan": {
+    "title": "bug(verify-ac): #3398 ambiguity-attestation enforcement inert in the field - stamp with no flag, no attestation, zero commands got verified-pass; re-filed open, release-targeted (split from #3550)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Issue #3398 closed with ambiguity-attestation enforcement inert. A field stamp with neither an ambiguous clause nor ambiguity_attestation none_found still received verified-pass. Enforcement must fire on every verify path, not one verb.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3559",
+      "Overview": "**TL;DR: split from #3550 so it can be scheduled independently (release-targeted). #3398 closed with its ambiguity-attestation enforcement inert: its spec made a stamp with neither an `ambiguous: true` clause nor an explicit `ambiguity_attestation: none_found` a verify:ac config error. A field trial on the release that closed #3398 shows a stamp with neither — two clauses both `ambiguous: false`, no attestation key, zero commands — receiving `verified-pass`. Re-filed open per the closed-issues-don't-get-fixed rule.**\n\n**Evidence (internal benchmark artifacts, private):** completed xBRIEF + run-summary JSONL from one current-release trial; the acceptance block is the fixture verbatim. Trace where the stamp path skips the check — the derivation verb, hand-edit-then-verify, and restamp paths all need to hit it (#3355's lesson: enforcement bound to one verb is enforcement that never fires).\n\n## Fix\nOne check: verify:ac (all paths — standalone, check-composed, completion walk) treats a stamped `plan.acceptance` lacking both an ambiguous clause and an attestation as config error, exit 2, one remediation (\"record ambiguity readings or attest none_found\"). Emit `outcome: \"config-error\"` with cause `missing_ambiguity_attestation`.\n\n## Acceptance sketch\n- The bundled field artifact, replayed as a fixture, fails closed on every verify path.\n- A stamp with `ambiguity_attestation: \"none_found\"` passes; one with an ambiguous clause + readings passes.\n- Cost footprint: one agent line per stamp — safe to land before the next external run.\n\nRelates #3398 (closed; spec source), #3550 (split origin — that issue now carries only the behavior-coverage floor), #3360, #3334.\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-08-20T19:58:45Z)\n\n**Implementation requirement, elevated from the body so it cannot be missed: the enforcement must fire on EVERY verify path** - standalone verify:ac, check-composed, the scope:complete completion walk, and after any restamp. Enforcement bound to a single verb is exactly how #3398's version ended up inert (#3355's lesson: the stamp/verify surface has multiple entry paths, and agents reach it through whichever one the flow puts in front of them). The acceptance fixture must therefore replay the field artifact through ALL paths, not just standalone verify:ac. Release targeting per operator decision: land BEFORE the next external run alongside #3558 - cost footprint is one agent line per stamp, so it does not contaminate the #3558 single-lever cost attribution.",
+      "Labels": "bug, agent-experience",
+      "UserStory": "As a maintainer, I want verify:ac to reject stamps that lack both an ambiguous clause and an attestation, so that the #3398 contract actually fails closed in the field.",
+      "ImplementationPlan": "1. Wire evaluateAmbiguityAttestation in the clause-derivation module into every verify:ac path: standalone, check-composed, scope:complete completion walk, and restamp. 2. Emit outcome config-error with cause missing_ambiguity_attestation and one remediation. 3. Add tests that replay the field artifact through ALL those paths and verify none_found and ambiguous-clause stamps pass.",
+      "OriginDivergence": "Intentional: labeled status:child after ingest; body and comments already read (#2143). Swarm-ready fields added locally."
+    },
+    "items": [
+      {
+        "title": "Every verify path fails closed",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When a stamp lacks both an ambiguous clause and ambiguity_attestation, standalone verify:ac, check-composed, the completion walk, and restamp each return config error exit 2."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/ambiguity-attestation.test.ts",
+          "recorded_at": "2026-08-20T20:47:08Z",
+          "recorded_by": "leaf-implementation/3559"
+        }
+      },
+      {
+        "title": "Named cause",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When that config error fires, the event records outcome config-error and cause missing_ambiguity_attestation, and shows one remediation to record readings or attest none_found."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/ambiguity-attestation.test.ts",
+          "recorded_at": "2026-08-20T20:47:08Z",
+          "recorded_by": "leaf-implementation/3559"
+        }
+      },
+      {
+        "title": "Valid stamps pass",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When a stamp has ambiguity_attestation none_found, verify:ac returns success; when it has an ambiguous clause with readings, verify:ac returns success."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/ambiguity-attestation.test.ts",
+          "recorded_at": "2026-08-20T20:47:08Z",
+          "recorded_by": "leaf-implementation/3559"
+        }
+      },
+      {
+        "title": "Check and changelog",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When intake and done-gate tests run they validate all paths; when task check runs it returns exit 0; CHANGELOG Unreleased records the fix."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-08-20T20:47:08Z",
+          "recorded_by": "leaf-implementation/3559"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3559",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3559: bug(verify-ac): #3398 ambiguity-attestation enforcement inert in the field - stamp with no flag, no attestation, zero commands got verified-pass; re-filed open, release-targeted (split from #3550)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3398",
+        "type": "x-xbrief/closes",
+        "title": "Issue #3398"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "ambiguous: true",
+          "reason": "path-like first token is not allowlisted",
+          "sourceSpan": "inline@L3"
+        },
+        {
+          "command": "ambiguity_attestation: none_found",
+          "reason": "path-like first token is not allowlisted",
+          "sourceSpan": "inline@L3"
+        },
+        {
+          "command": "ambiguous: false",
+          "reason": "path-like first token is not allowlisted",
+          "sourceSpan": "inline@L3"
+        },
+        {
+          "command": "outcome: \"config-error\"",
+          "reason": "path-like first token is not allowlisted",
+          "sourceSpan": "inline@L8"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/intake/clause-derivation.ts",
+          "packages/core/src/product-first-done-gate"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/intake/clause-derivation.test.ts",
+          "pnpm exec vitest run packages/core/src/product-first-done-gate"
+        ],
+        "expected_outputs": [
+          "verify:ac config-error on missing attestation for all paths; valid stamps pass"
+        ],
+        "depends_on": [],
+        "conflict_group": "verify-ac-attestation-3559",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Issue-ingested story; FR traces live in GitHub #3559 comment and #3398."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3564,
+        "prBase": null,
+        "mergeCommit": "2acebf4fb76f297b1260729618bfb57f12654417",
+        "deliveryBranch": "master",
+        "deliveryCommit": "2acebf4fb76f297b1260729618bfb57f12654417",
+        "verifiedAt": "2026-08-20T20:50:06Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "7a8a01e4-2fcb-44d0-8cad-2855ddcf1803"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-20T20:50:06Z",
+      "completedSessionId": "7a8a01e4-2fcb-44d0-8cad-2855ddcf1803",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "The bundled field artifact, replayed as a fixture, fails closed on every verify path.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "A stamp with `ambiguity_attestation: \"none_found\"` passes; one with an ambiguous clause + readings passes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Cost footprint: one agent line per stamp — safe to land before the next external run.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "--",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-08-20T20:50:06Z",
+    "id": "issue-3559"
+  }
+}
