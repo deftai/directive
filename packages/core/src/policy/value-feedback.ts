@@ -348,7 +348,7 @@ export function enableValueFeedback(
         }
       }
       const plan = data.plan as Record<string, unknown>;
-      migrateLegacyPolicyKey(plan);
+      const legacyKeyMigrated = migrateLegacyPolicyKey(plan);
       const existingPolicy = plan[PLAN_POLICY_KEY];
       if (
         typeof existingPolicy !== "object" ||
@@ -388,7 +388,8 @@ export function enableValueFeedback(
         previousNormalized.enabled !== nextBlock.enabled ||
         previousNormalized.emitEvents !== nextBlock.emitEvents ||
         previousNormalized.sessionLine !== nextBlock.sessionLine ||
-        previousNormalized.upstreamPrompt !== nextBlock.upstreamPrompt;
+        previousNormalized.upstreamPrompt !== nextBlock.upstreamPrompt ||
+        legacyKeyMigrated;
       policyBlock.valueFeedback = nextBlock;
       if (changedFlag) {
         atomicWriteProjectDefinition(path, data);

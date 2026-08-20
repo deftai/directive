@@ -2437,6 +2437,7 @@ interface PdWriteContext {
   path: string;
   data: Record<string, unknown>;
   policyBlock: Record<string, unknown>;
+  legacyMigrated: boolean;
 }
 
 /** Load PROJECT-DEFINITION for an in-place typed-field write (mirrors the .setdefault chain). */
@@ -2469,7 +2470,7 @@ function loadProjectDefinitionForWrite(projectRoot: string): PdWriteContext {
     throw new PolicySetError("PROJECT-DEFINITION 'plan' is not an object", "config");
   }
   const planObj = plan as Record<string, unknown>;
-  migrateLegacyPolicyKey(planObj);
+  const legacyMigrated = migrateLegacyPolicyKey(planObj);
   let policy = planObj[PLAN_POLICY_KEY];
   if (policy === undefined) {
     policy = {};
@@ -2478,7 +2479,7 @@ function loadProjectDefinitionForWrite(projectRoot: string): PdWriteContext {
   if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
     throw new PolicySetError("plan.policy is not an object", "config");
   }
-  return { path, data, policyBlock: policy as Record<string, unknown> };
+  return { path, data, policyBlock: policy as Record<string, unknown>, legacyMigrated };
 }
 
 /** Write plan.policy.wipCap in place + append the audit row (mirrors set_wip_cap). */
@@ -2488,10 +2489,10 @@ function writeWipCap(
   actor: string,
   note: string,
 ): { changed: boolean; auditEntry: string } {
-  const { path, data, policyBlock } = loadProjectDefinitionForWrite(projectRoot);
+  const { path, data, policyBlock, legacyMigrated } = loadProjectDefinitionForWrite(projectRoot);
   const previous = policyBlock.wipCap;
   policyBlock.wipCap = cap;
-  const changed = previous !== cap;
+  const changed = previous !== cap || legacyMigrated;
   const parts = [`actor=${actor}`, `wipCap=${cap}`, `previous=${pyRepr(previous)}`];
   if (note) parts.push(`note=${sanitizeNote(note)}`);
   const auditEntry = stampChangedToken(parts.join(" "), changed);
@@ -2510,10 +2511,10 @@ function writeSubagentBackend(
   actor: string,
   note: string,
 ): { changed: boolean; auditEntry: string } {
-  const { path, data, policyBlock } = loadProjectDefinitionForWrite(projectRoot);
+  const { path, data, policyBlock, legacyMigrated } = loadProjectDefinitionForWrite(projectRoot);
   const previous = policyBlock.swarmSubagentBackend;
   policyBlock.swarmSubagentBackend = backendId;
-  const changed = previous !== backendId;
+  const changed = previous !== backendId || legacyMigrated;
   const parts = [
     `actor=${actor}`,
     `swarmSubagentBackend=${backendId}`,

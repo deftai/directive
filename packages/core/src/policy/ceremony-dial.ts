@@ -699,7 +699,7 @@ export function setCeremonyDial(
         }
       }
       const plan = data.plan as Record<string, unknown>;
-      migrateLegacyPolicyKey(plan);
+      const legacyKeyMigrated = migrateLegacyPolicyKey(plan);
       const existingPolicy = plan[PLAN_POLICY_KEY];
       if (
         typeof existingPolicy !== "object" ||
@@ -740,7 +740,9 @@ export function setCeremonyDial(
       };
       const prevParsed = parseConfig(previous).config;
       const changedFlag =
-        prevParsed.enabled !== nextBlock.enabled || prevParsed.override !== nextBlock.override;
+        prevParsed.enabled !== nextBlock.enabled ||
+        prevParsed.override !== nextBlock.override ||
+        legacyKeyMigrated;
 
       policyBlock.ceremonyDial = nextBlock;
       if (changedFlag) {

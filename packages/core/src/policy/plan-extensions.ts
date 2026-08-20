@@ -75,11 +75,13 @@ export function readPlanOnboarding(plan: unknown): unknown {
  * policy key is present. Used by writers so a mutation never strands a legacy
  * bare block alongside the namespaced one.
  */
-export function migrateLegacyPolicyKey(plan: Record<string, unknown>): void {
+export function migrateLegacyPolicyKey(plan: Record<string, unknown>): boolean {
   if (plan[PLAN_POLICY_KEY] === undefined && plan[LEGACY_PLAN_POLICY_KEY] !== undefined) {
     plan[PLAN_POLICY_KEY] = plan[LEGACY_PLAN_POLICY_KEY];
     delete plan[LEGACY_PLAN_POLICY_KEY];
+    return true;
   }
+  return false;
 }
 
 /** The namespaced/legacy key pairs a bare block can silently shadow (#2301). */

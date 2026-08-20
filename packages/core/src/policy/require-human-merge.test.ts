@@ -147,4 +147,28 @@ describe("setRequireHumanMerge", () => {
     expect(changed).toBe(false);
     expect(existsSync(join(r, "meta", "policy-changes.log"))).toBe(false);
   });
+
+  it("equal-value set still persists a legacy plan.policy key migration", () => {
+    const r = tempRoot();
+    mkdirSync(join(r, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(r, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "t", status: "running", policy: { requireHumanMerge: false } },
+      }),
+      "utf8",
+    );
+    const { changed, auditEntry } = setRequireHumanMerge(r, {
+      requireHumanMerge: false,
+      actor: "test",
+    });
+    expect(changed).toBe(true);
+    expect(auditEntry).toContain("changed=true");
+    const plan = JSON.parse(
+      readFileSync(join(r, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "utf8"),
+    ).plan as Record<string, unknown>;
+    expect(plan.policy).toBeUndefined();
+    expect((plan["x-directive/policy"] as Record<string, unknown>).requireHumanMerge).toBe(false);
+  });
 });

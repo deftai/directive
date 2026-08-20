@@ -1159,6 +1159,23 @@ describe("native policy-set handler (#2022)", () => {
     expect(readFileSync(auditLogPath(), "utf8")).toBe(before);
   });
 
+  it("equal-value wip-cap still persists a legacy plan.policy key migration", async () => {
+    writeFileSync(
+      projectDefPath(),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "T", status: "running", items: [], policy: { wipCap: 5 } },
+      }),
+      "utf8",
+    );
+    const result = await runPolicy(["wip-cap", "--set", "5", "--confirm", "--project-root", root]);
+    expect(result.code).toBe(0);
+    expect(result.out).toContain("audit:");
+    const plan = JSON.parse(readFileSync(projectDefPath(), "utf8")).plan as Record<string, unknown>;
+    expect(plan.policy).toBeUndefined();
+    expect((plan["x-directive/policy"] as Record<string, unknown>).wipCap).toBe(5);
+  });
+
   it("wip-cap honors --actor / --note in the audit row", async () => {
     const result = await runPolicy([
       "wip-cap",

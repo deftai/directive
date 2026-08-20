@@ -382,7 +382,7 @@ export function setRequireHumanMerge(
       }
     }
     const plan = data.plan as Record<string, unknown>;
-    migrateLegacyPolicyKey(plan);
+    const legacyKeyMigrated = migrateLegacyPolicyKey(plan);
     const existingPolicy = plan[PLAN_POLICY_KEY];
     if (
       typeof existingPolicy !== "object" ||
@@ -411,7 +411,7 @@ export function setRequireHumanMerge(
       legacyDropped = true;
     }
 
-    const changed = previous !== Boolean(requireHumanMerge) || legacyDropped;
+    const changed = previous !== Boolean(requireHumanMerge) || legacyDropped || legacyKeyMigrated;
     const parts = [
       `actor=${actor}`,
       `requireHumanMerge=${requireHumanMerge ? "true" : "false"}`,

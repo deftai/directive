@@ -279,7 +279,7 @@ export function setPolicy(
       }
     }
     const plan = data.plan as Record<string, unknown>;
-    migrateLegacyPolicyKey(plan);
+    const legacyKeyMigrated = migrateLegacyPolicyKey(plan);
     const existingPolicy = plan[PLAN_POLICY_KEY];
     if (
       typeof existingPolicy !== "object" ||
@@ -309,7 +309,7 @@ export function setPolicy(
       legacyDropped = true;
     }
 
-    const changed = previous !== Boolean(allowDirectCommits) || legacyDropped;
+    const changed = previous !== Boolean(allowDirectCommits) || legacyDropped || legacyKeyMigrated;
     const parts = [
       `actor=${actor}`,
       `allowDirectCommitsToMaster=${allowDirectCommits ? "true" : "false"}`,

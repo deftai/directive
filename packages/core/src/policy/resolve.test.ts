@@ -293,6 +293,24 @@ describe("setPolicy", () => {
     expect(second.auditEntry).toContain("changed=false");
     expect(readFileSync(logPath, "utf8")).toBe(before);
   });
+
+  it("equal-value setPolicy still persists a legacy plan.policy key migration", () => {
+    const r = mkdtempSync(join(tmpdir(), "deft-policy-legacy-key-"));
+    roots.push(r);
+    writeProjectDef(r, { policy: { allowDirectCommitsToMaster: true } });
+    const result = setPolicy(r, { allowDirectCommits: true, actor: "test" });
+    expect(result.changed).toBe(true);
+    expect(result.auditEntry).toContain("changed=true");
+    const plan = (
+      JSON.parse(readFileSync(join(r, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "utf8")) as {
+        plan: Record<string, unknown>;
+      }
+    ).plan;
+    expect(plan.policy).toBeUndefined();
+    expect((plan["x-directive/policy"] as Record<string, unknown>).allowDirectCommitsToMaster).toBe(
+      true,
+    );
+  });
 });
 
 describe("appendAuditLog (#3528)", () => {

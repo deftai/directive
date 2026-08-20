@@ -232,7 +232,7 @@ export function enableProductSignal(
         }
       }
       const plan = data.plan as Record<string, unknown>;
-      migrateLegacyPolicyKey(plan);
+      const legacyKeyMigrated = migrateLegacyPolicyKey(plan);
       const existingPolicy = plan[PLAN_POLICY_KEY];
       if (
         typeof existingPolicy !== "object" ||
@@ -260,7 +260,8 @@ export function enableProductSignal(
       const previousNormalized = resolveProductSignalFromTypedBlock(previous);
       const changedFlag =
         previousNormalized.enabled !== nextBlock.enabled ||
-        previousNormalized.sinkRepo !== nextBlock.sinkRepo;
+        previousNormalized.sinkRepo !== nextBlock.sinkRepo ||
+        legacyKeyMigrated;
       policyBlock.productSignal = nextBlock;
       if (changedFlag) {
         atomicWriteProjectDefinition(path, data);

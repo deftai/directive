@@ -212,7 +212,7 @@ describe("enableValueFeedback disclosure gate", () => {
 
   it("preserves existing sub-flags on idempotent re-enable", () => {
     const root = makeRepo({
-      policy: {
+      "x-directive/policy": {
         valueFeedback: {
           enabled: true,
           emitEvents: false,

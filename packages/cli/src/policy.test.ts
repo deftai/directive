@@ -340,7 +340,7 @@ describe("run show + set integration", () => {
           title: "T",
           status: "running",
           items: [],
-          policy: { allowDirectCommitsToMaster: false, wipCap: 5 },
+          "x-directive/policy": { allowDirectCommitsToMaster: false, wipCap: 5 },
         },
       }),
       { encoding: "utf8" },
