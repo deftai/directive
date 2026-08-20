@@ -404,7 +404,7 @@ describe("evaluateLifecycleVisible with injected git (#3505)", () => {
     expect(result.message).toContain("boom-string");
   });
 
-  it("does not report an ignored root that is absent on disk", () => {
+  it("still check-ignore a missing canonical root so the hide is reported", () => {
     const root = freshDir("lv-absent-");
     mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
     const result = evaluateLifecycleVisible({
@@ -412,13 +412,18 @@ describe("evaluateLifecycleVisible with injected git (#3505)", () => {
       runGit: fakeGit((_r, args) => {
         if (args[0] === "check-ignore") {
           const paths = args.slice(args.indexOf("--") + 1);
-          expect(paths).not.toContain("vbrief/active/");
-          return { code: 1, stdout: "", stderr: "" };
+          expect(paths).toContain("xbrief/active/");
+          expect(paths).toContain("vbrief/active/");
+          return {
+            code: 0,
+            stdout: ".git/info/exclude:1:xbrief/active/\txbrief/active/",
+            stderr: "",
+          };
         }
         return { code: 0, stdout: "", stderr: "" };
       }),
     });
-    expect(result.findings).toEqual([]);
+    expect(result.findings.some((f) => f.path === "xbrief/active/")).toBe(true);
   });
 });
 

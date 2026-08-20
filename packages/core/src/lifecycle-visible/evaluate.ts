@@ -127,10 +127,6 @@ export function indexFlagKind(tag: string): "skip-worktree" | "assume-unchanged"
   return null;
 }
 
-function posixJoin(projectRoot: string, relPosix: string): string {
-  return joinPath(projectRoot, relPosix.replace(/\/+$/, ""));
-}
-
 /** Git top-level so a nested cwd cannot miss repo-root lifecycle dirs. */
 function resolveScanRoot(projectRoot: string, runGit: GitRunner): string {
   const { code, stdout } = runGit(projectRoot, ["rev-parse", "--show-toplevel"]);
@@ -138,14 +134,6 @@ function resolveScanRoot(projectRoot: string, runGit: GitRunner): string {
     return resolve(stdout.trim());
   }
   return resolve(projectRoot);
-}
-
-function joinPath(root: string, rel: string): string {
-  return resolve(root, ...rel.split("/").filter((p) => p.length > 0));
-}
-
-function rootPresent(projectRoot: string, relPosix: string): boolean {
-  return existsSync(posixJoin(projectRoot, relPosix));
 }
 
 function formatFinding(finding: LifecycleHideFinding): string {
@@ -204,8 +192,9 @@ function resultFor(
 }
 
 function collectIgnoredRoots(projectRoot: string, runGit: GitRunner): LifecycleHideFinding[] {
-  const roots = lifecycleRootRelPaths().filter((rel) => rootPresent(projectRoot, rel));
-  if (roots.length === 0) return [];
+  // Probe every canonical stage even when the directory is absent so an ignore
+  // rule cannot hide a missing xbrief/active/ before it is created (#3505).
+  const roots = lifecycleRootRelPaths();
   // --no-index: report the matching rule even when some files under the root
   // are already tracked (the #3504 hide is untracked new briefs).
   const { code, stdout, stderr } = runGit(projectRoot, [
