@@ -131,6 +131,15 @@ function posixJoin(projectRoot: string, relPosix: string): string {
   return joinPath(projectRoot, relPosix.replace(/\/+$/, ""));
 }
 
+/** Git top-level so a nested cwd cannot miss repo-root lifecycle dirs. */
+function resolveScanRoot(projectRoot: string, runGit: GitRunner): string {
+  const { code, stdout } = runGit(projectRoot, ["rev-parse", "--show-toplevel"]);
+  if (code === 0 && stdout.trim().length > 0) {
+    return resolve(stdout.trim());
+  }
+  return resolve(projectRoot);
+}
+
 function joinPath(root: string, rel: string): string {
   return resolve(root, ...rel.split("/").filter((p) => p.length > 0));
 }
@@ -300,7 +309,11 @@ export function evaluateLifecycleVisible(options: LifecycleVisibleOptions): Life
   }
   const runGit = options.runGit ?? defaultGitRunner;
   try {
-    const findings = [...collectIgnoredRoots(root, runGit), ...collectIndexFlags(root, runGit)];
+    const scanRoot = resolveScanRoot(root, runGit);
+    const findings = [
+      ...collectIgnoredRoots(scanRoot, runGit),
+      ...collectIndexFlags(scanRoot, runGit),
+    ];
     return resultFor(findings, enforce);
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);

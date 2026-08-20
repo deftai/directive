@@ -129,6 +129,31 @@ describe("evaluateLifecycleVisible with injected git (#3505)", () => {
     expect(result.message).toContain("project root not found");
   });
 
+  it("scans the git top-level when invoked from a subdirectory", () => {
+    const root = freshDir("lv-nested-");
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    mkdirSync(join(root, "packages", "core"), { recursive: true });
+    const nested = join(root, "packages", "core");
+    const result = evaluateLifecycleVisible({
+      projectRoot: nested,
+      runGit: fakeGit((_cwd, args) => {
+        if (args[0] === "rev-parse" && args.includes("--show-toplevel")) {
+          return { code: 0, stdout: root, stderr: "" };
+        }
+        if (args[0] === "check-ignore") {
+          expect(args).toContain("xbrief/active/");
+          return {
+            code: 0,
+            stdout: ".git/info/exclude:1:xbrief/active/\txbrief/active/",
+            stderr: "",
+          };
+        }
+        return { code: 0, stdout: "", stderr: "" };
+      }),
+    });
+    expect(result.findings[0]?.path).toBe("xbrief/active/");
+  });
+
   it("reports a bare xbrief/active/ exclude rule with file and line", () => {
     const root = freshDir("lv-exclude-");
     mkdirSync(join(root, "xbrief", "active"), { recursive: true });
