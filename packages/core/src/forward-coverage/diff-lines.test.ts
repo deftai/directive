@@ -20,6 +20,10 @@ describe("stripGitDiffPath", () => {
     expect(unescapeGitQuotedPath('"b/src/foo\\tbar.ts"')).toBe("b/src/foo\tbar.ts");
     expect(stripGitDiffPath('"b/src/foo\\tbar.ts"')).toBe("src/foo\tbar.ts");
     expect(stripGitDiffPath('"b/src/weird\\"name.ts"')).toBe('src/weird"name.ts');
+    expect(unescapeGitQuotedPath('"b/src/a\\a.ts"')).toBe("b/src/a\u0007.ts");
+    expect(unescapeGitQuotedPath('"b/src/b\\b.ts"')).toBe("b/src/b\b.ts");
+    expect(unescapeGitQuotedPath('"b/src/f\\f.ts"')).toBe("b/src/f\f.ts");
+    expect(unescapeGitQuotedPath('"b/src/v\\v.ts"')).toBe("b/src/v\v.ts");
   });
 
   it("leaves unprefixed paths intact", () => {

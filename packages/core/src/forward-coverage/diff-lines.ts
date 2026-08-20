@@ -7,6 +7,19 @@ export type ChangedLineMap = Map<string, Set<number>>;
 
 const HUNK_RE = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/;
 
+/** Git `core.quotePath` C-style escapes (quote.c). */
+const GIT_C_ESCAPES: Readonly<Record<string, string>> = {
+  a: "\u0007",
+  b: "\b",
+  t: "\t",
+  n: "\n",
+  v: "\v",
+  f: "\f",
+  r: "\r",
+  '"': '"',
+  "\\": "\\",
+};
+
 /** Decode a Git C-quoted path (`"foo\\tbar"` → `foo\tbar`). */
 export function unescapeGitQuotedPath(raw: string): string {
   const s = raw.trim();
@@ -27,14 +40,9 @@ export function unescapeGitQuotedPath(raw: string): string {
       break;
     }
     i += 1;
-    if (next === "n") {
-      out += "\n";
-    } else if (next === "t") {
-      out += "\t";
-    } else if (next === "r") {
-      out += "\r";
-    } else if (next === "\\" || next === '"') {
-      out += next;
+    const simple = GIT_C_ESCAPES[next];
+    if (simple !== undefined) {
+      out += simple;
     } else if (next >= "0" && next <= "7") {
       let oct = next;
       const a = inner[i + 1];
