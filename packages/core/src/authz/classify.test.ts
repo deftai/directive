@@ -1347,6 +1347,8 @@ describe("classifyShellAuthzOps (#2944)", () => {
     // DESTDIR= on a non-writer is not a dest plant (Greptile P1 #3545).
     expect(classifyShellAuthzOps("echo DESTDIR=.deft/authz/grants")).toEqual([]);
     expect(classifyShellAuthzOps("true PREFIX=.deft/approved-scope")).toEqual([]);
+    expect(classifyShellAuthzOps("echo DESTDIR=.deft/authz/grants make")).toEqual([]);
+    expect(classifyShellAuthzOps("DESTDIR=.deft/authz/grants make install")).toContain("settings");
   });
 
   it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {

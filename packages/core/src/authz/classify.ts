@@ -1312,13 +1312,18 @@ const DEST_ASSIGNMENT_KEYS = new Set(["destdir", "prefix", "install_root", "dest
 /** Bins whose DESTDIR=/PREFIX= assignment is a dest plant (not `echo DESTDIR=…`). */
 const DEST_ASSIGNMENT_OWNER_BINS = new Set(["make", "gmake", "cmake", "ninja", "meson", "install"]);
 
-function tokensIncludeDestAssignmentOwner(tokens: readonly string[]): boolean {
-  for (const t of tokens) {
-    const bare = writeBinName(t);
-    if (DEST_ASSIGNMENT_OWNER_BINS.has(bare)) return true;
-    if (ARCHIVE_ALT_WRITE_BINS.has(bare) || INDIRECT_WRITE_BINS.has(bare)) return true;
+/** First command bin in the current shell segment, skipping env assigns. */
+function segmentDestAssignmentOwner(tokens: readonly string[], tokenIndex: number): string {
+  let start = tokenIndex;
+  while (start > 0 && !tokenEndsShellSegment(tokens[start - 1] as string)) start--;
+  for (let k = start; k < tokens.length; k++) {
+    const raw = tokens[k] as string;
+    if (tokenEndsShellSegment(raw)) break;
+    const n = normalizeToken(raw);
+    if (n.startsWith("-") || isEnvAssign(raw)) continue;
+    return writeBinName(raw);
   }
-  return false;
+  return "";
 }
 
 function isReadShapedInputFileFlag(bin: string, flag: string): boolean {
@@ -1491,7 +1496,10 @@ function genericProtectedDests(tokens: readonly string[]): string[] {
       const keyRaw = raw.slice(0, eq);
       if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(keyRaw)) {
         const key = normalizeToken(keyRaw);
-        if (DEST_ASSIGNMENT_KEYS.has(key) && tokensIncludeDestAssignmentOwner(tokens)) {
+        if (
+          DEST_ASSIGNMENT_KEYS.has(key) &&
+          DEST_ASSIGNMENT_OWNER_BINS.has(segmentDestAssignmentOwner(tokens, i))
+        ) {
           const dest = pathishToken(raw.slice(eq + 1));
           if (pathishIsProtectedDest(dest)) dests.push(dest);
         }

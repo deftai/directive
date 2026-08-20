@@ -1630,6 +1630,7 @@ describe("UAT residual dest-form writers fail-closed (#3545)", () => {
       "perl -e 'print 1;'",
       "echo DESTDIR=.deft/authz/grants",
       "true PREFIX=.deft/approved-scope",
+      "echo DESTDIR=.deft/authz/grants make",
     ]) {
       const decision = decideHook(
         {
