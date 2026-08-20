@@ -252,9 +252,9 @@ For each implementation phase IP-N, write a scope vBRIEF with:
 1. ! Inspect approved specification narratives and Phase 4 scope vBRIEFs.
 2. ! Identify `plan.metadata.kind = "phase"` or `"epic"` scopes that are too broad for direct implementation.
 3. ! Draft a deterministic decomposition proposal: stories, dependencies, expected file scope, verification commands, traces, and conflict groups.
-4. ! Store the temporary proposal artifact under `vbrief/.triage-cache/decompositions/<parent-slug>.json`; derive `<parent-slug>` from the parent vBRIEF filename by removing `.vbrief.json` and any leading `YYYY-MM-DD-` date prefix.
+4. ! Store the temporary proposal artifact under `xbrief/.triage-cache/decompositions/<parent-slug>.json` (legacy scratch `vbrief/.triage-cache/decompositions/ip001-auth.json` is read-accepted); derive `<parent-slug>` from the parent vBRIEF filename by removing `.xbrief.json` or `.vbrief.json` and any leading `YYYY-MM-DD-` date prefix.
 5. ! Ask for explicit user approval before writing child story vBRIEFs.
-6. ! Validate the approved draft with `task scope:decompose -- <parent.vbrief.json> --draft vbrief/.triage-cache/decompositions/<parent-slug>.json --check`, then apply it without `--check`.
+6. ! Validate the approved draft with `task scope:decompose -- <parent.xbrief.json> --draft xbrief/.triage-cache/decompositions/<parent-slug>.json --check`, then apply it without `--check`.
 7. ! Run `task swarm:readiness -- xbrief/active/*.xbrief.json` before concurrent allocation, or point it at the candidate child story files for a dry readiness review before activation.
 
 ### Story vBRIEF Requirements
@@ -287,7 +287,7 @@ task scope:decompose -- xbrief/pending/2026-05-12-ip001-auth.xbrief.json --draft
 task scope:decompose -- --check
 ```
 
-The draft JSON is a temporary proposal artifact, not a vBRIEF. Agents SHOULD write draft proposals under `vbrief/.triage-cache/decompositions/`, which is gitignored specifically for local decomposition scratch. Derive `<parent-slug>` from the parent vBRIEF filename by removing `.vbrief.json` and any leading `YYYY-MM-DD-` date prefix. Agents MUST NOT leave decomposition draft JSON files at the workspace root. The command validates and applies a proposed decomposition rather than freely inventing one. It creates generated child story vBRIEFs as lifecycle artifacts, defaulting to `xbrief/pending/`, preserves origin/provenance references, sets each child `planRef` to the parent scope, updates parent references to include children, validates the dependency DAG, rejects dependency cycles, and rejects ready stories missing user-story shape, concrete observable acceptance, narrow file scope, focused verify commands, or traces. Parent `plan.items` are input signals, not automatic child stories.
+The draft JSON is a temporary proposal artifact, not a vBRIEF. Agents SHOULD write draft proposals under `xbrief/.triage-cache/decompositions/` (legacy `vbrief/.triage-cache/decompositions/` remains read-accepted), which is gitignored specifically for local decomposition scratch. Derive `<parent-slug>` from the parent vBRIEF filename by removing `.xbrief.json` or `.vbrief.json` and any leading `YYYY-MM-DD-` date prefix. Agents MUST NOT leave decomposition draft JSON files at the workspace root. The command validates and applies a proposed decomposition rather than freely inventing one. It creates generated child story vBRIEFs as lifecycle artifacts, defaulting to `xbrief/pending/`, preserves origin/provenance references, sets each child `planRef` to the parent scope, updates parent references to include children, validates the dependency DAG, rejects dependency cycles, and rejects ready stories missing user-story shape, concrete observable acceptance, narrow file scope, focused verify commands, or traces. Parent `plan.items` are input signals, not automatic child stories.
 
 Parent phase/epic acceptance MAY remain in `plan.narratives.Acceptance` as context. Executable acceptance for swarm work MUST be redistributed into child story `plan.items`.
 
