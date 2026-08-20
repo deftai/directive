@@ -31,6 +31,30 @@ function equalsValue(arg: string, flag: string): string {
   return arg.slice(flag.length + 1);
 }
 
+function parsePrList(
+  raw: string,
+  flag: string,
+  prNumbers: number[],
+  reject: (arg: string) => void,
+): void {
+  if (raw.trim().length === 0) {
+    reject(flag);
+    return;
+  }
+  for (const piece of raw.split(",")) {
+    const trimmed = piece.trim();
+    if (trimmed.length === 0) {
+      reject(flag);
+      return;
+    }
+    if (!/^\d+$/.test(trimmed)) {
+      reject(flag);
+      return;
+    }
+    prNumbers.push(Number.parseInt(trimmed, 10));
+  }
+}
+
 export function parseFinalizeCohortArgv(argv: readonly string[]): ParsedFinalizeCohortArgv {
   const prNumbers: number[] = [];
   const storyTokens: string[] = [];
@@ -65,26 +89,11 @@ export function parseFinalizeCohortArgv(argv: readonly string[]): ParsedFinalize
     } else if (arg === "--pr") {
       const value = takeValue(arg, next);
       if (value !== null) {
-        for (const piece of value.split(",")) {
-          const trimmed = piece.trim();
-          if (/^\d+$/.test(trimmed)) {
-            prNumbers.push(Number.parseInt(trimmed, 10));
-          }
-        }
+        parsePrList(value, arg, prNumbers, reject);
         i += 1;
       }
     } else if (arg?.startsWith("--pr=")) {
-      const value = equalsValue(arg, "--pr");
-      if (value.trim().length === 0) {
-        reject(arg);
-      } else {
-        for (const piece of value.split(",")) {
-          const trimmed = piece.trim();
-          if (/^\d+$/.test(trimmed)) {
-            prNumbers.push(Number.parseInt(trimmed, 10));
-          }
-        }
-      }
+      parsePrList(equalsValue(arg, "--pr"), arg, prNumbers, reject);
     } else if (arg === "--stories") {
       const value = takeValue(arg, next);
       if (value !== null) {

@@ -760,6 +760,16 @@ describe("finalize-cohort sweep base and argv (#3554)", () => {
     }
   });
 
+  it("fails closed on malformed nonempty --pr tokens", () => {
+    expect(parseFinalizeCohortArgv(["--pr=abc", "--stories", "story-a"]).error).toBe(
+      "unrecognized argument: --pr=abc",
+    );
+    expect(parseFinalizeCohortArgv(["--pr=12,abc", "--stories", "story-a"]).error).toBe(
+      "unrecognized argument: --pr=12,abc",
+    );
+    expect(parseFinalizeCohortArgv(["--pr", "12,abc"]).error).toBe("unrecognized argument: --pr");
+  });
+
   it("fails closed when a value flag is followed by another flag instead of a value", () => {
     const parsed = parseFinalizeCohortArgv(["--base-branch", "--dry-run", "--stories", "story-a"]);
     expect(parsed.error).toBe("unrecognized argument: --base-branch");
