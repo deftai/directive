@@ -1368,6 +1368,8 @@ describe("classifyShellAuthzOps (#2944)", () => {
       "settings",
     );
     expect(classifyShellAuthzOps("git log make DESTDIR=.deft/authz/grants")).toEqual([]);
+    expect(classifyShellAuthzOps("dpkg --info .deft/authz/grants/package.deb")).toEqual([]);
+    expect(classifyShellAuthzOps("pdftk .deft/authz/grants/input.pdf dump_data")).toEqual([]);
   });
 
   it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {

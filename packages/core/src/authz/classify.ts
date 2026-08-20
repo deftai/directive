@@ -208,6 +208,18 @@ const UAT_RESIDUAL_DEST_WRITE_BINS_3545 = [
   "dc3dd",
   "sg_dd",
 ] as const;
+/** In-place residual writers: any protected operand is a dest. Extract/output bins stay dest-flag gated. */
+const UAT_RESIDUAL_INPLACE_WRITE_BINS_3545 = [
+  "fromdos",
+  "todos",
+  "emacsclient",
+  "pico",
+  "degit",
+  "composer",
+  "ddrescue",
+  "dc3dd",
+  "sg_dd",
+] as const;
 
 /**
  * Downloaders / decoders / remote-copy tools that can plant files without shell
@@ -462,7 +474,7 @@ const ARCHIVE_ALT_WRITE_BINS = new Set([
   "makecab",
   "replace",
   // #3545 residual: dest writers that are not general-purpose cmd/git.
-  ...UAT_RESIDUAL_DEST_WRITE_BINS_3545,
+  ...UAT_RESIDUAL_INPLACE_WRITE_BINS_3545,
 ]);
 
 /**
@@ -965,6 +977,29 @@ function firstUnquotedShellOpIndex(raw: string): number {
 }
 
 /**
+ * dpkg/pdftk/gs only harvest protected positionals on write forms
+ * (`dpkg -x`, `pdftk … output`, gs dest flags). Inspect/read forms stay unclassifiable.
+ */
+function residualPositionalBinIsWriteShaped(
+  bin: string,
+  tokens: readonly string[],
+  start: number,
+): boolean {
+  if (bin !== "dpkg" && bin !== "pdftk" && bin !== "gs") return true;
+  for (let k = start; k < tokens.length; k++) {
+    const raw = tokens[k] as string;
+    if (tokenEndsShellSegment(raw)) break;
+    const n = normalizeToken(raw);
+    if (bin === "dpkg" && (n === "-x" || n === "--extract" || n === "--vextract")) {
+      return true;
+    }
+    if (bin === "pdftk" && n === "output") return true;
+    if (bin === "gs" && (n.startsWith("-soutputfile") || n === "-soutputfile")) return true;
+  }
+  return false;
+}
+
+/**
  * Destinations from curl/wget/xxd/openssl/scp/aria2c/certutil via -o/--output/-O/-out/
  * --output-dir/-P/-d/--dir (separate, =value, or attached short form), xxd -r path-like
  * write positionals (#3206), positional dests for scp/certutil (#3213), and #3245 residual
@@ -993,7 +1028,7 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
     let lastPositionalPath: string | null = null;
     const protectedPathish: string[] = [];
     const collectsProtectedPositionals =
-      PROTECTED_POSITIONAL_BINS.has(bin) ||
+      (PROTECTED_POSITIONAL_BINS.has(bin) && residualPositionalBinIsWriteShaped(bin, tokens, i)) ||
       (bin === "git" && gitHasWriteSubcommand(tokens, i)) ||
       (bin === "git" && gitHasBundleCreate(tokens, i)) ||
       (bin === "jj" && jjHasWriteSubcommand(tokens, i)) ||
@@ -2342,8 +2377,8 @@ const INDIRECT_WRITE_BINS = new Set([
   "extrac32",
   "makecab",
   "replace",
-  // #3545 residual: dest writers (fromdos/dpkg/degit/ddrescue).
-  ...UAT_RESIDUAL_DEST_WRITE_BINS_3545,
+  // #3545 residual: dest writers (fromdos/degit/ddrescue). dpkg/pdftk/gs stay dest-flag gated.
+  ...UAT_RESIDUAL_INPLACE_WRITE_BINS_3545,
 ]);
 
 /**
