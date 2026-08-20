@@ -313,6 +313,21 @@ const DOWNLOADER_DECODER_BINS = new Set([
   "gh",
   "glab",
   "hub",
+  // #3529 residual after #3459: dest-form writers harvest missed.
+  "xcopy",
+  "robocopy",
+  "bitsadmin",
+  "start-bitstransfer",
+  "expand-archive",
+  "tee-object",
+  "export-csv",
+  "pscp",
+  "jj",
+  "sponge",
+  "expand",
+  "extrac32",
+  "makecab",
+  "replace",
 ]);
 
 /**
@@ -411,6 +426,19 @@ const ARCHIVE_ALT_WRITE_BINS = new Set([
   "iwr",
   "invoke-webrequest",
   "fsutil",
+  // #3529 residual: dest writers that are not general-purpose cmd/git.
+  "xcopy",
+  "robocopy",
+  "bitsadmin",
+  "start-bitstransfer",
+  "expand-archive",
+  "tee-object",
+  "export-csv",
+  "sponge",
+  "expand",
+  "extrac32",
+  "makecab",
+  "replace",
 ]);
 
 /**
@@ -515,6 +543,21 @@ const PROTECTED_POSITIONAL_BINS = new Set([
   "iwr",
   "invoke-webrequest",
   "fsutil",
+  // #3529 residual: positional dest writers (xcopy/robocopy/BitsTransfer/pscp).
+  // jj clone dests are harvested only on the clone subcommand.
+  "xcopy",
+  "robocopy",
+  "bitsadmin",
+  "start-bitstransfer",
+  "expand-archive",
+  "tee-object",
+  "export-csv",
+  "pscp",
+  "sponge",
+  "expand",
+  "extrac32",
+  "makecab",
+  "replace",
 ]);
 
 /**
@@ -643,6 +686,15 @@ const GENERIC_PROTECTED_EXTRA_DEST_FLAGS = new Set([
   "--file",
   "--separate-git-dir",
   "--pack-destination",
+  // #3529 residual dest flags (PowerShell single-dash + extra dir dests).
+  "--output-dir",
+  "--outdir",
+  "--target-directory",
+  "--destdir",
+  "-destination",
+  "-destinationpath",
+  "-filepath",
+  "--prefix",
 ]);
 /** Bins whose `--file` / `-f` operand is an input, not a dest plant. */
 const READ_SHAPED_FILE_FLAG_BINS = new Set([
@@ -664,8 +716,18 @@ const READ_SHAPED_FILE_FLAG_BINS = new Set([
 const READ_INPUT_FILE_FLAGS = new Set(["--file", "-f"]);
 /** PowerShell New-Item dest flags (not generic: Get-Content -Path is a read). */
 const NEW_ITEM_PATH_DEST_FLAGS = new Set(["-path", "-literalpath", "--literalpath"]);
-/** git subcommands whose positionals can plant a dest (#3421). */
-const GIT_WRITE_SUBCOMMANDS = new Set(["clone", "worktree", "submodule"]);
+/** git subcommands whose positionals can plant a dest (#3421 / #3529 bundle). */
+const GIT_WRITE_SUBCOMMANDS = new Set(["clone", "worktree", "submodule", "bundle"]);
+/** jj subcommands whose positionals can plant a dest (#3529). */
+const JJ_WRITE_SUBCOMMANDS = new Set(["clone"]);
+const JJ_PRE_SUBCOMMAND_BOOLEAN_FLAGS = new Set([
+  "--help",
+  "-h",
+  "--quiet",
+  "-q",
+  "--ignore-immutable",
+  "--no-pager",
+]);
 /** Forge CLIs whose `clone` dest is harvested like git clone (#3459). */
 const FORGE_CLONE_BINS = new Set(["gh", "glab", "hub"]);
 /** fossil dest-dir flags (#3382 PATH form + #3421 --workdir=). */
@@ -778,14 +840,18 @@ function isDownloaderDecoderBin(token: string): boolean {
   return DOWNLOADER_DECODER_BINS.has(writeBinName(token));
 }
 
+function isScpFamilyBin(bin: string): boolean {
+  return bin === "scp" || bin === "pscp";
+}
+
 /**
  * True when `flag` (normalized lower) or `rawFlag` (original token) is a dest flag for `bin`.
  * tar `-C` must use raw case: lowercased `-c` is create-archive, not chdir (#3245).
  * 7z uses attached `-oDIR` only — separate `-o PATH` is not a 7z dest form (handled elsewhere).
  */
 function isDownloaderDestFlag(flag: string, bin: string, rawFlag?: string): boolean {
-  // scp: `-o` is OpenSSH option (ProxyCommand, …), not a file dest flag.
-  if (bin === "scp") return false;
+  // scp/pscp: `-o` is OpenSSH option (ProxyCommand, …), not a file dest flag.
+  if (isScpFamilyBin(bin)) return false;
   // 7z family: only attached `-oDIR` (parsed in attached-short branch), not separate `-o PATH`.
   if (SEVEN_Z_FAMILY_BINS.has(bin)) {
     return false;
@@ -897,6 +963,7 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
     const collectsProtectedPositionals =
       PROTECTED_POSITIONAL_BINS.has(bin) ||
       (bin === "git" && gitHasWriteSubcommand(tokens, i)) ||
+      (bin === "jj" && jjHasWriteSubcommand(tokens, i)) ||
       (FORGE_CLONE_BINS.has(bin) && forgeHasCloneSubcommand(tokens, i));
     while (i < tokens.length) {
       const raw = tokens[i] as string;
@@ -936,9 +1003,9 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
         continue;
       }
 
-      // scp: skip OpenSSH value-taking flags + their values (-o Option=Value, -i key, -P port).
+      // scp/pscp: skip OpenSSH value-taking flags + their values (-o Option=Value, -i key, -P port).
       if (
-        bin === "scp" &&
+        isScpFamilyBin(bin) &&
         (SCP_VALUE_FLAGS_LOWER.has(n) ||
           SCP_VALUE_FLAGS_EXACT.has(raw) ||
           SCP_VALUE_FLAGS_EXACT.has(n))
@@ -967,9 +1034,9 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
       }
 
       // Attached short: -oPATH / -OPATH (after lowercasing both are -opath…)
-      // Skip for scp (OpenSSH -oOption=Value attached forms are not file dests).
+      // Skip for scp/pscp (OpenSSH -oOption=Value attached forms are not file dests).
       // 7z requires attached -oDIR (#3245).
-      if (bin !== "scp" && n.startsWith("-") && !n.startsWith("--") && n.length > 2) {
+      if (!isScpFamilyBin(bin) && n.startsWith("-") && !n.startsWith("--") && n.length > 2) {
         // `-outfile` is PowerShell -OutFile (next token is dest), not attached -outFILE (#3459).
         if (n.startsWith("-out") && n.length > 4 && !n.startsWith("-output") && n !== "-outfile") {
           dests.push(pathishToken(raw.slice(4)));
@@ -1237,20 +1304,25 @@ const GIT_PRE_SUBCOMMAND_BOOLEAN_FLAGS = new Set([
 ]);
 
 /**
- * True only when the git *subcommand* (first non-flag token) is a dest writer.
+ * True only when the VCS *subcommand* (first non-flag token) is a dest writer.
  * Later operands named clone/worktree/submodule (e.g. `git log worktree -- …`)
  * are not write subcommands (#3423 residual).
  * Boolean globals (`--no-pager`) do not consume the next token. Other globals
  * consume it even when that token spells a subcommand (#3421 residual).
  */
-function gitHasWriteSubcommand(tokens: readonly string[], start: number): boolean {
+function hasWriteSubcommand(
+  tokens: readonly string[],
+  start: number,
+  writeSubs: Set<string>,
+  booleanFlags: Set<string>,
+): boolean {
   let i = start;
   while (i < tokens.length) {
     const raw = tokens[i] as string;
     if (isShellSegmentBreak(raw)) return false;
     const n = normalizeToken(raw);
     if (n.startsWith("-")) {
-      if (!n.includes("=") && !GIT_PRE_SUBCOMMAND_BOOLEAN_FLAGS.has(n)) {
+      if (!n.includes("=") && !booleanFlags.has(n)) {
         const next = tokens[i + 1];
         if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
           i += 2;
@@ -1260,9 +1332,17 @@ function gitHasWriteSubcommand(tokens: readonly string[], start: number): boolea
       i++;
       continue;
     }
-    return GIT_WRITE_SUBCOMMANDS.has(n);
+    return writeSubs.has(n);
   }
   return false;
+}
+
+function gitHasWriteSubcommand(tokens: readonly string[], start: number): boolean {
+  return hasWriteSubcommand(tokens, start, GIT_WRITE_SUBCOMMANDS, GIT_PRE_SUBCOMMAND_BOOLEAN_FLAGS);
+}
+
+function jjHasWriteSubcommand(tokens: readonly string[], start: number): boolean {
+  return hasWriteSubcommand(tokens, start, JJ_WRITE_SUBCOMMANDS, JJ_PRE_SUBCOMMAND_BOOLEAN_FLAGS);
 }
 
 /**
@@ -1328,12 +1408,22 @@ function genericProtectedDests(tokens: readonly string[]): string[] {
         currentBin = writeBinName(raw);
       }
     }
-    if (currentBin === "scp" || currentBin === "cpio") continue;
+    if (isScpFamilyBin(currentBin) || currentBin === "cpio") continue;
     if (n.includes("=") && (n.startsWith("-") || n.startsWith("--"))) {
       const eq = raw.indexOf("=");
       const flag = normalizeToken(raw.slice(0, eq));
       if (isGenericProtectedDestFlag(flag) && !isReadShapedInputFileFlag(currentBin, flag)) {
         const dest = pathishToken(raw.slice(eq + 1));
+        if (pathishIsProtectedDest(dest)) dests.push(dest);
+      }
+      continue;
+    }
+    // Named dest flags (`-Destination`, `--output-dir`) take the next token.
+    // Check before attached `-oDIR` / `-dDIR` so `-destination` is not `-d` + `estination`.
+    if (isGenericProtectedDestFlag(n) && !isReadShapedInputFileFlag(currentBin, n)) {
+      const next = tokens[i + 1];
+      if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
+        const dest = pathishToken(next);
         if (pathishIsProtectedDest(dest)) dests.push(dest);
       }
       continue;
@@ -1352,14 +1442,6 @@ function genericProtectedDests(tokens: readonly string[]): string[] {
     if (n.startsWith("-") && !n.startsWith("--") && n.startsWith("-d") && n.length > 2) {
       const dest = pathishToken(raw.slice(2));
       if (pathishIsProtectedDest(dest)) dests.push(dest);
-      continue;
-    }
-    if (isGenericProtectedDestFlag(n) && !isReadShapedInputFileFlag(currentBin, n)) {
-      const next = tokens[i + 1];
-      if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
-        const dest = pathishToken(next);
-        if (pathishIsProtectedDest(dest)) dests.push(dest);
-      }
     }
   }
   return dests;
@@ -1536,14 +1618,21 @@ function isProgrammaticWriteBinToken(token: string): boolean {
     bare === "powershell" ||
     bare === "tsx" ||
     bare === "ts-node" ||
-    bare === "tsnode"
+    bare === "tsnode" ||
+    bare === "bun" ||
+    bare === "deno" ||
+    bare === "php" ||
+    bare === "lua" ||
+    bare === "luajit"
   ) {
     return true;
   }
-  // Versioned: python3.11, python3.12, node18, …
+  // Versioned: python3.11, python3.12, node18, php8.3, lua5.4, …
   if (bare.startsWith("python3.") || bare.startsWith("python2.")) return true;
   if (/^python\d+(\.\d+)*$/.test(bare)) return true;
   if (/^node\d+$/.test(bare)) return true;
+  if (/^php\d+(\.\d+)*$/.test(bare)) return true;
+  if (/^lua\d+(\.\d+)*$/.test(bare)) return true;
   return false;
 }
 
@@ -1607,6 +1696,7 @@ function hasWriteCapableProgrammaticShell(command: string, tokens: readonly stri
     lower.includes("writefilesync") ||
     lower.includes("writefile") ||
     lower.includes("writetext") ||
+    lower.includes("file_put_contents") ||
     lower.includes("set-content") ||
     lower.includes("out-file") ||
     lower.includes("fs.write") ||
@@ -1872,6 +1962,27 @@ const INDIRECT_WRITE_BINS = new Set([
   "touch",
   "tsx",
   "ts-node",
+  // #3529 residual: Windows dest writers / rename / moreutils sponge / runtimes.
+  "xcopy",
+  "robocopy",
+  "move",
+  "ren",
+  "rename",
+  "rename-item",
+  "sponge",
+  "bun",
+  "deno",
+  "php",
+  "lua",
+  "start-bitstransfer",
+  "bitsadmin",
+  "expand-archive",
+  "tee-object",
+  "export-csv",
+  "expand",
+  "extrac32",
+  "makecab",
+  "replace",
 ]);
 
 /**

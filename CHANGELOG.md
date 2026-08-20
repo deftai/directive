@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **UAT Shell residual after #3459: dest writers still plant authz, kill-switch, and approved-scope (#3529).** Under active UAT, remaining dest-form Shell writers classify as settings deny when they target `.deft/authz/**`, kill-switch basenames, or `.deft/approved-scope/**`. Unknown dest flags targeting those paths fail closed. Ordinary dests such as `/tmp` stay unclassifiable. Already-denied `cmd /c copy` / `ginstall` / `tsx` / `cp` stay denied. Closes #3529. Refs #3459, #3421, #3410, #3039.
+
 ### Added
 
 ### Changed

