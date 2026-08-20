@@ -640,6 +640,16 @@ describe("evaluateLifecycleVisible live git fixtures (#3505)", () => {
     expect(result.findings.some((f) => f.rule.includes("*.xbrief.json"))).toBe(true);
   });
 
+  it("reports a date-prefixed file-only rule on an empty stage", () => {
+    const root = initLifecycleRepo();
+    writeFileSync(join(root, ".gitignore"), "xbrief/pending/2026-*.xbrief.json\n", "utf8");
+    const result = evaluateLifecycleVisible({ projectRoot: root, enforce: true });
+    expect(result.code).toBe(1);
+    expect(
+      result.findings.some((f) => f.path === "xbrief/pending/" && f.rule.includes("2026-")),
+    ).toBe(true);
+  });
+
   it("reports a vbrief-only *.vbrief.json rule on an absent vbrief stage", () => {
     const root = initLifecycleRepo();
     writeFileSync(join(root, ".git", "info", "exclude"), "*.vbrief.json\n", "utf8");

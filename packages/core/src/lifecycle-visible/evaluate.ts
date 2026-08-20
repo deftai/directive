@@ -71,11 +71,11 @@ export function lifecycleRootRelPaths(): string[] {
   return paths;
 }
 
-/** Brief-shaped pathname so file-only globs (`*.json`, `xbrief/active/*.xbrief.json`) fire. */
-export const LIFECYCLE_PROBE_SENTINEL = "__lifecycle-visible.xbrief.json";
+/** Date-prefixed brief-shaped pathname so `2026-*.xbrief.json` and `*.json` both fire. */
+export const LIFECYCLE_PROBE_SENTINEL = "2026-01-01-lifecycle-visible.xbrief.json";
 
-/** Legacy vbrief filename so `*.vbrief.json` cannot report a vbrief stage clean. */
-export const LIFECYCLE_PROBE_SENTINEL_VBRIEF = "__lifecycle-visible.vbrief.json";
+/** Legacy vbrief filename so `*.vbrief.json` / `2026-*.vbrief.json` cannot report clean. */
+export const LIFECYCLE_PROBE_SENTINEL_VBRIEF = "2026-01-01-lifecycle-visible.vbrief.json";
 
 function sentinelForRoot(root: string): string {
   return root.startsWith("vbrief/") ? LIFECYCLE_PROBE_SENTINEL_VBRIEF : LIFECYCLE_PROBE_SENTINEL;
