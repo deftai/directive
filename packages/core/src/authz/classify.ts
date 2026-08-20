@@ -1325,7 +1325,7 @@ function hasWriteSubcommand(
     if (isShellSegmentBreak(raw)) return false;
     const n = normalizeToken(raw);
     if (n.startsWith("-")) {
-      if (!n.includes("=") && !booleanFlags.has(n)) {
+      if (!n.includes("=") && !booleanFlags.has(n) && !n.startsWith("--no-")) {
         const next = tokens[i + 1];
         if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
           i += 2;
@@ -1356,7 +1356,7 @@ function gitHasBundleCreate(tokens: readonly string[], start: number): boolean {
     if (isShellSegmentBreak(raw)) break;
     const n = normalizeToken(raw);
     if (n.startsWith("-")) {
-      if (!n.includes("=") && !GIT_PRE_SUBCOMMAND_BOOLEAN_FLAGS.has(n)) {
+      if (!n.includes("=") && !GIT_PRE_SUBCOMMAND_BOOLEAN_FLAGS.has(n) && !n.startsWith("--no-")) {
         const next = tokens[i + 1];
         if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
           i += 2;
@@ -1673,6 +1673,31 @@ function isProgrammaticWriteBinToken(token: string): boolean {
  * Escaped quotes (`\'` / `\"`) stay inside the string. Used so `print('.write(')` is not
  * a write API while `open(p,'w').write('x')` still matches `.write(` (Greptile conf residual).
  */
+/**
+ * True when `ident` is followed by optional whitespace then `(` (PHP `file_put_contents (`).
+ * O(n) — no nested-quantifier regex.
+ */
+function includesIdentCall(haystack: string, ident: string): boolean {
+  if (ident.length === 0 || haystack.length < ident.length) return false;
+  let from = 0;
+  while (from <= haystack.length - ident.length) {
+    const at = haystack.indexOf(ident, from);
+    if (at < 0) return false;
+    let j = at + ident.length;
+    while (j < haystack.length) {
+      const c = haystack[j] as string;
+      if (c === " " || c === "\t" || c === "\n" || c === "\r") {
+        j++;
+        continue;
+      }
+      break;
+    }
+    if (j < haystack.length && haystack[j] === "(") return true;
+    from = at + ident.length;
+  }
+  return false;
+}
+
 function includesOutsideQuotes(haystack: string, needle: string): boolean {
   if (needle.length === 0 || haystack.length < needle.length) return false;
   let inSingle = false;
@@ -1728,7 +1753,7 @@ function hasWriteCapableProgrammaticShell(command: string, tokens: readonly stri
     lower.includes("writefilesync") ||
     lower.includes("writefile") ||
     lower.includes("writetext") ||
-    lower.includes("file_put_contents(") ||
+    includesIdentCall(lower, "file_put_contents") ||
     lower.includes("set-content") ||
     lower.includes("out-file") ||
     lower.includes("fs.write") ||

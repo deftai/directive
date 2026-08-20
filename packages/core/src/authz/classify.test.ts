@@ -1245,6 +1245,12 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("git bundle unbundle .deft/authz/grants/evil.bundle")).toEqual([]);
     // Quoted PHP identifier without a call is not a write (#3529 Greptile P1).
     expect(classifyShellAuthzOps("php -r 'echo \"file_put_contents\";'")).toEqual([]);
+    // Boolean git globals must not hide bundle create (#3529 Greptile P1).
+    expect(
+      classifyShellAuthzOps("git --no-color bundle create .deft/authz/grants/evil.bundle HEAD"),
+    ).toContain("settings");
+    // PHP call with whitespace before `(` is still a write (#3529 Greptile P1).
+    expect(classifyShellAuthzOps("php -r 'file_put_contents ($p, $d);'")).toContain("settings");
   });
 
   it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {
