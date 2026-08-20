@@ -7,7 +7,7 @@
 
 import { createHash } from "node:crypto";
 import { existsSync, globSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
-import { basename, join, relative, resolve, sep } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 import { defaultGitRunner, type GitRunner, gitHead } from "./git.js";
 
 const EXCLUDED_DIR_NAMES = new Set([
@@ -23,8 +23,8 @@ const EXCLUDED_DIR_NAMES = new Set([
 
 const EXCLUDED_PATH_PREFIXES = ["xbrief/", "vbrief/", ".deft/", ".git/"];
 
-/** Telemetry files must not invalidate a green bank (#3558). */
-const EXCLUDED_FILE_NAMES = new Set([".deft-run-summary.json"]);
+/** Repo-root run-summary telemetry must not invalidate a green bank (#3558). */
+const ROOT_RUN_SUMMARY_REL = ".deft-run-summary.json";
 
 export interface HashProductStateInput {
   readonly projectRoot: string;
@@ -69,8 +69,7 @@ function isExcludedRel(rel: string, options?: { readonly keepTelemetryFiles?: bo
   if (posix === "." || posix.length === 0) return false;
   const first = posix.split("/")[0] ?? "";
   if (EXCLUDED_DIR_NAMES.has(first)) return true;
-  const base = basename(posix);
-  if (!options?.keepTelemetryFiles && EXCLUDED_FILE_NAMES.has(base)) return true;
+  if (!options?.keepTelemetryFiles && posix === ROOT_RUN_SUMMARY_REL) return true;
   return EXCLUDED_PATH_PREFIXES.some(
     (prefix) => posix === prefix.slice(0, -1) || posix.startsWith(prefix),
   );

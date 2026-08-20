@@ -372,6 +372,21 @@ describe("hashProductState (#3387)", () => {
     expect(afterProductJsonl.files).toContain("events.jsonl");
   });
 
+  it("hashes nested run-summary on the default product walk (#3558)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3558-psh-nested-summary-"));
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src", "app.txt"), "v1\n", "utf8");
+    writeFileSync(join(root, "src", ".deft-run-summary.json"), "a\n", "utf8");
+    const plan = { acceptance: { commands: [{ command: "true" }] } };
+    const first = hashProductState({ projectRoot: root, plan });
+    expect(first.complete).toBe(true);
+    expect(first.files).toContain("src/.deft-run-summary.json");
+    expect(first.files).not.toContain(".deft-run-summary.json");
+    writeFileSync(join(root, "src", ".deft-run-summary.json"), "b\n", "utf8");
+    const second = hashProductState({ projectRoot: root, plan });
+    expect(second.digest).not.toBe(first.digest);
+  });
+
   it("hashes an explicitly selected telemetry filename (#3558)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-3558-psh-explicit-"));
     writeFileSync(join(root, "src.txt"), "v1\n", "utf8");
