@@ -1675,27 +1675,67 @@ function isProgrammaticWriteBinToken(token: string): boolean {
  */
 /**
  * True when `ident` is followed by optional whitespace then `(` (PHP `file_put_contents (`).
+ * Skips matches inside quotes so `echo "file_put_contents ($x)"` is not a write.
  * O(n) — no nested-quantifier regex.
  */
 function includesIdentCall(haystack: string, ident: string): boolean {
   if (ident.length === 0 || haystack.length < ident.length) return false;
-  let from = 0;
-  while (from <= haystack.length - ident.length) {
-    const at = haystack.indexOf(ident, from);
-    if (at < 0) return false;
-    let j = at + ident.length;
+  let inSingle = false;
+  let inDouble = false;
+  for (let i = 0; i < haystack.length; i++) {
+    const c = haystack[i] as string;
+    if (c === "\\" && i + 1 < haystack.length && (inSingle || inDouble)) {
+      i++;
+      continue;
+    }
+    if (c === "'" && !inDouble) {
+      inSingle = !inSingle;
+      continue;
+    }
+    if (c === '"' && !inSingle) {
+      inDouble = !inDouble;
+      continue;
+    }
+    if (inSingle || inDouble) continue;
+    if (!haystack.startsWith(ident, i)) continue;
+    let j = i + ident.length;
     while (j < haystack.length) {
-      const c = haystack[j] as string;
-      if (c === " " || c === "\t" || c === "\n" || c === "\r") {
+      const w = haystack[j] as string;
+      if (w === " " || w === "\t" || w === "\n" || w === "\r") {
         j++;
         continue;
       }
       break;
     }
     if (j < haystack.length && haystack[j] === "(") return true;
-    from = at + ident.length;
   }
   return false;
+}
+
+/** Strip matching wrapping quotes from a `-r`/`-e` payload. */
+function unwrapQuotedPayload(token: string): string {
+  if (token.length >= 2) {
+    const a = token[0];
+    const b = token[token.length - 1];
+    if ((a === '"' && b === '"') || (a === "'" && b === "'")) {
+      return token.slice(1, -1);
+    }
+  }
+  return token;
+}
+
+/** Script bodies after interpreter `-r`/`-e`/`-c` (PHP/node one-liners). */
+function interpreterScriptPayloads(tokens: readonly string[]): string[] {
+  const out: string[] = [];
+  const flags = new Set(["-r", "-e", "-c", "--run", "--eval", "--execute"]);
+  for (let i = 0; i < tokens.length; i++) {
+    const n = normalizeToken(tokens[i] as string);
+    if (!flags.has(n)) continue;
+    const next = tokens[i + 1];
+    if (next === undefined || isShellSegmentBreak(next) || String(next).startsWith("-")) continue;
+    out.push(unwrapQuotedPayload(next));
+  }
+  return out;
 }
 
 function includesOutsideQuotes(haystack: string, needle: string): boolean {
@@ -1754,6 +1794,9 @@ function hasWriteCapableProgrammaticShell(command: string, tokens: readonly stri
     lower.includes("writefile") ||
     lower.includes("writetext") ||
     includesIdentCall(lower, "file_put_contents") ||
+    interpreterScriptPayloads(tokens).some((p) =>
+      includesIdentCall(p.toLowerCase(), "file_put_contents"),
+    ) ||
     lower.includes("set-content") ||
     lower.includes("out-file") ||
     lower.includes("fs.write") ||
