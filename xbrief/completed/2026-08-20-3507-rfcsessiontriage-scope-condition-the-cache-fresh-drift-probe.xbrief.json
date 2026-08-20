@@ -1,0 +1,204 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3507",
+    "updated": "2026-08-20T04:30:11Z"
+  },
+  "plan": {
+    "title": "rfc(session,triage): scope-condition the cache_fresh drift probe on work selection -- without producing a deferred_reason",
+    "status": "completed",
+    "narratives": {
+      "Description": "Gated cache_fresh always runs a live GitHub drift probe even when the operator is not selecting backlog work. The #3507 comment forbids treating missing --for-issue as the discriminator. Plumb a real work-selection signal, skip only the drift probe, and never record deferred_reason.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3507",
+      "Overview": "**TL;DR: `cache_fresh` in the gated tier runs a live GitHub drift probe over the issue queue before every mutation boundary. When the operator is not selecting backlog work, that probe is not evidence about the code change. Proposal: skip the *drift* probe only (age check stays hard) when no work selection is in play, and record a named cause on ritual state that is deliberately NOT a `deferred_reason`. This sits against the #3214 anchor, so it needs a design decision before implementation.**\n\n## Current behavior\n\n- Gated tier runs `verify:cache-fresh` inline — `packages/core/src/session/verify-session-ritual.ts:45-49`.\n- After the age check passes, `evaluate` runs a live drift probe enumerating the upstream open set — `packages/core/src/preflight-cache/evaluate.ts:563-572`, drift formatting at `:333-348` (#1886).\n- Drift-only failure returns exit 1 and blocks the mutation boundary.\n\nSo a two-file local split blocks on upstream issue-queue reconciliation. #3500 ask 1 is the operator-side report of this.\n\n## Why \"just defer it\" is the wrong shape\n\n`stepPasses` treats `deferred_reason` as satisfied (`verify-session-ritual.ts:83`) and the gated loop skips deferred steps outright (`:504`). Ceremony dial therefore carries an explicit prohibition — `packages/core/src/policy/ceremony-dial.ts:129-133`:\n\n> ! Do NOT auto-defer gated readiness steps (`doctor`, `cache_fresh`, `agent_hooks`) … Gated verify treats `deferred_reason` as satisfied, so dial-driven deferral would skip gates.\n\n#3500 ask 1 as literally written (\"fail soft, warn and continue\") would reverse that P1. **Declined as written.** What follows is the narrower version that keeps the anchor intact.\n\n## Proposal\n\n1. When the gated `cache_fresh` invocation carries no `--for-issue` and no active backlog selection, skip the **drift** probe only.\n2. Keep age staleness hard and unchanged.\n3. Record `drift_probe: skipped-no-work-selection` on `.deft/ritual-state.json` as a distinct field — **not** `deferred_reason`, so it can never read as a satisfied step.\n4. Re-arm the probe the moment work selection appears (`--for-issue`, `triage:queue`, `scope:activate`).\n\nThe discriminator already exists: `--for-issue` — `packages/core/src/preflight-cache/evaluate.ts:66`. The gate simply never conditions on its absence.\n\nBenefit: removes a live network enumeration from the mutation hot path for local edits, without producing a state that looks like a pass.\n\n## Open questions\n\n1. What counts as \"not selecting backlog work\"? Absence of `--for-issue` is necessary but may not be sufficient — an active story xBRIEF is itself issue-derived.\n2. Does age staleness keep the 24h window on non-selection paths, or get its own?\n3. Audit shape: named cause on ritual state, a run-summary event, or both?\n4. Does the #1149 cache-as-authoritative-work-selection doctrine need amending, or is this already within it? This is the crux — if the doctrine's scope is work selection, a non-selection path was never in scope.\n\n## Non-goals\n\n- Making `cache_fresh` advisory.\n- Any change to `--allow-stale` or `--defer` semantics.\n- Reducing age-staleness rigor on work-selection paths.\n\nRelates #3500 (ask 1), #1149, #2402, #3214 (anchor), #1886 (drift probe), #2574 (recovery argv).\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-08-19T16:15:03Z)\n\n## Correction to the proposal above: `--for-issue` cannot be the discriminator\n\nThe Proposal section says the work-selection signal \"already exists\" via `--for-issue`. That is wrong at the boundary this issue is about.\n\nThe gated step invokes a fixed argv — `packages/core/src/session/verify-session-ritual.ts:45-49`:\n\n```ts\ncache_fresh: [\"verify:cache-fresh\"],\n```\n\nNo `--for-issue`, ever. So \"absence of `--for-issue`\" is unconditionally true at the gated boundary and carries zero information there. `--for-issue` is a discriminator for *direct* `verify:cache-fresh` calls in the pre-`start_agent` gate stack (step 3), not for the ritual-recorded step (step 0).\n\n**Consequence for scope.** The work-selection signal has to be *plumbed*, not read:\n\n1. Decide what the signal is — active story xBRIEF, `triage:queue` selection state, `scope:activate` residue, or an explicit flag threaded through `GATED_ENTRYPOINT_COMMANDS`.\n2. Thread it into the gated invocation (that argv is currently a constant; making it conditional is a new seam).\n3. Add the ritual-state field and its re-arm semantics.\n4. Then the #3214 reconciliation and the #1149 doctrine question in the Open Questions above.\n\nThat moves this from \"condition on an existing flag\" to \"introduce a work-selection signal at the ritual boundary.\" Still worth doing, but it is the expensive child of #3500, not the cheap one — and step 1 is a design decision, not an implementation detail.\n\n⊗ Do not implement by defaulting the gated argv to `--for-issue`-less soft mode; that is the blanket fail-soft already declined on #3500.",
+      "Labels": "design, rfc, type:research, triage, agent-experience, area:cli, area:vbrief, status:child",
+      "UserStory": "As a maintainer, I want the gated cache_fresh drift probe skipped only when no work selection is in play, so that local edits are not blocked by issue-queue reconciliation.",
+      "ImplementationPlan": "1. Thread a work-selection flag through GATED_ENTRYPOINT_COMMANDS in packages/core/src/session/verify-session-ritual.ts instead of reading absent --for-issue.\n2. Skip only the drift probe in packages/core/src/preflight-cache/evaluate.ts, keep age staleness hard, record drift_probe skipped-no-work-selection on ritual-state, and add tests that assert re-arm on selection.",
+      "Decisions": "- xbrief/decisions/2026-08-20-gated-cache-fresh-skips-only-the-live-drift-probe-via-an-explici.decision.json — Gated cache_fresh skips only the live drift probe via an explicit --work-selection / --skip-drift-probe argv seam; never via missing --for-issue and never via deferred_reason"
+    },
+    "items": [
+      {
+        "title": "Work-selection signal is plumbed",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When gated cache_fresh runs, the work-selection signal is an explicit threaded input rather than inferred from missing --for-issue on the constant argv."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/verify-session-ritual.test.ts",
+          "recorded_at": "2026-08-20T04:30:04Z",
+          "recorded_by": "vitest"
+        }
+      },
+      {
+        "title": "Drift probe skips only off the selection path",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When no work selection is in play, evaluate skips the live drift probe and still fails closed on age staleness."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/preflight-cache/evaluate.test.ts",
+          "recorded_at": "2026-08-20T04:30:04Z",
+          "recorded_by": "vitest"
+        }
+      },
+      {
+        "title": "Ritual state is not a deferred_reason",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When the skip is recorded, ritual-state.json stores drift_probe skipped-no-work-selection as a distinct field that stepPasses cannot treat as satisfied."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/verify-session-ritual.test.ts",
+          "recorded_at": "2026-08-20T04:30:04Z",
+          "recorded_by": "vitest"
+        }
+      },
+      {
+        "title": "Probe re-arms on selection",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When work selection appears via triage:queue, scope:activate, or an explicit --for-issue path, the drift probe runs again on the next gated ritual."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/verify-session-ritual.test.ts",
+          "recorded_at": "2026-08-20T04:30:04Z",
+          "recorded_by": "vitest"
+        }
+      }
+    ],
+    "tags": [
+      "design",
+      "rfc",
+      "type:research",
+      "triage",
+      "agent-experience",
+      "area:cli",
+      "area:vbrief",
+      "status:child"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3507",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3507: rfc(session,triage): scope-condition the cache_fresh drift probe on work selection -- without producing a deferred_reason"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "! Do NOT auto-defer gated readiness steps (`doctor`, `cache_fresh`, `agent_hooks`) … Gated verify treats `deferred_reason` as satisfied, so dial-driven deferral would skip gates",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "prompt@L17"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/session/verify-session-ritual.ts",
+          "packages/core/src/preflight-cache/evaluate.ts",
+          "packages/core/src/session/verify-session-ritual.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/session/verify-session-ritual.test.ts packages/core/src/preflight-cache"
+        ],
+        "expected_outputs": [
+          "gated cache_fresh skips drift without deferred_reason and still fails on age"
+        ],
+        "depends_on": [],
+        "conflict_group": "cache-fresh-drift-3507",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Issue-ingested RFC; FR traces live in GitHub #3507 body plus comment."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3535,
+        "prBase": null,
+        "mergeCommit": "7ced8cc4a262768afc761b8f2eba9f4ef6e52798",
+        "deliveryBranch": "master",
+        "deliveryCommit": "7ced8cc4a262768afc761b8f2eba9f4ef6e52798",
+        "verifiedAt": "2026-08-20T04:30:11Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "bbb15666-0178-428b-818c-4613c92349b8"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-20T04:30:11Z",
+      "completedSessionId": "bbb15666-0178-428b-818c-4613c92349b8",
+      "capacityBucket": "agentic-debt"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Gated tier runs `verify:cache-fresh` inline — `packages/core/src/session/verify-session-ritual.ts:45-49`.",
+          "artifact_path": "packages/core/src/session/verify-session-ritual.ts",
+          "ambiguous": true,
+          "readings": [
+            {
+              "text": "Gated tier runs `verify:cache-fresh` inline — `packages/core/src/session/verify-session-ritual.ts:45-49`. [reading: packages/core/src/session/verify-session-ritual.ts:45-49]",
+              "artifact_path": "packages/core/src/session/verify-session-ritual.ts:45-49"
+            },
+            {
+              "text": "Gated tier runs `verify:cache-fresh` inline — `packages/core/src/session/verify-session-ritual.ts:45-49`. [reading: packages/core/src/session/verify-session-ritual.ts]",
+              "artifact_path": "packages/core/src/session/verify-session-ritual.ts"
+            }
+          ],
+          "chosen_reading": 1,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "After the age check passes, `evaluate` runs a live drift probe enumerating the upstream open set — `packages/core/src/preflight-cache/evaluate.ts:563-572`, drift formatting at `:333-348` (#1886).",
+          "artifact_path": "packages/core/src/preflight-cache/evaluate.ts",
+          "ambiguous": true,
+          "readings": [
+            {
+              "text": "After the age check passes, `evaluate` runs a live drift probe enumerating the upstream open set — `packages/core/src/preflight-cache/evaluate.ts:563-572`, drift formatting at `:333-348` (#1886). [reading: packages/core/src/preflight-cache/evaluate.ts:563-572]",
+              "artifact_path": "packages/core/src/preflight-cache/evaluate.ts:563-572"
+            },
+            {
+              "text": "After the age check passes, `evaluate` runs a live drift probe enumerating the upstream open set — `packages/core/src/preflight-cache/evaluate.ts:563-572`, drift formatting at `:333-348` (#1886). [reading: packages/core/src/preflight-cache/evaluate.ts]",
+              "artifact_path": "packages/core/src/preflight-cache/evaluate.ts"
+            }
+          ],
+          "chosen_reading": 1,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Record `drift_probe: skipped-no-work-selection` on `.deft/ritual-state.json` as a distinct field — not `deferred_reason`, so it can never read as a satisfied step.",
+          "artifact_path": "packages/core/src/session/verify-session-ritual.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ]
+    },
+    "updated": "2026-08-20T04:30:11Z",
+    "id": "2026-08-20-3507-rfcsessiontriage-scope-condition-the-cache-fresh-drift-probe"
+  }
+}
