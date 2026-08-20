@@ -11,6 +11,7 @@ import {
   derivedLifecycleIgnoreProbesFromPatterns,
   displayIgnoreSource,
   evaluateLifecycleVisible,
+  expandGitignoreCharClasses,
   expandGitignoreGlobToConcrete,
   formatLifecycleVisibleSessionLines,
   ignorePatternLooksLifecycleRelevant,
@@ -164,6 +165,7 @@ describe("parsers (#3505)", () => {
     expect(expandGitignoreGlobToConcrete("[!]*.xbrief.json")).toBe(
       `0${LIFECYCLE_PROBE_STEM}.xbrief.json`,
     );
+    expect(expandGitignoreCharClasses("ab[0-9]c[")).toBe("ab0c[");
     expect(expandGitignoreGlobToConcrete("!xbrief/pending/2026-06-*.xbrief.json")).toBeNull();
     expect(ignorePatternLooksLifecycleRelevant("xbrief/pending/2026-06-*.xbrief.json")).toBe(true);
     expect(ignorePatternLooksLifecycleRelevant("2025-*.xbrief.json")).toBe(true);
@@ -744,6 +746,16 @@ describe("evaluateLifecycleVisible live git fixtures (#3505)", () => {
     expect(result.code).toBe(1);
     expect(
       result.findings.some((f) => f.path === "xbrief/pending/" && f.rule.includes("2026-06-")),
+    ).toBe(true);
+  });
+
+  it("reports a month-range glob from a nested stage .gitignore", () => {
+    const root = initLifecycleRepo();
+    writeFileSync(join(root, "xbrief", "pending", ".gitignore"), "2026-07-*.xbrief.json\n", "utf8");
+    const result = evaluateLifecycleVisible({ projectRoot: root, enforce: true });
+    expect(result.code).toBe(1);
+    expect(
+      result.findings.some((f) => f.path === "xbrief/pending/" && f.rule.includes("2026-07-")),
     ).toBe(true);
   });
 

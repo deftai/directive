@@ -108,6 +108,33 @@ export function ignorePatternLooksLifecycleRelevant(pattern: string): boolean {
   return false;
 }
 
+/** Linear `[abc]` expansion — avoid nested regex quantifiers (CodeQL js/polynomial-redos). */
+export function expandGitignoreCharClasses(body: string): string {
+  let out = "";
+  let i = 0;
+  while (i < body.length) {
+    const ch = body[i];
+    if (ch !== "[") {
+      out += ch;
+      i += 1;
+      continue;
+    }
+    const close = body.indexOf("]", i + 1);
+    if (close < 0) {
+      out += ch;
+      i += 1;
+      continue;
+    }
+    let inner = body.slice(i + 1, close);
+    const negated = inner.startsWith("!") || inner.startsWith("^");
+    if (negated) inner = inner.slice(1);
+    const unescaped = inner.replace(/\\/g, "");
+    out += negated || unescaped.length === 0 ? "0" : (unescaped[0] ?? "0");
+    i = close + 1;
+  }
+  return out;
+}
+
 /**
  * Expand one gitignore glob into a single concrete pathname that still matches it.
  * `*` becomes {@link LIFECYCLE_PROBE_STEM}; `**` collapses; `?` becomes `0`.
@@ -118,12 +145,7 @@ export function expandGitignoreGlobToConcrete(pattern: string): string | null {
   if (body.endsWith("/")) body = body.slice(0, -1);
   if (body.startsWith("/")) body = body.slice(1);
   if (body.length === 0) return null;
-  body = body.replace(/\[((?:\\.|[^\]])*)\]/g, (_m, inner: string) => {
-    const negated = inner.startsWith("!") || inner.startsWith("^");
-    const chars = inner.replace(/^[!^]/, "").replace(/\\/g, "");
-    if (negated || chars.length === 0) return "0";
-    return chars[0] ?? "0";
-  });
+  body = expandGitignoreCharClasses(body);
   body = body.replace(/\*\*/g, "");
   body = body.replace(/\*/g, LIFECYCLE_PROBE_STEM);
   body = body.replace(/\?/g, "0");
@@ -170,6 +192,12 @@ function readIgnorePatternLines(projectRoot: string, runGit: GitRunner): string[
     joinPath(projectRoot, ".gitignore"),
     joinPath(projectRoot, ".git/info/exclude"),
   ];
+  for (const prefix of LIFECYCLE_ROOT_PREFIXES) {
+    files.push(joinPath(projectRoot, `${prefix}/.gitignore`));
+    for (const stage of LIFECYCLE_STAGE_DIRS) {
+      files.push(joinPath(projectRoot, `${prefix}/${stage}/.gitignore`));
+    }
+  }
   const cfg = runGit(projectRoot, ["config", "--get", "core.excludesFile"]);
   if (cfg.code === 0 && cfg.stdout.trim().length > 0) {
     const raw = cfg.stdout.trim();
