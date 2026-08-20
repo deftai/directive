@@ -392,6 +392,52 @@ describe("hashProductState (#3387)", () => {
     expect(second.digest).not.toBe(first.digest);
   });
 
+  it("hashes telemetry files found under an explicit productPaths directory (#3558)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3558-psh-dirpaths-"));
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src", "app.txt"), "v1\n", "utf8");
+    writeFileSync(join(root, "src", ".deft-run-summary.json"), "a\n", "utf8");
+    const plan = { acceptance: { commands: [{ command: "true" }] } };
+    const first = hashProductState({
+      projectRoot: root,
+      plan,
+      productPaths: ["src"],
+    });
+    expect(first.complete).toBe(true);
+    expect(first.files).toContain("src/app.txt");
+    expect(first.files).toContain("src/.deft-run-summary.json");
+    writeFileSync(join(root, "src", ".deft-run-summary.json"), "b\n", "utf8");
+    const second = hashProductState({
+      projectRoot: root,
+      plan,
+      productPaths: ["src"],
+    });
+    expect(second.digest).not.toBe(first.digest);
+  });
+
+  it("hashes telemetry files matched by an explicit productPaths glob (#3558)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3558-psh-globpaths-"));
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src", "app.txt"), "v1\n", "utf8");
+    writeFileSync(join(root, "src", ".deft-run-summary.json"), "a\n", "utf8");
+    const plan = { acceptance: { commands: [{ command: "true" }] } };
+    const first = hashProductState({
+      projectRoot: root,
+      plan,
+      productPaths: ["src/*"],
+    });
+    expect(first.complete).toBe(true);
+    expect(first.files).toContain("src/app.txt");
+    expect(first.files).toContain("src/.deft-run-summary.json");
+    writeFileSync(join(root, "src", ".deft-run-summary.json"), "b\n", "utf8");
+    const second = hashProductState({
+      projectRoot: root,
+      plan,
+      productPaths: ["src/*"],
+    });
+    expect(second.digest).not.toBe(first.digest);
+  });
+
   it("includes a nested leading-dot file under a recursive ** scope", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-recdot-"));
     mkdirSync(join(root, "frontend", "a"), { recursive: true });

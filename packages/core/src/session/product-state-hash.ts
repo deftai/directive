@@ -162,6 +162,7 @@ function walkFiles(
   dir: string | Buffer,
   out: string[],
   seen = new Set<string>(),
+  keepTelemetryFiles = false,
 ): void {
   const dirBuf = asPathBuf(dir);
   let real: string;
@@ -182,7 +183,7 @@ function walkFiles(
     const nameLatin1 = nameBuf.toString("latin1");
     const abs = joinNameBytes(dirBuf, nameBuf);
     const rel = relFromRootBytes(root, abs);
-    if (isExcludedRel(rel)) continue;
+    if (isExcludedRel(rel, { keepTelemetryFiles })) continue;
     let st: ReturnType<typeof statSync>;
     try {
       st = statSync(abs);
@@ -191,7 +192,7 @@ function walkFiles(
     }
     if (st.isDirectory()) {
       if (EXCLUDED_DIR_NAMES.has(nameLatin1)) continue;
-      walkFiles(root, abs, out, seen);
+      walkFiles(root, abs, out, seen, keepTelemetryFiles);
       continue;
     }
     if (st.isFile()) out.push(rel);
@@ -423,7 +424,7 @@ function literalDirPrefix(rel: string): string {
   return literal.join("/");
 }
 
-function expandPath(root: string, relOrGlob: string): string[] {
+function expandPath(root: string, relOrGlob: string, keepTelemetryFiles = false): string[] {
   const rel = toPosix(relOrGlob).replace(/^\.\//, "");
   if (looksLikeGlob(rel)) {
     try {
@@ -432,7 +433,13 @@ function expandPath(root: string, relOrGlob: string): string[] {
       for (const pattern of globPatternsIncludingDotfiles(rel)) {
         for (const match of globSync(pattern, { cwd: root })) {
           const posix = toPosix(relative(root, resolve(root, match)));
-          if (posix.length === 0 || isExcludedRel(posix) || seen.has(posix)) continue;
+          if (
+            posix.length === 0 ||
+            isExcludedRel(posix, { keepTelemetryFiles }) ||
+            seen.has(posix)
+          ) {
+            continue;
+          }
           seen.add(posix);
           const absMatch = resolve(root, posix);
           let st: ReturnType<typeof statSync>;
@@ -442,7 +449,7 @@ function expandPath(root: string, relOrGlob: string): string[] {
             continue;
           }
           if (st.isFile()) out.push(posix);
-          else if (st.isDirectory()) walkFiles(root, absMatch, out);
+          else if (st.isDirectory()) walkFiles(root, absMatch, out, new Set(), keepTelemetryFiles);
         }
       }
       {
@@ -457,7 +464,7 @@ function expandPath(root: string, relOrGlob: string): string[] {
           }
           if (st?.isDirectory()) {
             const walked: string[] = [];
-            walkFiles(root, startDir, walked);
+            walkFiles(root, startDir, walked, new Set(), keepTelemetryFiles);
             const re = globToRegExp(rel);
             for (const file of walked) {
               if (seen.has(file) || !re.test(file)) continue;
@@ -478,7 +485,7 @@ function expandPath(root: string, relOrGlob: string): string[] {
     const st = statSync(abs);
     if (st.isDirectory()) {
       const out: string[] = [];
-      walkFiles(root, abs, out);
+      walkFiles(root, abs, out, new Set(), keepTelemetryFiles);
       return out;
     }
     if (st.isFile()) return [toPosix(relative(root, abs))];
@@ -627,7 +634,7 @@ export function hashProductState(input: HashProductStateInput): ProductStateHash
 
   if (input.productPaths !== undefined) {
     for (const rel of input.productPaths) {
-      for (const expanded of expandPath(root, rel)) files.add(expanded);
+      for (const expanded of expandPath(root, rel, true)) files.add(expanded);
     }
   } else {
     const scope = fileScopePaths(input.plan);
