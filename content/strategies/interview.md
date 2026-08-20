@@ -590,7 +590,7 @@ diff only on the second pass or when the user explicitly asks for it.
 
 | Artifact | Purpose | Created By |
 |----------|---------|------------|
-| `./xbrief/proposed/YYYY-MM-DD-*.xbrief.json` (else legacy `./vbrief/proposed/YYYY-MM-DD-*.xbrief.json`) | Scope story records (date-prefixed, v0.20 contract) | Interview |
+| `./xbrief/proposed/YYYY-MM-DD-*.xbrief.json` (else legacy `./vbrief/proposed/YYYY-MM-DD-*.vbrief.json`) | Scope story records (date-prefixed, v0.20 contract) | Interview |
 | `./xbrief/PROJECT-DEFINITION.xbrief.json` (else legacy `./vbrief/PROJECT-DEFINITION.vbrief.json`) | Project identity gestalt + items registry | `task project:render` (triggered by strategy) |
 | `SPECIFICATION.md` | Generated plan with embedded Requirements (rendered derivative; deprecation sentinel) | export / `task spec:render` |
 | (no `specification.*.json`) | Legacy artifact — omitted on v0.20 path | — |
@@ -600,7 +600,7 @@ diff only on the second pass or when the user explicitly asks for it.
 | Artifact | Purpose | Created By |
 |----------|---------|------------|
 | `PRD.md` | What to build (approval gate) | Interview |
-| `./xbrief/proposed/YYYY-MM-DD-*.xbrief.json` (else legacy `./vbrief/proposed/YYYY-MM-DD-*.xbrief.json`) | Scope story records (date-prefixed, v0.20 contract) | Post-PRD interview |
+| `./xbrief/proposed/YYYY-MM-DD-*.xbrief.json` (else legacy `./vbrief/proposed/YYYY-MM-DD-*.vbrief.json`) | Scope story records (date-prefixed, v0.20 contract) | Post-PRD interview |
 | `./xbrief/PROJECT-DEFINITION.xbrief.json` (else legacy `./vbrief/PROJECT-DEFINITION.vbrief.json`) | Project identity gestalt + items registry | `task project:render` (triggered by strategy) |
 | `SPECIFICATION.md` | Generated implementation plan (rendered derivative; deprecation sentinel) | export / `task spec:render` |
 | (no `specification.*.json`) | Legacy artifact — omitted on v0.20 path | — |

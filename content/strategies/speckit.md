@@ -161,7 +161,7 @@ Add the following narrative keys to the proposed/ vBRIEF `plan.narratives`:
 
 **Input:** Approved HOW narratives in the proposed/ date-prefixed vBRIEF(s) from Phase 3 (`ImplementationPhases` narrative describes IP-1..IP-N).
 
-**Output:** N phase/epic scope vBRIEFs in `./xbrief/proposed/`, one per implementation phase or epic, using the filename convention `YYYY-MM-DD-ip<NNN>-<slug>.vbrief.json` (NNN = 3-digit zero-padded, 001..N). See [vbrief/vbrief.md — speckit Phase 4 scope vBRIEFs](../vbrief/vbrief.md#speckit-phase-4-scope-vbriefs) for the canonical convention. (v0.20: proposed/ not pending/.)
+**Output:** N phase/epic scope vBRIEFs in `./xbrief/proposed/`, one per implementation phase or epic, using the filename convention `YYYY-MM-DD-ip<NNN>-<slug>.xbrief.json` (NNN = 3-digit zero-padded, 001..N). See [vbrief/vbrief.md — speckit Phase 4 scope vBRIEFs](../vbrief/vbrief.md#speckit-phase-4-scope-vbriefs) for the canonical convention. (v0.20: proposed/ not pending/.)
 
 Phase 4 scopes are planning containers. They MAY keep broad acceptance in `plan.narratives.Acceptance` and MAY have `plan.items: []`. They are not valid concurrent swarm worker inputs unless explicitly marked as a single-story scope. Broad phase/epic scopes MUST pass through Phase 4.5 before swarm allocation.
 
@@ -197,7 +197,7 @@ For each implementation phase IP-N, write a scope vBRIEF with:
       "dependencies": ["ip-1", "ip-2"]
     },
     "references": [
-      { "type": "x-vbrief/plan", "uri": "2026-05-26-ip002-plan.xbrief.json", "TrustLevel": "internal" }
+      { "type": "x-vbrief/plan", "uri": "2026-05-26-ip002-plan.vbrief.json", "TrustLevel": "internal" }
     ],
     "items": []
   }
@@ -212,7 +212,7 @@ For each implementation phase IP-N, write a scope vBRIEF with:
 
 ### Migrating Legacy speckit Projects
 
-- ~ Projects that already emitted a speckit-shaped `plan.xbrief.json` (project-wide IP list) can convert to the new model with:
+- ~ Projects that already emitted a speckit-shaped `plan.vbrief.json` (project-wide IP list) can convert to the new model with:
   ```
   python scripts/migrate_vbrief.py --speckit-plan vbrief/plan.vbrief.json
   ```
@@ -255,7 +255,7 @@ For each implementation phase IP-N, write a scope vBRIEF with:
 4. ! Store the temporary proposal artifact under `vbrief/.triage-cache/decompositions/<parent-slug>.json`; derive `<parent-slug>` from the parent vBRIEF filename by removing `.vbrief.json` and any leading `YYYY-MM-DD-` date prefix.
 5. ! Ask for explicit user approval before writing child story vBRIEFs.
 6. ! Validate the approved draft with `task scope:decompose -- <parent.vbrief.json> --draft vbrief/.triage-cache/decompositions/<parent-slug>.json --check`, then apply it without `--check`.
-7. ! Run `task swarm:readiness -- xbrief/active/*.vbrief.json` before concurrent allocation, or point it at the candidate child story files for a dry readiness review before activation.
+7. ! Run `task swarm:readiness -- xbrief/active/*.xbrief.json` before concurrent allocation, or point it at the candidate child story files for a dry readiness review before activation.
 
 ### Story vBRIEF Requirements
 
@@ -282,8 +282,8 @@ Each Phase 4.5 child story vBRIEF MUST include:
 Use the deterministic command surface:
 
 ```bash
-task scope:decompose -- xbrief/pending/2026-05-12-ip001-auth.vbrief.json --draft vbrief/.triage-cache/decompositions/ip001-auth.json --check
-task scope:decompose -- xbrief/pending/2026-05-12-ip001-auth.vbrief.json --draft vbrief/.triage-cache/decompositions/ip001-auth.json
+task scope:decompose -- xbrief/pending/2026-05-12-ip001-auth.xbrief.json --draft vbrief/.triage-cache/decompositions/ip001-auth.json --check
+task scope:decompose -- xbrief/pending/2026-05-12-ip001-auth.xbrief.json --draft vbrief/.triage-cache/decompositions/ip001-auth.json
 task scope:decompose -- --check
 ```
 
@@ -296,7 +296,7 @@ Parent phase/epic acceptance MAY remain in `plan.narratives.Acceptance` as conte
 Use the readiness gate before swarm allocation:
 
 ```bash
-task swarm:readiness -- xbrief/active/*.vbrief.json
+task swarm:readiness -- xbrief/active/*.xbrief.json
 ```
 
 The readiness report lists ready stories, blocked stories, decomposition-needed epics/phases, dependency waves, conflict groups, a file-overlap matrix, and missing fields. It exits non-zero when candidate work is not swarm-ready for concurrent allocation. `readiness=ready` means ready for concurrent allocation; sequential-safe or low-confidence work MUST use another state such as `sequential` or `needs_refinement` and will fail this gate until refined or scheduled outside concurrent swarm allocation.
