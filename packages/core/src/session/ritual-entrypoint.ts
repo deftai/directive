@@ -68,12 +68,26 @@ function parseProjectRoot(argv: readonly string[]): string {
   return ".";
 }
 
+function parseOptionalForIssue(argv: readonly string[]): number | null {
+  for (let i = 0; i < argv.length; i += 1) {
+    if (argv[i] !== "--for-issue") continue;
+    const next = argv[i + 1];
+    if (next === undefined || next.startsWith("-")) return null;
+    const parsed = Number.parseInt(next, 10);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+  return null;
+}
+
 /** CLI-shaped cache-fresh entrypoint (mirrors scripts/preflight_cache.py main). */
 export function runCacheFreshMain(argv: readonly string[]): number {
   const projectRoot = parseProjectRoot(argv);
   const allowMissingBootstrap = argv.includes("--allow-missing-bootstrap");
   const quiet = argv.includes("--quiet");
-  const result = evaluate(projectRoot, { allowMissingBootstrap });
+  const workSelection = argv.includes("--work-selection");
+  const skipDriftProbe = argv.includes("--skip-drift-probe") && !workSelection;
+  const forIssue = parseOptionalForIssue(argv);
+  const result = evaluate(projectRoot, { allowMissingBootstrap, skipDriftProbe, forIssue });
   if (result.code === 0) {
     if (!quiet) {
       if (result.message.startsWith("⚠")) {

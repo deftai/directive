@@ -19,6 +19,8 @@ interface ParsedArgs {
   forIssue?: number;
   allowStale?: boolean;
   allowMissingBootstrap?: boolean;
+  skipDriftProbe?: boolean;
+  workSelection?: boolean;
   quiet?: boolean;
   error?: string;
 }
@@ -62,6 +64,10 @@ export function parseArgs(argv: string[]): ParsedArgs {
       parsed.allowStale = true;
     } else if (arg === "--allow-missing-bootstrap") {
       parsed.allowMissingBootstrap = true;
+    } else if (arg === "--skip-drift-probe") {
+      parsed.skipDriftProbe = true;
+    } else if (arg === "--work-selection") {
+      parsed.workSelection = true;
     } else if (arg === "--quiet") {
       parsed.quiet = true;
     } else {
@@ -86,6 +92,7 @@ export function run(argv: string[]): number {
     forIssue: args.forIssue ?? null,
     allowStale: args.allowStale ?? false,
     allowMissingBootstrap: args.allowMissingBootstrap ?? false,
+    skipDriftProbe: (args.skipDriftProbe ?? false) && !args.workSelection,
   });
 
   const quiet = args.quiet ?? false;

@@ -9,4 +9,5 @@ export {
   ENV_TRIAGE_REPO,
   evaluate,
   REQUIRED_DECISION,
+  shouldSkipDriftProbe,
 } from "./evaluate.js";

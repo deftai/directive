@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "gated-cache-fresh-skips-only-the-live-drift-probe-via-an-explici",
+  "decision": "Gated cache_fresh skips only the live drift probe via an explicit --work-selection / --skip-drift-probe argv seam; never via missing --for-issue and never via deferred_reason",
+  "governingRule": {
+    "description": "Do not auto-defer gated readiness steps; deferred_reason is treated as satisfied. --for-issue cannot be the gated discriminator because GATED_ENTRYPOINT_COMMANDS used a constant argv.",
+    "path": "packages/core/src/session/verify-session-ritual.ts",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Default the gated argv to --for-issue-less soft skip of cache_fresh",
+      "whyNot": "Blanket fail-soft already declined on #3500; ceremony-dial forbids auto-defer of gated steps"
+    },
+    {
+      "option": "Skip drift whenever --for-issue is absent on the constant argv",
+      "whyNot": "Absence of --for-issue is unconditionally true at the gated boundary and carries zero information (Scott comment on #3507)"
+    },
+    {
+      "option": "Record the skip as deferred_reason on the cache_fresh step",
+      "whyNot": "stepPasses treats deferred_reason as satisfied, so the gated loop would skip the age check too"
+    }
+  ],
+  "whyWinner": "Plumb a real work-selection detector (active story xBRIEF / scope:activate residue, unexhausted plan-sequence including triage kind, or an injectable seam) and thread an explicit flag through the gated argv. evaluate skips the live drift probe only when skipDriftProbe is set and --for-issue is not present. Ritual state records drift_probe skipped-no-work-selection as a distinct top-level field so stepPasses cannot treat it as a pass. The probe re-arms when work selection appears. Age staleness stays hard. This sits inside #1149: the doctrine is work selection; a non-selection path was never in scope for the drift probe.",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-08-20-3507-rfcsessiontriage-scope-condition-the-cache-fresh-drift-probe.xbrief.json"
+  ],
+  "timestamp": "2026-08-20T03:41:38Z",
+  "revisitTrigger": "If triage:queue gains a durable pick residue besides active xBRIEF and plan-sequence, fold that source into detectWorkSelection. Revisit if #3214 ceremony-dial starts treating any non-deferred_reason field as a satisfied gated step.",
+  "tags": [
+    "process",
+    "session",
+    "triage"
+  ],
+  "relatedIssues": [
+    3507,
+    3500,
+    1149,
+    3214,
+    1886
+  ]
+}

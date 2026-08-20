@@ -1,5 +1,8 @@
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { readCorePackageVersion } from "../engine-version.js";
+import { hasArtifactSuffix } from "../layout/resolve.js";
+import { readPlanSequence } from "../plan-sequence/store.js";
 import { formatFrameworkCommand } from "../render/framework-commands.js";
 import {
   type ActiveCliCheckResult,
@@ -49,6 +52,83 @@ export const GATED_ENTRYPOINT_COMMANDS: Readonly<Record<GatedStepName, readonly 
   cache_fresh: ["verify:cache-fresh"],
 };
 
+/** Explicit skip flag threaded through the gated `cache_fresh` argv (#3507). */
+export const SKIP_DRIFT_PROBE_FLAG = "--skip-drift-probe";
+/** Explicit work-selection flag threaded through the gated `cache_fresh` argv (#3507). */
+export const WORK_SELECTION_FLAG = "--work-selection";
+/** Distinct ritual-state field — never `deferred_reason` (#3507). */
+export const DRIFT_PROBE_SKIPPED_NO_WORK_SELECTION = "skipped-no-work-selection";
+
+export type WorkSelectionKind =
+  | "none"
+  | "active-story"
+  | "triage-queue"
+  | "ordered-plan"
+  | "for-issue"
+  | "explicit-flag";
+
+export interface WorkSelectionSignal {
+  readonly inPlay: boolean;
+  readonly kind: WorkSelectionKind;
+}
+
+export type DetectWorkSelection = (projectRoot: string) => WorkSelectionSignal;
+
+function hasActiveStoryArtifact(projectRoot: string): boolean {
+  for (const dirName of ["xbrief", "vbrief"] as const) {
+    const activeDir = join(projectRoot, dirName, "active");
+    try {
+      for (const entry of readdirSync(activeDir, { withFileTypes: true })) {
+        if (entry.isFile() && hasArtifactSuffix(entry.name)) return true;
+      }
+    } catch {
+      /* missing or unreadable active folder is not work selection */
+    }
+  }
+  return false;
+}
+
+function hasUnexhaustedPlanSequence(projectRoot: string): WorkSelectionKind | null {
+  try {
+    const sequence = readPlanSequence(projectRoot);
+    if (sequence === null || sequence.exhausted === true) return null;
+    return sequence.sequence_kind === "triage" ? "triage-queue" : "ordered-plan";
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Default work-selection detector for the gated `cache_fresh` seam (#3507).
+ * Active story xBRIEF (scope:activate residue), unexhausted ordered-plan /
+ * triage sequence. `--for-issue` is a positive evaluate override, not this
+ * detector — the gated argv never carries it.
+ */
+export function detectWorkSelection(projectRoot: string): WorkSelectionSignal {
+  if (hasActiveStoryArtifact(projectRoot)) {
+    return { inPlay: true, kind: "active-story" };
+  }
+  const planKind = hasUnexhaustedPlanSequence(projectRoot);
+  if (planKind !== null) {
+    return { inPlay: true, kind: planKind };
+  }
+  return { inPlay: false, kind: "none" };
+}
+
+export function resolveGatedEntrypointCommand(
+  stepName: GatedStepName,
+  projectRoot: string,
+  detect: DetectWorkSelection = detectWorkSelection,
+): string[] {
+  const base = [...GATED_ENTRYPOINT_COMMANDS[stepName]];
+  if (stepName !== "cache_fresh") return base;
+  const selection = detect(projectRoot);
+  if (selection.inPlay) {
+    return [...base, WORK_SELECTION_FLAG];
+  }
+  return [...base, SKIP_DRIFT_PROBE_FLAG];
+}
+
 export interface VerifyResult {
   readonly code: number;
   readonly message: string;
@@ -81,6 +161,7 @@ function truthy(raw: string | undefined): boolean {
 function stepPasses(step: Record<string, unknown> | undefined | null): boolean {
   if (!step || typeof step !== "object") return false;
   if (step.deferred_reason) return true;
+  // `drift_probe` is a distinct diagnostic; it must never satisfy a step (#3507).
   return step.ok === true;
 }
 
@@ -121,11 +202,34 @@ export function formatRitualRecoveryInstruction(tier: SessionCeremonyTier = "col
 
 /**
  * Sanctioned audited defer copy for gated `cache_fresh` failure (#3506 / #3507).
- * The gated argv is always `["verify:cache-fresh"]`, so this is unconditional.
+ * Independent of the #3507 work-selection argv seam — defer is still the
+ * operator-audited escape, not the drift-probe skip.
  */
 export function formatCacheFreshDeferSoftPath(): string {
   const cmd = formatFrameworkCommand(["session:start", "--", "--defer", "cache_fresh=<reason>"]);
   return `Soft path (audited): \`${cmd}\`.`;
+}
+
+function applyCacheFreshDriftProbeField(
+  payload: Record<string, unknown>,
+  command: readonly string[],
+): void {
+  if (command.includes(SKIP_DRIFT_PROBE_FLAG)) {
+    payload.drift_probe = DRIFT_PROBE_SKIPPED_NO_WORK_SELECTION;
+    return;
+  }
+  if (payload.drift_probe === DRIFT_PROBE_SKIPPED_NO_WORK_SELECTION) {
+    delete payload.drift_probe;
+  }
+}
+
+function shouldRearmDriftProbe(
+  payload: Record<string, unknown>,
+  projectRoot: string,
+  detect: DetectWorkSelection,
+): boolean {
+  if (payload.drift_probe !== DRIFT_PROBE_SKIPPED_NO_WORK_SELECTION) return false;
+  return detect(projectRoot).inPlay;
 }
 
 function runGatedStep(
@@ -134,8 +238,9 @@ function runGatedStep(
   stepName: GatedStepName,
   runner: RitualRunner,
   now: Date,
+  detect: DetectWorkSelection = detectWorkSelection,
 ): string | null {
-  const command = [...GATED_ENTRYPOINT_COMMANDS[stepName]];
+  const command = resolveGatedEntrypointCommand(stepName, projectRoot, detect);
   const { code, stdout, stderr } = runner(command, projectRoot);
   const message = stdout.trim() || stderr.trim() || `${command[0] as string} exited ${code}`;
   const gated = (payload.gated_steps as Record<string, Record<string, unknown>> | undefined) ?? {};
@@ -147,6 +252,9 @@ function runGatedStep(
     command,
   });
   payload.gated_steps = gated;
+  if (stepName === "cache_fresh") {
+    applyCacheFreshDriftProbeField(payload, command);
+  }
   try {
     writeRitualState(projectRoot, payload);
   } catch (exc) {
@@ -300,6 +408,8 @@ export interface VerifySessionRitualOptions {
     targetVersion: string | null,
     seams?: ActiveCliCheckSeams,
   ) => ActiveCliCheckResult;
+  /** Injectable work-selection detector for gated `cache_fresh` (#3507). */
+  readonly detectWorkSelection?: DetectWorkSelection;
 }
 
 export interface InspectSessionRitualOptions {
@@ -508,14 +618,19 @@ export function verifySessionRitual(
     payload.gated_steps = gated;
     const runCmd = options.runner ?? defaultRitualRunner;
     const forced = new Set<GatedStepName>(options.forceGatedSteps ?? []);
+    const detect = options.detectWorkSelection ?? detectWorkSelection;
     for (const stepName of GATED_STEPS) {
       const step = gated[stepName];
       if (step?.deferred_reason && stepName !== "agent_hooks") continue;
       // Hook readiness is a live mutation prerequisite, not a cacheable doctor
       // result. Re-run it at every gated boundary so registration/shim drift
       // cannot remain hidden behind an earlier green ritual record.
-      if (stepName !== "agent_hooks" && stepPasses(step) && !forced.has(stepName)) continue;
-      const writeError = runGatedStep(projectRoot, payload, stepName, runCmd, instant);
+      const rearmDrift =
+        stepName === "cache_fresh" && shouldRearmDriftProbe(payload, projectRoot, detect);
+      if (stepName !== "agent_hooks" && stepPasses(step) && !forced.has(stepName) && !rearmDrift) {
+        continue;
+      }
+      const writeError = runGatedStep(projectRoot, payload, stepName, runCmd, instant, detect);
       if (writeError !== null) {
         return {
           code: 2,

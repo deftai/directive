@@ -11,6 +11,7 @@ import {
   evaluate,
   normaliseRepoUrl,
   recoveryHintForStaleFailure,
+  shouldSkipDriftProbe,
 } from "./evaluate.js";
 
 /** Create a temp dir, return its path. Cleaned up in afterEach via tmpDirs. */
@@ -392,6 +393,98 @@ describe("recoveryHintForStaleFailure -- branch-aware (#1953 / #2574)", () => {
     const hint = recoveryHintForStaleFailure({ ageStale: true, driftDetected: true }, "owner/repo");
     expect(hint).toContain("cache fetch-all --source github-issue --repo owner/repo --force");
     expect(hint).not.toContain("cache:fetch-all");
+  });
+});
+
+describe("evaluate -- skipDriftProbe (#3507)", () => {
+  function freshAcceptCache(root: string, issue = 7): void {
+    writeCandidates(root, [
+      { issue, repo: "owner/repo", decision: "accept", ts: new Date().toISOString() },
+    ]);
+    writeCacheEntry(root, "owner/repo", issue, nowMinus(1).toISOString(), { state: "open" });
+  }
+
+  it("does not infer skip from a missing --for-issue", () => {
+    expect(shouldSkipDriftProbe({})).toBe(false);
+    expect(shouldSkipDriftProbe({ forIssue: null })).toBe(false);
+    expect(shouldSkipDriftProbe({ skipDriftProbe: true, forIssue: 42 })).toBe(false);
+    expect(shouldSkipDriftProbe({ skipDriftProbe: true })).toBe(true);
+  });
+
+  it("skips the live drift probe when skipDriftProbe is explicit", () => {
+    const root = setupProjectRoot();
+    freshAcceptCache(root);
+    const probe = vi.fn(() => ({
+      stateDriftNumbers: [7],
+      contentDriftNumbers: [] as number[],
+    }));
+
+    const result = evaluate(root, {
+      allowMissingBootstrap: true,
+      repo: "owner/repo",
+      skipDriftProbe: true,
+      nowFn: () => new Date(),
+      probeDriftFn: probe,
+    });
+    expect(result.code).toBe(0);
+    expect(probe).not.toHaveBeenCalled();
+    expect(result.message).toContain("Drift probe skipped (no work selection)");
+    expect(result.message).not.toContain("stale-by-drift");
+  });
+
+  it("still fails closed on age staleness when the drift probe is skipped", () => {
+    const root = setupProjectRoot();
+    writeCandidates(root, [
+      { issue: 1, repo: "owner/repo", decision: "accept", ts: new Date().toISOString() },
+    ]);
+    writeCacheEntry(root, "owner/repo", 1, nowMinus(48).toISOString());
+    const probe = vi.fn(() => ({
+      stateDriftNumbers: [99],
+      contentDriftNumbers: [] as number[],
+    }));
+
+    const result = evaluate(root, {
+      allowMissingBootstrap: true,
+      repo: "owner/repo",
+      skipDriftProbe: true,
+      nowFn: () => new Date(),
+      probeDriftFn: probe,
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("48.0h old");
+    expect(result.message).not.toContain("stale-by-drift");
+    expect(probe).not.toHaveBeenCalled();
+  });
+
+  it("re-arms the drift probe when --for-issue is present", () => {
+    const root = setupProjectRoot();
+    writeCandidates(root, [
+      {
+        decision_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        timestamp: "2026-06-29T12:00:00Z",
+        repo: "owner/repo",
+        issue_number: 7,
+        decision: "accept",
+        actor: "operator",
+      },
+    ]);
+    writeCacheEntry(root, "owner/repo", 7, nowMinus(1).toISOString(), { state: "open" });
+    const probe = vi.fn(() => ({
+      stateDriftNumbers: [7],
+      contentDriftNumbers: [] as number[],
+    }));
+
+    const result = evaluate(root, {
+      allowMissingBootstrap: true,
+      repo: "owner/repo",
+      skipDriftProbe: true,
+      forIssue: 7,
+      nowFn: () => new Date(),
+      probeDriftFn: probe,
+    });
+    expect(probe).toHaveBeenCalledTimes(1);
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("stale-by-drift");
   });
 });
 

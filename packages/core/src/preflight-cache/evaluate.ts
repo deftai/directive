@@ -66,6 +66,12 @@ export interface EvaluateOptions {
   forIssue?: number | null;
   allowStale?: boolean;
   allowMissingBootstrap?: boolean;
+  /**
+   * Skip the live GitHub drift probe only (#3507). Age staleness stays hard.
+   * Explicit flag — never inferred from a missing `--for-issue`.
+   * `--for-issue` (work selection) wins over this skip.
+   */
+  skipDriftProbe?: boolean;
   /** Injectable clock for tests. */
   nowFn?: () => Date;
   /** Injectable drift probe for tests. */
@@ -365,6 +371,16 @@ function runDriftProbe(
   }
 }
 
+/**
+ * Drift skip is an explicit `--skip-drift-probe` request (#3507).
+ * Presence of `--for-issue` is work selection and re-arms the probe.
+ * Absence of `--for-issue` is not a skip signal.
+ */
+export function shouldSkipDriftProbe(options: EvaluateOptions): boolean {
+  if (options.forIssue !== undefined && options.forIssue !== null) return false;
+  return options.skipDriftProbe === true;
+}
+
 const REMEDIATION_NO_CANDIDATES = [
   "  Recovery: run `deft triage:bootstrap` to initialise the triage log.",
 ].join("\n");
@@ -560,7 +576,8 @@ function evaluateWithContext(
     };
   }
 
-  if (resolvedRepo !== null && !allowStale) {
+  const skipDrift = shouldSkipDriftProbe(options);
+  if (resolvedRepo !== null && !allowStale && !skipDrift) {
     const drift = runDriftProbe(resolvedRepo, cacheRoot, source, options);
     if (
       drift !== null &&
@@ -605,6 +622,9 @@ function evaluateWithContext(
   let msg = `✓ deft cache-fresh: ${repoLabel} -- ${inScopeCount} entry/ies in scope; oldest fetched ${ageH.toFixed(1)}h ago (max-age=${maxAgeHours}h); ${statePhrase}.`;
   if (options.forIssue !== undefined && options.forIssue !== null) {
     msg += ` Issue #${options.forIssue} latest decision = accept; in subscription scope.`;
+  }
+  if (skipDrift) {
+    msg += " Drift probe skipped (no work selection).";
   }
   return { code: 0, message: msg };
 }

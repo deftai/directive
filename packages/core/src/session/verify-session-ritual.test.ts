@@ -3,9 +3,13 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { writePlanSequence } from "../plan-sequence/store.js";
+import { createPlanSequence } from "../plan-sequence/types.js";
 import type { GitRunResult } from "./git.js";
 import {
+  DRIFT_PROBE_SKIPPED_NO_WORK_SELECTION,
   defaultGitRunner,
+  detectWorkSelection,
   emitVerifyJson,
   formatCacheFreshDeferSoftPath,
   formatRitualRecoveryInstruction,
@@ -14,9 +18,12 @@ import {
   inspectSessionRitual,
   newRitualStatePayload,
   readRitualState,
+  resolveGatedEntrypointCommand,
   ritualStep,
+  SKIP_DRIFT_PROBE_FLAG,
   type VerifyResult,
   verifySessionRitual,
+  WORK_SELECTION_FLAG,
   writeRitualState,
 } from "./index.js";
 import { defaultBranchSync, parseDeferrals, runSessionStart } from "./session-start.js";
@@ -253,6 +260,63 @@ describe("verify session ritual", () => {
     ]);
   });
 
+  it("keeps the gated cache_fresh base argv without a skip default (#3507)", () => {
+    expect(GATED_ENTRYPOINT_COMMANDS.cache_fresh).toEqual(["verify:cache-fresh"]);
+  });
+
+  it("resolves cache_fresh argv from the work-selection detector, not missing --for-issue", () => {
+    const { root } = initRepo();
+    expect(detectWorkSelection(root)).toEqual({ inPlay: false, kind: "none" });
+    expect(resolveGatedEntrypointCommand("cache_fresh", root)).toEqual([
+      "verify:cache-fresh",
+      SKIP_DRIFT_PROBE_FLAG,
+    ]);
+    expect(resolveGatedEntrypointCommand("doctor", root)).toEqual(["doctor"]);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("treats an unexhausted triage plan-sequence as work selection (#3507)", () => {
+    const { root } = initRepo();
+    writePlanSequence(
+      root,
+      createPlanSequence({
+        sequence_id: "t",
+        sequence_kind: "triage",
+        authorized_by: "op",
+        entries: [{ id: "3507", kind: "issue", issue: 3507 }],
+      }),
+    );
+    expect(detectWorkSelection(root)).toEqual({ inPlay: true, kind: "triage-queue" });
+    expect(resolveGatedEntrypointCommand("cache_fresh", root)).toEqual([
+      "verify:cache-fresh",
+      WORK_SELECTION_FLAG,
+    ]);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("treats an unexhausted ordered plan as work selection (#3507)", () => {
+    const { root } = initRepo();
+    writePlanSequence(
+      root,
+      createPlanSequence({
+        sequence_id: "d",
+        sequence_kind: "delivery",
+        authorized_by: "op",
+        entries: [{ id: "pr-1", kind: "pr" }],
+      }),
+    );
+    expect(detectWorkSelection(root)).toEqual({ inPlay: true, kind: "ordered-plan" });
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("ignores a malformed plan-sequence when detecting work selection (#3507)", () => {
+    const { root } = initRepo();
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(join(root, ".deft", "plan-sequence.json"), "{not-json", "utf8");
+    expect(detectWorkSelection(root)).toEqual({ inPlay: false, kind: "none" });
+    rmSync(root, { recursive: true, force: true });
+  });
+
   it("runs and records a missing agent-hook readiness prerequisite", () => {
     const { root, head } = initRepo();
     const now = new Date("2026-06-09T01:00:00Z");
@@ -389,6 +453,186 @@ describe("verify session ritual", () => {
     expect(formatRitualRecoveryInstruction("cold")).toContain("session:ready");
     expect(formatCacheFreshDeferSoftPath()).toContain("--defer cache_fresh=<reason>");
     expect(formatCacheFreshDeferSoftPath()).toContain("audited");
+  });
+
+  it("threads --skip-drift-probe when no work selection is in play (#3507)", () => {
+    const { root, head } = initRepo();
+    const now = new Date("2026-06-09T01:00:00Z");
+    const payload = freshPayload(root, head, now);
+    const gated = { ...(payload.gated_steps as Record<string, Record<string, unknown>>) };
+    delete gated.cache_fresh;
+    payload.gated_steps = gated;
+    writeRitualState(root, payload);
+    const commands: string[][] = [];
+
+    const result = verifySessionRitual(root, {
+      tier: "gated",
+      posture: "mutation",
+      now,
+      envSkip: "",
+      runGit: fakeGit(head, resolve(root)),
+      runner: (command) => {
+        commands.push([...command]);
+        return { code: 0, stdout: "cache fresh", stderr: "" };
+      },
+    });
+
+    expect(result.code).toBe(0);
+    expect(commands.filter((command) => command[0] === "verify:cache-fresh")).toEqual([
+      ["verify:cache-fresh", SKIP_DRIFT_PROBE_FLAG],
+    ]);
+    const [state] = readRitualState(root);
+    expect(state?.raw.drift_probe).toBe(DRIFT_PROBE_SKIPPED_NO_WORK_SELECTION);
+    expect(state?.gatedSteps.cache_fresh?.deferred_reason).toBeUndefined();
+    expect(state?.gatedSteps.cache_fresh?.ok).toBe(true);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("threads --work-selection for an active story xBRIEF (#3507)", () => {
+    const { root, head } = initRepo();
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "active", "story.xbrief.json"), "{}\n", "utf8");
+    expect(detectWorkSelection(root)).toEqual({ inPlay: true, kind: "active-story" });
+    expect(resolveGatedEntrypointCommand("cache_fresh", root)).toEqual([
+      "verify:cache-fresh",
+      WORK_SELECTION_FLAG,
+    ]);
+
+    const now = new Date("2026-06-09T01:00:00Z");
+    const payload = freshPayload(root, head, now);
+    const gated = { ...(payload.gated_steps as Record<string, Record<string, unknown>>) };
+    delete gated.cache_fresh;
+    payload.gated_steps = gated;
+    writeRitualState(root, payload);
+    const commands: string[][] = [];
+
+    const result = verifySessionRitual(root, {
+      tier: "gated",
+      posture: "mutation",
+      now,
+      envSkip: "",
+      runGit: fakeGit(head, resolve(root)),
+      runner: (command) => {
+        commands.push([...command]);
+        return { code: 0, stdout: "cache fresh", stderr: "" };
+      },
+    });
+
+    expect(result.code).toBe(0);
+    expect(commands.filter((command) => command[0] === "verify:cache-fresh")).toEqual([
+      ["verify:cache-fresh", WORK_SELECTION_FLAG],
+    ]);
+    const [state] = readRitualState(root);
+    expect(state?.raw.drift_probe).toBeUndefined();
+    expect(state?.gatedSteps.cache_fresh?.deferred_reason).toBeUndefined();
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("re-arms the drift probe when work selection appears (#3507)", () => {
+    const { root, head } = initRepo();
+    const now = new Date("2026-06-09T01:00:00Z");
+    writeRitualState(root, {
+      ...freshPayload(root, head, now),
+      drift_probe: DRIFT_PROBE_SKIPPED_NO_WORK_SELECTION,
+    });
+    const commands: string[][] = [];
+
+    const result = verifySessionRitual(root, {
+      tier: "gated",
+      posture: "mutation",
+      now,
+      envSkip: "",
+      runGit: fakeGit(head, resolve(root)),
+      detectWorkSelection: () => ({ inPlay: true, kind: "triage-queue" }),
+      runner: (command) => {
+        commands.push([...command]);
+        return { code: 0, stdout: "cache fresh after re-arm", stderr: "" };
+      },
+    });
+
+    expect(result.code).toBe(0);
+    expect(commands.filter((command) => command[0] === "verify:cache-fresh")).toEqual([
+      ["verify:cache-fresh", WORK_SELECTION_FLAG],
+    ]);
+    const [state] = readRitualState(root);
+    expect(state?.raw.drift_probe).toBeUndefined();
+    expect(state?.gatedSteps.cache_fresh?.deferred_reason).toBeUndefined();
+    expect(state?.gatedSteps.cache_fresh?.message).toBe("cache fresh after re-arm");
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("re-arms when an active story appears after a skip (#3507)", () => {
+    const { root, head } = initRepo();
+    const now = new Date("2026-06-09T01:00:00Z");
+    const payload = freshPayload(root, head, now);
+    const gated = { ...(payload.gated_steps as Record<string, Record<string, unknown>>) };
+    delete gated.cache_fresh;
+    payload.gated_steps = gated;
+    writeRitualState(root, payload);
+
+    verifySessionRitual(root, {
+      tier: "gated",
+      posture: "mutation",
+      now,
+      envSkip: "",
+      runGit: fakeGit(head, resolve(root)),
+      runner: () => ({ code: 0, stdout: "cache fresh", stderr: "" }),
+    });
+    expect(readRitualState(root)[0]?.raw.drift_probe).toBe(DRIFT_PROBE_SKIPPED_NO_WORK_SELECTION);
+
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "active", "story.xbrief.json"), "{}\n", "utf8");
+    const commands: string[][] = [];
+    const result = verifySessionRitual(root, {
+      tier: "gated",
+      posture: "mutation",
+      now,
+      envSkip: "",
+      runGit: fakeGit(head, resolve(root)),
+      runner: (command) => {
+        commands.push([...command]);
+        return { code: 0, stdout: "cache fresh after activate", stderr: "" };
+      },
+    });
+    expect(result.code).toBe(0);
+    expect(commands.filter((command) => command[0] === "verify:cache-fresh")).toEqual([
+      ["verify:cache-fresh", WORK_SELECTION_FLAG],
+    ]);
+    expect(readRitualState(root)[0]?.raw.drift_probe).toBeUndefined();
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("does not treat drift_probe as a satisfied deferred_reason (#3507)", () => {
+    const { root, head } = initRepo();
+    const now = new Date("2026-06-09T01:00:00Z");
+    const payload = freshPayload(root, head, now);
+    const gated = { ...(payload.gated_steps as Record<string, Record<string, unknown>>) };
+    gated.cache_fresh = {
+      ok: false,
+      ts: now.toISOString().replace(/\.\d+Z$/, "Z"),
+      drift_probe: DRIFT_PROBE_SKIPPED_NO_WORK_SELECTION,
+    };
+    payload.gated_steps = gated;
+    payload.drift_probe = DRIFT_PROBE_SKIPPED_NO_WORK_SELECTION;
+    writeRitualState(root, payload);
+
+    const result = verifySessionRitual(root, {
+      tier: "gated",
+      posture: "mutation",
+      now,
+      envSkip: "",
+      runGit: fakeGit(head, resolve(root)),
+      runner: (command) =>
+        command[0] === "verify:cache-fresh"
+          ? { code: 1, stdout: "", stderr: "cache is 30.0h old" }
+          : { code: 0, stdout: "ok", stderr: "" },
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("cache_fresh");
+    const [state] = readRitualState(root);
+    expect(state?.raw.drift_probe).toBe(DRIFT_PROBE_SKIPPED_NO_WORK_SELECTION);
+    expect(state?.gatedSteps.cache_fresh?.deferred_reason).toBeUndefined();
+    rmSync(root, { recursive: true, force: true });
   });
 
   it("bypass returns success with would_fail_code", () => {

@@ -153,7 +153,12 @@ describe("verifySessionRitual gated tier via defaultRitualRunner", () => {
     expect(state).not.toBeNull();
     expect(state?.gatedSteps.doctor?.ok).toBe(true);
     expect(state?.gatedSteps.cache_fresh?.ok).toBe(true);
-    expect(state?.gatedSteps.cache_fresh?.command).toEqual(["verify:cache-fresh"]);
+    expect(state?.gatedSteps.cache_fresh?.command).toEqual([
+      "verify:cache-fresh",
+      "--skip-drift-probe",
+    ]);
+    expect(state?.raw.drift_probe).toBe("skipped-no-work-selection");
+    expect(state?.gatedSteps.cache_fresh?.deferred_reason).toBeUndefined();
     rmSync(root, { recursive: true, force: true });
   });
 
@@ -171,6 +176,31 @@ describe("verifySessionRitual gated tier via defaultRitualRunner", () => {
   it("runCacheFreshMain honours allow-missing-bootstrap", () => {
     const { root } = initRepo();
     const code = runCacheFreshMain(["--allow-missing-bootstrap", "--project-root", root]);
+    expect(code).toBe(0);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("runCacheFreshMain honours --skip-drift-probe (#3507)", () => {
+    const { root } = initRepo();
+    const code = runCacheFreshMain([
+      "--allow-missing-bootstrap",
+      "--skip-drift-probe",
+      "--project-root",
+      root,
+    ]);
+    expect(code).toBe(0);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("runCacheFreshMain lets --work-selection override --skip-drift-probe (#3507)", () => {
+    const { root } = initRepo();
+    const code = runCacheFreshMain([
+      "--allow-missing-bootstrap",
+      "--skip-drift-probe",
+      "--work-selection",
+      "--project-root",
+      root,
+    ]);
     expect(code).toBe(0);
     rmSync(root, { recursive: true, force: true });
   });
