@@ -4,6 +4,11 @@ import { bindSessionGeneration } from "../freshness/bind.js";
 import { readLiveGeneration } from "../freshness/generation.js";
 import { MIGRATE_COMPLETION_NUDGE, shouldEmitMigrateNudge } from "../init-deposit/migrate.js";
 import {
+  evaluateLifecycleVisible,
+  formatLifecycleVisibleSessionLines,
+  type LifecycleVisibleResult,
+} from "../lifecycle-visible/evaluate.js";
+import {
   type HostContentSurfaceSeams,
   hostContentSurfaceToDict,
   maybeFormatHostContentSurfaceLines,
@@ -140,6 +145,24 @@ export const QUICK_STEPS = [
 export const GATED_STEPS = ["agent_hooks", "doctor", "cache_fresh"] as const;
 export type GatedStepName = (typeof GATED_STEPS)[number];
 
+/** Per-clone ignore/index hide of lifecycle roots — warn-only (#3505). */
+function pushLifecycleVisibleAdvisory(
+  lines: string[],
+  projectRoot: string,
+  options: SessionStartOptions,
+  runGit: GitRunner,
+): void {
+  try {
+    const probe =
+      options.probeLifecycleVisible ??
+      ((root, git) => evaluateLifecycleVisible({ projectRoot: root, runGit: git }));
+    const result = probe(projectRoot, runGit);
+    lines.push(...formatLifecycleVisibleSessionLines(result));
+  } catch {
+    // best-effort — session:start must not abort on a clone-local advisory
+  }
+}
+
 /** Standing one-liner when coverageDebt/checkResume is non-default (#3314). */
 function pushCoverageCheckResumeDisclosure(lines: string[], projectRoot: string): void {
   try {
@@ -258,6 +281,14 @@ export interface SessionStartOptions {
    * network is enabled. Inject in tests.
    */
   readonly probeScm?: (options: ProbeScmReadinessOptions) => ScmReadinessReport;
+  /**
+   * #3505: per-clone lifecycle-root visibility (ignore / skip-worktree).
+   * Warn-only; never blocks session:start. Inject in tests.
+   */
+  readonly probeLifecycleVisible?: (
+    projectRoot: string,
+    runGit: GitRunner,
+  ) => LifecycleVisibleResult;
   /**
    * #3214: ceremony dial inputs (task size × model tier × project shape).
    * Missing fields are filled by the headless provisional classifier
@@ -791,6 +822,8 @@ function runReadOnlySessionStart(
   lines.push(...formatScmReadinessLines(scm));
   lines.push(...hostSurface.lines);
   lines.push(...effortBudget.lines);
+  const runGit = options.runGit ?? defaultGitRunner;
+  pushLifecycleVisibleAdvisory(lines, projectRoot, options, runGit);
   const resultPayload = {
     ready: true,
     exit_code: 0,
@@ -886,6 +919,7 @@ function runSessionRearm(
     ...effortBudget.lines,
     REARM_SKIPPED_FAT_PATH_MESSAGE,
   ];
+  pushLifecycleVisibleAdvisory(lines, projectRoot, options, runGit);
 
   // Light branch-policy disclosure (local only) so re-arm still surfaces policy state.
   const policyResult = resolvePolicy(projectRoot);
@@ -1343,6 +1377,13 @@ export function runSessionStart(
   stepTimings.push({
     name: "effort_budget",
     duration_ms: elapsedMs(effortBudgetStepStarted),
+  });
+
+  const lifecycleVisibleStarted = performance.now();
+  pushLifecycleVisibleAdvisory(lines, projectRoot, options, runGit);
+  stepTimings.push({
+    name: "lifecycle_visible",
+    duration_ms: elapsedMs(lifecycleVisibleStarted),
   });
 
   if (!quickSteps.branch_policy) {

@@ -156,6 +156,7 @@ describe("runSessionStart read-only posture (#2176)", () => {
       "scm_readiness",
       "host_content_surface",
       "effort_budget",
+      "lifecycle_visible",
       "branch_policy",
       "verify_tools",
       // #3286: orientation compression composes doctor + preflight + refresh surfaces

@@ -1,0 +1,18 @@
+export {
+  type CheckIgnoreMatch,
+  displayIgnoreSource,
+  evaluateLifecycleVisible,
+  formatLifecycleVisibleSessionLines,
+  indexFlagKind,
+  isSelectiveLifecyclePath,
+  LIFECYCLE_ROOT_PREFIXES,
+  LIFECYCLE_STAGE_DIRS,
+  type LifecycleHideFinding,
+  type LifecycleHideKind,
+  type LifecycleVisibleOptions,
+  type LifecycleVisibleResult,
+  type LsFilesVerboseRecord,
+  lifecycleRootRelPaths,
+  parseCheckIgnoreVerboseLine,
+  parseLsFilesVerboseRecord,
+} from "./evaluate.js";

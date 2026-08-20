@@ -492,6 +492,16 @@ tasks:
         vars:
           ENGINE_CMD: 'verify:wip-cap --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
+  lifecycle-visible:
+    desc: "Warn when git ignore/exclude/skip-worktree hides xbrief/vbrief lifecycle roots (#3505). Per-clone, not per-commit — not on task check. Default warn-only; pass --enforce to fail closed. -- task verify:lifecycle-visible [-- --enforce]"
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify:lifecycle-visible --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
   orphan-active:
     desc: "Fail-closed orphan-active guard (#2321 / #3429). Detects xbrief/active/ briefs with plan.status==running whose referenced GitHub issues are all closed and/or whose linked PR is merged — the stop-at:pr-open lifecycle leak. Confirmed shipped remediates with task scope:complete / scope:cancel or swarm finalize. Unresolved GitHub lookup still exits 1 but prints a retry, not scope:complete. Three-state exit (0 clean / 1 orphan / 2 config). Pass --issue N to scan one origin after merge; --skip-gh to rely on triage cache only."
     dir: '{{.USER_WORKING_DIR}}'

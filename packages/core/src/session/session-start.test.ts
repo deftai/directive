@@ -240,6 +240,7 @@ describe("runSessionStart hot path + step timings (#2991)", () => {
       "scm_readiness",
       "host_content_surface",
       "effort_budget",
+      "lifecycle_visible",
       "branch_policy",
       "verify_tools",
       // #3286: orientation compression composes doctor + preflight + refresh surfaces

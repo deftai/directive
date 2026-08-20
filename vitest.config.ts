@@ -164,6 +164,7 @@ const subpathAliases: Record<string, string> = {
     "packages/core/src/intake/parity-scenarios.ts",
   ),
   "@deftai/directive-core/legacy-bridge": sub("core", "legacy-bridge"),
+  "@deftai/directive-core/lifecycle-visible": sub("core", "lifecycle-visible"),
   "@deftai/directive-core/lifecycle": sub("core", "lifecycle"),
   "@deftai/directive-core/literal-acceptance": sub("core", "literal-acceptance"),
   "@deftai/directive-core/product-first-done-gate": sub("core", "product-first-done-gate"),
