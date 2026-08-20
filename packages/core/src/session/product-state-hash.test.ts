@@ -407,6 +407,23 @@ describe("hashProductState (#3387)", () => {
     expect(second.digest).not.toBe(first.digest);
   });
 
+  it("hashes root telemetry when file_scope selects it (#3558)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3558-psh-filescope-summary-"));
+    writeFileSync(join(root, "src.txt"), "v1\n", "utf8");
+    writeFileSync(join(root, ".deft-run-summary.json"), "a\n", "utf8");
+    const plan = {
+      acceptance: { commands: [{ command: "true" }] },
+      metadata: { swarm: { file_scope: [".deft-run-summary.json", "src.txt"] } },
+    };
+    const first = hashProductState({ projectRoot: root, plan });
+    expect(first.complete).toBe(true);
+    expect(first.files).toContain(".deft-run-summary.json");
+    expect(first.files).toContain("src.txt");
+    writeFileSync(join(root, ".deft-run-summary.json"), "b\n", "utf8");
+    const second = hashProductState({ projectRoot: root, plan });
+    expect(second.digest).not.toBe(first.digest);
+  });
+
   it("hashes telemetry files found under an explicit productPaths directory (#3558)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-3558-psh-dirpaths-"));
     mkdirSync(join(root, "src"), { recursive: true });

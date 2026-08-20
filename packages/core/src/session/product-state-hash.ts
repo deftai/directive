@@ -630,53 +630,49 @@ export function hashProductState(input: HashProductStateInput): ProductStateHash
   const runGit = input.runGit ?? defaultGitRunner;
   const files = new Set<string>();
   let statusOk = true;
+  const scope = fileScopePaths(input.plan);
+  const specifiedSurface = input.productPaths !== undefined || scope.length > 0;
+  const keepTelemetryFiles = specifiedSurface;
 
   if (input.productPaths !== undefined) {
     for (const rel of input.productPaths) {
       for (const expanded of expandPath(root, rel, true)) files.add(expanded);
     }
+  } else if (scope.length > 0) {
+    for (const entry of scope) {
+      for (const expanded of expandPath(root, entry, keepTelemetryFiles)) files.add(expanded);
+    }
   } else {
-    const scope = fileScopePaths(input.plan);
-    if (scope.length > 0) {
-      for (const entry of scope) {
-        for (const expanded of expandPath(root, entry)) files.add(expanded);
-      }
-    } else {
-      const git = existsSync(join(root, ".git"));
-      if (git) {
-        const dirty = dirtyProductFiles(root, runGit);
-        if (dirty.ok) {
-          statusOk = true;
-          for (const rel of dirty.files) {
-            for (const expanded of expandIfDirectory(root, rel)) files.add(expanded);
-          }
-        } else {
-          // git status failed (containers, missing git, safe.directory).
-          // Walk product files instead of miss-forever (#3558 / #3549).
-          const walked: string[] = [];
-          walkFiles(root, root, walked);
-          for (const rel of walked) files.add(rel);
-          statusOk = true;
+    const git = existsSync(join(root, ".git"));
+    if (git) {
+      const dirty = dirtyProductFiles(root, runGit);
+      if (dirty.ok) {
+        statusOk = true;
+        for (const rel of dirty.files) {
+          for (const expanded of expandIfDirectory(root, rel)) files.add(expanded);
         }
       } else {
+        // git status failed (containers, missing git, safe.directory).
+        // Walk product files instead of miss-forever (#3558 / #3549).
         const walked: string[] = [];
         walkFiles(root, root, walked);
         for (const rel of walked) files.add(rel);
+        statusOk = true;
       }
+    } else {
+      const walked: string[] = [];
+      walkFiles(root, root, walked);
+      for (const rel of walked) files.add(rel);
     }
   }
 
-  const sorted = [...files]
-    .filter((rel) => !isExcludedRel(rel, { keepTelemetryFiles: input.productPaths !== undefined }))
-    .sort();
+  const sorted = [...files].filter((rel) => !isExcludedRel(rel, { keepTelemetryFiles })).sort();
   const fileHashes: Record<string, string> = {};
   for (const rel of sorted) {
     fileHashes[rel] = hashProductRel(root, rel, runGit);
   }
 
   const head = existsSync(join(root, ".git")) ? gitHead(root, runGit).head : null;
-  const specifiedSurface =
-    input.productPaths !== undefined || fileScopePaths(input.plan).length > 0;
   const hasSurface = specifiedSurface
     ? sorted.length > 0
     : statusOk && (sorted.length > 0 || head !== null);
