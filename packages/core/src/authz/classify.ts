@@ -1311,8 +1311,36 @@ function isGenericProtectedDestFlag(flag: string): boolean {
 const DEST_ASSIGNMENT_KEYS = new Set(["destdir", "prefix", "install_root", "dest_dir"]);
 /** Bins whose DESTDIR=/PREFIX= assignment is a dest plant (not `echo DESTDIR=…`). */
 const DEST_ASSIGNMENT_OWNER_BINS = new Set(["make", "gmake"]);
-/** First-command bins that print/no-op: a later `make` token is data, not the writer. */
-const DEST_ASSIGNMENT_PRINT_BINS = new Set(["echo", "printf", "true", "false", ":"]);
+/**
+ * First-command bins that print/read: a later `make` token is data, not the writer
+ * (`echo DESTDIR=… make`, `git log make DESTDIR=…`).
+ */
+const DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS = new Set([
+  "echo",
+  "printf",
+  "true",
+  "false",
+  ":",
+  "git",
+  "gh",
+  "hg",
+  "svn",
+  "cat",
+  "ls",
+  "grep",
+  "egrep",
+  "fgrep",
+  "rg",
+  "find",
+  "head",
+  "tail",
+  "less",
+  "more",
+  "wc",
+  "diff",
+  "stat",
+  "file",
+]);
 /** make targets that do not apply DESTDIR (avoid denying `make DESTDIR=… clean`). */
 const DEST_ASSIGNMENT_NON_WRITE_TARGETS = new Set([
   "clean",
@@ -1342,7 +1370,7 @@ const MAKE_VALUE_FLAGS = new Set([
 /**
  * True when a DESTDIR/PREFIX assignment is an operative make write.
  * Looks for make/gmake anywhere after wrappers (including unknown wrappers
- * such as `xargs`), unless the first command is print-shaped.
+ * such as `xargs`), unless the first command is a print/read bin.
  * Non-writing targets (`clean`) are not operative.
  */
 function segmentDestAssignmentIsOperative(tokens: readonly string[], tokenIndex: number): boolean {
@@ -1374,7 +1402,7 @@ function segmentDestAssignmentIsOperative(tokens: readonly string[], tokenIndex:
     }
     if (firstCommand.length === 0) {
       firstCommand = bare;
-      if (DEST_ASSIGNMENT_PRINT_BINS.has(bare)) return false;
+      if (DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS.has(bare)) return false;
     }
     if (DEST_ASSIGNMENT_OWNER_BINS.has(bare)) {
       sawMake = true;

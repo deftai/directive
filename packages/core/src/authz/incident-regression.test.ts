@@ -1639,6 +1639,7 @@ describe("UAT residual dest-form writers fail-closed (#3545)", () => {
       "make DESTDIR=.deft/authz/grants clean",
       "make DESTDIR=.deft/authz/grants distclean",
       "make DESTDIR=.deft/authz/grants check",
+      "git log make DESTDIR=.deft/authz/grants",
     ]) {
       const decision = decideHook(
         {

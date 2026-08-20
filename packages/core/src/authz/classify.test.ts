@@ -1367,6 +1367,7 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("make DESTDIR=.deft/authz/grants clean install")).toContain(
       "settings",
     );
+    expect(classifyShellAuthzOps("git log make DESTDIR=.deft/authz/grants")).toEqual([]);
   });
 
   it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {
