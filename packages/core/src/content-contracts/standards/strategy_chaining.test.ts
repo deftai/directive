@@ -214,7 +214,7 @@ describe("test_strategy_chaining.py", () => {
       expect(text).toContain("guard-artifact");
       expect(text).toContain("guard-plan-registration");
       expect(text).toContain("completedStrategies.probe");
-      expect(text).toContain("xbrief/proposed/{scope}-probe.xbrief.json");
+      expect(text).toContain("xbrief/proposed/YYYY-MM-DD-{scope}-probe.xbrief.json");
       expect(text).toContain("deft probe-session guard-artifact");
     });
     it("test_probe_strategy_documents_recovery_path", () => {
@@ -233,7 +233,8 @@ describe("test_strategy_chaining.py", () => {
       expect(probe).toBeDefined();
       expect(probe?.body).not.toContain("scripts/probe_session.py");
       expect(probe?.body).toContain("deft probe-session");
-      expect(probe?.body).toContain("xbrief/proposed/{scope}-probe.xbrief.json");
+      expect(probe?.body).toContain("xbrief/proposed/YYYY-MM-DD-{scope}-probe.xbrief.json");
+      expect(probe?.body).not.toContain("xbrief/proposed/{scope}-probe.xbrief.json");
     });
   });
 });

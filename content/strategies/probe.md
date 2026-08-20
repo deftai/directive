@@ -92,7 +92,7 @@ Silence is not agreement.
   mark the session complete:
   `deft probe-session complete`
 - ! Immediately before artifact or plan registration, run the guard:
-  - `deft probe-session guard-artifact --path xbrief/proposed/{scope}-probe.xbrief.json`
+  - `deft probe-session guard-artifact --path xbrief/proposed/YYYY-MM-DD-{scope}-probe.xbrief.json`
   - `deft probe-session guard-plan-registration`
 - ⊗ Write probe artifacts or update `completedStrategies.probe` while the
   session state is still `interrogate` — the guard exits non-zero with an
@@ -107,7 +107,7 @@ then retry the guard before writing artifacts or updating `plan.xbrief.json`.
 feature/component name if probing a sub-scope. Use the same value consistently
 throughout the session. Examples: `my-app-probe`, `auth-probe`.
 
-- ! Produce a `xbrief/proposed/{scope}-probe.xbrief.json` scope xBRIEF with three mandatory narratives:
+- ! Produce a `xbrief/proposed/YYYY-MM-DD-{scope}-probe.xbrief.json` scope xBRIEF with three mandatory narratives:
   - `LockedDecisions` — what was resolved and why (when the lock is an intentional under-build, include dual-path graduation fields: `now`, `later`, `graduationRef`, `trigger`, `status` — see [Graduation (Now+Later)](#graduation-nowlater-when-locking-an-under-build-2899))
   - `SurfacedRisks` — concerns raised, even if not fully resolved
   - `DeferredDecisions` — explicitly acknowledged items with justification
@@ -146,15 +146,15 @@ Glossary naming for Graduation is owned by sibling work (#2907); this section is
 
 ## Then: Chaining Gate
 
-After the probe is complete and `xbrief/proposed/{scope}-probe.xbrief.json` is
+After the probe is complete and `xbrief/proposed/YYYY-MM-DD-{scope}-probe.xbrief.json` is
 written, return to the [chaining gate](./interview.md#chaining-gate).
 
 - ! On completion, register artifacts in `./xbrief/plan.xbrief.json`:
   - Update `completedStrategies`: increment `runCount` for `"probe"`,
-    append artifact path (`xbrief/proposed/{scope}-probe.xbrief.json`)
+    append artifact path (`xbrief/proposed/YYYY-MM-DD-{scope}-probe.xbrief.json`)
   - Append the path to the flat `artifacts` array
 - ! Return to [interview.md Chaining Gate](./interview.md#chaining-gate)
-- ! The `LockedDecisions`, `SurfacedRisks`, and `DeferredDecisions` narratives from `xbrief/proposed/{scope}-probe.xbrief.json` MUST flow
+- ! The `LockedDecisions`, `SurfacedRisks`, and `DeferredDecisions` narratives from `xbrief/proposed/YYYY-MM-DD-{scope}-probe.xbrief.json` MUST flow
   into subsequent strategies and spec generation:
   - Locked decisions become constraints in the specification
   - Surfaced risks become NFRs or explicit acceptance criteria
@@ -178,4 +178,4 @@ written, return to the [chaining gate](./interview.md#chaining-gate).
 - ⊗ Using codebase exploration as a substitute for asking the user about deliberate design choices
 - ⊗ Stopping when the conversation feels comfortable — stop when no new branches emerge
 - ⊗ Ending after probe without chaining back to the gate (chained mode; in standalone context, returning to the invoking strategy's menu satisfies the completion requirement per the [standalone-context rule](#then-chaining-gate))
-- ⊗ Writing probe output to a plain markdown file (`{scope}-probe.md`) instead of the canonical `xbrief/proposed/{scope}-probe.xbrief.json` scope xBRIEF — plain markdown bypasses the [Preparatory Guard](./artifact-guards.md#preparatory-guard-light) and breaks the downstream-consumer flow-through guarantee
+- ⊗ Writing probe output to a plain markdown file (`{scope}-probe.md`) instead of the canonical `xbrief/proposed/YYYY-MM-DD-{scope}-probe.xbrief.json` scope xBRIEF — plain markdown bypasses the [Preparatory Guard](./artifact-guards.md#preparatory-guard-light) and breaks the downstream-consumer flow-through guarantee
