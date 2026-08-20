@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { GitRunner } from "../session/git.js";
 import {
   derivedLifecycleIgnoreProbesFromPatterns,
+  derivedLifecycleIgnoreProbesFromSources,
   displayIgnoreSource,
   evaluateLifecycleVisible,
   expandGitignoreCharClasses,
@@ -17,6 +18,7 @@ import {
   ignorePatternLooksLifecycleRelevant,
   indexFlagKind,
   isSelectiveLifecyclePath,
+  joinIgnoreFileBase,
   LIFECYCLE_PROBE_SENTINEL,
   LIFECYCLE_PROBE_SENTINEL_VBRIEF,
   LIFECYCLE_PROBE_STEM,
@@ -184,6 +186,39 @@ describe("parsers (#3505)", () => {
       Array.from({ length: 80 }, (_, i) => `xbrief/pending/${i}-*.xbrief.json`),
     );
     expect(many).toHaveLength(MAX_DERIVED_LIFECYCLE_IGNORE_PROBES);
+  });
+
+  it("prefixes slash-containing nested ignore patterns with the ignore-file directory", () => {
+    expect(joinIgnoreFileBase("", "pending/foo.xbrief.json")).toBe("pending/foo.xbrief.json");
+    expect(joinIgnoreFileBase("xbrief", "xbrief/pending/foo.xbrief.json")).toBe(
+      "xbrief/pending/foo.xbrief.json",
+    );
+    expect(joinIgnoreFileBase("xbrief", "pending/2026-07-lifecycle-visible.xbrief.json")).toBe(
+      "xbrief/pending/2026-07-lifecycle-visible.xbrief.json",
+    );
+    const probes = derivedLifecycleIgnoreProbesFromSources([
+      { baseDir: "xbrief", patterns: ["pending/2026-07-*.xbrief.json"] },
+    ]);
+    expect(probes).toEqual([`xbrief/pending/2026-07-${LIFECYCLE_PROBE_STEM}.xbrief.json`]);
+    expect(derivedLifecycleIgnoreProbesFromPatterns(["pending/2026-07-*.xbrief.json"])).toEqual([]);
+    const nestedBasename = derivedLifecycleIgnoreProbesFromSources([
+      { baseDir: "xbrief", patterns: ["*.xbrief.json"] },
+    ]);
+    expect(nestedBasename).toContain(`xbrief/pending/${LIFECYCLE_PROBE_STEM}.xbrief.json`);
+    expect(nestedBasename.every((p) => p.startsWith("xbrief/"))).toBe(true);
+  });
+
+  it("keeps a later source's date-range probe when an earlier source fills the per-source cap", () => {
+    const fillers = Array.from({ length: 80 }, (_, i) => `xbrief/proposed/${i}-*.xbrief.json`);
+    const probes = derivedLifecycleIgnoreProbesFromSources([
+      { baseDir: "", patterns: fillers },
+      { baseDir: "xbrief", patterns: ["completed/2026-09-*.xbrief.json"] },
+    ]);
+    expect(probes).toHaveLength(MAX_DERIVED_LIFECYCLE_IGNORE_PROBES + 1);
+    expect(probes).toContain(`xbrief/completed/2026-09-${LIFECYCLE_PROBE_STEM}.xbrief.json`);
+    expect(probes.filter((p) => p.startsWith("xbrief/proposed/"))).toHaveLength(
+      MAX_DERIVED_LIFECYCLE_IGNORE_PROBES,
+    );
   });
 });
 
@@ -496,6 +531,32 @@ describe("evaluateLifecycleVisible with injected git (#3505)", () => {
     expect(result.findings.some((f) => f.path === "xbrief/active/")).toBe(true);
   });
 
+  it("passes a nested slash-containing derived probe to check-ignore", () => {
+    const root = freshDir("lv-nested-slash-");
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    writeFileSync(join(root, "xbrief", ".gitignore"), "pending/2026-07-*.xbrief.json\n", "utf8");
+    const derived = `xbrief/pending/2026-07-${LIFECYCLE_PROBE_STEM}.xbrief.json`;
+    const result = evaluateLifecycleVisible({
+      projectRoot: root,
+      enforce: true,
+      runGit: fakeGit((_r, args) => {
+        if (args[0] === "check-ignore") {
+          expect(args).toContain(derived);
+          expect(args).not.toContain(`pending/2026-07-${LIFECYCLE_PROBE_STEM}.xbrief.json`);
+          return {
+            code: 0,
+            stdout: `xbrief/.gitignore:1:pending/2026-07-*.xbrief.json\t${derived}`,
+            stderr: "",
+          };
+        }
+        return { code: 0, stdout: "", stderr: "" };
+      }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.findings[0]?.path).toBe("xbrief/pending/");
+    expect(result.findings[0]?.rule).toBe("pending/2026-07-*.xbrief.json");
+  });
+
   it("passes a derived month-range probe to check-ignore", () => {
     const root = freshDir("lv-derived-");
     mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
@@ -765,5 +826,29 @@ describe("evaluateLifecycleVisible live git fixtures (#3505)", () => {
     const result = evaluateLifecycleVisible({ projectRoot: root, enforce: true });
     expect(result.code).toBe(1);
     expect(result.findings.some((f) => f.rule.includes("2025-"))).toBe(true);
+  });
+
+  it("reports a slash-containing pattern from a nested lifecycle .gitignore", () => {
+    const root = initLifecycleRepo();
+    writeFileSync(join(root, "xbrief", ".gitignore"), "pending/2026-07-*.xbrief.json\n", "utf8");
+    const result = evaluateLifecycleVisible({ projectRoot: root, enforce: true });
+    expect(result.code).toBe(1);
+    expect(
+      result.findings.some((f) => f.path === "xbrief/pending/" && f.rule.includes("2026-07-")),
+    ).toBe(true);
+  });
+
+  it("does not starve a later nested date-range when earlier sources fill the per-source cap", () => {
+    const root = initLifecycleRepo();
+    const fillers = Array.from({ length: 80 }, (_, i) => `xbrief/proposed/${i}-*.xbrief.json`).join(
+      "\n",
+    );
+    writeFileSync(join(root, ".gitignore"), `${fillers}\n`, "utf8");
+    writeFileSync(join(root, "xbrief", ".gitignore"), "completed/2026-09-*.xbrief.json\n", "utf8");
+    const result = evaluateLifecycleVisible({ projectRoot: root, enforce: true });
+    expect(result.code).toBe(1);
+    expect(
+      result.findings.some((f) => f.path === "xbrief/completed/" && f.rule.includes("2026-09-")),
+    ).toBe(true);
   });
 });
