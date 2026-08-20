@@ -8,7 +8,6 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { GitRunner } from "../session/git.js";
 import {
-  derivedLifecycleIgnoreProbesFromPatterns,
   derivedLifecycleIgnoreProbesFromSources,
   displayIgnoreSource,
   evaluateLifecycleVisible,
@@ -25,7 +24,6 @@ import {
   lifecycleIgnoreProbeRelPaths,
   lifecycleRootForRelPath,
   lifecycleRootRelPaths,
-  MAX_DERIVED_LIFECYCLE_IGNORE_PROBES,
   parseCheckIgnoreVerboseLine,
   parseLsFilesVerboseRecord,
 } from "./evaluate.js";
@@ -34,6 +32,10 @@ const temps: string[] = [];
 afterEach(() => {
   for (const t of temps.splice(0)) rmSync(t, { recursive: true, force: true });
 });
+
+function probesFromPatterns(patterns: readonly string[]): string[] {
+  return derivedLifecycleIgnoreProbesFromSources([{ baseDir: "", patterns }]);
+}
 
 function freshDir(prefix: string): string {
   const dir = mkdtempSync(join(tmpdir(), prefix));
@@ -175,17 +177,21 @@ describe("parsers (#3505)", () => {
     expect(ignorePatternLooksLifecycleRelevant("xbrief/.triage-cache/*.jsonl")).toBe(false);
   });
 
-  it("derives bounded stage probes from ignore globs instead of extra hard-coded dates", () => {
-    const june = derivedLifecycleIgnoreProbesFromPatterns(["xbrief/pending/2026-06-*.xbrief.json"]);
+  it("derives one matching pathname per ignore-rule line, including later date globs", () => {
+    const june = probesFromPatterns(["xbrief/pending/2026-06-*.xbrief.json"]);
     expect(june).toEqual([`xbrief/pending/2026-06-${LIFECYCLE_PROBE_STEM}.xbrief.json`]);
-    const year2025 = derivedLifecycleIgnoreProbesFromPatterns(["2025-*.xbrief.json"]);
+    const year2025 = probesFromPatterns(["2025-*.xbrief.json"]);
     expect(year2025.every((p) => p.startsWith("xbrief/") && p.endsWith(".xbrief.json"))).toBe(true);
     expect(year2025).toContain(`xbrief/pending/2025-${LIFECYCLE_PROBE_STEM}.xbrief.json`);
     expect(year2025).not.toContain(`vbrief/pending/2025-${LIFECYCLE_PROBE_STEM}.xbrief.json`);
-    const many = derivedLifecycleIgnoreProbesFromPatterns(
-      Array.from({ length: 80 }, (_, i) => `xbrief/pending/${i}-*.xbrief.json`),
-    );
-    expect(many).toHaveLength(MAX_DERIVED_LIFECYCLE_IGNORE_PROBES);
+    const july = probesFromPatterns(["xbrief/pending/2026-07-*.xbrief.json"]);
+    expect(july).toEqual([`xbrief/pending/2026-07-${LIFECYCLE_PROBE_STEM}.xbrief.json`]);
+    expect(july.some((p) => p.includes("2026-01-01"))).toBe(false);
+    const fillers = Array.from({ length: 80 }, (_, i) => `xbrief/proposed/${i}-*.xbrief.json`);
+    const many = probesFromPatterns([...fillers, "xbrief/pending/2026-07-*.xbrief.json"]);
+    expect(many).toHaveLength(81);
+    expect(many).toContain(`xbrief/pending/2026-07-${LIFECYCLE_PROBE_STEM}.xbrief.json`);
+    expect(many.filter((p) => p.startsWith("xbrief/proposed/"))).toHaveLength(80);
   });
 
   it("prefixes slash-containing nested ignore patterns with the ignore-file directory", () => {
@@ -200,7 +206,9 @@ describe("parsers (#3505)", () => {
       { baseDir: "xbrief", patterns: ["pending/2026-07-*.xbrief.json"] },
     ]);
     expect(probes).toEqual([`xbrief/pending/2026-07-${LIFECYCLE_PROBE_STEM}.xbrief.json`]);
-    expect(derivedLifecycleIgnoreProbesFromPatterns(["pending/2026-07-*.xbrief.json"])).toEqual([]);
+    expect(probesFromPatterns(["pending/2026-07-*.xbrief.json"])).toEqual([
+      `xbrief/pending/2026-07-${LIFECYCLE_PROBE_STEM}.xbrief.json`,
+    ]);
     const nestedBasename = derivedLifecycleIgnoreProbesFromSources([
       { baseDir: "xbrief", patterns: ["*.xbrief.json"] },
     ]);
@@ -208,16 +216,32 @@ describe("parsers (#3505)", () => {
     expect(nestedBasename.every((p) => p.startsWith("xbrief/"))).toBe(true);
   });
 
-  it("keeps a later source's date-range probe when an earlier source fills the per-source cap", () => {
+  it("keeps every rule in one large ignore file, including a later date-range", () => {
     const fillers = Array.from({ length: 80 }, (_, i) => `xbrief/proposed/${i}-*.xbrief.json`);
     const probes = derivedLifecycleIgnoreProbesFromSources([
-      { baseDir: "", patterns: fillers },
-      { baseDir: "xbrief", patterns: ["completed/2026-09-*.xbrief.json"] },
+      {
+        baseDir: "",
+        patterns: [...fillers, "xbrief/pending/2026-07-*.xbrief.json"],
+      },
     ]);
-    expect(probes).toHaveLength(MAX_DERIVED_LIFECYCLE_IGNORE_PROBES + 1);
-    expect(probes).toContain(`xbrief/completed/2026-09-${LIFECYCLE_PROBE_STEM}.xbrief.json`);
-    expect(probes.filter((p) => p.startsWith("xbrief/proposed/"))).toHaveLength(
-      MAX_DERIVED_LIFECYCLE_IGNORE_PROBES,
+    expect(probes).toHaveLength(81);
+    expect(probes).toContain(`xbrief/pending/2026-07-${LIFECYCLE_PROBE_STEM}.xbrief.json`);
+    expect(probes.filter((p) => p.startsWith("xbrief/proposed/"))).toHaveLength(80);
+  });
+
+  it("rewrites a nested stage-wildcard date glob onto real stage roots", () => {
+    const probes = derivedLifecycleIgnoreProbesFromSources([
+      { baseDir: "xbrief", patterns: ["*/2026-07-*.xbrief.json"] },
+    ]);
+    expect(probes).toContain(`xbrief/pending/2026-07-${LIFECYCLE_PROBE_STEM}.xbrief.json`);
+    expect(probes).toContain(`xbrief/completed/2026-07-${LIFECYCLE_PROBE_STEM}.xbrief.json`);
+    const collapsed = probesFromPatterns(["xbrief/**/2026-07-*.xbrief.json"]);
+    expect(collapsed).toContain(`xbrief/pending/2026-07-${LIFECYCLE_PROBE_STEM}.xbrief.json`);
+    expect(probesFromPatterns(["xbrief/2026-07-*.xbrief.json"])).toContain(
+      `xbrief/pending/2026-07-${LIFECYCLE_PROBE_STEM}.xbrief.json`,
+    );
+    expect(probesFromPatterns(["vbrief/2026-07-*.vbrief.json"])).toContain(
+      `vbrief/pending/2026-07-${LIFECYCLE_PROBE_STEM}.vbrief.json`,
     );
   });
 });
@@ -810,9 +834,34 @@ describe("evaluateLifecycleVisible live git fixtures (#3505)", () => {
     ).toBe(true);
   });
 
+  it("reports a 2026-07-* hide on an empty pending stage", () => {
+    const root = initLifecycleRepo();
+    writeFileSync(join(root, ".gitignore"), "xbrief/pending/2026-07-*.xbrief.json\n", "utf8");
+    const result = evaluateLifecycleVisible({ projectRoot: root, enforce: true });
+    expect(result.code).toBe(1);
+    expect(
+      result.findings.some((f) => f.path === "xbrief/pending/" && f.rule.includes("2026-07-")),
+    ).toBe(true);
+  });
+
   it("reports a month-range glob from a nested stage .gitignore", () => {
     const root = initLifecycleRepo();
     writeFileSync(join(root, "xbrief", "pending", ".gitignore"), "2026-07-*.xbrief.json\n", "utf8");
+    const result = evaluateLifecycleVisible({ projectRoot: root, enforce: true });
+    expect(result.code).toBe(1);
+    expect(
+      result.findings.some((f) => f.path === "xbrief/pending/" && f.rule.includes("2026-07-")),
+    ).toBe(true);
+  });
+
+  it("does not silently drop a later 2026-07-* rule among many ignore lines", () => {
+    const root = initLifecycleRepo();
+    const fillers = Array.from({ length: 80 }, (_, i) => `xbrief/proposed/${i}-*.xbrief.json`);
+    writeFileSync(
+      join(root, ".gitignore"),
+      `${fillers.join("\n")}\nxbrief/pending/2026-07-*.xbrief.json\n`,
+      "utf8",
+    );
     const result = evaluateLifecycleVisible({ projectRoot: root, enforce: true });
     expect(result.code).toBe(1);
     expect(
@@ -838,7 +887,7 @@ describe("evaluateLifecycleVisible live git fixtures (#3505)", () => {
     ).toBe(true);
   });
 
-  it("does not starve a later nested date-range when earlier sources fill the per-source cap", () => {
+  it("does not starve a later nested date-range when an earlier ignore file has many rules", () => {
     const root = initLifecycleRepo();
     const fillers = Array.from({ length: 80 }, (_, i) => `xbrief/proposed/${i}-*.xbrief.json`).join(
       "\n",
@@ -849,6 +898,49 @@ describe("evaluateLifecycleVisible live git fixtures (#3505)", () => {
     expect(result.code).toBe(1);
     expect(
       result.findings.some((f) => f.path === "xbrief/completed/" && f.rule.includes("2026-09-")),
+    ).toBe(true);
+  });
+
+  it("reports a nested stage-wildcard date glob from xbrief/.gitignore", () => {
+    const root = initLifecycleRepo();
+    writeFileSync(join(root, "xbrief", ".gitignore"), "*/2026-07-*.xbrief.json\n", "utf8");
+    const result = evaluateLifecycleVisible({ projectRoot: root, enforce: true });
+    expect(result.code).toBe(1);
+    expect(
+      result.findings.some((f) => f.path === "xbrief/pending/" && f.rule.includes("2026-07-")),
+    ).toBe(true);
+  });
+
+  it("reports a date glob in a gitignore nested under a stage directory", () => {
+    const root = initLifecycleRepo();
+    mkdirSync(join(root, "xbrief", "pending", "archive"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "pending", "archive", ".gitignore"),
+      "2026-07-*.xbrief.json\n",
+      "utf8",
+    );
+    const result = evaluateLifecycleVisible({ projectRoot: root, enforce: true });
+    expect(result.code).toBe(1);
+    expect(
+      result.findings.some((f) => f.path === "xbrief/pending/" && f.rule.includes("2026-07-")),
+    ).toBe(true);
+  });
+
+  it("chunks check-ignore so a later date glob is never dropped from argv", () => {
+    const root = initLifecycleRepo();
+    const fillers = Array.from(
+      { length: 700 },
+      (_, i) => `xbrief/proposed/${String(i).padStart(4, "0")}-*.xbrief.json`,
+    );
+    writeFileSync(
+      join(root, ".gitignore"),
+      `${fillers.join("\n")}\nxbrief/pending/2026-07-*.xbrief.json\n`,
+      "utf8",
+    );
+    const result = evaluateLifecycleVisible({ projectRoot: root, enforce: true });
+    expect(result.code).toBe(1);
+    expect(
+      result.findings.some((f) => f.path === "xbrief/pending/" && f.rule.includes("2026-07-")),
     ).toBe(true);
   });
 });

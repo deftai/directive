@@ -80,14 +80,17 @@ export function lifecycleRootRelPaths(): string[] {
 /** Fills `*` in ignore globs so a derived probe still matches the rule. */
 export const LIFECYCLE_PROBE_STEM = "lifecycle-visible";
 
-/** Date-prefixed brief-shaped pathname so `2026-*.xbrief.json` and `*.json` both fire. */
+/**
+ * Date-prefixed brief-shaped fallback when no ignore-rule date glob exists.
+ * Date globs emit their own matching names (`2026-07-*` → a July file, `2025-*` → 2025).
+ */
 export const LIFECYCLE_PROBE_SENTINEL = "2026-01-01-lifecycle-visible.xbrief.json";
 
 /** Legacy vbrief filename so `*.vbrief.json` / `2026-*.vbrief.json` cannot report clean. */
 export const LIFECYCLE_PROBE_SENTINEL_VBRIEF = "2026-01-01-lifecycle-visible.vbrief.json";
 
-/** Cap on glob-derived probes per ignore source — not a global first-N truncation. */
-export const MAX_DERIVED_LIFECYCLE_IGNORE_PROBES = 64;
+/** Windows CreateProcess argv budget; chunks check-ignore, never drops probes. */
+const CHECK_IGNORE_ARGV_CHAR_BUDGET = 24_000;
 
 function sentinelForRoot(root: string): string {
   return root.startsWith("vbrief/") ? LIFECYCLE_PROBE_SENTINEL_VBRIEF : LIFECYCLE_PROBE_SENTINEL;
@@ -188,6 +191,48 @@ function lifecycleRootsUnderIgnoreBase(name: string, baseDir: string): readonly 
   });
 }
 
+function isLifecycleStageName(name: string): boolean {
+  return (LIFECYCLE_STAGE_DIRS as readonly string[]).includes(name);
+}
+
+/**
+ * Map a glob-expanded pathname onto real stage roots.
+ * A stage-wildcard glob expands `*` to the stem, which is not a stage —
+ * rewrite that slot to each canonical stage so nested globs cannot evade.
+ */
+function candidateLifecycleProbePaths(concrete: string, baseDir: string): string[] {
+  const rebased = joinIgnoreFileBase(baseDir, concrete);
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const push = (relPosix: string): void => {
+    const posix = relPosix.replace(/\\/g, "/").replace(/^\/+/, "");
+    if (posix.length === 0 || seen.has(posix)) return;
+    if (lifecycleRootForRelPath(posix) === null) return;
+    seen.add(posix);
+    out.push(posix);
+  };
+  push(rebased);
+  const parts = rebased.split("/").filter((p) => p.length > 0);
+  const prefix = parts[0] ?? "";
+  if (prefix === "xbrief" || prefix === "vbrief") {
+    if (parts.length === 2) {
+      const name = parts[1] ?? "";
+      for (const stage of LIFECYCLE_STAGE_DIRS) push(`${prefix}/${stage}/${name}`);
+    } else if (parts.length >= 3 && !isLifecycleStageName(parts[1] ?? "")) {
+      const rest = parts.slice(2).join("/");
+      for (const stage of LIFECYCLE_STAGE_DIRS) push(`${prefix}/${stage}/${rest}`);
+    }
+  } else if (isLifecycleStageName(prefix)) {
+    const name = parts[parts.length - 1] ?? "";
+    const remainder = parts.slice(1).join("/");
+    for (const root of lifecycleRootsForBasenameProbe(name)) {
+      const stage = root.replace(/\/+$/, "").split("/")[1] ?? "";
+      if (stage === prefix) push(`${root.replace(/\/+$/, "")}/${remainder}`);
+    }
+  }
+  return out;
+}
+
 function ignoreFileBaseDir(projectRoot: string, file: string): string {
   try {
     const rel = relative(resolve(projectRoot), resolve(file)).replace(/\\/g, "/");
@@ -200,35 +245,32 @@ function ignoreFileBaseDir(projectRoot: string, file: string): string {
   return "";
 }
 
-/** Bounded probes from one ignore source (repo-root patterns; nested files use FromSources). */
-export function derivedLifecycleIgnoreProbesFromPatterns(patterns: readonly string[]): string[] {
-  return derivedLifecycleIgnoreProbesFromSources([{ baseDir: "", patterns }]);
-}
-
-/** Bounded probes per ignore source; slash patterns keep the ignore-file directory. */
+/**
+ * One derived probe per relevant ignore-rule line (bounded by ignore-file size, not a numeric cap).
+ * Date globs keep their year/month so `2026-07-*` probes a July name, not the January fallback.
+ * Slash patterns keep the ignore-file directory; stage wildcards expand onto real stages.
+ */
 export function derivedLifecycleIgnoreProbesFromSources(
   sources: readonly IgnorePatternSource[],
 ): string[] {
   const out: string[] = [];
   const seen = new Set<string>();
+  const add = (relPosix: string): void => {
+    const posix = relPosix.replace(/\\/g, "/").replace(/^\/+/, "");
+    if (posix.length === 0 || seen.has(posix)) return;
+    if (lifecycleRootForRelPath(posix) === null) return;
+    seen.add(posix);
+    out.push(posix);
+  };
   for (const source of sources) {
-    let addedThisSource = 0;
-    const add = (relPosix: string): void => {
-      if (addedThisSource >= MAX_DERIVED_LIFECYCLE_IGNORE_PROBES) return;
-      const posix = relPosix.replace(/\\/g, "/").replace(/^\/+/, "");
-      if (posix.length === 0 || seen.has(posix)) return;
-      if (lifecycleRootForRelPath(posix) === null) return;
-      seen.add(posix);
-      out.push(posix);
-      addedThisSource += 1;
-    };
     const baseDir = posixTrimDir(source.baseDir);
     for (const pattern of source.patterns) {
       if (!ignorePatternLooksLifecycleRelevant(pattern)) continue;
       const concrete = expandGitignoreGlobToConcrete(pattern);
       if (concrete === null) continue;
-      const rebased = joinIgnoreFileBase(baseDir, concrete);
-      if (lifecycleRootForRelPath(rebased) !== null) add(rebased);
+      for (const candidate of candidateLifecycleProbePaths(concrete, baseDir)) {
+        add(candidate);
+      }
       if (!concrete.includes("/")) {
         for (const root of lifecycleRootsUnderIgnoreBase(concrete, baseDir)) {
           add(`${root}${concrete}`);
@@ -239,21 +281,48 @@ export function derivedLifecycleIgnoreProbesFromSources(
   return out;
 }
 
+function collectNestedLifecycleGitignoreFiles(projectRoot: string): string[] {
+  const files: string[] = [];
+  const walk = (dir: string): void => {
+    let entries: readonly Dirent[];
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const ent of entries) {
+      if (ent.name === ".gitignore" && (ent.isFile() || ent.isSymbolicLink())) {
+        files.push(resolve(dir, ent.name));
+        continue;
+      }
+      if (!ent.isDirectory() || ent.name.startsWith(".")) continue;
+      walk(resolve(dir, ent.name));
+    }
+  };
+  for (const prefix of LIFECYCLE_ROOT_PREFIXES) {
+    walk(joinPath(projectRoot, prefix));
+  }
+  return files;
+}
+
 function readIgnorePatternSources(projectRoot: string, runGit: GitRunner): IgnorePatternSource[] {
-  const files: string[] = [
+  const files = new Set<string>([
     joinPath(projectRoot, ".gitignore"),
     joinPath(projectRoot, ".git/info/exclude"),
-  ];
+  ]);
   for (const prefix of LIFECYCLE_ROOT_PREFIXES) {
-    files.push(joinPath(projectRoot, `${prefix}/.gitignore`));
+    files.add(joinPath(projectRoot, `${prefix}/.gitignore`));
     for (const stage of LIFECYCLE_STAGE_DIRS) {
-      files.push(joinPath(projectRoot, `${prefix}/${stage}/.gitignore`));
+      files.add(joinPath(projectRoot, `${prefix}/${stage}/.gitignore`));
     }
+  }
+  for (const nested of collectNestedLifecycleGitignoreFiles(projectRoot)) {
+    files.add(nested);
   }
   const cfg = runGit(projectRoot, ["config", "--get", "core.excludesFile"]);
   if (cfg.code === 0 && cfg.stdout.trim().length > 0) {
     const raw = cfg.stdout.trim();
-    files.push(isAbsolute(raw) ? raw : resolve(projectRoot, raw));
+    files.add(isAbsolute(raw) ? raw : resolve(projectRoot, raw));
   }
   const sources: IgnorePatternSource[] = [];
   for (const file of files) {
@@ -276,7 +345,7 @@ function readIgnorePatternSources(projectRoot: string, runGit: GitRunner): Ignor
   return sources;
 }
 
-/** Ignore-file globs → bounded check-ignore pathspecs. */
+/** Ignore-file globs → check-ignore pathspecs (one per relevant rule line). */
 export function derivedLifecycleIgnoreProbes(projectRoot: string, runGit: GitRunner): string[] {
   return derivedLifecycleIgnoreProbesFromSources(readIgnorePatternSources(projectRoot, runGit));
 }
@@ -441,33 +510,87 @@ function presentLifecycleFileRelPaths(projectRoot: string): string[] {
   return out;
 }
 
+/** January file sentinel only on roots that have no date-shaped derived probe. */
+function emptyStageFallbackProbes(derived: readonly string[]): string[] {
+  const rootsWithDateProbe = new Set<string>();
+  for (const probe of derived) {
+    const root = lifecycleRootForRelPath(probe);
+    const base = probe.split("/").pop() ?? "";
+    if (root !== null && /\d{4}-/.test(base)) rootsWithDateProbe.add(root);
+  }
+  if (rootsWithDateProbe.size === 0) return lifecycleIgnoreProbeRelPaths();
+  const probes: string[] = [];
+  for (const root of lifecycleRootRelPaths()) {
+    probes.push(root);
+    if (!rootsWithDateProbe.has(root)) {
+      probes.push(`${root}${sentinelForRoot(root)}`);
+    }
+  }
+  return probes;
+}
+
+function chunkCheckIgnorePathspecs(probes: readonly string[]): string[][] {
+  const overhead = "check-ignore -v --no-index --".length;
+  const budget = CHECK_IGNORE_ARGV_CHAR_BUDGET - overhead;
+  const chunks: string[][] = [];
+  let current: string[] = [];
+  let used = 0;
+  for (const probe of probes) {
+    const cost = probe.length + 1;
+    if (current.length > 0 && used + cost > budget) {
+      chunks.push(current);
+      current = [];
+      used = 0;
+    }
+    current.push(probe);
+    used += cost;
+  }
+  if (current.length > 0) chunks.push(current);
+  return chunks;
+}
+
+function checkIgnoreVerboseStdout(
+  projectRoot: string,
+  runGit: GitRunner,
+  probes: readonly string[],
+): string {
+  const parts: string[] = [];
+  for (const chunk of chunkCheckIgnorePathspecs(probes)) {
+    const { code, stdout, stderr } = runGit(projectRoot, [
+      "check-ignore",
+      "-v",
+      "--no-index",
+      "--",
+      ...chunk,
+    ]);
+    if (code === 1) continue;
+    if (code !== 0) {
+      throw new GitProbeError(code, stderr || "git check-ignore failed");
+    }
+    if (stdout.length > 0) parts.push(stdout);
+  }
+  return parts.join("\n");
+}
+
 function collectIgnoredRoots(projectRoot: string, runGit: GitRunner): LifecycleHideFinding[] {
   // Probe every canonical stage even when the directory is absent so an ignore
   // rule cannot hide a missing xbrief/active/ before it is created (#3505).
   // Directory pathspecs miss file-only globs (`xbrief/active/*.json`); a
   // brief-shaped sentinel plus present files close that hole. Date-range globs
-  // such as `2026-06-*.xbrief.json` miss a single fixed sentinel, so also
-  // derive a bounded probe set from ignore-rule globs.
+  // such as `2026-07-*.xbrief.json` miss the January fallback, so emit one
+  // matching derived probe per ignore-rule line (no numeric cap).
+  const derived = derivedLifecycleIgnoreProbes(projectRoot, runGit);
   const probes = [
     ...new Set([
-      ...lifecycleIgnoreProbeRelPaths(),
+      ...emptyStageFallbackProbes(derived),
       ...presentLifecycleFileRelPaths(projectRoot),
-      ...derivedLifecycleIgnoreProbes(projectRoot, runGit),
+      ...derived,
     ]),
   ];
   // --no-index: report the matching rule even when some files under the root
   // are already tracked (the #3504 hide is untracked new briefs).
-  const { code, stdout, stderr } = runGit(projectRoot, [
-    "check-ignore",
-    "-v",
-    "--no-index",
-    "--",
-    ...probes,
-  ]);
-  if (code === 1) return [];
-  if (code !== 0) {
-    throw new GitProbeError(code, stderr || "git check-ignore failed");
-  }
+  const stdout = checkIgnoreVerboseStdout(projectRoot, runGit, probes);
+  if (stdout.length === 0) return [];
   const findings: LifecycleHideFinding[] = [];
   const seen = new Set<string>();
   for (const rawLine of stdout.split(/\r?\n/)) {
