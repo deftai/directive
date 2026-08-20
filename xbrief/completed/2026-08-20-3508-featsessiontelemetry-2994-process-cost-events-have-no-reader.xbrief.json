@@ -1,0 +1,224 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3508",
+    "updated": "2026-08-20T05:05:18Z"
+  },
+  "plan": {
+    "title": "feat(session,telemetry): #2994 process-cost events have no reader -- ceremony cost is write-only",
+    "status": "completed",
+    "narratives": {
+      "Description": "Issue #2994 already emits ceremony cost to .deft-cache/events.jsonl, but nothing reads it. Session:start prints no duration line even though duration_ms is in the JSON payload. This story adds one composed read surface and one operator-visible ceremony line without a new subsystem.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3508",
+      "Overview": "**TL;DR: #2994 emits ceremony cost — tier, total ms, per-step ms, blocked-ritual events — to `.deft-cache/events.jsonl`. Nothing reads it. No CLI verb opens the log, `PROCESS_COST_EVENT_NAMES` has no consumer outside its own module, and `session:start` prints no duration line (`duration_ms` reaches the JSON payload only). Measured ceremony cost is write-only, which is #3500 ask 3.**\n\n## Evidence\n\n- Emit sites: `packages/core/src/session/session-start.ts:834,990,1057,1233,1681,1835`; `packages/core/src/hooks/dispatcher.ts:864,886,906`.\n- `grep -rn PROCESS_COST_EVENT_NAMES packages --include=*.ts` (excluding `dist/`) resolves only to `process-cost.ts`, its own test, and `lifecycle/events.ts` — the latter for the payload contract, not a read.\n- No file under `packages/cli/src` references `events.jsonl`.\n- `SessionStartResult.payload.duration_ms` is populated; no human-readable line is pushed to `lines`.\n\n## Ask\n\n1. **One read surface.** A ceremony-cost rollup over `.deft-cache/events.jsonl`: last cold vs re-arm duration, per-step breakdown, blocked-ritual count, recovery-tier distribution. Compose an existing report verb — ⊗ new subsystem.\n2. **One operator-visible line** on mutation `session:start`: ceremony tier + total. Respects `DEFT_SESSION_COMPACT` (#3286).\n\n## Scope boundary\n\nProcess-cost measures **CLI process time**. #3500 reports agent-turn wall clock. These are different quantities, and the framework currently measures only the smaller one — which is why a cost complaint and the emitted telemetry can both be accurate and still disagree.\n\nThis issue delivers the CLI-side reader. Turn-level share stays with #3352 / #3320, where the disposition rule requires an emitted share rather than an impression.\n\n⊗ Do not use a printed CLI ceremony duration as the #3286 Later graduation input.\n\nRelates #3500 (ask 3), #2994 (emitter), #3282, #3320 (denominator + cite-emitted-data rule), #3352 (graduation tracker), #3286.\n\n",
+      "Labels": "enhancement, Workflow, agent-experience, monitoring, area:cli, metrics, status:child",
+      "UserStory": "As a maintainer, I want to read ceremony cost from the existing events log, so that measured session time is not write-only.",
+      "ImplementationPlan": "1. Compose a ceremony-cost rollup into an existing report module such as packages/core/src/value/readback.ts that reads .deft-cache/events.jsonl and reports last cold vs re-arm duration, per-step ms, blocked-ritual count, and recovery-tier distribution.\n2. Add one operator-visible session:start line in packages/core/src/session/session-start.ts (tier + total, respecting DEFT_SESSION_COMPACT) and cover both with tests. Do not invent a new subsystem."
+    },
+    "items": [
+      {
+        "title": "One composed read surface",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When the composed report verb runs against events.jsonl, it prints last cold versus re-arm duration, per-step breakdown, blocked-ritual count, and recovery-tier distribution."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/process-cost.test.ts#ceremony-cost-reader + packages/core/src/value/readback.test.ts; PR #3538",
+          "recorded_at": "2026-08-20T05:05:00Z",
+          "recorded_by": "leaf-implementation/3508"
+        }
+      },
+      {
+        "title": "Operator-visible session:start line",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When mutation session:start finishes, it prints one ceremony-cost line with tier and total milliseconds unless DEFT_SESSION_COMPACT hides it."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/session-start.test.ts + packages/core/src/session/session-start-rearm.test.ts; formatSessionStartCeremonyCostLine",
+          "recorded_at": "2026-08-20T05:05:00Z",
+          "recorded_by": "leaf-implementation/3508"
+        }
+      },
+      {
+        "title": "No new subsystem",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When the story lands, PROCESS_COST_EVENT_NAMES has a consumer outside process-cost.ts itself and no new verb family is introduced."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3538 merge 851a32a1 (value:show compose, no new verb)",
+          "recorded_at": "2026-08-20T05:05:00Z",
+          "recorded_by": "leaf-implementation/3508"
+        }
+      },
+      {
+        "title": "CLI process time stays distinct from turn clock",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When docs or comments land, they record that this reader measures CLI process time, not agent-turn wall clock from #3500."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/process-cost.test.ts formatCeremonyCostReport contains 'not agent-turn wall clock'; CHANGELOG #3508",
+          "recorded_at": "2026-08-20T05:05:00Z",
+          "recorded_by": "leaf-implementation/3508"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "Workflow",
+      "agent-experience",
+      "monitoring",
+      "area:cli",
+      "metrics",
+      "status:child"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3508",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3508: feat(session,telemetry): #2994 process-cost events have no reader -- ceremony cost is write-only"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323); rebound to shipped reader/emitter paths after implement (#3497 bind-to-landed-path)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "*TL;DR: #2994 emits ceremony cost — tier, total ms, per-step ms, blocked-ritual events — to `.deft-cache/events.jsonl`. Nothing reads it. No CLI verb opens the log, `PROCESS_COST_EVENT_NAMES` has no consumer outside its own module, and `session:start` prints no duration line (`duration_ms` reaches the JSON payload only). Measured ceremony cost is write-only, which is #3500 ask 3.",
+          "artifact_path": "packages/core/src/value/readback.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Emit sites: `packages/core/src/session/session-start.ts:834,990,1057,1233,1681,1835`; `packages/core/src/hooks/dispatcher.ts:864,886,906`.",
+          "artifact_path": "packages/core/src/session/session-start.ts",
+          "ambiguous": true,
+          "readings": [
+            {
+              "text": "Emit sites: `packages/core/src/session/session-start.ts:834,990,1057,1233,1681,1835`; `packages/core/src/hooks/dispatcher.ts:864,886,906`. [reading: packages/core/src/session/session-start.ts:834,990,1057,1233,1681,1835]",
+              "artifact_path": "packages/core/src/session/session-start.ts:834,990,1057,1233,1681,1835"
+            },
+            {
+              "text": "Emit sites: `packages/core/src/session/session-start.ts:834,990,1057,1233,1681,1835`; `packages/core/src/hooks/dispatcher.ts:864,886,906`. [reading: packages/core/src/hooks/dispatcher.ts:864,886,906]",
+              "artifact_path": "packages/core/src/hooks/dispatcher.ts:864,886,906"
+            },
+            {
+              "text": "Emit sites: `packages/core/src/session/session-start.ts:834,990,1057,1233,1681,1835`; `packages/core/src/hooks/dispatcher.ts:864,886,906`. [reading: packages/core/src/session/session-start.ts]",
+              "artifact_path": "packages/core/src/session/session-start.ts"
+            },
+            {
+              "text": "Emit sites: `packages/core/src/session/session-start.ts:834,990,1057,1233,1681,1835`; `packages/core/src/hooks/dispatcher.ts:864,886,906`. [reading: packages/core/src/hooks/dispatcher.ts]",
+              "artifact_path": "packages/core/src/hooks/dispatcher.ts"
+            }
+          ],
+          "chosen_reading": 2,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "`grep -rn PROCESS_COST_EVENT_NAMES packages --include=*.ts` (excluding `dist/`) resolves only to `process-cost.ts`, its own test, and `lifecycle/events.ts` — the latter for the payload contract, not a read.",
+          "artifact_path": "packages/core/src/value/readback.ts",
+          "ambiguous": true,
+          "readings": [
+            {
+              "text": "`grep -rn PROCESS_COST_EVENT_NAMES packages --include=*.ts` (excluding `dist/`) resolves only to `process-cost.ts`, its own test, and `lifecycle/events.ts` — the latter for the payload contract, not a read. [reading: dist/]",
+              "artifact_path": "dist/"
+            },
+            {
+              "text": "`grep -rn PROCESS_COST_EVENT_NAMES packages --include=*.ts` (excluding `dist/`) resolves only to `process-cost.ts`, its own test, and `lifecycle/events.ts` — the latter for the payload contract, not a read. [reading: process-cost.ts]",
+              "artifact_path": "process-cost.ts"
+            },
+            {
+              "text": "`grep -rn PROCESS_COST_EVENT_NAMES packages --include=*.ts` (excluding `dist/`) resolves only to `process-cost.ts`, its own test, and `lifecycle/events.ts` — the latter for the payload contract, not a read. [reading: lifecycle/events.ts]",
+              "artifact_path": "lifecycle/events.ts"
+            },
+            {
+              "text": "`grep -rn PROCESS_COST_EVENT_NAMES packages --include=*.ts` (excluding `dist/`) resolves only to `process-cost.ts`, its own test, and `lifecycle/events.ts` — the latter for the payload contract, not a read. [reading: packages/core/src/value/readback.ts]",
+              "artifact_path": "packages/core/src/value/readback.ts"
+            }
+          ],
+          "chosen_reading": 3,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "No file under `packages/cli/src` references `events.jsonl`.",
+          "artifact_path": "packages/cli/src/session-start.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "One read surface. A ceremony-cost rollup over `.deft-cache/events.jsonl`: last cold vs re-arm duration, per-step breakdown, blocked-ritual count, recovery-tier distribution. Compose an existing report verb — ⊗ new subsystem.",
+          "artifact_path": "packages/core/src/session/process-cost.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/session/process-cost.ts",
+          "packages/core/src/value/readback.ts",
+          "packages/core/src/session/session-start.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/session/process-cost.test.ts packages/core/src/value/readback.ts"
+        ],
+        "expected_outputs": [
+          "value:show or composed report prints ceremony cost and session:start prints a duration line"
+        ],
+        "depends_on": [],
+        "conflict_group": "process-cost-reader-3508",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Issue-ingested story; FR traces live in GitHub #3508."
+        ]
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3538,
+        "prBase": null,
+        "mergeCommit": "851a32a1f67fc793ea9bd275f232248e1ec07108",
+        "deliveryBranch": "master",
+        "deliveryCommit": "851a32a1f67fc793ea9bd275f232248e1ec07108",
+        "verifiedAt": "2026-08-20T05:05:18Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "383ff2cb-9f10-42b7-89e9-4603c106fdf9"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-20T05:05:18Z",
+      "completedSessionId": "383ff2cb-9f10-42b7-89e9-4603c106fdf9",
+      "capacityBucket": "new-capability"
+    },
+    "updated": "2026-08-20T05:05:18Z",
+    "id": "2026-08-20-3508-featsessiontelemetry-2994-process-cost-events-have-no-reader"
+  }
+}
