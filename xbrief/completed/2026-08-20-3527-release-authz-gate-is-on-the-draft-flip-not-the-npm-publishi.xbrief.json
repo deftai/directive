@@ -1,0 +1,216 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3527",
+    "updated": "2026-08-20T04:09:00Z"
+  },
+  "plan": {
+    "title": "Release authz gate is on the draft flip, not the npm-publishing tag push (#716 / #3110)",
+    "status": "completed",
+    "narratives": {
+      "Description": "The release-publish closed-verb gate currently fires on the reversible GitHub draft flip, while the tag push that publishes to npm has no human-origin grant. Move or add the closed-verb check onto the distributing step without weakening the existing draft-flip refusal.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3527",
+      "Overview": "## Summary\n\nThe `release-publish` closed-verb gate requires a human-origin grant to flip a GitHub release from draft to public. The tag push that **publishes the package to npm** requires nothing. The human-presence check therefore guards the reversible, cosmetic step and waves through the irrevocable, distributing one.\n\nObserved live cutting v0.105.0 on 2026-08-19.\n\n## Evidence from the v0.105.0 cut\n\n`task release -- 0.105.0` ran all 13 steps to exit 0 with no authz challenge at any point:\n\n| Step | Action | Gate |\n|---|---|---|\n| 10 | `git tag -a v0.105.0` | none |\n| **11** | **`git push --atomic origin master v0.105.0`** | **none** |\n| 12 | `gh release create --draft` | none |\n| 13 | verify draft state | none |\n\nThe tag push at Step 11 triggers the `npm publish` workflow. Confirmed:\n\n```\nnpm publish [push/v0.105.0] completed success\n$ npm view @deftai/directive version\n0.105.0\n```\n\n`@deftai/directive@0.105.0` was public on npm, installable by every consumer, before any human-presence check was ever consulted.\n\nThe check fires only afterwards, on the draft flip:\n\n```\n[publish] Closed-verb gate release-publish v0.105.0... FAIL\n(closed-verb-deny-missing: Directive denied closed verb 'release-publish' target=0.105.0:\n no human-origin grant covers this verb/target and DEFT_ALLOW_RELEASE_PUBLISH is not set.\n Human action required: `deft authz:grant -- --template release-publish --target 0.105.0`\n or set DEFT_ALLOW_RELEASE_PUBLISH=1 for a single-shell ephemeral bypass.)\n```\n\n## Why the placement is inverted\n\nRank the two actions by consequence:\n\n- **Tag push → npm publish.** Irrevocable. npm unpublish is restricted after 72 hours and disallowed outright once other packages depend on the version. Recourse is a follow-up patch release, not a rollback. Every consumer on a caret range can pick it up immediately.\n- **Draft flip.** Fully reversible with `gh release edit --draft=true`. Changes only whether a notes page is visible on GitHub. Distribution is already complete either way.\n\nThe gate sits on the second. An agent operating unattended can ship a version to the entire consumer base and is then stopped at the point where it would describe what it shipped.\n\nThere is a second-order effect: leaving the release drafted while npm is live is the *worse* end state, because consumers receive the version with no published notes. The gate's denial therefore pushes toward the outcome it would presumably want to avoid.\n\n## Scope note\n\nThis is about **placement, not strength**. The `release-publish` template and the #3110 human-presence mint both work as designed — `release:publish` correctly refused an agent with no grant. Nothing here proposes weakening either.\n\n⊗ Removing the `release-publish` gate. Deleting a working check because a stronger one is missing elsewhere makes the surface worse, not better.\n\n## Proposed change\n\n1. **Gate the distributing step.** Put a closed-verb template on the tag push / npm-publish path — the Step 10–11 boundary in the release pipeline — since that is where irrevocability begins. Whether it is a new template or `release-publish` moved earlier is an implementation choice.\n2. **Reconsider the draft flip's tier.** Once (1) exists, a human has already authorized the release at the point that matters. A second full closed-verb challenge on a reversible visibility change may be redundant; a lower tier or inheritance from the (1) grant would be coherent.\n3. **If the tag push is intentionally ungated, record why.** There may be a rationale — release runs in CI, `--skip-tag` is the intended agent path, npm publish is a separate workflow's responsibility. If so it should be a decision record, because the current arrangement reads as an oversight and the skill text (`content/skills/deft-directive-release/SKILL.md` Phase 5) does not explain it.\n\n## Acceptance\n\n- The step whose failure mode is \"irrevocably published to every consumer\" carries at least the authz tier that the draft flip carries today.\n- A cut driven by an unattended agent cannot reach npm without a human-origin grant, or the reason it may is recorded as a decision.\n- `release:publish` still refuses an agent with no grant (no regression on the existing check).\n- The v0.105.0 sequence above is covered by a test or documented as intended.\n\n## Impact\n\nAny agent authorized to run `task release` can publish to npm. During the v0.105.0 cut, the operator's intent was to review before publishing — and the pipeline offered no point at which that review could occur before distribution, because the only checkpoint it presents comes two steps after the package is live.\n\nRefs #716, #724, #3110, #871\n\n",
+      "Labels": "security, process, agent-safety",
+      "UserStory": "As a maintainer, I want the npm-publishing tag push gated by human-origin authz, so that an unattended agent cannot ship a version before review.",
+      "ImplementationPlan": "1. Add a closed-verb gate on the tag-push module in packages/core/src/release so git push of the release tag fails closed without a human-origin grant.\n2. Keep release:publish refusal, cover the v0.105.0 sequence with a test fixture, and do not delete the draft-flip check."
+    },
+    "items": [
+      {
+        "title": "Distributing step carries authz",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When an unattended agent reaches git tag plus git push of the release tag, the closed-verb gate rejects the step unless a human-origin grant covers it."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/release/closed-verb-gate.test.ts#v0.105.0 sequence: ungated tag push is now fail-closed without a grant",
+          "recorded_at": "2026-08-20T04:08:56Z",
+          "recorded_by": "leaf-implementation/3527"
+        }
+      },
+      {
+        "title": "Existing publish refusal stays",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When release:publish runs with no grant, the command still fails closed with the current missing-grant message."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/release/closed-verb-gate.test.ts#release:publish draft-flip still refuses an agent with no grant",
+          "recorded_at": "2026-08-20T04:08:56Z",
+          "recorded_by": "leaf-implementation/3527"
+        }
+      },
+      {
+        "title": "v0.105.0 sequence covered",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When tests or a recorded decision run, the v0.105.0 ungated tag-push sequence is either asserted as blocked or documented as intentionally ungated."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/release/closed-verb-gate.test.ts#v0.105.0 sequence: ungated tag push is now fail-closed without a grant",
+          "recorded_at": "2026-08-20T04:08:56Z",
+          "recorded_by": "leaf-implementation/3527"
+        }
+      },
+      {
+        "title": "Do not weaken draft-flip gate by deletion",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When the story lands, the release-publish draft-flip check still refuses an agent with no grant rather than being deleted as a substitute for the new gate."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/release/closed-verb-gate.test.ts#uses the same closed-verb as the draft-flip gate",
+          "recorded_at": "2026-08-20T04:08:56Z",
+          "recorded_by": "leaf-implementation/3527"
+        }
+      }
+    ],
+    "tags": [
+      "security",
+      "process",
+      "agent-safety"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3527",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3527: Release authz gate is on the draft flip, not the npm-publishing tag push (#716 / #3110)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/716",
+        "type": "x-xbrief/refs",
+        "title": "Issue #716"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "npm publish [push/v0.105.0] completed success",
+          "reason": "package-manager args must be test|exec vitest|run test|run check|--version (arbitrary scripts/network install denied for ambient-authority)",
+          "sourceSpan": "fence@L22"
+        },
+        {
+          "command": "npm view @deftai/directive version",
+          "reason": "package-manager args must be test|exec vitest|run test|run check|--version (arbitrary scripts/network install denied for ambient-authority)",
+          "sourceSpan": "fence@L22"
+        },
+        {
+          "command": "(closed-verb-deny-missing: Directive denied closed verb 'release-publish' target=0.105.0:",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L32"
+        },
+        {
+          "command": "no human-origin grant covers this verb/target and DEFT_ALLOW_RELEASE_PUBLISH is not set",
+          "reason": "first token \"no\" is not in the literal-AC allowlist",
+          "sourceSpan": "fence@L32"
+        },
+        {
+          "command": "Human action required: `deft authz:grant -- --template release-publish --target 0.105.0`",
+          "reason": "shell metacharacter \"`\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L32"
+        },
+        {
+          "command": "or set DEFT_ALLOW_RELEASE_PUBLISH=1 for a single-shell ephemeral bypass.)",
+          "reason": "shell metacharacter \")\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L32"
+        },
+        {
+          "command": "task release",
+          "reason": "wrapper subcommand must be check|doctor|verify:*|help|--version (scope/policy/swarm/scm/merge and other ambient-authority verbs denied)",
+          "sourceSpan": "inline@L72"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/release",
+          "content/skills/deft-directive-release/SKILL.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/release"
+        ],
+        "expected_outputs": [
+          "release authz tests fail closed on ungated tag push without a grant"
+        ],
+        "depends_on": [],
+        "conflict_group": "release-authz-3527",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Issue-ingested story; FR traces live in GitHub #3527 acceptance."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3531,
+        "prBase": null,
+        "mergeCommit": "d570c5036e3555a1b24d57ee2f9efbcc4b5764ac",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d570c5036e3555a1b24d57ee2f9efbcc4b5764ac",
+        "verifiedAt": "2026-08-20T04:09:00Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-20T04:09:00Z",
+      "capacityBucket": "agentic-debt"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "The step whose failure mode is \"irrevocably published to every consumer\" carries at least the authz tier that the draft flip carries today.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "A cut driven by an unattended agent cannot reach npm without a human-origin grant, or the reason it may is recorded as a decision.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "`release:publish` still refuses an agent with no grant (no regression on the existing check).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "The v0.105.0 sequence above is covered by a test or documented as intended.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-08-20T04:09:00Z",
+    "id": "2026-08-20-3527-release-authz-gate-is-on-the-draft-flip-not-the-npm-publishi"
+  }
+}
