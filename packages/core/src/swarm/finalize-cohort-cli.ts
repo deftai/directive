@@ -74,10 +74,15 @@ export function parseFinalizeCohortArgv(argv: readonly string[]): ParsedFinalize
         i += 1;
       }
     } else if (arg?.startsWith("--pr=")) {
-      for (const piece of arg.slice("--pr=".length).split(",")) {
-        const trimmed = piece.trim();
-        if (/^\d+$/.test(trimmed)) {
-          prNumbers.push(Number.parseInt(trimmed, 10));
+      const value = equalsValue(arg, "--pr");
+      if (value.trim().length === 0) {
+        reject(arg);
+      } else {
+        for (const piece of value.split(",")) {
+          const trimmed = piece.trim();
+          if (/^\d+$/.test(trimmed)) {
+            prNumbers.push(Number.parseInt(trimmed, 10));
+          }
         }
       }
     } else if (arg === "--stories") {
@@ -100,7 +105,12 @@ export function parseFinalizeCohortArgv(argv: readonly string[]): ParsedFinalize
         i += 1;
       }
     } else if (arg?.startsWith("--repo=")) {
-      repo = arg.slice("--repo=".length);
+      const value = equalsValue(arg, "--repo");
+      if (value.length === 0) {
+        reject(arg);
+      } else {
+        repo = value;
+      }
     } else if (arg === "--project-root") {
       const value = takeValue(arg, next);
       if (value !== null) {
@@ -134,7 +144,12 @@ export function parseFinalizeCohortArgv(argv: readonly string[]): ParsedFinalize
         i += 1;
       }
     } else if (arg?.startsWith("--delivery-branch=")) {
-      deliveryBranch = arg.slice("--delivery-branch=".length);
+      const value = equalsValue(arg, "--delivery-branch");
+      if (value.length === 0) {
+        reject(arg);
+      } else {
+        deliveryBranch = value;
+      }
     } else if (arg === "--label") {
       const value = takeValue(arg, next);
       if (value !== null) {

@@ -746,8 +746,16 @@ describe("finalize-cohort sweep base and argv (#3554)", () => {
   });
 
   it("rejects empty equals-form values as unrecognized arguments", () => {
-    for (const flag of ["--base-branch=", "--stories=", "--project-root=", "--label="]) {
-      const parsed = parseFinalizeCohortArgv([flag]);
+    for (const flag of [
+      "--base-branch=",
+      "--stories=",
+      "--project-root=",
+      "--label=",
+      "--pr=",
+      "--repo=",
+      "--delivery-branch=",
+    ]) {
+      const parsed = parseFinalizeCohortArgv([flag, "--stories", "story-a"]);
       expect(parsed.error).toBe(`unrecognized argument: ${flag}`);
     }
   });
