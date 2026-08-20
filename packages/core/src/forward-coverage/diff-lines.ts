@@ -20,6 +20,28 @@ const GIT_C_ESCAPES: Readonly<Record<string, string>> = {
   "\\": "\\",
 };
 
+function isOctalDigit(ch: string | undefined): ch is string {
+  return ch !== undefined && ch >= "0" && ch <= "7";
+}
+
+/** Read one 1-3 digit octal byte at `index` (first digit). */
+function readOctalByte(inner: string, index: number): { value: number; next: number } | null {
+  if (!isOctalDigit(inner[index])) {
+    return null;
+  }
+  let oct = inner[index] ?? "";
+  let next = index + 1;
+  if (isOctalDigit(inner[next])) {
+    oct += inner[next] ?? "";
+    next += 1;
+    if (isOctalDigit(inner[next])) {
+      oct += inner[next] ?? "";
+      next += 1;
+    }
+  }
+  return { value: Number.parseInt(oct, 8), next };
+}
+
 /** Decode a Git C-quoted path (`"foo\\tbar"` → `foo\tbar`). */
 export function unescapeGitQuotedPath(raw: string): string {
   const s = raw.trim();
@@ -28,6 +50,7 @@ export function unescapeGitQuotedPath(raw: string): string {
   }
   const inner = s.slice(1, -1);
   let out = "";
+  const utf8 = new TextDecoder("utf-8");
   for (let i = 0; i < inner.length; i += 1) {
     const ch = inner[i];
     if (ch !== "\\") {
@@ -43,22 +66,25 @@ export function unescapeGitQuotedPath(raw: string): string {
     const simple = GIT_C_ESCAPES[next];
     if (simple !== undefined) {
       out += simple;
-    } else if (next >= "0" && next <= "7") {
-      let oct = next;
-      const a = inner[i + 1];
-      const b = inner[i + 2];
-      if (a !== undefined && a >= "0" && a <= "7") {
-        oct += a;
-        i += 1;
-        if (b !== undefined && b >= "0" && b <= "7") {
-          oct += b;
-          i += 1;
-        }
-      }
-      out += String.fromCharCode(Number.parseInt(oct, 8));
-    } else {
-      out += next;
+      continue;
     }
+    const first = readOctalByte(inner, i);
+    if (first !== null) {
+      const bytes = [first.value];
+      i = first.next;
+      while (inner[i] === "\\" && isOctalDigit(inner[i + 1])) {
+        const more = readOctalByte(inner, i + 1);
+        if (more === null) {
+          break;
+        }
+        bytes.push(more.value);
+        i = more.next;
+      }
+      i -= 1;
+      out += utf8.decode(Uint8Array.from(bytes));
+      continue;
+    }
+    out += next;
   }
   return out;
 }
