@@ -1529,6 +1529,8 @@ describe("UAT residual dest-form writers fail-closed (#3545)", () => {
       "sudo make DESTDIR=.deft/authz/grants install",
       "timeout 5 make DESTDIR=.deft/authz/grants install",
       "xargs make DESTDIR=.deft/authz/grants install",
+      "find -exec make DESTDIR=.deft/authz/grants install",
+      "find . -exec make DESTDIR=.deft/authz/grants install ;",
       "make DESTDIR=.deft/authz/grants clean install",
       "dpkg -x pkg.deb .deft/authz/grants",
       "fromdos .deft/authz/grants/evil.json",
@@ -1640,6 +1642,7 @@ describe("UAT residual dest-form writers fail-closed (#3545)", () => {
       "make DESTDIR=.deft/authz/grants distclean",
       "make DESTDIR=.deft/authz/grants check",
       "git log make DESTDIR=.deft/authz/grants",
+      "find . -name make DESTDIR=.deft/authz/grants",
       "dpkg --info .deft/authz/grants/package.deb",
       "pdftk .deft/authz/grants/input.pdf dump_data",
     ]) {

@@ -1348,7 +1348,8 @@ const DEST_ASSIGNMENT_KEYS = new Set(["destdir", "prefix", "install_root", "dest
 const DEST_ASSIGNMENT_OWNER_BINS = new Set(["make", "gmake"]);
 /**
  * First-command bins that print/read: a later `make` token is data, not the writer
- * (`echo DESTDIR=… make`, `git log make DESTDIR=…`).
+ * (`echo DESTDIR=… make`, `git log make DESTDIR=…`). Search/launchers (`find`)
+ * are not in this set — their `-exec` / `-c` payload can still be the writer.
  */
 const DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS = new Set([
   "echo",
@@ -1366,7 +1367,6 @@ const DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS = new Set([
   "egrep",
   "fgrep",
   "rg",
-  "find",
   "head",
   "tail",
   "less",
@@ -1375,6 +1375,19 @@ const DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS = new Set([
   "diff",
   "stat",
   "file",
+]);
+/**
+ * Search/launchers whose first token is not the writer. Harvest make/DESTDIR
+ * only from `-exec` / `--exec` / `-c` payloads (`find -exec make DESTDIR=`).
+ * `xargs make DESTDIR=` stays a wrapper (not in the non-writer set).
+ */
+const DEST_ASSIGNMENT_SEARCH_LAUNCHER_BINS = new Set(["find"]);
+const DEST_ASSIGNMENT_EXEC_PAYLOAD_FLAGS = new Set([
+  "-exec",
+  "--exec",
+  "-execdir",
+  "--execdir",
+  "-c",
 ]);
 /** make targets that do not apply DESTDIR (avoid denying `make DESTDIR=… clean`). */
 const DEST_ASSIGNMENT_NON_WRITE_TARGETS = new Set([
@@ -1406,13 +1419,15 @@ const MAKE_VALUE_FLAGS = new Set([
  * True when a DESTDIR/PREFIX assignment is an operative make write.
  * Looks for make/gmake anywhere after wrappers (including unknown wrappers
  * such as `xargs`), unless the first command is a print/read bin.
- * Non-writing targets (`clean`) are not operative.
+ * Search/launchers (`find`) still harvest from `-exec` / `--exec` / `-c`
+ * payloads. Non-writing targets (`clean`) are not operative.
  */
 function segmentDestAssignmentIsOperative(tokens: readonly string[], tokenIndex: number): boolean {
   let start = tokenIndex;
   while (start > 0 && !tokenEndsShellSegment(tokens[start - 1] as string)) start--;
   let skipNext = false;
   let firstCommand = "";
+  let inExecPayload = false;
   let sawMake = false;
   const targets: string[] = [];
   for (let k = start; k < tokens.length; k++) {
@@ -1424,6 +1439,16 @@ function segmentDestAssignmentIsOperative(tokens: readonly string[], tokenIndex:
     }
     const n = normalizeToken(raw);
     if (n.startsWith("-")) {
+      // find -exec / -c opens the payload; do not consume the next token as a
+      // wrapper value. After make is seen, -C still skips its directory.
+      if (
+        DEST_ASSIGNMENT_EXEC_PAYLOAD_FLAGS.has(n) &&
+        DEST_ASSIGNMENT_SEARCH_LAUNCHER_BINS.has(firstCommand) &&
+        !sawMake
+      ) {
+        inExecPayload = true;
+        continue;
+      }
       if (!n.includes("=") && (WRAPPER_VALUE_FLAGS.has(n) || MAKE_VALUE_FLAGS.has(n))) {
         skipNext = true;
       }
@@ -1440,6 +1465,9 @@ function segmentDestAssignmentIsOperative(tokens: readonly string[], tokenIndex:
       if (DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS.has(bare)) return false;
     }
     if (DEST_ASSIGNMENT_OWNER_BINS.has(bare)) {
+      if (DEST_ASSIGNMENT_SEARCH_LAUNCHER_BINS.has(firstCommand) && !inExecPayload) {
+        continue;
+      }
       sawMake = true;
       continue;
     }

@@ -1361,6 +1361,22 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("xargs make DESTDIR=.deft/authz/grants install")).toContain(
       "settings",
     );
+    expect(classifyShellAuthzOps("find -exec make DESTDIR=.deft/authz/grants install")).toContain(
+      "settings",
+    );
+    expect(
+      classifyShellAuthzOps("find . -exec make DESTDIR=.deft/authz/grants install ;"),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps("find . -exec make DESTDIR=.deft/authz/grants install {} +"),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps("find . --exec make DESTDIR=.deft/authz/grants install"),
+    ).toContain("settings");
+    expect(classifyShellAuthzOps("find . -c make DESTDIR=.deft/authz/grants install")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("find . -name make DESTDIR=.deft/authz/grants")).toEqual([]);
     expect(classifyShellAuthzOps("make DESTDIR=.deft/authz/grants clean")).toEqual([]);
     expect(classifyShellAuthzOps("make DESTDIR=.deft/authz/grants distclean")).toEqual([]);
     expect(classifyShellAuthzOps("make DESTDIR=.deft/authz/grants check")).toEqual([]);
