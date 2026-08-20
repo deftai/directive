@@ -57,7 +57,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ! Before writing output artifacts, follow the [Preparatory Guard](./artifact-guards.md#preparatory-guard-light).
 
-! Resolve all ambiguities surfaced by Step 3. Record decisions in `vbrief/proposed/{feature}-bdd.vbrief.json`.
+! Resolve all ambiguities surfaced by Step 3. Record decisions in `xbrief/proposed/{feature}-bdd.xbrief.json`.
 
 - ! Write a scope vBRIEF with two narratives:
   - `Scenarios` -- Given/When/Then scenario descriptions from Step 1
@@ -67,32 +67,32 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ⊗ Leave ambiguities unresolved -- every question surfaced in Step 3 must have a locked answer
 - ⊗ Write decisions to a hand-authored markdown file -- use vBRIEF narratives for token-efficient agent consumption
 
-! After emitting the scope vBRIEF to `vbrief/proposed/`, surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
+! After emitting the scope vBRIEF to `xbrief/proposed/`, surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
 
 ### Step 5: Generate Spec
 
 ! Derive SPECIFICATION.md tasks from the now-stable test scenarios and locked decisions.
 
 - ! Each scenario maps to one or more spec tasks with traceability (`traces: scenario-N`)
-- ! Locked decisions from `vbrief/proposed/{feature}-bdd.vbrief.json` `LockedDecisions` narrative flow into the spec as constraints
+- ! Locked decisions from `xbrief/proposed/{feature}-bdd.xbrief.json` `LockedDecisions` narrative flow into the spec as constraints
 - ~ Use the Light or Full path from [strategies/interview.md](./interview.md) based on project size
 
 ### Step 6: Chain into Interview Sizing Gate
 
 ! Follow [strategies/interview.md](./interview.md) sizing gate for SPECIFICATION.md finalisation.
 
-- ! On completion, register artifacts in `./vbrief/plan.vbrief.json`:
+- ! On completion, register artifacts in `./xbrief/plan.xbrief.json`:
   - Update `completedStrategies`: increment `runCount` for `"bdd"`, append artifact paths
   - Append all new artifact paths to the flat `artifacts` array
 - ! Return to [interview.md Chaining Gate](./interview.md#chaining-gate)
-- ! The locked decisions from `vbrief/proposed/{feature}-bdd.vbrief.json` and the acceptance tests MUST flow into subsequent strategies and spec generation
+- ! The locked decisions from `xbrief/proposed/{feature}-bdd.xbrief.json` and the acceptance tests MUST flow into subsequent strategies and spec generation
 
 ---
 
 ## Output Artifacts
 
 - Executable test files in the project's standard test directory -- derived from Given/When/Then scenarios
-- `vbrief/proposed/{feature}-bdd.vbrief.json` -- scope vBRIEF with `Scenarios` and `LockedDecisions` narratives
+- `xbrief/proposed/{feature}-bdd.xbrief.json` -- scope vBRIEF with `Scenarios` and `LockedDecisions` narratives
 
 ---
 

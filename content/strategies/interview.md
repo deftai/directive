@@ -94,15 +94,15 @@ See `strategies/map.md` for standalone behavior.
 - ! Previously-run strategies MUST display with a run count (e.g., `Research (ran 1×)`)
 - ! No strategy is ever removed from the gate — users can re-run any strategy
 - ! Run counts are read from `completedStrategies` in
-  [`./vbrief/plan.vbrief.json`](../vbrief/vbrief.md#strategy-chaining-fields)
+  [`./xbrief/plan.xbrief.json`](../vbrief/vbrief.md#strategy-chaining-fields)
 
 ### State Tracking
 
 - ! On completion of a preparatory strategy, update `completedStrategies` in
-  `./vbrief/plan.vbrief.json`: increment `runCount`, append artifact paths
+  `./xbrief/plan.xbrief.json`: increment `runCount`, append artifact paths
 - ! Append all new artifact paths to the flat `artifacts` array
 - ! The next strategy and eventual spec generation MUST load all artifacts
-  listed in `plan.vbrief.json`
+  listed in `plan.xbrief.json`
 - ! On brownfield **Add scope** or **Update project definition**, load existing
   PROJECT-DEFINITION identity and preparatory artifacts before asking questions
 
@@ -578,7 +578,7 @@ diff only on the second pass or when the user explicitly asks for it.
 
 ### State Preservation
 
-- ! All `completedStrategies` and `artifacts` in `plan.vbrief.json` MUST be
+- ! All `completedStrategies` and `artifacts` in `plan.xbrief.json` MUST be
   preserved across revisions
 - ! The chaining gate will show updated run counts reflecting the full session history
 
@@ -590,7 +590,7 @@ diff only on the second pass or when the user explicitly asks for it.
 
 | Artifact | Purpose | Created By |
 |----------|---------|------------|
-| `./xbrief/proposed/YYYY-MM-DD-*.xbrief.json` (else legacy `./vbrief/proposed/YYYY-MM-DD-*.vbrief.json`) | Scope story records (date-prefixed, v0.20 contract) | Interview |
+| `./xbrief/proposed/YYYY-MM-DD-*.xbrief.json` (else legacy `./vbrief/proposed/YYYY-MM-DD-*.xbrief.json`) | Scope story records (date-prefixed, v0.20 contract) | Interview |
 | `./xbrief/PROJECT-DEFINITION.xbrief.json` (else legacy `./vbrief/PROJECT-DEFINITION.vbrief.json`) | Project identity gestalt + items registry | `task project:render` (triggered by strategy) |
 | `SPECIFICATION.md` | Generated plan with embedded Requirements (rendered derivative; deprecation sentinel) | export / `task spec:render` |
 | (no `specification.*.json`) | Legacy artifact — omitted on v0.20 path | — |
@@ -600,7 +600,7 @@ diff only on the second pass or when the user explicitly asks for it.
 | Artifact | Purpose | Created By |
 |----------|---------|------------|
 | `PRD.md` | What to build (approval gate) | Interview |
-| `./xbrief/proposed/YYYY-MM-DD-*.xbrief.json` (else legacy `./vbrief/proposed/YYYY-MM-DD-*.vbrief.json`) | Scope story records (date-prefixed, v0.20 contract) | Post-PRD interview |
+| `./xbrief/proposed/YYYY-MM-DD-*.xbrief.json` (else legacy `./vbrief/proposed/YYYY-MM-DD-*.xbrief.json`) | Scope story records (date-prefixed, v0.20 contract) | Post-PRD interview |
 | `./xbrief/PROJECT-DEFINITION.xbrief.json` (else legacy `./vbrief/PROJECT-DEFINITION.vbrief.json`) | Project identity gestalt + items registry | `task project:render` (triggered by strategy) |
 | `SPECIFICATION.md` | Generated implementation plan (rendered derivative; deprecation sentinel) | export / `task spec:render` |
 | (no `specification.*.json`) | Legacy artifact — omitted on v0.20 path | — |

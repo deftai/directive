@@ -36,7 +36,7 @@ Every strategy has a **Type** that determines its behavior in the
   via `/deft:run:<name>` — when invoked outside an interview context, they present their
   own next-step options instead of returning to the chaining gate. See each strategy file
   for standalone support.
-- **`spec-generating`** — Produces v0.20-conformant output per [v0-20-contract.md](./v0-20-contract.md) (lifecycle folders + PROJECT-DEFINITION.vbrief.json + date-prefixed proposed/ scope vBRIEFs only; SPECIFICATION.md/PROJECT.md as deprecation stubs or omitted). Selecting one at the chaining gate switches the pipeline to that strategy’s spec flow.
+- **`spec-generating`** — Produces v0.20-conformant output per [v0-20-contract.md](./v0-20-contract.md) (lifecycle folders + PROJECT-DEFINITION.xbrief.json + date-prefixed proposed/ scope vBRIEFs only; SPECIFICATION.md/PROJECT.md as deprecation stubs or omitted). Selecting one at the chaining gate switches the pipeline to that strategy’s spec flow.
 
 Custom strategies MUST declare their type in this table. If the `Type` column is missing,
 the chaining gate cannot include the strategy.
@@ -45,9 +45,9 @@ the chaining gate cannot include the strategy.
 
 All spec-generating strategies (interview, yolo, speckit, rapid, enterprise) MUST produce output conforming to [v0-20-contract.md](./v0-20-contract.md):
 
-- Five vbrief/ lifecycle folders (proposed/ pending/ active/ completed/ cancelled/)
-- vbrief/PROJECT-DEFINITION.vbrief.json (full)
-- Scope vBRIEFs ONLY as date-prefixed in vbrief/proposed/YYYY-MM-DD-*.vbrief.json
+- Five xbrief/ lifecycle folders (proposed/ pending/ active/ completed/ cancelled/)
+- xbrief/PROJECT-DEFINITION.xbrief.json (full)
+- Scope vBRIEFs ONLY as date-prefixed in xbrief/proposed/YYYY-MM-DD-*.xbrief.json
 - Never dual-write legacy vbrief/specification.vbrief.json
 - SPECIFICATION.md/PROJECT.md only as deprecation-redirect stubs (banner + sentinel) or omitted
 

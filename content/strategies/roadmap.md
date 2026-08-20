@@ -6,4 +6,4 @@
 > See **[skills/deft-directive-refinement/SKILL.md](../skills/deft-directive-refinement/SKILL.md)**
 > for issue ingest, evaluation, and promotion/demotion workflows.
 >
-> Run `task roadmap:render` to regenerate `ROADMAP.md` from `vbrief/` lifecycle folders.
+> Run `task roadmap:render` to regenerate `ROADMAP.md` from `xbrief/` lifecycle folders (legacy `vbrief/` is read-accepted).

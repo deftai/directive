@@ -55,7 +55,7 @@ Use the Feynman technique: if the user (or you) can't explain the feature in sim
 
 - ! If the user suggests a capability belonging to a different feature, capture it as **deferred**
 - ~ Redirect: "That sounds like a new capability — I'll note it. For now, let's focus on [current scope]."
-- ~ Record deferred ideas in `./vbrief/plan.vbrief.json` with `deferred` status and a narrative explaining why
+- ~ Record deferred ideas in `./xbrief/plan.xbrief.json` with `deferred` status and a narrative explaining why
 
 ## Domain-Sensitive Questions
 
@@ -70,14 +70,14 @@ Adapt question focus to what's being built:
 
 ! Before writing output artifacts, follow the [Preparatory Guard](./artifact-guards.md#preparatory-guard-light).
 
-- ! Produce a `vbrief/proposed/{scope}-context.vbrief.json` scope vBRIEF with a `LockedDecisions` narrative
+- ! Produce a `xbrief/proposed/{scope}-context.xbrief.json` scope vBRIEF with a `LockedDecisions` narrative
 - ! Each decision includes: **what** was decided, **why**, and **alternatives considered**
 - ! When the lock is an intentional under-build (weaker Now + decided end-product Later), the decision MUST also include dual-path graduation fields: `now`, `later`, `graduationRef`, `trigger`, and `status` (`open` | `shipped` | `cancelled`) — see [Graduation (Now+Later)](#graduation-nowlater-dual-path-locks-2899)
 - ! This vBRIEF is injected into all downstream work: planning, execution, verification
 - ! Persist decisions as vBRIEF narratives on the relevant plan items
 - ⊗ Write decisions to a hand-authored markdown context file -- use vBRIEF narratives for token-efficient agent consumption
 
-! After emitting the scope vBRIEF to `vbrief/proposed/`, surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
+! After emitting the scope vBRIEF to `xbrief/proposed/`, surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
 
 ## Decision Locking
 
@@ -128,18 +128,18 @@ Glossary naming for this term is owned by sibling work (#2907). Strategy prose h
 
 ## Then: Chaining Gate
 
-After alignment is complete and decisions are locked in `vbrief/proposed/{scope}-context.vbrief.json`,
+After alignment is complete and decisions are locked in `xbrief/proposed/{scope}-context.xbrief.json`,
 return to the [chaining gate](./interview.md#chaining-gate) so the user can
 run additional preparatory strategies or proceed to spec generation.
 
-- ! On completion, register artifacts in `./vbrief/plan.vbrief.json`:
+- ! On completion, register artifacts in `./xbrief/plan.xbrief.json`:
   - Update `completedStrategies`: increment `runCount` for `"discuss"`,
-    append artifact path (`vbrief/proposed/{scope}-context.vbrief.json`)
+    append artifact path (`xbrief/proposed/{scope}-context.xbrief.json`)
   - Append the path to the flat `artifacts` array
 - ! Return to [interview.md Chaining Gate](./interview.md#chaining-gate)
   (the discuss phase replaces the interview's question-gathering -- decisions are
   already made, so the interview will be short or skipped entirely)
-- ! The locked decisions from `vbrief/proposed/{scope}-context.vbrief.json` MUST flow into subsequent
+- ! The locked decisions from `xbrief/proposed/{scope}-context.xbrief.json` MUST flow into subsequent
   strategies and spec generation
 - ⊗ End the session after discuss without returning to the chaining gate
   or the invoking strategy's next-step menu
@@ -154,7 +154,7 @@ run additional preparatory strategies or proceed to spec generation.
 
 1. **Open** -- Start with the user's goal statement; restate it in your own words
 2. **Explore** -- Follow energy, challenge vagueness, ask domain-sensitive questions
-3. **Lock** -- Record each decision in `vbrief/proposed/{scope}-context.vbrief.json` `LockedDecisions` narrative with what/why/alternatives (and dual-path graduation fields when the lock is an under-build; #2899)
+3. **Lock** -- Record each decision in `xbrief/proposed/{scope}-context.xbrief.json` `LockedDecisions` narrative with what/why/alternatives (and dual-path graduation fields when the lock is an under-build; #2899)
 4. **Verify** -- Explain the full picture back to the user (Feynman check)
 5. **Chain** -- Return to [interview.md Chaining Gate](./interview.md#chaining-gate), or -- if invoked from a standalone strategy (e.g. map's standalone next-step menu) -- return to the invoking strategy's menu per the [standalone-context rule](#then-chaining-gate) above
 

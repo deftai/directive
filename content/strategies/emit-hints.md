@@ -16,7 +16,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## When to Use
 
-This file is not a standalone strategy — it is a shared hint referenced by other strategies. It activates at the emission step, right after a strategy writes scope vBRIEFs to `vbrief/proposed/` (or `vbrief/pending/`).
+This file is not a standalone strategy — it is a shared hint referenced by other strategies. It activates at the emission step, right after a strategy writes scope vBRIEFs to `xbrief/proposed/` (or `xbrief/pending/`).
 
 - ! Referenced by spec-generating strategies: [speckit](./speckit.md) (Phase 4 and Phase 4.5), [enterprise](./enterprise.md), [rapid](./rapid.md), [interview](./interview.md), [yolo](./yolo.md)
 - ! Referenced by preparatory strategies: [bdd](./bdd.md), [discuss](./discuss.md), [research](./research.md), [map](./map.md), [probe](./probe.md)
@@ -38,12 +38,12 @@ This file is not a standalone strategy — it is a shared hint referenced by oth
 <strategy> emitted N scope vBRIEF(s).
 
 Optional: track these in GitHub issues.
-  - task deft:issue:emit --umbrella -- vbrief/<path>/<glob>     (one roadmap issue, all vBRIEFs reference it)
-  - task deft:issue:emit --per-vbrief -- vbrief/<path>/<glob>   (one issue per vBRIEF)
+  - task deft:issue:emit --umbrella -- xbrief/<path>/<glob>     (one roadmap issue, all vBRIEFs reference it)
+  - task deft:issue:emit --per-vbrief -- xbrief/<path>/<glob>   (one issue per vBRIEF)
   - Default behavior (vBRIEF-only) requires no further action.
 ```
 
-~ Replace `<path>/<glob>` with the actual emission target (e.g. `vbrief/proposed/2026-06-15-*.vbrief.json`).
+~ Replace `<path>/<glob>` with the actual emission target (e.g. `xbrief/proposed/2026-06-15-*.xbrief.json`).
 
 Note: `task deft:issue:emit` is the consumer-installed surface (this is what strategies render to). The maintainer-side, in-repo form is `task issue:emit` — the same command without the `deft:` prefix.
 
@@ -52,8 +52,8 @@ Note: `task deft:issue:emit` is the consumer-installed surface (this is what str
 ## The Three Patterns
 
 1. **None (default)** — emit vBRIEF(s) only; file no GitHub issue. Requires no further user action. This is the framework default and is unchanged by this hint.
-2. **Umbrella** — `task deft:issue:emit --umbrella -- vbrief/<path>/<glob>` files ONE roadmap issue, and every matched vBRIEF references it.
-3. **Per-vBRIEF** — `task deft:issue:emit --per-vbrief -- vbrief/<path>/<glob>` files one issue per matched vBRIEF.
+2. **Umbrella** — `task deft:issue:emit --umbrella -- xbrief/<path>/<glob>` files ONE roadmap issue, and every matched vBRIEF references it.
+3. **Per-vBRIEF** — `task deft:issue:emit --per-vbrief -- xbrief/<path>/<glob>` files one issue per matched vBRIEF.
 
 - ! Name all three patterns (none / `--umbrella` / `--per-vbrief`) when surfacing the hint — do not hide the umbrella / per-vBRIEF escape hatches.
 - ⊗ File a GitHub issue automatically as part of emission. No strategy files an issue unless the user explicitly invokes `task deft:issue:emit`.

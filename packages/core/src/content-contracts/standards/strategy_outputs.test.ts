@@ -1,6 +1,33 @@
 import { describe, expect, it } from "vitest";
 import { readText } from "./_helpers.js";
 
+/** Unhedged MUST-write of the legacy vbrief/ layout (legacy/read-accepted hedges allowed). */
+function unhedgedMustWriteVbrief(text: string): string[] {
+  return text.split("\n").filter((line) => {
+    const s = line.trim();
+    const isMust = s.startsWith("- !") || s.startsWith("!");
+    if (!isMust) return false;
+    if (
+      !line.includes("vbrief/proposed/") &&
+      !line.includes("./vbrief/plan.vbrief.json") &&
+      !line.includes("vbrief/plan.vbrief.json") &&
+      !line.includes("vbrief/PROJECT-DEFINITION.vbrief.json")
+    ) {
+      return false;
+    }
+    const lower = line.toLowerCase();
+    if (
+      lower.includes("legacy") ||
+      lower.includes("else") ||
+      lower.includes("xbrief-first") ||
+      lower.includes("read-accepted")
+    ) {
+      return false;
+    }
+    return true;
+  });
+}
+
 describe("test_strategy_outputs.py", () => {
   describe("TestRapidVbriefOutput", () => {
     const text = readText("strategies/rapid.md");
@@ -9,10 +36,11 @@ describe("test_strategy_outputs.py", () => {
       expect(text).toContain("strategies/v0-20-contract.md");
     });
     it("test_references_proposed_date_prefixed_vbrief", () => {
-      expect(text).toContain("vbrief/proposed/YYYY-MM-DD-");
+      expect(text).toContain("xbrief/proposed/YYYY-MM-DD-");
+      expect(unhedgedMustWriteVbrief(text)).toEqual([]);
     });
     it("test_references_project_definition_and_task_project_render", () => {
-      expect(text).toContain("vbrief/PROJECT-DEFINITION.vbrief.json");
+      expect(text).toContain("xbrief/PROJECT-DEFINITION.xbrief.json");
       expect(text).toContain("task project:render");
     });
     it("test_no_legacy_specification_vbrief", () => {
@@ -32,7 +60,7 @@ describe("test_strategy_outputs.py", () => {
     it("test_v020_output_shape_section_and_artifacts", () => {
       expect(text).toContain("## v0.20 Output Shape (s5-migrate-speckit-rapid-enterprise / #1166)");
       expect(text).toContain("## Artifacts Summary (v0.20)");
-      expect(text).toContain("proposed/YYYY-MM-DD-*.vbrief.json");
+      expect(text).toContain("proposed/YYYY-MM-DD-*.xbrief.json");
       expect(
         text.toLowerCase().includes("deprecation-redirect") ||
           text.toLowerCase().includes("deprecated-redirect"),
@@ -46,7 +74,7 @@ describe("test_strategy_outputs.py", () => {
     });
     it("test_step1_writes_to_proposed_vbrief_not_spec", () => {
       const step1 = text.split("### Step 1:")[1]?.split("### Step 2:")[0] ?? "";
-      expect(step1).toContain("vbrief/proposed/YYYY-MM-DD-");
+      expect(step1).toContain("xbrief/proposed/YYYY-MM-DD-");
       expect(step1).not.toContain("specification.vbrief.json");
     });
   });
@@ -54,7 +82,9 @@ describe("test_strategy_outputs.py", () => {
   describe("TestBddVbriefOutput", () => {
     const text = readText("strategies/bdd.md");
     it("test_references_vbrief_proposed", () => {
-      expect(text).toContain("vbrief/proposed/");
+      expect(text).toContain("xbrief/proposed/");
+      expect(text).not.toContain("vbrief/proposed/{feature}-bdd.vbrief.json");
+      expect(unhedgedMustWriteVbrief(text)).toEqual([]);
     });
     it("test_no_specs_folder_as_output", () => {
       const outputSection = text.split("## Output Artifacts")[1]?.split("##")[0] ?? "";
@@ -75,7 +105,9 @@ describe("test_strategy_outputs.py", () => {
   describe("TestDiscussVbriefOutput", () => {
     const text = readText("strategies/discuss.md");
     it("test_references_vbrief_proposed", () => {
-      expect(text).toContain("vbrief/proposed/");
+      expect(text).toContain("xbrief/proposed/");
+      expect(text).not.toContain("vbrief/proposed/{scope}-context.vbrief.json");
+      expect(unhedgedMustWriteVbrief(text)).toEqual([]);
     });
     it("test_no_legacy_context_md_as_primary_output", () => {
       const outputSection = text.split("## Output")[1]?.split("##")[0] ?? "";
@@ -148,18 +180,19 @@ describe("test_strategy_outputs.py", () => {
     const text = readText("strategies/interview.md");
     it("test_references_date_prefixed_proposed_vbrief", () => {
       expect(
-        text.includes("YYYY-MM-DD-<slug>.vbrief.json") ||
-          text.includes("vbrief/proposed/YYYY-MM-DD"),
+        text.includes("YYYY-MM-DD-<slug>.xbrief.json") ||
+          text.includes("xbrief/proposed/YYYY-MM-DD"),
       ).toBe(true);
       expect(
         text.toLowerCase().includes("date-prefixed") || text.toLowerCase().includes("date prefix"),
       ).toBe(true);
+      expect(unhedgedMustWriteVbrief(text)).toEqual([]);
     });
     it("test_references_task_project_render", () => {
       expect(text).toContain("task project:render");
     });
     it("test_references_project_definition_vbrief", () => {
-      expect(text).toContain("PROJECT-DEFINITION.vbrief.json");
+      expect(text).toContain("PROJECT-DEFINITION.xbrief.json");
     });
     it("test_no_primary_write_of_specification_vbrief", () => {
       expect(text).not.toContain("Write `./vbrief/specification.vbrief.json`");

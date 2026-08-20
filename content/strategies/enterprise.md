@@ -8,7 +8,7 @@
 
 Compliance-heavy workflow -- v0.20 date-prefixed story/phase vBRIEF + PROJECT-DEFINITION with explicit approval gates at each stage.
 
-**v0.20 note (s5-migrate-speckit-rapid-enterprise / #1166):** Enterprise now emits only the canonical v0.20 shape (date-prefixed story/phase vBRIEFs in proposed/, full PROJECT-DEFINITION.vbrief.json via task project:render, seeded lifecycle folders, no legacy specification.vbrief.json). PRD.md and SPECIFICATION.md (if any) are deprecation-redirect derivatives only. See the dedicated ## v0.20 Output Shape section and the canonical contract `strategies/v0-20-contract.md` (s1-contract of #1166).
+**v0.20 note (s5-migrate-speckit-rapid-enterprise / #1166):** Enterprise now emits only the canonical v0.20 shape (date-prefixed story/phase vBRIEFs in proposed/, full PROJECT-DEFINITION.xbrief.json via task project:render, seeded lifecycle folders, no legacy specification.vbrief.json). PRD.md and SPECIFICATION.md (if any) are deprecation-redirect derivatives only. See the dedicated ## v0.20 Output Shape section and the canonical contract `strategies/v0-20-contract.md` (s1-contract of #1166).
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
@@ -38,12 +38,12 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ! Before writing output artifacts, follow the guards in [artifact-guards.md](./artifact-guards.md) (Preparatory Guard for proposed/ scope items; Spec-Generating Guard for PROJECT-DEFINITION).
 
-! Run the Full interview path from [interview.md](./interview.md) unconditionally -- write PRD narratives as date-prefixed story/phase vBRIEF(s) to `vbrief/proposed/YYYY-MM-DD-<kebab-slug>.vbrief.json`.
+! Run the Full interview path from [interview.md](./interview.md) unconditionally -- write PRD narratives as date-prefixed story/phase vBRIEF(s) to `xbrief/proposed/YYYY-MM-DD-<kebab-slug>.xbrief.json`.
 
 - ! Use the Full path regardless of project size -- enterprise always requires a PRD
 - ! Write PRD content as narratives in the proposed/ vBRIEF `plan.narratives`: `ProblemStatement`, `Goals`, `NonGoals`, `UserStories`, `Requirements` (functional + non-functional), `SuccessMetrics`
 - ! Record the PRD approver(s) in the `Approvers` narrative
-- ! Run `task prd:render` (if UX continuity needed) to produce `PRD.md` **only as a deprecation-redirect derivative** (see v0.20 Output Shape); the source of truth is the vbrief/ artifacts.
+- ! Run `task prd:render` (if UX continuity needed) to produce `PRD.md` **only as a deprecation-redirect derivative** (see v0.20 Output Shape); the source of truth is the xbrief/ artifacts.
 
 ### Gate 1: PRD Approval
 
@@ -76,14 +76,14 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ! Before writing output artifacts, follow the guards in [artifact-guards.md](./artifact-guards.md) (Preparatory Guard for proposed/ scope items; Spec-Generating Guard for PROJECT-DEFINITION).
 
-! Enrich or emit date-prefixed vBRIEF(s) in `vbrief/proposed/` with architecture and plan narratives derived from the approved PRD narratives and accepted ADRs. (No singular `specification.vbrief.json`.)
+! Enrich or emit date-prefixed vBRIEF(s) in `xbrief/proposed/` with architecture and plan narratives derived from the approved PRD narratives and accepted ADRs. (No singular `specification.vbrief.json`.)
 
 - ! Add HOW narratives to the proposed/ vBRIEF `plan.narratives`: `Architecture`, `TechDecisions`, `ImplementationPhases`, `TraceabilityMatrix`
 - ! Every spec task must trace to a PRD requirement and, where applicable, an ADR
 - ! Use the Light or Full path from [interview.md](./interview.md) for specification generation
 - ! Include traceability matrix: spec task → PRD requirement → ADR (where applicable)
-- ! Run `task spec:render` (if UX continuity needed) to produce `SPECIFICATION.md` **only as a deprecation-redirect derivative** (see v0.20 Output Shape); the source of truth is the vbrief/ lifecycle + PROJECT-DEFINITION.
-- ! After proposed/ vBRIEFs exist, invoke `task project:render` to produce/refresh `vbrief/PROJECT-DEFINITION.vbrief.json`.
+- ! Run `task spec:render` (if UX continuity needed) to produce `SPECIFICATION.md` **only as a deprecation-redirect derivative** (see v0.20 Output Shape); the source of truth is the xbrief/ lifecycle + PROJECT-DEFINITION.
+- ! After proposed/ vBRIEFs exist, invoke `task project:render` to produce/refresh `xbrief/PROJECT-DEFINITION.xbrief.json`.
 
 ! After emitting the proposed/ vBRIEF(s), surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
 
@@ -107,13 +107,13 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Output Artifacts
 
-- `vbrief/proposed/YYYY-MM-DD-*.vbrief.json` (one or more) -- source of truth for PRD and specification narratives (date-prefixed per v0.20 contract)
-- `vbrief/PROJECT-DEFINITION.vbrief.json` -- complete via `task project:render`
+- `xbrief/proposed/YYYY-MM-DD-*.xbrief.json` (one or more) -- source of truth for PRD and specification narratives (date-prefixed per v0.20 contract)
+- `xbrief/PROJECT-DEFINITION.xbrief.json` -- complete via `task project:render`
 - `PRD.md` -- rendered export via `task prd:render` **only if deprecation-redirect sentinel** (read-only stakeholder review artifact; otherwise omit)
 - `docs/adr/adr-NNN-*.md` -- accepted Architecture Decision Records (unchanged location)
 - `SPECIFICATION.md` -- rendered export via `task spec:render` **only if deprecation-redirect sentinel** (read-only stakeholder review artifact; otherwise omit)
 - Traceability matrix (inline in the proposed/ vBRIEF narratives or as a separate `docs/traceability.md`)
-- `vbrief/{proposed,pending,active,completed,cancelled}/` -- all five lifecycle folders seeded
+- `xbrief/{proposed,pending,active,completed,cancelled}/` -- all five lifecycle folders seeded
 
 ---
 
@@ -139,11 +139,11 @@ Enterprise is a **spec-generating** strategy. It uses the Forced-Full path and a
 
 This strategy has been migrated to the full v0.20 output shape so enterprise-generated projects are accepted by the build skill Pre-Cutover Detection Guard with zero errors on first attempt (resolves the enterprise row from the #1166 inconsistency table and the s5 story acceptance criteria).
 
-- ! Seed the five lifecycle folders under `vbrief/` if any are missing: `proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`.
-- ! Emit scope items (PRD, spec phases, etc.) exclusively as date-prefixed scope vBRIEFs: `vbrief/proposed/YYYY-MM-DD-<kebab-slug>.vbrief.json` (use the run's creation date for the prefix; choose descriptive slugs). Decompose into focused, buildable vBRIEFs (v0.6 schema) rather than a monolithic legacy spec.
-- ! After the proposed/ vBRIEFs are written, invoke `task project:render` (run from the repo root) to generate/refresh the complete `vbrief/PROJECT-DEFINITION.vbrief.json` (items registry is derived from the lifecycle folders).
+- ! Seed the five lifecycle folders under `xbrief/` if any are missing: `proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`.
+- ! Emit scope items (PRD, spec phases, etc.) exclusively as date-prefixed scope vBRIEFs: `xbrief/proposed/YYYY-MM-DD-<kebab-slug>.xbrief.json` (use the run's creation date for the prefix; choose descriptive slugs). Decompose into focused, buildable vBRIEFs (v0.6 schema) rather than a monolithic legacy spec.
+- ! After the proposed/ vBRIEFs are written, invoke `task project:render` (run from the repo root) to generate/refresh the complete `xbrief/PROJECT-DEFINITION.xbrief.json` (items registry is derived from the lifecycle folders).
 - ⊗ Never emit `vbrief/specification.vbrief.json` (or any legacy dual-write).
-- ~ `PRD.md` and `SPECIFICATION.md` at the project root, if produced at all, must be only read-only derivatives that include the v0.20 deprecated-redirect sentinel (see conventions/machine-generated-banner.md). The source of truth is the vbrief/ lifecycle vBRIEFs + PROJECT-DEFINITION. ADRs remain in `docs/adr/`.
+- ~ `PRD.md` and `SPECIFICATION.md` at the project root, if produced at all, must be only read-only derivatives that include the v0.20 deprecated-redirect sentinel (see conventions/machine-generated-banner.md). The source of truth is the xbrief/ lifecycle vBRIEFs + PROJECT-DEFINITION. ADRs remain in `docs/adr/`.
 - ! Before writing any proposed/ vBRIEFs or PROJECT-DEFINITION, follow the guards in [artifact-guards.md](./artifact-guards.md) (Preparatory Guard for scope items in proposed/; Spec-Generating Guard for PROJECT-DEFINITION).
 - ! Final output tree must pass the deterministic v0.20 strategy output validation gate (s2-deterministic-gate) and the build Pre-Cutover Detection Guard with zero warnings/errors. See full acceptance in the s5 vBRIEF and the 1166 decomposition.
 - ! Cite the canonical contract `strategies/v0-20-contract.md` (s1-contract) for the exact shape and the per-strategy table row.
@@ -156,9 +156,9 @@ This strategy has been migrated to the full v0.20 output shape so enterprise-gen
 
 | Artifact | Purpose | Created By |
 |----------|---------|------------|
-| `vbrief/proposed/YYYY-MM-DD-*.vbrief.json` (one or more) | PRD + specification narratives as date-prefixed scope items (per v0.20 contract) | Enterprise |
-| `vbrief/PROJECT-DEFINITION.vbrief.json` | Project identity gestalt + complete scope items registry | `task project:render` (invoked by Enterprise) |
-| `vbrief/{proposed,pending,active,completed,cancelled}/` | All five lifecycle folders seeded | Enterprise |
+| `xbrief/proposed/YYYY-MM-DD-*.xbrief.json` (one or more) | PRD + specification narratives as date-prefixed scope items (per v0.20 contract) | Enterprise |
+| `xbrief/PROJECT-DEFINITION.xbrief.json` | Project identity gestalt + complete scope items registry | `task project:render` (invoked by Enterprise) |
+| `xbrief/{proposed,pending,active,completed,cancelled}/` | All five lifecycle folders seeded | Enterprise |
 | `docs/adr/adr-NNN-*.md` | Accepted Architecture Decision Records (traceable) | Enterprise (unchanged) |
 | (optional derivative) `PRD.md` / `SPECIFICATION.md` | Human-readable (includes deprecated-redirect sentinel only) | `task prd:render` / `task spec:render` (if invoked) |
 
@@ -168,13 +168,13 @@ This strategy has been migrated to the full v0.20 output shape so enterprise-gen
 - Primary handoff `PRD.md` or `SPECIFICATION.md` at project root (without sentinel)
 - Bare-named vBRIEFs in proposed/
 
-See the full table and rules in `strategies/v0-20-contract.md` (enterprise row: Must Create Lifecycle Folders: Yes; Must Write PROJECT-DEFINITION: Yes; Scope vBRIEFs Location: proposed/YYYY-MM-DD-*.vbrief.json only; specification.vbrief.json: Never; SPECIFICATION.md / PROJECT.md: Omit or deprecation redirect only).
+See the full table and rules in `strategies/v0-20-contract.md` (enterprise row: Must Create Lifecycle Folders: Yes; Must Write PROJECT-DEFINITION: Yes; Scope vBRIEFs Location: proposed/YYYY-MM-DD-*.xbrief.json only; specification.vbrief.json: Never; SPECIFICATION.md / PROJECT.md: Omit or deprecation redirect only).
 
 ---
 
 ## Invoking This Strategy
 
-Set in PROJECT-DEFINITION.vbrief.json narratives:
+Set in PROJECT-DEFINITION.xbrief.json narratives:
 ```json
 "Strategy": "strategies/enterprise.md"
 ```

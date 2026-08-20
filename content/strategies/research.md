@@ -47,7 +47,7 @@ Prompt:
 
 ! Before writing output artifacts, follow the [Preparatory Guard](./artifact-guards.md#preparatory-guard-light).
 
-Produce `vbrief/proposed/{feature}-research.vbrief.json` with two mandatory narratives:
+Produce `xbrief/proposed/{feature}-research.xbrief.json` with two mandatory narratives:
 
 ! After emitting this scope vBRIEF, surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
 
@@ -134,7 +134,7 @@ all trigger a hit.
 - ! Research the **current feature only** — not the entire project
 - ! Time-box research — if it takes longer than the feature, scope is wrong
 - ⊗ Research as a reason to delay execution indefinitely
-- ~ Research persists as a vBRIEF in `vbrief/proposed/`
+- ~ Research persists as a vBRIEF in `xbrief/proposed/`
 
 ---
 
@@ -143,13 +143,13 @@ all trigger a hit.
 After research is complete, return to the [chaining gate](./interview.md#chaining-gate)
 so the user can run additional preparatory strategies or proceed to spec generation.
 
-- ! On completion, register artifacts in `./vbrief/plan.vbrief.json`:
+- ! On completion, register artifacts in `./xbrief/plan.xbrief.json`:
   - Update `completedStrategies`: increment `runCount` for `"research"`,
-    append artifact path (`vbrief/proposed/{feature}-research.vbrief.json`)
+    append artifact path (`xbrief/proposed/{feature}-research.xbrief.json`)
   - Append the path to the flat `artifacts` array
 - ! Return to [interview.md Chaining Gate](./interview.md#chaining-gate)
 - ! Present the chaining gate as a blocking question and wait for a user selection before any spec generation or additional scope vBRIEF generation.
-- ! Explain at handoff that `completedStrategies` records that research ran, while `vbrief/proposed/{feature}-research.vbrief.json` remains a planning artifact in the scope lifecycle until a later strategy promotes or consumes it.
+- ! Explain at handoff that `completedStrategies` records that research ran, while `xbrief/proposed/{feature}-research.xbrief.json` remains a planning artifact in the scope lifecycle until a later strategy promotes or consumes it.
 - ! The research findings MUST inform subsequent strategies and spec generation:
   - "Don't Hand-Roll" items become constraints in the specification
   - "Common Pitfalls" become acceptance criteria or NFRs
@@ -167,7 +167,7 @@ so the user can run additional preparatory strategies or proceed to spec generat
 
 1. **Scope confirmation** -- Ask the blocking scope-confirmation prompt, wait for the user, and record scope/artifact/sensitivity inputs
 2. **Survey** -- Check existing project dependencies, official docs, and known pitfalls
-3. **Document** -- Produce `vbrief/proposed/{feature}-research.vbrief.json` with `DontHandRoll` and `CommonPitfalls` narratives
+3. **Document** -- Produce `xbrief/proposed/{feature}-research.xbrief.json` with `DontHandRoll` and `CommonPitfalls` narratives
 4. **Chain** -- Return to [interview.md Chaining Gate](./interview.md#chaining-gate), or -- if invoked from a standalone strategy (e.g. map's standalone next-step menu) -- return to the invoking strategy's menu per the [standalone-context rule](#then-chaining-gate) above
 
 ## Anti-Patterns

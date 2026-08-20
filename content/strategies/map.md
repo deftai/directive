@@ -50,7 +50,7 @@ Mapping produces artifacts that feed into planning so the agent **follows existi
 
 ! Before writing output artifacts, follow the [Preparatory Guard](./artifact-guards.md#preparatory-guard-light).
 
-Produce a single `vbrief/proposed/{project}-codebase-map.vbrief.json` with four narratives:
+Produce a single `xbrief/proposed/{project}-codebase-map.xbrief.json` with four narratives:
 
 ! After emitting this scope vBRIEF, surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
 
@@ -105,9 +105,9 @@ Produce a single `vbrief/proposed/{project}-codebase-map.vbrief.json` with four 
 
 ### Artifact Registration (both modes)
 
-- ! On completion, register artifacts in `./vbrief/plan.vbrief.json`:
+- ! On completion, register artifacts in `./xbrief/plan.xbrief.json`:
   - Update `completedStrategies`: increment `runCount` for `"map"`,
-    append artifact path (`vbrief/proposed/{project}-codebase-map.vbrief.json`)
+    append artifact path (`xbrief/proposed/{project}-codebase-map.xbrief.json`)
   - Append the path to the flat `artifacts` array
 - ! The mapping narratives MUST inform subsequent strategies and spec generation:
   - `Conventions` -> implementation constraints
@@ -130,7 +130,7 @@ Mapping complete. Here's what I found:
   - Conventions: [brief summary]
   - Concerns: [brief summary]
 
-Artifact: vbrief/proposed/{project}-codebase-map.vbrief.json
+Artifact: xbrief/proposed/{project}-codebase-map.xbrief.json
 
 What would you like to do next?
 
@@ -141,7 +141,7 @@ What would you like to do next?
 ```
 
 - ! Present the narrative summary before offering options
-- ! If the user chooses a strategy, invoke it (the artifact persists in `vbrief/proposed/`)
+- ! If the user chooses a strategy, invoke it (the artifact persists in `xbrief/proposed/`)
 - ! If the user chooses "done", confirm the artifact location and exit cleanly
 - ~ Recommend option 1 (interview) when the user's goal is to build or extend
 - ~ Recommend option 4 (done) when the user's goal is exploration or onboarding
@@ -173,7 +173,7 @@ Before an interview — analysis-first, then spec:
 Map this codebase, then use the interview strategy to plan [feature].
 ```
 
-Or set in PROJECT-DEFINITION.vbrief.json narratives:
+Or set in PROJECT-DEFINITION.xbrief.json narratives:
 ```json
 "Strategy": "strategies/map.md"
 ```

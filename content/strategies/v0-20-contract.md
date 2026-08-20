@@ -20,7 +20,7 @@ Spec-generating strategies (interview, yolo, speckit, rapid, enterprise) histori
 
 - Some wrote only the legacy `vbrief/specification.vbrief.json` + root `SPECIFICATION.md`
 - Some wrote scope vBRIEFs without date prefixes and still dual-wrote the old singular spec file
-- None consistently seeded the full v0.20 lifecycle folders + `PROJECT-DEFINITION.vbrief.json` + date-prefixed proposed/ items
+- None consistently seeded the full v0.20 lifecycle folders + `PROJECT-DEFINITION.xbrief.json` + date-prefixed proposed/ items
 
 This caused immediate build failures via the Pre-Cutover Detection Guard for any project generated through those strategies.
 
@@ -35,7 +35,7 @@ Use this contract when authoring, reviewing, or migrating a spec-generating stra
 1. Identify whether the strategy is spec-generating or preparatory.
 2. Apply the matching row in the per-strategy summary table.
 3. Create the required lifecycle folders before writing scope artifacts.
-4. Write authoritative vBRIEF content to `vbrief/PROJECT-DEFINITION.vbrief.json` and date-prefixed `vbrief/proposed/*.vbrief.json` files.
+4. Write authoritative vBRIEF content to `xbrief/PROJECT-DEFINITION.xbrief.json` and date-prefixed `xbrief/proposed/*.xbrief.json` files.
 5. Omit root `SPECIFICATION.md` / `PROJECT.md`, or write only deprecation redirect stubs when transitional UX requires them.
 6. Run the validator and content gates before treating the strategy output as v0.20-conformant.
 
@@ -44,21 +44,21 @@ Use this contract when authoring, reviewing, or migrating a spec-generating stra
 For a project that has completed any spec-generating strategy (or the full speckit flow), the following MUST exist and be the only authoritative sources:
 
 ### Required Directory Structure
-- `vbrief/proposed/`
-- `vbrief/pending/`
-- `vbrief/active/`
-- `vbrief/completed/`
-- `vbrief/cancelled/`
+- `xbrief/proposed/`
+- `xbrief/pending/`
+- `xbrief/active/`
+- `xbrief/completed/`
+- `xbrief/cancelled/`
 
 All five lifecycle folders MUST be present (even if empty). This is the cutover signal used by pre-cutover guards.
 
 ### Required Root-Level vBRIEF Artifact
-- `vbrief/PROJECT-DEFINITION.vbrief.json` (complete: narratives + items registry populated from the strategy session)
+- `xbrief/PROJECT-DEFINITION.xbrief.json` (complete: narratives + items registry populated from the strategy session)
 
 `task project:render` MAY be invoked by the strategy or left to the user; the end state after strategy + any render MUST have a non-skeleton PROJECT-DEFINITION.
 
 ### Scope vBRIEF Placement & Naming (Strict)
-- All new scope vBRIEFs (user stories, phases, epics from speckit Phase 4/4.5, etc.) MUST be written **only** to `vbrief/proposed/YYYY-MM-DD-<kebab-slug>.vbrief.json`
+- All new scope vBRIEFs (user stories, phases, epics from speckit Phase 4/4.5, etc.) MUST be written **only** to `xbrief/proposed/YYYY-MM-DD-<kebab-slug>.xbrief.json`
 - Filenames MUST be date-prefixed using the creation date (immutable per vbrief.md conventions)
 - Bare names (e.g. `scaffold.vbrief.json`) or names without date prefix are FORBIDDEN in v0.20
 - The old singular `vbrief/specification.vbrief.json` MUST NOT be written or updated by v0.20 strategies (it is a legacy container; new work uses the lifecycle folders + PROJECT-DEFINITION)
@@ -68,7 +68,7 @@ All five lifecycle folders MUST be present (even if empty). This is the cutover 
 - If a strategy does emit them (for UX continuity during transition), they MUST be written **exclusively** as deprecation-redirect stubs:
   - Start with the canonical 4-line machine-generated banner (see conventions/machine-generated-banner.md)
   - Fifth line: `<!-- deft:deprecated-redirect -->`
-  - Short explanatory body pointing to `vbrief/PROJECT-DEFINITION.vbrief.json` and the lifecycle folders
+  - Short explanatory body pointing to `xbrief/PROJECT-DEFINITION.xbrief.json` and the lifecycle folders
   - Never contain real spec or project content
 - Real content in these files (without the sentinel) triggers the build/setup/sync pre-cutover guards and forces migration.
 
@@ -80,26 +80,26 @@ All five lifecycle folders MUST be present (even if empty). This is the cutover 
 
 Greenfield projects (no `vbrief/specification.vbrief.json`) export stakeholder-facing spec text via `task project:export-spec`:
 
-- ! Source of truth: `vbrief/PROJECT-DEFINITION.vbrief.json` product narratives + lifecycle scope bodies (never the legacy singular spec file).
+- ! Source of truth: `xbrief/PROJECT-DEFINITION.xbrief.json` product narratives + lifecycle scope bodies (never the legacy singular spec file).
 - ! Default audience is **stakeholder** — proposed scopes are omitted; only pending/active/completed scopes appear under `## Scope outlook`.
 - ! Internal handoff (setup Phase 3, speckit Phase 3→4 when proposed scopes must be visible) uses `task project:export-spec -- --audience=internal`, which adds `### Not yet accepted (proposed)` under `## Scope outlook` with a fixed disclaimer that proposed scopes are ideas, not approved backlog.
 - ! Phase 3→4 transition gate: **export succeeded** (exit 0), not spec-file `approved` status — PROJECT-DEFINITION has no spec-approval lifecycle on greenfield trees.
 - ~ Legacy migrated trees with `vbrief/specification.vbrief.json` MAY continue using `task spec:render` until fully cut over.
 - ⊗ Invoke `task spec:render` on a greenfield tree that lacks `specification.vbrief.json` — use `task project:export-spec` instead.
 
-### plan.vbrief.json and continue.vbrief.json
-- Session/tactical state files are permitted at vbrief/ root (they carry `planRef` links). They are not part of the "spec output" contract but strategies that maintain chaining state (e.g. interview) update them per their own rules.
+### plan.xbrief.json and continue.xbrief.json
+- Session/tactical state files are permitted at xbrief/ root (they carry `planRef` links). They are not part of the "spec output" contract but strategies that maintain chaining state (e.g. interview) update them per their own rules.
 
 ## Per-Strategy Summary Table (Target State After Migration)
 
 | Strategy     | Type             | Must Create Lifecycle Folders | Must Write PROJECT-DEFINITION | Scope vBRIEFs Location                  | specification.vbrief.json | SPECIFICATION.md / PROJECT.md          |
 |--------------|------------------|-------------------------------|-------------------------------|-----------------------------------------|-----------------------------|----------------------------------------|
-| interview    | spec-generating  | Yes                           | Yes (narratives + items)      | proposed/YYYY-MM-DD-*.vbrief.json only  | Never (post-migration)      | Omit or deprecation redirect only      |
-| yolo         | spec-generating  | Yes                           | Yes                           | proposed/YYYY-MM-DD-*.vbrief.json only  | Never                       | Omit or deprecation redirect only      |
-| speckit      | spec-generating  | Yes                           | Yes (Phase 1+)                | proposed/YYYY-MM-DD-*.vbrief.json only (phases + stories) | Never             | Omit or `task project:export-spec` (legacy: `task spec:render` on migrated trees) |
-| rapid        | spec-generating  | Yes                           | Yes                           | proposed/YYYY-MM-DD-*.vbrief.json only  | Never                       | Omit or deprecation redirect only      |
-| enterprise   | spec-generating  | Yes                           | Yes                           | proposed/YYYY-MM-DD-*.vbrief.json only  | Never                       | Omit or deprecation redirect only      |
-| preparatory (research, discuss, map, etc.) | preparatory | Yes (if first touch)         | No (unless also spec path)    | proposed/YYYY-MM-DD-*.vbrief.json (context/decision vBRIEFs) | N/A                    | N/A (preparatory only)                 |
+| interview    | spec-generating  | Yes                           | Yes (narratives + items)      | proposed/YYYY-MM-DD-*.xbrief.json only  | Never (post-migration)      | Omit or deprecation redirect only      |
+| yolo         | spec-generating  | Yes                           | Yes                           | proposed/YYYY-MM-DD-*.xbrief.json only  | Never                       | Omit or deprecation redirect only      |
+| speckit      | spec-generating  | Yes                           | Yes (Phase 1+)                | proposed/YYYY-MM-DD-*.xbrief.json only (phases + stories) | Never             | Omit or `task project:export-spec` (legacy: `task spec:render` on migrated trees) |
+| rapid        | spec-generating  | Yes                           | Yes                           | proposed/YYYY-MM-DD-*.xbrief.json only  | Never                       | Omit or deprecation redirect only      |
+| enterprise   | spec-generating  | Yes                           | Yes                           | proposed/YYYY-MM-DD-*.xbrief.json only  | Never                       | Omit or deprecation redirect only      |
+| preparatory (research, discuss, map, etc.) | preparatory | Yes (if first touch)         | No (unless also spec path)    | proposed/YYYY-MM-DD-*.xbrief.json (context/decision vBRIEFs) | N/A                    | N/A (preparatory only)                 |
 
 ## Agent & Strategy Author Rules
 
@@ -133,13 +133,13 @@ Use this contract when:
 ## Workflow
 
 1. Read the Canonical v0.20 Output Shape section.
-2. Ensure your strategy (or migration) writes exactly the required folders + `PROJECT-DEFINITION.vbrief.json` + dated proposed/ vBRIEFs.
+2. Ensure your strategy (or migration) writes exactly the required folders + `PROJECT-DEFINITION.xbrief.json` + dated proposed/ vBRIEFs.
 3. Never write the legacy `specification.vbrief.json` or real-content `SPECIFICATION.md`/`PROJECT.md`.
 4. Cite this contract explicitly in your strategy's "Artifacts" / "Output" section (see the Per-Strategy Summary Table).
 5. Run `task check` (or the deterministic gate once s2 lands) to validate.
 
 ---
 
-**Owned by**: `vbrief/active/2026-05-26-define-canonical-v020-strategy-output-contract.vbrief.json` (s1-contract of #1166 strategy consistency decomposition)
+**Owned by**: `xbrief/active/2026-05-26-define-canonical-v020-strategy-output-contract.vbrief.json` (s1-contract of #1166 strategy consistency decomposition)
 
 This contract lands first so that s2 (gate) and the migration stories have an unambiguous target.

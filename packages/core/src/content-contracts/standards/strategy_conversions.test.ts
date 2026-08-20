@@ -5,7 +5,8 @@ describe("test_strategy_conversions.py", () => {
   describe("TestResearchVBRIEF", () => {
     const text = readText("strategies/research.md");
     it("test_references_vbrief_proposed_path", () => {
-      expect(text).toContain("vbrief/proposed/");
+      expect(text).toContain("xbrief/proposed/");
+      expect(text).not.toContain("vbrief/proposed/{feature}-research.vbrief.json");
     });
     it("test_references_dont_hand_roll_narrative", () => {
       expect(text).toContain("DontHandRoll");
@@ -17,13 +18,14 @@ describe("test_strategy_conversions.py", () => {
       expect(text).not.toContain("Produce `{feature}-research.md`");
     });
     it("test_chaining_gate_references_vbrief", () => {
-      expect(text).toContain("vbrief/proposed/{feature}-research.vbrief.json");
+      expect(text).toContain("xbrief/proposed/{feature}-research.xbrief.json");
     });
   });
   describe("TestMapVBRIEF", () => {
     const text = readText("strategies/map.md");
     it("test_references_vbrief_proposed_path", () => {
-      expect(text).toContain("vbrief/proposed/");
+      expect(text).toContain("xbrief/proposed/");
+      expect(text).not.toContain("vbrief/proposed/{project}-codebase-map.vbrief.json");
     });
     it("test_references_stack_narrative", () => {
       expect(text).toContain("`Stack`");
@@ -41,7 +43,7 @@ describe("test_strategy_conversions.py", () => {
       expect(text).not.toContain(".planning/codebase/");
     });
     it("test_chaining_gate_references_vbrief", () => {
-      expect(text).toContain("vbrief/proposed/{project}-codebase-map.vbrief.json");
+      expect(text).toContain("xbrief/proposed/{project}-codebase-map.xbrief.json");
     });
   });
   describe("TestRoadmapRedirect", () => {

@@ -8,7 +8,7 @@
 
 A spec-driven development workflow inspired by [GitHub's spec-kit](https://github.com/github/spec-kit), with a Phase 4.5 readiness layer for decomposing broad implementation scopes into swarm-safe stories. Fully migrated to v0.20 (phases + stories emitted as date-prefixed vBRIEFs in proposed/; no legacy specification.vbrief.json).
 
-**v0.20 note (s5-migrate-speckit-rapid-enterprise / #1166):** Speckit now emits only the canonical v0.20 shape (date-prefixed phase/epic + story vBRIEFs in proposed/, full PROJECT-DEFINITION.vbrief.json via task project:render post, seeded lifecycle folders, no legacy specification.vbrief.json). Phase 4/4.5 scopes go to proposed/ (not pending/). Review exports use `task project:export-spec` (gate: export succeeded). See the dedicated ## v0.20 Output Shape section, the Artifacts Summary updated to the contract table, and the canonical contract `strategies/v0-20-contract.md` (s1-contract of #1166).
+**v0.20 note (s5-migrate-speckit-rapid-enterprise / #1166):** Speckit now emits only the canonical v0.20 shape (date-prefixed phase/epic + story vBRIEFs in proposed/, full PROJECT-DEFINITION.xbrief.json via task project:render post, seeded lifecycle folders, no legacy specification.vbrief.json). Phase 4/4.5 scopes go to proposed/ (not pending/). Review exports use `task project:export-spec` (gate: export succeeded). See the dedicated ## v0.20 Output Shape section, the Artifacts Summary updated to the contract table, and the canonical contract `strategies/v0-20-contract.md` (s1-contract of #1166).
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
@@ -20,16 +20,16 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ~ Projects requiring formal specification review
 - ~ When parallel agent development is planned
 - ~ Enterprise environments with compliance requirements
-- ? Skip Phase 1 if PROJECT-DEFINITION.vbrief.json Principles narrative already defined
+- ? Skip Phase 1 if PROJECT-DEFINITION.xbrief.json Principles narrative already defined
 
 ## Workflow Overview
 
 ```mermaid
 flowchart LR
     subgraph speckit ["SpecKit Strategy (v0.20)"]
-        P["📜 Principles<br/><i>PROJECT-DEFINITION.vbrief.json</i>"]
-        S["📝 Specify<br/><i>WHAT/WHY → proposed/YYYY-MM-DD-*.vbrief.json</i>"]
-        PL["🏗️ Plan<br/><i>HOW → proposed/YYYY-MM-DD-*.vbrief.json</i>"]
+        P["📜 Principles<br/><i>PROJECT-DEFINITION.xbrief.json</i>"]
+        S["📝 Specify<br/><i>WHAT/WHY → proposed/YYYY-MM-DD-*.xbrief.json</i>"]
+        PL["🏗️ Plan<br/><i>HOW → proposed/YYYY-MM-DD-*.xbrief.json</i>"]
         T["✅ Scope<br/><i>Phase/epic vBRIEFs in proposed/</i>"]
         D["🧩 Decompose<br/><i>Story vBRIEFs in proposed/</i>"]
         I["🔨 Implement<br/><i>Execute</i>"]
@@ -57,7 +57,7 @@ flowchart LR
 
 **Goal:** Establish immutable project principles before any specification.
 
-**Output:** `Principles` narrative in `vbrief/PROJECT-DEFINITION.vbrief.json` (v0.20: plus any early proposed/ context vBRIEFs if needed)
+**Output:** `Principles` narrative in `xbrief/PROJECT-DEFINITION.xbrief.json` (v0.20: plus any early proposed/ context vBRIEFs if needed)
 
 ! Before writing output artifacts, follow the guards in [artifact-guards.md](./artifact-guards.md) (Preparatory Guard for proposed/ items; Spec-Generating Guard for PROJECT-DEFINITION).
 
@@ -65,14 +65,14 @@ flowchart LR
 
 - ! Define 3-5 non-negotiable principles
 - ! Include at least one anti-principle (⊗)
-- ! Write principles as the `Principles` narrative in `vbrief/PROJECT-DEFINITION.vbrief.json`
+- ! Write principles as the `Principles` narrative in `xbrief/PROJECT-DEFINITION.xbrief.json`
 - ~ Interview stakeholders about architectural constraints
 - ⊗ Proceed without defined principles
-- ⊗ Create a standalone `project.md` -- principles belong in PROJECT-DEFINITION.vbrief.json
+- ⊗ Create a standalone `project.md` -- principles belong in PROJECT-DEFINITION.xbrief.json
 
 ### Transition Criteria
 
-- ! `Principles` narrative in `vbrief/PROJECT-DEFINITION.vbrief.json` is complete
+- ! `Principles` narrative in `xbrief/PROJECT-DEFINITION.xbrief.json` is complete
 - ! All stakeholders have reviewed principles
 - ~ No `[NEEDS CLARIFICATION]` markers remain
 
@@ -82,7 +82,7 @@ flowchart LR
 
 **Goal:** Document WHAT to build and WHY, without implementation details.
 
-**Output:** WHAT/WHY narratives in date-prefixed vBRIEF(s) in `vbrief/proposed/YYYY-MM-DD-*.vbrief.json` (v0.20; no singular specification.vbrief.json)
+**Output:** WHAT/WHY narratives in date-prefixed vBRIEF(s) in `xbrief/proposed/YYYY-MM-DD-*.xbrief.json` (v0.20; no singular specification.vbrief.json)
 
 ! Before writing output artifacts, follow the guards in [artifact-guards.md](./artifact-guards.md) (Preparatory Guard for proposed/ scope items; Spec-Generating Guard for PROJECT-DEFINITION).
 
@@ -142,7 +142,7 @@ Add the following narrative keys to the proposed/ vBRIEF `plan.narratives`:
 ! Phase 3 -> Phase 4 is gated on a successful spec export for human review, mirroring the Phase 2 approval gate. Complete the steps below **in order** before advancing. [skills/deft-directive-setup/SKILL.md](../skills/deft-directive-setup/SKILL.md) is required to invoke `task project:export-spec` at this boundary when running speckit interactively; the gate fails silently otherwise (yolo-mode agents used to skip it -- that is what this gate exists to prevent).
 
 1. ! Run `task project:export-spec` (use `--audience=internal` when proposed scopes must appear in the `## Scope outlook` section). Legacy migrated trees MAY use `task spec:render` when `vbrief/specification.vbrief.json` exists.
-2. ! Confirm export **succeeded** (command exit 0) and `SPECIFICATION.md` exists at the project root with the greenfield banner (`<!-- Source of truth: vbrief/PROJECT-DEFINITION.vbrief.json -->`) or full-spec banner as appropriate.
+2. ! Confirm export **succeeded** (command exit 0) and `SPECIFICATION.md` exists at the project root with the greenfield banner (`<!-- Source of truth: xbrief/PROJECT-DEFINITION.xbrief.json -->`) or full-spec banner as appropriate.
 3. ! The proposed/ vBRIEFs + PROJECT-DEFINITION are the source of truth. `SPECIFICATION.md` is a read-only export.
 4. ! Human reviewer approves (or requests changes). On approval, proceed to Phase 4.
 
@@ -161,11 +161,11 @@ Add the following narrative keys to the proposed/ vBRIEF `plan.narratives`:
 
 **Input:** Approved HOW narratives in the proposed/ date-prefixed vBRIEF(s) from Phase 3 (`ImplementationPhases` narrative describes IP-1..IP-N).
 
-**Output:** N phase/epic scope vBRIEFs in `./vbrief/proposed/`, one per implementation phase or epic, using the filename convention `YYYY-MM-DD-ip<NNN>-<slug>.vbrief.json` (NNN = 3-digit zero-padded, 001..N). See [vbrief/vbrief.md — speckit Phase 4 scope vBRIEFs](../vbrief/vbrief.md#speckit-phase-4-scope-vbriefs) for the canonical convention. (v0.20: proposed/ not pending/.)
+**Output:** N phase/epic scope vBRIEFs in `./xbrief/proposed/`, one per implementation phase or epic, using the filename convention `YYYY-MM-DD-ip<NNN>-<slug>.vbrief.json` (NNN = 3-digit zero-padded, 001..N). See [vbrief/vbrief.md — speckit Phase 4 scope vBRIEFs](../vbrief/vbrief.md#speckit-phase-4-scope-vbriefs) for the canonical convention. (v0.20: proposed/ not pending/.)
 
 Phase 4 scopes are planning containers. They MAY keep broad acceptance in `plan.narratives.Acceptance` and MAY have `plan.items: []`. They are not valid concurrent swarm worker inputs unless explicitly marked as a single-story scope. Broad phase/epic scopes MUST pass through Phase 4.5 before swarm allocation.
 
-! After emitting the phase/epic scope vBRIEF(s) to `vbrief/proposed/`, surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
+! After emitting the phase/epic scope vBRIEF(s) to `xbrief/proposed/`, surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
 
 ### Scope vBRIEF Shape
 
@@ -197,22 +197,22 @@ For each implementation phase IP-N, write a scope vBRIEF with:
       "dependencies": ["ip-1", "ip-2"]
     },
     "references": [
-      { "type": "x-vbrief/plan", "uri": "2026-05-26-ip002-plan.vbrief.json", "TrustLevel": "internal" }
+      { "type": "x-vbrief/plan", "uri": "2026-05-26-ip002-plan.xbrief.json", "TrustLevel": "internal" }
     ],
     "items": []
   }
 }
 ```
 
-### plan.vbrief.json — Session Tracker Only
+### plan.xbrief.json — Session Tracker Only
 
-- ! `plan.vbrief.json` reverts to its canonical session-todo role defined in [vbrief/vbrief.md — plan.vbrief.json](../vbrief/vbrief.md#planvbriefjson). It is the agent-private tactical plan for the current session, not the project-wide IP list.
-- ! While working on a specific scope vBRIEF, `plan.vbrief.json` MUST carry a `planRef` to that scope vBRIEF in `vbrief/proposed/` or `vbrief/active/`.
-- ⊗ Emit the project-wide Phase 4 task list to `plan.vbrief.json` — write per-IP scope vBRIEFs to `vbrief/proposed/` instead.
+- ! `plan.xbrief.json` reverts to its canonical session-todo role defined in [vbrief/vbrief.md — plan.xbrief.json](../vbrief/vbrief.md#planvbriefjson). It is the agent-private tactical plan for the current session, not the project-wide IP list.
+- ! While working on a specific scope vBRIEF, `plan.xbrief.json` MUST carry a `planRef` to that scope vBRIEF in `xbrief/proposed/` or `xbrief/active/`.
+- ⊗ Emit the project-wide Phase 4 task list to `plan.vbrief.json` — write per-IP scope vBRIEFs to `xbrief/proposed/` instead.
 
 ### Migrating Legacy speckit Projects
 
-- ~ Projects that already emitted a speckit-shaped `plan.vbrief.json` (project-wide IP list) can convert to the new model with:
+- ~ Projects that already emitted a speckit-shaped `plan.xbrief.json` (project-wide IP list) can convert to the new model with:
   ```
   python scripts/migrate_vbrief.py --speckit-plan vbrief/plan.vbrief.json
   ```
@@ -230,7 +230,7 @@ For each implementation phase IP-N, write a scope vBRIEF with:
 
 ### Transition Criteria
 
-- ! Every implementation phase from `ImplementationPhases` has a matching scope vBRIEF in `./vbrief/proposed/`
+- ! Every implementation phase from `ImplementationPhases` has a matching scope vBRIEF in `./xbrief/proposed/`
 - ! Each scope vBRIEF has `Description`, `Acceptance`, and `Traces` narratives
 - ! Each scope vBRIEF carries a `references` entry linking back to the parent Phase 3 proposed/ vBRIEF with `TrustLevel: internal`
 - ! Cross-scope dependencies in `plan.metadata.dependencies` form a valid DAG (no cycles)
@@ -241,11 +241,11 @@ For each implementation phase IP-N, write a scope vBRIEF with:
 
 **Goal:** Convert approved Phase 4 phase/epic scopes into child story vBRIEFs suitable for parallel agents.
 
-**Input:** Phase 4 phase/epic vBRIEFs in `./vbrief/pending/` or `./vbrief/active/`.
+**Input:** Phase 4 phase/epic xBRIEFs in `./xbrief/pending/` or `./xbrief/active/` (else legacy `./vbrief/pending/`).
 
 **Output:** Story-level child vBRIEFs whose executable acceptance criteria live in `plan.items` and whose `plan.metadata.swarm` contract proves they are safe to allocate.
 
-! After emitting the story vBRIEF(s) to `vbrief/proposed/`, surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
+! After emitting the story vBRIEF(s) to `xbrief/proposed/`, surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
 
 ### Process
 
@@ -255,7 +255,7 @@ For each implementation phase IP-N, write a scope vBRIEF with:
 4. ! Store the temporary proposal artifact under `vbrief/.triage-cache/decompositions/<parent-slug>.json`; derive `<parent-slug>` from the parent vBRIEF filename by removing `.vbrief.json` and any leading `YYYY-MM-DD-` date prefix.
 5. ! Ask for explicit user approval before writing child story vBRIEFs.
 6. ! Validate the approved draft with `task scope:decompose -- <parent.vbrief.json> --draft vbrief/.triage-cache/decompositions/<parent-slug>.json --check`, then apply it without `--check`.
-7. ! Run `task swarm:readiness -- vbrief/active/*.vbrief.json` before concurrent allocation, or point it at the candidate child story files for a dry readiness review before activation.
+7. ! Run `task swarm:readiness -- xbrief/active/*.vbrief.json` before concurrent allocation, or point it at the candidate child story files for a dry readiness review before activation.
 
 ### Story vBRIEF Requirements
 
@@ -282,12 +282,12 @@ Each Phase 4.5 child story vBRIEF MUST include:
 Use the deterministic command surface:
 
 ```bash
-task scope:decompose -- vbrief/pending/2026-05-12-ip001-auth.vbrief.json --draft vbrief/.triage-cache/decompositions/ip001-auth.json --check
-task scope:decompose -- vbrief/pending/2026-05-12-ip001-auth.vbrief.json --draft vbrief/.triage-cache/decompositions/ip001-auth.json
+task scope:decompose -- xbrief/pending/2026-05-12-ip001-auth.vbrief.json --draft vbrief/.triage-cache/decompositions/ip001-auth.json --check
+task scope:decompose -- xbrief/pending/2026-05-12-ip001-auth.vbrief.json --draft vbrief/.triage-cache/decompositions/ip001-auth.json
 task scope:decompose -- --check
 ```
 
-The draft JSON is a temporary proposal artifact, not a vBRIEF. Agents SHOULD write draft proposals under `vbrief/.triage-cache/decompositions/`, which is gitignored specifically for local decomposition scratch. Derive `<parent-slug>` from the parent vBRIEF filename by removing `.vbrief.json` and any leading `YYYY-MM-DD-` date prefix. Agents MUST NOT leave decomposition draft JSON files at the workspace root. The command validates and applies a proposed decomposition rather than freely inventing one. It creates generated child story vBRIEFs as lifecycle artifacts, defaulting to `vbrief/pending/`, preserves origin/provenance references, sets each child `planRef` to the parent scope, updates parent references to include children, validates the dependency DAG, rejects dependency cycles, and rejects ready stories missing user-story shape, concrete observable acceptance, narrow file scope, focused verify commands, or traces. Parent `plan.items` are input signals, not automatic child stories.
+The draft JSON is a temporary proposal artifact, not a vBRIEF. Agents SHOULD write draft proposals under `vbrief/.triage-cache/decompositions/`, which is gitignored specifically for local decomposition scratch. Derive `<parent-slug>` from the parent vBRIEF filename by removing `.vbrief.json` and any leading `YYYY-MM-DD-` date prefix. Agents MUST NOT leave decomposition draft JSON files at the workspace root. The command validates and applies a proposed decomposition rather than freely inventing one. It creates generated child story vBRIEFs as lifecycle artifacts, defaulting to `xbrief/pending/`, preserves origin/provenance references, sets each child `planRef` to the parent scope, updates parent references to include children, validates the dependency DAG, rejects dependency cycles, and rejects ready stories missing user-story shape, concrete observable acceptance, narrow file scope, focused verify commands, or traces. Parent `plan.items` are input signals, not automatic child stories.
 
 Parent phase/epic acceptance MAY remain in `plan.narratives.Acceptance` as context. Executable acceptance for swarm work MUST be redistributed into child story `plan.items`.
 
@@ -296,7 +296,7 @@ Parent phase/epic acceptance MAY remain in `plan.narratives.Acceptance` as conte
 Use the readiness gate before swarm allocation:
 
 ```bash
-task swarm:readiness -- vbrief/active/*.vbrief.json
+task swarm:readiness -- xbrief/active/*.vbrief.json
 ```
 
 The readiness report lists ready stories, blocked stories, decomposition-needed epics/phases, dependency waves, conflict groups, a file-overlap matrix, and missing fields. It exits non-zero when candidate work is not swarm-ready for concurrent allocation. `readiness=ready` means ready for concurrent allocation; sequential-safe or low-confidence work MUST use another state such as `sequential` or `needs_refinement` and will fail this gate until refined or scheduled outside concurrent swarm allocation.
@@ -317,7 +317,7 @@ The readiness report lists ready stories, blocked stories, decomposition-needed 
 
 **Goal:** Execute scope vBRIEFs following test-first discipline.
 
-**Input:** Story-level scope vBRIEFs in `./vbrief/pending/` (promote to `./vbrief/active/` via `task scope:activate` when work begins). `./vbrief/plan.vbrief.json` holds the current session's tactical todo list and carries a `planRef` to the active scope. Concurrent swarm implementation requires Phase 4.5-ready stories.
+**Input:** Story-level scope vBRIEFs in `./xbrief/pending/` (promote to `./xbrief/active/` via `task scope:activate` when work begins). `./xbrief/plan.xbrief.json` holds the current session's tactical todo list and carries a `planRef` to the active scope. Concurrent swarm implementation requires Phase 4.5-ready stories.
 
 ### Process
 
@@ -325,7 +325,7 @@ The readiness report lists ready stories, blocked stories, decomposition-needed 
 - ! Implement minimal code to pass tests (Green)
 - ! Refactor while keeping tests green (Refactor)
 - ! Update scope vBRIEF `plan.status` and folder via `task scope:*` commands as work progresses (`pending` → `running` → `completed`)
-- ! Update `./vbrief/plan.vbrief.json` session todos as tactical steps progress (session-scoped; do NOT put the project-wide IP list here)
+- ! Update `./xbrief/plan.xbrief.json` session todos as tactical steps progress (session-scoped; do NOT put the project-wide IP list here)
 - ~ Work on story vBRIEFs whose `plan.metadata.swarm.depends_on` entries are already completed in parallel when possible
 
 ### File Creation Order
@@ -337,11 +337,11 @@ The readiness report lists ready stories, blocked stories, decomposition-needed 
 
 ### Guidelines
 
-- ! Follow the `Principles` narrative in `vbrief/PROJECT-DEFINITION.vbrief.json` throughout
+- ! Follow the `Principles` narrative in `xbrief/PROJECT-DEFINITION.xbrief.json` throughout
 - ! Move scope vBRIEFs through lifecycle folders using `task scope:activate|complete|cancel|block|unblock`
 - ⊗ Implement without failing tests first
 - ⊗ Skip refactoring phase
-- ⊗ Write the project-wide IP list to `plan.vbrief.json` — use `vbrief/pending/` scope vBRIEFs as the durable task tracker
+- ⊗ Write the project-wide IP list to `plan.xbrief.json` — use `xbrief/pending/` scope vBRIEFs as the durable task tracker
 - ⊗ Allocate broad `kind=epic` or `kind=phase` scopes to concurrent swarm workers before decomposition
 
 ---
@@ -350,26 +350,26 @@ The readiness report lists ready stories, blocked stories, decomposition-needed 
 
 | Phase | Artifact | Purpose |
 |-------|----------|---------|
-| 1. Principles | `vbrief/PROJECT-DEFINITION.vbrief.json` | Governing rules (Principles narrative) |
-| 2. Specify | date-prefixed in `vbrief/proposed/` | WHAT/WHY narratives (v0.20) |
-| 3. Plan | date-prefixed in `vbrief/proposed/` | HOW narratives (enriches Phase 2; v0.20) |
+| 1. Principles | `xbrief/PROJECT-DEFINITION.xbrief.json` | Governing rules (Principles narrative) |
+| 2. Specify | date-prefixed in `xbrief/proposed/` | WHAT/WHY narratives (v0.20) |
+| 3. Plan | date-prefixed in `xbrief/proposed/` | HOW narratives (enriches Phase 2; v0.20) |
 | 3b. Export (review) | `SPECIFICATION.md` (via `task project:export-spec`) | Read-only human review export (optional; gate requires export succeeded for Phase 3→4) |
 | 3c. Render PRD (derivative) | `PRD.md` (via `task prd:render`, sentinel only) | Optional stakeholder-review export |
-| 4. Tasks | `./vbrief/proposed/YYYY-MM-DD-ip<NNN>-<slug>.vbrief.json` (one per IP/epic) | Phase/epic scope vBRIEFs (v0.20: proposed/) drive roadmap/project render + decomposition |
+| 4. Tasks | `./xbrief/proposed/YYYY-MM-DD-ip<NNN>-<slug>.xbrief.json` (else legacy `./vbrief/proposed/YYYY-MM-DD-ip<NNN>-<slug>.vbrief.json`; one per IP/epic) | Phase/epic scope vBRIEFs (v0.20: proposed/) drive roadmap/project render + decomposition |
 | 4.5. Story decomposition | Child story vBRIEFs with `plan.metadata.swarm` in proposed/ | Swarm-ready executable units (v0.20) |
-| 4b. Session todos | `./vbrief/plan.vbrief.json` | Session-level tactical plan (carries `planRef` to active scope) |
+| 4b. Session todos | `./xbrief/plan.xbrief.json` | Session-level tactical plan (carries `planRef` to active scope) |
 | 5. Implement | Code + tests | Working software, optionally via swarm |
 
 ## Directory Structure (v0.20)
 
 ```
 project/
-├── vbrief/
-│   ├── PROJECT-DEFINITION.vbrief.json  # Phase 1: Principles narrative
+├── xbrief/
+│   ├── PROJECT-DEFINITION.xbrief.json  # Phase 1: Principles narrative
 │   ├── proposed/                       # Phase 2+: date-prefixed WHAT/WHY/HOW + IP scopes + stories
-│   │   └── YYYY-MM-DD-*.vbrief.json
-│   │   └── YYYY-MM-DD-ip001-....vbrief.json
-│   ├── plan.vbrief.json                # Phase 4b: session todos (planRef to active scope)
+│   │   └── YYYY-MM-DD-*.xbrief.json
+│   │   └── YYYY-MM-DD-ip001-....xbrief.json
+│   ├── plan.xbrief.json                # Phase 4b: session todos (planRef to active scope)
 │   └── pending/ active/ etc.           # Lifecycle (seeded empty or with promoted)
 ├── SPECIFICATION.md                    # Optional export (task project:export-spec)
 ├── PRD.md                              # Optional derivative (task prd:render; sentinel only)
@@ -384,11 +384,11 @@ project/
 
 This strategy has been migrated to the full v0.20 output shape so speckit-generated projects are accepted by the build skill Pre-Cutover Detection Guard with zero errors on first attempt (resolves the speckit row from the #1166 inconsistency table and the s5 story acceptance criteria, including story-level vBRIEFs in proposed/ instead of only phase/epic in pending/).
 
-- ! Seed the five lifecycle folders under `vbrief/` if any are missing: `proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`.
-- ! Emit all scope items (principles context, spec phases/stories, implementation phases/epics) exclusively as date-prefixed scope vBRIEFs in `vbrief/proposed/YYYY-MM-DD-<kebab-slug>.vbrief.json` (or the ipNNN convention for phases per vbrief.md). For speckit, phases use `YYYY-MM-DD-ip<NNN>-<slug>.vbrief.json` in proposed/; stories from Phase 4.5 also in proposed/. Decompose plans into focused, buildable vBRIEFs (v0.6 schema) rather than a monolithic legacy spec.
-- ! After the proposed/ vBRIEFs are written (or at Phase 3/4 boundaries), invoke `task project:render` from the repo root to generate/refresh the complete `vbrief/PROJECT-DEFINITION.vbrief.json` (items registry derived from the lifecycle folders). For human review at Phase 3→4, invoke `task project:export-spec` (or `--audience=internal` when proposed scopes must appear in `## Scope outlook`).
-- ⊗ Never emit `vbrief/specification.vbrief.json` (or any legacy dual-write).
-- ~ `SPECIFICATION.md` / `PRD.md` at the project root, if produced at all, are read-only exports from `task project:export-spec` / `task prd:render`. The source of truth is the vbrief/ lifecycle (proposed/ phases + stories) + PROJECT-DEFINITION. Legacy `task spec:render` applies only to migrated trees with `vbrief/specification.vbrief.json`.
+- ! Seed the five lifecycle folders under `xbrief/` if any are missing: `proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`.
+- ! Emit all scope items (principles context, spec phases/stories, implementation phases/epics) exclusively as date-prefixed scope vBRIEFs in `xbrief/proposed/YYYY-MM-DD-<kebab-slug>.xbrief.json` (or the ipNNN convention for phases per vbrief.md). For speckit, phases use `YYYY-MM-DD-ip<NNN>-<slug>.xbrief.json` in proposed/; stories from Phase 4.5 also in proposed/. Decompose plans into focused, buildable vBRIEFs (v0.6 schema) rather than a monolithic legacy spec.
+- ! After the proposed/ vBRIEFs are written (or at Phase 3/4 boundaries), invoke `task project:render` from the repo root to generate/refresh the complete `xbrief/PROJECT-DEFINITION.xbrief.json` (items registry derived from the lifecycle folders). For human review at Phase 3→4, invoke `task project:export-spec` (or `--audience=internal` when proposed scopes must appear in `## Scope outlook`).
+- ⊗ Never emit `vbrief/specification.vbrief.json` (or any legacy dual-write). Live identity is `xbrief/PROJECT-DEFINITION.xbrief.json`; legacy `vbrief/PROJECT-DEFINITION.vbrief.json` is read-accepted until `deft migrate:xbrief`.
+- ~ `SPECIFICATION.md` / `PRD.md` at the project root, if produced at all, are read-only exports from `task project:export-spec` / `task prd:render`. The source of truth is the xbrief/ lifecycle (proposed/ phases + stories) + PROJECT-DEFINITION. Legacy `task spec:render` applies only to migrated trees with `vbrief/specification.vbrief.json`.
 - ! Before writing any proposed/ vBRIEFs or PROJECT-DEFINITION, follow the guards in [artifact-guards.md](./artifact-guards.md) (Preparatory Guard for scope items in proposed/; Spec-Generating Guard for PROJECT-DEFINITION).
 - ! Final output tree must pass the deterministic v0.20 strategy output validation gate (s2-deterministic-gate) and the build Pre-Cutover Detection Guard with zero warnings/errors. See full acceptance in the s5 vBRIEF (a1: date-prefixed stories in proposed/ + deterministic gate; a2: speckit story-level in proposed/ not only pending phases; a3: no legacy specification.vbrief.json) and the 1166 decomposition.
 - ! Cite the canonical contract `strategies/v0-20-contract.md` (s1-contract) for the exact shape and the per-strategy table row (speckit: Yes lifecycle; Yes PROJECT-DEFINITION Phase 1+; proposed/ (phases + stories date-prefixed); Never specification.vbrief.json; `task project:export-spec` for SPEC export).
@@ -401,11 +401,11 @@ This strategy has been migrated to the full v0.20 output shape so speckit-genera
 
 | Artifact | Purpose | Created By |
 |----------|---------|------------|
-| `vbrief/PROJECT-DEFINITION.vbrief.json` | Principles + full items registry | Speckit Phase 1 + `task project:render` |
-| `vbrief/proposed/YYYY-MM-DD-*.vbrief.json` + `YYYY-MM-DD-ipNNN-*.vbrief.json` | All spec (WHAT/WHY/HOW) + phases/epics/stories (date-prefixed; per v0.20 contract and vbrief.md speckit convention) | Speckit Phases 2-4.5 |
-| `vbrief/{proposed,pending,active,completed,cancelled}/` | All five lifecycle folders seeded | Speckit |
+| `xbrief/PROJECT-DEFINITION.xbrief.json` | Principles + full items registry | Speckit Phase 1 + `task project:render` |
+| `xbrief/proposed/YYYY-MM-DD-*.xbrief.json` + `YYYY-MM-DD-ipNNN-*.xbrief.json` | All spec (WHAT/WHY/HOW) + phases/epics/stories (date-prefixed; per v0.20 contract and vbrief.md speckit convention) | Speckit Phases 2-4.5 |
+| `xbrief/{proposed,pending,active,completed,cancelled}/` | All five lifecycle folders seeded | Speckit |
 | (optional export) `SPECIFICATION.md` / `PRD.md` | Human-readable spec export | `task project:export-spec` / `task prd:render` |
-| `vbrief/plan.vbrief.json` | Session-level tactical plan (planRef to active) | Speckit (internal) |
+| `xbrief/plan.xbrief.json` | Session-level tactical plan (planRef to active) | Speckit (internal) |
 
 **Pre-v0.20 / legacy artifacts that MUST NOT be produced by this strategy:**
 
@@ -419,7 +419,7 @@ See the full table and rules in `strategies/v0-20-contract.md` (speckit row repr
 
 ## Invoking This Strategy
 
-Set in PROJECT-DEFINITION.vbrief.json narratives:
+Set in PROJECT-DEFINITION.xbrief.json narratives:
 ```json
 "Strategy": "strategies/speckit.md"
 ```
