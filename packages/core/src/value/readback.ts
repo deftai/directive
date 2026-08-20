@@ -516,11 +516,13 @@ function attachCeremonyCost(
             ceremonyCost,
             process_cost_events: PROCESS_COST_EVENT_NAMES,
             gated: result.gated,
+            attribution_gated: result.gated,
           }
         : {
             ceremonyCost,
             process_cost_events: PROCESS_COST_EVENT_NAMES,
             gated: result.gated,
+            attribution_gated: result.gated,
             empty: result.empty,
           };
     return {
@@ -570,9 +572,11 @@ export function runValueShow(options: {
     return attachCeremonyCost(
       {
         exitCode: 0,
-        gated: true,
+        gated: false,
         empty: true,
-        text: "[value] Skipped: maintainer framework repo (set DEFT_VALUE_SELF_DOGFOOD=1 to dogfood).\n",
+        text:
+          "[value] Attribution skipped: maintainer framework repo " +
+          "(set DEFT_VALUE_SELF_DOGFOOD=1 to dogfood).\n",
         trend: null,
       },
       ceremonyCost,
