@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { clearRegistryCache } from "../lifecycle/events.js";
+import { PROCESS_COST_EVENT_NAMES } from "../session/process-cost.js";
 import {
   computeValueShowTrend,
   emitSessionValueReadback,
@@ -315,6 +316,70 @@ describe("value:show trend readout", () => {
     const result = runValueShow({ projectRoot: root });
     expect(result.exitCode).toBe(1);
     expect(result.gated).toBe(true);
+    expect(result.text).toContain("CLI process time");
+    const gatedJson = runValueShow({ projectRoot: root, format: "json" });
+    expect(gatedJson.exitCode).toBe(1);
+    expect(gatedJson.text).toContain("CLI process time");
+    expect(gatedJson.text.trim().startsWith("{")).toBe(false);
+  });
+
+  it("composes ceremony-cost rollup from process-cost events (#3508)", () => {
+    const root = makeRepo({
+      valueFeedback: { enabled: true },
+      events: [
+        {
+          event: PROCESS_COST_EVENT_NAMES.sessionStart,
+          payload: {
+            ceremony_tier: "cold",
+            duration_ms: 321,
+            exit_code: 0,
+            steps: [
+              { name: "alignment", duration_ms: 11 },
+              { name: "ritual_write", duration_ms: 4 },
+            ],
+          },
+          detected_at: "2026-08-19T12:00:00Z",
+        },
+        {
+          event: PROCESS_COST_EVENT_NAMES.sessionStart,
+          payload: { ceremony_tier: "rearm", duration_ms: 18, exit_code: 0 },
+          detected_at: "2026-08-19T13:00:00Z",
+        },
+        {
+          event: PROCESS_COST_EVENT_NAMES.sessionRitualBlocked,
+          payload: { tool_name: "Write", code: "ritual-not-ready", recovery_tier: "cold" },
+          detected_at: "2026-08-19T13:05:00Z",
+        },
+      ],
+    });
+    const result = runValueShow({
+      projectRoot: root,
+      window: "7d",
+      now: new Date("2026-08-20T00:00:00Z"),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.text).toContain("last cold: 321ms");
+    expect(result.text).toContain("last re-arm: 18ms");
+    expect(result.text).toContain(
+      "steps (last cold session:start): alignment=11ms, ritual_write=4ms",
+    );
+    expect(result.text).toContain("blocked-ritual");
+    expect(result.text).toContain("cold=1");
+    expect(result.text).toContain("not agent-turn wall clock");
+    expect(result.ceremonyCost?.kind).toBe("cli_process_time");
+    expect(result.ceremonyCost?.lastColdDurationMs).toBe(321);
+
+    const json = runValueShow({
+      projectRoot: root,
+      format: "json",
+      now: new Date("2026-08-20T00:00:00Z"),
+    });
+    const parsed = JSON.parse(json.text) as {
+      ceremonyCost: { lastColdDurationMs: number };
+      process_cost_events: { sessionStart: string };
+    };
+    expect(parsed.ceremonyCost.lastColdDurationMs).toBe(321);
+    expect(parsed.process_cost_events.sessionStart).toBe(PROCESS_COST_EVENT_NAMES.sessionStart);
   });
 });
 

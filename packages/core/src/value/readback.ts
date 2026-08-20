@@ -12,6 +12,12 @@ import {
   type ValueFeedbackResolved,
 } from "../policy/value-feedback.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
+import {
+  type CeremonyCostRollup,
+  computeCeremonyCostRollup,
+  formatCeremonyCostReport,
+  PROCESS_COST_EVENT_NAMES,
+} from "../session/process-cost.js";
 import { MAX_LINE_CHARS } from "../triage/welcome/constants.js";
 import { probeAdoptionAtWorkBoundary } from "./adoption-emit.js";
 import { probeFrictionAtWorkBoundary } from "./friction-emit.js";
@@ -55,6 +61,8 @@ export interface ValueShowResult {
   readonly empty: boolean;
   readonly text: string;
   readonly trend: ValueShowTrend | null;
+  /** Composed #3508 ceremony-cost rollup (CLI process time, not turn clock). */
+  readonly ceremonyCost: CeremonyCostRollup | null;
 }
 
 export interface SessionReadbackResult {
@@ -495,7 +503,34 @@ export function formatValueShowReport(trend: ValueShowTrend): string {
   return `${lines.join("\n")}\n`;
 }
 
-/** Pull-based value:show CLI core (#1709). */
+function attachCeremonyCost(
+  result: Omit<ValueShowResult, "ceremonyCost">,
+  ceremonyCost: CeremonyCostRollup,
+  format: "text" | "json" | undefined,
+): ValueShowResult {
+  if (format === "json" && !result.gated && result.trend !== null) {
+    return {
+      ...result,
+      ceremonyCost,
+      text: `${JSON.stringify(
+        {
+          ...result.trend,
+          ceremonyCost,
+          process_cost_events: PROCESS_COST_EVENT_NAMES,
+        },
+        null,
+        2,
+      )}\n`,
+    };
+  }
+  return {
+    ...result,
+    ceremonyCost,
+    text: `${result.text}${formatCeremonyCostReport(ceremonyCost)}`,
+  };
+}
+
+/** Pull-based value:show CLI core (#1709) with composed ceremony-cost reader (#3508). */
 export function runValueShow(options: {
   projectRoot?: string | null;
   window?: string;
@@ -512,34 +547,50 @@ export function runValueShow(options: {
       empty: true,
       text: "Error: could not resolve project root.\n",
       trend: null,
+      ceremonyCost: null,
     };
   }
   const root = resolve(rootRaw);
+  const windowMs = parseWindowMs(options.window);
+  const ceremonyCost = computeCeremonyCostRollup({
+    projectRoot: root,
+    logPath: options.logPath,
+    windowMs,
+    now: options.now,
+    windowLabel: formatWindowLabel(windowMs),
+  });
 
   if (maintainerReadbackDisabled(root)) {
-    return {
-      exitCode: 0,
-      gated: true,
-      empty: true,
-      text: "[value] Skipped: maintainer framework repo (set DEFT_VALUE_SELF_DOGFOOD=1 to dogfood).\n",
-      trend: null,
-    };
+    return attachCeremonyCost(
+      {
+        exitCode: 0,
+        gated: true,
+        empty: true,
+        text: "[value] Skipped: maintainer framework repo (set DEFT_VALUE_SELF_DOGFOOD=1 to dogfood).\n",
+        trend: null,
+      },
+      ceremonyCost,
+      options.format,
+    );
   }
 
   const policy = options.policyOverride ?? resolveValueFeedback(root);
   if (!policy.enabled) {
-    return {
-      exitCode: 1,
-      gated: true,
-      empty: true,
-      text:
-        "[value] Blocked: plan.policy.valueFeedback is OFF. " +
-        `Enable with \`${policyColonInvocation("enable-value-feedback", " -- --confirm")}\`.\n`,
-      trend: null,
-    };
+    return attachCeremonyCost(
+      {
+        exitCode: 1,
+        gated: true,
+        empty: true,
+        text:
+          "[value] Blocked: plan.policy.valueFeedback is OFF. " +
+          `Enable with \`${policyColonInvocation("enable-value-feedback", " -- --confirm")}\`.\n`,
+        trend: null,
+      },
+      ceremonyCost,
+      options.format,
+    );
   }
 
-  const windowMs = parseWindowMs(options.window);
   const trend = computeValueShowTrend(root, {
     windowMs,
     logPath: options.logPath,
@@ -548,22 +599,30 @@ export function runValueShow(options: {
   const empty = trend.total === 0;
 
   if (options.format === "json") {
-    return {
+    return attachCeremonyCost(
+      {
+        exitCode: 0,
+        gated: false,
+        empty,
+        text: `${JSON.stringify(trend, null, 2)}\n`,
+        trend,
+      },
+      ceremonyCost,
+      "json",
+    );
+  }
+
+  return attachCeremonyCost(
+    {
       exitCode: 0,
       gated: false,
       empty,
-      text: `${JSON.stringify(trend, null, 2)}\n`,
+      text: formatValueShowReport(trend),
       trend,
-    };
-  }
-
-  return {
-    exitCode: 0,
-    gated: false,
-    empty,
-    text: formatValueShowReport(trend),
-    trend,
-  };
+    },
+    ceremonyCost,
+    "text",
+  );
 }
 
 export interface ValueShowCliArgs {

@@ -91,9 +91,10 @@ import {
 import {
   type OrientationBundle,
   type RunOrientationOptions,
+  resolveSessionCompact,
   runOrientationCompression,
 } from "./orientation-compression.js";
-import { emitSessionStartProcessCost } from "./process-cost.js";
+import { emitSessionStartProcessCost, formatSessionStartCeremonyCostLine } from "./process-cost.js";
 import {
   probeSessionReleaseAvailability,
   type ReleaseAvailabilityProbeOptions,
@@ -1065,6 +1066,10 @@ function runSessionRearm(
     },
     { projectRoot },
   );
+  // #3508: operator-visible CLI process time. ⊗ not #3286 Later graduation input.
+  if (!resolveSessionCompact({ compact: options.compact, env: options.env })) {
+    lines.push(formatSessionStartCeremonyCostLine(REARM_CEREMONY_TIER, totalMs));
+  }
   return {
     code,
     payload: {
@@ -1843,6 +1848,10 @@ export function runSessionStart(
     },
     { projectRoot },
   );
+  // #3508: operator-visible CLI process time. ⊗ not #3286 Later graduation input.
+  if (!resolveSessionCompact({ compact: options.compact, env: options.env })) {
+    lines.push(formatSessionStartCeremonyCostLine(COLD_CEREMONY_TIER, totalMs));
+  }
   return { code, payload: resultPayload, lines };
 }
 

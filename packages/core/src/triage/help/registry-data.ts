@@ -674,7 +674,7 @@ export const registryData = {
       summary: "Attributed-value trend from the events ledger",
       refs: "(#1709)",
       description:
-        "Report value-feedback attribution trends from .deft-cache/events.jsonl: total signal count plus per-class (value, bypass, adoption, friction) and per-event breakdowns over a time window. Alias of the value:show handler. Requires plan.policy.valueFeedback.enabled (default OFF) — exits blocked when disabled; an empty ledger prints a no-signals message. In the maintainer repo, skipped unless DEFT_VALUE_SELF_DOGFOOD=1.",
+        "Report value-feedback attribution trends from .deft-cache/events.jsonl: total signal count plus per-class (value, bypass, adoption, friction) and per-event breakdowns over a time window. Also composes a ceremony-cost rollup (#3508): last cold vs re-arm CLI process time, per-step ms, blocked-ritual count, recovery-tier distribution. Alias of the value:show handler. Attribution requires plan.policy.valueFeedback.enabled (default OFF) — exits blocked when disabled, but still prints the ceremony-cost section. An empty attribution ledger prints a no-signals message. In the maintainer repo, attribution is skipped unless DEFT_VALUE_SELF_DOGFOOD=1.",
       usage: "task triage:metrics [-- --window=7d] [--format=text|json]",
       flags: [
         ["--window WINDOW", "7d", "Time window (e.g. 7d, 30d, 24h)."],

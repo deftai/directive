@@ -282,6 +282,33 @@ describe("runSessionStart hot path + step timings (#2991)", () => {
     expect(Array.isArray(start?.payload.steps)).toBe(true);
   });
 
+  it("prints one ceremony-cost line with tier and total (#3508)", () => {
+    const root = tempRoot();
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () =>
+        userMdResult({ path: join(root, "USER.md"), rung: "workspace-local" }),
+      ),
+      compact: false,
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(0);
+    const line = result.lines.find((entry) => entry.startsWith("[deft session] ceremony "));
+    expect(line).toMatch(/^\[deft session\] ceremony cold \d+ms$/);
+  });
+
+  it("hides the ceremony-cost line when compact is on (#3508 / #3286)", () => {
+    const root = tempRoot();
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () =>
+        userMdResult({ path: join(root, "USER.md"), rung: "workspace-local" }),
+      ),
+      compact: true,
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(0);
+    expect(result.lines.some((entry) => entry.startsWith("[deft session] ceremony "))).toBe(false);
+  });
+
   it("runs release probe when allowOptionalNetwork is true", () => {
     const root = tempRoot();
     let releaseCalls = 0;

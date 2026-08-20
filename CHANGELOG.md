@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Ceremony-cost reader on `value:show` plus a `session:start` duration line (#3508).** `task value:show` rolls up last cold vs re-arm CLI process time, per-step ms, blocked-ritual count, and recovery-tier distribution from `.deft-cache/events.jsonl`. Mutation `session:start` prints one `ceremony <tier> <ms>` line unless `--compact` / `DEFT_SESSION_COMPACT` hides it. Measures CLI process time, not agent-turn wall clock. ⊗ not #3286 Later graduation input. Closes #3508. Refs #2994, #3500, #3286.
 - **Gated `cache_fresh` skips the live drift probe only when no work selection is in play (#3507).** The gated argv is no longer a constant `verify:cache-fresh` with missing `--for-issue` as a fake discriminator. An explicit `--work-selection` / `--skip-drift-probe` flag is threaded from active story xBRIEF, unexhausted plan-sequence, or an injectable detector. Age staleness stays hard. Ritual state records `drift_probe: skipped-no-work-selection` as a distinct field, never `deferred_reason`. The probe re-arms when work selection appears. Closes #3507. Refs #3500, #1149, #3214, #1886.
 - **Land leftover completed-tracked artifact for #3527 (#3264 / #1358).** The #3527 xBRIEF stayed untracked after squash of PR 3531. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
 

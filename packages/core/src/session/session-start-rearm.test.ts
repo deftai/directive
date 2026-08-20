@@ -133,6 +133,7 @@ describe("session re-arm vs cold ceremony tiers (#2992)", () => {
     const rearmAt = new Date("2026-07-20T16:30:00Z");
     const result = runSessionStart(root, {
       ceremonyTier: REARM_CEREMONY_TIER,
+      compact: false,
       now: rearmAt,
       writeHistory: false,
       runGit: fakeGit(root, { head }),
@@ -169,6 +170,9 @@ describe("session re-arm vs cold ceremony tiers (#2992)", () => {
     expect(releaseCalls).toBe(0);
     expect(ticklerCalls).toBe(0);
     expect(result.lines).toContain(REARM_SKIPPED_FAT_PATH_MESSAGE);
+    expect(
+      result.lines.some((entry) => /^\[deft session\] ceremony rearm \d+ms$/.test(entry)),
+    ).toBe(true);
     expect(result.payload.ceremony_tier).toBe("rearm");
     expect(result.payload.message).toBe("session ritual re-armed");
     expect(result.payload.optional_network).toBe(false);
