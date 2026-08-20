@@ -10,11 +10,17 @@ vi.mock("../scope/transition.js", () => ({
 import { CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION } from "../intake/clause-derivation.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import { runTransition } from "../scope/transition.js";
+import { EXIT_CONFIG_ERROR, EXIT_OK } from "./constants.js";
 import { finalizeCohort } from "./finalize-cohort.js";
-import { finalizeCohortMain } from "./finalize-cohort-cli.js";
+import { finalizeCohortMain, parseFinalizeCohortArgv } from "./finalize-cohort-cli.js";
 import type { TextCaptureResult } from "./subprocess.js";
 
-function writeActiveStory(project: string, storyId: string, issueNumber: number): string {
+function writeActiveStory(
+  project: string,
+  storyId: string,
+  issueNumber: number,
+  opts: { deliveryBranch?: string } = {},
+): string {
   const full = join(project, "xbrief", "active", `${storyId}.xbrief.json`);
   mkdirSync(join(project, "xbrief", "active"), { recursive: true });
   writeFileSync(
@@ -23,7 +29,11 @@ function writeActiveStory(project: string, storyId: string, issueNumber: number)
       plan: {
         title: "Project",
         status: "running",
-        policy: { allowDirectCommitsToMaster: false, wipCap: 10 },
+        policy: {
+          allowDirectCommitsToMaster: false,
+          wipCap: 10,
+          ...(opts.deliveryBranch !== undefined ? { deliveryBranch: opts.deliveryBranch } : {}),
+        },
       },
     }),
     "utf8",
@@ -605,5 +615,174 @@ describe("finalizeCohort", () => {
     expect(result.result.sweep?.parents.some((p) => p.action === "activate+complete")).toBe(true);
     expect(result.stdout).toContain(CLAUSE_STAMP_IMPLEMENTATION_ONLY_REMEDIATION);
     rmSync(project, { recursive: true, force: true });
+  });
+});
+
+describe("finalize-cohort sweep base and argv (#3554)", () => {
+  function capturingGit(): {
+    runGit: (command: readonly string[]) => TextCaptureResult;
+    commands: string[][];
+  } {
+    const commands: string[][] = [];
+    const inner = mockRunGit();
+    return {
+      commands,
+      runGit: (command) => {
+        commands.push([...command]);
+        return inner(command);
+      },
+    };
+  }
+
+  it("defaults sweep base to the resolved delivery branch and does not fetch origin/master", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-main-"));
+    const storyPath = writeActiveStory(project, "story-main", 3554, { deliveryBranch: "main" });
+    const { runGit, commands } = capturingGit();
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      label: "story-main",
+      repo: "deftai/directive",
+      runGit,
+      runGh: mockRunGh({}),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.result.sweep_base).toBe("main");
+    expect(result.result.delivery_branch).toBe("main");
+    expect(result.stdout).toContain("Delivery branch: main");
+    expect(result.stdout).toContain("Sweep base: main");
+    const fetches = commands.filter((c) => c.includes("fetch"));
+    expect(fetches.some((c) => c.includes("origin") && c.includes("master"))).toBe(false);
+    expect(fetches.some((c) => c.includes("origin") && c.includes("main"))).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("prints both names and proceeds when an explicit --base-branch differs from delivery", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-override-"));
+    const storyPath = writeActiveStory(project, "story-over", 3554, { deliveryBranch: "main" });
+    const { runGit, commands } = capturingGit();
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      label: "story-over",
+      repo: "deftai/directive",
+      baseBranch: "develop",
+      runGit,
+      runGh: mockRunGh({}),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.result.ok).toBe(true);
+    expect(result.result.delivery_branch).toBe("main");
+    expect(result.result.sweep_base).toBe("develop");
+    expect(result.stdout).toContain("Delivery branch: main");
+    expect(result.stdout).toContain("Sweep base: develop");
+    const fetches = commands.filter((c) => c.includes("fetch"));
+    expect(fetches.some((c) => c.includes("origin") && c.includes("develop"))).toBe(true);
+    expect(fetches.some((c) => c.includes("origin") && c.includes("master"))).toBe(false);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("omits baseBranch unless --base-branch is passed (space and equals form)", () => {
+    const omitted = parseFinalizeCohortArgv(["--stories", "story-a", "--no-commit"]);
+    expect(omitted.error).toBeNull();
+    expect(omitted.help).toBe(false);
+    expect(omitted.baseBranch).toBeUndefined();
+
+    const space = parseFinalizeCohortArgv(["--base-branch", "develop", "--stories", "story-a"]);
+    expect(space.error).toBeNull();
+    expect(space.baseBranch).toBe("develop");
+
+    const equals = parseFinalizeCohortArgv(["--base-branch=main", "--stories", "story-a"]);
+    expect(equals.error).toBeNull();
+    expect(equals.baseBranch).toBe("main");
+  });
+
+  it("parses remaining value flags in space and equals form", () => {
+    const space = parseFinalizeCohortArgv([
+      "--pr",
+      "9,10",
+      "--stories",
+      "story-b",
+      "--repo",
+      "acme/app",
+      "--project-root",
+      "/tmp/space",
+      "--delivery-branch",
+      "trunk",
+      "--label",
+      "wave2",
+      "--no-commit",
+    ]);
+    expect(space.error).toBeNull();
+    expect(space.prNumbers).toEqual([9, 10]);
+    expect(space.storyTokens).toEqual(["story-b"]);
+    expect(space.repo).toBe("acme/app");
+    expect(space.projectRoot).toBe("/tmp/space");
+    expect(space.deliveryBranch).toBe("trunk");
+    expect(space.label).toBe("wave2");
+    expect(space.noCommit).toBe(true);
+
+    const parsed = parseFinalizeCohortArgv([
+      "--pr=12",
+      "--stories=story-a",
+      "--repo=deftai/directive",
+      "--project-root=/tmp/proj",
+      "--delivery-branch=main",
+      "--label=wave1",
+      "--dry-run",
+      "--no-open-pr",
+      "--json",
+    ]);
+    expect(parsed.error).toBeNull();
+    expect(parsed.prNumbers).toEqual([12]);
+    expect(parsed.storyTokens).toEqual(["story-a"]);
+    expect(parsed.repo).toBe("deftai/directive");
+    expect(parsed.projectRoot).toBe("/tmp/proj");
+    expect(parsed.deliveryBranch).toBe("main");
+    expect(parsed.label).toBe("wave1");
+    expect(parsed.dryRun).toBe(true);
+    expect(parsed.noOpenPr).toBe(true);
+    expect(parsed.emitJson).toBe(true);
+  });
+
+  it("rejects empty equals-form values as unrecognized arguments", () => {
+    for (const flag of ["--base-branch=", "--stories=", "--project-root=", "--label="]) {
+      const parsed = parseFinalizeCohortArgv([flag]);
+      expect(parsed.error).toBe(`unrecognized argument: ${flag}`);
+    }
+  });
+
+  it("fails closed on unrecognized arguments including boolean equals forms", () => {
+    for (const flag of ["--dry-run=true", "--no-commit=1", "--wat"]) {
+      const parsed = parseFinalizeCohortArgv([flag, "--stories", "story-a"]);
+      expect(parsed.error).toBe(`unrecognized argument: ${flag}`);
+    }
+  });
+
+  it("prints usage and exits 0 on --help / -h before any git mutation", () => {
+    const chunks: string[] = [];
+    const errChunks: string[] = [];
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      chunks.push(String(chunk));
+      return true;
+    });
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      errChunks.push(String(chunk));
+      return true;
+    });
+    try {
+      for (const flag of ["--help", "-h"]) {
+        chunks.length = 0;
+        const code = finalizeCohortMain([flag, "--project-root", "/definitely-not-a-repo"]);
+        expect(code).toBe(EXIT_OK);
+        expect(chunks.join("")).toMatch(/Usage:/);
+        expect(chunks.join("")).toMatch(/--base-branch/);
+      }
+      expect(finalizeCohortMain(["--dry-run=true"])).toBe(EXIT_CONFIG_ERROR);
+      expect(errChunks.join("")).toContain("unrecognized argument: --dry-run=true");
+    } finally {
+      stdout.mockRestore();
+      stderr.mockRestore();
+    }
   });
 });

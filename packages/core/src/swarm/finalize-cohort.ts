@@ -30,6 +30,7 @@ export interface FinalizeCohortResult {
   readonly branch: string | null;
   readonly pr_url: string | null;
   readonly delivery_branch: string | null;
+  readonly sweep_base: string;
   readonly delivery_errors: readonly string[];
   readonly errors: readonly string[];
   readonly warnings: readonly string[];
@@ -444,8 +445,6 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
   const prNumbers = [...(args.prNumbers ?? [])].sort((a, b) => a - b);
   const storyTokens = splitCsv(args.storyTokens ?? []);
   const repo = args.repo ?? process.env.GH_REPO ?? null;
-  // baseBranch is for the lifecycle sweep PR only — not delivery proof (#3041).
-  const baseBranch = args.baseBranch ?? "master";
   const dryRun = args.dryRun ?? false;
   const noCommit = args.noCommit ?? false;
   const noOpenPr = args.noOpenPr ?? false;
@@ -473,6 +472,13 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
     policyDelivery.source === "typed"
       ? policyDelivery.branch
       : (cliDelivery ?? policyDelivery.branch);
+  // Sweep/PR base is distinct from delivery proof (#3041). Default via the resolved
+  // delivery branch — never a hardcoded "master". --base-branch remains the override.
+  const explicitSweepBase =
+    args.baseBranch !== undefined && args.baseBranch !== null && args.baseBranch.trim().length > 0
+      ? args.baseBranch.trim()
+      : null;
+  const baseBranch = explicitSweepBase ?? deliveryBranch;
 
   if (!existsSync(projectRoot)) {
     return buildResponse({
@@ -487,6 +493,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       branch: null,
       prUrl: null,
       deliveryBranch,
+      sweepBase: baseBranch,
       deliveryErrors: [],
       errors: [`project root does not exist: ${projectRoot}`],
       warnings: [],
@@ -509,6 +516,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       branch: null,
       prUrl: null,
       deliveryBranch,
+      sweepBase: baseBranch,
       deliveryErrors: [],
       errors: [`no xbrief/ directory under project root: ${projectRoot}`],
       warnings: [],
@@ -691,6 +699,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       branch: null,
       prUrl: null,
       deliveryBranch,
+      sweepBase: baseBranch,
       deliveryErrors,
       errors,
       warnings,
@@ -718,6 +727,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       branch: null,
       prUrl: null,
       deliveryBranch,
+      sweepBase: baseBranch,
       deliveryErrors,
       errors,
       warnings,
@@ -822,6 +832,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       branch: null,
       prUrl: null,
       deliveryBranch,
+      sweepBase: baseBranch,
       deliveryErrors,
       errors,
       warnings,
@@ -870,6 +881,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
     branch,
     prUrl,
     deliveryBranch,
+    sweepBase: baseBranch,
     deliveryErrors,
     errors,
     warnings,
@@ -891,6 +903,7 @@ function buildResponse(input: {
   branch: string | null;
   prUrl: string | null;
   deliveryBranch: string | null;
+  sweepBase: string;
   deliveryErrors: readonly string[];
   errors: readonly string[];
   warnings: readonly string[];
@@ -910,6 +923,7 @@ function buildResponse(input: {
     branch: input.branch,
     pr_url: input.prUrl,
     delivery_branch: input.deliveryBranch,
+    sweep_base: input.sweepBase,
     delivery_errors: input.deliveryErrors,
     errors: input.errors,
     warnings: input.warnings,
@@ -933,6 +947,7 @@ function buildResponse(input: {
   if (input.deliveryBranch !== null) {
     lines.push(`  Delivery branch: ${input.deliveryBranch}`);
   }
+  lines.push(`  Sweep base: ${input.sweepBase}`);
   if (input.prNumbers.length > 0) {
     lines.push(`  PRs: ${input.prNumbers.map((n) => `#${n}`).join(", ")}`);
   }
