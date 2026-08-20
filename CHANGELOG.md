@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+### Security
+
+- **Release closed-verb gate fires on tag push / npm publish, not only the GitHub draft flip (#3527).** `task release` refuses Step 10–11 (`git tag` + `git push --atomic` of `v*`) without a human-origin `release-publish` grant or `DEFT_ALLOW_RELEASE_PUBLISH=1`. `--skip-tag` and dry-run stay ungated. `release:publish` draft-flip refusal is unchanged. The v0.105.0 sequence (tag push shipped npm with no authz; gate fired later on draft flip) is now a fail-closed test. Refs #716, #3110, #1095.
+
 ### Fixed
 
 ### Removed

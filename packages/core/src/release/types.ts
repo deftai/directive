@@ -1,4 +1,7 @@
 /* v8 ignore file -- type-only surface */
+import type { EnvMap } from "../authz/closed-verb.js";
+import type { HumanOriginGrant } from "../authz/types.js";
+
 export interface ReleaseConfig {
   readonly version: string;
   readonly repo: string;
@@ -102,4 +105,14 @@ export interface ReleaseSeams {
   readonly headSha?: (projectRoot: string) => string | null;
   /** #3187 — CI detector; when true suite stamp is never trusted. */
   readonly isCi?: () => boolean;
+  /**
+   * #3527 — closed-verb grants for the tag-push / npm-publish gate.
+   * When omitted, production loads active human-origin grants from disk.
+   */
+  readonly closedVerbGrants?: readonly HumanOriginGrant[];
+  /**
+   * #3527 — env map for DEFT_ALLOW_RELEASE_PUBLISH. When omitted, process.env.
+   * Tests inject `{}` so a host env bypass cannot leak into fail-closed cases.
+   */
+  readonly closedVerbEnv?: EnvMap;
 }
