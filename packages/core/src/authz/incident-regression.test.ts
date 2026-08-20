@@ -1642,6 +1642,8 @@ describe("UAT residual dest-form writers fail-closed (#3545)", () => {
       "make DESTDIR=.deft/authz/grants distclean",
       "make DESTDIR=.deft/authz/grants check",
       "git log make DESTDIR=.deft/authz/grants",
+      "find -exec echo make DESTDIR=.deft/authz/grants",
+      "find . -exec echo make DESTDIR=.deft/authz/grants ;",
       "find . -name make DESTDIR=.deft/authz/grants",
       "dpkg --info .deft/authz/grants/package.deb",
       "pdftk .deft/authz/grants/input.pdf dump_data",

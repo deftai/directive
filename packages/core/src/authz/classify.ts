@@ -1348,8 +1348,10 @@ const DEST_ASSIGNMENT_KEYS = new Set(["destdir", "prefix", "install_root", "dest
 const DEST_ASSIGNMENT_OWNER_BINS = new Set(["make", "gmake"]);
 /**
  * First-command bins that print/read: a later `make` token is data, not the writer
- * (`echo DESTDIR=… make`, `git log make DESTDIR=…`). Search/launchers (`find`)
- * are not in this set — their `-exec` / `-c` payload can still be the writer.
+ * (`echo DESTDIR=… make`, `git log make DESTDIR=…`). Also the first command of a
+ * search-launcher `-exec` / `-c` payload (`find -exec echo make DESTDIR=`).
+ * Search/launchers themselves are not in this set — `find -exec make DESTDIR=`
+ * still harvests the payload writer.
  */
 const DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS = new Set([
   "echo",
@@ -1379,6 +1381,7 @@ const DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS = new Set([
 /**
  * Search/launchers whose first token is not the writer. Harvest make/DESTDIR
  * only from `-exec` / `--exec` / `-c` payloads (`find -exec make DESTDIR=`).
+ * The payload's first command still uses NON_WRITER (`find -exec echo make`).
  * `xargs make DESTDIR=` stays a wrapper (not in the non-writer set).
  */
 const DEST_ASSIGNMENT_SEARCH_LAUNCHER_BINS = new Set(["find"]);
@@ -1420,7 +1423,8 @@ const MAKE_VALUE_FLAGS = new Set([
  * Looks for make/gmake anywhere after wrappers (including unknown wrappers
  * such as `xargs`), unless the first command is a print/read bin.
  * Search/launchers (`find`) still harvest from `-exec` / `--exec` / `-c`
- * payloads. Non-writing targets (`clean`) are not operative.
+ * payloads unless that payload's first command is a print/read bin.
+ * Non-writing targets (`clean`) are not operative.
  */
 function segmentDestAssignmentIsOperative(tokens: readonly string[], tokenIndex: number): boolean {
   let start = tokenIndex;
@@ -1428,6 +1432,7 @@ function segmentDestAssignmentIsOperative(tokens: readonly string[], tokenIndex:
   let skipNext = false;
   let firstCommand = "";
   let inExecPayload = false;
+  let execPayloadFirstCommand = "";
   let sawMake = false;
   const targets: string[] = [];
   for (let k = start; k < tokens.length; k++) {
@@ -1462,6 +1467,10 @@ function segmentDestAssignmentIsOperative(tokens: readonly string[], tokenIndex:
     }
     if (firstCommand.length === 0) {
       firstCommand = bare;
+      if (DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS.has(bare)) return false;
+    }
+    if (inExecPayload && execPayloadFirstCommand.length === 0) {
+      execPayloadFirstCommand = bare;
       if (DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS.has(bare)) return false;
     }
     if (DEST_ASSIGNMENT_OWNER_BINS.has(bare)) {
