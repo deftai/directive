@@ -14,6 +14,7 @@ import {
   indexFlagKind,
   isSelectiveLifecyclePath,
   LIFECYCLE_PROBE_SENTINEL,
+  LIFECYCLE_PROBE_SENTINEL_VBRIEF,
   lifecycleIgnoreProbeRelPaths,
   lifecycleRootForRelPath,
   lifecycleRootRelPaths,
@@ -126,7 +127,8 @@ describe("parsers (#3505)", () => {
     const probes = lifecycleIgnoreProbeRelPaths();
     expect(probes).toContain("xbrief/active/");
     expect(probes).toContain(`xbrief/active/${LIFECYCLE_PROBE_SENTINEL}`);
-    expect(probes).toContain(`vbrief/pending/${LIFECYCLE_PROBE_SENTINEL}`);
+    expect(probes).toContain(`vbrief/pending/${LIFECYCLE_PROBE_SENTINEL_VBRIEF}`);
+    expect(probes).not.toContain(`vbrief/pending/${LIFECYCLE_PROBE_SENTINEL}`);
     expect(probes).toHaveLength(20);
   });
 
@@ -435,6 +437,7 @@ describe("evaluateLifecycleVisible with injected git (#3505)", () => {
           expect(paths).toContain("xbrief/active/");
           expect(paths).toContain("vbrief/active/");
           expect(paths).toContain(`xbrief/active/${LIFECYCLE_PROBE_SENTINEL}`);
+          expect(paths).toContain(`vbrief/active/${LIFECYCLE_PROBE_SENTINEL_VBRIEF}`);
           return {
             code: 0,
             stdout: ".git/info/exclude:1:xbrief/active/\txbrief/active/",
@@ -635,5 +638,15 @@ describe("evaluateLifecycleVisible live git fixtures (#3505)", () => {
     const result = evaluateLifecycleVisible({ projectRoot: root, enforce: true });
     expect(result.code).toBe(1);
     expect(result.findings.some((f) => f.rule.includes("*.xbrief.json"))).toBe(true);
+  });
+
+  it("reports a vbrief-only *.vbrief.json rule on an absent vbrief stage", () => {
+    const root = initLifecycleRepo();
+    writeFileSync(join(root, ".git", "info", "exclude"), "*.vbrief.json\n", "utf8");
+    const result = evaluateLifecycleVisible({ projectRoot: root, enforce: true });
+    expect(result.code).toBe(1);
+    expect(
+      result.findings.some((f) => f.path.startsWith("vbrief/") && f.rule.includes("*.vbrief.json")),
+    ).toBe(true);
   });
 });
