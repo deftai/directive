@@ -88,10 +88,12 @@ function recordingSeams(overrides: ReleaseSeams = {}): ReleaseSeams & { gitMutat
     refreshRoadmap: () => [true, "ok"],
     runBuild: () => [true, "ok"],
     todayIso: () => "2026-08-19",
-    closedVerbEnv: {},
-    closedVerbGrants: [],
     ...overrides,
   };
+  if (!("closedVerbEnv" in overrides) && !("closedVerbGrants" in overrides)) {
+    seams.closedVerbEnv = {};
+    seams.closedVerbGrants = [];
+  }
   return seams;
 }
 
@@ -212,5 +214,46 @@ describe("tag-push closed-verb gate (#3527)", () => {
         closedVerbEnv: {},
       }),
     ).toBe(EXIT_OK);
+  });
+
+  it("production path reads DEFT_ALLOW_RELEASE_PUBLISH from process.env when seams omit env", () => {
+    const projectRoot = seedReleaseProjectDir();
+    dirs.push(projectRoot);
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const prev = process.env.DEFT_ALLOW_RELEASE_PUBLISH;
+    process.env.DEFT_ALLOW_RELEASE_PUBLISH = "1";
+    try {
+      const seams = recordingSeams({ closedVerbEnv: undefined, closedVerbGrants: undefined });
+      expect(runPipeline(v105Config(projectRoot), seams)).toBe(EXIT_OK);
+      expect(seams.gitMutations.some((a) => a.includes("push"))).toBe(true);
+    } finally {
+      if (prev === undefined) {
+        delete process.env.DEFT_ALLOW_RELEASE_PUBLISH;
+      } else {
+        process.env.DEFT_ALLOW_RELEASE_PUBLISH = prev;
+      }
+    }
+  });
+
+  it("production path fail-closed loads disk grants when seams omit env and grants", () => {
+    const projectRoot = seedReleaseProjectDir();
+    dirs.push(projectRoot);
+    const spy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const prev = process.env.DEFT_ALLOW_RELEASE_PUBLISH;
+    delete process.env.DEFT_ALLOW_RELEASE_PUBLISH;
+    try {
+      const seams = recordingSeams({ closedVerbEnv: undefined, closedVerbGrants: undefined });
+      expect(runPipeline(v105Config(projectRoot), seams)).toBe(EXIT_VIOLATION);
+      expect(seams.gitMutations.some((a) => a.includes("push"))).toBe(false);
+      expect(spy.mock.calls.map((c) => String(c[0])).join("")).toContain(
+        "closed-verb-deny-missing",
+      );
+    } finally {
+      if (prev === undefined) {
+        delete process.env.DEFT_ALLOW_RELEASE_PUBLISH;
+      } else {
+        process.env.DEFT_ALLOW_RELEASE_PUBLISH = prev;
+      }
+    }
   });
 });
