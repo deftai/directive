@@ -1,0 +1,199 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3555",
+    "updated": "2026-08-20T20:32:24Z"
+  },
+  "plan": {
+    "title": "bug(render): spec-validate still rejects v0.8 xBRIEF (parent #3547)",
+    "status": "completed",
+    "narratives": {
+      "Description": "render/spec-validate still requires vBRIEFInfo and version 0.6 only while vbrief-validate already accepts xBRIEFInfo and 0.8. The split rejects current specification.xbrief.json on spec:render and project:export-spec full-spec.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3555",
+      "Overview": "## Parent\n\n#3547 (tracker, child B -- defect 1)\n\n## What to build\n\n`render/spec-validate` still requires top-level `vBRIEFInfo` and `VALID_VBRIEF_VERSIONS = {0.6}` only. `vbrief-validate` already accepts `vBRIEFInfo` or `xBRIEFInfo` and versions `0.6` / `0.8` (#2107). The split rejects v0.8 `specification.xbrief.json` on `spec:render` and on `project:export-spec` for a full-spec tree.\n\nThe filed reproduce (`deft spec:render` on `PROJECT-DEFINITION.xbrief.json`) is the wrong greenfield verb -- `spec:render` targets `specification.xbrief.json`. Do not treat that command as the primary consumer path. `project-render` and `roadmap-render` already handle both envelope keys.\n\nThe remediation string at `spec-validate.ts:65` still names `task migrate:vbrief`, which is not defined in `tasks/migrate.yml` and is explicitly unshipped (`vbrief-validate/precutover.ts`). Sibling prod sites carry the same string. Fix those strings in this PR alongside the shared constants. Same defect class as child C (stale named verb), inside defect 1.\n\nCite (origin/master): `packages/core/src/render/constants.ts:14`, `packages/core/src/render/spec-validate.ts:55-65`, `packages/core/src/vbrief-validate/constants.ts:20`.\n\n## Acceptance criteria\n\n- [ ] `render/spec-validate` and `render/constants.ts` import the info-key resolver and `VALID_VBRIEF_VERSIONS` from `vbrief-validate` (one copy of the rule)\n- [ ] v0.8 `specification.xbrief.json` with `xBRIEFInfo` validates on both `spec:render` and `project:export-spec` full-spec\n- [ ] Remediation text no longer names `task migrate:vbrief`; replacement matches the live verb (`task migrate:xbrief` / documented path)\n- [ ] Content-contract / discoverability tests that already assert the unshipped verb stay green without weakening them first\n- [ ] All new tests pass\n- [ ] `task check` passes\n\n## Type\n\nAFK\n\n## Blocked by\n\nNone -- can start immediately. Preferred after child A only by tracker order, not a hard dependency.\n\n## Out of scope\n\n- Greenfield PD-only `project:export-spec` (does not run `validateSpec` on PROJECT-DEFINITION)\n- Strategy corpus `vbrief/` MUST-writes (child D)\n- Probe Python script (child C)\n\n",
+      "Labels": "bug, area:vbrief, status:child",
+      "UserStory": "As a v0.8 consumer, I want spec:render to accept xBRIEFInfo version 0.8, so that specification.xbrief.json validates on the same schema as the rest of the engine.",
+      "ImplementationPlan": "1. Change the render spec-validate module and constants file to import info-key and VALID_VBRIEF_VERSIONS from the vbrief-validate module. 2. Replace unshipped migrate:vbrief remediation strings with migrate:xbrief. 3. Add tests that verify v0.8 specification.xbrief.json with xBRIEFInfo validates on spec:render and project:export-spec full-spec."
+    },
+    "items": [
+      {
+        "title": "Share validator constants",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When spec-validate runs, it validates xBRIEFInfo and versions 0.6/0.8 using the vbrief-validate constants rather than a forked copy."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/render/spec-validate.ts",
+          "recorded_at": "2026-08-20T20:32:17Z",
+          "recorded_by": "leaf-implementation/3555"
+        }
+      },
+      {
+        "title": "v0.8 specification path",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When a v0.8 specification.xbrief.json with xBRIEFInfo is given, spec:render and project:export-spec full-spec return success instead of rejecting the envelope."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/render/render.test.ts",
+          "recorded_at": "2026-08-20T20:32:17Z",
+          "recorded_by": "leaf-implementation/3555"
+        }
+      },
+      {
+        "title": "Live remediation verb",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When validation fails on a legacy version, the remediation text rejects task migrate:vbrief and shows the live migrate:xbrief verb."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/render/spec-validate.ts",
+          "recorded_at": "2026-08-20T20:32:17Z",
+          "recorded_by": "leaf-implementation/3555"
+        }
+      },
+      {
+        "title": "Tests and check",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When render tests run they validate the shared constants; when task check runs it returns exit 0; CHANGELOG Unreleased records the fix."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/render/render.test.ts",
+          "recorded_at": "2026-08-20T20:32:17Z",
+          "recorded_by": "leaf-implementation/3555"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "area:vbrief",
+      "status:child"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3555",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3555: bug(render): spec-validate still rejects v0.8 xBRIEF (parent #3547)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "`render/spec-validate` and `render/constants.ts` import the info-key resolver and `VALID_VBRIEF_VERSIONS` from `vbrief-validate` (one copy of the rule)",
+          "artifact_path": "packages/core/src/render/spec-validate.ts",
+          "ambiguous": true,
+          "readings": [
+            {
+              "text": "`render/spec-validate` and `render/constants.ts` import the info-key resolver and `VALID_VBRIEF_VERSIONS` from `vbrief-validate` (one copy of the rule) [reading: render/spec-validate]",
+              "artifact_path": "packages/core/src/render/spec-validate.ts"
+            },
+            {
+              "text": "`render/spec-validate` and `render/constants.ts` import the info-key resolver and `VALID_VBRIEF_VERSIONS` from `vbrief-validate` (one copy of the rule) [reading: render/constants.ts]",
+              "artifact_path": "packages/core/src/render/constants.ts"
+            }
+          ],
+          "chosen_reading": 0,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "v0.8 `specification.xbrief.json` with `xBRIEFInfo` validates on both `spec:render` and `project:export-spec` full-spec",
+          "artifact_path": "packages/core/src/render/render.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Remediation text no longer names `task migrate:vbrief`; replacement matches the live verb (`task migrate:xbrief` / documented path)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Content-contract / discoverability tests that already assert the unshipped verb stay green without weakening them first",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "All new tests pass",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "`task check` passes",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ]
+    },
+    "metadata": {
+      "kind": "story",
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/render/spec-validate.ts",
+          "packages/core/src/render/constants.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/render"
+        ],
+        "expected_outputs": [
+          "spec-validate accepts xBRIEFInfo 0.8; migrate:vbrief string gone"
+        ],
+        "depends_on": [],
+        "conflict_group": "render-spec-validate-3555",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Issue-ingested story; FR traces live in GitHub #3555."
+        ]
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3561,
+        "prBase": null,
+        "mergeCommit": "9249638e7719448c562e9efc950a195f4d6b94ab",
+        "deliveryBranch": "master",
+        "deliveryCommit": "9249638e7719448c562e9efc950a195f4d6b94ab",
+        "verifiedAt": "2026-08-20T20:32:24Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "1b18b58c-cd24-4b45-93aa-67dd0afbeae1"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-20T20:32:24Z",
+      "completedSessionId": "1b18b58c-cd24-4b45-93aa-67dd0afbeae1",
+      "capacityBucket": "technical-debt"
+    },
+    "updated": "2026-08-20T20:32:24Z",
+    "id": "issue-3555"
+  }
+}
