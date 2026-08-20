@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, sep } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -348,6 +348,8 @@ describe("run show + set integration", () => {
     const { code, out } = captureRun(["enforce-branches", "--project-root", r]);
     expect(code).toBe(0);
     expect(out).toContain("no-op");
+    expect(out).toContain("ledger unchanged");
+    expect(existsSync(join(r, "meta", "policy-changes.log"))).toBe(false);
   });
 
   it("returns config error for malformed project definition on set", () => {

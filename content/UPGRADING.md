@@ -874,7 +874,7 @@ Six phases, each detection-bound so a partial re-run resumes cleanly:
 
 ### Audit trail
 
-Every policy write (Phase 2 / Phase 4) appends an entry to `meta/policy-changes.log` with `actor=triage-welcome`, the field name, the new value, the previous value, and a `changed=true|false` token. This mirrors the existing `scripts/policy.py::set_policy` audit format so `git grep triage-welcome meta/policy-changes.log` surfaces every ritual run.
+Every **real** policy write (Phase 2 / Phase 4, and every other `meta/policy-changes.log` writer) appends an entry with the field name, the new value, the previous value, and a machine-readable `changed=true` token. Welcome rows still use `actor=triage-welcome`. Typed-policy verbs (`product-signal:enable`, `policy:enable-value-feedback`, `policy:set-ceremony-dial`, `policy:allow-direct-commits`, …) stamp the same `changed=` token. A no-op (value already matched) does **not** append, so `task check` cannot dirty the tracked ledger. Historical rows may omit the token or record `changed=false`; do not rewrite or prune them (#3528 / #746). `git grep 'changed=true' meta/policy-changes.log` is the transition history.
 
 ### References
 

@@ -21,6 +21,19 @@ export const LEGACY_NARRATIVE_KEY = "Allow direct commits to master";
 /** Audit log relative path (#746). */
 export const AUDIT_LOG_REL_PATH = "meta/policy-changes.log";
 
+/** Operator line when a policy writer matches current state and does not append (#3528). */
+export const POLICY_AUDIT_NOOP_STDOUT = "  no-op: value already matched (ledger unchanged).";
+
+const CHANGED_TOKEN_RE = /(?:^|\s)changed=(?:true|false)(?:\s|$)/;
+
+/** Stamp a machine-readable `changed=true|false` token (#3528 / UPGRADING.md). */
+export function stampChangedToken(entry: string, changed: boolean): string {
+  if (CHANGED_TOKEN_RE.test(entry)) {
+    return entry;
+  }
+  return `${entry} changed=${changed ? "true" : "false"}`;
+}
+
 const TRUTHY = new Set(["1", "true", "yes", "on"]);
 
 export type PolicySource = "typed" | "legacy-narrative" | "env-bypass" | "default-fail-closed";
@@ -204,10 +217,15 @@ function nowIso(): string {
   return new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
 }
 
-/** Append a one-line audit entry to meta/policy-changes.log (#746). */
-export function appendAuditLog(projectRoot: string, entry: string): string {
+/** Append a one-line audit entry to meta/policy-changes.log (#746).
+ * No-op (`changed=false`) does not create or modify the tracked file (#3528). */
+export function appendAuditLog(projectRoot: string, entry: string, changed = true): string {
   const root = pathResolve(projectRoot);
   const logPath = join(root, AUDIT_LOG_REL_PATH);
+  const stamped = stampChangedToken(entry, changed);
+  if (!changed) {
+    return logPath;
+  }
   // #2980 wave D: product write sink routes through containedWrite.
   if (!existsSync(logPath)) {
     const header =
@@ -223,7 +241,7 @@ export function appendAuditLog(projectRoot: string, entry: string): string {
   containedWrite({
     root,
     target: AUDIT_LOG_REL_PATH,
-    data: `${nowIso()} ${entry}\n`,
+    data: `${nowIso()} ${stamped}\n`,
     mode: "append",
   });
   return logPath;
@@ -291,8 +309,6 @@ export function setPolicy(
       legacyDropped = true;
     }
 
-    atomicWriteProjectDefinition(path, data);
-
     const changed = previous !== Boolean(allowDirectCommits) || legacyDropped;
     const parts = [
       `actor=${actor}`,
@@ -305,8 +321,11 @@ export function setPolicy(
     if (note) {
       parts.push(`note=${note.replace(/\n/g, " ").replace(/\r/g, " ")}`);
     }
-    const auditEntry = parts.join(" ");
-    appendAuditLog(projectRoot, auditEntry);
+    const auditEntry = stampChangedToken(parts.join(" "), changed);
+    if (changed) {
+      atomicWriteProjectDefinition(path, data);
+    }
+    appendAuditLog(projectRoot, auditEntry, changed);
     return { changed, auditEntry };
   });
 }

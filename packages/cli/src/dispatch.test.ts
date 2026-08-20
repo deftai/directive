@@ -1141,12 +1141,22 @@ describe("native policy-set handler (#2022)", () => {
     expect(result.code).toBe(0);
     expect(result.out).toBe(
       "\u2713 plan.policy.wipCap=5.\n" +
-        "  audit: meta/policy-changes.log :: actor=deft policy set wip-cap wipCap=5 previous=None\n" +
+        "  audit: meta/policy-changes.log :: actor=deft policy set wip-cap wipCap=5 previous=None changed=true\n" +
         "[deft policy] plan.policy.wipCap=5 (source: typed).\n",
     );
     expect(readPolicyBlock().wipCap).toBe(5);
     expect(existsSync(auditLogPath())).toBe(true);
     expect(readFileSync(auditLogPath(), "utf8")).toContain("wipCap=5 previous=None");
+  });
+
+  it("wip-cap no-op does not append the audit log (#3528)", async () => {
+    await runPolicy(["wip-cap", "--set", "5", "--confirm", "--project-root", root]);
+    resetHandlerCacheForTests();
+    const before = readFileSync(auditLogPath(), "utf8");
+    const result = await runPolicy(["wip-cap", "--set", "5", "--confirm", "--project-root", root]);
+    expect(result.code).toBe(0);
+    expect(result.out).toContain("ledger unchanged");
+    expect(readFileSync(auditLogPath(), "utf8")).toBe(before);
   });
 
   it("wip-cap honors --actor / --note in the audit row", async () => {
@@ -1210,7 +1220,7 @@ describe("native policy-set handler (#2022)", () => {
     expect(result.out).toBe(
       "\u2713 plan.policy.swarmSubagentBackend=composer.\n" +
         "  audit: meta/policy-changes.log :: actor=deft policy set subagent-backend " +
-        "swarmSubagentBackend=composer previous=None\n" +
+        "swarmSubagentBackend=composer previous=None changed=true\n" +
         "[deft policy] plan.policy.swarmSubagentBackend='composer' (source: typed).\n",
     );
     expect(readPolicyBlock().swarmSubagentBackend).toBe("composer");

@@ -26,12 +26,14 @@ import {
   disclosureLine,
   migrateLegacyPolicyKey,
   PLAN_POLICY_KEY,
+  POLICY_AUDIT_NOOP_STDOUT,
   policyColonInvocation,
   policySetInvocation,
   projectDefinitionPath,
   resolvePolicy,
   resolveWipCap,
   setPolicy,
+  stampChangedToken,
 } from "@deftai/directive-core/policy";
 import { defaultWhich, type WhichFn } from "@deftai/directive-core/scm";
 import {
@@ -2489,13 +2491,15 @@ function writeWipCap(
   const { path, data, policyBlock } = loadProjectDefinitionForWrite(projectRoot);
   const previous = policyBlock.wipCap;
   policyBlock.wipCap = cap;
-  assertWriteTargetSafe(projectRoot, path);
-  atomicWriteProjectDefinition(path, data);
   const changed = previous !== cap;
   const parts = [`actor=${actor}`, `wipCap=${cap}`, `previous=${pyRepr(previous)}`];
   if (note) parts.push(`note=${sanitizeNote(note)}`);
-  const auditEntry = parts.join(" ");
-  appendAuditLog(projectRoot, auditEntry);
+  const auditEntry = stampChangedToken(parts.join(" "), changed);
+  if (changed) {
+    assertWriteTargetSafe(projectRoot, path);
+    atomicWriteProjectDefinition(path, data);
+  }
+  appendAuditLog(projectRoot, auditEntry, changed);
   return { changed, auditEntry };
 }
 
@@ -2509,8 +2513,6 @@ function writeSubagentBackend(
   const { path, data, policyBlock } = loadProjectDefinitionForWrite(projectRoot);
   const previous = policyBlock.swarmSubagentBackend;
   policyBlock.swarmSubagentBackend = backendId;
-  assertWriteTargetSafe(projectRoot, path);
-  atomicWriteProjectDefinition(path, data);
   const changed = previous !== backendId;
   const parts = [
     `actor=${actor}`,
@@ -2518,8 +2520,12 @@ function writeSubagentBackend(
     `previous=${pyRepr(previous)}`,
   ];
   if (note) parts.push(`note=${sanitizeNote(note)}`);
-  const auditEntry = parts.join(" ");
-  appendAuditLog(projectRoot, auditEntry);
+  const auditEntry = stampChangedToken(parts.join(" "), changed);
+  if (changed) {
+    assertWriteTargetSafe(projectRoot, path);
+    atomicWriteProjectDefinition(path, data);
+  }
+  appendAuditLog(projectRoot, auditEntry, changed);
   return { changed, auditEntry };
 }
 
@@ -2594,7 +2600,7 @@ function applyBranchPolicy(args: PolicySetArgs, io: DispatchIo): number {
   if (result.changed) {
     io.writeOut(`  audit: meta/policy-changes.log :: ${result.auditEntry}\n`);
   } else {
-    io.writeOut("  no-op: value already matched (audit entry still appended for trail).\n");
+    io.writeOut(`${POLICY_AUDIT_NOOP_STDOUT}\n`);
   }
   io.writeOut(`${disclosureLine(resolvePolicy(args.projectRoot))}\n`);
   return 0;
@@ -2624,7 +2630,7 @@ function applyWipCap(args: PolicySetArgs, io: DispatchIo): number {
   if (res.changed) {
     io.writeOut(`  audit: meta/policy-changes.log :: ${res.auditEntry}\n`);
   } else {
-    io.writeOut("  no-op: value already matched (audit entry still appended for trail).\n");
+    io.writeOut(`${POLICY_AUDIT_NOOP_STDOUT}\n`);
   }
   const result = resolveWipCap(args.projectRoot);
   io.writeOut(`[deft policy] plan.policy.wipCap=${result.cap} (source: ${result.source}).\n`);
@@ -2643,7 +2649,7 @@ function applySubagentBackend(args: PolicySetArgs, io: DispatchIo): number {
   if (res.changed) {
     io.writeOut(`  audit: meta/policy-changes.log :: ${res.auditEntry}\n`);
   } else {
-    io.writeOut("  no-op: value already matched (audit entry still appended for trail).\n");
+    io.writeOut(`${POLICY_AUDIT_NOOP_STDOUT}\n`);
   }
   const result = resolveSwarmSubagentBackend(args.projectRoot);
   io.writeOut(

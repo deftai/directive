@@ -6,7 +6,12 @@ import {
 import { productSignalInstallForceOnSource } from "./org-force-on-migration.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY, readPlanPolicy } from "./plan-extensions.js";
 import { policyColonInvocation } from "./policy-invocation.js";
-import { appendAuditLog, loadProjectDefinition, projectDefinitionPath } from "./resolve.js";
+import {
+  appendAuditLog,
+  loadProjectDefinition,
+  POLICY_AUDIT_NOOP_STDOUT,
+  projectDefinitionPath,
+} from "./resolve.js";
 
 /** Canonical registered policy field name (#2693). */
 export const FIELD_PRODUCT_SIGNAL = "plan.policy.productSignal";
@@ -272,16 +277,14 @@ export function enableProductSignal(
       if (note) {
         parts.push(`note=${note.replace(/\n/g, " ").replace(/\r/g, " ")}`);
       }
-      appendAuditLog(projectRoot, parts.join(" "));
+      appendAuditLog(projectRoot, parts.join(" "), changedFlag);
       return { changed: changedFlag };
     });
 
     const resolved = resolveProductSignal(projectRoot);
     const lines = [
       `\u2713 ${FIELD_PRODUCT_SIGNAL}.enabled=true (product-signal ON).`,
-      changed
-        ? "  audit: meta/policy-changes.log updated."
-        : "  no-op: value already matched (audit entry still appended for trail).",
+      changed ? "  audit: meta/policy-changes.log updated." : POLICY_AUDIT_NOOP_STDOUT,
       formatProductSignalStatusLine(resolved),
     ];
     return { exitCode: 0, stdout: `${lines.join("\n")}\n`, changed };

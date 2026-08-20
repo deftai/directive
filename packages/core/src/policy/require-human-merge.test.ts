@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -137,5 +137,14 @@ describe("setRequireHumanMerge", () => {
     const p = resolveHumanMergePolicy(r, {});
     expect(p.requireHumanMerge).toBe(false);
     expect(p.source).toBe("typed");
+    expect(readFileSync(join(r, "meta", "policy-changes.log"), "utf8")).toContain("changed=true");
+  });
+
+  it("no-op does not append the audit log (#3528)", () => {
+    const r = tempRoot();
+    writePd(r, { requireHumanMerge: false });
+    const { changed } = setRequireHumanMerge(r, { requireHumanMerge: false, actor: "test" });
+    expect(changed).toBe(false);
+    expect(existsSync(join(r, "meta", "policy-changes.log"))).toBe(false);
   });
 });

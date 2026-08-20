@@ -27,7 +27,12 @@ import {
 } from "../vbrief-build/project-definition-io.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY, readPlanPolicy } from "./plan-extensions.js";
 import { policyColonInvocation } from "./policy-invocation.js";
-import { appendAuditLog, loadProjectDefinition, projectDefinitionPath } from "./resolve.js";
+import {
+  appendAuditLog,
+  loadProjectDefinition,
+  POLICY_AUDIT_NOOP_STDOUT,
+  projectDefinitionPath,
+} from "./resolve.js";
 
 /** Canonical dotted policy field name. */
 export const FIELD_CEREMONY_DIAL = "plan.policy.ceremonyDial";
@@ -753,16 +758,14 @@ export function setCeremonyDial(
       if (note) {
         parts.push(`note=${note.replace(/\n/g, " ").replace(/\r/g, " ")}`);
       }
-      appendAuditLog(projectRoot, parts.join(" "));
+      appendAuditLog(projectRoot, parts.join(" "), changedFlag);
       return { changed: changedFlag };
     });
 
     const resolved = resolveCeremonyDial(projectRoot);
     const lines = [
       `\u2713 ${FIELD_CEREMONY_DIAL} updated.`,
-      changed
-        ? "  audit: meta/policy-changes.log updated."
-        : "  no-op: value already matched (audit entry still appended for trail).",
+      changed ? "  audit: meta/policy-changes.log updated." : POLICY_AUDIT_NOOP_STDOUT,
       formatCeremonyDialStatusLine(resolved),
     ];
     return { exitCode: 0, stdout: `${lines.join("\n")}\n`, changed };

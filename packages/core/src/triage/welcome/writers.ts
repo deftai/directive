@@ -20,6 +20,7 @@ import {
   PLAN_ONBOARDING_KEY,
   PLAN_POLICY_KEY,
 } from "../../policy/plan-extensions.js";
+import { stampChangedToken } from "../../policy/resolve.js";
 import { projectDefinitionMutationLock } from "../../vbrief-build/project-definition-io.js";
 import {
   AUDIT_LOG_REL_PATH,
@@ -37,9 +38,13 @@ function utcIso(): string {
   return new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
 }
 
-export function appendAuditEntry(projectRoot: string, entry: string): string {
+export function appendAuditEntry(projectRoot: string, entry: string, changed = true): string {
   const root = resolve(projectRoot);
   const logPath = join(root, AUDIT_LOG_REL_PATH);
+  const stamped = stampChangedToken(entry, changed);
+  if (!changed) {
+    return logPath;
+  }
   // #2980 wave D: product write sink routes through containedWrite.
   mkdirSync(root, { recursive: true });
   if (!existsSync(logPath)) {
@@ -53,7 +58,7 @@ export function appendAuditEntry(projectRoot: string, entry: string): string {
   containedWrite({
     root,
     target: AUDIT_LOG_REL_PATH,
-    data: `${utcIso()} ${entry}\n`,
+    data: `${utcIso()} ${stamped}\n`,
     mode: "append",
   });
   return logPath;
@@ -130,7 +135,7 @@ export function writeTriageScope(
       `rule_count=${rules.length}`,
       `changed=${changed ? "true" : "false"}`,
     ].join(" ");
-    appendAuditEntry(projectRoot, auditEntry);
+    appendAuditEntry(projectRoot, auditEntry, changed);
     return [changed, auditEntry];
   });
 }
@@ -189,7 +194,7 @@ export function writeWipCapDecision(
       `acceptedDefault=${acceptedDefault ? "true" : "false"}`,
       `changed=${changed ? "true" : "false"}`,
     ].join(" ");
-    appendAuditEntry(projectRoot, auditEntry);
+    appendAuditEntry(projectRoot, auditEntry, changed);
     return [changed, auditEntry];
   });
 }
@@ -265,7 +270,7 @@ export function writeWipCap(
     const auditEntry =
       `actor=${actor} field=plan.policy.wipCap value=${wipCap} previous=${JSON.stringify(previous)} ` +
       `changed=${changed ? "true" : "false"}`;
-    appendAuditEntry(projectRoot, auditEntry);
+    appendAuditEntry(projectRoot, auditEntry, changed);
     return [changed, auditEntry];
   });
 }

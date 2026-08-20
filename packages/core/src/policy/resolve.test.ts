@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -18,11 +18,13 @@ import {
   renderText,
 } from "./index.js";
 import {
+  appendAuditLog,
   coerceLegacyNarrative,
   ENV_BYPASS,
   type PolicyResult,
   resolvePolicy,
   setPolicy,
+  stampChangedToken,
 } from "./resolve.js";
 import { countVbriefWip, DEFAULT_WIP_CAP, resolveWipCap } from "./wip.js";
 
@@ -275,6 +277,41 @@ describe("setPolicy", () => {
     });
     setPolicy(r, { allowDirectCommits: false, actor: "t" });
     expect(resolvePolicy(r).source).toBe("typed");
+  });
+
+  it("setPolicy no-op does not append the audit log (#3528)", () => {
+    const r = mkdtempSync(join(tmpdir(), "deft-policy-noop-"));
+    roots.push(r);
+    writeProjectDef(r, {});
+    const first = setPolicy(r, { allowDirectCommits: true, actor: "test" });
+    expect(first.changed).toBe(true);
+    expect(first.auditEntry).toContain("changed=true");
+    const logPath = join(r, "meta", "policy-changes.log");
+    const before = readFileSync(logPath, "utf8");
+    const second = setPolicy(r, { allowDirectCommits: true, actor: "test" });
+    expect(second.changed).toBe(false);
+    expect(second.auditEntry).toContain("changed=false");
+    expect(readFileSync(logPath, "utf8")).toBe(before);
+  });
+});
+
+describe("appendAuditLog (#3528)", () => {
+  const roots: string[] = [];
+  afterEach(() => {
+    for (const r of roots) rmSync(r, { recursive: true, force: true });
+  });
+
+  it("stampChangedToken is idempotent and encodes both sides", () => {
+    expect(stampChangedToken("actor=t field=x", true)).toBe("actor=t field=x changed=true");
+    expect(stampChangedToken("actor=t field=x", false)).toBe("actor=t field=x changed=false");
+    expect(stampChangedToken("actor=t changed=true", false)).toBe("actor=t changed=true");
+  });
+
+  it("does not create the log on changed=false", () => {
+    const r = mkdtempSync(join(tmpdir(), "deft-audit-skip-"));
+    roots.push(r);
+    appendAuditLog(r, "actor=test field=x", false);
+    expect(existsSync(join(r, "meta", "policy-changes.log"))).toBe(false);
   });
 });
 

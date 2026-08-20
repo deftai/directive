@@ -380,6 +380,18 @@ describe("resolveCeremonyDial + policy surface", () => {
 
     const audit = readFileSync(join(root, "meta", "policy-changes.log"), "utf8");
     expect(audit).toContain("ceremonyDial.override=rapid");
+    expect(audit).toContain("changed=true");
+
+    const before = audit;
+    const noop = setCeremonyDial(root, {
+      override: "rapid",
+      enabled: true,
+      confirm: true,
+      actor: "test",
+    });
+    expect(noop.changed).toBe(false);
+    expect(noop.stdout).toContain("ledger unchanged");
+    expect(readFileSync(join(root, "meta", "policy-changes.log"), "utf8")).toBe(before);
   });
 
   it("mergeCeremonyDialDeferrals does not clobber operator reasons", () => {

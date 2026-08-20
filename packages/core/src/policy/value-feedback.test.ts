@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
@@ -224,6 +224,8 @@ describe("enableValueFeedback disclosure gate", () => {
     const result = enableValueFeedback(root, { confirm: true, actor: "test" });
     expect(result.exitCode).toBe(0);
     expect(result.changed).toBe(false);
+    expect(result.stdout).toContain("ledger unchanged");
+    expect(existsSync(join(root, "meta", "policy-changes.log"))).toBe(false);
     expect(resolveValueFeedback(root)).toMatchObject({
       enabled: true,
       emitEvents: false,

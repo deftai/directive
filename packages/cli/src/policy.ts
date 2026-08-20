@@ -27,6 +27,7 @@ import {
   NO_DEFT_DIRECTIVE_DISABLED_MESSAGE,
   NO_DEFT_DIRECTIVE_FLAG_NAME,
   NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE,
+  POLICY_AUDIT_NOOP_STDOUT,
   policyColonInvocation,
   projectDefinitionPath,
   pythonListRepr,
@@ -452,9 +453,7 @@ function runSet(args: SetArgs): number {
     if (changed) {
       process.stdout.write(`  audit: meta/policy-changes.log :: ${auditEntry}\n`);
     } else {
-      process.stdout.write(
-        "  no-op: value already matched (audit entry still appended for trail).\n",
-      );
+      process.stdout.write(`${POLICY_AUDIT_NOOP_STDOUT}\n`);
     }
     process.stdout.write(`${disclosureLine(resolvePolicy(projectRoot))}\n`);
     return 0;
@@ -542,9 +541,7 @@ function runAllowBotMerge(args: SetArgs): number {
     if (changed) {
       process.stdout.write(`  audit: meta/policy-changes.log :: ${auditEntry}\n`);
     } else {
-      process.stdout.write(
-        "  no-op: value already matched (audit entry still appended for trail).\n",
-      );
+      process.stdout.write(`${POLICY_AUDIT_NOOP_STDOUT}\n`);
     }
     const line = humanMergeDisclosureLine(resolveHumanMergePolicy(projectRoot));
     if (line !== null) {

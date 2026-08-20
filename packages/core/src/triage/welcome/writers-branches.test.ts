@@ -1,4 +1,5 @@
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -67,6 +68,10 @@ describe("writers error and edge branches", () => {
     expect(readFileSync(join(root, "meta", "policy-changes.log"), "utf8")).toContain(
       "actor=tester",
     );
+    const before = readFileSync(join(root, "meta", "policy-changes.log"), "utf8");
+    const [unchanged] = writeTriageScope(root, rules, { presetLabel: "small", actor: "tester" });
+    expect(unchanged).toBe(false);
+    expect(readFileSync(join(root, "meta", "policy-changes.log"), "utf8")).toBe(before);
   });
 
   it("writeWipCap fails for invalid values and missing project definition", () => {
@@ -80,6 +85,7 @@ describe("writers error and edge branches", () => {
     seedPd(root, { plan: { policy: { wipCap: 8 } } });
     const [changed] = writeWipCap(root, 8, { actor: "tester" });
     expect(changed).toBe(false);
+    expect(existsSync(join(root, "meta", "policy-changes.log"))).toBe(false);
   });
 
   it("writeWipCapDecision fails when PROJECT-DEFINITION is missing or plan is malformed", () => {
@@ -108,12 +114,14 @@ describe("writers error and edge branches", () => {
       actor: "tester",
     });
     // Idempotent re-write with same acceptance flag.
+    const before = readFileSync(join(root, "meta", "policy-changes.log"), "utf8");
     const [changedAgain] = writeWipCapDecision(root, {
       acceptedDefault: false,
       value: 7,
       actor: "tester",
     });
     expect(changedAgain).toBe(false);
+    expect(readFileSync(join(root, "meta", "policy-changes.log"), "utf8")).toBe(before);
   });
 
   it("writeWipCapDecision dropping acceptedDefault clears a prior override value", () => {

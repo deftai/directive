@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -29,6 +29,9 @@ describe("product-signal policy module", () => {
     );
     enableProductSignal(root, { confirm: true });
     expect(resolveProductSignal(root).enabled).toBe(true);
+    const audit = readFileSync(join(root, "meta", "policy-changes.log"), "utf8");
+    expect(audit).toContain("changed=true");
+    expect(audit).not.toMatch(/\schanged=false(?:\s|$)/);
     rmSync(root, { recursive: true, force: true });
   });
 
@@ -75,7 +78,7 @@ describe("product-signal policy module", () => {
     expect(line).toContain("productSignal");
   });
 
-  it("enableProductSignal no-op when already enabled", () => {
+  it("enableProductSignal no-op leaves the audit log unmodified (#3528)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-ps-pol-noop-"));
     const xbrief = join(root, "xbrief");
     mkdirSync(xbrief, { recursive: true });
@@ -86,9 +89,18 @@ describe("product-signal policy module", () => {
       }),
       "utf8",
     );
+    mkdirSync(join(root, "meta"), { recursive: true });
+    const logPath = join(root, "meta", "policy-changes.log");
+    const historical =
+      "# meta/policy-changes.log -- historical\n" +
+      "2026-07-23T20:23:26Z actor=task product-signal:enable productSignal.enabled=true previous=null\n";
+    writeFileSync(logPath, historical, "utf8");
     const result = enableProductSignal(root, { confirm: true, note: "trail" });
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("no-op");
+    expect(result.changed).toBe(false);
+    expect(result.stdout).toContain("ledger unchanged");
+    expect(readFileSync(logPath, "utf8")).toBe(historical);
+    expect(existsSync(logPath)).toBe(true);
     rmSync(root, { recursive: true, force: true });
   });
 

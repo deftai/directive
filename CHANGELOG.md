@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Policy ledger no-ops no longer dirty the tree (#3528).** Typed-policy writers and the welcome path now share one convention: real transitions append `changed=true`; a no-op `product-signal:enable` (and sibling policy verbs) leave `meta/policy-changes.log` unmodified. Existing rows stay. Refs #1250, #746.
+
 ### Removed
 
 ## [0.105.0] - 2026-08-19

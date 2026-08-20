@@ -562,6 +562,7 @@ function applyForceOn(
         : ORG_FORCE_ON_NO_BASELINE;
 
     const actor = options.actor ?? "directive-update";
+    const changed = valueFeedbackChanged || productSignalChanged;
     appendAuditLog(
       projectRoot,
       [
@@ -572,6 +573,7 @@ function applyForceOn(
         `previousValueFeedback=${JSON.stringify(normalizePolicySnapshot(markerPreviousVf))}`,
         `previousProductSignal=${JSON.stringify(normalizePolicySnapshot(markerPreviousPs))}`,
       ].join(" "),
+      changed,
     );
 
     writeMarker(projectRoot, options, {

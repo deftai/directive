@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "policy-changes-log-records-real-transitions-only-written-rows-st",
+  "decision": "Policy-changes.log records real transitions only. Written rows stamp changed=true. No-op verbs do not append.",
+  "governingRule": {
+    "description": "One convention for every writer of meta/policy-changes.log; a no-op must not dirty the tracked ledger",
+    "path": "content/UPGRADING.md",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Option B: keep appending no-ops with changed=true|false",
+      "whyNot": "A product-signal:enable during task check would still dirty the tracked file. 63 of 64 product-signal rows were check-loop noise, not security attempts."
+    },
+    {
+      "option": "Option A: suppress no-ops with no changed= token",
+      "whyNot": "UPGRADING.md already documents changed= for welcome rows; omitting the token would leave two formats."
+    }
+  ],
+  "whyWinner": "The typed-policy copy said always append for trail, but that trail was not load-bearing for no-ops: the previous= field already distinguishes them, and the operational cost is a dirty tree at release Step 1. Stamping changed=true on real writes matches the welcome format. Skipping the write on changed=false satisfies the dirty-tree acceptance criterion without rewriting historical rows.",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-08-20-3528-policy-changeslog-holds-two-contradictory-no-op-conventions.xbrief.json"
+  ],
+  "timestamp": "2026-08-20T03:42:54Z",
+  "revisitTrigger": "If a security review needs no-op attempt evidence (who tried a flip that did not take), add a gitignored sidecar rather than dirtying the tracked ledger.",
+  "tags": [
+    "process",
+    "source-of-truth"
+  ],
+  "relatedIssues": [
+    3528,
+    1250,
+    746
+  ]
+}
