@@ -13,6 +13,9 @@ import {
   formatLifecycleVisibleSessionLines,
   indexFlagKind,
   isSelectiveLifecyclePath,
+  LIFECYCLE_PROBE_SENTINEL,
+  lifecycleIgnoreProbeRelPaths,
+  lifecycleRootForRelPath,
   lifecycleRootRelPaths,
   parseCheckIgnoreVerboseLine,
   parseLsFilesVerboseRecord,
@@ -118,6 +121,22 @@ describe("parsers (#3505)", () => {
     expect(roots).toContain("vbrief/cancelled/");
     expect(roots).toHaveLength(10);
   });
+
+  it("probes a brief-shaped sentinel under each stage root", () => {
+    const probes = lifecycleIgnoreProbeRelPaths();
+    expect(probes).toContain("xbrief/active/");
+    expect(probes).toContain(`xbrief/active/${LIFECYCLE_PROBE_SENTINEL}`);
+    expect(probes).toContain(`vbrief/pending/${LIFECYCLE_PROBE_SENTINEL}`);
+    expect(probes).toHaveLength(20);
+  });
+
+  it("maps file pathspecs back to the canonical stage root", () => {
+    expect(lifecycleRootForRelPath("xbrief/active/")).toBe("xbrief/active/");
+    expect(lifecycleRootForRelPath(`xbrief/active/${LIFECYCLE_PROBE_SENTINEL}`)).toBe(
+      "xbrief/active/",
+    );
+    expect(lifecycleRootForRelPath("README.md")).toBeNull();
+  });
 });
 
 describe("evaluateLifecycleVisible with injected git (#3505)", () => {
@@ -142,6 +161,7 @@ describe("evaluateLifecycleVisible with injected git (#3505)", () => {
         }
         if (args[0] === "check-ignore") {
           expect(args).toContain("xbrief/active/");
+          expect(args).toContain(`xbrief/active/${LIFECYCLE_PROBE_SENTINEL}`);
           return {
             code: 0,
             stdout: ".git/info/exclude:1:xbrief/active/\txbrief/active/",
@@ -414,6 +434,7 @@ describe("evaluateLifecycleVisible with injected git (#3505)", () => {
           const paths = args.slice(args.indexOf("--") + 1);
           expect(paths).toContain("xbrief/active/");
           expect(paths).toContain("vbrief/active/");
+          expect(paths).toContain(`xbrief/active/${LIFECYCLE_PROBE_SENTINEL}`);
           return {
             code: 0,
             stdout: ".git/info/exclude:1:xbrief/active/\txbrief/active/",
@@ -424,6 +445,49 @@ describe("evaluateLifecycleVisible with injected git (#3505)", () => {
       }),
     });
     expect(result.findings.some((f) => f.path === "xbrief/active/")).toBe(true);
+  });
+
+  it("reports a file-only ignore glob via the brief-shaped sentinel", () => {
+    const root = freshDir("lv-fileglob-");
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    const result = evaluateLifecycleVisible({
+      projectRoot: root,
+      enforce: true,
+      runGit: fakeGit((_r, args) => {
+        if (args[0] === "check-ignore") {
+          expect(args).toContain(`xbrief/active/${LIFECYCLE_PROBE_SENTINEL}`);
+          return {
+            code: 0,
+            stdout: `.gitignore:1:xbrief/active/*.json\txbrief/active/${LIFECYCLE_PROBE_SENTINEL}`,
+            stderr: "",
+          };
+        }
+        return { code: 0, stdout: "", stderr: "" };
+      }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.findings[0]?.path).toBe("xbrief/active/");
+    expect(result.findings[0]?.rule).toBe("xbrief/active/*.json");
+    expect(result.findings[0]?.source.replace(/\\/g, "/")).toBe(".gitignore");
+  });
+
+  it("skips negated check-ignore matches so un-ignored briefs stay clean", () => {
+    const root = freshDir("lv-neg-");
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    const result = evaluateLifecycleVisible({
+      projectRoot: root,
+      runGit: fakeGit((_r, args) => {
+        if (args[0] === "check-ignore") {
+          return {
+            code: 0,
+            stdout: `.gitignore:2:!xbrief/active/\txbrief/active/\n!.gitignore:2:!*.json\txbrief/active/${LIFECYCLE_PROBE_SENTINEL}`,
+            stderr: "",
+          };
+        }
+        return { code: 0, stdout: "", stderr: "" };
+      }),
+    });
+    expect(result.findings).toEqual([]);
   });
 });
 
@@ -553,5 +617,23 @@ describe("evaluateLifecycleVisible live git fixtures (#3505)", () => {
     const result = evaluateLifecycleVisible({ projectRoot: root });
     expect(result.findings).toEqual([]);
     expect(result.code).toBe(0);
+  });
+
+  it("reports a file-only xbrief/active/*.json rule that leaves the directory unignored", () => {
+    const root = initLifecycleRepo();
+    writeFileSync(join(root, ".gitignore"), "xbrief/active/*.json\n", "utf8");
+    const result = evaluateLifecycleVisible({ projectRoot: root, enforce: true });
+    expect(result.code).toBe(1);
+    const hit = result.findings.find((f) => f.path === "xbrief/active/");
+    expect(hit?.rule).toContain("*.json");
+    expect(hit?.source.replace(/\\/g, "/")).toBe(".gitignore");
+  });
+
+  it("reports a *.xbrief.json rule that hides briefs without ignoring the stage directory", () => {
+    const root = initLifecycleRepo();
+    writeFileSync(join(root, ".git", "info", "exclude"), "*.xbrief.json\n", "utf8");
+    const result = evaluateLifecycleVisible({ projectRoot: root, enforce: true });
+    expect(result.code).toBe(1);
+    expect(result.findings.some((f) => f.rule.includes("*.xbrief.json"))).toBe(true);
   });
 });

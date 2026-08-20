@@ -5,7 +5,7 @@
  * Not a task-check gate: this is a per-clone environment property.
  */
 
-import { existsSync } from "node:fs";
+import { type Dirent, existsSync, readdirSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
 import { defaultGitRunner, type GitRunner } from "../session/git.js";
 
@@ -69,6 +69,29 @@ export function lifecycleRootRelPaths(): string[] {
     }
   }
   return paths;
+}
+
+/** Brief-shaped pathname so file-only globs (`*.json`, `xbrief/active/*.xbrief.json`) fire. */
+export const LIFECYCLE_PROBE_SENTINEL = "__lifecycle-visible.xbrief.json";
+
+/** Stage dirs plus one sentinel file under each — the directory pathspec misses file-only rules. */
+export function lifecycleIgnoreProbeRelPaths(): string[] {
+  const probes: string[] = [];
+  for (const root of lifecycleRootRelPaths()) {
+    probes.push(root);
+    probes.push(`${root}${LIFECYCLE_PROBE_SENTINEL}`);
+  }
+  return probes;
+}
+
+/** Map a check-ignore pathname back to its canonical stage root, or null if outside. */
+export function lifecycleRootForRelPath(relPosix: string): string | null {
+  const posix = relPosix.replace(/\\/g, "/").replace(/\/+$/, "");
+  for (const root of lifecycleRootRelPaths()) {
+    const prefix = root.replace(/\/+$/, "");
+    if (posix === prefix || posix.startsWith(`${prefix}/`)) return root;
+  }
+  return null;
 }
 
 /** Deliberate hybrid ignores under a visible root must not trip the check (#1144). */
@@ -191,10 +214,44 @@ function resultFor(
   };
 }
 
+function joinPath(root: string, relPosix: string): string {
+  return resolve(
+    root,
+    ...relPosix
+      .replace(/\/+$/, "")
+      .split("/")
+      .filter((p) => p.length > 0),
+  );
+}
+
+/** Existing non-dot files under present stage dirs (skip .triage-cache / .gitkeep). */
+function presentLifecycleFileRelPaths(projectRoot: string): string[] {
+  const out: string[] = [];
+  for (const root of lifecycleRootRelPaths()) {
+    let entries: readonly Dirent[];
+    try {
+      entries = readdirSync(joinPath(projectRoot, root), { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const ent of entries) {
+      if (!ent.isFile() || ent.name.startsWith(".")) continue;
+      const rel = `${root.replace(/\/+$/, "")}/${ent.name}`;
+      if (isSelectiveLifecyclePath(rel)) continue;
+      out.push(rel);
+    }
+  }
+  return out;
+}
+
 function collectIgnoredRoots(projectRoot: string, runGit: GitRunner): LifecycleHideFinding[] {
   // Probe every canonical stage even when the directory is absent so an ignore
   // rule cannot hide a missing xbrief/active/ before it is created (#3505).
-  const roots = lifecycleRootRelPaths();
+  // Directory pathspecs miss file-only globs (`xbrief/active/*.json`); a
+  // brief-shaped sentinel plus present files close that hole.
+  const probes = [
+    ...new Set([...lifecycleIgnoreProbeRelPaths(), ...presentLifecycleFileRelPaths(projectRoot)]),
+  ];
   // --no-index: report the matching rule even when some files under the root
   // are already tracked (the #3504 hide is untracked new briefs).
   const { code, stdout, stderr } = runGit(projectRoot, [
@@ -202,26 +259,35 @@ function collectIgnoredRoots(projectRoot: string, runGit: GitRunner): LifecycleH
     "-v",
     "--no-index",
     "--",
-    ...roots,
+    ...probes,
   ]);
   if (code === 1) return [];
   if (code !== 0) {
     throw new GitProbeError(code, stderr || "git check-ignore failed");
   }
   const findings: LifecycleHideFinding[] = [];
-  for (const line of stdout.split(/\r?\n/)) {
-    if (line.length === 0) continue;
+  const seen = new Set<string>();
+  for (const rawLine of stdout.split(/\r?\n/)) {
+    if (rawLine.length === 0) continue;
+    const negatedLine = rawLine.startsWith("!");
+    const line = negatedLine ? rawLine.slice(1) : rawLine;
     const parsed = parseCheckIgnoreVerboseLine(line);
     if (parsed === null) continue;
-    const displayPath = `${parsed.path.replace(/\\/g, "/").replace(/\/+$/, "")}/`;
-    if (!roots.includes(displayPath)) continue;
+    if (negatedLine || parsed.pattern.startsWith("!")) continue;
+    if (isSelectiveLifecyclePath(parsed.path)) continue;
+    const displayPath = lifecycleRootForRelPath(parsed.path);
+    if (displayPath === null) continue;
+    const source = displayIgnoreSource(parsed.source, projectRoot);
+    const key = `${displayPath}|ignored|${source}|${parsed.line}|${parsed.pattern}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
     findings.push({
       path: displayPath,
       kind: "ignored",
-      source: displayIgnoreSource(parsed.source, projectRoot),
+      source,
       line: parsed.line,
       rule: parsed.pattern,
-      raw: line,
+      raw: rawLine,
     });
   }
   return findings;
