@@ -1,0 +1,232 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3545",
+    "updated": "2026-08-20T18:34:17Z"
+  },
+  "plan": {
+    "title": "AppSec: 2 HIGH + 1 MEDIUM — post-#3529 UAT Shell residuals (rubyN/jruby/pypy/perl File::Slurp, dpkg -x, fromdos, emacsclient, degit, composer, ddrescue plant authz + kill-switch; approved-scope mint)",
+    "status": "completed",
+    "narratives": {
+      "Description": "After #3529, versioned interpreters and dest-form writers still classify empty under UAT and allow write-shaped Shell into .deft/authz, kill-switch files, and .deft/approved-scope. This story extends classify.ts dest parsing and fail-closes unclassifiable write-shaped Shell under UAT without false-denying ordinary /tmp dests.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3545",
+      "Overview": "## Summary\n\nAppSec scan on **`0b212e25`** (post-**#3529**) found two **HIGH** UAT Shell classification residuals and one **MEDIUM** incomplete mint-path fix.\n\nUnder active UAT, further write-capable binaries still classify empty / unclassifiable and **allow** write-shaped Shell. That path can plant a forged `.deft/authz` grant or a regular-file `.deft-directive-disable` kill-switch. Separately, residual Shell writers can still forge `.deft/approved-scope` while Write is denied, so the #3410 / #3421 / #3529 mint gate is incomplete.\n\nThese residuals use dest forms that **#3529's harvest does not cover** (`ruby3.3` / `jruby` / `pypy3` versioned interpreters, Perl `File::Slurp` / `spew` / `open F,\">\"`, `make DESTDIR=`, `dpkg -x`, `fromdos` / `todos`, `emacsclient` / `pico`, `pdftk` / `gs`, `npx degit`, `composer`, `ddrescue` / `dc3dd` / `sg_dd`, `darcs --repodir=`).\n\n**Repo / tip:** `deftai/directive` @ `0b212e25`\n**Primary code:** `packages/core/src/authz/classify.ts`\n**Attacker model:** Agent under **active UAT** with PreToolUse Shell hooks\n\n**Already denied after #3529 (do not re-report):** `xcopy` / `robocopy` / `move` / `bun` / `deno` / `php` / BitsTransfer / Expand-Archive / `cmd /c copy` / `ginstall` / `tsx` / `cp`. Contrast: those peers remain settings-denied. Bare `ruby` / `python3` / `dpkg-deb` also deny; **versioned** `ruby3.3` / `jruby` / `pypy3` do not.\n\n**Not duplicates of prior review findings -14 / -15 / -17.** These three are new validated residuals after the #3529 close.\n\n---\n\n## Findings\n\n### 1. HIGH — UAT residual after #3529: versioned interpreters / dest-form writers still plant `.deft/authz` grants\n\n| Field | Detail |\n|-------|--------|\n| **Location** | `packages/core/src/authz/classify.ts` |\n| **Attacker** | Agent under active UAT with PreToolUse Shell hooks |\n| **Input** | Residual writers whose dest is **not** covered by the #3529 harvest: `ruby3.3` / `jruby` / `pypy3`; Perl `File::Slurp` / `spew` / `open F,\">\"`; `make DESTDIR=.deft/authz/grants`; `dpkg -x`; `fromdos` / `todos`; `emacsclient` / `pico`; `pdftk` / `gs`; `npx degit`; `composer`; `ddrescue` / `dc3dd` / `sg_dd`; `darcs --repodir=` targeting `.deft/authz/grants/*.json` |\n| **Path** | Residual bins classify `[]` → `shell-op-unclassifiable` **allow** → forged grant JSON → empty `activeGrantIds` activates human-origin grants → Write / push / PR / merge unlock |\n| **Impact** | Complete residual bypass of Wave 1 UAT human-approval after #3529 |\n| **Fix** | Extend `isProgrammaticWriteBinToken` for `rubyN` / `jruby` / `pypy`. Treat `write_file` / `spew` as write APIs. Classify `DESTDIR` / `dpkg -x` / `fromdos` / `emacsclient` / `pico` / `pdftk` / `gs` / `degit` / `composer` / `ddrescue` family dests. Under UAT, **fail-closed** on unclassifiable write-shaped Shell. Do **not** stop at named-peer allowlists. Bare `ruby` / `python3` / `dpkg-deb` / `xcopy` already deny. |\n\n### 2. HIGH — UAT residual after #3529: same writer class still plants `.deft-directive-disable`\n\n| Field | Detail |\n|-------|--------|\n| **Location** | `packages/core/src/authz/classify.ts` |\n| **Attacker** | Agent under active UAT |\n| **Input** | Same residual class targeting `.deft-directive-disable` as a regular file. Verified: `ruby3.3` / `pypy3` / `jruby` / `fromdos` / `emacsclient` / `pico` / `ddrescue` / `dc3dd` / `npx degit`. Contrast: bare Perl kill forms remain settings-denied. |\n| **Path** | classify `[]` → Shell **allow** → plant kill-switch → subsequent tools `allow` / `directive-disabled` (`detectDeftDirectiveDisable.active`, #3039) |\n| **Impact** | Immediate complete Directive gate bypass for the rest of the session |\n| **Fix** | Same classify extensions for kill-switch basenames. Mirror the authz fail-closed posture from finding (1). |\n\n### 3. MEDIUM — Incomplete #3529: residual Shell writers still forge `.deft/approved-scope` while Write is denied\n\n| Field | Detail |\n|-------|--------|\n| **Location** | `packages/core/src/authz/classify.ts` |\n| **Attacker** | Agent under active UAT |\n| **Input** | Residual dest writers targeting `.deft/approved-scope/**` after Write is denied for the same path (Write denied; residual writers above still allow; contrast `cp` denied) |\n| **Path** | Write denies the mint artifact; residual Shell classify misses the dest form → **allow** → forged provenance approval without `#3110` human-presence mint |\n| **Impact** | Bypasses #3410 / #3421 / #3529 mint gate via Write / Shell asymmetry |\n| **Fix** | Extend approved-scope Shell classify to the same residual dest writers as findings (1) and (2). |\n\n---\n\n## Evidence\n\nLive probe on **`0b212e25`** (`classifyShellAuthzOps` + `decideHook` Bash PreToolUse, active UAT, empty grants):\n\n| Command class | classify | decideHook |\n|---------------|----------|------------|\n| `ruby3.3` / `jruby` / `pypy3` write into `.deft/authz/grants` | `[]` | **allow** / `shell-op-unclassifiable` |\n| Perl `File::Slurp` / `spew` / `open F,\">\"` into authz dest | `[]` | **allow** / `shell-op-unclassifiable` |\n| `make DESTDIR=.deft/authz/grants` | `[]` | **allow** / `shell-op-unclassifiable` |\n| `dpkg -x` targeting authz dest | `[]` | **allow** / `shell-op-unclassifiable` |\n| `fromdos` / `todos` targeting authz dest | `[]` | **allow** / `shell-op-unclassifiable` |\n| `emacsclient` / `pico` targeting authz dest | `[]` | **allow** / `shell-op-unclassifiable` |\n| `pdftk` / `gs` targeting authz dest | `[]` | **allow** / `shell-op-unclassifiable` |\n| `npx degit` / `composer` targeting authz dest | `[]` | **allow** / `shell-op-unclassifiable` |\n| `ddrescue` / `dc3dd` / `sg_dd` targeting authz dest | `[]` | **allow** / `shell-op-unclassifiable` |\n| `darcs --repodir=` targeting authz dest | `[]` | **allow** / `shell-op-unclassifiable` |\n| Same residual writers targeting `.deft-directive-disable` (verified `ruby3.3` / `pypy3` / `jruby` / `fromdos` / `emacsclient` / `pico` / `ddrescue` / `dc3dd` / `npx degit`) | `[]` | **allow** / `shell-op-unclassifiable` |\n| Same residual writers targeting `.deft/approved-scope` | `[]` | **allow** / `shell-op-unclassifiable` |\n| Write to `.deft/approved-scope` | settings | **deny** |\n| Bare `ruby` / `python3` / `dpkg-deb` / `xcopy` (authz dest) | settings | **deny** |\n| Bare Perl kill-switch forms | settings | **deny** |\n| `cp` targeting `.deft/approved-scope` | settings | **deny** |\n\nOrdinary dests such as `/tmp` stay unclassifiable (do not overclassify).\n\n## Not re-reported\n\n- `xcopy` / `robocopy` / `move` / `bun` / `deno` / `php` / BitsTransfer / Expand-Archive — #3529 fixed\n- `ginstall` / `gcp` / `cmd copy` / `tsx` / `cp` — #3459 / #3421 / #3529 fixed\n- Bare `ruby` / `python3` / `dpkg-deb` — already settings-denied (versioned `ruby3.3` / `jruby` / `pypy3` are the hole)\n- Bare Perl kill-switch forms — already settings-denied\n- Prior review findings **-14 / -15 / -17** — not these residuals; do not close this as a duplicate of those\n\n## Acceptance criteria\n\n**HIGH — UAT Shell residuals (must land together)**\n\n- [ ] Under active UAT, listed residual binaries that write into `.deft/authz/**` classify as **settings deny** (not unclassifiable allow)\n- [ ] Same bins targeting `.deft-directive-disable` / `.no-deft-directive` classify as **settings deny**\n- [ ] Dest parsing covers `rubyN` / `jruby` / `pypy`, Perl `write_file` / `spew` / `open F,\">\"`, `make DESTDIR=`, `dpkg -x`, `fromdos` / `todos`, `emacsclient` / `pico`, `pdftk` / `gs`, `npx degit`, `composer`, `ddrescue` / `dc3dd` / `sg_dd`, `darcs --repodir=` when dest is protected\n- [ ] Prefer fail-closed on unclassifiable **write-shaped** Shell under UAT (not silent allow). Do not stop at named-peer allowlists.\n- [ ] Regression tests cover residual bins vs already-denied peers (bare `ruby` / `python3` / `dpkg-deb` / `xcopy` / `cp`)\n- [ ] No false deny of ordinary non-authz / non-kill-switch dests (e.g. `/tmp`) outside UAT write paths\n\n**MEDIUM — approved-scope mint symmetry**\n\n- [ ] Under active UAT, residual Shell writers targeting `.deft/approved-scope/**` classify as **settings deny**, matching Write\n- [ ] Forged Shell mint cannot satisfy provenance approval without the shared #3110 human-presence mint\n\n**Release hygiene**\n\n- [ ] CHANGELOG `[Unreleased]` security note (brief; no exploit cookbook)\n\n## Related\n\n- Residual of #3529 UAT Shell dest-form hardening (closed; this scan is post-fix on `0b212e25`)\n- Residual of #3459 / #3421 UAT Shell dest-form hardening\n- #3410 mint (`scope:record-approved-scope` / shared #3110 gate); parent epic #3376\n- Kill-switch contract: #3039\n- Prior authz UAT Shell residual class: #3206, #3213, #3245, #3288, #3311, #3336, #3354, #3382, #3421, #3459, #3529\n\n## Labels / routing\n\nSecurity / agent-safety / tooling — framework-source fix in `packages/core/src/authz/`.\n\n",
+      "Labels": "bug, security, tooling, agent-safety",
+      "UserStory": "As a maintainer, I want residual UAT Shell dest writers classified fail-closed on protected paths, so that forged grants, kill-switches, and approved-scope mint cannot bypass Write denial.",
+      "ImplementationPlan": "1. Extend packages/core/src/authz/classify.ts: versioned interpreter tokens (rubyN/jruby/pypy), Perl write_file/spew/open-redirect, DESTDIR/dpkg -x/fromdos/newline-converters/emacsclient/pico/pdftk/gs/degit/composer/ddrescue-family/darcs --repodir dest parse; fail-closed unclassifiable write-shaped Shell under UAT.\n2. Cover authz grants, .deft-directive-disable/.no-deft-directive, and .deft/approved-scope dests in tests (packages/core/src/authz) vs already-denied peers; do not false-deny /tmp."
+    },
+    "items": [
+      {
+        "title": "Authz grant dests deny residual writers",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When ruby3.3, jruby, pypy3, Perl spew, dpkg -x, fromdos, emacsclient, npx degit, composer, or ddrescue write into .deft/authz under active UAT, classify is settings deny, not unclassifiable allow."
+        },
+        "x-directive/evidence": {
+          "kind": "uat",
+          "pointer": "packages/core/src/authz/incident-regression.test.ts#UAT residual dest-form writers fail-closed (#3545)",
+          "recorded_at": "2026-08-20T18:34:13Z",
+          "recorded_by": "att-6134a91f9e0a3786"
+        }
+      },
+      {
+        "title": "Kill-switch dests deny residual writers",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When ruby3.3, pypy3, jruby, fromdos, emacsclient, pico, ddrescue, dc3dd, or npx degit target .deft-directive-disable or .no-deft-directive under active UAT, classify is settings deny."
+        },
+        "x-directive/evidence": {
+          "kind": "uat",
+          "pointer": "packages/core/src/authz/incident-regression.test.ts#UAT residual dest-form writers fail-closed (#3545)",
+          "recorded_at": "2026-08-20T18:34:13Z",
+          "recorded_by": "att-6134a91f9e0a3786"
+        }
+      },
+      {
+        "title": "Approved-scope mint symmetry",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When residual Shell writers target .deft/approved-scope/** under active UAT, classify is settings deny matching Write, so forged mint cannot satisfy provenance without #3110 human-presence mint."
+        },
+        "x-directive/evidence": {
+          "kind": "uat",
+          "pointer": "packages/core/src/authz/incident-regression.test.ts#UAT residual dest-form writers fail-closed (#3545)",
+          "recorded_at": "2026-08-20T18:34:13Z",
+          "recorded_by": "att-6134a91f9e0a3786"
+        }
+      },
+      {
+        "title": "Dest coverage and no /tmp false deny",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When dest parsing covers ruby3.3/jruby/pypy3, Perl spew/write_file, make DESTDIR=, dpkg -x, fromdos, emacsclient/pico, pdftk/gs, npx degit, composer, ddrescue/dc3dd/sg_dd, and darcs --repodir= on protected dests, ordinary /tmp dests outside UAT write paths stay unclassifiable."
+        },
+        "x-directive/evidence": {
+          "kind": "uat",
+          "pointer": "packages/core/src/authz/incident-regression.test.ts#UAT residual dest-form writers fail-closed (#3545)",
+          "recorded_at": "2026-08-20T18:34:13Z",
+          "recorded_by": "att-6134a91f9e0a3786"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security",
+      "tooling",
+      "agent-safety"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3545",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3545: AppSec: 2 HIGH + 1 MEDIUM — post-#3529 UAT Shell residuals (rubyN/jruby/pypy/perl File::Slurp, dpkg -x, fromdos, emacsclient, degit, composer, ddrescue plant authz + kill-switch; approved-scope mint)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 12 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "*HIGH — UAT Shell residuals (must land together)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Under active UAT, listed residual binaries that write into `.deft/authz/` classify as settings deny (not unclassifiable allow)",
+          "artifact_path": "packages/core/src/authz/classify.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Same bins targeting `.deft-directive-disable` / `.no-deft-directive` classify as settings deny",
+          "artifact_path": "packages/core/src/authz/classify.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Dest parsing covers `rubyN` / `jruby` / `pypy`, Perl `write_file` / `spew` / `open F,\">\"`, `make DESTDIR=`, `dpkg -x`, `fromdos` / `todos`, `emacsclient` / `pico`, `pdftk` / `gs`, `npx degit`, `composer`, `ddrescue` / `dc3dd` / `sg_dd`, `darcs --repodir=` when dest is protected",
+          "artifact_path": "packages/core/src/authz/classify.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Prefer fail-closed on unclassifiable write-shaped Shell under UAT (not silent allow). Do not stop at named-peer allowlists.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "implementation"
+        },
+        {
+          "id": 6,
+          "text": "Regression tests cover residual bins vs already-denied peers (bare `ruby` / `python3` / `dpkg-deb` / `xcopy` / `cp`)",
+          "artifact_path": "packages/core/src/authz/classify.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "No false deny of ordinary non-authz / non-kill-switch dests (e.g. `/tmp`) outside UAT write paths",
+          "artifact_path": "packages/core/src/authz/classify.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "*MEDIUM — approved-scope mint symmetry",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Under active UAT, residual Shell writers targeting `.deft/approved-scope/` classify as settings deny, matching Write",
+          "artifact_path": "packages/core/src/authz/classify.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Forged Shell mint cannot satisfy provenance approval without the shared #3110 human-presence mint",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "*Release hygiene",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "CHANGELOG `[Unreleased]` security note (brief; no exploit cookbook)",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/authz/classify.ts",
+          "packages/core/src/authz/classify.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/authz"
+        ],
+        "expected_outputs": [
+          "residual dest writers deny on authz, kill-switch, and approved-scope; /tmp stays unclassifiable"
+        ],
+        "depends_on": [],
+        "conflict_group": "authz-classify-3545",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Issue-ingested story; FR traces live in GitHub #3545."
+        ]
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3546,
+        "prBase": null,
+        "mergeCommit": "e5d47d97f5d6d95b8ccb3e2a500ece38e60cae76",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e5d47d97f5d6d95b8ccb3e2a500ece38e60cae76",
+        "verifiedAt": "2026-08-20T18:34:17Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "85fabbf9-07db-42b6-9594-36801ffdfe39"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-20T18:34:17Z",
+      "completedSessionId": "85fabbf9-07db-42b6-9594-36801ffdfe39",
+      "capacityBucket": "technical-debt"
+    },
+    "id": "2026-08-20-3545-appsec-2-high-1-medium-post-3529-uat-shell-residuals-rubynjr",
+    "updated": "2026-08-20T18:34:17Z"
+  }
+}
