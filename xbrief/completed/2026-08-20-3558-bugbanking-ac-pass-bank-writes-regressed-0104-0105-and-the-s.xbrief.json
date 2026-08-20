@@ -1,0 +1,195 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3558",
+    "updated": "2026-08-20T22:44:23Z"
+  },
+  "plan": {
+    "title": "bug(banking): ac-pass bank writes regressed 0.104->0.105 and the serve path has never hit in the field (15/15 executed) - #3549 branch-1 fix; emit miss_reason on every executed walk",
+    "status": "completed",
+    "narratives": {
+      "Description": "AC-pass bank writes regressed from 0.104 to 0.105 so verified walks often bank zero times. The serve path has never hit in the field: served_from executed on 15 of 15 observed walks.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3558",
+      "Overview": "**TL;DR: the branch-1 fix issue from #3549. Two defects, one surface: (1) bank WRITES regressed 0.104 -> 0.105 — a task that banked on every verified pass in 0.104 banked zero times in 0.105 (its apps sibling banked only 3 of 8 scopes); (2) the SERVE path has never hit in the field — `served_from: \"executed\"` on 15/15 observed walks across both bundled trials. Until both land, #3387 is dead weight: all of the completion-walk cost, none of the reuse.**\n\n**Evidence:** #3549 disposition comment (field JSONLs, internal benchmark, private). Code anchors at HEAD: `packages/core/src/session/ac-pass-reuse.ts` (miss conditions: no scope id, `hashed.complete === false`, epoch-zero bankedAt, hash mismatch), `product-first-done-gate/evaluate.ts:240,895` (hash passed at write), `session/product-state-hash.ts` (scope/exclusions correct).\n\n## Fix\n1. **Write regression:** bisect the 0.104 -> 0.105 delta on the bank-write path — prime suspects are the #3399 envelope migration (ac_pass_bank moved onto `RunSummaryEmitter`) and #3387's own landing. A verified-pass walk MUST produce a bank write; the 0.104 field stream is the behavioral fixture.\n2. **Serve miss:** instrument-then-fix. The reuse gate returns a `reason` on every miss — ensure that reason reaches the acceptance event (`served_from: \"executed\", miss_reason: ...`) so the next field stream names the culprit outright. Fix the named cause; leading candidate is hash incompleteness in containers (if `git status` quirks force `complete:false`, the fallback hashing the glob work already built must engage rather than defaulting to miss-forever).\n3. **Fixture (per #3362 discipline):** a trial-shaped test — activate -> verify pass (banks) -> complete (serves from bank) -> check (serves from cache) — asserting served_from values bank/cache, not executed, and exactly one command execution.\n\n## Acceptance sketch\n- Field-shaped fixture passes; a product edit after banking forces executed (fail-closed path intact).\n- Next external run's streams show non-zero bank/cache serve rates on multi-scope tasks, with `miss_reason` on every remaining miss.\n\nRelates #3549 (investigation this closes the loop on), #3387 (the shipped surface), #3285, #3399 (suspect), #3352.",
+      "Labels": "bug, agent-experience",
+      "UserStory": "As a consumer running multi-scope tasks, I want verified-pass walks to bank and later serve from bank or cache, so that #3387 actually reuses completion-walk cost.",
+      "ImplementationPlan": "1. Bisect the bank-write path in the session ac-pass-reuse module and product-state-hash file; restore a verified-pass walk so it persists a bank write as 0.104 did. 2. Emit miss_reason on every executed serve from the reuse gate into the acceptance event. 3. Add a trial-shaped test file that verifies activate-verify-complete-check serves from bank then cache, not executed.",
+      "OriginDivergence": "Intentional: labeled status:child after ingest; body and comments already read (#2143). Swarm-ready fields added locally."
+    },
+    "items": [
+      {
+        "title": "Restore bank writes",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When a verified-pass walk completes, the bank-write path persists a bank record; a walk that banked on every pass in 0.104 no longer returns zero writes."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "recorded_at": "2026-08-20T22:42:09Z",
+          "recorded_by": "leaf-implementation/3558-residual",
+          "pointer": "packages/core/src/session/product-state-hash.test.ts"
+        }
+      },
+      {
+        "title": "Emit miss_reason",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When reuse misses and served_from is executed, the acceptance event records miss_reason so the next field stream names the cause."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "recorded_at": "2026-08-20T22:42:09Z",
+          "recorded_by": "leaf-implementation/3558-residual",
+          "pointer": "packages/core/src/session/ac-pass-reuse.test.ts"
+        }
+      },
+      {
+        "title": "Trial fixture",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When the trial-shaped test runs, activate then verify pass banks, complete serves from bank, check serves from cache, and it rejects a second command execution; a product edit after banking fails closed to executed."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "recorded_at": "2026-08-20T22:42:09Z",
+          "recorded_by": "leaf-implementation/3558-residual",
+          "pointer": "packages/core/src/product-first-done-gate/bank-aware-complete.test.ts"
+        }
+      },
+      {
+        "title": "Check and changelog",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When targeted session tests run they validate bank and serve; when task check runs it returns exit 0; CHANGELOG Unreleased records the fix."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "recorded_at": "2026-08-20T22:42:09Z",
+          "recorded_by": "leaf-implementation/3558-residual",
+          "pointer": "CHANGELOG.md"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3558",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3558: bug(banking): ac-pass bank writes regressed 0.104->0.105 and the serve path has never hit in the field (15/15 executed) - #3549 branch-1 fix; emit miss_reason on every executed walk"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "served_from: \"executed\", miss_reason: ...",
+          "reason": "path-like first token is not allowlisted",
+          "sourceSpan": "inline@L9"
+        },
+        {
+          "command": "git status",
+          "reason": "first token \"git\" is not in the literal-AC allowlist",
+          "sourceSpan": "inline@L9"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/session/ac-pass-reuse.ts",
+          "packages/core/src/session/product-state-hash.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/session"
+        ],
+        "expected_outputs": [
+          "verified-pass banks; miss_reason on executed serve; trial fixture serves bank then cache"
+        ],
+        "depends_on": [],
+        "conflict_group": "ac-pass-bank-3558",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Issue-ingested story; FR traces live in GitHub #3558 and #3549."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3565,
+        "prBase": null,
+        "mergeCommit": "e66c9039bf542f40ef0df8342233ca7460c1a7d8",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e66c9039bf542f40ef0df8342233ca7460c1a7d8",
+        "verifiedAt": "2026-08-20T22:44:23Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "82c2de10-dfcf-4605-8653-256b5d4b9506"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-20T22:44:23Z",
+      "completedSessionId": "82c2de10-dfcf-4605-8653-256b5d4b9506",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Write regression: bisect the 0.104 -> 0.105 delta on the bank-write path — prime suspects are the #3399 envelope migration (ac_pass_bank moved onto `RunSummaryEmitter`) and #3387's own landing. A verified-pass walk MUST produce a bank write; the 0.104 field stream is the behavioral fixture.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Serve miss: instrument-then-fix. The reuse gate returns a `reason` on every miss — ensure that reason reaches the acceptance event (`served_from: \"executed\", miss_reason: ...`) so the next field stream names the culprit outright. Fix the named cause; leading candidate is hash incompleteness in containers (if `git status` quirks force `complete:false`, the fallback hashing the glob work already built must engage rather than defaulting to miss-forever).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Fixture (per #3362 discipline): a trial-shaped test — activate -> verify pass (banks) -> complete (serves from bank) -> check (serves from cache) — asserting served_from values bank/cache, not executed, and exactly one command execution.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Field-shaped fixture passes; a product edit after banking forces executed (fail-closed path intact).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Next external run's streams show non-zero bank/cache serve rates on multi-scope tasks, with `miss_reason` on every remaining miss.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-08-20T22:44:23Z",
+    "id": "issue-3558"
+  }
+}
