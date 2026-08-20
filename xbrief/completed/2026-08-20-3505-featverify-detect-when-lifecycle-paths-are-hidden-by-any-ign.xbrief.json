@@ -1,0 +1,196 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3505",
+    "updated": "2026-08-20T08:03:12Z"
+  },
+  "plan": {
+    "title": "feat(verify): detect when lifecycle paths are hidden by any ignore mechanism",
+    "status": "completed",
+    "narratives": {
+      "Description": "Lifecycle gates only see tracked artifacts, so a hidden xbrief/active root in .git/info/exclude fails silently. Add verify:lifecycle-visible that reports ignore rules and skip-worktree flags on lifecycle roots, warn-first from session:start, without tripping deliberate selective entries.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3505",
+      "Overview": "## Summary\n\nNothing detects when a clone's ignore configuration makes lifecycle artifacts untrackable. #3504 is a live instance: a bare `xbrief/active/` in `.git/info/exclude` silently hid every active brief on a maintainer machine, and it was found only by accident three weeks later.\n\nEvery lifecycle gate reads **tracked** artifacts. None checks whether the artifacts *can be* tracked.\n\n## The gap\n\n`verify:completed-tracked` (#3264 / #3476) asks \"is this brief's land on the delivery tip?\". `verify:orphan-active` (#2321) asks \"is this active brief orphaned?\". Both operate on artifacts git can see. When git is configured not to see them, both go quiet — the failure mode is silence, not an error.\n\nFour mechanisms can hide a path, and only the first is visible in review:\n\n| Mechanism | Committed? | Visible to teammates |\n|---|---|---|\n| `.gitignore` | yes | yes |\n| `.git/info/exclude` | **no** | **no** |\n| `core.excludesFile` (global) | no | no |\n| `assume-unchanged` / `skip-worktree` | no | no |\n\nThe last three are per-clone. Behaviour diverges between maintainers running identical commands, which is the hardest class of drift to reason about.\n\n## Proposed check\n\nA verb — `verify:lifecycle-visible`, or folded into an existing lifecycle gate — asserting that the lifecycle roots are not ignored and not flag-suppressed:\n\n1. `git check-ignore -v` against `xbrief/{proposed,pending,active,completed,cancelled}/` and the legacy `vbrief/` equivalents. This already covers `.gitignore`, `.git/info/exclude`, **and** `core.excludesFile` in one call — cheap and decisive.\n2. `git ls-files -v` filtered for lowercase status letters, catching `assume-unchanged` / `skip-worktree` on tracked lifecycle files.\n3. Report the **matching rule and its source file** verbatim, as `check-ignore -v` does. \"Something is hiding your briefs\" is not actionable; `.git/info/exclude:33:xbrief/active/` is.\n\nSelective per-file entries under a lifecycle root are legitimate and must not trip this — `.triage-cache/*.jsonl` and the #1144 hybrid entries are deliberate. The check is about **roots being hidden**, not about every path under them.\n\n## Design questions\n\n- **Where does it run?** Not on the pre-commit quality gate — that is the #1704 chokepoint and this is a per-clone environment property, not a per-commit one. `session:start` is the natural home: it already reports branch/policy/tool state and runs once per session, which is exactly the cadence for \"your clone is configured wrongly.\"\n- **Warn or fail?** Warn-first, as `verify:telemetry-coverage` shipped. A hidden lifecycle root is nearly always a mistake, but failing closed on day one would block maintainers with historical local excludes before they know why.\n- **Is a hidden root ever legitimate?** If someone can name a real case, the check needs a documented opt-out; if not, it should eventually fail closed.\n\n## Acceptance\n\n- A bare `xbrief/active/` in `.git/info/exclude` is reported, naming file and line.\n- The same via `.gitignore` and via `core.excludesFile` is reported.\n- A `skip-worktree` flag on a tracked brief is reported.\n- Deliberate selective entries (`.triage-cache/*.jsonl`, #1144 hybrid) do **not** trip it.\n- The report names the rule, not just the symptom.\n\n## Why it is worth building\n\nThe framework's entire lifecycle guarantee rests on artifacts being visible to git. That precondition is currently assumed and never verified, and #3504 shows it can be false for weeks without anyone noticing — on the framework's own repo, while shipping gates that depend on it.\n\nRefs #3504, #3495, #3476, #3264, #2321, #1358, #1144\n\n",
+      "Labels": "determinism, agent-experience",
+      "UserStory": "As a maintainer, I want session start to report hidden lifecycle roots, so that clone-local ignore drift cannot silently drop active briefs.",
+      "ImplementationPlan": "1. Implement verify:lifecycle-visible using git check-ignore -v on lifecycle roots and git ls-files -v for skip-worktree or assume-unchanged flags, naming the matching rule and source file.\n2. Wire it warn-first into session:start, ignore selective entries such as .triage-cache jsonl, and cover exclude, gitignore, core.excludesFile, and skip-worktree fixtures."
+    },
+    "items": [
+      {
+        "title": "Exclude root is reported",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When xbrief/active is listed bare in .git/info/exclude, the check reports the matching file and line instead of staying silent."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/lifecycle-visible/evaluate.test.ts::reports a bare xbrief/active/ in .git/info/exclude with file and line",
+          "recorded_at": "2026-08-20T07:48:35Z",
+          "recorded_by": "vitest"
+        }
+      },
+      {
+        "title": "Gitignore and excludesFile are reported",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When the same hide happens via .gitignore or core.excludesFile, the check reports the matching rule and its source file."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/lifecycle-visible/evaluate.test.ts::reports the same hide via .gitignore and via core.excludesFile",
+          "recorded_at": "2026-08-20T07:48:35Z",
+          "recorded_by": "vitest"
+        }
+      },
+      {
+        "title": "Skip-worktree on a tracked brief is reported",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When a tracked lifecycle brief has the skip-worktree flag, the check reports that flag rather than treating the brief as visible."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/lifecycle-visible/evaluate.test.ts::reports skip-worktree on a tracked brief",
+          "recorded_at": "2026-08-20T07:48:35Z",
+          "recorded_by": "vitest"
+        }
+      },
+      {
+        "title": "Selective entries do not trip the check",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When only .triage-cache jsonl or other hybrid per-file entries exist under a visible lifecycle root, the check returns clean."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/lifecycle-visible/evaluate.test.ts::does not trip on deliberate .triage-cache jsonl gitignore entries",
+          "recorded_at": "2026-08-20T07:48:35Z",
+          "recorded_by": "vitest"
+        }
+      }
+    ],
+    "tags": [
+      "determinism",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3505",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3505: feat(verify): detect when lifecycle paths are hidden by any ignore mechanism"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3504",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3504"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/lifecycle-visible",
+          "source": "explicit",
+          "sourceSpan": "inline@L36"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/lifecycle-visible",
+          "packages/core/src/session/start.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/lifecycle-visible"
+        ],
+        "expected_outputs": [
+          "lifecycle-visible tests report hidden roots and ignore selective entries"
+        ],
+        "depends_on": [],
+        "conflict_group": "lifecycle-visible-3505",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Issue-ingested story; FR traces live in GitHub #3505 acceptance."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3533,
+        "prBase": null,
+        "mergeCommit": "5c78118e5f4b977603169a4e98a1b2e1e8b31ebe",
+        "deliveryBranch": "master",
+        "deliveryCommit": "5c78118e5f4b977603169a4e98a1b2e1e8b31ebe",
+        "verifiedAt": "2026-08-20T08:03:12Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "b0285b62-f49b-45df-83a4-7248c2af001a"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-20T08:03:12Z",
+      "completedSessionId": "b0285b62-f49b-45df-83a4-7248c2af001a",
+      "capacityBucket": "agentic-debt"
+    },
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/lifecycle-visible"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "The shipped artifact exists: a bare xbrief/active/ in .git/info/exclude is reported, naming file and line. Uses \"check-ignore\".",
+          "artifact_path": "packages/core/src/lifecycle-visible/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The shipped artifact exists: the same hide via .gitignore and core.excludesFile is reported.",
+          "artifact_path": "packages/core/src/lifecycle-visible/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The shipped artifact exists: a skip-worktree flag on a tracked brief is reported.",
+          "artifact_path": "packages/core/src/lifecycle-visible/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "The shipped artifact exists: deliberate .triage-cache jsonl hybrid entries do not trip the check.",
+          "artifact_path": "packages/core/src/lifecycle-visible/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "The shipped artifact exists: the report names the matching rule, not just the symptom.",
+          "artifact_path": "packages/core/src/lifecycle-visible/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ]
+    },
+    "updated": "2026-08-20T08:03:12Z",
+    "id": "2026-08-20-3505-featverify-detect-when-lifecycle-paths-are-hidden-by-any-ign"
+  }
+}
