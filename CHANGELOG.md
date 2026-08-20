@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **spec:render accepts v0.8 xBRIEFInfo specification envelopes (#3555).** `render/spec-validate` shares the info-key resolver and `VALID_VBRIEF_VERSIONS` with `vbrief-validate`. Remediation names `task migrate:xbrief`. `project:export-spec` full-spec uses the same validator. Closes #3555. Refs #3547, #2107.
 - **Policy ledger no-ops no longer dirty the tree (#3528).** Typed-policy writers and the welcome path now share one convention: real transitions append `changed=true`; a no-op `product-signal:enable` (and sibling policy verbs) leave `meta/policy-changes.log` unmodified. Existing rows stay. Refs #1250, #746.
 
 ### Removed

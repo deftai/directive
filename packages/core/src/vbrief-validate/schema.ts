@@ -35,7 +35,7 @@ function validatePlanRefs(planRefs: unknown, path: string, errors: string[]): vo
   }
 }
 
-function resolveInfoBlock(
+export function resolveInfoBlock(
   data: JsonObject,
 ): { key: "vBRIEFInfo" | "xBRIEFInfo"; info: JsonObject } | null {
   for (const key of VALID_INFO_ROOT_KEYS) {

@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { basename } from "node:path";
-import { VALID_STATUSES, VALID_VBRIEF_VERSIONS } from "./constants.js";
+import { VALID_INFO_ROOT_KEYS, VALID_VBRIEF_VERSIONS } from "../vbrief-validate/constants.js";
+import { resolveInfoBlock } from "../vbrief-validate/schema.js";
+import { VALID_STATUSES } from "./constants.js";
 
 type JsonObject = Record<string, unknown>;
 
@@ -52,19 +54,28 @@ function validatePlanItem(item: JsonObject, path: string, errors: string[]): voi
 function validateSchema(data: JsonObject): string[] {
   const errors: string[] = [];
 
-  if (!("vBRIEFInfo" in data)) {
-    errors.push("missing required top-level key 'vBRIEFInfo'");
-  } else {
-    const info = data.vBRIEFInfo;
-    if (typeof info !== "object" || info === null || Array.isArray(info)) {
-      errors.push("'vBRIEFInfo' must be an object");
-    } else {
-      const version = (info as JsonObject).version;
-      if (!VALID_VBRIEF_VERSIONS.has(String(version))) {
-        errors.push(
-          `'vBRIEFInfo.version' must be '0.6' (canonical v0.6 schema, #533), got ${JSON.stringify(version)}. Run \`task migrate:vbrief\` to upgrade pre-existing v0.5 vBRIEFs in-place.`,
-        );
+  const resolved = resolveInfoBlock(data);
+  if (resolved === null) {
+    let infoShapeError = false;
+    for (const key of VALID_INFO_ROOT_KEYS) {
+      if (!(key in data)) continue;
+      const info = data[key];
+      if (info === null || Array.isArray(info) || typeof info !== "object") {
+        errors.push(`'${key}' must be an object`);
+        infoShapeError = true;
+        break;
       }
+    }
+    if (!infoShapeError) {
+      errors.push("missing required top-level key 'vBRIEFInfo' or 'xBRIEFInfo'");
+    }
+  } else {
+    const version = resolved.info.version;
+    if (!VALID_VBRIEF_VERSIONS.has(String(version))) {
+      const allowed = [...VALID_VBRIEF_VERSIONS].map((v) => `'${v}'`).join(", ");
+      errors.push(
+        `'${resolved.key}.version' must be one of ${allowed} (canonical v0.6/v0.8 schema, #2107), got ${JSON.stringify(version)}. Run \`task migrate:xbrief\` to upgrade pre-existing v0.5 vBRIEFs in-place.`,
+      );
     }
   }
 

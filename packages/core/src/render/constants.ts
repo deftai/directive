@@ -11,7 +11,8 @@ export const VALID_STATUSES = new Set([
   "cancelled",
 ]);
 
-export const VALID_VBRIEF_VERSIONS = new Set(["0.6"]);
+export { VALID_VBRIEF_VERSIONS } from "../vbrief-validate/constants.js";
+export { resolveInfoBlock } from "../vbrief-validate/schema.js";
 
 export const SPECIFICATION_NARRATIVE_KEY_ORDER = [
   "Overview",
