@@ -1,0 +1,172 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3557",
+    "updated": "2026-08-20T23:21:42Z"
+  },
+  "plan": {
+    "id": "issue-3557",
+    "title": "bug(strategies): shipped strategies still MUST-write vbrief/ (parent #3547)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Shipped strategy documents still MUST-write vbrief/ paths. Live layout is xbrief/; pack source and content-contract tests lock the old paths.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3557",
+      "Overview": "## Parent\n\n#3547 (tracker, child D -- defect 4)\n\n## What to build\n\nFifteen shipped strategy documents still reference `vbrief/` paths. Agents running `discuss` / `yolo` / `speckit` / `probe` (and others) are `!`-instructed to write `vbrief/proposed/` and register in `./vbrief/plan.vbrief.json`. The live layout is `xbrief/`; legacy `vbrief/` is read-accepted only.\n\nSeverity is uneven: some files already hedge or are xbrief-first (`artifact-guards.md`); `interview.md:96-102` still `!`-writes `./vbrief/plan.vbrief.json`. Size from a fresh `content/strategies/` count at implement time, not the filed deposit table. Reporter line-counts (`grep -c`) match `content/strategies/` under that method; do not re-litigate deposit-vs-content drift.\n\nSource of truth for strategy markdown is `content/packs/strategies/strategies-pack-0.1.json`; `task packs:render` regenerates the markdown.\n\nSame atomic product+contract move as child C: `strategy_outputs.test.ts` and `strategy_conversions.test.ts` currently lock `vbrief/proposed/` MUST-writes. Update them in the **same PR** as the corpus (#3156). Do not weaken those tests first.\n\nCite (origin/master): `content/strategies/interview.md:97,102`; `packages/core/src/content-contracts/standards/strategy_outputs.test.ts:12,75-78`; `strategy_conversions.test.ts:8,20`.\n\n#3556 (child C) has merged. Do not bundle probe-only work. Probe strategy already landed; this child is the rest of the corpus.\n\n## Out of scope\n\n- Probe Python / `deft probe-session` discoverability (child C, landed)\n- Optional later ratchet: `!`-named scripts/verbs resolve on the live dispatch map\n- `finalize-cohort` master default (child A)\n- `spec-validate` v0.8 (child B)",
+      "Labels": "bug, agent-experience, area:guidance, status:child",
+      "UserStory": "As an agent following shipped strategies, I want MUST-write and register paths to name xbrief/, so that I am not instructed to write a legacy vbrief/ layout.",
+      "ImplementationPlan": "1. Edit the strategies pack JSON module so MUST-write and register paths name xbrief/ (interview.md included); run packs:render to regenerate strategy files. 2. Update strategy_outputs.test.ts and strategy_conversions.test.ts in the same PR so they validate the live xbrief/ layout. 3. Run those test files and task check; CHANGELOG Unreleased records the fix.",
+      "OriginDivergence": "Intentional: swarm-ready fields and 2-5 When-AC added after ingest; #3556 blocker has merged."
+    },
+    "items": [
+      {
+        "title": "Corpus MUST-write paths",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When packs:render runs, shipped strategy files including interview.md reject unhedged MUST-writes to vbrief/proposed/ and ./vbrief/plan.vbrief.json; live paths name xbrief/."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/strategy_outputs.test.ts",
+          "recorded_at": "2026-08-20T23:20:24Z",
+          "recorded_by": "leaf-implementation/3557"
+        }
+      },
+      {
+        "title": "Atomic content-contract tests",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When strategy_outputs.test.ts and strategy_conversions.test.ts run they validate xbrief/ MUST-write paths in the same PR; they reject a weaken-the-test-first change that still allows vbrief/proposed/ as the live write path."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/strategy_conversions.test.ts",
+          "recorded_at": "2026-08-20T23:20:24Z",
+          "recorded_by": "leaf-implementation/3557"
+        }
+      },
+      {
+        "title": "Pack source is SoT",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When the strategies pack JSON module is edited, generated markdown under content/strategies/ is regenerated via packs:render; hand-edits of generated strategy files as source of truth are rejected."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8eb0dec1bd375a4cb0a338cbabfc267e728dd0a4",
+          "recorded_at": "2026-08-20T23:20:24Z",
+          "recorded_by": "leaf-implementation/3557"
+        }
+      },
+      {
+        "title": "Check and changelog",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When targeted strategy content-contract tests run they return exit 0; when task check runs it returns exit 0; CHANGELOG Unreleased records the fix."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-08-20T23:20:24Z",
+          "recorded_by": "leaf-implementation/3557"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "area:guidance",
+      "status:child"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3557",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3557: bug(strategies): shipped strategies still MUST-write vbrief/ (parent #3547)"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/packs/strategies/strategies-pack-0.1.json",
+          "content/strategies/",
+          "packages/core/src/content-contracts/standards/strategy_outputs.test.ts",
+          "packages/core/src/content-contracts/standards/strategy_conversions.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/standards/strategy_outputs.test.ts packages/core/src/content-contracts/standards/strategy_conversions.test.ts"
+        ],
+        "expected_outputs": [
+          "strategy MUST-write paths name xbrief/; interview.md no longer !-writes vbrief/plan.vbrief.json"
+        ],
+        "depends_on": [],
+        "conflict_group": "strategies-corpus-3557",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Issue-ingested story; FR traces live in GitHub #3557."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3569,
+        "prBase": null,
+        "mergeCommit": "8eb0dec1bd375a4cb0a338cbabfc267e728dd0a4",
+        "deliveryBranch": "master",
+        "deliveryCommit": "8eb0dec1bd375a4cb0a338cbabfc267e728dd0a4",
+        "verifiedAt": "2026-08-20T23:21:42Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "e9f38cb1-a89c-4436-a93d-c925e7644dd9"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-20T23:21:42Z",
+      "completedSessionId": "e9f38cb1-a89c-4436-a93d-c925e7644dd9",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 1 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Edit the strategies pack JSON module so MUST-write and register paths name xbrief/ (interview.md included); run packs:render to regenerate strategy files. 2. Update strategy_outputs.test.ts and strategy_conversions.test.ts in the same PR so they validate the live xbrief/ layout. 3. Run those test files and task check; CHANGELOG Unreleased records the fix.",
+          "artifact_path": "content/strategies/interview.md",
+          "ambiguous": true,
+          "readings": [
+            {
+              "text": "Edit the strategies pack JSON module so MUST-write and register paths name xbrief/ (interview.md included); run packs:render to regenerate strategy files. 2. Update strategy_outputs.test.ts and strategy_conversions.test.ts in the same PR so they validate the live xbrief/ layout. 3. Run those test files and task check; CHANGELOG Unreleased records the fix. [reading: content/strategies/interview.md]",
+              "artifact_path": "content/strategies/interview.md"
+            },
+            {
+              "text": "Edit the strategies pack JSON module so MUST-write and register paths name xbrief/ (interview.md included); run packs:render to regenerate strategy files. 2. Update strategy_outputs.test.ts and strategy_conversions.test.ts in the same PR so they validate the live xbrief/ layout. 3. Run those test files and task check; CHANGELOG Unreleased records the fix. [reading: packages/core/src/content-contracts/standards/strategy_outputs.test.ts]",
+              "artifact_path": "packages/core/src/content-contracts/standards/strategy_outputs.test.ts"
+            },
+            {
+              "text": "Edit the strategies pack JSON module so MUST-write and register paths name xbrief/ (interview.md included); run packs:render to regenerate strategy files. 2. Update strategy_outputs.test.ts and strategy_conversions.test.ts in the same PR so they validate the live xbrief/ layout. 3. Run those test files and task check; CHANGELOG Unreleased records the fix. [reading: packages/core/src/content-contracts/standards/strategy_conversions.test.ts]",
+              "artifact_path": "packages/core/src/content-contracts/standards/strategy_conversions.test.ts"
+            }
+          ],
+          "chosen_reading": 0,
+          "provenance": "statement"
+        }
+      ]
+    },
+    "updated": "2026-08-20T23:21:42Z"
+  }
+}
