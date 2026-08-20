@@ -117,6 +117,36 @@ export function ignorePatternLooksLifecycleRelevant(pattern: string): boolean {
   return false;
 }
 
+/** True when `ch` is listed in a gitignore class body (`0-5`, `abc`). Linear scan. */
+function gitignoreClassContains(inner: string, ch: string): boolean {
+  const code = ch.charCodeAt(0);
+  let i = 0;
+  while (i < inner.length) {
+    const a = inner[i] ?? "";
+    if (i + 2 < inner.length && inner[i + 1] === "-") {
+      const b = inner[i + 2] ?? "";
+      if (a.charCodeAt(0) <= code && code <= b.charCodeAt(0)) return true;
+      i += 3;
+      continue;
+    }
+    if (a === ch) return true;
+    i += 1;
+  }
+  return false;
+}
+
+/** One concrete char that still matches a gitignore class. Negated classes skip `0`. */
+function pickGitignoreClassChar(inner: string, negated: boolean): string {
+  const unescaped = inner.replace(/\\/g, "");
+  if (!negated) return unescaped[0] ?? "0";
+  if (unescaped.length === 0) return "0";
+  const candidates = "6789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01";
+  for (const c of candidates) {
+    if (!gitignoreClassContains(unescaped, c)) return c;
+  }
+  return "z";
+}
+
 /** Linear `[abc]` expansion — avoid nested regex quantifiers (CodeQL js/polynomial-redos). */
 export function expandGitignoreCharClasses(body: string): string {
   let out = "";
@@ -137,8 +167,7 @@ export function expandGitignoreCharClasses(body: string): string {
     let inner = body.slice(i + 1, close);
     const negated = inner.startsWith("!") || inner.startsWith("^");
     if (negated) inner = inner.slice(1);
-    const unescaped = inner.replace(/\\/g, "");
-    out += negated || unescaped.length === 0 ? "0" : (unescaped[0] ?? "0");
+    out += pickGitignoreClassChar(inner, negated);
     i = close + 1;
   }
   return out;

@@ -169,6 +169,9 @@ describe("parsers (#3505)", () => {
     expect(expandGitignoreGlobToConcrete("[!]*.xbrief.json")).toBe(
       `0${LIFECYCLE_PROBE_STEM}.xbrief.json`,
     );
+    expect(expandGitignoreGlobToConcrete("xbrief/pending/2026-[!0-5]-*.xbrief.json")).toBe(
+      `xbrief/pending/2026-6-${LIFECYCLE_PROBE_STEM}.xbrief.json`,
+    );
     expect(expandGitignoreCharClasses("ab[0-9]c[")).toBe("ab0c[");
     expect(expandGitignoreGlobToConcrete("!xbrief/pending/2026-06-*.xbrief.json")).toBeNull();
     expect(ignorePatternLooksLifecycleRelevant("xbrief/pending/2026-06-*.xbrief.json")).toBe(true);
@@ -923,6 +926,16 @@ describe("evaluateLifecycleVisible live git fixtures (#3505)", () => {
     expect(result.code).toBe(1);
     expect(
       result.findings.some((f) => f.path === "xbrief/pending/" && f.rule.includes("2026-07-")),
+    ).toBe(true);
+  });
+
+  it("reports a negated month class that excludes January", () => {
+    const root = initLifecycleRepo();
+    writeFileSync(join(root, ".gitignore"), "xbrief/pending/2026-[!0-5]-*.xbrief.json\n", "utf8");
+    const result = evaluateLifecycleVisible({ projectRoot: root, enforce: true });
+    expect(result.code).toBe(1);
+    expect(
+      result.findings.some((f) => f.path === "xbrief/pending/" && f.rule.includes("[!0-5]")),
     ).toBe(true);
   });
 
