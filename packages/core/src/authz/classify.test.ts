@@ -1237,6 +1237,14 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(
       classifyShellAuthzOps("pscp -o IdentityFile=.deft-directive-disable host:x /tmp/out"),
     ).toEqual([]);
+    // Read-only git bundle ops are not dest plants (#3529 Greptile P1).
+    expect(classifyShellAuthzOps("git bundle verify .deft/authz/grants/evil.bundle")).toEqual([]);
+    expect(classifyShellAuthzOps("git bundle list-heads .deft/authz/grants/evil.bundle")).toEqual(
+      [],
+    );
+    expect(classifyShellAuthzOps("git bundle unbundle .deft/authz/grants/evil.bundle")).toEqual([]);
+    // Quoted PHP identifier without a call is not a write (#3529 Greptile P1).
+    expect(classifyShellAuthzOps("php -r 'echo \"file_put_contents\";'")).toEqual([]);
   });
 
   it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {

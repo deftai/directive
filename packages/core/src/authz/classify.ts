@@ -716,8 +716,10 @@ const READ_SHAPED_FILE_FLAG_BINS = new Set([
 const READ_INPUT_FILE_FLAGS = new Set(["--file", "-f"]);
 /** PowerShell New-Item dest flags (not generic: Get-Content -Path is a read). */
 const NEW_ITEM_PATH_DEST_FLAGS = new Set(["-path", "-literalpath", "--literalpath"]);
-/** git subcommands whose positionals can plant a dest (#3421 / #3529 bundle). */
-const GIT_WRITE_SUBCOMMANDS = new Set(["clone", "worktree", "submodule", "bundle"]);
+/** git subcommands whose positionals can plant a dest (#3421). */
+const GIT_WRITE_SUBCOMMANDS = new Set(["clone", "worktree", "submodule"]);
+/** git bundle subcommands that write a bundle file (#3529). Reads: verify / list-heads / unbundle. */
+const GIT_BUNDLE_WRITE_SUBCOMMANDS = new Set(["create"]);
 /** jj subcommands whose positionals can plant a dest (#3529). */
 const JJ_WRITE_SUBCOMMANDS = new Set(["clone"]);
 const JJ_PRE_SUBCOMMAND_BOOLEAN_FLAGS = new Set([
@@ -963,6 +965,7 @@ function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
     const collectsProtectedPositionals =
       PROTECTED_POSITIONAL_BINS.has(bin) ||
       (bin === "git" && gitHasWriteSubcommand(tokens, i)) ||
+      (bin === "git" && gitHasBundleCreate(tokens, i)) ||
       (bin === "jj" && jjHasWriteSubcommand(tokens, i)) ||
       (FORGE_CLONE_BINS.has(bin) && forgeHasCloneSubcommand(tokens, i));
     while (i < tokens.length) {
@@ -1341,6 +1344,35 @@ function gitHasWriteSubcommand(tokens: readonly string[], start: number): boolea
   return hasWriteSubcommand(tokens, start, GIT_WRITE_SUBCOMMANDS, GIT_PRE_SUBCOMMAND_BOOLEAN_FLAGS);
 }
 
+/**
+ * True when this git segment is `bundle create` (write), not `bundle verify` / `list-heads`
+ * / `unbundle` (read of an existing bundle) (#3529 Greptile P1).
+ */
+function gitHasBundleCreate(tokens: readonly string[], start: number): boolean {
+  const nonFlags: string[] = [];
+  let i = start;
+  while (i < tokens.length) {
+    const raw = tokens[i] as string;
+    if (isShellSegmentBreak(raw)) break;
+    const n = normalizeToken(raw);
+    if (n.startsWith("-")) {
+      if (!n.includes("=") && !GIT_PRE_SUBCOMMAND_BOOLEAN_FLAGS.has(n)) {
+        const next = tokens[i + 1];
+        if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
+          i += 2;
+          continue;
+        }
+      }
+      i++;
+      continue;
+    }
+    nonFlags.push(n);
+    if (nonFlags.length >= 2) break;
+    i++;
+  }
+  return nonFlags[0] === "bundle" && GIT_BUNDLE_WRITE_SUBCOMMANDS.has(nonFlags[1] ?? "");
+}
+
 function jjHasWriteSubcommand(tokens: readonly string[], start: number): boolean {
   return hasWriteSubcommand(tokens, start, JJ_WRITE_SUBCOMMANDS, JJ_PRE_SUBCOMMAND_BOOLEAN_FLAGS);
 }
@@ -1696,7 +1728,7 @@ function hasWriteCapableProgrammaticShell(command: string, tokens: readonly stri
     lower.includes("writefilesync") ||
     lower.includes("writefile") ||
     lower.includes("writetext") ||
-    lower.includes("file_put_contents") ||
+    lower.includes("file_put_contents(") ||
     lower.includes("set-content") ||
     lower.includes("out-file") ||
     lower.includes("fs.write") ||
