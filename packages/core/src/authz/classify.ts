@@ -1311,12 +1311,47 @@ function isGenericProtectedDestFlag(flag: string): boolean {
 const DEST_ASSIGNMENT_KEYS = new Set(["destdir", "prefix", "install_root", "dest_dir"]);
 /** Bins whose DESTDIR=/PREFIX= assignment is a dest plant (not `echo DESTDIR=…`). */
 const DEST_ASSIGNMENT_OWNER_BINS = new Set(["make", "gmake"]);
+/** First-command bins that print/no-op: a later `make` token is data, not the writer. */
+const DEST_ASSIGNMENT_PRINT_BINS = new Set(["echo", "printf", "true", "false", ":"]);
+/** make targets that do not apply DESTDIR (avoid denying `make DESTDIR=… clean`). */
+const DEST_ASSIGNMENT_NON_WRITE_TARGETS = new Set([
+  "clean",
+  "distclean",
+  "mostlyclean",
+  "maintainer-clean",
+  "check",
+  "test",
+  "tests",
+  "help",
+]);
+/** make flags that consume the next token (`-C dir`, `-f Makefile`). */
+const MAKE_VALUE_FLAGS = new Set([
+  "-c",
+  "--directory",
+  "-f",
+  "--file",
+  "--makefile",
+  "--include-dir",
+  "-j",
+  "--jobs",
+  "-l",
+  "--load-average",
+  "--eval",
+]);
 
-/** First dest-assignment owner in the current segment, skipping env assigns and wrappers. */
-function segmentDestAssignmentOwner(tokens: readonly string[], tokenIndex: number): string {
+/**
+ * True when a DESTDIR/PREFIX assignment is an operative make write.
+ * Looks for make/gmake anywhere after wrappers (including unknown wrappers
+ * such as `xargs`), unless the first command is print-shaped.
+ * Non-writing targets (`clean`) are not operative.
+ */
+function segmentDestAssignmentIsOperative(tokens: readonly string[], tokenIndex: number): boolean {
   let start = tokenIndex;
   while (start > 0 && !tokenEndsShellSegment(tokens[start - 1] as string)) start--;
   let skipNext = false;
+  let firstCommand = "";
+  let sawMake = false;
+  const targets: string[] = [];
   for (let k = start; k < tokens.length; k++) {
     const raw = tokens[k] as string;
     if (tokenEndsShellSegment(raw)) break;
@@ -1326,18 +1361,33 @@ function segmentDestAssignmentOwner(tokens: readonly string[], tokenIndex: numbe
     }
     const n = normalizeToken(raw);
     if (n.startsWith("-")) {
-      if (!n.includes("=") && WRAPPER_VALUE_FLAGS.has(n)) skipNext = true;
+      if (!n.includes("=") && (WRAPPER_VALUE_FLAGS.has(n) || MAKE_VALUE_FLAGS.has(n))) {
+        skipNext = true;
+      }
       continue;
     }
     if (isEnvAssign(raw)) continue;
     const bare = writeBinName(raw);
     if (COMMAND_WRAPPER_BINS.has(bare)) continue;
-    if (DEST_ASSIGNMENT_OWNER_BINS.has(bare)) return bare;
-    // timeout 5 / ionice class operands — skip, then keep looking for make.
-    if (bare.length > 0 && bare[0] !== undefined && bare[0] >= "0" && bare[0] <= "9") continue;
-    return bare;
+    if (bare.length > 0 && bare[0] !== undefined && bare[0] >= "0" && bare[0] <= "9") {
+      continue;
+    }
+    if (firstCommand.length === 0) {
+      firstCommand = bare;
+      if (DEST_ASSIGNMENT_PRINT_BINS.has(bare)) return false;
+    }
+    if (DEST_ASSIGNMENT_OWNER_BINS.has(bare)) {
+      sawMake = true;
+      continue;
+    }
+    if (sawMake) targets.push(n);
   }
-  return "";
+  if (!sawMake) return false;
+  if (targets.length === 0) return true;
+  for (const t of targets) {
+    if (!DEST_ASSIGNMENT_NON_WRITE_TARGETS.has(t)) return true;
+  }
+  return false;
 }
 
 function isReadShapedInputFileFlag(bin: string, flag: string): boolean {
@@ -1510,10 +1560,7 @@ function genericProtectedDests(tokens: readonly string[]): string[] {
       const keyRaw = raw.slice(0, eq);
       if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(keyRaw)) {
         const key = normalizeToken(keyRaw);
-        if (
-          DEST_ASSIGNMENT_KEYS.has(key) &&
-          DEST_ASSIGNMENT_OWNER_BINS.has(segmentDestAssignmentOwner(tokens, i))
-        ) {
+        if (DEST_ASSIGNMENT_KEYS.has(key) && segmentDestAssignmentIsOperative(tokens, i)) {
           const dest = pathishToken(raw.slice(eq + 1));
           if (pathishIsProtectedDest(dest)) dests.push(dest);
         }

@@ -1528,6 +1528,8 @@ describe("UAT residual dest-form writers fail-closed (#3545)", () => {
       "env DESTDIR=.deft/authz/grants make install",
       "sudo make DESTDIR=.deft/authz/grants install",
       "timeout 5 make DESTDIR=.deft/authz/grants install",
+      "xargs make DESTDIR=.deft/authz/grants install",
+      "make DESTDIR=.deft/authz/grants clean install",
       "dpkg -x pkg.deb .deft/authz/grants",
       "fromdos .deft/authz/grants/evil.json",
       "emacsclient .deft/authz/grants/evil.json",
@@ -1634,6 +1636,9 @@ describe("UAT residual dest-form writers fail-closed (#3545)", () => {
       "echo DESTDIR=.deft/authz/grants",
       "true PREFIX=.deft/approved-scope",
       "echo DESTDIR=.deft/authz/grants make",
+      "make DESTDIR=.deft/authz/grants clean",
+      "make DESTDIR=.deft/authz/grants distclean",
+      "make DESTDIR=.deft/authz/grants check",
     ]) {
       const decision = decideHook(
         {

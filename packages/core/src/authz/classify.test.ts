@@ -1358,6 +1358,15 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("timeout 5 make DESTDIR=.deft/authz/grants install")).toContain(
       "settings",
     );
+    expect(classifyShellAuthzOps("xargs make DESTDIR=.deft/authz/grants install")).toContain(
+      "settings",
+    );
+    expect(classifyShellAuthzOps("make DESTDIR=.deft/authz/grants clean")).toEqual([]);
+    expect(classifyShellAuthzOps("make DESTDIR=.deft/authz/grants distclean")).toEqual([]);
+    expect(classifyShellAuthzOps("make DESTDIR=.deft/authz/grants check")).toEqual([]);
+    expect(classifyShellAuthzOps("make DESTDIR=.deft/authz/grants clean install")).toContain(
+      "settings",
+    );
   });
 
   it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {
