@@ -372,6 +372,26 @@ describe("hashProductState (#3387)", () => {
     expect(afterProductJsonl.files).toContain("events.jsonl");
   });
 
+  it("hashes an explicitly selected telemetry filename (#3558)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3558-psh-explicit-"));
+    writeFileSync(join(root, "src.txt"), "v1\n", "utf8");
+    writeFileSync(join(root, ".deft-run-summary.json"), "a\n", "utf8");
+    const plan = { acceptance: { commands: [{ command: "true" }] } };
+    const first = hashProductState({
+      projectRoot: root,
+      plan,
+      productPaths: ["src.txt", ".deft-run-summary.json"],
+    });
+    expect(first.files).toContain(".deft-run-summary.json");
+    writeFileSync(join(root, ".deft-run-summary.json"), "b\n", "utf8");
+    const second = hashProductState({
+      projectRoot: root,
+      plan,
+      productPaths: ["src.txt", ".deft-run-summary.json"],
+    });
+    expect(second.digest).not.toBe(first.digest);
+  });
+
   it("includes a nested leading-dot file under a recursive ** scope", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-3387-psh-recdot-"));
     mkdirSync(join(root, "frontend", "a"), { recursive: true });

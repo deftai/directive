@@ -64,13 +64,13 @@ function toPosix(rel: string): string {
   return rel.replace(/\\/g, "/");
 }
 
-function isExcludedRel(rel: string): boolean {
+function isExcludedRel(rel: string, options?: { readonly keepTelemetryFiles?: boolean }): boolean {
   const posix = toPosix(rel);
   if (posix === "." || posix.length === 0) return false;
   const first = posix.split("/")[0] ?? "";
   if (EXCLUDED_DIR_NAMES.has(first)) return true;
   const base = basename(posix);
-  if (EXCLUDED_FILE_NAMES.has(base)) return true;
+  if (!options?.keepTelemetryFiles && EXCLUDED_FILE_NAMES.has(base)) return true;
   return EXCLUDED_PATH_PREFIXES.some(
     (prefix) => posix === prefix.slice(0, -1) || posix.startsWith(prefix),
   );
@@ -660,7 +660,9 @@ export function hashProductState(input: HashProductStateInput): ProductStateHash
     }
   }
 
-  const sorted = [...files].filter((rel) => !isExcludedRel(rel)).sort();
+  const sorted = [...files]
+    .filter((rel) => !isExcludedRel(rel, { keepTelemetryFiles: input.productPaths !== undefined }))
+    .sort();
   const fileHashes: Record<string, string> = {};
   for (const rel of sorted) {
     fileHashes[rel] = hashProductRel(root, rel, runGit);
