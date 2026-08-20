@@ -1392,6 +1392,10 @@ const DEST_ASSIGNMENT_EXEC_PAYLOAD_FLAGS = new Set([
   "--execdir",
   "-c",
 ]);
+/** find `-exec` payload terminator (`\;` or `+`). Resets so a later `-exec` is still operative. */
+function isFindExecPayloadTerminator(n: string): boolean {
+  return n === ";" || n === "+";
+}
 /** make targets that do not apply DESTDIR (avoid denying `make DESTDIR=… clean`). */
 const DEST_ASSIGNMENT_NON_WRITE_TARGETS = new Set([
   "clean",
@@ -1424,6 +1428,8 @@ const MAKE_VALUE_FLAGS = new Set([
  * such as `xargs`), unless the first command is a print/read bin.
  * Search/launchers (`find`) still harvest from `-exec` / `--exec` / `-c`
  * payloads unless that payload's first command is a print/read bin.
+ * Payload state resets at `\;` / `+` so a later `-exec make DESTDIR=` is
+ * still operative (`find -exec echo hi \; -exec make DESTDIR= install`).
  * Non-writing targets (`clean`) are not operative.
  */
 function segmentDestAssignmentIsOperative(tokens: readonly string[], tokenIndex: number): boolean {
@@ -1443,6 +1449,19 @@ function segmentDestAssignmentIsOperative(tokens: readonly string[], tokenIndex:
       continue;
     }
     const n = normalizeToken(raw);
+    if (inExecPayload && isFindExecPayloadTerminator(n)) {
+      inExecPayload = false;
+      execPayloadFirstCommand = "";
+      continue;
+    }
+    // Print/read `-exec` payload: skip until terminator so a later `-exec` is seen.
+    if (
+      inExecPayload &&
+      execPayloadFirstCommand.length > 0 &&
+      DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS.has(execPayloadFirstCommand)
+    ) {
+      continue;
+    }
     if (n.startsWith("-")) {
       // find -exec / -c opens the payload; do not consume the next token as a
       // wrapper value. After make is seen, -C still skips its directory.
@@ -1452,6 +1471,7 @@ function segmentDestAssignmentIsOperative(tokens: readonly string[], tokenIndex:
         !sawMake
       ) {
         inExecPayload = true;
+        execPayloadFirstCommand = "";
         continue;
       }
       if (!n.includes("=") && (WRAPPER_VALUE_FLAGS.has(n) || MAKE_VALUE_FLAGS.has(n))) {
@@ -1471,7 +1491,9 @@ function segmentDestAssignmentIsOperative(tokens: readonly string[], tokenIndex:
     }
     if (inExecPayload && execPayloadFirstCommand.length === 0) {
       execPayloadFirstCommand = bare;
-      if (DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS.has(bare)) return false;
+    }
+    if (inExecPayload && DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS.has(execPayloadFirstCommand)) {
+      continue;
     }
     if (DEST_ASSIGNMENT_OWNER_BINS.has(bare)) {
       if (DEST_ASSIGNMENT_SEARCH_LAUNCHER_BINS.has(firstCommand) && !inExecPayload) {

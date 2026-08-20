@@ -1531,6 +1531,8 @@ describe("UAT residual dest-form writers fail-closed (#3545)", () => {
       "xargs make DESTDIR=.deft/authz/grants install",
       "find -exec make DESTDIR=.deft/authz/grants install",
       "find . -exec make DESTDIR=.deft/authz/grants install ;",
+      "find . -exec echo hi \\; -exec make DESTDIR=.deft/authz/grants install",
+      "find . -exec echo hi {} + -exec make DESTDIR=.deft/authz/grants install",
       "make DESTDIR=.deft/authz/grants clean install",
       "dpkg -x pkg.deb .deft/authz/grants",
       "fromdos .deft/authz/grants/evil.json",

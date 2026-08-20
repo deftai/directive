@@ -1380,6 +1380,16 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("find . -exec echo make DESTDIR=.deft/authz/grants ;")).toEqual(
       [],
     );
+    expect(
+      classifyShellAuthzOps(
+        "find . -exec echo hi \\; -exec make DESTDIR=.deft/authz/grants install",
+      ),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps(
+        "find . -exec echo hi {} + -exec make DESTDIR=.deft/authz/grants install",
+      ),
+    ).toContain("settings");
     expect(classifyShellAuthzOps("find . -name make DESTDIR=.deft/authz/grants")).toEqual([]);
     expect(classifyShellAuthzOps("make DESTDIR=.deft/authz/grants clean")).toEqual([]);
     expect(classifyShellAuthzOps("make DESTDIR=.deft/authz/grants distclean")).toEqual([]);
