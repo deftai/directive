@@ -49,20 +49,30 @@ export function parseFinalizeCohortArgv(argv: readonly string[]): ParsedFinalize
   const reject = (arg: string): void => {
     error ??= `unrecognized argument: ${arg}`;
   };
+  const takeValue = (flag: string, nextValue: string | undefined): string | null => {
+    if (nextValue === undefined || nextValue.startsWith("-")) {
+      reject(flag);
+      return null;
+    }
+    return nextValue;
+  };
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     const next = argv[i + 1];
     if (arg === "--help" || arg === "-h") {
       help = true;
-    } else if (arg === "--pr" && next !== undefined) {
-      for (const piece of next.split(",")) {
-        const trimmed = piece.trim();
-        if (/^\d+$/.test(trimmed)) {
-          prNumbers.push(Number.parseInt(trimmed, 10));
+    } else if (arg === "--pr") {
+      const value = takeValue(arg, next);
+      if (value !== null) {
+        for (const piece of value.split(",")) {
+          const trimmed = piece.trim();
+          if (/^\d+$/.test(trimmed)) {
+            prNumbers.push(Number.parseInt(trimmed, 10));
+          }
         }
+        i += 1;
       }
-      i += 1;
     } else if (arg?.startsWith("--pr=")) {
       for (const piece of arg.slice("--pr=".length).split(",")) {
         const trimmed = piece.trim();
@@ -70,9 +80,12 @@ export function parseFinalizeCohortArgv(argv: readonly string[]): ParsedFinalize
           prNumbers.push(Number.parseInt(trimmed, 10));
         }
       }
-    } else if (arg === "--stories" && next !== undefined) {
-      storyTokens.push(next);
-      i += 1;
+    } else if (arg === "--stories") {
+      const value = takeValue(arg, next);
+      if (value !== null) {
+        storyTokens.push(value);
+        i += 1;
+      }
     } else if (arg?.startsWith("--stories=")) {
       const value = equalsValue(arg, "--stories");
       if (value.length === 0) {
@@ -80,14 +93,20 @@ export function parseFinalizeCohortArgv(argv: readonly string[]): ParsedFinalize
       } else {
         storyTokens.push(value);
       }
-    } else if (arg === "--repo" && next !== undefined) {
-      repo = next;
-      i += 1;
+    } else if (arg === "--repo") {
+      const value = takeValue(arg, next);
+      if (value !== null) {
+        repo = value;
+        i += 1;
+      }
     } else if (arg?.startsWith("--repo=")) {
       repo = arg.slice("--repo=".length);
-    } else if (arg === "--project-root" && next !== undefined) {
-      projectRoot = next;
-      i += 1;
+    } else if (arg === "--project-root") {
+      const value = takeValue(arg, next);
+      if (value !== null) {
+        projectRoot = value;
+        i += 1;
+      }
     } else if (arg?.startsWith("--project-root=")) {
       const value = equalsValue(arg, "--project-root");
       if (value.length === 0) {
@@ -95,9 +114,12 @@ export function parseFinalizeCohortArgv(argv: readonly string[]): ParsedFinalize
       } else {
         projectRoot = value;
       }
-    } else if (arg === "--base-branch" && next !== undefined) {
-      baseBranch = next;
-      i += 1;
+    } else if (arg === "--base-branch") {
+      const value = takeValue(arg, next);
+      if (value !== null) {
+        baseBranch = value;
+        i += 1;
+      }
     } else if (arg?.startsWith("--base-branch=")) {
       const value = equalsValue(arg, "--base-branch");
       if (value.length === 0) {
@@ -105,14 +127,20 @@ export function parseFinalizeCohortArgv(argv: readonly string[]): ParsedFinalize
       } else {
         baseBranch = value;
       }
-    } else if (arg === "--delivery-branch" && next !== undefined) {
-      deliveryBranch = next;
-      i += 1;
+    } else if (arg === "--delivery-branch") {
+      const value = takeValue(arg, next);
+      if (value !== null) {
+        deliveryBranch = value;
+        i += 1;
+      }
     } else if (arg?.startsWith("--delivery-branch=")) {
       deliveryBranch = arg.slice("--delivery-branch=".length);
-    } else if (arg === "--label" && next !== undefined) {
-      label = next;
-      i += 1;
+    } else if (arg === "--label") {
+      const value = takeValue(arg, next);
+      if (value !== null) {
+        label = value;
+        i += 1;
+      }
     } else if (arg?.startsWith("--label=")) {
       const value = equalsValue(arg, "--label");
       if (value.length === 0) {

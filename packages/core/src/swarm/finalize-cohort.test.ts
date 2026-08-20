@@ -752,6 +752,13 @@ describe("finalize-cohort sweep base and argv (#3554)", () => {
     }
   });
 
+  it("fails closed when a value flag is followed by another flag instead of a value", () => {
+    const parsed = parseFinalizeCohortArgv(["--base-branch", "--dry-run", "--stories", "story-a"]);
+    expect(parsed.error).toBe("unrecognized argument: --base-branch");
+    expect(parsed.dryRun).toBe(true);
+    expect(parsed.baseBranch).toBeUndefined();
+  });
+
   it("fails closed on unrecognized arguments including boolean equals forms", () => {
     for (const flag of ["--dry-run=true", "--no-commit=1", "--wat"]) {
       const parsed = parseFinalizeCohortArgv([flag, "--stories", "story-a"]);
