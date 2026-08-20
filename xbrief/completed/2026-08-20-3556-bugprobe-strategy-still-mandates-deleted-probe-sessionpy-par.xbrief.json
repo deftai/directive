@@ -1,0 +1,204 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3556",
+    "updated": "2026-08-20T21:22:00Z"
+  },
+  "plan": {
+    "title": "bug(probe): strategy still mandates deleted probe_session.py (parent #3547)",
+    "status": "completed",
+    "narratives": {
+      "Description": "probe.md still mandates deleted scripts/probe_session.py while the live CLI is deft probe-session. Engine error strings and strategy_chaining tests still lock the Python contract.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3556",
+      "Overview": "## Parent\n\n#3547 (tracker, child C -- defect 3)\n\n## What to build\n\n`content/strategies/probe.md` still `!`-mandates deleted `scripts/probe_session.py` (start / complete / guard-artifact / guard-plan-registration / record) and `⊗` proceeding without it. The guard was ported to TypeScript (`packages/core/src/orchestration/probe-session.ts`) and is dispatched as `deft probe-session` (hyphen) via `packages/cli/src/dispatch.ts`. There is no `task probe:session` / `probe:session` colon verb.\n\nEngine error strings still teach the Python file (five sites). `strategy_chaining.test.ts` fail-closes on the deleted script (`:201` / `:218`).\n\nThe probe **skill** (`content/skills/deft-directive-probe/SKILL.md`) is already xbrief-first and names no mechanical CLI guard. `/deft:run:probe` is the only `run:*` verb with `dispatchKind: \"skill\"` -- that path never hits the Python MUST. Thin direction is **strategy-side**: do not add a new mandate to the live skill surface.\n\nLand **one PR**: strategy pack / `probe.md` + engine teach-strings + inverted content-contract tests + skill-strategy agreement. No weaken-the-test-first leaf (#3156). Do not bundle the rest of the strategy corpus (child D).\n\nCite (origin/master): `content/strategies/probe.md:76-99`, `:148`; `packages/core/src/orchestration/probe-session.ts:300,334,352,376,386-387`; `packages/core/src/content-contracts/standards/strategy_chaining.test.ts:201,218`; `packages/cli/src/dispatch.ts:109`; `REFERENCES.md:88`.\n\n## Locked decisions (this child)\n\n- Strategy-side: `probe.md` MUST-write / guard-artifact paths use the skill's `xbrief/` layout (probe surface only).\n- Skill does not gain a new `deft probe-session` MUST. Both surfaces carry an explicit waiver: skill keeps the no-artifact guard; strategy names `deft probe-session`. Silence is not agreement.\n- One discoverability remediation: update the existing Skills Index row (`REFERENCES.md:88`) so it teaches the hyphen verb `deft probe-session`. Do not add a `task` alias. Do not treat the current index row as already done -- it exists and does not teach the verb.\n\n## Acceptance criteria\n\n- [ ] `probe.md` (and strategies pack source) no longer names `scripts/probe_session.py`; MUST paths are `xbrief/` and `deft probe-session`\n- [ ] `probe-session.ts` error strings teach `deft probe-session`, not the Python file\n- [ ] `strategy_chaining.test.ts` asserts the live contract in the **same PR** (no prior PR that only retargets the test)\n- [ ] Skill and strategy disagree in prose only via the explicit waiver above\n- [ ] Skills Index row teaches `deft probe-session`\n- [ ] Close when a consumer deposit / next `directive update` would show the new text (`packs:render`). Not a publish-blocking release gate on this PR\n- [ ] All new tests pass\n- [ ] `task check` passes\n\n## Type\n\nAFK\n\n## Blocked by\n\nNone -- can start immediately. Preferred after A/B by tracker order. Must land before child D. Do not bundle with D.\n\n## Out of scope\n\n- Corpus-wide `vbrief/` MUST-write migration (child D)\n- Optional layout-wide \"named scripts/verbs resolve\" ratchet (D tail)\n- Making the probe skill the sole SoT and stubbing `strategies/probe.md`\n\n",
+      "Labels": "bug, agent-experience, area:skills, status:child",
+      "UserStory": "As an agent running probe, I want strategy docs and engine errors to name deft probe-session on xbrief paths, so that I am not told to invoke a deleted Python file.",
+      "ImplementationPlan": "1. Update the probe strategy file and strategies pack module so MUST paths name xbrief/ and deft probe-session. 2. Change probe-session.ts error strings and the strategy_chaining test file in the same PR; teach REFERENCES.md Skills Index. 3. Add tests that verify the live contract and run packs:render as evidence."
+    },
+    "items": [
+      {
+        "title": "Strategy names live guard",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When an agent reads probe.md, MUST paths name xbrief/ and deft probe-session; the document rejects scripts/probe_session.py."
+        }
+      },
+      {
+        "title": "Engine teach-strings",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When probe-session fails, error strings show deft probe-session and reject the deleted Python file."
+        }
+      },
+      {
+        "title": "Atomic content contract",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When strategy_chaining tests run they validate the live contract in the same PR; the Skills Index row shows deft probe-session; the skill keeps the no-artifact guard and records an explicit waiver."
+        }
+      },
+      {
+        "title": "Tests and check",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When packs:render and task check run they return exit 0; CHANGELOG Unreleased records the fix."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "area:skills",
+      "status:child"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3556",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3556: bug(probe): strategy still mandates deleted probe_session.py (parent #3547)"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "dispatchKind: \"skill\"",
+          "reason": "path-like first token is not allowlisted",
+          "sourceSpan": "inline@L13"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/strategies/probe.md",
+          "content/packs/strategies/strategies-pack-0.1.json",
+          "packages/core/src/orchestration/probe-session.ts",
+          "packages/core/src/content-contracts/standards/strategy_chaining.test.ts",
+          "REFERENCES.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/standards/strategy_chaining.test.ts",
+          "pnpm exec vitest run packages/core/src/orchestration/orchestration.test.ts"
+        ],
+        "expected_outputs": [
+          "probe strategy and engine teach deft probe-session; Python script gone from MUST paths"
+        ],
+        "depends_on": [],
+        "conflict_group": "probe-strategy-3556",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Issue-ingested story; FR traces live in GitHub #3556."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3563,
+        "prBase": null,
+        "mergeCommit": "5ab75c300f9e0cdf97d64fe912e936552f25d656",
+        "deliveryBranch": "master",
+        "deliveryCommit": "5ab75c300f9e0cdf97d64fe912e936552f25d656",
+        "verifiedAt": "2026-08-20T21:22:00Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-20T21:22:00Z",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 8 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "`probe.md` (and strategies pack source) no longer names `scripts/probe_session.py`; MUST paths are `xbrief/` and `deft probe-session`",
+          "artifact_path": "content/strategies/probe.md",
+          "ambiguous": true,
+          "readings": [
+            {
+              "text": "`probe.md` (and strategies pack source) no longer names `scripts/probe_session.py`; MUST paths are `xbrief/` and `deft probe-session` [reading: probe.md]",
+              "artifact_path": "content/strategies/probe.md"
+            },
+            {
+              "text": "`probe.md` (and strategies pack source) no longer names `scripts/probe_session.py`; MUST paths are `xbrief/` and `deft probe-session` [reading: scripts/probe_session.py]",
+              "artifact_path": "scripts/probe_session.py"
+            },
+            {
+              "text": "`probe.md` (and strategies pack source) no longer names `scripts/probe_session.py`; MUST paths are `xbrief/` and `deft probe-session` [reading: xbrief/]",
+              "artifact_path": "xbrief/"
+            }
+          ],
+          "chosen_reading": 0,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "`probe-session.ts` error strings teach `deft probe-session`, not the Python file",
+          "artifact_path": "packages/core/src/orchestration/probe-session.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "`strategy_chaining.test.ts` asserts the live contract in the same PR (no prior PR that only retargets the test)",
+          "artifact_path": "packages/core/src/content-contracts/standards/strategy_chaining.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Skill and strategy disagree in prose only via the explicit waiver above",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Skills Index row teaches `deft probe-session`",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Close when a consumer deposit / next `directive update` would show the new text (`packs:render`). Not a publish-blocking release gate on this PR",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "All new tests pass",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "`task check` passes",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ]
+    },
+    "updated": "2026-08-20T21:22:00Z",
+    "id": "issue-3556"
+  }
+}
