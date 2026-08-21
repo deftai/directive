@@ -1,0 +1,173 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story 2 of #3434: write design-critique contract + brief template from disposed SoT",
+    "updated": "2026-08-21T04:26:08Z"
+  },
+  "plan": {
+    "id": "issue-3434-design-critique-contract-template",
+    "title": "design-critique contract + brief template from disposed SoT (no skill)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Write content/contracts/design-critique.md and content/templates/design-critique-brief.md from the standing SoT set named in issuecomment-5364365428. Use scaffolds not enforces except for the gate and content-contract tests. Do not create the skill. Dispatch after Story 1.",
+      "Origin": "GitHub issue #3434 Story 2. SoT set: ADR-005; vehicle LockedDecisions xbrief; acceptance comment 5364182372; disposition comment 5364365428; trial results 5359879504 and 5360639968; judgment-gate amendment 5363981016. Excluded: proposed skill outline 5361349926.",
+      "Overview": "The contract is the sole normative SoT for charter, variant table, envelope/ceiling rules, and synthesis format. The template is the dispatch envelope skeleton. Framing: the contract scaffolds the motion; only the gate and content-contract tests enforce. Strengths from the disposition: method column !; decorrelation !; rewritten method-reconciliation !; Pass-4 audit ?; failure/budget stop !; #480 security block !; Current-shape/#1152 conformance !; non-self-arbitration !; variant-selection conditions; fresh-reiteration default.",
+      "UserStory": "As an orchestrator running a design-critique motion, I want a shipped contract and copyable brief template, so that the disposed protocol is durable without a skill body.",
+      "When": "When the two files exist, they encode the disposed SoT with the named RFC2119 strengths, use scaffolds except at the gate and content-contract tests, and contain no skill implementation.",
+      "LockedDecisions": "Do not ingest anything else on #3434 as spec. Do not use the superseded proposed skill outline. Do not create content/skills/deft-directive-design-critique. Dispatch behavior deferred. Strategy-pack vehicle rejected. Do not close #3434. Land after Story 1 (judgment gate).",
+      "ImplementationPlan": "Write content/contracts/design-critique.md and content/templates/design-critique-brief.md from the disposed SoT. Add content-contract tests under packages/core/src/content-contracts. Verify with pnpm exec vitest run packages/core/src/content-contracts. CHANGELOG Unreleased. Do not add a skill. Story 1 judgment gate is already merged (#3585 / 1b050181)."
+    },
+    "items": [
+      {
+        "title": "Contract doc",
+        "status": "completed",
+        "narrative": {
+          "When": "When content/contracts/design-critique.md is read, it carries charter, variant table, envelope/ceiling, synthesis format, and the disposition strengths, and it scaffolds rather than enforces except where it points at the gate and content-contract tests.",
+          "Acceptance": "When content/contracts/design-critique.md is read, it carries charter, variant table, envelope/ceiling, synthesis format, and the disposition strengths, and it scaffolds rather than enforces except where it points at the gate and content-contract tests."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3589 merge 43bfdc8be50940a0438f6f86db99119678d138c2 — content/contracts/design-critique.md charter, variant table, envelope/ceiling, synthesis format; scaffolds the motion",
+          "recorded_at": "2026-08-21T04:25:00Z",
+          "recorded_by": "agent/leaf-implementation/3434-s2"
+        }
+      },
+      {
+        "title": "Brief template",
+        "status": "completed",
+        "narrative": {
+          "When": "When content/templates/design-critique-brief.md is used as a dispatch envelope, it includes the forbidden-inputs list and points into the contract rather than restating normative rules.",
+          "Acceptance": "When content/templates/design-critique-brief.md is used as a dispatch envelope, it includes the forbidden-inputs list and points into the contract rather than restating normative rules."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3589 merge 43bfdc8be50940a0438f6f86db99119678d138c2 — content/templates/design-critique-brief.md forbidden-inputs list and contract pointers",
+          "recorded_at": "2026-08-21T04:25:00Z",
+          "recorded_by": "agent/leaf-implementation/3434-s2"
+        }
+      },
+      {
+        "title": "Content-contract tests; no skill",
+        "status": "completed",
+        "narrative": {
+          "When": "When the content-contract tests run, they lock required pointer strings and scaffolds-not-enforces wording, and no deft-directive-design-critique skill file is added.",
+          "Acceptance": "When the content-contract tests run, they lock required pointer strings and scaffolds-not-enforces wording, and no deft-directive-design-critique skill file is added."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "pnpm exec vitest run packages/core/src/content-contracts — packages/core/src/content-contracts/standards/design_critique_contract.test.ts; skill absent; PR 3589 Greptile CLEAN 5/5",
+          "recorded_at": "2026-08-21T04:25:00Z",
+          "recorded_by": "agent/leaf-implementation/3434-s2"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3434",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3434 (Story 2 origin; do not close)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3434#issuecomment-5364365428",
+        "type": "x-xbrief/document",
+        "title": "Disposition SoT set"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/contracts/design-critique.md",
+          "content/templates/design-critique-brief.md",
+          "packages/core/src/content-contracts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts"
+        ],
+        "expected_outputs": [
+          "contract + template from disposed SoT; scaffolds wording; no skill"
+        ],
+        "depends_on": [],
+        "conflict_group": "design-critique-3434-s2",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Story 2 of #3434; SoT named in disposition comment 5364365428."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/contracts/design-critique.md",
+          "content/templates/design-critique-brief.md"
+        ],
+        "module_boundary": "content/contracts",
+        "cohesion_exemption": "CHANGELOG.md may already exceed FILE_SIZE_REVIEW_TRIGGER_LINES; this slice only adds an Unreleased line (#3424)."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3589,
+        "prBase": null,
+        "mergeCommit": "43bfdc8be50940a0438f6f86db99119678d138c2",
+        "deliveryBranch": "master",
+        "deliveryCommit": "43bfdc8be50940a0438f6f86db99119678d138c2",
+        "verifiedAt": "2026-08-21T04:26:08Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "30b9cc00-28db-4000-9727-f9653f44b24f"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-21T04:26:08Z",
+      "completedSessionId": "30b9cc00-28db-4000-9727-f9653f44b24f",
+      "capacityBucket": "cognitive-debt"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/content-contracts"
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "Story 2 disposed SoT",
+      "ambiguity_attestation": "none_found",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "content/contracts/design-critique.md exists with 'scaffolds the motion' and 'Variant table'.",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "content/templates/design-critique-brief.md exists with 'Forbidden inputs'.",
+          "artifact_path": "content/templates/design-critique-brief.md",
+          "ambiguous": false
+        },
+        {
+          "id": 3,
+          "text": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts exists with 'scaffolds the motion'.",
+          "artifact_path": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 4,
+          "text": "content/skills/deft-directive-design-critique/SKILL.md does not exist.",
+          "artifact_path": "content/skills/deft-directive-design-critique/SKILL.md",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-21T04:26:08Z"
+  }
+}
