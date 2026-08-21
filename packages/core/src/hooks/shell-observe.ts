@@ -11,6 +11,10 @@
  * can be MEASURED rather than argued about. It changes no verdict.
  *
  * ⊗ Not a security control. It observes; it does not enforce.
+ *
+ * Writing is **opt-in** via `seams.shellObserve` and is enabled by the hook
+ * entry point, not by default. A default-on version wrote into every caller's
+ * `projectRoot` and broke ~38 tests that assert on project-directory contents.
  */
 
 import { resolve } from "node:path";

@@ -201,13 +201,18 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
   const projectRoot = normalizeHookProjectRoot(
     args.projectRoot ? resolve(args.projectRoot) : projectRootFromHookPayload(payload, cwd),
   );
-  const decision = decideHook({
-    host: args.host,
-    event: args.event,
-    projectRoot,
-    payload,
-    payloadContext,
-  });
+  const decision = decideHook(
+    {
+      host: args.host,
+      event: args.event,
+      projectRoot,
+      payload,
+      payloadContext,
+    },
+    // Shell observation is opt-in in core so library callers and tests do not
+    // write into their own project roots; the real hook turns it on (#3438).
+    { shellObserve: true },
+  );
   const rendered = renderHostDecision(args.host, decision);
   if (rendered.length > 0) writeOut(`${rendered}\n`);
   if (

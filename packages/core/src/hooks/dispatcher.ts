@@ -223,11 +223,18 @@ export interface HookPolicySeams {
     state: AuthzState,
   ) => readonly HumanOriginGrant[];
   /**
-   * Shadow observation of Shell decisions (#3438). `false` disables it; a
-   * function receives each record instead of appending to
-   * `.deft/shell-observations.jsonl`. Default: append. Never affects a verdict.
+   * Shadow observation of Shell decisions (#3438). Never affects a verdict.
+   *
+   * `true` appends to `.deft/shell-observations.jsonl`; a function receives each
+   * record instead; absent or `false` observes nothing.
+   *
+   * ! Opt-IN deliberately. Defaulting to append made every caller that
+   * exercises a Shell decision write into its own `projectRoot`, which broke
+   * ~38 tests across the suite that assert on project-directory contents.
+   * Production enables it at the hook entry point (`cli/hook-dispatch.ts`);
+   * library callers and tests get silence unless they ask.
    */
-  readonly shellObserve?: false | ((observation: ShellObservation) => void);
+  readonly shellObserve?: boolean | ((observation: ShellObservation) => void);
   /** When false, skip writing `.deft/authz/audit.jsonl` (tests). Default true. */
   readonly authzAudit?: boolean;
 }
@@ -1144,7 +1151,7 @@ function recordShellObservation(
   dests: readonly ProductDestForm[],
   seams: HookPolicySeams,
 ): void {
-  if (seams.shellObserve === false) return;
+  if (seams.shellObserve === undefined || seams.shellObserve === false) return;
   try {
     const observation = buildShellObservation({
       ts: utcIso(),
