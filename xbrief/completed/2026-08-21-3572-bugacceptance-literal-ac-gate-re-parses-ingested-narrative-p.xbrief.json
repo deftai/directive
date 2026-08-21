@@ -1,0 +1,172 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3572",
+    "updated": "2026-08-21T02:24:08Z"
+  },
+  "plan": {
+    "title": "bug(acceptance): literal-AC gate re-parses ingested narrative prose as shell commands, blocking scope:complete",
+    "status": "completed",
+    "narratives": {
+      "Description": "Leftover of GitHub issue #3572 after a 0.105.0 consumer retest. Markdown blockquote greater-than is not a shell prompt; dollar-sign prompts, labeled verify lines, fences, and inline backticks stay. Never-scan of plan.narratives is out of scope.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3572",
+      "Overview": "## Summary\n\nThe literal-acceptance-command gate scans xBRIEF **narrative prose** for \"shell-shaped\" strings and rejects them as unsafe literal AC commands. When a scope xBRIEF is created by `scope:promote --from-issue`, the ingested GitHub issue body lands verbatim in `plan.narratives.Overview` — so any quoted reviewer finding, code snippet, or blockquote in the issue becomes a permanent gate failure that blocks `scope:complete`.\n\nThe rejected text is documentation, never intended for execution.\n\n## Concrete case\n\nIssue #103 in our consumer repo quoted two reviewer findings verbatim. Ingest recorded them under `metadata.literal_acceptance_rejected`:\n\n```json\n{\n  \"command\": \"**P2** (50% confidence) — User/data-derived value `escapeCell(to)` interpolated into markdown bullet without newline sanitization — embedded `\\\\n` breaks out of the bullet and renders as a new block (CWE-116). Apply `.replace(/\\\\r?\\\\n/g, \\\" \\\")` before embedding.\",\n  \"reason\": \"shell metacharacter \\\"(\\\" is not allowed in literal AC commands\",\n  \"sourceSpan\": \"prompt@L11\"\n}\n```\n\nThat string is an English sentence containing parentheses. It is not a command, was never proposed as one, and lives in a narrative field. But `scope:complete` re-parsed it on every attempt, so the story could not be closed until the blockquotes were rewritten as plain prose with an audit note recorded in `metadata`.\n\nThe same class recurred on a later story in the same session, so it is not a one-off artifact of one issue's formatting.\n\n## Why it is worth fixing\n\n- Any issue that quotes a reviewer finding, error message, or code fragment — i.e. most bug reports worth filing — produces a scope xBRIEF that cannot be completed without editing its own provenance record.\n- The workaround degrades the artifact: the fix is to paraphrase the original issue text, which is exactly the traceability the narrative exists to preserve.\n- It also produces a misleading signal. The gate reports a shell-safety violation where no command exists, so an agent reading the failure may conclude the brief proposes something dangerous.\n\n## Suggested direction\n\n- Scope the literal-AC scan to fields that actually carry commands (`acceptance.commands`, `metadata.literal_acceptance_commands`) and exclude `plan.narratives.*` entirely.\n- If narrative scanning is deliberate, treat fenced code blocks and blockquotes as inert content rather than candidate commands.\n- Persist the disposition once, rather than re-deriving the same rejection on every `scope:complete` invocation.\n\n## Environment\n\n- `@deftai/directive` engine `@deftai/directive-core@0.104.0`, tag `v0.104.0`\n- Node v22.23.2, macOS 26.5.2 (arm64)\n- Briefs created via `deft scope:promote --from-issue=<N> --repo <owner/name>`\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-08-21T00:15:23Z)\n\n## Triage analysis\n\n_By: Grok 4.6 (xAI), 2026-08-20. Checked against `deftai/directive` at tag `v0.105.0` (issue body via REST, then literal-AC capture / evaluate / CHANGELOG for #3484 / #3511 / #3497)._\n\n**Verdict:** the 0.104.0 report is accurate. As current work it is **not ready** — this class already shipped on 0.105.0. Please retest before any new story.\n\n### Accuracy (as filed against 0.104.0)\n\nHigh. Intake still scrapes narrative fields (`Overview`, `Description`, and related keys) and can stamp `plan.metadata.literal_acceptance_rejected`. The example (`sourceSpan: \"prompt@L11\"`, reason `shell metacharacter \"(\"`) is exactly that scraper treating a quoted reviewer finding as a command. Re-parse on every `scope:complete` is also real (`captureFromNarratives` defaults true).\n\n### What already shipped on 0.105.0 (2026-08-19)\n\nThis reporter’s row would be **advisory, not blocking**, on current:\n\n- #3484 — prose-derived rejections (`prompt@` / `fence@` / `inline@` / `labeled@`) are advisory when structured commands exist\n- #3511 — they stay advisory even with **no** structured `verify_commands` (this case)\n- #3497 — `verify:ac` / `scope:complete` share that demotion instead of re-reading the advisory block as a brick\n\n`isProseDerivedRejection` in `packages/core/src/literal-acceptance/capture.ts` classifies `prompt@L11` as prose. `evaluate.ts` puts those on `advisoryRejected` and does not fail the gate.\n\n### Desirability of a new story\n\nLow until retested. Another “never scan narratives” change on top of #3484 / #3511 risks fighting the intake capture #3267 still wants for *stated* commands.\n\nTwo leftovers from this write-up are still true, and smaller:\n\n- Narratives are still scanned on every complete. Noise, not a brick.\n- #3511 already called out persist `waived` / `not_applicable` as leftover. Polish, not a new bug.\n\n### Readiness\n\nNot ready. Please upgrade the consumer to **0.105.0+** and retry `scope:complete` on an unedited brief that still has the quoted finding in `plan.narratives.Overview`.\n\n- If it completes with an advisory line, this issue is fixed in 0.105.0 and should close.\n- If it still blocks, that is a residual (likely a stored reject **without** `sourceSpan`). Cut a tiny leftover then; do not reopen the whole “scan narratives” story.\n\nThis is a different subsystem from #3570 / #3571 and should not share their cohort.\n\n\n### Comment by @MScottAdams (2026-08-21T00:29:08Z)\n\n## Design critique of the triage comment (checked at `b6bc689a1fa50ea20ac050776723796de00d71a4`)\n\n_By: Grok 4.5 (xAI)_\n\nChecked against `origin/master` tip `b6bc689a1fa50ea20ac050776723796de00d71a4` (contains tag `v0.105.0` = `f729bf1dd29493b5d55148f97062f3a7f72a66c5`). `packages/core/src/literal-acceptance/**` matches that tip (no local drift). Allowed inputs only: issue body + triage comment `5363616951`, then file:line re-checks and a local gate repro.\n\n### What holds\n\nThe triage's core accuracy call is right.\n\n- Against **0.104.0**, the filed bug is real: intake still scrapes narrative prose and can stamp `plan.metadata.literal_acceptance_rejected`. Reproducing the issue's quoted-finding method on current tip, `captureLiteralAcceptanceCommandsDetailed` still rejects the English sentence with reason `shell metacharacter \"(\" is not allowed in literal AC commands` and a `prompt@L*` span (`capture.ts` prompt stamping ~L447).\n- On **current tip**, that same persisted `sourceSpan: \"prompt@L11\"` row is demoted: `isProseDerivedRejection` is true (`capture.ts:854-858`), `partitionRejected` puts it on `advisoryRejected` (`evaluate.ts:65-76`), and `evaluateLiteralAcceptanceFromPlan` returns `ok: true` / `code: 0` with **zero** blocking `rejected` — even when `hasStructuredAcceptanceCommands` is false (#3511). Shared `resolveAcceptanceVerdict` then yields `empty-pass` when nothing executable ran (`acceptance-resolver.ts:125-137`).\n- `scope:complete` / `verify:ac` share that path via `evaluateScopeCompleteAcceptanceWalk` + `resolveAcceptanceGateProfile(\"complete\")` (`acceptance-evidence.ts:515-526`, profile `captureFromNarratives: true` at `acceptance-resolver.ts:265`). #3497's advisory strip/marker exists (`LITERAL_ACCEPTANCE_ADVISORY_MARKER` at `evaluate.ts:180`).\n- Desirability of a new \"never scan narratives\" story is correctly **low**: Overview can still carry a real stated command. Repro: Overview text containing a `$ task check` line captures `{ command: \"task check\", source: \"task_statement\", sourceSpan: \"prompt@L5\" }`. That is the #3267 intake-recovery job the triage refuses to reopen.\n\n### Findings\n\n1. **blocks-the-design** — Adopting the issue body's first suggested direction (\"exclude `plan.narratives.*` entirely from the literal-AC scan\") would delete stated-command recovery from Overview/Description. Measured on this tip: a narrative `$ task check` is still a live capture. The triage's refusal to open that story is the load-bearing design call; a \"fix by never scanning\" story would fight #3267, not finish #3572.\n\n2. **sharpens-framing** — Span-less stored rejects still brick completion. Method: same phantom command persisted **without** `sourceSpan`, `captureFromNarratives: false` → `ok: false`, `code: 1`, blocking ledger entry with `sourceSpan: null` (`isProseDerivedRejection` returns false at `capture.ts:856`). With rescans on, the fresh `prompt@` twin becomes advisory **and** the span-less stored row remains blocking. Triage already names this residual; the sharpening is: demotion is **provenance-prefix only**, not command-text reconciliation. Close-as-fixed without the triage's retest (or a span-less leftover cut) would over-claim.\n\n3. **sharpens-framing** — The misleading-signal complaint is only half-gone. Advisory success still appends `formatRejectedLedger`, so the message contains both `Literal acceptance advisory (#3484): … do NOT block` and nested `Literal acceptance rejected N shell-shaped command(s)` (`evaluate.ts:182-192` + `capture.ts:892-900`). Gate `ok` is true, but a headless reader skimming the nested ledger can still treat it as a brick and rewrite provenance. Polish, not a reopen of narrative scanning.\n\n4. **footnote** — JSDoc at `evaluate.ts:25-26` says re-scan when the plan has no stored commands; `resolveRawLiteralAcceptance` actually merges narrative captures whenever `captureFromNarratives !== false` (`evaluate.ts:107-158`), including alongside a non-empty stored ledger. Comment drift only.\n\n5. **footnote** — Complete-profile narrative re-scan remains on every `scope:complete` (`acceptance-resolver.ts:265`). Noise, as triage said — not a brick when spans are prose-prefixed.\n\n### Existing mechanisms\n\nInventory before inventing anything new:\n\n| Mechanism | Role |\n| --- | --- |\n| `captureLiteralAcceptanceCommandsDetailed` + intake `captureAndAttachLiteralAcceptance` | #3267 scrape + persist commands/rejects |\n| `PROSE_SPAN_PREFIXES` / `isProseDerivedRejection` | #3484 provenance demotion |\n| `partitionRejected` / `advisoryRejected` | blocking vs advisory split (#3484/#3511) |\n| `LITERAL_ACCEPTANCE_ADVISORY_MARKER` + `stripLiteralAcceptanceAdvisory` | #3497 keep advisory text out of refusal sniffers |\n| `resolveAcceptanceVerdict` / `resolveAcceptanceGateProfile` | one verify:ac / scope:complete verdict (#3497) |\n| `checkIntegrated` → `captureFromNarratives: false` | avoid check-graph deadlock on prose rescans |\n| CHANGELOG #3511 leftover note | `waived` / `not_applicable` ledger disposition still unshipped |\n\nNo new scanner subsystem is justified for this issue until retest falsifies the demotion on an unedited brief.\n\n### Injection / swarm lens\n\n- **Hostile / sloppy envelope:** omit `sourceSpan` on a persisted reject (or strip it on rewrite) and `scope:complete` fails closed again — same text that would be advisory with `prompt@`. That is the residual hazard for old or hand-edited briefs, and a footgun for any worker that \"cleans\" metadata.\n- **Headless thrash:** advisory messages still say \"rejected\" in the nested ledger; a swarm leaf can burn turns paraphrasing Overview to silence noise that no longer blocks.\n- **Lean that deletes narrative scan:** under headless `scope:promote --from-issue`, stated done-gates that live only in the issue Overview stop being captured. Fail-open for missing AC, or silent empty-pass pressure — worse than advisory phantoms.\n\n### Road not taken\n\n**Never-scan-narratives** (issue suggestion) loses measured Overview `task_statement` capture; rejected above.\n\n**Demote every reject lacking structured provenance / demote by command-text match to a prose twin** would clear span-less residuals automatically, but also fail-open a structured unsafe command whose span was dropped. Fail-closed loses; triage's \"retest, then tiny leftover if span-less\" keeps the brick where provenance is unknown.\n\n**Retest-on-0.105+ then close or cut residual** (triage) wins: preserves #3267 recovery, keeps structured rejects hard, and only spends a story if the concrete brief still bricks.\n\n### Score against Directive rules\n\n| Rule | Score |\n| --- | --- |\n| Authority ladder / claim-cites-state (#2066) | **Pass** — triage cites shipped #3484/#3511/#3497 behavior, not the issue body alone; this critique re-measured file:line + gate `ok` on the named SHA. |\n| Fail-closed | **Pass** — structured / span-less unknowns still block; only prose-prefixed scrapes demote. |\n| Propose-not-apply | **Pass** — triage asks for consumer retest before close or leftover cut; does not silently close. |\n| Gate integrity (#3156) | **Pass** — does not propose lowering the safety allowlist to go green; uses the already-shipped demotion. |\n| Thin fail-closed (#3265) | **Pass** — one demotion predicate (`isProseDerivedRejection`) + one partition; remediation is upgrade/retest, not a second parallel gate. |\n\n### Disposition\n\n**Uphold the triage.** Issue #3572 is **not ready** as a new \"stop scanning narratives\" story. Next operator action remains exactly what the triage asked: upgrade the consumer to **0.105.0+**, retry `scope:complete` on an **unedited** brief that still quotes the finding in `plan.narratives.Overview`.\n\n- Completes with advisory only → close as fixed in 0.105.0.\n- Still blocks → inspect for a stored reject **without** `sourceSpan` (or non-prose span); cut that tiny leftover — do not reopen narrative exclusion.\n\nNo model ranking. Independent open critique of comment `5363616951` only.\n\n\n### Comment by @MScottAdams (2026-08-21T00:47:19Z)\n\n## Verified synthesis (critique-pass-1, 2026-08-21)\n\n_By: Grok 4.6 (xAI) — synthesizer, not a critic in this run. Triage author was also Grok 4.6; critic was Grok 4.5. Rows below are marked **hold** only on a primary-source re-read of `origin/master`, not on critic agreement._\n\nHand-run of #3434 Pass 3. Not implementation. Working tree was not modified.\n\n**SHA:** `1555c372633433edc8782648a6dc8182669c8855` (`origin/master` at synthesis). Cited `literal-acceptance/**` and acceptance-resolver paths are byte-identical to critic SHA `b6bc689a`.\n\nThread: issue body; [triage](https://github.com/deftai/directive/issues/3572#issuecomment-5363616951); [R1 critique](https://github.com/deftai/directive/issues/3572#issuecomment-5363709708).\n\n### Disposition\n\n**Do not open a “stop scanning narratives” story.** Next operator action is consumer retest on **0.105.0+**, then close or cut a tiny leftover.\n\n| Outcome of retest | Action |\n|---|---|\n| `scope:complete` succeeds; advisory line only | Close as fixed in 0.105.0 (#3484 / #3511 / #3497) |\n| Still blocks | Inspect stored `literal_acceptance_rejected` for a row **without** `sourceSpan` (or a non-prose span). Cut that leftover only. Do not exclude `plan.narratives.*` from the scanner |\n\n### Verified claims\n\n| Claim | Claimant | Verdict | Method | Evidence at `1555c372` |\n|---|---|---|---|---|\n| `prompt@` is a prose span prefix; null span is not | triage, R1 | **hold** | `git show` | `capture.ts:851` prefixes; `isProseDerivedRejection` `:854–857` (`null`/`undefined` → false) |\n| Prose-derived rejects are partitioned to advisory, not blocking | triage, R1 | **hold (code path)** | `git show` | `evaluate.ts:65–76` `partitionRejected`; `:242–255` fail only on `resolved.rejected`; advisory appended after |\n| Complete profile still re-scans narratives | triage, R1 | **hold** | `git show` | `acceptance-resolver.ts:262–265` `captureFromNarratives: true` for `\"complete\"`; check-integrated path `:261` is `false` |\n| Advisory marker exists so #3497 sniffers can strip the tail | triage, R1 | **hold** | `git show` | `evaluate.ts:180` `LITERAL_ACCEPTANCE_ADVISORY_MARKER` |\n| Excluding all narratives would drop stated-command recovery | triage, R1 F1 | **hold (code path)** | `git show` capture | prompt stamping `capture.ts:447` `prompt@L${i+1}` from narrative/prompt lines. Critic’s live `$ task check` fixture was not re-run here |\n| Span-less stored reject still blocks even when a `prompt@` twin is advisory | R1 F2 | **hold (code path)** | same `isProseDerivedRejection` | no span → not prose-derived → stays on blocking `rejected`. Independent `evaluate()` of a span-less fixture was critic-only |\n| Nested advisory text still contains “rejected” ledger wording | R1 F3 | **hold** | `git show` | `evaluate.ts:188–192` + `formatRejectedLedger`; `ok` can be true while the nested ledger says rejected |\n| JSDoc “re-scan when empty” vs merge-always | R1 F4 | **hold** | `git show` | JSDoc `:25–26` vs `resolveRawLiteralAcceptance` `:107–158` merge when `captureFromNarratives !== false` |\n| #3484 / #3511 / #3497 shipped on 0.105.0 | triage | **hold** | `git show origin/master:CHANGELOG.md` under `[0.105.0]` | changelog entries for those issues. Not a live consumer `scope:complete` |\n\nReporter’s 0.104.0 brick was not reproduced on this maintainer tree (consumer-side). Code on 0.105.0+ makes that class advisory **when** `sourceSpan` is a prose prefix.\n\n### Finding → action\n\n| Finding | Source | Action |\n|---|---|---|\n| Never-scan-narratives fights #3267 | issue body vs triage + R1 F1 | **reject** as a story |\n| Span-less leftover still bricks | triage residual; R1 F2 | retest; tiny leftover only if live brief still blocks |\n| Advisory nested “rejected” can thrash headless agents | R1 F3 | polish leftover, not a reopen |\n| Complete still re-scans Overview | triage, R1 F5 | accepted noise |\n\n### What the triage got right\n\n0.104.0 report is accurate; current work is not a new scanner story; remediation is upgrade + retest; keep this off the #3570/#3571 cohort.\n\n### What the critique changed (load-bearing)\n\nDemotion is **provenance-prefix only**, not command-text match. Close-as-fixed without retest (or without checking span-less stored rows) would over-claim. Nested advisory wording can still look like a brick to a headless reader.\n\n### Out of scope here\n\nShipping a waived/not_applicable ledger disposition (#3511 leftover). Changing the safety allowlist. Implementing narrative exclusion.\n\n\n### Comment by @MScottAdams (2026-08-21T01:21:52Z)\n\n## Cohort\n\nRecorded in the same `slices.jsonl` row as #3570/#3571 (wave 2). That is a same-reporter batch, not the same product work.\n\nVerified synthesis (this issue): https://github.com/deftai/directive/issues/3572#issuecomment-5363825637\n\nKeep-off the *implement* pair for two independent reasons:\n\n1. **Not the same work.** This is literal-AC / `scope:complete` on ingested narrative prose. #3570/#3571 are agent-hook probe timeout and hostHooks disable-strips-guardrails.\n2. **Not usable as a v1 story yet.** Synthesis says do not open a “stop scanning narratives” story. Next action is consumer retest on 0.105.0+ (#3484 / #3511 / #3497 already shipped). Close if `scope:complete` only prints advisory; cut a tiny leftover only if a span-less stored reject still bricks.",
+      "Labels": "bug, agent-experience, status:child",
+      "UserStory": "As a consumer ingesting a GitHub issue that quotes a reviewer finding in a markdown blockquote, I want the literal-AC prompt scraper to treat only a dollar-sign shell prompt as a command, so that a greater-than blockquote of English prose is not recorded as a rejected shell command.",
+      "When": "When matchPromptCommand reads a markdown blockquote line that starts with greater-than and quotes reviewer prose, it does not capture that line as a prompt command; a dollar-sign prompt line still captures.",
+      "LockedDecisions": "Operator grant 2026-08-21 after consumer retest of deftai/ProjectMON#103 on 0.105.0+: do not exclude plan.narratives from the scanner (#3267). Do not treat markdown blockquote greater-than as a shell prompt; dollar-sign stays. Never-scan-narratives remains rejected. Span-less leftover and advisory nested-rejected wording are out of scope.",
+      "ImplementationPlan": "Change matchPromptCommand in packages/core/src/literal-acceptance/capture.ts so only dollar-sign is a prompt marker. Keep labeled verify/command lines, fences, and inline backticks. Add a unit test that the ProjectMON#103 SLizard blockquote is not captured or rejected as prompt@, and that a dollar-sign task check line still captures. Update comments/CHANGELOG that still say dollar-sign or greater-than prompt. Do not stop narrative scan.",
+      "OriginDivergence": "Intentional leftover of #3572 after 0.105.0 consumer retest and grant comment 5364176135 (2026-08-21T01:44:12Z): blocking class is advisory; granted leftover is blockquote-is-not-prompt. Issue body never-scan direction is rejected per verified synthesis. Origin comments after ingest were re-read (#2143); brief was not overwritten with origin text (#309 D12)."
+    },
+    "items": [
+      {
+        "title": "Prompt marker is dollar-sign only",
+        "status": "completed",
+        "narrative": {
+          "When": "When matchPromptCommand sees a line starting with greater-than, it returns null; when the line starts with dollar-sign and a shell command, it returns the command body.",
+          "Acceptance": "When matchPromptCommand sees a line starting with greater-than, it returns null; when the line starts with dollar-sign and a shell command, it returns the command body."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/literal-acceptance/blockquote-prompt-capture.test.ts#dollar-sign-only",
+          "recorded_at": "2026-08-21T02:23:39Z",
+          "recorded_by": "leaf-worker/leftover-3572"
+        }
+      },
+      {
+        "title": "Consumer blockquote fixture",
+        "status": "completed",
+        "narrative": {
+          "When": "When captureLiteralAcceptanceCommandsDetailed is given the ProjectMON#103 SLizard blockquote plus a dollar-sign task check line, the blockquote is absent from commands and rejected, and task check is present with prompt@ span.",
+          "Acceptance": "When captureLiteralAcceptanceCommandsDetailed is given the ProjectMON#103 SLizard blockquote plus a dollar-sign task check line, the blockquote is absent from commands and rejected, and task check is present with prompt@ span."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/literal-acceptance/blockquote-prompt-capture.test.ts#projectmon-103",
+          "recorded_at": "2026-08-21T02:23:39Z",
+          "recorded_by": "leaf-worker/leftover-3572"
+        }
+      },
+      {
+        "title": "Changelog and prompt docs",
+        "status": "completed",
+        "narrative": {
+          "When": "When the change lands, CHANGELOG Unreleased and capture.ts comments no longer document greater-than as a shell prompt marker.",
+          "Acceptance": "When the change lands, CHANGELOG Unreleased and capture.ts comments no longer document greater-than as a shell prompt marker."
+        },
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/3577#issuecomment-5364399325",
+          "recorded_at": "2026-08-21T02:23:39Z",
+          "recorded_by": "leaf-worker/leftover-3572"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "status:child"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3572",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3572: bug(acceptance): literal-AC gate re-parses ingested narrative prose as shell commands, blocking scope:complete"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "scope:promote --from-issue",
+          "reason": "path-like first token is not allowlisted",
+          "sourceSpan": "inline@L5"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/literal-acceptance/capture.ts",
+          "packages/core/src/literal-acceptance/blockquote-prompt-capture.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/literal-acceptance"
+        ],
+        "expected_outputs": [
+          "greater-than blockquote not captured as prompt; dollar-sign prompt still captured"
+        ],
+        "depends_on": [],
+        "conflict_group": "literal-ac-3572",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Issue-ingested leftover of #3572 after consumer retest; FR traces live on the issue thread."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/literal-acceptance/capture.ts",
+          "packages/core/src/literal-acceptance/blockquote-prompt-capture.test.ts"
+        ],
+        "module_boundary": "packages/core/src/literal-acceptance"
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3577,
+        "prBase": null,
+        "mergeCommit": "ff6bee7fa714d8922e8cff8ef7bc14c030c30872",
+        "deliveryBranch": "master",
+        "deliveryCommit": "ff6bee7fa714d8922e8cff8ef7bc14c030c30872",
+        "verifiedAt": "2026-08-21T02:24:08Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "e421ed2a-d919-4288-8c35-03f07c7c12f9"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-21T02:24:08Z",
+      "completedSessionId": "e421ed2a-d919-4288-8c35-03f07c7c12f9",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/literal-acceptance"
+      ],
+      "ambiguity_attestation": "none_found",
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "operator-granted leftover of #3572: blockquote greater-than is not a prompt",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "matchPromptCommand treats only dollar-sign as a prompt; markdown blockquote greater-than is not a prompt.",
+          "artifact_path": "packages/core/src/literal-acceptance/capture.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "The ProjectMON#103 SLizard blockquote is not captured or rejected as prompt@; a dollar-sign task check line still captures.",
+          "artifact_path": "packages/core/src/literal-acceptance/blockquote-prompt-capture.test.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 3,
+          "text": "CHANGELOG Unreleased records the leftover; comments no longer document greater-than as a shell prompt.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-21T02:24:08Z",
+    "id": "issue-3572-blockquote-not-prompt"
+  }
+}
