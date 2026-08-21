@@ -77,6 +77,20 @@
       "frontmatter_extra": null
     },
     {
+      "id": "deft-directive-design-critique",
+      "description": "Thin router for the design-critique motion: triggers and five pointer stops into the contract. Use when the operator asks for a design critique, design-critique, critique panel, or mechanism-shaped triage. Do NOT trigger on ordinary implement, build, or swarm work.",
+      "triggers": [
+        "design critique",
+        "design-critique",
+        "critique panel",
+        "mechanism-shaped triage"
+      ],
+      "path": "skills/deft-directive-design-critique/SKILL.md",
+      "version": "0.1",
+      "body": "# Design Critique\n\nThin router into the design-critique contract. Operator dispatches from the brief template.\n\nLegend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.\n\n## When to Use\n\n- Operator asks for a design critique, a design-critique, a critique panel, or mechanism-shaped triage\n- ⊗ Ordinary implement, build, or swarm work\n\n## Stops\n\nNormative rules live in [`contracts/design-critique.md`](../../contracts/design-critique.md). Fill [`templates/design-critique-brief.md`](../../templates/design-critique-brief.md) and dispatch from there. Phase 1 gate: [`docs/decisions/ADR-005-design-critique-judgment-gate.md`](../../../docs/decisions/ADR-005-design-critique-judgment-gate.md).\n\n1. Stop 1 — Gate\n2. Stop 2 — Variant selection\n3. Stop 3 — Critic envelope\n4. Stop 4 — Residual reiteration\n5. Stop 5 — Verified synthesis\n\n⊗ Auto-dispatch critics from this skill.\n⊗ Copy the variant table, synthesis rules, or other contract bodies into this skill.\n\n## EXIT\n\ndeft-directive-design-critique complete -- exiting skill. Next: fill the brief template and dispatch.\n",
+      "frontmatter_extra": "triggers:\n  - design critique\n  - design-critique\n  - critique panel\n  - mechanism-shaped triage"
+    },
+    {
       "id": "deft-directive-feedback",
       "description": "Batched session-end gap escalation for directive consumers. Collects friction/gap reports, drafts deduped framework-gap issues against deftai/directive, and files upstream only after explicit operator confirmation. Gated on plan.policy.valueFeedback upstreamPrompt.",
       "triggers": [

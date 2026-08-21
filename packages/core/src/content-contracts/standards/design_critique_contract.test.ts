@@ -1,6 +1,6 @@
-/** Content contract for design-critique SoT + brief template (#3434 Story 2). */
+/** Content contract for design-critique SoT + brief template + thin skill (#3434). */
 import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { isFile, readText, repoRoot, resolveContentPath } from "./_helpers.js";
 
@@ -56,6 +56,25 @@ const REQUIRED_TEMPLATE_POINTERS = [
 const METHOD_RECONCILIATION =
   "when verifying, upholding, or issuing any verdict that a measurement or count claim is false, first reproduce the original claimant's method";
 
+const MAX_SKILL_LINES = 80;
+
+const REQUIRED_SKILL_POINTERS = [
+  "Stop 1 — Gate",
+  "Stop 2 — Variant selection",
+  "Stop 3 — Critic envelope",
+  "Stop 4 — Residual reiteration",
+  "Stop 5 — Verified synthesis",
+  "contracts/design-critique.md",
+  "templates/design-critique-brief.md",
+];
+
+const DEFAULT_ALWAYS_PINS = [
+  "deft-directive-build",
+  "deft-directive-pre-pr",
+  "deft-directive-review-cycle",
+  "deft-directive-swarm",
+];
+
 function sentencesContaining(text: string, re: RegExp): string[] {
   return text
     .split(/(?<=[.!?])\s+/)
@@ -63,7 +82,24 @@ function sentencesContaining(text: string, re: RegExp): string[] {
     .filter((s) => s.length > 0 && re.test(s));
 }
 
-describe("design-critique contract + brief template (#3434 Story 2)", () => {
+function markdownHrefs(text: string): string[] {
+  const hrefs: string[] = [];
+  for (const match of text.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)) {
+    const href = (match[1] ?? "").trim();
+    if (
+      href.length === 0 ||
+      href.startsWith("http") ||
+      href.startsWith("mailto:") ||
+      href.startsWith("#")
+    ) {
+      continue;
+    }
+    hrefs.push((href.split("#")[0] ?? href).trim());
+  }
+  return hrefs;
+}
+
+describe("design-critique contract + brief template + thin skill (#3434)", () => {
   it("publishes the contract with required pointer strings", () => {
     expect(isFile(CONTRACT)).toBe(true);
     const text = readText(CONTRACT);
@@ -102,11 +138,50 @@ describe("design-critique contract + brief template (#3434 Story 2)", () => {
     expect(text).not.toContain("!=MUST");
   });
 
-  it("does not add a design-critique skill", () => {
-    expect(isFile(SKILL_REL)).toBe(false);
-    expect(existsSync(resolveContentPath("skills/deft-directive-design-critique"))).toBe(false);
+  it("publishes the thin router skill under the line cap with required pointers", () => {
+    expect(isFile(SKILL_REL)).toBe(true);
+    expect(existsSync(resolveContentPath("skills/deft-directive-design-critique"))).toBe(true);
     expect(existsSync(join(repoRoot(), "content/skills/deft-directive-design-critique"))).toBe(
-      false,
+      true,
     );
+    const text = readText(SKILL_REL);
+    const lineCount = text.split("\n").length;
+    expect(lineCount).toBeLessThanOrEqual(MAX_SKILL_LINES);
+    for (const token of REQUIRED_SKILL_POINTERS) {
+      expect(text, `skill missing ${token}`).toContain(token);
+    }
+  });
+
+  it("resolves every path the skill names", () => {
+    const skillPath = resolveContentPath(SKILL_REL);
+    const skillDir = dirname(skillPath);
+    const text = readText(SKILL_REL);
+    const hrefs = markdownHrefs(text);
+    expect(hrefs.length).toBeGreaterThan(0);
+    for (const href of hrefs) {
+      const resolved = resolve(skillDir, href);
+      expect(existsSync(resolved), `unresolved skill path ${href} -> ${resolved}`).toBe(true);
+    }
+  });
+
+  it("keeps skill bodies free of contract-normative content", () => {
+    const text = readText(SKILL_REL);
+    expect(text.toLowerCase()).not.toContain(METHOD_RECONCILIATION);
+    expect(text).not.toContain("| Condition | Variant | N |");
+    expect(text).not.toContain("Issue body names a defensible presumption");
+  });
+
+  it("indexes the skill on-demand and does not always-pin it", () => {
+    const references = readText("REFERENCES.md");
+    expect(references).toContain("deft-directive-design-critique/SKILL.md");
+    expect(references).toContain("`design critique`");
+    const agents = readText("AGENTS.md");
+    const agentsEntry = readText("templates/agents-entry.md");
+    expect(agents).not.toContain("deft-directive-design-critique");
+    expect(agentsEntry).not.toContain("deft-directive-design-critique");
+    for (const pin of DEFAULT_ALWAYS_PINS) {
+      expect(agents).toContain(pin);
+      expect(agentsEntry).toContain(pin);
+    }
   });
 });

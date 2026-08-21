@@ -10,7 +10,7 @@ This contract scaffolds the motion. Only the ADR-005 judgment gate and the conte
 
 - ! Use `scaffolds` for protocol steps in this document.
 - ⊗ Use the verb "enforces" here for anything other than the ADR-005 judgment gate and the content-contract tests.
-- ⊗ Create `skills/deft-directive-design-critique`. That skill is a later story. Consumer discovery of the voluntary path is that skill's job; do not pin this contract into `templates/agents-entry.md` here.
+- ⊗ Pin this contract or `skills/deft-directive-design-critique` into `templates/agents-entry.md` or the AGENTS.md always-pin list. Discovery is on-demand via the Skills Index.
 - ⊗ Auto-dispatch critics from this contract. Dispatch is deferred until a second consumer demands it (#1702). Until then the operator dispatches from the brief template.
 
 ## Stop 1 — Gate
@@ -97,4 +97,4 @@ This motion ingests untrusted issue threads by design.
 
 ## Test surface
 
-`packages/core/src/content-contracts/standards/design_critique_contract.test.ts` locks required pointer strings, the scaffolds framing, the brief-template forbidden-inputs list, and the absence of a design-critique skill.
+`packages/core/src/content-contracts/standards/design_critique_contract.test.ts` locks required pointer strings, the scaffolds framing, the brief-template forbidden-inputs list, and the thin router skill (existence, line cap, pointer resolution, no-normative-content).

@@ -70,3 +70,6 @@
 {"id":"portfolio-priority-pos-1","query":"run portfolio priority brief on competing RFCs","skill":"deft-directive-portfolio-priority","should_trigger":true}
 {"id":"portfolio-priority-pos-2","query":"cluster open issues into a priority brief shortlist","skill":"deft-directive-portfolio-priority","should_trigger":true}
 {"id":"portfolio-priority-neg-1","query":"what should I work on next from the queue","skill":"deft-directive-portfolio-priority","should_trigger":false}
+{"id":"design-critique-pos-1","query":"run a design critique on this lean","skill":"deft-directive-design-critique","should_trigger":true}
+{"id":"design-critique-pos-2","query":"mechanism-shaped triage needs a critique panel","skill":"deft-directive-design-critique","should_trigger":true}
+{"id":"design-critique-neg-1","query":"implement the payment module from the active xBRIEF","skill":"deft-directive-design-critique","should_trigger":false}
