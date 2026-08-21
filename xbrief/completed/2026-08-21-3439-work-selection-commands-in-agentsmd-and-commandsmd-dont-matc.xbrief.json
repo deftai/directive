@@ -1,0 +1,271 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3439, re-locked to verified synthesis comment 5364706973",
+    "updated": "2026-08-21T04:47:12Z"
+  },
+  "plan": {
+    "title": "Work-selection commands in AGENTS.md and commands.md don't match the shipped CLI surface",
+    "status": "completed",
+    "narratives": {
+      "Description": "One audit-and-fix story: agent-facing docs, skill MUST fences, remediation, and success recaps emit deft <verb>. A consumer-projection oracle fails closed on prescribed bare task <verb> that a deposit include-only Taskfile cannot run.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3439",
+      "Overview": "## Summary\n\nThe two managed documents that tell an agent how to answer \"what's next?\" give different command prefixes, and neither matches the shipped CLI. For the **ordered plan** — the mode `#2402` says takes precedence — every documented invocation fails, and the only working form is undocumented.\n\n## The matrix\n\nTested on a live 0.104.0 deposit:\n\n| Mode | `AGENTS.md:54` (managed) | `commands.md:517-530` | Actually works |\n|---|---|---|---|\n| Ranked queue | `deft triage:queue` ✅ | `task triage:queue` ❌ | `deft triage:queue` |\n| Ordered plan | `deft plan-sequence:*` ❌ | `task plan-sequence:current` ❌ | `task deft:plan-sequence:current` |\n\nVerbatim:\n\n```\n$ deft plan-sequence:status\ndirective: unknown verb 'plan-sequence:status'\nhint: prefer `task plan-sequence:status` (Taskfile) or the hyphen stem (e.g. pr:watch → pr-watch / `task pr:watch`)\n\n$ task plan-sequence:status\ntask: Task \"plan-sequence:status\" does not exist\n\n$ deft plan-sequence-status          # the hint's other suggestion\ndirective: unknown verb 'plan-sequence-status'\n\n$ task plan-sequence:current         # exactly as commands.md documents it\ntask: Task \"plan-sequence:current\" does not exist\n\n$ task triage:queue                  # exactly as commands.md documents it\ntask: Task \"triage:queue\" does not exist\n\n$ task deft:plan-sequence:current    # undocumented; works\nNo active ordered-plan sequence (.deft/plan-sequence.json missing).\n```\n\nSo the real namespace is `task deft:plan-sequence:*`. `AGENTS.md` drops the `task deft:` prefix for a bare `deft `; `commands.md` keeps `task ` but drops the `deft:` namespace.\n\nThe unknown-verb hint compounds it rather than rescuing it: it's a generic string that suggests a `task` form without the `deft:` namespace, so it reproduces `commands.md`'s error. Following it lands on a second failure.\n\n## Why it matters\n\n`#2402` makes ordered-plan selection *precedence-bearing*: when `.deft/plan-sequence.json` is active, bare \"what's next?\" binds to the sequence entry and explicitly does **not** authorize `triage:queue`. But an agent following `AGENTS.md` tries `deft plan-sequence:*`, gets `unknown verb`, and falls through to `deft triage:queue` — which works. The precedence rule is therefore unreachable through any documented command, and the failure is silent and in the forbidden direction.\n\nSeverity is capped by a real backstop: `deft verify:plan-sequence` is reachable under the `deft ` prefix and fails closed at PR/branch/story time. So a live sequence would be caught eventually — but only after the agent has already selected and started the wrong work.\n\nThis is what happened in the session that prompted this report. I reached for `plan-sequence:status` first, hit the dead end, fell through to `deft triage:queue`, and only confirmed via the undocumented `task deft:plan-sequence:current` that there was genuinely no active sequence. The answer was right by luck of there being no sequence to miss.\n\n## Expected\n\n`AGENTS.md` and `commands.md` agree with each other and with the shipped surface. If `deft <verb>` is meant to be the consumer-facing form for both modes, `plan-sequence:*` should be reachable that way like `triage:queue` and `verify:plan-sequence` already are.\n\n## Papercuts in the same area\n\nLow severity, mentioned only because they're adjacent and cheap:\n\n**`--` separator is inconsistent across verbs.** Some accept it, some treat it as a fatal argument:\n\n```\n$ deft verify:session-ritual -- --tier=quick     # fine\n$ deft triage:queue -- --limit=3\ntriage_queue: unrecognized argument: --\n```\n\n`AGENTS.md` uses the `--` form in its managed text (`deft verify:session-ritual -- --tier=gated`), which trains the habit that then hard-fails elsewhere.\n\n**`plan-sequence:current` exits nonzero on the empty case** while `verify:plan-sequence` documents \"Skips (exit 0) when no active sequence\" for the same condition:\n\n```\n$ task deft:plan-sequence:current\nNo active ordered-plan sequence (.deft/plan-sequence.json missing).\ntask: Failed to run task \"deft:plan-sequence:current\": ... exit status 1\n```\n\n**`session:start` prints a git error from a valid repo root.** First two lines of every session, before any Directive output:\n\n```\n$ deft session:start          # run from the root of a healthy git repo\nfatal: not a git repository (or any of the parent directories): .git\nfatal: not a git repository (or any of the parent directories): .git\n[deft ceremony-dial] depth=elevated source=matrix ...\n```\n\nCosmetic, but it's the first thing every session sees and it reads as a failure.\n\n## Environment\n\n- `@deftai/directive` 0.104.0 (engine `@deftai/directive-core@0.104.0`)\n- Deposit generation 4, contentVersion 0.104.0, stamped 2026-08-15\n- Managed `AGENTS.md` section sha `9a264503478b`\n- Host: Claude Code. Platform: darwin\n- Consumer repo: `deftai/agentsentri`\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @rockbox37 (2026-08-20T22:40:05Z)\n\nMore datapoints on this from a full session on v0.104.0. They sharpen the report in one specific way: the `deft:` namespace omission this issue found in **managed docs** also appears in **runtime error messages, pinned-skill MUST gates, and success output** — i.e. the framework prescribes non-existent commands at exactly the moments an agent is most likely to copy them literally.\n\n## A. Framework-emitted commands that do not exist\n\n**1. A runtime failure's own remediation line.** `verify:routing` fails closed and tells you how to fix it:\n\n```\n$ task deft:verify:routing\nrouting gate: provider 'claude' has undecided role(s): leaf-implementation.\nDecide: task swarm:routing-set -- --role <role> --model <slug>   (or --harness-default)\n\n$ task swarm:routing-set -- --role leaf-implementation --harness-default\ntask: Task \"swarm:routing-set\" does not exist\n\n$ task deft:swarm:routing-set -- --role leaf-implementation --harness-default   # works\nRecorded route: provider 'claude', role 'leaf-implementation' -> model <harness default>.\n```\n\nSame missing `deft:` as the `plan-sequence` case above, but emitted by the gate that is blocking you.\n\n**2. A pinned skill's MUST gate.** `skills/deft-directive-swarm/SKILL.md:32`, under \"Branch-Protection Policy Guard\" — \"run the skill-level branch-policy guard (#746 / #747)\":\n\n```\ntask verify:branch || exit 1\n```\n\n```\n$ task verify:branch\ntask: Task \"verify:branch\" does not exist\n$ deft verify:branch    # works, exit 0\n```\n\n`deft-directive-swarm` is a default always-pin (skill-pin-policy #2508), so this is a documented-mandatory gate that no-ops as written. `|| exit 1` means an agent copying it verbatim aborts the swarm on a command-not-found rather than on a policy verdict — failing closed for the wrong reason, and indistinguishable from a real branch-protection refusal.\n\n**3. Success output.** `triage:bootstrap` completes and prints a \"Next steps\" block of six commands:\n\n```\n  task cache:fetch-all -- --source=github-issue --repo OWNER/NAME\n  task cache:get -- github-issue OWNER/NAME/<N>\n  task triage:accept -- --issue <N> --repo OWNER/NAME\n  task triage:reject -- --issue <N> --repo OWNER/NAME --reason 'why'\n  task triage:bulk-accept -- --repo OWNER/NAME --label adoption-blocker\n  task triage:refresh-active\n```\n\n```\n$ task cache:fetch-all -- --source=github-issue --repo deftai/ProjectMON\ntask: Task \"cache:fetch-all\" does not exist\n$ task triage:accept -- --issue 103 --repo deftai/ProjectMON\ntask: Task \"triage:accept\" does not exist\n```\n\n## B. The `--` separator, compounded\n\nThe separator inconsistency already noted above recurs on `triage:accept`:\n\n```\n$ deft triage:accept -- --issue 103 --repo deftai/ProjectMON\ntriage_actions: unrecognized argument: --\n$ deft triage:accept --issue 103 --repo deftai/ProjectMON      # works\naccept #103 (deftai/ProjectMON) -> a46c6d70-...\n```\n\nWorth noting because it makes the recap in A.3 wrong in **both** dimensions simultaneously — wrong namespace *and* a separator the `deft` equivalent rejects. Neither `task triage:accept -- --issue N` nor `deft triage:accept -- --issue N` works; the only working form is `deft triage:accept --issue N`, which is not the one printed.\n\n## C. Help text leaks the wrapped script's argparse shape\n\n`deft scope:promote --help` prints the underlying `scope_lifecycle.py` usage, including a positional the verb wrapper already supplies:\n\n```\nusage: scope_lifecycle.py [-h] ... {activate,block,cancel,complete,fail,promote,restore,unblock} [file ...]\nscope_lifecycle.py: error: the following arguments are required: action, file\n```\n\nCopying that shape fails with an error that misdescribes the cause:\n\n```\n$ deft scope:promote promote --from-issue=95 --repo deftai/ProjectMON\nError: Explicit path not found: /Users/baba/development/ProjectMON/promote\n\n$ deft scope:promote --from-issue=95 --repo deftai/ProjectMON      # works\n```\n\nThe verb name already encodes the action, so `promote` is read as a path. An agent reading \"required: action, file\" from the help text has no way to know the wrapper injects the action.\n\n## D. `policy:set` never enumerates its choices\n\n```\n$ deft policy:set\npolicy-set: the following arguments are required: cmd\n$ deft policy:set hostHooks\npolicy-set: argument cmd: invalid choice: 'hostHooks'\n```\n\nNeither form lists the valid values, and `deft --help` has no `policy` entry, so the set is only discoverable via `task --list`. (Relevant to #3571: there is no typed `policy:set` path for `hostHooks` at all, which is why that one is hand-edited.)\n\n## Suggested framing\n\nIf the `deft:`-prefixed Taskfile namespace is the real surface, the fix is probably a single audit of every emitted command string — remediation lines, recap blocks, skill bodies — rather than per-site patches, since all of these fail the same way. A cheap regression guard would be a test that extracts command-shaped strings from skill/`commands.md`/emitted-output fixtures and asserts each resolves.\n\nEnvironment: `@deftai/directive-core@0.104.0`, tag `v0.104.0`, Node v22.23.2, macOS 26.5.2 (arm64).\n\n\n### Comment by @MScottAdams (2026-08-21T02:49:10Z)\n\n## Triage analysis\n\n_By: Grok 4.6 (xAI), 2026-08-21. Checked against issue body + [follow-up](https://github.com/deftai/directive/issues/3439#issuecomment-5362927164) via REST, then `origin/master` Taskfile namespace / routing / swarm skill pointers. Working tree not modified._\n\n**Verdict:** accurate, desirable, ready as **one** audit-and-fix story. Do not split A–D into four issues. Do not fold `policy:set hostHooks` into this issue (#3571).\n\n### Accuracy\n\nHigh.\n\nThe body matrix is the real consumer-facing bug: `#2402` ordered-plan precedence is unreachable through documented commands (`deft plan-sequence:*` and `task plan-sequence:current` both fail; `task deft:plan-sequence:current` works and is undocumented). `deft triage:queue` works; `task triage:queue` does not. The unknown-verb hint steers into the same missing-`deft:` hole.\n\nThe follow-up is the **same class**, not a new epic:\n\n| Site | Claim | Check |\n|---|---|---|\n| A.1 `verify:routing` remediation | `task swarm:routing-set` | Taskfile exposes `swarm:routing-set` under the engine include; consumer deposit is `task deft:swarm:routing-set`. Same `deft:` omission as plan-sequence. |\n| A.2 swarm skill MUST | `task verify:branch \\|\\| exit 1` | `content/skills/deft-directive-swarm` Branch-Protection guard. `deft verify:branch` is the consumer verb; bare `task verify:branch` is the documented-mandatory miss. Always-pin (#2508) makes this load-bearing. |\n| A.3 triage:bootstrap recap | `task cache:*` / `task triage:*` | Same namespace miss; `--` on those lines is also wrong for `deft triage:accept`. |\n| B `--` separator | `deft triage:accept -- --issue` rejected | Body already had this papercut; follow-up proves recap is wrong on **two** axes at once. |\n| C `--help` | `scope_lifecycle.py` usage, `promote` read as a path | `packages/core/src/scope/main.ts` still prints `LIFECYCLE_USAGE_STDERR` with `{activate,…} [file …]`. Verb already encodes the action. |\n| D `policy:set` | no choice list; no `hostHooks` | Inspect-only for hostHooks is #3571; this issue should only demand `policy:set` enumerates **its** cmds. |\n\n`--` inconsistency and empty `plan-sequence:current` exit 1 remain as stated in the body. `session:start` git fatal is adjacent cosmetics; keep it in this issue only if the audit pass is already open, else a footnote.\n\n### Desirability\n\nHigh. `#2402` makes ordered-plan first; a documented command that 404s silently falls through to `triage:queue` — the forbidden direction. Follow-up shows the framework also **emits** the bad form at fail-closed gates and in “Next steps,” so agents copy it under pressure.\n\n### Readiness\n\nYes, as one first ship:\n\n1. **Single audit** of emitted/prescribed command strings (managed `AGENTS.md` / `commands.md`, skill MUST/⊗ `task …` lines, runtime remediation, success recaps). Each string must resolve on the consumer surface (`deft <verb>` and/or `task deft:<verb>` as actually shipped).\n2. **One regression:** extract command-shaped strings from those fixtures and assert they exist (the follow-up’s suggested guard). Content-contract already does a swarm-skill MUST/`task <verb>` resolve in part (#3483); extend rather than invent a second extractor.\n3. **`--` policy:** either accept `--` on `triage:*` / `plan-sequence:*` or stop printing it. Do not leave mixed.\n4. **Help text:** `scope:promote --help` must not dump `scope_lifecycle.py` required `action`. Wrapper injects action.\n\nOut of v1 for **this** issue: typed `hostHooks` writer (#3571); session:start `fatal: not a git repository` unless it falls out of the same help/remediation audit.\n\n`design-critique: not warranted` — this is a scoped CLI/docs consistency bugfix, not a new mechanism.\n\n### Disposition\n\n**Accept.** Keep #3439 open as the tracker for the namespace/`deft:` audit. Do not spawn per-site children for A.1–A.3. Point hostHooks at #3571 in implementation notes only.\n\n\n### Comment by @MScottAdams (2026-08-21T03:05:11Z)\n\n## Design critique of the triage comment (checked at `4bd58219a8e376c11a49ddf4df4ee13611738dfc`)\n\n_By: Grok 4.5 (xAI)_\n\nCeiling inputs only: issue body + comments `id <= 5364587562` (author follow-up `5362927164`, triage `5364587562`). Re-verified against `origin/master` tip `4bd58219a8e376c11a49ddf4df4ee13611738dfc` via `git show` / live CLI. No later comments consulted.\n\n## What holds\n\n- **Same bug class, one tracker.** Follow-up A–D is the same missing-consumer-prefix / copy-paste-literal class as the body, not four epics. Keeping hostHooks writer on #3571 is correct.\n- **Consumer deposit spelling break is real.** `content/docs/consumer-check-contract.md:21-30` documents the include-only consumer root under `deft:`, so operators run `task deft:<verb>`. Bare `task <verb>` is the framework-source spelling. On a consumer deposit the body's `task plan-sequence:current` / `task triage:queue` failures and the follow-up's `task swarm:routing-set` / `task cache:*` / `task triage:*` failures are expected.\n- **A.1 remediation string.** `packages/core/src/swarm/routing-verify.ts:26-27` still emits `ROUTING_SET_CMD = \"task swarm:routing-set -- --role <role> ...\"` — bare `task`, no `deft:`.\n- **A.2 swarm MUST fence.** `content/skills/deft-directive-swarm/SKILL.md:31-33` is still a fenced `task verify:branch || exit 1` under the Branch-Protection guard. Always-pin (#2508) makes that load-bearing on consumer hosts.\n- **A.3 bootstrap recap.** `packages/core/src/triage/bootstrap/index.ts:500-518` still prints six `task cache:*` / `task triage:*` Next-steps lines, including `task triage:accept -- --issue`.\n- **B `--` separator.** `packages/cli/src/triage-queue.ts:233-234` rejects any `arg?.startsWith(\"-\")` fallthrough, so bare `--` is `unrecognized argument: --`. Some verbs explicitly `continue` on `arg === \"--\"` (e.g. `verify-session-ritual.ts:45`); triage does not. Mixed policy stands.\n- **C help dump.** `packages/core/src/scope/main.ts:80-88` `LIFECYCLE_USAGE_STDERR` still names `scope_lifecycle.py` and requires `{activate,...} [file ...]` even though the verb wrapper already encodes the action.\n- **Empty `plan-sequence:current` exit 1.** `packages/cli/src/plan-sequence.ts` returns `1` when the file is missing; `verify-plan-sequence` skips with exit `0` for the same condition. Papercut as stated.\n- **Unknown-verb hint compounds.** `packages/cli/src/dispatch.ts:3178-3183` hints `task ${verb}` with no `deft:` namespace — same hole as `commands.md`.\n\n## Findings (classified)\n\n### 1. `blocks-the-design` — \"extend #3483\" as written cannot catch this issue's primary class\n\nTriage readiness step 2: extend `swarm_must_task_verbs_resolve_3483.test.ts` rather than invent a second extractor.\n\nReproduced the contract's method at `4bd58219a8e376c11a49ddf4df4ee13611738dfc`:\n\n- Oracle = **source** root `Taskfile.yml` + `tasks/<ns>.yml` (`taskVerbResolves`).\n- `CONSUMER_INCLUDE_PREFIX = \"deft:\"` is **stripped before resolve** (comment at lines 44–48 explicitly treats `task deft:pr:watch` as source `task pr:watch`).\n- Binding extractor only scans lines that start with `!` / `⊗` / contain `MUST` — a fenced command on the next line after a binding intro is **out of scope** (`SKILL.md:29` is binding; `:32` fence is not scanned).\n\nConsequences against this SHA:\n\n- `task verify:branch` **does** resolve in the source graph (`tasks/verify.yml` task `branch` under include `verify` → `verify:branch`; also referenced from root check deps). Extending the extractor to fences would still green-light A.2 on the source oracle while consumer `task verify:branch` keeps exiting \"does not exist\".\n- The same is true for nearly every bare `task <verb>` the audit would \"fix\": source-resolvable, consumer-broken.\n\nSo the proposed regression, if extended only in #3483's current shape, can ship green while the filed bug remains. Acceptance criteria MUST name a **consumer-projection oracle** (fixture include-only Taskfile under `deft:`, or assert prescribed strings are `deft <verb>` / `task deft:<verb>`, not merely source-resolvable). Without that lock, the first-ship design is incomplete.\n\n### 2. `sharpens-framing` — body/triage matrix overclaims `deft plan-sequence:*` ❌\n\nOriginal claimant method used `deft plan-sequence:status` (not a verb). Live repro on this host and aliases present since `v0.104.0` / current master:\n\n- `deft plan-sequence:current` → reaches the handler (`No active ordered-plan sequence...`, empty-case exit 1) — **not** `unknown verb`.\n- `packages/cli/src/dispatch.ts` `PLAN_SEQUENCE_ALIAS_SUBCOMMANDS` and `cli-router/route-argv.ts` map `plan-sequence:{set,current,clear,advance}` at `4bd58219a8e376c11a49ddf4df4ee13611738dfc`.\n- `content/templates/agents-entry.md:37` and `agents-consumer-header.md` already prescribe `deft plan-sequence:*` / `deft triage:queue` as the consumer-facing form.\n\nWhat actually fails for consumers is the **`task` (no `deft:`)** documentation and emission path (`commands.md:540-553`, skills, remediation, bootstrap recap), plus the unknown-verb hint steering a typo (`:status`) into a second bare-`task` miss. Triage upheld \"`deft plan-sequence:*` unreachable\" without separating wrong-verb from missing-alias. Precedence fallthrough to `triage:queue` is still real when agents copy `commands.md` / hints; it is **not** because the `deft` ordered-plan verbs are absent.\n\n### 3. `sharpens-framing` — canonicalize on `deft <verb>`, not dual `task deft:` everywhere\n\n`commands.md` is written in framework-source `task <verb>` voice. Managed AGENTS / consumer header already use `deft <verb>`. A thinner fix (#3265) is: agent-facing docs, skill MUST/⊗ fences, remediation, and success recaps emit **`deft <verb>`** (works on consumer and source). Keep `task deft:<verb>` as the deposit Taskfile spelling in maintainer/CI docs only. Auditing every string into `task deft:` doubles noise and still trains the `task` habit that breaks when the include prefix is omitted.\n\n### 4. `footnote` — `session:start` git fatal / body line-number skew\n\nTriage already sidelined the session:start cosmetic; agree. Body's `AGENTS.md:54` cite is version-skew vs current `agents-entry` (~line 37); do not treat line numbers as stable anchors.\n\n### 5. `footnote` — triage's `design-critique: not warranted`\n\nAccurate that this is not a new mechanism. Still critique-worthy: the **oracle surface** and **canonical spelling** are design choices that decide whether the one regression is real. Calling critique unwarranted risked rubber-stamping an insufficient #3483 extension.\n\n## Existing mechanisms\n\n| Mechanism | Path | Role vs this issue |\n|---|---|---|\n| #3483 swarm MUST/`task` resolve | `packages/core/src/content-contracts/skills/swarm_must_task_verbs_resolve_3483.test.ts` | Right extractor instinct; **wrong oracle** for consumer bare-`task` (see finding 1). Extend only with a consumer-projection mode. |\n| Consumer check contract docs | `content/docs/consumer-check-contract.md:21-30` | Already defines `task deft:check` as the deposit spelling — the missing vocabulary in triage's first-ship list. |\n| agents-entry / consumer header | `content/templates/agents-entry.md:37`, `agents-consumer-header.md` | Already prefer `deft plan-sequence:*` / `deft triage:queue`. Align `commands.md` + emitters to this, do not invent a third dialect. |\n| Unknown-verb hint (#2652) | `packages/cli/src/dispatch.ts:3178-3183` | Existing remediation surface; currently reproduces the bug. Fix here is high leverage. |\n| Build skill coverage-gate resolve | `content-contracts/standards/build_skill_coverage_gate.test.ts` | Sibling \"named task must exist\" pattern; same source-oracle limitation. |\n| emit_hints contract | `content-contracts/skills/emit_hints.test.ts` | Strategy emit-hint presence only; not a command-resolve audit. |\n\nDo not add a second ad-hoc extractor family until the oracle question is locked; reuse #3483's walk + add consumer projection / `deft`-canonical asserts.\n\n## Injection / swarm lens\n\nUnder a hostile or headless envelope that copies skill fences and gate remediation literally:\n\n1. **Swarm abort for the wrong reason.** `task verify:branch || exit 1` on a consumer deposit exits 200/\"does not exist\" before any branch-policy verdict — fail-closed noise indistinguishable from a real #746/#747 refusal (follow-up A.2). Monitor may halt the cohort or improvise.\n2. **Routing gate dead-end.** `verify:routing` fails closed and prints `task swarm:routing-set...` (`routing-verify.ts:27`). Headless agent copies it, gets task-not-found, cannot clear the pre-dispatch gate without inventing `task deft:swarm:routing-set` or `deft swarm:routing-set`.\n3. **Ordered-plan miss → forbidden fallthrough.** Agent following `commands.md:553` `task plan-sequence:current` fails on consumer, falls through to working `deft triage:queue` — exactly the #2402-forbidden direction. Severity still capped by later `deft verify:plan-sequence`, but only after wrong work may have started. (Note: `deft plan-sequence:current` itself works; the injectable failure is the `task`-spelled docs/hints.)\n4. **Bootstrap \"Next steps\" trains both axes wrong.** Namespace + `--` on `triage:accept` (`bootstrap/index.ts:508`) — neither `task triage:accept -- --issue` nor `deft triage:accept -- --issue` matches the working form if `--` is rejected.\n\n## Road not taken\n\n**Split docs-only vs runtime-emitter PRs** (commands/AGENTS first; remediation/recap/skills second). Rejected for v1 shape: same string class, one audit+oracle is the right package, and skills/remediation are where headless agents copy under pressure.\n\n**Make every agent-facing string `task deft:<verb>`.** Works on deposits; fails the thinness bar and fights existing `deft <verb>` managed text. Lost to canonical `deft <verb>` (finding 3).\n\n**Rely on #3483 source resolution alone.** Lost — finding 1.\n\n## Score against Directive rules\n\n| Rule | Score |\n|---|---|\n| Authority ladder (deterministic > Taskfile > prose) | Triage correctly wants a contract, not a manual audit forever. Weakened by proposing an oracle that sits on the **source** Taskfile while the defect is **consumer projection**. |\n| Fail-closed | Correctly flags A.2 as fail-closed for the wrong reason. Keep that in scope. |\n| Propose-not-apply | Disposition is Accept/propose — fine. |\n| Claim-cites-state (#2066) | Triage cited the follow-up comment; good. Matrix accuracy needed live re-run (finding 2). |\n| Gate integrity (#3156) | Extending a contract is right; do not weaken #3483 to go green — **widen the oracle**, do not delete checks. |\n| Thin fail-closed (#3265) | One audit + one regression is the right thickness. Canonical `deft <verb>` is thinner than dual-prefix sprawl. |\n\n## Disposition\n\n**Sharpen, then Accept** — keep #3439 as the single namespace/emission consistency tracker; do not spawn A–D children; keep hostHooks on #3571.\n\nBefore implement, lock in the story (or a LockedDecision):\n\n1. **Canonical agent-facing spelling = `deft <verb>`** (match agents-entry / consumer header). `commands.md` agent paths should not prescribe bare `task <verb>` as if it were consumer-universal.\n2. **Regression oracle must fail closed on consumer-deposit bare `task <verb>`** (and/or require `deft <verb>` in emitted remediation/recap/skill MUST fences). Extending #3483's walker is fine; extending only its source Taskfile resolve is not sufficient.\n3. **Rewrite the matrix:** `deft plan-sequence:current` works; fix `commands.md` / hints / emitters; treat `:status` typo + bad hint as part of the unknown-verb remediation fix.\n4. Keep `--` policy unification and `scope:promote --help` wrapper usage in the same ship if cheap; session:start git fatal remains optional footnote.\n\n`design-critique: warranted` for the oracle/spelling lock; not warranted as a new mechanism epic.\n\n\n### Comment by @MScottAdams (2026-08-21T03:06:54Z)\n\n## Verified synthesis (critique-pass-1, 2026-08-21)\n\n_By: Grok 4.6 (xAI) — synthesizer, not a critic in this run. Triage author was also Grok 4.6; critic was Grok 4.5. Rows marked **hold** only on a primary-source re-read of `origin/master`, not on critic agreement._\n\nHand-run of #3434 Pass 3. Not implementation. Working tree was not modified.\n\n**SHA:** `4bd58219a8e376c11a49ddf4df4ee13611738dfc` (`origin/master` at synthesis; same tip the critic named).\n\nThread: issue body; [follow-up](https://github.com/deftai/directive/issues/3439#issuecomment-5362927164); [triage](https://github.com/deftai/directive/issues/3439#issuecomment-5364587562); [R1 critique](https://github.com/deftai/directive/issues/3439#issuecomment-5364696531).\n\n### Disposition\n\n**Sharpen, then accept.** Keep #3439 as **one** emission/namespace tracker. Do not spawn A–D children. Keep `hostHooks` writer on #3571.\n\nLock before implement:\n\n| Slice | In v1 |\n|---|---|\n| **A — canonical spelling** | Agent-facing docs, skill MUST/⊗ fences, remediation, and success recaps emit **`deft <verb>`** (match `content/templates/agents-entry.md:37`). `task deft:<verb>` stays deposit/CI spelling in maintainer docs only. |\n| **B — consumer-projection oracle** | Regression must fail closed when a prescribed string is bare `task <verb>` that a consumer include-only Taskfile cannot run. Extending #3483’s walker is fine; extending only its **source** Taskfile resolve (which **strips** `deft:`) is not sufficient. |\n| **C — rewrite the matrix** | `deft plan-sequence:current` **works** (alias map). Body `deft plan-sequence:status` is a non-verb + bad hint. Fix `commands.md` / unknown-verb hint / emitters; do not claim the `deft` ordered-plan aliases are missing. |\n| **D — cheap same-ship** | Unify `--` (accept it or stop printing it). `scope:promote --help` must not dump `scope_lifecycle.py` required `action`. |\n| **Out** | session:start `fatal: not a git repository` (footnote). Typed hostHooks (#3571). Dual-prefix `task deft:` everywhere. |\n\n### Verified claims\n\n| Claim | Claimant | Verdict | Method | Evidence at `4bd58219` |\n|---|---|---|---|---|\n| Routing fail prints bare `task swarm:routing-set` | follow-up A.1, triage, R1 | **hold** | `git show` | `routing-verify.ts:26–27` `ROUTING_SET_CMD` |\n| Swarm MUST fence is `task verify:branch \\|\\| exit 1` | follow-up A.2, triage, R1 | **hold** | `git show` | `content/skills/deft-directive-swarm/SKILL.md:31–33` |\n| Bootstrap Next-steps is six `task cache:*` / `task triage:*` lines including `--` | follow-up A.3, R1 | **hold** | `git show` | `triage/bootstrap/index.ts:502–517` |\n| Unknown-verb hint is `task ${verb}` with no `deft:` | body, R1 | **hold** | `git show` | `dispatch.ts:3178–3183` |\n| `LIFECYCLE_USAGE_STDERR` still names `scope_lifecycle.py` + required action | follow-up C, triage, R1 | **hold** | `git show` | `scope/main.ts:80–88` |\n| #3483 strips `deft:` and resolves against **source** Taskfile | R1 F1 | **hold** | `git show` | `swarm_must_task_verbs_resolve_3483.test.ts:46–84` |\n| `deft plan-sequence:current` is aliased; `:status` is not | R1 F2 (amends body/triage) | **hold** | `git show` | `dispatch.ts:310–315` keys `set\\|current\\|clear\\|advance` only |\n| Managed AGENTS already prescribe `deft plan-sequence:*` / `deft triage:queue` | R1 | **hold** | `git show` | `agents-entry.md:37` |\n| Reporter `deft plan-sequence:*` ❌ matrix | body, triage | **fail (as written)** | same alias map | `current` exists; `:status` is the unknown-verb. Consumer **`task` (no deft:)** path remains broken |\n| Extending #3483 source oracle alone would green-light A.2 | R1 F1 | **hold (code path)** | #3483 + source `tasks/verify.yml` resolve of `verify:branch` | consumer bare `task verify:branch` still missing |\n\nLive consumer `task` vs `deft` CLI was not re-run here. Alias presence is enough to reject “`deft plan-sequence:*` unreachable.”\n\n### Finding → slice\n\n| Finding | Source | Slice |\n|---|---|---|\n| #3483 source oracle cannot catch consumer bare-`task` | R1 F1 | **B** |\n| Matrix overclaims missing `deft` aliases | R1 F2 | **C** |\n| Canonical `deft <verb>` thinner than dual `task deft:` | R1 F3 | **A** |\n| `--` + help dump | body / follow-up | **D** |\n| session:start git fatal | body | **out** |\n| triage `design-critique: not warranted` | R1 F5 | process note; oracle/spelling lock is the design choice |\n\n### What the triage got right\n\nOne tracker. Same class as the follow-up. HostHooks stays on #3571. Fail-closed-for-the-wrong-reason on A.2. One audit + one regression (thickness).\n\n### What the critique changed (load-bearing)\n\nThe first-ship regression as written would **pass while the filed bug remains**. Lock a consumer-projection / `deft <verb>` oracle. Rewrite the body matrix: ordered-plan `deft` verbs exist; the injectable failure is `task`-spelled docs, hints, and recaps.\n\n### Out of scope here\n\nImplementing A–D. Splitting docs-only vs emitter PRs. Adding `\"code\"` or hostHooks.",
+      "Labels": "bug, documentation, agent-experience, area:cli, area:guidance",
+      "UserStory": "As an agent on a consumer deposit, I want prescribed commands to be the working deft <verb> form, so that copying a skill fence or gate remediation does not abort for command-not-found.",
+      "When": "When agent-facing docs, skill MUST/forbid fences, remediation lines, and success recaps emit deft <verb>, a consumer-projection oracle fails closed on prescribed bare task <verb>, commands.md and the unknown-verb hint no longer claim missing deft plan-sequence aliases, -- is unified, and scope:promote --help does not dump scope_lifecycle.py required action.",
+      "LockedDecisions": "Verified synthesis 5364706973 is the lock. One tracker; do not spawn A-D children. Canonical agent-facing spelling is deft <verb> (agents-entry). task deft:<verb> stays maintainer/CI deposit spelling only. Regression oracle must fail closed on consumer-deposit bare task <verb>; extending #3483 walker is fine, extending only its source Taskfile resolve (which strips deft:) is not sufficient. Rewrite the body matrix: deft plan-sequence:current works; body deft plan-sequence:status is a non-verb plus bad hint. Unify -- (accept it or stop printing it). scope:promote --help must not dump scope_lifecycle.py required action. Out: session:start git fatal footnote; typed hostHooks stays on #3571; dual-prefix task deft: everywhere. Do not weaken #3483 to go green.",
+      "ImplementationPlan": "Audit emitted and prescribed command strings in managed AGENTS/commands, skill MUST fences, routing-verify remediation, triage:bootstrap recaps, and the unknown-verb hint. Rewrite those strings to deft <verb>. Add or extend a consumer-projection oracle (include-only Taskfile under deft:, or assert prescribed strings are deft <verb>) by widening #3483 rather than deleting it. Unify -- on triage/plan-sequence. Fix LIFECYCLE_USAGE_STDERR so scope:promote --help does not require a second action token. CHANGELOG Unreleased.",
+      "OriginDivergence": "Ingest 2026-08-21. Origin body matrix overclaims missing deft plan-sequence aliases (synthesis C: current works; :status is the unknown-verb). Comments lock slices A-D. D12: synthesis newer than body."
+    },
+    "items": [
+      {
+        "title": "Canonical spelling deft <verb>",
+        "status": "completed",
+        "narrative": {
+          "When": "When agent-facing docs, skill MUST/forbid fences, remediation lines, and success recaps are read, they emit deft <verb> and do not prescribe consumer-universal bare task <verb>.",
+          "Acceptance": "When agent-facing docs, skill MUST/forbid fences, remediation lines, and success recaps are read, they emit deft <verb> and do not prescribe consumer-universal bare task <verb>."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/swarm_must_task_verbs_resolve_3483.test.ts#consumer-projection-oracle",
+          "recorded_at": "2026-08-21T04:44:10Z",
+          "recorded_by": "leaf-implementation-3439"
+        }
+      },
+      {
+        "title": "Consumer-projection oracle",
+        "status": "completed",
+        "narrative": {
+          "When": "When the regression runs, it fails closed if a prescribed string is bare task <verb> that a consumer include-only Taskfile cannot run. Extending #3483 walker is allowed; source-only resolve that strips deft: is not sufficient.",
+          "Acceptance": "When the regression runs, it fails closed if a prescribed string is bare task <verb> that a consumer include-only Taskfile cannot run. Extending #3483 walker is allowed; source-only resolve that strips deft: is not sufficient."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/swarm_must_task_verbs_resolve_3483.test.ts#consumer-projection-oracle",
+          "recorded_at": "2026-08-21T04:44:10Z",
+          "recorded_by": "leaf-implementation-3439"
+        }
+      },
+      {
+        "title": "Rewrite the matrix and unknown-verb hint",
+        "status": "completed",
+        "narrative": {
+          "When": "When commands.md and the unknown-verb hint are followed, they do not claim deft plan-sequence aliases are missing. deft plan-sequence:current is the working verb; plan-sequence:status is treated as a non-verb plus a hint that must not steer into bare task.",
+          "Acceptance": "When commands.md and the unknown-verb hint are followed, they do not claim deft plan-sequence aliases are missing. deft plan-sequence:current is the working verb; plan-sequence:status is treated as a non-verb plus a hint that must not steer into bare task."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/dispatch.test.ts#unknownColonVerbHint",
+          "recorded_at": "2026-08-21T04:44:10Z",
+          "recorded_by": "leaf-implementation-3439"
+        }
+      },
+      {
+        "title": "Unify -- and scope:promote help",
+        "status": "completed",
+        "narrative": {
+          "When": "When an agent copies a printed -- separator, triage and plan-sequence either accept it or no longer print it, and deft scope:promote --help does not dump scope_lifecycle.py required action.",
+          "Acceptance": "When an agent copies a printed -- separator, triage and plan-sequence either accept it or no longer print it, and deft scope:promote --help does not dump scope_lifecycle.py required action."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/main.test.ts#scope-promote-help",
+          "recorded_at": "2026-08-21T04:44:10Z",
+          "recorded_by": "leaf-implementation-3439"
+        }
+      },
+      {
+        "title": "No A-D split; hostHooks stays on #3571",
+        "status": "completed",
+        "narrative": {
+          "When": "When this story ships, it remains one issue and does not add a typed hostHooks writer (that is #3571) or dual-prefix task deft: everywhere.",
+          "Acceptance": "When this story ships, it remains one issue and does not add a typed hostHooks writer (that is #3571) or dual-prefix task deft: everywhere."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3590",
+          "recorded_at": "2026-08-21T04:44:10Z",
+          "recorded_by": "leaf-implementation-3439"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "documentation",
+      "agent-experience",
+      "area:cli",
+      "area:guidance"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3439",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3439: Work-selection commands do not match the shipped CLI surface"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3439#issuecomment-5364706973",
+        "type": "x-xbrief/document",
+        "title": "Verified synthesis lock (slices A-D)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3439#issuecomment-5364696531",
+        "type": "x-xbrief/document",
+        "title": "R1 design critique"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3439#issuecomment-5362927164",
+        "type": "x-xbrief/document",
+        "title": "Follow-up A-D datapoints"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3571",
+        "type": "x-xbrief/refs",
+        "title": "Typed hostHooks writer stays here"
+      }
+    ],
+    "metadata": {
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/commands.md",
+          "content/templates/agents-entry.md",
+          "content/skills/deft-directive-swarm/SKILL.md",
+          "packages/core/src/swarm/routing-verify.ts",
+          "packages/core/src/triage/bootstrap/index.ts",
+          "packages/cli/src/dispatch.ts",
+          "packages/core/src/scope/main.ts",
+          "packages/core/src/content-contracts/skills/swarm_must_task_verbs_resolve_3483.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/skills",
+          {
+            "command": "deft verify:session-ritual -- --tier=quick     # fine",
+            "expectedExitCode": 2
+          },
+          "task verify:branch",
+          {
+            "command": "deft verify:branch    # works, exit 0",
+            "expectedExitCode": 2
+          },
+          {
+            "command": "deft verify:plan-sequence",
+            "expectedExitCode": 2
+          },
+          "deft verify:session-ritual -- --tier=gated",
+          "deft verify:branch"
+        ],
+        "expected_outputs": [
+          "deft <verb> in agent-facing emissions; consumer-projection oracle; unified --; scope:promote help without lifecycle.py action"
+        ],
+        "depends_on": [],
+        "conflict_group": "cli-namespace-3439",
+        "size": "L",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Issue-ingested #3439; FR traces from verified synthesis 5364706973."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/commands.md",
+          "packages/cli/src/dispatch.ts",
+          "packages/core/src/scope/main.ts",
+          "packages/core/src/swarm/routing-verify.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/cli",
+        "cohesion_exemption": "CHANGELOG.md and some emitters already exceed FILE_SIZE_REVIEW_TRIGGER_LINES. This slice rewrites prescribed command strings and widens the #3483 oracle; splitting those files is out of this story (#3424)."
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3590,
+        "prBase": null,
+        "mergeCommit": "bd0f3cdc6cf2cc69b9f4c34b826442eda730566b",
+        "deliveryBranch": "master",
+        "deliveryCommit": "bd0f3cdc6cf2cc69b9f4c34b826442eda730566b",
+        "verifiedAt": "2026-08-21T04:47:12Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "9a8d62b7-2476-4461-87a6-ea42d92fcc15"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-21T04:47:12Z",
+      "completedSessionId": "9a8d62b7-2476-4461-87a6-ea42d92fcc15",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/content-contracts/skills",
+        {
+          "command": "deft verify:session-ritual -- --tier=quick     # fine",
+          "expectedExitCode": 2
+        },
+        "task verify:branch",
+        {
+          "command": "deft verify:branch    # works, exit 0",
+          "expectedExitCode": 2
+        },
+        {
+          "command": "deft verify:plan-sequence",
+          "expectedExitCode": 2
+        },
+        "deft verify:session-ritual -- --tier=gated",
+        "deft verify:branch"
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "derived independently testable clauses from verified synthesis 5364706973 before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Agent-facing docs, skill MUST/forbid fences, remediation, and success recaps emit deft <verb>.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Regression fails closed on prescribed bare task <verb> that a consumer include-only Taskfile cannot run; #3483 source-only resolve is not sufficient.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "commands.md and the unknown-verb hint do not claim missing deft plan-sequence aliases; :status is a non-verb.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "-- is unified (accepted or not printed) and scope:promote --help does not dump scope_lifecycle.py required action.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "One tracker; no A-D children; no typed hostHooks writer; no dual-prefix task deft: everywhere.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "issue-3439-cli-namespace-emission",
+    "updated": "2026-08-21T04:47:12Z"
+  }
+}
