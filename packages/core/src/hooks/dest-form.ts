@@ -119,7 +119,16 @@ export function classifyProductDestForms(command: string): ProductDestForm[] {
   // a target from shell state was tried and abandoned (#3438) — cwd depends on
   // operator precedence, on exit status (`cd x || …`), on subshell boundaries,
   // and on git context options, so each reconstruction rule grew its own
-  // bypass. Recognition is cheap and total; resolution is neither.
+  // bypass.
+  //
+  // ⊗ Recognition is NOT total either, and this is not a security boundary.
+  // Only four verbs are recognized, and a non-literal verb (`\rm`, `rm${IFS}x`)
+  // defeats the tokenizer, so the fail-closed branch below only fires when the
+  // verb is still legible. Unrecognized mutators (`git reset --hard`,
+  // `git clean`, `git checkout` without `--`, `mv`, `sed -i`, `>` redirection)
+  // and interpreters (`bash -c`, `python -c`) are fail-OPEN. See the threat
+  // model in content/contracts/path-write-fence.md: this is a guardrail for
+  // careless agents, not a boundary against adversarial ones.
   if (segments.length === 1 && !hasUnsupportedSyntax(cmd)) {
     return classifySimpleDestForms(segments[0] ?? "");
   }
