@@ -43,7 +43,7 @@ export const CURSOR_SESSION_HOOK_TIMEOUT_SECONDS = 5;
  * Mutation tool.before runs `inspectMutationGates` → gated
  * `verifySessionRitual`, which re-runs non-cacheable agent-hook readiness on
  * every boundary. Live readiness alone has a multi-host fixture ceiling of
- * ~12s (`content/contracts/agent-hook-readiness.md`); the historical deposit
+ * ~24s (`content/contracts/agent-hook-readiness.md`); the historical deposit
  * default of 5s was below that budget. Under Cursor `failClosed: true`, a
  * host timeout kill surfaces as opaque exit-1 with no Directive decision
  * code (#3246 / related #2864). Keep this above the readiness ceiling plus

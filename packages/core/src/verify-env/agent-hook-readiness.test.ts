@@ -201,8 +201,39 @@ describe("evaluateAgentHookReadiness", () => {
       "non-functional",
     );
     expect(result.hosts.find((entry) => entry.host === "claude")?.functionality).toBe("not-run");
-    expect(result.message).toContain("hostHooks.<host>");
+    expect(result.message).toContain("deft policy:disable-host-hooks");
+    expect(result.message).toContain("deft-hook pre-execution guardrails");
+    expect(result.message).not.toContain("hostHooks.<host> = false");
     expect(result.stream).toBe("stderr");
+  });
+
+  it("maps live timeouts as timed-out rather than non-functional (#3570)", () => {
+    const result = evaluateAgentHookReadiness("/project", {
+      consumerContext: () => true,
+      evaluateStructural: () => structural(),
+      probeLive: () => ({
+        code: 1,
+        message: "live timed-out",
+        cases: [
+          {
+            host: "cursor",
+            event: "tool.before",
+            fixture: "allow",
+            issue: "timed-out",
+            detail: "slow",
+          },
+        ],
+        hosts: [{ host: "cursor", status: "timed-out" }],
+        durationMs: 4,
+      }),
+    });
+
+    expect(result.code).toBe(1);
+    expect(result.liveStatus).toBe("timed-out");
+    expect(result.hosts.find((entry) => entry.host === "cursor")?.functionality).toBe("timed-out");
+    expect(result.message).not.toContain("disable-host-hooks");
+    expect(result.message).not.toContain("hostHooks.<host>");
+    expect(result.message).not.toContain("reinstall");
   });
 
   it("reports all opted-out hosts as disabled while still exercising the empty live probe", () => {

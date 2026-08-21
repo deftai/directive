@@ -499,6 +499,17 @@ describe("writeAgentHookDeposit", () => {
     expect(lines.join("")).toContain("Installed Directive agent hooks");
   });
 
+  it("writes leftover-free opted-out Directive-only deposits as empty objects (#3571)", () => {
+    const root = project();
+    writeAgentHookDeposit(root);
+    const policy = { claude: false, grok: false, cursor: false, codex: false };
+    writeAgentHookDeposit(root, { printf: () => undefined }, policy);
+    expect(readFileSync(join(root, ".claude/settings.json"), "utf8")).toBe("{}\n");
+    expect(readFileSync(join(root, ".grok/hooks/deft.json"), "utf8")).toBe("{}\n");
+    expect(readFileSync(join(root, ".cursor/hooks.json"), "utf8")).toBe("{}\n");
+    expect(readFileSync(join(root, ".codex/hooks.json"), "utf8")).toBe("{}\n");
+  });
+
   it("strips managed Claude hooks on update while preserving unrelated settings", () => {
     const root = project();
     writeAgentHookDeposit(root);

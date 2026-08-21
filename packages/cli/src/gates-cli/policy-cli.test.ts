@@ -59,6 +59,33 @@ describe("deft-ts policy (maps tests/cli/test_policy.py CLI paths)", () => {
     expect(data.plan["x-directive/policy"].allowDirectCommitsToMaster).toBe(false);
   });
 
+  it("disable-host-hooks refuses without --confirm and persists with it", () => {
+    const root = project();
+    const refused = runDeftTs("policy", [
+      "disable-host-hooks",
+      "--host",
+      "cursor",
+      "--project-root",
+      root,
+    ]);
+    expect(refused.exitCode).toBe(1);
+    expect(refused.stdout + refused.stderr).toContain("Capability-cost disclosure");
+    const applied = runDeftTs("policy", [
+      "disable-host-hooks",
+      "--host",
+      "cursor",
+      "--confirm",
+      "--project-root",
+      root,
+    ]);
+    expect(applied.exitCode).toBe(0);
+    const data = JSON.parse(
+      readFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "utf8"),
+    ) as { plan: Record<string, { hostHooks?: { cursor?: boolean } }> };
+    const policy = data.plan["x-directive/policy"] ?? data.plan.policy;
+    expect(policy?.hostHooks?.cursor).toBe(false);
+  });
+
   it("allow-direct-commits refuses without --confirm", () => {
     const root = project();
     const { exitCode, stdout, stderr } = runDeftTs("policy", [

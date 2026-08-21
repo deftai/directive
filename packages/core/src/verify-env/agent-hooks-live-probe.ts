@@ -11,6 +11,12 @@ import {
 } from "./command-spawn.js";
 
 export const LIVE_PROBE_CASE_TIMEOUT_MS = 1_500;
+/** Extra attempts after a timeout. One retry keeps 4×2×1.5s×2 = 24s under Cursor 30s (#3570). */
+export const LIVE_PROBE_CASE_RETRY_COUNT = 1;
+export const LIVE_PROBE_TIMEOUT_RECOVERY =
+  "Recovery: retry the gated ritual when load is lower. Do not reinstall @deftai/directive or disable hostHooks for a timeout.";
+export const LIVE_PROBE_BROKEN_RECOVERY =
+  "Recovery: reinstall @deftai/directive and run `deft update`.";
 
 export type AgentHookLiveProbeIssue =
   | "hook-command-missing"
@@ -29,7 +35,11 @@ export interface AgentHookLiveProbeCase {
   readonly detail: string;
 }
 
-export type AgentHookLiveProbeHostStatus = "functional" | "non-functional" | "unavailable";
+export type AgentHookLiveProbeHostStatus =
+  | "functional"
+  | "non-functional"
+  | "unavailable"
+  | "timed-out";
 
 export interface AgentHookLiveProbeHostResult {
   readonly host: HookHost;
@@ -208,6 +218,21 @@ function validateFixtureOutput(
     : { ok: false, issue: "missing-deny", detail: `expected ${host} deny envelope` };
 }
 
+function liveProbeRecovery(cases: readonly AgentHookLiveProbeCase[]): string {
+  if (cases.length > 0 && cases.every((entry) => entry.issue === "timed-out")) {
+    return LIVE_PROBE_TIMEOUT_RECOVERY;
+  }
+  return LIVE_PROBE_BROKEN_RECOVERY;
+}
+
+function hostStatusFromFailure(
+  hostFailure: AgentHookLiveProbeCase | null,
+): AgentHookLiveProbeHostStatus {
+  if (hostFailure === null) return "functional";
+  if (hostFailure.issue === "timed-out") return "timed-out";
+  return "non-functional";
+}
+
 function runFixtureProbe(
   command: string,
   host: HookHost,
@@ -215,20 +240,28 @@ function runFixtureProbe(
   fixture: "allow" | "deny",
   spawnHook: NonNullable<AgentHookLiveProbeSeams["spawnHook"]>,
 ): AgentHookLiveProbeCase | null {
-  const spawned = spawnHook({
+  const input = {
     command,
-    args: ["--host", host, "--event", LIVE_PROBE_EVENT, "--project-root", projectRoot],
+    args: ["--host", host, "--event", LIVE_PROBE_EVENT, "--project-root", projectRoot] as const,
     stdin: fixture === "allow" ? allowFixture(projectRoot) : denyFixture(projectRoot),
     cwd: projectRoot,
     env: fixture === "allow" ? process.env : denyProbeEnv(),
-  });
+  };
+  let spawned = spawnHook(input);
+  for (
+    let retry = 0;
+    retry < LIVE_PROBE_CASE_RETRY_COUNT && spawned.timedOut === true;
+    retry += 1
+  ) {
+    spawned = spawnHook(input);
+  }
   if (spawned.timedOut === true) {
     return {
       host,
       event: LIVE_PROBE_EVENT,
       fixture,
       issue: "timed-out",
-      detail: `hook command exceeded ${LIVE_PROBE_CASE_TIMEOUT_MS}ms`,
+      detail: `hook command exceeded ${LIVE_PROBE_CASE_TIMEOUT_MS}ms after ${LIVE_PROBE_CASE_RETRY_COUNT + 1} attempts`,
     };
   }
   if (spawned.status !== 0) {
@@ -303,7 +336,7 @@ export function probeAgentHooksLive(
         break;
       }
     }
-    hostResults.push({ host, status: hostFailure === null ? "functional" : "non-functional" });
+    hostResults.push({ host, status: hostStatusFromFailure(hostFailure) });
   }
 
   if (failures.length === 0) {
@@ -320,7 +353,7 @@ export function probeAgentHooksLive(
     .join("; ");
   return {
     code: 1,
-    message: `deft agent hooks live probe FAILED: ${summary}. Recovery: reinstall @deftai/directive and run \`deft update\`.`,
+    message: `deft agent hooks live probe FAILED: ${summary}. ${liveProbeRecovery(failures)}`,
     cases: failures,
     hosts: hostResults,
     durationMs: elapsedMs(started),

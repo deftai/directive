@@ -62,6 +62,16 @@ tasks:
         vars:
           ENGINE_CMD: 'policy enable-value-feedback --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
+  disable-host-hooks:
+    desc: "Disable plan.policy.hostHooks.<host> (capability-cost: deft-hook guardrails removed; tracked). Requires --host and --confirm. -- task policy:disable-host-hooks -- --host <claude|cursor|grok|codex> --confirm"
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'policy disable-host-hooks --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
   clear-value-feedback:
     desc: "Remove typed plan.policy.valueFeedback so trusted-org repos return to org-auto resolution (#2822). -- task policy:clear-value-feedback"
     dir: '{{.USER_WORKING_DIR}}'

@@ -2,7 +2,10 @@ import { statSync } from "node:fs";
 import { resolve } from "node:path";
 import { type AgentHookInspection, inspectAgentHookDeposit } from "../init-deposit/agent-hooks.js";
 import type { HostHooksPolicy } from "../policy/host-hooks.js";
-import { loadHostHooksPolicyFromProject } from "../policy/host-hooks.js";
+import {
+  loadHostHooksPolicyFromProject,
+  UNUSED_HOST_HOOKS_RECOVERY,
+} from "../policy/host-hooks.js";
 import type { OutputStream } from "./verify-hooks-installed.js";
 
 export interface AgentHookHealthResult {
@@ -47,9 +50,8 @@ export function evaluateAgentHooks(
         unhealthy
           .map((entry) => `  - ${entry.host}: ${entry.status} at ${entry.path} — ${entry.detail}`)
           .join("\n") +
-        "\n  Recovery: run `deft update` (or `directive init`) to refresh project hooks." +
-        " If a failed host is intentionally unused, inspect `deft policy:show --field=hostHooks`, " +
-        "set `plan.policy.hostHooks.<host> = false`, and run `deft update` again.",
+        "\n  Recovery: run `deft update` (or `directive init`) to refresh project hooks. " +
+        UNUSED_HOST_HOOKS_RECOVERY,
       stream: "stderr",
       registrations,
     };

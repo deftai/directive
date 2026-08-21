@@ -3,7 +3,10 @@ import { resolveFrameworkRootForProject } from "../doctor/paths.js";
 import type { HookHost } from "../hooks/dispatcher.js";
 import type { AgentHookInspection } from "../init-deposit/agent-hooks.js";
 import type { HostHooksPolicy } from "../policy/host-hooks.js";
-import { loadHostHooksPolicyFromProject } from "../policy/host-hooks.js";
+import {
+  loadHostHooksPolicyFromProject,
+  UNUSED_HOST_HOOKS_RECOVERY,
+} from "../policy/host-hooks.js";
 import { type AgentHookHealthResult, evaluateAgentHooks } from "./agent-hooks.js";
 import {
   type AgentHookLiveProbeResult,
@@ -22,6 +25,7 @@ export type AgentHookReadinessFunctionality =
   | "functional"
   | "non-functional"
   | "unavailable"
+  | "timed-out"
   | "not-run"
   | "disabled"
   | "not-applicable";
@@ -34,6 +38,7 @@ export type AgentHookReadinessLiveStatus =
   | "functional"
   | "non-functional"
   | "unavailable"
+  | "timed-out"
   | "not-run"
   | "disabled"
   | "skipped";
@@ -201,32 +206,38 @@ export function evaluateAgentHookReadiness(
           ? "functional"
           : liveStatus === "unavailable"
             ? "unavailable"
-            : liveStatus === "non-functional"
-              ? "non-functional"
-              : "not-run",
+            : liveStatus === "timed-out"
+              ? "timed-out"
+              : liveStatus === "non-functional"
+                ? "non-functional"
+                : "not-run",
     };
   });
   const allDisabled = enabledHosts.length === 0;
+  const timeoutOnly =
+    liveProbe.cases.length > 0 && liveProbe.cases.every((entry) => entry.issue === "timed-out");
   const liveStatus: AgentHookReadinessLiveStatus = allDisabled
     ? "disabled"
     : liveProbe.code === 0
       ? "functional"
       : liveProbe.code === 2
         ? "unavailable"
-        : "non-functional";
+        : timeoutOnly
+          ? "timed-out"
+          : "non-functional";
   const trustReview = policy.codex
     ? "\n  Codex trust: manual-review-required. Open `/hooks` and approve the exact project hook commands. " +
       "The live probe validates the shim and codec, not host interception."
     : "";
+  const unusedHostRecovery =
+    liveProbe.code === 0 || timeoutOnly ? "" : `\n  ${UNUSED_HOST_HOOKS_RECOVERY}`;
   return {
     code: liveProbe.code,
     message:
       `${liveProbe.code === 0 ? "✓" : "❌"} deft agent hook readiness: ${liveProbe.message}\n` +
       renderHosts(evaluatedHosts) +
       trustReview +
-      (liveProbe.code === 0
-        ? ""
-        : "\n  If an affected host is unused, inspect `deft policy:show --field=hostHooks`, set `plan.policy.hostHooks.<host> = false`, and run `deft update`."),
+      unusedHostRecovery,
     stream: liveProbe.code === 0 ? "stdout" : "stderr",
     skipped: false,
     liveStatus,

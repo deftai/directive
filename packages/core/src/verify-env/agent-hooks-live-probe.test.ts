@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { probeAgentHooksLive, quoteWindowsCmdArg } from "./agent-hooks-live-probe.js";
+import {
+  LIVE_PROBE_BROKEN_RECOVERY,
+  LIVE_PROBE_TIMEOUT_RECOVERY,
+  probeAgentHooksLive,
+  quoteWindowsCmdArg,
+} from "./agent-hooks-live-probe.js";
 
 describe("probeAgentHooksLive", () => {
   it("reports empty Cursor stdout on allow fixture as non-functional (#2852)", () => {
@@ -307,15 +312,75 @@ describe("probeAgentHooksLive", () => {
     expect(resolvedNames).toEqual(["deft-hook"]);
   });
 
-  it("reports a bounded hook timeout", () => {
+  it("reports a bounded hook timeout after one retry", () => {
+    let calls = 0;
     const result = probeAgentHooksLive("/project", {
       hosts: ["cursor"],
       resolveCommand: () => "/usr/bin/deft-hook",
-      spawnHook: () => ({ status: 2, stdout: "", stderr: "", timedOut: true }),
+      spawnHook: () => {
+        calls += 1;
+        return { status: 2, stdout: "", stderr: "", timedOut: true };
+      },
     });
 
+    expect(calls).toBe(2);
     expect(result.code).toBe(1);
     expect(result.cases[0]).toMatchObject({ issue: "timed-out" });
+    expect(result.hosts[0]).toMatchObject({ host: "cursor", status: "timed-out" });
+    expect(result.message).toContain(LIVE_PROBE_TIMEOUT_RECOVERY);
+    expect(result.message).not.toContain(LIVE_PROBE_BROKEN_RECOVERY);
+    expect(result.message).not.toMatch(/Recovery: reinstall/);
+    expect(result.message).not.toContain("hostHooks.<host>");
+  });
+
+  it("retries once after a timeout then passes (#3570)", () => {
+    let calls = 0;
+    const result = probeAgentHooksLive("/project", {
+      hosts: ["cursor"],
+      resolveCommand: () => "/usr/bin/deft-hook",
+      spawnHook: ({ stdin }) => {
+        calls += 1;
+        if (calls === 1 || calls === 3) {
+          return { status: 2, stdout: "", stderr: "", timedOut: true };
+        }
+        return {
+          status: 0,
+          stdout: stdin.includes("Read")
+            ? '{"permission":"allow"}'
+            : '{"permission":"deny","user_message":"denied"}',
+          stderr: "",
+        };
+      },
+    });
+
+    expect(calls).toBe(4);
+    expect(result.code).toBe(0);
+    expect(result.cases).toEqual([]);
+  });
+
+  it("uses broken recovery when timeout is mixed with a spawn failure", () => {
+    let calls = 0;
+    const result = probeAgentHooksLive("/project", {
+      hosts: ["cursor", "claude"],
+      resolveCommand: () => "/usr/bin/deft-hook",
+      spawnHook: () => {
+        calls += 1;
+        if (calls <= 2) return { status: 2, stdout: "", stderr: "", timedOut: true };
+        return { status: 3, stdout: "", stderr: "boom" };
+      },
+    });
+    expect(result.cases.some((entry) => entry.issue === "timed-out")).toBe(true);
+    expect(result.cases.some((entry) => entry.issue === "spawn-failed")).toBe(true);
+    expect(result.message).toContain(LIVE_PROBE_BROKEN_RECOVERY);
+  });
+
+  it("keeps reinstall recovery for non-timeout live failures", () => {
+    const result = probeAgentHooksLive("/project", {
+      hosts: ["cursor"],
+      resolveCommand: () => "/usr/bin/deft-hook",
+      spawnHook: () => ({ status: 0, stdout: "", stderr: "" }),
+    });
+    expect(result.message).toContain(LIVE_PROBE_BROKEN_RECOVERY);
   });
 
   it.each([

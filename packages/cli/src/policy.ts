@@ -15,11 +15,13 @@ import {
   describeShadowedPlanExtension,
   detectNoDeftDirective,
   detectShadowedPlanExtensions,
+  disableHostHooks,
   disclosureLine,
   enableValueFeedback,
   FIELD_VALUE_FEEDBACK,
   FIELD_VALUE_FEEDBACK_CLI_ALIAS,
   formatValueFeedbackStatusLine,
+  type HookHost,
   humanMergeDisclosureLine,
   inspectAllPolicies,
   inspectOnePolicy,
@@ -28,6 +30,7 @@ import {
   NO_DEFT_DIRECTIVE_FLAG_NAME,
   NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE,
   POLICY_AUDIT_NOOP_STDOUT,
+  parseHookHost,
   policyColonInvocation,
   projectDefinitionPath,
   pythonListRepr,
@@ -75,12 +78,14 @@ interface SetArgs {
     | "enable-value-feedback"
     | "clear-value-feedback"
     | "set-ceremony-dial"
+    | "disable-host-hooks"
     | "disable-directive"
     | "enable-directive"
     | "resolve";
   confirm: boolean;
   actor: string;
   note: string;
+  host?: HookHost;
   projectRoot: string;
   format: "text" | "json";
   changedOnly: boolean;
@@ -182,7 +187,7 @@ export function parseShowArgs(argv: string[]): ShowArgs {
 export function parseArgs(argv: string[]): SetArgs {
   if (argv.length === 0) {
     const usage =
-      "usage: policy [show|enforce-branches|allow-direct-commits|allow-bot-merge|enable-value-feedback|clear-value-feedback|set-ceremony-dial|disable-directive|enable-directive|resolve] ...";
+      "usage: policy [show|enforce-branches|allow-direct-commits|allow-bot-merge|enable-value-feedback|clear-value-feedback|set-ceremony-dial|disable-host-hooks|disable-directive|enable-directive|resolve] ...";
     return makeSetError(usage);
   }
 
@@ -224,6 +229,7 @@ export function parseArgs(argv: string[]): SetArgs {
     cmd === "enable-value-feedback" ||
     cmd === "clear-value-feedback" ||
     cmd === "set-ceremony-dial" ||
+    cmd === "disable-host-hooks" ||
     cmd === "disable-directive" ||
     cmd === "enable-directive"
   ) {
@@ -241,11 +247,14 @@ export function parseArgs(argv: string[]): SetArgs {
                 ? policyColonInvocation("clear-value-feedback")
                 : cmd === "set-ceremony-dial"
                   ? policyColonInvocation("set-ceremony-dial")
-                  : cmd === "disable-directive"
-                    ? policyColonInvocation("disable-directive")
-                    : policyColonInvocation("enable-directive");
+                  : cmd === "disable-host-hooks"
+                    ? policyColonInvocation("disable-host-hooks")
+                    : cmd === "disable-directive"
+                      ? policyColonInvocation("disable-directive")
+                      : policyColonInvocation("enable-directive");
     let note = "";
     let projectRoot = ".";
+    let host: HookHost | undefined;
     let ceremonyOverride: CeremonyDepth | null | undefined;
     let ceremonyEnabled: boolean | undefined;
     for (let i = 1; i < argv.length; i += 1) {
@@ -317,9 +326,26 @@ export function parseArgs(argv: string[]): SetArgs {
           return makeSetError("argument --enabled: expected true|false");
         }
         ceremonyEnabled = v === "true";
+      } else if (cmd === "disable-host-hooks" && arg === "--host") {
+        const v = argv[i + 1];
+        const parsedHost = parseHookHost(v);
+        if (parsedHost === null) {
+          return makeSetError("argument --host: expected claude|cursor|grok|codex");
+        }
+        host = parsedHost;
+        i += 1;
+      } else if (cmd === "disable-host-hooks" && arg?.startsWith("--host=")) {
+        const parsedHost = parseHookHost(arg.slice("--host=".length));
+        if (parsedHost === null) {
+          return makeSetError("argument --host: expected claude|cursor|grok|codex");
+        }
+        host = parsedHost;
       } else {
         return makeSetError(`unrecognized argument: ${arg}`);
       }
+    }
+    if (cmd === "disable-host-hooks" && host === undefined) {
+      return makeSetError("disable-host-hooks requires --host claude|cursor|grok|codex");
     }
     return {
       cmd,
@@ -330,6 +356,7 @@ export function parseArgs(argv: string[]): SetArgs {
       format: "text",
       changedOnly: false,
       field: null,
+      host,
       ceremonyOverride,
       ceremonyEnabled,
     };
@@ -420,6 +447,22 @@ function runResolve(projectRoot: string): number {
 
 function runEnableValueFeedback(args: SetArgs): number {
   const result = enableValueFeedback(pathResolve(args.projectRoot), {
+    confirm: args.confirm,
+    actor: args.actor,
+    note: args.note,
+  });
+  process.stdout.write(result.stdout);
+  return result.exitCode;
+}
+
+function runDisableHostHooks(args: SetArgs): number {
+  const host = args.host;
+  if (host === undefined) {
+    process.stderr.write("policy: disable-host-hooks requires --host claude|cursor|grok|codex\n");
+    return 2;
+  }
+  const result = disableHostHooks(pathResolve(args.projectRoot), {
+    host,
     confirm: args.confirm,
     actor: args.actor,
     note: args.note,
@@ -591,6 +634,9 @@ export function run(argv: string[]): number {
   }
   if (args.cmd === "enable-value-feedback") {
     return runEnableValueFeedback(args);
+  }
+  if (args.cmd === "disable-host-hooks") {
+    return runDisableHostHooks(args);
   }
   if (args.cmd === "clear-value-feedback") {
     return runClearValueFeedback(args);

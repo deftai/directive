@@ -36,13 +36,13 @@ The live probe verifies the first two dimensions. It does not simulate a host to
 
 ## Per-host opt-out
 
-`plan.policy.hostHooks.<host> = false` is the only opt-out surface. Inspect it with:
+The typed opt-out is `deft policy:disable-host-hooks -- --host <host> --confirm`. It prints a capability-cost disclosure: opted-out hosts lose `deft-hook` pre-execution guardrails, and the result is tracked. Inspect current state with:
 
 ```bash
 deft policy:show --field=hostHooks
 ```
 
-Only enabled hosts can fail readiness. An opted-out host reports `registration=disabled`, `functionality=disabled`, `trust=disabled`, and `interception=disabled`; it is not probed and repair output must not tell the operator to reinstall that host. When a failed enabled host is unused, recovery copy points to the existing `hostHooks` policy as well as `deft update`.
+Only enabled hosts can fail readiness. An opted-out host reports `registration=disabled`, `functionality=disabled`, `trust=disabled`, and `interception=disabled`; it is not probed and repair output must not tell the operator to reinstall that host. When a failed enabled host is unused, recovery copy names the confirm-gated disable verb and the guardrail cost — not ungated hand-edit. Hand-edit of `plan.policy.hostHooks` plus `deft update` still strips (human high-trust bypass). Timeout is not unused-host opt-out.
 
 This policy is independent of `.githooks/` and `hostSlashCommands`.
 
@@ -55,7 +55,7 @@ This policy is independent of `.githooks/` and `hostSlashCommands`.
 
 ## Probe budget
 
-Each host fixture has a hard timeout of **1.5 seconds** and each host stops after its first failed fixture. With four enabled hosts and two fixtures each, the absolute timeout ceiling is **12 seconds**; healthy local shims are expected to finish well below that ceiling. The gate does not inherit doctor's 4-hour or 24-hour throttle.
+Each host fixture has a hard timeout of **1.5 seconds**, **one retry** after a timeout, and each host stops after its first failed fixture. With four enabled hosts, two fixtures, and one retry, the absolute timeout ceiling is **24 seconds** (still under Cursor `tool.before` 30 seconds). A `timed-out` case is not mapped as non-functional and must not recommend reinstall or hostHooks disable. Healthy local shims are expected to finish well below that ceiling. The gate does not inherit doctor's 4-hour or 24-hour throttle.
 
 ## Implementation anchors
 

@@ -286,6 +286,41 @@ describe("run show + set integration", () => {
     expect(out).toContain("value-feedback ON");
   });
 
+  it("disable-host-hooks refuses without --confirm", () => {
+    const r = project();
+    const { code, out } = captureRun([
+      "disable-host-hooks",
+      "--host",
+      "cursor",
+      "--project-root",
+      r,
+    ]);
+    expect(code).toBe(1);
+    expect(out).toContain("Capability-cost disclosure");
+    expect(out).toContain("--confirm");
+    expect(out).toContain("deft-hook pre-execution guardrails");
+  });
+
+  it("disable-host-hooks persists after --confirm", () => {
+    const r = project();
+    const { code, out } = captureRun([
+      "disable-host-hooks",
+      "--host",
+      "cursor",
+      "--confirm",
+      "--project-root",
+      r,
+      "--actor",
+      "test",
+    ]);
+    expect(code).toBe(0);
+    expect(out).toContain("guardrails removed");
+  });
+
+  it("disable-host-hooks requires --host", () => {
+    expect(parseArgs(["disable-host-hooks", "--confirm"]).error).toContain("--host");
+  });
+
   it("returns config error when setting on missing project def", () => {
     const r = mkdtempSync(join(tmpdir(), "deft-policy-missing-"));
     roots.push(r);

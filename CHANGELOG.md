@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Confirm-gated `policy:disable-host-hooks` verb (#3571).** `deft policy:disable-host-hooks -- --host <host> --confirm` prints a capability-cost disclosure: opted-out hosts lose deft-hook guardrails and the result is tracked. Readiness, structural agent-hooks recovery, and the Per-host opt-out contract name that verb instead of ungated hand-edit. Hand-edit plus `deft update` still strips. Leftover-free opted-out deposits write `{}`. Closes #3571. Refs #3570, #2752.
 - **Land leftover completed-tracked artifact for #3572 (#3264 / #1358).** The #3572 xBRIEF stayed untracked after squash of PR 3577. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #3558 (#3264 / #1358).** The #3558 xBRIEF stayed untracked after squash of PR 3565. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #3556 (#3264 / #1358).** The #3556 xBRIEF stayed untracked after squash of PR 3563. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
@@ -48,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Agent-hook live probe timeout is not a broken hook (#3570).** One retry at 1.5s keeps the four-host ceiling at 24s under Cursor `tool.before` 30s. `timed-out` is not mapped as non-functional and does not recommend reinstall or hostHooks opt-out. Closes #3570. Refs #3571, #3246, #3100.
 - **Literal-AC prompt capture is dollar-sign only (#3572 leftover).** Markdown blockquote `>` is not a shell prompt, so ingested reviewer findings no longer land on the rejected ledger as `prompt@`. `$` prompts, labeled `verify:`/`command:`/`run:` lines, fences, and inline backticks stay. Narratives are still scanned. Closes #3572.
 - **AC-pass bank writes on verified-pass again; serve path hashes when git status fails (#3558).** A verified-pass walk banks even with zero shell runs. Failed `git status` falls back to the product-file walk instead of miss-forever. Repo-root `.deft-run-summary.json` is excluded from the product hash so emit-after-bank does not miss; nested files with that basename stay in the default walk. Explicit `productPaths` or non-empty `plan.metadata.swarm.file_scope` still hash the root file. Executed serves record `miss_reason`. A product edit after the bank still fail-closes to executed. Closes #3558. Refs #3549, #3387, #3285.
 - **Shipped strategies MUST-write and register `xbrief/`, not legacy `vbrief/` (#3557).** Interview no longer `!`-writes `./vbrief/plan.vbrief.json`. Pack source is SoT; `task packs:render` regenerates markdown. Content-contract tests assert the live layout. Closes #3557. Refs #3547.

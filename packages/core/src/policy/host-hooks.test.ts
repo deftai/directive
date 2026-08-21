@@ -4,11 +4,15 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   DEFAULT_HOST_HOOKS_POLICY,
+  disableHostHooks,
   FIELD_HOST_HOOKS_CLI_ALIAS,
+  HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE,
   inspectHostHooks,
   isHostHookDepositEnabled,
   loadHostHooksPolicyFromProject,
+  parseHookHost,
   resolveHostHooksPolicy,
+  UNUSED_HOST_HOOKS_RECOVERY,
   validateHostHooks,
 } from "./host-hooks.js";
 import { inspectOnePolicy } from "./index.js";
@@ -74,5 +78,82 @@ describe("hostHooks policy (#2752)", () => {
 
   it("inspectHostHooks returns default when key is absent", () => {
     expect(inspectHostHooks({ plan: { policy: {} } }).source).toBe("default");
+  });
+
+  it("parses deposited hosts and rejects unknown names", () => {
+    expect(parseHookHost("cursor")).toBe("cursor");
+    expect(parseHookHost("opencode")).toBeNull();
+    expect(parseHookHost(undefined)).toBeNull();
+  });
+
+  it("refuses disableHostHooks without --confirm and prints capability-cost disclosure", () => {
+    const root = project();
+    writeProjectDefinition(root, {});
+    const result = disableHostHooks(root, { host: "cursor", confirm: false });
+    expect(result.exitCode).toBe(1);
+    expect(result.changed).toBe(false);
+    expect(result.stdout).toContain(HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE);
+    expect(result.stdout).toContain("--confirm");
+    expect(result.stdout).toContain("deft-hook pre-execution guardrails");
+    expect(result.stdout).toContain("tracked");
+    expect(loadHostHooksPolicyFromProject(root).cursor).toBe(true);
+  });
+
+  it("persists hostHooks.host=false after --confirm", () => {
+    const root = project();
+    writeProjectDefinition(root, {});
+    const result = disableHostHooks(root, { host: "cursor", confirm: true, actor: "test" });
+    expect(result.exitCode).toBe(0);
+    expect(result.changed).toBe(true);
+    expect(result.stdout).toContain("guardrails removed");
+    expect(loadHostHooksPolicyFromProject(root)).toMatchObject({
+      cursor: false,
+      claude: true,
+    });
+  });
+
+  it("is a no-op when the host is already disabled", () => {
+    const root = project();
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief/PROJECT-DEFINITION.xbrief.json"),
+      `${JSON.stringify(
+        { plan: { "x-directive/policy": { hostHooks: { cursor: false } } } },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    const result = disableHostHooks(root, { host: "cursor", confirm: true, actor: "test" });
+    expect(result.exitCode).toBe(0);
+    expect(result.changed).toBe(false);
+    expect(result.stdout).toContain("ledger unchanged");
+  });
+
+  it("returns config error when PROJECT-DEFINITION is missing", () => {
+    const root = project();
+    const result = disableHostHooks(root, { host: "cursor", confirm: true });
+    expect(result.exitCode).toBe(2);
+    expect(result.stdout).toContain("not found");
+  });
+
+  it("returns config error when plan is not an object", () => {
+    const root = project();
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief/PROJECT-DEFINITION.xbrief.json"),
+      `${JSON.stringify({ plan: [] })}\n`,
+      "utf8",
+    );
+    const result = disableHostHooks(root, { host: "cursor", confirm: true });
+    expect(result.exitCode).toBe(2);
+    expect(result.stdout).toContain("Config error");
+  });
+
+  it("unused-host recovery names the confirm verb and guardrail cost", () => {
+    expect(UNUSED_HOST_HOOKS_RECOVERY).toContain("deft policy:disable-host-hooks");
+    expect(UNUSED_HOST_HOOKS_RECOVERY).toContain("--confirm");
+    expect(UNUSED_HOST_HOOKS_RECOVERY).toContain("deft-hook pre-execution guardrails");
+    expect(UNUSED_HOST_HOOKS_RECOVERY).not.toContain("hostHooks.<host> = false");
   });
 });

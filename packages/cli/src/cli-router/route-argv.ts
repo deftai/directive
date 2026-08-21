@@ -91,6 +91,7 @@ export const SUBCOMMAND_ROUTES: Readonly<Record<string, readonly [string, string
   "policy:allow-direct-commits": ["policy", "allow-direct-commits"],
   "policy:allow-bot-merge": ["policy", "allow-bot-merge"],
   "policy:enable-value-feedback": ["policy", "enable-value-feedback"],
+  "policy:disable-host-hooks": ["policy", "disable-host-hooks"],
   "policy:set-ceremony-dial": ["policy", "set-ceremony-dial"],
   "policy:clear-value-feedback": ["policy", "clear-value-feedback"],
   "authz:show": ["authz", "show"],

@@ -109,6 +109,9 @@ describe("evaluateAgentHooks", () => {
 
     expect(result.code).toBe(1);
     expect(result.message).toContain("deft policy:show --field=hostHooks");
-    expect(result.message).toContain("hostHooks.<host> = false");
+    expect(result.message).toContain("deft policy:disable-host-hooks");
+    expect(result.message).toContain("--confirm");
+    expect(result.message).toContain("deft-hook pre-execution guardrails");
+    expect(result.message).not.toContain("hostHooks.<host> = false");
   });
 });

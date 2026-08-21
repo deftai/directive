@@ -20,7 +20,9 @@ describe("agent-hook functional readiness docs (#3100)", () => {
       "not-directly-verified",
       "maintainer source checkout",
       "1.5 seconds",
-      "12 seconds",
+      "24 seconds",
+      "one retry",
+      "disable-host-hooks",
     ]) {
       expect(text, `readiness contract missing ${token}`).toContain(token);
     }
