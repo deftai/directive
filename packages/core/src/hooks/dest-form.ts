@@ -77,23 +77,30 @@ export function classifyProductDestForms(command: string): ProductDestForm[] {
   // reconstructed path is not trustworthy — fail closed on the whole command.
   const groupingUnsafe = hasSubshellGrouping(cmd);
   let cwd: string | null = null;
-  for (const seg of splitDestFormSegments(cmd)) {
-    const cd = parseCdDir(seg.text);
-    if (cd !== null) {
-      if (seg.exportsCd) cwd = joinDestPrefix(cwd, cd);
-      continue;
+  for (const list of splitDestFormLists(cmd)) {
+    // Inherit-in is unconditional: a subshell starts in the parent's cwd.
+    let listCwd: string | null = cwd;
+    for (const seg of list.segments) {
+      const cd = parseCdDir(seg.text);
+      if (cd !== null) {
+        // A `cd` inside a pipeline member is confined to that member's subshell.
+        if (!seg.pipelineMember) listCwd = joinDestPrefix(listCwd, cd);
+        continue;
+      }
+      for (const dest of classifyDestFormSegment(seg.text)) {
+        const path = joinDestPrefix(listCwd, dest.path);
+        const expansion = groupingUnsafe || destFormHasExpansion(path);
+        const key = `${dest.kind}\0${path}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        found.push(
+          expansion ? { kind: dest.kind, path, expansion: true } : { kind: dest.kind, path },
+        );
+      }
     }
-    for (const dest of classifyDestFormSegment(seg.text)) {
-      // Inherit-in is unconditional: a subshell starts in the parent's cwd.
-      const path = joinDestPrefix(cwd, dest.path);
-      const expansion = groupingUnsafe || destFormHasExpansion(path);
-      const key = `${dest.kind}\0${path}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      found.push(
-        expansion ? { kind: dest.kind, path, expansion: true } : { kind: dest.kind, path },
-      );
-    }
+    // `&` runs the whole and-or list in a subshell, so nothing it did to cwd
+    // reaches the lists after it.
+    if (!list.backgrounded) cwd = listCwd;
   }
   return found;
 }
@@ -101,16 +108,30 @@ export function classifyProductDestForms(command: string): ProductDestForm[] {
 interface DestFormSegment {
   readonly text: string;
   /**
-   * True when a `cd` in this segment runs in the parent shell and so retargets
-   * later segments. False for pipeline members and backgrounded segments: those
-   * run in a subshell whose `cd` dies with it.
-   *
-   * ! Do not fold this back into a single `inheritCwd` flag. Inheritance is the
-   * opposite direction and unconditional — a subshell starts in the parent's
-   * cwd — so gating inheritance on the separator drops the parent prefix and
-   * the fence then inspects a shallower path than the shell mutates (#3438).
+   * True when this segment is a member of a `|` pipeline (on either side). A
+   * pipeline member runs in a subshell, so a `cd` in it retargets nothing —
+   * but it still *reads* the enclosing cwd, which is why inheritance is not
+   * gated on this flag.
    */
-  readonly exportsCd: boolean;
+  readonly pipelineMember: boolean;
+}
+
+/**
+ * One `&`- / `;`-delimited and-or list.
+ *
+ * ! Three separate facts, do not collapse them into one per-segment boolean
+ * (#3438). Inheritance into a segment is unconditional — a subshell starts in
+ * the parent's cwd — so gating it drops the parent prefix and the fence
+ * inspects a shallower path than the shell mutates. Confinement is per
+ * construct and follows shell precedence: `|` binds tighter than `&&`/`||`,
+ * which bind tighter than `&`. So `cd sub && rm a | rm b` runs BOTH removals
+ * in `sub`, while `cd sub && rm a & rm b` backgrounds the whole `cd sub &&
+ * rm a` list and leaves `rm b` in the parent at the original cwd.
+ */
+interface DestFormList {
+  readonly segments: readonly DestFormSegment[];
+  /** True when terminated by `&`: the entire list ran in a subshell. */
+  readonly backgrounded: boolean;
 }
 
 /** Unquoted `(` / `)`: subshell grouping this splitter does not model. */
@@ -136,19 +157,22 @@ function hasSubshellGrouping(command: string): boolean {
   return false;
 }
 
-function splitDestFormSegments(command: string): DestFormSegment[] {
-  const segments: DestFormSegment[] = [];
+function splitDestFormLists(command: string): DestFormList[] {
+  const lists: DestFormList[] = [];
+  let segments: DestFormSegment[] = [];
   let cur = "";
-  let openedBy: "|" | "&" | null = null;
+  let openedByPipe = false;
   let quote: "'" | '"' | null = null;
-  const flush = (closedBy: "|" | "&" | null): void => {
-    // Confined to a subshell when a pipeline member on either side, or backgrounded.
-    segments.push({
-      text: cur,
-      exportsCd: openedBy !== "|" && closedBy !== "|" && closedBy !== "&",
-    });
+  const endSegment = (closedByPipe: boolean): void => {
+    segments.push({ text: cur, pipelineMember: openedByPipe || closedByPipe });
     cur = "";
-    openedBy = closedBy;
+    openedByPipe = closedByPipe;
+  };
+  const endList = (backgrounded: boolean): void => {
+    endSegment(false);
+    lists.push({ segments, backgrounded });
+    segments = [];
+    openedByPipe = false;
   };
   for (let i = 0; i < command.length; i++) {
     const c = command[i];
@@ -170,31 +194,32 @@ function splitDestFormSegments(command: string): DestFormSegment[] {
       continue;
     }
     if (c === "&" && command[i + 1] === "&") {
-      flush(null);
+      endSegment(false);
       i++;
       continue;
     }
     if (c === "|" && command[i + 1] === "|") {
-      flush(null);
+      endSegment(false);
       i++;
       continue;
     }
-    if (c === ";" || c === "\n" || c === "\r") {
-      flush(null);
-      continue;
-    }
     if (c === "|") {
-      flush("|");
+      endSegment(true);
       continue;
     }
+    // `&` and `;` close the whole and-or list; `&` backgrounds it.
     if (c === "&") {
-      flush("&");
+      endList(true);
+      continue;
+    }
+    if (c === ";" || c === "\n" || c === "\r") {
+      endList(false);
       continue;
     }
     cur += c;
   }
-  flush(null);
-  return segments;
+  endList(false);
+  return lists;
 }
 
 function tokenizeSegment(segment: string): string[] {

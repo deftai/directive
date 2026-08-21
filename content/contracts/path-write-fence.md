@@ -55,14 +55,20 @@ Shell/MCP push/merge scopes remain project-only (`runtimeAuthority.scopes`); the
 re-scoped by `file_scope`. Recognized Shell dest-forms (`git checkout --`, `git restore`,
 `rm`/`rmdir`) use the same write fence as Edit/Write, including story `file_scope` (#3438).
 
-Dest-form target reconstruction (#3438): a compound `cd` retargets every later segment,
-including pipeline members and backgrounded segments — a subshell inherits the parent's
-cwd — while a `cd` *inside* a pipeline member or backgrounded segment is confined and
-retargets nothing. `git -C` composes (`git -C a -C b` → `a/b`; an absolute `-C` resets),
-and `--work-tree` resolves against the `-C` chain preceding it. Targets the classifier
-cannot reconstruct stay fail-closed: glob/variable dests and any command using subshell
-grouping (`(`/`)`). Known-open, denied not reconstructed: quoted literal metacharacters
-over-deny.
+Dest-form target reconstruction (#3438) follows shell **precedence**, not separator order.
+`|` binds tighter than `&&` / `||`, which bind tighter than `&`:
+
+- Inheritance into a segment is unconditional — a subshell starts in the parent's cwd — so
+  `cd sub && rm a | rm b` removes `sub/a` **and** `sub/b`
+- A `cd` inside a pipeline member is confined to that member
+- `&` closes the whole and-or list and backgrounds it, so `cd sub && rm a & rm b` removes
+  `sub/a` but leaves `rm b` in the parent shell targeting root `b` — the `cd` never escapes
+- `;` closes the list without backgrounding it, so its `cd` does carry forward
+
+`git -C` composes (`git -C a -C b` → `a/b`; an absolute `-C` resets), and `--work-tree`
+resolves against the `-C` chain preceding it. Targets the classifier cannot reconstruct stay
+fail-closed: glob/variable dests and any command using subshell grouping (`(`/`)`).
+Known-open, denied not reconstructed: quoted literal metacharacters over-deny.
 
 ## Skill behavior (build / swarm)
 

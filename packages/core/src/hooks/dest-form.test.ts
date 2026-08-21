@@ -146,16 +146,44 @@ describe("classifyProductDestForms (#3438)", () => {
       { kind: "rm", path: "sub/allowed" },
       { kind: "rm", path: "sub/secret" },
     ]);
-    expect(classifyProductDestForms("cd sub && rm a & rm b")).toEqual([
-      { kind: "rm", path: "sub/a" },
-      { kind: "rm", path: "sub/b" },
-    ]);
     expect(classifyProductDestForms("cd apps/web && rm a; rm b")).toEqual([
       { kind: "rm", path: "apps/web/a" },
       { kind: "rm", path: "apps/web/b" },
     ]);
     expect(classifyProductDestForms("cd a && cd b && rm c.ts")).toEqual([
       { kind: "rm", path: "a/b/c.ts" },
+    ]);
+  });
+
+  it("applies shell precedence: & binds looser than && / ||, which bind looser than |", () => {
+    // `cd sub && rm a & rm b` parses as `{ cd sub && rm a } &` plus `rm b`.
+    // The trailing removal runs in the parent shell at the ORIGINAL cwd, so it
+    // targets root `b`. Reconstructing `sub/b` would fence an in-scope path
+    // while the shell deletes an out-of-scope one (#3438).
+    expect(classifyProductDestForms("cd sub && rm a & rm b")).toEqual([
+      { kind: "rm", path: "sub/a" },
+      { kind: "rm", path: "b" },
+    ]);
+    expect(classifyProductDestForms("cd sub && rm a && rm b & rm c")).toEqual([
+      { kind: "rm", path: "sub/a" },
+      { kind: "rm", path: "sub/b" },
+      { kind: "rm", path: "c" },
+    ]);
+    // `|` binds tighter, so the whole pipeline stays inside the cd.
+    expect(classifyProductDestForms("cd sub && rm a | rm b")).toEqual([
+      { kind: "rm", path: "sub/a" },
+      { kind: "rm", path: "sub/b" },
+    ]);
+    // A backgrounded list still reads the cwd exported before it.
+    expect(classifyProductDestForms("cd sub; cd deep && rm a & rm b")).toEqual([
+      { kind: "rm", path: "sub/deep/a" },
+      { kind: "rm", path: "sub/b" },
+    ]);
+    // Pipeline inside a backgrounded list: confined, but inherits.
+    expect(classifyProductDestForms("cd sub && rm a | rm b & rm c")).toEqual([
+      { kind: "rm", path: "sub/a" },
+      { kind: "rm", path: "sub/b" },
+      { kind: "rm", path: "c" },
     ]);
   });
 
