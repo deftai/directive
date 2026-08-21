@@ -71,14 +71,15 @@ export function classifyProductDestForms(command: string): ProductDestForm[] {
   const found: ProductDestForm[] = [];
   const seen = new Set<string>();
   let cwd: string | null = null;
-  for (const raw of splitDestFormSegments(cmd)) {
-    const cd = parseCdDir(raw);
+  for (const seg of splitDestFormSegments(cmd)) {
+    const cd = parseCdDir(seg.text);
     if (cd !== null) {
-      cwd = joinDestPrefix(cwd, cd);
+      if (seg.inheritCwd) cwd = joinDestPrefix(cwd, cd);
       continue;
     }
-    for (const dest of classifyDestFormSegment(raw)) {
-      const path = joinDestPrefix(cwd, dest.path);
+    const prefix = seg.inheritCwd ? cwd : null;
+    for (const dest of classifyDestFormSegment(seg.text)) {
+      const path = joinDestPrefix(prefix, dest.path);
       const expansion = destFormHasExpansion(path);
       const key = `${dest.kind}\0${path}`;
       if (seen.has(key)) continue;
@@ -91,10 +92,22 @@ export function classifyProductDestForms(command: string): ProductDestForm[] {
   return found;
 }
 
-function splitDestFormSegments(command: string): string[] {
-  const segments: string[] = [];
+interface DestFormSegment {
+  readonly text: string;
+  /** False after `|` / `&` so pipeline/background `cd` does not retarget later dests. */
+  readonly inheritCwd: boolean;
+}
+
+function splitDestFormSegments(command: string): DestFormSegment[] {
+  const segments: DestFormSegment[] = [];
   let cur = "";
+  let inheritCwd = true;
   let quote: "'" | '"' | null = null;
+  const flush = (nextInherit: boolean): void => {
+    segments.push({ text: cur, inheritCwd });
+    cur = "";
+    inheritCwd = nextInherit;
+  };
   for (let i = 0; i < command.length; i++) {
     const c = command[i];
     if (c === undefined) break;
@@ -115,25 +128,26 @@ function splitDestFormSegments(command: string): string[] {
       continue;
     }
     if (c === "&" && command[i + 1] === "&") {
-      segments.push(cur);
-      cur = "";
+      flush(true);
       i++;
       continue;
     }
     if (c === "|" && command[i + 1] === "|") {
-      segments.push(cur);
-      cur = "";
+      flush(true);
       i++;
       continue;
     }
-    if (c === ";" || c === "|" || c === "&" || c === "\n" || c === "\r") {
-      segments.push(cur);
-      cur = "";
+    if (c === ";" || c === "\n" || c === "\r") {
+      flush(true);
+      continue;
+    }
+    if (c === "|" || c === "&") {
+      flush(false);
       continue;
     }
     cur += c;
   }
-  segments.push(cur);
+  segments.push({ text: cur, inheritCwd });
   return segments;
 }
 

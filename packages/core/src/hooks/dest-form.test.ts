@@ -100,6 +100,12 @@ describe("classifyProductDestForms (#3438)", () => {
     expect(classifyProductDestForms("cd apps/web && rm AGENTS.md")).toEqual([
       { kind: "rm", path: "apps/web/AGENTS.md" },
     ]);
+    expect(classifyProductDestForms("cd /tmp | rm secret.ts")).toEqual([
+      { kind: "rm", path: "secret.ts" },
+    ]);
+    expect(classifyProductDestForms("cd /tmp & rm secret.ts")).toEqual([
+      { kind: "rm", path: "secret.ts" },
+    ]);
     expect(classifyProductDestForms("rm src/*.ts")).toEqual([
       { kind: "rm", path: "src/*.ts", expansion: true },
     ]);

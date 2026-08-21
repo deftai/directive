@@ -2561,6 +2561,20 @@ describe("runtimeAuthority shell/MCP push/merge in decideHook (#2711)", () => {
     expect(outside.verdict).toBe("allow");
     expect(outside.code).not.toBe("scope-not-ready");
 
+    const pipeline = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "cd /tmp | rm secret.ts" },
+        },
+      },
+      emptyScope,
+    );
+    expect(pipeline).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+
     const inside = decideHook(
       {
         host: "claude",
