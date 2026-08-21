@@ -387,7 +387,7 @@ export function promoteFromIssue(options: PromoteFromIssueOptions): PromoteFromI
       message:
         `No proposed/ scope artifact found for issue #${n} (${repoSafe}). ` +
         `Ingest first (deft triage:accept --issue ${n} --repo ${repoSafe}) ` +
-        `or pass an explicit path: task scope:promote -- <path>.`,
+        `or pass an explicit path: deft scope:promote <path>.`,
       exitCode: 1,
       warnings,
       repo,
@@ -403,7 +403,7 @@ export function promoteFromIssue(options: PromoteFromIssueOptions): PromoteFromI
       ok: false,
       message:
         `Multiple proposed/ artifacts match issue #${n}; refuse to guess.\n${list}\n` +
-        `Promote one path explicitly: task scope:promote -- <path> ` +
+        `Promote one path explicitly: deft scope:promote <path> ` +
         `or re-run with --path <one-of-the-above>.`,
       exitCode: 1,
       warnings,

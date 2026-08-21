@@ -231,6 +231,8 @@ describe("promoteFromIssue decision matrix (#1136)", () => {
 
     expect(result.ok).toBe(false);
     expect(result.message).toMatch(/No proposed\/ scope artifact/);
+    expect(result.message).toContain("deft scope:promote <path>");
+    expect(result.message).not.toMatch(/task scope:promote/);
   });
 
   it("refuses when multiple proposed artifacts match", () => {
@@ -247,6 +249,8 @@ describe("promoteFromIssue decision matrix (#1136)", () => {
 
     expect(result.ok).toBe(false);
     expect(result.message).toMatch(/Multiple proposed/);
+    expect(result.message).toContain("deft scope:promote <path>");
+    expect(result.message).not.toMatch(/task scope:promote/);
     expect(result.matchedPaths).toHaveLength(2);
   });
 
