@@ -14,7 +14,10 @@ export type ProductDestFormKind = "git-checkout" | "git-restore" | "rm" | "rmdir
 export interface ProductDestForm {
   readonly kind: ProductDestFormKind;
   readonly path: string;
-  /** True when the dest token is a glob/variable, not a concrete path. */
+  /**
+   * True when the dest token is a glob/variable, or when the command's cwd
+   * cannot be reconstructed (subshell grouping). Both stay fail-closed.
+   */
   readonly expansion?: boolean;
 }
 
@@ -70,17 +73,20 @@ export function classifyProductDestForms(command: string): ProductDestForm[] {
   if (cmd.length === 0) return [];
   const found: ProductDestForm[] = [];
   const seen = new Set<string>();
+  // Subshell grouping moves cwd in ways this splitter does not model, so a
+  // reconstructed path is not trustworthy — fail closed on the whole command.
+  const groupingUnsafe = hasSubshellGrouping(cmd);
   let cwd: string | null = null;
   for (const seg of splitDestFormSegments(cmd)) {
     const cd = parseCdDir(seg.text);
     if (cd !== null) {
-      if (seg.inheritCwd) cwd = joinDestPrefix(cwd, cd);
+      if (seg.exportsCd) cwd = joinDestPrefix(cwd, cd);
       continue;
     }
-    const prefix = seg.inheritCwd ? cwd : null;
     for (const dest of classifyDestFormSegment(seg.text)) {
-      const path = joinDestPrefix(prefix, dest.path);
-      const expansion = destFormHasExpansion(path);
+      // Inherit-in is unconditional: a subshell starts in the parent's cwd.
+      const path = joinDestPrefix(cwd, dest.path);
+      const expansion = groupingUnsafe || destFormHasExpansion(path);
       const key = `${dest.kind}\0${path}`;
       if (seen.has(key)) continue;
       seen.add(key);
@@ -94,19 +100,55 @@ export function classifyProductDestForms(command: string): ProductDestForm[] {
 
 interface DestFormSegment {
   readonly text: string;
-  /** False after `|` / `&` so pipeline/background `cd` does not retarget later dests. */
-  readonly inheritCwd: boolean;
+  /**
+   * True when a `cd` in this segment runs in the parent shell and so retargets
+   * later segments. False for pipeline members and backgrounded segments: those
+   * run in a subshell whose `cd` dies with it.
+   *
+   * ! Do not fold this back into a single `inheritCwd` flag. Inheritance is the
+   * opposite direction and unconditional — a subshell starts in the parent's
+   * cwd — so gating inheritance on the separator drops the parent prefix and
+   * the fence then inspects a shallower path than the shell mutates (#3438).
+   */
+  readonly exportsCd: boolean;
+}
+
+/** Unquoted `(` / `)`: subshell grouping this splitter does not model. */
+function hasSubshellGrouping(command: string): boolean {
+  let quote: "'" | '"' | null = null;
+  for (let i = 0; i < command.length; i++) {
+    const c = command[i];
+    if (c === undefined) break;
+    if (quote !== null) {
+      if (c === quote) quote = null;
+      continue;
+    }
+    if (c === "\\" && i + 1 < command.length) {
+      i++;
+      continue;
+    }
+    if (c === "'" || c === '"') {
+      quote = c;
+      continue;
+    }
+    if (c === "(" || c === ")") return true;
+  }
+  return false;
 }
 
 function splitDestFormSegments(command: string): DestFormSegment[] {
   const segments: DestFormSegment[] = [];
   let cur = "";
-  let inheritCwd = true;
+  let openedBy: "|" | "&" | null = null;
   let quote: "'" | '"' | null = null;
-  const flush = (nextInherit: boolean): void => {
-    segments.push({ text: cur, inheritCwd });
+  const flush = (closedBy: "|" | "&" | null): void => {
+    // Confined to a subshell when a pipeline member on either side, or backgrounded.
+    segments.push({
+      text: cur,
+      exportsCd: openedBy !== "|" && closedBy !== "|" && closedBy !== "&",
+    });
     cur = "";
-    inheritCwd = nextInherit;
+    openedBy = closedBy;
   };
   for (let i = 0; i < command.length; i++) {
     const c = command[i];
@@ -128,26 +170,30 @@ function splitDestFormSegments(command: string): DestFormSegment[] {
       continue;
     }
     if (c === "&" && command[i + 1] === "&") {
-      flush(true);
+      flush(null);
       i++;
       continue;
     }
     if (c === "|" && command[i + 1] === "|") {
-      flush(true);
+      flush(null);
       i++;
       continue;
     }
     if (c === ";" || c === "\n" || c === "\r") {
-      flush(true);
+      flush(null);
       continue;
     }
-    if (c === "|" || c === "&") {
-      flush(false);
+    if (c === "|") {
+      flush("|");
+      continue;
+    }
+    if (c === "&") {
+      flush("&");
       continue;
     }
     cur += c;
   }
-  segments.push({ text: cur, inheritCwd });
+  flush(null);
   return segments;
 }
 
@@ -264,17 +310,30 @@ function parseCdDir(segment: string): string | null {
 
 function skipGitGlobals(tokens: string[], start: number): { i: number; workTree: string | null } {
   let i = start;
+  // `-C` composes rather than overwrites: `git -C a -C b` runs in `a/b`, and an
+  // absolute `-C` resets the chain. `--work-tree` resolves against the `-C`
+  // chain seen before it, so absorb the base at the point it appears (#3438).
+  let base: string | null = null;
   let workTree: string | null = null;
+  const effective = (): string | null => (workTree === null ? base : workTree);
   while (i < tokens.length) {
     const t = tokens[i];
-    if (t === undefined || !t.startsWith("-")) return { i, workTree };
+    if (t === undefined || !t.startsWith("-")) return { i, workTree: effective() };
     if (t.startsWith("--work-tree=")) {
-      workTree = t.slice("--work-tree=".length) || workTree;
+      const val = t.slice("--work-tree=".length);
+      if (val.length > 0) workTree = joinDestPrefix(base, val);
       i++;
       continue;
     }
-    if (t === "--work-tree" || t === "-C") {
-      workTree = tokens[i + 1] ?? workTree;
+    if (t === "--work-tree") {
+      const val = tokens[i + 1];
+      if (val !== undefined && val.length > 0) workTree = joinDestPrefix(base, val);
+      i += 2;
+      continue;
+    }
+    if (t === "-C") {
+      const val = tokens[i + 1];
+      if (val !== undefined && val.length > 0) base = joinDestPrefix(base, val);
       i += 2;
       continue;
     }
@@ -287,7 +346,7 @@ function skipGitGlobals(tokens: string[], start: number): { i: number; workTree:
       continue;
     }
     if (t.startsWith("-C") && t.length > 2) {
-      workTree = t.slice(2);
+      base = joinDestPrefix(base, t.slice(2));
       i++;
       continue;
     }
@@ -297,7 +356,7 @@ function skipGitGlobals(tokens: string[], start: number): { i: number; workTree:
     }
     i++;
   }
-  return { i, workTree };
+  return { i, workTree: effective() };
 }
 
 function pathsAfterDashDash(tokens: string[], start: number): string[] {

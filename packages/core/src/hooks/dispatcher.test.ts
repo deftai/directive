@@ -2604,7 +2604,52 @@ describe("runtimeAuthority shell/MCP push/merge in decideHook (#2711)", () => {
       readySeams(),
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
-    expect(decision.message).toMatch(/expansion/);
+    expect(decision.message).toMatch(/not reconstructable/);
+  });
+
+  it("denies subshell-grouped dest-forms fail-closed even with ready scope", () => {
+    // Grouping moves cwd in ways the classifier does not model, so the fence
+    // cannot prove it would inspect the path the shell mutates (#3438).
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "(cd apps/web && rm AGENTS.md)" },
+        },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(decision.message).toMatch(/subshell grouping/);
+  });
+
+  it("carries the parent cwd onto a pipeline member so the fence cannot be bypassed", () => {
+    // The fence allows docs/a.md and AGENTS.md only. `cd docs && rm a.md | rm
+    // AGENTS.md` really removes docs/AGENTS.md, which is NOT in the fence.
+    // Dropping the parent prefix on the pipeline member reconstructs the
+    // in-fence AGENTS.md instead and lets the real target through (#3438).
+    const fenced = readySeams({
+      loadStoryWriteFence: () => ({
+        fileScope: ["docs/a.md", "AGENTS.md"],
+        denyPaths: [],
+      }),
+    });
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "cd docs && rm a.md | rm AGENTS.md" },
+        },
+      },
+      fenced,
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "runtime-policy-deny-path" });
   });
 
   it("allows Shell dest-form when active scope is ready", () => {

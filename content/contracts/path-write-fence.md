@@ -55,6 +55,15 @@ Shell/MCP push/merge scopes remain project-only (`runtimeAuthority.scopes`); the
 re-scoped by `file_scope`. Recognized Shell dest-forms (`git checkout --`, `git restore`,
 `rm`/`rmdir`) use the same write fence as Edit/Write, including story `file_scope` (#3438).
 
+Dest-form target reconstruction (#3438): a compound `cd` retargets every later segment,
+including pipeline members and backgrounded segments — a subshell inherits the parent's
+cwd — while a `cd` *inside* a pipeline member or backgrounded segment is confined and
+retargets nothing. `git -C` composes (`git -C a -C b` → `a/b`; an absolute `-C` resets),
+and `--work-tree` resolves against the `-C` chain preceding it. Targets the classifier
+cannot reconstruct stay fail-closed: glob/variable dests and any command using subshell
+grouping (`(`/`)`). Known-open, denied not reconstructed: quoted literal metacharacters
+over-deny.
+
 ## Skill behavior (build / swarm)
 
 When a project or active-story fence is set:

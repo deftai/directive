@@ -1080,8 +1080,9 @@ function decideShellDestFormsThenRuntimeAuthority(
           input,
           "scope-not-ready",
           toolName,
-          `Directive denied ${toolName}: Shell dest-form uses expansion (glob or variable). ` +
-            "Use a concrete path or Edit/Write. Expansion dests stay fail-closed (#3438).",
+          `Directive denied ${toolName}: Shell dest-form target is not reconstructable ` +
+            "(glob, variable, or subshell grouping). Use a concrete path in an unparenthesised " +
+            "command, or Edit/Write. Unreconstructable dests stay fail-closed (#3438).",
         );
         continue;
       }

@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Shell dest-form mutations hit the active-xBRIEF write gate (#3438).** `git checkout -- <paths>`, `git restore`, and `rm`/`rmdir` of in-repo paths go through `inspectMutationGates` with Edit/Write exemptions (assist/scratch, proposed lifecycle, story `file_scope`). Edit/Write `scope-not-ready` copy names direct-write and spawn. `git status` stays fail-open. `python -c`, `cmd /c copy`, and obfuscated bash stay known-open. Closes #3438. Refs #2711, #1802, #2625, #2885.
+- **Shell dest-form mutations hit the active-xBRIEF write gate (#3438).** `git checkout -- <paths>`, `git restore`, and `rm`/`rmdir` of in-repo paths go through `inspectMutationGates` with Edit/Write exemptions (assist/scratch, proposed lifecycle, story `file_scope`). Edit/Write `scope-not-ready` copy names direct-write and spawn. `git status` stays fail-open. Target reconstruction follows shell semantics: a compound `cd` retargets later pipeline and backgrounded segments (a subshell inherits the parent cwd) while a `cd` confined to a subshell retargets nothing, and `git -C` composes across repeats with `--work-tree` resolved against the preceding chain — so the fence cannot inspect a shallower path than the shell mutates. Subshell grouping (`(`/`)`) joins glob/variable dests as fail-closed. `python -c`, `cmd /c copy`, obfuscated bash, and over-denied quoted literal metacharacters stay known-open. Closes #3438. Refs #2711, #1802, #2625, #2885.
 
 ### Removed
 

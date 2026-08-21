@@ -137,4 +137,76 @@ describe("classifyProductDestForms (#3438)", () => {
     expect(classifyProductDestForms("rm -rf --")).toEqual([]);
     expect(classifyProductDestForms("git push origin HEAD")).toEqual([]);
   });
+
+  it("keeps the parent cwd for pipeline and backgrounded segments", () => {
+    // A pipeline member runs in a subshell, but a subshell inherits the parent
+    // cwd — dropping the prefix here would fence a shallower path than the
+    // shell mutates. `cd` in the parent, pipeline in the child.
+    expect(classifyProductDestForms("cd sub && rm allowed | rm secret")).toEqual([
+      { kind: "rm", path: "sub/allowed" },
+      { kind: "rm", path: "sub/secret" },
+    ]);
+    expect(classifyProductDestForms("cd sub && rm a & rm b")).toEqual([
+      { kind: "rm", path: "sub/a" },
+      { kind: "rm", path: "sub/b" },
+    ]);
+    expect(classifyProductDestForms("cd apps/web && rm a; rm b")).toEqual([
+      { kind: "rm", path: "apps/web/a" },
+      { kind: "rm", path: "apps/web/b" },
+    ]);
+    expect(classifyProductDestForms("cd a && cd b && rm c.ts")).toEqual([
+      { kind: "rm", path: "a/b/c.ts" },
+    ]);
+  });
+
+  it("confines a cd that runs inside a pipeline or background subshell", () => {
+    // Export-out is the conditional direction: the child's `cd` dies with it.
+    expect(classifyProductDestForms("rm a.ts | cd sub && rm b.ts")).toEqual([
+      { kind: "rm", path: "a.ts" },
+      { kind: "rm", path: "b.ts" },
+    ]);
+    expect(classifyProductDestForms("cd sub | rm a.ts; rm b.ts")).toEqual([
+      { kind: "rm", path: "a.ts" },
+      { kind: "rm", path: "b.ts" },
+    ]);
+    expect(classifyProductDestForms("cd sub & rm a.ts")).toEqual([{ kind: "rm", path: "a.ts" }]);
+  });
+
+  it("composes repeated git -C and --work-tree context options", () => {
+    expect(classifyProductDestForms("git -C a -C b checkout -- f.ts")).toEqual([
+      { kind: "git-checkout", path: "a/b/f.ts" },
+    ]);
+    expect(classifyProductDestForms("git -Ca -Cb checkout -- f.ts")).toEqual([
+      { kind: "git-checkout", path: "a/b/f.ts" },
+    ]);
+    expect(classifyProductDestForms("git -C a --work-tree=w checkout -- f.ts")).toEqual([
+      { kind: "git-checkout", path: "a/w/f.ts" },
+    ]);
+    expect(classifyProductDestForms("git -C a --work-tree w restore -- f.ts")).toEqual([
+      { kind: "git-restore", path: "a/w/f.ts" },
+    ]);
+    // An absolute -C resets the chain, matching git.
+    expect(classifyProductDestForms("git -C a -C /srv/repo checkout -- f.ts")).toEqual([
+      { kind: "git-checkout", path: "/srv/repo/f.ts" },
+    ]);
+    // The compound cwd still layers on top of the composed git context.
+    expect(classifyProductDestForms("cd sub && git -C a -C b checkout -- f.ts")).toEqual([
+      { kind: "git-checkout", path: "sub/a/b/f.ts" },
+    ]);
+  });
+
+  it("fails closed on subshell grouping it cannot reconstruct", () => {
+    // Grouping is detected, not parsed: the token keeps its trailing `)` and the
+    // reconstruction is best-effort. Only the fail-closed verdict is load-bearing.
+    expect(classifyProductDestForms("(cd sub && rm secret.ts)")).toEqual([
+      { kind: "rm", path: "secret.ts)", expansion: true },
+    ]);
+    expect(classifyProductDestForms("( cd sub ) && rm secret.ts")).toEqual([
+      { kind: "rm", path: "secret.ts", expansion: true },
+    ]);
+    // Quoted parens are literal, not grouping.
+    expect(classifyProductDestForms("rm 'weird(name).ts'")).toEqual([
+      { kind: "rm", path: "weird(name).ts" },
+    ]);
+  });
 });
