@@ -304,13 +304,24 @@ function isEnvAssign(token: string): boolean {
   return /^[A-Za-z_][A-Za-z0-9_]*$/.test(token.slice(0, eq));
 }
 
-/** `GIT_WORK_TREE=` / `GIT_DIR=` relocate the tree the same way `-C` does. */
+/**
+ * Environment assignments that can relocate git's work tree.
+ *
+ * `GIT_WORK_TREE=` / `GIT_DIR=` do it directly. `GIT_CONFIG_KEY_n=core.worktree`
+ * does it through the env-config protocol, and `GIT_CONFIG*` file overrides can
+ * carry `core.worktree` in a file this classifier never reads — all fail closed
+ * rather than resolving a prefix (#3438).
+ */
 function isGitWorkTreeAssign(token: string): boolean {
   const eq = token.indexOf("=");
   if (eq <= 0) return false;
   const key = token.slice(0, eq);
-  if (key !== "GIT_WORK_TREE" && key !== "GIT_DIR") return false;
-  return token.length > eq + 1;
+  const value = token.slice(eq + 1);
+  if (key === "GIT_WORK_TREE" || key === "GIT_DIR") return value.length > 0;
+  // `GIT_CONFIG_KEY_0=core.worktree` with its paired VALUE relocates the tree.
+  if (/^GIT_CONFIG_KEY_\d+$/.test(key)) return value.toLowerCase() === "core.worktree";
+  // A config FILE override can set core.worktree out of sight.
+  return key === "GIT_CONFIG" || key === "GIT_CONFIG_GLOBAL" || key === "GIT_CONFIG_SYSTEM";
 }
 
 function skipPrefix(tokens: string[]): { i: number; gitContext: boolean } {
@@ -336,6 +347,19 @@ function skipPrefix(tokens: string[]): { i: number; gitContext: boolean } {
   const wrap = tokens[i]?.toLowerCase();
   if (wrap !== undefined && WRAP_BINS.has(wrap)) {
     i++;
+    // Skip the wrapper's own options so the wrapped verb is still recognized:
+    // `sudo -n rm x`, `env -i rm x`, `command -- rm x` previously left the flag
+    // in the binary position and fell through to the fail-OPEN path (#3438).
+    //
+    // ⊗ Residual: an option that takes a SEPARATE value (`sudo -u root rm x`,
+    // `env -u VAR rm x`) still hides the verb, because knowing which options
+    // consume a value means modelling each wrapper's own grammar. Tracked with
+    // the rest of the recognition surface in #3595.
+    while (i < tokens.length) {
+      const tok = tokens[i];
+      if (tok === undefined || !tok.startsWith("-")) break;
+      i++;
+    }
     consumeAssigns();
   }
   return { i, gitContext };

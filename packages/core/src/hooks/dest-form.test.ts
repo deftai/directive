@@ -177,6 +177,48 @@ describe("classifyProductDestForms (#3438)", () => {
     ]);
   });
 
+  it("recognizes a wrapped verb behind the wrapper's own options", () => {
+    // These previously left the flag in the binary position and fell through to
+    // the fail-OPEN path (#3438).
+    expect(classifyProductDestForms("sudo -n rm protected/file")).toEqual([
+      { kind: "rm", path: "protected/file" },
+    ]);
+    expect(classifyProductDestForms("env -i rm protected/file")).toEqual([
+      { kind: "rm", path: "protected/file" },
+    ]);
+    expect(classifyProductDestForms("command -- rm protected/file")).toEqual([
+      { kind: "rm", path: "protected/file" },
+    ]);
+    expect(classifyProductDestForms("sudo -n git checkout -- src/a.ts")).toEqual([
+      { kind: "git-checkout", path: "src/a.ts" },
+    ]);
+    // Non-mutating wrapped commands stay unclassifiable, not denied.
+    expect(classifyProductDestForms("sudo -n apt-get update")).toEqual([]);
+    // Residual, asserted so it is not mistaken for coverage: an option taking a
+    // SEPARATE value still hides the verb. Tracked in #3595.
+    expect(classifyProductDestForms("sudo -u root rm protected/file")).toEqual([]);
+  });
+
+  it("fails closed on env-provided git work-tree relocation", () => {
+    expect(classifyProductDestForms("GIT_CONFIG_KEY_0=core.worktree git checkout -- f.ts")).toEqual(
+      [{ kind: "git-checkout", path: "f.ts", expansion: true }],
+    );
+    expect(classifyProductDestForms("GIT_DIR=/tmp/g git checkout -- f.ts")).toEqual([
+      { kind: "git-checkout", path: "f.ts", expansion: true },
+    ]);
+    expect(classifyProductDestForms("GIT_CONFIG_GLOBAL=/tmp/c git checkout -- f.ts")).toEqual([
+      { kind: "git-checkout", path: "f.ts", expansion: true },
+    ]);
+    // An unrelated env-config key is not a relocation.
+    expect(classifyProductDestForms("GIT_CONFIG_KEY_0=core.editor git checkout -- f.ts")).toEqual([
+      { kind: "git-checkout", path: "f.ts" },
+    ]);
+    // A bare count is harmless on its own.
+    expect(classifyProductDestForms("GIT_CONFIG_COUNT=1 git checkout -- f.ts")).toEqual([
+      { kind: "git-checkout", path: "f.ts" },
+    ]);
+  });
+
   it("fails closed on glob and tilde dests but not a trailing tilde", () => {
     expect(classifyProductDestForms("rm src/*.ts")).toEqual([
       { kind: "rm", path: "src/*.ts", expansion: true },
