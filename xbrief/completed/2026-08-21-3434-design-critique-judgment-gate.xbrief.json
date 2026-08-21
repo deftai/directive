@@ -1,0 +1,172 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story 1 of #3434: implement ADR-005 design-critique judgment gate (advisory only)",
+    "updated": "2026-08-21T03:21:11Z"
+  },
+  "plan": {
+    "id": "issue-3434-design-critique-judgment-gate",
+    "title": "design-critique judgment gate (ADR-005) — marker, policy entry, clearance line; advisory only",
+    "status": "completed",
+    "narratives": {
+      "Description": "Implement Phase 1 of the design-critique motion from ADR-005 only. Stamp a machine-readable marker, match it with a plan.policy.judgmentGates entry, and document the clearance line. Advisory tier. Do not wire --enforce. Do not create the skill.",
+      "Origin": "GitHub issue #3434 Story 1. Sole spec: docs/decisions/ADR-005-design-critique-judgment-gate.md (merged PR #3576). Do not ingest other #3434 comments as spec.",
+      "Overview": "ADR-005: the gate never computes whether triage is mechanism-shaped. The author stamps that judgment. A judgmentGates entry matches the marker syntactically. The engine fails closed only on a missing clearance line, never on its content. Three pieces of declared data. Rollout advise then observe then block. This story ships the advisory observe surface only.",
+      "UserStory": "As a triage author, I want a stamped mechanism-shaped marker plus a matching judgmentGates entry and a recorded clearance line, so that omission of the design-critique gate is detectable without a semantic classifier.",
+      "When": "When a triage write-back carries the stamped marker (body-text field and mirrored label), the declared judgmentGates entry matches it, and a clearance line of the form design-critique: warranted | not warranted, because ... is documented. verify:judgment-gates without --enforce stays advisory. scope:promote does not gain --enforce in this story.",
+      "LockedDecisions": "Sole spec is ADR-005. Parameters: marker = write-back field + mirrored label; --enforce attach point is scope:promote but this story does not wire --enforce; clearance is model-recordable with human review at promote. Four refusals: do not compute classification; do not evaluate clearance content; do not mandate critique without the marker; do not start at --enforce. Do not create content/skills/deft-directive-design-critique. Do not close #3434.",
+      "ImplementationPlan": "Add a declared plan.policy.judgmentGates entry in xbrief/PROJECT-DEFINITION.xbrief.json matching the marker via existing predicates (labels and/or body-text) per packages/core/src/orchestration/judgment-policy.ts. Add the stamp field plus mirrored label to the #1423 triage write-back format and ISSUE_LABELS.md (or the existing label catalog). Document the clearance-line convention where the ADR requires it (ADR Consequences / clearance presence-shape-authority). Tests that the gate matches the marker and stays advisory without --enforce. CHANGELOG Unreleased. Targeted tests around judgment-gates and triage write-back."
+    },
+    "items": [
+      {
+        "title": "judgmentGates policy entry",
+        "status": "completed",
+        "narrative": {
+          "When": "When plan.policy.judgmentGates is loaded, a declared design-critique gate matches the stamped marker via labels and/or body-text predicates and uses advisory/review tier, not block-plus-enforce.",
+          "Acceptance": "When plan.policy.judgmentGates is loaded, a declared design-critique gate matches the stamped marker via labels and/or body-text predicates and uses advisory/review tier, not block-plus-enforce."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3585 merge 1b05018107e8bbbb38f1cca53c0f0c82cae31cce — plan.policy.judgmentGates design-critique (class declared, tier review) matches label design-critique:mechanism-shaped; no requiredHumanReviewers",
+          "recorded_at": "2026-08-21T03:25:00Z",
+          "recorded_by": "agent/leaf-implementation/3434-s1"
+        }
+      },
+      {
+        "title": "Marker field and mirrored label",
+        "status": "completed",
+        "narrative": {
+          "When": "When a triage write-back is authored, it can stamp a body-text marker field and a mirrored issue label so the field is the artifact and the label is what predicates match.",
+          "Acceptance": "When a triage write-back is authored, it can stamp a body-text marker field and a mirrored issue label so the field is the artifact and the label is what predicates match."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3585 merge 1b05018107e8bbbb38f1cca53c0f0c82cae31cce — content/commands.md #1423 pairing field mechanism-shaped: true; label design-critique:mechanism-shaped in .github/ISSUE_LABELS.md",
+          "recorded_at": "2026-08-21T03:25:00Z",
+          "recorded_by": "agent/leaf-implementation/3434-s1"
+        }
+      },
+      {
+        "title": "Clearance-line convention documented; no --enforce",
+        "status": "completed",
+        "narrative": {
+          "When": "When the story lands, the clearance line design-critique: warranted | not warranted, because ... is documented, and scope:promote / verify:judgment-gates default path is not wired --enforce.",
+          "Acceptance": "When the story lands, the clearance line design-critique: warranted | not warranted, because ... is documented, and scope:promote / verify:judgment-gates default path is not wired --enforce."
+        },
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/3585 Greptile CLEAN 5/5; ADR-005 Consequences documents design-critique: warranted | not warranted, because ...; verify:judgment-gates --enforce unused; scope:promote not wired --enforce",
+          "recorded_at": "2026-08-21T03:25:00Z",
+          "recorded_by": "agent/leaf-implementation/3434-s1"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3434",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3434 (Story 1 origin; do not close)"
+      },
+      {
+        "uri": "docs/decisions/ADR-005-design-critique-judgment-gate.md",
+        "type": "x-xbrief/document",
+        "title": "ADR-005 sole spec"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "packages/core/src/orchestration/judgment-policy.ts",
+          "packages/core/src/orchestration/verify-judgment-gates.ts",
+          "packages/core/src/orchestration/design-critique-gate.test.ts",
+          ".github/ISSUE_LABELS.md",
+          "content/commands.md",
+          "docs/decisions/ADR-005-design-critique-judgment-gate.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/orchestration"
+        ],
+        "expected_outputs": [
+          "judgmentGates entry matches marker; write-back field + label; clearance line documented; no --enforce"
+        ],
+        "depends_on": [],
+        "conflict_group": "design-critique-3434-s1",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Story 1 of #3434; sole spec ADR-005 merged on PR 3576.",
+          "file_scope expansion: .github/ISSUE_LABELS.md is the maintainer catalog (repo-root ISSUE_LABELS.md does not exist); content/commands.md is the shipped #1423 write-back format home; ADR-005 is AC-3 clearance presence/shape/authority; design-critique-gate.test.ts is the match+advisory pairing contract."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          ".github/ISSUE_LABELS.md"
+        ],
+        "module_boundary": "packages/core/src/orchestration",
+        "cohesion_exemption": "PROJECT-DEFINITION.xbrief.json is the plan.policy SoT. Story 1 adds one judgmentGates entry to that existing policy object; splitting the file is out of this slice (#3424)."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3585,
+        "prBase": null,
+        "mergeCommit": "1b05018107e8bbbb38f1cca53c0f0c82cae31cce",
+        "deliveryBranch": "master",
+        "deliveryCommit": "1b05018107e8bbbb38f1cca53c0f0c82cae31cce",
+        "verifiedAt": "2026-08-21T03:21:11Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "e28e1aed-6723-488a-88c2-100e9812c045"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-21T03:21:11Z",
+      "completedSessionId": "e28e1aed-6723-488a-88c2-100e9812c045",
+      "capacityBucket": "cognitive-debt"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/orchestration"
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "ADR-005 Story 1 deliverables",
+      "ambiguity_attestation": "none_found",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "plan.policy.judgmentGates has a declared entry matching the stamped mechanism marker via existing predicates.",
+          "artifact_path": "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "Triage write-back format has the marker field and a mirrored label.",
+          "artifact_path": ".github/ISSUE_LABELS.md",
+          "ambiguous": false
+        },
+        {
+          "id": 3,
+          "text": "Clearance-line convention is documented; --enforce is not wired on scope:promote in this story.",
+          "artifact_path": "docs/decisions/ADR-005-design-critique-judgment-gate.md",
+          "ambiguous": false
+        }
+      ]
+    },
+    "updated": "2026-08-21T03:21:11Z"
+  }
+}
