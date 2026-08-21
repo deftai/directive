@@ -2576,7 +2576,7 @@ describe("runtimeAuthority shell/MCP push/merge in decideHook (#2711)", () => {
     expect(inside).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
   });
 
-  it("denies glob dest-forms against story file_scope (expansion sentinel)", () => {
+  it("denies glob dest-forms fail-closed even with ready scope", () => {
     const decision = decideHook(
       {
         host: "claude",
@@ -2587,14 +2587,10 @@ describe("runtimeAuthority shell/MCP push/merge in decideHook (#2711)", () => {
           tool_input: { command: "rm src/*.ts" },
         },
       },
-      readySeams({
-        loadStoryWriteFence: () => ({
-          fileScope: ["src/**"],
-          denyPaths: [],
-        }),
-      }),
+      readySeams(),
     );
-    expect(decision).toMatchObject({ verdict: "deny", code: "runtime-policy-deny-path" });
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(decision.message).toMatch(/expansion/);
   });
 
   it("allows Shell dest-form when active scope is ready", () => {

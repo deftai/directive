@@ -94,6 +94,9 @@ describe("classifyProductDestForms (#3438)", () => {
     expect(classifyProductDestForms("git --work-tree=tree checkout -- src/a.ts")).toEqual([
       { kind: "git-checkout", path: "tree/src/a.ts" },
     ]);
+    expect(classifyProductDestForms("GIT_WORK_TREE=pkg git checkout -- a.ts")).toEqual([
+      { kind: "git-checkout", path: "pkg/a.ts" },
+    ]);
     expect(classifyProductDestForms("cd apps/web && rm AGENTS.md")).toEqual([
       { kind: "rm", path: "apps/web/AGENTS.md" },
     ]);

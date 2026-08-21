@@ -183,11 +183,21 @@ function isEnvAssign(token: string): boolean {
   return /^[A-Za-z_][A-Za-z0-9_]*$/.test(token.slice(0, eq));
 }
 
-function skipPrefix(tokens: string[]): number {
+function gitWorkTreeFromAssign(token: string): string | null {
+  const eq = token.indexOf("=");
+  if (eq <= 0) return null;
+  if (token.slice(0, eq) !== "GIT_WORK_TREE") return null;
+  const value = token.slice(eq + 1);
+  return value.length > 0 ? value : null;
+}
+
+function skipPrefix(tokens: string[]): { i: number; workTree: string | null } {
   let i = 0;
+  let workTree: string | null = null;
   while (i < tokens.length) {
     const tok = tokens[i];
     if (tok === undefined || !isEnvAssign(tok)) break;
+    workTree = gitWorkTreeFromAssign(tok) ?? workTree;
     i++;
   }
   const wrap = tokens[i]?.toLowerCase();
@@ -196,23 +206,34 @@ function skipPrefix(tokens: string[]): number {
     while (i < tokens.length) {
       const tok = tokens[i];
       if (tok === undefined || !isEnvAssign(tok)) break;
+      workTree = gitWorkTreeFromAssign(tok) ?? workTree;
       i++;
     }
   }
-  return i;
+  return { i, workTree };
+}
+
+function trimSlashEnd(value: string): string {
+  let i = value.length;
+  while (i > 0 && (value[i - 1] === "/" || value[i - 1] === "\\")) i--;
+  return value.slice(0, i);
+}
+
+function trimSlashStart(value: string): string {
+  let i = 0;
+  while (i < value.length && (value[i] === "/" || value[i] === "\\")) i++;
+  return value.slice(i);
 }
 
 function joinDestPrefix(prefix: string | null, path: string): string {
   if (prefix === null || prefix.length === 0) return path;
   if (path.startsWith("/") || /^[A-Za-z]:[\\/]/.test(path)) return path;
-  const left = prefix.replace(/[\\/]+$/, "");
-  const right = path.replace(/^[\\/]+/, "");
-  return `${left}/${right}`;
+  return `${trimSlashEnd(prefix)}/${trimSlashStart(path)}`;
 }
 
 function parseCdDir(segment: string): string | null {
   const tokens = tokenizeSegment(segment.trim());
-  let i = skipPrefix(tokens);
+  let i = skipPrefix(tokens).i;
   const bin = tokens[i]?.toLowerCase();
   if (bin !== "cd") return null;
   i++;
@@ -286,7 +307,8 @@ function dests(kind: ProductDestFormKind, paths: readonly string[]): ProductDest
 
 function classifyDestFormSegment(segment: string): ProductDestForm[] {
   const tokens = tokenizeSegment(segment.trim());
-  let i = skipPrefix(tokens);
+  const prefixSkip = skipPrefix(tokens);
+  let i = prefixSkip.i;
   const binRaw = tokens[i];
   if (binRaw === undefined) return [];
   const bin = binRaw.toLowerCase();
@@ -294,7 +316,7 @@ function classifyDestFormSegment(segment: string): ProductDestForm[] {
   if (bin === "git" || bin === "git.exe") {
     const skipped = skipGitGlobals(tokens, i + 1);
     i = skipped.i;
-    const prefix = skipped.workTree;
+    const prefix = skipped.workTree ?? prefixSkip.workTree;
     const sub = tokens[i]?.toLowerCase();
     if (sub === "checkout") {
       return dests(
