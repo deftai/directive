@@ -1,0 +1,195 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3571",
+    "updated": "2026-08-21T03:13:36Z"
+  },
+  "plan": {
+    "title": "bug(hooks,policy): disabling hostHooks writes {} and strips guardrails with no capability-cost disclosure — and verify:agent-hooks recommends it",
+    "status": "completed",
+    "narratives": {
+      "Description": "First-ship leftover of GitHub issue #3571. Typed hostHooks disable with --confirm and honest copy at all three current ungated pointers. Land recovery text with #3570. Do not invent a new hook-file format.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3571",
+      "Overview": "## Summary\n\nSetting `plan.policy.hostHooks.<host> = false` and running `deft update` replaces that host's hook config with a bare `{}`, removing every `deft-hook` pre-execution guardrail for anyone who later opens the repo in that host. This happens with **no capability-cost disclosure and no confirmation prompt**, and the resulting state is committed to tracked files, so it propagates to every clone.\n\nTwo things make this more than a documentation nit:\n\n1. **Directive's own remediation text recommends it.** The `verify:agent-hooks` failure message says:\n\n   > If an affected host is unused, inspect `deft policy:show --field=hostHooks`, set `plan.policy.hostHooks.<host> = false`, and run `deft update`.\n\n   An agent or operator following that advice to clear a *timing* failure (see #3570) silently disables safety gates as a side effect.\n\n2. **Directive's own reviewer bot then flags the result as a security regression.** On the PR carrying this change, `deft-slizard` raised four separate P2 findings, e.g.:\n\n   > `.cursor/hooks.json` is replaced with an empty object (Security Guardrail Bypass) … fail-closed safety gates are completely removed, allowing unchecked execution of destructive or sensitive operations without invoking deft-hook guardrails.\n\n   …plus the equivalent for `.codex/hooks.json`, `.grok/hooks/deft.json`, and the `hostHooks` policy block itself. So the framework recommends an action, performs it silently, and then its own review surface reports that action as a guardrail bypass.\n\n## Inconsistency with comparable policy changes\n\nOther capability-reducing or capability-expanding policy flips are gated behind an explicit disclosure and `--confirm`:\n\n- `deft policy:allow-direct-commits -- --confirm` (branch protection OFF)\n- `deft policy:enable-value-feedback -- --confirm` — prints `⚠ Capability-cost disclosure …`\n- `task product-signal:enable -- --confirm`\n\nDisabling host hooks removes a *security* control and has no equivalent surface at all: no typed verb, no disclosure, no confirm. The only documented route is hand-editing `PROJECT-DEFINITION` and running `deft update`.\n\n## Repro\n\n1. In a consumer repo, set `plan.policy.hostHooks` to `{\"claude\": true, \"cursor\": false, \"grok\": false, \"codex\": false}`.\n2. `deft update`\n3. `cat .cursor/hooks.json .codex/hooks.json .grok/hooks/deft.json` → each is exactly `{}`.\n4. Nothing in the `deft update` output states that pre-execution guardrails were removed for those hosts.\n\n## Suggested direction\n\n- Add a capability-cost disclosure + `--confirm` gate for disabling host hooks, matching the pattern already used for branch protection and telemetry, and expose it as a typed verb rather than a hand-edit.\n- State plainly in the `verify:agent-hooks` remediation text that disabling a host removes its guardrails, so it is not presented as a cost-free way to quiet a probe failure.\n- Consider emitting a hook config that is explicitly inert-but-annotated rather than `{}`, so the intent is legible in review and a reviewer bot need not infer a bypass.\n\n## Environment\n\n- `@deftai/directive` engine `@deftai/directive-core@0.104.0`, tag `v0.104.0`\n- Node v22.23.2, macOS 26.5.2 (arm64)\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-08-21T00:15:22Z)\n\n## Triage analysis\n\n_By: Grok 4.6 (xAI), 2026-08-20. Checked against `deftai/directive` at tag `v0.105.0` (issue body via REST, then host-hooks deposit / policy / readiness-message sources)._\n\n**Verdict:** accurate, desirable, ready as a thin story. Land with #3570’s recovery-text change so the two remediations do not fight.\n\n### Accuracy\n\nHigh, with one overstatement.\n\nOpt-out is a hand-edit of `plan.policy.hostHooks` plus `deft update`. There is no typed verb and no `--confirm`. The readiness sentence quoted here is verbatim in `packages/core/src/verify-env/agent-hook-readiness.ts`.\n\nStrip of a Directive-only file does write `{}`:\n\n- Claude / Grok / Codex: `stripManagedNestedConfig` drops an empty `hooks` object\n- Cursor: `stripManagedCursorConfig` also drops `version: 1`\n\nThat matches the repro (`cat .cursor/hooks.json .codex/hooks.json .grok/hooks/deft.json` → each `{}`).\n\nThe overstatement: `deft update` is not silent. It prints `Removed Directive-managed agent hooks (plan.policy.hostHooks opt-out): …`. That is a path list, not a capability-cost disclosure, which is why a reviewer bot then flags empty hook JSON as a guardrail bypass. Strip-preserving unrelated settings (#2752) is working; empty `{}` is what you get when there is nothing else in the file.\n\nComparable policy flips already require disclosure + `--confirm` (`policy:allow-direct-commits`, `policy:enable-value-feedback`, `product-signal:enable`). Host-hook disable has none of that, despite removing a fail-closed security control.\n\n### Desirability\n\nHigh. This is the documented workaround for a *timing* failure (#3570). An agent following that advice disables safety gates and commits the result to tracked files.\n\n### Readiness\n\nYes, as a thin first ship:\n\n- Typed disable verb with capability-cost disclosure and `--confirm`\n- Rewrite the #3570 / #3100 recovery line so unused-host opt-out is not presented as a timing fix\n- Keep `{}` vs annotated inert config as a follow-up (review ergonomics, not the gate)\n\nDo not expand v1 to a multi-host matrix or a new hook-file format. One confirm gate + honest remediation is enough.\n\nThe product-signal force-on side effect described on #3570 (absent key comes back `enabled: true` / `source: install-force-on` after `deft update`) is real **for trusted-org repos** (`deftai/*` / `DEFT_VALUE_AUTOENABLE_ORGS`) via #2822 / #2903. `looksLikePreMigrationProductSignal` treats a missing key as incomplete migration; value-feedback does not. That is a reason not to send people through `deft update` as the #3570 recovery path. I would not fold it into this issue’s AC; file separately only if the missing-key / VF asymmetry should change.\n\n\n### Comment by @MScottAdams (2026-08-21T00:28:10Z)\n\n## Design critique of the triage comment (checked at `b6bc689a1fa50ea20ac050776723796de00d71a4`)\n\n_By: Grok 4.5 (xAI)_\n\nCeiling: issue body + comments with `id <= 5363616809` (triage comment). Checked against `origin/master` tip `b6bc689a1fa50ea20ac050776723796de00d71a4` (fetched; local `HEAD` matches these load-bearing paths).\n\n### What holds\n\nThe triage verdict — accurate core claim, desirable, ready as a thin story — holds under re-verification.\n\n- **Remediation copy is verbatim.** Issue-quoted unused-host advice matches `packages/core/src/verify-env/agent-hook-readiness.ts:229` at this tip. A second structural path says the same thing at `packages/core/src/verify-env/agent-hooks.ts:50-52`. Contract language still names hand-edit as the only opt-out: `content/contracts/agent-hook-readiness.md` § Per-host opt-out.\n- **`{}` strip is real for Directive-only files.** `stripManagedNestedConfig` (`packages/core/src/init-deposit/agent-hooks.ts:211-230`) drops an empty `hooks` object; `stripManagedCursorConfig` (`:232-250`) also drops `version`. Reproduced claimant method at this tip: deposit all four hosts, then opt out cursor/grok/codex → `.cursor/hooks.json`, `.codex/hooks.json`, and `.grok/hooks/deft.json` each write exactly `{}\\n`. Unrelated user keys are preserved (existing tests around opt-out preserve custom session commands) — empty `{}` is the no-remainder case, not a strip bug.\n- **No typed disable / no `--confirm`.** `packages/core/src/policy/host-hooks.ts` is resolve/inspect/validate only (no confirm, no persist). `tasks/policy.yml` has confirm-gated peers (`allow-direct-commits`, `enable-value-feedback`) and no hostHooks writer.\n- **`deft update` is not silent (issue overstatement).** Strip path prints `Removed Directive-managed agent hooks (plan.policy.hostHooks opt-out): …` at `agent-hooks.ts:444-447`. Reproduced on the same run. That line is a path list, not a capability-cost disclosure — triage’s distinction is right.\n- **Thin first-ship cut is right:** typed disable + honest remediation; defer annotated inert `{}` as review ergonomics.\n\n### Findings\n\n1. **[blocks-the-design] AC must name every remediation + contract pointer, not “the recovery line.”** Triage says rewrite “the #3570 / #3100 recovery line.” At this tip there are at least three operator-facing pointers to ungated hand-edit opt-out: readiness `agent-hook-readiness.ts:229`, structural `agent-hooks.ts:50-52`, and the contract § Per-host opt-out. Shipping a confirm verb while any of those still teach `set plan.policy.hostHooks.<host> = false` leaves the agent-followed path open. v1 AC should require all three (or an explicit inventory gate) to point at the confirm verb and state the guardrail cost.\n\n2. **[blocks-the-design] Confirm gate must be flag `--confirm` (headless-safe), not a TTY prompt.** Peer pattern is refuse-without-flag + printed disclosure (`packages/core/src/policy/value-feedback.ts:320-332`; product-signal / allow-bot-merge same shape). Under headless / swarm envelopes there is no operator at a prompt; a TTY-only gate would push agents back to hand-edit + `deft update`. The verb is only load-bearing if remediation points to `… -- --confirm` and the gate works without a tty.\n\n3. **[sharpens-framing] Hand-edit bypass remains after a typed verb unless update/strip also fail-closed.** Today any writer of `hostHooks.<host>=false` plus `deft update` strips. A new verb that is merely an alternate writer does not close the ungated path; it only helps when agents follow remediation. Thin v1 can accept hand-edit as human-high-trust **if** all remediation/contract copy stops recommending it — but the story should say that explicitly (propose-not-apply for the chokepoint), not imply the verb alone is the control.\n\n4. **[sharpens-framing] Generalize the repro: any opted-out Directive-only deposit becomes `{}`.** Issue example left `claude: true`, so Claude was out of the `cat` list. Same strip math applies to `.claude/settings.json` when Claude is opted out and no non-managed keys remain. Not a contradiction — just the accurate invariant for AC/tests.\n\n5. **[footnote] Product-signal missing-key asymmetry is real and correctly out of AC.** `looksLikePreMigrationProductSignal` treats `undefined|null` as pre-migration (`org-force-on-migration.ts:183-186`); `looksLikePreMigrationValueFeedback` explicitly does not (`:172-177`). Keep that on a separate issue if desired; do not widen #3571.\n\n6. **[footnote] “Silent” in the issue body should not re-enter AC as a false claim.** Prefer “no capability-cost disclosure” over “silent.” The existing printf is evidence of path-list notice, not of adequate disclosure.\n\n### Existing mechanisms\n\nInventory before inventing:\n\n| Mechanism | Role today |\n| --- | --- |\n| `plan.policy.hostHooks` + `policy:show --field=hostHooks` | Typed read / resolve; hand-edit write |\n| `writeAgentHookDeposit` strip + printf | Applies opt-out; preserves non-managed keys (#2752); path-list notice |\n| Mutation ledger stripped writes (#3392) | Audit of strip writes |\n| `evaluateAgentHooks` / readiness live message | Recommend hand-edit opt-out on failure |\n| Contract `agent-hook-readiness.md` | Declares hand-edit as only opt-out |\n| Confirm-gated peers | `policy:allow-direct-commits`, `policy:enable-value-feedback`, `product-signal:enable`, `policy:allow-bot-merge`, `policy:disable-directive` |\n| Full Directive off | `.no-deft-directive` / `policy:disable-directive` (different scope than per-host hooks) |\n\nv1 should extend the confirm-gated peer pattern + rewrite the three pointers — not a new hook-file format.\n\n### Injection / swarm lens\n\nHostile or headless envelope: worker hits readiness/registration failure → follows remediation → edits PROJECT-DEFINITION → `deft update` → commits `{}` hook files → every clone loses `deft-hook` pre-execution gates for those hosts. Swarm multiplies that: one “fix timing” recovery becomes cohort-wide tracked guardrail removal. Review bots then correctly flag Security Guardrail Bypass — framework-recommended action vs framework review surface.\n\nCountermeasure that survives this lens: remediation must not name ungated hand-edit; confirm verb must be `--confirm` flag-based; disclosure must state guardrails are removed. Optional later chokepoint: refuse strip unless policy change came through the confirm verb (not required for triage’s thin cut if copy is fixed).\n\n### Road not taken\n\n**Gate strip inside `deft update` (refuse hostHooks false→strip without a confirm token) instead of adding a typed verb.** Rejected for v1: it surprises operators who already hand-edited policy expecting update to apply, and it still needs disclosure UX. The confirm-verb + remediation rewrite matches existing policy peers with less surprise. Annotated inert config instead of `{}` lost to triage’s deferral — correct; it does not restore gates, only review legibility.\n\n### Score against Directive rules\n\n| Rule | Score |\n| --- | --- |\n| Authority ladder / thin fail-closed (#3265) | Triage’s thin cut is good; incomplete unless the three copy sites and `--confirm` shape are in AC (findings 1–2). |\n| Fail-closed | Opt-out of a security control currently fails *open* for agents following remediation. Confirm-gated verb is the right fail-closed move. |\n| Propose-not-apply | Triage proposes; does not apply. Good. Hand-edit bypass note (finding 3) should stay propose-not-apply for any later update chokepoint. |\n| Claim-cites-state (#2066) | Triage cited deposit/policy/readiness sources; “silent” needed the overstatement correction it already made. |\n| Gate integrity (#3156) | Do not “fix” readiness by teaching ungated guardrail removal. Rewriting recovery away from that path is gate-integrity-aligned. |\n\n### Disposition\n\n**Uphold triage disposition with AC hardening:** keep thin first ship (typed disable + `--confirm` capability-cost disclosure + rewrite recovery). Before implement, lock AC to (a) all three current ungated pointers, (b) headless-safe `--confirm` peer pattern, (c) explicit statement that annotated `{}` and update-strip chokepoint are follow-ups. Land recovery-text changes together with #3570 so remediations do not fight. Do not fold product-signal force-on asymmetry into this issue.\n\n\n### Comment by @MScottAdams (2026-08-21T00:47:15Z)\n\n## Verified synthesis (critique-pass-1, 2026-08-21)\n\n_By: Grok 4.6 (xAI) — synthesizer, not a critic in this run. Triage author was also Grok 4.6; critic was Grok 4.5. Rows below are marked **hold** only on a primary-source re-read of `origin/master`, not on critic agreement._\n\nHand-run of #3434 Pass 3. Not implementation. Working tree was not modified.\n\n**SHA:** `1555c372633433edc8782648a6dc8182669c8855` (`origin/master` at synthesis). Cited host-hooks / deposit / readiness / org-force-on paths are byte-identical to critic SHA `b6bc689a`.\n\nThread: issue body; [triage](https://github.com/deftai/directive/issues/3571#issuecomment-5363616809); [R1 critique](https://github.com/deftai/directive/issues/3571#issuecomment-5363702990).\n\n### Disposition\n\n**Keep as a thin policy-control story. Do not implement a new hook-file format.** Land recovery-text with #3570 so the two remediations do not fight.\n\n| Slice | In v1 | Out of v1 |\n|---|---|---|\n| **A — typed disable** | Confirm-gated verb matching peers (`--confirm` flag, printed capability-cost disclosure, works without a TTY). Disclosure must state that opted-out hosts lose `deft-hook` pre-execution guardrails and that the result is tracked. | TTY-only prompt |\n| **B — all current ungated pointers** | Every operator-facing pointer that today teaches hand-edit + `deft update` must name the confirm verb and the guardrail cost. Inventory at this SHA: readiness `agent-hook-readiness.ts:229`; structural `verify-env/agent-hooks.ts:50–52`; contract `agent-hook-readiness.md` § Per-host opt-out (`:39–45`). | Annotated inert `{}` as v1 |\n| **C — explicit non-goals** | Story text must say hand-edit of `plan.policy.hostHooks` plus `deft update` still strips (human high-trust bypass) unless a later chokepoint lands. | Fail-closed strip inside `deft update` without a confirm token (road-not-taken for v1) |\n| **D — not this issue** | | Product-signal missing-key re-force-on (#2822 / #2903) |\n\n### Verified claims\n\n| Claim | Claimant | Verdict | Method | Evidence at `1555c372` |\n|---|---|---|---|---|\n| Readiness unused-host sentence is verbatim | issue, triage, R1 | **hold** | `git show` | `agent-hook-readiness.ts:229` |\n| Second structural pointer teaches the same hand-edit | R1 | **hold** | `git show` | `verify-env/agent-hooks.ts:50–52` |\n| Contract names hand-edit as the only opt-out | R1 | **hold** | `git show` | `content/contracts/agent-hook-readiness.md:39–45` |\n| Nested strip drops empty `hooks`; Cursor strip also drops `version` | issue, triage, R1 | **hold (code path)** | `git show` strip functions | `stripManagedNestedConfig` `:211–228` returns `rest` without `hooks` when empty; Cursor `:246–247` also drops `version`. Independent deposit-and-`cat {}` run was critic-only — not re-executed here |\n| `deft update` prints a path list, not a capability-cost disclosure | triage (corrects issue “silent”) | **hold** | `git show` | `init-deposit/agent-hooks.ts:446` `Removed Directive-managed agent hooks (plan.policy.hostHooks opt-out):` |\n| `host-hooks.ts` is resolve/inspect/validate; no persist, no `--confirm` | triage, R1 | **hold** | `git show` whole file | no writer / confirm symbols; `tasks/policy.yml` has confirm peers (`allow-direct-commits`, `enable-value-feedback`) and no hostHooks writer |\n| Confirm-gated peer shape is refuse-without-flag + printed disclosure | R1 | **hold** | `git show` | `value-feedback.ts:54` / `:330`; `tasks/policy.yml:45–63` |\n| Missing `productSignal` key is treated as pre-migration; missing VF is not | triage, R1 F5 | **hold** | `git show` | `org-force-on-migration.ts:176–177` VF missing → false; `:184–185` PS missing → true. Keep off this AC |\n| Any opted-out Directive-only deposit becomes `{}` (not only cursor/codex/grok) | R1 F4 | **hold (code path)** | same strip functions | Claude uses `stripManagedNestedConfig` (`:362`). Issue `cat` list omitted Claude because the repro left `claude: true` |\n\n### Finding → slice\n\n| Finding | Source | Slice |\n|---|---|---|\n| AC must name all three copy/contract sites | R1 F1 | **B** |\n| Confirm must be `--confirm`, not TTY | R1 F2 | **A** |\n| Verb alone does not close hand-edit + update | R1 F3 | **C** (propose-not-apply for later chokepoint) |\n| Generalize `{}` invariant to every leftover-free opted-out host | R1 F4 | test AC, not a second story |\n| Product-signal asymmetry | triage, R1 F5 | **D** |\n| Issue “silent” must not re-enter AC | R1 F6 | wording on **A** |\n\n### What the triage got right\n\nCore defect, desirability, thin cut (typed disable + honest remediation; defer annotated `{}`), and keeping product-signal off this AC.\n\n### What the critique changed (load-bearing)\n\n“Rewrite the recovery line” is underspecified: three pointers exist. Headless-safe `--confirm` is mandatory or agents return to hand-edit. v1 must admit the remaining hand-edit bypass instead of implying the verb is the control.\n\n### Out of scope here\n\nImplementing the verb. Changing strip to annotated JSON. Gating `deft update` strip on a confirm token. Product-signal force-on.\n\n\n### Comment by @MScottAdams (2026-08-21T01:21:51Z)\n\n## Cohort\n\nRecorded in `xbrief/.triage-cache/slices.jsonl` under #3570, wave 1 (pair).\n\nVerified synthesis (this issue): https://github.com/deftai/directive/issues/3571#issuecomment-5363825269\n\nDisposition: keep as a thin policy-control story. Land recovery-text with #3570 so remediations do not fight. Do not implement a new hook-file format. v1 is a `--confirm` disable verb plus honest copy at all three current pointers.",
+      "Labels": "bug, agent-experience, status:child",
+      "UserStory": "As an operator disabling a host, I want a confirm-gated verb that discloses guardrail loss, so that following verify:agent-hooks advice does not silently strip fail-closed hooks.",
+      "When": "When an operator runs the typed disable verb without --confirm it refuses; with --confirm it prints capability-cost disclosure and persists opt-out. All three current pointers name that verb and the guardrail cost.",
+      "LockedDecisions": "Operator grant 2026-08-21: implement locked first-ship from verified synthesis comment 5363825269. In v1: --confirm flag (not TTY); printed disclosure that opted-out hosts lose deft-hook guardrails and the result is tracked; rewrite readiness agent-hook-readiness.ts, structural verify-env/agent-hooks.ts, and contract Per-host opt-out. Out: annotated inert {}; fail-closed strip inside deft update; product-signal force-on. Hand-edit plus update still strips (human high-trust bypass) unless a later chokepoint lands.",
+      "ImplementationPlan": "Add confirm-gated writer in packages/core/src/policy/host-hooks.ts and tasks/policy.yml. Rewrite recovery in packages/core/src/verify-env/agent-hook-readiness.ts and packages/core/src/verify-env/agent-hooks.ts plus content/contracts/agent-hook-readiness.md Per-host opt-out. Verify with pnpm exec vitest run packages/core/src/policy packages/core/src/verify-env. CHANGELOG.md Unreleased. Same PR as #3570.",
+      "OriginDivergence": "Intentional: locked first-ship from #3571 synthesis; issue suggested annotated {} is follow-up."
+    },
+    "items": [
+      {
+        "title": "Confirm-gated disable verb",
+        "status": "completed",
+        "narrative": {
+          "When": "When the disable verb runs without --confirm it exits non-zero and prints disclosure; with --confirm it persists hostHooks host false and states that guardrails are removed and tracked.",
+          "Acceptance": "When the disable verb runs without --confirm it exits non-zero and prints disclosure; with --confirm it persists hostHooks host false and states that guardrails are removed and tracked."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/policy/host-hooks.test.ts",
+          "recorded_at": "2026-08-21T03:10:28Z",
+          "recorded_by": "leaf-implementation/host-hooks-3570-3571"
+        }
+      },
+      {
+        "title": "Rewrite all three pointers",
+        "status": "completed",
+        "narrative": {
+          "When": "When an operator reads readiness recovery, structural agent-hooks recovery, and the Per-host opt-out contract, each names the confirm verb and the guardrail cost instead of ungated hand-edit plus deft update.",
+          "Acceptance": "When an operator reads readiness recovery, structural agent-hooks recovery, and the Per-host opt-out contract, each names the confirm verb and the guardrail cost instead of ungated hand-edit plus deft update."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-env/agent-hooks.test.ts",
+          "recorded_at": "2026-08-21T03:10:28Z",
+          "recorded_by": "leaf-implementation/host-hooks-3570-3571"
+        }
+      },
+      {
+        "title": "Opt-out empty deposit test",
+        "status": "completed",
+        "narrative": {
+          "When": "When a leftover-free opted-out host deposit is stripped, the written file is {}. CHANGELOG Unreleased records the leftover.",
+          "Acceptance": "When a leftover-free opted-out host deposit is stripped, the written file is {}. CHANGELOG Unreleased records the leftover."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "recorded_at": "2026-08-21T03:10:28Z",
+          "recorded_by": "leaf-implementation/host-hooks-3570-3571"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "status:child"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3571",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3571: bug(hooks,policy): disabling hostHooks writes {} and strips guardrails with no capability-cost disclosure — and verify:agent-hooks recommends it"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "If an affected host is unused, inspect `deft policy:show --field=hostHooks`, set `plan.policy.hostHooks.<host> = false`, and run `deft update`",
+          "reason": "shell metacharacter \"`\" is not allowed in literal AC commands",
+          "sourceSpan": "prompt@L11"
+        },
+        {
+          "command": "`.cursor/hooks.json` is replaced with an empty object (Security Guardrail Bypass) … fail-closed safety gates are completely removed, allowing unchecked execution of destructive or sensitive operations without invoking deft-hook guardrails",
+          "reason": "shell metacharacter \"`\" is not allowed in literal AC commands",
+          "sourceSpan": "prompt@L17"
+        },
+        {
+          "command": "deft policy:show --field=hostHooks",
+          "reason": "wrapper subcommand must be check|doctor|verify:*|help|--version (scope/policy/swarm/scm/merge and other ambient-authority verbs denied)",
+          "sourceSpan": "inline@L11"
+        },
+        {
+          "command": "plan.policy.hostHooks.<host> = false",
+          "reason": "shell metacharacter \"<\" is not allowed in literal AC commands",
+          "sourceSpan": "inline@L11"
+        },
+        {
+          "command": "deft update",
+          "reason": "wrapper subcommand must be check|doctor|verify:*|help|--version (scope/policy/swarm/scm/merge and other ambient-authority verbs denied)",
+          "sourceSpan": "inline@L11"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/policy/host-hooks.ts",
+          "packages/core/src/verify-env/agent-hooks.ts",
+          "packages/core/src/verify-env/agent-hook-readiness.ts",
+          "content/contracts/agent-hook-readiness.md",
+          "tasks/policy.yml",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/policy packages/core/src/verify-env"
+        ],
+        "expected_outputs": [
+          "--confirm disable verb; three pointers rewritten; {} invariant tested"
+        ],
+        "depends_on": [],
+        "conflict_group": "host-hooks-3570-3571",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Issue-ingested #3571; FR traces on the issue thread."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/policy/host-hooks.ts",
+          "packages/core/src/verify-env/agent-hooks.ts"
+        ],
+        "module_boundary": "packages/core/src/policy"
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3581,
+        "prBase": null,
+        "mergeCommit": "e069c130f77c41f8d4e1377996077dd58545c8d1",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e069c130f77c41f8d4e1377996077dd58545c8d1",
+        "verifiedAt": "2026-08-21T03:13:36Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "91b17fbc-cb11-4136-a53c-48b7c7e75efd"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-21T03:13:36Z",
+      "completedSessionId": "91b17fbc-cb11-4136-a53c-48b7c7e75efd",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/policy packages/core/src/verify-env"
+      ],
+      "none_stated": false,
+      "ambiguity_attestation": "none_found",
+      "source_rung": "stated",
+      "derived_reason": "locked first-ship of #3571",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "typed disable verb refuses without --confirm and prints capability-cost disclosure",
+          "artifact_path": "packages/core/src/policy/host-hooks.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "all three ungated pointers name the confirm verb and guardrail cost",
+          "artifact_path": "content/contracts/agent-hook-readiness.md",
+          "ambiguous": false
+        },
+        {
+          "id": 3,
+          "text": "leftover-free opted-out Directive-only deposit writes {}; CHANGELOG Unreleased records the leftover",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false
+        }
+      ]
+    },
+    "id": "issue-3571-hosthooks-confirm-disable",
+    "updated": "2026-08-21T03:13:36Z"
+  }
+}

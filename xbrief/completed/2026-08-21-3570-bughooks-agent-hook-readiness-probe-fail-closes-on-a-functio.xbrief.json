@@ -1,0 +1,189 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3570",
+    "updated": "2026-08-21T03:15:35Z"
+  },
+  "plan": {
+    "title": "bug(hooks): agent-hook readiness probe fail-closes on a functional hook under concurrent load (fixed 1500ms budget)",
+    "status": "completed",
+    "narratives": {
+      "Description": "First-ship leftover of GitHub issue #3570. Timed-out live hook probes must not be treated as non-functional, and relief must stay under the Cursor tool.before 30s ceiling. Pair recovery copy with #3571.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3570",
+      "Overview": "## Summary\n\n`deft verify:session-ritual -- --tier=gated` fail-closes on the `agent_hooks` step whenever the machine is under concurrent load, because the readiness probe enforces a **fixed 1500ms per-hook budget** against a hook that is functionally correct. The hook exits 0 every time; it is only slower than the budget under load.\n\nThe practical effect: the gate is most likely to fail *precisely when Directive's own swarm / parallel-dispatch workflow is running*, since that workload (parallel `npm run build` / `typecheck` / test suites across several worktrees) is what pushes the hook past 1500ms.\n\n## Measurements\n\nSame machine, same unchanged deposit — only ambient load differs.\n\n| Condition | `deft-hook --host claude --event tool.before` wall time | Gated ritual result |\n|---|---|---|\n| Idle | 0.41s, 0.49s, 0.51s, 0.56s, 0.56s | passes 3/3 |\n| Parallel swarm workers active | 1.88s, then 1.36s / 1.06s / 1.20s | fails; `claude/allow`, `grok/allow`, `cursor/allow`, `codex/deny` all reported `timed-out` |\n\nThe hook itself returned **exit 0** in every one of those invocations, including the ones the probe declared timed out.\n\nIntermediate state is also observable: after narrowing `hostHooks` to `claude` alone (one host instead of four), three consecutive gated runs on an unchanged system gave `exit 0`, `exit 1`, `exit 1` — nondeterministic, straddling the budget.\n\n## Why this matters beyond the latency\n\nThe failure text prescribes:\n\n> Recovery: reinstall @deftai/directive and run `deft update`\n\nNeither addresses per-invocation latency, and `deft update` is a repo-wide rewrite rather than a narrow repair (see #3437) — so the prescribed remediation is disproportionately expensive for what is a timing budget being exceeded. An agent following the message literally performs an unplanned framework rewrite mid-task and the probe still fails.\n\nThe secondary remediation the same message offers is to disable hosts via `plan.policy.hostHooks.<host> = false`. That path has its own problem, filed separately.\n\n## Suggested direction\n\nAny of these would resolve the class:\n\n- Make the per-hook budget configurable (policy field or env override) rather than a hard-coded 1500ms.\n- Scale the budget to observed cold-start cost, or retry once before declaring a timeout, so a functional-but-slow hook is not reported as broken.\n- Distinguish **\"hook timed out\"** from **\"hook is non-functional\"** in both the verdict and the remediation text — they are different conditions with different fixes, and only the latter warrants a reinstall.\n\n## Environment\n\n- `@deftai/directive` engine `@deftai/directive-core@0.104.0`, tag `v0.104.0`, `managed_by: npm`, deposit `.deft/core`\n- Node v22.23.2, macOS 26.5.2 (arm64)\n- Consumer repo: TypeScript npm workspaces; `hostHooks` currently `{claude: true, cursor: false, grok: false, codex: false}`\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @rockbox37 (2026-08-20T23:00:25Z)\n\nCorrection to the Environment section above, plus one new datapoint.\n\n**Environment correction.** That section said `hostHooks` was `{claude: true, cursor: false, grok: false, codex: false}` on the reporting repo. That narrowing has since been **reverted** — the repo now runs the default `{claude: true, cursor: true, grok: true, codex: true}`, all four hosts registered and functional. It was reverted because the repo is worked from more than one agent host, so disabling per-host guardrails to quiet this probe was not an acceptable trade (details in #3571).\n\nThis does not weaken the report; it sharpens it. The measurements in the table were taken with all four hosts enabled, which is the configuration the probe is expected to handle, and the narrowing was only ever an attempt to work around it. **With the recommended remediation off the table, retrying is the only remaining local response to this gate** — so the fixed budget is the sole thing standing between a functional hook and a fail-closed mutation gate.\n\n**New datapoint: the recommended remediation is also not durable.** While reverting, I removed the `hostHooks` block and ran `deft update` to regenerate. That run silently re-enabled a *different* policy field — `productSignal` came back as `enabled: true` (`source: install-force-on`) after having been explicitly disabled, because an absent key is re-force-on'd at install/update time. Only an explicit typed `false` survives. So an operator following the probe's remediation advice (edit `hostHooks`, run `deft update`) can have unrelated policy re-flipped underneath them in the same command — including outbound-telemetry policy, in a tracked file that propagates to every clone.\n\nThat interaction seems worth considering when deciding where the probe's remediation text should point, since `deft update` is currently the prescribed vehicle for both remediation paths in the failure message.\n\nEnvironment (current): `@deftai/directive-core@0.104.0`, tag `v0.104.0`, Node v22.23.2, macOS 26.5.2 (arm64), `hostHooks` at default (all four enabled).\n\n\n### Comment by @MScottAdams (2026-08-21T00:15:21Z)\n\n## Triage analysis\n\n_By: Grok 4.6 (xAI), 2026-08-20. Checked against `deftai/directive` at tag `v0.105.0` (issue bodies + comments via REST, then the live probe / deposit / policy sources)._\n\n**Verdict:** accurate, desirable, almost ready. Lock a first-ship slice before implementing. Pair with #3571.\n\n### Accuracy\n\nHigh. The 1.5s per-fixture cap is a contract, not a guess:\n\n- `LIVE_PROBE_CASE_TIMEOUT_MS = 1_500` in `packages/core/src/verify-env/agent-hooks-live-probe.ts`\n- Same number in `content/contracts/agent-hook-readiness.md` (“each host fixture has a hard timeout of **1.5 seconds**”; four hosts × two fixtures ⇒ 12s ceiling)\n\n`spawnSync({ timeout: 1500 })` kills the child, so the probe can report `timed-out` while a separately timed `deft-hook` still exits 0. Idle 0.4–0.6s vs loaded 1.0–1.9s is exactly the squeeze that budget has no room for. Mixed `claude/allow` / `codex/deny` failures match “stop after the first failed fixture.”\n\nFailure copy is wrong for this class:\n\n- live probe: `Recovery: reinstall @deftai/directive and run deft update`\n- readiness wrapper: `set plan.policy.hostHooks.<host> = false, and run deft update`\n\nNeither changes per-invocation latency. Deposit timeouts are already looser than the probe (nested hosts **5s**, Cursor `tool.before` **30s** after #3246), so the gate is stricter than the hook the host actually runs.\n\nThe body Environment line (`hostHooks` narrowed to Claude) is stale; the comment on this issue correctly restores the default all-four-hosts config, which is the configuration that was measured.\n\n### Desirability\n\nHigh. The gate fails during swarm / parallel load, which is when mutation readiness is supposed to stay green. Following the printed recovery is worse than the bug (unplanned `deft update`, or #3571 guardrail strip).\n\n### Readiness\n\nAlmost — pick one first ship. Repro, measurements, and code anchors are enough. The body offers three directions; that is the only design fork:\n\n1. Honest verdict: `timed-out` ≠ `non-functional`, and stop recommending reinstall / host opt-out for timeout. Cheap; should land either way.\n2. One retry, or raise the budget toward the 5s nested deposit (keep a hard ceiling; 4×2×1.5s is why 1500ms exists).\n3. Policy / env override — extra surface; not v1.\n\nRecommended first ship: (1)+(2) as one story. Leave (3) out. Do not swarm this until that slice is locked.\n\nRelated: #3571 is the documented unused-host workaround this message already prints. #3437 (`deft update` as a repo-wide rewrite) is cited in the body; dry-run dest-plan work closed in 0.105.0 and does not fix this probe.\n\n\n### Comment by @MScottAdams (2026-08-21T00:27:03Z)\n\n## Design critique of the triage comment (checked at `b6bc689a1fa50ea20ac050776723796de00d71a4`)\n\n_By: Grok 4.5 (xAI)_\n\nChecked against `deftai/directive` at `origin/master` tip `b6bc689a1fa50ea20ac050776723796de00d71a4` (fetched; local `HEAD` was behind). Probe/readiness/deposit sources are identical to tag `v0.105.0` on the files below (`git diff v0.105.0 origin/master --` those paths is empty). In-bounds inputs only: issue body, author comment `5363096041`, triage comment `5363616662`, plus local re-reads of the cited sources. Author wall-clock table was not re-run here (reporter: macOS arm64 under swarm load; this checkout: win32). Code/contract claims were re-measured by reading the tip blob, not by trusting line numbers from triage.\n\n## What holds\n\n- **Fixed 1.5s per-fixture budget is real.** `LIVE_PROBE_CASE_TIMEOUT_MS = 1_500` at `packages/core/src/verify-env/agent-hooks-live-probe.ts:13`; wired into `spawnSync({ timeout })` at `:111`. Contract text matches at `content/contracts/agent-hook-readiness.md:58` (“hard timeout of **1.5 seconds**”; four hosts × two fixtures ⇒ **12 seconds** ceiling).\n- **Timeout vs process exit can diverge.** On timeout the probe records `issue: \"timed-out\"` (`:228–231`) from `spawnSync` `ETIMEDOUT`. A separately timed manual `deft-hook` that still exits 0 is compatible with that model; the gated ritual never sees that exit.\n- **Failure copy is wrong for this class.** Live probe failure message always ends with `Recovery: reinstall @deftai/directive and run \\`deft update\\`` (`:323`) for every case class, including `timed-out`. Readiness wrapper appends hostHooks opt-out + `deft update` on any live failure (`agent-hook-readiness.ts:229`). Neither path changes per-invocation latency.\n- **Deposit budgets are looser than the probe.** Nested Claude/Grok/Codex deposit timeout `NESTED_HOOK_TIMEOUT_SECONDS = 5` (`init-deposit/agent-hooks.ts:55`); Cursor `tool.before` deposit `CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS = 30` after #3246 (`:52`, comment block immediately above documents the ~12s readiness ceiling). Gate is stricter than the host-facing budgets.\n- **Per-host stop-after-first-fixture is real.** Fixture loop `break` at `agent-hooks-live-probe.ts:303`; host status collapses any case failure (including timeout) to `non-functional` at `:306`. The probe still continues across remaining hosts, which matches a multi-host `claude/allow` / `…` / `codex/deny` summary under load.\n- **Triage framing is right on desirability and “almost ready.”** Swarm/parallel load is exactly when mutation readiness is supposed to stay green; printed recovery steers into collateral (#3571 / broad `deft update`). Author follow-up correctly retires narrowed-hostHooks as an acceptable workaround.\n- **Propose-not-apply posture is correct.** Lock a first-ship slice before code.\n\n## Findings\n\n1. **[blocks-the-design]** First-ship option (2) as written (“raise the budget toward the 5s nested deposit”) is unsafe without a simultaneous ceiling rewrite. At four enabled hosts × two fixtures, 5s/case ⇒ **40s** absolute ceiling. Cursor deposit stays **30s** and was raised specifically so host `failClosed` does not kill a ritual that re-runs live readiness (#3246 comment at `agent-hooks.ts:43–51`; contract ceiling still **12s** at `agent-hook-readiness.md:58`). A naive 1500→5000 raise re-opens the #3246 class unless Cursor timeout and the contract ceiling move in the same story. Prefer: **one retry at 1.5s** (worst case 24s < 30s) **or** a modest raise that keeps `hosts × fixtures × budget ≤ ~20–24s`, with contract + Cursor deposit updated if the ceiling moves.\n\n2. **[blocks-the-design]** “Honest verdict” is not free text alone. `timed-out` already exists as a case `issue` (`:18`, `:230`), but readiness maps every live failure to `functionality/liveStatus = non-functional` (`agent-hook-readiness.ts:204–216`) and always prints reinstall/hostHooks recovery. First ship must branch remediation (and preferably the readiness dimension / message) on `timed-out` vs missing/drift/bad-envelope. Leaving the enum while still saying “non-functional → reinstall” fails the class the issue names.\n\n3. **[sharpens-framing]** “Stop after the first failed fixture” in triage should be stated as **per host**, not as whole-probe early exit. Code continues the outer host loop after a per-host `break` (`:290–306`). That is what makes all-four-hosts timeout reports possible in one gated run.\n\n4. **[sharpens-framing]** Author comment `5363096041` adds a durability point triage under-weights for recovery design: following printed `deft update` can re-force-on unrelated policy (`productSignal` cited). Pair recovery rewrite with “do not prescribe `deft update` for timeout”; #3437 / #3571 are not optional footnotes for copy work.\n\n5. **[footnote]** No policy/env knob for `LIVE_PROBE_CASE_TIMEOUT_MS` exists under `packages/types` / `packages/core/src/policy` (search at tip: no hits). Triage’s deferral of configurable override to post-v1 is consistent with inventory.\n\n6. **[footnote]** Maintainer source checkouts skip the live gate (`agent-hook-readiness.ts:159–168`). This bug class is consumer/deposit-path; tip re-verification here is structural, not a local ritual fail reproduction.\n\n## Existing mechanisms\n\nDo not invent a new readiness subsystem. Extend what already exists:\n\n| Mechanism | Role now | Fit for #3570 |\n|---|---|---|\n| `LIVE_PROBE_CASE_TIMEOUT_MS` + contract “Probe budget” | Hard per-fixture cap + 12s ceiling | Adjust carefully; ceiling is load-bearing for #3246 |\n| Case `issue: \"timed-out\"` | Already distinguished in probe cases | Branch message / readiness mapping on it |\n| `hostHooks` policy | Intentional unused-host opt-out | Keep; stop advertising it as timeout recovery |\n| `NESTED_HOOK_TIMEOUT_SECONDS` (5s) | Host deposit budget for nested hooks | Upper reference only; not a free probe target |\n| `CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS` (30s) | Host budget covering readiness ceiling | Hard constraint on any probe raise/retry product |\n| Gated `agent_hooks` → `verify:hooks-installed --scope=agent --live` | Non-deferrable mutation gate | Keep fail-closed; fix what “closed” means |\n| Test seam `spawnHook` / timeout unit test (`agent-hooks-live-probe.test.ts` ~310–318) | Deterministic timeout path | Extend for retry + remediation-branch tests |\n\n## Injection / swarm lens\n\nHostile or headless envelopes that spawn parallel builds/tests are the ambient load that pushes hooks past 1.5s. Fail-closed then blocks the next mutation ceremony **because** Directive is working hard — the worst time to print “reinstall / `deft update` / disable hostHooks.” An agent that obeys the message mid-swarm performs an unplanned framework rewrite or strips guardrails (#3571), and may still see timeout. Raising the probe blindly until Cursor’s 30s host kill fires converts a flaky readiness failure into an opaque host `exit-1` with no Directive allow/deny (#3246 recurrence). Retry-once or a ceiling-aware modest raise preserves fail-closed against broken hooks without teaching agents to dismantle policy under load.\n\n## Road not taken\n\n**Policy/env override as v1** (body direction 3; triage deferred): loses because it adds operator surface and still needs a safe default under swarm load; does not fix wrong remediation for the default path.\n\n**Copy-only ship with no retry/budget change:** loses because measurements already show idle passes and load straddles 1.5s; honest text without relief leaves the gate red during the workflow the framework itself creates.\n\n**Raise every case to 5s without touching Cursor/contract ceilings:** loses — see finding 1; trades one false-red for host failClosed kills.\n\n**Load-detect / skip live probe when busy:** loses thin fail-closed (#3265) — softens the gate instead of making timeout a distinct, remediable condition.\n\nWinner for first ship: **(1) timeout-specific verdict + remediation** plus **(2a) one retry or a modest raise that keeps multi-host ceiling under the Cursor 30s deposit**, with contract text updated in the same change if the ceiling moves. Leave configurable override out.\n\n## Score against Directive rules\n\n| Rule | Score |\n|---|---|\n| Authority ladder | **Pass** — triage cites contract + probe/readiness sources rather than issue prose alone. |\n| Fail-closed | **Mixed** — gate correctly fail-closes on bad hooks; currently also fail-closes on “slow but exit-0 under load,” which is the bug. |\n| Propose-not-apply | **Pass** — triage refuses implement-before-slice-lock. |\n| Claim-cites-state (#2066) | **Pass on code**; author Environment line was correctly marked stale vs comment `5363096041`. |\n| Gate integrity (#3156) | **At risk if first ship is “disable host / skip probe / raise past Cursor budget.”** Fix the product condition and remediation; do not green the gate by gutting it. |\n| Thin fail-closed (#3265) | **Fail today** — one check, but remediation is not the matching one for `timed-out`. First ship restores “one check + one *correct* remediation.” |\n\n## Disposition\n\n**Uphold** the triage’s diagnosis and desirability. **Amend** the recommended first ship before any implement dispatch:\n\n1. Branch probe/readiness messaging (and preferably readiness mapping) so `timed-out` ≠ “reinstall / hostHooks=false.”\n2. Add **one retry** and/or a **ceiling-aware** budget change; **do not** treat “raise toward 5s” as unconstrained.\n3. If the absolute ceiling moves, update `content/contracts/agent-hook-readiness.md` and keep `CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS` strictly above that ceiling in the same story.\n4. Keep configurable policy override out of v1.\n5. Pair with #3571 for the unused-host workaround story; do not use host opt-out as the timeout fix.\n\nReady for a locked scope xBRIEF after that slice text is explicit — not before.\n\n\n### Comment by @MScottAdams (2026-08-21T00:47:11Z)\n\n## Verified synthesis (critique-pass-1, 2026-08-21)\n\n_By: Grok 4.6 (xAI) — synthesizer, not a critic in this run. Triage author was also Grok 4.6; critic was Grok 4.5. Rows below are marked **hold** only on a primary-source re-read of `origin/master`, not on critic agreement._\n\nHand-run of #3434 Pass 3. Not implementation. Working tree was not modified.\n\n**SHA:** `1555c372633433edc8782648a6dc8182669c8855` (`origin/master` at synthesis). Cited probe / readiness / deposit / contract paths are byte-identical to the critic SHA `b6bc689a` (`git diff b6bc689a origin/master --` those paths is empty).\n\nThread: issue body; [author follow-up](https://github.com/deftai/directive/issues/3570#issuecomment-5363096041); [triage](https://github.com/deftai/directive/issues/3570#issuecomment-5363616662); [R1 critique](https://github.com/deftai/directive/issues/3570#issuecomment-5363695273).\n\n### Disposition\n\n**Keep as a scoped bugfix. Do not implement until the first-ship slice is locked as below.** Pair copy work with #3571. Do not use hostHooks opt-out as the timeout fix.\n\n| Slice | In v1 | Out of v1 |\n|---|---|---|\n| **A — timeout ≠ broken** | Branch probe/readiness messaging (and the readiness `functionality` / `liveStatus` mapping) so `timed-out` does not print reinstall or `hostHooks.<host> = false`. | Configurable policy/env budget knob |\n| **B — ceiling-aware relief** | One retry at 1.5s **or** a modest raise whose `hosts × fixtures × budget` stays under Cursor `tool.before` 30s (retry-once worst case 24s). If the contract 12s ceiling moves, update `content/contracts/agent-hook-readiness.md` and keep `CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS` strictly above it **in the same change**. | Unconstrained raise toward nested 5s (40s absolute at 4×2) |\n| **C — #3571** | Recovery text on this issue must stop advertising unused-host strip. Land with #3571 so remediations do not fight. | Product-signal force-on asymmetry (author follow-up) as AC here |\n\n### Verified claims\n\n| Claim | Claimant | Verdict | Method | Evidence at `1555c372` |\n|---|---|---|---|---|\n| Per-fixture budget is hardcoded 1500ms | reporter, triage, R1 | **hold** | `git show origin/master:packages/core/src/verify-env/agent-hooks-live-probe.ts` | `:13` `LIVE_PROBE_CASE_TIMEOUT_MS = 1_500`; `:111` `spawnSync({ timeout })` |\n| Contract ceiling is 1.5s × 4 hosts × 2 fixtures = 12s | triage, R1 | **hold** | `git show` contract | `content/contracts/agent-hook-readiness.md:58` |\n| Timeout case exists; live failure still mapped to `non-functional` | R1 | **hold** | `git show` probe + readiness | probe `:18` / `:230` `timed-out`; host status `:306` `non-functional`; readiness `:204–216` |\n| Live-probe recovery always says reinstall + `deft update` | triage, R1 | **hold** | `git show` | probe `:323` |\n| Readiness failure appends ungated hostHooks hand-edit | triage, R1 | **hold** | `git show` | readiness `:229` |\n| Nested deposit 5s; Cursor tool.before 30s after #3246 | triage, R1 | **hold** | `git show` | `init-deposit/agent-hooks.ts:52–55` and comment `:43–51` (12s ceiling named) |\n| Stop-after-first-fixture is **per host**, outer host loop continues | R1 (amends triage wording) | **hold** | `git show` fixture loops | probe `:297–306` (`break` inner; continue outer) |\n| Naive 1500→5000 raises absolute ceiling to 40s > Cursor 30s | R1 | **hold** | arithmetic on contract hosts/fixtures + deposit constants | 4×2×5s = 40s; Cursor `:52` = 30 |\n| One retry at 1.5s worst case 24s < 30s | R1 | **hold** | same arithmetic | 4×2×1.5s×2 = 24 |\n| No policy/env knob for the 1500ms constant | triage, R1 | **hold** | `git grep` on origin blobs for `LIVE_PROBE_CASE_TIMEOUT` under policy | only probe + contract + tests |\n| Maintainer checkout skips live gate | R1 | **hold** | `git show` | readiness `:159–168` |\n| Reporter wall-clock table (idle ~0.5s / load >1.5s, exit 0) | reporter | **unverified here** | not re-run (reporter macOS swarm load) | do not treat as repo-verified; code path still makes the class possible |\n| `deft update` can re-force `productSignal` when the key is absent | author follow-up; R1 under-weight | **hold as #2822/#2903 code** | `git show` org-force-on | `looksLikePreMigrationProductSignal` `:184–185` missing key → true; VF `:176–177` missing key → false. Trusted-org only. Out of this issue’s AC |\n\n### Finding → slice\n\n| Finding | Source | Slice |\n|---|---|---|\n| Honest verdict is not copy-only; mapping still says non-functional | R1 F2 | **A** |\n| Unconstrained raise toward 5s re-opens #3246 | R1 F1 | **B** (amends triage option 2) |\n| Stop-after-first-fixture is per-host | R1 F3 | wording; not a child |\n| Printed `deft update` is the wrong timeout vehicle | author follow-up, R1 F4 | **A** + pair **C** |\n| Policy/env override as v1 | body dir 3; triage deferred; R1 road-not-taken | **out** |\n| Copy-only ship with no relief | R1 road-not-taken | **out** — idle/load split still needs B |\n\n### What the triage got right\n\nDiagnosis and desirability hold. Failure copy is the wrong remediation for `timed-out`. Pair with #3571. Defer configurable override. Do not swarm until the slice is locked.\n\n### What the critique changed (load-bearing)\n\nTriage option (2) “raise toward the 5s nested deposit” is **not** safe as written. v1 relief is retry-once or a raise that stays under the Cursor 30s deposit, with contract + Cursor constant moving in the same story if the 12s ceiling moves. “Honest verdict” must include the readiness mapping, not only the probe case enum.\n\n### Out of scope here\n\nImplementing A/B. Filing a hostHooks confirm verb (#3571). Changing product-signal force-on. Re-running the reporter’s load table.\n\n\n### Comment by @MScottAdams (2026-08-21T01:21:50Z)\n\n## Cohort\n\nRecorded in `xbrief/.triage-cache/slices.jsonl` with #3571 (wave 1, same work) and #3572 (wave 2, parked).\n\nVerified synthesis (this issue): https://github.com/deftai/directive/issues/3570#issuecomment-5363824902\n\nDisposition: keep as a scoped bugfix. Pair with #3571. Do not use hostHooks opt-out as the timeout fix. First-ship is timeout≠broken copy plus ceiling-aware relief (retry-once or a raise that stays under Cursor 30s).",
+      "Labels": "bug, agent-experience",
+      "UserStory": "As an operator running gated session ritual under swarm load, I want a functional but slow hook to retry or get an honest timeout verdict, so that mutation is not fail-closed with a reinstall or hostHooks opt-out.",
+      "When": "When the live probe exceeds 1500ms but the hook exits 0, the gate does not print reinstall or hostHooks false, and one retry at 1.5s keeps worst-case 24s under Cursor 30s.",
+      "LockedDecisions": "Operator grant 2026-08-21: implement locked first-ship from verified synthesis comment 5363824902. In v1: timeout-not-broken mapping+copy; ceiling-aware relief (retry-once at 1.5s preferred). Out: policy/env budget knob; unconstrained raise to 5s; product-signal force-on. Do not use hostHooks opt-out as the timeout fix. Pair recovery text with #3571.",
+      "ImplementationPlan": "Edit packages/core/src/verify-env/agent-hooks-live-probe.ts (LIVE_PROBE_CASE_TIMEOUT_MS retry-once) and packages/core/src/verify-env/agent-hook-readiness.ts (timed-out mapping and recovery copy). Update content/contracts/agent-hook-readiness.md if the 12s ceiling moves. Verify with pnpm exec vitest run packages/core/src/verify-env. CHANGELOG.md Unreleased. Same PR as #3571.",
+      "OriginDivergence": "Intentional: locked first-ship from #3570 synthesis; issue body three-direction fork resolved to A+retry-once, not 5s raise."
+    },
+    "items": [
+      {
+        "title": "Timeout is not broken",
+        "status": "completed",
+        "narrative": {
+          "When": "When a live probe times out, readiness liveStatus and functionality mapping do not treat it as non-functional, and printed recovery does not say reinstall or set hostHooks host false.",
+          "Acceptance": "When a live probe times out, readiness liveStatus and functionality mapping do not treat it as non-functional, and printed recovery does not say reinstall or set hostHooks host false."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-env/agent-hook-readiness.test.ts",
+          "recorded_at": "2026-08-21T03:10:28Z",
+          "recorded_by": "leaf-implementation/host-hooks-3570-3571"
+        }
+      },
+      {
+        "title": "Retry once under Cursor ceiling",
+        "status": "completed",
+        "narrative": {
+          "When": "When the first 1500ms probe times out, the probe retries once at the same budget; worst case 4 hosts times 2 fixtures times 1.5s times 2 stays under 30s.",
+          "Acceptance": "When the first 1500ms probe times out, the probe retries once at the same budget; worst case 4 hosts times 2 fixtures times 1.5s times 2 stays under 30s."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-env/agent-hooks-live-probe.test.ts",
+          "recorded_at": "2026-08-21T03:10:28Z",
+          "recorded_by": "leaf-implementation/host-hooks-3570-3571"
+        }
+      },
+      {
+        "title": "Contract and changelog",
+        "status": "completed",
+        "narrative": {
+          "When": "When the change lands, the agent-hook-readiness contract still names the ceiling and CHANGELOG Unreleased records the leftover.",
+          "Acceptance": "When the change lands, the agent-hook-readiness contract still names the ceiling and CHANGELOG Unreleased records the leftover."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/agent_hook_readiness_docs.test.ts",
+          "recorded_at": "2026-08-21T03:10:28Z",
+          "recorded_by": "leaf-implementation/host-hooks-3570-3571"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3570",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3570: bug(hooks): agent-hook readiness probe fail-closes on a functional hook under concurrent load (fixed 1500ms budget)"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [
+        {
+          "command": "deft verify:session-ritual -- --tier=gated",
+          "source": "explicit",
+          "sourceSpan": "inline@L5"
+        }
+      ],
+      "literal_acceptance_rejected": [
+        {
+          "command": "Recovery: reinstall @deftai/directive and run `deft update`",
+          "reason": "shell metacharacter \"`\" is not allowed in literal AC commands",
+          "sourceSpan": "prompt@L26"
+        },
+        {
+          "command": "npm run build",
+          "reason": "package-manager args must be test|exec vitest|run test|run check|--version (arbitrary scripts/network install denied for ambient-authority)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "deft update",
+          "reason": "wrapper subcommand must be check|doctor|verify:*|help|--version (scope/policy/swarm/scm/merge and other ambient-authority verbs denied)",
+          "sourceSpan": "inline@L26"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/verify-env/agent-hooks-live-probe.ts",
+          "packages/core/src/verify-env/agent-hook-readiness.ts",
+          "content/contracts/agent-hook-readiness.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/verify-env",
+          "deft verify:session-ritual -- --tier=gated"
+        ],
+        "expected_outputs": [
+          "timed-out is not non-functional; one retry; no hostHooks opt-out in timeout recovery"
+        ],
+        "depends_on": [],
+        "conflict_group": "host-hooks-3570-3571",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Issue-ingested #3570; FR traces on the issue thread."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/verify-env/agent-hooks-live-probe.ts",
+          "packages/core/src/verify-env/agent-hook-readiness.ts"
+        ],
+        "module_boundary": "packages/core/src/verify-env"
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3581,
+        "prBase": null,
+        "mergeCommit": "e069c130f77c41f8d4e1377996077dd58545c8d1",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e069c130f77c41f8d4e1377996077dd58545c8d1",
+        "verifiedAt": "2026-08-21T03:15:35Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "91b17fbc-cb11-4136-a53c-48b7c7e75efd"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-21T03:15:35Z",
+      "completedSessionId": "91b17fbc-cb11-4136-a53c-48b7c7e75efd",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/verify-env"
+      ],
+      "none_stated": false,
+      "ambiguity_attestation": "none_found",
+      "source_rung": "stated",
+      "derived_reason": "locked first-ship of #3570",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "timed-out is not mapped to non-functional and does not recommend reinstall or hostHooks false",
+          "artifact_path": "packages/core/src/verify-env/agent-hook-readiness.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 2,
+          "text": "one retry at 1500ms; worst-case ceiling stays under Cursor tool.before 30s",
+          "artifact_path": "packages/core/src/verify-env/agent-hooks-live-probe.ts",
+          "ambiguous": false
+        },
+        {
+          "id": 3,
+          "text": "CHANGELOG Unreleased records the leftover; contract ceiling stays consistent",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false
+        }
+      ]
+    },
+    "id": "issue-3570-hook-probe-timeout",
+    "updated": "2026-08-21T03:15:35Z"
+  }
+}
