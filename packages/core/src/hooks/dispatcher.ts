@@ -1072,21 +1072,22 @@ function decideShellDestFormsThenRuntimeAuthority(
 ): HookDecision {
   const command = hookShellCommand(input.payload);
   let destAllow: HookDecision | null = null;
+  let expansionDeny: HookDecision | null = null;
   if (command !== null) {
     for (const dest of classifyProductDestForms(command)) {
       if (dest.expansion === true) {
-        return deny(
+        expansionDeny = deny(
           input,
           "scope-not-ready",
           toolName,
           `Directive denied ${toolName}: Shell dest-form uses expansion (glob or variable). ` +
             "Use a concrete path or Edit/Write. Expansion dests stay fail-closed (#3438).",
         );
+        continue;
       }
-      const destPath = dest.path;
       const destInput: HookDispatchInput = {
         ...input,
-        payload: payloadWithInjectedWriteTarget(input.payload, destPath),
+        payload: payloadWithInjectedWriteTarget(input.payload, dest.path),
       };
       const destDecision = inspectMutationGates(destInput, toolName, seams, {
         proposedLifecycleExempt: true,
@@ -1097,6 +1098,7 @@ function decideShellDestFormsThenRuntimeAuthority(
   }
   const runtime = decideShellOrMcpRuntimeAuthority(input, toolName, seams);
   if (runtime.verdict === "deny") return runtime;
+  if (expansionDeny !== null) return expansionDeny;
   if (destAllow !== null && runtime.code === "shell-op-unclassifiable") {
     return destAllow;
   }
