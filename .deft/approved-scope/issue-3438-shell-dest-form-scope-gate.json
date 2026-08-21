@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-08-21-3438-scope-gate-file-mutations-via-bash-bypass-the-active-xbrief.xbrief.json",
+  "planId": "issue-3438-shell-dest-form-scope-gate",
+  "approvedAt": "2026-08-21T20:06:16Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "content/commands.md",
+    "content/contracts/path-write-fence.md",
+    "content/contracts/runtime-authority.md",
+    "packages/core/src/hooks/dest-form.test.ts",
+    "packages/core/src/hooks/dest-form.ts",
+    "packages/core/src/hooks/dispatcher.test.ts",
+    "packages/core/src/hooks/dispatcher.ts",
+    "packages/core/src/hooks/index.ts"
+  ],
+  "fileScopeDigest": "8a0b23302637e38ba8de0e2499ba2b9109b60da9982f73fa5bcc6219221570c4",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "msadams",
+    "mintedAt": "2026-08-21T20:06:16Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "a707dbed744f3304aa9640f7115dc6b2f1e968b0d55c13bee0717c1a21c829ed",
+  "digestAlgo": "intent-extract-v1"
+}
