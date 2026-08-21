@@ -64,10 +64,13 @@ Dest-form target reconstruction (#3438) follows shell **precedence**, not separa
 - `&` closes the whole and-or list and backgrounds it, so `cd sub && rm a & rm b` removes
   `sub/a` but leaves `rm b` in the parent shell targeting root `b` — the `cd` never escapes
 - `;` closes the list without backgrounding it, so its `cd` does carry forward
+- `||` is the **failure** branch: reaching it means the `cd` did not happen, so
+  `cd scoped || rm x` targets root `x`, not `scoped/x`
 
 `git -C` composes (`git -C a -C b` → `a/b`; an absolute `-C` resets), and `--work-tree`
 resolves against the `-C` chain preceding it. Targets the classifier cannot reconstruct stay
-fail-closed: glob/variable dests and any command using subshell grouping (`(`/`)`).
+fail-closed: glob/variable dests, subshell grouping (`(`/`)`), and a work tree selected
+through `-c core.workTree` / `--config-env` (resolution there depends on the git dir).
 Known-open, denied not reconstructed: quoted literal metacharacters over-deny.
 
 ## Skill behavior (build / swarm)

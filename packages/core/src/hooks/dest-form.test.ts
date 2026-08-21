@@ -223,6 +223,37 @@ describe("classifyProductDestForms (#3438)", () => {
     ]);
   });
 
+  it("does not apply a cd across the || failure branch", () => {
+    // Reaching the `||` branch means the `cd` FAILED, so cwd is unchanged and
+    // the removal targets root `x`. Prefixing it would let an authorized scoped
+    // path stand in for an out-of-scope mutation (#3438).
+    expect(classifyProductDestForms("cd scoped || rm x")).toEqual([{ kind: "rm", path: "x" }]);
+    expect(classifyProductDestForms("cd scoped || rmdir tmp/dir")).toEqual([
+      { kind: "rmdir", path: "tmp/dir" },
+    ]);
+    // `&&` is the success branch and still applies.
+    expect(classifyProductDestForms("cd scoped && rm x")).toEqual([
+      { kind: "rm", path: "scoped/x" },
+    ]);
+  });
+
+  it("fails closed on a work tree selected through git -c core.workTree", () => {
+    // Resolution depends on the git dir, which the classifier does not model.
+    expect(classifyProductDestForms("git -c core.workTree=/tmp/tree checkout -- f.ts")).toEqual([
+      { kind: "git-checkout", path: "f.ts", expansion: true },
+    ]);
+    expect(classifyProductDestForms("git -ccore.worktree=/tmp/tree restore -- f.ts")).toEqual([
+      { kind: "git-restore", path: "f.ts", expansion: true },
+    ]);
+    expect(classifyProductDestForms("git --config-env=core.workTree=WT restore f.ts")).toEqual([
+      { kind: "git-restore", path: "f.ts", expansion: true },
+    ]);
+    // An unrelated -c is still skipped cleanly, not fail-closed.
+    expect(classifyProductDestForms("git -c core.editor=vim checkout -- f.ts")).toEqual([
+      { kind: "git-checkout", path: "f.ts" },
+    ]);
+  });
+
   it("fails closed on subshell grouping it cannot reconstruct", () => {
     // Grouping is detected, not parsed: the token keeps its trailing `)` and the
     // reconstruction is best-effort. Only the fail-closed verdict is load-bearing.

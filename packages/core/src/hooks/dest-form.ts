@@ -83,13 +83,14 @@ export function classifyProductDestForms(command: string): ProductDestForm[] {
     for (const seg of list.segments) {
       const cd = parseCdDir(seg.text);
       if (cd !== null) {
-        // A `cd` inside a pipeline member is confined to that member's subshell.
-        if (!seg.pipelineMember) listCwd = joinDestPrefix(listCwd, cd);
+        // Confined to a pipeline member's subshell, or on the `||` failure
+        // branch where reaching the next segment means the `cd` did not happen.
+        if (!seg.pipelineMember && !seg.closedByOr) listCwd = joinDestPrefix(listCwd, cd);
         continue;
       }
       for (const dest of classifyDestFormSegment(seg.text)) {
         const path = joinDestPrefix(listCwd, dest.path);
-        const expansion = groupingUnsafe || destFormHasExpansion(path);
+        const expansion = groupingUnsafe || dest.expansion === true || destFormHasExpansion(path);
         const key = `${dest.kind}\0${path}`;
         if (seen.has(key)) continue;
         seen.add(key);
@@ -114,6 +115,12 @@ interface DestFormSegment {
    * gated on this flag.
    */
   readonly pipelineMember: boolean;
+  /**
+   * True when terminated by `||`. The next segment runs only if this one
+   * FAILED, so a `cd` here must not retarget it: `cd sub || rm x` removes root
+   * `x`, because reaching `rm x` means the `cd` did not happen (#3438).
+   */
+  readonly closedByOr: boolean;
 }
 
 /**
@@ -163,8 +170,8 @@ function splitDestFormLists(command: string): DestFormList[] {
   let cur = "";
   let openedByPipe = false;
   let quote: "'" | '"' | null = null;
-  const endSegment = (closedByPipe: boolean): void => {
-    segments.push({ text: cur, pipelineMember: openedByPipe || closedByPipe });
+  const endSegment = (closedByPipe: boolean, closedByOr = false): void => {
+    segments.push({ text: cur, pipelineMember: openedByPipe || closedByPipe, closedByOr });
     cur = "";
     openedByPipe = closedByPipe;
   };
@@ -199,7 +206,7 @@ function splitDestFormLists(command: string): DestFormList[] {
       continue;
     }
     if (c === "|" && command[i + 1] === "|") {
-      endSegment(false);
+      endSegment(false, true);
       i++;
       continue;
     }
@@ -333,17 +340,31 @@ function parseCdDir(segment: string): string | null {
   return dir;
 }
 
-function skipGitGlobals(tokens: string[], start: number): { i: number; workTree: string | null } {
+function skipGitGlobals(
+  tokens: string[],
+  start: number,
+): { i: number; workTree: string | null; unsafe: boolean } {
   let i = start;
   // `-C` composes rather than overwrites: `git -C a -C b` runs in `a/b`, and an
   // absolute `-C` resets the chain. `--work-tree` resolves against the `-C`
   // chain seen before it, so absorb the base at the point it appears (#3438).
   let base: string | null = null;
   let workTree: string | null = null;
+  let unsafe = false;
   const effective = (): string | null => (workTree === null ? base : workTree);
   while (i < tokens.length) {
     const t = tokens[i];
-    if (t === undefined || !t.startsWith("-")) return { i, workTree: effective() };
+    if (t === undefined || !t.startsWith("-")) return { i, workTree: effective(), unsafe };
+    if (t === "-c" || t === "--config-env") {
+      if (isCoreWorkTreeConfig(tokens[i + 1])) unsafe = true;
+      i += 2;
+      continue;
+    }
+    if (t.startsWith("--config-env=")) {
+      if (isCoreWorkTreeConfig(t.slice("--config-env=".length))) unsafe = true;
+      i++;
+      continue;
+    }
     if (t.startsWith("--work-tree=")) {
       const val = t.slice("--work-tree=".length);
       if (val.length > 0) workTree = joinDestPrefix(base, val);
@@ -376,12 +397,13 @@ function skipGitGlobals(tokens: string[], start: number): { i: number; workTree:
       continue;
     }
     if (t.startsWith("-c")) {
+      if (isCoreWorkTreeConfig(t.slice(2))) unsafe = true;
       i++;
       continue;
     }
     i++;
   }
-  return { i, workTree: effective() };
+  return { i, workTree: effective(), unsafe };
 }
 
 function pathsAfterDashDash(tokens: string[], start: number): string[] {
@@ -399,8 +421,26 @@ function skipRestoreFlag(tokens: string[], i: number): number {
   return i + 1;
 }
 
-function dests(kind: ProductDestFormKind, paths: readonly string[]): ProductDestForm[] {
-  return paths.filter((path) => path.length > 0).map((path) => ({ kind, path }));
+function dests(
+  kind: ProductDestFormKind,
+  paths: readonly string[],
+  unsafe = false,
+): ProductDestForm[] {
+  return paths
+    .filter((path) => path.length > 0)
+    .map((path) => (unsafe ? { kind, path, expansion: true as const } : { kind, path }));
+}
+
+/**
+ * `-c core.workTree=...` / `--config-env` relocates the work tree through git
+ * config. Resolution depends on the git dir, which this classifier does not
+ * model, so the target is not reconstructable and stays fail-closed (#3438).
+ */
+function isCoreWorkTreeConfig(token: string | undefined): boolean {
+  if (token === undefined) return false;
+  const eq = token.indexOf("=");
+  const key = eq < 0 ? token : token.slice(0, eq);
+  return key.toLowerCase() === "core.worktree";
 }
 
 function classifyDestFormSegment(segment: string): ProductDestForm[] {
@@ -415,11 +455,13 @@ function classifyDestFormSegment(segment: string): ProductDestForm[] {
     const skipped = skipGitGlobals(tokens, i + 1);
     i = skipped.i;
     const prefix = skipped.workTree ?? prefixSkip.workTree;
+    const unsafe = skipped.unsafe;
     const sub = tokens[i]?.toLowerCase();
     if (sub === "checkout") {
       return dests(
         "git-checkout",
         pathsAfterDashDash(tokens, i + 1).map((p) => joinDestPrefix(prefix, p)),
+        unsafe,
       );
     }
     if (sub === "restore") {
@@ -429,6 +471,7 @@ function classifyDestFormSegment(segment: string): ProductDestForm[] {
         return dests(
           "git-restore",
           afterDash.map((p) => joinDestPrefix(prefix, p)),
+          unsafe,
         );
       }
       const paths: string[] = [];
@@ -449,6 +492,7 @@ function classifyDestFormSegment(segment: string): ProductDestForm[] {
       return dests(
         "git-restore",
         paths.map((p) => joinDestPrefix(prefix, p)),
+        unsafe,
       );
     }
     return [];
