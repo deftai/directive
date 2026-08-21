@@ -321,6 +321,13 @@ describe("run show + set integration", () => {
     expect(parseArgs(["disable-host-hooks", "--confirm"]).error).toContain("--host");
   });
 
+  it("disable-host-hooks ignores a stray go-task -- separator", () => {
+    const parsed = parseArgs(["disable-host-hooks", "--", "--host", "cursor", "--confirm"]);
+    expect(parsed.error).toBeUndefined();
+    expect(parsed.host).toBe("cursor");
+    expect(parsed.confirm).toBe(true);
+  });
+
   it("returns config error when setting on missing project def", () => {
     const r = mkdtempSync(join(tmpdir(), "deft-policy-missing-"));
     roots.push(r);

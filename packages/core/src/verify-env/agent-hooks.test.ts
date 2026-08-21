@@ -113,5 +113,6 @@ describe("evaluateAgentHooks", () => {
     expect(result.message).toContain("--confirm");
     expect(result.message).toContain("deft-hook pre-execution guardrails");
     expect(result.message).not.toContain("hostHooks.<host> = false");
+    expect(result.message).not.toContain("disable-host-hooks -- --host");
   });
 });

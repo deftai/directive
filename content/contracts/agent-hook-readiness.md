@@ -36,7 +36,7 @@ The live probe verifies the first two dimensions. It does not simulate a host to
 
 ## Per-host opt-out
 
-The typed opt-out is `deft policy:disable-host-hooks -- --host <host> --confirm`. It prints a capability-cost disclosure: opted-out hosts lose `deft-hook` pre-execution guardrails, and the result is tracked. Inspect current state with:
+The typed opt-out is `deft policy:disable-host-hooks --host <host> --confirm`. It prints a capability-cost disclosure: opted-out hosts lose `deft-hook` pre-execution guardrails, and the result is tracked. Inspect current state with:
 
 ```bash
 deft policy:show --field=hostHooks

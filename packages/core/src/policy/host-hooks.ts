@@ -20,8 +20,8 @@ export const FIELD_HOST_HOOKS = "plan.policy.hostHooks";
 export const FIELD_HOST_HOOKS_CLI_ALIAS = "hostHooks";
 export const DISABLE_HOST_HOOKS_SUBCOMMAND = "disable-host-hooks";
 
-/** Confirm-gated disable verb for unused-host recovery copy (#3571). */
-export function disableHostHooksInvocation(trailing = " -- --host <host> --confirm"): string {
+/** Confirm-gated disable verb for unused-host recovery copy (#3571). CLI form: no go-task `--`. */
+export function disableHostHooksInvocation(trailing = " --host <host> --confirm"): string {
   return policyColonInvocation(DISABLE_HOST_HOOKS_SUBCOMMAND, trailing);
 }
 
@@ -199,7 +199,7 @@ export function disableHostHooks(
       exitCode: 1,
       stdout:
         `${HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE}\n\n` +
-        `Re-run with --confirm to apply: ${disableHostHooksInvocation(` -- --host ${options.host} --confirm`)}\n`,
+        `Re-run with --confirm to apply: ${disableHostHooksInvocation(` --host ${options.host} --confirm`)}\n`,
       changed: false,
     };
   }

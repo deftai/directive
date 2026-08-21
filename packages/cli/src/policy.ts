@@ -340,6 +340,8 @@ export function parseArgs(argv: string[]): SetArgs {
           return makeSetError("argument --host: expected claude|cursor|grok|codex");
         }
         host = parsedHost;
+      } else if (arg === "--") {
+        continue;
       } else {
         return makeSetError(`unrecognized argument: ${arg}`);
       }

@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   DEFAULT_HOST_HOOKS_POLICY,
   disableHostHooks,
+  disableHostHooksInvocation,
   FIELD_HOST_HOOKS_CLI_ALIAS,
   HOST_HOOKS_DISABLE_CAPABILITY_COST_DISCLOSURE,
   inspectHostHooks,
@@ -155,5 +156,10 @@ describe("hostHooks policy (#2752)", () => {
     expect(UNUSED_HOST_HOOKS_RECOVERY).toContain("--confirm");
     expect(UNUSED_HOST_HOOKS_RECOVERY).toContain("deft-hook pre-execution guardrails");
     expect(UNUSED_HOST_HOOKS_RECOVERY).not.toContain("hostHooks.<host> = false");
+    expect(disableHostHooksInvocation()).toBe(
+      "deft policy:disable-host-hooks --host <host> --confirm",
+    );
+    expect(disableHostHooksInvocation()).not.toContain(" -- --");
+    expect(UNUSED_HOST_HOOKS_RECOVERY).not.toContain("disable-host-hooks -- --host");
   });
 });

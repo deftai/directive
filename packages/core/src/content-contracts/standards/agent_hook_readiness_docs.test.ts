@@ -23,9 +23,11 @@ describe("agent-hook functional readiness docs (#3100)", () => {
       "24 seconds",
       "one retry",
       "disable-host-hooks",
+      "deft policy:disable-host-hooks --host <host> --confirm",
     ]) {
       expect(text, `readiness contract missing ${token}`).toContain(token);
     }
+    expect(text).not.toContain("disable-host-hooks -- --host");
   });
 
   it("documents mutation wiring without moving the probe onto cold session start", () => {

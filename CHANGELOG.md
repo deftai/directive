@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Confirm-gated `policy:disable-host-hooks` verb (#3571).** `deft policy:disable-host-hooks -- --host <host> --confirm` prints a capability-cost disclosure: opted-out hosts lose deft-hook guardrails and the result is tracked. Readiness, structural agent-hooks recovery, and the Per-host opt-out contract name that verb instead of ungated hand-edit. Hand-edit plus `deft update` still strips. Leftover-free opted-out deposits write `{}`. Closes #3571. Refs #3570, #2752.
+- **Confirm-gated `policy:disable-host-hooks` verb (#3571).** `deft policy:disable-host-hooks --host <host> --confirm` prints a capability-cost disclosure: opted-out hosts lose deft-hook guardrails and the result is tracked. Readiness, structural agent-hooks recovery, and the Per-host opt-out contract name that verb instead of ungated hand-edit. Hand-edit plus `deft update` still strips. Leftover-free opted-out deposits write `{}`. Closes #3571. Refs #3570, #2752.
 - **Land leftover completed-tracked artifact for #3572 (#3264 / #1358).** The #3572 xBRIEF stayed untracked after squash of PR 3577. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #3558 (#3264 / #1358).** The #3558 xBRIEF stayed untracked after squash of PR 3565. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #3556 (#3264 / #1358).** The #3556 xBRIEF stayed untracked after squash of PR 3563. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
