@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "xbriefRelPath": "xbrief/active/2026-08-21-3438-scope-gate-file-mutations-via-bash-bypass-the-active-xbrief.xbrief.json",
   "planId": "issue-3438-shell-dest-form-scope-gate",
-  "approvedAt": "2026-08-21T20:06:16Z",
+  "approvedAt": "2026-08-21T21:01:17Z",
   "fileScope": [
     "CHANGELOG.md",
     "content/commands.md",
@@ -12,15 +12,18 @@
     "packages/core/src/hooks/dest-form.ts",
     "packages/core/src/hooks/dispatcher.test.ts",
     "packages/core/src/hooks/dispatcher.ts",
-    "packages/core/src/hooks/index.ts"
+    "packages/core/src/hooks/index.ts",
+    "packages/core/src/policy/runtime-authority.test.ts",
+    "packages/core/src/policy/runtime-authority.ts",
+    "packages/core/src/policy/write-fence.ts"
   ],
-  "fileScopeDigest": "8a0b23302637e38ba8de0e2499ba2b9109b60da9982f73fa5bcc6219221570c4",
+  "fileScopeDigest": "f35f58ca993dfce49ff169e13c65a2210d032a710baec12b56a5ac350623421a",
   "humanApproval": {
     "kind": "operator",
     "actor": "msadams",
-    "mintedAt": "2026-08-21T20:06:16Z",
+    "mintedAt": "2026-08-21T21:01:17Z",
     "mintedVia": "scope:record-approved-scope"
   },
-  "intentDigest": "a707dbed744f3304aa9640f7115dc6b2f1e968b0d55c13bee0717c1a21c829ed",
+  "intentDigest": "0e0be2f1f4b4e9c6cde846212117f88f6a247133713c334fa81f78f245c8db31",
   "digestAlgo": "intent-extract-v1"
 }

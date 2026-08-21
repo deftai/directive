@@ -12,7 +12,7 @@
       "When": "When Edit/Write is denied for empty active, the copy names direct-write and spawn only. When Bash runs git checkout -- paths, git restore, or rm/rmdir of in-repo paths with empty active, inspectMutationGates denies with the same exemptions as Edit/Write. python -c, cmd /c copy, and obfuscated bash stay known-open. git status stays fail-open. Commit-time active-scope is not in this story.",
       "LockedDecisions": "Verified synthesis 5364744368 is the lock. Accept the diagnosis; do not accept reuse UAT dest-writer classification as the v1 mechanism. V1 dest-form list: git checkout -- <paths>, git restore, rm/rmdir of in-repo paths. These need a NEW product-mutation classifier; classifyShellAuthzOps and listShellOps return empty for the filed repro. Route those through inspectMutationGates with Edit/Write parity exemptions (assist/scratch #1802, proposed lifecycle #2625; decide file_scope for Shell). Honesty copy lands even if the classifier slips. Residual known-open: python -c, cmd /c copy, obfuscated bash. Keep #2711 fail-open for non-dest unclassifiable shell. Keep #2885 closed. Commit-time active-scope is a separate story. Do not weaken Edit to match Shell.",
       "ImplementationPlan": "Change Edit/Write scope-not-ready deny copy to name direct-write and spawn, not Shell dest-forms. Add a new product dest-form classifier for the named list; do not wire classifyShellAuthzOps or listShellOps as-is. Route matching Shell ops through inspectMutationGates with assist/scratch and proposed-lifecycle exemptions; decide file_scope. Tests: reporter git checkout -- / rm with empty active denies; git status still allows; python -c documented residual. CHANGELOG Unreleased. Do not add a commit-time active-scope check.",
-      "OriginDivergence": "Ingest 2026-08-21. Body expected Bash same-check OR honesty copy OR later commit-time. Synthesis locks honesty plus a NEW dest-form classifier, not reuse UAT classify, and parks commit-time. D12: synthesis newer than body."
+      "OriginDivergence": "Ingest 2026-08-21. Body expected Bash same-check OR honesty copy OR later commit-time. Synthesis locks honesty plus a NEW dest-form classifier, not reuse UAT classify, and parks commit-time. D12: synthesis newer than body. D13 operator directive 2026-08-21 (post-synthesis, recorded per #3383): ship the gate OPT-IN, not enforcing. New field plan.policy.runtimeAuthority.shellDestForms: off|enforce, default off, folding the separately-filed knob #3594 into this story. Rationale: before #3438 Bash mutations were not gated at all, so default enforcement would land new denials on every consumer with no opt-out, on a release carrying a large open-bug count; shipping inert removes the need to stage a breaking change at all. enforce moves BOTH halves together (resolved dests through inspectMutationGates, and fail-closed targets) because splitting them would allow `cd x && rm y` while denying `rm x/y`. No warn state: its only purpose was staging, and renderHostDecision emits no text on the allow path for tool.before, so a warned denial is byte-identical to `git status` in the decision record. Tracked policy may only ENABLE this gate -- a tracked switch that disabled it would contradict policy/deft-directive-disable.ts (repository-controlled content must not disable hooks for downstream clones). Independent of runtimeAuthority.enabled in both directions. Deferred, not dropped: #3620 allow-path measurement, #3595 recognizer breadth, and the eventual default flip, which needs #3620 data first. LockedDecisions above still describes the enforcing behaviour and remains accurate for shellDestForms=enforce; it is inert at the default. Shape informed by the #3434 design-critique motion on #3594."
     },
     "items": [
       {
@@ -78,11 +78,14 @@
           "content/commands.md",
           "content/contracts/path-write-fence.md",
           "content/contracts/runtime-authority.md",
-          "packages/core/src/hooks/dest-form.ts",
           "packages/core/src/hooks/dest-form.test.ts",
-          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dest-form.ts",
           "packages/core/src/hooks/dispatcher.test.ts",
-          "packages/core/src/hooks/index.ts"
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/index.ts",
+          "packages/core/src/policy/runtime-authority.test.ts",
+          "packages/core/src/policy/runtime-authority.ts",
+          "packages/core/src/policy/write-fence.ts"
         ],
         "missing_traces_justification": [
           "Issue-ingested #3438; FR traces from verified synthesis 5364744368."
