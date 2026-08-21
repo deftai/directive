@@ -108,6 +108,9 @@ What that means concretely — all of these are **fail-open today**:
 - Interpreters: `bash -c 'rm x'`, `python -c`, `node -e`, `cmd /c`
 - Non-literal verbs: `\rm x`, `rm${IFS}x` — the tokenizer cannot see the verb, so even the
   fail-closed branch does not fire
+- **cmd / PowerShell mutators are not recognized at all**: `del`, `erase`, `rd`, `move`,
+  `copy /y`, `Remove-Item`, `Out-File`. Only POSIX-shaped verbs are on the list, and the hook
+  cannot tell which shell will run the command (#3624)
 - Mutations by allowed programs: `npm run build`, `node scripts/clean.js`, `make` — inherent
   to any string recognizer, since writing files is what those commands are *for*
 - **Nothing on the allow path is audited**, so a bypass currently leaves no trace
