@@ -2538,6 +2538,65 @@ describe("runtimeAuthority shell/MCP push/merge in decideHook (#2711)", () => {
     expect(decision.message).toMatch(/story file_scope/);
   });
 
+  it("joins git -C dests so outside-root checkout skips the gate (#3438)", () => {
+    const emptyScope = readySeams({
+      inspectScope: () => ({
+        ready: false,
+        path: null,
+        message: "No active xBRIEF artifact was found under xbrief/active/",
+      }),
+    });
+    const outside = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "git -C /tmp checkout -- file.ts" },
+        },
+      },
+      emptyScope,
+    );
+    expect(outside.verdict).toBe("allow");
+    expect(outside.code).not.toBe("scope-not-ready");
+
+    const inside = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "git -C packages checkout -- a.ts" },
+        },
+      },
+      emptyScope,
+    );
+    expect(inside).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+  });
+
+  it("denies glob dest-forms against story file_scope (expansion sentinel)", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "rm src/*.ts" },
+        },
+      },
+      readySeams({
+        loadStoryWriteFence: () => ({
+          fileScope: ["src/**"],
+          denyPaths: [],
+        }),
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "runtime-policy-deny-path" });
+  });
+
   it("allows Shell dest-form when active scope is ready", () => {
     const decision = decideHook(
       {

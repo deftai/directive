@@ -14,7 +14,14 @@ export type ProductDestFormKind = "git-checkout" | "git-restore" | "rm" | "rmdir
 export interface ProductDestForm {
   readonly kind: ProductDestFormKind;
   readonly path: string;
+  /** True when the dest token is a glob/variable, not a concrete path. */
+  readonly expansion?: boolean;
 }
+
+/** Injected write target for expansion dests so the fence cannot match a literal glob. */
+export const SHELL_DEST_EXPANSION_SENTINEL = "__shell_dest_expansion__";
+
+const EXPANSION_DEST = /[*?[\]$`{}]/;
 
 const WRAP_BINS = new Set(["sudo", "env", "command"]);
 
@@ -54,17 +61,31 @@ export function payloadWithInjectedWriteTarget(
  * Classify recognized product dest-forms in a shell command (#3438 v1 list).
  * Empty when the command is not `git checkout -- <paths>`, `git restore`, or `rm`/`rmdir`.
  */
+export function destFormHasExpansion(path: string): boolean {
+  return EXPANSION_DEST.test(path);
+}
+
 export function classifyProductDestForms(command: string): ProductDestForm[] {
   const cmd = command.trim();
   if (cmd.length === 0) return [];
   const found: ProductDestForm[] = [];
   const seen = new Set<string>();
+  let cwd: string | null = null;
   for (const raw of splitDestFormSegments(cmd)) {
+    const cd = parseCdDir(raw);
+    if (cd !== null) {
+      cwd = joinDestPrefix(cwd, cd);
+      continue;
+    }
     for (const dest of classifyDestFormSegment(raw)) {
-      const key = `${dest.kind}\0${dest.path}`;
+      const path = joinDestPrefix(cwd, dest.path);
+      const expansion = destFormHasExpansion(path);
+      const key = `${dest.kind}\0${path}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      found.push(dest);
+      found.push(
+        expansion ? { kind: dest.kind, path, expansion: true } : { kind: dest.kind, path },
+      );
     }
   }
   return found;
@@ -80,6 +101,12 @@ function splitDestFormSegments(command: string): string[] {
     if (quote !== null) {
       if (c === quote) quote = null;
       cur += c;
+      continue;
+    }
+    if (c === "\\" && i + 1 < command.length) {
+      cur += c;
+      cur += command[i + 1] ?? "";
+      i++;
       continue;
     }
     if (c === "'" || c === '"') {
@@ -175,11 +202,47 @@ function skipPrefix(tokens: string[]): number {
   return i;
 }
 
-function skipGitGlobals(tokens: string[], start: number): number {
-  let i = start;
+function joinDestPrefix(prefix: string | null, path: string): string {
+  if (prefix === null || prefix.length === 0) return path;
+  if (path.startsWith("/") || /^[A-Za-z]:[\\/]/.test(path)) return path;
+  const left = prefix.replace(/[\\/]+$/, "");
+  const right = path.replace(/^[\\/]+/, "");
+  return `${left}/${right}`;
+}
+
+function parseCdDir(segment: string): string | null {
+  const tokens = tokenizeSegment(segment.trim());
+  let i = skipPrefix(tokens);
+  const bin = tokens[i]?.toLowerCase();
+  if (bin !== "cd") return null;
+  i++;
   while (i < tokens.length) {
     const t = tokens[i];
-    if (t === undefined || !t.startsWith("-")) return i;
+    if (t === undefined || t === "--" || !t.startsWith("-")) break;
+    i++;
+  }
+  if (tokens[i] === "--") i++;
+  const dir = tokens[i];
+  if (dir === undefined || dir === "-" || dir.length === 0) return null;
+  return dir;
+}
+
+function skipGitGlobals(tokens: string[], start: number): { i: number; workTree: string | null } {
+  let i = start;
+  let workTree: string | null = null;
+  while (i < tokens.length) {
+    const t = tokens[i];
+    if (t === undefined || !t.startsWith("-")) return { i, workTree };
+    if (t.startsWith("--work-tree=")) {
+      workTree = t.slice("--work-tree=".length) || workTree;
+      i++;
+      continue;
+    }
+    if (t === "--work-tree" || t === "-C") {
+      workTree = tokens[i + 1] ?? workTree;
+      i += 2;
+      continue;
+    }
     if (t.startsWith("--") && t.includes("=")) {
       i++;
       continue;
@@ -188,13 +251,18 @@ function skipGitGlobals(tokens: string[], start: number): number {
       i += 2;
       continue;
     }
-    if (t.startsWith("-C") || t.startsWith("-c")) {
+    if (t.startsWith("-C") && t.length > 2) {
+      workTree = t.slice(2);
+      i++;
+      continue;
+    }
+    if (t.startsWith("-c")) {
       i++;
       continue;
     }
     i++;
   }
-  return i;
+  return { i, workTree };
 }
 
 function pathsAfterDashDash(tokens: string[], start: number): string[] {
@@ -224,15 +292,25 @@ function classifyDestFormSegment(segment: string): ProductDestForm[] {
   const bin = binRaw.toLowerCase();
 
   if (bin === "git" || bin === "git.exe") {
-    i = skipGitGlobals(tokens, i + 1);
+    const skipped = skipGitGlobals(tokens, i + 1);
+    i = skipped.i;
+    const prefix = skipped.workTree;
     const sub = tokens[i]?.toLowerCase();
     if (sub === "checkout") {
-      return dests("git-checkout", pathsAfterDashDash(tokens, i + 1));
+      return dests(
+        "git-checkout",
+        pathsAfterDashDash(tokens, i + 1).map((p) => joinDestPrefix(prefix, p)),
+      );
     }
     if (sub === "restore") {
       i++;
       const afterDash = pathsAfterDashDash(tokens, i);
-      if (afterDash.length > 0) return dests("git-restore", afterDash);
+      if (afterDash.length > 0) {
+        return dests(
+          "git-restore",
+          afterDash.map((p) => joinDestPrefix(prefix, p)),
+        );
+      }
       const paths: string[] = [];
       while (i < tokens.length) {
         const t = tokens[i];
@@ -248,7 +326,10 @@ function classifyDestFormSegment(segment: string): ProductDestForm[] {
         paths.push(t);
         i++;
       }
-      return dests("git-restore", paths);
+      return dests(
+        "git-restore",
+        paths.map((p) => joinDestPrefix(prefix, p)),
+      );
     }
     return [];
   }

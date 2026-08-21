@@ -65,7 +65,11 @@ import {
   missingToolNameMessage,
   record,
 } from "./classify/index.js";
-import { classifyProductDestForms, payloadWithInjectedWriteTarget } from "./dest-form.js";
+import {
+  classifyProductDestForms,
+  payloadWithInjectedWriteTarget,
+  SHELL_DEST_EXPANSION_SENTINEL,
+} from "./dest-form.js";
 import {
   isAssistPosture,
   isEphemeralSpawn,
@@ -1074,9 +1078,10 @@ function decideShellDestFormsThenRuntimeAuthority(
   let destAllow: HookDecision | null = null;
   if (command !== null) {
     for (const dest of classifyProductDestForms(command)) {
+      const destPath = dest.expansion === true ? SHELL_DEST_EXPANSION_SENTINEL : dest.path;
       const destInput: HookDispatchInput = {
         ...input,
-        payload: payloadWithInjectedWriteTarget(input.payload, dest.path),
+        payload: payloadWithInjectedWriteTarget(input.payload, destPath),
       };
       const destDecision = inspectMutationGates(destInput, toolName, seams, {
         proposedLifecycleExempt: true,

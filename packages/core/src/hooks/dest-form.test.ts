@@ -90,10 +90,17 @@ describe("classifyProductDestForms (#3438)", () => {
     ]);
     expect(
       classifyProductDestForms("git.exe -C repo --git-dir=/tmp/g -- checkout -- src/a.ts"),
-    ).toEqual([{ kind: "git-checkout", path: "src/a.ts" }]);
+    ).toEqual([{ kind: "git-checkout", path: "repo/src/a.ts" }]);
     expect(classifyProductDestForms("git --work-tree=tree checkout -- src/a.ts")).toEqual([
-      { kind: "git-checkout", path: "src/a.ts" },
+      { kind: "git-checkout", path: "tree/src/a.ts" },
     ]);
+    expect(classifyProductDestForms("cd apps/web && rm AGENTS.md")).toEqual([
+      { kind: "rm", path: "apps/web/AGENTS.md" },
+    ]);
+    expect(classifyProductDestForms("rm src/*.ts")).toEqual([
+      { kind: "rm", path: "src/*.ts", expansion: true },
+    ]);
+    expect(classifyProductDestForms("echo 'rm src/a.ts'")).toEqual([]);
     expect(classifyProductDestForms("git restore -sHEAD src/a.ts")).toEqual([
       { kind: "git-restore", path: "src/a.ts" },
     ]);
