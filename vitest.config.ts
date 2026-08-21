@@ -205,7 +205,23 @@ export default defineConfig({
     include: ["packages/*/src/**/*.test.ts"],
     // Windows git fixture suites (session:start) exceed the 5s default under
     // full-suite parallelism; Linux CI stays on the default. Refs #2467.
-    testTimeout: isWin32 ? 20_000 : 5_000,
+    //
+    // 120s, not 20s (#3616). Windows process creation drains through a
+    // fixed-rate chokepoint (AV filter drivers scan on execute), measured at
+    // ~2.4-3.5 spawns/s at ANY concurrency: a serial `git --version` costs
+    // ~400ms and 16 concurrent cost ~4.6s each, while throughput stays flat.
+    // A git-fixture test issuing 10-30 sequential spawns therefore takes
+    // 25-80s, and the whole suite grazes the old cap -- a full run produced
+    // 164 failures, every one a timeout (min 20.04s, max 81.5s), zero
+    // assertion failures. The 20s value was calibrated when #3480 still ran
+    // files serially and was never revisited after it parallelised.
+    //
+    // ⊗ Do not "fix" this by lowering maxWorkers or re-serialising files.
+    // Spawn throughput is concurrency-independent, so capping parallelism buys
+    // nothing but wall-clock and regresses #3480. If timeouts return, the next
+    // step is partitioning spawn-heavy suites into their own vitest project
+    // (71 of 1028 files hold 79% of the failures) -- not trading cores away.
+    testTimeout: isWin32 ? 120_000 : 5_000,
     ...(coverageEnabled
       ? {
           teardownTimeout: 120_000,
