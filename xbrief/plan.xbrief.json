@@ -29,7 +29,7 @@
           "name": "discuss",
           "runCount": 1,
           "artifacts": [
-            "xbrief/proposed/2026-08-20-design-critique-v1-vehicle-context.xbrief.json"
+            "xbrief/completed/2026-08-20-design-critique-v1-vehicle-context.xbrief.json"
           ]
         }
       ],
@@ -39,7 +39,7 @@
         ".planning/codebase/CONVENTIONS.md",
         ".planning/codebase/CONCERNS.md",
         "docs/research/deft-directive-research.md",
-        "xbrief/proposed/2026-08-20-design-critique-v1-vehicle-context.xbrief.json"
+        "xbrief/completed/2026-08-20-design-critique-v1-vehicle-context.xbrief.json"
       ]
     },
     "items": []

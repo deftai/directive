@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Land leftover design-critique vehicle-context xBRIEF (#3434 / #3264 / #1358).** Operator-accepted discuss lock still sat in `xbrief/proposed/`. Moved to `xbrief/completed/`. Does not close #3434 and does not add the skill. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #3439 (#3264 / #1358).** The #3439 xBRIEF stayed untracked after squash of PR 3590. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #3434 Story 2 (#3264 / #1358).** The Story 2 xBRIEF stayed untracked after squash of PR 3589. Moved to `xbrief/completed/` via `scope:complete`. Umbrella #3434 stays open for the thin-router skill. Refs #2321, #3476.
 - **Design-critique contract and brief template (#3434 Story 2).** `content/contracts/design-critique.md` is the sole normative SoT for charter, variant table, envelope/ceiling, and synthesis format. `content/templates/design-critique-brief.md` is the dispatch envelope with a forbidden-inputs list. The contract scaffolds the motion; only the ADR-005 gate and the content-contract tests enforce. Does not add a skill. Refs #3434. Does not close #3434.
