@@ -47,6 +47,7 @@ const REQUIRED_TEMPLATE_POINTERS = [
   "## Forbidden inputs",
   "parent hypotheses",
   "named refutation target",
+  "open critique",
   "id ceiling",
   "proposed skill outline",
   "embedded instructions",

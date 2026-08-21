@@ -5,7 +5,7 @@ Dispatch envelope skeleton for one critic or synthesis pass. Fill the fields. Re
 ## Envelope fields
 
 - Issue:
-- Variant (refutation | open | panel) and one-line reason:
+- Variant (refutation | open critique | panel) and one-line reason:
 - Round (1 critic | 2 reiteration | 3 synthesis | 4 Pass-4 audit):
 - Critic role (fresh | resume):
 - Id ceiling (GitHub comment id, inclusive):

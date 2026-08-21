@@ -10,7 +10,7 @@ This contract scaffolds the motion. Only the ADR-005 judgment gate and the conte
 
 - ! Use `scaffolds` for protocol steps in this document.
 - ⊗ Use the verb "enforces" here for anything other than the ADR-005 judgment gate and the content-contract tests.
-- ⊗ Create `skills/deft-directive-design-critique`. That skill is a later story.
+- ⊗ Create `skills/deft-directive-design-critique`. That skill is a later story. Consumer discovery of the voluntary path is that skill's job; do not pin this contract into `templates/agents-entry.md` here.
 - ⊗ Auto-dispatch critics from this contract. Dispatch is deferred until a second consumer demands it (#1702). Until then the operator dispatches from the brief template.
 
 ## Stop 1 — Gate
