@@ -300,3 +300,36 @@ describe("runtimeAuthority shell/MCP push/merge (#2711)", () => {
     expect(classifyShellCommand("sudo FOO=1 git push")).toBe("push");
   });
 });
+
+describe("shellDestForms (#3438 / #3594)", () => {
+  it("defaults to off so landing the dest-form gate denies nothing", () => {
+    expect(DEFAULT_RUNTIME_AUTHORITY_POLICY.shellDestForms).toBe("off");
+    expect(resolveRuntimeAuthorityPolicy(null).shellDestForms).toBe("off");
+    expect(resolveRuntimeAuthorityPolicy({}).shellDestForms).toBe("off");
+    expect(resolveRuntimeAuthorityPolicy({ enabled: true }).shellDestForms).toBe("off");
+  });
+
+  it("reads enforce, and is independent of enabled in both directions", () => {
+    expect(resolveRuntimeAuthorityPolicy({ shellDestForms: "enforce" }).shellDestForms).toBe(
+      "enforce",
+    );
+    // Opting into the dest-form gate does not require the grant ladder, and
+    // enabling the ladder does not silently opt into the gate.
+    expect(
+      resolveRuntimeAuthorityPolicy({ enabled: false, shellDestForms: "enforce" }).shellDestForms,
+    ).toBe("enforce");
+    expect(resolveRuntimeAuthorityPolicy({ enabled: true }).shellDestForms).toBe("off");
+  });
+
+  it("resolves an unknown value to off but reports it rather than failing silently", () => {
+    // A typo must not read as enforcement, and must not be invisible either.
+    for (const bad of ["warn", "ENFORCE", "on", true, 1, null]) {
+      expect(resolveRuntimeAuthorityPolicy({ shellDestForms: bad }).shellDestForms).toBe("off");
+    }
+    expect(validateRuntimeAuthority({ shellDestForms: "warn" })).toEqual([
+      "plan.policy.runtimeAuthority.shellDestForms must be one of off | enforce",
+    ]);
+    expect(validateRuntimeAuthority({ shellDestForms: "off" })).toEqual([]);
+    expect(validateRuntimeAuthority({ shellDestForms: "enforce" })).toEqual([]);
+  });
+});

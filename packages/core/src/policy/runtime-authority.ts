@@ -18,6 +18,24 @@ export interface RuntimeAuthorityScopes {
 /** Layers that contribute to a resolved write fence (#516 / #2443 / #2948 Wave 3). */
 export type WriteFenceSource = "project" | "story";
 
+/**
+ * Whether recognized Shell dest-forms are enforced (#3438 / #3594).
+ *
+ * `off` (default) leaves Shell mutations exactly as they were before #3438:
+ * unrecognized and fail-open. `enforce` routes recognized dest-forms through
+ * `inspectMutationGates` and fail-closes targets it cannot prove.
+ *
+ * ! Default is `off` on purpose. Before #3438 Bash mutations were not gated at
+ * all, so defaulting to `enforce` would land new denials on every consumer with
+ * no opt-out. Opting IN via tracked project policy is a narrowing, which this
+ * fence model permits; a tracked switch that DISABLED enforcement would not be
+ * (see policy/deft-directive-disable.ts — repository-controlled content must
+ * not disable hooks for downstream clones).
+ */
+export type ShellDestFormsMode = "off" | "enforce";
+
+export const SHELL_DEST_FORMS_MODES: readonly ShellDestFormsMode[] = ["off", "enforce"];
+
 export interface RuntimeAuthorityPolicy {
   readonly enabled: boolean;
   /** When non-empty, write targets must match at least one pattern. Empty = allow all paths. */
@@ -25,6 +43,8 @@ export interface RuntimeAuthorityPolicy {
   /** Deny wins over allow. */
   readonly denyPaths: readonly string[];
   readonly scopes: RuntimeAuthorityScopes;
+  /** Shell dest-form enforcement (#3438 / #3594). Default `off`. */
+  readonly shellDestForms: ShellDestFormsMode;
   /**
    * Optional story-layer allow globs from `plan.metadata.swarm.file_scope`
    * (populated by `resolveWriteFence` only). When non-empty, path must match
@@ -50,6 +70,7 @@ export const DEFAULT_RUNTIME_AUTHORITY_POLICY: RuntimeAuthorityPolicy = {
   allowPaths: [],
   denyPaths: [],
   scopes: DEFAULT_RUNTIME_AUTHORITY_SCOPES,
+  shellDestForms: "off",
 };
 
 export interface RuntimeAuthorityPolicyField {
@@ -83,6 +104,12 @@ function readScopes(raw: unknown): RuntimeAuthorityScopes {
   };
 }
 
+function readShellDestForms(raw: unknown): ShellDestFormsMode {
+  // Unknown / malformed resolves to the safe default rather than throwing, but
+  // validateRuntimeAuthority reports it so a typo is not silent (#3594).
+  return raw === "enforce" ? "enforce" : DEFAULT_RUNTIME_AUTHORITY_POLICY.shellDestForms;
+}
+
 export function resolveRuntimeAuthorityPolicy(raw: unknown): RuntimeAuthorityPolicy {
   if (raw === null || raw === undefined) {
     return DEFAULT_RUNTIME_AUTHORITY_POLICY;
@@ -96,6 +123,7 @@ export function resolveRuntimeAuthorityPolicy(raw: unknown): RuntimeAuthorityPol
     allowPaths: readStringArray(rec.allowPaths),
     denyPaths: readStringArray(rec.denyPaths),
     scopes: readScopes(rec.scopes),
+    shellDestForms: readShellDestForms(rec.shellDestForms),
   };
 }
 
@@ -115,6 +143,11 @@ export function validateRuntimeAuthority(value: unknown): string[] {
     if (key in rec && !Array.isArray(rec[key])) {
       errors.push(`${FIELD_RUNTIME_AUTHORITY}.${key} must be an array of path globs`);
     }
+  }
+  if ("shellDestForms" in rec && !SHELL_DEST_FORMS_MODES.includes(rec.shellDestForms as never)) {
+    errors.push(
+      `${FIELD_RUNTIME_AUTHORITY}.shellDestForms must be one of ${SHELL_DEST_FORMS_MODES.join(" | ")}`,
+    );
   }
   if ("scopes" in rec) {
     const scopes = rec.scopes;

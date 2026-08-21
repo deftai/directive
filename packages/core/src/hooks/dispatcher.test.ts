@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { DEFAULT_RUNTIME_AUTHORITY_POLICY } from "../policy/runtime-authority.js";
 import { applyWorktreeOccupancy } from "../session/occupancy.js";
 import { ritualStatePath } from "../session/ritual-sentinel.js";
 import { fixtureCaseById, fixtureCasesFor, HOOK_FIXTURE_CASES } from "./fixtures/index.js";
@@ -67,6 +68,22 @@ function readySeams(overrides: Partial<HookPolicySeams> = {}): HookPolicySeams {
     sessionStart: () => ({ code: 0, stdout: "", stderr: "" }),
     ...overrides,
   };
+}
+
+/**
+ * Shell dest-form enforcement is opt-in (#3438 / #3594): `readySeams` keeps the
+ * production default (`shellDestForms: "off"`), so any test asserting a
+ * dest-form verdict must enable it explicitly. Kept separate rather than folded
+ * into `readySeams` so the opt-in is visible at every call site.
+ */
+function enforcingSeams(overrides: Partial<HookPolicySeams> = {}): HookPolicySeams {
+  return readySeams({
+    loadRuntimeAuthority: () => ({
+      ...DEFAULT_RUNTIME_AUTHORITY_POLICY,
+      shellDestForms: "enforce" as const,
+    }),
+    ...overrides,
+  });
 }
 
 describe("direct-write hook policy", () => {
@@ -2405,7 +2422,7 @@ describe("runtimeAuthority shell/MCP push/merge in decideHook (#2711)", () => {
   it("denies Shell git checkout -- and rm dest-forms when no active scope (#3438)", () => {
     const reporter =
       "git checkout -- apps/web/tsconfig.json apps/web/next-env.d.ts && rm apps/web/AGENTS.md apps/web/CLAUDE.md";
-    const emptyScope = readySeams({
+    const emptyScope = enforcingSeams({
       inspectScope: () => ({
         ready: false,
         path: null,
@@ -2483,7 +2500,7 @@ describe("runtimeAuthority shell/MCP push/merge in decideHook (#2711)", () => {
   });
 
   it("allows recognized dest-forms under assist scratch and proposed lifecycle (#3438)", () => {
-    const emptyScope = readySeams({
+    const emptyScope = enforcingSeams({
       inspectScope: () => ({
         ready: false,
         path: null,
@@ -2531,7 +2548,7 @@ describe("runtimeAuthority shell/MCP push/merge in decideHook (#2711)", () => {
           tool_input: { command: "git checkout -- docs/readme.md" },
         },
       },
-      readySeams({
+      enforcingSeams({
         loadStoryWriteFence: () => ({
           fileScope: ["src/**"],
           denyPaths: [],
@@ -2543,7 +2560,7 @@ describe("runtimeAuthority shell/MCP push/merge in decideHook (#2711)", () => {
   });
 
   it("fails closed on git -C instead of resolving it outside the root (#3438)", () => {
-    const emptyScope = readySeams({
+    const emptyScope = enforcingSeams({
       inspectScope: () => ({
         ready: false,
         path: null,
@@ -2609,7 +2626,7 @@ describe("runtimeAuthority shell/MCP push/merge in decideHook (#2711)", () => {
           tool_input: { command: "rm src/*.ts" },
         },
       },
-      readySeams(),
+      enforcingSeams(),
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
     expect(decision.message).toMatch(/not reconstructable/);
@@ -2628,7 +2645,7 @@ describe("runtimeAuthority shell/MCP push/merge in decideHook (#2711)", () => {
           tool_input: { command: "(cd apps/web && rm AGENTS.md)" },
         },
       },
-      readySeams(),
+      enforcingSeams(),
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
     expect(decision.message).toMatch(/not reconstructable/);
@@ -2641,7 +2658,7 @@ describe("runtimeAuthority shell/MCP push/merge in decideHook (#2711)", () => {
     // AGENTS.md` really removes docs/AGENTS.md, which is NOT in the fence.
     // Dropping the parent prefix on the pipeline member reconstructs the
     // in-fence AGENTS.md instead and lets the real target through (#3438).
-    const fenced = readySeams({
+    const fenced = enforcingSeams({
       loadStoryWriteFence: () => ({
         fileScope: ["docs/a.md", "AGENTS.md"],
         denyPaths: [],
@@ -2666,6 +2683,96 @@ describe("runtimeAuthority shell/MCP push/merge in decideHook (#2711)", () => {
     expect(decision.message).toMatch(/not reconstructable/);
   });
 
+  it("is OFF by default: dest-forms stay fail-open exactly as before #3438", () => {
+    // The whole point of the opt-in default (#3594): landing the classifier
+    // must not deny anything a consumer runs today. `readySeams` deliberately
+    // carries the production default, so these use it rather than
+    // `enforcingSeams`.
+    const emptyScope = readySeams({
+      inspectScope: () => ({
+        ready: false,
+        path: null,
+        message: "No active xBRIEF artifact was found under xbrief/active/",
+      }),
+    });
+    for (const command of [
+      "rm src/a.ts",
+      "git checkout -- src/a.ts",
+      "git restore src/a.ts",
+      "rmdir tmp/dir",
+      "cd x && rm y",
+      "rm src/*.ts",
+      "rm ~/secret",
+      "git -C repo checkout -- f.ts",
+      "(cd sub && rm secret.ts)",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Bash", tool_input: { command } },
+        },
+        emptyScope,
+      );
+      expect(decision.verdict, command).toBe("allow");
+      expect(decision.code, command).toBe("shell-op-unclassifiable");
+    }
+  });
+
+  it("enforce turns on resolved gating and fail-closed together, not separately", () => {
+    // Splitting the two halves would let `cd x && rm y` through while denying
+    // `rm x/y`, or the reverse. Same policy value must move both.
+    const emptyScope = { inspectScope: () => ({ ready: false, path: null, message: "none" }) };
+    const resolved = "rm src/a.ts";
+    const failClosed = "cd x && rm y";
+
+    for (const command of [resolved, failClosed]) {
+      expect(
+        decideHook(
+          {
+            host: "claude",
+            event: "tool.before",
+            projectRoot: "/project",
+            payload: { tool_name: "Bash", tool_input: { command } },
+          },
+          readySeams(emptyScope),
+        ).verdict,
+        `${command} @ off`,
+      ).toBe("allow");
+      expect(
+        decideHook(
+          {
+            host: "claude",
+            event: "tool.before",
+            projectRoot: "/project",
+            payload: { tool_name: "Bash", tool_input: { command } },
+          },
+          enforcingSeams(emptyScope),
+        ).verdict,
+        `${command} @ enforce`,
+      ).toBe("deny");
+    }
+  });
+
+  it("an unreadable runtimeAuthority policy resolves to off, not enforce", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "Bash", tool_input: { command: "rm src/a.ts" } },
+      },
+      readySeams({
+        inspectScope: () => ({ ready: false, path: null, message: "none" }),
+        loadRuntimeAuthority: () => {
+          throw new Error("unreadable policy");
+        },
+      }),
+    );
+    expect(decision.verdict).toBe("allow");
+  });
+
   it("allows Shell dest-form when active scope is ready", () => {
     const decision = decideHook(
       {
@@ -2677,7 +2784,7 @@ describe("runtimeAuthority shell/MCP push/merge in decideHook (#2711)", () => {
           tool_input: { command: "git checkout -- src/a.ts" },
         },
       },
-      readySeams(),
+      enforcingSeams(),
     );
     expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
   });

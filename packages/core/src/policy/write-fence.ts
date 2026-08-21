@@ -190,6 +190,9 @@ export function resolveWriteFence(
     allowPaths,
     denyPaths,
     scopes,
+    // Carry the project setting through: resolving a write fence must not
+    // silently enable Shell dest-form enforcement for a story (#3438 / #3594).
+    shellDestForms: projectPolicy.shellDestForms,
     storyAllowPaths: storyAllow,
     fenceSources: sources,
   };

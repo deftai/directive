@@ -55,6 +55,39 @@ Shell/MCP push/merge scopes remain project-only (`runtimeAuthority.scopes`); the
 re-scoped by `file_scope`. Recognized Shell dest-forms (`git checkout --`, `git restore`,
 `rm`/`rmdir`) use the same write fence as Edit/Write, including story `file_scope` (#3438).
 
+### Dest-form enforcement is opt-in (#3438 / #3594)
+
+```jsonc
+// xbrief/PROJECT-DEFINITION.xbrief.json
+{ "plan": { "policy": { "runtimeAuthority": {
+  "shellDestForms": "off"      // default — Shell exactly as before #3438
+  // "shellDestForms": "enforce"  // opt in
+} } } }
+```
+
+`off` is the default and leaves Shell mutations unrecognized and fail-open, as they were before
+this gate existed, so landing the classifier denies nothing a consumer runs today. `enforce`
+turns on **both** halves together: recognized dest-forms go through `inspectMutationGates`, and
+targets that cannot be proved fail closed.
+
+- ⊗ Do not split the two halves behind separate switches. Enforcing only resolved dests would
+  allow `cd x && rm y` while denying `rm x/y`; enforcing only the fail-closed branch would deny
+  the compound while letting the in-scope simple form through unchecked.
+- Independent of `enabled` in both directions: opting into the gate does not require the
+  `runtimeAuthority` grant ladder, and enabling the ladder does not silently opt into the gate.
+- An unknown value (`"warn"`, `"on"`, a typo) resolves to `off` — the no-new-denials direction —
+  and `validateRuntimeAuthority` reports it, so it is never silent.
+- An unreadable policy also resolves to `off` rather than failing closed.
+- Tracked project policy may only **enable** this gate. A tracked switch that *disabled* it would
+  contradict `policy/deft-directive-disable.ts`, where repository-controlled content must not
+  disable hooks for downstream clones.
+
+⊗ There is no `warn` state. Its only purpose would be staging a breaking change, and with `off`
+as the default there is nothing to stage. It is also unimplementable today: `renderHostDecision`
+emits no text on the allow path for `tool.before`, so a warned denial would be
+indistinguishable from `git status` in the decision record. Revisit only alongside an allow-path
+sink (#3620).
+
 ### Dest-form threat model (#3438) — read this first
 
 The Shell dest-form gate is a **guardrail for cooperative-but-careless agents, not a security

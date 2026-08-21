@@ -1073,7 +1073,19 @@ function decideShellDestFormsThenRuntimeAuthority(
   const command = hookShellCommand(input.payload);
   let destAllow: HookDecision | null = null;
   let expansionDeny: HookDecision | null = null;
-  if (command !== null) {
+  // #3438 / #3594: opt-in. `off` (the default) leaves Shell exactly as it was
+  // before this gate existed — unrecognized and fail-open — so landing the
+  // classifier cannot deny anything a consumer runs today. `enforce` turns on
+  // BOTH halves together: resolved dests through inspectMutationGates and
+  // fail-closed for targets that cannot be proved. ⊗ Do not split those two:
+  // enforcing only resolved dests would allow `cd x && rm y` while denying
+  // `rm x/y`, and enforcing only fail-closed would deny the compound while
+  // letting the in-scope simple form through unchecked.
+  // An unreadable policy resolves to `off`, which is the no-new-denials
+  // direction and matches the opt-in default rather than failing closed.
+  const destFormsEnforced =
+    loadRuntimeAuthorityPolicySafe(input, seams)?.shellDestForms === "enforce";
+  if (command !== null && destFormsEnforced) {
     for (const dest of classifyProductDestForms(command)) {
       if (dest.expansion === true) {
         expansionDeny = deny(
