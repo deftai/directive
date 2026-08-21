@@ -22,7 +22,11 @@ describe("framework-commands branch coverage", () => {
     expect(cmdCoreValidate(["--extra"])).toBe(2);
   });
 
-  it("cmdCoreValidate succeeds with capture", { timeout: 5_000 }, () => {
+  // win32 keeps the global cap (#3616). A bare number here would LOWER win32
+  // below the 120s global rather than raising the tight non-win32 default.
+  it("cmdCoreValidate succeeds with capture", {
+    timeout: process.platform === "win32" ? 120_000 : 5_000,
+  }, () => {
     const root = mkdtempSync(join(tmpdir(), "fw-core-val-"));
     writeFileSync(join(root, "sample.md"), "# sample\n", "utf8");
     try {
