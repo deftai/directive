@@ -24,6 +24,13 @@
           "artifacts": [
             "docs/research/deft-directive-research.md"
           ]
+        },
+        {
+          "name": "discuss",
+          "runCount": 1,
+          "artifacts": [
+            "xbrief/proposed/2026-08-20-design-critique-v1-vehicle-context.xbrief.json"
+          ]
         }
       ],
       "artifacts": [
@@ -31,7 +38,8 @@
         ".planning/codebase/ARCHITECTURE.md",
         ".planning/codebase/CONVENTIONS.md",
         ".planning/codebase/CONCERNS.md",
-        "docs/research/deft-directive-research.md"
+        "docs/research/deft-directive-research.md",
+        "xbrief/proposed/2026-08-20-design-critique-v1-vehicle-context.xbrief.json"
       ]
     },
     "items": []
