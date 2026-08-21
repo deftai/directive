@@ -109,6 +109,17 @@ Do **not** overload human labels (`hold`, `rfc`, …) via `actionLabels`. Consum
 
 Config surface: `plan.policy.triageLabelMirror` (see #1423 Wave 1 / #3118).
 
+### Design-critique stamp (ADR-005 / #3434)
+
+Author-stamped, not classify-mirror output. The triage author decides the lean is mechanism-shaped and writes **both** halves of the #1423 pairing:
+
+| Surface | Value | Role |
+|---------|-------|------|
+| Body-text field (artifact) | `mechanism-shaped: true` | Survives in the write-back comment |
+| Mirrored label (predicate / lists) | `design-critique:mechanism-shaped` | What `plan.policy.judgmentGates` matches |
+
+Do **not** invent a classifier for "mechanism-shaped." Stamp or omit. No stamp -> gate never fires (voluntary critiques stay legal). Clearance line is separate: `design-critique: warranted \| not warranted, because ...` (ADR-005).
+
 ---
 
 ## Platform facet
@@ -209,6 +220,10 @@ Inventory ~85 labels at #2609 implement time. This section lists **canonical** n
 
 `triaged`, `triage:deferred`, `triage:archived`, `triage:lifecycle-linked`, `triage:needs-human`
 
+### Design-critique stamp (ADR-005)
+
+`design-critique:mechanism-shaped` -- author stamp that the lean is mechanism-shaped; pairs with write-back field `mechanism-shaped: true`. Not a `triage:*` classify action.
+
 ### Ranking / audience (selected)
 
 `urgent`, `adoption-blocker`, `agent-experience`, `blocks-merge`, `blocks-release-tag`, `Upgrade Blocker`
@@ -285,6 +300,7 @@ Skill / SCM pointer: `content/scm/github.md` § Issue Labels (framework source) 
 
 | Date | Change |
 |------|--------|
+| 2026-08-21 | Design-critique stamp label `design-critique:mechanism-shaped` + write-back field `mechanism-shaped: true` (ADR-005 / #3434 Story 1) |
 | 2026-08-05 | Quarantine zero-open twins/synonyms as lowercase `legacy:<former>` (colon form wins) |
 | 2026-08-05 | Open-issue migration notes + re-run instructions (#3128) |
 | 2026-08-05 | Initial catalog from #2609 Phase A (facets, epic/tracker/child, machine, platform, twins) |

@@ -58,3 +58,28 @@ Common root: operator vigilance was the load-bearing mechanism, and vigilance do
 - The gate is implementable without resolving the #3434 v1-vehicle question: all candidate vehicles (skill, composition doc, guidelines prose) consume the same three declared-data pieces.
 - The triage write-back format (#1423) gains one field; `plan.policy.judgmentGates` gains one entry; no new subsystem.
 - Future critics of this design should attack the parameters table and the refusals section — those are the surfaces where drift or "improvement" would re-open solved failure classes.
+
+### Clearance presence, shape, and authority
+
+The clearance line on the triage thread is:
+
+```text
+design-critique: warranted | not warranted, because …
+```
+
+Worked examples (shape only; the because-clause is not scored):
+
+```text
+design-critique: warranted, because the lean is a protocol-gap recording obligation
+design-critique: not warranted, because the lean is disposition-only
+```
+
+The engine evaluates **three** properties and never a fourth:
+
+| Property | Passes when | Does not evaluate |
+|----------|-------------|-------------------|
+| **Presence** | A clearance line exists after the gate has fired | Whether a critique was actually run |
+| **Shape** | `design-critique:` + `warranted` or `not warranted` + `, because ` + a non-empty reason | The quality, truth, or sufficiency of the reason |
+| **Authority** | Model-recordable during advisory/observe; human review at `scope:promote`; `requiredHumanReviewers: 1` reserved for **block** tier post-observe | Who "should have" recorded it |
+
+`--enforce` attach point remains `scope:promote` (parameters table). This story does **not** wire `--enforce` there. `verify:judgment-gates --enforce` stays opt-in unused. Advisory/review tier; do not set block+enforce until observe fire rate and clearance rate prove honest stamps.

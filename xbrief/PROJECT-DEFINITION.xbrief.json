@@ -23784,6 +23784,21 @@
           ]
         }
       },
+      "judgmentGates": [
+        {
+          "id": "design-critique",
+          "class": "declared",
+          "tier": "review",
+          "reason": "Triage author stamped mechanism-shaped (ADR-005). Record clearance line design-critique: warranted | not warranted, because ... Presence, shape, and authority only; never content. Advisory/observe; requiredHumanReviewers reserved for block tier post-observe.",
+          "match": {
+            "labels": {
+              "any-of": [
+                "design-critique:mechanism-shaped"
+              ]
+            }
+          }
+        }
+      ],
       "triageScopeIgnores": [
         {
           "label": "wontfix"

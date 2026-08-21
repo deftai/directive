@@ -9,6 +9,24 @@ export const GATE_TIERS = new Set(["auto", "review", "block"]);
 export const GATE_MATCH_PREDICATES = new Set(["labels", "body-text", "paths", "state", "age-days"]);
 export const GATE_MATCH_STATES = new Set(["open", "closed"]);
 
+/** ADR-005 / #3434 Story 1 -- author-stamped marker vocabulary. */
+export const DESIGN_CRITIQUE_GATE_ID = "design-critique";
+/** List-visible mirror; this is what judgmentGates predicates match. */
+export const DESIGN_CRITIQUE_MARKER_LABEL = "design-critique:mechanism-shaped";
+/** Authoritative body-text field in the #1423 triage write-back comment. */
+export const DESIGN_CRITIQUE_MARKER_FIELD = "mechanism-shaped: true";
+/**
+ * Clearance line shape (ADR-005). Presence and shape only -- a non-empty
+ * because-clause is required; its semantic content is never evaluated.
+ */
+export const DESIGN_CRITIQUE_CLEARANCE_SHAPE =
+  /^design-critique:\s*(warranted|not warranted),\s*because\s+\S/i;
+
+/** True when `line` has clearance presence+shape. Never scores the reason text. */
+export function designCritiqueClearanceShapeOk(line: string): boolean {
+  return DESIGN_CRITIQUE_CLEARANCE_SHAPE.test(line.trim());
+}
+
 export interface JudgmentGate {
   readonly gate_id: string;
   readonly gate_class: string;
