@@ -16,6 +16,9 @@ import {
   type Candidate,
   cmdVerifyJudgmentGates,
   evaluate,
+  fingerprintScope,
+  JudgmentClearanceShapeError,
+  recordClearance,
   reportBlocking,
   reportFired,
 } from "./verify-judgment-gates.js";
@@ -145,6 +148,32 @@ describe("design-critique judgment gate (ADR-005 / #3434 Story 1)", () => {
     expect(designCritiqueClearanceShapeOk("design-critique: maybe, because x")).toBe(false);
     expect(designCritiqueClearanceShapeOk("warranted, because x")).toBe(false);
     expect(DESIGN_CRITIQUE_CLEARANCE_SHAPE.source).not.toMatch(/protocol|disposition/);
+  });
+
+  it("records design-critique clearance only when the line has presence and shape", () => {
+    const root = makeProject([DESIGN_CRITIQUE_GATE]);
+    roots.push(root);
+    const scope = fingerprintScope({ labels: [DESIGN_CRITIQUE_MARKER_LABEL] });
+    expect(() =>
+      recordClearance(root, {
+        gate_id: DESIGN_CRITIQUE_GATE_ID,
+        cleared_scope: scope,
+        reason: "looks good",
+      }),
+    ).toThrow(JudgmentClearanceShapeError);
+
+    recordClearance(root, {
+      gate_id: DESIGN_CRITIQUE_GATE_ID,
+      cleared_scope: scope,
+      reason: "design-critique: not warranted, because disposition-only",
+    });
+    const report = buildReport(root, candidate({ labels: [DESIGN_CRITIQUE_MARKER_LABEL] }));
+    expect(report.outcomes[0]?.clearance).not.toBeNull();
+    expect(
+      evaluate(root, candidate({ labels: [DESIGN_CRITIQUE_MARKER_LABEL] }), {
+        posture: "enforce",
+      })[0],
+    ).toBe(0);
   });
 
   it("documents the #1423 field+label pairing and the ADR-005 clearance line", () => {

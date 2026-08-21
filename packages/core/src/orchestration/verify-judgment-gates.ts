@@ -12,8 +12,21 @@ import {
   ProjectionContainmentError,
 } from "../fs/projection-containment.js";
 import { resolveAuditDir } from "../layout/resolve.js";
-import { type JudgmentGatesPolicy, resolveJudgmentGates } from "./judgment-policy.js";
+import {
+  DESIGN_CRITIQUE_GATE_ID,
+  designCritiqueClearanceShapeOk,
+  type JudgmentGatesPolicy,
+  resolveJudgmentGates,
+} from "./judgment-policy.js";
 import { matchAny } from "./pathspec.js";
+
+/** Thrown when a design-critique clearance reason fails presence/shape (never content). */
+export class JudgmentClearanceShapeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "JudgmentClearanceShapeError";
+  }
+}
 
 /** Display/back-compat constant; resolution flows through resolveAuditDir (#2109). */
 export const AUDIT_DIR_REL = "vbrief/.audit";
@@ -218,6 +231,16 @@ export function recordClearance(
     log_path?: string;
   },
 ): Record<string, unknown> {
+  if (
+    options.gate_id === DESIGN_CRITIQUE_GATE_ID &&
+    !designCritiqueClearanceShapeOk(options.reason ?? "")
+  ) {
+    throw new JudgmentClearanceShapeError(
+      "design-critique clearance reason must match shape " +
+        "'design-critique: warranted | not warranted, because ...' " +
+        "(presence and shape only; the because-clause is not scored)",
+    );
+  }
   const path = options.log_path ?? clearanceLogPath(projectRoot);
   const auditDir = resolveAuditDir(projectRoot);
   assertProjectionContained(projectRoot, auditDir);
@@ -263,6 +286,19 @@ export function fingerprintScope(evidence: Record<string, unknown>): string {
   );
   const payload = JSON.stringify(sorted);
   return createHash("sha256").update(payload, "utf8").digest("hex");
+}
+
+function acceptClearanceShape(
+  gateId: string,
+  clearance: Record<string, unknown> | null,
+): Record<string, unknown> | null {
+  if (clearance === null) {
+    return null;
+  }
+  if (gateId !== DESIGN_CRITIQUE_GATE_ID) {
+    return clearance;
+  }
+  return designCritiqueClearanceShapeOk(String(clearance.reason ?? "")) ? clearance : null;
 }
 
 function lookupClearance(
@@ -495,7 +531,8 @@ export function buildReport(
       continue;
     }
     const scope = fingerprintScope(evidence);
-    const [valid, stale] = lookupClearance(records, String(gate.id), scope);
+    const [validRaw, stale] = lookupClearance(records, String(gate.id), scope);
+    const valid = acceptClearanceShape(String(gate.id), validRaw);
     outcomes.push({
       gate_id: String(gate.id),
       gate_class: String(gate.class),
@@ -741,17 +778,25 @@ function clearMain(argv: string[]): number {
   if (args.state !== null) evidence.state = args.state;
   if (args.updatedAt !== null) evidence["age-days"] = args.updatedAt;
   const scope = fingerprintScope(evidence);
-  const entry = recordClearance(projectRoot, {
-    gate_id: args.gateId,
-    cleared_scope: scope,
-    reviewers: args.reviewers,
-    actor: args.actor,
-    reason: args.reason,
-  });
-  process.stdout.write(
-    `recorded clearance ${String(entry.clearance_id)} for gate ${JSON.stringify(args.gateId)} (cleared_scope=${scope.slice(0, 12)}...)\n`,
-  );
-  return 0;
+  try {
+    const entry = recordClearance(projectRoot, {
+      gate_id: args.gateId,
+      cleared_scope: scope,
+      reviewers: args.reviewers,
+      actor: args.actor,
+      reason: args.reason,
+    });
+    process.stdout.write(
+      `recorded clearance ${String(entry.clearance_id)} for gate ${JSON.stringify(args.gateId)} (cleared_scope=${scope.slice(0, 12)}...)\n`,
+    );
+    return 0;
+  } catch (err) {
+    if (err instanceof JudgmentClearanceShapeError) {
+      process.stderr.write(`${err.message}\n`);
+      return 1;
+    }
+    throw err;
+  }
 }
 
 interface EvalArgs {
