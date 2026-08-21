@@ -42,6 +42,14 @@ const EXPANSION_DEST = /[*?[\]$`{}]/;
 
 const WRAP_BINS = new Set(["sudo", "env", "command"]);
 
+/** Verbs this classifier recognizes, for scanning past a wrapper's options. */
+const RECOGNIZED_BINS = new Set(["rm", "rm.exe", "rmdir", "rmdir.exe", "git", "git.exe"]);
+
+function isRecognizedBin(token: string | undefined): boolean {
+  if (token === undefined) return false;
+  return RECOGNIZED_BINS.has(token.replace(/^[({!]+/, "").toLowerCase());
+}
+
 const GIT_GLOBAL_VALUE_OPTS = new Set([
   "-C",
   "-c",
@@ -357,20 +365,20 @@ function skipPrefix(tokens: string[]): { i: number; gitContext: boolean } {
   const wrap = tokens[i]?.toLowerCase();
   if (wrap !== undefined && WRAP_BINS.has(wrap)) {
     i++;
-    // Skip the wrapper's own options so the wrapped verb is still recognized:
-    // `sudo -n rm x`, `env -i rm x`, `command -- rm x` previously left the flag
-    // in the binary position and fell through to the fail-OPEN path (#3438).
-    //
-    // ⊗ Residual: an option that takes a SEPARATE value (`sudo -u root rm x`,
-    // `env -u VAR rm x`) still hides the verb, because knowing which options
-    // consume a value means modelling each wrapper's own grammar. Tracked with
-    // the rest of the recognition surface in #3595.
-    while (i < tokens.length) {
-      const tok = tokens[i];
-      if (tok === undefined || !tok.startsWith("-")) break;
-      i++;
-    }
     consumeAssigns();
+    // Scan forward to the first RECOGNIZED verb rather than trying to skip the
+    // wrapper's own options. Options that take a separate value (`sudo -u root`,
+    // `env -u VAR`, `nice -n 10`) leave that value in the binary position, so
+    // skipping only `-`-prefixed tokens hides the verb and falls through to the
+    // fail-OPEN path (#3438).
+    //
+    // Scanning is sound here because this position decides RECOGNITION only:
+    // over-recognizing routes a command into the gate (fail-closed direction),
+    // while under-recognizing lets a real mutation past. The exact-match on the
+    // verb keeps it tight — `apt-get install rm-utils` does not match `rm`, and
+    // a quoted `bash -c 'rm x'` payload is the single token `rm x`, not `rm`.
+    const verbAt = tokens.findIndex((tok, idx) => idx >= i && isRecognizedBin(tok));
+    if (verbAt >= 0) i = verbAt;
   }
   return { i, gitContext };
 }

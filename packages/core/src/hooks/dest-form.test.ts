@@ -225,9 +225,21 @@ describe("classifyProductDestForms (#3438)", () => {
     ]);
     // Non-mutating wrapped commands stay unclassifiable, not denied.
     expect(classifyProductDestForms("sudo -n apt-get update")).toEqual([]);
-    // Residual, asserted so it is not mistaken for coverage: an option taking a
-    // SEPARATE value still hides the verb. Tracked in #3595.
-    expect(classifyProductDestForms("sudo -u root rm protected/file")).toEqual([]);
+    // Options that take a SEPARATE value used to leave that value in the binary
+    // position and hide the verb entirely (fail-open). Scanning forward to the
+    // first recognized verb fixes the whole class, not just the flag-only forms.
+    expect(classifyProductDestForms("sudo -u root rm protected/file")).toEqual([
+      { kind: "rm", path: "protected/file" },
+    ]);
+    expect(classifyProductDestForms("env -u NODE_ENV rm protected/file")).toEqual([
+      { kind: "rm", path: "protected/file" },
+    ]);
+    expect(classifyProductDestForms("sudo -u root git checkout -- src/a.ts")).toEqual([
+      { kind: "git-checkout", path: "src/a.ts" },
+    ]);
+    // Exact-match keeps the scan tight: a look-alike argument is not a verb.
+    expect(classifyProductDestForms("sudo apt-get install rm-utils")).toEqual([]);
+    expect(classifyProductDestForms("sudo bash -c 'rm x'")).toEqual([]);
   });
 
   it("fails closed on env-provided git work-tree relocation", () => {
