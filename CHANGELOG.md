@@ -56,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Operator mint works in a real Windows console (#3596).** The controlling-terminal probe no longer opens the Windows console input device read-only, which blocked mint after TTY checks passed. Remediation text for `scope:record-approved-scope` includes `--confirm`. The #3110 env-marker, TTY, `--confirm`, and typed-phrase gates are unchanged. Closes #3596. Refs #3110, #3145, #3205.
 - **Prescribed agent commands emit `deft <verb>` (#3439).** Skill MUST fences, routing/bootstrap remediations, commands.md work-selection, and the unknown-verb hint no longer print bare `task <verb>` that a consumer include-only Taskfile cannot run. `deft plan-sequence:current` is documented; `:status` is not a verb. `--` is accepted on triage and plan-sequence. `scope:promote --help` no longer dumps `scope_lifecycle.py` required action. Closes #3439.
 - **Agent-hook live probe timeout is not a broken hook (#3570).** One retry at 1.5s keeps the four-host ceiling at 24s under Cursor `tool.before` 30s. `timed-out` is not mapped as non-functional and does not recommend reinstall or hostHooks opt-out. Closes #3570. Refs #3571, #3246, #3100.
 - **Literal-AC prompt capture is dollar-sign only (#3572 leftover).** Markdown blockquote `>` is not a shell prompt, so ingested reviewer findings no longer land on the rejected ledger as `prompt@`. `$` prompts, labeled `verify:`/`command:`/`run:` lines, fences, and inline backticks stay. Narratives are still scanned. Closes #3572.

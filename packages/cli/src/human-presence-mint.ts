@@ -92,10 +92,26 @@ function defaultIsTty(): boolean {
   return process.stdin.isTTY === true && process.stdout.isTTY === true;
 }
 
+/** Platform controlling-terminal path (`CONIN$` on win32, `/dev/tty` elsewhere). */
+export function controllingTerminalPath(platform: NodeJS.Platform = process.platform): string {
+  return platform === "win32" ? "CONIN$" : "/dev/tty";
+}
+
+/**
+ * Open flag for the platform controlling-terminal device (#3596).
+ *
+ * Windows `CONIN$` generally requires read/write (`r+`); `r` (O_RDONLY) fails
+ * in a real interactive console and made operator mint unreachable on win32.
+ */
+export function controllingTerminalOpenFlag(
+  platform: NodeJS.Platform = process.platform,
+): "r" | "r+" {
+  return platform === "win32" ? "r+" : "r";
+}
+
 function defaultHasControllingTerminal(): boolean {
   try {
-    const path = process.platform === "win32" ? "CONIN$" : "/dev/tty";
-    const fd = openSync(path, "r");
+    const fd = openSync(controllingTerminalPath(), controllingTerminalOpenFlag());
     closeSync(fd);
     return true;
   } catch {
@@ -108,8 +124,7 @@ function defaultReadInteractiveConfirm(): string | null {
   // so agent-controlled stdin alone cannot supply the confirm phrase (#3110).
   let fd: number | null = null;
   try {
-    const path = process.platform === "win32" ? "CONIN$" : "/dev/tty";
-    fd = openSync(path, "r");
+    fd = openSync(controllingTerminalPath(), controllingTerminalOpenFlag());
     const buf = Buffer.alloc(256);
     const n = readSync(fd, buf, 0, buf.length, null);
     if (n <= 0) return null;

@@ -278,7 +278,7 @@ function listActiveXbriefPaths(projectRoot: string): string[] {
 function remediationForExpansion(): string {
   return (
     "Renew human approval: re-record the approved-scope digest after operator review " +
-    "(`task scope:record-approved-scope -- <xbrief-path> --actor <you>` writes " +
+    "(`task scope:record-approved-scope -- <xbrief-path> --actor <you> --confirm` writes " +
     "`.deft/approved-scope/<plan-id>.json` with a humanApproval stamp). Commit that " +
     "approval on the merge base (or a prior PR) before expanding or activating the " +
     "scoped xBRIEF in the implementation change set. Editing the active xBRIEF alone " +
@@ -435,7 +435,7 @@ export function evaluateOneScopeProvenance(input: {
           "only humanApproval stamps authorize non-empty file_scope",
         remediation:
           "Record a human-origin approval via `task scope:record-approved-scope -- " +
-          "<xbrief-path> --actor <you>` (#3145 / #3205).",
+          "<xbrief-path> --actor <you> --confirm` (#3145 / #3205).",
       };
     }
   }
@@ -455,7 +455,7 @@ export function evaluateOneScopeProvenance(input: {
           "only humanApproval stamps authorize non-empty file_scope",
         remediation:
           "Record a human-origin approval via `task scope:record-approved-scope -- " +
-          "<xbrief-path> --actor <you>` (#3145 / #3205).",
+          "<xbrief-path> --actor <you> --confirm` (#3145 / #3205).",
       };
     }
     return null;

@@ -7,6 +7,8 @@ import { AUTHZ_AGENT_SHELL_ENV_MARKERS as fromAuthz } from "./authz.js";
 import {
   AUTHZ_AGENT_SHELL_ENV_MARKERS,
   AUTHZ_INTERACTIVE_CONFIRM_PHRASE,
+  controllingTerminalOpenFlag,
+  controllingTerminalPath,
   looksLikeAgentShell,
   refuseMintWhileUatActive,
   refuseNonInteractiveMint,
@@ -136,5 +138,14 @@ describe("shared #3110 human-presence mint (#3384)", () => {
     expect(typeof resolved.hasControllingTerminal).toBe("function");
     expect(typeof resolved.readInteractiveConfirm).toBe("function");
     expect(resolved.environ).toBe(process.env);
+  });
+
+  it("opens CONIN$ with r+ on win32 and /dev/tty with r elsewhere (#3596)", () => {
+    expect(controllingTerminalPath("win32")).toBe("CONIN$");
+    expect(controllingTerminalOpenFlag("win32")).toBe("r+");
+    expect(controllingTerminalPath("linux")).toBe("/dev/tty");
+    expect(controllingTerminalOpenFlag("linux")).toBe("r");
+    expect(controllingTerminalPath("darwin")).toBe("/dev/tty");
+    expect(controllingTerminalOpenFlag("darwin")).toBe("r");
   });
 });

@@ -88,6 +88,43 @@ describe("evaluateOneScopeProvenance (#3145)", () => {
     expect(finding?.kind).toBe("self-authorizing-scope-expansion");
     expect(finding?.expandedPaths).toContain("infra/scripts/test_release.py");
     expect(finding?.remediation).toMatch(/human approval/i);
+    expect(finding?.remediation).toMatch(/--confirm/);
+  });
+
+  it("non-human stamp remediations include --confirm (#3596)", () => {
+    const current = xbrief("story-1", ["src/app.ts"]);
+    const agentStamp = {
+      kind: "agent",
+      actor: "agent:bot",
+      mintedAt: "2026-08-01T00:00:00Z",
+    };
+    const matching = evaluateOneScopeProvenance({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      currentPayload: current,
+      approved: buildApprovedScopeRecord({
+        xbriefRelPath: "xbrief/active/story.xbrief.json",
+        payload: current,
+        humanApproval: agentStamp,
+      }),
+      xbriefModifiedInChangeSet: true,
+      enforce: true,
+    });
+    expect(matching?.kind).toBe("active-xbrief-modified-without-digest");
+    expect(matching?.remediation).toMatch(/--confirm/);
+
+    const shrink = evaluateOneScopeProvenance({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      currentPayload: current,
+      approved: buildApprovedScopeRecord({
+        xbriefRelPath: "xbrief/active/story.xbrief.json",
+        payload: xbrief("story-1", ["src/app.ts", "src/extra.ts"]),
+        humanApproval: agentStamp,
+      }),
+      xbriefModifiedInChangeSet: true,
+      enforce: true,
+    });
+    expect(shrink?.kind).toBe("active-xbrief-modified-without-digest");
+    expect(shrink?.remediation).toMatch(/--confirm/);
   });
 
   it("does not treat the original activation stamp as renewal for expansion", () => {

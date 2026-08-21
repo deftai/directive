@@ -161,8 +161,8 @@ tasks:
   # Mint a human-origin .deft/approved-scope/<plan-id>.json so
   # verify:scope-provenance can authorize pending→active and operator-approved
   # expansion without same-PR self-authorization.
-  #   task scope:record-approved-scope -- xbrief/pending/story.xbrief.json --actor scott
-  #   task scope:record-approved-scope -- xbrief/active/story.xbrief.json --actor scott --kind renewed-approval
+  #   task scope:record-approved-scope -- xbrief/pending/story.xbrief.json --actor scott --confirm
+  #   task scope:record-approved-scope -- xbrief/active/story.xbrief.json --actor scott --kind renewed-approval --confirm
   record-approved-scope:
     desc: "Record human-approved file_scope digest under .deft/approved-scope/<plan-id>.json (#3205). Requires --actor <human>. Refuses agent stamps. Path-binds pending→active. Commit on merge base before activation/expansion PR."
     dir: '{{.USER_WORKING_DIR}}'
