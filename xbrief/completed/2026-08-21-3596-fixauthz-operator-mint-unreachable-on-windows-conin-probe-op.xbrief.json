@@ -1,0 +1,179 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3596, Windows CONIN$ mint probe",
+    "updated": "2026-08-21T18:54:21Z"
+  },
+  "plan": {
+    "title": "fix(authz): operator mint unreachable on Windows — CONIN$ probe opened read-only (#3110)",
+    "status": "completed",
+    "narratives": {
+      "Description": "On Windows, operator mint fails at the controlling-terminal probe because CONIN$ is opened read-only. Open CONIN$ with r+ on win32 for the probe and the phrase read, add a Windows regression test, and put --confirm on the three stale remediation strings. Do not weaken #3110.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3596",
+      "Overview": "## Symptom\n\nOperator mint appears **impossible on Windows**. In a real interactive PowerShell console, in\nthe repo worktree, with `--confirm` and no agent env markers:\n\n```\nPS C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\issue-3438-shell-dest-form> task scope:record-approved-scope -- xbrief/active/<...>.xbrief.json --actor msadams --confirm\nscope:record-approved-scope: refusing operator-cli stamp without a controlling terminal.\nOpen a real interactive console (not a headless/agent pipe) to mint (#3110).\n```\n\nThe gate checks in order (`packages/cli/src/human-presence-mint.ts`): agent env markers → TTY\n→ `--confirm` → **controlling terminal** → typed phrase. Reaching this message means the env\nand TTY checks *passed* — so the console is real and the failure is specifically the\ncontrolling-terminal probe.\n\n## Probable cause\n\n`defaultHasControllingTerminal()` does:\n\n```ts\nconst path = process.platform === \"win32\" ? \"CONIN$\" : \"/dev/tty\";\nconst fd = openSync(path, \"r\");\n```\n\nOn Windows, the console input device generally must be opened with **read/write** access;\n`openSync(\"CONIN$\", \"r\")` (O_RDONLY) commonly fails regardless of how the console was\nlaunched. If that is what is happening, the probe fails in *every* Windows console and mint is\nunreachable on the platform.\n\n`defaultReadInteractiveConfirm()` opens the same device with the same `\"r\"` flag, so the phrase\nread would likely fail too even if the probe were bypassed.\n\n## Diagnostic\n\nOne line in a real Windows console distinguishes \"wrong flag\" from \"wrong terminal\":\n\n```powershell\nnode -e \"const{openSync,closeSync}=require('fs');for(const f of ['r','r+']){try{closeSync(openSync('CONIN$',f));console.log(f,'OK')}catch(e){console.log(f,'FAIL',e.code)}}\"\n```\n\n- `r FAIL` + `r+ OK` → confirms the flag is the bug; fix is `\"r+\"` on win32 for both the probe\n  and the read.\n- both FAIL → the console genuinely is not attached (different root cause; investigate whether\n  go-task replaces the console handles before the engine spawns, even though\n  `tasks/engine-invoke.cjs` uses `stdio: \"inherit\"`).\n- both OK → the failure is elsewhere and this issue needs re-scoping.\n\n## Impact\n\nBlocking, and platform-wide if confirmed. `verify:scope-provenance` requires an approved-scope\ndigest, minting requires a human TTY by design (#3110, correctly), and if the Windows probe\ncannot succeed then **no Windows operator can ever satisfy the gate** — `task check` cannot\npass on any change that touches an active xBRIEF's file scope. Encountered while trying to land\n#3588.\n\n## Secondary defect (same area, independent)\n\nThree remediation strings tell the operator to run a command that always fails, because they\nomit `--confirm`:\n\n- `packages/core/src/scope-provenance/evaluate.ts` ~line 281 (`remediationForExpansion`)\n- same file, ~lines 437 and 457\n- `tasks/scope.yml` lines 164-165 (usage comments)\n\n`packages/cli/src/scope-record-approved-scope.ts:66` (usage) and\n`packages/core/src/scope-provenance/intent-evaluate.ts:75` (remint) do include it, so the fix\nis to make the three stale strings consistent.\n\n## Acceptance\n\n- [ ] Diagnostic run in a real Windows console and its result recorded here\n- [ ] If flag-related: `\"r+\"` on win32 for both `defaultHasControllingTerminal` and\n      `defaultReadInteractiveConfirm`, with a Windows regression test\n- [ ] Mint demonstrated end-to-end on Windows (a real operator mints a digest)\n- [ ] The three remediation strings include `--confirm`\n- [ ] No weakening of #3110: env-marker, TTY, `--confirm`, and typed-phrase requirements all\n      stay exactly as they are — this is a platform-probe fix, not a policy change\n\nRefs #3110, #3145, #3205, #3588.\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-08-21T16:56:13Z)\n\nTracked in #3597 (Shell-mutation write fence tracker) — ordering, residuals, and the verified fail-open surface live there.",
+      "Labels": "bug, security",
+      "UserStory": "As a Windows operator, I want scope:record-approved-scope mint to work in a real interactive console, so that verify:scope-provenance can be satisfied without a platform-wide dead end.",
+      "When": "When a real Windows console runs mint with --confirm and no agent env markers, the CONIN$ probe and phrase read use r+ on win32, a Windows test covers that, the three remediation strings include --confirm, and env-marker TTY --confirm and typed-phrase gates are unchanged.",
+      "LockedDecisions": "Issue body AC. Probable cause is openSync(CONIN$, r) on win32. Fix is r+ on win32 for defaultHasControllingTerminal and defaultReadInteractiveConfirm. No weakening of #3110. Secondary: three remediation strings omit --confirm (evaluate.ts ~281, 437, 457; tasks/scope.yml 164-165). Mint E2E is a real operator, not an agent. #3597 is a tracker for Shell-mutation fence, not this bug. Do not implement #3438 or #3597 here.",
+      "ImplementationPlan": "Change packages/cli/src/human-presence-mint.ts win32 CONIN$ open flag to r+ for probe and read. Add a Windows regression test. Add --confirm to the three stale remediation strings in packages/core/src/scope-provenance/evaluate.ts and tasks/scope.yml. CHANGELOG Unreleased. Record diagnostic: Grok agent pipe both r and r+ FAIL ENOENT (not a real console). Reporter already reached the controlling-terminal message after TTY passed, so implement the flag fix.",
+      "OriginDivergence": "Ingest 2026-08-21. Comment 5372804570 points at tracker #3597; this story stays the CONIN$ mint probe only. Later ingest comment 5372870099 is process, not spec. D12: origin updated_at is the ingest comment, not a spec change."
+    },
+    "items": [
+      {
+        "title": "win32 CONIN$ r+ probe and read",
+        "status": "completed",
+        "narrative": {
+          "When": "When defaultHasControllingTerminal and defaultReadInteractiveConfirm run on win32, they open CONIN$ with r+, not r, and a Windows regression test covers that.",
+          "Acceptance": "When defaultHasControllingTerminal and defaultReadInteractiveConfirm run on win32, they open CONIN$ with r+, not r, and a Windows regression test covers that."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/human-presence-mint.open-flag.test.ts#controlling-terminal-open-flag",
+          "recorded_at": "2026-08-21T17:46:00Z",
+          "recorded_by": "leaf-implementation/3596"
+        }
+      },
+      {
+        "title": "Remediation strings include --confirm",
+        "status": "completed",
+        "narrative": {
+          "When": "When the three stale remediation strings in evaluate.ts and tasks/scope.yml are read, they include --confirm.",
+          "Acceptance": "When the three stale remediation strings in evaluate.ts and tasks/scope.yml are read, they include --confirm."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope-provenance/evaluate.test.ts#confirm-remediation",
+          "recorded_at": "2026-08-21T17:46:00Z",
+          "recorded_by": "leaf-implementation/3596"
+        }
+      },
+      {
+        "title": "No #3110 policy weaken",
+        "status": "completed",
+        "narrative": {
+          "When": "When this story ships, env-marker, TTY, --confirm, and typed-phrase requirements are unchanged.",
+          "Acceptance": "When this story ships, env-marker, TTY, --confirm, and typed-phrase requirements are unchanged."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/human-presence-mint.test.ts#refuse-matrix",
+          "recorded_at": "2026-08-21T17:46:00Z",
+          "recorded_by": "leaf-implementation/3596"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3596",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3596: fix(authz): operator mint unreachable on Windows — CONIN$ probe opened read-only (#3110)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3110",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3110"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3597",
+        "type": "x-xbrief/refs",
+        "title": "Tracker #3597 is not this story"
+      }
+    ],
+    "metadata": {
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/src/human-presence-mint.ts",
+          "packages/core/src/scope-provenance/evaluate.ts",
+          "tasks/scope.yml",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/cli/src"
+        ],
+        "expected_outputs": [
+          "win32 CONIN$ r+; --confirm on three remediations; #3110 gates unchanged"
+        ],
+        "depends_on": [],
+        "conflict_group": "authz-mint-3596",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Issue-ingested #3596."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/cli/src/human-presence-mint.ts",
+          "packages/core/src/scope-provenance/evaluate.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/cli/src",
+        "cohesion_exemption": "CHANGELOG.md may exceed FILE_SIZE_REVIEW_TRIGGER_LINES; this slice adds one Unreleased line (#3424)."
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3605,
+        "prBase": null,
+        "mergeCommit": "a5b0dfb73b2413d93b8a85065003d66e21cdb5f1",
+        "deliveryBranch": "master",
+        "deliveryCommit": "2679d9baa44e2794b5492b32c5655c5506342c29",
+        "verifiedAt": "2026-08-21T18:54:21Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "2cf0122e-543b-44f2-805c-68cd4e75ce37"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-21T18:54:21Z",
+      "completedSessionId": "2cf0122e-543b-44f2-805c-68cd4e75ce37",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/cli/src"
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "derived independently testable clauses from issue #3596 AC before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "win32 CONIN$ opened with r+ for probe and phrase read, with a Windows regression test.",
+          "artifact_path": "packages/cli/src/human-presence-mint.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Three remediation strings include --confirm.",
+          "artifact_path": "packages/core/src/scope-provenance/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "No weakening of #3110 env-marker, TTY, --confirm, or typed-phrase gates.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "issue-3596-windows-conin-mint-probe",
+    "updated": "2026-08-21T18:54:21Z"
+  }
+}
