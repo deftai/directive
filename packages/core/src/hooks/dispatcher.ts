@@ -65,11 +65,7 @@ import {
   missingToolNameMessage,
   record,
 } from "./classify/index.js";
-import {
-  classifyProductDestForms,
-  type ProductDestForm,
-  payloadWithInjectedWriteTarget,
-} from "./dest-form.js";
+import { classifyProductDestForms, payloadWithInjectedWriteTarget } from "./dest-form.js";
 import {
   isAssistPosture,
   isEphemeralSpawn,
@@ -77,11 +73,6 @@ import {
   isReadOnlyHookContext,
 } from "./readonly.js";
 import { type ActiveScopeInspection, inspectActiveScope } from "./scope.js";
-import {
-  appendShellObservation,
-  buildShellObservation,
-  type ShellObservation,
-} from "./shell-observe.js";
 import { isDirectWriteTool, isMcpTool, isShellTool, isSpawnTool } from "./tools.js";
 
 // Pure parse/classify helpers are defined in ./classify/ and re-exported from
@@ -222,19 +213,6 @@ export interface HookPolicySeams {
     projectRoot: string,
     state: AuthzState,
   ) => readonly HumanOriginGrant[];
-  /**
-   * Shadow observation of Shell decisions (#3438). Never affects a verdict.
-   *
-   * `true` appends to `.deft/shell-observations.jsonl`; a function receives each
-   * record instead; absent or `false` observes nothing.
-   *
-   * ! Opt-IN deliberately. Defaulting to append made every caller that
-   * exercises a Shell decision write into its own `projectRoot`, which broke
-   * ~38 tests across the suite that assert on project-directory contents.
-   * Production enables it at the hook entry point (`cli/hook-dispatch.ts`);
-   * library callers and tests get silence unless they ask.
-   */
-  readonly shellObserve?: boolean | ((observation: ShellObservation) => void);
   /** When false, skip writing `.deft/authz/audit.jsonl` (tests). Default true. */
   readonly authzAudit?: boolean;
 }
@@ -1095,16 +1073,8 @@ function decideShellDestFormsThenRuntimeAuthority(
   const command = hookShellCommand(input.payload);
   let destAllow: HookDecision | null = null;
   let expansionDeny: HookDecision | null = null;
-  const dests = command === null ? [] : classifyProductDestForms(command);
-  // Record EVERY outcome, allow included: the fail-open classes are invisible
-  // otherwise, and no verdict below depends on this succeeding (#3438).
-  const observe = (decision: HookDecision): HookDecision => {
-    if (command === null) return decision;
-    recordShellObservation(input, toolName, command, decision, dests, seams);
-    return decision;
-  };
   if (command !== null) {
-    for (const dest of dests) {
+    for (const dest of classifyProductDestForms(command)) {
       if (dest.expansion === true) {
         expansionDeny = deny(
           input,
@@ -1126,50 +1096,17 @@ function decideShellDestFormsThenRuntimeAuthority(
       const destDecision = inspectMutationGates(destInput, toolName, seams, {
         proposedLifecycleExempt: true,
       });
-      if (destDecision.verdict === "deny") return observe(destDecision);
+      if (destDecision.verdict === "deny") return destDecision;
       destAllow = destDecision;
     }
   }
   const runtime = decideShellOrMcpRuntimeAuthority(input, toolName, seams);
-  if (runtime.verdict === "deny") return observe(runtime);
-  if (expansionDeny !== null) return observe(expansionDeny);
+  if (runtime.verdict === "deny") return runtime;
+  if (expansionDeny !== null) return expansionDeny;
   if (destAllow !== null && runtime.code === "shell-op-unclassifiable") {
-    return observe(destAllow);
+    return destAllow;
   }
-  return observe(runtime);
-}
-
-/**
- * Shadow-log one Shell decision. Observation only — never changes a verdict, and
- * a write failure is swallowed. Disable with `seams.shellObserve = false`.
- */
-function recordShellObservation(
-  input: HookDispatchInput,
-  toolName: string,
-  command: string,
-  decision: HookDecision,
-  dests: readonly ProductDestForm[],
-  seams: HookPolicySeams,
-): void {
-  if (seams.shellObserve === undefined || seams.shellObserve === false) return;
-  try {
-    const observation = buildShellObservation({
-      ts: utcIso(),
-      host: input.host,
-      toolName,
-      command,
-      verdict: decision.verdict,
-      code: decision.code,
-      dests,
-    });
-    if (typeof seams.shellObserve === "function") {
-      seams.shellObserve(observation);
-      return;
-    }
-    appendShellObservation(decision.projectRoot, observation);
-  } catch {
-    // Observation must never affect enforcement.
-  }
+  return runtime;
 }
 
 /** Decide a normalized event using only the P0 direct-write policy. */
