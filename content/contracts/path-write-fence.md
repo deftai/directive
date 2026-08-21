@@ -71,7 +71,10 @@ Dest-form target reconstruction (#3438) follows shell **precedence**, not separa
 resolves against the `-C` chain preceding it. Targets the classifier cannot reconstruct stay
 fail-closed: glob/variable dests, subshell grouping (`(`/`)`), and a work tree selected
 through `-c core.workTree` / `--config-env` (resolution there depends on the git dir).
-Known-open, denied not reconstructed: quoted literal metacharacters over-deny.
+An unquoted backslash escapes the next character when that character needs escaping in a
+shell (`rm protected\ file` is ONE dest); before anything else it is retained, so Windows
+dests keep their separators. Known-open, denied not reconstructed: quoted literal
+metacharacters over-deny.
 
 ## Skill behavior (build / swarm)
 

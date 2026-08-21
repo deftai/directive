@@ -254,6 +254,27 @@ describe("classifyProductDestForms (#3438)", () => {
     ]);
   });
 
+  it("keeps an escaped dest as one path without eating Windows separators", () => {
+    // `rm protected\ file` is a single pathname. Splitting it authorized two
+    // unrelated tokens and let a policy on the real path be bypassed (#3438).
+    expect(classifyProductDestForms("rm protected\\ file")).toEqual([
+      { kind: "rm", path: "protected file" },
+    ]);
+    expect(classifyProductDestForms("git checkout -- my\\ file.ts")).toEqual([
+      { kind: "git-checkout", path: "my file.ts" },
+    ]);
+    // Escaped separators are literal, so they do not split segments either.
+    expect(classifyProductDestForms("rm a\\;b")).toEqual([{ kind: "rm", path: "a;b" }]);
+    expect(classifyProductDestForms("rm a\\&b")).toEqual([{ kind: "rm", path: "a&b" }]);
+    // A backslash before an ordinary character stays: Windows dests are valid.
+    expect(classifyProductDestForms("rm C:\\Repos\\file.ts")).toEqual([
+      { kind: "rm", path: "C:\\Repos\\file.ts" },
+    ]);
+    expect(classifyProductDestForms("cd apps\\web && rm AGENTS.md")).toEqual([
+      { kind: "rm", path: "apps\\web/AGENTS.md" },
+    ]);
+  });
+
   it("fails closed on subshell grouping it cannot reconstruct", () => {
     // Grouping is detected, not parsed: the token keeps its trailing `)` and the
     // reconstruction is best-effort. Only the fail-closed verdict is load-bearing.

@@ -42,6 +42,37 @@ const GIT_GLOBAL_VALUE_OPTS = new Set([
 const RESTORE_VALUE_OPTS = new Set(["--source", "-s", "--conflict"]);
 
 /**
+ * Characters a preceding backslash escapes in an unquoted word. A backslash
+ * before anything else is retained, so Windows dests keep their separators.
+ */
+const SHELL_ESCAPABLE = new Set([
+  " ",
+  "\t",
+  "\n",
+  "\r",
+  '"',
+  "'",
+  "\\",
+  "$",
+  "`",
+  "&",
+  "|",
+  ";",
+  "(",
+  ")",
+  "<",
+  ">",
+  "*",
+  "?",
+  "[",
+  "]",
+  "{",
+  "}",
+  "~",
+  "#",
+]);
+
+/**
  * Inject a dest path so `inspectMutationGates` sees the same write target as Edit/Write.
  * Preserves original payload fields (command, posture markers).
  */
@@ -249,6 +280,20 @@ function tokenizeSegment(segment: string): string[] {
       }
       if (quote === '"' && c === "\\" && i + 1 < segment.length) {
         cur += segment[i + 1] ?? "";
+        i++;
+        continue;
+      }
+      cur += c;
+      continue;
+    }
+    if (c === "\\" && i + 1 < segment.length) {
+      const next = segment[i + 1] ?? "";
+      // `rm protected\ file` is ONE path. But this module also accepts Windows
+      // dests (`C:\Repos\file.ts`), where a backslash is a separator, not an
+      // escape — so only consume it before a character that needs escaping and
+      // otherwise keep it verbatim (#3438).
+      if (SHELL_ESCAPABLE.has(next)) {
+        cur += next;
         i++;
         continue;
       }
