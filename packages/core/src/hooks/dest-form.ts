@@ -12,8 +12,11 @@
  * *forms* instead, and see `content/contracts/path-write-fence.md`.
  *
  * Residual known-open (recognition, not resolution): `python -c`,
- * `cmd /c copy`, obfuscated `bash -c`. Commit-time active-scope is out of this
- * slice (#3438).
+ * `cmd /c copy`, obfuscated `bash -c`.
+ *
+ * Commit-time active-scope is out of this slice (#3438), and ⊗ do not weaken
+ * Edit to match Shell. Keep this sentence on ONE line: acceptance clause 4 is
+ * verified by a literal token search, so wrapping it silently fails the gate.
  */
 
 import { record, toolInputRecord } from "./classify/payload.js";
