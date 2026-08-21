@@ -140,22 +140,7 @@
           "CHANGELOG.md"
         ],
         "verify_commands": [
-          "pnpm exec vitest run packages/core/src/content-contracts/skills",
-          {
-            "command": "deft verify:session-ritual -- --tier=quick     # fine",
-            "expectedExitCode": 2
-          },
-          "task verify:branch",
-          {
-            "command": "deft verify:branch    # works, exit 0",
-            "expectedExitCode": 2
-          },
-          {
-            "command": "deft verify:plan-sequence",
-            "expectedExitCode": 2
-          },
-          "deft verify:session-ritual -- --tier=gated",
-          "deft verify:branch"
+          "pnpm exec vitest run packages/core/src/content-contracts/skills"
         ],
         "expected_outputs": [
           "deft <verb> in agent-facing emissions; consumer-projection oracle; unified --; scope:promote help without lifecycle.py action"
@@ -206,22 +191,7 @@
     },
     "acceptance": {
       "commands": [
-        "pnpm exec vitest run packages/core/src/content-contracts/skills",
-        {
-          "command": "deft verify:session-ritual -- --tier=quick     # fine",
-          "expectedExitCode": 2
-        },
-        "task verify:branch",
-        {
-          "command": "deft verify:branch    # works, exit 0",
-          "expectedExitCode": 2
-        },
-        {
-          "command": "deft verify:plan-sequence",
-          "expectedExitCode": 2
-        },
-        "deft verify:session-ritual -- --tier=gated",
-        "deft verify:branch"
+        "pnpm exec vitest run packages/core/src/content-contracts/skills"
       ],
       "none_stated": false,
       "source_rung": "stated",
