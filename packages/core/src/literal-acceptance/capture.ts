@@ -191,11 +191,11 @@ function matchLabeledCommand(line: string): string | null {
   return line.slice(i).trimEnd();
 }
 
-/** `$ cmd` or `> cmd` prompt lines. */
+/** `$ cmd` prompt lines. Markdown blockquote `>` is not a prompt (#3572). */
 function matchPromptCommand(line: string): string | null {
   let i = skipWs(line, 0);
   if (i >= line.length) return null;
-  if (line[i] !== "$" && line[i] !== ">") return null;
+  if (line[i] !== "$") return null;
   i = skipWs(line, i + 1);
   if (i >= line.length) return null;
   return line.slice(i).trimEnd();
@@ -296,7 +296,7 @@ function flushFenceBody(
 ): void {
   if (requireRegion && !regionActive) return;
   if (!isShellFenceLang(fenceLang)) return;
-  // Transcript lines are skipped. `$`/`>` prompts inside a transcript fence are
+  // Transcript lines are skipped. `$` prompts inside a transcript fence are
   // suggested-fixes (biome migrate), not stated AC (#3511). Comments do not
   // mark a fence as transcript, so a genuine command next to `# Error:` still
   // captures.

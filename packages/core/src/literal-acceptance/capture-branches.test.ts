@@ -79,11 +79,12 @@ describe("captureLiteralAcceptanceCommands branch matrix (#3287)", () => {
         "pnpm test",
         "task help",
         "task verify:branch",
-        "pnpm --version",
       ]),
     );
     // Mid-line label has no terminator — not captured (#3484).
     expect(cmds).not.toContain("task --version");
+    // Markdown blockquote is not a prompt (#3572 leftover).
+    expect(cmds).not.toContain("pnpm --version");
   });
 
   it("extracts inline backtick spans next to verify/run language", () => {
