@@ -55,30 +55,42 @@ Shell/MCP push/merge scopes remain project-only (`runtimeAuthority.scopes`); the
 re-scoped by `file_scope`. Recognized Shell dest-forms (`git checkout --`, `git restore`,
 `rm`/`rmdir`) use the same write fence as Edit/Write, including story `file_scope` (#3438).
 
-Dest-form target reconstruction (#3438) follows shell **precedence**, not separator order.
-`|` binds tighter than `&&` / `||`, which bind tighter than `&`:
+### Dest-form target recognition (#3438)
 
-- Inheritance into a segment is unconditional — a subshell starts in the parent's cwd — so
-  `cd sub && rm a | rm b` removes `sub/a` **and** `sub/b`
-- A `cd` inside a pipeline member is confined to that member
-- `&` closes the whole and-or list and backgrounds it, so `cd sub && rm a & rm b` removes
-  `sub/a` but leaves `rm b` in the parent shell targeting root `b` — the `cd` never escapes
-- `;` closes the list without backgrounding it, so its `cd` does carry forward
-- `||` makes the effective cwd depend on exit status. A list mixing a `cd` with `||`
-  (`cd scoped || echo failed && rm target`, or the mirror `cd scoped && rm a || rm b`)
-  reaches the mutation on **both** branches, so no static target is correct — those
-  dests fail closed, and the uncertainty latches for the rest of the command
+The fence resolves a target for exactly one shape: **a single simple command**. Everything
+else is recognized and denied, never resolved.
 
-`git -C` composes (`git -C a -C b` → `a/b`; an absolute `-C` resets), and `--work-tree`
-resolves against the `-C` chain preceding it. Targets the classifier cannot reconstruct stay
-fail-closed: glob/variable dests, a leading `~` (expands to `$HOME`, outside the repo; a
-trailing `~` as in `foo.ts~` is an ordinary path), subshell grouping (`(`/`)`), a `cd` mixed
-with `||`, and a work tree selected through `-c core.workTree` / `--config-env` (resolution
-there depends on the git dir).
-An unquoted backslash escapes the next character when that character needs escaping in a
-shell (`rm protected\ file` is ONE dest); before anything else it is retained, so Windows
-dests keep their separators. Known-open, denied not reconstructed: quoted literal
-metacharacters over-deny.
+A command is simple when it has no unquoted `&&`, `||`, `|`, `&`, `;`, or newline, no
+grouping or substitution (`(`, `)`, `{`, `}`, `` ` ``, `$`), and no git context option. Then
+each dest token is checked against the same fence as Edit/Write.
+
+Everything else **fails closed** — denied regardless of whether the path would have been in
+scope:
+
+| Fail-closed | Why |
+| --- | --- |
+| Any compound command (`cd x && rm y`, pipelines, `;`, `&`) | cwd is not provable |
+| Grouping / substitution (`(…)`, `{…;}`, `$(…)`, backticks) | target is computed at runtime |
+| Git context options (`-C`, `--work-tree`, `--git-dir`, `-c core.workTree`, `--config-env`, `GIT_WORK_TREE=`, `GIT_DIR=`) | relocates the tree; resolution depends on the git dir |
+| Glob / variable dests, or a leading `~` | expands at runtime (a *trailing* `~` as in `foo.ts~` is an ordinary path) |
+
+⊗ **Do not add cwd or git-context reconstruction back.** It was implemented and withdrawn
+(#3438): the target depends on operator precedence (`&` binds looser than `&&`, which binds
+looser than `|`), on exit status (`cd x || …` runs only when the `cd` failed), on subshell
+boundaries, and on git config — and every resolution rule added produced its own fence
+bypass. Recognition is total and cheap; resolution was neither.
+
+Rewrite guidance the deny message carries: name a concrete path in one simple command
+(`rm x/y`, not `cd x && rm y`), or issue one command per tool call.
+
+**Cost of the narrowing, accepted deliberately:** legitimate compound and cross-repo
+commands are denied — notably `git -C /other/repo checkout -- f.ts`, which resolution used
+to allow. Quoting is honoured (an unquoted backslash escapes only a character that needs
+escaping, so `rm protected\ file` is ONE dest while `C:\Repos\file.ts` keeps its separators).
+
+**Known-open — recognition, not resolution:** `python -c`, `cmd /c copy`, and obfuscated
+`bash -c 'rm …'` are not recognized as dest-forms at all, so they stay fail-open. Narrowing
+bounds what resolution can get wrong; it does not close the recognition gap.
 
 ## Skill behavior (build / swarm)
 

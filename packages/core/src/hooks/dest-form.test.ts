@@ -1,9 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { listShellOps } from "../policy/runtime-authority.js";
-import { classifyProductDestForms, payloadWithInjectedWriteTarget } from "./dest-form.js";
+import {
+  classifyProductDestForms,
+  payloadWithInjectedWriteTarget,
+  SHELL_DEST_EXPANSION_SENTINEL,
+} from "./dest-form.js";
 
 const REPORTER =
   "git checkout -- apps/web/tsconfig.json apps/web/next-env.d.ts && rm apps/web/AGENTS.md apps/web/CLAUDE.md";
+
+const sentinel = (kind: string) => ({
+  kind,
+  path: SHELL_DEST_EXPANSION_SENTINEL,
+  expansion: true,
+});
 
 describe("classifyProductDestForms (#3438)", () => {
   it("does not reuse listShellOps for the filed repro", () => {
@@ -13,12 +23,23 @@ describe("classifyProductDestForms (#3438)", () => {
     expect(listShellOps("git restore src/a.ts")).toEqual([]);
   });
 
-  it("harvests git checkout -- and rm dests from the reporter compound", () => {
-    expect(classifyProductDestForms(REPORTER)).toEqual([
+  it("resolves a target only for a single simple command", () => {
+    expect(classifyProductDestForms("git checkout HEAD -- src/a.ts")).toEqual([
+      { kind: "git-checkout", path: "src/a.ts" },
+    ]);
+    expect(classifyProductDestForms("git checkout -- apps/web/tsconfig.json a/b.ts")).toEqual([
       { kind: "git-checkout", path: "apps/web/tsconfig.json" },
-      { kind: "git-checkout", path: "apps/web/next-env.d.ts" },
+      { kind: "git-checkout", path: "a/b.ts" },
+    ]);
+    expect(classifyProductDestForms("rm -rf apps/web/AGENTS.md")).toEqual([
       { kind: "rm", path: "apps/web/AGENTS.md" },
-      { kind: "rm", path: "apps/web/CLAUDE.md" },
+    ]);
+    expect(classifyProductDestForms('rmdir --ignore-fail-on-non-empty "tmp/dir"')).toEqual([
+      { kind: "rmdir", path: "tmp/dir" },
+    ]);
+    expect(classifyProductDestForms("rm -- -weird")).toEqual([{ kind: "rm", path: "-weird" }]);
+    expect(classifyProductDestForms("rm src/a.ts src/a.ts")).toEqual([
+      { kind: "rm", path: "src/a.ts" },
     ]);
   });
 
@@ -26,9 +47,6 @@ describe("classifyProductDestForms (#3438)", () => {
     expect(classifyProductDestForms("git checkout main")).toEqual([]);
     expect(classifyProductDestForms("git checkout -b topic")).toEqual([]);
     expect(classifyProductDestForms("git checkout apps/web/tsconfig.json")).toEqual([]);
-    expect(classifyProductDestForms("git checkout HEAD -- src/a.ts")).toEqual([
-      { kind: "git-checkout", path: "src/a.ts" },
-    ]);
   });
 
   it("harvests git restore dests including flags and --", () => {
@@ -41,24 +59,138 @@ describe("classifyProductDestForms (#3438)", () => {
     expect(classifyProductDestForms("git restore --source HEAD src/a.ts")).toEqual([
       { kind: "git-restore", path: "src/a.ts" },
     ]);
+    expect(classifyProductDestForms("git restore -sHEAD src/a.ts")).toEqual([
+      { kind: "git-restore", path: "src/a.ts" },
+    ]);
+    expect(classifyProductDestForms("git restore --conflict merge src/a.ts")).toEqual([
+      { kind: "git-restore", path: "src/a.ts" },
+    ]);
+    expect(classifyProductDestForms("git restore --staged --")).toEqual([]);
   });
 
-  it("harvests rm and rmdir dests after flags", () => {
-    expect(classifyProductDestForms("rm -rf apps/web/AGENTS.md")).toEqual([
-      { kind: "rm", path: "apps/web/AGENTS.md" },
+  it("resolves wrappers and quoted dests", () => {
+    expect(classifyProductDestForms("FOO=1 sudo rm src/a.ts")).toEqual([
+      { kind: "rm", path: "src/a.ts" },
     ]);
-    expect(classifyProductDestForms('rmdir --ignore-fail-on-non-empty "tmp/dir"')).toEqual([
+    expect(classifyProductDestForms("env BAR=2 rm.exe src/a.ts")).toEqual([
+      { kind: "rm", path: "src/a.ts" },
+    ]);
+    expect(classifyProductDestForms("command rmdir.exe tmp/dir")).toEqual([
       { kind: "rmdir", path: "tmp/dir" },
     ]);
-    expect(classifyProductDestForms("rm -- -weird")).toEqual([{ kind: "rm", path: "-weird" }]);
+    expect(classifyProductDestForms('rm "apps/web/AGENTS.md"')).toEqual([
+      { kind: "rm", path: "apps/web/AGENTS.md" },
+    ]);
+    expect(classifyProductDestForms('rm "quoted\\"name"')).toEqual([
+      { kind: "rm", path: 'quoted"name' },
+    ]);
+    // Quoted metacharacters are literal, so they neither split nor fail closed.
+    expect(classifyProductDestForms("rm 'weird(name).ts'")).toEqual([
+      { kind: "rm", path: "weird(name).ts" },
+    ]);
+  });
+
+  it("keeps an escaped dest as one path without eating Windows separators", () => {
+    expect(classifyProductDestForms("rm protected\\ file")).toEqual([
+      { kind: "rm", path: "protected file" },
+    ]);
+    expect(classifyProductDestForms("git checkout -- my\\ file.ts")).toEqual([
+      { kind: "git-checkout", path: "my file.ts" },
+    ]);
+    // A backslash before an ordinary character stays: Windows dests are valid.
+    expect(classifyProductDestForms("rm C:\\Repos\\file.ts")).toEqual([
+      { kind: "rm", path: "C:\\Repos\\file.ts" },
+    ]);
   });
 
   it("leaves non-dest and hostile residual commands unclassifiable", () => {
+    expect(classifyProductDestForms("")).toEqual([]);
+    expect(classifyProductDestForms("   ")).toEqual([]);
     expect(classifyProductDestForms("git status")).toEqual([]);
     expect(classifyProductDestForms("git push origin HEAD")).toEqual([]);
+    expect(classifyProductDestForms("rm -rf --")).toEqual([]);
+    expect(classifyProductDestForms("echo 'rm src/a.ts'")).toEqual([]);
+    // Known-open: recognition, not resolution, is the gap here (#3438).
     expect(classifyProductDestForms("python -c \"open('f','w').write('x')\"")).toEqual([]);
     expect(classifyProductDestForms("cmd /c copy a b")).toEqual([]);
     expect(classifyProductDestForms("bash -c 'rm apps/web/AGENTS.md'")).toEqual([]);
+    // Compound with no recognized dest-form stays unclassifiable, not denied.
+    expect(classifyProductDestForms("cd apps/web && npm test")).toEqual([]);
+    expect(classifyProductDestForms("cat list | sort > out")).toEqual([]);
+  });
+
+  it("fails closed on any compound command rather than reconstructing a target", () => {
+    // Reconstructing a target from shell state was tried and abandoned: cwd
+    // depends on precedence, exit status, subshells, and git context, and every
+    // resolution rule grew its own bypass (#3438). One dest per recognized kind.
+    expect(classifyProductDestForms(REPORTER)).toEqual([sentinel("git-checkout"), sentinel("rm")]);
+    expect(classifyProductDestForms("cd sub && rm allowed | rm secret")).toEqual([sentinel("rm")]);
+    expect(classifyProductDestForms("cd sub && rm a & rm b")).toEqual([sentinel("rm")]);
+    expect(classifyProductDestForms("cd scoped || rm x")).toEqual([sentinel("rm")]);
+    expect(classifyProductDestForms("cd scoped || echo failed && rm target")).toEqual([
+      sentinel("rm"),
+    ]);
+    expect(classifyProductDestForms("cd ~ && rm secret")).toEqual([sentinel("rm")]);
+    expect(classifyProductDestForms("rm src/a.ts || rmdir tmp/dir")).toEqual([
+      sentinel("rm"),
+      sentinel("rmdir"),
+    ]);
+    expect(classifyProductDestForms("rm src/a.ts\nrmdir tmp/dir")).toEqual([
+      sentinel("rm"),
+      sentinel("rmdir"),
+    ]);
+    expect(classifyProductDestForms("rm a.ts ; rm b.ts")).toEqual([sentinel("rm")]);
+  });
+
+  it("fails closed on grouping and substitution even in a single segment", () => {
+    expect(classifyProductDestForms("(cd sub && rm secret.ts)")).toEqual([sentinel("rm")]);
+    expect(classifyProductDestForms("{ rm secret.ts; }")).toEqual([sentinel("rm")]);
+    expect(classifyProductDestForms("rm $(cat list)")).toEqual([sentinel("rm")]);
+    expect(classifyProductDestForms('rm "$TARGET/x"')).toEqual([sentinel("rm")]);
+    expect(classifyProductDestForms("rm `cat list`")).toEqual([sentinel("rm")]);
+  });
+
+  it("fails closed on git context options that relocate the work tree", () => {
+    // `-C` composes, `--work-tree` resolves against it, `--git-dir` interacts
+    // with both, and `-c core.workTree` depends on the git dir. Not resolved.
+    expect(classifyProductDestForms("git -C repo checkout -- src/a.ts")).toEqual([
+      { kind: "git-checkout", path: "src/a.ts", expansion: true },
+    ]);
+    expect(classifyProductDestForms("git -Crepo checkout -- src/a.ts")).toEqual([
+      { kind: "git-checkout", path: "src/a.ts", expansion: true },
+    ]);
+    expect(classifyProductDestForms("git --work-tree=tree checkout -- src/a.ts")).toEqual([
+      { kind: "git-checkout", path: "src/a.ts", expansion: true },
+    ]);
+    expect(classifyProductDestForms("git --git-dir=/tmp/g checkout -- src/a.ts")).toEqual([
+      { kind: "git-checkout", path: "src/a.ts", expansion: true },
+    ]);
+    expect(classifyProductDestForms("git -c core.workTree=/tmp/tree checkout -- f.ts")).toEqual([
+      { kind: "git-checkout", path: "f.ts", expansion: true },
+    ]);
+    expect(classifyProductDestForms("GIT_WORK_TREE=pkg git checkout -- a.ts")).toEqual([
+      { kind: "git-checkout", path: "a.ts", expansion: true },
+    ]);
+    // An unrelated -c is skipped cleanly, not fail-closed.
+    expect(classifyProductDestForms("git -c core.editor=vim checkout -- f.ts")).toEqual([
+      { kind: "git-checkout", path: "f.ts" },
+    ]);
+  });
+
+  it("fails closed on glob and tilde dests but not a trailing tilde", () => {
+    expect(classifyProductDestForms("rm src/*.ts")).toEqual([
+      { kind: "rm", path: "src/*.ts", expansion: true },
+    ]);
+    expect(classifyProductDestForms("rm ~/secret")).toEqual([
+      { kind: "rm", path: "~/secret", expansion: true },
+    ]);
+    expect(classifyProductDestForms("git checkout -- ~/x.ts")).toEqual([
+      { kind: "git-checkout", path: "~/x.ts", expansion: true },
+    ]);
+    // A trailing `~` is an ordinary backup file, not an expansion.
+    expect(classifyProductDestForms("rm src/foo.ts~")).toEqual([
+      { kind: "rm", path: "src/foo.ts~" },
+    ]);
   });
 
   it("injects dest path without dropping the original command", () => {
@@ -74,248 +206,5 @@ describe("classifyProductDestForms (#3438)", () => {
     expect(payloadWithInjectedWriteTarget(null, "src/a.ts").tool_input).toMatchObject({
       file_path: "src/a.ts",
     });
-  });
-
-  it("covers wrappers, git globals, separators, and quoted dests", () => {
-    expect(classifyProductDestForms("")).toEqual([]);
-    expect(classifyProductDestForms("   ")).toEqual([]);
-    expect(classifyProductDestForms("FOO=1 sudo rm src/a.ts")).toEqual([
-      { kind: "rm", path: "src/a.ts" },
-    ]);
-    expect(classifyProductDestForms("env BAR=2 rm.exe src/a.ts")).toEqual([
-      { kind: "rm", path: "src/a.ts" },
-    ]);
-    expect(classifyProductDestForms("command rmdir.exe tmp/dir")).toEqual([
-      { kind: "rmdir", path: "tmp/dir" },
-    ]);
-    expect(
-      classifyProductDestForms("git.exe -C repo --git-dir=/tmp/g -- checkout -- src/a.ts"),
-    ).toEqual([{ kind: "git-checkout", path: "repo/src/a.ts" }]);
-    expect(classifyProductDestForms("git --work-tree=tree checkout -- src/a.ts")).toEqual([
-      { kind: "git-checkout", path: "tree/src/a.ts" },
-    ]);
-    expect(classifyProductDestForms("GIT_WORK_TREE=pkg git checkout -- a.ts")).toEqual([
-      { kind: "git-checkout", path: "pkg/a.ts" },
-    ]);
-    expect(classifyProductDestForms("cd apps/web && rm AGENTS.md")).toEqual([
-      { kind: "rm", path: "apps/web/AGENTS.md" },
-    ]);
-    expect(classifyProductDestForms("cd /tmp | rm secret.ts")).toEqual([
-      { kind: "rm", path: "secret.ts" },
-    ]);
-    expect(classifyProductDestForms("cd /tmp & rm secret.ts")).toEqual([
-      { kind: "rm", path: "secret.ts" },
-    ]);
-    expect(classifyProductDestForms("rm src/*.ts")).toEqual([
-      { kind: "rm", path: "src/*.ts", expansion: true },
-    ]);
-    expect(classifyProductDestForms("echo 'rm src/a.ts'")).toEqual([]);
-    expect(classifyProductDestForms("git restore -sHEAD src/a.ts")).toEqual([
-      { kind: "git-restore", path: "src/a.ts" },
-    ]);
-    expect(classifyProductDestForms("git restore --conflict merge src/a.ts")).toEqual([
-      { kind: "git-restore", path: "src/a.ts" },
-    ]);
-    expect(classifyProductDestForms("git restore --staged --")).toEqual([]);
-    expect(classifyProductDestForms('rm "apps/web/AGENTS.md"')).toEqual([
-      { kind: "rm", path: "apps/web/AGENTS.md" },
-    ]);
-    expect(classifyProductDestForms('rm "quoted\\"name"')).toEqual([
-      { kind: "rm", path: 'quoted"name' },
-    ]);
-    expect(classifyProductDestForms("rm src/a.ts ; rm src/a.ts")).toEqual([
-      { kind: "rm", path: "src/a.ts" },
-    ]);
-    expect(classifyProductDestForms("rm src/a.ts || rmdir tmp/dir")).toEqual([
-      { kind: "rm", path: "src/a.ts" },
-      { kind: "rmdir", path: "tmp/dir" },
-    ]);
-    expect(classifyProductDestForms("rm src/a.ts\nrmdir tmp/dir")).toEqual([
-      { kind: "rm", path: "src/a.ts" },
-      { kind: "rmdir", path: "tmp/dir" },
-    ]);
-    expect(classifyProductDestForms("rm -rf --")).toEqual([]);
-    expect(classifyProductDestForms("git push origin HEAD")).toEqual([]);
-  });
-
-  it("keeps the parent cwd for pipeline and backgrounded segments", () => {
-    // A pipeline member runs in a subshell, but a subshell inherits the parent
-    // cwd — dropping the prefix here would fence a shallower path than the
-    // shell mutates. `cd` in the parent, pipeline in the child.
-    expect(classifyProductDestForms("cd sub && rm allowed | rm secret")).toEqual([
-      { kind: "rm", path: "sub/allowed" },
-      { kind: "rm", path: "sub/secret" },
-    ]);
-    expect(classifyProductDestForms("cd apps/web && rm a; rm b")).toEqual([
-      { kind: "rm", path: "apps/web/a" },
-      { kind: "rm", path: "apps/web/b" },
-    ]);
-    expect(classifyProductDestForms("cd a && cd b && rm c.ts")).toEqual([
-      { kind: "rm", path: "a/b/c.ts" },
-    ]);
-  });
-
-  it("applies shell precedence: & binds looser than && / ||, which bind looser than |", () => {
-    // `cd sub && rm a & rm b` parses as `{ cd sub && rm a } &` plus `rm b`.
-    // The trailing removal runs in the parent shell at the ORIGINAL cwd, so it
-    // targets root `b`. Reconstructing `sub/b` would fence an in-scope path
-    // while the shell deletes an out-of-scope one (#3438).
-    expect(classifyProductDestForms("cd sub && rm a & rm b")).toEqual([
-      { kind: "rm", path: "sub/a" },
-      { kind: "rm", path: "b" },
-    ]);
-    expect(classifyProductDestForms("cd sub && rm a && rm b & rm c")).toEqual([
-      { kind: "rm", path: "sub/a" },
-      { kind: "rm", path: "sub/b" },
-      { kind: "rm", path: "c" },
-    ]);
-    // `|` binds tighter, so the whole pipeline stays inside the cd.
-    expect(classifyProductDestForms("cd sub && rm a | rm b")).toEqual([
-      { kind: "rm", path: "sub/a" },
-      { kind: "rm", path: "sub/b" },
-    ]);
-    // A backgrounded list still reads the cwd exported before it.
-    expect(classifyProductDestForms("cd sub; cd deep && rm a & rm b")).toEqual([
-      { kind: "rm", path: "sub/deep/a" },
-      { kind: "rm", path: "sub/b" },
-    ]);
-    // Pipeline inside a backgrounded list: confined, but inherits.
-    expect(classifyProductDestForms("cd sub && rm a | rm b & rm c")).toEqual([
-      { kind: "rm", path: "sub/a" },
-      { kind: "rm", path: "sub/b" },
-      { kind: "rm", path: "c" },
-    ]);
-  });
-
-  it("confines a cd that runs inside a pipeline or background subshell", () => {
-    // Export-out is the conditional direction: the child's `cd` dies with it.
-    expect(classifyProductDestForms("rm a.ts | cd sub && rm b.ts")).toEqual([
-      { kind: "rm", path: "a.ts" },
-      { kind: "rm", path: "b.ts" },
-    ]);
-    expect(classifyProductDestForms("cd sub | rm a.ts; rm b.ts")).toEqual([
-      { kind: "rm", path: "a.ts" },
-      { kind: "rm", path: "b.ts" },
-    ]);
-    expect(classifyProductDestForms("cd sub & rm a.ts")).toEqual([{ kind: "rm", path: "a.ts" }]);
-  });
-
-  it("composes repeated git -C and --work-tree context options", () => {
-    expect(classifyProductDestForms("git -C a -C b checkout -- f.ts")).toEqual([
-      { kind: "git-checkout", path: "a/b/f.ts" },
-    ]);
-    expect(classifyProductDestForms("git -Ca -Cb checkout -- f.ts")).toEqual([
-      { kind: "git-checkout", path: "a/b/f.ts" },
-    ]);
-    expect(classifyProductDestForms("git -C a --work-tree=w checkout -- f.ts")).toEqual([
-      { kind: "git-checkout", path: "a/w/f.ts" },
-    ]);
-    expect(classifyProductDestForms("git -C a --work-tree w restore -- f.ts")).toEqual([
-      { kind: "git-restore", path: "a/w/f.ts" },
-    ]);
-    // An absolute -C resets the chain, matching git.
-    expect(classifyProductDestForms("git -C a -C /srv/repo checkout -- f.ts")).toEqual([
-      { kind: "git-checkout", path: "/srv/repo/f.ts" },
-    ]);
-    // The compound cwd still layers on top of the composed git context.
-    expect(classifyProductDestForms("cd sub && git -C a -C b checkout -- f.ts")).toEqual([
-      { kind: "git-checkout", path: "sub/a/b/f.ts" },
-    ]);
-  });
-
-  it("fails closed when a cd mixes with || so cwd depends on exit status", () => {
-    // `rm target` is reachable on BOTH branches: scoped/target if the cd
-    // succeeded, root target if it failed. No static answer is correct, so do
-    // not pick one (#3438).
-    expect(classifyProductDestForms("cd scoped || echo failed && rm target")).toEqual([
-      { kind: "rm", path: "scoped/target", expansion: true },
-    ]);
-    expect(classifyProductDestForms("cd scoped && rm a || rm b")).toEqual([
-      { kind: "rm", path: "scoped/a", expansion: true },
-      { kind: "rm", path: "scoped/b", expansion: true },
-    ]);
-    expect(classifyProductDestForms("cd scoped || rm x")).toEqual([
-      { kind: "rm", path: "scoped/x", expansion: true },
-    ]);
-    // Uncertainty latches: a later list cannot assume the cd landed either.
-    expect(classifyProductDestForms("cd scoped || true; rm y")).toEqual([
-      { kind: "rm", path: "scoped/y", expansion: true },
-    ]);
-    // `||` with no cd in the list is unaffected.
-    expect(classifyProductDestForms("rm a.ts || rmdir tmp/dir")).toEqual([
-      { kind: "rm", path: "a.ts" },
-      { kind: "rmdir", path: "tmp/dir" },
-    ]);
-    // `&&` alone stays provable.
-    expect(classifyProductDestForms("cd scoped && rm x")).toEqual([
-      { kind: "rm", path: "scoped/x" },
-    ]);
-  });
-
-  it("fails closed on a leading tilde and leaves a trailing tilde alone", () => {
-    // `~` expands to $HOME, so the shell mutates outside the repo entirely.
-    expect(classifyProductDestForms("rm ~/secret")).toEqual([
-      { kind: "rm", path: "~/secret", expansion: true },
-    ]);
-    expect(classifyProductDestForms("git checkout -- ~/x.ts")).toEqual([
-      { kind: "git-checkout", path: "~/x.ts", expansion: true },
-    ]);
-    // A trailing `~` is an ordinary backup file, not an expansion.
-    expect(classifyProductDestForms("rm src/foo.ts~")).toEqual([
-      { kind: "rm", path: "src/foo.ts~" },
-    ]);
-  });
-
-  it("fails closed on a work tree selected through git -c core.workTree", () => {
-    // Resolution depends on the git dir, which the classifier does not model.
-    expect(classifyProductDestForms("git -c core.workTree=/tmp/tree checkout -- f.ts")).toEqual([
-      { kind: "git-checkout", path: "f.ts", expansion: true },
-    ]);
-    expect(classifyProductDestForms("git -ccore.worktree=/tmp/tree restore -- f.ts")).toEqual([
-      { kind: "git-restore", path: "f.ts", expansion: true },
-    ]);
-    expect(classifyProductDestForms("git --config-env=core.workTree=WT restore f.ts")).toEqual([
-      { kind: "git-restore", path: "f.ts", expansion: true },
-    ]);
-    // An unrelated -c is still skipped cleanly, not fail-closed.
-    expect(classifyProductDestForms("git -c core.editor=vim checkout -- f.ts")).toEqual([
-      { kind: "git-checkout", path: "f.ts" },
-    ]);
-  });
-
-  it("keeps an escaped dest as one path without eating Windows separators", () => {
-    // `rm protected\ file` is a single pathname. Splitting it authorized two
-    // unrelated tokens and let a policy on the real path be bypassed (#3438).
-    expect(classifyProductDestForms("rm protected\\ file")).toEqual([
-      { kind: "rm", path: "protected file" },
-    ]);
-    expect(classifyProductDestForms("git checkout -- my\\ file.ts")).toEqual([
-      { kind: "git-checkout", path: "my file.ts" },
-    ]);
-    // Escaped separators are literal, so they do not split segments either.
-    expect(classifyProductDestForms("rm a\\;b")).toEqual([{ kind: "rm", path: "a;b" }]);
-    expect(classifyProductDestForms("rm a\\&b")).toEqual([{ kind: "rm", path: "a&b" }]);
-    // A backslash before an ordinary character stays: Windows dests are valid.
-    expect(classifyProductDestForms("rm C:\\Repos\\file.ts")).toEqual([
-      { kind: "rm", path: "C:\\Repos\\file.ts" },
-    ]);
-    expect(classifyProductDestForms("cd apps\\web && rm AGENTS.md")).toEqual([
-      { kind: "rm", path: "apps\\web/AGENTS.md" },
-    ]);
-  });
-
-  it("fails closed on subshell grouping it cannot reconstruct", () => {
-    // Grouping is detected, not parsed: the token keeps its trailing `)` and the
-    // reconstruction is best-effort. Only the fail-closed verdict is load-bearing.
-    expect(classifyProductDestForms("(cd sub && rm secret.ts)")).toEqual([
-      { kind: "rm", path: "secret.ts)", expansion: true },
-    ]);
-    expect(classifyProductDestForms("( cd sub ) && rm secret.ts")).toEqual([
-      { kind: "rm", path: "secret.ts", expansion: true },
-    ]);
-    // Quoted parens are literal, not grouping.
-    expect(classifyProductDestForms("rm 'weird(name).ts'")).toEqual([
-      { kind: "rm", path: "weird(name).ts" },
-    ]);
   });
 });

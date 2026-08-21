@@ -2421,8 +2421,10 @@ describe("runtimeAuthority shell/MCP push/merge in decideHook (#2711)", () => {
       },
       emptyScope,
     );
+    // Still denied, now through the fail-closed channel: the reporter is a
+    // compound command, so no target is claimed for it (#3438).
     expect(checkout).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
-    expect(checkout.message).toMatch(/recognized Shell dest-form/);
+    expect(checkout.message).toMatch(/not reconstructable/);
 
     const restore = decideHook(
       {
@@ -2434,6 +2436,8 @@ describe("runtimeAuthority shell/MCP push/merge in decideHook (#2711)", () => {
       emptyScope,
     );
     expect(restore).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    // A simple command still resolves its target and denies through the gate.
+    expect(restore.message).toMatch(/recognized Shell dest-form/);
 
     const rmdir = decideHook(
       {
@@ -2538,7 +2542,7 @@ describe("runtimeAuthority shell/MCP push/merge in decideHook (#2711)", () => {
     expect(decision.message).toMatch(/story file_scope/);
   });
 
-  it("joins git -C dests so outside-root checkout skips the gate (#3438)", () => {
+  it("fails closed on git -C instead of resolving it outside the root (#3438)", () => {
     const emptyScope = readySeams({
       inspectScope: () => ({
         ready: false,
@@ -2558,8 +2562,12 @@ describe("runtimeAuthority shell/MCP push/merge in decideHook (#2711)", () => {
       },
       emptyScope,
     );
-    expect(outside.verdict).toBe("allow");
-    expect(outside.code).not.toBe("scope-not-ready");
+    // TRADEOFF (#3438): resolving `-C` used to let an out-of-root checkout
+    // through, and that resolution produced two of the fence bypasses. Git
+    // context is no longer resolved, so this legitimate cross-repo command is
+    // now denied. Re-admitting `-C` composition means re-admitting the class.
+    expect(outside).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(outside.message).toMatch(/not reconstructable/);
 
     const pipeline = decideHook(
       {
@@ -2623,7 +2631,9 @@ describe("runtimeAuthority shell/MCP push/merge in decideHook (#2711)", () => {
       readySeams(),
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
-    expect(decision.message).toMatch(/subshell grouping/);
+    expect(decision.message).toMatch(/not reconstructable/);
+    // The deny teaches the rewrite rather than just naming the construct.
+    expect(decision.message).toMatch(/ONE simple command/);
   });
 
   it("carries the parent cwd onto a pipeline member so the fence cannot be bypassed", () => {
@@ -2649,7 +2659,11 @@ describe("runtimeAuthority shell/MCP push/merge in decideHook (#2711)", () => {
       },
       fenced,
     );
-    expect(decision).toMatchObject({ verdict: "deny", code: "runtime-policy-deny-path" });
+    // Previously this had to be caught by reconstructing docs/AGENTS.md and
+    // matching it against the fence. Compound commands are now fail-closed, so
+    // the bypass is unreachable without the fence needing to resolve anything.
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(decision.message).toMatch(/not reconstructable/);
   });
 
   it("allows Shell dest-form when active scope is ready", () => {

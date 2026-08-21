@@ -3,8 +3,17 @@
  *
  * NEW harvest — do not reuse `classifyShellAuthzOps` / `listShellOps` as-is.
  * Those return [] for `git checkout --` / `rm` of ordinary product paths.
- * Residual known-open: `python -c`, `cmd /c copy`, obfuscated `bash -c`.
- * Commit-time active-scope is out of this slice (#3438).
+ *
+ * ! Resolves a target for ONE shape only: a single simple command. Everything
+ * else is recognized and fail-closed. Reconstructing a target from shell state
+ * was implemented and withdrawn — cwd depends on operator precedence, on exit
+ * status, on subshell boundaries, and on git config, and every resolution rule
+ * added produced its own fence bypass. Do not add it back; widen the recognized
+ * *forms* instead, and see `content/contracts/path-write-fence.md`.
+ *
+ * Residual known-open (recognition, not resolution): `python -c`,
+ * `cmd /c copy`, obfuscated `bash -c`. Commit-time active-scope is out of this
+ * slice (#3438).
  */
 
 import { record, toolInputRecord } from "./classify/payload.js";
@@ -15,8 +24,10 @@ export interface ProductDestForm {
   readonly kind: ProductDestFormKind;
   readonly path: string;
   /**
-   * True when the dest token is a glob/variable, or when the command's cwd
-   * cannot be reconstructed (subshell grouping). Both stay fail-closed.
+   * True when the target is not provable — a glob/variable or leading `~` dest,
+   * a git context option, or any command that is not a single simple one. The
+   * dispatcher denies these outright; `path` is then only for the message, and
+   * is `SHELL_DEST_EXPANSION_SENTINEL` when no token can be named.
    */
   readonly expansion?: boolean;
 }
@@ -102,113 +113,65 @@ export function destFormHasExpansion(path: string): boolean {
 export function classifyProductDestForms(command: string): ProductDestForm[] {
   const cmd = command.trim();
   if (cmd.length === 0) return [];
+  const segments = splitCommandSegments(cmd);
+  // A single simple command is the only shape whose target this classifier can
+  // PROVE. Anything compound gets recognized but never resolved: reconstructing
+  // a target from shell state was tried and abandoned (#3438) — cwd depends on
+  // operator precedence, on exit status (`cd x || …`), on subshell boundaries,
+  // and on git context options, so each reconstruction rule grew its own
+  // bypass. Recognition is cheap and total; resolution is neither.
+  if (segments.length === 1 && !hasUnsupportedSyntax(cmd)) {
+    return classifySimpleDestForms(segments[0] ?? "");
+  }
+  // Compound: report one fail-closed dest per recognized kind. No path is
+  // claimed, because any path claimed here would be a guess.
+  const kinds = new Set<ProductDestFormKind>();
+  for (const seg of segments) {
+    for (const dest of classifyDestFormSegment(seg)) kinds.add(dest.kind);
+  }
+  return [...kinds].map((kind) => ({
+    kind,
+    path: SHELL_DEST_EXPANSION_SENTINEL,
+    expansion: true as const,
+  }));
+}
+
+/** Classify one command with no operators, no grouping, and no substitution. */
+function classifySimpleDestForms(segment: string): ProductDestForm[] {
   const found: ProductDestForm[] = [];
   const seen = new Set<string>();
-  // Subshell grouping moves cwd in ways this splitter does not model, so a
-  // reconstructed path is not trustworthy — fail closed on the whole command.
-  const groupingUnsafe = hasSubshellGrouping(cmd);
-  let cwd: string | null = null;
-  // Latches once cwd stops being provable, and never clears: every dest from
-  // that point on is fail-closed rather than guessed. See listCwdIsUncertain.
-  let cwdUncertain = false;
-  for (const list of splitDestFormLists(cmd)) {
-    if (listCwdIsUncertain(list)) cwdUncertain = true;
-    // Inherit-in is unconditional: a subshell starts in the parent's cwd.
-    let listCwd: string | null = cwd;
-    for (const seg of list.segments) {
-      const cd = parseCdDir(seg.text);
-      if (cd !== null) {
-        // A `cd` in a pipeline member is confined to that member's subshell.
-        if (!seg.pipelineMember) listCwd = joinDestPrefix(listCwd, cd);
-        continue;
-      }
-      for (const dest of classifyDestFormSegment(seg.text)) {
-        const path = joinDestPrefix(listCwd, dest.path);
-        const expansion =
-          groupingUnsafe ||
-          cwdUncertain ||
-          dest.expansion === true ||
-          // `~` expands to $HOME only at the start of a word, so a trailing `~`
-          // (`foo.ts~`) is an ordinary path and must not be swept up here.
-          dest.path.startsWith("~") ||
-          destFormHasExpansion(path);
-        const key = `${dest.kind}\0${path}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        found.push(
-          expansion ? { kind: dest.kind, path, expansion: true } : { kind: dest.kind, path },
-        );
-      }
-    }
-    // `&` runs the whole and-or list in a subshell, so nothing it did to cwd
-    // reaches the lists after it.
-    if (!list.backgrounded) cwd = listCwd;
+  for (const dest of classifyDestFormSegment(segment)) {
+    const path = dest.path;
+    const expansion =
+      // `unsafe` from the classifier (git context options relocate the tree).
+      dest.expansion === true ||
+      // `~` expands to $HOME only at the START of a word, so a trailing `~`
+      // (`foo.ts~`) is an ordinary path and must not be swept up here.
+      path.startsWith("~") ||
+      destFormHasExpansion(path);
+    const key = `${dest.kind}\0${path}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    found.push(expansion ? { kind: dest.kind, path, expansion: true } : { kind: dest.kind, path });
   }
   return found;
 }
 
 /**
- * True when a list mixes a `cd` with `||`, which makes the effective cwd depend
- * on runtime exit status and therefore unprovable here.
- *
- * `cd scoped || echo failed && rm target` reaches `rm target` on BOTH branches:
- * `scoped/target` when the `cd` succeeded, root `target` when it failed. The
- * mirror `cd scoped && rm a || rm b` is equally ambiguous. There is no correct
- * static answer, so do not pick a branch — fail closed (#3438).
+ * Unquoted syntax whose effect on the target this classifier does not model:
+ * subshell grouping, brace groups, and command substitution. Presence of any of
+ * it makes the command non-simple, so it is recognized and fail-closed rather
+ * than resolved (#3438).
  */
-function listCwdIsUncertain(list: DestFormList): boolean {
-  let sawCd = false;
-  let sawOr = false;
-  for (const seg of list.segments) {
-    if (seg.closedByOr) sawOr = true;
-    if (parseCdDir(seg.text) !== null) sawCd = true;
-  }
-  return sawCd && sawOr;
-}
-
-interface DestFormSegment {
-  readonly text: string;
-  /**
-   * True when this segment is a member of a `|` pipeline (on either side). A
-   * pipeline member runs in a subshell, so a `cd` in it retargets nothing —
-   * but it still *reads* the enclosing cwd, which is why inheritance is not
-   * gated on this flag.
-   */
-  readonly pipelineMember: boolean;
-  /**
-   * True when terminated by `||`. Whether the next segment runs depends on this
-   * one's exit status, so a list mixing `||` with a `cd` has an unprovable cwd
-   * — see `listCwdIsUncertain` (#3438).
-   */
-  readonly closedByOr: boolean;
-}
-
-/**
- * One `&`- / `;`-delimited and-or list.
- *
- * ! Three separate facts, do not collapse them into one per-segment boolean
- * (#3438). Inheritance into a segment is unconditional — a subshell starts in
- * the parent's cwd — so gating it drops the parent prefix and the fence
- * inspects a shallower path than the shell mutates. Confinement is per
- * construct and follows shell precedence: `|` binds tighter than `&&`/`||`,
- * which bind tighter than `&`. So `cd sub && rm a | rm b` runs BOTH removals
- * in `sub`, while `cd sub && rm a & rm b` backgrounds the whole `cd sub &&
- * rm a` list and leaves `rm b` in the parent at the original cwd.
- */
-interface DestFormList {
-  readonly segments: readonly DestFormSegment[];
-  /** True when terminated by `&`: the entire list ran in a subshell. */
-  readonly backgrounded: boolean;
-}
-
-/** Unquoted `(` / `)`: subshell grouping this splitter does not model. */
-function hasSubshellGrouping(command: string): boolean {
+function hasUnsupportedSyntax(command: string): boolean {
   let quote: "'" | '"' | null = null;
   for (let i = 0; i < command.length; i++) {
     const c = command[i];
     if (c === undefined) break;
     if (quote !== null) {
+      // A single-quoted string is fully literal; `"` still expands `$` / backtick.
       if (c === quote) quote = null;
+      else if (quote === '"' && (c === "$" || c === "`")) return true;
       continue;
     }
     if (c === "\\" && i + 1 < command.length) {
@@ -219,27 +182,24 @@ function hasSubshellGrouping(command: string): boolean {
       quote = c;
       continue;
     }
-    if (c === "(" || c === ")") return true;
+    if (c === "(" || c === ")" || c === "{" || c === "}" || c === "`" || c === "$") return true;
   }
   return false;
 }
 
-function splitDestFormLists(command: string): DestFormList[] {
-  const lists: DestFormList[] = [];
-  let segments: DestFormSegment[] = [];
+/**
+ * Split on unquoted `&&`, `||`, `|`, `&`, `;`, and newline. Segment TEXT only —
+ * deliberately no cwd or precedence metadata. A command that splits into more
+ * than one segment is not simple, and the only thing done with the pieces is to
+ * recognize which dest-form kinds appear in them.
+ */
+function splitCommandSegments(command: string): string[] {
+  const segments: string[] = [];
   let cur = "";
-  let openedByPipe = false;
   let quote: "'" | '"' | null = null;
-  const endSegment = (closedByPipe: boolean, closedByOr = false): void => {
-    segments.push({ text: cur, pipelineMember: openedByPipe || closedByPipe, closedByOr });
+  const flush = (): void => {
+    segments.push(cur);
     cur = "";
-    openedByPipe = closedByPipe;
-  };
-  const endList = (backgrounded: boolean): void => {
-    endSegment(false);
-    lists.push({ segments, backgrounded });
-    segments = [];
-    openedByPipe = false;
   };
   for (let i = 0; i < command.length; i++) {
     const c = command[i];
@@ -260,33 +220,19 @@ function splitDestFormLists(command: string): DestFormList[] {
       cur += c;
       continue;
     }
-    if (c === "&" && command[i + 1] === "&") {
-      endSegment(false);
+    if ((c === "&" && command[i + 1] === "&") || (c === "|" && command[i + 1] === "|")) {
+      flush();
       i++;
       continue;
     }
-    if (c === "|" && command[i + 1] === "|") {
-      endSegment(false, true);
-      i++;
-      continue;
-    }
-    if (c === "|") {
-      endSegment(true);
-      continue;
-    }
-    // `&` and `;` close the whole and-or list; `&` backgrounds it.
-    if (c === "&") {
-      endList(true);
-      continue;
-    }
-    if (c === ";" || c === "\n" || c === "\r") {
-      endList(false);
+    if (c === "|" || c === "&" || c === ";" || c === "\n" || c === "\r") {
+      flush();
       continue;
     }
     cur += c;
   }
-  endList(false);
-  return lists;
+  flush();
+  return segments.filter((seg) => seg.trim().length > 0);
 }
 
 function tokenizeSegment(segment: string): string[] {
@@ -349,112 +295,78 @@ function isEnvAssign(token: string): boolean {
   return /^[A-Za-z_][A-Za-z0-9_]*$/.test(token.slice(0, eq));
 }
 
-function gitWorkTreeFromAssign(token: string): string | null {
+/** `GIT_WORK_TREE=` / `GIT_DIR=` relocate the tree the same way `-C` does. */
+function isGitWorkTreeAssign(token: string): boolean {
   const eq = token.indexOf("=");
-  if (eq <= 0) return null;
-  if (token.slice(0, eq) !== "GIT_WORK_TREE") return null;
-  const value = token.slice(eq + 1);
-  return value.length > 0 ? value : null;
+  if (eq <= 0) return false;
+  const key = token.slice(0, eq);
+  if (key !== "GIT_WORK_TREE" && key !== "GIT_DIR") return false;
+  return token.length > eq + 1;
 }
 
-function skipPrefix(tokens: string[]): { i: number; workTree: string | null } {
+function skipPrefix(tokens: string[]): { i: number; gitContext: boolean } {
   let i = 0;
-  let workTree: string | null = null;
-  while (i < tokens.length) {
-    const tok = tokens[i];
-    if (tok === undefined || !isEnvAssign(tok)) break;
-    workTree = gitWorkTreeFromAssign(tok) ?? workTree;
-    i++;
-  }
+  let gitContext = false;
+  const consumeAssigns = (): void => {
+    while (i < tokens.length) {
+      const tok = tokens[i];
+      if (tok === undefined) break;
+      // Standalone grouping / negation punctuation: skip so the binary behind it
+      // is still RECOGNIZED. Only compound commands can reach here, and every
+      // one of them is fail-closed, so liberal recognition is the safe side.
+      if (tok === "{" || tok === "}" || tok === "(" || tok === ")" || tok === "!") {
+        i++;
+        continue;
+      }
+      if (!isEnvAssign(tok)) break;
+      if (isGitWorkTreeAssign(tok)) gitContext = true;
+      i++;
+    }
+  };
+  consumeAssigns();
   const wrap = tokens[i]?.toLowerCase();
   if (wrap !== undefined && WRAP_BINS.has(wrap)) {
     i++;
-    while (i < tokens.length) {
-      const tok = tokens[i];
-      if (tok === undefined || !isEnvAssign(tok)) break;
-      workTree = gitWorkTreeFromAssign(tok) ?? workTree;
-      i++;
-    }
+    consumeAssigns();
   }
-  return { i, workTree };
+  return { i, gitContext };
 }
 
-function trimSlashEnd(value: string): string {
-  let i = value.length;
-  while (i > 0 && (value[i - 1] === "/" || value[i - 1] === "\\")) i--;
-  return value.slice(0, i);
-}
-
-function trimSlashStart(value: string): string {
-  let i = 0;
-  while (i < value.length && (value[i] === "/" || value[i] === "\\")) i++;
-  return value.slice(i);
-}
-
-function joinDestPrefix(prefix: string | null, path: string): string {
-  if (prefix === null || prefix.length === 0) return path;
-  if (path.startsWith("/") || /^[A-Za-z]:[\\/]/.test(path)) return path;
-  return `${trimSlashEnd(prefix)}/${trimSlashStart(path)}`;
-}
-
-function parseCdDir(segment: string): string | null {
-  const tokens = tokenizeSegment(segment.trim());
-  let i = skipPrefix(tokens).i;
-  const bin = tokens[i]?.toLowerCase();
-  if (bin !== "cd") return null;
-  i++;
-  while (i < tokens.length) {
-    const t = tokens[i];
-    if (t === undefined || t === "--" || !t.startsWith("-")) break;
-    i++;
-  }
-  if (tokens[i] === "--") i++;
-  const dir = tokens[i];
-  if (dir === undefined || dir === "-" || dir.length === 0) return null;
-  return dir;
-}
-
-function skipGitGlobals(
-  tokens: string[],
-  start: number,
-): { i: number; workTree: string | null; unsafe: boolean } {
+/**
+ * Skip git's global options, reporting whether any of them RELOCATES the work
+ * tree. Relocation is not resolved: `-C` composes, `--work-tree` resolves
+ * against the `-C` chain, `--git-dir` interacts with both, and `-c
+ * core.workTree` depends on the git dir. Each of those resolution rules grew
+ * its own fence bypass (#3438), so a relocating command fails closed instead.
+ */
+function skipGitGlobals(tokens: string[], start: number): { i: number; gitContext: boolean } {
   let i = start;
-  // `-C` composes rather than overwrites: `git -C a -C b` runs in `a/b`, and an
-  // absolute `-C` resets the chain. `--work-tree` resolves against the `-C`
-  // chain seen before it, so absorb the base at the point it appears (#3438).
-  let base: string | null = null;
-  let workTree: string | null = null;
-  let unsafe = false;
-  const effective = (): string | null => (workTree === null ? base : workTree);
+  let gitContext = false;
   while (i < tokens.length) {
     const t = tokens[i];
-    if (t === undefined || !t.startsWith("-")) return { i, workTree: effective(), unsafe };
+    if (t === undefined || !t.startsWith("-")) return { i, gitContext };
     if (t === "-c" || t === "--config-env") {
-      if (isCoreWorkTreeConfig(tokens[i + 1])) unsafe = true;
+      if (isCoreWorkTreeConfig(tokens[i + 1])) gitContext = true;
       i += 2;
       continue;
     }
     if (t.startsWith("--config-env=")) {
-      if (isCoreWorkTreeConfig(t.slice("--config-env=".length))) unsafe = true;
+      if (isCoreWorkTreeConfig(t.slice("--config-env=".length))) gitContext = true;
       i++;
       continue;
     }
-    if (t.startsWith("--work-tree=")) {
-      const val = t.slice("--work-tree=".length);
-      if (val.length > 0) workTree = joinDestPrefix(base, val);
+    if (t === "-C" || t === "--work-tree" || t === "--git-dir") {
+      gitContext = true;
+      i += 2;
+      continue;
+    }
+    if (
+      t.startsWith("--work-tree=") ||
+      t.startsWith("--git-dir=") ||
+      (t.startsWith("-C") && t.length > 2)
+    ) {
+      gitContext = true;
       i++;
-      continue;
-    }
-    if (t === "--work-tree") {
-      const val = tokens[i + 1];
-      if (val !== undefined && val.length > 0) workTree = joinDestPrefix(base, val);
-      i += 2;
-      continue;
-    }
-    if (t === "-C") {
-      const val = tokens[i + 1];
-      if (val !== undefined && val.length > 0) base = joinDestPrefix(base, val);
-      i += 2;
       continue;
     }
     if (t.startsWith("--") && t.includes("=")) {
@@ -465,19 +377,14 @@ function skipGitGlobals(
       i += 2;
       continue;
     }
-    if (t.startsWith("-C") && t.length > 2) {
-      base = joinDestPrefix(base, t.slice(2));
-      i++;
-      continue;
-    }
     if (t.startsWith("-c")) {
-      if (isCoreWorkTreeConfig(t.slice(2))) unsafe = true;
+      if (isCoreWorkTreeConfig(t.slice(2))) gitContext = true;
       i++;
       continue;
     }
     i++;
   }
-  return { i, workTree: effective(), unsafe };
+  return { i, gitContext };
 }
 
 function pathsAfterDashDash(tokens: string[], start: number): string[] {
@@ -523,31 +430,24 @@ function classifyDestFormSegment(segment: string): ProductDestForm[] {
   let i = prefixSkip.i;
   const binRaw = tokens[i];
   if (binRaw === undefined) return [];
-  const bin = binRaw.toLowerCase();
+  // Strip grouping punctuation glued to the binary (`{rm`, `(rm`) for the same
+  // recognition reason as in skipPrefix. Unquoted grouping can only appear in a
+  // command that is already fail-closed.
+  const bin = binRaw.replace(/^[({!]+/, "").toLowerCase();
 
   if (bin === "git" || bin === "git.exe") {
     const skipped = skipGitGlobals(tokens, i + 1);
     i = skipped.i;
-    const prefix = skipped.workTree ?? prefixSkip.workTree;
-    const unsafe = skipped.unsafe;
+    // Any relocating context option makes the target unprovable — fail closed.
+    const unsafe = skipped.gitContext || prefixSkip.gitContext;
     const sub = tokens[i]?.toLowerCase();
     if (sub === "checkout") {
-      return dests(
-        "git-checkout",
-        pathsAfterDashDash(tokens, i + 1).map((p) => joinDestPrefix(prefix, p)),
-        unsafe,
-      );
+      return dests("git-checkout", pathsAfterDashDash(tokens, i + 1), unsafe);
     }
     if (sub === "restore") {
       i++;
       const afterDash = pathsAfterDashDash(tokens, i);
-      if (afterDash.length > 0) {
-        return dests(
-          "git-restore",
-          afterDash.map((p) => joinDestPrefix(prefix, p)),
-          unsafe,
-        );
-      }
+      if (afterDash.length > 0) return dests("git-restore", afterDash, unsafe);
       const paths: string[] = [];
       while (i < tokens.length) {
         const t = tokens[i];
@@ -563,11 +463,7 @@ function classifyDestFormSegment(segment: string): ProductDestForm[] {
         paths.push(t);
         i++;
       }
-      return dests(
-        "git-restore",
-        paths.map((p) => joinDestPrefix(prefix, p)),
-        unsafe,
-      );
+      return dests("git-restore", paths, unsafe);
     }
     return [];
   }

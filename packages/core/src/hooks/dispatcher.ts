@@ -1081,8 +1081,10 @@ function decideShellDestFormsThenRuntimeAuthority(
           "scope-not-ready",
           toolName,
           `Directive denied ${toolName}: Shell dest-form target is not reconstructable ` +
-            "(glob, variable, or subshell grouping). Use a concrete path in an unparenthesised " +
-            "command, or Edit/Write. Unreconstructable dests stay fail-closed (#3438).",
+            "(compound command, glob/variable, leading ~, or a git context option). Name a " +
+            "concrete path in ONE simple command — split `cd x && rm y` into a single " +
+            "`rm x/y`, or one tool call per command — or use Edit/Write. Only a single simple " +
+            "command has a provable target; everything else stays fail-closed (#3438).",
         );
         continue;
       }
