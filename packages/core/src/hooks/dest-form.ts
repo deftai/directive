@@ -157,6 +157,13 @@ function classifySimpleDestForms(segment: string): ProductDestForm[] {
     const expansion =
       // `unsafe` from the classifier (git context options relocate the tree).
       dest.expansion === true ||
+      // A RETAINED backslash (one the tokenizer did not consume as an escape)
+      // is dialect-ambiguous. On win32 it is a path separator, so a Windows
+      // absolute dest means what it looks like; under a POSIX shell -- including
+      // Git Bash ON win32 -- the same word drops its separators and targets
+      // something else entirely. The payload does not say which shell will run
+      // the string, so the target cannot be proved either way. Fail closed (#3624).
+      path.includes("\\") ||
       // `~` expands to $HOME only at the START of a word, so a trailing `~`
       // (`foo.ts~`) is an ordinary path and must not be swept up here.
       path.startsWith("~") ||
@@ -474,9 +481,29 @@ function classifyDestFormSegment(segment: string): ProductDestForm[] {
   if (bin === "git" || bin === "git.exe") {
     const skipped = skipGitGlobals(tokens, i + 1);
     i = skipped.i;
+    // `--pathspec-from-file=<f>` (and its NUL variant) put the targets INSIDE a
+    // file. Reading it would mean file I/O at hook time plus resolving those
+    // paths against a cwd this classifier does not know — the resolution trap
+    // #3438 abandoned. Recognized, never resolved (#3624).
+    const pathspecFromFile = tokens.some(
+      (t) => t.startsWith("--pathspec-from-file") || t === "--pathspec-file-nul",
+    );
     // Any relocating context option makes the target unprovable — fail closed.
-    const unsafe = skipped.gitContext || prefixSkip.gitContext;
+    const unsafe = skipped.gitContext || prefixSkip.gitContext || pathspecFromFile;
     const sub = tokens[i]?.toLowerCase();
+    // `--pathspec-from-file` supplies the pathspec instead of argv, so there is
+    // no dest token to mark unsafe and no `--` to require. Emit the sentinel
+    // directly, the way a compound command does — the kind is known, the target
+    // is not (#3624).
+    if (pathspecFromFile && (sub === "checkout" || sub === "restore")) {
+      return [
+        {
+          kind: sub === "checkout" ? "git-checkout" : "git-restore",
+          path: SHELL_DEST_EXPANSION_SENTINEL,
+          expansion: true,
+        },
+      ];
+    }
     if (sub === "checkout") {
       return dests("git-checkout", pathsAfterDashDash(tokens, i + 1), unsafe);
     }

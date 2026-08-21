@@ -136,6 +136,8 @@ scope:
 | Grouping / substitution (`(…)`, `{…;}`, `$(…)`, backticks) | target is computed at runtime |
 | Git context options (`-C`, `--work-tree`, `--git-dir`, `-c core.workTree`, `--config-env`, `GIT_WORK_TREE=`, `GIT_DIR=`) | relocates the tree; resolution depends on the git dir |
 | Glob / variable dests, or a leading `~` | expands at runtime (a *trailing* `~` as in `foo.ts~` is an ordinary path) |
+| A **retained** backslash — one not consumed as an escape (`rm C:\Repos\a.ts`, `rm foo\bar`) | dialect-ambiguous: a path separator on win32, an escape under a POSIX shell including Git Bash *on* win32, and the payload does not say which shell runs. Rewrite with forward slashes, which git and node accept on Windows (#3624) |
+| `git checkout\|restore --pathspec-from-file=<f>` / `--pathspec-file-nul` | the targets live inside a file; reading it means hook-time I/O plus resolving against an unknown cwd (#3624) |
 
 ⊗ **Do not add cwd or git-context reconstruction back.** It was implemented and withdrawn
 (#3438): the target depends on operator precedence (`&` binds looser than `&&`, which binds

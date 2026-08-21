@@ -90,17 +90,48 @@ describe("classifyProductDestForms (#3438)", () => {
     ]);
   });
 
-  it("keeps an escaped dest as one path without eating Windows separators", () => {
+  it("resolves an escaped dest but fails closed on a retained backslash", () => {
+    // A CONSUMED escape leaves no backslash, so the path is unambiguous.
     expect(classifyProductDestForms("rm protected\\ file")).toEqual([
       { kind: "rm", path: "protected file" },
     ]);
     expect(classifyProductDestForms("git checkout -- my\\ file.ts")).toEqual([
       { kind: "git-checkout", path: "my file.ts" },
     ]);
-    // A backslash before an ordinary character stays: Windows dests are valid.
+    // A RETAINED backslash is dialect-ambiguous and cannot be proved: on win32
+    // it is a path separator, but the same word under a POSIX shell (including
+    // Git Bash on win32) drops it and targets something else. The payload does
+    // not say which shell runs the command, so fail closed rather than pick.
+    // Rewrite with forward slashes, which git and node accept on Windows.
     expect(classifyProductDestForms("rm C:\\Repos\\file.ts")).toEqual([
-      { kind: "rm", path: "C:\\Repos\\file.ts" },
+      { kind: "rm", path: "C:\\Repos\\file.ts", expansion: true },
     ]);
+    expect(classifyProductDestForms("rm foo\\bar")).toEqual([
+      { kind: "rm", path: "foo\\bar", expansion: true },
+    ]);
+    // The forward-slash rewrite the deny copy should steer toward still resolves.
+    expect(classifyProductDestForms("rm C:/Repos/file.ts")).toEqual([
+      { kind: "rm", path: "C:/Repos/file.ts" },
+    ]);
+  });
+
+  it("fails closed on git pathspec-from-file, whose targets live in a file", () => {
+    // Reading the file would mean hook-time I/O plus resolving its contents
+    // against a cwd this classifier does not know — the resolution trap #3438
+    // abandoned. Recognized, never resolved (#3624).
+    for (const command of [
+      "git checkout --pathspec-from-file=list.txt",
+      "git checkout --pathspec-from-file=list.txt --",
+      "git restore --pathspec-from-file=list.txt",
+      "git checkout --pathspec-from-file=- --pathspec-file-nul",
+    ]) {
+      const dests = classifyProductDestForms(command);
+      expect(dests.length, command).toBeGreaterThan(0);
+      expect(
+        dests.every((d) => d.expansion === true),
+        command,
+      ).toBe(true);
+    }
   });
 
   it("leaves non-dest and hostile residual commands unclassifiable", () => {
