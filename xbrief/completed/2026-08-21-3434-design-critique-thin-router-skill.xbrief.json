@@ -1,0 +1,154 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story 3 of #3434: land the thin design-critique router skill",
+    "updated": "2026-08-21T19:15:47Z"
+  },
+  "plan": {
+    "id": "issue-3434-design-critique-thin-router-skill",
+    "title": "design-critique thin router skill (triggers + five pointer stops; no auto-dispatch)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Land content/skills/deft-directive-design-critique as a thin router: pack-sourced SKILL.md, on-demand Skills Index discovery, five one-line stops pointing into the contract, mechanically enforced thinness. Invert the Story 2 absence test. Lift the contract forbid. Do not auto-dispatch. Do not always-pin. Do not close #3434.",
+      "Origin": "GitHub issue #3434 Story 3 (thin skill last). SoT set: ADR-005; vehicle LockedDecisions xbrief (now xbrief/completed/2026-08-20-design-critique-v1-vehicle-context.xbrief.json); acceptance comment 5364182372; disposition comment 5364365428; trial results 5359879504 and 5360639968; judgment-gate amendment 5363981016. Excluded: proposed skill outline 5361349926.",
+      "Overview": "Stories 1 and 2 are on master (gate + contract + brief template). Disposition: the thin router skill lands last, in its own story, with size-cap + pointer-resolution content-contract tests in the same PR. Vehicle D1/D2: skill is entry point only (triggers + five one-liners into the contract, zero normative content); thinness cap ~80 lines; every named path resolves. Operator dispatches from the brief template. Auto-dispatch stays deferred (#3578 / #1702). On-demand discovery only (#2508).",
+      "UserStory": "As an orchestrator starting a voluntary design-critique motion, I want a thin on-demand skill that points me at the contract and brief template, so that the protocol is discoverable without duplicating rules in a skill body.",
+      "When": "When the skill exists under content/skills/deft-directive-design-critique/SKILL.md, is pack-rendered, is indexed on-demand, is under the ~80-line cap, points at Stops 1-5 in the contract, and content-contract tests lock existence plus thinness instead of absence.",
+      "LockedDecisions": "Do not ingest anything else on #3434 as spec. Do not use the superseded proposed skill outline. Do not auto-dispatch critics. Do not always-pin in AGENTS.md or agents-entry. Do not wire --enforce. Do not implement #3579. Do not close #3434. Strategy-pack vehicle remains rejected. Pack JSON is SoT for the skill body; run task packs:render. Parent occupancy stays free; occupy only this worktree.",
+      "ImplementationPlan": "Add pack entry deft-directive-design-critique; render SKILL.md; add REFERENCES.md Skills Index row; lift contract ⊗ Create skills/deft-directive-design-critique; invert design_critique_contract.test.ts absence assertion into existence + line cap + path resolution + pointer strings + no-normative-content; CHANGELOG Unreleased. Verify with pnpm exec vitest run packages/core/src/content-contracts. Drive-to merge-ready. Refs #3434, not Closes."
+    },
+    "items": [
+      {
+        "title": "Pack-sourced thin SKILL.md",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When content/skills/deft-directive-design-critique/SKILL.md is rendered from the skills pack, it names triggers, five one-line stops pointing at contract headings Stop 1 through Stop 5, and does not copy variant table, synthesis rules, or other normative protocol bodies.",
+          "Acceptance": "When content/skills/deft-directive-design-critique/SKILL.md is rendered from the skills pack, it names triggers, five one-line stops pointing at contract headings Stop 1 through Stop 5, and does not copy variant table, synthesis rules, or other normative protocol bodies."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3617 merge 1a7b03afdd0eaab035b7a637b95c3a17c93b7e1f — pack-rendered content/skills/deft-directive-design-critique/SKILL.md thin router (triggers + five Stop pointers)",
+          "recorded_at": "2026-08-21T19:15:00Z",
+          "recorded_by": "agent/leaf-implementation/3434-s3"
+        }
+      },
+      {
+        "title": "On-demand index; not always-pin",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When REFERENCES.md Skills Index is read, deft-directive-design-critique is listed with triggers, and AGENTS.md always-pin list is unchanged.",
+          "Acceptance": "When REFERENCES.md Skills Index is read, deft-directive-design-critique is listed with triggers, and AGENTS.md always-pin list is unchanged."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3617 merge 1a7b03afdd0eaab035b7a637b95c3a17c93b7e1f — REFERENCES.md Skills Index row; AGENTS.md always-pin list unchanged",
+          "recorded_at": "2026-08-21T19:15:00Z",
+          "recorded_by": "agent/leaf-implementation/3434-s3"
+        }
+      },
+      {
+        "title": "Content-contract tests invert absence",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When pnpm exec vitest run packages/core/src/content-contracts passes, tests assert the skill exists, stays under the ~80-line cap, every path it names resolves, required contract pointer strings are present, and the Story 2 absence assertion is gone. The contract no longer forbids creating the skill.",
+          "Acceptance": "When pnpm exec vitest run packages/core/src/content-contracts passes, tests assert the skill exists, stays under the ~80-line cap, every path it names resolves, required contract pointer strings are present, and the Story 2 absence assertion is gone. The contract no longer forbids creating the skill."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "pnpm exec vitest run packages/core/src/content-contracts — packages/core/src/content-contracts/standards/design_critique_contract.test.ts existence, line cap, pointers, path resolution, no-normative; PR 3617 Greptile CLEAN 5/5",
+          "recorded_at": "2026-08-21T19:15:00Z",
+          "recorded_by": "agent/leaf-implementation/3434-s3"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3434",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3434 (Story 3 origin; do not close)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3434#issuecomment-5364365428",
+        "type": "x-xbrief/document",
+        "title": "Disposition SoT set"
+      },
+      {
+        "uri": "xbrief/completed/2026-08-20-design-critique-v1-vehicle-context.xbrief.json",
+        "type": "x-xbrief/document",
+        "title": "v1 vehicle LockedDecisions"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-design-critique/SKILL.md",
+          "content/contracts/design-critique.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "REFERENCES.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts"
+        ],
+        "expected_outputs": [
+          "thin router skill pack-rendered; on-demand index; tests lock thinness not absence"
+        ],
+        "depends_on": [
+          "issue-3434-design-critique-judgment-gate",
+          "issue-3434-design-critique-contract-template"
+        ],
+        "conflict_group": "design-critique-3434-s3",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Story 3 of #3434; SoT named in disposition comment 5364365428. Stories 1-2 already on origin/master."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/contracts/design-critique.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "REFERENCES.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "content/skills",
+        "cohesion_exemption": "CHANGELOG.md and content/packs/skills/skills-pack-0.1.json may already exceed FILE_SIZE_REVIEW_TRIGGER_LINES; this slice only adds an Unreleased line and one pack entry (#3424)."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3617,
+        "prBase": null,
+        "mergeCommit": "1a7b03afdd0eaab035b7a637b95c3a17c93b7e1f",
+        "deliveryBranch": "master",
+        "deliveryCommit": "1a7b03afdd0eaab035b7a637b95c3a17c93b7e1f",
+        "verifiedAt": "2026-08-21T19:15:47Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "323b2083-5f9e-46bb-b331-83a6d971ad5b"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-21T19:15:47Z",
+      "completedSessionId": "323b2083-5f9e-46bb-b331-83a6d971ad5b",
+      "capacityBucket": "cognitive-debt"
+    },
+    "updated": "2026-08-21T19:15:47Z"
+  }
+}

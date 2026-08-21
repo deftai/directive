@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Land leftover completed-tracked artifact for #3434 Story 3 (#3264 / #1358).** The Story 3 xBRIEF stayed untracked after squash of PR 3617. Moved to `xbrief/completed/` via `scope:complete`. Umbrella #3434 stays open. Refs #2321, #3476.
 - **Thin design-critique router skill.** Pack-rendered `deft-directive-design-critique`: triggers plus five pointer stops into the contract. On-demand Skills Index. Content-contract tests lock existence, line cap, path resolution, and no-normative-content. Refs #3434.
 - **Land leftover design-critique vehicle-context xBRIEF (#3434 / #3264 / #1358).** Operator-accepted discuss lock still sat in `xbrief/proposed/`. Moved to `xbrief/completed/`. Does not close #3434 and does not add the skill. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #3439 (#3264 / #1358).** The #3439 xBRIEF stayed untracked after squash of PR 3590. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
