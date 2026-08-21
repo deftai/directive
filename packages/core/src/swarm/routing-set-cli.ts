@@ -37,6 +37,7 @@ export function routingSetMain(
   let harnessDefault = false;
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
+    if (arg === "--") continue;
     if (arg === "--project-root" && argv[i + 1] !== undefined) {
       projectRoot = argv[i + 1] ?? ".";
       i += 1;

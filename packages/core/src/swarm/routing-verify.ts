@@ -24,7 +24,7 @@ import {
 } from "./routing.js";
 
 export const ROUTING_SET_CMD =
-  "task swarm:routing-set -- --role <role> --model <slug>   (or --harness-default)";
+  "deft swarm:routing-set --role <role> --model <slug>   (or --harness-default)";
 
 /** Roles the pre-dispatch gate checks by default: the actual model lever. */
 export const DEFAULT_GATED_ROLES = ["leaf-implementation"] as const;
@@ -155,7 +155,7 @@ export function verifyRouting(options: VerifyRoutingOptions): VerifyRoutingResul
 
   if (options.advise) {
     const note =
-      "[deft routing] NOTE: plan.policy.swarmSubagentBackend enum is deprecated (#1891); use 'task swarm:routing-set' / .deft/routing.local.json instead.";
+      "[deft routing] NOTE: plan.policy.swarmSubagentBackend enum is deprecated (#1891); use 'deft swarm:routing-set' / .deft/routing.local.json instead.";
     let body: string;
     if (undecided.length === 0 && invalid.length === 0) {
       body = `[deft routing] provider '${provider}': all ${roles.length} gated role(s) decided.`;

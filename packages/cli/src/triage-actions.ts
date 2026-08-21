@@ -53,6 +53,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
   parsed.cmd = argv[0];
   for (let i = 1; i < argv.length; i += 1) {
     const arg = argv[i];
+    if (arg === "--") continue;
     if (arg === "--issue") {
       const value = argv[i + 1];
       if (value === undefined)

@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { dirname } from "node:path";
 import { maybeRunStalenessTickler } from "../staleness-tickler/run.js";
+import { interceptHelp } from "../triage/help/index.js";
 import { reconcileUmbrellas, renderUmbrellasReport } from "../vbrief-reconcile/umbrellas.js";
 import { canonicalLogPath, readAll } from "./audit-log.js";
 import { batchPromote } from "./batch-promote.js";
@@ -78,12 +79,11 @@ export interface UndoArgs {
 }
 
 const LIFECYCLE_USAGE_STDERR =
-  "usage: scope_lifecycle.py [-h] [--project-root PROJECT_ROOT] [--force] [--batch]\n" +
-  "                          [--from-issue N] [--repo OWNER/NAME] [--strict] [--force-no-cache]\n" +
+  "usage: deft scope:<action> [file] [--batch] [--from-issue N] [--repo OWNER/NAME]\n" +
+  "                          [--force] [--project-root PATH] [--strict] [--force-no-cache]\n" +
   "                          [--path PATH]\n" +
-  "                          {activate,block,cancel,complete,fail,promote,restore,unblock}\n" +
-  "                          [file ...]\n" +
-  "scope_lifecycle.py: error: the following arguments are required: action, file\n" +
+  "  actions: activate, block, cancel, complete, fail, promote, restore, unblock\n" +
+  "The verb already encodes the action (e.g. deft scope:promote <file>). Do not pass the action again.\n" +
   "(promote --batch may omit file and promotes all proposed/ scopes; #3011)\n" +
   "(promote --from-issue=N may omit file; #1136)\n";
 
@@ -116,6 +116,7 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
     if (arg === undefined) {
       return { args: null, error: "usage" };
     }
+    if (arg === "--") continue;
     if (arg === "--force") {
       force = true;
     } else if (arg === "--batch") {
@@ -277,6 +278,14 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
 
 /** Main entry for scope_lifecycle.py parity. */
 export function lifecycleMain(argv: string[]): number {
+  if (argv.includes("--help") || argv.includes("-h")) {
+    const helpRc = interceptHelp("scope_lifecycle", argv);
+    if (helpRc !== null) {
+      return helpRc;
+    }
+    process.stdout.write(LIFECYCLE_USAGE_STDERR);
+    return 0;
+  }
   const parsed = parseLifecycleArgv(argv);
   if (parsed.args === null) {
     if (parsed.error === "usage") {

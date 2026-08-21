@@ -75,7 +75,7 @@ On OpenClaw hosts with Directive installed (`.deft/core/` or equivalent content 
 ! Before entering the review/fix loop, run the skill-level branch-policy guard (#746 / #747). Halt before any state mutation if the project's `plan.policy.allowDirectCommitsToMaster` is unresolvable AND the operator has not set `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1`. Concretely:
 
 ```
-task verify:branch || exit 1
+deft verify:branch || exit 1
 ```
 
 The skill MUST NOT modify files, push, or comment on the PR until the guard passes -- this catches the case where a malformed PROJECT-DEFINITION quietly disabled the policy and the agent would have committed directly to master mid-review.

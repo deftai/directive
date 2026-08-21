@@ -53,13 +53,13 @@ A `solo` dispatch sets `dispatch_kind: solo`, MAY leave `allocation_plan_id` / `
 
 When the operator supplies an ordered plan (delivery sequence, cohort, checklist, review batch, or phase list), continuation language is bounded by that sequence — not by the triage queue, skill chaining, or adjacent backlog memory.
 
-! Record the active sequence with `task plan-sequence:set -- --file <json>` (persists `.deft/plan-sequence.json`). Inspect with `task plan-sequence:current`; advance with `task plan-sequence:advance`; clear with `task plan-sequence:clear`.
+! Record the active sequence with `deft plan-sequence:set --file <json>` (persists `.deft/plan-sequence.json`). Inspect with `deft plan-sequence:current`; advance with `deft plan-sequence:advance`; clear with `deft plan-sequence:clear`.
 
-! Before creating or dispatching a new external work unit (PR, branch, story activation, sub-agent implementation task), when a sequence is active run `task verify:plan-sequence -- --target-kind <kind> --target <id-or-title>`. Exit non-zero means fail closed.
+! Before creating or dispatching a new external work unit (PR, branch, story activation, sub-agent implementation task), when a sequence is active run `deft verify:plan-sequence --target-kind <kind> --target <id-or-title>`. Exit non-zero means fail closed.
 
 ! "next" / "what's next?" / "proceed" / "resume" / "move on" means **exactly one** next unit in the **narrowest active** ordered sequence. Unit type is inherited from that sequence.
 
-! When the sequence is exhausted (`continuation_past_final` defaults false), stop and ask. Do not open PR 3 after an approved two-PR plan. Do not consult `task triage:queue`, open-issue intuition, or skill-chaining instructions to invent the next unit.
+! When the sequence is exhausted (`continuation_past_final` defaults false), stop and ask. Do not open PR 3 after an approved two-PR plan. Do not consult `deft triage:queue`, open-issue intuition, or skill-chaining instructions to invent the next unit.
 
 ! Explicit queue/backlog asks ("what's the queue?", "build a cohort") remain queue-driven even mid-plan. Bare "what's next?" is **not** such an ask while a sequence is active.
 
@@ -82,7 +82,7 @@ When present, the section documents these fields in order:
 - `dispatch_provider`: the runtime primitive that launched this worker -- e.g. `spawn_subagent`, `start_agent`, `sessions_spawn` (OpenClaw host; platform descriptor `openclaw` per #2874 / #2875), `cursor-composer`, `cursor-cloud-agent`, `claude-code` (Claude Code host; register primitive `claude-agent` per #3134), or a future adapter id. Names the harness surface, not the model.
 - `worker_role`: the role boundary for this dispatch -- one of `leaf-implementation`, `orchestrator`, `review-monitor`, or `merge-release` (stable ids from `packages/core/src/swarm/routing.ts` `SWARM_WORKER_ROLES`). Tells the worker which preamble rules and skill surfaces apply.
 - `selected_backend`: the stable backend id from `plan.policy.swarmSubagentBackend` / `task policy:subagent-backends` (accepted set today: `composer`, `grok-build`, `cursor-cloud` only — see `KNOWN_SUBAGENT_BACKEND_IDS`) | null -- which catalogued **coding** backend the operator selected for this role. OpenClaw is a **host / dispatch_provider** (`sessions_spawn` / descriptor `openclaw`), not a `swarmSubagentBackend` enum value; do not write `selected_backend: openclaw` into policy (#2879 Greptile P1).
-- `routing_policy`: <path or reference to the operator's routing file / tiering policy> | null -- when backend selection is delegated to harness routing instead of a typed policy field, cite the policy handle here so postmortems can reconstruct the route. The canonical handle is the gitignored, per-machine `.deft/routing.local.json` (#1739), keyed by `(dispatch_provider, worker_role)`; set decisions with `task swarm:routing-set -- --role <role> (--model <slug> | --harness-default)`.
+- `routing_policy`: <path or reference to the operator's routing file / tiering policy> | null -- when backend selection is delegated to harness routing instead of a typed policy field, cite the policy handle here so postmortems can reconstruct the route. The canonical handle is the gitignored, per-machine `.deft/routing.local.json` (#1739), keyed by `(dispatch_provider, worker_role)`; set decisions with `deft swarm:routing-set --role <role> (--model <slug> | --harness-default)`.
 - `resolved_model` (#1739): the concrete model slug the operator pinned for this `(provider, role)` | null for an explicit harness default. Resolved from `.deft/routing.local.json` and stamped into the `task swarm:launch` manifest. **This is the field the dispatch primitive must actually honor** -- see the threading rule below.
 - `model_source` (#1739): provenance of `resolved_model` -- e.g. `cursor-route`, `harness-default explicit`. Lets a postmortem tell a pinned model from a harness default.
 

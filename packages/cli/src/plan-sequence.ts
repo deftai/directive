@@ -26,7 +26,7 @@ interface Parsed {
   error?: string;
 }
 
-function parseArgs(argv: string[]): Parsed {
+export function parseArgs(argv: string[]): Parsed {
   const parsed: Parsed = {
     projectRoot: ".",
     action: null,
@@ -38,6 +38,7 @@ function parseArgs(argv: string[]): Parsed {
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === undefined) continue;
+    if (arg === "--") continue;
     if (arg === "--json") {
       parsed.emitJson = true;
     } else if (arg === "--project-root") {

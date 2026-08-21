@@ -100,6 +100,12 @@ describe("triage-queue CLI", () => {
     expect(args.error).toContain("unrecognized argument");
   });
 
+  it("parseArgs skips a lone -- separator (#3439)", () => {
+    const args = parseArgs(["queue", "--", "--limit", "3"]);
+    expect(args.error).toBeUndefined();
+    expect(args.limit).toBe(3);
+  });
+
   it("parseArgs handles --author and --author-mine (#3129)", () => {
     expect(parseArgs(["queue", "--author", "alice"]).author).toBe("alice");
     expect(parseArgs(["queue", "--author=bob"]).author).toBe("bob");

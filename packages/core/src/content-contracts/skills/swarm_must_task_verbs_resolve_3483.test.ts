@@ -5,6 +5,8 @@ import {
   parseTaskfileIncludes,
   taskDefinedInTaskfileYaml,
 } from "../../check/consumer-gate-integrity.js";
+import { ROUTING_SET_CMD } from "../../swarm/routing-verify.js";
+import { formatSummary } from "../../triage/bootstrap/index.js";
 import {
   REPO_ROOT,
   readRepoFile,
@@ -189,5 +191,167 @@ describe("swarm MUST/⊗ task verbs resolve in the task graph (#3483)", () => {
     const sync = readSkill("skills/deft-directive-sync/SKILL.md");
     expect(sync).not.toContain("`task xbrief:validate` if available");
     expect(sync).toContain("Use `task xbrief:validate` for deeper validation");
+  });
+});
+
+/**
+ * Include-only consumer root (#3218 / #3439). Operators run `task deft:<verb>`;
+ * bare `task <verb>` does not exist at this layer.
+ */
+const CONSUMER_INCLUDE_ONLY_TASKFILE = `version: "3"
+
+includes:
+  deft:
+    taskfile: ./.deft/core/Taskfile.yml
+    optional: true
+`;
+
+interface PrescribedCmd {
+  readonly form: "deft" | "task" | "task-deft";
+  readonly verb: string;
+  readonly file: string;
+  readonly line: number;
+  readonly raw: string;
+}
+
+function classifyTaskToken(raw: string): Pick<PrescribedCmd, "form" | "verb"> {
+  if (raw.startsWith(CONSUMER_INCLUDE_PREFIX)) {
+    return { form: "task-deft", verb: raw.slice(CONSUMER_INCLUDE_PREFIX.length) };
+  }
+  return { form: "task", verb: raw };
+}
+
+/** True when `verb` resolves on an include-only consumer Taskfile (#3439). */
+export function consumerTaskVerbResolves(verb: string): boolean {
+  if (taskDefinedInTaskfileYaml(CONSUMER_INCLUDE_ONLY_TASKFILE, verb)) {
+    return true;
+  }
+  const colon = verb.indexOf(":");
+  if (colon <= 0) {
+    return false;
+  }
+  const namespace = verb.slice(0, colon);
+  const local = verb.slice(colon + 1);
+  const include = parseTaskfileIncludes(CONSUMER_INCLUDE_ONLY_TASKFILE).get(namespace);
+  if (include === undefined) {
+    return false;
+  }
+  if (namespace === CONSUMER_INCLUDE_PREFIX.slice(0, -1)) {
+    return taskVerbResolves(local);
+  }
+  return false;
+}
+
+/** Fenced copy-paste lines are unquoted (`deft verify:branch || exit 1`). */
+const FENCE_CMD = /(?:^|\s)(deft|task) ([A-Za-z_][\w.:-]*)/g;
+
+function extractFromFenceLine(line: string, file: string, lineNo: number): PrescribedCmd[] {
+  const found: PrescribedCmd[] = [];
+  for (const match of line.matchAll(FENCE_CMD)) {
+    const prefix = match[1];
+    const raw = match[2];
+    if (prefix === undefined || raw === undefined || raw === "" || raw.endsWith(":")) {
+      continue;
+    }
+    if (prefix === "deft") {
+      found.push({ form: "deft", verb: raw, file, line: lineNo, raw: `deft ${raw}` });
+      continue;
+    }
+    const classified = classifyTaskToken(raw);
+    found.push({
+      form: classified.form,
+      verb: classified.verb,
+      file,
+      line: lineNo,
+      raw: `task ${raw}`,
+    });
+  }
+  return found;
+}
+
+/**
+ * Fenced command lines that follow a MUST/⊗ intro on the swarm dispatch card.
+ * Binding-line `task` mentions stay on the source-oracle walk above; this
+ * extractor is the consumer-projection walk that #3483's source resolve
+ * (which strips `deft:`) cannot catch.
+ */
+export function bindingFenceCommands(rel: string = SWARM_SKILL_REL): readonly PrescribedCmd[] {
+  const lines = readRepoFile(rel).split("\n");
+  const found: PrescribedCmd[] = [];
+  for (const [idx, line] of lines.entries()) {
+    if (!isBindingLine(line)) {
+      continue;
+    }
+    let j = idx + 1;
+    while (j < lines.length && (lines[j] ?? "").trim() === "") {
+      j += 1;
+    }
+    const fence = (lines[j] ?? "").trim();
+    if (!fence.startsWith("```")) {
+      continue;
+    }
+    j += 1;
+    while (j < lines.length && !(lines[j] ?? "").trim().startsWith("```")) {
+      found.push(...extractFromFenceLine(lines[j] ?? "", rel, j + 1));
+      j += 1;
+    }
+  }
+  return found;
+}
+
+function twoPathsSlice(): string {
+  const commands = readRepoFile("commands.md");
+  const start = commands.indexOf("### Two paths");
+  const end = commands.indexOf("### Triage Tasks");
+  if (start < 0 || end < 0 || end <= start) {
+    throw new Error("commands.md Two paths section not found");
+  }
+  return commands.slice(start, end);
+}
+
+describe("consumer-projection oracle (#3439)", () => {
+  it("source-resolve of verify:branch is not enough -- consumer bare task cannot run it", () => {
+    expect(taskVerbResolves("verify:branch"), "source Taskfile still has verify:branch").toBe(true);
+    expect(
+      consumerTaskVerbResolves("verify:branch"),
+      "include-only consumer cannot run task verify:branch",
+    ).toBe(false);
+    expect(consumerTaskVerbResolves("deft:verify:branch")).toBe(true);
+  });
+
+  it("swarm SKILL.md binding fences prescribe deft <verb>, not bare task <verb>", () => {
+    const cmds = bindingFenceCommands();
+    expect(cmds.length).toBeGreaterThan(0);
+    const bare = cmds.filter((c) => c.form === "task");
+    const detail = bare
+      .map((c) => `  ${c.file}:${c.line} prescribes \`${c.raw}\` (consumer cannot run)`)
+      .join("\n");
+    expect(
+      bare,
+      `Swarm SKILL.md fence names ${bare.length} bare task verb(s) a consumer include-only Taskfile cannot run.\n${detail}\nPrescribe \`deft <verb>\` (#3439).`,
+    ).toEqual([]);
+    expect(cmds.some((c) => c.form === "deft" && c.verb === "verify:branch")).toBe(true);
+  });
+
+  it("routing-verify remediation and bootstrap recap emit deft <verb>", () => {
+    expect(ROUTING_SET_CMD.startsWith("deft ")).toBe(true);
+    expect(ROUTING_SET_CMD).not.toMatch(/^task (?!deft:)/);
+    const recap = formatSummary({
+      projectRoot: ".",
+      repo: "OWNER/NAME",
+      exitCode: 0,
+      steps: [{ name: "seed", ok: true, message: "ok", details: {} }],
+    });
+    expect(recap).toContain("deft triage:accept");
+    expect(recap).not.toMatch(/task (?!deft:)(cache|triage):/);
+  });
+
+  it("commands.md Two paths uses deft plan-sequence / deft triage:queue", () => {
+    const slice = twoPathsSlice();
+    expect(slice).toContain("`deft plan-sequence:current`");
+    expect(slice).toContain("`deft triage:queue`");
+    expect(slice).toContain("plan-sequence:status");
+    expect(slice).not.toMatch(/`task plan-sequence:/);
+    expect(slice).not.toMatch(/`task triage:queue`/);
   });
 });

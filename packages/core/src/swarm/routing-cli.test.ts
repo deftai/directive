@@ -35,6 +35,7 @@ describe("routing-set + routing-verify CLIs", () => {
     const dir = freshRoute();
     expect(
       routingSetMain([
+        "--",
         "--provider",
         "cursor",
         "--role",

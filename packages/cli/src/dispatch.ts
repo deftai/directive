@@ -3151,6 +3151,29 @@ async function invokeHandler(handler: CommandHandler, argv: string[]): Promise<n
 
 const CLI_PACKAGE = "@deftai/directive" as const;
 
+const PLAN_SEQUENCE_VERBS = "set|current|clear|advance";
+
+/**
+ * Unknown-colon-verb remediation (#3439 / #2652).
+ * Agent-facing spelling is `deft <verb>` (works on consumer CLI and source).
+ * Bare `task <verb>` is not consumer-runnable on include-only Taskfiles.
+ */
+export function unknownColonVerbHint(verb: string): string {
+  if (verb.startsWith("plan-sequence:") && !(verb in PLAN_SEQUENCE_ALIAS_SUBCOMMANDS)) {
+    return (
+      `hint: plan-sequence verbs are ${PLAN_SEQUENCE_VERBS} ` +
+      `(e.g. \`deft plan-sequence:current\`). '${verb}' is not a verb. ` +
+      `Do not run bare \`task ${verb}\` -- consumer include-only Taskfiles cannot resolve it.\n`
+    );
+  }
+  const hyphen = verb.replaceAll(":", "-");
+  return (
+    `hint: try \`deft ${verb}\` (CLI) or \`task deft:${verb}\` (consumer Taskfile). ` +
+    `Bare \`task ${verb}\` does not exist on include-only deposits. ` +
+    `Hyphen stem: ${hyphen}.\n`
+  );
+}
+
 function versionBanner(): string {
   const info = engineInfo();
   return `${CLI_PACKAGE} (engine: ${info.name}@${info.version})\n`;
@@ -3178,10 +3201,7 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
   if (canonical === null) {
     io.writeErr(`directive: unknown verb '${verb}'\n`);
     if (verb?.includes(":")) {
-      io.writeErr(
-        `hint: prefer \`task ${verb}\` (Taskfile) or the hyphen stem ` +
-          `(e.g. pr:watch → pr-watch / \`task pr:watch\`)\n`,
-      );
+      io.writeErr(unknownColonVerbHint(verb));
     }
     return 1;
   }

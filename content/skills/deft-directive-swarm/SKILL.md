@@ -29,7 +29,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 ! Before any state mutation (creating worktrees, dispatching sub-agents, opening PRs), run the skill-level branch-policy guard (#746 / #747). Halt with the actionable disclosure message when the project's `plan.policy.allowDirectCommitsToMaster` is unresolvable AND `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT` is unset:
 
 ```
-task verify:branch || exit 1
+deft verify:branch || exit 1
 ```
 
 The swarm skill creates branches per agent so the guard is mostly informational here, but a malformed PROJECT-DEFINITION (missing `plan.policy` block AND no legacy narrative) is a fail-closed signal worth surfacing before the swarm spawns N agents.

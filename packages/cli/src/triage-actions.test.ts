@@ -36,6 +36,13 @@ describe("parseArgs", () => {
     expect(parseArgs(["defer", "--nope"]).error).toMatch(/unrecognized argument/);
   });
 
+  it("skips a lone -- separator (#3439)", () => {
+    const parsed = parseArgs(["accept", "--", "--issue", "103", "--repo", "owner/name"]);
+    expect(parsed.error).toBeUndefined();
+    expect(parsed.issue).toBe(103);
+    expect(parsed.repo).toBe("owner/name");
+  });
+
   it("returns error when subcommand missing", () => {
     expect(parseArgs([]).error).toBe("missing subcommand");
   });

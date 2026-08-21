@@ -350,7 +350,7 @@ describe("dispatch", () => {
     expect(err.join("")).toBe("directive: unknown verb 'not-a-real-verb'\n");
   });
 
-  it("hints task/hyphen stem when an unknown colon verb is used (#2652)", async () => {
+  it("hints deft CLI / task deft: when an unknown colon verb is used (#2652 / #3439)", async () => {
     const err: string[] = [];
     const code = await dispatch(["notreal:verb"], {
       writeOut: () => {},
@@ -360,7 +360,24 @@ describe("dispatch", () => {
     });
     expect(code).toBe(1);
     expect(err.join("")).toContain("unknown verb 'notreal:verb'");
-    expect(err.join("")).toContain("task notreal:verb");
+    expect(err.join("")).toContain("deft notreal:verb");
+    expect(err.join("")).toContain("task deft:notreal:verb");
+    expect(err.join("")).not.toMatch(/prefer `task notreal:verb`/);
+  });
+
+  it("hints real plan-sequence verbs when :status is used (#3439)", async () => {
+    const err: string[] = [];
+    const code = await dispatch(["plan-sequence:status"], {
+      writeOut: () => {},
+      writeErr: (text) => {
+        err.push(text);
+      },
+    });
+    expect(code).toBe(1);
+    expect(err.join("")).toContain("unknown verb 'plan-sequence:status'");
+    expect(err.join("")).toContain("deft plan-sequence:current");
+    expect(err.join("")).toContain("is not a verb");
+    expect(err.join("")).not.toMatch(/prefer `task plan-sequence:status`/);
   });
 
   it("resolves pr:watch colon alias to pr-watch (#2652)", () => {

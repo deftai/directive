@@ -70,6 +70,41 @@ describe("lifecycleMain", () => {
     expect(lifecycleMain([])).toBe(2);
   });
 
+  it("scope:promote --help does not dump scope_lifecycle.py required action (#3439)", () => {
+    const err: string[] = [];
+    const out: string[] = [];
+    const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      err.push(String(chunk));
+      return true;
+    });
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      out.push(String(chunk));
+      return true;
+    });
+    try {
+      expect(lifecycleMain(["promote", "--help"])).toBe(0);
+      const text = `${out.join("")}${err.join("")}`;
+      expect(text).not.toMatch(/scope_lifecycle\.py/);
+      expect(text).not.toMatch(/required: action/);
+      expect(text).toMatch(/scope:promote/);
+    } finally {
+      stderrSpy.mockRestore();
+      stdoutSpy.mockRestore();
+    }
+  });
+
+  it("skips a lone -- separator before the file (#3439)", () => {
+    root = mkdtempSync(join(tmpdir(), "cli-sep-"));
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    const file = join(root, "xbrief", "proposed", "sep.xbrief.json");
+    writeFileSync(
+      file,
+      formatBriefJson(minimalScopeBrief({ title: "T", status: "proposed", items: [] })),
+      "utf8",
+    );
+    expect(lifecycleMain(["promote", "--", file, `--project-root=${root}`])).toBe(0);
+  });
+
   it("promotes via CLI with equals-form project root", () => {
     root = mkdtempSync(join(tmpdir(), "cli-eq-"));
     mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });

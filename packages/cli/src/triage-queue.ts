@@ -143,7 +143,7 @@ export function parseArgs(argv: string[]): QueueArgs {
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (arg === "queue") {
+    if (arg === "queue" || arg === "--") {
       continue;
     }
     if (arg === "--include-blocked") {
@@ -255,6 +255,9 @@ export function parseShowArgs(argv: string[]): ShowArgs {
 
   for (let i = start; i < argv.length; i += 1) {
     const arg = argv[i];
+    if (arg === "--") {
+      continue;
+    }
     const commonHit = parseCommonFlag(arg, argv, i, parsed);
     if (commonHit !== null) {
       if (commonHit.error !== undefined) {

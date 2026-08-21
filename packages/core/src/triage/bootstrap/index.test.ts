@@ -329,7 +329,9 @@ describe("formatSummary", () => {
     const summary = formatSummary(result);
     expect(summary).toContain("Triage v1 bootstrap recap:");
     expect(summary).toContain("Next steps:");
-    expect(summary).toContain("task triage:accept");
+    expect(summary).toContain("deft triage:accept --issue");
+    expect(summary).not.toContain("task triage:accept");
+    expect(summary).not.toContain("task cache:");
   });
 
   it("omits next steps when a step failed", async () => {

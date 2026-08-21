@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { main as planSequenceMain } from "./plan-sequence.js";
+import { parseArgs, main as planSequenceMain } from "./plan-sequence.js";
 import { main as verifyPlanSequenceMain } from "./verify-plan-sequence.js";
 
 const roots: string[] = [];
@@ -13,6 +13,13 @@ afterEach(() => {
 });
 
 describe("plan-sequence CLI (#2402)", () => {
+  it("skips a lone -- separator (#3439)", () => {
+    const parsed = parseArgs(["current", "--", "--json"]);
+    expect(parsed.error).toBeUndefined();
+    expect(parsed.action).toBe("current");
+    expect(parsed.emitJson).toBe(true);
+  });
+
   it("set/current/advance/verify happy path for two-PR plan", () => {
     const root = mkdtempSync(join(tmpdir(), "ps-cli-"));
     roots.push(root);

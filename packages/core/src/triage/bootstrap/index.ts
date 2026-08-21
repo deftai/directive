@@ -499,22 +499,20 @@ export function formatSummary(result: BootstrapResult): string {
     lines.push("");
     lines.push("Next steps:");
     lines.push(
-      "  task cache:fetch-all -- --source=github-issue --repo OWNER/NAME   # refresh the cache (#883 Story 2)",
+      "  deft cache:fetch-all --source=github-issue --repo OWNER/NAME   # refresh the cache (#883 Story 2)",
+    );
+    lines.push("  deft cache:get github-issue OWNER/NAME/<N>            # inspect cached issue N");
+    lines.push(
+      "  deft triage:accept --issue <N> --repo OWNER/NAME      # accept issue N (#845 Story 3)",
     );
     lines.push(
-      "  task cache:get -- github-issue OWNER/NAME/<N>            # inspect cached issue N",
+      "  deft triage:reject --issue <N> --repo OWNER/NAME --reason 'why' # reject issue N",
     );
     lines.push(
-      "  task triage:accept -- --issue <N> --repo OWNER/NAME      # accept issue N (#845 Story 3)",
+      "  deft triage:bulk-accept --repo OWNER/NAME --label adoption-blocker # bulk accept",
     );
     lines.push(
-      "  task triage:reject -- --issue <N> --repo OWNER/NAME --reason 'why' # reject issue N",
-    );
-    lines.push(
-      "  task triage:bulk-accept -- --repo OWNER/NAME --label adoption-blocker # bulk accept",
-    );
-    lines.push(
-      "  task triage:refresh-active                              # pre-swarm freshness gate",
+      "  deft triage:refresh-active                              # pre-swarm freshness gate",
     );
   }
   return lines.join("\n");
