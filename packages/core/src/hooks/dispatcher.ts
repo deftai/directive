@@ -65,6 +65,7 @@ import {
   missingToolNameMessage,
   record,
 } from "./classify/index.js";
+import { classifyProductDestForms, payloadWithInjectedWriteTarget } from "./dest-form.js";
 import {
   isAssistPosture,
   isEphemeralSpawn,
@@ -446,6 +447,21 @@ export function isHookHost(value: string): value is HookHost {
 
 export function isHookEvent(value: string): value is HookEvent {
   return (HOOK_EVENTS as readonly string[]).includes(value);
+}
+
+function scopeNotReadyCoverageHint(toolName: string): string {
+  if (isSpawnTool(toolName)) return "";
+  if (isShellTool(toolName)) {
+    return (
+      " This deny is the active-scope write gate on a recognized Shell dest-form " +
+      "(git checkout --, git restore, rm/rmdir of in-repo paths)."
+    );
+  }
+  return (
+    " This gate covers direct-write tools (Edit/Write) and implementation spawn, " +
+    "plus recognized Shell dest-forms (git checkout --, git restore, rm/rmdir). " +
+    "Other shell (python -c, cmd /c copy, git status) is not this deny."
+  );
 }
 
 function deny(
@@ -1006,7 +1022,8 @@ function inspectMutationGates(
         input,
         denyCode,
         toolName,
-        `Directive denied ${toolName}: ${scope.message}${proposedPathHint}`,
+        `Directive denied ${toolName}: ${scope.message}${proposedPathHint}` +
+          scopeNotReadyCoverageHint(toolName),
       );
     }
   }
@@ -1042,6 +1059,38 @@ function inspectMutationGates(
     message: `Directive ${isSpawnTool(toolName) ? "spawn" : "write"} gate passed for ${toolName}.`,
     scopePath: scope.path,
   };
+}
+
+/**
+ * Route recognized Shell dest-forms through inspectMutationGates, then push/merge.
+ * Dest-form allow is kept when runtime authority has nothing classifiable.
+ */
+function decideShellDestFormsThenRuntimeAuthority(
+  input: HookDispatchInput,
+  toolName: string,
+  seams: HookPolicySeams,
+): HookDecision {
+  const command = hookShellCommand(input.payload);
+  let destAllow: HookDecision | null = null;
+  if (command !== null) {
+    for (const dest of classifyProductDestForms(command)) {
+      const destInput: HookDispatchInput = {
+        ...input,
+        payload: payloadWithInjectedWriteTarget(input.payload, dest.path),
+      };
+      const destDecision = inspectMutationGates(destInput, toolName, seams, {
+        proposedLifecycleExempt: true,
+      });
+      if (destDecision.verdict === "deny") return destDecision;
+      destAllow = destDecision;
+    }
+  }
+  const runtime = decideShellOrMcpRuntimeAuthority(input, toolName, seams);
+  if (runtime.verdict === "deny") return runtime;
+  if (destAllow !== null && runtime.code === "shell-op-unclassifiable") {
+    return destAllow;
+  }
+  return runtime;
 }
 
 /** Decide a normalized event using only the P0 direct-write policy. */
@@ -1261,15 +1310,17 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
     return inspectMutationGates(input, toolName, seams, { proposedLifecycleExempt: false });
   }
 
-  // Shell/Bash and classifiable MCP: enforce scopes.push / scopes.merge (#2711).
+  // Shell dest-forms (#3438): recognized product mutations share inspectMutationGates
+  // with Edit/Write (assist/scratch, proposed lifecycle, file_scope). Push/merge stay
+  // on runtimeAuthority (#2711). Non-dest unclassifiable shell (git status) fail-open.
+  if (isShellTool(toolName)) {
+    return decideShellDestFormsThenRuntimeAuthority(input, toolName, seams);
+  }
+
+  // Classifiable MCP: enforce scopes.push / scopes.merge (#2711).
   // Route bare push/merge MCP names (merge_pull_request, git_push, …) even when
   // isMcpTool is false — classifyMcpTool is the gate (dispatcher-side, no tools↔policy cycle).
-  // Does not require active-scope ritual — only runtimeAuthority when enabled.
-  if (
-    isShellTool(toolName) ||
-    isMcpTool(toolName) ||
-    classifyMcpTool(toolName, hookMcpArgsText(input.payload)) !== null
-  ) {
+  if (isMcpTool(toolName) || classifyMcpTool(toolName, hookMcpArgsText(input.payload)) !== null) {
     return decideShellOrMcpRuntimeAuthority(input, toolName, seams);
   }
 

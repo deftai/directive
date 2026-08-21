@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Shell dest-form mutations hit the active-xBRIEF write gate (#3438).** `git checkout -- <paths>`, `git restore`, and `rm`/`rmdir` of in-repo paths go through `inspectMutationGates` with Edit/Write exemptions (assist/scratch, proposed lifecycle, story `file_scope`). Edit/Write `scope-not-ready` copy names direct-write and spawn. `git status` stays fail-open. `python -c`, `cmd /c copy`, and obfuscated bash stay known-open. Closes #3438. Refs #2711, #1802, #2625, #2885.
+
 ### Removed
 
 ## [0.106.0] - 2026-08-21

@@ -197,6 +197,9 @@ describe("direct-write hook policy", () => {
 
     expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
     expect(decision.message).toContain("deft scope:activate");
+    expect(decision.message).toMatch(/direct-write/);
+    expect(decision.message).toMatch(/spawn/);
+    expect(decision.message).toMatch(/not this deny/);
   });
 
   it("allows Write outside projectRoot when no active scope (#2885)", () => {
@@ -2397,6 +2400,182 @@ describe("runtimeAuthority shell/MCP push/merge in decideHook (#2711)", () => {
     expect(decision.verdict).toBe("deny");
     expect(decision.code).toBe("runtime-policy-deny-scope");
     expect(decision.message).toMatch(/scopes\.merge is false/);
+  });
+
+  it("denies Shell git checkout -- and rm dest-forms when no active scope (#3438)", () => {
+    const reporter =
+      "git checkout -- apps/web/tsconfig.json apps/web/next-env.d.ts && rm apps/web/AGENTS.md apps/web/CLAUDE.md";
+    const emptyScope = readySeams({
+      inspectScope: () => ({
+        ready: false,
+        path: null,
+        message: "No active xBRIEF artifact was found under xbrief/active/",
+      }),
+    });
+    const checkout = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "Bash", tool_input: { command: reporter } },
+      },
+      emptyScope,
+    );
+    expect(checkout).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(checkout.message).toMatch(/recognized Shell dest-form/);
+
+    const restore = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "Shell", tool_input: { command: "git restore src/a.ts" } },
+      },
+      emptyScope,
+    );
+    expect(restore).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+
+    const rmdir = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "Bash", tool_input: { command: "rmdir tmp/dir" } },
+      },
+      emptyScope,
+    );
+    expect(rmdir).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+  });
+
+  it("keeps git status and hostile residual dest writers fail-open with empty active (#3438 / #2711)", () => {
+    const emptyScope = readySeams({
+      inspectScope: () => ({
+        ready: false,
+        path: null,
+        message: "No active xBRIEF artifact was found under xbrief/active/",
+      }),
+    });
+    for (const command of [
+      "git status",
+      "python -c \"open('f','w').write('x')\"",
+      "cmd /c copy a b",
+      "bash -c 'rm apps/web/AGENTS.md'",
+      "git checkout apps/web/tsconfig.json",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Bash", tool_input: { command } },
+        },
+        emptyScope,
+      );
+      expect(decision, command).toMatchObject({
+        verdict: "allow",
+        code: "shell-op-unclassifiable",
+      });
+    }
+  });
+
+  it("allows recognized dest-forms under assist scratch and proposed lifecycle (#3438)", () => {
+    const emptyScope = readySeams({
+      inspectScope: () => ({
+        ready: false,
+        path: null,
+        message: "No active xBRIEF artifact was found under xbrief/active/",
+      }),
+    });
+    const scratch = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          posture: "assist",
+          tool_input: { command: "rm .deft-scratch/notes.md" },
+        },
+      },
+      emptyScope,
+    );
+    expect(scratch).toMatchObject({ verdict: "allow", code: "write-assist-scratch-ready" });
+
+    const proposed = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "rm xbrief/proposed/2026-08-21-story.xbrief.json" },
+        },
+      },
+      emptyScope,
+    );
+    expect(proposed).toMatchObject({ verdict: "allow", code: "write-propose-ready" });
+  });
+
+  it("applies story file_scope to Shell dest-forms (Edit/Write parity, #3438)", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "git checkout -- docs/readme.md" },
+        },
+      },
+      readySeams({
+        loadStoryWriteFence: () => ({
+          fileScope: ["src/**"],
+          denyPaths: [],
+        }),
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "runtime-policy-deny-path" });
+    expect(decision.message).toMatch(/story file_scope/);
+  });
+
+  it("allows Shell dest-form when active scope is ready", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "git checkout -- src/a.ts" },
+        },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
+  });
+
+  it("still denies dest-form&&push when push is out of scope", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "git checkout -- src/a.ts && git push origin HEAD" },
+        },
+      },
+      {
+        ...readySeams(),
+        loadRuntimeAuthority: () => ({
+          enabled: true,
+          allowPaths: [] as string[],
+          denyPaths: [] as string[],
+          scopes: { edits: true, push: false, merge: false },
+        }),
+      },
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "runtime-policy-deny-scope" });
   });
 
   it("allows Shell git status (unclassifiable) fail-open", () => {

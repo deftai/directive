@@ -52,7 +52,8 @@ path when `inspectActiveScope` reports one. Residual gaps (document, not silent)
 - Story JSON unreadable → story layer fail-open; project fence still applies
 
 Shell/MCP push/merge scopes remain project-only (`runtimeAuthority.scopes`); they are not
-re-scoped by `file_scope`.
+re-scoped by `file_scope`. Recognized Shell dest-forms (`git checkout --`, `git restore`,
+`rm`/`rmdir`) use the same write fence as Edit/Write, including story `file_scope` (#3438).
 
 ## Skill behavior (build / swarm)
 

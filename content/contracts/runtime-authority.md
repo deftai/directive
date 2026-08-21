@@ -46,6 +46,8 @@ When `enabled: true`:
 | **MCP merge** | tool names matching `merge_pull_request`, `pr_merge`, … | `scopes.merge` |
 | **MCP push** | tool names matching `git_push`, `push_branch`, … | `scopes.push` |
 
+Product dest-forms (`git checkout --`, `git restore`, `rm`/`rmdir`) are a separate PreToolUse slice (#3438) and are not classified here as push or merge.
+
 **Fail open (allow)** when:
 
 - the tool is Shell/MCP but the command/tool name is **not** classifiable as push or merge (e.g. `git status`, unrelated MCP tools)
