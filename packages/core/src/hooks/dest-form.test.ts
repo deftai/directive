@@ -223,17 +223,46 @@ describe("classifyProductDestForms (#3438)", () => {
     ]);
   });
 
-  it("does not apply a cd across the || failure branch", () => {
-    // Reaching the `||` branch means the `cd` FAILED, so cwd is unchanged and
-    // the removal targets root `x`. Prefixing it would let an authorized scoped
-    // path stand in for an out-of-scope mutation (#3438).
-    expect(classifyProductDestForms("cd scoped || rm x")).toEqual([{ kind: "rm", path: "x" }]);
-    expect(classifyProductDestForms("cd scoped || rmdir tmp/dir")).toEqual([
+  it("fails closed when a cd mixes with || so cwd depends on exit status", () => {
+    // `rm target` is reachable on BOTH branches: scoped/target if the cd
+    // succeeded, root target if it failed. No static answer is correct, so do
+    // not pick one (#3438).
+    expect(classifyProductDestForms("cd scoped || echo failed && rm target")).toEqual([
+      { kind: "rm", path: "scoped/target", expansion: true },
+    ]);
+    expect(classifyProductDestForms("cd scoped && rm a || rm b")).toEqual([
+      { kind: "rm", path: "scoped/a", expansion: true },
+      { kind: "rm", path: "scoped/b", expansion: true },
+    ]);
+    expect(classifyProductDestForms("cd scoped || rm x")).toEqual([
+      { kind: "rm", path: "scoped/x", expansion: true },
+    ]);
+    // Uncertainty latches: a later list cannot assume the cd landed either.
+    expect(classifyProductDestForms("cd scoped || true; rm y")).toEqual([
+      { kind: "rm", path: "scoped/y", expansion: true },
+    ]);
+    // `||` with no cd in the list is unaffected.
+    expect(classifyProductDestForms("rm a.ts || rmdir tmp/dir")).toEqual([
+      { kind: "rm", path: "a.ts" },
       { kind: "rmdir", path: "tmp/dir" },
     ]);
-    // `&&` is the success branch and still applies.
+    // `&&` alone stays provable.
     expect(classifyProductDestForms("cd scoped && rm x")).toEqual([
       { kind: "rm", path: "scoped/x" },
+    ]);
+  });
+
+  it("fails closed on a leading tilde and leaves a trailing tilde alone", () => {
+    // `~` expands to $HOME, so the shell mutates outside the repo entirely.
+    expect(classifyProductDestForms("rm ~/secret")).toEqual([
+      { kind: "rm", path: "~/secret", expansion: true },
+    ]);
+    expect(classifyProductDestForms("git checkout -- ~/x.ts")).toEqual([
+      { kind: "git-checkout", path: "~/x.ts", expansion: true },
+    ]);
+    // A trailing `~` is an ordinary backup file, not an expansion.
+    expect(classifyProductDestForms("rm src/foo.ts~")).toEqual([
+      { kind: "rm", path: "src/foo.ts~" },
     ]);
   });
 

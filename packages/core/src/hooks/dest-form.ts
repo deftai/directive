@@ -108,20 +108,30 @@ export function classifyProductDestForms(command: string): ProductDestForm[] {
   // reconstructed path is not trustworthy — fail closed on the whole command.
   const groupingUnsafe = hasSubshellGrouping(cmd);
   let cwd: string | null = null;
+  // Latches once cwd stops being provable, and never clears: every dest from
+  // that point on is fail-closed rather than guessed. See listCwdIsUncertain.
+  let cwdUncertain = false;
   for (const list of splitDestFormLists(cmd)) {
+    if (listCwdIsUncertain(list)) cwdUncertain = true;
     // Inherit-in is unconditional: a subshell starts in the parent's cwd.
     let listCwd: string | null = cwd;
     for (const seg of list.segments) {
       const cd = parseCdDir(seg.text);
       if (cd !== null) {
-        // Confined to a pipeline member's subshell, or on the `||` failure
-        // branch where reaching the next segment means the `cd` did not happen.
-        if (!seg.pipelineMember && !seg.closedByOr) listCwd = joinDestPrefix(listCwd, cd);
+        // A `cd` in a pipeline member is confined to that member's subshell.
+        if (!seg.pipelineMember) listCwd = joinDestPrefix(listCwd, cd);
         continue;
       }
       for (const dest of classifyDestFormSegment(seg.text)) {
         const path = joinDestPrefix(listCwd, dest.path);
-        const expansion = groupingUnsafe || dest.expansion === true || destFormHasExpansion(path);
+        const expansion =
+          groupingUnsafe ||
+          cwdUncertain ||
+          dest.expansion === true ||
+          // `~` expands to $HOME only at the start of a word, so a trailing `~`
+          // (`foo.ts~`) is an ordinary path and must not be swept up here.
+          dest.path.startsWith("~") ||
+          destFormHasExpansion(path);
         const key = `${dest.kind}\0${path}`;
         if (seen.has(key)) continue;
         seen.add(key);
@@ -137,6 +147,25 @@ export function classifyProductDestForms(command: string): ProductDestForm[] {
   return found;
 }
 
+/**
+ * True when a list mixes a `cd` with `||`, which makes the effective cwd depend
+ * on runtime exit status and therefore unprovable here.
+ *
+ * `cd scoped || echo failed && rm target` reaches `rm target` on BOTH branches:
+ * `scoped/target` when the `cd` succeeded, root `target` when it failed. The
+ * mirror `cd scoped && rm a || rm b` is equally ambiguous. There is no correct
+ * static answer, so do not pick a branch — fail closed (#3438).
+ */
+function listCwdIsUncertain(list: DestFormList): boolean {
+  let sawCd = false;
+  let sawOr = false;
+  for (const seg of list.segments) {
+    if (seg.closedByOr) sawOr = true;
+    if (parseCdDir(seg.text) !== null) sawCd = true;
+  }
+  return sawCd && sawOr;
+}
+
 interface DestFormSegment {
   readonly text: string;
   /**
@@ -147,9 +176,9 @@ interface DestFormSegment {
    */
   readonly pipelineMember: boolean;
   /**
-   * True when terminated by `||`. The next segment runs only if this one
-   * FAILED, so a `cd` here must not retarget it: `cd sub || rm x` removes root
-   * `x`, because reaching `rm x` means the `cd` did not happen (#3438).
+   * True when terminated by `||`. Whether the next segment runs depends on this
+   * one's exit status, so a list mixing `||` with a `cd` has an unprovable cwd
+   * — see `listCwdIsUncertain` (#3438).
    */
   readonly closedByOr: boolean;
 }

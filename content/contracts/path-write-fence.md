@@ -64,13 +64,17 @@ Dest-form target reconstruction (#3438) follows shell **precedence**, not separa
 - `&` closes the whole and-or list and backgrounds it, so `cd sub && rm a & rm b` removes
   `sub/a` but leaves `rm b` in the parent shell targeting root `b` — the `cd` never escapes
 - `;` closes the list without backgrounding it, so its `cd` does carry forward
-- `||` is the **failure** branch: reaching it means the `cd` did not happen, so
-  `cd scoped || rm x` targets root `x`, not `scoped/x`
+- `||` makes the effective cwd depend on exit status. A list mixing a `cd` with `||`
+  (`cd scoped || echo failed && rm target`, or the mirror `cd scoped && rm a || rm b`)
+  reaches the mutation on **both** branches, so no static target is correct — those
+  dests fail closed, and the uncertainty latches for the rest of the command
 
 `git -C` composes (`git -C a -C b` → `a/b`; an absolute `-C` resets), and `--work-tree`
 resolves against the `-C` chain preceding it. Targets the classifier cannot reconstruct stay
-fail-closed: glob/variable dests, subshell grouping (`(`/`)`), and a work tree selected
-through `-c core.workTree` / `--config-env` (resolution there depends on the git dir).
+fail-closed: glob/variable dests, a leading `~` (expands to `$HOME`, outside the repo; a
+trailing `~` as in `foo.ts~` is an ordinary path), subshell grouping (`(`/`)`), a `cd` mixed
+with `||`, and a work tree selected through `-c core.workTree` / `--config-env` (resolution
+there depends on the git dir).
 An unquoted backslash escapes the next character when that character needs escaping in a
 shell (`rm protected\ file` is ONE dest); before anything else it is retained, so Windows
 dests keep their separators. Known-open, denied not reconstructed: quoted literal
