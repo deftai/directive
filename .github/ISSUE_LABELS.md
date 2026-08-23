@@ -109,16 +109,20 @@ Do **not** overload human labels (`hold`, `rfc`, …) via `actionLabels`. Consum
 
 Config surface: `plan.policy.triageLabelMirror` (see #1423 Wave 1 / #3118).
 
-### Design-critique stamp (ADR-005 / #3434)
+### Design-critique stamp (ADR-005 / #3434 / #3627)
 
-Author-stamped, not classify-mirror output. The triage author decides the lean is mechanism-shaped and writes **both** halves of the #1423 pairing:
+Author-stamped, not classify-mirror output. Not a `triage:*` classify action. The triage author decides the lean is mechanism-shaped and writes **both** halves of the #1423 pairing. After operator-accepted synthesis, attach the bind-ready chip.
 
 | Surface | Value | Role |
 |---------|-------|------|
 | Body-text field (artifact) | `mechanism-shaped: true` | Survives in the write-back comment |
 | Mirrored label (predicate / lists) | `design-critique:mechanism-shaped` | What `plan.policy.judgmentGates` matches |
+| Synthesis-accepted line | `design-critique: synthesis accepted, because …` | Human-authority bind record |
+| Bind-ready label | `design-critique:triage-ready` | Attach after operator-accepted synthesis; pairs with the synthesis-accepted line |
 
 Do **not** invent a classifier for "mechanism-shaped." Stamp or omit. No stamp -> gate never fires (voluntary critiques stay legal). Clearance line is separate: `design-critique: warranted \| not warranted, because ...` (ADR-005).
+
+Critic does not write issue labels. Do not add a critic-posted or author/role chip. `judgmentGates` still matches only `design-critique:mechanism-shaped`.
 
 ---
 
@@ -220,9 +224,11 @@ Inventory ~85 labels at #2609 implement time. This section lists **canonical** n
 
 `triaged`, `triage:deferred`, `triage:archived`, `triage:lifecycle-linked`, `triage:needs-human`
 
-### Design-critique stamp (ADR-005)
+### Design-critique stamp (ADR-005 / #3627)
 
 `design-critique:mechanism-shaped` -- author stamp that the lean is mechanism-shaped; pairs with write-back field `mechanism-shaped: true`. Not a `triage:*` classify action.
+
+`design-critique:triage-ready` -- attach after operator-accepted synthesis; pairs with `design-critique: synthesis accepted, because …`. Not a `triage:*` classify action.
 
 ### Ranking / audience (selected)
 

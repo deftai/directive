@@ -23,6 +23,12 @@ const REQUIRED_CONTRACT_POINTERS = [
   "## Stop 3 — Critic envelope",
   "## Stop 4 — Residual reiteration",
   "## Stop 5 — Verified synthesis",
+  "## Operator-gated loop",
+  "## Successor lean",
+  "## Operator verbs",
+  "## Dual stop",
+  "## Halt line",
+  "## Bind after accepted synthesis",
   "method column",
   "Decorrelation",
   "when verifying, upholding, or issuing any verdict that a measurement or count claim is false, first reproduce the original claimant's method",
@@ -46,6 +52,18 @@ const REQUIRED_CONTRACT_POINTERS = [
   "GitHub login",
   "verify:routing",
   "first line",
+  "design-critique:triage-ready",
+  "design-critique: halted, because",
+  "design-critique: synthesis accepted, because",
+  "triage:accept",
+  "scope:promote",
+  "retry differences",
+  "walk findings one at a time",
+  "post the verified-claims table",
+  "accept synthesis",
+  "accept synt",
+  "synt accepted",
+  "synt approved",
 ];
 
 const REQUIRED_TEMPLATE_POINTERS = [
@@ -75,6 +93,11 @@ const REQUIRED_SKILL_POINTERS = [
   "contracts/design-critique.md",
   "templates/design-critique-brief.md",
   "First-line model slug",
+  "Successor lean",
+  "Operator verbs",
+  "Halt line",
+  "Bind after accepted synthesis",
+  "EXITs after posting",
 ];
 
 const DEFAULT_ALWAYS_PINS = [
@@ -202,6 +225,71 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     const skill = readText(SKILL_REL);
     expect(skill).toContain("First-line model slug");
     expect(skill).not.toContain("⊗ Put the model in an issue label");
+  });
+
+  it("locks the operator-gated loop, successor lean, verbs, dual stop, halt, and bind", () => {
+    const text = readText(CONTRACT);
+    expect(text).toContain("## Operator-gated loop");
+    expect(text).toContain("## Successor lean");
+    expect(text).toContain("## Operator verbs");
+    expect(text).toContain("## Dual stop");
+    expect(text).toContain("## Halt line");
+    expect(text).toContain("## Bind after accepted synthesis");
+    expect(text).toContain("```text\ndesign-critique: halted, because …\n```");
+    expect(text).toContain("```text\ndesign-critique: synthesis accepted, because …\n```");
+    expect(text).toContain("design-critique:triage-ready");
+    expect(text).toContain("Default critic posts without extra record: 2");
+    expect(text).toContain("still-open finding headings/ids");
+    expect(text).toContain("Dispatch failure");
+    expect(text).toContain("accept");
+    expect(text).toContain("retry differences");
+    expect(text).toContain("walk findings one at a time");
+    expect(text).toContain("post the verified-claims table");
+    expect(text).toContain("accept synthesis");
+    expect(text).toContain("accept synt");
+    expect(text).toContain("Each critic dispatch EXITs after posting.");
+    expect(text).toContain("triage:accept");
+    expect(text).toContain("scope:promote");
+    expect(text).toContain("judgmentGates");
+    expect(text).toContain("design-critique:mechanism-shaped");
+  });
+
+  it("forbids critic-posted chips, triage:* chips, Phase 3 commands, #3607 interlock, and auto-dispatch", () => {
+    const text = readText(CONTRACT);
+    expect(text).toContain("⊗ Auto-dispatch critics (#3578 / #1702).");
+    expect(text).toContain("⊗ Add a `design-critique:critic-posted` chip or any author/role chip.");
+    expect(text).toContain("⊗ Use Phase 3 or Stop 5 as operator commands.");
+    expect(text).toContain("⊗ Add a #3607 thread interlock in this contract.");
+    expect(text).toContain("⊗ Stamp `design-critique:triage-ready` at critic-post.");
+    expect(text).not.toContain("`triage:ready`");
+    expect(text).not.toContain("`triage:triage-ready`");
+    expect(text).not.toContain("review:pass-open");
+    const skill = readText(SKILL_REL);
+    expect(skill).toContain("⊗ Auto-dispatch critics from this skill.");
+    expect(skill).not.toContain("design-critique:critic-posted");
+    expect(skill).not.toContain("Phase 3");
+    expect(skill).not.toContain("#3607");
+    expect(skill).not.toContain("```text\ndesign-critique: halted, because");
+    expect(skill).not.toContain("Default critic posts without extra record: 2");
+    expect(skill).not.toContain("walk findings one at a time");
+  });
+
+  it("catalogs design-critique:triage-ready only, not critic-posted, and keeps judgmentGates on mechanism-shaped", () => {
+    const labelsDoc = readText(".github/ISSUE_LABELS.md");
+    expect(labelsDoc).toContain("design-critique:triage-ready");
+    expect(labelsDoc).toContain("design-critique: synthesis accepted, because");
+    expect(labelsDoc).toContain("design-critique:mechanism-shaped");
+    expect(labelsDoc).toContain("Not a `triage:*` classify action");
+    expect(labelsDoc).not.toMatch(/`design-critique:critic-posted`/);
+    expect(labelsDoc).not.toMatch(/`triage:ready`/);
+    expect(labelsDoc).not.toMatch(/`triage:triage-ready`/);
+    const project = readText("xbrief/PROJECT-DEFINITION.xbrief.json");
+    const gateMatch = project.match(/"id":\s*"design-critique"[\s\S]*?"any-of":\s*\[([\s\S]*?)\]/);
+    expect(gateMatch).not.toBeNull();
+    const anyOf = gateMatch?.[1] ?? "";
+    expect(anyOf).toContain("design-critique:mechanism-shaped");
+    expect(anyOf).not.toContain("design-critique:triage-ready");
+    expect(anyOf).not.toContain("critic-posted");
   });
 
   it("indexes the skill on-demand and does not always-pin it", () => {

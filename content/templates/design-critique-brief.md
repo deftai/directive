@@ -36,8 +36,13 @@ Read, do not restate:
 | Charter, envelope and ceiling | Stop 3 — Critic envelope |
 | First-line model slug | Stop 3 — Critic envelope |
 | Fresh reiteration | Stop 4 — Residual reiteration |
+| Operator-gated loop | Operator-gated loop |
+| Successor lean | Successor lean |
+| Operator verbs | Operator verbs |
+| Dual stop | Dual stop |
+| Halt line | Halt line |
 | Synthesis format | Stop 5 — Verified synthesis |
-| Dual stop | Failure and budget stop |
+| Bind after accepted synthesis | Bind after accepted synthesis |
 | Untrusted threads | Security context (#480) |
 
-Operator dispatches. Auto-dispatch is deferred. The five stops live in the contract.
+Operator dispatches. Auto-dispatch is deferred. Each critic dispatch EXITs after posting. The five stops and the operator-gated loop live in the contract.

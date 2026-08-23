@@ -1,10 +1,10 @@
 ---
 name: deft-directive-design-critique
 description: >-
-  Thin router for the design-critique motion: triggers and five pointer stops
-  into the contract. Use when the operator asks for a design critique,
-  design-critique, critique panel, or mechanism-shaped triage. Do NOT trigger
-  on ordinary implement, build, or swarm work.
+  Thin router for the design-critique motion: triggers and pointer stops into
+  the contract, including the operator-gated loop. Use when the operator asks
+  for a design critique, design-critique, critique panel, or mechanism-shaped
+  triage. Do NOT trigger on ordinary implement, build, or swarm work.
 triggers:
   - design critique
   - design-critique
@@ -39,6 +39,9 @@ Normative rules live in [`contracts/design-critique.md`](../../contracts/design-
 5. Stop 5 — Verified synthesis
 
 First-line model slug: Stop 3 — Critic envelope.
+Operator-gated loop. Successor lean. Operator verbs. Dual stop. Halt line. Bind after accepted synthesis.
+
+Each critic dispatch EXITs after posting.
 
 ⊗ Auto-dispatch critics from this skill.
 ⊗ Copy the variant table, synthesis rules, or other contract bodies into this skill.
