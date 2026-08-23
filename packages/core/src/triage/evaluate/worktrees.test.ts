@@ -22,6 +22,8 @@ describe("evaluator worktrees", () => {
     temps.push(root);
     const git: GitRunner = (args) => {
       if (args[1] === "add") {
+        expect(args[4]).toBe("abc123def456aaaaaaaa");
+        expect(args).not.toContain("origin/master");
         mkdirSync(String(args[3]), { recursive: true });
         return { returncode: 0, stdout: "", stderr: "" };
       }
@@ -31,7 +33,7 @@ describe("evaluator worktrees", () => {
       }
       return { returncode: 0, stdout: "", stderr: "" };
     };
-    const path = addEvaluatorWorktree(root, 3, "inv", git);
+    const path = addEvaluatorWorktree(root, 3, "inv", "abc123def456aaaaaaaa", git);
     expect(existsSync(path)).toBe(true);
     removeEvaluatorWorktree(root, path, git);
     expect(existsSync(path)).toBe(false);
@@ -41,6 +43,8 @@ describe("evaluator worktrees", () => {
     const root = mkdtempSync(join(tmpdir(), "wt-"));
     temps.push(root);
     const git: GitRunner = () => ({ returncode: 1, stdout: "", stderr: "denied" });
-    expect(() => addEvaluatorWorktree(root, 3, "inv", git)).toThrow(EvaluatorWorktreeError);
+    expect(() => addEvaluatorWorktree(root, 3, "inv", "abc123", git)).toThrow(
+      EvaluatorWorktreeError,
+    );
   });
 });

@@ -33,7 +33,11 @@ export function parseArgs(argv: string[]): Parsed {
       continue;
     }
     if (arg === "--project-root") {
-      const value = argv[++i];
+      if (i + 1 >= argv.length) {
+        return { ...parsed, error: "--project-root requires a path" };
+      }
+      i += 1;
+      const value = argv[i];
       if (value === undefined) {
         return { ...parsed, error: "--project-root requires a path" };
       }
@@ -41,7 +45,11 @@ export function parseArgs(argv: string[]): Parsed {
     } else if (arg.startsWith("--project-root=")) {
       parsed.projectRoot = arg.slice("--project-root=".length);
     } else if (arg === "--repo") {
-      const value = argv[++i];
+      if (i + 1 >= argv.length) {
+        return { ...parsed, error: "--repo requires owner/name" };
+      }
+      i += 1;
+      const value = argv[i];
       if (value === undefined) {
         return { ...parsed, error: "--repo requires owner/name" };
       }
@@ -49,7 +57,11 @@ export function parseArgs(argv: string[]): Parsed {
     } else if (arg.startsWith("--repo=")) {
       parsed.repo = arg.slice("--repo=".length);
     } else if (arg === "--issue") {
-      const value = argv[++i];
+      if (i + 1 >= argv.length) {
+        return { ...parsed, error: "--issue requires a number" };
+      }
+      i += 1;
+      const value = argv[i];
       if (value === undefined) {
         return { ...parsed, error: "--issue requires a number" };
       }
@@ -65,7 +77,11 @@ export function parseArgs(argv: string[]): Parsed {
       }
       parsed.issues.push(n);
     } else if (arg === "--concurrency") {
-      const value = argv[++i];
+      if (i + 1 >= argv.length) {
+        return { ...parsed, error: "--concurrency requires a positive integer" };
+      }
+      i += 1;
+      const value = argv[i];
       if (value === undefined) {
         return { ...parsed, error: "--concurrency requires a positive integer" };
       }

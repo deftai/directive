@@ -93,29 +93,46 @@ export interface GithubSeams {
   readonly runGhApiFn?: RunGhApiFn;
 }
 
-function listOpenPulls(repo: string, seams: GithubSeams): GithubPullSnapshot[] {
-  const [owner, name] = splitRepo(repo);
-  const endpoint = `repos/${owner}/${name}/pulls`;
-  const runner = seams.runGhApiFn ?? runGhApi;
-  const result = runner([
-    endpoint,
-    "--method",
-    "GET",
-    "--raw-field",
-    "state=open",
-    "--raw-field",
-    "per_page=100",
-  ]);
-  if (result.returncode !== 0) {
-    throw new Error(`GET ${endpoint} failed: ${result.stderr.trim() || "no stderr"}`);
-  }
-  const parsed = JSON.parse(result.stdout.trim() || "[]") as unknown;
+const OPEN_PULLS_PER_PAGE = 100;
+const OPEN_PULLS_MAX_PAGES = 50;
+
+function parsePullPage(stdout: string): GithubPullSnapshot[] {
+  const parsed = JSON.parse(stdout.trim() || "[]") as unknown;
   if (!Array.isArray(parsed)) {
     return [];
   }
   return parsed
     .filter((item): item is Record<string, unknown> => item !== null && typeof item === "object")
     .map((item) => snapshotFromPullPayload(item));
+}
+
+function listOpenPulls(repo: string, seams: GithubSeams): GithubPullSnapshot[] {
+  const [owner, name] = splitRepo(repo);
+  const endpoint = `repos/${owner}/${name}/pulls`;
+  const runner = seams.runGhApiFn ?? runGhApi;
+  const out: GithubPullSnapshot[] = [];
+  for (let page = 1; page <= OPEN_PULLS_MAX_PAGES; page += 1) {
+    const result = runner([
+      endpoint,
+      "--method",
+      "GET",
+      "--raw-field",
+      "state=open",
+      "--raw-field",
+      `per_page=${OPEN_PULLS_PER_PAGE}`,
+      "--raw-field",
+      `page=${page}`,
+    ]);
+    if (result.returncode !== 0) {
+      throw new Error(`GET ${endpoint} failed: ${result.stderr.trim() || "no stderr"}`);
+    }
+    const pageItems = parsePullPage(result.stdout);
+    out.push(...pageItems);
+    if (pageItems.length < OPEN_PULLS_PER_PAGE) {
+      return out;
+    }
+  }
+  throw new Error(`GET ${endpoint} pagination exceeded ${OPEN_PULLS_MAX_PAGES} pages`);
 }
 
 /** GET-only GitHub census. Parent-owned. Never POST/PATCH/PUT/DELETE. */

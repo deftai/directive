@@ -48,6 +48,49 @@ describe("github snapshots", () => {
 });
 
 describe("collectGithubCensus", () => {
+  it("pages open pulls past the first 100 entries", () => {
+    const pages: string[] = [];
+    const runGhApiFn = (args: readonly string[]) => {
+      if (args[0]?.includes("/issues/10")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({ number: 10, state: "open", title: "ten", labels: [] }),
+          stderr: "",
+        };
+      }
+      if (args[0]?.endsWith("/issues")) {
+        return { returncode: 0, stdout: "[]", stderr: "" };
+      }
+      if (args[0]?.endsWith("/pulls")) {
+        const pageField = args.find((a, i) => args[i - 1] === "--raw-field" && a.startsWith("page="));
+        pages.push(pageField ?? "");
+        if (pageField === "page=1") {
+          return {
+            returncode: 0,
+            stdout: JSON.stringify(
+              Array.from({ length: 100 }, (_, i) => ({
+                number: i + 1,
+                title: `p${i + 1}`,
+                body: "",
+              })),
+            ),
+            stderr: "",
+          };
+        }
+        return {
+          returncode: 0,
+          stdout: JSON.stringify([{ number: 101, title: "p101", body: "Fixes #10" }]),
+          stderr: "",
+        };
+      }
+      return { returncode: 1, stdout: "", stderr: "unexpected" };
+    };
+    const census = collectGithubCensus("deftai/directive", [10], { runGhApiFn });
+    expect(pages).toEqual(["page=1", "page=2"]);
+    expect(census.openPulls).toHaveLength(101);
+    expect(census.openPulls[100]?.mentions).toContain(10);
+  });
+
   it("uses GET-only rest seams", () => {
     const calls: string[][] = [];
     const runGhApiFn = (args: readonly string[]) => {

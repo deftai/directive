@@ -19,6 +19,13 @@ describe("triage-evaluate parseArgs", () => {
     expect(parseArgs(["1", "--nope"]).error).toMatch(/unrecognized/);
   });
 
+  it("rejects flags that consume a value when none remains", () => {
+    expect(parseArgs(["1", "--repo"]).error).toMatch(/--repo requires/);
+    expect(parseArgs(["1", "--project-root"]).error).toMatch(/--project-root requires/);
+    expect(parseArgs(["1", "--concurrency"]).error).toMatch(/--concurrency requires/);
+    expect(parseArgs(["--issue"]).error).toMatch(/--issue requires/);
+  });
+
   it("parses --json and #prefixed issues", () => {
     const parsed = parseArgs(["#3", "--json", "--project-root", "/tmp/p"]);
     expect(parsed.json).toBe(true);

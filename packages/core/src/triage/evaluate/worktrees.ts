@@ -5,7 +5,7 @@ import {
   defaultGitRunner as swarmGitRunner,
 } from "../../swarm/worktrees.js";
 import { evaluatorWorktreePath } from "./paths.js";
-import { type GitRunner, ORIGIN_MASTER } from "./types.js";
+import type { GitRunner } from "./types.js";
 
 export class EvaluatorWorktreeError extends Error {
   override name = "EvaluatorWorktreeError";
@@ -19,14 +19,16 @@ export function addEvaluatorWorktree(
   projectRoot: string,
   issue: number,
   invocationId: string,
+  originSha: string,
   git: GitRunner = swarmGitRunner,
 ): string {
+  const sha = originSha.trim();
+  if (sha.length === 0) {
+    throw new EvaluatorWorktreeError("originSha is required for a detached evaluator worktree");
+  }
   const worktreePath = evaluatorWorktreePath(projectRoot, issue, invocationId);
   mkdirSync(dirname(resolve(worktreePath)), { recursive: true });
-  const proc = toSwarm(git)(
-    ["worktree", "add", "--detach", worktreePath, ORIGIN_MASTER],
-    projectRoot,
-  );
+  const proc = toSwarm(git)(["worktree", "add", "--detach", worktreePath, sha], projectRoot);
   if (proc.returncode !== 0) {
     throw new EvaluatorWorktreeError(
       `git worktree add --detach failed for issue ${issue}: ${proc.stderr.trim() || "<no stderr>"}`,

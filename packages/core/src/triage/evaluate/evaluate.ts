@@ -103,16 +103,18 @@ export async function evaluateIssues(options: EvaluateOptions): Promise<Evaluate
 
   const runOne = async (issue: number): Promise<IssueEvalVerdict> => {
     let worktreePath: string | null = null;
+    let teardownError: string | null = null;
+    const snap = viewByIssue.get(issue) ?? null;
+    const pulls = pullsMentioning(githubViews.openPulls, issue);
+    let verdict: IssueEvalVerdict;
     try {
-      worktreePath = addEvaluatorWorktree(options.projectRoot, issue, invocationId, git);
+      worktreePath = addEvaluatorWorktree(options.projectRoot, issue, invocationId, originSha, git);
       sessionStart(worktreePath);
       const validity = evaluateValidity(worktreePath, issue);
-      const snap = viewByIssue.get(issue) ?? null;
       const joined = joinValidityWithGithub(validity, snap?.state ?? null);
-      const pulls = pullsMentioning(githubViews.openPulls, issue);
       const duplicates =
         snap?.duplicateOf !== null && snap?.duplicateOf !== undefined ? [snap.duplicateOf] : [];
-      return {
+      verdict = {
         issue,
         sha12,
         invocationId,
@@ -126,27 +128,35 @@ export async function evaluateIssues(options: EvaluateOptions): Promise<Evaluate
       };
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      return {
+      verdict = {
         issue,
         sha12,
         invocationId,
         validity: null,
         wip: wipHitsForIssue(wip, issue),
-        github: viewByIssue.get(issue) ?? null,
-        openPulls: pullsMentioning(githubViews.openPulls, issue),
+        github: snap,
+        openPulls: pulls,
         duplicates: [],
-        value: buildValueAdvice(viewByIssue.get(issue) ?? null),
+        value: buildValueAdvice(snap),
         error: message,
       };
     } finally {
       if (worktreePath !== null) {
         try {
           removeEvaluatorWorktree(options.projectRoot, worktreePath, git);
-        } catch {
-          // Teardown is best-effort after the per-issue verdict is recorded.
+        } catch (teardownErr: unknown) {
+          teardownError = teardownErr instanceof Error ? teardownErr.message : String(teardownErr);
         }
       }
     }
+    if (teardownError !== null) {
+      verdict = {
+        ...verdict,
+        error:
+          verdict.error !== null ? `${verdict.error}; teardown: ${teardownError}` : teardownError,
+      };
+    }
+    return verdict;
   };
 
   try {

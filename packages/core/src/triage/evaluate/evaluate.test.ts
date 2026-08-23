@@ -210,6 +210,12 @@ describe("evaluateIssues", () => {
     expect(existsSync(join(sink, "issue-42.json"))).toBe(true);
     expect(existsSync(evaluatorWorktreePath(root, 42, "inv-1"))).toBe(false);
     expect(gitCalls.some((c) => c.includes("remove"))).toBe(true);
+    expect(
+      gitCalls.some(
+        (c) => c.includes("add") && c.includes("--detach") && c.includes("abcdef1234567890aaaa"),
+      ),
+    ).toBe(true);
+    expect(gitCalls.every((c) => !(c.includes("add") && c.includes("origin/master")))).toBe(true);
     expect(JSON.stringify(result)).not.toMatch(RESERVED_CLEARANCE_RE);
     expect(JSON.stringify(result)).not.toContain("candidates.jsonl");
     expect(JSON.stringify(result)).not.toContain("xbrief/.eval");
@@ -241,6 +247,30 @@ describe("evaluateIssues", () => {
     });
     expect(result.verdicts[0]?.error).toMatch(/session boom/);
     expect(removes.some((p) => p.includes("issue-eval-7-inv-fail"))).toBe(true);
+  });
+
+  it("records teardown failure instead of swallowing it", async () => {
+    const root = tempRoot();
+    const git: GitRunner = (args, cwd) => {
+      if (args[0] === "worktree" && args[1] === "remove") {
+        return { returncode: 1, stdout: "", stderr: "locked" };
+      }
+      return fakeGit()(args, cwd);
+    };
+    const result = await evaluateIssues({
+      projectRoot: root,
+      repo: "deftai/directive",
+      issues: [7],
+      invocationId: "inv-teardown",
+      git,
+      sessionStart: () => {},
+      github: {
+        viewIssue: (_repo, n) => issueSnap({ number: n }),
+        listOpenIssues: () => [],
+        listOpenPulls: () => [],
+      },
+    });
+    expect(result.verdicts[0]?.error).toMatch(/locked/);
   });
 
   it("GCs stale sha12 directories", async () => {
