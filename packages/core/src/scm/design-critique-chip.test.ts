@@ -5,6 +5,7 @@ import {
   DESIGN_CRITIQUE_CHIP_USAGE,
   parseDesignCritiqueChipArgs,
   resolveDesignCritiqueChipArg,
+  resolveRepoFromGitOrigin,
   runDesignCritiqueChip,
 } from "./design-critique-chip.js";
 
@@ -93,13 +94,16 @@ describe("parseDesignCritiqueChipArgs", () => {
     });
   });
 
-  it("requires --chip, --issue, and --repo", () => {
+  it("requires --chip and --issue; --repo may be omitted", () => {
     expect(() => parseDesignCritiqueChipArgs(["--chip", "triage-ready"])).toThrow(
       /missing --issue/,
     );
-    expect(() => parseDesignCritiqueChipArgs(["--issue", "1", "--chip", "triage-ready"])).toThrow(
-      /missing --repo/,
-    );
+    expect(parseDesignCritiqueChipArgs(["--issue", "1", "--chip", "triage-ready"])).toEqual({
+      issue: 1,
+      chip: "design-critique:triage-ready",
+      repo: null,
+      json: false,
+    });
     expect(() =>
       parseDesignCritiqueChipArgs(["--issue", "1", "--repo", "deftai/directive"]),
     ).toThrow(/missing --chip/);
@@ -265,6 +269,34 @@ describe("runDesignCritiqueChip", () => {
     );
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toMatch(/issue view failed/);
+  });
+
+  it("parses git origin as OWNER/NAME in this checkout", () => {
+    const repo = resolveRepoFromGitOrigin();
+    expect(repo).toMatch(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/);
+  });
+
+  it("resolves omitted --repo from git origin", () => {
+    const client = new FakeLabelClient(["bug"]);
+    const result = runDesignCritiqueChip(["--issue", "1", "--chip", "triage-ready", "--json"], {
+      client,
+      resolveDefaultRepo: () => "deftai/directive",
+    });
+    expect(result.exitCode).toBe(0);
+    const payload = JSON.parse(result.stdout) as { repo: string };
+    expect(payload.repo).toBe("deftai/directive");
+    expect(client.applyCalls).toHaveLength(1);
+  });
+
+  it("fails closed when --repo is omitted and origin cannot be resolved", () => {
+    const client = new FakeLabelClient(["bug"]);
+    const result = runDesignCritiqueChip(["--issue", "1", "--chip", "triage-ready"], {
+      client,
+      resolveDefaultRepo: () => null,
+    });
+    expect(result.exitCode).toBe(2);
+    expect(result.stderr).toMatch(/could not resolve from git origin/);
+    expect(client.applyCalls).toHaveLength(0);
   });
 
   it("surfaces generic apply errors as exit 1", () => {

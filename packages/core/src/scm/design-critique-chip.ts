@@ -5,10 +5,12 @@
  * not `gh api POST .../labels` and not additive `scm:issue:edit --add-label`.
  */
 
+import { spawnSync } from "node:child_process";
 import {
   applyDesignCritiqueCatalogChip,
   type DesignCritiqueCatalogChip,
 } from "../design-critique/exclusive-chip.js";
+import { parseGithubOwnerRepo } from "../policy/sync-default.js";
 import { ScmLabelClient, ScmLabelError } from "../vbrief-reconcile/labels.js";
 import type { LabelClient } from "../vbrief-reconcile/types.js";
 import { extractFlag, extractValueFlag } from "./argv.js";
@@ -32,12 +34,14 @@ const CHIP_ALIASES: Readonly<Record<string, DesignCritiqueCatalogChip>> = {
 export interface DesignCritiqueChipArgs {
   readonly issue: number;
   readonly chip: DesignCritiqueCatalogChip;
-  readonly repo: string;
+  readonly repo: string | null;
   readonly json: boolean;
 }
 
 export interface DesignCritiqueChipSeams {
   readonly client?: LabelClient;
+  /** Default OWNER/NAME when --repo is omitted (git origin). */
+  readonly resolveDefaultRepo?: () => string | null;
 }
 
 export interface DesignCritiqueChipResult {
@@ -114,12 +118,22 @@ export function parseDesignCritiqueChipArgs(extra: readonly string[]): DesignCri
   }
   const issue = parseIssueNumber(issueRaw, "--issue");
 
-  if (repoRaw === null || repoRaw.length === 0) {
-    throw new Error("missing --repo OWNER/NAME");
+  if (repoRaw !== null && repoRaw.length > 0) {
+    splitRepo(repoRaw);
   }
-  splitRepo(repoRaw);
 
-  return { issue, chip, repo: repoRaw, json };
+  return { issue, chip, repo: repoRaw !== null && repoRaw.length > 0 ? repoRaw : null, json };
+}
+
+/** Resolve OWNER/NAME from `git remote get-url origin`. */
+export function resolveRepoFromGitOrigin(): string | null {
+  const result = spawnSync("git", ["remote", "get-url", "origin"], {
+    encoding: "utf8",
+    env: process.env,
+  });
+  if (result.status !== 0) return null;
+  const stdout = typeof result.stdout === "string" ? result.stdout : "";
+  return parseGithubOwnerRepo(stdout);
 }
 
 class ChipUsageError extends Error {
@@ -151,11 +165,28 @@ export function runDesignCritiqueChip(
     return { exitCode: 2, stdout: "", stderr: `error: ${message}\n` };
   }
 
+  const repo = args.repo ?? (seams.resolveDefaultRepo ?? resolveRepoFromGitOrigin)();
+  if (repo === null || repo.length === 0) {
+    return {
+      exitCode: 2,
+      stdout: "",
+      stderr: "error: missing --repo OWNER/NAME (could not resolve from git origin)\n",
+    };
+  }
+  try {
+    splitRepo(repo);
+  } catch (err: unknown) {
+    if (err instanceof InvalidRepoError) {
+      return { exitCode: 2, stdout: "", stderr: `error: invalid --repo value: ${err.message}\n` };
+    }
+    throw err;
+  }
+
   const client = seams.client ?? new ScmLabelClient();
   try {
-    const applied = applyDesignCritiqueCatalogChip(client, args.repo, args.issue, args.chip);
+    const applied = applyDesignCritiqueCatalogChip(client, repo, args.issue, args.chip);
     const payload = {
-      repo: args.repo,
+      repo,
       issue: args.issue,
       chip: args.chip,
       add: [...applied.add],
@@ -174,7 +205,7 @@ export function runDesignCritiqueChip(
           : "already exclusive";
     return {
       exitCode: 0,
-      stdout: `${wrote ? "applied" : "unchanged"} ${args.chip} on ${args.repo}#${args.issue} (${detail})\n`,
+      stdout: `${wrote ? "applied" : "unchanged"} ${args.chip} on ${repo}#${args.issue} (${detail})\n`,
       stderr: "",
     };
   } catch (err: unknown) {
