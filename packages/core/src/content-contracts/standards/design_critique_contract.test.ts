@@ -183,17 +183,22 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
 
   it("locks the first-line model slug as a comment field, not an issue label", () => {
     const contract = readText(CONTRACT);
-    expect(contract).toContain("model: grok-4.6");
-    expect(contract.toLowerCase()).toContain("first line");
-    expect(contract).toContain("triage write-back");
-    expect(contract).toContain("critic comment");
+    expect(contract).toContain("```text\nmodel: grok-4.6\n```");
+    expect(contract).toContain("! First line of the triage write-back comment is `model: <slug>`.");
+    expect(contract).toContain(
+      "! First line of every critic comment is `model: <slug>` for the model that produced that comment.",
+    );
+    expect(contract).toContain(
+      "! Same first-line rule for a Stop 4 retry critic (fresh comment, new first line).",
+    );
     expect(contract).toContain("comment-lead field");
     expect(contract).toContain("⊗ Put the model in an issue label");
     expect(contract).toContain("GitHub login");
     expect(contract).toContain("verify:routing");
     const template = readText(TEMPLATE);
-    expect(template).toContain("model:");
-    expect(template.toLowerCase()).toContain("first line");
+    expect(template).toContain(
+      "- Model (copy onto the first line of the posted comment as `model: <slug>`):",
+    );
     const skill = readText(SKILL_REL);
     expect(skill).toContain("First-line model slug");
     expect(skill).not.toContain("⊗ Put the model in an issue label");
