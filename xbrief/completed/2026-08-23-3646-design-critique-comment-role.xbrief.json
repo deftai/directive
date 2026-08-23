@@ -1,0 +1,138 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Design-critique comment lead is model plus role (triage|critic|parent). Issue #3646 body is SoT.",
+    "updated": "2026-08-23T20:03:11Z"
+  },
+  "plan": {
+    "id": "issue-3646-design-critique-comment-role",
+    "title": "design-critique comment lead: model then role triage|critic|parent",
+    "status": "completed",
+    "narratives": {
+      "Description": "Keep #3628 line 1 model slug. Add line 2 role from a closed set. Role is not a label.",
+      "Origin": "GitHub issue #3646. Zero comments at ingest. Body is SoT. Pair note on #3640 comment 5387172545. Parent #3434. Residual of #3628.",
+      "Overview": "First line remains model: <slug>. Second line is role: triage|critic|parent. Same two lines on Stop 4 retry critics and on #3640 auto-posted table / synthesis-accepted (role: parent). Do not put role in an issue label. Do not replace the model line. Do not infer role from routing/spawn metadata.",
+      "UserStory": "As a later reader, I want the first two lines of each design-critique comment to name model and role so I can tell triage vs critic vs parent under one GitHub login.",
+      "When": "When the contract and brief template require line 1 model and line 2 role from the closed set, tests pin both lines, ISSUE_LABELS still forbids author/role chips, #3640 auto-posts are specified as role: parent, and CHANGELOG has an Unreleased line.",
+      "LockedDecisions": "Closed role set: triage, critic, parent. No new roles in v1. No role chips (#3642). Do not implement exclusive-chip remaining-set write (#3642) or walk/auto-stamp semantics (#3640) except that auto-posted comments MUST use this lead. Sequence after #3642 lands.",
+      "ImplementationPlan": "Contract + brief template. Content-contract test. Thin skill pointer. ISSUE_LABELS already-forbid author/role chips stays. CHANGELOG. Closes #3646. After #3642, before #3640.",
+      "OriginDivergence": "No comments at ingest. Pair 5387172545 lives on #3640."
+    },
+    "items": [
+      {
+        "title": "Contract and brief: line 1 model, line 2 role from closed set",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the contract and brief template are read, they require first-line model: <slug> and second-line role: triage|critic|parent, including Stop 4 retry critics and #3640 auto-posted parent comments.",
+          "Acceptance": "When the contract and brief template are read, they require first-line model: <slug> and second-line role: triage|critic|parent, including Stop 4 retry critics and #3640 auto-posted parent comments."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts#comment-lead-model-then-role",
+          "recorded_at": "2026-08-23T20:02:00Z",
+          "recorded_by": "leaf-implementation/3646"
+        }
+      },
+      {
+        "title": "Tests pin both lead lines; no role chips; CHANGELOG",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When design_critique_contract tests pass, they pin both lead lines and forbid putting role in an issue label. Skill has no copied role list. CHANGELOG Unreleased has one line.",
+          "Acceptance": "When design_critique_contract tests pass, they pin both lead lines and forbid putting role in an issue label. Skill has no copied role list. CHANGELOG Unreleased has one line."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts#comment-lead-model-then-role",
+          "recorded_at": "2026-08-23T20:02:00Z",
+          "recorded_by": "leaf-implementation/3646"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3646",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3646"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3628",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3628 first-line model"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "content/contracts/design-critique.md",
+          "content/templates/design-critique-brief.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "content/packs/skills/skills-pack-0.1.json",
+          ".github/ISSUE_LABELS.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts"
+        ],
+        "expected_outputs": [
+          "comment lead model then role from closed set"
+        ],
+        "depends_on": [
+          "issue-3642-design-critique-exclusive-chip"
+        ],
+        "conflict_group": "design-critique-3642-3646-3640",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Sequence after 3642. Shared contract/tests with 3640."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/contracts/design-critique.md",
+          "content/templates/design-critique-brief.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "content/contracts",
+        "cohesion_exemption": "CHANGELOG.md may exceed FILE_SIZE_REVIEW_TRIGGER_LINES."
+      },
+      "capacityBucket": "new-capability",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3653,
+        "prBase": null,
+        "mergeCommit": "797c0801a224a581299400c2daeb3de99d51b8a3",
+        "deliveryBranch": "master",
+        "deliveryCommit": "797c0801a224a581299400c2daeb3de99d51b8a3",
+        "verifiedAt": "2026-08-23T20:03:11Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "f62d9d20-4421-4a34-8692-2e70731c9b26"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-23T20:03:11Z",
+      "completedSessionId": "f62d9d20-4421-4a34-8692-2e70731c9b26"
+    },
+    "updated": "2026-08-23T20:03:11Z"
+  },
+  "vBRIEFInfo": {
+    "version": "0.8",
+    "updated": "2026-08-23T20:03:11Z"
+  }
+}
