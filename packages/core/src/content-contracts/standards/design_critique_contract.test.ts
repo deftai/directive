@@ -233,6 +233,13 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
       "! Same first-two-lines on #3640 auto-posted table / synthesis-accepted comments (`role: parent`).",
     );
     expect(contract).toContain("`role: triage|critic|parent`");
+    expect(contract).toContain(
+      "! Synthesis comments use the same first-two-lines (`model: <slug>` then `role: parent`).",
+    );
+    expect(contract).toContain(
+      "! Synthesis comments start with the same first-two-lines (`model: <slug>` then `role: parent`).",
+    );
+    expect(contract).not.toContain("~ Synthesis comments SHOULD");
     expect(contract).toContain("comment-lead field");
     expect(contract).toContain("⊗ Put the model in an issue label");
     expect(contract).toContain("⊗ Put role in an issue label");

@@ -86,7 +86,7 @@ Closed role set (do not invent chips or extra roles in v1): `role: triage|critic
 - ! Same first-two-lines on a Stop 4 retry critic (`role: critic`).
 - ! Same first-two-lines on #3640 auto-posted table / synthesis-accepted comments (`role: parent`).
 - ! Parent comments (successor lean, walk decisions, halt line, verified-claims table, synthesis-accepted) use `role: parent`.
-- ~ Synthesis comments SHOULD use the same first-two-lines (`model: <slug>` then `role: parent`).
+- ! Synthesis comments use the same first-two-lines (`model: <slug>` then `role: parent`).
 - ⊗ Put the model in an issue label.
 - ⊗ Put role in an issue label (`design-critique:critic`, author/role chips).
 - ⊗ Put a GitHub login, author name, or role name in that lead line in place of the model.
@@ -180,7 +180,7 @@ Presence, shape, and authority only. Do not score the because-clause.
 
 Parent offers **post the verified-claims table**; it does not auto-post. Each quantitative row names its method.
 
-- ~ Synthesis comments SHOULD start with the same first-two-lines (`model: <slug>` then `role: parent`).
+- ! Synthesis comments start with the same first-two-lines (`model: <slug>` then `role: parent`).
 - ! #3640 auto-posted verified-claims table and synthesis-accepted comments use `role: parent`.
 - ! Put a method column in every verified-claims table.
 - ! Decorrelation: a row whose only evidence is prior critics' agreement MUST NOT be marked verified. Require primary-source re-derivation or a cross-family re-check.
