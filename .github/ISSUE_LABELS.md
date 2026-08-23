@@ -109,20 +109,26 @@ Do **not** overload human labels (`hold`, `rfc`, …) via `actionLabels`. Consum
 
 Config surface: `plan.policy.triageLabelMirror` (see #1423 Wave 1 / #3118).
 
-### Design-critique stamp (ADR-005 / #3434 / #3627)
+### Design-critique stamp (ADR-005 / #3434 / #3627 / #3642)
 
-Author-stamped, not classify-mirror output. Not a `triage:*` classify action. The triage author decides the lean is mechanism-shaped and writes **both** halves of the #1423 pairing. After operator-accepted synthesis, attach the bind-ready chip.
+Author-stamped, not classify-mirror output. Not a `triage:*` classify action. The triage author decides the lean is mechanism-shaped and writes **both** halves of the #1423 pairing. After operator-accepted synthesis, apply the bind-ready chip as the exclusive catalog chip.
+
+Closed set (one current chip; remaining-set replace, last chip wins):
 
 | Surface | Value | Role |
 |---------|-------|------|
-| Body-text field (artifact) | `mechanism-shaped: true` | Survives in the write-back comment |
-| Mirrored label (predicate / lists) | `design-critique:mechanism-shaped` | What `plan.policy.judgmentGates` matches |
+| Body-text field (artifact) | `mechanism-shaped: true` | Survives in the write-back comment; history after remaining-set replace |
+| Mirrored label (predicate / lists) | `design-critique:mechanism-shaped` | In-flight; what `plan.policy.judgmentGates` matches |
 | Synthesis-accepted line | `design-critique: synthesis accepted, because …` | Human-authority bind record |
-| Bind-ready label | `design-critique:triage-ready` | Attach after operator-accepted synthesis; pairs with the synthesis-accepted line |
+| Bind-ready label | `design-critique:triage-ready` | Bound; remaining-set replace after operator-accepted synthesis |
+
+Applying one catalog chip: GET current labels, drop the other catalog names (`design-critique:mechanism-shaped` and `design-critique:triage-ready`), PUT/PATCH that remaining set. Other facets stay. Inventory: `LabelClient.apply` / `mergeIssueLabels`. Do not DELETE-then-POST (unchipped window). Do not PUT a naive full wipe.
+
+Chip is list state, not consent. Do not drop `mechanism-shaped` without the synthesis-accepted line (or the #3640 empty-disagreement path).
 
 Do **not** invent a classifier for "mechanism-shaped." Stamp or omit. No stamp -> gate never fires (voluntary critiques stay legal). Clearance line is separate: `design-critique: warranted \| not warranted, because ...` (ADR-005).
 
-Critic does not write issue labels. Do not add a critic-posted or author/role chip. `judgmentGates` still matches only `design-critique:mechanism-shaped`.
+Critic does not write issue labels. Do not add a critic-posted or author/role chip. `judgmentGates` still matches only `design-critique:mechanism-shaped`. No halt chip. Remove-set is those two catalog names only.
 
 ---
 

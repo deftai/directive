@@ -182,12 +182,22 @@ Human authority for the bind. Only an explicit operator **accept synthesis** (or
 design-critique: synthesis accepted, because …
 ```
 
-Parent may post that line and cite the verb. Then attach `design-critique:triage-ready`.
+Parent may post that line and cite the verb. Then apply `design-critique:triage-ready` as the exclusive catalog chip via remaining-set write.
 
+Closed catalog (last chip wins): `design-critique:mechanism-shaped` (in-flight, gate match) and `design-critique:triage-ready` (bound). No halt chip.
+
+- ! Exclusive replace is one merged remaining-set write: GET current labels, drop the other catalog names (`design-critique:mechanism-shaped` and `design-critique:triage-ready`), PUT/PATCH that list with the new chip. Other facets stay. Inventory: `LabelClient.apply` / `mergeIssueLabels`.
 - ! After `design-critique:triage-ready`, `triage:accept` / `scope:promote` read the operator-accepted verified synthesis (latest successor lean plus the verified-claims table).
-- ! Keep `plan.policy.judgmentGates` matching only `design-critique:mechanism-shaped`.
+- ! Keep `plan.policy.judgmentGates` matching only `design-critique:mechanism-shaped`. After `triage-ready` replaces it, the issue leaves the gate match.
+- ! Chip is list-visible state, not consent. Do not drop `mechanism-shaped` without the synthesis-accepted line (or the #3640 empty-disagreement path).
+- ! Write-back `mechanism-shaped: true` is history after replace. Current-state authority is the last catalog chip.
+- ! Recut (new lean) applies `design-critique:mechanism-shaped` with the same remaining-set write and drops `triage-ready`.
+- ~ A live `design-critique:*` count!=1 check is SHOULD, not a new `judgmentGates` match.
 - ⊗ Add `design-critique:triage-ready` to `judgmentGates` labels.any-of.
 - ⊗ Infer consent from looks-good.
+- ⊗ DELETE-then-POST the chip (unchipped window if POST fails).
+- ⊗ PUT a naive full wipe of every label.
+- ⊗ Classify-mirror this facet.
 
 ## Failure and budget stop
 
@@ -204,4 +214,4 @@ This motion ingests untrusted issue threads by design.
 
 ## Test surface
 
-`packages/core/src/content-contracts/standards/design_critique_contract.test.ts` locks required pointer strings, the scaffolds framing, the first-line model slug as a comment-lead field (not an issue label), the operator-gated loop (successor lean, operator verbs, dual stop, halt line, triage-ready attach), the brief-template forbidden-inputs list, and the thin router skill (existence, line cap, pointer resolution, no-normative-content).
+`packages/core/src/content-contracts/standards/design_critique_contract.test.ts` locks required pointer strings, the scaffolds framing, the first-line model slug as a comment-lead field (not an issue label), the operator-gated loop (successor lean, operator verbs, dual stop, halt line, exclusive remaining-set replace of the two catalog chips), the brief-template forbidden-inputs list, and the thin router skill (existence, line cap, pointer resolution, no-normative-content).

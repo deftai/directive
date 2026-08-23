@@ -2,6 +2,7 @@
 import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { remainingSetAfterDesignCritiqueChip } from "../../design-critique/exclusive-chip.js";
 import { isFile, readText, repoRoot, resolveContentPath } from "./_helpers.js";
 
 const CONTRACT = "contracts/design-critique.md";
@@ -57,6 +58,10 @@ const REQUIRED_CONTRACT_POINTERS = [
   "design-critique: synthesis accepted, because",
   "triage:accept",
   "scope:promote",
+  "remaining-set",
+  "DELETE-then-POST",
+  "LabelClient.apply",
+  "mergeIssueLabels",
   "retry differences",
   "walk findings one at a time",
   "post the verified-claims table",
@@ -272,6 +277,37 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(skill).not.toContain("```text\ndesign-critique: halted, because");
     expect(skill).not.toContain("Default critic posts without extra record: 2");
     expect(skill).not.toContain("walk findings one at a time");
+  });
+
+  it("pins exclusive remaining-set replace of the two catalog chips", () => {
+    const remaining = remainingSetAfterDesignCritiqueChip(
+      ["bug", "design-critique:mechanism-shaped", "area:cli"],
+      "design-critique:triage-ready",
+    );
+    expect(remaining).toEqual(["bug", "area:cli", "design-critique:triage-ready"]);
+    const recut = remainingSetAfterDesignCritiqueChip(
+      remaining,
+      "design-critique:mechanism-shaped",
+    );
+    expect(recut).toEqual(["bug", "area:cli", "design-critique:mechanism-shaped"]);
+    const contract = readText(CONTRACT);
+    expect(contract).toContain("remaining-set");
+    expect(contract).toContain("GET current labels");
+    expect(contract).toContain("DELETE-then-POST");
+    expect(contract).toContain("LabelClient.apply");
+    expect(contract).toContain("mergeIssueLabels");
+    expect(contract).toContain("list-visible state, not consent");
+    expect(contract).toContain("⊗ PUT a naive full wipe of every label.");
+    expect(contract).not.toContain(
+      "Remove every other `design-critique:*` label on that issue first",
+    );
+    const labelsDoc = readText(".github/ISSUE_LABELS.md");
+    expect(labelsDoc).toContain("remaining-set replace");
+    expect(labelsDoc).toContain("Do not DELETE-then-POST");
+    expect(labelsDoc).toContain("Remove-set is those two catalog names only");
+    const skill = readText(SKILL_REL);
+    expect(skill).not.toContain("DELETE-then-POST");
+    expect(skill).not.toContain("remaining-set");
   });
 
   it("catalogs design-critique:triage-ready only, not critic-posted, and keeps judgmentGates on mechanism-shaped", () => {

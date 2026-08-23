@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Exclusive remaining-set replace for design-critique catalog chips (#3642).** Applying `design-critique:mechanism-shaped` or `design-critique:triage-ready` GET-drops the other catalog name and PUT/PATCHes that remaining set (`LabelClient.apply` / `mergeIssueLabels`). No DELETE-then-POST window. Chip is list state, not consent. Closes #3642.
+
 ### Fixed
 
 - **Doctor no longer treats a bare `vbrief/` mention as a half-migrated layout pointer (#3637).** Left-bound `vbrief/` so `x-vbrief/` is not a hit. Child paths, `.vbrief.json`, and `vbrief:preflight` still rewrite; already-xbrief doctor copy points at hand-edit, not `migrate:xbrief`. Closes #3637. Refs #2154.
