@@ -69,7 +69,7 @@ export interface HumanPresenceMintSeams {
   /** Environ for agent-shell marker detection (default: process.env). */
   readonly environ?: NodeJS.ProcessEnv;
   /**
-   * True when a controlling terminal device is available (`/dev/tty` or `CONIN$`).
+   * True when a controlling terminal device is available (`/dev/tty` or `\\.\CONIN$`).
    * Default: open/close the platform controlling terminal (fail-closed on error).
    */
   readonly hasControllingTerminal?: () => boolean;
@@ -92,16 +92,17 @@ function defaultIsTty(): boolean {
   return process.stdin.isTTY === true && process.stdout.isTTY === true;
 }
 
-/** Platform controlling-terminal path (`CONIN$` on win32, `/dev/tty` elsewhere). */
+/** Platform controlling-terminal path (`\\.\CONIN$` on win32, `/dev/tty` elsewhere). */
 export function controllingTerminalPath(platform: NodeJS.Platform = process.platform): string {
-  return platform === "win32" ? "CONIN$" : "/dev/tty";
+  // Real-console diagnostic on #3596: bare CONIN$ and CON ENOENT; device-namespace path opens.
+  return platform === "win32" ? "\\\\.\\CONIN$" : "/dev/tty";
 }
 
 /**
- * Open flag for the platform controlling-terminal device (#3596).
+ * Open flag for the platform controlling-terminal device (#3596 leftover).
  *
- * Windows `CONIN$` generally requires read/write (`r+`); `r` (O_RDONLY) fails
- * in a real interactive console and made operator mint unreachable on win32.
+ * Win32 stays `r+` so the probe and phrase-read share one flag. The leftover
+ * path is the Windows device-namespace CONIN$ string, not bare CONIN$.
  */
 export function controllingTerminalOpenFlag(
   platform: NodeJS.Platform = process.platform,
@@ -184,7 +185,7 @@ export function refuseMintWhileUatActive(verb: string, projectRoot: string): num
  * Multi-factor human-presence gate (applies only when UAT lease is inactive):
  * 1. No known agent/CI env markers
  * 2. Interactive TTY (stdin + stdout isTTY)
- * 3. Controlling terminal device present (`/dev/tty` / `CONIN$`)
+ * 3. Controlling terminal device present (`/dev/tty` / `\\.\CONIN$`)
  * 4. Explicit argv `--confirm` (flag alone never enough)
  * 5. Interactive typed phrase `mint` (argv --confirm alone never enough even on PTY)
  *

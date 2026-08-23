@@ -28,7 +28,7 @@ describe("controlling-terminal open flag (#3596)", () => {
   });
 
   it("default probe and phrase read open the platform device with the platform flag", () => {
-    const expectedPath = process.platform === "win32" ? "CONIN$" : "/dev/tty";
+    const expectedPath = process.platform === "win32" ? "\\\\.\\CONIN$" : "/dev/tty";
     const expectedFlag = process.platform === "win32" ? "r+" : "r";
     const seams = resolveHumanPresenceMintSeams();
     expect(seams.hasControllingTerminal()).toBe(true);
@@ -36,5 +36,14 @@ describe("controlling-terminal open flag (#3596)", () => {
     hoisted.openSyncMock.mockClear();
     expect(seams.readInteractiveConfirm()).toBe("mint");
     expect(hoisted.openSyncMock).toHaveBeenCalledWith(expectedPath, expectedFlag);
+  });
+
+  it("probe catch returns false when the controlling terminal open throws", () => {
+    hoisted.openSyncMock.mockImplementation(() => {
+      throw Object.assign(new Error("ENOENT"), { code: "ENOENT" });
+    });
+    const seams = resolveHumanPresenceMintSeams();
+    expect(seams.hasControllingTerminal()).toBe(false);
+    expect(seams.readInteractiveConfirm()).toBeNull();
   });
 });

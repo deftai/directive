@@ -140,8 +140,8 @@ describe("shared #3110 human-presence mint (#3384)", () => {
     expect(resolved.environ).toBe(process.env);
   });
 
-  it("opens CONIN$ with r+ on win32 and /dev/tty with r elsewhere (#3596)", () => {
-    expect(controllingTerminalPath("win32")).toBe("CONIN$");
+  it("opens the win32 device-namespace CONIN$ path with r+ and /dev/tty with r elsewhere (#3596 leftover)", () => {
+    expect(controllingTerminalPath("win32")).toBe("\\\\.\\CONIN$");
     expect(controllingTerminalOpenFlag("win32")).toBe("r+");
     expect(controllingTerminalPath("linux")).toBe("/dev/tty");
     expect(controllingTerminalOpenFlag("linux")).toBe("r");

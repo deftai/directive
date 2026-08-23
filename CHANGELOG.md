@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Win32 operator mint opens `\\.\CONIN$` with r+ (#3596 leftover).** Bare `CONIN$` ENOENT on a real console. Probe errors still refuse mint. Refs #3596, #3110.
 - **Shell dest-form wrappers still see the verb after a post-flag env assignment (#3438 leftover).** `sudo -u root GIT_WORK_TREE=pkg git checkout -- file` stays recognized (fail-closed on work-tree). `sudo grep rm file` stays unclassifiable. Refs #3438.
 - **Shell dest-form wrappers do not treat a later `rm` data token as the verb (#3438 leftover).** `sudo grep rm file` stays unclassifiable. Value-taking wrapper flags (`sudo -u`, `env -u`) still find the real verb. Refs #3438.
 - **Shell dest-form treats escaped `$` / backtick as literal dest characters (#3438 leftover).** Double-quoted `\$` / `` \` `` and single-quoted `$` no longer fail closed as unresolved substitution under `shellDestForms: enforce`. Unescaped `"$TARGET"` and `` `cmd` `` still deny. Refs #3438, #3594.
