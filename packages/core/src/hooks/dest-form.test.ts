@@ -256,6 +256,12 @@ describe("classifyProductDestForms (#3438)", () => {
     // A recognized verb used as DATA after a real executable is not a dest-form.
     expect(classifyProductDestForms("sudo grep rm protected/file")).toEqual([]);
     expect(classifyProductDestForms("env echo rm protected/file")).toEqual([]);
+    expect(classifyProductDestForms("sudo FOO=1 rm protected/file")).toEqual([
+      { kind: "rm", path: "protected/file" },
+    ]);
+    expect(
+      classifyProductDestForms("sudo -u root GIT_WORK_TREE=pkg git checkout -- protected.ts"),
+    ).toEqual([{ kind: "git-checkout", path: "protected.ts", expansion: true }]);
   });
 
   it("fails closed on env-provided git work-tree relocation", () => {

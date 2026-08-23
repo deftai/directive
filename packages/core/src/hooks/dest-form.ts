@@ -396,6 +396,11 @@ function skipPrefix(tokens: string[]): { i: number; gitContext: boolean } {
         i += valueOpts.has(tok) ? 2 : 1;
         continue;
       }
+      if (isEnvAssign(tok)) {
+        if (isGitWorkTreeAssign(tok)) gitContext = true;
+        i++;
+        continue;
+      }
       break;
     }
   }
