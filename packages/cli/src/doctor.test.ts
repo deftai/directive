@@ -281,8 +281,23 @@ describe("doctor CLI", () => {
       run(["--project-root", root]);
     });
     expect(out).toContain("AGENTS.md header drift:");
-    expect(out).toContain("migrate:xbrief");
+    expect(out).toMatch(/hand-edit/i);
+    expect(out).not.toContain("migrate:xbrief");
     expect(out).toContain("vbrief/");
+  });
+
+  it("allows unmanaged prose `vbrief/` on an already-xbrief tree (#3637)", () => {
+    const root = makeRoot("doctor-header-bare-vbrief-");
+    makeLifecycleDirs(root);
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      ["# Consumer", "Scoped work items live in `vbrief/`.", ""].join("\n"),
+      "utf8",
+    );
+    const out = captureStdout(() => {
+      run(["--project-root", root]);
+    });
+    expect(out).toContain("AGENTS.md header drift: none");
   });
 
   it("reports no AGENTS.md header drift for a clean xbrief header (#2154)", () => {

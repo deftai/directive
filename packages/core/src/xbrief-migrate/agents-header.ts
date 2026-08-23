@@ -7,14 +7,14 @@ import { isDirectory } from "./fs-helpers.js";
 
 /**
  * Bounded, ordered set of legacy crossover tokens rewritten in the UNMANAGED
- * region of a consumer AGENTS.md after `migrate:xbrief` (#2154 / Option A).
+ * region of a consumer AGENTS.md after `migrate:xbrief` (#2154 / Option A / #3637).
  *
  * Each entry is a mechanical path / verb literal — NOT freeform prose. The
  * casing-only `vBRIEF format` product-description token from the issue table is
- * intentionally excluded so freeform prose survives untouched. The tokens are
- * disjoint substrings (`.vbrief.json` has no trailing slash, `vbrief:preflight`
- * uses a colon, `vbrief/` requires a slash), so replacement order does not
- * change the result and a second pass is a guaranteed no-op (idempotent).
+ * intentionally excluded so freeform prose survives untouched. `.vbrief.json`
+ * and `vbrief:preflight` are substring hits. `vbrief/` is left-bound and only
+ * a hard hit when a child segment follows (`vbrief/active/...`); bare
+ * `vbrief/` and `x-vbrief/` are not rewritten. A second pass is a no-op.
  */
 /** Refuse migrate header writes that escape via repo-controlled symlinks (#2668). */
 function projectionTarget(projectDir: string, ...relSegments: string[]): string {
@@ -44,6 +44,9 @@ export interface HeaderRewriteResult {
   readonly replacements: HeaderTokenReplacement[];
 }
 
+const VBRIEF_DIR = "vbrief/";
+const XBRIEF_DIR = "xbrief/";
+
 function countOccurrences(haystack: string, needle: string): number {
   if (needle.length === 0) return 0;
   let count = 0;
@@ -55,10 +58,70 @@ function countOccurrences(haystack: string, needle: string): number {
   return count;
 }
 
+/** `x-vbrief/` is not a `vbrief/` hit; ident/hyphen continue the token. */
+function isLeftBoundAt(text: string, index: number): boolean {
+  if (index === 0) return true;
+  return !/[A-Za-z0-9_-]/.test(text[index - 1]!);
+}
+
+/** Child path segment after `vbrief/` — not whitespace, fence close, or EOS. */
+function hasVbriefChildSegment(text: string, index: number): boolean {
+  const after = index + VBRIEF_DIR.length;
+  if (after >= text.length) return false;
+  const ch = text[after]!;
+  return ch !== "/" && ch !== "`" && !/\s/.test(ch);
+}
+
+function isHardVbriefDirHit(text: string, index: number): boolean {
+  return isLeftBoundAt(text, index) && hasVbriefChildSegment(text, index);
+}
+
+function hasHardVbriefDirHit(text: string): boolean {
+  let index = text.indexOf(VBRIEF_DIR);
+  while (index !== -1) {
+    if (isHardVbriefDirHit(text, index)) return true;
+    index = text.indexOf(VBRIEF_DIR, index + VBRIEF_DIR.length);
+  }
+  return false;
+}
+
+/** Rewrite left-bound `vbrief/` + child; leave bare `vbrief/` and `x-vbrief/`. */
+function rewriteLeftBoundVbriefDir(slice: string): { next: string; count: number } {
+  let out = "";
+  let cursor = 0;
+  let count = 0;
+  let index = slice.indexOf(VBRIEF_DIR);
+  while (index !== -1) {
+    out += slice.slice(cursor, index);
+    if (isHardVbriefDirHit(slice, index)) {
+      out += XBRIEF_DIR;
+      count += 1;
+    } else {
+      out += VBRIEF_DIR;
+    }
+    cursor = index + VBRIEF_DIR.length;
+    index = slice.indexOf(VBRIEF_DIR, cursor);
+  }
+  out += slice.slice(cursor);
+  return { next: out, count };
+}
+
+function unmanagedHitsLegacyToken(unmanaged: string, legacy: string): boolean {
+  if (legacy === VBRIEF_DIR) return hasHardVbriefDirHit(unmanaged);
+  return unmanaged.includes(legacy);
+}
+
 /** Rewrite the bounded legacy tokens inside a single unmanaged text slice. */
 function rewriteSlice(slice: string, tally: Map<string, number>): string {
   let next = slice;
   for (const { legacy, migrated } of LEGACY_HEADER_TOKENS) {
+    if (legacy === VBRIEF_DIR) {
+      const rewritten = rewriteLeftBoundVbriefDir(next);
+      if (rewritten.count === 0) continue;
+      tally.set(legacy, (tally.get(legacy) ?? 0) + rewritten.count);
+      next = rewritten.next;
+      continue;
+    }
     const occurrences = countOccurrences(next, legacy);
     if (occurrences === 0) continue;
     tally.set(legacy, (tally.get(legacy) ?? 0) + occurrences);
@@ -223,9 +286,9 @@ export function detectStaleUnmanagedHeader(
   }
   unmanaged += content.slice(cursor);
 
-  const matches = LEGACY_HEADER_TOKENS.filter((t) => unmanaged.includes(t.legacy)).map(
-    (t) => t.legacy,
-  );
+  const matches = LEGACY_HEADER_TOKENS.filter((t) =>
+    unmanagedHitsLegacyToken(unmanaged, t.legacy),
+  ).map((t) => t.legacy);
   return { stale: matches.length > 0, matches };
 }
 
@@ -241,6 +304,6 @@ export function renderStaleHeaderLine(
   return (
     `AGENTS.md header drift: xbrief/ tree present but the unmanaged AGENTS.md header still ` +
     `references legacy token(s) ${matches.join(", ")}. ` +
-    "Run `deft migrate:xbrief` (idempotent) to rewrite them, or hand-edit the header."
+    "Hand-edit the unmanaged header path literals."
   );
 }

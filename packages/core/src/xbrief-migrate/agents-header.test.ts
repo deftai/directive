@@ -53,8 +53,8 @@ describe("rewriteUnmanagedHeaderTokens", () => {
     const result = rewriteUnmanagedHeaderTokens(STALE_HEADER);
     expect(result.changed).toBe(true);
 
-    // Unmanaged header now references xbrief.
-    expect(result.content).toContain("Scoped work items live in `xbrief/`.");
+    // Bare directory mention stays; child-path / verb / extension rewrite.
+    expect(result.content).toContain("Scoped work items live in `vbrief/`.");
     expect(result.content).toContain("`test-single.xbrief.json`");
     expect(result.content).toContain("scope:promote -- xbrief/proposed/foo.xbrief.json");
     expect(result.content).toContain("xbrief:preflight -- xbrief/active/foo.xbrief.json");
@@ -70,8 +70,8 @@ describe("rewriteUnmanagedHeaderTokens", () => {
   it("reports per-token replacement counts", () => {
     const result = rewriteUnmanagedHeaderTokens(STALE_HEADER);
     const byToken = new Map(result.replacements.map((r) => [r.legacy, r.count]));
-    // vbrief/ appears in header lines: scoped/, proposed/, active/, completed/ (4).
-    expect(byToken.get("vbrief/")).toBe(4);
+    // Child-path hits only: proposed/, active/, completed/ (bare `vbrief/` is not rewritten).
+    expect(byToken.get("vbrief/")).toBe(3);
     // .vbrief.json appears in test-single, proposed/foo, active/foo (3).
     expect(byToken.get(".vbrief.json")).toBe(3);
     expect(byToken.get("vbrief:preflight")).toBe(1);
@@ -98,6 +98,22 @@ describe("rewriteUnmanagedHeaderTokens", () => {
     expect(result.changed).toBe(false);
     expect(result.content).toBe(crlf);
   });
+
+  it("leaves unmanaged prose `vbrief/` (no child segment) unrewritten (#3637)", () => {
+    const prose = "Scoped work items live in `vbrief/`.\nHidden xbrief/ and vbrief/ folders.\n";
+    const result = rewriteUnmanagedHeaderTokens(prose);
+    expect(result.changed).toBe(false);
+    expect(result.replacements).toHaveLength(0);
+    expect(result.content).toBe(prose);
+  });
+
+  it("does not treat x-vbrief/ leftover prefixes as vbrief/ hits (#3637)", () => {
+    const leftover = "Still-read-accepted refs: x-vbrief/ and x-vbrief/plan.\n";
+    const result = rewriteUnmanagedHeaderTokens(leftover);
+    expect(result.changed).toBe(false);
+    expect(result.content).toBe(leftover);
+    expect(result.content).not.toContain("x-xbrief/");
+  });
 });
 
 describe("patchAgentsMdHeader", () => {
@@ -109,7 +125,8 @@ describe("patchAgentsMdHeader", () => {
     const outcome = patchAgentsMdHeader(root);
     expect(outcome.kind).toBe("patched");
     const written = readFileSync(join(root, "AGENTS.md"), "utf8");
-    expect(written).toContain("Scoped work items live in `xbrief/`.");
+    expect(written).toContain("Scoped work items live in `vbrief/`.");
+    expect(written).toContain("xbrief:preflight -- xbrief/active/foo.xbrief.json");
     expect(written).toContain(MANAGED_BLOCK);
   });
 
@@ -172,7 +189,7 @@ describe("patchAgentsMdHeader", () => {
   it("refuses patch when AGENTS.md fails projection containment (#2668)", () => {
     const root = mkdtempSync(join(tmpdir(), "header-patch-contain-"));
     temps.push(root);
-    writeFileSync(join(root, "AGENTS.md"), "see vbrief/ here\n", "utf8");
+    writeFileSync(join(root, "AGENTS.md"), "see vbrief/active here\n", "utf8");
     const spy = vi
       .spyOn(projectionContainment, "assertProjectionContained")
       .mockImplementation(() => {
@@ -186,7 +203,7 @@ describe("patchAgentsMdHeader", () => {
       const outcome = patchAgentsMdHeader(root);
       expect(outcome.kind).toBe("failed");
       expect(outcome.error).toMatch(/projection write refused/);
-      expect(readFileSync(join(root, "AGENTS.md"), "utf8")).toBe("see vbrief/ here\n");
+      expect(readFileSync(join(root, "AGENTS.md"), "utf8")).toBe("see vbrief/active here\n");
     } finally {
       spy.mockRestore();
     }
@@ -200,8 +217,8 @@ describe("renderHeaderPatchSummary", () => {
       writeText: () => {},
     });
     const summary = renderHeaderPatchSummary(outcome);
-    expect(summary).toContain("rewrote 8 legacy vbrief token(s)");
-    expect(summary).toContain("vbrief/ ×4");
+    expect(summary).toContain("rewrote 7 legacy vbrief token(s)");
+    expect(summary).toContain("vbrief/ ×3");
     expect(summary).toContain("vbrief:preflight ×1");
   });
 
@@ -251,6 +268,12 @@ describe("detectStaleUnmanagedHeader", () => {
     const root = scaffold(true, null);
     expect(detectStaleUnmanagedHeader(root).stale).toBe(false);
   });
+
+  it("does NOT flag bare `vbrief/` prose or x-vbrief/ leftovers (#3637)", () => {
+    const root = scaffold(true, "See `vbrief/` and x-vbrief/plan leftovers.\n");
+    expect(detectStaleUnmanagedHeader(root).stale).toBe(false);
+    expect(detectStaleUnmanagedHeader(root).matches).toEqual([]);
+  });
 });
 
 describe("renderStaleHeaderLine", () => {
@@ -269,7 +292,8 @@ describe("renderStaleHeaderLine", () => {
     writeFileSync(join(root, "AGENTS.md"), STALE_HEADER, "utf8");
     const line = renderStaleHeaderLine(root);
     expect(line).toContain("still");
-    expect(line).toContain("migrate:xbrief");
+    expect(line).toMatch(/hand-edit/i);
+    expect(line).not.toContain("migrate:xbrief");
     expect(line).toContain("xbrief/");
   });
 
@@ -282,7 +306,8 @@ describe("renderStaleHeaderLine", () => {
       root,
       () => "run vbrief:preflight -- vbrief/active/x.xbrief.json\n",
     );
-    expect(line).toContain("migrate:xbrief");
+    expect(line).toMatch(/hand-edit/i);
+    expect(line).not.toContain("migrate:xbrief");
     expect(line).toContain("vbrief:preflight");
   });
 });
