@@ -88,6 +88,19 @@ describe("classifyProductDestForms (#3438)", () => {
     expect(classifyProductDestForms("rm 'weird(name).ts'")).toEqual([
       { kind: "rm", path: "weird(name).ts" },
     ]);
+    // Escaped `$` / backtick inside double quotes are literals, not substitution.
+    expect(classifyProductDestForms('rm "price\\$5.txt"')).toEqual([
+      { kind: "rm", path: "price$5.txt" },
+    ]);
+    expect(classifyProductDestForms('rm "file\\`name.txt"')).toEqual([
+      { kind: "rm", path: "file`name.txt" },
+    ]);
+    expect(classifyProductDestForms("rm '$TARGET.txt'")).toEqual([
+      { kind: "rm", path: "$TARGET.txt" },
+    ]);
+    expect(classifyProductDestForms("rm price\\$5.txt")).toEqual([
+      { kind: "rm", path: "price$5.txt" },
+    ]);
   });
 
   it("resolves an escaped dest but fails closed on a retained backslash", () => {

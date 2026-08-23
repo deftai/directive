@@ -38,7 +38,8 @@ export interface ProductDestForm {
 /** Injected write target for expansion dests so the fence cannot match a literal glob. */
 export const SHELL_DEST_EXPANSION_SENTINEL = "__shell_dest_expansion__";
 
-const EXPANSION_DEST = /[*?[\]$`{}]/;
+/** Globs / braces on a token. `$` and backtick never reach here unescaped — `hasUnsupportedSyntax` already fail-closed those. */
+const EXPANSION_DEST = /[*?[\]{}]/;
 
 const WRAP_BINS = new Set(["sudo", "env", "command"]);
 
@@ -196,7 +197,13 @@ function hasUnsupportedSyntax(command: string): boolean {
     const c = command[i];
     if (c === undefined) break;
     if (quote !== null) {
-      // A single-quoted string is fully literal; `"` still expands `$` / backtick.
+      // Double-quoted `\$` / `\`` are literals; skip the escape so we do not
+      // treat them as substitution (false-deny under `shellDestForms: enforce`).
+      if (quote === '"' && c === "\\" && i + 1 < command.length) {
+        i++;
+        continue;
+      }
+      // A single-quoted string is fully literal; unescaped `"$` / backtick still expand.
       if (c === quote) quote = null;
       else if (quote === '"' && (c === "$" || c === "`")) return true;
       continue;
