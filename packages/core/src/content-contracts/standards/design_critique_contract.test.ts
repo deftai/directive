@@ -347,7 +347,8 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(text).toContain("Do not auto-start the walk");
     expect(text).toContain("retry differences");
     expect(text).toContain("union of classified headings");
-    expect(text).toContain("A map that omits a heading is not total");
+    expect(text).toContain("Still-open residual headings persist");
+    expect(text).toContain("Uncited still-open headings remain `disagree`");
     expect(text).toContain("Do not auto-stamp on a partial map");
     const skill = readText(SKILL_REL);
     expect(skill).toContain("Operator verbs");
