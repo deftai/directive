@@ -1,0 +1,213 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3438, re-locked to verified synthesis comment 5364744368",
+    "updated": "2026-08-23T02:38:14Z"
+  },
+  "plan": {
+    "title": "Scope gate: file mutations via Bash bypass the active-xBRIEF check that blocks Edit/Write",
+    "status": "completed",
+    "narratives": {
+      "Description": "Edit/Write scope-not-ready deny must state the gate is direct-write and spawn, not Shell dest-forms. A new product dest-form classifier (not UAT classify as-is) routes git checkout --, git restore, and rm/rmdir of in-repo paths through inspectMutationGates with Edit/Write parity exemptions.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3438",
+      "Overview": "## Summary\n\nThe active-xBRIEF scope gate refuses file mutations made through the host's `Edit`/`Write` tools, but the same mutations made through `Bash` (`git checkout --`, `rm`) go through unchallenged. Nothing downstream catches it either — the pre-commit gates don't require an active xBRIEF — so a shell-only change can be made and committed entirely outside a scope.\n\n## Evidence\n\nSingle session, `deftai/agentsentri`, `xbrief/active/` empty, the two calls seconds apart:\n\n**Allowed** — four tracked/untracked files mutated:\n\n```\ngit checkout -- apps/web/tsconfig.json apps/web/next-env.d.ts && rm apps/web/AGENTS.md apps/web/CLAUDE.md\n```\n\n**Refused** — the very next call, a one-line edit to `.gitignore`:\n\n```\nDirective denied Edit: No active xBRIEF artifact was found under xbrief/active/\n(or the legacy vbrief/active/ compatibility path). Recovery: run `deft scope:activate -- <path>` ...\n```\n\nSame repo, same empty `active/`, same class of mutation. One surface enforces, the other doesn't.\n\nThe commit path doesn't close the gap. After scoping, my commits ran:\n\n```\nverify_encoding / verify_forward_coverage / verify_vbrief_conformance / verify_xbrief_drift / branch-protection\n```\n\nNone of those requires an active xBRIEF, so the shell-only version of this change would have committed clean.\n\n## What I can't determine from outside\n\n`.claude/settings.json` (Directive-managed) does register a `PreToolUse` hook on Bash:\n\n```json\n{\n  \"matcher\": \"Shell|Bash|BashTool|shell|bash\",\n  \"hooks\": [{ \"type\": \"command\", \"command\": \"deft-hook --host claude --event tool.before\", \"timeout\": 5 }]\n}\n```\n\nSo Bash is wired. Whether the hook fired and declined to scope-gate, or didn't fire at all, I can't distinguish from the consumer side. The gates I *observed* firing around commit and push (`deft branch-protection`, `deft destructive-gh-verb gate (pre-push)`) appear to be git-level hooks rather than the tool hook, so they aren't evidence either way.\n\n## Why it matters\n\nThe refusal message is emphatic and reads as authoritative, which makes the gate easy to trust as complete. An agent that reaches for `sed -i`, `rm`, or `git checkout --` — including one following host guidance to prefer shell tools — silently operates unscoped. The gap is widest exactly where scope matters most: cleanup and revert work, which is naturally shell-shaped.\n\nIn my case the unscoped mutation was the change I actually wanted, and I scoped it retroactively. The concern is that nothing required me to.\n\n## Expected\n\nEither the Bash `tool.before` hook applies the same active-xBRIEF check to recognized file-mutating commands, or the refusal message stops implying coverage it doesn't have. A commit-time active-scope check would also close it, at the cost of catching things later.\n\n## Environment\n\n- `@deftai/directive` 0.104.0 (engine `@deftai/directive-core@0.104.0`)\n- Deposit generation 4, contentVersion 0.104.0, stamped 2026-08-15\n- Host: Claude Code, `deft-hook --host claude`\n- Platform: darwin\n- Consumer repo: `deftai/agentsentri` (xbrief layout, not legacy vbrief)\n\n## Related\n\n- #2885 (closed) touched the same write gate from the containment angle — absolute paths outside the checkout. This is the complementary direction: paths inside the checkout, reached through a different tool surface.\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-08-21T03:04:07Z)\n\n## Triage analysis\n\n_By: Grok 4.6 (xAI), 2026-08-21. Checked against issue body via REST (no comments), then `origin/master` hook dispatcher. Working tree not modified._\n\n**Verdict:** accurate, desirable, almost ready. Lock a first-ship slice before implementing. Mechanism-shaped: expanding the write gate onto Shell dest-forms.\n\n`design-critique: warranted, because the lean proposes applying the active-xBRIEF write gate to file-mutating Shell (or a commit-time scope check), which is a new invariant on the #2711 fail-open shell path.`\n\n### Accuracy\n\nHigh. The split is in the dispatcher, not a missed hook registration.\n\n- Edit/Write go through `inspectMutationGates` (`packages/core/src/hooks/dispatcher.ts` ~1289) and deny `scope-not-ready` with `No active xBRIEF artifact was found under xbrief/active/` (`packages/core/src/hooks/scope.ts:50–52`). Recovery copy names `deft scope:activate`.\n- Bash **is** wired (`SHELL_HOOK_MATCHER` on `tool.before`). The hook fires.\n- Shell/MCP are then routed **away** from that gate on purpose (`dispatcher.ts:1264–1274`): “Does not require active-scope ritual — only runtimeAuthority when enabled.”\n- Unrecognized shell ops **fail open** (`decideShellOrMcpRuntimeAuthority`: `ops.length === 0` → `shell-op-unclassifiable` allow, `:762–774`). `git checkout --` and `rm` are not push/merge, so they allow. That answers the reporter’s “fired vs declined”: declined to scope-gate, then fail-open.\n- Pre-commit/push surfaces named in the body (encoding, forward-coverage, vbrief-conformance, xbrief-drift, branch-protection) do not require an active xBRIEF. A shell-only mutation can commit.\n\n#2885 is complementary (Write/Edit **outside** the checkout skip the gate). This issue is **inside** the checkout via a different tool class.\n\n### Desirability\n\nHigh. The Edit deny reads as a complete write fence. Cleanup/revert is naturally `git checkout --` / `rm`. Host guidance that prefers shell tools walks around the gate. Same empty `active/`, same class of mutation, two verdicts.\n\n### Readiness\n\nAlmost — pick v1. Body offers three directions:\n\n1. **Honesty:** Edit/Write deny must say the gate is direct-write (and spawn), not Shell dest-forms. Cheap; should land either way.\n2. **Scope-gate dest-form Shell** targeting in-repo paths (`rm`, `git checkout -- <path>`, `mv`, `sed -i`, …) through `inspectMutationGates`. Reuses dest-writer classification already built for UAT/authz; do not boil the #3421 matrix in v1 — start with the repro class (`git checkout --` / `rm` of tracked or untracked in-tree paths).\n3. **Commit-time active-scope check** — catches later, including hook-bypass. Separate story; do not fold into the PreToolUse slice.\n\nRecommended first ship: **(1)+(2)** with a **bounded** dest-form list. Leave commit-time as follow-up. Do not require active xBRIEF for `git status` / unclassifiable non-dest commands (#2711 fail-open stays for those).\n\nDo not implement until that dest-form list is named in AC. Hostile envelope: `python -c \"open('f','w')\"` and `cmd /c copy` are the next bypasses; v1 should admit they remain open.\n\n### Disposition\n\n**Accept** as a scoped bug/safety story after the dest-form list is locked. Pair honesty copy with the Shell dest-form route so the message and the gate match. Keep #2885 closed. Refs #2711, #3080, #1802, #2885.\n\n\n### Comment by @MScottAdams (2026-08-21T03:12:06Z)\n\n## Design critique of the triage comment (checked at `4bd58219a8e376c11a49ddf4df4ee13611738dfc`)\n\n_By: Grok 4.5 (xAI)_\n\nOpen critique of comment `5364690109` (triage). Inputs: issue body + comments with `id <= 5364690109`; re-verified against `origin/master` @ `4bd58219a8e376c11a49ddf4df4ee13611738dfc` via `git show` / live classifiers. No later comments used.\n\n### What holds\n\n- The Edit/Write vs Shell split is real and dispatcher-shaped, not a missed Bash registration. `SHELL_HOOK_MATCHER` / `SHELL_TOOL_NAMES` exist (`packages/core/src/hooks/tools.ts:30`, `:98`). Shell is wired; PreToolUse fires.\n- Direct writes reach `inspectMutationGates` (`dispatcher.ts:804` definition; direct-write call at `:1289`). Empty `xbrief/active/` yields `scope-not-ready` with `No active xBRIEF artifact was found under xbrief/active/` (`scope.ts:50–52`), then recovery text that names `deft scope:activate` (`dispatcher.ts:992–1009`).\n- Shell/MCP are routed away from that gate on purpose (`dispatcher.ts:1264–1274`, comment at `:1267`: \"Does not require active-scope ritual — only runtimeAuthority when enabled.\") into `decideShellOrMcpRuntimeAuthority` (`:702`).\n- Unrecognized shell ops fail open: `ops.length === 0` → allow `shell-op-unclassifiable` (`:762–774`). `listShellOps` only returns push/merge (`runtime-authority.ts:474–487`).\n- Pre-commit does not require an active xBRIEF (`.githooks/pre-commit`: `verify:branch`, `verify:encoding`, `verify:forward-coverage`, optional `verify:vbrief-conformance` / `verify:xbrief-drift`). A shell-only mutation can commit.\n- #2885 complementarity (outside-checkout Write/Edit skip) is correctly framed as the other axis.\n- Recommended sequencing — honesty copy + bounded Shell dest-form gate; commit-time as a separate story; keep #2711 fail-open for non-dest commands; admit hostile residual (`python -c`, `cmd /c copy`) — is the right *shape* of a first ship, if the mechanism claim below is corrected.\n\n### Findings\n\n1. **`blocks-the-design` — \"Reuse dest-writer classification\" does not cover the repro class.**\n   Triage says first ship can reuse UAT/authz dest-writer classification for `git checkout --` / `rm`. Empirically, at `4bd58219a8e376c11a49ddf4df4ee13611738dfc`, the same classifiers return **empty** for the reporter's commands:\n   - `git checkout -- apps/web/tsconfig.json … && rm apps/web/AGENTS.md …` → `listShellOps: []`, `classifyShellAuthzOps: []`\n   - `git checkout -- apps/web/tsconfig.json` → both `[]`\n   - `rm apps/web/AGENTS.md` → both `[]`\n   - `sed -i s/a/b/ file.ts` → both `[]`\n   - `cmd /c copy a b` → both `[]`\n   - Contrast: `git push origin HEAD` → `[\"push\"]`; `python -c \"open('f','w').write('x')\"` → authz `[\"settings\"]` (UAT programmatic-write path only).\n   Source reasons: `listShellOps` is push/merge-only; `GIT_WRITE_SUBCOMMANDS` is `clone|worktree|submodule` only (`authz/classify.ts:762`) — **not** `checkout`/`restore`; `rm` appears in write-bin sets, but UAT harvest gates **protected** dests (`.deft/authz/**`, kill-switch, approved-scope), not arbitrary in-repo product paths. Wiring today's `classifyShellAuthzOps` into `inspectMutationGates` would **ship a false fix** for the filed repro. V1 needs a **new** product dest-form classifier (or an explicitly extended harvest) named in AC — not \"reuse\" as written.\n\n2. **`sharpens-framing` — `inspectMutationGates` \"~1289\" cite is the call site, not the gate body.**\n   Definition is `:804`. `:1289` is the direct-write `return inspectMutationGates(…, { proposedLifecycleExempt: true })`. Spawn path calls it at `:1261`. Shell never enters it (`:1268–1273`). Structural claim holds; tilde cite is imprecise if read as \"the gate lives at 1289.\"\n\n3. **`blocks-the-design` — Shell→`inspectMutationGates` without Edit/Write parity exemptions over-tightens.**\n   Direct-write path already exempts assist/scratch (`#1802`, `dispatcher.ts:813–838`) and proposed-lifecycle writes (`#2625`, `proposedLifecycleExempt`). A Shell dest-form route that only checks `inspectActiveScope` with no matching assist / proposed / ephemeral exemptions would deny shell cleanup under `.deft-scratch/` / assist posture while Edit/Write still allow — a new inconsistency, not parity. AC must list the same exemptions (and whether story `file_scope` / path-write-fence applies to Shell dests; today `path-write-fence.md` says Shell push/merge are **not** re-scoped by `file_scope`).\n\n4. **`sharpens-framing` — \"Almost ready\" overstates readiness until the dest-form list and classifier SoT are named.**\n   Triage correctly refuses implement until the list is locked, then recommends first ship **(1)+(2)** without proposing the AC list or naming that `git checkout --` is **absent** from current harvest. Readiness is \"accurate diagnosis + desired outcome\"; mechanism AC is still open. Thin fail-closed (#3265): land honesty copy as the one fail-closed message fix even if the Shell classifier slips.\n\n5. **`footnote` — Deny copy is tool-scoped, not a literal \"all mutations\" claim.**\n   Message is `Directive denied Edit: <scope.message> + recovery` (`dispatcher.ts:1009`). It does not say Bash is covered. Still easy to *read* as a complete write fence (reporter's point). Honesty copy remains justified; do not over-claim the current text lies about Shell.\n\n### Existing mechanisms\n\n| Mechanism | What it does today | Gap vs #3438 |\n| --- | --- | --- |\n| `inspectMutationGates` + `inspectActiveScope` | Active-xBRIEF / ritual for direct Write/Edit/spawn | Not on Shell path |\n| `decideShellOrMcpRuntimeAuthority` + `listShellOps` | Opt-in push/merge under `runtimeAuthority` (#2711); else fail open | File mutations unclassifiable |\n| `classifyShellAuthzOps` / UAT dest harvest (#3421 family) | Fail-closed settings when Shell plants authz/kill-switch/approved-scope | Ordinary product `rm` / `git checkout --` stay `[]` |\n| Path write fence (#516 / #2443) | Project + story `file_scope` for **direct** writes | Shell not re-scoped by `file_scope` |\n| Assist/scratch (#1802) / ephemeral spawn (#3080) | Skip active-scope for allowlisted disposable writes / non-lifecycle spawns | Must be mirrored if Shell is gated |\n| `.githooks/pre-commit` | branch / encoding / coverage / xbrief drift | No active-scope check |\n| Swarm skill prose (#800) | Forbidden `git checkout` in another agent's worktree | Skill rule, not PreToolUse |\n\nInventory before inventing: extend classification + route, or honesty-only, or commit-time verify — do not add a parallel gate engine beside `decideHook`.\n\n### Injection / swarm lens\n\n- Hosts that prefer Shell/Bash (Claude Code matcher already on Shell) make the bypass the **default** tool path, not an exotic one.\n- Prompt injection / \"prefer terminal\" guidance that says `sed -i` / `rm` / `git checkout --` instead of Edit walks around the only surface that currently fails closed.\n- Swarm cleanup and revert are naturally shell-shaped; skill text (#800) does not enforce at PreToolUse. A false \"reuse UAT classify\" ship would leave the swarm cleanup class open while looking green in tests that only assert push/merge or authz-protected dests.\n- Obfuscation (`python -c`, encoded `bash -c`) remains a residual; triage already admits this — keep it in AC as known-open, not silent.\n\n### Road not taken\n\n**Honesty-only first ship (thin #3265), defer Shell dest-form classifier.** Change Edit/Write deny copy so it states the gate is direct-write (and spawn), not Shell dest-forms; open a follow-up for a *new* product dest-form classifier + parity exemptions; leave commit-time active-scope as a third story. Cheaper, no #2711 fail-open collision in v1, and avoids shipping a classifier that does not yet exist. Cost: the reporter's Bash bypass remains until the follow-up lands — mitigated only by clearer refusal text.\n\nAlternative not preferred: fold commit-time active-scope into the same PreToolUse PR (triage correctly separates these).\n\n### Score against Directive rules\n\n| Rule | Score |\n| --- | --- |\n| Authority ladder | Pass — mechanism is `decideHook` / classifiers, not AGENTS.md prose as SoT. |\n| Fail-closed | Mixed — correctly wants Shell dest-forms fail closed, but must not silently invert #2711 fail-open for unclassifiable non-dest commands (triage says this; keep it in AC). |\n| Propose-not-apply | Pass — triage proposes; does not implement. |\n| Claim-cites-state (#2066) | Soft miss on `inspectMutationGates ~1289` precision; other cites land. |\n| Gate integrity (#3156) | Pass intent — do not weaken Edit to match Shell; close or disclose the gap. Reject any \"fix\" that only asserts UAT classify without the repro. |\n| Thin fail-closed (#3265) | Soft miss — packaging honesty+(2) as one first ship risks two checks; prefer honesty as the single message remediation, Shell classifier as the second fail-closed check with its own AC. |\n\n### Disposition\n\n**Accept the diagnosis; do not accept the mechanism wording as written.** Keep design-critique warranted. Before implement:\n\n1. Name the v1 dest-form list in AC (`git checkout -- <paths>`, `git restore`, `rm`/`rmdir`, …) and state explicitly that these need a **new** product-mutation classifier (current UAT harvest does not cover them — measured at `4bd58219a8e376c11a49ddf4df4ee13611738dfc`).\n2. Require Edit/Write parity exemptions (assist/scratch, proposed lifecycle; decide file_scope for Shell).\n3. Land honesty copy even if the Shell slice slips.\n4. Keep hostile envelope (`python -c`, `cmd /c copy`, obfuscated bash) as documented residual — not silent.\n5. Leave commit-time active-scope as a separate story.\n\nRefs checked in-tree: #2711 fail-open path, #1802 / #3080 assist, #2885 outside-root, path-write-fence Shell residual. Keep #2885 closed.\n\n### Comment by @MScottAdams (2026-08-21T03:13:07Z)\n\n## Verified synthesis (critique-pass-1, 2026-08-21)\n\n_By: Grok 4.6 (xAI) — synthesizer, not a critic in this run. Triage author was also Grok 4.6; critic was Grok 4.5. Rows marked **hold** only on a primary-source re-read of `origin/master`, not on critic agreement._\n\nHand-run of #3434 Pass 3. Not implementation. Working tree was not modified.\n\n**SHA:** `4bd58219a8e376c11a49ddf4df4ee13611738dfc` (`origin/master` at synthesis; same tip the critic named).\n\nThread: issue body; [triage](https://github.com/deftai/directive/issues/3438#issuecomment-5364690109); [R1 critique](https://github.com/deftai/directive/issues/3438#issuecomment-5364738226).\n\n### Disposition\n\n**Accept the diagnosis; do not accept “reuse UAT dest-writer classification” as the v1 mechanism.** Keep design-critique warranted. Lock AC before implement.\n\n| Slice | In v1 | Out of v1 |\n|---|---|---|\n| **A — honesty copy** | Edit/Write `scope-not-ready` deny states the gate is **direct-write (and spawn)**, not Shell dest-forms. Land even if B slips. | Claiming the current text already names Bash (it does not; it is tool-scoped `Directive denied Edit:`) |\n| **B — new product dest-form classifier** | Name the list in AC: at least `git checkout -- <paths>`, `git restore`, `rm`/`rmdir` of in-repo paths. Route those through `inspectMutationGates` with **Edit/Write parity exemptions** (assist/scratch #1802, proposed lifecycle #2625; decide `file_scope` for Shell). | “Reuse” `classifyShellAuthzOps` / `listShellOps` as-is — they return `[]` for the filed repro |\n| **C — documented residual** | `python -c`, `cmd /c copy`, obfuscated bash stay **known-open** in AC. | Pretending v1 closes all dest writers |\n| **D — commit-time active-scope** | | Separate story. Do not fold into PreToolUse |\n\nKeep #2711 fail-open for non-dest unclassifiable shell (`git status`). Keep #2885 closed.\n\n### Verified claims\n\n| Claim | Claimant | Verdict | Method | Evidence at `4bd58219` |\n|---|---|---|---|---|\n| Edit/Write use `inspectMutationGates`; empty active → `scope-not-ready` | reporter, triage, R1 | **hold** | `git show` | `dispatcher.ts:1289`; `scope.ts:50–52` |\n| Shell is wired then routed **away** from that gate | triage, R1 | **hold** | `git show` | `dispatcher.ts:1264–1274` “Does not require active-scope ritual” |\n| Unclassifiable shell fail-open | triage, R1 | **hold** | `git show` | `dispatcher.ts:762–774` `shell-op-unclassifiable` |\n| `listShellOps` is push/merge only | R1 F1 | **hold** | `git show` | `policy/runtime-authority.ts:474–487` |\n| Git dest harvest is `clone\\|worktree\\|submodule`, not `checkout`/`restore` | R1 F1 | **hold** | `git show` | `authz/classify.ts:762` |\n| Pre-commit has no active-xBRIEF check | reporter, triage, R1 | **hold** | `git show` `.githooks/pre-commit` | encoding / branch / coverage / xbrief drift — no `inspectActiveScope` |\n| `inspectMutationGates ~1289` is the **call site** | R1 F2 | **hold** | `git show` | definition `:804`; Shell never enters |\n| Current deny text does not literally claim Bash coverage | R1 F5 | **hold** | `git show` | `dispatcher.ts:1009` `Directive denied ${toolName}` |\n| Live `listShellOps`/`classifyShellAuthzOps` empty on reporter `git checkout --` / `rm` | R1 F1 | **unverified here** | critic ran classifiers; this pass did not re-execute them | code path (push/merge-only + GIT_WRITE_SUBCOMMANDS) makes empty results expected |\n\n### Finding → slice\n\n| Finding | Source | Slice |\n|---|---|---|\n| Reuse UAT classify would false-fix the repro | R1 F1 | **B** (new classifier, named list) |\n| Shell path needs same exemptions as Edit | R1 F3 | **B** AC |\n| Honesty even if classifier slips | R1 F4 / road-not-taken | **A** |\n| Hostile residual | triage, R1 | **C** |\n| Commit-time gate | body, triage | **D** |\n\n### What the triage got right\n\nDiagnosis, desirability, #2885 complementarity, #2711 fail-open for non-dest, commit-time as a separate story, honesty copy must land.\n\n### What the critique changed (load-bearing)\n\nTriage “reuse dest-writer classification” does **not** cover `git checkout --` / `rm`. Those need a **new** product-mutation classifier named in AC. Pair Shell gating with assist/proposed exemptions or you create a new Edit-vs-Shell inconsistency. Prefer honesty as the first fail-closed message even if B is a second check.\n\n### Out of scope here\n\nImplementing A–D. Expanding UAT settings-deny to all product paths. Weakening Edit to match Shell (#3156).",
+      "Labels": "bug, agent-experience, harness, agent-safety",
+      "UserStory": "As an operator, I want Shell dest-form mutations of in-repo paths to hit the same active-xBRIEF gate as Edit/Write, so that empty active cannot be bypassed by git checkout -- or rm.",
+      "When": "When Edit/Write is denied for empty active, the copy names direct-write and spawn only. When Bash runs git checkout -- paths, git restore, or rm/rmdir of in-repo paths with empty active, inspectMutationGates denies with the same exemptions as Edit/Write. python -c, cmd /c copy, and obfuscated bash stay known-open. git status stays fail-open. Commit-time active-scope is not in this story.",
+      "LockedDecisions": "Verified synthesis 5364744368 is the lock. Accept the diagnosis; do not accept reuse UAT dest-writer classification as the v1 mechanism. V1 dest-form list: git checkout -- <paths>, git restore, rm/rmdir of in-repo paths. These need a NEW product-mutation classifier; classifyShellAuthzOps and listShellOps return empty for the filed repro. Route those through inspectMutationGates with Edit/Write parity exemptions (assist/scratch #1802, proposed lifecycle #2625; decide file_scope for Shell). Honesty copy lands even if the classifier slips. Residual known-open: python -c, cmd /c copy, obfuscated bash. Keep #2711 fail-open for non-dest unclassifiable shell. Keep #2885 closed. Commit-time active-scope is a separate story. Do not weaken Edit to match Shell.",
+      "ImplementationPlan": "Change Edit/Write scope-not-ready deny copy to name direct-write and spawn, not Shell dest-forms. Add a new product dest-form classifier for the named list; do not wire classifyShellAuthzOps or listShellOps as-is. Route matching Shell ops through inspectMutationGates with assist/scratch and proposed-lifecycle exemptions; decide file_scope. Tests: reporter git checkout -- / rm with empty active denies; git status still allows; python -c documented residual. CHANGELOG Unreleased. Do not add a commit-time active-scope check.",
+      "OriginDivergence": "Ingest 2026-08-21. Body expected Bash same-check OR honesty copy OR later commit-time. Synthesis locks honesty plus a NEW dest-form classifier, not reuse UAT classify, and parks commit-time. D12: synthesis newer than body."
+    },
+    "items": [
+      {
+        "title": "Honesty copy on Edit/Write deny",
+        "status": "completed",
+        "narrative": {
+          "When": "When Edit or Write is denied for empty xbrief/active, the message states the gate is direct-write and spawn, not Shell dest-forms, and this copy lands even if the Shell classifier slips.",
+          "Acceptance": "When Edit or Write is denied for empty xbrief/active, the message states the gate is direct-write and spawn, not Shell dest-forms, and this copy lands even if the Shell classifier slips."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher.test.ts#denies a direct write when no active running scope passes preflight",
+          "recorded_at": "2026-08-23T02:40:00Z",
+          "recorded_by": "parent/3588-override"
+        }
+      },
+      {
+        "title": "New product dest-form classifier",
+        "status": "completed",
+        "narrative": {
+          "When": "When Bash runs git checkout -- <paths>, git restore, or rm/rmdir of in-repo paths with empty active, a new product dest-form classifier (not classifyShellAuthzOps or listShellOps as-is) routes them through inspectMutationGates with Edit/Write parity exemptions.",
+          "Acceptance": "When Bash runs git checkout -- <paths>, git restore, or rm/rmdir of in-repo paths with empty active, a new product dest-form classifier (not classifyShellAuthzOps or listShellOps as-is) routes them through inspectMutationGates with Edit/Write parity exemptions."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dest-form.test.ts#classifyProductDestForms (#3438)",
+          "recorded_at": "2026-08-23T02:40:00Z",
+          "recorded_by": "parent/3588-override"
+        }
+      },
+      {
+        "title": "Documented residual and fail-open non-dest",
+        "status": "completed",
+        "narrative": {
+          "When": "When the story ships, python -c, cmd /c copy, and obfuscated bash remain known-open in AC, git status stays #2711 fail-open, and #2885 stays closed.",
+          "Acceptance": "When the story ships, python -c, cmd /c copy, and obfuscated bash remain known-open in AC, git status stays #2711 fail-open, and #2885 stays closed."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher.test.ts#keeps git status and hostile residual dest writers fail-open with empty active (#3438 / #2711)",
+          "recorded_at": "2026-08-23T02:40:00Z",
+          "recorded_by": "parent/3588-override"
+        }
+      },
+      {
+        "title": "No commit-time active-scope in this story",
+        "status": "completed",
+        "narrative": {
+          "When": "When this PR lands, it does not add a commit-time active-scope check and does not weaken Edit to match Shell.",
+          "Acceptance": "When this PR lands, it does not add a commit-time active-scope check and does not weaken Edit to match Shell."
+        },
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/3588 (squash 18cefebfecd68eb320c33067e13d1b7ac384d591); .githooks/pre-commit still has no inspectActiveScope; dialect residual parked on #3624 not a commit-time gate",
+          "recorded_at": "2026-08-23T02:40:00Z",
+          "recorded_by": "parent/3588-override"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "harness",
+      "agent-safety"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3438",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3438: Shell dest-form bypass of active-xBRIEF gate"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3438#issuecomment-5364744368",
+        "type": "x-xbrief/document",
+        "title": "Verified synthesis lock"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3438#issuecomment-5364738226",
+        "type": "x-xbrief/document",
+        "title": "R1 design critique"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2711",
+        "type": "x-xbrief/refs",
+        "title": "Keep fail-open for non-dest unclassifiable shell"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2885",
+        "type": "x-xbrief/refs",
+        "title": "Keep closed; complementary outside-checkout axis"
+      }
+    ],
+    "metadata": {
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/scope.ts",
+          "packages/core/src/policy/runtime-authority.ts",
+          "packages/core/src/authz/classify.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/hooks"
+        ],
+        "expected_outputs": [
+          "honesty copy; new dest-form classifier for checkout/restore/rm; residual documented; no commit-time gate"
+        ],
+        "depends_on": [],
+        "conflict_group": "hooks-scope-3438",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Issue-ingested #3438; FR traces from verified synthesis 5364744368."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/scope.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/hooks",
+        "cohesion_exemption": "dispatcher.ts already exceeds FILE_SIZE_REVIEW_TRIGGER_LINES (1389). This slice adds dest-form routing and honesty copy on the existing decideHook path; splitting the dispatcher is out of this story (#3424)."
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3588,
+        "prBase": null,
+        "mergeCommit": "18cefebfecd68eb320c33067e13d1b7ac384d591",
+        "deliveryBranch": "master",
+        "deliveryCommit": "18cefebfecd68eb320c33067e13d1b7ac384d591",
+        "verifiedAt": "2026-08-23T02:38:14Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "4407b938-d10c-40f4-ad62-19ee0b5ea919"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-23T02:38:14Z",
+      "completedSessionId": "4407b938-d10c-40f4-ad62-19ee0b5ea919",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/hooks"
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "derived independently testable clauses from verified synthesis 5364744368 before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Edit/Write scope-not-ready deny states the gate is direct-write and spawn, not Shell dest-forms; land even if the Shell classifier slips.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "New product dest-form classifier covers git checkout -- <paths>, git restore, and rm/rmdir of in-repo paths and routes them through inspectMutationGates with Edit/Write parity exemptions. classifyShellAuthzOps and listShellOps as-is are not the mechanism.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "python -c, cmd /c copy, and obfuscated bash stay known-open in AC. git status stays #2711 fail-open. #2885 stays closed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "No commit-time active-scope check in this story. Do not weaken Edit to match Shell.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "issue-3438-shell-dest-form-scope-gate",
+    "updated": "2026-08-23T02:38:14Z"
+  }
+}
