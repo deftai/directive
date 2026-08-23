@@ -1,0 +1,188 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Stage A only: worktree-isolated issue-eval (validity + parent WIP census + value). Bind 5387817441 + 5387838656.",
+    "updated": "2026-08-23T21:13:37Z"
+  },
+  "plan": {
+    "id": "issue-3648-issue-eval-stage-a",
+    "title": "issue-eval Stage A: isolated validity, parent WIP census, value advice",
+    "status": "completed",
+    "narratives": {
+      "Description": "Operator points at issues; parent fans out read-only evaluators in detached origin/master worktrees for validity; parent on the live working set owns WIP conflict; value may recommend critique without the reserved clearance grammar. No GitHub writes. Stage B is not this issue.",
+      "Origin": "GitHub issue #3648. Bind successor lean 5387817441 plus verified-claims table 5387838656. Synthesis accepted 5387842240. Current shape 5387869024. Body is stale (two-stage + .eval candidates log). Supersedes 5387555462 and 5387736216.",
+      "Overview": "Split read sources. Verdict sink .deft-scratch/issue-eval/<sha12>/<invocation-id>/ with no assist posture on the CLI parent. Evaluator worktrees .deft-scratch/worktrees/issue-eval-<issue>-<invocation-id>; parent add/remove; evaluators session:start --read-only. Do not reuse swarm:launch until #3649. Fan-out default 4, --concurrency N, REST-first. Decisions stay existing triage:* verbs.",
+      "UserStory": "As an operator, I want issues evaluated off master for validity and value, with WIP conflict read from the live working set, so accept does not collide with in-flight work and does not restamp a shipped gap.",
+      "When": "When task triage:evaluate runs N issues, evaluators never read or write the shared working tree, the parent writes only the named gitignored sink and named sibling worktrees, origin/master is not checked out or committed to, verdicts stream, no GitHub writes, critique-recommend is not the reserved clearance line, tests pin those rules, and CHANGELOG has an Unreleased line.",
+      "LockedDecisions": "Bind 5387817441 + 5387838656. Stage B removed (not residual). Gate vehicle invariance not amended. #3579 is not a hold. Do not widen VALID_DECISIONS. Do not use xbrief/.eval/. Do not emit design-critique: warranted | not warranted, because. Do not edit walk or chip semantics (#3640/#3642/#3646). Do not auto-dispatch critics. Occupancy: sibling worktree is a different lease; evaluators never claim. Teardown on success and failure.",
+      "ImplementationPlan": "New contract issue-eval.md. Thin skill + packs:render. triage:evaluate verb owns worktree add/remove and sink write/teardown/GC. Parent WIP census from live xbrief/active pending and plan-sequence. Evaluator validity on detached origin/master. CHANGELOG. Closes #3648. Parallel with #3642 sequence; do not share 3647 files except CHANGELOG append.",
+      "OriginDivergence": "Body AC shared-checkout-untouched recut: evaluators never touch shared tree; parent may write named sink and sibling worktrees. Body verdict store and accept-path default flip are superseded. Stage B gone."
+    },
+    "items": [
+      {
+        "title": "Split read sources: detached origin/master validity; parent WIP census; GitHub REST for open PRs/issues",
+        "status": "completed",
+        "narrative": {
+          "When": "When triage:evaluate runs, each evaluator is a detached worktree at origin/master for validity and ADR/contract reads, never receives WIP conflict inputs, and the parent on the live working set owns xbrief/active, xbrief/pending, and plan-sequence conflict.",
+          "Acceptance": "When triage:evaluate runs, each evaluator is a detached worktree at origin/master for validity and ADR/contract reads, never receives WIP conflict inputs, and the parent on the live working set owns xbrief/active, xbrief/pending, and plan-sequence conflict."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/triage/evaluate/evaluate.test.ts + github.test.ts",
+          "recorded_at": "2026-08-23T21:13:29Z",
+          "recorded_by": "3648-stage-a-residual-leaf"
+        }
+      },
+      {
+        "title": "Verdict sink and evaluator worktrees with teardown",
+        "status": "completed",
+        "narrative": {
+          "When": "When an invocation finishes or fails, the parent has written only under .deft-scratch/issue-eval/<sha12>/<invocation-id>/ and .deft-scratch/worktrees/issue-eval-<issue>-<invocation-id>, evaluators wrote nothing durable, worktrees are removed, and stale sha12 directories may be GC'd. No assist posture marker. No candidates-log row. No xbrief/.eval/.",
+          "Acceptance": "When an invocation finishes or fails, the parent has written only under .deft-scratch/issue-eval/<sha12>/<invocation-id>/ and .deft-scratch/worktrees/issue-eval-<issue>-<invocation-id>, evaluators wrote nothing durable, worktrees are removed, and stale sha12 directories may be GC'd. No assist posture marker. No candidates-log row. No xbrief/.eval/."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/triage/evaluate/sink.test.ts + worktrees.test.ts",
+          "recorded_at": "2026-08-23T21:13:29Z",
+          "recorded_by": "3648-stage-a-residual-leaf"
+        }
+      },
+      {
+        "title": "Read-only evaluators, no GitHub writes, existing triage:* decisions",
+        "status": "completed",
+        "narrative": {
+          "When": "When evaluators run, they use session:start --read-only, write nothing to GitHub, do not create xbrief/proposed/, and the operator still decides via existing triage:* verbs. Fan-out default 4, override --concurrency N, REST-first.",
+          "Acceptance": "When evaluators run, they use session:start --read-only, write nothing to GitHub, do not create xbrief/proposed/, and the operator still decides via existing triage:* verbs. Fan-out default 4, override --concurrency N, REST-first."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/triage/evaluate/isolation.test.ts",
+          "recorded_at": "2026-08-23T21:13:29Z",
+          "recorded_by": "3648-stage-a-residual-leaf"
+        }
+      },
+      {
+        "title": "Value may critique-recommend without reserved clearance grammar",
+        "status": "completed",
+        "narrative": {
+          "When": "When a value verdict recommends critique, it uses a distinct field such as critique-recommend: and does not emit design-critique: warranted | not warranted, because.",
+          "Acceptance": "When a value verdict recommends critique, it uses a distinct field such as critique-recommend: and does not emit design-critique: warranted | not warranted, because."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/triage/evaluate/value.test.ts",
+          "recorded_at": "2026-08-23T21:13:29Z",
+          "recorded_by": "3648-stage-a-residual-leaf"
+        }
+      },
+      {
+        "title": "Contract, thin skill, tests, CHANGELOG",
+        "status": "completed",
+        "narrative": {
+          "When": "When the pack is rendered, a thin deft-directive-issue-eval skill exists, normative rules live in a contract, tests pin read-only evaluation and the reserved-grammar forbid, and CHANGELOG Unreleased has one line. Stage B is not implemented.",
+          "Acceptance": "When the pack is rendered, a thin deft-directive-issue-eval skill exists, normative rules live in a contract, tests pin read-only evaluation and the reserved-grammar forbid, and CHANGELOG Unreleased has one line. Stage B is not implemented."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/issue_eval_contract.test.ts + CHANGELOG.md",
+          "recorded_at": "2026-08-23T21:13:29Z",
+          "recorded_by": "3648-stage-a-residual-leaf"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3648",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3648"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3648#issuecomment-5387817441",
+        "type": "x-xbrief/github-comment",
+        "title": "Successor lean 5387817441"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3648#issuecomment-5387838656",
+        "type": "x-xbrief/github-comment",
+        "title": "Verified-claims table 5387838656"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3649",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3649 swarm:launch occupancy (do not reuse launch)"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/contracts/issue-eval.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-issue-eval/SKILL.md",
+          "content/skills/deft-directive-triage/SKILL.md",
+          "packages/core/src/triage/evaluate/",
+          "packages/cli/src/dispatch.ts",
+          "tasks/triage-actions.yml",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/triage"
+        ],
+        "expected_outputs": [
+          "triage:evaluate Stage A isolated validity; parent WIP census; no GitHub writes"
+        ],
+        "depends_on": [],
+        "conflict_group": "issue-eval-3648",
+        "size": "L",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Stage A only. Parallel with 3642 sequence; CHANGELOG append-only shared. Do not touch design-critique.md or exclusive-chip."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/contracts/issue-eval.md",
+          "packages/core/src/triage/evaluate/github.ts",
+          "packages/core/src/triage/evaluate/github.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/triage",
+        "cohesion_exemption": "CHANGELOG.md may exceed FILE_SIZE_REVIEW_TRIGGER_LINES."
+      },
+      "capacityBucket": "new-capability",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3654,
+        "prBase": null,
+        "mergeCommit": "f638764ef97531fd377a98a62cbaf5ae028190a4",
+        "deliveryBranch": "master",
+        "deliveryCommit": "f638764ef97531fd377a98a62cbaf5ae028190a4",
+        "verifiedAt": "2026-08-23T21:13:37Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "ac23f7fe-e95b-4ee4-8a3b-e84003ee0bb7"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-23T21:13:37Z",
+      "completedSessionId": "ac23f7fe-e95b-4ee4-8a3b-e84003ee0bb7"
+    },
+    "updated": "2026-08-23T21:13:37Z"
+  },
+  "vBRIEFInfo": {
+    "version": "0.8",
+    "updated": "2026-08-23T21:13:37Z"
+  }
+}
