@@ -148,6 +148,7 @@ Contract stops stay internal. Parent prints these phrases when they apply. The o
 - ! Print the phrases when they apply.
 - ! Non-empty disagree set: print **walk** / **walk all** / **retry differences** / **accept**. Walk is an option, not the only path. Do not auto-start the walk.
 - ! When the successor lean's per-heading map is total over a **non-empty** in-envelope classified-finding set, and every heading is `accept-into-contract` (no `disagree`, no `defer`): parent auto-posts the verified-claims table as its own comment, then auto-posts `design-critique: synthesis accepted, because agents agreed (empty disagreement set)` and remaining-set-replaces the chip via `task scm:issue:design-critique-chip -- --issue N --chip triage-ready`. Do not print **accept synthesis**, **post the verified-claims table**, **walk**, or **walk all**.
+- ! The auto-stamp denominator is the union of classified headings from every in-envelope critic comment under the current id ceiling. Round-2 / retry posts replace still-open residual headings; headings already `accept-into-contract` remain in the accepted set. A successor-lean map is total only when every heading in that union has a take. A map that omits a heading is not total. Do not auto-stamp on a partial map.
 - ! Parse classified headings only.
 - ⊗ Stamp when the critic posts zero classified headings (stub / blank). Stop and inform. Do not stamp.
 - ⊗ Stamp on dispatch-fail. Stop and inform. Do not stamp.
@@ -205,7 +206,7 @@ Two bind paths authorize:
 design-critique: synthesis accepted, because …
 ```
 
-1. #3640 auto-stamp: when the successor lean map is total over a non-empty in-envelope classified-finding set and every heading is `accept-into-contract`, parent posts `design-critique: synthesis accepted, because agents agreed (empty disagreement set)` and remaining-set-replaces the chip to `design-critique:triage-ready` via `task scm:issue:design-critique-chip -- --issue N --chip triage-ready`. Do not print **accept synthesis**.
+1. #3640 auto-stamp: when the successor lean map is total over the auto-stamp denominator (union of in-envelope classified headings under the current id ceiling) and that set is non-empty and every heading is `accept-into-contract`, parent posts `design-critique: synthesis accepted, because agents agreed (empty disagreement set)` and remaining-set-replaces the chip to `design-critique:triage-ready` via `task scm:issue:design-critique-chip -- --issue N --chip triage-ready`. Do not print **accept synthesis**. Do not auto-stamp on a partial map.
 2. Explicit operator **accept synthesis** (or a listed short form). Parent may post that line and cite the verb. Then apply `design-critique:triage-ready` as the exclusive catalog chip via remaining-set write.
 
 Closed catalog (last chip wins): `design-critique:mechanism-shaped` (in-flight, gate match) and `design-critique:triage-ready` (bound). No halt chip.

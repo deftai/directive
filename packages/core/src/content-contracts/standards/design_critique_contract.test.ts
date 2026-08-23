@@ -346,6 +346,9 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(text).toContain("Do not print **accept synthesis**");
     expect(text).toContain("Do not auto-start the walk");
     expect(text).toContain("retry differences");
+    expect(text).toContain("union of classified headings");
+    expect(text).toContain("A map that omits a heading is not total");
+    expect(text).toContain("Do not auto-stamp on a partial map");
     const skill = readText(SKILL_REL);
     expect(skill).toContain("Operator verbs");
     expect(skill).toContain("Walk / walk all. Auto-stamp when agents agree");
