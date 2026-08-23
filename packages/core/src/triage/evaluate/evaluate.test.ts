@@ -249,7 +249,7 @@ describe("evaluateIssues", () => {
     expect(removes.some((p) => p.includes("issue-eval-7-inv-fail"))).toBe(true);
   });
 
-  it("records teardown failure instead of swallowing it", async () => {
+  it("falls back to filesystem delete when git worktree remove fails", async () => {
     const root = tempRoot();
     const git: GitRunner = (args, cwd) => {
       if (args[0] === "worktree" && args[1] === "remove") {
@@ -270,7 +270,8 @@ describe("evaluateIssues", () => {
         listOpenPulls: () => [],
       },
     });
-    expect(result.verdicts[0]?.error).toMatch(/locked/);
+    expect(result.verdicts[0]?.error).toBeNull();
+    expect(existsSync(evaluatorWorktreePath(root, 7, "inv-teardown"))).toBe(false);
   });
 
   it("GCs stale sha12 directories", async () => {

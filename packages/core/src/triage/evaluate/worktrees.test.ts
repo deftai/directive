@@ -39,6 +39,35 @@ describe("evaluator worktrees", () => {
     expect(existsSync(path)).toBe(false);
   });
 
+  it("falls back to directory delete and prune when force-remove fails", () => {
+    const root = mkdtempSync(join(tmpdir(), "wt-"));
+    temps.push(root);
+    let removes = 0;
+    const git: GitRunner = (args) => {
+      if (args[1] === "add") {
+        mkdirSync(String(args[3]), { recursive: true });
+        return { returncode: 0, stdout: "", stderr: "" };
+      }
+      if (args[1] === "remove") {
+        removes += 1;
+        if (removes === 1) {
+          return { returncode: 1, stdout: "", stderr: "locked" };
+        }
+        rmSync(String(args[3]), { recursive: true, force: true });
+        return { returncode: 0, stdout: "", stderr: "" };
+      }
+      if (args[1] === "prune") {
+        return { returncode: 0, stdout: "", stderr: "" };
+      }
+      return { returncode: 0, stdout: "", stderr: "" };
+    };
+    const path = addEvaluatorWorktree(root, 3, "inv", "abc123def456aaaaaaaa", git);
+    expect(existsSync(path)).toBe(true);
+    removeEvaluatorWorktree(root, path, git);
+    expect(existsSync(path)).toBe(false);
+    expect(removes).toBe(2);
+  });
+
   it("raises when git worktree add fails", () => {
     const root = mkdtempSync(join(tmpdir(), "wt-"));
     temps.push(root);
