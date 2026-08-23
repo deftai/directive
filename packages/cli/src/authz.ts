@@ -284,7 +284,7 @@ function helpText(): string {
     "  (grant / uat-start / uat-suspend / revoke) — no TTY, --confirm, or phrase path.",
     "  Self-approval under UAT is impossible by construction. Mint grants BEFORE uat-start.",
     "Outside UAT, mutating verbs require multi-factor human presence (#3110):",
-    "  - Interactive TTY (stdin+stdout) + controlling terminal (/dev/tty|CONIN$)",
+    "  - Interactive TTY (stdin+stdout) + controlling terminal (/dev/tty|\\\\.\\CONIN$)",
     "  - Explicit --confirm (argv flag alone never enough)",
     "  - Typed phrase 'mint' on the controlling TTY (PTY+--confirm alone never enough)",
     "  - Known agent/CI env markers always refuse (fail-closed).",

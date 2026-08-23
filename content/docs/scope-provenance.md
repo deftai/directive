@@ -70,7 +70,7 @@ task scope:record-approved-scope -- xbrief/active/story.xbrief.json --actor scot
 
 Mint uses the shared #3110 human-presence gate (same module as `authz`):
 
-- Interactive TTY (stdin + stdout) and a controlling terminal (`/dev/tty` or `CONIN$`)
+- Interactive TTY (stdin + stdout) and a controlling terminal (`/dev/tty` or `\\.\CONIN$`)
 - Explicit `--confirm`
 - Typed phrase `mint` on the controlling TTY
 - Agent/CI env markers (`AUTHZ_AGENT_SHELL_ENV_MARKERS`) refuse fail-closed
