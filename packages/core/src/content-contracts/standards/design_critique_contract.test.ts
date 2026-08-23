@@ -298,6 +298,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(contract).toContain("mergeIssueLabels");
     expect(contract).toContain("ScmLabelClient.apply");
     expect(contract).toContain("applyDesignCritiqueCatalogChip");
+    expect(contract).toContain("scm issue edit");
     expect(contract).toContain("list-visible state, not consent");
     expect(contract).toContain("⊗ PUT a naive full wipe of every label.");
     expect(contract).not.toContain(
