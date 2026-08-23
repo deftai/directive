@@ -17,6 +17,61 @@ afterEach(() => {
 });
 
 describe("main non-rest branches", () => {
+  it("dispatches issue design-critique-chip without forwarding to gh (#3642)", () => {
+    const apply = vi.fn();
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    expect(
+      main(
+        [
+          "issue",
+          "design-critique-chip",
+          "--issue",
+          "3642",
+          "--chip",
+          "triage-ready",
+          "--repo",
+          "deftai/directive",
+        ],
+        {
+          skipReadiness: true,
+          labelClient: {
+            fetchLabels: () => ["bug", "design-critique:mechanism-shaped"],
+            apply,
+          },
+        },
+      ),
+    ).toBe(0);
+    expect(spawnSyncMock).not.toHaveBeenCalled();
+    expect(apply).toHaveBeenCalledTimes(1);
+    expect(apply.mock.calls[0]?.slice(2)).toEqual([
+      ["design-critique:triage-ready"],
+      ["design-critique:mechanism-shaped"],
+    ]);
+    stdout.mockRestore();
+  });
+
+  it("returns 2 for unknown design-critique-chip names without spawning gh", () => {
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    expect(
+      main(
+        [
+          "issue",
+          "design-critique-chip",
+          "--issue",
+          "1",
+          "--chip",
+          "halted",
+          "--repo",
+          "deftai/directive",
+        ],
+        { skipReadiness: true },
+      ),
+    ).toBe(2);
+    expect(spawnSyncMock).not.toHaveBeenCalled();
+    expect(stderr.mock.calls.join("")).toMatch(/unknown design-critique chip/);
+    stderr.mockRestore();
+  });
+
   it("forwards to gh via buildCommand and returns process status", () => {
     vi.spyOn(buildCommand, "buildCommand").mockReturnValue(["/usr/bin/gh", "issue", "list"]);
     spawnSyncMock.mockReturnValue({ status: 0 });

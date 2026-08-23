@@ -3,6 +3,7 @@ export * from "./binary.js";
 export * from "./build-command.js";
 export * from "./call.js";
 export * from "./constants.js";
+export * from "./design-critique-chip.js";
 export * from "./errors.js";
 export * from "./gh-rest.js";
 export * from "./main.js";

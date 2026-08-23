@@ -40,6 +40,7 @@ Normative rules live in [`contracts/design-critique.md`](../../contracts/design-
 
 First-line model slug: Stop 3 — Critic envelope.
 Operator-gated loop. Successor lean. Operator verbs. Dual stop. Halt line. Bind after accepted synthesis.
+Parent chip write: scm:issue:design-critique-chip.
 
 Each critic dispatch EXITs after posting.
 

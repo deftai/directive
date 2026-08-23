@@ -122,7 +122,7 @@ Closed set (one current chip; remaining-set replace, last chip wins):
 | Synthesis-accepted line | `design-critique: synthesis accepted, because …` | Human-authority bind record |
 | Bind-ready label | `design-critique:triage-ready` | Bound; remaining-set replace after operator-accepted synthesis |
 
-Applying one catalog chip: GET current labels, drop the other catalog names (`design-critique:mechanism-shaped` and `design-critique:triage-ready`), PUT/PATCH that remaining set. Other facets stay. Inventory: `LabelClient.apply` / `mergeIssueLabels`. Do not DELETE-then-POST (unchipped window). Do not PUT a naive full wipe.
+Applying one catalog chip: parent MUST call `task scm:issue:design-critique-chip -- --issue N --chip triage-ready|mechanism-shaped [--repo OWNER/NAME]`. GET current labels, drop the other catalog names (`design-critique:mechanism-shaped` and `design-critique:triage-ready`), PUT/PATCH that remaining set. Other facets stay. Inventory: `LabelClient.apply` / `mergeIssueLabels`. Do not DELETE-then-POST (unchipped window). Do not PUT a naive full wipe. Do not `gh api POST .../labels` or additive `scm:issue:edit --add-label`.
 
 Chip is list state, not consent. Do not drop `mechanism-shaped` without the synthesis-accepted line (or the #3640 empty-disagreement path).
 

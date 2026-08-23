@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Exclusive remaining-set replace for design-critique catalog chips (#3642).** Applying `design-critique:mechanism-shaped` or `design-critique:triage-ready` GET-drops the other catalog name and PUT/PATCHes that remaining set (`LabelClient.apply` / `mergeIssueLabels`). No DELETE-then-POST window. Chip is list state, not consent. Closes #3642.
+- **Exclusive remaining-set replace for design-critique catalog chips (#3642).** Applying `design-critique:mechanism-shaped` or `design-critique:triage-ready` GET-drops the other catalog name and PUT/PATCHes that remaining set (`LabelClient.apply` / `mergeIssueLabels`). Parent write is `task scm:issue:design-critique-chip -- --issue N --chip triage-ready|mechanism-shaped` (not additive `scm:issue:edit --add-label`). No DELETE-then-POST window. Chip is list state, not consent. Closes #3642.
 
 ### Fixed
 

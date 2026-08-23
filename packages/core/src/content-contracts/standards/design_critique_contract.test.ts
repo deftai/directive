@@ -62,6 +62,7 @@ const REQUIRED_CONTRACT_POINTERS = [
   "DELETE-then-POST",
   "LabelClient.apply",
   "mergeIssueLabels",
+  "scm:issue:design-critique-chip",
   "retry differences",
   "walk findings one at a time",
   "post the verified-claims table",
@@ -103,6 +104,7 @@ const REQUIRED_SKILL_POINTERS = [
   "Halt line",
   "Bind after accepted synthesis",
   "EXITs after posting",
+  "scm:issue:design-critique-chip",
 ];
 
 const DEFAULT_ALWAYS_PINS = [
@@ -298,8 +300,10 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(contract).toContain("mergeIssueLabels");
     expect(contract).toContain("ScmLabelClient.apply");
     expect(contract).toContain("applyDesignCritiqueCatalogChip");
-    expect(contract).toContain("scm issue edit");
+    expect(contract).toContain("designCritiqueChipApplyDelta");
+    expect(contract).toContain("scm:issue:design-critique-chip");
     expect(contract).toContain("list-visible state, not consent");
+    expect(contract).toContain("additive `scm:issue:edit --add-label`");
     expect(contract).toContain("⊗ PUT a naive full wipe of every label.");
     expect(contract).not.toContain(
       "Remove every other `design-critique:*` label on that issue first",

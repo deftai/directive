@@ -141,6 +141,40 @@ describe("routeArgv", () => {
     expect(routeArgv(["scm", "issue", "list"]).argv).toEqual(["scm", "issue", "list"]);
   });
 
+  it("maps scm:issue:design-critique-chip colon and space forms (#3642)", () => {
+    expect(
+      routeArgv([
+        "scm",
+        "issue",
+        "design-critique-chip",
+        "--issue",
+        "3642",
+        "--chip",
+        "triage-ready",
+      ]).argv,
+    ).toEqual([
+      "scm",
+      "issue",
+      "design-critique-chip",
+      "--issue",
+      "3642",
+      "--chip",
+      "triage-ready",
+    ]);
+    expect(
+      routeArgv(["scm:issue:design-critique-chip", "--issue", "3642", "--chip", "triage-ready"])
+        .argv,
+    ).toEqual([
+      "scm",
+      "issue",
+      "design-critique-chip",
+      "--issue",
+      "3642",
+      "--chip",
+      "triage-ready",
+    ]);
+  });
+
   it("preserves legacy flat verbs", () => {
     expect(routeArgv(["verify:encoding", "--help"]).argv).toEqual(["verify:encoding", "--help"]);
     expect(routeArgv(["verify-encoding"]).argv).toEqual(["verify-encoding"]);

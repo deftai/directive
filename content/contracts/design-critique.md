@@ -186,7 +186,10 @@ Parent may post that line and cite the verb. Then apply `design-critique:triage-
 
 Closed catalog (last chip wins): `design-critique:mechanism-shaped` (in-flight, gate match) and `design-critique:triage-ready` (bound). No halt chip.
 
-- ! Exclusive replace is one merged remaining-set write: GET current labels, drop the other catalog names (`design-critique:mechanism-shaped` and `design-critique:triage-ready`), PUT/PATCH that list with the new chip. Other facets stay. Parent write path: `ScmLabelClient.apply` → `applyDesignCritiqueCatalogChip` (one `scm issue edit` with `--add-label` and `--remove-label` together). Inventory: `LabelClient.apply` / `mergeIssueLabels`. The SCM CLI does not intercept mixed issue edits.
+- ! Exclusive replace is one merged remaining-set write: GET current labels, drop the other catalog names (`design-critique:mechanism-shaped` and `design-critique:triage-ready`), PUT/PATCH that list with the new chip. Other facets stay. Parent write path: `task scm:issue:design-critique-chip -- --issue N --chip triage-ready|mechanism-shaped [--repo OWNER/NAME]` (`deft scm issue design-critique-chip` dual-invoke). The verb GET-drops via `applyDesignCritiqueCatalogChip` / `designCritiqueChipApplyDelta` and one `ScmLabelClient.apply`. Inventory: `LabelClient.apply` / `mergeIssueLabels`.
+- ⊗ `gh api POST .../labels` or additive `scm:issue:edit --add-label` for this facet.
+- ⊗ Intercept mixed `scm issue edit` adds/removes for this facet.
+- ⊗ General-purpose labels CLI.
 - ! After `design-critique:triage-ready`, `triage:accept` / `scope:promote` read the operator-accepted verified synthesis (latest successor lean plus the verified-claims table).
 - ! Keep `plan.policy.judgmentGates` matching only `design-critique:mechanism-shaped`. After `triage-ready` replaces it, the issue leaves the gate match.
 - ! Chip is list-visible state, not consent. Do not drop `mechanism-shaped` without the synthesis-accepted line (or the #3640 empty-disagreement path).

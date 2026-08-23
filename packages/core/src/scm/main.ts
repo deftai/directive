@@ -1,7 +1,9 @@
 import { spawnSync } from "node:child_process";
+import type { LabelClient } from "../vbrief-reconcile/types.js";
 import { extractFlag } from "./argv.js";
 import { buildCommand } from "./build-command.js";
 import { REST_OPT_IN_VERBS } from "./constants.js";
+import { DESIGN_CRITIQUE_CHIP_VERB, runDesignCritiqueChip } from "./design-critique-chip.js";
 import { ScmStubError } from "./errors.js";
 import type { GhRestSeams } from "./gh-rest.js";
 import { requireScmReady } from "./readiness.js";
@@ -16,6 +18,8 @@ export interface MainOptions {
    * Production CLI always probes.
    */
   readonly skipReadiness?: boolean;
+  /** LabelClient seam for `issue design-critique-chip` (#3642). */
+  readonly labelClient?: LabelClient;
 }
 
 /**
@@ -43,7 +47,7 @@ export function main(argv: readonly string[], options: MainOptions = {}): number
   if (argv.length < 2) {
     process.stderr.write(
       "usage: scm.py <namespace> <verb> [pass-through args...]\n" +
-        "       (v1 stub: namespace=issue, verb=list|view|close|edit)\n" +
+        "       (v1 stub: namespace=issue, verb=list|view|close|edit|design-critique-chip)\n" +
         "       --rest opt-in is supported on issue view/list (#976)\n",
     );
     return 2;
@@ -52,6 +56,20 @@ export function main(argv: readonly string[], options: MainOptions = {}): number
   const namespace = argv[0] ?? "";
   const verb = argv[1] ?? "";
   let extra = argv.slice(2);
+
+  if (namespace === "issue" && verb === DESIGN_CRITIQUE_CHIP_VERB) {
+    const blocked = guardScmReady(options);
+    if (blocked !== null) return blocked;
+    const result = runDesignCritiqueChip(extra, { client: options.labelClient });
+    if (result.stdout.length > 0) {
+      process.stdout.write(result.stdout);
+    }
+    if (result.stderr.length > 0) {
+      process.stderr.write(result.stderr);
+    }
+    return result.exitCode;
+  }
+
   const [restMode, afterRest] = extractFlag(extra, "--rest");
   extra = afterRest;
 

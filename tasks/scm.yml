@@ -13,6 +13,7 @@ version: '3'
 #   - scm:issue:view    (thin wrapper over `ghx|gh issue view`)
 #   - scm:issue:close   (thin wrapper over `ghx|gh issue close`)
 #   - scm:issue:edit    (thin wrapper over `ghx|gh issue edit`)
+#   - scm:issue:design-critique-chip (#3642 closed catalog remaining-set)
 #   - scm:body:*        (#1555 safe Markdown body posting via github-body TS CLI)
 #
 # Each command is a thin pass-through to `ghx <verb>` (when ghx is on PATH)
@@ -34,8 +35,9 @@ version: '3'
 # stub deliberately does not re-implement; #881 owns the full surface.
 #
 # Forward-compat marker: v1 was issue:* plus #1555 body-posting. #3391
-# adds scm:sync-default (dest-targeted staged sync PRs). Other PR verbs
-# remain #881.
+# adds scm:sync-default (dest-targeted staged sync PRs). #3642 adds
+# scm:issue:design-critique-chip (closed catalog remaining-set). Other PR
+# verbs remain #881.
 # ---------------------------------------------------------------------------
 
 vars:
@@ -88,6 +90,16 @@ tasks:
       - task: :engine:invoke
         vars:
           ENGINE_CMD: 'scm issue edit {{.CLI_ARGS}}'
+
+  issue:design-critique-chip:
+    desc: "[#3642] Exclusive design-critique catalog chip -- task scm:issue:design-critique-chip -- --issue N --chip triage-ready|mechanism-shaped [--repo OWNER/NAME]"
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'scm issue design-critique-chip {{.CLI_ARGS}}'
 
   body:issue:create:
     desc: "[#1555] Safely create an issue body from --body-file without shell Markdown interpolation"
