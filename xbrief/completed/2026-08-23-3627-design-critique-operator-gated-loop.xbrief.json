@@ -1,0 +1,149 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story: operator-gated design-critique loop until synthesis accepted (#3627 recut)",
+    "updated": "2026-08-23T04:37:54Z"
+  },
+  "plan": {
+    "id": "issue-3627-design-critique-operator-gated-loop",
+    "title": "design-critique operator-gated loop until synthesis accepted",
+    "status": "completed",
+    "narratives": {
+      "Description": "Keep the design-critique arc in motion until the operator accepts a verified synthesis. Loop, verbs, dual-stop numbers, halt line, and `design-critique:triage-ready` live in the contract. Skill stays a thin pointer. No critic-posted chip. Do not edit the #3627 issue body.",
+      "Origin": "GitHub issue #3627. Parent #3434. Bindable SoT is successor lean comment 5383885131 (supersedes write-back 5383637041), plus Accept-X comments 5383705226, 5383711048, 5383720765, 5383729556, 5383736899, 5383741863, 5383754204, 5383773175, 5383780813, 5383785960, 5383800730. Critic 5383653662 is data. Issue body is historical; do not implement critic-posted from the body.",
+      "Overview": "Dogfood on #3620 and #3596: round 1 is a disagreement map. A triage-ready stamp at critic-post binds a contested write-back. Recut: successor lean after accept-X; parent prints operator phrases; walk is optional; short forms of accept synthesis are valid; dual stop numbered (default 2 critic posts); halt line without a halt label; bind is triage:accept / scope:promote of the accepted synthesis, not Phase 3. Adjacent #3628 is a separate PR.",
+      "UserStory": "As the operator after a critic posts, I want printed verbs (accept, retry differences, walk, accept synthesis) and a successor lean, so Phase-bind cannot fire on a contested write-back.",
+      "When": "When the contract encodes the operator-gated loop, successor lean, printed verbs, numbered dual stop, halt line, triage-ready attach after accepted synthesis, ISSUE_LABELS.md and GitHub have design-critique:triage-ready only (no critic-posted), the skill stays a thin pointer under the line cap, and content-contract tests lock those pointer strings.",
+      "LockedDecisions": "Do not edit the #3627 issue body. Do not add design-critique:critic-posted or any author/role chip. Critic does not write issue labels. Loop lives in the contract, not the skill. Each critic dispatch still EXITs after posting. ⊗ Auto-dispatch (#3578 / #1702). ⊗ Use Phase 3 or Stop 5 as operator commands. ⊗ Stamp triage-ready at critic-post. ⊗ Infer accept-synthesis from looks-good. Default critic posts = 2; third only with recorded why. Fingerprint = still-open finding headings/ids. Dispatch-fail is a separate halt. Halt line is design-critique: halted, because … with no halt label. Human authority for the bind; parent may post the synthesis-accepted line. Short forms of accept synthesis are valid. Walk comments stay slim. Full template only on successor lean / retry map. Do not close #3434. Do not implement #3628 in this PR (sequence 3628 first if both are in flight). Catalog home is .github/ISSUE_LABELS.md (#2609), not the consumer kit (#2611). Do not add triage-ready to judgmentGates labels.any-of.",
+      "ImplementationPlan": "Land contract Stop 4 / dual-stop / bind / verbs / successor lean / halt line / triage-ready attach. Thin skill pointer only (packs:render). ISSUE_LABELS.md + GitHub label design-critique:triage-ready. Content-contract tests. CHANGELOG Unreleased. Verify with pnpm exec vitest run packages/core/src/content-contracts. Closes #3627. Refs #3434, ADR-005, #3578, #1702, #2442, #2609, #2611, #1423, #3607, #3620, #3596, #3628."
+    },
+    "items": [
+      {
+        "title": "Contract loop, successor lean, verbs, dual stop, halt, bind",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When content/contracts/design-critique.md is read, it keeps the arc from handing to triage:accept / scope:promote until design-critique:triage-ready; records successor lean after accept-X; parent prints accept / retry differences / walk findings one at a time / post the verified-claims table / accept synthesis (short forms listed); dual stop is numbered (default 2 critic posts; third only with recorded why; fingerprint = still-open headings/ids; dispatch-fail separate); halt line is `design-critique: halted, because …` with no halt label; bind surface is named without Phase 3; human authority for the synthesis-accepted line; walk comments slim; full template only on successor lean / retry map; critic does not write labels; no critic-posted chip.",
+          "Acceptance": "When content/contracts/design-critique.md is read, it keeps the arc from handing to triage:accept / scope:promote until design-critique:triage-ready; records successor lean after accept-X; parent prints accept / retry differences / walk findings one at a time / post the verified-claims table / accept synthesis (short forms listed); dual stop is numbered (default 2 critic posts; third only with recorded why; fingerprint = still-open headings/ids; dispatch-fail separate); halt line is `design-critique: halted, because …` with no halt label; bind surface is named without Phase 3; human authority for the synthesis-accepted line; walk comments slim; full template only on successor lean / retry map; critic does not write labels; no critic-posted chip."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts#operator-gated-loop",
+          "recorded_at": "2026-08-23T04:28:00Z",
+          "recorded_by": "leaf-worker/3627"
+        }
+      },
+      {
+        "title": "Catalog + GitHub triage-ready chip only",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When .github/ISSUE_LABELS.md is read, it names design-critique:triage-ready (family, attach after operator-accepted synthesis, pairing `design-critique: synthesis accepted, because …`) and does not add design-critique:critic-posted, and the GitHub label design-critique:triage-ready exists with a matching description. judgmentGates still matches only design-critique:mechanism-shaped.",
+          "Acceptance": "When .github/ISSUE_LABELS.md is read, it names design-critique:triage-ready (family, attach after operator-accepted synthesis, pairing `design-critique: synthesis accepted, because …`) and does not add design-critique:critic-posted, and the GitHub label design-critique:triage-ready exists with a matching description. judgmentGates still matches only design-critique:mechanism-shaped."
+        },
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "https://api.github.com/repos/deftai/directive/labels/design-critique:triage-ready",
+          "recorded_at": "2026-08-23T04:28:00Z",
+          "recorded_by": "leaf-worker/3627"
+        }
+      },
+      {
+        "title": "Thin skill pointer; tests lock strings",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When the thin skill is under the line cap with no-normative-content, it points at the new contract headings without copying loop bodies, each critic dispatch still EXITs after posting, and pnpm exec vitest run packages/core/src/content-contracts locks pointer strings for successor lean, operator verbs, halt line, triage-ready attach, not-critic-posted, not-triage:*, not Phase 3, not #3607 interlock, and not auto-dispatch.",
+          "Acceptance": "When the thin skill is under the line cap with no-normative-content, it points at the new contract headings without copying loop bodies, each critic dispatch still EXITs after posting, and pnpm exec vitest run packages/core/src/content-contracts locks pointer strings for successor lean, operator verbs, halt line, triage-ready attach, not-critic-posted, not-triage:*, not Phase 3, not #3607 interlock, and not auto-dispatch."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts#thin-skill-pointers",
+          "recorded_at": "2026-08-23T04:28:00Z",
+          "recorded_by": "leaf-worker/3627"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3627",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3627"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3627#issuecomment-5383885131",
+        "type": "x-xbrief/document",
+        "title": "Successor lean (bindable SoT)"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "content/contracts/design-critique.md",
+          "content/templates/design-critique-brief.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-design-critique/SKILL.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          ".github/ISSUE_LABELS.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts"
+        ],
+        "expected_outputs": [
+          "operator-gated loop in contract; triage-ready chip; no critic-posted; thin skill"
+        ],
+        "depends_on": [
+          "issue-3628-design-critique-first-line-model"
+        ],
+        "conflict_group": "design-critique-3627-3628",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Bindable SoT is successor lean 5383885131 plus Accept-X thread, not the issue body. File-overlaps #3628; sequence 3628 then 3627."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/contracts/design-critique.md",
+          "content/templates/design-critique-brief.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          ".github/ISSUE_LABELS.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "content/contracts",
+        "cohesion_exemption": "CHANGELOG.md and ISSUE_LABELS.md may already exceed FILE_SIZE_REVIEW_TRIGGER_LINES; this slice adds Unreleased plus catalog rows."
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "1ae65966fb88bc74c14c789203adaca5ea1ec103",
+        "prNumber": 3635,
+        "prBase": "master",
+        "mergeCommit": "bc45bd55a56b03df6925ae4413fe4ab3f1e44deb",
+        "deliveryBranch": "master",
+        "deliveryCommit": "bc45bd55a56b03df6925ae4413fe4ab3f1e44deb",
+        "verifiedAt": "2026-08-23T04:37:54Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "93a41094-b243-40bb-a175-5e3c92128628"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-23T04:37:54Z",
+      "completedSessionId": "93a41094-b243-40bb-a175-5e3c92128628",
+      "capacityBucket": "new-capability"
+    },
+    "updated": "2026-08-23T04:37:54Z"
+  }
+}

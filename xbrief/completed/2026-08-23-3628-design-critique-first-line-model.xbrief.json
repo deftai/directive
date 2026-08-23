@@ -1,0 +1,140 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story: first-line LLM model slug on design-critique triage and critic comments (#3628)",
+    "updated": "2026-08-23T04:38:17Z"
+  },
+  "plan": {
+    "id": "issue-3628-design-critique-first-line-model",
+    "title": "design-critique first-line model slug on triage and critic comments",
+    "status": "completed",
+    "narratives": {
+      "Description": "Require a first-line model slug on the triage write-back and on every critic comment. Comment field, not an issue label, not a GitHub login. Adjacent to #3627; do not merge the issues.",
+      "Origin": "GitHub issue #3628. Parent #3434. Body is the SoT (zero comments at ingest). Refs ADR-005, #1423, #3602, #3627 (adjacent; do not merge).",
+      "Overview": "A reader and a later synthesizer must see which model wrote the lean and which model wrote the critique without inferring it from the host or spawn metadata. Canonical lead line is `model: <slug>` (example `model: grok-4.6`). Same rule for Stop 4 retry critics. Synthesis comments SHOULD do the same.",
+      "UserStory": "As a later synthesizer, I want the first line of the triage write-back and each critic comment to name the model, so I do not guess same-family vs cross-family from the host.",
+      "When": "When the contract (and brief if needed) requires a first-line model slug on the triage write-back and every critic comment, the thin skill only points at that rule, a content-contract test locks the first-line requirement, and docs say this is a comment field not an issue label.",
+      "LockedDecisions": "Comment-lead field only. ⊗ Issue label for the model. ⊗ GitHub login / author / role name in place of the model. ⊗ Infer the model from verify:routing or spawn metadata and omit it from the comment. Do not implement #3627 in this PR. Do not auto-dispatch (#3578). Do not close #3434. Do not thicken the skill past the line cap.",
+      "ImplementationPlan": "Edit content/contracts/design-critique.md Stop 3 / write-back recording; add a model field to content/templates/design-critique-brief.md if the envelope must copy onto the comment; thin skill pointer only; content-contract test; CHANGELOG Unreleased. Verify with pnpm exec vitest run packages/core/src/content-contracts. Separate PR from #3627. Closes #3628."
+    },
+    "items": [
+      {
+        "title": "Contract first-line model slug",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When content/contracts/design-critique.md is read, it requires a first-line machine-findable model slug on the triage write-back and on every critic comment, including a Stop 4 retry critic, and forbids putting the model in an issue label or replacing it with a GitHub login.",
+          "Acceptance": "When content/contracts/design-critique.md is read, it requires a first-line machine-findable model slug on the triage write-back and on every critic comment, including a Stop 4 retry critic, and forbids putting the model in an issue label or replacing it with a GitHub login."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3634 merge b038deeb78b107b23e65b3b84ca6e024edc84779 — content/contracts/design-critique.md first-line model: <slug> on write-back and critic comments",
+          "recorded_at": "2026-08-23T03:46:00Z",
+          "recorded_by": "agent/leaf-implementation/3628"
+        }
+      },
+      {
+        "title": "Brief + thin skill pointer",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the brief template is filled, it has a model field the poster copies onto the first line of the comment, and the thin skill points at the first-line rule without adding normative copy that would fail the line cap.",
+          "Acceptance": "When the brief template is filled, it has a model field the poster copies onto the first line of the comment, and the thin skill points at the first-line rule without adding normative copy that would fail the line cap."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3634 merge b038deeb78b107b23e65b3b84ca6e024edc84779 — brief model field + thin skill First-line model slug pointer",
+          "recorded_at": "2026-08-23T03:46:00Z",
+          "recorded_by": "agent/leaf-implementation/3628"
+        }
+      },
+      {
+        "title": "Content-contract test locks first-line requirement",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When pnpm exec vitest run packages/core/src/content-contracts passes, tests lock the first-line model-slug requirement as a comment field, not an issue label.",
+          "Acceptance": "When pnpm exec vitest run packages/core/src/content-contracts passes, tests lock the first-line model-slug requirement as a comment field, not an issue label."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "pnpm exec vitest run packages/core/src/content-contracts — packages/core/src/content-contracts/standards/design_critique_contract.test.ts first-line comment field not issue label; PR 3634 Greptile CLEAN 5/5",
+          "recorded_at": "2026-08-23T03:46:00Z",
+          "recorded_by": "agent/leaf-implementation/3628"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3628",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3628"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "content/contracts/design-critique.md",
+          "content/templates/design-critique-brief.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-design-critique/SKILL.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts"
+        ],
+        "expected_outputs": [
+          "first-line model slug required on triage write-back and critic comments"
+        ],
+        "depends_on": [],
+        "conflict_group": "design-critique-3627-3628",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Issue #3628 body is the SoT; zero comments at ingest. File-overlaps #3627 on the contract/skill/tests; sequence 3628 then 3627."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/contracts/design-critique.md",
+          "content/templates/design-critique-brief.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "content/contracts",
+        "cohesion_exemption": "CHANGELOG.md may already exceed FILE_SIZE_REVIEW_TRIGGER_LINES; this slice adds one Unreleased line."
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "02b3a84706e194c32a3da6974bbd5be12cf8dce6",
+        "prNumber": 3634,
+        "prBase": "master",
+        "mergeCommit": "b038deeb78b107b23e65b3b84ca6e024edc84779",
+        "deliveryBranch": "master",
+        "deliveryCommit": "bc45bd55a56b03df6925ae4413fe4ab3f1e44deb",
+        "verifiedAt": "2026-08-23T04:38:17Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "93a41094-b243-40bb-a175-5e3c92128628"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-23T04:38:17Z",
+      "completedSessionId": "93a41094-b243-40bb-a175-5e3c92128628",
+      "capacityBucket": "new-capability"
+    },
+    "updated": "2026-08-23T04:38:17Z"
+  }
+}
