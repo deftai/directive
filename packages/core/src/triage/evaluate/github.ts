@@ -1,4 +1,5 @@
 import {
+  GhRestError,
   type RunGhApiFn,
   restIssueListPaginated,
   restIssueView,
@@ -106,33 +107,49 @@ function parsePullPage(stdout: string): GithubPullSnapshot[] {
     .map((item) => snapshotFromPullPayload(item));
 }
 
+function fetchPullPage(runner: RunGhApiFn, endpoint: string, page: number): GithubPullSnapshot[] {
+  const result = runner([
+    endpoint,
+    "--method",
+    "GET",
+    "--raw-field",
+    "state=open",
+    "--raw-field",
+    `per_page=${OPEN_PULLS_PER_PAGE}`,
+    "--raw-field",
+    `page=${page}`,
+  ]);
+  if (result.returncode !== 0) {
+    throw new Error(`GET ${endpoint} failed: ${result.stderr.trim() || "no stderr"}`);
+  }
+  return parsePullPage(result.stdout);
+}
+
 function listOpenPulls(repo: string, seams: GithubSeams): GithubPullSnapshot[] {
   const [owner, name] = splitRepo(repo);
   const endpoint = `repos/${owner}/${name}/pulls`;
   const runner = seams.runGhApiFn ?? runGhApi;
   const out: GithubPullSnapshot[] = [];
   for (let page = 1; page <= OPEN_PULLS_MAX_PAGES; page += 1) {
-    const result = runner([
-      endpoint,
-      "--method",
-      "GET",
-      "--raw-field",
-      "state=open",
-      "--raw-field",
-      `per_page=${OPEN_PULLS_PER_PAGE}`,
-      "--raw-field",
-      `page=${page}`,
-    ]);
-    if (result.returncode !== 0) {
-      throw new Error(`GET ${endpoint} failed: ${result.stderr.trim() || "no stderr"}`);
-    }
-    const pageItems = parsePullPage(result.stdout);
+    const pageItems = fetchPullPage(runner, endpoint, page);
     out.push(...pageItems);
     if (pageItems.length < OPEN_PULLS_PER_PAGE) {
       return out;
     }
   }
-  return out;
+  // Full last collected page: probe one more page to distinguish exactly-at-cap
+  // from a truncated census. Do not collect past the cap.
+  const overflow = fetchPullPage(runner, endpoint, OPEN_PULLS_MAX_PAGES + 1);
+  if (overflow.length === 0) {
+    return out;
+  }
+  throw new GhRestError({
+    stderr: `open-pull census truncated: last page ${OPEN_PULLS_MAX_PAGES} was full (${OPEN_PULLS_PER_PAGE} items) and page ${OPEN_PULLS_MAX_PAGES + 1} has more; later PRs are omitted`,
+    exitCode: 0,
+    endpoint,
+    payload: null,
+    hint: "census is incomplete; fail the evaluation rather than treating a truncated list as complete",
+  });
 }
 
 /** GET-only GitHub census. Parent-owned. Never POST/PATCH/PUT/DELETE. */
