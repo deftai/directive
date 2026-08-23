@@ -347,6 +347,12 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(text).toContain("Do not auto-start the walk");
     expect(text).toContain("retry differences");
     expect(text).toContain("does not exclude that critic's own post from the denominator");
+    expect(text).toContain(
+      "Comments after the id ceiling are out of envelope, except the critic's own Stop 4 retry post",
+    );
+    expect(text).toContain(
+      "including after the disagreement-map input ceiling), which stays in the auto-stamp denominator",
+    );
     expect(text).toContain("Still-open residual headings persist");
     expect(text).toContain("Uncited still-open headings remain `disagree`");
     expect(text).toContain("Do not auto-stamp on a partial map");

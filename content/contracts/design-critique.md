@@ -55,7 +55,7 @@ Process-only. The critic audits the lean, the protocol fit, and the recording ob
 The envelope is [`templates/design-critique-brief.md`](../templates/design-critique-brief.md). Fill fields. Do not copy rule bodies from this contract into the envelope.
 
 - ! State an id ceiling (GitHub comment id, inclusive) at dispatch.
-- ! Honor that ceiling. Comments after the id ceiling are out of envelope.
+- ! Honor that ceiling. Comments after the id ceiling are out of envelope, except the critic's own Stop 4 retry post (including after the disagreement-map input ceiling), which stays in the auto-stamp denominator.
 - ! Round-1 ceiling is the triage write-back (or the thread head at dispatch).
 - ! Round-2 ceiling is the disagreement-map comment.
 - ! Resolve SHAs from the tree. Do not invent them.
