@@ -1,0 +1,225 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Probe story: Windows controlling-terminal path for operator mint, bound to #3596 successor lean after the r+ ship (PR 3605) was falsified.",
+    "updated": "2026-08-23T14:57:09Z"
+  },
+  "plan": {
+    "id": "issue-3596-win32-controlling-terminal-probe",
+    "title": "win32 controlling-terminal probe for operator mint (#3596 leftover)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Remaining #3596 work is the blocking probe story only. Halt before any product edit until a real-console diagnostic of CONIN$, the Windows device-namespace CONIN$ path, and CON (each with open flags r and r+) is posted on the issue. Then implement exactly one path from that table. Dry-run is out of this story.",
+      "Origin": "GitHub issue #3596. Next-build contract is successor lean 5386347944 plus verified-claims table 5386362218 plus synthesis 5386364772. Do not implement against 5383538006. Completed xBRIEF 2026-08-21-3596 (PR 3605) is record of the r+ ship, not the next-build contract (#3383).",
+      "Overview": "Master still opens bare CONIN$ with r+ (PR 3605). Real-console diagnostic (operator PowerShell at C:\\Repos\\deft\\directive): bare CONIN$ r and r+ FAIL ENOENT; Windows device-namespace CONIN$ path r and r+ OPEN; CON r and r+ FAIL ENOENT. One path: that device-namespace path with open flag r+. Probe error stays refuse mint. A successful open is device present only. Keep #3110 factors. Stay out of #3597 / #3438 fence.",
+      "UserStory": "As a Windows operator, I want mint to find a controlling terminal that actually opens on a real console, so the r+ leftover does not keep mint unreachable.",
+      "When": "When the six-row real-console diagnostic is on #3596, the win32 probe uses exactly one path and flag from that table, open errors refuse mint, a successful open means device present only, #3110 env-marker TTY --confirm and typed-phrase gates stay, a regression test locks the chosen path, and CHANGELOG has an Unreleased line. Issue close also needs a Windows operator mint E2E; the PR uses Refs #3596 until that mint is on the thread.",
+      "LockedDecisions": "Bind 5386347944 + 5386362218 + 5386364772. Diagnostic posted from real PowerShell (not agent-pipe): bare CONIN$ and CON both ENOENT for flags r and r+; Windows device-namespace CONIN$ path OPEN for both flags. One path: that device-namespace path. Open flag r+ (r also opened; r+ kept so probe and phrase-read share one flag). Error on open = refuse mint (fail-closed, 5386342482). Successful open = device present only. Do not amend completed 2026-08-21-3596 xBRIEF. Do not implement dry-run / --explain. Do not implement #3597 or #3438. Do not weaken #3110. PR Refs #3596 until mint E2E is recorded; mint is an issue-close gate, not an agent-pipe check.",
+      "ImplementationPlan": "1. Diagnostic is on #3596. 2. controllingTerminalPath win32 returns the Windows device-namespace CONIN$ path, not bare CONIN$. 3. controllingTerminalOpenFlag win32 stays r+. 4. Regression test locks that path and flag. 5. CHANGELOG Unreleased. 6. Refs #3596. 7. Drive to merge-ready. 8. Human mint E2E on a real console before issue close.",
+      "OriginDivergence": "Completed 2026-08-21-3596 xBRIEF delivered PR 3605 (r+). This file is a new proposed contract for leftover probe work after reopen 5374602077 and accepted synthesis 5386364772. Comments 5386398500 (operator verb) and 5386459826 (real-console diagnostic table) are process/diagnostic, not a spec change; D12 bump 2026-08-23T16:30:00Z after those posts. Issue body still describes the falsified read-only theory."
+    },
+    "items": [
+      {
+        "title": "Six-row real-console diagnostic on #3596 before any product edit",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When product code is edited, #3596 already has a real-console table for CONIN$, the Windows device-namespace CONIN$ path, and CON, each with open flags r and r+, and agent-pipe ENOENT was not used as that record.",
+          "Acceptance": "When product code is edited, #3596 already has a real-console table for CONIN$, the Windows device-namespace CONIN$ path, and CON, each with open flags r and r+, and agent-pipe ENOENT was not used as that record."
+        },
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "https://github.com/deftai/directive/issues/3596#issuecomment-5386459826",
+          "recorded_at": "2026-08-23T14:56:32Z",
+          "recorded_by": "leaf-worker/3596"
+        }
+      },
+      {
+        "title": "Win32 probe uses exactly one path and flag from that table",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When defaultHasControllingTerminal and defaultReadInteractiveConfirm run on win32, they open the single path and flag chosen from the posted diagnostic, not a guessed alternative.",
+          "Acceptance": "When defaultHasControllingTerminal and defaultReadInteractiveConfirm run on win32, they open the single path and flag chosen from the posted diagnostic, not a guessed alternative."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/human-presence-mint.test.ts",
+          "recorded_at": "2026-08-23T14:56:32Z",
+          "recorded_by": "leaf-worker/3596"
+        }
+      },
+      {
+        "title": "Open error refuses mint; successful open is device present only",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the controlling-terminal open throws, mint is refused. When it succeeds, that is device present only, not an extra human-presence factor beyond the existing #3110 gates.",
+          "Acceptance": "When the controlling-terminal open throws, mint is refused. When it succeeds, that is device present only, not an extra human-presence factor beyond the existing #3110 gates."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/human-presence-mint.open-flag.test.ts",
+          "recorded_at": "2026-08-23T14:56:32Z",
+          "recorded_by": "leaf-worker/3596"
+        }
+      },
+      {
+        "title": "Regression test locks the chosen win32 path and flag",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When pnpm exec vitest run packages/cli/src/human-presence-mint.test.ts and packages/cli/src/human-presence-mint.open-flag.test.ts pass, tests lock the chosen win32 path and open flag.",
+          "Acceptance": "When pnpm exec vitest run packages/cli/src/human-presence-mint.test.ts and packages/cli/src/human-presence-mint.open-flag.test.ts pass, tests lock the chosen win32 path and open flag."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/human-presence-mint.test.ts",
+          "recorded_at": "2026-08-23T14:56:32Z",
+          "recorded_by": "leaf-worker/3596"
+        }
+      },
+      {
+        "title": "#3110 factors unchanged",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When refuseNonInteractiveMint is read, env-marker, TTY, --confirm, and typed phrase mint are still required and none of them is weakened or skipped.",
+          "Acceptance": "When refuseNonInteractiveMint is read, env-marker, TTY, --confirm, and typed phrase mint are still required and none of them is weakened or skipped."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/human-presence-mint.test.ts",
+          "recorded_at": "2026-08-23T14:56:32Z",
+          "recorded_by": "leaf-worker/3596"
+        }
+      },
+      {
+        "title": "CHANGELOG Unreleased names the leftover probe",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When CHANGELOG Unreleased is read, it has a brief line for the leftover Windows controlling-terminal probe.",
+          "Acceptance": "When CHANGELOG Unreleased is read, it has a brief line for the leftover Windows controlling-terminal probe."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3639",
+          "recorded_at": "2026-08-23T14:56:32Z",
+          "recorded_by": "leaf-worker/3596"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3596",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3596 leftover probe (not the completed r+ xBRIEF)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3596#issuecomment-5386347944",
+        "type": "x-xbrief/github-comment",
+        "title": "Successor lean 5386347944"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3596#issuecomment-5386362218",
+        "type": "x-xbrief/github-comment",
+        "title": "Verified-claims table 5386362218"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3596#issuecomment-5386364772",
+        "type": "x-xbrief/github-comment",
+        "title": "Synthesis accepted 5386364772"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3110",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3110 human-presence mint"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/cli/src/human-presence-mint.ts",
+          "packages/cli/src/human-presence-mint.test.ts",
+          "packages/cli/src/human-presence-mint.open-flag.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/cli/src/human-presence-mint.test.ts packages/cli/src/human-presence-mint.open-flag.test.ts"
+        ],
+        "expected_outputs": [
+          "win32 probe uses the posted diagnostic path; mint E2E is a human close gate"
+        ],
+        "depends_on": [],
+        "conflict_group": "authz-mint-3596-leftover",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Diagnostic posted 5386459826. Dry-run parked. Stay out of #3597/#3438."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/cli/src/human-presence-mint.ts",
+          "packages/cli/src/human-presence-mint.test.ts",
+          "packages/cli/src/human-presence-mint.open-flag.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/cli/src",
+        "cohesion_exemption": "CHANGELOG.md may already exceed FILE_SIZE_REVIEW_TRIGGER_LINES; this slice adds one Unreleased line."
+      },
+      "capacityBucket": "bugfix",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3639,
+        "prBase": null,
+        "mergeCommit": "203aebbff459a7d0241bee1c0adf2a8d669768a2",
+        "deliveryBranch": "master",
+        "deliveryCommit": "203aebbff459a7d0241bee1c0adf2a8d669768a2",
+        "verifiedAt": "2026-08-23T14:57:09Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "3360f262-6ae4-4539-b3ba-5d27e9cb8923"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-23T14:57:09Z",
+      "completedSessionId": "3360f262-6ae4-4539-b3ba-5d27e9cb8923"
+    },
+    "updated": "2026-08-23T14:57:09Z",
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 1 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Operator posts the six-row diagnostic on #3596. 2. Worktree worker picks the single winning path+flag. 3. Update controllingTerminalPath / controllingTerminalOpenFlag (or equivalent) in packages/cli/src/human-presence-mint.ts. 4. Regression test. 5. CHANGELOG Unreleased. 6. Refs #3596. 7. Drive to merge-ready. 8. Human mint E2E on a real console before issue close.",
+          "artifact_path": "packages/cli/src/human-presence-mint.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    }
+  },
+  "vBRIEFInfo": {
+    "version": "0.8",
+    "updated": "2026-08-23T14:57:09Z"
+  }
+}

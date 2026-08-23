@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Land leftover completed-tracked artifact for leftover #3596 probe (#3264 / #1358).** The leftover probe xBRIEF stayed untracked after squash of PR 3639. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #3627 (#3264 / #1358).** The #3627 xBRIEF stayed untracked after squash of PR 3635. Moved to `xbrief/completed/` via `swarm:finalize-cohort`. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #3628 (#3264 / #1358).** The #3628 xBRIEF stayed untracked after squash of PR 3634. Moved to `xbrief/completed/` via `swarm:finalize-cohort`. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Operator-gated design-critique loop until synthesis is accepted (#3627).** After a critic posts, the parent prints accept / retry differences / walk findings one at a time / post the verified-claims table / accept synthesis (short forms listed). Successor lean is the bindable SoT. Dual stop defaults to two critic posts. Halt line is `design-critique: halted, because …` with no halt label. Attach `design-critique:triage-ready` only after accepted synthesis; bind is `triage:accept` / `scope:promote` of that synthesis. Skill stays a thin pointer. Closes #3627. Refs #3434, ADR-005, #3578, #1702, #2442, #2609, #3628.
