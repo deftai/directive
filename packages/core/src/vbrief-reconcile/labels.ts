@@ -1,8 +1,8 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
+  applyDesignCritiqueCatalogChip,
   isDesignCritiqueCatalogChip,
-  mergeDesignCritiqueExclusiveIntoApply,
 } from "../design-critique/exclusive-chip.js";
 import { hasArtifactSuffix, resolveLifecycleRoot, stripArtifactSuffix } from "../layout/resolve.js";
 import { call } from "../scm/call.js";
@@ -87,20 +87,36 @@ export class ScmLabelClient implements LabelClient {
     add: readonly string[],
     remove: readonly string[],
   ): void {
-    let addList = [...add];
-    let removeList = [...remove];
-    if (addList.some(isDesignCritiqueCatalogChip)) {
-      const current = this.fetchLabels(repo, issueNumber);
-      const merged = mergeDesignCritiqueExclusiveIntoApply(current, addList, removeList);
-      addList = merged.add;
-      removeList = merged.remove;
+    const catalogAdds = add.filter(isDesignCritiqueCatalogChip);
+    if (catalogAdds.length > 0) {
+      const nextChip = catalogAdds[catalogAdds.length - 1] as string;
+      const inner: LabelClient = {
+        fetchLabels: (r, n) => this.fetchLabels(r, n),
+        apply: (r, n, a, rem) => this.applyMut(r, n, a, rem),
+      };
+      applyDesignCritiqueCatalogChip(inner, repo, issueNumber, nextChip);
+      const restAdd = add.filter((name) => !isDesignCritiqueCatalogChip(name));
+      const restRemove = remove.filter((name) => !isDesignCritiqueCatalogChip(name));
+      if (restAdd.length > 0 || restRemove.length > 0) {
+        this.applyMut(repo, issueNumber, restAdd, restRemove);
+      }
+      return;
     }
-    if (addList.length === 0 && removeList.length === 0) {
+    this.applyMut(repo, issueNumber, add, remove);
+  }
+
+  private applyMut(
+    repo: string,
+    issueNumber: number,
+    add: readonly string[],
+    remove: readonly string[],
+  ): void {
+    if (add.length === 0 && remove.length === 0) {
       return;
     }
     const args = ["edit", String(issueNumber), "--repo", repo];
-    for (const name of addList) args.push("--add-label", name);
-    for (const name of removeList) args.push("--remove-label", name);
+    for (const name of add) args.push("--add-label", name);
+    for (const name of remove) args.push("--remove-label", name);
     const proc = call(SCM_SOURCE, "issue", args);
     if (proc.returncode !== 0) {
       throw new ScmLabelError(
