@@ -36,6 +36,36 @@ export const registryData = {
       see_also: ["task triage:bootstrap", "task cache:fetch-all", "#1119 / D5"],
       placeholder: false,
     },
+    "task triage:evaluate": {
+      name: "task triage:evaluate",
+      summary: "Isolated validity + parent WIP census + value advice",
+      refs: "(#3648)",
+      description:
+        "Stage A issue-eval: detached origin/master worktrees own validity and ADR/contract reads; the parent on the live working set owns WIP census (xbrief/active, xbrief/pending, plan-sequence); GitHub REST owns open PRs/issues/duplicates. Writes a gitignored sink under .deft-scratch/issue-eval/<sha12>/<invocation-id>/. No GitHub writes. No candidates-log row. Value may set critique-recommend: and must not emit the reserved design-critique clearance line. Fan-out default 4, override --concurrency N.",
+      usage: "task triage:evaluate -- <N...> [--concurrency N] [--repo OWNER/NAME] [--json]",
+      flags: [
+        ["<N...>", "(required)", "Issue numbers to evaluate."],
+        ["--concurrency N", "4", "Parallel evaluator cap (bind, not a measured existing cap)."],
+        ["--repo OWNER/NAME", "(git remote / env)", "Upstream repo for REST reads."],
+        ["--json", "(off)", "Emit the structured EvaluateResult."],
+        [
+          "--project-root PATH",
+          "(cwd)",
+          "Project root override (Taskfile threads USER_WORKING_DIR).",
+        ],
+      ],
+      examples: [
+        "task triage:evaluate -- 3648",
+        "task triage:evaluate -- 10 11 --concurrency 2 --json",
+      ],
+      see_also: [
+        "task triage:queue",
+        "task triage:accept",
+        "skills/deft-directive-issue-eval/SKILL.md",
+        "#3648",
+      ],
+      placeholder: false,
+    },
     "task triage:accept": {
       name: "task triage:accept",
       summary: "Mark issue accepted; chains into scope:promote w/ flag",
@@ -995,6 +1025,7 @@ export const registryData = {
       "Read verbs",
       [
         "task triage:queue",
+        "task triage:evaluate",
         "task triage:audit",
         "task triage:show",
         "task triage:scope",
@@ -1088,6 +1119,9 @@ export const registryData = {
     },
     triage_reconcile: {
       __default__: "task triage:reconcile",
+    },
+    triage_evaluate: {
+      __default__: "task triage:evaluate",
     },
     triage_queue: {
       queue: "task triage:queue",

@@ -73,3 +73,6 @@
 {"id":"design-critique-pos-1","query":"run a design critique on this lean","skill":"deft-directive-design-critique","should_trigger":true}
 {"id":"design-critique-pos-2","query":"mechanism-shaped triage needs a critique panel","skill":"deft-directive-design-critique","should_trigger":true}
 {"id":"design-critique-neg-1","query":"implement the payment module from the active xBRIEF","skill":"deft-directive-design-critique","should_trigger":false}
+{"id":"issue-eval-pos-1","query":"run issue-eval on these GitHub issues","skill":"deft-directive-issue-eval","should_trigger":true}
+{"id":"issue-eval-pos-2","query":"triage:evaluate 3648 off origin/master","skill":"deft-directive-issue-eval","should_trigger":true}
+{"id":"issue-eval-neg-1","query":"implement the payment module from the active xBRIEF","skill":"deft-directive-issue-eval","should_trigger":false}

@@ -18,7 +18,7 @@ describe("openpackage-tiers (#2494)", () => {
 
   it("resolveOpenPackageTierSkills all returns every mapped skill without duplicates", () => {
     const all = resolveOpenPackageTierSkills(REPO_ROOT, "all");
-    expect(all).toHaveLength(24);
-    expect(new Set(all).size).toBe(24);
+    expect(all).toHaveLength(25);
+    expect(new Set(all).size).toBe(25);
   });
 });

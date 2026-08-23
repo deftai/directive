@@ -257,6 +257,10 @@ includes:
   triage-classify:
     taskfile: ./tasks/triage-classify.yml
     optional: true
+  # #3648: `task triage:evaluate` Stage A isolated validity + parent WIP census.
+  triage-evaluate:
+    taskfile: ./tasks/triage-evaluate.yml
+    optional: true
   # D2 (#1122): `task triage:summary` one-liner -- status surface invoked by
   # the session-start ritual (N9 / #1149). Inner task `summary` is exposed
   # as the user-facing alias `task triage:summary` in the alias block below.
@@ -988,6 +992,13 @@ tasks:
     desc: "Trend lines from summary-history.jsonl (#1709 / D17). -- task triage:metrics -- [--window=7d|30d] [--format=text|json]"
     cmds:
       - task: triage-metrics:metrics
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:evaluate:
+    desc: "Evaluate issues off origin/master (validity + parent WIP + value). -- task triage:evaluate -- <N...> [--concurrency N] [--repo OWNER/NAME] [--json] (#3648)"
+    cmds:
+      - task: triage-evaluate:evaluate
         vars:
           CLI_ARGS: "{{.CLI_ARGS}}"
 

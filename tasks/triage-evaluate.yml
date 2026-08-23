@@ -1,0 +1,22 @@
+version: '3'
+
+# tasks/triage-evaluate.yml -- Stage A isolated issue-eval (#3648).
+#
+# Wired into Taskfile.yml under include key `triage-evaluate`. Inner task
+# `evaluate` is exposed as `task triage:evaluate`.
+#
+# Per conventions/task-caching.md: NO sources/generates -- user-facing flags.
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  evaluate:
+    desc: "Evaluate issues off origin/master (validity + parent WIP + value). -- task triage:evaluate -- <N...> [--concurrency N] [--repo OWNER/NAME] [--json]"
+    internal: true
+    deps: [":engine:_ts-build"]
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'triage-evaluate --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'

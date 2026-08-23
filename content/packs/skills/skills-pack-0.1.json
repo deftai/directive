@@ -91,6 +91,20 @@
       "frontmatter_extra": "triggers:\n  - design critique\n  - design-critique\n  - critique panel\n  - mechanism-shaped triage"
     },
     {
+      "id": "deft-directive-issue-eval",
+      "description": "Thin router for Stage A issue evaluation: isolated origin/master validity, parent WIP census, named gitignored sink. Use when the operator asks to evaluate issues, run issue-eval, or triage:evaluate. Do NOT trigger on ordinary implement, build, swarm, or design-critique dispatch.",
+      "triggers": [
+        "issue-eval",
+        "issue eval",
+        "triage:evaluate",
+        "evaluate issues"
+      ],
+      "path": "skills/deft-directive-issue-eval/SKILL.md",
+      "version": "0.1",
+      "body": "# Issue Eval\n\nThin router into the issue-eval contract. Operator runs `task triage:evaluate`.\n\nLegend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.\n\n## When to Use\n\n- Operator asks to evaluate issues, run issue-eval, or `triage:evaluate`\n- ⊗ Ordinary implement, build, swarm, or design-critique dispatch\n\n## Stops\n\nNormative rules live in [`contracts/issue-eval.md`](../../contracts/issue-eval.md).\n\n1. Split read sources\n2. Verdict sink\n3. Evaluator worktrees\n4. Value advice grammar\n5. No GitHub writes\n6. Fan-out\n\n⊗ Emit `design-critique: warranted | not warranted, because` from evaluation.\n⊗ Reuse `swarm:launch` until #3649.\n⊗ Write `xbrief/proposed/` or GitHub from this skill.\n\n## EXIT\n\ndeft-directive-issue-eval complete -- exiting skill. Next: run `task triage:evaluate`, then decide with existing `triage:*` verbs.\n",
+      "frontmatter_extra": "triggers:\n  - issue-eval\n  - issue eval\n  - triage:evaluate\n  - evaluate issues"
+    },
+    {
       "id": "deft-directive-feedback",
       "description": "Batched session-end gap escalation for directive consumers. Collects friction/gap reports, drafts deduped framework-gap issues against deftai/directive, and files upstream only after explicit operator confirmation. Gated on plan.policy.valueFeedback upstreamPrompt.",
       "triggers": [

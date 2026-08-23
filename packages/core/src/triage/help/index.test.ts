@@ -34,6 +34,14 @@ describe("renderCategoryList", () => {
 });
 
 describe("renderVerbHelp", () => {
+  it("documents triage:evaluate Stage A (#3648)", () => {
+    const out = renderVerbHelp("task triage:evaluate");
+    expect(out).toContain("task triage:evaluate");
+    expect(out).toContain("--concurrency");
+    expect(out).toContain("critique-recommend");
+    expect(out).not.toContain("not yet implemented");
+  });
+
   it("renders structured sections for triage:queue", () => {
     const out = renderVerbHelp("task triage:queue");
     expect(out.startsWith("task triage:queue")).toBe(true);

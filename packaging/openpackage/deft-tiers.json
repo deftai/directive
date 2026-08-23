@@ -30,6 +30,7 @@
         "deft-directive-gh-slice",
         "deft-directive-glossary",
         "deft-directive-interview",
+        "deft-directive-issue-eval",
         "deft-directive-portfolio-priority",
         "deft-directive-probe",
         "deft-directive-product-signal",

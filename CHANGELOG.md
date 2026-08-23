@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Issue-eval Stage A: isolated validity, parent WIP census, value advice (#3648).** `task triage:evaluate` fans out read-only evaluators in detached origin/master worktrees, writes a gitignored sink under `.deft-scratch/issue-eval/<sha12>/<invocation-id>/`, and may set `critique-recommend:` without the reserved design-critique clearance line. No GitHub writes. Closes #3648.
 - **Land leftover completed-tracked artifact for #3646 (#3264 / #1358).** The #3646 xBRIEF stayed untracked after squash of PR 3653. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Comment lead on design-critique comments is model then role (#3646).** First line stays `model: <slug>`. Second line is `role: triage|critic|parent` (Stop 4 retry critics are critic; #3640 auto-posted table/synthesis comments are parent). Not an issue label. Thin skill pointer. Closes #3646.
 - **Land leftover completed-tracked artifact for #3642 (#3264 / #1358).** The #3642 xBRIEF stayed untracked after squash of PR 3647. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
