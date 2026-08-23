@@ -1,0 +1,188 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "design-critique:* labels are one current chip; exclusive remaining-set replace. Bind 5387122432 + 5387141935.",
+    "updated": "2026-08-23T19:17:31Z"
+  },
+  "plan": {
+    "id": "issue-3642-design-critique-exclusive-chip",
+    "title": "design-critique exclusive chip: remaining-set replace, last catalog chip wins",
+    "status": "completed",
+    "narratives": {
+      "Description": "Applying a design-critique:* label must leave exactly one catalog chip. Use a merged remaining-set write, not DELETE-then-POST.",
+      "Origin": "GitHub issue #3642. Bind disposition 5387122432 plus verified-claims table 5387141935. Synthesis accepted 5387142791. Supersedes DELETE-then-POST in write-back 5386747045.",
+      "Overview": "Closed set: design-critique:mechanism-shaped (in-flight, gate match) and design-critique:triage-ready (bound). GET current labels, drop the other catalog chip names, PUT/PATCH that list. Inventory: LabelClient.apply / mergeIssueLabels. Chip is list state, not consent. Do not drop mechanism-shaped without the synthesis-accepted line (or the #3640 empty-disagreement path). Write-back mechanism-shaped: true is history after replace. Remove-set is those two names only. Optional same-PR unstack of #3637.",
+      "UserStory": "As a parent posting bind, I want attaching triage-ready to drop mechanism-shaped in one write so the issue is not both in-critique and bind-ready.",
+      "When": "When a parent applies one catalog design-critique chip via scm:issue:design-critique-chip, other catalog design-critique chips are gone in the same write, other facets stay, judgmentGates still matches only mechanism-shaped, critic does not write labels, tests pin the exclusive-chip rule, CHANGELOG has an Unreleased line.",
+      "LockedDecisions": "Bind 5387122432 + 5387141935. Exclusive replace is remaining-set PUT/PATCH, not DELETE-then-POST (no unchipped window). Count!=1 check is SHOULD, not a new judgmentGates match. Do not add triage-ready to judgmentGates. Do not PUT a naive full wipe. Do not classify-mirror this facet. No halt chip. Do not implement #3640 or #3646 in this PR.",
+      "ImplementationPlan": "Contract + ISSUE_LABELS exclusive-chip. Remaining-set helper or reuse LabelClient.apply / mergeIssueLabels. Thin chip-only verb scm:issue:design-critique-chip (parent write path). Content-contract test. Thin skill pointer. CHANGELOG. Optional unstack #3637. Closes #3642. Sequence before #3646 and #3640.",
+      "OriginDivergence": "Write-back 5386747045 prescribed DELETE-then-POST. Critic 5386773997 + disposition 5387122432 recut that to remaining-set write. Issue body AC still says DELETE-then-POST; comments win."
+    },
+    "items": [
+      {
+        "title": "Contract and ISSUE_LABELS: one current catalog chip, remaining-set replace",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the contract Bind section and ISSUE_LABELS Design-critique stamp are read, applying one design-critique catalog chip removes the other catalog name via remaining-set write, not DELETE-then-POST, and not a full-label wipe.",
+          "Acceptance": "When the contract Bind section and ISSUE_LABELS Design-critique stamp are read, applying one design-critique catalog chip removes the other catalog name via remaining-set write, not DELETE-then-POST, and not a full-label wipe."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts#exclusive-remaining-set",
+          "recorded_at": "2026-08-23T19:16:00Z",
+          "recorded_by": "leaf-implementation/3642"
+        }
+      },
+      {
+        "title": "Write cannot stack; gate match stays mechanism-shaped only",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the parent applies triage-ready, mechanism-shaped is gone in that write and other labels remain. judgmentGates still any-of mechanism-shaped only. Critic does not write labels. Chip is not the bind.",
+          "Acceptance": "When the parent applies triage-ready, mechanism-shaped is gone in that write and other labels remain. judgmentGates still any-of mechanism-shaped only. Critic does not write labels. Chip is not the bind."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/exclusive-chip.test.ts",
+          "recorded_at": "2026-08-23T19:16:00Z",
+          "recorded_by": "leaf-implementation/3642"
+        }
+      },
+      {
+        "title": "Content-contract test and CHANGELOG",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When design_critique_contract tests pass, they pin exclusive remaining-set replace of the two catalog chips. CHANGELOG Unreleased has one line. Skill stays a thin pointer.",
+          "Acceptance": "When design_critique_contract tests pass, they pin exclusive remaining-set replace of the two catalog chips. CHANGELOG Unreleased has one line. Skill stays a thin pointer."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts#exclusive-remaining-set",
+          "recorded_at": "2026-08-23T19:16:00Z",
+          "recorded_by": "leaf-implementation/3642"
+        }
+      },
+      {
+        "title": "Thin chip-only verb scm:issue:design-critique-chip as parent write path",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the parent attaches triage-ready or recuts mechanism-shaped, it calls task scm:issue:design-critique-chip -- --issue N --chip triage-ready|mechanism-shaped [--repo OWNER/NAME] (deft scm issue design-critique-chip dual-invoke). GET current labels, remaining-set replace via applyDesignCritiqueCatalogChip / designCritiqueChipApplyDelta, one write. Fail closed on unknown chip names.",
+          "Acceptance": "When the parent attaches triage-ready or recuts mechanism-shaped, it calls task scm:issue:design-critique-chip (closed catalog remaining-set replace, one write, other facets stay). Fail closed on unknown chip names. Not gh api POST labels, not additive scm:issue:edit --add-label, not classify-mirror, not mixed-edit intercept, not a general-purpose labels CLI."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scm/design-critique-chip.test.ts",
+          "recorded_at": "2026-08-23T19:16:00Z",
+          "recorded_by": "leaf-implementation/3642"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3642",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3642"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3642#issuecomment-5387122432",
+        "type": "x-xbrief/github-comment",
+        "title": "Disposition recut 5387122432"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3642#issuecomment-5387141935",
+        "type": "x-xbrief/github-comment",
+        "title": "Verified-claims table 5387141935"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "content/contracts/design-critique.md",
+          ".github/ISSUE_LABELS.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "content/packs/skills/skills-pack-0.1.json",
+          "CHANGELOG.md",
+          "tasks/scm.yml",
+          "packages/core/src/scm/main.ts",
+          "packages/core/src/scm/design-critique-chip.ts",
+          "packages/core/src/scm/design-critique-chip.test.ts",
+          "packages/core/src/scm/main-branches.test.ts",
+          "packages/core/src/scm/index.ts",
+          "packages/cli/src/cli-router/route-argv.ts",
+          "packages/cli/src/cli-router/router.test.ts",
+          "content/commands.md",
+          "content/skills/deft-directive-design-critique/SKILL.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts",
+          "pnpm exec vitest run packages/core/src/scm/design-critique-chip.test.ts packages/core/src/scm/main-branches.test.ts"
+        ],
+        "expected_outputs": [
+          "exclusive remaining-set replace of design-critique catalog chips via scm:issue:design-critique-chip"
+        ],
+        "depends_on": [],
+        "conflict_group": "design-critique-3642-3646-3640",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Sequence 3642 then 3646 then 3640; shared contract/tests/labels."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/contracts/design-critique.md",
+          ".github/ISSUE_LABELS.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "CHANGELOG.md",
+          "tasks/scm.yml",
+          "packages/core/src/scm/main.ts",
+          "packages/core/src/scm/design-critique-chip.ts",
+          "packages/core/src/scm/index.ts",
+          "packages/cli/src/cli-router/route-argv.ts",
+          "content/commands.md",
+          "content/skills/deft-directive-design-critique/SKILL.md"
+        ],
+        "module_boundary": "content/contracts",
+        "cohesion_exemption": "CHANGELOG.md and ISSUE_LABELS.md may exceed FILE_SIZE_REVIEW_TRIGGER_LINES."
+      },
+      "capacityBucket": "new-capability",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3647,
+        "prBase": null,
+        "mergeCommit": "9536da508fa4bb7d5fa09ffa9a4acee9efbd97f1",
+        "deliveryBranch": "master",
+        "deliveryCommit": "9536da508fa4bb7d5fa09ffa9a4acee9efbd97f1",
+        "verifiedAt": "2026-08-23T19:17:31Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "3e211c18-b578-4540-850b-780de161761f"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-23T19:17:31Z",
+      "completedSessionId": "3e211c18-b578-4540-850b-780de161761f"
+    },
+    "updated": "2026-08-23T19:17:31Z"
+  },
+  "vBRIEFInfo": {
+    "updated": "2026-08-23T19:17:31Z",
+    "version": "0.8"
+  }
+}

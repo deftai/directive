@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Land leftover completed-tracked artifact for #3642 (#3264 / #1358).** The #3642 xBRIEF stayed untracked after squash of PR 3647. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #3637 (#3264 / #1358).** The #3637 xBRIEF stayed untracked after squash of PR 3644. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for leftover #3596 probe (#3264 / #1358).** The leftover probe xBRIEF stayed untracked after squash of PR 3639. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #3627 (#3264 / #1358).** The #3627 xBRIEF stayed untracked after squash of PR 3635. Moved to `xbrief/completed/` via `swarm:finalize-cohort`. Does not reopen or recut that issue. Refs #2321, #3476.
