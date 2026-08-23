@@ -40,6 +40,12 @@ const REQUIRED_CONTRACT_POINTERS = [
   "#3383",
   "scaffolds",
   "content-contract tests",
+  "model: grok-4.6",
+  "comment-lead field",
+  "issue label",
+  "GitHub login",
+  "verify:routing",
+  "first line",
 ];
 
 const REQUIRED_TEMPLATE_POINTERS = [
@@ -51,6 +57,8 @@ const REQUIRED_TEMPLATE_POINTERS = [
   "id ceiling",
   "proposed skill outline",
   "embedded instructions",
+  "model:",
+  "first line",
 ];
 
 const METHOD_RECONCILIATION =
@@ -66,6 +74,7 @@ const REQUIRED_SKILL_POINTERS = [
   "Stop 5 — Verified synthesis",
   "contracts/design-critique.md",
   "templates/design-critique-brief.md",
+  "First-line model slug",
 ];
 
 const DEFAULT_ALWAYS_PINS = [
@@ -169,6 +178,25 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(text.toLowerCase()).not.toContain(METHOD_RECONCILIATION);
     expect(text).not.toContain("| Condition | Variant | N |");
     expect(text).not.toContain("Issue body names a defensible presumption");
+    expect(text).not.toContain("⊗ Put the model in an issue label");
+  });
+
+  it("locks the first-line model slug as a comment field, not an issue label", () => {
+    const contract = readText(CONTRACT);
+    expect(contract).toContain("model: grok-4.6");
+    expect(contract.toLowerCase()).toContain("first line");
+    expect(contract).toContain("triage write-back");
+    expect(contract).toContain("critic comment");
+    expect(contract).toContain("comment-lead field");
+    expect(contract).toContain("⊗ Put the model in an issue label");
+    expect(contract).toContain("GitHub login");
+    expect(contract).toContain("verify:routing");
+    const template = readText(TEMPLATE);
+    expect(template).toContain("model:");
+    expect(template.toLowerCase()).toContain("first line");
+    const skill = readText(SKILL_REL);
+    expect(skill).toContain("First-line model slug");
+    expect(skill).not.toContain("⊗ Put the model in an issue label");
   });
 
   it("indexes the skill on-demand and does not always-pin it", () => {

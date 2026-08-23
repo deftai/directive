@@ -21,6 +21,8 @@ ADR-005 is vehicle-invariant. The gate never computes "is this triage mechanism-
 2. `plan.policy.judgmentGates` matches that label. Pure syntax.
 3. The clearance line on the thread is `design-critique: warranted | not warranted, because …`. `verify:judgment-gates` checks presence, shape, and authority. It never scores the because-clause.
 
+The write-back first line names the model (Stop 3).
+
 `verify:judgment-gates --enforce` stays opt-in unused in this rollout. Advisory observe first. No marker means the gate never fires. Voluntary critiques stay legal.
 
 ## Stop 2 — Variant selection
@@ -58,6 +60,24 @@ The envelope is [`templates/design-critique-brief.md`](../templates/design-criti
 - ! Round-2 ceiling is the disagreement-map comment.
 - ! Resolve SHAs from the tree. Do not invent them.
 
+### First-line model slug
+
+Comment-lead field. The first line of the triage write-back and of every critic comment names the LLM that produced that comment.
+
+Canonical lead line:
+
+```text
+model: grok-4.6
+```
+
+- ! First line of the triage write-back comment is `model: <slug>`.
+- ! First line of every critic comment is `model: <slug>` for the model that produced that comment.
+- ! Same first-line rule for a Stop 4 retry critic (fresh comment, new first line).
+- ~ Synthesis comments SHOULD use the same first-line `model: <slug>`.
+- ⊗ Put the model in an issue label.
+- ⊗ Put a GitHub login, author name, or role name in that lead line in place of the model.
+- ⊗ Infer the model from `verify:routing` or spawn metadata and omit it from the comment.
+
 ## Stop 4 — Residual reiteration
 
 Use this stop only when round 1 leaves residual disagreement that still changes disposition.
@@ -65,6 +85,7 @@ Use this stop only when round 1 leaves residual disagreement that still changes 
 - ! Dispatch a fresh critic against a disagreement map. Do not default to resume.
 - ? Resume the same critic when the question is "does my prior finding still hold?"
 - ! Keep the id ceiling at the disagreement-map comment for that pass.
+- ! First-line model slug on the retry critic comment (Stop 3).
 - ⊗ Run a third critic pass as the default. Record why if a panel variant already set N≥3.
 
 ## Stop 5 — Verified synthesis
@@ -73,6 +94,7 @@ Use this stop only when round 1 leaves residual disagreement that still changes 
 
 Post a verified-claims table. Each quantitative row names its method.
 
+- ~ Synthesis comments SHOULD start with the same first-line `model: <slug>`.
 - ! Put a method column in every verified-claims table.
 - ! Decorrelation: a row whose only evidence is prior critics' agreement MUST NOT be marked verified. Require primary-source re-derivation or a cross-family re-check.
 - ! Method-reconciliation: when verifying, upholding, or issuing any verdict that a measurement or count claim is false, first reproduce the original claimant's method. A different number under a different method is a discrepancy to explain, not a refutation.
@@ -97,4 +119,4 @@ This motion ingests untrusted issue threads by design.
 
 ## Test surface
 
-`packages/core/src/content-contracts/standards/design_critique_contract.test.ts` locks required pointer strings, the scaffolds framing, the brief-template forbidden-inputs list, and the thin router skill (existence, line cap, pointer resolution, no-normative-content).
+`packages/core/src/content-contracts/standards/design_critique_contract.test.ts` locks required pointer strings, the scaffolds framing, the first-line model slug as a comment-lead field (not an issue label), the brief-template forbidden-inputs list, and the thin router skill (existence, line cap, pointer resolution, no-normative-content).

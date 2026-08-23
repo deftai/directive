@@ -4,6 +4,7 @@ Dispatch envelope skeleton for one critic or synthesis pass. Fill the fields. Re
 
 ## Envelope fields
 
+- Model (copy onto the first line of the posted comment as `model: <slug>`):
 - Issue:
 - Variant (refutation | open critique | panel) and one-line reason:
 - Round (1 critic | 2 reiteration | 3 synthesis | 4 Pass-4 audit):
@@ -33,6 +34,7 @@ Read, do not restate:
 | Gate (ADR-005) | Stop 1 — Gate |
 | Variant selection | Stop 2 — Variant selection |
 | Charter, envelope and ceiling | Stop 3 — Critic envelope |
+| First-line model slug | Stop 3 — Critic envelope |
 | Fresh reiteration | Stop 4 — Residual reiteration |
 | Synthesis format | Stop 5 — Verified synthesis |
 | Dual stop | Failure and budget stop |

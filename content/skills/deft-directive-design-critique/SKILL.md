@@ -38,6 +38,8 @@ Normative rules live in [`contracts/design-critique.md`](../../contracts/design-
 4. Stop 4 — Residual reiteration
 5. Stop 5 — Verified synthesis
 
+First-line model slug: Stop 3 — Critic envelope.
+
 ⊗ Auto-dispatch critics from this skill.
 ⊗ Copy the variant table, synthesis rules, or other contract bodies into this skill.
 

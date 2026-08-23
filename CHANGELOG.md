@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **First-line model slug on design-critique triage and critic comments (#3628).** The triage write-back and every critic comment (including a Stop 4 retry) start with `model: <slug>` (example `model: grok-4.6`). Comment-lead field, not an issue label. Brief template has a model field to copy. Thin skill points at the rule. Closes #3628. Refs #3434, ADR-005, #1423, #3602. Adjacent to #3627.
 - **Land leftover completed-tracked artifact for #3438 (#3264 / #1358).** The #3438 xBRIEF stayed untracked after squash of PR 3588. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Shell leftover dialect residual stays on #3624. Refs #2321, #3476.
 
 ### Changed
