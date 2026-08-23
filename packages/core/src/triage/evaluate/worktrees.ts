@@ -44,6 +44,28 @@ function forceDeleteWorktreeDir(worktreePath: string): void {
   rmSync(worktreePath, { recursive: true, force: true });
 }
 
+function worktreeStillRegistered(
+  git: SwarmGitRunner,
+  projectRoot: string,
+  worktreePath: string,
+): boolean {
+  const listed = git(["worktree", "list", "--porcelain"], projectRoot);
+  if (listed.returncode !== 0) {
+    return true;
+  }
+  const needle = resolve(worktreePath).replace(/\\/g, "/").toLowerCase();
+  for (const line of listed.stdout.split(/\r?\n/u)) {
+    if (!line.startsWith("worktree ")) {
+      continue;
+    }
+    const listedPath = line.slice("worktree ".length).replace(/\\/g, "/").toLowerCase();
+    if (listedPath === needle) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /** Verb-owned remove. Not a shared core git-worktree helper. */
 export function removeEvaluatorWorktree(
   projectRoot: string,
@@ -59,7 +81,12 @@ export function removeEvaluatorWorktree(
   forceDeleteWorktreeDir(worktreePath);
   runner(["worktree", "prune"], projectRoot);
   const retry = runner(["worktree", "remove", "--force", worktreePath], projectRoot);
-  if (retry.returncode === 0 || !existsSync(worktreePath)) {
+  if (retry.returncode === 0) {
+    return;
+  }
+  forceDeleteWorktreeDir(worktreePath);
+  runner(["worktree", "prune"], projectRoot);
+  if (!worktreeStillRegistered(runner, projectRoot, worktreePath) && !existsSync(worktreePath)) {
     return;
   }
   throw new EvaluatorWorktreeError(

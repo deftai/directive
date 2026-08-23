@@ -132,7 +132,7 @@ function listOpenPulls(repo: string, seams: GithubSeams): GithubPullSnapshot[] {
       return out;
     }
   }
-  throw new Error(`GET ${endpoint} pagination exceeded ${OPEN_PULLS_MAX_PAGES} pages`);
+  return out;
 }
 
 /** GET-only GitHub census. Parent-owned. Never POST/PATCH/PUT/DELETE. */

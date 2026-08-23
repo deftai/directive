@@ -68,6 +68,27 @@ describe("evaluator worktrees", () => {
     expect(removes).toBe(2);
   });
 
+  it("raises when fallback prune still leaves a registered worktree", () => {
+    const root = mkdtempSync(join(tmpdir(), "wt-"));
+    temps.push(root);
+    const git: GitRunner = (args) => {
+      if (args[1] === "add") {
+        mkdirSync(String(args[3]), { recursive: true });
+        return { returncode: 0, stdout: "", stderr: "" };
+      }
+      if (args[1] === "remove") {
+        return { returncode: 1, stdout: "", stderr: "locked" };
+      }
+      if (args[1] === "list") {
+        const listed = join(root, ".deft-scratch", "worktrees", "issue-eval-3-inv");
+        return { returncode: 0, stdout: `worktree ${listed}\n`, stderr: "" };
+      }
+      return { returncode: 0, stdout: "", stderr: "" };
+    };
+    const path = addEvaluatorWorktree(root, 3, "inv", "abc123def456aaaaaaaa", git);
+    expect(() => removeEvaluatorWorktree(root, path, git)).toThrow(EvaluatorWorktreeError);
+  });
+
   it("raises when git worktree add fails", () => {
     const root = mkdtempSync(join(tmpdir(), "wt-"));
     temps.push(root);
