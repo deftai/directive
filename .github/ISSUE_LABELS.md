@@ -109,9 +109,9 @@ Do **not** overload human labels (`hold`, `rfc`, …) via `actionLabels`. Consum
 
 Config surface: `plan.policy.triageLabelMirror` (see #1423 Wave 1 / #3118).
 
-### Design-critique stamp (ADR-005 / #3434 / #3627 / #3642)
+### Design-critique stamp (ADR-005 / #3434 / #3627 / #3642 / #3640)
 
-Author-stamped, not classify-mirror output. Not a `triage:*` classify action. The triage author decides the lean is mechanism-shaped and writes **both** halves of the #1423 pairing. After operator-accepted synthesis, apply the bind-ready chip as the exclusive catalog chip.
+Author-stamped, not classify-mirror output. Not a `triage:*` classify action. The triage author decides the lean is mechanism-shaped and writes **both** halves of the #1423 pairing. After synthesis-accepted (operator **accept synthesis** or #3640 auto-stamp), apply the bind-ready chip as the exclusive catalog chip.
 
 Closed set (one current chip; remaining-set replace, last chip wins):
 
@@ -119,8 +119,8 @@ Closed set (one current chip; remaining-set replace, last chip wins):
 |---------|-------|------|
 | Body-text field (artifact) | `mechanism-shaped: true` | Survives in the write-back comment; history after remaining-set replace |
 | Mirrored label (predicate / lists) | `design-critique:mechanism-shaped` | In-flight; what `plan.policy.judgmentGates` matches |
-| Synthesis-accepted line | `design-critique: synthesis accepted, because …` | Human-authority bind record |
-| Bind-ready label | `design-critique:triage-ready` | Bound; remaining-set replace after operator-accepted synthesis |
+| Synthesis-accepted line | `design-critique: synthesis accepted, because …` | Bind record (operator **accept synthesis** or #3640 auto-stamp) |
+| Bind-ready label | `design-critique:triage-ready` | Bound; remaining-set replace after synthesis-accepted |
 
 Applying one catalog chip: parent MUST call `task scm:issue:design-critique-chip -- --issue N --chip triage-ready|mechanism-shaped [--repo OWNER/NAME]`. GET current labels, drop the other catalog names (`design-critique:mechanism-shaped` and `design-critique:triage-ready`), PUT/PATCH that remaining set. Other facets stay. Inventory: `LabelClient.apply` / `mergeIssueLabels`. Do not DELETE-then-POST (unchipped window). Do not PUT a naive full wipe. Do not `gh api POST .../labels` or additive `scm:issue:edit --add-label`.
 
@@ -234,7 +234,7 @@ Inventory ~85 labels at #2609 implement time. This section lists **canonical** n
 
 `design-critique:mechanism-shaped` -- author stamp that the lean is mechanism-shaped; pairs with write-back field `mechanism-shaped: true`. Not a `triage:*` classify action.
 
-`design-critique:triage-ready` -- attach after operator-accepted synthesis; pairs with `design-critique: synthesis accepted, because …`. Not a `triage:*` classify action.
+`design-critique:triage-ready` -- attach after synthesis-accepted (operator **accept synthesis** or #3640 auto-stamp); pairs with `design-critique: synthesis accepted, because …`. Not a `triage:*` classify action.
 
 ### Ranking / audience (selected)
 

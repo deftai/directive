@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Design-critique walk is parent-disagreement only; empty all-accept map auto-stamps (#3640).** **walk** iterates disagree headings. **walk all** is the census (`walk findings one at a time` stays a one-release alias). A non-empty all-accept successor lean auto-posts the verified-claims table then `design-critique: synthesis accepted, because agents agreed (empty disagreement set)` and remaining-set-replaces to `triage-ready`. Stub critics and dispatch-fail do not stamp. Looks-good still does not bind. Thin skill pointer. Closes #3640.
 - **Exclusive remaining-set replace for design-critique catalog chips (#3642).** Applying `design-critique:mechanism-shaped` or `design-critique:triage-ready` GET-drops the other catalog name and PUT/PATCHes that remaining set (`LabelClient.apply` / `mergeIssueLabels`). Parent write is `task scm:issue:design-critique-chip -- --issue N --chip triage-ready|mechanism-shaped` (not additive `scm:issue:edit --add-label`). No DELETE-then-POST window. Chip is list state, not consent. Closes #3642.
 
 ### Fixed

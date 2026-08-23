@@ -106,7 +106,7 @@ Use this stop only when round 1 leaves residual disagreement that still changes 
 
 ## Operator-gated loop
 
-Keep the arc in this contract until the operator accepts a verified synthesis.
+Keep the arc in this contract until a verified synthesis is accepted.
 
 - ! Each critic dispatch EXITs after posting.
 - ! Operator (or parent after an operator verb) dispatches the next envelope.
@@ -123,6 +123,8 @@ Keep the arc in this contract until the operator accepts a verified synthesis.
 After each accept-X, or before synthesis, parent posts a successor `**Lean:**` comment.
 
 - ! Cite accepted critic ids/headings, the still-open residual, and the write-back or prior lean it supersedes.
+- ! Carry a per-heading take on the successor lean: `accept-into-contract` | `disagree` | `defer`. Defer is not accepted.
+- ! The successor lean is the disposition map. Do not post a third map type.
 - ! Bind synthesis and `design-critique:triage-ready` to the latest successor lean, never a superseded write-back.
 - ! Full template (accepted set, residual, supersedes-id, ceiling if retrying) lives only on the successor lean and on a retry disagreement map.
 - ! Walk comments stay slim (model and role lines, Accept X, critic id, heading, decision).
@@ -136,21 +138,25 @@ Contract stops stay internal. Parent prints these phrases when they apply. The o
 
 - **accept** (cite findings)
 - **retry differences**
-- **walk findings one at a time**
+- **walk**
+- **walk all**
 - **post the verified-claims table**
 - **accept synthesis**
 
-Short forms of accept synthesis are valid: `accept synt`, `synt accepted`, `synt approved`, `accept synthesis`, `synthesis accepted`, `synthesis approved`. Same idea for other printed verbs when the short form is unambiguous (`retry` for `retry differences`). If ambiguous, parent re-prints the offered phrases and waits.
+**walk** iterates recorded parent-disagree headings (successor-lean take is `disagree`). **walk all** is the census of every classified finding in existing order (blocking then sharpening then footnotes — or the critic's numbering). For one release, `walk findings one at a time` is an alias of **walk all**. Short forms of accept synthesis are valid: `accept synt`, `synt accepted`, `synt approved`, `accept synthesis`, `synthesis accepted`, `synthesis approved`. Same idea for other printed verbs when the short form is unambiguous (`retry` for `retry differences`). If the operator types a bare word that could be either **walk** or **walk all** and only one was offered, map it to the offered one. If ambiguous, parent re-prints the offered phrases and waits.
 
 - ! Print the phrases when they apply.
-- ! Walk is an option, not the only path. Do not auto-start the walk.
-- ! Parent may post the verified-claims table only after offering that phrase and the operator taking it. Residual-empty is a reason to offer, not a license to auto-post.
-- ! After the table is on the thread: **accept synthesis** (that stamps `design-critique:triage-ready`) or **retry** a row.
+- ! Non-empty disagree set: print **walk** / **walk all** / **retry differences** / **accept**. Walk is an option, not the only path. Do not auto-start the walk.
+- ! When the successor lean's per-heading map is total over a **non-empty** in-envelope classified-finding set, and every heading is `accept-into-contract` (no `disagree`, no `defer`): parent auto-posts the verified-claims table as its own comment, then auto-posts `design-critique: synthesis accepted, because agents agreed (empty disagreement set)` and remaining-set-replaces the chip via `task scm:issue:design-critique-chip -- --issue N --chip triage-ready`. Do not print **accept synthesis**, **post the verified-claims table**, **walk**, or **walk all**.
+- ! Parse classified headings only.
+- ⊗ Stamp when the critic posts zero classified headings (stub / blank). Stop and inform. Do not stamp.
+- ⊗ Stamp on dispatch-fail. Stop and inform. Do not stamp.
 - ⊗ Use Phase 3 or Stop 5 as operator commands.
-- ⊗ Infer accept-synthesis from looks-good, ok, proceed, or any phrase that does not name synthesis/synt.
+- ⊗ Infer accept-synthesis from looks-good, ok, proceed, or bare **accept**. Looks-good still does not bind.
 - ⊗ Mix walk and retry on the same finding in one turn.
+- ⊗ Auto-post the verified-claims table on a non-empty disagree set.
 
-Walk order: classified findings in order (blocking first, then sharpening, then footnotes — or the critic's numbering). For each: restated critic claim, parent take if it differs, then wait. Each decision is a thread comment (`Accept X` / skip / amend), citing critic comment id and finding heading. Chat is not the record. When the walk ends, parent offers to post a successor lean. The walk is not synthesis.
+Walk order for **walk all**: classified findings in order (blocking first, then sharpening, then footnotes — or the critic's numbering). For **walk**: only headings whose successor-lean take is `disagree`. For each: restated critic claim, parent take if it differs, then wait. Each decision is a thread comment (`Accept X` / skip / amend), citing critic comment id and finding heading. Chat is not the record. When the walk ends, parent offers to post a successor lean. The walk is not synthesis. When that successor lean is later total and all `accept-into-contract` over a non-empty classified-finding set, the auto-table + auto-stamp path runs with no extra verb.
 
 ## Dual stop
 
@@ -159,7 +165,7 @@ Numbered dual stop (#2442):
 - Default critic posts without extra record: 2 (round 1 plus one Stop 4 retry).
 - A third critic only with a recorded why (panel already N≥3, or operator raises the cap for this arc). Otherwise halt.
 - Fingerprint: the set of still-open finding headings/ids on the disagreement map. Two retries in a row with that set unchanged and no new successor lean = same-fingerprint halt.
-- Dispatch failure (no comment posted, spawn died) is a separate halt. It does not spend a retry slot.
+- Dispatch failure (no comment posted, spawn died) is a separate halt. It does not spend a retry slot. Stop and inform. Do not stamp.
 
 ## Halt line
 
@@ -178,7 +184,7 @@ Presence, shape, and authority only. Do not score the because-clause.
 
 ### Synthesis format
 
-Parent offers **post the verified-claims table**; it does not auto-post. Each quantitative row names its method.
+On the #3640 all-accept path, parent auto-posts the verified-claims table as its own comment (`role: parent`). On a non-empty disagree set, parent does not auto-post the table. Each quantitative row names its method.
 
 - ! Synthesis comments start with the same first-two-lines (`model: <slug>` then `role: parent`).
 - ! #3640 auto-posted verified-claims table and synthesis-accepted comments use `role: parent`.
@@ -193,13 +199,14 @@ Distinguish measured evidence from endorsed evidence. Same-family agreement is c
 
 ## Bind after accepted synthesis
 
-Human authority for the bind. Only an explicit operator **accept synthesis** (or a listed short form) authorizes:
+Two bind paths authorize:
 
 ```text
 design-critique: synthesis accepted, because …
 ```
 
-Parent may post that line and cite the verb. Then apply `design-critique:triage-ready` as the exclusive catalog chip via remaining-set write.
+1. #3640 auto-stamp: when the successor lean map is total over a non-empty in-envelope classified-finding set and every heading is `accept-into-contract`, parent posts `design-critique: synthesis accepted, because agents agreed (empty disagreement set)` and remaining-set-replaces the chip to `design-critique:triage-ready` via `task scm:issue:design-critique-chip -- --issue N --chip triage-ready`. Do not print **accept synthesis**.
+2. Explicit operator **accept synthesis** (or a listed short form). Parent may post that line and cite the verb. Then apply `design-critique:triage-ready` as the exclusive catalog chip via remaining-set write.
 
 Closed catalog (last chip wins): `design-critique:mechanism-shaped` (in-flight, gate match) and `design-critique:triage-ready` (bound). No halt chip.
 
@@ -207,7 +214,7 @@ Closed catalog (last chip wins): `design-critique:mechanism-shaped` (in-flight, 
 - ⊗ `gh api POST .../labels` or additive `scm:issue:edit --add-label` for this facet.
 - ⊗ Intercept mixed `scm issue edit` adds/removes for this facet.
 - ⊗ General-purpose labels CLI.
-- ! After `design-critique:triage-ready`, `triage:accept` / `scope:promote` read the operator-accepted verified synthesis (latest successor lean plus the verified-claims table).
+- ! After `design-critique:triage-ready`, `triage:accept` / `scope:promote` read the accepted verified synthesis (latest successor lean plus the verified-claims table).
 - ! Keep `plan.policy.judgmentGates` matching only `design-critique:mechanism-shaped`. After `triage-ready` replaces it, the issue leaves the gate match.
 - ! Chip is list-visible state, not consent. Do not drop `mechanism-shaped` without the synthesis-accepted line (or the #3640 empty-disagreement path).
 - ! Write-back `mechanism-shaped: true` is history after replace. Current-state authority is the last catalog chip.
@@ -234,4 +241,4 @@ This motion ingests untrusted issue threads by design.
 
 ## Test surface
 
-`packages/core/src/content-contracts/standards/design_critique_contract.test.ts` locks required pointer strings, the scaffolds framing, the comment-lead field as model then role from the closed set (not an issue label), the operator-gated loop (successor lean, operator verbs, dual stop, halt line, exclusive remaining-set replace of the two catalog chips), the brief-template forbidden-inputs list, and the thin router skill (existence, line cap, pointer resolution, no-normative-content).
+`packages/core/src/content-contracts/standards/design_critique_contract.test.ts` locks required pointer strings, the scaffolds framing, the comment-lead field as model then role from the closed set (not an issue label), the operator-gated loop (successor lean, operator verbs including walk / walk all, dual stop, halt line, exclusive remaining-set replace of the two catalog chips, #3640 auto-stamp on a non-empty all-accept map and no-stamp on stubs), the brief-template forbidden-inputs list, and the thin router skill (existence, line cap, pointer resolution, no-normative-content).

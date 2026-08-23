@@ -70,7 +70,12 @@ const REQUIRED_CONTRACT_POINTERS = [
   "mergeIssueLabels",
   "scm:issue:design-critique-chip",
   "retry differences",
+  "walk all",
   "walk findings one at a time",
+  "accept-into-contract",
+  "classified-finding set",
+  "empty disagreement set",
+  "zero classified headings",
   "post the verified-claims table",
   "accept synthesis",
   "accept synt",
@@ -283,6 +288,8 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(text).toContain("Dispatch failure");
     expect(text).toContain("accept");
     expect(text).toContain("retry differences");
+    expect(text).toContain("**walk**");
+    expect(text).toContain("**walk all**");
     expect(text).toContain("walk findings one at a time");
     expect(text).toContain("post the verified-claims table");
     expect(text).toContain("accept synthesis");
@@ -312,6 +319,42 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(skill).not.toContain("```text\ndesign-critique: halted, because");
     expect(skill).not.toContain("Default critic posts without extra record: 2");
     expect(skill).not.toContain("walk findings one at a time");
+    expect(skill).not.toContain("accept-into-contract");
+    expect(skill).not.toContain("empty disagreement set");
+  });
+
+  it("locks walk vs walk all, auto-stamp on non-empty all-accept, and no-stamp on stubs (#3640)", () => {
+    const text = readText(CONTRACT);
+    expect(text).toContain("**walk**");
+    expect(text).toContain("**walk all**");
+    expect(text).toContain("walk findings one at a time");
+    expect(text).toContain("recorded parent-disagree");
+    expect(text).toContain("accept-into-contract");
+    expect(text).toContain("Defer is not accepted");
+    expect(text).toContain(
+      "design-critique: synthesis accepted, because agents agreed (empty disagreement set)",
+    );
+    expect(text).toContain("non-empty");
+    expect(text).toContain("classified-finding set");
+    expect(text).toContain("scm:issue:design-critique-chip");
+    expect(text).toContain("--chip triage-ready");
+    expect(text).toContain("zero classified headings");
+    expect(text).toContain("Do not stamp");
+    expect(text).toContain("Dispatch failure");
+    expect(text).toContain("Looks-good");
+    expect(text).toContain("bare **accept**");
+    expect(text).toContain("Do not print **accept synthesis**");
+    expect(text).toContain("Do not auto-start the walk");
+    expect(text).toContain("retry differences");
+    const skill = readText(SKILL_REL);
+    expect(skill).toContain("Operator verbs");
+    expect(skill).toContain("Walk / walk all. Auto-stamp when agents agree");
+    expect(skill).not.toContain("walk findings one at a time");
+    expect(skill).not.toContain("accept-into-contract");
+    expect(skill).not.toContain("empty disagreement set");
+    expect(skill).not.toContain("classified-finding set");
+    const labelsDoc = readText(".github/ISSUE_LABELS.md");
+    expect(labelsDoc).toContain("#3640 auto-stamp");
   });
 
   it("pins exclusive remaining-set replace of the two catalog chips", () => {
