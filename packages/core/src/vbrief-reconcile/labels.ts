@@ -1,5 +1,9 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import {
+  isDesignCritiqueCatalogChip,
+  mergeDesignCritiqueExclusiveIntoApply,
+} from "../design-critique/exclusive-chip.js";
 import { hasArtifactSuffix, resolveLifecycleRoot, stripArtifactSuffix } from "../layout/resolve.js";
 import { call } from "../scm/call.js";
 import { extractIssueRef } from "../triage/reconcile/parse-uri.js";
@@ -83,9 +87,20 @@ export class ScmLabelClient implements LabelClient {
     add: readonly string[],
     remove: readonly string[],
   ): void {
+    let addList = [...add];
+    let removeList = [...remove];
+    if (addList.some(isDesignCritiqueCatalogChip)) {
+      const current = this.fetchLabels(repo, issueNumber);
+      const merged = mergeDesignCritiqueExclusiveIntoApply(current, addList, removeList);
+      addList = merged.add;
+      removeList = merged.remove;
+    }
+    if (addList.length === 0 && removeList.length === 0) {
+      return;
+    }
     const args = ["edit", String(issueNumber), "--repo", repo];
-    for (const name of add) args.push("--add-label", name);
-    for (const name of remove) args.push("--remove-label", name);
+    for (const name of addList) args.push("--add-label", name);
+    for (const name of removeList) args.push("--remove-label", name);
     const proc = call(SCM_SOURCE, "issue", args);
     if (proc.returncode !== 0) {
       throw new ScmLabelError(

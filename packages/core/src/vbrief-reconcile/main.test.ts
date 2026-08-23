@@ -261,6 +261,10 @@ describe("reconciliation branches", () => {
 });
 
 describe("labels SCM client", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("fetch and apply via scm.call", () => {
     vi.spyOn(scm, "call")
       .mockReturnValueOnce({
@@ -273,6 +277,28 @@ describe("labels SCM client", () => {
     const client = new ScmLabelClient();
     expect(client.fetchLabels("deftai/directive", 1)).toEqual(["bug", "epic"]);
     client.apply("deftai/directive", 1, ["rfc"], ["epic"]);
+  });
+
+  it("apply of a design-critique catalog chip removes the other catalog name (#3642)", () => {
+    const spy = vi.spyOn(scm, "call");
+    spy
+      .mockReturnValueOnce({
+        args: [],
+        returncode: 0,
+        stdout: JSON.stringify({
+          labels: [{ name: "bug" }, { name: "design-critique:mechanism-shaped" }],
+        }),
+        stderr: "",
+      })
+      .mockReturnValueOnce({ args: [], returncode: 0, stdout: "", stderr: "" });
+    const client = new ScmLabelClient();
+    client.apply("deftai/directive", 3637, ["design-critique:triage-ready"], []);
+    expect(spy).toHaveBeenCalledTimes(2);
+    const editArgs = spy.mock.calls[1]?.[2] ?? [];
+    expect(editArgs).toContain("design-critique:triage-ready");
+    expect(editArgs).toContain("design-critique:mechanism-shaped");
+    expect(editArgs).toContain("--add-label");
+    expect(editArgs).toContain("--remove-label");
   });
 
   it("labels unchanged and errors", () => {

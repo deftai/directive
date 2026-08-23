@@ -32,6 +32,31 @@ export function remainingSetAfterDesignCritiqueChip(
   return remaining;
 }
 
+/**
+ * Fold exclusive catalog-chip replace into a LabelClient.apply add/remove
+ * mutation. Production writer: ScmLabelClient.apply.
+ */
+export function mergeDesignCritiqueExclusiveIntoApply(
+  current: readonly string[],
+  add: readonly string[],
+  remove: readonly string[],
+): { add: string[]; remove: string[] } {
+  const catalogAdds = add.filter(isDesignCritiqueCatalogChip);
+  if (catalogAdds.length === 0) {
+    return { add: [...add], remove: [...remove] };
+  }
+  const nextChip = catalogAdds[catalogAdds.length - 1] as DesignCritiqueCatalogChip;
+  const delta = designCritiqueChipApplyDelta(current, nextChip);
+  const addSet = new Set(
+    add.filter((name) => !isDesignCritiqueCatalogChip(name) || name === nextChip),
+  );
+  for (const name of delta.add) addSet.add(name);
+  const removeSet = new Set(remove.filter((name) => name !== nextChip));
+  for (const name of delta.remove) removeSet.add(name);
+  removeSet.delete(nextChip);
+  return { add: [...addSet], remove: [...removeSet] };
+}
+
 /** Delta for LabelClient.apply (one add+remove mutation). */
 export function designCritiqueChipApplyDelta(
   current: readonly string[],

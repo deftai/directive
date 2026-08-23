@@ -5,6 +5,7 @@ import {
   DESIGN_CRITIQUE_CATALOG_CHIPS,
   designCritiqueChipApplyDelta,
   isDesignCritiqueCatalogChip,
+  mergeDesignCritiqueExclusiveIntoApply,
   remainingSetAfterDesignCritiqueChip,
 } from "./exclusive-chip.js";
 
@@ -153,5 +154,19 @@ describe("design-critique exclusive remaining-set chip (#3642)", () => {
     expect(() => designCritiqueChipApplyDelta(["bug"], "design-critique:critic-posted")).toThrow(
       /not a design-critique catalog chip/,
     );
+  });
+
+  it("folds exclusive replace into LabelClient.apply add/remove", () => {
+    const merged = mergeDesignCritiqueExclusiveIntoApply(
+      ["bug", "design-critique:mechanism-shaped"],
+      ["design-critique:triage-ready"],
+      [],
+    );
+    expect(merged).toEqual({
+      add: ["design-critique:triage-ready"],
+      remove: ["design-critique:mechanism-shaped"],
+    });
+    const passthrough = mergeDesignCritiqueExclusiveIntoApply(["bug"], ["status:blocked"], ["rfc"]);
+    expect(passthrough).toEqual({ add: ["status:blocked"], remove: ["rfc"] });
   });
 });
