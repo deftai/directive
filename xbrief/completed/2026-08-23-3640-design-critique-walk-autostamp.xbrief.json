@@ -1,0 +1,178 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Walk is parent-disagreement only; empty all-accept map auto-posts table and auto-stamps. Bind operator recut 5387144467.",
+    "updated": "2026-08-23T22:28:52Z"
+  },
+  "plan": {
+    "id": "issue-3640-design-critique-walk-autostamp",
+    "title": "design-critique walk rename and auto-stamp when agents agree",
+    "status": "completed",
+    "narratives": {
+      "Description": "walk iterates recorded parent-disagree headings. walk all is census. When the successor lean map is total over a non-empty classified-finding set and every heading is accept-into-contract, parent auto-posts the table and auto-stamps synthesis-accepted plus triage-ready.",
+      "Origin": "GitHub issue #3640. Bind operator recut 5387144467. Supersedes 5387103656 and synthesis 5387111282. Pair exclusive chips #3642 and comment-lead role #3646.",
+      "Overview": "Operator: if triage/parent and critic agree, do not bring the operator into the loop again. Blank/stub critic (zero classified headings) or dispatch-fail: stop and inform; do not stamp. Looks-good still does not bind. Non-empty disagree set prints walk / walk all / retry differences / accept. Walk does not auto-start. Takes: accept-into-contract / disagree / defer. Defer is not accepted. Keep one-release census alias for walk findings one at a time. Auto-stamp uses #3642 remaining-set replace and #3646 role: parent on auto-posted comments.",
+      "UserStory": "As a parent after a critic, I want walk to mean only my disagreements, and when the map is all accept-into-contract I want table plus bind without another human verb.",
+      "When": "When the contract uses walk and walk all, empty all-accept non-empty-finding map auto-posts table then synthesis-accepted and remaining-set-replaces to triage-ready, stub critics do not stamp, looks-good does not bind, tests pin those rules, and CHANGELOG has an Unreleased line.",
+      "LockedDecisions": "Bind 5387144467, not 5386710951, 5386770411, 5387103656, or 5387111282. Out: table-auto/stamp-waits split; round-2 B1 table-offer on first-moment map; halt chip; auto-dispatch; third critic without cap raise. Sequence after #3642 and #3646. Dual-stop already spent on this issue's critique; do not dispatch another critic from this story.",
+      "ImplementationPlan": "After 3642 and 3646 merge: recut contract operator verbs and empty-agreement auto-stamp; brief pointer; content-contract tests; thin skill; CHANGELOG. Closes #3640.",
+      "OriginDivergence": "Issue body auto-bound even on immediate empty map including stubs. Critic B2 required non-empty classified set. Operator recut 5387144467 restored auto-stamp of table+bind when the two agents agree, after walk. Comments newer than body are SoT. 5388594631 (#3651 advisory, 2026-08-23T21:36:36Z) records a composed bind predicate with unresolved audit markers; it does not amend this brief or this issue's ceiling. Origin updated_at 2026-08-23T21:36:37Z is that advisory only."
+    },
+    "items": [
+      {
+        "title": "walk and walk all; successor lean carries per-heading takes",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the contract operator-verb list is read, walk iterates recorded parent-disagree headings, walk all is the census, the long census phrase remains an alias for one release, and takes live on the successor lean (accept-into-contract / disagree / defer).",
+          "Acceptance": "When the contract operator-verb list is read, walk iterates recorded parent-disagree headings, walk all is the census, the long census phrase remains an alias for one release, and takes live on the successor lean (accept-into-contract / disagree / defer)."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-23T22:30:00Z",
+          "recorded_by": "leaf-implementation/3640"
+        }
+      },
+      {
+        "title": "Non-empty all-accept map auto-posts table then auto-stamps",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the successor lean map is total over a non-empty in-envelope classified-finding set and every heading is accept-into-contract, parent auto-posts the verified-claims table as its own comment then auto-posts synthesis accepted because agents agreed (empty disagreement set) and remaining-set-replaces the chip to triage-ready, without printing accept synthesis.",
+          "Acceptance": "When the successor lean map is total over a non-empty in-envelope classified-finding set and every heading is accept-into-contract, parent auto-posts the verified-claims table as its own comment then auto-posts synthesis accepted because agents agreed (empty disagreement set) and remaining-set-replaces the chip to triage-ready, without printing accept synthesis."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-23T22:30:00Z",
+          "recorded_by": "leaf-implementation/3640"
+        }
+      },
+      {
+        "title": "Stub critic and looks-good still do not stamp",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the critic posts zero classified headings or dispatch fails, parent stops and informs and does not stamp. Looks-good / ok / proceed / bare accept still do not bind. Non-empty disagree set still offers walk / walk all / retry differences / accept and does not auto-start walk.",
+          "Acceptance": "When the critic posts zero classified headings or dispatch fails, parent stops and informs and does not stamp. Looks-good / ok / proceed / bare accept still do not bind. Non-empty disagree set still offers walk / walk all / retry differences / accept and does not auto-start walk."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-23T22:30:00Z",
+          "recorded_by": "leaf-implementation/3640"
+        }
+      },
+      {
+        "title": "Tests and CHANGELOG lock the recut",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When design_critique_contract tests pass, they pin walk / walk all, auto-stamp on non-empty all-accept maps, and no-stamp on stubs. Skill stays a thin pointer. CHANGELOG Unreleased has one line.",
+          "Acceptance": "When design_critique_contract tests pass, they pin walk / walk all, auto-stamp on non-empty all-accept maps, and no-stamp on stubs. Skill stays a thin pointer. CHANGELOG Unreleased has one line."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3658",
+          "recorded_at": "2026-08-23T22:24:55Z",
+          "recorded_by": "leaf-implementation/3640"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3640",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3640"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3640#issuecomment-5387144467",
+        "type": "x-xbrief/github-comment",
+        "title": "Operator recut 5387144467"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3642",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3642 exclusive chip"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3646",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3646 comment role"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "content/contracts/design-critique.md",
+          "content/templates/design-critique-brief.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "content/packs/skills/skills-pack-0.1.json",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts"
+        ],
+        "expected_outputs": [
+          "walk/walk all plus auto-stamp on non-empty all-accept map"
+        ],
+        "depends_on": [
+          "issue-3642-design-critique-exclusive-chip",
+          "issue-3646-design-critique-comment-role"
+        ],
+        "conflict_group": "design-critique-3642-3646-3640",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Sequence last. Bind 5387144467. Shared contract with 3642/3646."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/contracts/design-critique.md",
+          "content/templates/design-critique-brief.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "content/contracts",
+        "cohesion_exemption": "CHANGELOG.md may exceed FILE_SIZE_REVIEW_TRIGGER_LINES."
+      },
+      "capacityBucket": "new-capability",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3658,
+        "prBase": null,
+        "mergeCommit": "87c73c78ada5c5df833ec305709816469ef383c2",
+        "deliveryBranch": "master",
+        "deliveryCommit": "87c73c78ada5c5df833ec305709816469ef383c2",
+        "verifiedAt": "2026-08-23T22:28:52Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "845d8bcf-15c7-4f4f-a63a-79dd9e30bc6f"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-23T22:28:52Z",
+      "completedSessionId": "845d8bcf-15c7-4f4f-a63a-79dd9e30bc6f"
+    },
+    "updated": "2026-08-23T22:28:52Z"
+  },
+  "vBRIEFInfo": {
+    "version": "0.8",
+    "updated": "2026-08-23T22:28:52Z"
+  }
+}
