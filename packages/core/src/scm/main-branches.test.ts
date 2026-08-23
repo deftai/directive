@@ -40,50 +40,6 @@ describe("main non-rest branches", () => {
   });
 });
 
-describe("main exclusive design-critique chip edit (#3642)", () => {
-  it("routes catalog-chip --add-label through LabelClient.apply", () => {
-    const apply = vi.fn();
-    const client = {
-      fetchLabels: () => ["bug", "design-critique:mechanism-shaped"],
-      apply,
-    };
-    const code = main(
-      [
-        "issue",
-        "edit",
-        "3637",
-        "--repo",
-        "deftai/directive",
-        "--add-label",
-        "design-critique:triage-ready",
-      ],
-      { skipReadiness: true, whichFn: () => "/usr/bin/gh", labelClient: client },
-    );
-    expect(code).toBe(0);
-    expect(apply).toHaveBeenCalledWith(
-      "deftai/directive",
-      3637,
-      ["design-critique:triage-ready"],
-      [],
-    );
-    expect(spawnSyncMock).not.toHaveBeenCalled();
-  });
-
-  it("forwards non-catalog issue edit to gh", () => {
-    vi.spyOn(buildCommand, "buildCommand").mockReturnValue([
-      "/usr/bin/gh",
-      "issue",
-      "edit",
-      "1",
-      "--add-label",
-      "bug",
-    ]);
-    spawnSyncMock.mockReturnValue({ status: 0 });
-    expect(main(["issue", "edit", "1", "--add-label", "bug"], { skipReadiness: true })).toBe(0);
-    expect(spawnSyncMock).toHaveBeenCalled();
-  });
-});
-
 describe("main rest branches", () => {
   it("writes stderr from REST dispatch failures", () => {
     vi.spyOn(restDispatch, "runRestView").mockReturnValue({

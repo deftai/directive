@@ -168,5 +168,12 @@ describe("design-critique exclusive remaining-set chip (#3642)", () => {
     });
     const passthrough = mergeDesignCritiqueExclusiveIntoApply(["bug"], ["status:blocked"], ["rfc"]);
     expect(passthrough).toEqual({ add: ["status:blocked"], remove: ["rfc"] });
+    const mixed = mergeDesignCritiqueExclusiveIntoApply(
+      ["bug", "design-critique:mechanism-shaped"],
+      ["design-critique:triage-ready", "area:cli"],
+      ["bug"],
+    );
+    expect(mixed.add.sort()).toEqual(["area:cli", "design-critique:triage-ready"]);
+    expect(mixed.remove.sort()).toEqual(["bug", "design-critique:mechanism-shaped"]);
   });
 });

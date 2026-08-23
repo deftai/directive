@@ -301,6 +301,50 @@ describe("labels SCM client", () => {
     expect(editArgs).toContain("--remove-label");
   });
 
+  it("catalog chip plus another label is one remaining-set edit (#3642)", () => {
+    const spy = vi.spyOn(scm, "call");
+    spy
+      .mockReturnValueOnce({
+        args: [],
+        returncode: 0,
+        stdout: JSON.stringify({
+          labels: [{ name: "bug" }, { name: "design-critique:mechanism-shaped" }],
+        }),
+        stderr: "",
+      })
+      .mockReturnValueOnce({ args: [], returncode: 0, stdout: "", stderr: "" });
+    const client = new ScmLabelClient();
+    client.apply("deftai/directive", 3637, ["design-critique:triage-ready", "area:cli"], ["bug"]);
+    expect(spy).toHaveBeenCalledTimes(2);
+    const editArgs = spy.mock.calls[1]?.[2] ?? [];
+    expect(editArgs).toContain("design-critique:triage-ready");
+    expect(editArgs).toContain("design-critique:mechanism-shaped");
+    expect(editArgs).toContain("area:cli");
+    expect(editArgs).toContain("bug");
+    expect(editArgs.filter((a) => a === "edit")).toHaveLength(1);
+  });
+
+  it("already-exclusive catalog chip still applies remaining non-catalog labels (#3642)", () => {
+    const spy = vi.spyOn(scm, "call");
+    spy
+      .mockReturnValueOnce({
+        args: [],
+        returncode: 0,
+        stdout: JSON.stringify({
+          labels: [{ name: "bug" }, { name: "design-critique:triage-ready" }],
+        }),
+        stderr: "",
+      })
+      .mockReturnValueOnce({ args: [], returncode: 0, stdout: "", stderr: "" });
+    const client = new ScmLabelClient();
+    client.apply("deftai/directive", 3642, ["design-critique:triage-ready", "area:cli"], []);
+    expect(spy).toHaveBeenCalledTimes(2);
+    const editArgs = spy.mock.calls[1]?.[2] ?? [];
+    expect(editArgs).toContain("area:cli");
+    expect(editArgs).toContain("--add-label");
+    expect(editArgs).not.toContain("design-critique:mechanism-shaped");
+  });
+
   it("labels unchanged and errors", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-labels-br-"));
     const active = join(root, "xbrief", "active");

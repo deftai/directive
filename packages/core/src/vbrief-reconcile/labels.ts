@@ -90,14 +90,21 @@ export class ScmLabelClient implements LabelClient {
     const catalogAdds = add.filter(isDesignCritiqueCatalogChip);
     if (catalogAdds.length > 0) {
       const nextChip = catalogAdds[catalogAdds.length - 1] as string;
-      const inner: LabelClient = {
-        fetchLabels: (r, n) => this.fetchLabels(r, n),
-        apply: (r, n, a, rem) => this.applyMut(r, n, a, rem),
-      };
-      applyDesignCritiqueCatalogChip(inner, repo, issueNumber, nextChip);
       const restAdd = add.filter((name) => !isDesignCritiqueCatalogChip(name));
       const restRemove = remove.filter((name) => !isDesignCritiqueCatalogChip(name));
-      if (restAdd.length > 0 || restRemove.length > 0) {
+      let applied = false;
+      const inner: LabelClient = {
+        fetchLabels: (r, n) => this.fetchLabels(r, n),
+        apply: (r, n, a, rem) => {
+          applied = true;
+          const addSet = new Set<string>([...a, ...restAdd]);
+          const removeSet = new Set<string>([...rem, ...restRemove]);
+          for (const name of addSet) removeSet.delete(name);
+          this.applyMut(r, n, [...addSet], [...removeSet]);
+        },
+      };
+      applyDesignCritiqueCatalogChip(inner, repo, issueNumber, nextChip);
+      if (!applied && (restAdd.length > 0 || restRemove.length > 0)) {
         this.applyMut(repo, issueNumber, restAdd, restRemove);
       }
       return;
