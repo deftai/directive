@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-08-23-3637-doctor-header-drift-bare-vbrief-slash.xbrief.json",
+  "planId": "issue-3637-doctor-header-drift-bare-vbrief",
+  "approvedAt": "2026-08-23T15:16:56Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "content/UPGRADING.md",
+    "packages/cli/src/doctor.test.ts",
+    "packages/core/src/xbrief-migrate/agents-header.test.ts",
+    "packages/core/src/xbrief-migrate/agents-header.ts"
+  ],
+  "fileScopeDigest": "e6001209538c5b7d7b9222c84f7e907b103207805498b7120010658d0076d4cb",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-08-23T15:16:55Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "bb9a4dab52dea94b91af32d175117df8560bc73e0c0a0e1bf5cb9701c5813979",
+  "digestAlgo": "intent-extract-v1"
+}

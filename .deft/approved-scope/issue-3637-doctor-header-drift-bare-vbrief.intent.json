@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "id": "issue-3637-doctor-header-drift-bare-vbrief",
+    "title": "doctor header drift: left-bound vbrief/ and stop lying migrate:xbrief on already-xbrief",
+    "narratives": {
+      "Description": "detectStaleUnmanagedHeader uses includes on vbrief/, so a directory-name mention in unmanaged prose is the same hit as a layout pointer. Recut detector and rewriter together. Do not implement the original write-back 5386611610.",
+      "Origin": "GitHub issue #3637. Bind successor lean 5386676555 plus verified-claims table 5386676545. Synthesis accepted 5386676545. Supersedes triage write-back 5386611610. Critic 5386657693. Consumer-filed via feedback:file (#1709).",
+      "Overview": "Keep .vbrief.json and vbrief:preflight as hard hits. Left-bound vbrief/ so x-vbrief/ is not a hit. Hard rewrite and hard doctor hits are those two plus left-bounded vbrief/ with a child segment. Bare vbrief/ with no child, including the #2154 backtick exemplar, is one class: detector may mention it; rewriter must not replaceAll it. Doctor line on already-xbrief trees must not say Run deft migrate:xbrief. Do not wire header patch onto already-xbrief until the rewriter is split. Reject issue-body path-that-resolves and exempt-all-backticks.",
+      "UserStory": "As an already-xbrief operator, I want doctor not to call a directory-name mention in the unmanaged header a layout pointer, and not to tell me to run migrate:xbrief when that command will not patch.",
+      "When": "When an unmanaged header names vbrief/ with no child segment, the rewriter leaves it; child-path / .vbrief.json / vbrief:preflight still rewrite; x-vbrief/ is not a hit; already-xbrief doctor copy does not point at migrate:xbrief; tests lock those four; CHANGELOG has an Unreleased line.",
+      "LockedDecisions": "Bind 5386676555 + 5386676545, not 5386611610. Left-bound vbrief/. Hard rewrite+doctor: .vbrief.json, vbrief:preflight, left-bounded vbrief/ plus child. Bare vbrief/ including live-in backtick exemplar: one class; detector may mention; rewriter must not replaceAll. Backticks are not a discriminator. Issue-body exempt-backticks and path-that-resolves stay rejected. Already-xbrief doctor line: hand-edit, not Run deft migrate:xbrief (that CLI patches only after kind migrated). Do not wire already-xbrief header patch until rewriter is split. Do not add a second drift subsystem. Out: platform:windows, mint/authz #3596/#3638, auto-dispatch, new matcher language.",
+      "ImplementationPlan": "1. Split matcher/rewriter in packages/core/src/xbrief-migrate/agents-header.ts. 2. Change renderStaleHeaderLine for already-xbrief. 3. Tests in agents-header.test.ts and doctor.test.ts as named in the lean. 4. UPGRADING.md sentence that tells already-xbrief operators to re-run migrate:xbrief to patch the header. 5. CHANGELOG Unreleased. 6. Closes #3637.",
+      "OriginDivergence": "Issue body suggested path-that-resolves and exempt backticked tokens; both rejected (finding 8). Title overstates the word vbrief; matcher is vbrief/ with slash. Comments 5386676555/5386676545 are the next-build contract."
+    },
+    "items": [
+      {
+        "title": "Left-bound vbrief/ so x-vbrief/ is not a hit",
+        "narrative": {
+          "When": "When unmanaged text contains x-vbrief/ or x-vbrief/plan, detect and rewrite do not treat that as a vbrief/ layout pointer and do not emit x-xbrief/.",
+          "Acceptance": "When unmanaged text contains x-vbrief/ or x-vbrief/plan, detect and rewrite do not treat that as a vbrief/ layout pointer and do not emit x-xbrief/."
+        }
+      },
+      {
+        "title": "Hard rewrite and hard doctor hits are .vbrief.json, vbrief:preflight, and left-bounded vbrief/ plus a child segment",
+        "narrative": {
+          "When": "When unmanaged text has .vbrief.json, vbrief:preflight, or left-bounded vbrief/active/..., detect flags them and rewrite maps them to the xbrief forms.",
+          "Acceptance": "When unmanaged text has .vbrief.json, vbrief:preflight, or left-bounded vbrief/active/..., detect flags them and rewrite maps them to the xbrief forms."
+        }
+      },
+      {
+        "title": "Bare vbrief/ is not rewritten, including the #2154 backtick exemplar",
+        "narrative": {
+          "When": "When unmanaged text has bare vbrief/ with no child segment, including Scoped work items live in backtick-vbrief-slash, the rewriter leaves that substring; backticks are not a discriminator.",
+          "Acceptance": "When unmanaged text has bare vbrief/ with no child segment, including Scoped work items live in backtick-vbrief-slash, the rewriter leaves that substring; backticks are not a discriminator."
+        }
+      },
+      {
+        "title": "Already-xbrief doctor line does not say Run deft migrate:xbrief",
+        "narrative": {
+          "When": "When detectStaleUnmanagedHeader can fire (xbrief/ tree present), renderStaleHeaderLine does not tell the operator to run deft migrate:xbrief, because that CLI path does not call patchAgentsMdHeader except after kind migrated.",
+          "Acceptance": "When detectStaleUnmanagedHeader can fire (xbrief/ tree present), renderStaleHeaderLine does not tell the operator to run deft migrate:xbrief, because that CLI path does not call patchAgentsMdHeader except after kind migrated."
+        }
+      },
+      {
+        "title": "Do not wire already-xbrief header patch until rewriter is split",
+        "narrative": {
+          "When": "When migrate:xbrief runs on an already-xbrief tree, it still does not call patchAgentsMdHeader. Accidental safety stays until this PR's rewriter split is in place; this story does not add a new already-xbrief patch path.",
+          "Acceptance": "When migrate:xbrief runs on an already-xbrief tree, it still does not call patchAgentsMdHeader. Accidental safety stays until this PR's rewriter split is in place; this story does not add a new already-xbrief patch path."
+        }
+      },
+      {
+        "title": "Tests and CHANGELOG lock the recut",
+        "narrative": {
+          "When": "When the named tests pass, STALE_HEADER no longer requires live-in backtick-vbrief-slash to become xbrief/; unmanaged prose backtick-vbrief-slash is allowed; child-path / .vbrief.json / vbrief:preflight still rewrite; x-vbrief/ is a non-hit; CHANGELOG Unreleased names the leftover doctor false signpost.",
+          "Acceptance": "When the named tests pass, STALE_HEADER no longer requires live-in backtick-vbrief-slash to become xbrief/; unmanaged prose backtick-vbrief-slash is allowed; child-path / .vbrief.json / vbrief:preflight still rewrite; x-vbrief/ is a non-hit; CHANGELOG Unreleased names the leftover doctor false signpost."
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3637",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3637"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3637#issuecomment-5386676555",
+        "type": "x-xbrief/github-comment",
+        "title": "Successor lean 5386676555"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3637#issuecomment-5386676545",
+        "type": "x-xbrief/github-comment",
+        "title": "Verified-claims and synthesis 5386676545"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2154",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2154 (closed; this is over-fire of that detector)"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/xbrief-migrate/agents-header.ts",
+          "packages/core/src/xbrief-migrate/agents-header.test.ts",
+          "packages/cli/src/doctor.test.ts",
+          "content/UPGRADING.md",
+          "CHANGELOG.md"
+        ],
+        "missing_traces_justification": [
+          "Bind 5386676555. Stay out of #3596/#3638 mint. Do not auto-dispatch critique."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/xbrief-migrate/agents-header.ts",
+          "packages/core/src/xbrief-migrate/agents-header.test.ts",
+          "packages/cli/src/doctor.test.ts",
+          "content/UPGRADING.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/xbrief-migrate",
+        "cohesion_exemption": "CHANGELOG.md and UPGRADING.md may already exceed FILE_SIZE_REVIEW_TRIGGER_LINES; this slice adds one Unreleased line and one already-xbrief doctor-copy correction."
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 1 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Split matcher/rewriter in packages/core/src/xbrief-migrate/agents-header.ts. 2. Change renderStaleHeaderLine for already-xbrief. 3. Tests in agents-header.test.ts and doctor.test.ts as named in the lean. 4. UPGRADING.md sentence that tells already-xbrief operators to re-run migrate:xbrief to patch the header. 5. CHANGELOG Unreleased. 6. Closes #3637.",
+          "artifact_path": "packages/core/src/xbrief-migrate/agents-header.ts",
+          "ambiguous": true,
+          "readings": [
+            {
+              "text": "Split matcher/rewriter in packages/core/src/xbrief-migrate/agents-header.ts. 2. Change renderStaleHeaderLine for already-xbrief. 3. Tests in agents-header.test.ts and doctor.test.ts as named in the lean. 4. UPGRADING.md sentence that tells already-xbrief operators to re-run migrate:xbrief to patch the header. 5. CHANGELOG Unreleased. 6. Closes #3637. [reading: packages/core/src/xbrief-migrate/agents-header.ts]",
+              "artifact_path": "packages/core/src/xbrief-migrate/agents-header.ts"
+            },
+            {
+              "text": "Split matcher/rewriter in packages/core/src/xbrief-migrate/agents-header.ts. 2. Change renderStaleHeaderLine for already-xbrief. 3. Tests in agents-header.test.ts and doctor.test.ts as named in the lean. 4. UPGRADING.md sentence that tells already-xbrief operators to re-run migrate:xbrief to patch the header. 5. CHANGELOG Unreleased. 6. Closes #3637. [reading: agents-header.test.ts]",
+              "artifact_path": "agents-header.test.ts"
+            },
+            {
+              "text": "Split matcher/rewriter in packages/core/src/xbrief-migrate/agents-header.ts. 2. Change renderStaleHeaderLine for already-xbrief. 3. Tests in agents-header.test.ts and doctor.test.ts as named in the lean. 4. UPGRADING.md sentence that tells already-xbrief operators to re-run migrate:xbrief to patch the header. 5. CHANGELOG Unreleased. 6. Closes #3637. [reading: doctor.test.ts]",
+              "artifact_path": "doctor.test.ts"
+            },
+            {
+              "text": "Split matcher/rewriter in packages/core/src/xbrief-migrate/agents-header.ts. 2. Change renderStaleHeaderLine for already-xbrief. 3. Tests in agents-header.test.ts and doctor.test.ts as named in the lean. 4. UPGRADING.md sentence that tells already-xbrief operators to re-run migrate:xbrief to patch the header. 5. CHANGELOG Unreleased. 6. Closes #3637. [reading: UPGRADING.md]",
+              "artifact_path": "UPGRADING.md"
+            }
+          ],
+          "chosen_reading": 0,
+          "provenance": "statement"
+        }
+      ]
+    }
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "metadata.intended_placement",
+    "metadata.kind"
+  ]
+}
