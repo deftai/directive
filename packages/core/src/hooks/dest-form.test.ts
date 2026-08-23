@@ -253,6 +253,9 @@ describe("classifyProductDestForms (#3438)", () => {
     // Exact-match keeps the scan tight: a look-alike argument is not a verb.
     expect(classifyProductDestForms("sudo apt-get install rm-utils")).toEqual([]);
     expect(classifyProductDestForms("sudo bash -c 'rm x'")).toEqual([]);
+    // A recognized verb used as DATA after a real executable is not a dest-form.
+    expect(classifyProductDestForms("sudo grep rm protected/file")).toEqual([]);
+    expect(classifyProductDestForms("env echo rm protected/file")).toEqual([]);
   });
 
   it("fails closed on env-provided git work-tree relocation", () => {

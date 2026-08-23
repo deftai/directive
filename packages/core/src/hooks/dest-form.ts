@@ -43,6 +43,13 @@ const EXPANSION_DEST = /[*?[\]{}]/;
 
 const WRAP_BINS = new Set(["sudo", "env", "command"]);
 
+/** Wrapper flags that consume the next token. Unlisted `-` flags are boolean. */
+const WRAP_VALUE_OPTS: Readonly<Record<string, ReadonlySet<string>>> = {
+  sudo: new Set(["-u", "-g", "-C", "-p", "-r", "-t", "-T", "-D"]),
+  env: new Set(["-u", "-C", "-S", "--chdir", "--split-string"]),
+  command: new Set(),
+};
+
 /** Verbs this classifier recognizes, for scanning past a wrapper's options. */
 const RECOGNIZED_BINS = new Set(["rm", "rm.exe", "rmdir", "rmdir.exe", "git", "git.exe"]);
 
@@ -373,19 +380,24 @@ function skipPrefix(tokens: string[]): { i: number; gitContext: boolean } {
   if (wrap !== undefined && WRAP_BINS.has(wrap)) {
     i++;
     consumeAssigns();
-    // Scan forward to the first RECOGNIZED verb rather than trying to skip the
-    // wrapper's own options. Options that take a separate value (`sudo -u root`,
-    // `env -u VAR`, `nice -n 10`) leave that value in the binary position, so
-    // skipping only `-`-prefixed tokens hides the verb and falls through to the
-    // fail-OPEN path (#3438).
-    //
-    // Scanning is sound here because this position decides RECOGNITION only:
-    // over-recognizing routes a command into the gate (fail-closed direction),
-    // while under-recognizing lets a real mutation past. The exact-match on the
-    // verb keeps it tight — `apt-get install rm-utils` does not match `rm`, and
-    // a quoted `bash -c 'rm x'` payload is the single token `rm x`, not `rm`.
-    const verbAt = tokens.findIndex((tok, idx) => idx >= i && isRecognizedBin(tok));
-    if (verbAt >= 0) i = verbAt;
+    // Skip this wrapper's own options, including value-taking ones (`sudo -u
+    // root`, `env -u VAR`). Do NOT scan past a later non-option token: that is
+    // the real executable (`sudo grep rm file` must stay unclassifiable).
+    const valueOpts = WRAP_VALUE_OPTS[wrap] ?? new Set<string>();
+    while (i < tokens.length) {
+      const tok = tokens[i];
+      if (tok === undefined) break;
+      if (isRecognizedBin(tok)) break;
+      if (tok === "--") {
+        i++;
+        break;
+      }
+      if (tok.startsWith("-")) {
+        i += valueOpts.has(tok) ? 2 : 1;
+        continue;
+      }
+      break;
+    }
   }
   return { i, gitContext };
 }
