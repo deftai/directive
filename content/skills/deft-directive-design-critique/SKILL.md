@@ -38,7 +38,7 @@ Normative rules live in [`contracts/design-critique.md`](../../contracts/design-
 4. Stop 4 — Residual reiteration
 5. Stop 5 — Verified synthesis
 
-First-line model slug: Stop 3 — Critic envelope.
+Comment lead (model then role): Stop 3 — Critic envelope.
 Operator-gated loop. Successor lean. Operator verbs. Dual stop. Halt line. Bind after accepted synthesis.
 Parent chip write: scm:issue:design-critique-chip.
 

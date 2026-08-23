@@ -48,11 +48,17 @@ const REQUIRED_CONTRACT_POINTERS = [
   "scaffolds",
   "content-contract tests",
   "model: grok-4.6",
+  "role: critic",
+  "role: parent",
+  "role: triage",
+  "role: triage|critic|parent",
+  "#3640",
   "comment-lead field",
   "issue label",
   "GitHub login",
   "verify:routing",
   "first line",
+  "second line",
   "design-critique:triage-ready",
   "design-critique: halted, because",
   "design-critique: synthesis accepted, because",
@@ -83,6 +89,8 @@ const REQUIRED_TEMPLATE_POINTERS = [
   "embedded instructions",
   "model:",
   "first line",
+  "role:",
+  "second line",
 ];
 
 const METHOD_RECONCILIATION =
@@ -98,7 +106,7 @@ const REQUIRED_SKILL_POINTERS = [
   "Stop 5 — Verified synthesis",
   "contracts/design-critique.md",
   "templates/design-critique-brief.md",
-  "First-line model slug",
+  "Comment lead (model then role)",
   "Successor lean",
   "Operator verbs",
   "Halt line",
@@ -211,27 +219,45 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(text).not.toContain("⊗ Put the model in an issue label");
   });
 
-  it("locks the first-line model slug as a comment field, not an issue label", () => {
+  it("locks the comment lead as model then role, not an issue label", () => {
     const contract = readText(CONTRACT);
-    expect(contract).toContain("```text\nmodel: grok-4.6\n```");
+    expect(contract).toContain("```text\nmodel: grok-4.6\nrole: critic\n```");
     expect(contract).toContain("! First line of the triage write-back comment is `model: <slug>`.");
+    expect(contract).toContain("! Second line of the triage write-back comment is `role: triage`.");
     expect(contract).toContain(
       "! First line of every critic comment is `model: <slug>` for the model that produced that comment.",
     );
+    expect(contract).toContain("! Second line of every critic comment is `role: critic`.");
+    expect(contract).toContain("! Same first-two-lines on a Stop 4 retry critic (`role: critic`).");
     expect(contract).toContain(
-      "! Same first-line rule for a Stop 4 retry critic (fresh comment, new first line).",
+      "! Same first-two-lines on #3640 auto-posted table / synthesis-accepted comments (`role: parent`).",
     );
+    expect(contract).toContain("`role: triage|critic|parent`");
     expect(contract).toContain("comment-lead field");
     expect(contract).toContain("⊗ Put the model in an issue label");
+    expect(contract).toContain("⊗ Put role in an issue label");
+    expect(contract).toContain("⊗ Replace the model line with a role or GitHub login");
     expect(contract).toContain("GitHub login");
     expect(contract).toContain("verify:routing");
+    expect(contract).toContain(
+      "⊗ Infer role from `verify:routing` or spawn metadata and omit it from the comment.",
+    );
     const template = readText(TEMPLATE);
     expect(template).toContain(
       "- Model (copy onto the first line of the posted comment as `model: <slug>`):",
     );
+    expect(template).toContain(
+      "- Role (copy onto the second line of the posted comment as `role: triage|critic|parent`):",
+    );
     const skill = readText(SKILL_REL);
-    expect(skill).toContain("First-line model slug");
+    expect(skill).toContain("Comment lead (model then role)");
     expect(skill).not.toContain("⊗ Put the model in an issue label");
+    expect(skill).not.toContain("role: triage");
+    expect(skill).not.toContain("role: critic");
+    expect(skill).not.toContain("role: parent");
+    expect(skill).not.toContain("triage|critic|parent");
+    const labelsDoc = readText(".github/ISSUE_LABELS.md");
+    expect(labelsDoc).toContain("Do not add a critic-posted or author/role chip");
   });
 
   it("locks the operator-gated loop, successor lean, verbs, dual stop, halt, and bind", () => {

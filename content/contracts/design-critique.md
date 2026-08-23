@@ -21,7 +21,7 @@ ADR-005 is vehicle-invariant. The gate never computes "is this triage mechanism-
 2. `plan.policy.judgmentGates` matches that label. Pure syntax.
 3. The clearance line on the thread is `design-critique: warranted | not warranted, because …`. `verify:judgment-gates` checks presence, shape, and authority. It never scores the because-clause.
 
-The write-back first line names the model (Stop 3).
+The write-back first two lines name the model and role (Stop 3).
 
 `verify:judgment-gates --enforce` stays opt-in unused in this rollout. Advisory observe first. No marker means the gate never fires. Voluntary critiques stay legal.
 
@@ -60,23 +60,39 @@ The envelope is [`templates/design-critique-brief.md`](../templates/design-criti
 - ! Round-2 ceiling is the disagreement-map comment.
 - ! Resolve SHAs from the tree. Do not invent them.
 
-### First-line model slug
+### Comment lead (model then role)
 
-Comment-lead field. The first line of the triage write-back and of every critic comment names the LLM that produced that comment.
+Comment-lead field. The first two lines of the triage write-back and of every critic, parent, and #3640 auto-posted comment name the LLM and the posting role. Keep the first line as `model: <slug>`. The second line is `role: triage|critic|parent`.
 
-Canonical lead line:
+Canonical lead:
 
 ```text
 model: grok-4.6
+role: critic
 ```
 
+Closed role set (do not invent chips or extra roles in v1): `role: triage|critic|parent`.
+
+| role | Who posts |
+| --- | --- |
+| `triage` | Stop 1 write-back |
+| `critic` | Stop 3 / Stop 4 critic comments |
+| `parent` | successor lean, walk decisions, verified-claims table, synthesis-accepted line, halt line, disposition map if not folded into the successor lean |
+
 - ! First line of the triage write-back comment is `model: <slug>`.
+- ! Second line of the triage write-back comment is `role: triage`.
 - ! First line of every critic comment is `model: <slug>` for the model that produced that comment.
-- ! Same first-line rule for a Stop 4 retry critic (fresh comment, new first line).
-- ~ Synthesis comments SHOULD use the same first-line `model: <slug>`.
+- ! Second line of every critic comment is `role: critic`.
+- ! Same first-two-lines on a Stop 4 retry critic (`role: critic`).
+- ! Same first-two-lines on #3640 auto-posted table / synthesis-accepted comments (`role: parent`).
+- ! Parent comments (successor lean, walk decisions, halt line, verified-claims table, synthesis-accepted) use `role: parent`.
+- ~ Synthesis comments SHOULD use the same first-two-lines (`model: <slug>` then `role: parent`).
 - ⊗ Put the model in an issue label.
+- ⊗ Put role in an issue label (`design-critique:critic`, author/role chips).
 - ⊗ Put a GitHub login, author name, or role name in that lead line in place of the model.
+- ⊗ Replace the model line with a role or GitHub login.
 - ⊗ Infer the model from `verify:routing` or spawn metadata and omit it from the comment.
+- ⊗ Infer role from `verify:routing` or spawn metadata and omit it from the comment.
 
 ## Stop 4 — Residual reiteration
 
@@ -85,7 +101,7 @@ Use this stop only when round 1 leaves residual disagreement that still changes 
 - ! Dispatch a fresh critic against a disagreement map. Do not default to resume.
 - ? Resume the same critic when the question is "does my prior finding still hold?"
 - ! Keep the id ceiling at the disagreement-map comment for that pass.
-- ! First-line model slug on the retry critic comment (Stop 3).
+- ! First-two-lines (model then `role: critic`) on the retry critic comment (Stop 3).
 - ⊗ Run a third critic pass as the default. Record why if a panel variant already set N≥3. See Dual stop.
 
 ## Operator-gated loop
@@ -109,7 +125,7 @@ After each accept-X, or before synthesis, parent posts a successor `**Lean:**` c
 - ! Cite accepted critic ids/headings, the still-open residual, and the write-back or prior lean it supersedes.
 - ! Bind synthesis and `design-critique:triage-ready` to the latest successor lean, never a superseded write-back.
 - ! Full template (accepted set, residual, supersedes-id, ceiling if retrying) lives only on the successor lean and on a retry disagreement map.
-- ! Walk comments stay slim (model line, Accept X, critic id, heading, decision).
+- ! Walk comments stay slim (model and role lines, Accept X, critic id, heading, decision).
 - ⊗ Edit the ceiling write-back in place.
 - ⊗ Fold the successor lean into the critic comment.
 - ⊗ Paraphrase critic findings as new claims.
@@ -164,7 +180,8 @@ Presence, shape, and authority only. Do not score the because-clause.
 
 Parent offers **post the verified-claims table**; it does not auto-post. Each quantitative row names its method.
 
-- ~ Synthesis comments SHOULD start with the same first-line `model: <slug>`.
+- ~ Synthesis comments SHOULD start with the same first-two-lines (`model: <slug>` then `role: parent`).
+- ! #3640 auto-posted verified-claims table and synthesis-accepted comments use `role: parent`.
 - ! Put a method column in every verified-claims table.
 - ! Decorrelation: a row whose only evidence is prior critics' agreement MUST NOT be marked verified. Require primary-source re-derivation or a cross-family re-check.
 - ! Method-reconciliation: when verifying, upholding, or issuing any verdict that a measurement or count claim is false, first reproduce the original claimant's method. A different number under a different method is a discrepancy to explain, not a refutation.
@@ -217,4 +234,4 @@ This motion ingests untrusted issue threads by design.
 
 ## Test surface
 
-`packages/core/src/content-contracts/standards/design_critique_contract.test.ts` locks required pointer strings, the scaffolds framing, the first-line model slug as a comment-lead field (not an issue label), the operator-gated loop (successor lean, operator verbs, dual stop, halt line, exclusive remaining-set replace of the two catalog chips), the brief-template forbidden-inputs list, and the thin router skill (existence, line cap, pointer resolution, no-normative-content).
+`packages/core/src/content-contracts/standards/design_critique_contract.test.ts` locks required pointer strings, the scaffolds framing, the comment-lead field as model then role from the closed set (not an issue label), the operator-gated loop (successor lean, operator verbs, dual stop, halt line, exclusive remaining-set replace of the two catalog chips), the brief-template forbidden-inputs list, and the thin router skill (existence, line cap, pointer resolution, no-normative-content).
