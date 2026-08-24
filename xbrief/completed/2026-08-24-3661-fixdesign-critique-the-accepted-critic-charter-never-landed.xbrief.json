@@ -1,0 +1,377 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story xBRIEF for #3661 critic-method obligations; bound SoT successor lean 5390589646 (round 2).",
+    "updated": "2026-08-24T19:35:22Z"
+  },
+  "plan": {
+    "title": "fix(design-critique): land the decided critic method and rename the overloaded Stop 3 heading",
+    "status": "completed",
+    "narratives": {
+      "Description": "The Stop 3 section that should tell a critic how to critique contains only parent-facing dispatch rules. There is no critic-facing method anywhere in the contract, while the bind path already consumes a finding-classification taxonomy that no shipped surface obliges any critic to produce. Eight decided obligations land at three distinct strengths, Stop 3's overloaded heading is renamed, and token-level pins replace a weak substring pin that let a hollow section stay green.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3661",
+      "Overview": "Bound SoT is round-2 successor lean 5390589646; round-1 lean 5390526061 is superseded. Arc closed at the dual-stop ceiling of two critic posts. The issue body's line numbers were derived at bf3929c1 and #3660 has since merged (269a07e5), so they have shifted again -- re-derive every citation with `git grep -n` before editing. A PowerShell line counter disagreed with git on this file during the #3660 build; trust git.",
+      "Labels": "enhancement, design, process, area:skills, status:child, design-critique:triage-ready",
+      "UserStory": "As a critic dispatched from the contract alone, I want the contract to state the method I am obliged to follow at its real strength, so that classification, re-verification and evidence anatomy are contract obligations rather than things a particular parent happened to ask for in a hand-written envelope.",
+      "ImplementationPlan": "1. Re-derive all line numbers at current origin/master with `git grep -n`; the body's bf3929c1 numbers are stale after #3660. 2. Rename Stop 3's `### Charter` to a name stating what it is (parent-facing dispatch rules). Measured at bf3929c1 the Stop 3 sense had four sites: contract:65, contract:69, brief:39, test:19. Re-derive and update all of them. test:19's weak `\"## Charter\"` substring pin will go red -- that is the intended forcing function. 3. Add a new, clearly-named critic-method heading and land the eight decided obligations at their decided strengths: five MUST (re-verify anchors by running checks / line cites are claims not evidence; inventory existing mechanisms before proposing new ones; classify every finding with the exact three tokens; finding anatomy -- evidence, concrete failure mode, disposition consequence, else footnote; injection-swarm lens as a triggered MUST), one triggered MUST NOT (\"a reviewer would catch it\" is a failed finding), and two SHOULD on a real fork (road-not-taken; steelman the strongest rejected position and name what would flip the verdict). Do NOT flatten these to one level. 4. State the trigger conditions explicitly: the injection/swarm lens fires when the target changes authority, untrusted input, prompts or envelopes, identity, concurrency, worktrees, or shared state; the reviewer-catch rule is a prohibition rather than a required recital; road-not-taken and steelman fire only when the critic actually chose among plausible mechanisms. 5. Cross-reference method-reconciliation from the critic-method heading. It stays at Stop 5 -- do not move it. 6. Point content/templates/design-critique-brief.md at the critic-method heading BY NAME. Copy no rule bodies (contract no-copy rule; the brief has its own copy of that rule). 7. Pin distinctive tokens a hollow section cannot contain: all three exact class tokens, a citations-are-claims phrase, inventory/existing-mechanisms, the injection/swarm trigger nouns, the failed-reviewer phrase, and the anatomy tokens. Extend the existing test file; do not invent a second enforcement vehicle. Do not pin whole body sentences. 8. CHANGELOG [Unreleased] line. Bound SoT: https://github.com/deftai/directive/issues/3661#issuecomment-5390589646.",
+      "LockedDecisions": "Round-2 lean 5390589646 is bound SoT. The eight-obligation list is DECIDED, not restored -- do not re-open which items belong. The \"closed restore of an accepted spec\" carve-out is WITHDRAWN: the original five traced to proposed skill outline 5361349926, which current-shape 5388562160 excludes and design-critique-brief.md lists as a forbidden input, and which had seven items rather than five. Three strengths must survive: token presence is not behavioral evidence, and an empty road-not-taken or perfunctory steelman satisfies a pin while changing nothing and is paid for on every dispatch forever. Method-reconciliation stays at Stop 5 (cross-reference only). Out of scope: runtime enforcement that a critic obeyed the method -- the contract scaffolds and only the gate and content-contract tests enforce; moving method-reconciliation; copying rule bodies into the brief; restructuring the Stop 2 variant table. The Stop 2 sense of \"charter\" is the dominant meaning with 19 references and seven test sites -- it is not being renamed.",
+      "AcceptanceJustification": "Ten clauses match the bound issue checklist after a two-round arc decided the list, withdrew the restore framing, and corrected a test-pin subcount. Each is independently pin-testable except the dispatch-completeness clause, which is a read-through check."
+    },
+    "items": [
+      {
+        "id": "s1",
+        "title": "Eight obligations land at three strengths",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When the critic-method section is read, the eight decided obligations are present at MUST, triggered MUST, MUST NOT, and SHOULD, and are not flattened into a single level.",
+          "Acceptance": "When the critic-method section is read, the eight decided obligations are present at MUST, triggered MUST, MUST NOT, and SHOULD, and are not flattened into a single level.",
+          "Traces": "FR-3661-s1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-24T19:35:18Z",
+          "recorded_by": "leaf-worker/3661"
+        }
+      },
+      {
+        "id": "s2",
+        "title": "Trigger conditions are stated",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When a triggered obligation is read, its firing condition is stated for the injection/swarm lens, the reviewer-catch prohibition, and the real-fork condition on road-not-taken and steelman.",
+          "Acceptance": "When a triggered obligation is read, its firing condition is stated for the injection/swarm lens, the reviewer-catch prohibition, and the real-fork condition on road-not-taken and steelman.",
+          "Traces": "FR-3661-s2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-24T19:35:18Z",
+          "recorded_by": "leaf-worker/3661"
+        }
+      },
+      {
+        "id": "s3",
+        "title": "Finding-anatomy rule present",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the critic-method section is read, it requires every classified finding to name evidence, a concrete failure mode, and the disposition consequence, or be a footnote.",
+          "Acceptance": "When the critic-method section is read, it requires every classified finding to name evidence, a concrete failure mode, and the disposition consequence, or be a footnote.",
+          "Traces": "FR-3661-s3"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-24T19:35:18Z",
+          "recorded_by": "leaf-worker/3661"
+        }
+      },
+      {
+        "id": "s4",
+        "title": "Critic method has its own heading",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the contract is read, critic-facing obligations live under a heading distinct from Stop 2's charter sense.",
+          "Acceptance": "When the contract is read, critic-facing obligations live under a heading distinct from Stop 2's charter sense.",
+          "Traces": "FR-3661-s4"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-24T19:35:18Z",
+          "recorded_by": "leaf-worker/3661"
+        }
+      },
+      {
+        "id": "s5",
+        "title": "Stop 3 heading renamed at all sites",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the Stop 3 heading is read, it is renamed to state that it holds parent-facing dispatch rules, and every site referencing the old name is updated.",
+          "Acceptance": "When the Stop 3 heading is read, it is renamed to state that it holds parent-facing dispatch rules, and every site referencing the old name is updated.",
+          "Traces": "FR-3661-s5"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-24T19:35:18Z",
+          "recorded_by": "leaf-worker/3661"
+        }
+      },
+      {
+        "id": "s6",
+        "title": "Brief points at the heading by name",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the design-critique brief is read, it names the critic-method heading as its pointer target and copies no rule bodies.",
+          "Acceptance": "When the design-critique brief is read, it names the critic-method heading as its pointer target and copies no rule bodies.",
+          "Traces": "FR-3661-s6"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-24T19:35:18Z",
+          "recorded_by": "leaf-worker/3661"
+        }
+      },
+      {
+        "id": "s7",
+        "title": "Method-reconciliation cross-referenced",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the critic-method heading is read, it cross-references method-reconciliation, which remains located at Stop 5.",
+          "Acceptance": "When the critic-method heading is read, it cross-references method-reconciliation, which remains located at Stop 5.",
+          "Traces": "FR-3661-s7"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-24T19:35:18Z",
+          "recorded_by": "leaf-worker/3661"
+        }
+      },
+      {
+        "id": "s8",
+        "title": "Token-level pins, not prose pins",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When the content-contract test runs, it pins distinctive tokens a hollow section cannot satisfy -- all three exact class tokens, a citations-are-claims phrase, inventory/existing-mechanisms, the injection/swarm trigger nouns, the failed-reviewer phrase, and the anatomy tokens -- and does not pin whole body sentences.",
+          "Acceptance": "When the content-contract test runs, it pins distinctive tokens a hollow section cannot satisfy -- all three exact class tokens, a citations-are-claims phrase, inventory/existing-mechanisms, the injection/swarm trigger nouns, the failed-reviewer phrase, and the anatomy tokens -- and does not pin whole body sentences.",
+          "Traces": "FR-3661-s8"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-24T19:35:18Z",
+          "recorded_by": "leaf-worker/3661"
+        }
+      },
+      {
+        "id": "s9",
+        "title": "Contract alone is sufficient for dispatch",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When a critic is dispatched from the contract alone, it receives the full method without needing a hand-written envelope to supply it.",
+          "Acceptance": "When a critic is dispatched from the contract alone, it receives the full method without needing a hand-written envelope to supply it.",
+          "Traces": "FR-3661-s9"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-24T19:35:18Z",
+          "recorded_by": "leaf-worker/3661"
+        }
+      },
+      {
+        "id": "s10",
+        "title": "CHANGELOG entry",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When CHANGELOG.md is read, an [Unreleased] line describes the user-visible change.",
+          "Acceptance": "When CHANGELOG.md is read, an [Unreleased] line describes the user-visible change.",
+          "Traces": "FR-3661-s10"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3ad8f1cccf616b84fd6ce15ef65126f07e9e2558",
+          "recorded_at": "2026-08-24T19:35:18Z",
+          "recorded_by": "leaf-worker/3661"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design",
+      "process",
+      "area:skills",
+      "status:child",
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3661",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3661: the accepted critic charter never landed"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3434",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3434 (umbrella)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3657",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3657 (created the charter overload)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3660",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3660 (same weak-pin class; merged, shifted line numbers)"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [],
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          "content/contracts/design-critique.md",
+          "content/templates/design-critique-brief.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
+        ],
+        "expected_outputs": [
+          "eight critic obligations at three distinct strengths",
+          "stated trigger conditions",
+          "finding-anatomy rule",
+          "renamed Stop 3 heading with all sites updated",
+          "brief pointer by heading name",
+          "token-level content-contract pins"
+        ],
+        "depends_on": [],
+        "conflict_group": "design-critique-contract",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "high",
+        "missing_traces_justification": [
+          "Traces are FR-3661-* ids on this story; no parent specification.xbrief requirement ids exist for this child."
+        ],
+        "acceptance_criteria_justification": "Ten clauses match the bound issue checklist after a two-round arc decided the obligation list and its strengths."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/contracts/design-critique.md",
+          "content/templates/design-critique-brief.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "content/contracts",
+        "cohesion_exemption": "The brief template, the content-contract test, and CHANGELOG.md sit outside the contract module boundary; the test lives with the other content-contract standards tests."
+      },
+      "kind": "story",
+      "capacityBucket": "correctness",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3692,
+        "prBase": null,
+        "mergeCommit": "3ad8f1cccf616b84fd6ce15ef65126f07e9e2558",
+        "deliveryBranch": "master",
+        "deliveryCommit": "3ad8f1cccf616b84fd6ce15ef65126f07e9e2558",
+        "verifiedAt": "2026-08-24T19:35:22Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "7865b941-2021-4a3f-84f2-24a04d8da1d6"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-24T19:35:22Z",
+      "completedSessionId": "7865b941-2021-4a3f-84f2-24a04d8da1d6"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "Ten clauses taken from the bound issue checklist at https://github.com/deftai/directive/issues/3661 after round-2 synthesis.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "The eight decided obligations land at their decided strengths -- MUST, triggered MUST, MUST NOT, and SHOULD are not flattened into one level",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Trigger conditions are stated for the injection/swarm lens, the reviewer-catch prohibition, and the real-fork condition on road-not-taken and steelman",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The finding-anatomy rule (evidence, failure mode, disposition consequence, else footnote) is present",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Critic-facing obligations live under a heading distinct from Stop 2's charter",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Stop 3's heading is renamed; all sites updated",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "The brief points at the critic-method heading by name and copies no rule bodies",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Method-reconciliation stays at Stop 5 and is cross-referenced from the critic-method heading",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Tests pin distinctive tokens a hollow section cannot satisfy, not full prose",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "A critic dispatched from the contract alone receives the full method",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "CHANGELOG [Unreleased] line",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "issue-3661-design-critique-critic-method",
+    "updated": "2026-08-24T19:35:22Z"
+  },
+  "vBRIEFInfo": {
+    "version": "0.8",
+    "updated": "2026-08-24T19:35:22Z"
+  }
+}
