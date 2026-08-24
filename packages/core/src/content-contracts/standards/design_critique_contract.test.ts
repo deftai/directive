@@ -332,9 +332,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(text).toContain("```text\ndesign-critique: synthesis accepted, because …\n```");
     expect(text).toContain("design-critique:triage-ready");
     expect(text).toContain("Default critic posts without extra record: 2");
-    expect(text).toContain(
-      "An N=3 panel is permitted three round-1 posts and no default retry.",
-    );
+    expect(text).toContain("An N=3 panel is permitted three round-1 posts and no default retry.");
     expect(text).toContain("still-open finding headings/ids");
     expect(text).toContain("Dispatch failure");
     expect(text).toContain("accept");
@@ -493,23 +491,17 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(text).not.toContain(
       "Round-1 ceiling is the triage write-back (or the thread head at dispatch).",
     );
-    expect(text).toContain(
-      "An N=3 panel is permitted three round-1 posts and no default retry.",
-    );
+    expect(text).toContain("An N=3 panel is permitted three round-1 posts and no default retry.");
     expect(text).toContain(
       "A fourth post requires the operator to raise the cap for this arc and record it.",
     );
     expect(text).toContain("Panels larger than three (N>3) are unaddressed.");
-    expect(text).toContain(
-      "An N=3 panel is not a recorded why for a Stop 4 retry.",
-    );
+    expect(text).toContain("An N=3 panel is not a recorded why for a Stop 4 retry.");
     expect(text).toContain(
       "parent posts a panel-deposit comment (`role: parent`) that names `round:`, `siblings:`, and `input-ceiling:`",
     );
     expect(text).toContain("These are not rules.");
-    expect(text).toContain(
-      "A parent that leans on any of them MUST carry an audit marker",
-    );
+    expect(text).toContain("A parent that leans on any of them MUST carry an audit marker");
     expect(text).toContain("the most recent parent artifact that supersedes the map");
     expect(text).toContain("that amendment becomes the ceiling");
     expect(text).toContain("both panel arcs declined it");
