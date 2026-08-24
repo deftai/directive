@@ -77,9 +77,24 @@ The envelope is [`templates/design-critique-brief.md`](../templates/design-criti
 
 - ! State an id ceiling (GitHub comment id, inclusive) at dispatch.
 - ! Honor that ceiling. Comments after the id ceiling are out of envelope, except the critic's own Stop 4 retry post (including after the disagreement-map input ceiling), which stays in the auto-stamp denominator.
-- ! Round-1 ceiling is the triage write-back (or the thread head at dispatch).
+- ! Critics dispatched in the same round share one issue-comment input ceiling, fixed before any sibling dispatch. A sibling's post is out of envelope for every other sibling in that round.
+- ! That MUST claims only that siblings cannot read each other through the issue thread. It does not claim decorrelation.
+- ! Round-1 ceiling is the triage write-back when one exists. The "thread head at dispatch" fallback applies only to a single-critic round with no triage write-back. When two or more critics share the round, take one round-start snapshot before the first sibling dispatch and use that snapshot (or the triage write-back) as the shared ceiling.
+- ! Before dispatching two or more critics in the same round, parent posts a panel-deposit comment (`role: parent`) that names `round:`, `siblings:`, and `input-ceiling:` (the shared GitHub comment id). That comment is the durable record. A missing or malformed deposit is a contract defect.
 - ! Round-2 ceiling is the disagreement-map comment.
 - ! Resolve SHAs from the tree. Do not invent them.
+
+Canonical panel-deposit:
+
+```text
+model: grok-4.6
+role: parent
+
+panel-deposit
+round: 1
+siblings: 3
+input-ceiling: 5390001612
+```
 
 ### Comment lead (model then role)
 
@@ -98,7 +113,7 @@ Closed role set (do not invent chips or extra roles in v1): `role: triage|critic
 | --- | --- |
 | `triage` | Stop 1 write-back |
 | `critic` | Stop 3 / Stop 4 critic comments |
-| `parent` | successor lean, walk decisions, verified-claims table, synthesis-accepted line, halt line, disposition map if not folded into the successor lean |
+| `parent` | successor lean, walk decisions, verified-claims table, synthesis-accepted line, halt line, panel-deposit, disposition map if not folded into the successor lean |
 
 - ! First line of the triage write-back comment is `model: <slug>`.
 - ! Second line of the triage write-back comment is `role: triage`.
@@ -106,7 +121,7 @@ Closed role set (do not invent chips or extra roles in v1): `role: triage|critic
 - ! Second line of every critic comment is `role: critic`.
 - ! Same first-two-lines on a Stop 4 retry critic (`role: critic`).
 - ! Same first-two-lines on #3640 auto-posted table / synthesis-accepted comments (`role: parent`).
-- ! Parent comments (successor lean, walk decisions, halt line, verified-claims table, synthesis-accepted) use `role: parent`.
+- ! Parent comments (successor lean, walk decisions, halt line, verified-claims table, synthesis-accepted, panel-deposit) use `role: parent`.
 - ! Synthesis comments use the same first-two-lines (`model: <slug>` then `role: parent`).
 - ⊗ Put the model in an issue label.
 - ⊗ Put role in an issue label (`design-critique:critic`, author/role chips).
@@ -123,7 +138,7 @@ Use this stop only when round 1 leaves residual disagreement that still changes 
 - ? Resume the same critic when the question is "does my prior finding still hold?"
 - ! Keep the id ceiling at the disagreement-map comment for that pass.
 - ! First-two-lines (model then `role: critic`) on the retry critic comment (Stop 3).
-- ⊗ Run a third critic pass as the default. Record why if a panel variant already set N≥3. See Dual stop.
+- ⊗ Run a third critic pass as the default. An N=3 panel is not a recorded why for a Stop 4 retry. See Dual stop.
 
 ## Operator-gated loop
 
@@ -209,8 +224,19 @@ Numbered dual stop (#2442):
 
 - Default critic posts without extra record: 2 (round 1 plus one Stop 4 retry).
 - A third critic only with a recorded why (panel already N≥3, or operator raises the cap for this arc). Otherwise halt.
+- An N=3 panel is permitted three round-1 posts and no default retry. A fourth post requires the operator to raise the cap for this arc and record it.
+- Panels larger than three (N>3) are unaddressed. The variant table permits N≥3; this section names only a third critic.
 - Fingerprint: the set of still-open finding headings/ids on the disagreement map. Two retries in a row with that set unchanged and no new successor lean = same-fingerprint halt.
 - Dispatch failure (no comment posted, spawn died) is a separate halt. It does not spend a retry slot. Stop and inform. Do not stamp.
+
+### Audited residuals (panel bookkeeping)
+
+These are not rules. They record open protocol questions with the working default one arc used. A parent that leans on any of them MUST carry an audit marker (`## Parent-side substantiation`).
+
+- **Round-3+ ceiling.** The round-1 and round-2 ceiling rules cover those rounds. Stop 4 pins a retry to the disagreement-map comment. Round 3 and later have no stated ceiling. *Working default:* the most recent parent artifact that supersedes the map.
+- **Amendment supersession.** The round-2 ceiling is the disagreement-map comment. An amendment that supersedes a stale map has been used as the ceiling instead. *Working default:* that amendment becomes the ceiling.
+- **Pass-4 accounting.** Where the optional pass-4 synthesis audit counts against the budget is unaddressed. At N=3 it would be a fifth post. *Working default:* both panel arcs declined it.
+- **Parallel fingerprint.** The halt fingerprint is the still-open headings on the disagreement map. Parallel critics merge into one map. The same-fingerprint halt assumes sequential retries against a stable finding set and is untested with a panel. *Working default:* the merged map.
 
 ## Halt line
 

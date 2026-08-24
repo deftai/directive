@@ -1,0 +1,267 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story xBRIEF for #3660 panel ceiling and dual-stop accounting; bound SoT successor lean 5390368619.",
+    "updated": "2026-08-24T04:00:47Z"
+  },
+  "plan": {
+    "title": "fix(design-critique): parallel critics must share one input ceiling; state the N=3 dual-stop reading and make the ceiling durable",
+    "status": "running",
+    "narratives": {
+      "Description": "The contract's ceiling and dual-stop rules are written for one critic at a time. A panel is N critics in one round and nothing describes it. Three things land: same-round critics MUST share one issue-comment input ceiling fixed before any sibling dispatch; the round-1 thread-head fallback is scoped so it cannot apply to parallel siblings; and the N=3 dual-stop reading is written down. A durable machine-checkable record of the shared ceiling is added so the rule is verifiable rather than hollow.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3660",
+      "Overview": "Bound SoT is successor lean 5390368619; synthesis accepted 5390385927. All line numbers in the bound body are derived at 7f2639cc -- #3651 merged mid-arc and shifted the Dual stop cluster. Re-derive with `git grep -n` before editing; a PowerShell line-counter disagreed with git on this file. Shared file content/contracts/design-critique.md is contended with #3661 (disjoint regions, file contention only). This cohort sequences #3660 first, then #3661 -- do not parallelize.",
+      "Labels": "enhancement, design, process, area:skills, status:child, design-critique:triage-ready",
+      "UserStory": "As a parent dispatching a panel of critics in one round, I want the contract to state one shared input ceiling and a durable record of it, so that a panel cannot silently degrade into a sequential chain while still being reported as N independent critics.",
+      "ImplementationPlan": "1. Add the shared-ceiling MUST to the Stop 3 envelope-and-ceiling rules (measured at 7f2639cc as :78-81): critics dispatched in the same round share one issue-comment input ceiling, fixed before any sibling dispatch; a sibling's post is out of envelope for every other sibling in that round. 2. Scope :80's 'or the thread head at dispatch' so it cannot apply to parallel siblings -- either restrict it to a single-critic round with no triage write-back, or define one round-start snapshot taken before the first sibling dispatch. 3. State the N=3 standing reading near Dual stop (:206-211): an N=3 panel is permitted three round-1 posts and no default retry; a fourth post requires the operator to raise the cap for the arc and record it. Record N>3 as unaddressed. 4. Add a durable ceiling deposit -- either a required `input-ceiling: <comment-id>` line in each critic post's lead block, or a parent panel-deposit comment naming round id, sibling count and shared ceiling before dispatch. The choice is the implementer's; state which was chosen and why. 5. Record round-3+ ceiling, amendment supersession, pass-4 accounting and the parallel fingerprint as audited residuals with their working defaults -- not as rules. Now that ## Parent-side substantiation has landed, a parent leaning on either open default must carry an audit marker. 6. Pin the shared-ceiling sentence, the narrowed fallback and the N=3 sentence in design_critique_contract.test.ts -- content, not headers. 7. CHANGELOG [Unreleased] line. Bound SoT: https://github.com/deftai/directive/issues/3660#issuecomment-5390368619.",
+      "LockedDecisions": "Successor lean 5390368619 is bound SoT; synthesis accepted 5390385927. The N=3 dual-stop reading is DECIDED by derivation from :210-211, not deferred -- do not re-open it. The shared-ceiling MUST must NOT claim decorrelation; it only prevents siblings reading each other through the issue thread. Out of scope: deciding the round-3+ ceiling, amendment supersession, the N>3 budget, pass-4 accounting, and the parallel fingerprint -- all recorded as residuals. Mechanical independence enforcement (serving each critic a truncated snapshot) stays out per #3434. Concurrent-agent thread interlock is #3607.",
+      "AcceptanceJustification": "Nine clauses match the bound issue checklist. Each is independently pin-testable; two of them (shared ceiling, N=3 reading) are the substance of the critique."
+    },
+    "items": [
+      {
+        "id": "s1",
+        "title": "Same-round critics share one issue-comment input ceiling",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When critics are dispatched in the same round, the contract states as a MUST that they share one issue-comment input ceiling fixed before any sibling dispatch, and that a sibling's post is out of envelope for every other sibling in that round.",
+          "Acceptance": "When critics are dispatched in the same round, the contract states as a MUST that they share one issue-comment input ceiling fixed before any sibling dispatch, and that a sibling's post is out of envelope for every other sibling in that round.",
+          "Traces": "FR-3660-s1"
+        }
+      },
+      {
+        "id": "s2",
+        "title": "The MUST does not overclaim independence",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the shared-ceiling MUST is read, it claims only that siblings cannot read each other through the issue thread, and does not assert decorrelation.",
+          "Acceptance": "When the shared-ceiling MUST is read, it claims only that siblings cannot read each other through the issue thread, and does not assert decorrelation.",
+          "Traces": "FR-3660-s2"
+        }
+      },
+      {
+        "id": "s3",
+        "title": "Thread-head fallback cannot apply to parallel siblings",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the round-1 ceiling rule is read, its 'or the thread head at dispatch' fallback is scoped so it cannot apply to parallel sibling dispatch.",
+          "Acceptance": "When the round-1 ceiling rule is read, its 'or the thread head at dispatch' fallback is scoped so it cannot apply to parallel sibling dispatch.",
+          "Traces": "FR-3660-s3"
+        }
+      },
+      {
+        "id": "s4",
+        "title": "N=3 dual-stop reading is stated",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When Dual stop is read, it states that an N=3 panel is permitted three round-1 posts with no default retry, and that a fourth post requires a recorded operator cap raise.",
+          "Acceptance": "When Dual stop is read, it states that an N=3 panel is permitted three round-1 posts with no default retry, and that a fourth post requires a recorded operator cap raise.",
+          "Traces": "FR-3660-s4"
+        }
+      },
+      {
+        "id": "s5",
+        "title": "N>3 recorded as unaddressed",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the N=3 reading is read, the contract records that panels larger than three are unaddressed rather than silently covered by it.",
+          "Acceptance": "When the N=3 reading is read, the contract records that panels larger than three are unaddressed rather than silently covered by it.",
+          "Traces": "FR-3660-s5"
+        }
+      },
+      {
+        "id": "s6",
+        "title": "Durable machine-checkable ceiling record",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When a panel round is dispatched, a durable record of the shared ceiling exists that a content-contract pin can check for malformation, and the chosen shape is stated with its reason.",
+          "Acceptance": "When a panel round is dispatched, a durable record of the shared ceiling exists that a content-contract pin can check for malformation, and the chosen shape is stated with its reason.",
+          "Traces": "FR-3660-s6"
+        }
+      },
+      {
+        "id": "s7",
+        "title": "Content-contract test pins content, not headers",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the content-contract test runs, it pins the shared-ceiling sentence, the narrowed fallback and the N=3 sentence rather than section headings.",
+          "Acceptance": "When the content-contract test runs, it pins the shared-ceiling sentence, the narrowed fallback and the N=3 sentence rather than section headings.",
+          "Traces": "FR-3660-s7"
+        }
+      },
+      {
+        "id": "s8",
+        "title": "Open questions recorded as audited residuals",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the round-3+ ceiling, amendment supersession, pass-4 accounting and parallel fingerprint are read, each appears as an audited residual with its working default, not as a rule.",
+          "Acceptance": "When the round-3+ ceiling, amendment supersession, pass-4 accounting and parallel fingerprint are read, each appears as an audited residual with its working default, not as a rule.",
+          "Traces": "FR-3660-s8"
+        }
+      },
+      {
+        "id": "s9",
+        "title": "CHANGELOG entry",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When CHANGELOG.md is read, an [Unreleased] line describes the user-visible change.",
+          "Acceptance": "When CHANGELOG.md is read, an [Unreleased] line describes the user-visible change.",
+          "Traces": "FR-3660-s9"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design",
+      "process",
+      "area:skills",
+      "status:child",
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3660",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3660: design-critique panel ceiling and dual-stop accounting"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3434",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3434 (umbrella)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3661",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3661 (same file, sequenced after this story)"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [],
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          "content/contracts/design-critique.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
+        ],
+        "expected_outputs": [
+          "shared issue-comment input ceiling MUST for same-round critics",
+          "round-1 thread-head fallback scoped away from parallel siblings",
+          "stated N=3 dual-stop reading with N>3 recorded as unaddressed",
+          "durable machine-checkable ceiling record"
+        ],
+        "depends_on": [],
+        "conflict_group": "design-critique-contract",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "high",
+        "missing_traces_justification": [
+          "Traces are FR-3660-* ids on this story; no parent specification.xbrief requirement ids exist for this child."
+        ],
+        "acceptance_criteria_justification": "Nine clauses match the bound issue checklist after critique decided the N=3 reading and folded in the durable ceiling deposit; each is independently pin-testable."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/contracts/design-critique.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "content/contracts",
+        "cohesion_exemption": "CHANGELOG.md sits outside the contract module boundary."
+      },
+      "kind": "story",
+      "capacityBucket": "correctness"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "Nine clauses taken verbatim from the bound issue checklist at https://github.com/deftai/directive/issues/3660 after synthesis was accepted.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Same-round critics share one issue-comment input ceiling, fixed before any sibling dispatch, stated as a MUST",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The MUST does not claim decorrelation -- only that siblings cannot read each other through the thread",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The round-1 'or the thread head at dispatch' fallback is scoped so it cannot apply to parallel siblings",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "The N=3 standing reading is stated: three round-1 posts permitted, no default retry, post four needs a recorded cap raise",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "N>3 is recorded as unaddressed rather than silently covered by the N=3 reading",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "A durable, machine-checkable record of the shared ceiling exists; which of the two shapes is a build-time choice",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Content-contract test pins the shared-ceiling sentence, the narrowed fallback and the N=3 sentence -- content, not headers",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Round-3+ ceiling, amendment supersession, pass-4 accounting and the parallel fingerprint are recorded as audited residuals with their working defaults, not as rules",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "CHANGELOG `[Unreleased]` line",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "issue-3660-design-critique-panel-ceiling-and-dual-stop-accounting",
+    "updated": "2026-08-24T04:00:47Z"
+  },
+  "vBRIEFInfo": {
+    "updated": "2026-08-24T04:00:57Z"
+  }
+}

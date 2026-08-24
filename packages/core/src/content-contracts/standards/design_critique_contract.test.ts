@@ -332,6 +332,9 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(text).toContain("```text\ndesign-critique: synthesis accepted, because …\n```");
     expect(text).toContain("design-critique:triage-ready");
     expect(text).toContain("Default critic posts without extra record: 2");
+    expect(text).toContain(
+      "An N=3 panel is permitted three round-1 posts and no default retry.",
+    );
     expect(text).toContain("still-open finding headings/ids");
     expect(text).toContain("Dispatch failure");
     expect(text).toContain("accept");
@@ -467,6 +470,50 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(anyOf).toContain("design-critique:mechanism-shaped");
     expect(anyOf).not.toContain("design-critique:triage-ready");
     expect(anyOf).not.toContain("critic-posted");
+  });
+
+  it("locks same-round shared input ceiling, narrowed fallback, and N=3 dual-stop (#3660)", () => {
+    const text = readText(CONTRACT);
+    expect(text).toContain(
+      "Critics dispatched in the same round share one issue-comment input ceiling, fixed before any sibling dispatch.",
+    );
+    expect(text).toContain(
+      "A sibling's post is out of envelope for every other sibling in that round.",
+    );
+    expect(text).toContain(
+      "That MUST claims only that siblings cannot read each other through the issue thread.",
+    );
+    expect(text).toContain("It does not claim decorrelation.");
+    expect(text).toContain(
+      'The "thread head at dispatch" fallback applies only to a single-critic round with no triage write-back.',
+    );
+    expect(text).toContain(
+      "When two or more critics share the round, take one round-start snapshot before the first sibling dispatch",
+    );
+    expect(text).not.toContain(
+      "Round-1 ceiling is the triage write-back (or the thread head at dispatch).",
+    );
+    expect(text).toContain(
+      "An N=3 panel is permitted three round-1 posts and no default retry.",
+    );
+    expect(text).toContain(
+      "A fourth post requires the operator to raise the cap for this arc and record it.",
+    );
+    expect(text).toContain("Panels larger than three (N>3) are unaddressed.");
+    expect(text).toContain(
+      "An N=3 panel is not a recorded why for a Stop 4 retry.",
+    );
+    expect(text).toContain(
+      "parent posts a panel-deposit comment (`role: parent`) that names `round:`, `siblings:`, and `input-ceiling:`",
+    );
+    expect(text).toContain("These are not rules.");
+    expect(text).toContain(
+      "A parent that leans on any of them MUST carry an audit marker",
+    );
+    expect(text).toContain("the most recent parent artifact that supersedes the map");
+    expect(text).toContain("that amendment becomes the ceiling");
+    expect(text).toContain("both panel arcs declined it");
+    expect(text).toContain("the merged map");
   });
 
   it("locks parent-side substantiation MUSTs, both auto-bind sites, and omission fail-closed (#3651)", () => {
