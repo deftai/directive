@@ -116,8 +116,22 @@ describe("artifact-only lifecycle CI lane (#3678)", () => {
     expect(ci).toContain("artifact_only:");
     expect(ci).toContain("compute-artifact-only.sh");
     expect(script).toContain("git diff --name-only --no-renames");
-    expect(script).toContain("artifact-only-lifecycle.mjs");
+    expect(script).toContain("ARTIFACT_ONLY_SCRIPT");
     expect(script).toMatch(/\$\{BASE\}\.\.\.\$\{TIP\}/);
+  });
+
+  it("predicate scripts run from the merge-base copy, not PR HEAD", () => {
+    const ci = readText(".github/workflows/ci.yml");
+    const smoke = readText(".github/workflows/greenfield-python-free-smoke.yml");
+    const script = readText(".github/scripts/compute-artifact-only.sh");
+    for (const text of [ci, smoke]) {
+      expect(text).toMatch(/git cat-file -e "\$\{BASE\}:\$\{MJS\}"/);
+      expect(text).toContain("Trusted predicate absent");
+      expect(text).toMatch(/git show "\$\{BASE\}:\$\{MJS\}"/);
+      expect(text).toContain("export ARTIFACT_ONLY_SCRIPT=");
+      expect(text).not.toMatch(/^        run: bash \.github\/scripts\/compute-artifact-only\.sh\s*$/m);
+    }
+    expect(script).toContain("ARTIFACT_ONLY_SCRIPT unset");
   });
 
   it("ci.yml does not use workflow-level paths filters (required aggregator must report)", () => {

@@ -34,9 +34,16 @@ if [ -z "${BASE:-}" ] || [ "$BASE" = "$ZERO" ] || [ "$BASE" = "origin/" ] || [ -
   exit 0
 fi
 
+# Caller MUST pass ARTIFACT_ONLY_SCRIPT from a merge-base `git show`.
+# Unset means the workspace (PR HEAD) copy would be used — fail closed.
+if [ -z "${ARTIFACT_ONLY_SCRIPT:-}" ]; then
+  echo "ARTIFACT_ONLY_SCRIPT unset; refusing HEAD predicate; routing to full stack"
+  echo "artifact_only=false" >> "$GITHUB_OUTPUT"
+  exit 0
+fi
 files="$(git diff --name-only --no-renames --diff-filter=ACDMRT "${BASE}...${TIP}" || true)"
 printf '%s\n' "$files"
-result="$(printf '%s\n' "$files" | node .github/scripts/artifact-only-lifecycle.mjs --stdin || true)"
+result="$(printf '%s\n' "$files" | node "$ARTIFACT_ONLY_SCRIPT" --stdin || true)"
 echo "$result"
 case "$result" in
   artifact_only=true) artifact_only=true ;;
