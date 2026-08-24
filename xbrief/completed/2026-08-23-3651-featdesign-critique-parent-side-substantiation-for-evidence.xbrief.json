@@ -1,0 +1,345 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story xBRIEF for #3651 parent-side substantiation; bound SoT successor lean 5388344109.",
+    "updated": "2026-08-24T03:20:48Z"
+  },
+  "plan": {
+    "title": "feat(design-critique): parent-side substantiation for evidence introduced while adjudicating; unaudited premises block bind",
+    "status": "completed",
+    "narratives": {
+      "Description": "Parent artifacts that adjudicate critic findings introduce load-bearing premises that nothing currently binds. The bound design (successor lean 5388344109) is a three-part state machine: substantiation at the point of use, independence clearance by a later critic, and unresolved markers blocking verified-synthesis bind. #3640 already shipped, so this story also writes the composed auto-bind conjunct (all-accept map AND zero unresolved audit markers) at both Operator-verbs :150 and Bind path 1 :209.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3651",
+      "Overview": "Bound source of truth is successor lean 5388344109, not the as-filed four-obligation body. Wave-order note: umbrella #3434 current-shape pass-1 listed this as wave 3 after #3657/#3660/#3661; operator overrode that order and started a fresh swarm on #3651 first. #3640 is merged, so this story carries the §4 composed auto-bind amendment. Line anchors drifted after PR #3658: verification rules now :193-195, slim walk :130, dual-stop :166. Shared file content/contracts/design-critique.md is contended with open #3657, #3660, #3661 — this cohort is N=1; do not parallel those later without sequencing. Detection (§5) remains an open design input that the implementer must choose and test; omission must have a failure mode.",
+      "Labels": "enhancement, design, process, area:skills, status:child, design-critique:triage-ready",
+      "UserStory": "As a parent after a critic panel, I want premises I introduce while adjudicating to carry a SHA, pointer, and measured-versus-asserted token, so that unaudited parent readings cannot auto-bind synthesis.",
+      "ImplementationPlan": "1. Add a short ADR under docs/decisions/ that records the principle and its three refusals (parent adjudicating artifacts are arbitration surfaces; primary-source citation is not independent clearance; the parent cannot self-clear). 2. Edit content/contracts/design-critique.md as sole normative protocol: substantiation shape, independence predicate, unresolved markers as residual, composed auto-bind conjunct at both :150 and :209, slim walk comments at the drifted :130. 3. Update content/templates/design-critique-brief.md and content/packs/skills/skills-pack-0.1.json. 4. Pin each MUST in packages/core/src/content-contracts/standards/design_critique_contract.test.ts and add a verifier test that fails on omission. 5. Implement the chosen detection surface so a missing token, silently cleared marker, or envelope that omits a target has a failure mode. 6. Add a CHANGELOG [Unreleased] line. Bound SoT: https://github.com/deftai/directive/issues/3651#issuecomment-5388344109. Staleness addendum 5389126648 (line drift after #3658).",
+      "LockedDecisions": "Successor lean 5388344109 is bound SoT. Synthesis accepted 5388421874. Staleness addendum 5389126648 is bookkeeping, not a recut. Out of scope: dual-stop cap default, auto-dispatch #3578, widening judgmentGates, critics adjudicating each other, round-3+ ceiling (#3660), relaxing variant-table :38 (#3657). Vehicle: both a new ADR and contract MUST/transition edits.",
+      "AcceptanceJustification": "Nine acceptance clauses match the bound issue checklist (successor lean 5388344109 plus §4 composition after #3640 landed). They exceed the 2-5 swarm default because each obligation is independently pin-testable."
+    },
+    "items": [
+      {
+        "id": "s1",
+        "title": "Section 1 substantiation token is recorded at the point of use",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When a role:parent artifact introduces a load-bearing premise while adjudicating, it records dispatch SHA, source pointer, and measured-versus-asserted at that point, and walk comments stay a token plus pointer.",
+          "Acceptance": "When a role:parent artifact introduces a load-bearing premise while adjudicating, it records dispatch SHA, source pointer, and measured-versus-asserted at that point, and walk comments stay a token plus pointer.",
+          "Traces": "FR-3651-s1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/parent-audit.test.ts",
+          "recorded_at": "2026-08-24T03:21:00Z",
+          "recorded_by": "leaf-implementation/3651"
+        }
+      },
+      {
+        "id": "s2",
+        "title": "Section 2 independence clearance not provenance",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When a section-1 premise changes classification, residual, or next-build contract, it stays unaudited until a later role:critic artifact targets its marker; parent self-clearance and mixed-basis laundering are rejected.",
+          "Acceptance": "When a section-1 premise changes classification, residual, or next-build contract, it stays unaudited until a later role:critic artifact targets its marker; parent self-clearance and mixed-basis laundering are rejected.",
+          "Traces": "FR-3651-s2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/parent-audit.test.ts",
+          "recorded_at": "2026-08-24T03:21:00Z",
+          "recorded_by": "leaf-implementation/3651"
+        }
+      },
+      {
+        "id": "s3",
+        "title": "Section 3 unresolved markers block bind",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When an audit marker is unresolved, verified-synthesis bind is blocked and the marker is residual; promising a later pass does not discharge it.",
+          "Acceptance": "When an audit marker is unresolved, verified-synthesis bind is blocked and the marker is residual; promising a later pass does not discharge it.",
+          "Traces": "FR-3651-s3"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/parent-audit.test.ts",
+          "recorded_at": "2026-08-24T03:21:00Z",
+          "recorded_by": "leaf-implementation/3651"
+        }
+      },
+      {
+        "id": "s4",
+        "title": "Section 4 composed auto-bind conjunct on both sites",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When auto-bind runs, both Operator-verbs auto-stamp and Bind-after-accepted-synthesis path 1 require an all-accept disposition map AND zero unresolved audit markers.",
+          "Acceptance": "When auto-bind runs, both Operator-verbs auto-stamp and Bind-after-accepted-synthesis path 1 require an all-accept disposition map AND zero unresolved audit markers.",
+          "Traces": "FR-3651-s4"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/parent-audit.test.ts",
+          "recorded_at": "2026-08-24T03:21:00Z",
+          "recorded_by": "leaf-implementation/3651"
+        }
+      },
+      {
+        "id": "s5",
+        "title": "Section 5 detection has a failure mode",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When a token is omitted, a marker is silently cleared, or an envelope omits a named audit target, a verifier or content-contract test fails closed rather than only pinning rule text.",
+          "Acceptance": "When a token is omitted, a marker is silently cleared, or an envelope omits a named audit target, a verifier or content-contract test fails closed rather than only pinning rule text.",
+          "Traces": "FR-3651-s5"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/parent-audit.test.ts",
+          "recorded_at": "2026-08-24T03:21:00Z",
+          "recorded_by": "leaf-implementation/3651"
+        }
+      },
+      {
+        "id": "s6",
+        "title": "Walk comments remain slim",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When walk comments are posted, they stay slim per the drifted contract line :130; substantiation lives in the parent artifact or linked successor lean.",
+          "Acceptance": "When walk comments are posted, they stay slim per the drifted contract line :130; substantiation lives in the parent artifact or linked successor lean.",
+          "Traces": "FR-3651-s6"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/parent-audit.test.ts",
+          "recorded_at": "2026-08-24T03:21:00Z",
+          "recorded_by": "leaf-implementation/3651"
+        }
+      },
+      {
+        "id": "s7",
+        "title": "ADR records principle and three refusals",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When docs/decisions/ contains the new ADR, it records that parent adjudicating artifacts are arbitration surfaces, primary-source citation is not independent clearance, and the parent cannot self-clear.",
+          "Acceptance": "When docs/decisions/ contains the new ADR, it records that parent adjudicating artifacts are arbitration surfaces, primary-source citation is not independent clearance, and the parent cannot self-clear.",
+          "Traces": "FR-3651-s7"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/parent-audit.test.ts",
+          "recorded_at": "2026-08-24T03:21:00Z",
+          "recorded_by": "leaf-implementation/3651"
+        }
+      },
+      {
+        "id": "s8",
+        "title": "Content-contract tests pin each MUST",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When design_critique_contract tests run, they pin each drafted MUST and include a verifier case that fails on omission.",
+          "Acceptance": "When design_critique_contract tests run, they pin each drafted MUST and include a verifier case that fails on omission.",
+          "Traces": "FR-3651-s8"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/parent-audit.test.ts",
+          "recorded_at": "2026-08-24T03:21:00Z",
+          "recorded_by": "leaf-implementation/3651"
+        }
+      },
+      {
+        "id": "s9",
+        "title": "CHANGELOG Unreleased line",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When CHANGELOG.md is read, [Unreleased] contains one brief release-notes line for this story.",
+          "Acceptance": "When CHANGELOG.md is read, [Unreleased] contains one brief release-notes line for this story.",
+          "Traces": "FR-3651-s9"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3670",
+          "recorded_at": "2026-08-24T03:21:00Z",
+          "recorded_by": "leaf-implementation/3651"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design",
+      "process",
+      "area:skills",
+      "status:child",
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3651",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3651: feat(design-critique): parent-side substantiation for evidence introduced while adjudicating; unaudited premises block bind"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3434",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3434"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "TRIAGE_PREDICATES = new Set([\"labels\", \"body-text\", \"state\", \"age-days\"])",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "inline@L49"
+        },
+        {
+          "command": "role: triage|critic|parent",
+          "reason": "shell metacharacter \"|\" is not allowed in literal AC commands",
+          "sourceSpan": "inline@L49"
+        }
+      ],
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          "docs/decisions/",
+          "content/contracts/design-critique.md",
+          "content/templates/design-critique-brief.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "content/packs/skills/skills-pack-0.1.json",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
+        ],
+        "expected_outputs": [
+          "new ADR for parent-side substantiation refusals",
+          "composed auto-bind conjunct at both contract sites",
+          "verifier failure mode for omitted audit markers"
+        ],
+        "depends_on": [],
+        "conflict_group": "design-critique-contract",
+        "size": "L",
+        "file_scope_confidence": "medium",
+        "model_tier": "high",
+        "missing_traces_justification": [
+          "Traces are FR-3651-* ids on this story; no parent specification.xbrief requirement ids exist for this child."
+        ],
+        "acceptance_criteria_justification": "Nine clauses match the bound issue checklist after #3640 landed; each is independently pin-testable."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/contracts/design-critique.md",
+          "content/templates/design-critique-brief.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "content/contracts",
+        "cohesion_exemption": "CHANGELOG.md and a new docs/decisions/ADR plus the skills pack sit outside the contract module boundary."
+      },
+      "kind": "story",
+      "capacityBucket": "new-capability",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3670,
+        "prBase": null,
+        "mergeCommit": "7f2639ccce5fe0ab85c0b3bae7a73ade9237122d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "7f2639ccce5fe0ab85c0b3bae7a73ade9237122d",
+        "verifiedAt": "2026-08-24T03:20:48Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-24T03:20:48Z"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 9 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "§1 substantiation shape drafted: SHA, pointer, measured-versus-asserted",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "§2 independence predicate drafted; self-clearance and mixed-basis laundering forbidden",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "§3 an unresolved marker is residual and blocks bind",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "§4 composed auto-bind predicate lands in whichever of #3640 / #3651 is second",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "§5 a detection mechanism is chosen and implemented; omission has a failure mode",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Walk comments remain slim at `:128`",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "ADR records the principle and its three refusals",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Content-contract test pins each drafted MUST; a verifier test covers omission",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "CHANGELOG `[Unreleased]` line",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "issue-3651-design-critique-parent-side-substantiation",
+    "updated": "2026-08-24T03:20:48Z"
+  }
+}
