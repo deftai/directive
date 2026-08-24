@@ -35,6 +35,7 @@ Read, do not restate:
 | Topic | Contract heading |
 |---|---|
 | Gate (ADR-005) | Stop 1 — Gate |
+| Stop 1 `refutation-target:` | Stop 1 — Gate |
 | Variant selection | Stop 2 — Variant selection |
 | Parent-facing dispatch rules | Parent-facing dispatch rules |
 | Critic method | Critic method |

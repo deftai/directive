@@ -92,6 +92,9 @@ const REQUIRED_CONTRACT_POINTERS = [
   "AND zero unresolved audit markers",
   "independence, not provenance",
   "measured-versus-asserted",
+  "before any critic exists",
+  "`refutation-target:`",
+  "highest-leverage asserted premise",
 ];
 
 const REQUIRED_TEMPLATE_POINTERS = [
@@ -112,6 +115,7 @@ const REQUIRED_TEMPLATE_POINTERS = [
   "second line",
   "Audit targets",
   "ids only",
+  "`refutation-target:`",
 ];
 
 const METHOD_RECONCILIATION =
@@ -642,6 +646,44 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     const template = readText(TEMPLATE);
     expect(template).toContain("Audit targets (marker ids, comma-separated, or `none`");
     expect(template).toContain("parent rationale on the audit-targets field (ids only)");
+  });
+
+  it("pins Stop 1 exclusion and refutation-target tokens by content (#3672)", () => {
+    const text = readText(CONTRACT);
+    const substantiation = markdownSection(text, "## Parent-side substantiation");
+    expect(substantiation, "exclusion missing from substantiation section").toContain(
+      "before any critic exists",
+    );
+    expect(substantiation).toContain("nobody has spoken");
+    expect(substantiation).toContain("entire critic pass is the audit");
+    expect(substantiation).toContain("post-critic arbitration");
+    expect(substantiation).toContain("#3651");
+    expect(substantiation).toContain("initial triage remains outside");
+    expect(substantiation).not.toContain("`role: triage`");
+
+    const stop1 = markdownSection(text, "## Stop 1 \u2014 Gate");
+    expect(stop1, "refutation-target missing from Stop 1").toContain("`refutation-target:`");
+    expect(stop1).toContain("highest-leverage asserted premise");
+    expect(stop1).toContain("`audit:` marker");
+    expect(stop1).toContain("unresolved-marker state");
+    expect(stop1).toContain("never blocks bind");
+
+    const method = markdownSection(text, "### Critic method");
+    expect(method, "disposal obligation missing from critic method").toContain(
+      "`refutation-target:`",
+    );
+    expect(method).toContain("Dispose a recorded");
+    expect(method).toContain("when the field is present");
+    const disposeLine = method.split("\n").find((line) => line.includes("Dispose a recorded"));
+    expect(disposeLine, "disposal MUST line").toBeDefined();
+    expect(disposeLine).toMatch(/^- ! /);
+
+    const template = readText(TEMPLATE);
+    expect(template).toContain("`refutation-target:`");
+    expect(template).not.toContain("never blocks bind");
+    expect(template).not.toContain("unresolved-marker state");
+    expect(template).not.toContain("before any critic exists");
+    expect(template).not.toContain("highest-leverage asserted premise");
   });
 
   it("indexes the skill on-demand and does not always-pin it", () => {

@@ -42,6 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Stop 1 premises stay outside parent substantiation; critics dispose `refutation-target:` (#3672).** The contract now states why a pre-critic premise is excluded, and Stop 1 write-backs record a non-binding `refutation-target:` the critic must dispose. Not an audit marker; never blocks bind. Closes #3672.
+
 - **Design-critique critics get a stated method (#3661).** The contract now says how to critique, at three distinct strengths, instead of only telling the parent how to dispatch. Stop 3's overloaded Charter heading is renamed to parent-facing dispatch rules. Closes #3661.
 
 - **Leftover-completion PRs skip optional CI jobs (#3678).** When the diff against the merge base is only a completed xBRIEF and CHANGELOG, Windows, Go, merge-gate, smoke, and branch-gate do not run. The required TypeScript check still runs over a real lane. Closes #3678.

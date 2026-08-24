@@ -1,0 +1,241 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story xBRIEF for #3672 Stop 1 exclusion statement and refutation-target field; bound SoT successor lean 5399936340.",
+    "updated": "2026-08-24T19:52:46Z"
+  },
+  "plan": {
+    "title": "design-critique: state why Stop 1 is outside the substantiation trigger, and formalize refutation-target",
+    "status": "running",
+    "narratives": {
+      "Description": "The substantiation obligation is scoped to a parent artifact adjudicating a critic finding. That excludes the Stop 1 triage write-back, and the exclusion is correct -- but the contract nowhere says so, and a reader cannot distinguish a considered boundary from an oversight. #3651's own round-1 critic instructed that the exclusion be stated expressly; that half was never carried out. Two changes land: the exclusion is documented with its reason and a citation, and the marked-claim convention gets a home as a non-binding refutation-target field that does not duplicate ADR-006's state machine.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3672",
+      "Overview": "Bound SoT is successor lean 5399936340; verified synthesis follows it. Single-critic arc, target REFUTED -- the original 'gap' framing is withdrawn. LINE NUMBERS ARE STALE THREE TIMES OVER: the trigger sentence was cited at :158 when the issue was filed, :173 at recut, and sits at :192 on current origin/master after #3661 landed. Re-derive every citation with `git grep -n` before editing; a PowerShell line counter disagreed with git on this file during the #3660 build.",
+      "Labels": "design, process, area:skills, status:child, design-critique:triage-ready",
+      "UserStory": "As someone reading the substantiation trigger for the first time, I want the contract to say why premises introduced before any critic exists are excluded, so that I do not mistake a deliberate boundary for an oversight and file an issue proposing to close it -- which is exactly what happened.",
+      "ImplementationPlan": "1. Re-derive all line numbers at current origin/master with `git grep -n`. The trigger sentence is at :192 as of #3661's merge and has moved three times today. 2. Add one paragraph near the substantiation trigger stating that a load-bearing premise introduced before any critic exists is outside the obligation, and why: at Stop 1 nobody has spoken and the entire critic pass is the audit, whereas ADR-006 addresses post-critic arbitration where the critic gets no reply. 3. Cite #3651's arc in that paragraph so the choice is traceable -- specifically that its round-1 critic identified a pre-critic premise and offered the fork 'state expressly that the initial triage remains outside this amendment, or widen scope deliberately', and the successor lean took the narrow branch. 4. Define `refutation-target:` as a Stop 1 write-back field. It records the triage author's highest-leverage asserted premise. It is NOT an `audit:` marker, creates no unresolved-marker state, and never blocks bind. 5. Oblige the critic to explicitly dispose the refutation-target. #3661 landed a critic-method heading with stated obligations at three strengths -- add this there rather than inventing a second home, and match the surrounding strength convention. 6. Point content/templates/design-critique-brief.md at the field by name if a pointer is warranted; copy no rule bodies (the contract's no-copy rule). 7. Pin the exclusion sentence and the field in design_critique_contract.test.ts by distinctive content tokens, not by header and not by whole body sentences. 8. CHANGELOG [Unreleased] line. Bound SoT: https://github.com/deftai/directive/issues/3672#issuecomment-5399936340.",
+      "LockedDecisions": "Successor lean 5399936340 is bound SoT. The exclusion is DELIBERATE and stays -- do not extend the substantiation trigger to `role: triage`. That was refuted on measured evidence: a critic counted 31 separately-asserted premises across ten Stop 1 write-backs from 2026-08-24 (median 3, range 1-5), and bind-blocking markers on all of them would reward narrower disclosure, which is the opposite of what the convention exists to produce. Also refuted: making the Stop 1 marked claim a first-class ADR-006 marker (same objection, narrower blast radius). FORBIDDEN: any change to parent-audit.ts clearance logic or diagnostics -- there is no self-clear hole; `:88-95` accepts only a targeting critic clearance so a triage self-clear leaves the marker unresolved and fails at bind, and the `parent-self-clear` code at `:140-148` naming only parent attempts is weaker diagnostics rather than a hole. Do not file or fix that as a vulnerability. A role-neutral diagnostic becomes worth adding only if triage-introduced markers ever become legal, which this story declines. #3579 does not inherit a token obligation from this story; it may inherit the field shape.",
+      "AcceptanceJustification": "Seven clauses match the bound issue checklist after a single-critic arc refuted the original framing and shrank the scope from a mechanism extension to a documentation statement plus one non-binding field."
+    },
+    "items": [
+      {
+        "id": "s1",
+        "title": "Exclusion stated with its reason",
+        "status": "proposed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the substantiation trigger is read, the contract states that a load-bearing premise introduced before any critic exists is outside the obligation, and gives the reason.",
+          "Acceptance": "When the substantiation trigger is read, the contract states that a load-bearing premise introduced before any critic exists is outside the obligation, and gives the reason.",
+          "Traces": "FR-3672-s1"
+        }
+      },
+      {
+        "id": "s2",
+        "title": "Choice is traceable to #3651",
+        "status": "proposed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the exclusion statement is read, it cites #3651's arc so a reader sees a recorded decision rather than inferring an omission.",
+          "Acceptance": "When the exclusion statement is read, it cites #3651's arc so a reader sees a recorded decision rather than inferring an omission.",
+          "Traces": "FR-3672-s2"
+        }
+      },
+      {
+        "id": "s3",
+        "title": "refutation-target field defined",
+        "status": "proposed",
+        "effort": "M",
+        "narrative": {
+          "When": "When a Stop 1 write-back is authored, a `refutation-target:` field is available to record the highest-leverage asserted premise.",
+          "Acceptance": "When a Stop 1 write-back is authored, a `refutation-target:` field is available to record the highest-leverage asserted premise.",
+          "Traces": "FR-3672-s3"
+        }
+      },
+      {
+        "id": "s4",
+        "title": "Field is non-binding and not a marker",
+        "status": "proposed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the field is read, the contract states it is not an `audit:` marker, creates no unresolved-marker state, and never blocks bind.",
+          "Acceptance": "When the field is read, the contract states it is not an `audit:` marker, creates no unresolved-marker state, and never blocks bind.",
+          "Traces": "FR-3672-s4"
+        }
+      },
+      {
+        "id": "s5",
+        "title": "Critic must dispose it",
+        "status": "proposed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the critic-method obligations are read, disposing the refutation-target is among them, at a strength matching the surrounding convention.",
+          "Acceptance": "When the critic-method obligations are read, disposing the refutation-target is among them, at a strength matching the surrounding convention.",
+          "Traces": "FR-3672-s5"
+        }
+      },
+      {
+        "id": "s6",
+        "title": "Pinned by content, not header",
+        "status": "proposed",
+        "effort": "M",
+        "narrative": {
+          "When": "When the content-contract test runs, it pins the exclusion sentence and the field by distinctive content tokens rather than by heading or whole body sentence.",
+          "Acceptance": "When the content-contract test runs, it pins the exclusion sentence and the field by distinctive content tokens rather than by heading or whole body sentence.",
+          "Traces": "FR-3672-s6"
+        }
+      },
+      {
+        "id": "s7",
+        "title": "CHANGELOG entry",
+        "status": "proposed",
+        "effort": "S",
+        "narrative": {
+          "When": "When CHANGELOG.md is read, an [Unreleased] line describes the user-visible change.",
+          "Acceptance": "When CHANGELOG.md is read, an [Unreleased] line describes the user-visible change.",
+          "Traces": "FR-3672-s7"
+        }
+      }
+    ],
+    "tags": [
+      "design",
+      "process",
+      "area:skills",
+      "status:child",
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3672",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3672: state why Stop 1 is outside the substantiation trigger"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3651",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3651 / ADR-006 (the mechanism; its critic instructed the exclusion be stated)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3661",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3661 (landed the critic-method heading this story extends)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3434",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3434 (umbrella)"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [],
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          "content/contracts/design-critique.md",
+          "content/templates/design-critique-brief.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
+        ],
+        "expected_outputs": [
+          "stated Stop 1 exclusion with its reason",
+          "citation to #3651's arc",
+          "non-binding refutation-target field",
+          "critic obligation to dispose it",
+          "content-token pins"
+        ],
+        "depends_on": [],
+        "conflict_group": "design-critique-contract",
+        "size": "S",
+        "file_scope_confidence": "medium",
+        "model_tier": "high",
+        "missing_traces_justification": [
+          "Traces are FR-3672-* ids on this story; no parent specification.xbrief requirement ids exist for this child."
+        ],
+        "acceptance_criteria_justification": "Seven clauses match the bound issue checklist after the arc shrank scope from a mechanism extension to a documentation statement plus one non-binding field."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/contracts/design-critique.md",
+          "content/templates/design-critique-brief.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "content/contracts",
+        "cohesion_exemption": "The brief template, the content-contract test, and CHANGELOG.md sit outside the contract module boundary; the test lives with the other content-contract standards tests."
+      },
+      "kind": "story",
+      "capacityBucket": "correctness"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "Seven clauses taken from the bound issue checklist at https://github.com/deftai/directive/issues/3672 after synthesis.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "The contract states that a premise introduced before any critic exists is outside the substantiation trigger, with the reason",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The statement cites #3651's arc so the choice is traceable",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "A refutation-target field is defined for Stop 1 write-backs, non-binding, with the critic obliged to dispose it",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "The field is explicitly not an audit: marker and creates no unresolved-marker state",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Content-contract test pins both the exclusion sentence and the field, by content rather than by header",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "No change to parent-audit.ts clearance logic or diagnostics",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "CHANGELOG [Unreleased] line",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "issue-3672-stop-1-exclusion-and-refutation-target",
+    "updated": "2026-08-24T19:52:46Z"
+  },
+  "vBRIEFInfo": {
+    "version": "0.8",
+    "updated": "2026-08-24T19:52:46Z"
+  }
+}
