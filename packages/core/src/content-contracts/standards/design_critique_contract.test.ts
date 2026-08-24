@@ -669,17 +669,11 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(stop1).toContain("never blocks bind");
 
     const method = markdownSection(text, "### Critic method");
-    expect(method, "disposal obligation missing from critic method").toContain(
-      "`refutation-target:`",
-    );
-    expect(method).toContain("Dispose a recorded");
-    expect(method).toContain("when the field is present");
-    expect(method).toContain("no required output form");
-    expect(method).toContain("no mechanized consumer");
-    expect(method).toContain("If a consumer is added later");
-    const disposeLine = method.split("\n").find((line) => line.includes("Dispose a recorded"));
-    expect(disposeLine, "disposal MUST line").toBeDefined();
-    expect(disposeLine).toMatch(/^- ! /);
+    expect(method).not.toContain("`refutation-target:`");
+    expect(method).not.toContain("Dispose a recorded");
+    expect(method).not.toContain("no required output form");
+    expect(method).not.toContain("no mechanized consumer");
+    expect(method).not.toContain("when the field is present");
 
     const template = readText(TEMPLATE);
     expect(template).toContain("`refutation-target:`");
