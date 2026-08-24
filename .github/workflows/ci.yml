@@ -112,7 +112,9 @@ jobs:
             echo "artifact_only=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          files="$(git diff --name-only --diff-filter=ACDMRT "${BASE}...${TIP}" || true)"
+          # --no-renames: name-only otherwise emits only the destination of a
+          # rename into the allowlist and would skip optional jobs (#3678 P2).
+          files="$(git diff --name-only --no-renames --diff-filter=ACDMRT "${BASE}...${TIP}" || true)"
           printf '%s\n' "$files"
           result="$(printf '%s\n' "$files" | node .github/scripts/artifact-only-lifecycle.mjs --stdin || true)"
           echo "$result"

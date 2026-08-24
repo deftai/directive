@@ -76,6 +76,13 @@ describe("artifact-only lifecycle CI lane (#3678)", () => {
     expect(artifactOnly(["xbrief/pending/foo.xbrief.json"])).toBe(false);
   });
 
+  it("rename source plus allowlisted dest fails closed (workflow lists both via --no-renames)", () => {
+    expect(
+      artifactOnly(["packages/core/src/foo.ts", "xbrief/completed/2026-08-24-renamed.xbrief.json"]),
+    ).toBe(false);
+    expect(artifactOnly(["packages/core/src/foo.ts", "CHANGELOG.md"])).toBe(false);
+  });
+
   it("a diff touching packages/** takes the full stack", () => {
     expect(artifactOnly([...TWO_FILE_SHAPE, "packages/core/src/index.ts"])).toBe(false);
   });
@@ -106,7 +113,7 @@ describe("artifact-only lifecycle CI lane (#3678)", () => {
     expect(ci).toContain("  changes:");
     expect(ci).toMatch(/name:\s*Changes \(artifact-only predicate\)/);
     expect(ci).toContain("artifact_only:");
-    expect(ci).toContain("git diff --name-only");
+    expect(ci).toContain("git diff --name-only --no-renames");
     expect(ci).toContain("artifact-only-lifecycle.mjs");
     expect(ci).toMatch(/\$\{BASE\}\.\.\.\$\{TIP\}/);
   });
