@@ -1,0 +1,307 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story xBRIEF for #3678 artifact-only lifecycle CI lane; bound SoT successor lean 5396961026.",
+    "updated": "2026-08-24T17:42:31Z"
+  },
+  "plan": {
+    "title": "perf(ci): skip non-required jobs on artifact-only lifecycle diffs",
+    "status": "completed",
+    "narratives": {
+      "Description": "Every artifact-only lifecycle PR runs the entire product CI stack because ci.yml triggers on every pull_request with no path filters. Measured cost is about 27 billed GitHub-hosted minutes plus 7 Blacksmith minutes per head, paid twice on PR #3671. This story path-skips the jobs that are not the required status context, keyed to an allowlist evaluated against the merge base. The required TypeScript aggregator keeps running over a real lane; nothing publishes a second job under its name.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3678",
+      "Overview": "Bound SoT is successor lean 5396961026; verified synthesis 5396983260. Round-1 was a three-critic panel against ceiling 5396677604. The originally filed mechanism (an always-green job under the required context name) is WITHDRAWN and must not be built. The originally filed allowlist (xbrief/completed/** only) is WRONG and matched zero of nineteen sampled lifecycle PRs. Line numbers derived at 269a07e5; re-derive with `git grep -n` before editing.",
+      "Labels": "enhancement, design, process, status:child, design-critique:triage-ready",
+      "UserStory": "As a maintainer landing a completed xBRIEF, I want CI to run only what branch protection actually requires on an artifact-only diff, so that a two-file lifecycle PR does not burn a full product stack of runner minutes every time.",
+      "ImplementationPlan": "1. Add a fast `changes` job to ci.yml that computes the artifact-only predicate against the MERGE BASE (not the head commit) and exposes it as a job output. No paths-filter action exists in the repo today, so implement with an explicit git diff against the merge base rather than adding a dependency, unless the implementer justifies otherwise. 2. Gate the non-required jobs in ci.yml on that output: Windows dispatch regression, Go, merge gate, and the capacity watchdog / failover-arm graph they drag. Leave the required TypeScript aggregator (ci.yml:402-418) ungated so it always reports. 3. For workflows that host NO required context, use workflow-level paths-ignore directly: greenfield-python-free-smoke.yml and branch-gate.yml. This is safe there and is exactly why it is unsafe in ci.yml. 4. Optional and separable: if the TypeScript suite itself should no-op, early-exit INSIDE ci-lane.yml after checkout and the merge-base path check, so the aggregator still means 'the lane completed'. Cost this at about one billed minute, not a full skip. Do not implement by teaching resolve-ci-authoritative-lane.mjs that a skipped primary is success. 5. Add packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts pinning the predicate behavior: the two-file shape routes to the lane, a CHANGELOG-only head routes to the lane, and any diff touching packages/**, .github/**, or xbrief/proposed/** routes to the full stack. 6. Correct the ci.yml:45-59 required-check comment map, which marks TypeScript, Go and merge-gate as required when live protection requires only TypeScript. 7. CHANGELOG [Unreleased] line. Bound SoT: https://github.com/deftai/directive/issues/3678#issuecomment-5396961026.",
+      "LockedDecisions": "Successor lean 5396961026 is bound SoT. FORBIDDEN: publishing a second job under the name 'TypeScript (build + lint + test)' -- it collides with the existing aggregator at ci.yml:402-418 and is the gate-integrity (#3156) shape. FORBIDDEN: teaching resolve-ci-authoritative-lane.mjs that a skipped primary counts as success -- same edit, different description. FORBIDDEN: copying docs-site.yml's workflow-level paths: onto ci.yml -- the required aggregator would never report and the PR could never merge. FORBIDDEN: removing the required TypeScript context from branch protection. The allowlist is exactly {xbrief/completed/**, CHANGELOG.md} and is a bypass surface -- widening it later is a gate change, not maintenance. CodeQL Analyze is out of scope: there is no CodeQL workflow file in .github/, so it is default setup configured in repository settings and cannot be path-filtered from a workflow. The Greptile carve-out is #3680 and is NOT in this story. Whether lifecycle PRs should exist at all is #3679.",
+      "AcceptanceJustification": "Seven clauses taken from the bound issue checklist after the panel refuted the filed mechanism and the filed allowlist. The predicate clauses are independently testable; the comment-map clause is a documentation correction the panel found load-bearing for future CI design."
+    },
+    "items": [
+      {
+        "id": "s1",
+        "title": "Non-required jobs skip on artifact-only diffs",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When a PR diff is confined to the allowlist, the Windows, Go, merge-gate and watchdog/arm jobs in ci.yml do not run, and the non-required smoke and branch-gate workflows do not trigger.",
+          "Acceptance": "When a PR diff is confined to the allowlist, the Windows, Go, merge-gate and watchdog/arm jobs in ci.yml do not run, and the non-required smoke and branch-gate workflows do not trigger.",
+          "Traces": "FR-3678-s1"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-24T17:41:00Z",
+          "recorded_by": "leaf-implementation/3678",
+          "kind": "smoke",
+          "pointer": ".github/workflows/greenfield-python-free-smoke.yml (merge-base skip; CI green on PR 3684 head 0896da52)"
+        }
+      },
+      {
+        "id": "s2",
+        "title": "Allowlist is the measured two-file shape",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the predicate is read, its allowlist is exactly xbrief/completed/** and CHANGELOG.md, and a CHANGELOG-only head is in scope.",
+          "Acceptance": "When the predicate is read, its allowlist is exactly xbrief/completed/** and CHANGELOG.md, and a CHANGELOG-only head is in scope.",
+          "Traces": "FR-3678-s2"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-24T17:41:00Z",
+          "recorded_by": "leaf-implementation/3678",
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts"
+        }
+      },
+      {
+        "id": "s3",
+        "title": "Predicate evaluates against the merge base",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When a branch has product commits behind an artifact-only tip, the predicate evaluates the complete diff against the merge base and routes the PR to the full stack.",
+          "Acceptance": "When a branch has product commits behind an artifact-only tip, the predicate evaluates the complete diff against the merge base and routes the PR to the full stack.",
+          "Traces": "FR-3678-s3"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-24T17:41:00Z",
+          "recorded_by": "leaf-implementation/3678",
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts"
+        }
+      },
+      {
+        "id": "s4",
+        "title": "Required aggregator stays honest",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When any PR runs, the TypeScript (build + lint + test) context is reported by the existing aggregator over a real lane, and no second job publishes that name.",
+          "Acceptance": "When any PR runs, the TypeScript (build + lint + test) context is reported by the existing aggregator over a real lane, and no second job publishes that name.",
+          "Traces": "FR-3678-s4"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-24T17:41:00Z",
+          "recorded_by": "leaf-implementation/3678",
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts"
+        }
+      },
+      {
+        "id": "s5",
+        "title": "Escape test for out-of-allowlist paths",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When a diff touches packages/**, .github/** or xbrief/proposed/**, a test asserts the PR takes the full stack, using the real two-file fixture shape rather than a JSON-only fixture.",
+          "Acceptance": "When a diff touches packages/**, .github/** or xbrief/proposed/**, a test asserts the PR takes the full stack, using the real two-file fixture shape rather than a JSON-only fixture.",
+          "Traces": "FR-3678-s5"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-24T17:41:00Z",
+          "recorded_by": "leaf-implementation/3678",
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts"
+        }
+      },
+      {
+        "id": "s6",
+        "title": "Required-check comment map corrected",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When ci.yml:45-59 is read, its required-check map matches live branch protection, which requires only TypeScript (build + lint + test).",
+          "Acceptance": "When ci.yml:45-59 is read, its required-check map matches live branch protection, which requires only TypeScript (build + lint + test).",
+          "Traces": "FR-3678-s6"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-24T17:41:00Z",
+          "recorded_by": "leaf-implementation/3678",
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts"
+        }
+      },
+      {
+        "id": "s7",
+        "title": "CHANGELOG entry",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When CHANGELOG.md is read, an [Unreleased] line describes the user-visible change.",
+          "Acceptance": "When CHANGELOG.md is read, an [Unreleased] line describes the user-visible change.",
+          "Traces": "FR-3678-s7"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-24T17:41:00Z",
+          "recorded_by": "leaf-implementation/3678",
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3684 (CHANGELOG [Unreleased] leftover-completion skip line)"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design",
+      "process",
+      "status:child",
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3678",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3678: artifact-only lifecycle PRs run the full non-required job stack"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3674",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3674 (parent)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3680",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3680 (Greptile carve-out, split out, not in this story)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3679",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3679 (whether lifecycle PRs should exist at all)"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [],
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          ".github/workflows/ci.yml",
+          ".github/workflows/ci-lane.yml",
+          ".github/workflows/greenfield-python-free-smoke.yml",
+          ".github/workflows/branch-gate.yml",
+          "packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts"
+        ],
+        "expected_outputs": [
+          "merge-base artifact-only predicate exposed as a ci.yml job output",
+          "non-required ci.yml jobs gated on that predicate",
+          "workflow-level paths-ignore on smoke and branch-gate",
+          "content-contract test pinning allowlist and escape behavior",
+          "corrected required-check comment map"
+        ],
+        "depends_on": [],
+        "conflict_group": "ci-workflows",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "high",
+        "missing_traces_justification": [
+          "Traces are FR-3678-* ids on this story; no parent specification.xbrief requirement ids exist for this child."
+        ],
+        "acceptance_criteria_justification": "Seven clauses match the bound issue checklist after the panel refuted both the filed mechanism and the filed allowlist."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          ".github/workflows/ci.yml",
+          ".github/workflows/ci-lane.yml",
+          ".github/workflows/greenfield-python-free-smoke.yml",
+          ".github/workflows/branch-gate.yml",
+          "packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": ".github/workflows",
+        "cohesion_exemption": "The content-contract test and CHANGELOG.md sit outside the workflow module boundary; the test pins workflow content and lives with the other workflow standards tests (branch_gate.test.ts, release_workflow.test.ts)."
+      },
+      "kind": "story",
+      "capacityBucket": "efficiency",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": null,
+        "prNumber": 3684,
+        "prBase": "master",
+        "mergeCommit": "8402ba9c7d84e5496ca2eb5d284e12b85478410c",
+        "deliveryBranch": "master",
+        "deliveryCommit": "8402ba9c7d84e5496ca2eb5d284e12b85478410c",
+        "verifiedAt": "2026-08-24T17:42:31Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "810419f7-f746-4260-b801-57a0e266e7d1"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-24T17:42:31Z",
+      "completedSessionId": "810419f7-f746-4260-b801-57a0e266e7d1"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts"
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "Seven clauses taken from the bound issue checklist at https://github.com/deftai/directive/issues/3678 after synthesis was accepted.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Non-required jobs skip on diffs confined to the allowlist",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Allowlist is {xbrief/completed/**, CHANGELOG.md}, evaluated against the merge base",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "A diff touching any other path -- including packages/**, .github/**, xbrief/proposed/** -- takes the full stack, with a test asserting it",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Test fixtures use the real two-file shape and a CHANGELOG-only head, not a JSON-only fixture",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "TypeScript (build + lint + test) continues to report over a real lane; no second publisher of that name",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "ci.yml:45-59 required-check comment map corrected to match live protection",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "CHANGELOG [Unreleased] line",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "issue-3678-artifact-only-lifecycle-ci-lane",
+    "updated": "2026-08-24T17:42:31Z"
+  },
+  "vBRIEFInfo": {
+    "version": "0.8",
+    "updated": "2026-08-24T17:42:31Z"
+  }
+}

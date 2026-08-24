@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Land leftover completed-tracked artifact for #3678 (#3264 / #1358).** The #3678 xBRIEF stayed untracked after squash of PR 3684. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
+
 - **Land leftover completed-tracked artifact for #3651 (#3264 / #1358).** Moved the completed xBRIEF to `xbrief/completed/` after PR 3670. Does not reopen or recut that issue. Refs #2321, #3476.
 
 - **Parent-side substantiation blocks unaudited bind (#3651).** A parent premise records SHA, pointer, and measured-versus-asserted. Only a later critic clears the marker. Auto-stamp and bind path 1 require an all-accept map and zero unresolved audit markers. ADR-006 records the three refusals. Closes #3651.
