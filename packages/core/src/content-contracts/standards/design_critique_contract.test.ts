@@ -500,6 +500,9 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(text).toContain(
       "parent posts a panel-deposit comment (`role: parent`) that names `round:`, `siblings:`, and `input-ceiling:`",
     );
+    expect(text).toMatch(
+      /panel-deposit\r?\nround: 1\r?\nsiblings: 3\r?\ninput-ceiling: 5390001612/,
+    );
     expect(text).toContain("These are not rules.");
     expect(text).toContain("A parent that leans on any of them MUST carry an audit marker");
     expect(text).toContain("the most recent parent artifact that supersedes the map");
