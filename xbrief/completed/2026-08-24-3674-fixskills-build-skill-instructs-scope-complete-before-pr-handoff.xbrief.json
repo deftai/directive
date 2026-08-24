@@ -1,0 +1,221 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story xBRIEF for #3674 stale completion-ordering instruction in the build skill; bound after an N=3 panel plus a round-2 critic.",
+    "updated": "2026-08-24T22:19:20Z"
+  },
+  "plan": {
+    "title": "fix(skills): build skill instructs scope:complete before PR handoff, which a delivered story cannot satisfy",
+    "status": "completed",
+    "narratives": {
+      "Description": "The build skill tells an implementation worker to run `task scope:complete` before final PR handoff. For a code-bearing story completing as `disposition: delivered` that ordering is unsatisfiable -- the delivery gate requires a merge commit already an ancestor of the refreshed remote delivery ref, and this PR's merge commit does not exist until this PR merges. A worker following the skill literally either hits a red `scope:complete` or routes around the verb. Every other surface already says the opposite, so this is one stale line against an otherwise aligned family.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3674",
+      "Overview": "Bound after an N=3 panel and a round-2 critic; the original regression framing was withdrawn and the issue shrank to one stale instruction. SCOPE IS SMALLER THAN THE ISSUE BODY STATES: the body's second acceptance item -- correcting the ci.yml required-check comment map -- was already completed by #3678, which landed 2026-08-24. The map at .github/workflows/ci.yml now marks Go and merge-gate as not required and states 'Live branch protection requires ONLY the TypeScript aggregator.' Verify before touching it and do not redo it.",
+      "Labels": "design, process, status:child, design-critique:triage-ready",
+      "UserStory": "As an implementation worker driving a story to merge-ready, I want the build skill to state a completion ordering I can actually satisfy, so that I do not hit a red verb at handoff and route around it -- which is the behaviour that produced #3679.",
+      "ImplementationPlan": "1. Re-derive the line reference. The issue cites content/skills/deft-directive-build/SKILL.md:497; confirm with `git grep -n` before editing. 2. Correct the ordering in the PACK SOURCE, content/packs/skills/skills-pack-0.1.json. SKILL.md is GENERATED -- editing it directly will be overwritten on the next render. 3. Re-render so the generated output matches the pack. 4. State the drive-to sequence once, in one place, and have the build skill point at it rather than restate it: `drive-to: merge-ready` workers complete AFTER merge and then land the artifact; `stop-at: pr-open` workers do not complete at all, and the named merge-path owner or Phase 6 closer does it. 5. Confirm the ci.yml required-check comment map is already correct (it is, via #3678) and make no change there. 6. CHANGELOG [Unreleased] line.",
+      "LockedDecisions": "The original claim that workers regressed away from co-landing completed xBRIEFs is WITHDRAWN, with evidence in the issue comments -- the 'with code' metric tracked batching cadence rather than compliance, and collapses structurally once the delivery gate exists. Also withdrawn: that the gate landed 2026-08-10 (it landed 2026-08-02 in 4dab160f, #3041); that there was never a pre-gate co-land practice (there was a small real one); that same-PR co-land should be restored (an honest delivered co-land is not available, because the artifact persists the merge hash and a completion recorded before merge cannot contain the hash of the merge that will contain it); and that cohort batching is the cost fix (it collapses N runs into one and widens the #3476 stranding window). Do not reintroduce any of these. Out of scope and separately owned: CI economics (#3678, landed), the enforcement gap (#3679), the unbound merge-commit hole (#3675). FORBIDDEN: editing SKILL.md directly rather than the pack source; changing delivery-evidence.ts or the gate; touching the ci.yml comment map, which #3678 already fixed.",
+      "AcceptanceJustification": "Four clauses remain from the bound issue checklist. The fifth -- the ci.yml comment map -- was satisfied by #3678 before this story started and is recorded as verify-only."
+    },
+    "items": [
+      {
+        "id": "s1",
+        "title": "Pack source corrected",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the build skill's completion guidance is read, it no longer instructs a worker to run scope:complete before final PR handoff, and the correction was made in the pack source.",
+          "Acceptance": "When the build skill's completion guidance is read, it no longer instructs a worker to run scope:complete before final PR handoff, and the correction was made in the pack source.",
+          "Traces": "FR-3674-s1"
+        },
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "content/packs/skills/skills-pack-0.1.json deft-directive-build Completion; phrase 'before final PR handoff' gone; PR 3698 merge aa10cbcdc4600cd2d6005ef8507d6c870ff5c1fb",
+          "recorded_at": "2026-08-24T22:15:00Z",
+          "recorded_by": "leaf-implementation/3674"
+        }
+      },
+      {
+        "id": "s2",
+        "title": "Rendered output matches the pack",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the generated SKILL.md is read, it is consistent with the pack source and was produced by rendering rather than hand-editing.",
+          "Acceptance": "When the generated SKILL.md is read, it is consistent with the pack source and was produced by rendering rather than hand-editing.",
+          "Traces": "FR-3674-s2"
+        },
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "content/skills/deft-directive-build/SKILL.md:497 (rendered from pack; points at preamble §9; PR 3698 merge aa10cbcdc4600cd2d6005ef8507d6c870ff5c1fb)",
+          "recorded_at": "2026-08-24T22:15:00Z",
+          "recorded_by": "leaf-implementation/3674"
+        }
+      },
+      {
+        "id": "s3",
+        "title": "Ordering stated once and referenced",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When a reader looks for the drive-to versus stop-at completion ordering, it is stated in one place and pointed at from the build skill rather than duplicated.",
+          "Acceptance": "When a reader looks for the drive-to versus stop-at completion ordering, it is stated in one place and pointed at from the build skill rather than duplicated.",
+          "Traces": "FR-3674-s3"
+        },
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/templates/agent-prompt-preamble.md §9 / AGENTS.md #2321; build skill SKILL.md:497 points at that single statement",
+          "recorded_at": "2026-08-24T22:15:00Z",
+          "recorded_by": "leaf-implementation/3674"
+        }
+      },
+      {
+        "id": "s4",
+        "title": "CHANGELOG entry",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When CHANGELOG.md is read, an [Unreleased] line describes the user-visible change.",
+          "Acceptance": "When CHANGELOG.md is read, an [Unreleased] line describes the user-visible change.",
+          "Traces": "FR-3674-s4"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3698 CHANGELOG [Unreleased] 'Build skill completes after merge, not before PR handoff (#3674)' merge aa10cbcdc4600cd2d6005ef8507d6c870ff5c1fb",
+          "recorded_at": "2026-08-24T22:15:00Z",
+          "recorded_by": "leaf-implementation/3674"
+        }
+      }
+    ],
+    "tags": [
+      "design",
+      "process",
+      "status:child",
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3674",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3674: build skill instructs scope:complete before PR handoff"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3678",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3678 (landed; already corrected the ci.yml comment map)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3679",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3679 (the route-around this stale line encourages)"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [],
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-build/SKILL.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/skills/story_start_gate.test.ts packages/core/src/content-contracts/standards/allocation_context_skills.test.ts"
+        ],
+        "expected_outputs": [
+          "pack source no longer instructs completion before PR handoff",
+          "rendered SKILL.md consistent with the pack",
+          "drive-to versus stop-at ordering stated once and referenced"
+        ],
+        "depends_on": [],
+        "conflict_group": "skills-pack",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "high",
+        "missing_traces_justification": [
+          "Traces are FR-3674-* ids on this story; no parent specification.xbrief requirement ids exist for this child."
+        ],
+        "acceptance_criteria_justification": "Four clauses remain from the bound checklist; the ci.yml item was satisfied by #3678 and is verify-only."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-build/SKILL.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "content/packs",
+        "cohesion_exemption": "The rendered SKILL.md is generated output of the pack source and must change with it; CHANGELOG.md is outside any module boundary."
+      },
+      "kind": "story",
+      "capacityBucket": "correctness",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3698,
+        "prBase": null,
+        "mergeCommit": "aa10cbcdc4600cd2d6005ef8507d6c870ff5c1fb",
+        "deliveryBranch": "master",
+        "deliveryCommit": "aa10cbcdc4600cd2d6005ef8507d6c870ff5c1fb",
+        "verifiedAt": "2026-08-24T22:19:20Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "7e1d81a0-061a-4281-acfb-5db44c46f007"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-24T22:19:20Z",
+      "completedSessionId": "7e1d81a0-061a-4281-acfb-5db44c46f007"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/content-contracts/skills/story_start_gate.test.ts packages/core/src/content-contracts/standards/allocation_context_skills.test.ts"
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "Four clauses from the bound issue checklist at https://github.com/deftai/directive/issues/3674; the fifth was satisfied by #3678 before this story started. Command is the content-contract pair that pins the remaining `task scope:complete -- <active-story-path>` token — not `task check`, which re-enters verify:ac and recurses when this brief is present.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Pack source corrected; the build skill no longer instructs completion before PR handoff",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Rendered output regenerated and consistent with the pack",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The drive-to versus stop-at completion ordering is stated once and referenced, not duplicated",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "CHANGELOG [Unreleased] line",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "issue-3674-build-skill-completion-ordering",
+    "updated": "2026-08-24T22:19:20Z"
+  },
+  "vBRIEFInfo": {
+    "version": "0.8",
+    "updated": "2026-08-24T22:19:20Z"
+  }
+}
