@@ -46,6 +46,7 @@ jobs:
   #
   # | Role        | Workflow job id      | Display / check name                    | Required? |
   # |-------------|----------------------|-----------------------------------------|-----------|
+  # | Predicate   | changes              | Changes (artifact-only predicate)       | no        |
   # | Primary TS  | ts-primary           | TypeScript (Blacksmith primary)         | no        |
   # | Primary Go  | go-primary           | Go (Blacksmith primary)                 | no        |
   # | Primary MG  | merge-gate-primary   | Merge gate (Blacksmith primary)         | no        |
@@ -55,9 +56,12 @@ jobs:
   # | Failover Go | go-failover          | Go (GH-hosted failover)                 | no        |
   # | Failover MG | merge-gate-failover  | Merge gate (GH-hosted failover)         | no        |
   # | Aggregator  | ts                   | TypeScript (build + lint + test)        | YES       |
-  # | Aggregator  | go                   | Go (test + build)                       | YES       |
-  # | Aggregator  | merge-gate           | Merge gate (task check)                 | YES       |
+  # | Aggregator  | go                   | Go (test + build)                       | no        |
+  # | Aggregator  | merge-gate           | Merge gate (task check)                 | no        |
   #
+  # Live branch protection requires ONLY the TypeScript aggregator.
+  # Go and merge-gate aggregators are not required; they skip on diffs
+  # confined to {xbrief/completed/**, CHANGELOG.md} (#3678).
   # Primary/failover lane names must never be branch-protection required checks.
   # -------------------------------------------------------------------------
 
@@ -66,6 +70,58 @@ jobs:
   # required checks — those live only on the aggregators below.
   # No concurrency group on these caller jobs (invalidates workflow_call graphs).
   # -------------------------------------------------------------------------
+  # Merge-base predicate for leftover-completion diffs (#3678). Fail closed:
+  # any error or empty/unusable base routes to the full stack (artifact_only=false).
+  # Do NOT copy this as workflow-level paths: — the required TS aggregator
+  # must still report. Allowlist widening is a gate change, not maintenance.
+  changes:
+    name: Changes (artifact-only predicate)
+    runs-on: ubuntu-latest
+    outputs:
+      artifact_only: ${{ steps.predicate.outputs.artifact_only }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Compute artifact-only predicate against merge base
+        id: predicate
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          artifact_only=false
+          ZERO="0000000000000000000000000000000000000000"
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            git fetch --no-tags origin "$BASE_REF" || true
+            BASE="origin/${BASE_REF}"
+            TIP="$PR_HEAD_SHA"
+          elif [ "$EVENT_NAME" = "push" ]; then
+            BASE="$PUSH_BEFORE"
+            TIP="$HEAD_SHA"
+          else
+            echo "Unknown event ${EVENT_NAME}; routing to full stack"
+            echo "artifact_only=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -z "${BASE:-}" ] || [ "$BASE" = "$ZERO" ] || [ "$BASE" = "origin/" ] || [ -z "${TIP:-}" ]; then
+            echo "Unusable merge-base (base=${BASE:-empty} tip=${TIP:-empty}); routing to full stack"
+            echo "artifact_only=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          files="$(git diff --name-only --diff-filter=ACDMRT "${BASE}...${TIP}" || true)"
+          printf '%s\n' "$files"
+          result="$(printf '%s\n' "$files" | node .github/scripts/artifact-only-lifecycle.mjs --stdin || true)"
+          echo "$result"
+          case "$result" in
+            artifact_only=true) artifact_only=true ;;
+            *) artifact_only=false ;;
+          esac
+          echo "artifact_only=${artifact_only}" >> "$GITHUB_OUTPUT"
+
   ts-primary:
     name: TypeScript (Blacksmith primary)
     uses: ./.github/workflows/ci-lane.yml
@@ -75,6 +131,8 @@ jobs:
 
   go-primary:
     name: Go (Blacksmith primary)
+    needs: [changes]
+    if: always() && needs.changes.outputs.artifact_only != 'true'
     uses: ./.github/workflows/ci-lane.yml
     with:
       suite: go
@@ -82,6 +140,8 @@ jobs:
 
   merge-gate-primary:
     name: Merge gate (Blacksmith primary)
+    needs: [changes]
+    if: always() && needs.changes.outputs.artifact_only != 'true'
     runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -133,9 +193,13 @@ jobs:
   # -------------------------------------------------------------------------
   capacity-watchdog:
     name: Capacity watchdog
+    needs: [changes]
+    if: always()
     runs-on: ubuntu-latest
     # Isolate from primary-lane cancel thrash: this job never needs: primaries
     # and is not selected by cancel-queued-ci-primary.mjs needles.
+    # Artifact-only diffs still start the TS primary, so this job still runs;
+    # it must not treat skipped Go/merge-gate jobs as capacity death (#3678).
     outputs:
       ts_failover: ${{ steps.poll.outputs.ts_failover }}
       go_failover: ${{ steps.poll.outputs.go_failover }}
@@ -150,28 +214,33 @@ jobs:
           POLL_SECONDS: ${{ env.CI_CAPACITY_POLL_SECONDS }}
           RUN_ID: ${{ github.run_id }}
           REPO: ${{ github.repository }}
+          ARTIFACT_ONLY: ${{ needs.changes.outputs.artifact_only }}
         run: |
           set -euo pipefail
           ts_failover=false
           go_failover=false
           merge_failover=false
-          echo "Stall budget=${STALL_BUDGET_SECONDS}s poll=${POLL_SECONDS}s run=${RUN_ID}"
+          echo "Stall budget=${STALL_BUDGET_SECONDS}s poll=${POLL_SECONDS}s run=${RUN_ID} artifact_only=${ARTIFACT_ONLY}"
 
           while true; do
             jobs_json="$(gh api "repos/${REPO}/actions/runs/${RUN_ID}/jobs?per_page=100")"
             ts_state="$(node .github/scripts/classify-ci-job-state.mjs "typescript (blacksmith primary)" "$jobs_json")"
-            go_state="$(node .github/scripts/classify-ci-job-state.mjs "go (blacksmith primary)" "$jobs_json")"
-            merge_state="$(node .github/scripts/classify-ci-job-state.mjs "merge gate (blacksmith primary)" "$jobs_json")"
-            echo "state ts=${ts_state} go=${go_state} merge=${merge_state} elapsed=${SECONDS}s"
+            go_state="done"
+            merge_state="done"
+            if [[ "$ARTIFACT_ONLY" != "true" ]]; then
+              go_state="$(node .github/scripts/classify-ci-job-state.mjs "go (blacksmith primary)" "$jobs_json")"
+              merge_state="$(node .github/scripts/classify-ci-job-state.mjs "merge gate (blacksmith primary)" "$jobs_json")"
+            fi
+            echo "state ts=${ts_state} go=${go_state} merge=${merge_state} elapsed=${SECONDS}s artifact_only=${ARTIFACT_ONLY}"
 
             # #3168: cancelled/skipped without a runner claim = capacity death → arm now.
             if [[ "$ts_state" == "cancelled_unclaimed" ]]; then
               ts_failover=true
             fi
-            if [[ "$go_state" == "cancelled_unclaimed" ]]; then
+            if [[ "$ARTIFACT_ONLY" != "true" && "$go_state" == "cancelled_unclaimed" ]]; then
               go_failover=true
             fi
-            if [[ "$merge_state" == "cancelled_unclaimed" ]]; then
+            if [[ "$ARTIFACT_ONLY" != "true" && "$merge_state" == "cancelled_unclaimed" ]]; then
               merge_failover=true
             fi
 
@@ -239,7 +308,7 @@ jobs:
   # -------------------------------------------------------------------------
   capacity-arm:
     name: Capacity arm (failover decision)
-    needs: [capacity-watchdog]
+    needs: [changes, capacity-watchdog]
     if: always()
     runs-on: ubuntu-latest
     outputs:
@@ -258,6 +327,7 @@ jobs:
           TS_FROM_WD: ${{ needs.capacity-watchdog.outputs.ts_failover }}
           GO_FROM_WD: ${{ needs.capacity-watchdog.outputs.go_failover }}
           MERGE_FROM_WD: ${{ needs.capacity-watchdog.outputs.merge_failover }}
+          ARTIFACT_ONLY: ${{ needs.changes.outputs.artifact_only }}
         run: |
           set -euo pipefail
           ts_failover=false
@@ -277,27 +347,31 @@ jobs:
           # TS, Go, or merge-gate is still unclaimed (same-run rerun included).
           jobs_json="$(gh api "repos/${REPO}/actions/runs/${RUN_ID}/jobs?per_page=100")"
           ts_state="$(node .github/scripts/classify-ci-job-state.mjs "typescript (blacksmith primary)" "$jobs_json")"
-          go_state="$(node .github/scripts/classify-ci-job-state.mjs "go (blacksmith primary)" "$jobs_json")"
-          merge_state="$(node .github/scripts/classify-ci-job-state.mjs "merge gate (blacksmith primary)" "$jobs_json")"
-          echo "re-eval state ts=${ts_state} go=${go_state} merge=${merge_state}"
+          go_state="done"
+          merge_state="done"
+          if [[ "$ARTIFACT_ONLY" != "true" ]]; then
+            go_state="$(node .github/scripts/classify-ci-job-state.mjs "go (blacksmith primary)" "$jobs_json")"
+            merge_state="$(node .github/scripts/classify-ci-job-state.mjs "merge gate (blacksmith primary)" "$jobs_json")"
+          fi
+          echo "re-eval state ts=${ts_state} go=${go_state} merge=${merge_state} artifact_only=${ARTIFACT_ONLY}"
 
           if [[ "$ts_state" == "queued" || "$ts_state" == "missing" || "$ts_state" == "cancelled_unclaimed" ]]; then
             ts_failover=true
           fi
-          if [[ "$go_state" == "queued" || "$go_state" == "missing" || "$go_state" == "cancelled_unclaimed" ]]; then
+          if [[ "$ARTIFACT_ONLY" != "true" && ( "$go_state" == "queued" || "$go_state" == "missing" || "$go_state" == "cancelled_unclaimed" ) ]]; then
             go_failover=true
           fi
-          if [[ "$merge_state" == "queued" || "$merge_state" == "missing" || "$merge_state" == "cancelled_unclaimed" ]]; then
+          if [[ "$ARTIFACT_ONLY" != "true" && ( "$merge_state" == "queued" || "$merge_state" == "missing" || "$merge_state" == "cancelled_unclaimed" ) ]]; then
             merge_failover=true
           fi
 
           if [[ "$ts_failover" == "true" ]]; then
             node .github/scripts/cancel-queued-ci-primary.mjs "typescript (blacksmith primary)" "$jobs_json"
           fi
-          if [[ "$go_failover" == "true" ]]; then
+          if [[ "$ARTIFACT_ONLY" != "true" && "$go_failover" == "true" ]]; then
             node .github/scripts/cancel-queued-ci-primary.mjs "go (blacksmith primary)" "$jobs_json"
           fi
-          if [[ "$merge_failover" == "true" ]]; then
+          if [[ "$ARTIFACT_ONLY" != "true" && "$merge_failover" == "true" ]]; then
             node .github/scripts/cancel-queued-ci-primary.mjs "merge gate (blacksmith primary)" "$jobs_json"
           fi
 
@@ -309,6 +383,10 @@ jobs:
             go_failover=false
           fi
           if [[ -z "$merge_failover" || "$merge_failover" == "null" ]]; then
+            merge_failover=false
+          fi
+          if [[ "$ARTIFACT_ONLY" == "true" ]]; then
+            go_failover=false
             merge_failover=false
           fi
 
@@ -419,8 +497,8 @@ jobs:
 
   go:
     name: Go (test + build)
-    needs: [capacity-arm, go-failover]
-    if: always()
+    needs: [changes, capacity-arm, go-failover]
+    if: always() && needs.changes.outputs.artifact_only != 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -437,8 +515,8 @@ jobs:
 
   merge-gate:
     name: Merge gate (task check)
-    needs: [capacity-arm, merge-gate-failover]
-    if: always()
+    needs: [changes, capacity-arm, merge-gate-failover]
+    if: always() && needs.changes.outputs.artifact_only != 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -460,6 +538,8 @@ jobs:
     # invokes scripts/migrate_vbrief.py directly — the task surface no longer
     # ships `migrate:vbrief` on current npm deposits.
     name: Windows (task dispatch regression)
+    needs: [changes]
+    if: always() && needs.changes.outputs.artifact_only != 'true'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

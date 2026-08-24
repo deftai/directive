@@ -2,8 +2,14 @@ name: greenfield-python-free-smoke
 
 on:
   pull_request:
+    paths-ignore:
+      - "xbrief/completed/**"
+      - "CHANGELOG.md"
   push:
     branches: [master, main]
+    paths-ignore:
+      - "xbrief/completed/**"
+      - "CHANGELOG.md"
 
 permissions:
   contents: read

@@ -3,6 +3,9 @@ name: branch-gate
 on:
   pull_request:
     types: [opened, synchronize, reopened, edited]
+    paths-ignore:
+      - "xbrief/completed/**"
+      - "CHANGELOG.md"
 
 permissions:
   contents: read

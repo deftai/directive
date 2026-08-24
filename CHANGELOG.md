@@ -38,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Leftover-completion PRs skip optional CI jobs (#3678).** When the diff against the merge base is only a completed xBRIEF and CHANGELOG, Windows, Go, merge-gate, smoke, and branch-gate do not run. The required TypeScript check still runs over a real lane. Closes #3678.
+
 - **Design-critique panels share one input ceiling (#3660).** Same-round critics read comments only up to one id, fixed before any sibling posts. An N=3 panel gets three first-round posts and no default retry. The parent records the ceiling before dispatch. Closes #3660.
 
 - **Design-critique walk is parent-disagreement only; empty all-accept map auto-stamps (#3640).** **walk** iterates disagree headings. **walk all** is the census (`walk findings one at a time` stays a one-release alias). A non-empty all-accept successor lean auto-posts the verified-claims table then `design-critique: synthesis accepted, because agents agreed (empty disagreement set)` and remaining-set-replaces to `triage-ready`. Stub critics and dispatch-fail do not stamp. Looks-good still does not bind. Thin skill pointer. Closes #3640.
