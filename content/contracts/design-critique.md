@@ -35,9 +35,24 @@ Record one line per arc: which variant, why, N.
 |---|---|---|---|
 | Issue body names a defensible presumption with a refutation target | refutation | N=1 | #3462 |
 | Otherwise (default) | open critique | N=1 | #3547 |
-| No defensible presumption, and a genuinely open solution space or high blast radius | panel | N≥3 | #3383 |
+| A genuinely open solution space or high blast radius | panel | N≥3 permitted | #3383 |
 
-Default motion after a mechanism-shaped stamp: N=1 fresh open critique. If residual remains, one reiterating pass with a fresh critic that reads a disagreement map, then verified synthesis. Resume is optional sharpening ("does my prior finding still hold"), not the default reiterating agent.
+Supersedes #3434 disposition comment 5364365428 item 4, which accepted "no defensible presumption + genuinely open solution space / high blast radius → N≥3 panel" on 2026-08-20. The conjunct treated a drafted proposal and high blast radius as mutually exclusive, so a well-specified high-blast-radius issue could not earn a panel. This table drops that conjunct and grants N≥3 as permitted, not selected.
+
+### Evaluation rule
+
+Charter selection and spend permission are evaluated independently.
+
+- The first two rows select the **charter**: refutation when the issue names a defensible presumption with a refutation target; otherwise open critique. Those rows are unchanged in behaviour.
+- The panel row grants **permission** for N≥3 when the solution space is genuinely open or blast radius is high. It does not select the variant and does not override charter.
+- An issue that matches both a refutation charter and the panel condition is refutation with N≥3 permitted.
+- A drafted-MUSTs issue with no refutation target and whole-motion blast radius is open critique with N≥3 permitted.
+
+**Why permission rather than selection.** Serial reiteration is anchored by a parent-authored disagreement map correlated with round 1 by construction — the same correlation Decorrelation refuses to count as confirmation. Parallel critics carry independent priors, which is worth buying when being wrong is expensive and hard to reverse. That argues for making N≥3 available. One arc in which a panel added unique value does not establish that every high-blast-radius issue must spend it.
+
+⊗ Add a Stop 2 variant-table trigger for "the author is the party the proposed rule would constrain." Raising N changes spend; who may substantiate and clear an interested party's claims is a role-and-clearance problem owned by Decorrelation and Non-self-arbitration. Neither requires N≥3. If constrained-party risk needs stronger treatment, it belongs in Stop 5 disclosure and non-self-clearance (#3651).
+
+Default motion after a mechanism-shaped stamp: N=1 fresh open critique. If residual remains, one reiterating pass with a fresh critic that reads a disagreement map, then verified synthesis. Resume is optional sharpening ("does my prior finding still hold"), not the default reiterating agent. A permitted N≥3 does not change that default; the parent records the spend when it uses the permission.
 
 ## Stop 3 — Critic envelope
 
@@ -242,4 +257,4 @@ This motion ingests untrusted issue threads by design.
 
 ## Test surface
 
-`packages/core/src/content-contracts/standards/design_critique_contract.test.ts` locks required pointer strings, the scaffolds framing, the comment-lead field as model then role from the closed set (not an issue label), the operator-gated loop (successor lean, operator verbs including walk / walk all, dual stop, halt line, exclusive remaining-set replace of the two catalog chips, #3640 auto-stamp on a non-empty all-accept map and no-stamp on stubs), the brief-template forbidden-inputs list, and the thin router skill (existence, line cap, pointer resolution, no-normative-content).
+`packages/core/src/content-contracts/standards/design_critique_contract.test.ts` locks required pointer strings, the scaffolds framing, the comment-lead field as model then role from the closed set (not an issue label), the operator-gated loop (successor lean, operator verbs including walk / walk all, dual stop, halt line, exclusive remaining-set replace of the two catalog chips, #3640 auto-stamp on a non-empty all-accept map and no-stamp on stubs), the variant-table evaluation rule (charter selection and spend permission evaluated independently), the brief-template forbidden-inputs list, and the thin router skill (existence, line cap, pointer resolution, no-normative-content).

@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Design-critique panel row permits N≥3 on blast radius or an open solution space alone (#3657).** Drops the "No defensible presumption" conjunct. Charter selection and spend permission are evaluated independently. Constrained-author trigger stays rejected. Supersedes #3434 disposition 5364365428 item 4.
 - **Stop 4 retry critic posts stay in the auto-stamp denominator (#3640).** Comments after the id ceiling stay out of envelope except the critic's own Stop 4 retry post, including after the disagreement-map input ceiling. Do not chip `triage-ready` while those retry headings are undisposed.
 - **Issue-eval open-PR census fails loud at the 5,000 page cap (#3648).** A full last page is an incomplete census, not a complete 5,000. Later PRs are not silently dropped from linkage verdicts.
 - **Doctor no longer treats a bare `vbrief/` mention as a half-migrated layout pointer (#3637).** Left-bound `vbrief/` so `x-vbrief/` is not a hit. Child paths, `.vbrief.json`, and `vbrief:preflight` still rewrite; already-xbrief doctor copy points at hand-edit, not `migrate:xbrief`. Closes #3637. Refs #2154.
