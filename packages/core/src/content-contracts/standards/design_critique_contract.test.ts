@@ -207,7 +207,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(method).toContain("`sharpens-framing`");
     expect(method).toContain("`footnote`");
     expect(method).toContain("decision table");
-    expect(method).toContain("critic judgment");
+    expect(method).toContain("cannot bind as written");
     expect(method).toContain("cannot carry disposition weight");
     expect(method).toContain("auto-stamp denominator");
     expect(method).toContain("Line cites are claims");
