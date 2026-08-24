@@ -1,0 +1,318 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story xBRIEF for #3657 variant-table relaxation; bound SoT successor lean v2 5389165245.",
+    "updated": "2026-08-24T01:45:43Z"
+  },
+  "plan": {
+    "title": "fix(design-critique): variant table under-describes -- relax the panel conjunction, add a constrained-author trigger",
+    "status": "completed",
+    "narratives": {
+      "Description": "The Stop 2 variant table cannot express the selection the #3651 arc needed, and it states no rule for how its rows are evaluated. Two changes survive critique: the panel row grants permission for N>=3 on open solution space or high blast radius alone (dropping the 'No defensible presumption, and' conjunct), and the evaluation rule is written down. Change 2 from the as-filed body (a constrained-author trigger) is REJECTED and stays rejected.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3657",
+      "Overview": "Bound source of truth is successor lean v2 5389165245, which supersedes 5389155567. The as-filed body proposed the widened row SELECT panel; critique narrowed it to PERMIT. Title still reads 'add a constrained-author trigger' from the as-filed shape -- that change is rejected in the bound body; do not implement it. Shared file content/contracts/design-critique.md is contended with #3651, #3660, #3661 (four disjoint regions, file contention only, no semantic conflict). This cohort sequences #3657 first, then #3651 rebased on it -- do not parallelize. Change 3's charter-versus-spend separation is marked parent-originated and unaudited in the bound body; the implementer may instead choose the critic's explicit priority-order form.",
+      "Labels": "bug, design, process, area:skills, status:child, design-critique:triage-ready",
+      "UserStory": "As a parent selecting a critique variant at Stop 2, I want the panel row to be reachable for a well-specified issue with high blast radius, and I want a stated rule for how the rows are evaluated, so that a panel can be authorized without contradicting the table that authorizes it.",
+      "ImplementationPlan": "1. Edit the Stop 2 variant table in content/contracts/design-critique.md (measured at head 8bb1e528 as :34-38): panel row condition becomes 'a genuinely open solution space or high blast radius', dropping 'No defensible presumption, and'; the granted variant is N>=3 permitted, not selected. 2. Record the normative reason for permission-not-compulsion in the contract (serial reiteration is anchored by a parent-authored disagreement map correlated with round 1 by construction -- the same correlation :193 refuses to count as confirmation; parallel critics carry independent priors). 3. Add the evaluation rule: charter selection (:36 / :37) and spend permission (:38) are evaluated independently -- or the critic's explicit priority-order form, implementer's choice, with the chosen form stated. 4. Add the supersede line citing #3434 disposition comment 5364365428 item 4, which deliberately accepted the current wording on 2026-08-20. 5. Lock the EVALUATION RULE in packages/core/src/content-contracts/standards/design_critique_contract.test.ts -- not the row prose; a test preserving only 'panel' and '#3383' would not catch this defect again. 6. CHANGELOG [Unreleased] line. Bound SoT: https://github.com/deftai/directive/issues/3657#issuecomment-5389165245.",
+      "LockedDecisions": "Successor lean v2 5389165245 is bound SoT. Synthesis accepted 5389174889. Change 2 (constrained-author trigger) is REJECTED -- role-and-clearance is owned by :193 Decorrelation and :195 Non-self-arbitration, and is #3651's subject. Out of scope: a two-axis table restructure (parent-originated, unaudited, follow-up candidate); changing the N>=3 floor; round-3+ ceiling and parallel-critic accounting (#3660); everything in #3651.",
+      "AcceptanceJustification": "Nine acceptance clauses match the bound issue checklist. They exceed the 2-5 swarm default because each obligation is independently pin-testable and two of them (permission-not-selection, evaluation rule) are the substance of the critique."
+    },
+    "items": [
+      {
+        "id": "s1",
+        "title": "Panel row fires without the defensible-presumption conjunct",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the Stop 2 table is read, the panel row condition is a genuinely open solution space or high blast radius, with no 'No defensible presumption' conjunct.",
+          "Acceptance": "When the Stop 2 table is read, the panel row condition is a genuinely open solution space or high blast radius, with no 'No defensible presumption' conjunct.",
+          "Traces": "FR-3657-s1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-24T01:45:00Z",
+          "recorded_by": "leaf-implementation/3657"
+        }
+      },
+      {
+        "id": "s2",
+        "title": "Panel row grants permission, not selection",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the panel row fires, it grants N>=3 as permitted rather than selected, and the contract records the normative reason for availability without compulsion.",
+          "Acceptance": "When the panel row fires, it grants N>=3 as permitted rather than selected, and the contract records the normative reason for availability without compulsion.",
+          "Traces": "FR-3657-s2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-24T01:45:00Z",
+          "recorded_by": "leaf-implementation/3657"
+        }
+      },
+      {
+        "id": "s3",
+        "title": "A 3651-shaped issue is authorized for a panel",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When an issue has drafted MUSTs, no refutation target, and whole-motion blast radius, the table authorizes a panel.",
+          "Acceptance": "When an issue has drafted MUSTs, no refutation target, and whole-motion blast radius, the table authorizes a panel.",
+          "Traces": "FR-3657-s3"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-24T01:45:00Z",
+          "recorded_by": "leaf-implementation/3657"
+        }
+      },
+      {
+        "id": "s4",
+        "title": "Evaluation rule is stated and resolves the overlap",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When an issue matches both the refutation and panel conditions, the contract states an explicit evaluation rule that gives it a defined outcome, and the refutation and default rows are unchanged in behaviour.",
+          "Acceptance": "When an issue matches both the refutation and panel conditions, the contract states an explicit evaluation rule that gives it a defined outcome, and the refutation and default rows are unchanged in behaviour.",
+          "Traces": "FR-3657-s4"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-24T01:45:00Z",
+          "recorded_by": "leaf-implementation/3657"
+        }
+      },
+      {
+        "id": "s5",
+        "title": "Change 2 stays rejected with a recorded why",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the constrained-author trigger is looked for, it is absent, and the reason for rejecting it is recorded in the contract or on the issue rather than nowhere.",
+          "Acceptance": "When the constrained-author trigger is looked for, it is absent, and the reason for rejecting it is recorded in the contract or on the issue rather than nowhere.",
+          "Traces": "FR-3657-s5"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-24T01:45:00Z",
+          "recorded_by": "leaf-implementation/3657"
+        }
+      },
+      {
+        "id": "s6",
+        "title": "Content-contract test locks the evaluation rule",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When design_critique_contract tests run, they lock the evaluation rule rather than the row prose; a test that preserved only 'panel' and '#3383' would not catch this defect again.",
+          "Acceptance": "When design_critique_contract tests run, they lock the evaluation rule rather than the row prose; a test that preserved only 'panel' and '#3383' would not catch this defect again.",
+          "Traces": "FR-3657-s6"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-24T01:45:00Z",
+          "recorded_by": "leaf-implementation/3657"
+        }
+      },
+      {
+        "id": "s7",
+        "title": "Supersede line cites the accepted prior decision",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the edited table is read, it carries an explicit supersede line citing #3434 disposition comment 5364365428 item 4, which deliberately accepted the prior wording.",
+          "Acceptance": "When the edited table is read, it carries an explicit supersede line citing #3434 disposition comment 5364365428 item 4, which deliberately accepted the prior wording.",
+          "Traces": "FR-3657-s7"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-24T01:45:00Z",
+          "recorded_by": "leaf-implementation/3657"
+        }
+      },
+      {
+        "id": "s8",
+        "title": "CHANGELOG Unreleased line",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When CHANGELOG.md is read, [Unreleased] contains one brief release-notes line for this story.",
+          "Acceptance": "When CHANGELOG.md is read, [Unreleased] contains one brief release-notes line for this story.",
+          "Traces": "FR-3657-s8"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3667",
+          "recorded_at": "2026-08-24T01:44:45Z",
+          "recorded_by": "leaf-implementation/3657"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design",
+      "process",
+      "area:skills",
+      "status:child",
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3657",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3657: fix(design-critique): variant table under-describes -- relax the panel conjunction, add a constrained-author trigger"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3434",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3434"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3651",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3651 (same file, sequenced after this story)"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [],
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          "content/contracts/design-critique.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
+        ],
+        "expected_outputs": [
+          "panel row reachable on blast radius alone",
+          "explicit evaluation rule for the variant table",
+          "content-contract test locking the evaluation rule"
+        ],
+        "depends_on": [],
+        "conflict_group": "design-critique-contract",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "high",
+        "missing_traces_justification": [
+          "Traces are FR-3657-* ids on this story; no parent specification.xbrief requirement ids exist for this child."
+        ],
+        "acceptance_criteria_justification": "Eight clauses match the bound issue checklist after critique narrowed Change 1 and rejected Change 2; each is independently pin-testable."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/contracts/design-critique.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "content/contracts",
+        "cohesion_exemption": "CHANGELOG.md sits outside the contract module boundary."
+      },
+      "kind": "story",
+      "capacityBucket": "correctness",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3667,
+        "prBase": null,
+        "mergeCommit": "338e2d3b83deca63cb36a9faf3155e468038f65b",
+        "deliveryBranch": "master",
+        "deliveryCommit": "338e2d3b83deca63cb36a9faf3155e468038f65b",
+        "verifiedAt": "2026-08-24T01:45:43Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-24T01:45:43Z"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 8 independently testable clauses from the bound issue checklist before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Panel row fires on high blast radius or an open solution space alone, with no `No defensible presumption` conjunct",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The panel row grants N>=3 as permitted, not selected, with the normative reason recorded",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "A #3651-shaped issue -- drafted MUSTs, no refutation target, whole-motion blast radius -- is authorized for a panel",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "The evaluation rule is stated explicitly; an issue matching both the refutation and panel conditions has a defined outcome",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Refutation and default rows unchanged in behaviour",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Change 2 stays rejected; the recorded why lives in the contract or this issue, not nowhere",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Content-contract test locks the evaluation rule, not the row prose",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Supersede line cites #3434 disposition 5364365428 item 4",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "CHANGELOG `[Unreleased]` line",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "issue-3657-design-critique-variant-table-relax-panel-conjunction",
+    "updated": "2026-08-24T01:45:43Z"
+  }
+}
