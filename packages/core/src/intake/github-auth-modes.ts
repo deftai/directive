@@ -490,49 +490,6 @@ function loginsMatch(expected: string, observed: string): boolean {
   return expected.localeCompare(observed, undefined, { sensitivity: "accent" }) === 0;
 }
 
-export function parseObservedInstallationPrincipal(
-  stdout: string,
-): { appSlug: string; installationId: number } | null {
-  const text = stdout.trim();
-  if (text.length === 0) {
-    return null;
-  }
-  try {
-    const payload = JSON.parse(text) as unknown;
-    if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
-      return null;
-    }
-    const record = payload as Record<string, unknown>;
-    const appSlug = typeof record.app_slug === "string" ? record.app_slug.trim() : "";
-    const rawId = record.id;
-    const installationId =
-      typeof rawId === "number"
-        ? rawId
-        : typeof rawId === "string"
-          ? parsePositiveInt(rawId)
-          : null;
-    if (appSlug.length === 0 || installationId === null) {
-      return null;
-    }
-    return { appSlug, installationId };
-  } catch {
-    return null;
-  }
-}
-
-function observeInstallationPrincipal(
-  runner: GhRunner,
-  environ: NodeJS.ProcessEnv,
-  repo: string,
-): { appSlug: string; installationId: number } | null {
-  const [owner, name] = splitRepo(repo);
-  const probe = runner(["api", `repos/${owner}/${name}/installation`], environ);
-  if (probe.returncode !== 0) {
-    return null;
-  }
-  return parseObservedInstallationPrincipal(probe.stdout);
-}
-
 function installationListsTargetRepo(stdout: string, repo: string): boolean | null {
   const text = stdout.trim();
   if (text.length === 0) {
@@ -642,44 +599,12 @@ function validateInstallationCredential(
     );
   }
 
-  // Observe App identity without reading the token value (#3664). GET
-  // repos/{owner}/{repo}/installation is JWT-only; an installation token will
-  // not authenticate. When observation is unavailable, the caller assertion is
-  // still required (already checked) and reachability is still not identity.
-  const observed = observeInstallationPrincipal(runner, environ, repo);
-  if (observed !== null) {
-    if (!loginsMatch(expectedPrincipal.appSlug, observed.appSlug)) {
-      return emptyResult(
-        mode,
-        runtimeMode,
-        FAILURE_PRINCIPAL_MISMATCH,
-        `identity mismatch: expected App ${expectedPrincipal.appSlug}, observed ${observed.appSlug}`,
-        { validationRepo: repo },
-      );
-    }
-    if (
-      expectedPrincipal.installationId !== undefined &&
-      expectedPrincipal.installationId !== observed.installationId
-    ) {
-      return emptyResult(
-        mode,
-        runtimeMode,
-        FAILURE_PRINCIPAL_MISMATCH,
-        `identity mismatch: expected installation ${expectedPrincipal.installationId}, observed ${observed.installationId}`,
-        { validationRepo: repo },
-      );
-    }
-  }
-  const boundPrincipal: ExpectedGithubWorkerPrincipal =
-    observed !== null
-      ? {
-          kind: PRINCIPAL_KIND_APP_INSTALLATION,
-          appSlug: observed.appSlug,
-          installationId: observed.installationId,
-        }
-      : expectedPrincipal;
+  // Installation tokens have no user and cannot call JWT-only App-management
+  // endpoints. The expected App assertion is the principal name; membership
+  // and target-repo access are authority checks, not identity observation.
+  // Do not read token values (#3664). Reachability alone is not identity.
+  const boundPrincipal = expectedPrincipal;
 
-  // Credential-non-disclosing class/authority check: do not read token values (#3664).
   const installRepos = runner(["api", "installation/repositories"], environ);
   if (installRepos.returncode === 0) {
     const listed = installationListsTargetRepo(installRepos.stdout, repo);
