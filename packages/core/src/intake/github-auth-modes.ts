@@ -165,9 +165,14 @@ export function parseOwnerRepoSlug(input: string): string | null {
     return `${direct[1]}/${direct[2]}`;
   }
   const stripped = raw.replace(/\.git$/i, "");
-  const fromUrl = stripped.match(
-    /(?:github\.com[:/]|[^/\s]\/)([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)$/i,
-  );
+  // SCP form including GitHub Enterprise: git@host:owner/repo
+  if (!stripped.includes("://")) {
+    const scp = stripped.match(/:([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)$/);
+    if (scp) {
+      return `${scp[1]}/${scp[2]}`;
+    }
+  }
+  const fromUrl = stripped.match(/[:/]([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)$/);
   if (fromUrl) {
     return `${fromUrl[1]}/${fromUrl[2]}`;
   }
@@ -485,6 +490,49 @@ function loginsMatch(expected: string, observed: string): boolean {
   return expected.localeCompare(observed, undefined, { sensitivity: "accent" }) === 0;
 }
 
+export function parseObservedInstallationPrincipal(
+  stdout: string,
+): { appSlug: string; installationId: number } | null {
+  const text = stdout.trim();
+  if (text.length === 0) {
+    return null;
+  }
+  try {
+    const payload = JSON.parse(text) as unknown;
+    if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
+      return null;
+    }
+    const record = payload as Record<string, unknown>;
+    const appSlug = typeof record.app_slug === "string" ? record.app_slug.trim() : "";
+    const rawId = record.id;
+    const installationId =
+      typeof rawId === "number"
+        ? rawId
+        : typeof rawId === "string"
+          ? parsePositiveInt(rawId)
+          : null;
+    if (appSlug.length === 0 || installationId === null) {
+      return null;
+    }
+    return { appSlug, installationId };
+  } catch {
+    return null;
+  }
+}
+
+function observeInstallationPrincipal(
+  runner: GhRunner,
+  environ: NodeJS.ProcessEnv,
+  repo: string,
+): { appSlug: string; installationId: number } | null {
+  const [owner, name] = splitRepo(repo);
+  const probe = runner(["api", `repos/${owner}/${name}/installation`], environ);
+  if (probe.returncode !== 0) {
+    return null;
+  }
+  return parseObservedInstallationPrincipal(probe.stdout);
+}
+
 function installationListsTargetRepo(stdout: string, repo: string): boolean | null {
   const text = stdout.trim();
   if (text.length === 0) {
@@ -594,6 +642,45 @@ function validateInstallationCredential(
     );
   }
 
+  // Observe App identity without reading the token value (#3664). Caller assertion
+  // plus repo reachability is not a principal check.
+  const observed = observeInstallationPrincipal(runner, environ, repo);
+  if (observed === null) {
+    return emptyResult(
+      mode,
+      runtimeMode,
+      FAILURE_MISSING_EXPECTED_PRINCIPAL,
+      `${inapplicable} Installation credential did not disclose an App principal to compare (GET repos/${repo}/installation). Endpoint reachability is not identity.`,
+      { validationRepo: repo },
+    );
+  }
+  if (!loginsMatch(expectedPrincipal.appSlug, observed.appSlug)) {
+    return emptyResult(
+      mode,
+      runtimeMode,
+      FAILURE_PRINCIPAL_MISMATCH,
+      `identity mismatch: expected App ${expectedPrincipal.appSlug}, observed ${observed.appSlug}`,
+      { validationRepo: repo },
+    );
+  }
+  if (
+    expectedPrincipal.installationId !== undefined &&
+    expectedPrincipal.installationId !== observed.installationId
+  ) {
+    return emptyResult(
+      mode,
+      runtimeMode,
+      FAILURE_PRINCIPAL_MISMATCH,
+      `identity mismatch: expected installation ${expectedPrincipal.installationId}, observed ${observed.installationId}`,
+      { validationRepo: repo },
+    );
+  }
+  const boundPrincipal: ExpectedGithubWorkerPrincipal = {
+    kind: PRINCIPAL_KIND_APP_INSTALLATION,
+    appSlug: observed.appSlug,
+    installationId: observed.installationId,
+  };
+
   // Credential-non-disclosing class/authority check: do not read token values (#3664).
   const installRepos = runner(["api", "installation/repositories"], environ);
   if (installRepos.returncode === 0) {
@@ -603,13 +690,13 @@ function validateInstallationCredential(
         mode,
         runtimeMode,
         FAILURE_REPO_ACCESS,
-        `installation principal ${expectedPrincipal.appSlug} cannot access ${repo}`,
-        { principal: expectedPrincipal, validationRepo: repo },
+        `installation principal ${boundPrincipal.appSlug} cannot access ${repo}`,
+        { principal: boundPrincipal, validationRepo: repo },
       );
     }
   }
 
-  return checkTargetRepoAccess(mode, runtimeMode, runner, environ, repo, null, expectedPrincipal);
+  return checkTargetRepoAccess(mode, runtimeMode, runner, environ, repo, null, boundPrincipal);
 }
 
 function validateAfterAuth(
@@ -888,7 +975,7 @@ export function githubAuthModesMain(args: GitHubAuthModesCliArgs): number {
   const fromFlags = expectedPrincipalFromCliArgs(args);
   if (fromFlags !== undefined && "error" in fromFlags) {
     process.stderr.write(`${fromFlags.error}\n`);
-    return 1;
+    return 2;
   }
   const result = validateGithubAuthForWorker(args.githubAuthMode ?? null, {
     repo: args.repo,

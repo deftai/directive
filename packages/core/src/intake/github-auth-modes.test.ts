@@ -46,6 +46,7 @@ function stubGh(options: {
   authCode?: number;
   user?: { code: number; stdout?: string; stderr?: string };
   installRepos?: { code: number; stdout?: string; stderr?: string };
+  installIdentity?: { code: number; stdout?: string; stderr?: string };
   repoCode?: number;
 }): GhRunner {
   return (args) => {
@@ -59,6 +60,10 @@ function stubGh(options: {
     if (args[0] === "api" && args[1] === "installation/repositories") {
       const listed = options.installRepos ?? { code: 1, stdout: "", stderr: "not used" };
       return proc(listed.code, listed.stdout ?? "", listed.stderr ?? "", args);
+    }
+    if (args[0] === "api" && String(args[1]).endsWith("/installation")) {
+      const identity = options.installIdentity ?? { code: 1, stdout: "", stderr: "not used" };
+      return proc(identity.code, identity.stdout ?? "", identity.stderr ?? "", args);
     }
     if (args[0] === "api" && String(args[1]).startsWith("repos/")) {
       const code = options.repoCode ?? 0;
@@ -80,6 +85,19 @@ const INSTALLATION_USER_403 = {
   code: 1,
   stdout: '{"message":"Resource not accessible by integration","status":"403"}',
   stderr: "gh: Resource not accessible by integration (HTTP 403)",
+};
+
+const MATCHING_INSTALL_IDENTITY = {
+  code: 0,
+  stdout: JSON.stringify({ app_slug: "deft-worker", id: 42 }),
+};
+
+const MATCHING_INSTALL_REPOS = {
+  code: 0,
+  stdout: JSON.stringify({
+    repository_selection: "selected",
+    repositories: [{ full_name: TARGET_REPO }],
+  }),
 };
 
 describe("github-auth-modes", () => {
@@ -354,6 +372,7 @@ describe("expected GitHub worker principal (#3665)", () => {
     expect(parseOwnerRepoSlug("acme/widgets")).toBe("acme/widgets");
     expect(parseOwnerRepoSlug("https://github.com/acme/widgets.git")).toBe("acme/widgets");
     expect(parseOwnerRepoSlug("git@github.com:acme/widgets.git")).toBe("acme/widgets");
+    expect(parseOwnerRepoSlug("git@github.example.com:acme/widgets.git")).toBe("acme/widgets");
     expect(parseOwnerRepoSlug("not-a-slug")).toBeNull();
   });
 
@@ -450,13 +469,8 @@ describe("expected GitHub worker principal (#3665)", () => {
         expectedPrincipal: APP_PRINCIPAL,
         runGh: stubGh({
           user: INSTALLATION_USER_403,
-          installRepos: {
-            code: 0,
-            stdout: JSON.stringify({
-              repository_selection: "selected",
-              repositories: [{ full_name: TARGET_REPO }],
-            }),
-          },
+          installIdentity: MATCHING_INSTALL_IDENTITY,
+          installRepos: MATCHING_INSTALL_REPOS,
         }),
       },
     );
@@ -467,6 +481,45 @@ describe("expected GitHub worker principal (#3665)", () => {
     expect(JSON.stringify(resultToDict(result))).not.toContain("present-not-captured");
   });
 
+  it("rejects an installation credential whose observed App slug does not match", () => {
+    const result = validateInjectedTokenMode(
+      { GH_TOKEN: "present-not-captured" },
+      {
+        repo: TARGET_REPO,
+        expectedPrincipal: APP_PRINCIPAL,
+        runGh: stubGh({
+          user: INSTALLATION_USER_403,
+          installIdentity: {
+            code: 0,
+            stdout: JSON.stringify({ app_slug: "other-app", id: 42 }),
+          },
+          installRepos: MATCHING_INSTALL_REPOS,
+        }),
+      },
+    );
+    expect(result.ok).toBe(false);
+    expect(result.failureKind).toBe(FAILURE_PRINCIPAL_MISMATCH);
+    expect(JSON.stringify(result)).not.toContain("present-not-captured");
+  });
+
+  it("rejects an installation credential that does not disclose an App principal", () => {
+    const result = validateInjectedTokenMode(
+      { GH_TOKEN: "present-not-captured" },
+      {
+        repo: TARGET_REPO,
+        expectedPrincipal: APP_PRINCIPAL,
+        runGh: stubGh({
+          user: INSTALLATION_USER_403,
+          installIdentity: { code: 1, stdout: "", stderr: "unreproduced identity endpoint" },
+          installRepos: MATCHING_INSTALL_REPOS,
+        }),
+      },
+    );
+    expect(result.ok).toBe(false);
+    expect(result.failureKind).toBe(FAILURE_MISSING_EXPECTED_PRINCIPAL);
+    expect(result.detail).toMatch(/did not disclose an App principal/i);
+  });
+
   it("still fails when the installation assertion is present but repo access is denied", () => {
     const result = validateHostGhMode(
       {},
@@ -475,6 +528,7 @@ describe("expected GitHub worker principal (#3665)", () => {
         expectedPrincipal: APP_PRINCIPAL,
         runGh: stubGh({
           user: INSTALLATION_USER_403,
+          installIdentity: MATCHING_INSTALL_IDENTITY,
           installRepos: {
             code: 0,
             stdout: JSON.stringify({
@@ -542,6 +596,7 @@ describe("expected GitHub worker principal (#3665)", () => {
         repo: TARGET_REPO,
         runGh: stubGh({
           user: INSTALLATION_USER_403,
+          installIdentity: MATCHING_INSTALL_IDENTITY,
           installRepos: { code: 1, stdout: "", stderr: "unreproduced class endpoint" },
         }),
       },
@@ -559,5 +614,17 @@ describe("expected GitHub worker principal (#3665)", () => {
       runGh: stubGh({}),
     });
     expect(code).toBe(1);
+  });
+
+  it("CLI expected-principal flag conflict is a config error", () => {
+    const code = githubAuthModesMain({
+      githubAuthMode: "host-gh",
+      repo: TARGET_REPO,
+      expectedLogin: "octo",
+      expectedAppSlug: "deft-worker",
+      json: true,
+      runGh: stubGh({}),
+    });
+    expect(code).toBe(2);
   });
 });
