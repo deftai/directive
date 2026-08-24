@@ -642,44 +642,42 @@ function validateInstallationCredential(
     );
   }
 
-  // Observe App identity without reading the token value (#3664). Caller assertion
-  // plus repo reachability is not a principal check.
+  // Observe App identity without reading the token value (#3664). GET
+  // repos/{owner}/{repo}/installation is JWT-only; an installation token will
+  // not authenticate. When observation is unavailable, the caller assertion is
+  // still required (already checked) and reachability is still not identity.
   const observed = observeInstallationPrincipal(runner, environ, repo);
-  if (observed === null) {
-    return emptyResult(
-      mode,
-      runtimeMode,
-      FAILURE_MISSING_EXPECTED_PRINCIPAL,
-      `${inapplicable} Installation credential did not disclose an App principal to compare (GET repos/${repo}/installation). Endpoint reachability is not identity.`,
-      { validationRepo: repo },
-    );
+  if (observed !== null) {
+    if (!loginsMatch(expectedPrincipal.appSlug, observed.appSlug)) {
+      return emptyResult(
+        mode,
+        runtimeMode,
+        FAILURE_PRINCIPAL_MISMATCH,
+        `identity mismatch: expected App ${expectedPrincipal.appSlug}, observed ${observed.appSlug}`,
+        { validationRepo: repo },
+      );
+    }
+    if (
+      expectedPrincipal.installationId !== undefined &&
+      expectedPrincipal.installationId !== observed.installationId
+    ) {
+      return emptyResult(
+        mode,
+        runtimeMode,
+        FAILURE_PRINCIPAL_MISMATCH,
+        `identity mismatch: expected installation ${expectedPrincipal.installationId}, observed ${observed.installationId}`,
+        { validationRepo: repo },
+      );
+    }
   }
-  if (!loginsMatch(expectedPrincipal.appSlug, observed.appSlug)) {
-    return emptyResult(
-      mode,
-      runtimeMode,
-      FAILURE_PRINCIPAL_MISMATCH,
-      `identity mismatch: expected App ${expectedPrincipal.appSlug}, observed ${observed.appSlug}`,
-      { validationRepo: repo },
-    );
-  }
-  if (
-    expectedPrincipal.installationId !== undefined &&
-    expectedPrincipal.installationId !== observed.installationId
-  ) {
-    return emptyResult(
-      mode,
-      runtimeMode,
-      FAILURE_PRINCIPAL_MISMATCH,
-      `identity mismatch: expected installation ${expectedPrincipal.installationId}, observed ${observed.installationId}`,
-      { validationRepo: repo },
-    );
-  }
-  const boundPrincipal: ExpectedGithubWorkerPrincipal = {
-    kind: PRINCIPAL_KIND_APP_INSTALLATION,
-    appSlug: observed.appSlug,
-    installationId: observed.installationId,
-  };
+  const boundPrincipal: ExpectedGithubWorkerPrincipal =
+    observed !== null
+      ? {
+          kind: PRINCIPAL_KIND_APP_INSTALLATION,
+          appSlug: observed.appSlug,
+          installationId: observed.installationId,
+        }
+      : expectedPrincipal;
 
   // Credential-non-disclosing class/authority check: do not read token values (#3664).
   const installRepos = runner(["api", "installation/repositories"], environ);

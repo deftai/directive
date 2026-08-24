@@ -502,7 +502,7 @@ describe("expected GitHub worker principal (#3665)", () => {
     expect(JSON.stringify(result)).not.toContain("present-not-captured");
   });
 
-  it("rejects an installation credential that does not disclose an App principal", () => {
+  it("accepts an installation credential when App identity cannot be observed (JWT-only probe)", () => {
     const result = validateInjectedTokenMode(
       { GH_TOKEN: "present-not-captured" },
       {
@@ -510,14 +510,14 @@ describe("expected GitHub worker principal (#3665)", () => {
         expectedPrincipal: APP_PRINCIPAL,
         runGh: stubGh({
           user: INSTALLATION_USER_403,
-          installIdentity: { code: 1, stdout: "", stderr: "unreproduced identity endpoint" },
+          installIdentity: { code: 1, stdout: "", stderr: "Must authenticate via a GitHub App JWT" },
           installRepos: MATCHING_INSTALL_REPOS,
         }),
       },
     );
-    expect(result.ok).toBe(false);
-    expect(result.failureKind).toBe(FAILURE_MISSING_EXPECTED_PRINCIPAL);
-    expect(result.detail).toMatch(/did not disclose an App principal/i);
+    expect(result.ok).toBe(true);
+    expect(result.principal).toEqual(APP_PRINCIPAL);
+    expect(JSON.stringify(resultToDict(result))).not.toContain("present-not-captured");
   });
 
   it("still fails when the installation assertion is present but repo access is denied", () => {
