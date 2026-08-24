@@ -129,7 +129,7 @@ describe("artifact-only lifecycle CI lane (#3678)", () => {
       expect(text).toContain("Trusted predicate absent");
       expect(text).toMatch(/git show "\$\{BASE\}:\$\{MJS\}"/);
       expect(text).toContain("export ARTIFACT_ONLY_SCRIPT=");
-      expect(text).not.toMatch(/^        run: bash \.github\/scripts\/compute-artifact-only\.sh\s*$/m);
+      expect(text).not.toMatch(/run: bash \.github\/scripts\/compute-artifact-only\.sh/);
     }
     expect(script).toContain("ARTIFACT_ONLY_SCRIPT unset");
   });
