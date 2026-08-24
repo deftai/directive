@@ -92,37 +92,7 @@ jobs:
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PUSH_BEFORE: ${{ github.event.before }}
           HEAD_SHA: ${{ github.sha }}
-        run: |
-          artifact_only=false
-          ZERO="0000000000000000000000000000000000000000"
-          if [ "$EVENT_NAME" = "pull_request" ]; then
-            git fetch --no-tags origin "$BASE_REF" || true
-            BASE="origin/${BASE_REF}"
-            TIP="$PR_HEAD_SHA"
-          elif [ "$EVENT_NAME" = "push" ]; then
-            BASE="$PUSH_BEFORE"
-            TIP="$HEAD_SHA"
-          else
-            echo "Unknown event ${EVENT_NAME}; routing to full stack"
-            echo "artifact_only=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if [ -z "${BASE:-}" ] || [ "$BASE" = "$ZERO" ] || [ "$BASE" = "origin/" ] || [ -z "${TIP:-}" ]; then
-            echo "Unusable merge-base (base=${BASE:-empty} tip=${TIP:-empty}); routing to full stack"
-            echo "artifact_only=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          # --no-renames: name-only otherwise emits only the destination of a
-          # rename into the allowlist and would skip optional jobs (#3678 P2).
-          files="$(git diff --name-only --no-renames --diff-filter=ACDMRT "${BASE}...${TIP}" || true)"
-          printf '%s\n' "$files"
-          result="$(printf '%s\n' "$files" | node .github/scripts/artifact-only-lifecycle.mjs --stdin || true)"
-          echo "$result"
-          case "$result" in
-            artifact_only=true) artifact_only=true ;;
-            *) artifact_only=false ;;
-          esac
-          echo "artifact_only=${artifact_only}" >> "$GITHUB_OUTPUT"
+        run: bash .github/scripts/compute-artifact-only.sh
 
   ts-primary:
     name: TypeScript (Blacksmith primary)

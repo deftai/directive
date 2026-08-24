@@ -2,20 +2,41 @@ name: greenfield-python-free-smoke
 
 on:
   pull_request:
-    paths-ignore:
-      - "xbrief/completed/**"
-      - "CHANGELOG.md"
   push:
     branches: [master, main]
-    paths-ignore:
-      - "xbrief/completed/**"
-      - "CHANGELOG.md"
 
 permissions:
   contents: read
 
+# Do not use workflow-level paths-ignore here: GitHub path filters see only
+# the destination of a rename, so a non-allowlisted source renamed into the
+# leftover allowlist would skip this workflow (#3678). Gate the expensive
+# smoke job on the merge-base predicate instead (same --no-renames script as
+# ci.yml). This workflow hosts no required check.
 jobs:
+  changes:
+    name: Changes (artifact-only predicate)
+    runs-on: ubuntu-latest
+    outputs:
+      artifact_only: ${{ steps.predicate.outputs.artifact_only }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Compute artifact-only predicate against merge base
+        id: predicate
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: bash .github/scripts/compute-artifact-only.sh
+
   smoke:
+    needs: [changes]
+    if: always() && needs.changes.outputs.artifact_only != 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1

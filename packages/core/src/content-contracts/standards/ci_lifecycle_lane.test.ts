@@ -110,12 +110,14 @@ describe("artifact-only lifecycle CI lane (#3678)", () => {
 
   it("ci.yml changes job diffs against the merge base and exposes artifact_only", () => {
     const ci = readText(".github/workflows/ci.yml");
+    const script = readText(".github/scripts/compute-artifact-only.sh");
     expect(ci).toContain("  changes:");
     expect(ci).toMatch(/name:\s*Changes \(artifact-only predicate\)/);
     expect(ci).toContain("artifact_only:");
-    expect(ci).toContain("git diff --name-only --no-renames");
-    expect(ci).toContain("artifact-only-lifecycle.mjs");
-    expect(ci).toMatch(/\$\{BASE\}\.\.\.\$\{TIP\}/);
+    expect(ci).toContain("compute-artifact-only.sh");
+    expect(script).toContain("git diff --name-only --no-renames");
+    expect(script).toContain("artifact-only-lifecycle.mjs");
+    expect(script).toMatch(/\$\{BASE\}\.\.\.\$\{TIP\}/);
   });
 
   it("ci.yml does not use workflow-level paths filters (required aggregator must report)", () => {
@@ -186,17 +188,19 @@ describe("artifact-only lifecycle CI lane (#3678)", () => {
     expect(resolver).toContain("isCapacityDeath");
   });
 
-  it("smoke and branch-gate ignore only the measured two-file allowlist", () => {
+  it("smoke gates on the merge-base predicate; branch-gate always runs", () => {
     const smoke = readText(".github/workflows/greenfield-python-free-smoke.yml");
     const branchGate = readText(".github/workflows/branch-gate.yml");
-    for (const text of [smoke, branchGate]) {
-      expect(text).toContain("paths-ignore:");
-      expect(text).toContain('"xbrief/completed/**"');
-      expect(text).toContain('"CHANGELOG.md"');
-    }
+    const skipIf = "if: always() && needs.changes.outputs.artifact_only != 'true'";
+    expect(smoke).toContain("compute-artifact-only.sh");
+    expect(smoke).toContain(skipIf);
+    expect(jobBlock(smoke, "smoke")).toMatch(/needs:\s*\[changes/);
     const smokeOn = workflowOnBlock(smoke);
     const gateOn = workflowOnBlock(branchGate);
-    expect(smokeOn).not.toMatch(/paths:\s*$/m);
-    expect(gateOn).not.toMatch(/paths:\s*$/m);
+    // Native GitHub path filters hide rename sources; these workflows must not use them.
+    expect(smokeOn).not.toMatch(/\bpaths-ignore:/);
+    expect(gateOn).not.toMatch(/\bpaths-ignore:/);
+    expect(smokeOn).not.toMatch(/\bpaths:/);
+    expect(gateOn).not.toMatch(/\bpaths:/);
   });
 });
