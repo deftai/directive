@@ -126,6 +126,7 @@ describe("probeScmReadiness (#2275)", () => {
       whichFn: (name) => (name === "gh" ? "/usr/bin/gh" : null),
       env: { GH_TOKEN: "tok" },
       depth: "deep",
+      repo: "owner/name",
       githubAuthMode: "injected-token",
       runtimeReport: { runtimeMode: "cloud-headless" },
       runGh: (args) => {
@@ -145,6 +146,7 @@ describe("probeScmReadiness (#2275)", () => {
       whichFn: (name) => (name === "gh" ? "/usr/bin/gh" : null),
       env: { GH_TOKEN: "tok" },
       depth: "deep",
+      repo: "owner/name",
       githubAuthMode: "injected-token",
       runtimeReport: { runtimeMode: "cloud-headless" },
       runGh: (args) => {

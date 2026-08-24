@@ -21,6 +21,7 @@
 
 import { spawnSync } from "node:child_process";
 import {
+  type ExpectedGithubWorkerPrincipal,
   findInjectedToken,
   type GhRunner,
   GITHUB_AUTH_MODE_HOST_GH,
@@ -107,6 +108,7 @@ export interface ProbeScmReadinessOptions {
   readonly runtimeReport?: RuntimeCapabilityReport;
   readonly githubAuthMode?: string | null;
   readonly repo?: string;
+  readonly expectedPrincipal?: ExpectedGithubWorkerPrincipal | null;
   readonly runGh?: GhRunner;
   /** When false, skip even `gh auth status` on the shallow path (tests / pure PATH). */
   readonly checkAuthStatus?: boolean;
@@ -193,7 +195,14 @@ function mapDeepFailureToAuthState(result: GitHubAuthValidationResult): ScmAuthS
   if (result.ok) return "authenticated";
   if (result.failureKind === "missing_injected_token") return "missing-token";
   if (result.failureKind === "gh_auth_failed") return "unauthenticated";
-  if (result.failureKind === "api_unreachable" || result.failureKind === "repo_access_denied") {
+  if (
+    result.failureKind === "api_unreachable" ||
+    result.failureKind === "repo_access_denied" ||
+    result.failureKind === "missing_expected_principal" ||
+    result.failureKind === "principal_mismatch" ||
+    result.failureKind === "missing_target_repo" ||
+    result.failureKind === "installation_identity_unverifiable"
+  ) {
     return "unauthenticated";
   }
   return "unknown";
@@ -286,6 +295,7 @@ export function probeScmReadiness(options: ProbeScmReadinessOptions = {}): ScmRe
       environ: env,
       runtimeReport,
       repo: options.repo,
+      expectedPrincipal: options.expectedPrincipal,
       runGh: deepRunner,
     });
     if (deep.ok) {

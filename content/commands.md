@@ -451,7 +451,7 @@ Agents use this signal to prefer portable syntax and quote zsh-sensitive data su
 - Shallow probe (default hot path): PATH ladder `ghx` > `gh`, injected-token env presence, short `gh auth status`.
 - Deep probe when `--with-network` / `DEFT_SESSION_START_NETWORK=1`: full `github-auth-modes` validation (API + optional repo).
 - Session-start never hard-blocks on SCM absence (framework-local gates still run). When not ready it lists skipped SCM-dependent gates (`triage:queue`, `issue:ingest`, `pr:*`, `reconcile:issues`, `cache:fetch-all`, `scm:*`, ...).
-- Explicit probe: `deft scm:status` (alias `scm:readiness`) -- exit `0` ready / `1` not ready / `2` config; flags `--json`, `--deep` / `--shallow`.
+- Explicit probe: `deft scm:status` (alias `scm:readiness`) -- exit `0` ready / `1` not ready / `2` config; flags `--json`, `--deep` / `--shallow`, `--repo OWNER/REPO`, `--expected-login`. Deep validation derives the target repo and compares an expected user login when one is supplied (#3665). GitHub App installation identity is deferred to #3693.
 - Credential bridging: host-gh (`gh auth login` in the execution env) or injected-token (`GH_TOKEN` / `GITHUB_TOKEN` / `GH_ENTERPRISE_TOKEN`). Never put token values in prompts or transcripts.
 - Contract: `content/contracts/scm-readiness.md`; operator docs: `content/scm/github.md` § Mismatched/headless SCM readiness.
 

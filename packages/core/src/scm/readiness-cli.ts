@@ -7,6 +7,11 @@
 
 import { fileURLToPath } from "node:url";
 import {
+  type ExpectedGithubWorkerPrincipal,
+  INSTALLATION_IDENTITY_ISSUE_URL,
+  PRINCIPAL_KIND_USER,
+} from "../intake/github-auth-modes.js";
+import {
   clearScmReadyCache,
   formatScmReadinessLines,
   probeScmReadiness,
@@ -19,6 +24,8 @@ export interface ScmReadinessCliArgs {
   readonly deep?: boolean;
   readonly depth?: ScmProbeDepth;
   readonly help?: boolean;
+  readonly repo?: string;
+  readonly expectedLogin?: string;
 }
 
 export function parseScmReadinessArgs(argv: readonly string[]): {
@@ -30,6 +37,8 @@ export function parseScmReadinessArgs(argv: readonly string[]): {
     deep?: boolean;
     depth?: ScmProbeDepth;
     help?: boolean;
+    repo?: string;
+    expectedLogin?: string;
   } = {};
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i] as string;
@@ -49,6 +58,23 @@ export function parseScmReadinessArgs(argv: readonly string[]): {
         };
       }
       out.depth = value;
+    } else if (arg === "--repo") {
+      const value = argv[++i];
+      if (value === undefined || value.startsWith("-")) {
+        return { args: out, error: "--repo expects owner/repo" };
+      }
+      out.repo = value;
+    } else if (arg === "--expected-login") {
+      const value = argv[++i];
+      if (value === undefined || value.startsWith("-")) {
+        return { args: out, error: "--expected-login expects a GitHub login" };
+      }
+      out.expectedLogin = value;
+    } else if (arg === "--expected-app-slug" || arg === "--expected-installation-id") {
+      return {
+        args: out,
+        error: `${arg} is not accepted; GitHub App installation identity is deferred to ${INSTALLATION_IDENTITY_ISSUE_URL}`,
+      };
     } else if (arg === "--help" || arg === "-h") {
       out.help = true;
     } else if (arg.startsWith("-")) {
@@ -62,8 +88,22 @@ export function parseScmReadinessArgs(argv: readonly string[]): {
 
 const USAGE =
   "usage: deft scm:status [--json] [--deep|--shallow|--depth shallow|deep]\n" +
+  "                       [--repo OWNER/REPO] [--expected-login LOGIN]\n" +
   "  Report SCM (gh/ghx) availability + auth state in this execution env (#2275).\n" +
+  "  Deep probes derive the target repo (flag / GH_REPO / GITHUB_REPOSITORY / origin)\n" +
+  "  and compare an expected user login when one is supplied (#3665).\n" +
+  "  GitHub App installation identity is deferred to #3693.\n" +
   "  Exit 0 ready / 1 not ready / 2 config error.\n";
+
+function expectedPrincipalFromArgs(
+  args: ScmReadinessCliArgs,
+): ExpectedGithubWorkerPrincipal | { error: string } | undefined {
+  const login = args.expectedLogin?.trim() ?? "";
+  if (login.length > 0) {
+    return { kind: PRINCIPAL_KIND_USER, login };
+  }
+  return undefined;
+}
 
 export function scmReadinessMain(
   args: ScmReadinessCliArgs,
@@ -79,12 +119,21 @@ export function scmReadinessMain(
     writeOut(USAGE);
     return 0;
   }
+  const expectedPrincipal = expectedPrincipalFromArgs(args);
+  if (expectedPrincipal !== undefined && "error" in expectedPrincipal) {
+    writeErr(`error: ${expectedPrincipal.error}\n${USAGE}`);
+    return 2;
+  }
   const depth: ScmProbeDepth = args.depth ?? (args.deep ? "deep" : "shallow");
   // Explicit probe always re-evaluates (credentials may have changed since
   // session:start). Clears the process-scoped requireScmReady cache too.
   clearScmReadyCache();
   const probe = options.probe ?? probeScmReadiness;
-  const report = probe({ depth });
+  const report = probe({
+    depth,
+    repo: args.repo,
+    expectedPrincipal,
+  });
   if (args.json) {
     writeOut(`${JSON.stringify(scmReadinessToDict(report), null, 2)}\n`);
   } else {

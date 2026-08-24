@@ -53,6 +53,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **GitHub worker validation names the expected user principal (#3665).** Deep auth checks take an expected login, compare it to `/user`, and derive the target repository. An installation-token `/user` 403 is reported as inapplicable, not unreachable; installation identity stays fail-closed until #3693. Closes #3665.
+
 - **Design-critique panel row permits N≥3 on blast radius or an open solution space alone (#3657).** Drops the "No defensible presumption" conjunct. Charter and spend are recorded as two fields; `panel` is spend permission, not a third charter. Constrained-author trigger stays rejected. Supersedes #3434 disposition 5364365428 item 4.
 - **Stop 4 retry critic posts stay in the auto-stamp denominator (#3640).** Comments after the id ceiling stay out of envelope except the critic's own Stop 4 retry post, including after the disagreement-map input ceiling. Do not chip `triage-ready` while those retry headings are undisposed.
 - **Issue-eval open-PR census fails loud at the 5,000 page cap (#3648).** A full last page is an incomplete census, not a complete 5,000. Later PRs are not silently dropped from linkage verdicts.

@@ -915,17 +915,19 @@ describe("intake coverage boost", () => {
         auth: completed(),
         user: completed("", "", 1),
       });
-      expect(validateInjectedTokenMode({ GH_TOKEN: "x" }, { runGh: runner2 }).failureKind).toBe(
-        FAILURE_API_UNREACHABLE,
-      );
+      expect(
+        validateInjectedTokenMode({ GH_TOKEN: "x" }, { repo: "owner/name", runGh: runner2 })
+          .failureKind,
+      ).toBe(FAILURE_API_UNREACHABLE);
       const runner3 = ghRunner({
         auth: completed(),
         user: completed('"bot"'),
         repo: completed("", "denied", 403),
       });
-      expect(validateInjectedTokenMode({ GH_TOKEN: "x" }, { runGh: runner3 }).failureKind).toBe(
-        FAILURE_REPO_ACCESS,
-      );
+      expect(
+        validateInjectedTokenMode({ GH_TOKEN: "x" }, { repo: "owner/name", runGh: runner3 })
+          .failureKind,
+      ).toBe(FAILURE_REPO_ACCESS);
     });
 
     it("host-gh failure and success paths", () => {
@@ -941,6 +943,7 @@ describe("intake coverage boost", () => {
       const ok = validateHostGhMode(
         {},
         {
+          repo: "owner/name",
           runGh: ghRunner({
             auth: completed(),
             user: completed('"octo"'),
@@ -959,15 +962,28 @@ describe("intake coverage boost", () => {
         repo: completed("{}"),
       });
       const result = validateGithubAuthForWorker("host-gh", {
+        repo: "owner/name",
         runGh: runner,
         runtimeReport: { runtimeMode: RUNTIME_MODE_LOCAL_UNSANDBOXED },
       });
       expect(resultToDict(result).ok).toBe(true);
       const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
-      expect(githubAuthModesMain({ githubAuthMode: "host-gh", json: true, runGh: runner })).toBe(0);
-      expect(githubAuthModesMain({ githubAuthMode: "host-gh", json: false, runGh: runner })).toBe(
-        0,
-      );
+      expect(
+        githubAuthModesMain({
+          githubAuthMode: "host-gh",
+          repo: "owner/name",
+          json: true,
+          runGh: runner,
+        }),
+      ).toBe(0);
+      expect(
+        githubAuthModesMain({
+          githubAuthMode: "host-gh",
+          repo: "owner/name",
+          json: false,
+          runGh: runner,
+        }),
+      ).toBe(0);
       expect(stdout).toHaveBeenCalled();
       stdout.mockRestore();
     });
