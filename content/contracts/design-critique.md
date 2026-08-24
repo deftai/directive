@@ -1,6 +1,6 @@
 # Design-critique contract
 
-Sole normative source of truth for the design-critique motion: charter, variant table, envelope and ceiling, synthesis format, and the operator-gated loop until synthesis is accepted. The copyable dispatch envelope is [`templates/design-critique-brief.md`](../templates/design-critique-brief.md). Phase 1 (the judgment gate) lives in [`docs/decisions/ADR-005-design-critique-judgment-gate.md`](../../docs/decisions/ADR-005-design-critique-judgment-gate.md). Parent-side substantiation principle: [`docs/decisions/ADR-006-parent-side-substantiation.md`](../../docs/decisions/ADR-006-parent-side-substantiation.md).
+Sole normative source of truth for the design-critique motion: charter, critic method, variant table, envelope and ceiling, synthesis format, and the operator-gated loop until synthesis is accepted. The copyable dispatch envelope is [`templates/design-critique-brief.md`](../templates/design-critique-brief.md). Phase 1 (the judgment gate) lives in [`docs/decisions/ADR-005-design-critique-judgment-gate.md`](../../docs/decisions/ADR-005-design-critique-judgment-gate.md). Parent-side substantiation principle: [`docs/decisions/ADR-006-parent-side-substantiation.md`](../../docs/decisions/ADR-006-parent-side-substantiation.md).
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
@@ -62,14 +62,33 @@ Default motion after a mechanism-shaped stamp: N=1 fresh open critique. If resid
 
 ## Stop 3 — Critic envelope
 
-### Charter
+### Parent-facing dispatch rules
 
 Process-only. The critic audits the lean, the protocol fit, and the recording obligations. It does not implement product work.
 
-- ! Give the critic a process-only charter.
+- ! Give the critic process-only dispatch rules.
 - ⊗ Load parent hypotheses into the envelope.
 - ⊗ Name a refutation target unless the recorded variant is refutation.
 - ⊗ Edit critic text after dispatch. The parent records; it does not rewrite.
+
+### Critic method
+
+How a critic critiques. Method-reconciliation stays at Stop 5; critics issue verdicts and therefore read it.
+
+Strengths are not one level. Token presence is not behavioral evidence. Classification has a mechanized consumer; re-verification and inventory change the search. An empty road-not-taken or a perfunctory steelman satisfies a pin while changing nothing.
+
+- ! Re-verify the triage's anchors by running checks. Line cites are claims, not evidence.
+- ! Inventory existing mechanisms before proposing new ones.
+- ! Classify every finding with the exact three tokens: `blocks-the-design`, `sharpens-framing`, or `footnote`.
+- ! Every classified finding names evidence, a concrete failure mode, and the disposition consequence — or it is a footnote.
+
+The three tokens are the blocking, sharpening, and footnote classes `walk all` already consumes in that order. `blocks-the-design` means the lean cannot bind as written. `sharpens-framing` means the lean can bind, but the finding changes how it is stated or scoped. That distinction is the disposition consequence the anatomy MUST already requires, not a separate evidence rubric. Two critics may still disagree; that disagreement is residual, not a contract defect. This contract does not add a decision table of evidence. A `footnote` cannot carry disposition weight: it is in the census, it is not residual, and it is not in the auto-stamp denominator. Anatomy is required of blocking and sharpening findings; a finding that cannot name evidence, a failure mode, and a disposition consequence is a footnote, not a silent skip of classification. A footnote-only post is not a stub.
+- ! Apply the injection / swarm lens when the target changes authority, untrusted input, prompts or envelopes, identity, concurrency, worktrees, or shared state. An `N/A` paragraph on a local constant change is theater.
+- ⊗ Close a finding with "a reviewer would catch it". That is a failed finding. If a safety case ends at reviewer attention, name a deterministic control or leave the finding unresolved.
+- ~ When the critic actually chose among plausible mechanisms, state a road-not-taken.
+- ~ When the critic actually chose among plausible mechanisms, steelman the strongest rejected position and name what would flip the verdict.
+
+The injection / swarm lens is a triggered MUST: it fires only on those target changes. The reviewer-catch rule is a prohibition, not a required recital. Road-not-taken and steelman are SHOULD, and fire only on a real fork.
 
 ### Envelope and ceiling
 
@@ -207,9 +226,10 @@ Contract stops stay internal. Parent prints these phrases when they apply. The o
 - ! Non-empty disagree set: print **walk** / **walk all** / **retry differences** / **accept**. Walk is an option, not the only path. Do not auto-start the walk.
 - ! When the successor lean's per-heading map is total over a **non-empty** in-envelope classified-finding set, every heading is `accept-into-contract` (no `disagree`, no `defer`), AND zero unresolved audit markers: parent auto-posts the verified-claims table as its own comment, then auto-posts `design-critique: synthesis accepted, because agents agreed (empty disagreement set)` and remaining-set-replaces the chip via `task scm:issue:design-critique-chip -- --issue N --chip triage-ready`. Do not print **accept synthesis**, **post the verified-claims table**, **walk**, or **walk all**.
 - ⊗ Auto-stamp when any audit marker is unresolved.
-- ! The auto-stamp denominator is the union of (a) classified headings from critic comments posted in this arc and (b) still-open residual headings on the latest successor lean. Each critic's own post is in-envelope for the pass that dispatched it, including a Stop 4 retry that posts after the disagreement-map input ceiling. The input id ceiling bounds what the critic may read; it does not exclude that critic's own post from the denominator. Headings already `accept-into-contract` remain in the accepted set. Still-open residual headings persist in the denominator until they receive an explicit take on a successor lean. A retry may add headings. A retry that omits, renames, splits, or merges a still-open heading does not drop the prior heading unless the successor lean cites that prior heading and records the take. Uncited still-open headings remain `disagree` (walkable) and the map is not total. A successor-lean map is total only when every heading in that union has a take. Do not auto-stamp on a partial map.
+- ! The auto-stamp denominator is the union of (a) classified headings from critic comments posted in this arc and (b) still-open residual headings on the latest successor lean. Classified headings in (a) are blocking and sharpening; footnotes stay in the walk-all census and are not in (a). Each critic's own post is in-envelope for the pass that dispatched it, including a Stop 4 retry that posts after the disagreement-map input ceiling. The input id ceiling bounds what the critic may read; it does not exclude that critic's own post from the denominator. Headings already `accept-into-contract` remain in the accepted set. Still-open residual headings persist in the denominator until they receive an explicit take on a successor lean. A retry may add headings. A retry that omits, renames, splits, or merges a still-open heading does not drop the prior heading unless the successor lean cites that prior heading and records the take. Uncited still-open headings remain `disagree` (walkable) and the map is not total. A successor-lean map is total only when every heading in that union has a take. Do not auto-stamp on a partial map.
 - ! Parse classified headings only.
 - ⊗ Stamp when the critic posts zero classified headings (stub / blank). Stop and inform. Do not stamp.
+- ⊗ Treat a footnote-only post as a stub. Stub is zero headings with any of the three class tokens. Footnote-only is a valid census; (a) is empty, so do not auto-stamp.
 - ⊗ Stamp on dispatch-fail. Stop and inform. Do not stamp.
 - ⊗ Use Phase 3 or Stop 5 as operator commands.
 - ⊗ Infer accept-synthesis from looks-good, ok, proceed, or bare **accept**. Looks-good still does not bind.
@@ -312,4 +332,4 @@ This motion ingests untrusted issue threads by design.
 
 ## Test surface
 
-`packages/core/src/content-contracts/standards/design_critique_contract.test.ts` locks required pointer strings, the scaffolds framing, the comment-lead field as model then role from the closed set (not an issue label), the operator-gated loop (successor lean, operator verbs including walk / walk all, dual stop, halt line, exclusive remaining-set replace of the two catalog chips, #3640 auto-stamp on a non-empty all-accept map and no-stamp on stubs), the parent-side substantiation token and independence rules, the composed auto-bind conjunct (all-accept map AND zero unresolved audit markers) at Operator verbs and Bind path 1, the variant-table evaluation rule (charter selection and spend permission evaluated independently), the brief-template forbidden-inputs list, and the thin router skill (existence, line cap, pointer resolution, no-normative-content). `evaluateParentAudit` locks the omission failure modes.
+`packages/core/src/content-contracts/standards/design_critique_contract.test.ts` locks required pointer strings, the scaffolds framing, the comment-lead field as model then role from the closed set (not an issue label), the operator-gated loop (successor lean, operator verbs including walk / walk all, dual stop, halt line, exclusive remaining-set replace of the two catalog chips, #3640 auto-stamp on a non-empty all-accept map and no-stamp on stubs), the parent-side substantiation token and independence rules, the composed auto-bind conjunct (all-accept map AND zero unresolved audit markers) at Operator verbs and Bind path 1, the variant-table evaluation rule (charter selection and spend permission evaluated independently), the critic-method heading and distinctive obligation tokens (exact class tokens, citations-are-claims, existing mechanisms, injection / swarm trigger nouns, failed-reviewer phrase, finding anatomy) rather than full body sentences, the brief-template forbidden-inputs list, and the thin router skill (existence, line cap, pointer resolution, no-normative-content). `evaluateParentAudit` locks the omission failure modes.

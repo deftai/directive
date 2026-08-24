@@ -16,7 +16,8 @@ const REQUIRED_CONTRACT_POINTERS = [
   "verify:judgment-gates",
   "design-critique: warranted",
   "task umbrella:current-shape",
-  "## Charter",
+  "### Parent-facing dispatch rules",
+  "### Critic method",
   "## Variant table",
   "### Evaluation rule",
   "evaluated independently",
@@ -100,6 +101,8 @@ const REQUIRED_TEMPLATE_POINTERS = [
   "named refutation target",
   "open critique",
   "Charter (refutation | open critique)",
+  "Critic method",
+  "Parent-facing dispatch rules",
   "id ceiling",
   "proposed skill outline",
   "embedded instructions",
@@ -148,6 +151,24 @@ function sentencesContaining(text: string, re: RegExp): string[] {
     .filter((s) => s.length > 0 && re.test(s));
 }
 
+function markdownSection(text: string, heading: string): string {
+  const lines = text.split("\n");
+  const start = lines.findIndex((line) => line.trim() === heading);
+  if (start < 0) {
+    return "";
+  }
+  const startLevel = (heading.match(/^#+/) ?? [""])[0].length;
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i += 1) {
+    const match = lines[i]?.match(/^(#+)\s/);
+    if (match && (match[1]?.length ?? 99) <= startLevel) {
+      end = i;
+      break;
+    }
+  }
+  return lines.slice(start, end).join("\n");
+}
+
 function markdownHrefs(text: string): string[] {
   const hrefs: string[] = [];
   for (const match of text.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)) {
@@ -172,6 +193,68 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     for (const token of REQUIRED_CONTRACT_POINTERS) {
       expect(text, `contract missing ${token}`).toContain(token);
     }
+  });
+
+  it("pins critic-method tokens a hollow section cannot satisfy (#3661)", () => {
+    const text = readText(CONTRACT);
+    expect(text).toContain("### Critic method");
+    expect(text).toContain("### Parent-facing dispatch rules");
+    expect(text).not.toContain("### Charter");
+    expect(text).toContain("Treat a footnote-only post as a stub");
+
+    const method = markdownSection(text, "### Critic method");
+    expect(method, "critic-method heading missing").toContain("### Critic method");
+    expect(method).toContain("`blocks-the-design`");
+    expect(method).toContain("`sharpens-framing`");
+    expect(method).toContain("`footnote`");
+    expect(method).toContain("decision table");
+    expect(method).toContain("cannot bind as written");
+    expect(method).toContain("cannot carry disposition weight");
+    expect(method).toContain("auto-stamp denominator");
+    expect(method).toContain("footnote-only");
+    expect(method).toContain("not a stub");
+    expect(method).toContain("Line cites are claims");
+    expect(method).toContain("existing mechanisms");
+    expect(method).toContain("injection / swarm");
+    expect(method).toContain("authority");
+    expect(method).toContain("untrusted input");
+    expect(method).toContain("prompts or envelopes");
+    expect(method).toContain("identity");
+    expect(method).toContain("concurrency");
+    expect(method).toContain("worktrees");
+    expect(method).toContain("shared state");
+    expect(method).toContain("a reviewer would catch it");
+    expect(method).toContain("evidence");
+    expect(method).toContain("failure mode");
+    expect(method).toContain("disposition consequence");
+    expect(method).toContain("road-not-taken");
+    expect(method).toContain("steelman");
+    expect(method).toContain("Method-reconciliation");
+    expect(method).toContain("Stop 5");
+    expect(method).not.toContain(METHOD_RECONCILIATION);
+
+    const mustLines = method.split("\n").filter((line) => /^- ! /.test(line));
+    const shouldLines = method.split("\n").filter((line) => /^- ~ /.test(line));
+    const mustNotLines = method.split("\n").filter((line) => /^- \u2297 /.test(line));
+    expect(mustLines.length, "critic-facing MUST lines").toBeGreaterThanOrEqual(5);
+    expect(shouldLines.length, "critic-facing SHOULD lines").toBeGreaterThanOrEqual(2);
+    expect(mustNotLines.length, "critic-facing MUST NOT lines").toBeGreaterThanOrEqual(1);
+
+    const parent = markdownSection(text, "### Parent-facing dispatch rules");
+    expect(parent).toContain("Give the critic process-only dispatch rules");
+    expect(parent).not.toContain("blocks-the-design");
+    expect(parent).not.toContain("Line cites are claims");
+
+    const stop5 = markdownSection(text, "## Stop 5 \u2014 Verified synthesis");
+    expect(stop5).toContain("Method-reconciliation");
+    expect(stop5).toContain(METHOD_RECONCILIATION);
+
+    const template = readText(TEMPLATE);
+    expect(template).toContain("Critic method");
+    expect(template).toContain("| Critic method | Critic method |");
+    expect(template).not.toContain(METHOD_RECONCILIATION);
+    expect(template).not.toContain("blocks-the-design");
+    expect(template).not.toContain("Line cites are claims");
   });
 
   it("locks the variant-table evaluation rule, not the row prose (#3657)", () => {
