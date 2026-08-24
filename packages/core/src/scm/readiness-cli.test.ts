@@ -34,15 +34,17 @@ describe("scm readiness CLI (#2275)", () => {
       "--deep",
       "--repo",
       "acme/widgets",
-      "--expected-app-slug",
-      "deft-worker",
-      "--expected-installation-id",
-      "42",
+      "--expected-login",
+      "octo",
     ]);
     expect(error).toBeNull();
     expect(args.repo).toBe("acme/widgets");
-    expect(args.expectedAppSlug).toBe("deft-worker");
-    expect(args.expectedInstallationId).toBe(42);
+    expect(args.expectedLogin).toBe("octo");
+  });
+
+  it("rejects App-installation flags as deferred (#3693)", () => {
+    const { error } = parseScmReadinessArgs(["--expected-app-slug", "deft-worker"]);
+    expect(error).toMatch(/3693/);
   });
 
   it("rejects unknown flags with config error shape", () => {

@@ -200,7 +200,8 @@ function mapDeepFailureToAuthState(result: GitHubAuthValidationResult): ScmAuthS
     result.failureKind === "repo_access_denied" ||
     result.failureKind === "missing_expected_principal" ||
     result.failureKind === "principal_mismatch" ||
-    result.failureKind === "missing_target_repo"
+    result.failureKind === "missing_target_repo" ||
+    result.failureKind === "installation_identity_unverifiable"
   ) {
     return "unauthenticated";
   }

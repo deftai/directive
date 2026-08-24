@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
-import { githubAuthModesMain } from "./github-auth-modes.js";
+import { githubAuthModesMain, INSTALLATION_IDENTITY_ISSUE_URL } from "./github-auth-modes.js";
 
 function parseArgs(argv: string[]) {
   const out: {
@@ -8,8 +8,6 @@ function parseArgs(argv: string[]) {
     repo?: string;
     json?: boolean;
     expectedLogin?: string;
-    expectedAppSlug?: string;
-    expectedInstallationId?: number;
   } = {};
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i] as string;
@@ -17,16 +15,10 @@ function parseArgs(argv: string[]) {
     else if (arg === "--repo") out.repo = argv[++i];
     else if (arg === "--github-auth-mode") out.githubAuthMode = argv[++i];
     else if (arg === "--expected-login") out.expectedLogin = argv[++i];
-    else if (arg === "--expected-app-slug") out.expectedAppSlug = argv[++i];
-    else if (arg === "--expected-installation-id") {
-      const raw = argv[++i];
-      const value = Number.parseInt(raw ?? "", 10);
-      if (!Number.isSafeInteger(value) || value <= 0) {
-        throw new Error(
-          `--expected-installation-id expects a positive integer, got ${JSON.stringify(raw ?? "")}`,
-        );
-      }
-      out.expectedInstallationId = value;
+    else if (arg === "--expected-app-slug" || arg === "--expected-installation-id") {
+      throw new Error(
+        `${arg} is not accepted; GitHub App installation identity is deferred to ${INSTALLATION_IDENTITY_ISSUE_URL}`,
+      );
     }
   }
   return out;

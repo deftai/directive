@@ -2,13 +2,12 @@ import { describe, expect, it } from "vitest";
 import type { CompletedProcess } from "../scm/call.js";
 import {
   deriveValidationRepo,
-  ENV_EXPECTED_GITHUB_APP_SLUG,
   ENV_EXPECTED_GITHUB_LOGIN,
   type ExpectedGithubWorkerPrincipal,
   FAILURE_API_UNREACHABLE,
   FAILURE_GH_AUTH,
+  FAILURE_INSTALLATION_IDENTITY_UNVERIFIABLE,
   FAILURE_INVALID_MODE,
-  FAILURE_MISSING_EXPECTED_PRINCIPAL,
   FAILURE_MISSING_INJECTED_TOKEN,
   FAILURE_MISSING_TARGET_REPO,
   FAILURE_PRINCIPAL_MISMATCH,
@@ -17,9 +16,9 @@ import {
   formatUserApiFailureDetail,
   type GhRunner,
   githubAuthModesMain,
+  INSTALLATION_IDENTITY_ISSUE_URL,
   inferGithubAuthMode,
   isInstallationUserEndpointInapplicable,
-  PRINCIPAL_KIND_APP_INSTALLATION,
   PRINCIPAL_KIND_USER,
   parseOwnerRepoSlug,
   resultToDict,
@@ -28,6 +27,7 @@ import {
   validateHostGhMode,
   validateInjectedTokenMode,
 } from "./github-auth-modes.js";
+import { mainEntry as githubAuthModesCliMain } from "./github-auth-modes-cli.js";
 import {
   RUNTIME_MODE_CLOUD_HEADLESS,
   RUNTIME_MODE_CURSOR_NATIVE_SANDBOX,
@@ -45,7 +45,6 @@ function proc(
 function stubGh(options: {
   authCode?: number;
   user?: { code: number; stdout?: string; stderr?: string };
-  installRepos?: { code: number; stdout?: string; stderr?: string };
   repoCode?: number;
 }): GhRunner {
   return (args) => {
@@ -55,10 +54,6 @@ function stubGh(options: {
     if (args[0] === "api" && args[1] === "user") {
       const user = options.user ?? { code: 0, stdout: '{"login":"octo"}' };
       return proc(user.code, user.stdout ?? "", user.stderr ?? "", args);
-    }
-    if (args[0] === "api" && args[1] === "installation/repositories") {
-      const listed = options.installRepos ?? { code: 1, stdout: "", stderr: "not used" };
-      return proc(listed.code, listed.stdout ?? "", listed.stderr ?? "", args);
     }
     if (args[0] === "api" && String(args[1]).endsWith("/installation")) {
       return proc(1, "", `unexpected JWT App probe: ${args.join(" ")}`, args);
@@ -73,24 +68,11 @@ function stubGh(options: {
 
 const TARGET_REPO = "acme/widgets";
 const USER_PRINCIPAL: ExpectedGithubWorkerPrincipal = { kind: PRINCIPAL_KIND_USER, login: "octo" };
-const APP_PRINCIPAL: ExpectedGithubWorkerPrincipal = {
-  kind: PRINCIPAL_KIND_APP_INSTALLATION,
-  appSlug: "deft-worker",
-  installationId: 42,
-};
 
 const INSTALLATION_USER_403 = {
   code: 1,
   stdout: '{"message":"Resource not accessible by integration","status":"403"}',
   stderr: "gh: Resource not accessible by integration (HTTP 403)",
-};
-
-const MATCHING_INSTALL_REPOS = {
-  code: 0,
-  stdout: JSON.stringify({
-    repository_selection: "selected",
-    repositories: [{ full_name: TARGET_REPO }],
-  }),
 };
 
 describe("github-auth-modes", () => {
@@ -417,82 +399,35 @@ describe("expected GitHub worker principal (#3665)", () => {
     expect(mismatch.detail).toMatch(/identity mismatch/);
   });
 
-  it("rejects a user-bearing credential when an App principal was expected", () => {
-    const result = validateHostGhMode(
-      {},
-      {
-        repo: TARGET_REPO,
-        expectedPrincipal: APP_PRINCIPAL,
-        runGh: stubGh({}),
-      },
-    );
-    expect(result.ok).toBe(false);
-    expect(result.failureKind).toBe(FAILURE_PRINCIPAL_MISMATCH);
-  });
-
-  it("rejects an installation credential without a principal assertion", () => {
+  it("fails closed on an installation credential even with an expected user login", () => {
     const result = validateInjectedTokenMode(
       { GH_TOKEN: "present-not-captured" },
       {
         repo: TARGET_REPO,
-        runGh: stubGh({
-          user: INSTALLATION_USER_403,
-          installRepos: {
-            code: 0,
-            stdout: JSON.stringify({
-              repository_selection: "selected",
-              repositories: [{ full_name: TARGET_REPO }],
-            }),
-          },
-        }),
+        expectedPrincipal: USER_PRINCIPAL,
+        runGh: stubGh({ user: INSTALLATION_USER_403 }),
       },
     );
     expect(result.ok).toBe(false);
-    expect(result.failureKind).toBe(FAILURE_MISSING_EXPECTED_PRINCIPAL);
+    expect(result.failureKind).toBe(FAILURE_INSTALLATION_IDENTITY_UNVERIFIABLE);
     expect(result.detail).toMatch(/inapplicable/i);
+    expect(result.detail).toContain(INSTALLATION_IDENTITY_ISSUE_URL);
     expect(result.detail).not.toMatch(/unreachable/i);
     expect(JSON.stringify(result)).not.toContain("present-not-captured");
   });
 
-  it("accepts an installation credential only after an expected App assertion", () => {
+  it("fails closed on an installation credential with no expected principal", () => {
     const result = validateInjectedTokenMode(
       { GH_TOKEN: "present-not-captured" },
       {
         repo: TARGET_REPO,
-        expectedPrincipal: APP_PRINCIPAL,
-        runGh: stubGh({
-          user: INSTALLATION_USER_403,
-          installRepos: MATCHING_INSTALL_REPOS,
-        }),
-      },
-    );
-    expect(result.ok).toBe(true);
-    expect(result.login).toBeNull();
-    expect(result.principal).toEqual(APP_PRINCIPAL);
-    expect(result.validationRepo).toBe(TARGET_REPO);
-    expect(JSON.stringify(resultToDict(result))).not.toContain("present-not-captured");
-  });
-
-  it("still fails when the installation assertion is present but repo access is denied", () => {
-    const result = validateHostGhMode(
-      {},
-      {
-        repo: TARGET_REPO,
-        expectedPrincipal: APP_PRINCIPAL,
-        runGh: stubGh({
-          user: INSTALLATION_USER_403,
-          installRepos: {
-            code: 0,
-            stdout: JSON.stringify({
-              repository_selection: "selected",
-              repositories: [{ full_name: "other/repo" }],
-            }),
-          },
-        }),
+        runGh: stubGh({ user: INSTALLATION_USER_403 }),
       },
     );
     expect(result.ok).toBe(false);
-    expect(result.failureKind).toBe(FAILURE_REPO_ACCESS);
+    expect(result.failureKind).toBe(FAILURE_INSTALLATION_IDENTITY_UNVERIFIABLE);
+    expect(result.detail).toMatch(/cannot disclose which App/i);
+    expect(JSON.stringify(resultToDict(result))).not.toContain("present-not-captured");
   });
 
   it("does not treat an installation-token /user 403 as API unreachability", () => {
@@ -512,8 +447,9 @@ describe("expected GitHub worker principal (#3665)", () => {
         runGh: stubGh({ user: INSTALLATION_USER_403 }),
       },
     );
-    expect(result.failureKind).toBe(FAILURE_MISSING_EXPECTED_PRINCIPAL);
+    expect(result.failureKind).toBe(FAILURE_INSTALLATION_IDENTITY_UNVERIFIABLE);
     expect(result.detail).not.toMatch(/API is unreachable/);
+    expect(result.ok).toBe(false);
   });
 
   it("still reports a true unreachable detail when /user cannot be reached", () => {
@@ -541,19 +477,16 @@ describe("expected GitHub worker principal (#3665)", () => {
     expect(result.principal).toEqual({ kind: PRINCIPAL_KIND_USER, login: "octo" });
   });
 
-  it("resolves expected App principal from env for an installation credential", () => {
+  it("does not accept an installation credential from an App-slug env assertion", () => {
     const result = validateHostGhMode(
-      { [ENV_EXPECTED_GITHUB_APP_SLUG]: "deft-worker" },
+      { DEFT_EXPECTED_GITHUB_APP_SLUG: "deft-worker" },
       {
         repo: TARGET_REPO,
-        runGh: stubGh({
-          user: INSTALLATION_USER_403,
-          installRepos: { code: 1, stdout: "", stderr: "unreproduced class endpoint" },
-        }),
+        runGh: stubGh({ user: INSTALLATION_USER_403 }),
       },
     );
-    expect(result.ok).toBe(true);
-    expect(result.principal?.kind).toBe(PRINCIPAL_KIND_APP_INSTALLATION);
+    expect(result.ok).toBe(false);
+    expect(result.failureKind).toBe(FAILURE_INSTALLATION_IDENTITY_UNVERIFIABLE);
   });
 
   it("CLI expected-login mismatch fails closed", () => {
@@ -567,15 +500,7 @@ describe("expected GitHub worker principal (#3665)", () => {
     expect(code).toBe(1);
   });
 
-  it("CLI expected-principal flag conflict is a config error", () => {
-    const code = githubAuthModesMain({
-      githubAuthMode: "host-gh",
-      repo: TARGET_REPO,
-      expectedLogin: "octo",
-      expectedAppSlug: "deft-worker",
-      json: true,
-      runGh: stubGh({}),
-    });
-    expect(code).toBe(2);
+  it("CLI App-installation flags are deferred to #3693", () => {
+    expect(githubAuthModesCliMain(["--expected-app-slug", "deft-worker"])).toBe(2);
   });
 });

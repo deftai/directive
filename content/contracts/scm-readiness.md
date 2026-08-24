@@ -37,7 +37,7 @@ on interactive auth prompts in headless envs without a clear diagnostic.
 | --- | --- | --- |
 | `session:start` default | shallow (PATH + token + `gh auth status`) | no |
 | `session:start --with-network` | deep (API + optional repo) | no |
-| `deft scm:status` | shallow default; `--deep` opt-in (derives target repo; expected principal via flags/env) | n/a (exit 0/1/2) |
+| `deft scm:status` | shallow default; `--deep` opt-in (derives target repo; expected user login via flags/env) | n/a (exit 0/1/2) |
 | `deft github-auth-modes` | mode + principal validation (#1557 / #3665) | n/a |
 
 JSON field shape (`session:start --json` → `scm`, or `scm:status --json`):

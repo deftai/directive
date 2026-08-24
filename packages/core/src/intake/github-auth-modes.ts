@@ -18,7 +18,6 @@ export const KNOWN_GITHUB_AUTH_MODES = new Set<string>([
 ]);
 
 export const PRINCIPAL_KIND_USER = "user";
-export const PRINCIPAL_KIND_APP_INSTALLATION = "app-installation";
 
 export const FAILURE_MISSING_INJECTED_TOKEN = "missing_injected_token";
 export const FAILURE_GH_AUTH = "gh_auth_failed";
@@ -28,10 +27,11 @@ export const FAILURE_INVALID_MODE = "invalid_auth_mode";
 export const FAILURE_MISSING_EXPECTED_PRINCIPAL = "missing_expected_principal";
 export const FAILURE_PRINCIPAL_MISMATCH = "principal_mismatch";
 export const FAILURE_MISSING_TARGET_REPO = "missing_target_repo";
+export const FAILURE_INSTALLATION_IDENTITY_UNVERIFIABLE = "installation_identity_unverifiable";
 
 export const ENV_EXPECTED_GITHUB_LOGIN = "DEFT_EXPECTED_GITHUB_LOGIN";
-export const ENV_EXPECTED_GITHUB_APP_SLUG = "DEFT_EXPECTED_GITHUB_APP_SLUG";
-export const ENV_EXPECTED_GITHUB_INSTALLATION_ID = "DEFT_EXPECTED_GITHUB_INSTALLATION_ID";
+
+export const INSTALLATION_IDENTITY_ISSUE_URL = "https://github.com/deftai/directive/issues/3693";
 
 const INJECTED_TOKEN_ENV_VARS = ["GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN"] as const;
 
@@ -50,10 +50,12 @@ const REPO_ACCESS_REMEDIATION =
 const PRINCIPAL_REMEDIATION =
   "Remediation for GitHub worker-principal failures:\n" +
   "  - User-bearing credential: pass expectedPrincipal.login or set DEFT_EXPECTED_GITHUB_LOGIN\n" +
-  "  - GitHub App installation credential: pass expectedPrincipal.appSlug (and installationId when known)\n" +
-  "    or set DEFT_EXPECTED_GITHUB_APP_SLUG / DEFT_EXPECTED_GITHUB_INSTALLATION_ID\n" +
   "  - Do not treat a /user 403 on an installation token as API unreachability\n" +
-  "  - Endpoint reachability is not an identity assertion";
+  "  - GitHub App installation identity cannot be verified from the token; see #3693";
+
+const INSTALLATION_IDENTITY_REMEDIATION =
+  "A GitHub App installation token cannot prove which App it belongs to.\n" +
+  `Tracked in ${INSTALLATION_IDENTITY_ISSUE_URL}. Do not treat a /user 403 as API unreachability.`;
 
 const TARGET_REPO_REMEDIATION =
   "Remediation for missing target repository:\n" +
@@ -61,13 +63,7 @@ const TARGET_REPO_REMEDIATION =
   "  - Do not fall back to a hard-coded public default";
 
 /** GitHub-specific expected worker principal. Not a universal (provider-neutral) identity. */
-export type ExpectedGithubWorkerPrincipal =
-  | { readonly kind: "user"; readonly login: string }
-  | {
-      readonly kind: "app-installation";
-      readonly appSlug: string;
-      readonly installationId?: number;
-    };
+export type ExpectedGithubWorkerPrincipal = { readonly kind: "user"; readonly login: string };
 
 export interface GitHubAuthValidationResult {
   readonly ok: boolean;
@@ -229,18 +225,6 @@ export function deriveValidationRepo(options: {
   };
 }
 
-function parsePositiveInt(raw: string): number | null {
-  const trimmed = raw.trim();
-  if (!/^[0-9]+$/.test(trimmed)) {
-    return null;
-  }
-  const value = Number.parseInt(trimmed, 10);
-  if (!Number.isSafeInteger(value) || value <= 0) {
-    return null;
-  }
-  return value;
-}
-
 export function resolveExpectedGithubWorkerPrincipal(
   environ: NodeJS.ProcessEnv,
   explicit?: ExpectedGithubWorkerPrincipal | null,
@@ -252,34 +236,8 @@ export function resolveExpectedGithubWorkerPrincipal(
     return normalizeExpectedPrincipal(explicit);
   }
   const login = environ[ENV_EXPECTED_GITHUB_LOGIN]?.trim() ?? "";
-  const appSlug = environ[ENV_EXPECTED_GITHUB_APP_SLUG]?.trim() ?? "";
-  const installationRaw = environ[ENV_EXPECTED_GITHUB_INSTALLATION_ID]?.trim() ?? "";
-  if (login.length > 0 && appSlug.length > 0) {
-    return {
-      error:
-        "expected worker principal is ambiguous: both DEFT_EXPECTED_GITHUB_LOGIN and DEFT_EXPECTED_GITHUB_APP_SLUG are set",
-    };
-  }
   if (login.length > 0) {
     return { kind: PRINCIPAL_KIND_USER, login };
-  }
-  if (appSlug.length > 0) {
-    if (installationRaw.length > 0) {
-      const installationId = parsePositiveInt(installationRaw);
-      if (installationId === null) {
-        return {
-          error: `invalid ${ENV_EXPECTED_GITHUB_INSTALLATION_ID}: ${JSON.stringify(installationRaw)}`,
-        };
-      }
-      return { kind: PRINCIPAL_KIND_APP_INSTALLATION, appSlug, installationId };
-    }
-    return { kind: PRINCIPAL_KIND_APP_INSTALLATION, appSlug };
-  }
-  if (installationRaw.length > 0) {
-    return {
-      error:
-        "DEFT_EXPECTED_GITHUB_INSTALLATION_ID requires DEFT_EXPECTED_GITHUB_APP_SLUG (installation id is not a principal by itself)",
-    };
   }
   return null;
 }
@@ -287,33 +245,16 @@ export function resolveExpectedGithubWorkerPrincipal(
 function normalizeExpectedPrincipal(
   principal: ExpectedGithubWorkerPrincipal,
 ): ExpectedGithubWorkerPrincipal | { error: string } {
-  if (principal.kind === PRINCIPAL_KIND_USER) {
-    const login = principal.login.trim();
-    if (login.length === 0) {
-      return { error: "user principal requires a non-empty login" };
-    }
-    return { kind: PRINCIPAL_KIND_USER, login };
+  if (principal.kind !== PRINCIPAL_KIND_USER) {
+    return {
+      error: `unknown expected principal kind ${pyRepr((principal as { kind: string }).kind)}`,
+    };
   }
-  if (principal.kind === PRINCIPAL_KIND_APP_INSTALLATION) {
-    const appSlug = principal.appSlug.trim();
-    if (appSlug.length === 0) {
-      return { error: "app-installation principal requires a non-empty appSlug" };
-    }
-    if (principal.installationId !== undefined) {
-      if (!Number.isSafeInteger(principal.installationId) || principal.installationId <= 0) {
-        return { error: "app-installation installationId must be a positive integer when set" };
-      }
-      return {
-        kind: PRINCIPAL_KIND_APP_INSTALLATION,
-        appSlug,
-        installationId: principal.installationId,
-      };
-    }
-    return { kind: PRINCIPAL_KIND_APP_INSTALLATION, appSlug };
+  const login = principal.login.trim();
+  if (login.length === 0) {
+    return { error: "user principal requires a non-empty login" };
   }
-  return {
-    error: `unknown expected principal kind ${pyRepr((principal as { kind: string }).kind)}`,
-  };
+  return { kind: PRINCIPAL_KIND_USER, login };
 }
 
 function splitRepo(repo: string): [string, string] {
@@ -334,7 +275,8 @@ function sandboxRemediation(runtimeMode: string | null, failureKind: string): st
     failureKind === FAILURE_REPO_ACCESS ||
     failureKind === FAILURE_MISSING_EXPECTED_PRINCIPAL ||
     failureKind === FAILURE_PRINCIPAL_MISMATCH ||
-    failureKind === FAILURE_MISSING_TARGET_REPO
+    failureKind === FAILURE_MISSING_TARGET_REPO ||
+    failureKind === FAILURE_INSTALLATION_IDENTITY_UNVERIFIABLE
   ) {
     return SANDBOX_REMEDIATION;
   }
@@ -344,6 +286,9 @@ function sandboxRemediation(runtimeMode: string | null, failureKind: string): st
 function extraRemediation(failureKind: string): string | null {
   if (failureKind === FAILURE_REPO_ACCESS) {
     return REPO_ACCESS_REMEDIATION;
+  }
+  if (failureKind === FAILURE_INSTALLATION_IDENTITY_UNVERIFIABLE) {
+    return INSTALLATION_IDENTITY_REMEDIATION;
   }
   if (
     failureKind === FAILURE_MISSING_EXPECTED_PRINCIPAL ||
@@ -490,39 +435,20 @@ function loginsMatch(expected: string, observed: string): boolean {
   return expected.localeCompare(observed, undefined, { sensitivity: "accent" }) === 0;
 }
 
-function installationListsTargetRepo(stdout: string, repo: string): boolean | null {
-  const text = stdout.trim();
-  if (text.length === 0) {
-    return null;
-  }
-  try {
-    const payload = JSON.parse(text) as unknown;
-    if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
-      return null;
-    }
-    const record = payload as Record<string, unknown>;
-    const selection = record.repository_selection;
-    if (selection === "all") {
-      return true;
-    }
-    const repositories = record.repositories;
-    if (!Array.isArray(repositories)) {
-      return null;
-    }
-    const wanted = repo.toLowerCase();
-    for (const item of repositories) {
-      if (item === null || typeof item !== "object" || Array.isArray(item)) {
-        continue;
-      }
-      const fullName = (item as Record<string, unknown>).full_name;
-      if (typeof fullName === "string" && fullName.toLowerCase() === wanted) {
-        return true;
-      }
-    }
-    return false;
-  } catch {
-    return null;
-  }
+function failClosedInstallationCredential(
+  mode: string,
+  runtimeMode: string | null,
+  repo: string,
+): GitHubAuthValidationResult {
+  return emptyResult(
+    mode,
+    runtimeMode,
+    FAILURE_INSTALLATION_IDENTITY_UNVERIFIABLE,
+    "GitHub /user is inapplicable to a GitHub App installation credential (no authenticated user). " +
+      "The API is reachable. An installation token cannot disclose which App it belongs to, " +
+      `so identity cannot be verified. Deferred to ${INSTALLATION_IDENTITY_ISSUE_URL}.`,
+    { validationRepo: repo },
+  );
 }
 
 function checkTargetRepoAccess(
@@ -557,69 +483,6 @@ function checkTargetRepoAccess(
     principal,
     validationRepo: repo,
   });
-}
-
-function validateInstallationCredential(
-  mode: string,
-  runtimeMode: string | null,
-  runner: GhRunner,
-  environ: NodeJS.ProcessEnv,
-  repo: string,
-  expectedPrincipal: ExpectedGithubWorkerPrincipal | { error: string } | null,
-): GitHubAuthValidationResult {
-  const inapplicable =
-    "GitHub /user is inapplicable to a GitHub App installation credential (no authenticated user). The API is reachable.";
-  if (expectedPrincipal === null) {
-    return emptyResult(
-      mode,
-      runtimeMode,
-      FAILURE_MISSING_EXPECTED_PRINCIPAL,
-      `${inapplicable} Accepting this credential requires an expected App/installation principal assertion.`,
-      { validationRepo: repo },
-    );
-  }
-  if ("error" in expectedPrincipal) {
-    return emptyResult(
-      mode,
-      runtimeMode,
-      FAILURE_MISSING_EXPECTED_PRINCIPAL,
-      expectedPrincipal.error,
-      {
-        validationRepo: repo,
-      },
-    );
-  }
-  if (expectedPrincipal.kind !== PRINCIPAL_KIND_APP_INSTALLATION) {
-    return emptyResult(
-      mode,
-      runtimeMode,
-      FAILURE_PRINCIPAL_MISMATCH,
-      `${inapplicable} Expected user principal ${expectedPrincipal.login}, but the credential has no user login.`,
-      { validationRepo: repo },
-    );
-  }
-
-  // Installation tokens have no user and cannot call JWT-only App-management
-  // endpoints. The expected App assertion is the principal name; membership
-  // and target-repo access are authority checks, not identity observation.
-  // Do not read token values (#3664). Reachability alone is not identity.
-  const boundPrincipal = expectedPrincipal;
-
-  const installRepos = runner(["api", "installation/repositories"], environ);
-  if (installRepos.returncode === 0) {
-    const listed = installationListsTargetRepo(installRepos.stdout, repo);
-    if (listed === false) {
-      return emptyResult(
-        mode,
-        runtimeMode,
-        FAILURE_REPO_ACCESS,
-        `installation principal ${boundPrincipal.appSlug} cannot access ${repo}`,
-        { principal: boundPrincipal, validationRepo: repo },
-      );
-    }
-  }
-
-  return checkTargetRepoAccess(mode, runtimeMode, runner, environ, repo, null, boundPrincipal);
 }
 
 function validateAfterAuth(
@@ -659,14 +522,7 @@ function validateAfterAuth(
   const userApi = runner(["api", "user"], environ);
   if (userApi.returncode !== 0) {
     if (isInstallationUserEndpointInapplicable(userApi)) {
-      return validateInstallationCredential(
-        mode,
-        runtimeMode,
-        runner,
-        environ,
-        repo,
-        expectedPrincipal,
-      );
+      return failClosedInstallationCredential(mode, runtimeMode, repo);
     }
     return emptyResult(
       mode,
@@ -702,15 +558,6 @@ function validateAfterAuth(
   }
 
   if (expectedPrincipal !== null) {
-    if (expectedPrincipal.kind !== PRINCIPAL_KIND_USER) {
-      return emptyResult(
-        mode,
-        runtimeMode,
-        FAILURE_PRINCIPAL_MISMATCH,
-        `expected App/installation principal ${expectedPrincipal.appSlug} but /user returned login ${login}`,
-        { login, validationRepo: repo },
-      );
-    }
     if (!loginsMatch(expectedPrincipal.login, login)) {
       return emptyResult(
         mode,
@@ -844,12 +691,6 @@ export function resultToDict(result: GitHubAuthValidationResult): Record<string,
     remediation: result.remediation,
     login: result.login,
     principal_kind: result.principal?.kind ?? null,
-    app_slug:
-      result.principal?.kind === PRINCIPAL_KIND_APP_INSTALLATION ? result.principal.appSlug : null,
-    installation_id:
-      result.principal?.kind === PRINCIPAL_KIND_APP_INSTALLATION
-        ? (result.principal.installationId ?? null)
-        : null,
     validation_repo: result.validationRepo,
   };
 }
@@ -860,8 +701,6 @@ export interface GitHubAuthModesCliArgs {
   json?: boolean;
   runGh?: GhRunner;
   expectedLogin?: string;
-  expectedAppSlug?: string;
-  expectedInstallationId?: number;
   expectedPrincipal?: ExpectedGithubWorkerPrincipal | null;
 }
 
@@ -872,24 +711,8 @@ function expectedPrincipalFromCliArgs(
     return args.expectedPrincipal ?? undefined;
   }
   const login = args.expectedLogin?.trim() ?? "";
-  const appSlug = args.expectedAppSlug?.trim() ?? "";
-  if (login.length > 0 && appSlug.length > 0) {
-    return { error: "pass either --expected-login or --expected-app-slug, not both" };
-  }
-  if (args.expectedInstallationId !== undefined && appSlug.length === 0) {
-    return { error: "--expected-installation-id requires --expected-app-slug" };
-  }
   if (login.length > 0) {
     return { kind: PRINCIPAL_KIND_USER, login };
-  }
-  if (appSlug.length > 0) {
-    return args.expectedInstallationId !== undefined
-      ? {
-          kind: PRINCIPAL_KIND_APP_INSTALLATION,
-          appSlug,
-          installationId: args.expectedInstallationId,
-        }
-      : { kind: PRINCIPAL_KIND_APP_INSTALLATION, appSlug };
   }
   return undefined;
 }
