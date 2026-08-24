@@ -674,6 +674,9 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     );
     expect(method).toContain("Dispose a recorded");
     expect(method).toContain("when the field is present");
+    expect(method).toContain("no required output form");
+    expect(method).toContain("no mechanized consumer");
+    expect(method).toContain("If a consumer is added later");
     const disposeLine = method.split("\n").find((line) => line.includes("Dispose a recorded"));
     expect(disposeLine, "disposal MUST line").toBeDefined();
     expect(disposeLine).toMatch(/^- ! /);

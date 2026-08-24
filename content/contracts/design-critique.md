@@ -94,7 +94,7 @@ The three tokens are the blocking, sharpening, and footnote classes `walk all` a
 - ~ When the critic actually chose among plausible mechanisms, state a road-not-taken.
 - ~ When the critic actually chose among plausible mechanisms, steelman the strongest rejected position and name what would flip the verdict.
 
-The injection / swarm lens is a triggered MUST: it fires only on those target changes. Disposing a recorded `refutation-target:` is a triggered MUST: it fires only when the field is present. The reviewer-catch rule is a prohibition, not a required recital. Road-not-taken and steelman are SHOULD, and fire only on a real fork.
+The injection / swarm lens is a triggered MUST: it fires only on those target changes. Disposing a recorded `refutation-target:` is a triggered MUST: it fires only when the field is present. Disposal has no required output form, because the field has no mechanized consumer — it creates no unresolved-marker state and never blocks bind. Classification tokens are exact because `walk all` consumes them. If a consumer is added later, a form can be specified then. The reviewer-catch rule is a prohibition, not a required recital. Road-not-taken and steelman are SHOULD, and fire only on a real fork.
 
 ### Envelope and ceiling
 
