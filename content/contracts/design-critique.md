@@ -1,6 +1,6 @@
 # Design-critique contract
 
-Sole normative source of truth for the design-critique motion: charter, variant table, envelope and ceiling, synthesis format, and the operator-gated loop until synthesis is accepted. The copyable dispatch envelope is [`templates/design-critique-brief.md`](../templates/design-critique-brief.md). Phase 1 (the judgment gate) lives in [`docs/decisions/ADR-005-design-critique-judgment-gate.md`](../../docs/decisions/ADR-005-design-critique-judgment-gate.md). Parent-side substantiation principle: [`docs/decisions/ADR-006-parent-side-substantiation.md`](../../docs/decisions/ADR-006-parent-side-substantiation.md).
+Sole normative source of truth for the design-critique motion: charter, critic method, variant table, envelope and ceiling, synthesis format, and the operator-gated loop until synthesis is accepted. The copyable dispatch envelope is [`templates/design-critique-brief.md`](../templates/design-critique-brief.md). Phase 1 (the judgment gate) lives in [`docs/decisions/ADR-005-design-critique-judgment-gate.md`](../../docs/decisions/ADR-005-design-critique-judgment-gate.md). Parent-side substantiation principle: [`docs/decisions/ADR-006-parent-side-substantiation.md`](../../docs/decisions/ADR-006-parent-side-substantiation.md).
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
@@ -62,14 +62,31 @@ Default motion after a mechanism-shaped stamp: N=1 fresh open critique. If resid
 
 ## Stop 3 — Critic envelope
 
-### Charter
+### Parent-facing dispatch rules
 
 Process-only. The critic audits the lean, the protocol fit, and the recording obligations. It does not implement product work.
 
-- ! Give the critic a process-only charter.
+- ! Give the critic process-only dispatch rules.
 - ⊗ Load parent hypotheses into the envelope.
 - ⊗ Name a refutation target unless the recorded variant is refutation.
 - ⊗ Edit critic text after dispatch. The parent records; it does not rewrite.
+
+### Critic method
+
+How a critic critiques. Method-reconciliation stays at Stop 5; critics issue verdicts and therefore read it.
+
+Strengths are not one level. Token presence is not behavioral evidence. Classification has a mechanized consumer; re-verification and inventory change the search. An empty road-not-taken or a perfunctory steelman satisfies a pin while changing nothing.
+
+- ! Re-verify the triage's anchors by running checks. Line cites are claims, not evidence.
+- ! Inventory existing mechanisms before proposing new ones.
+- ! Classify every finding with the exact three tokens: `blocks-the-design`, `sharpens-framing`, or `footnote`.
+- ! Every classified finding names evidence, a concrete failure mode, and the disposition consequence — or it is a footnote.
+- ! Apply the injection / swarm lens when the target changes authority, untrusted input, prompts or envelopes, identity, concurrency, worktrees, or shared state. An `N/A` paragraph on a local constant change is theater.
+- ⊗ Close a finding with "a reviewer would catch it". That is a failed finding. If a safety case ends at reviewer attention, name a deterministic control or leave the finding unresolved.
+- ~ When the critic actually chose among plausible mechanisms, state a road-not-taken.
+- ~ When the critic actually chose among plausible mechanisms, steelman the strongest rejected position and name what would flip the verdict.
+
+The injection / swarm lens is a triggered MUST: it fires only on those target changes. The reviewer-catch rule is a prohibition, not a required recital. Road-not-taken and steelman are SHOULD, and fire only on a real fork.
 
 ### Envelope and ceiling
 
@@ -312,4 +329,4 @@ This motion ingests untrusted issue threads by design.
 
 ## Test surface
 
-`packages/core/src/content-contracts/standards/design_critique_contract.test.ts` locks required pointer strings, the scaffolds framing, the comment-lead field as model then role from the closed set (not an issue label), the operator-gated loop (successor lean, operator verbs including walk / walk all, dual stop, halt line, exclusive remaining-set replace of the two catalog chips, #3640 auto-stamp on a non-empty all-accept map and no-stamp on stubs), the parent-side substantiation token and independence rules, the composed auto-bind conjunct (all-accept map AND zero unresolved audit markers) at Operator verbs and Bind path 1, the variant-table evaluation rule (charter selection and spend permission evaluated independently), the brief-template forbidden-inputs list, and the thin router skill (existence, line cap, pointer resolution, no-normative-content). `evaluateParentAudit` locks the omission failure modes.
+`packages/core/src/content-contracts/standards/design_critique_contract.test.ts` locks required pointer strings, the scaffolds framing, the comment-lead field as model then role from the closed set (not an issue label), the operator-gated loop (successor lean, operator verbs including walk / walk all, dual stop, halt line, exclusive remaining-set replace of the two catalog chips, #3640 auto-stamp on a non-empty all-accept map and no-stamp on stubs), the parent-side substantiation token and independence rules, the composed auto-bind conjunct (all-accept map AND zero unresolved audit markers) at Operator verbs and Bind path 1, the variant-table evaluation rule (charter selection and spend permission evaluated independently), the critic-method heading and distinctive obligation tokens (exact class tokens, citations-are-claims, existing mechanisms, injection / swarm trigger nouns, failed-reviewer phrase, finding anatomy) rather than full body sentences, the brief-template forbidden-inputs list, and the thin router skill (existence, line cap, pointer resolution, no-normative-content). `evaluateParentAudit` locks the omission failure modes.

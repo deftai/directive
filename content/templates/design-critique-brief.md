@@ -36,7 +36,9 @@ Read, do not restate:
 |---|---|
 | Gate (ADR-005) | Stop 1 — Gate |
 | Variant selection | Stop 2 — Variant selection |
-| Charter, envelope and ceiling | Stop 3 — Critic envelope |
+| Parent-facing dispatch rules | Parent-facing dispatch rules |
+| Critic method | Critic method |
+| Envelope and ceiling | Envelope and ceiling |
 | Comment lead (model then role) | Stop 3 — Critic envelope |
 | Fresh reiteration | Stop 4 — Residual reiteration |
 | Operator-gated loop | Operator-gated loop |

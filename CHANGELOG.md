@@ -40,6 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Design-critique critics get a stated method (#3661).** The contract now says how to critique, at three distinct strengths, instead of only telling the parent how to dispatch. Stop 3's overloaded Charter heading is renamed to parent-facing dispatch rules. Closes #3661.
+
 - **Leftover-completion PRs skip optional CI jobs (#3678).** When the diff against the merge base is only a completed xBRIEF and CHANGELOG, Windows, Go, merge-gate, smoke, and branch-gate do not run. The required TypeScript check still runs over a real lane. Closes #3678.
 
 - **Design-critique panels share one input ceiling (#3660).** Same-round critics read comments only up to one id, fixed before any sibling posts. An N=3 panel gets three first-round posts and no default retry. The parent records the ceiling before dispatch. Closes #3660.
