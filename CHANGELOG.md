@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Identity-bound worker credential injection at spawn (#1351).** A dispatcher that holds a user-bearing worker credential validates it with the existing principal check, injects it into the worker process environment, and stamps the expected GitHub login so comparison is not optional. Installation credentials still fail closed. Closes #1351.
+
 - **Land leftover completed-tracked artifact for #3650 (#3264 / #1358).** The #3650 xBRIEF stayed untracked after squash of PR 3706. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
 
 - **Land leftover completed-tracked artifact for #3674 (#3264 / #1358).** The #3674 xBRIEF stayed untracked after squash of PR 3698. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.

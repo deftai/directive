@@ -1,7 +1,18 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
-import { inferGithubAuthMode } from "../intake/github-auth-modes.js";
+import {
+  ENV_EXPECTED_GITHUB_LOGIN,
+  type ExpectedGithubWorkerPrincipal,
+  FAILURE_INSTALLATION_IDENTITY_UNVERIFIABLE,
+  FAILURE_MISSING_INJECTED_TOKEN,
+  findInjectedToken,
+  type GhRunner,
+  GITHUB_AUTH_MODE_HOST_GH,
+  GITHUB_AUTH_MODE_INJECTED_TOKEN,
+  inferGithubAuthMode,
+  validateGithubAuthForWorker,
+} from "../intake/github-auth-modes.js";
 import { getPlatformCapabilities } from "../intake/platform-capabilities.js";
 import {
   hasArtifactSuffix,
@@ -65,6 +76,207 @@ export const defaultRuntimeAuthProbe: RuntimeAuthProbeFn = () => {
   const report = getPlatformCapabilities();
   return [report.runtimeMode, inferGithubAuthMode(report)];
 };
+
+export type WorkerCredentialDispatchPath = "grok-build" | "local-hybrid";
+
+const CREDENTIAL_VALUE_PATTERN = /^(ghp_|gho_|ghu_|ghs_|github_pat_)/i;
+
+const INJECTION_MISSING_CREDENTIAL = "GH_TOKEN (or GITHUB_TOKEN / GH_ENTERPRISE_TOKEN)";
+
+const INJECTION_DISPATCHER_REMEDY =
+  "Dispatcher-side remedy: load an approved user-bearing worker credential into the dispatcher environment, then call prepareWorkerCredentialInjection before spawn. Do not fall back to the host gh token or continue under the maintainer identity. Installation credentials are not injectable; see #3693.";
+
+function looksLikeCredentialValue(value: string): boolean {
+  return CREDENTIAL_VALUE_PATTERN.test(value.trim());
+}
+
+function assertNoCredentialValue(value: string, label: string): void {
+  if (looksLikeCredentialValue(value)) {
+    throw new Error(`${label} must not contain a credential value`);
+  }
+}
+
+/**
+ * Dispatch-envelope half of the runtime / GitHub auth-mode contract (#1557 / #1351).
+ * Policy labels only — never a token value.
+ */
+export function formatDispatchAuthEnvelope(fields: {
+  runtimeMode: string;
+  githubAuthMode: string;
+  expectedGithubLogin?: string | null;
+}): string {
+  assertNoCredentialValue(fields.runtimeMode, "runtime_mode");
+  assertNoCredentialValue(fields.githubAuthMode, "github_auth_mode");
+  const lines = [
+    "## Runtime and GitHub auth mode",
+    "",
+    `- runtime_mode: ${fields.runtimeMode}`,
+    `- github_auth_mode: ${fields.githubAuthMode}`,
+  ];
+  if (fields.expectedGithubLogin !== undefined && fields.expectedGithubLogin !== null) {
+    const login = fields.expectedGithubLogin.trim();
+    if (login.length > 0) {
+      assertNoCredentialValue(login, "expected_github_login");
+      lines.push(`- expected_github_login: ${login}`);
+    }
+  }
+  return `${lines.join("\n")}\n`;
+}
+
+export interface WorkerCredentialInjectionRequest {
+  environ?: NodeJS.ProcessEnv;
+  githubAuthMode: string;
+  runtimeMode?: string | null;
+  dispatchPath?: WorkerCredentialDispatchPath;
+  expectedPrincipal?: ExpectedGithubWorkerPrincipal | null;
+  repo?: string;
+  runGh?: GhRunner;
+  cwd?: string;
+}
+
+export type WorkerCredentialInjectionResult =
+  | {
+      ok: true;
+      injected: true;
+      githubAuthMode: typeof GITHUB_AUTH_MODE_INJECTED_TOKEN;
+      runtimeMode: string | null;
+      expectedLogin: string;
+      spawnEnv: { GH_TOKEN: string; DEFT_EXPECTED_GITHUB_LOGIN: string };
+      envelopeSection: string;
+    }
+  | {
+      ok: true;
+      injected: false;
+      githubAuthMode: typeof GITHUB_AUTH_MODE_HOST_GH;
+      runtimeMode: string | null;
+      expectedLogin: string | null;
+      spawnEnv: Record<string, never>;
+      envelopeSection: string;
+    }
+  | {
+      ok: false;
+      blocked: true;
+      githubAuthMode: string;
+      runtimeMode: string | null;
+      missingCredential: string;
+      remedy: string;
+      detail: string;
+      failureKind: string | null;
+      envelopeSection: string;
+    };
+
+function blockedInjection(fields: {
+  githubAuthMode: string;
+  runtimeMode: string | null;
+  failureKind: string | null;
+  detail: string;
+  missingCredential?: string;
+}): WorkerCredentialInjectionResult {
+  const detail = fields.detail.startsWith("BLOCKED") ? fields.detail : `BLOCKED: ${fields.detail}`;
+  return {
+    ok: false,
+    blocked: true,
+    githubAuthMode: fields.githubAuthMode,
+    runtimeMode: fields.runtimeMode,
+    missingCredential: fields.missingCredential ?? INJECTION_MISSING_CREDENTIAL,
+    remedy: INJECTION_DISPATCHER_REMEDY,
+    detail,
+    failureKind: fields.failureKind,
+    envelopeSection: formatDispatchAuthEnvelope({
+      runtimeMode: fields.runtimeMode ?? "unknown",
+      githubAuthMode: fields.githubAuthMode,
+    }),
+  };
+}
+
+/**
+ * Validate a held user-bearing worker credential and prepare spawn-time injection (#1351).
+ *
+ * Comparison is opt-in on the validator. This path always stamps
+ * `DEFT_EXPECTED_GITHUB_LOGIN` after a successful user-principal check so the
+ * worker envelope does not inherit "any user token is approved."
+ *
+ * Installation credentials fail closed via the existing validator (#3693).
+ * Token values belong only in the returned `spawnEnv` — never in prompts,
+ * transcripts, or manifest entries.
+ */
+export function prepareWorkerCredentialInjection(
+  request: WorkerCredentialInjectionRequest,
+): WorkerCredentialInjectionResult {
+  const environ = request.environ ?? process.env;
+  const runtimeMode = request.runtimeMode ?? null;
+  const token = findInjectedToken(environ);
+  const grokBuild = request.dispatchPath === "grok-build";
+  const effectiveMode =
+    grokBuild || token !== null ? GITHUB_AUTH_MODE_INJECTED_TOKEN : request.githubAuthMode;
+
+  if (effectiveMode === GITHUB_AUTH_MODE_HOST_GH && token === null) {
+    return {
+      ok: true,
+      injected: false,
+      githubAuthMode: GITHUB_AUTH_MODE_HOST_GH,
+      runtimeMode,
+      expectedLogin: null,
+      spawnEnv: {},
+      envelopeSection: formatDispatchAuthEnvelope({
+        runtimeMode: runtimeMode ?? "local-unsandboxed",
+        githubAuthMode: GITHUB_AUTH_MODE_HOST_GH,
+      }),
+    };
+  }
+
+  if (token === null) {
+    return blockedInjection({
+      githubAuthMode: GITHUB_AUTH_MODE_INJECTED_TOKEN,
+      runtimeMode,
+      failureKind: FAILURE_MISSING_INJECTED_TOKEN,
+      missingCredential: INJECTION_MISSING_CREDENTIAL,
+      detail:
+        "missing worker credential GH_TOKEN (or GITHUB_TOKEN / GH_ENTERPRISE_TOKEN) for a write-requiring injected-token dispatch",
+    });
+  }
+
+  const validated = validateGithubAuthForWorker(GITHUB_AUTH_MODE_INJECTED_TOKEN, {
+    environ,
+    runtimeReport: { runtimeMode: runtimeMode ?? "cloud-headless" },
+    repo: request.repo,
+    runGh: request.runGh,
+    expectedPrincipal: request.expectedPrincipal,
+    cwd: request.cwd,
+  });
+
+  if (!validated.ok || validated.login === null || validated.login.trim().length === 0) {
+    const installation = validated.failureKind === FAILURE_INSTALLATION_IDENTITY_UNVERIFIABLE;
+    return blockedInjection({
+      githubAuthMode: GITHUB_AUTH_MODE_INJECTED_TOKEN,
+      runtimeMode,
+      failureKind: validated.failureKind,
+      detail: installation
+        ? `${validated.detail} Installation credentials are not injectable (#3693).`
+        : validated.detail,
+    });
+  }
+
+  const expectedLogin = validated.login.trim();
+  assertNoCredentialValue(expectedLogin, "expected_github_login");
+  const spawnEnv = {
+    GH_TOKEN: token,
+    [ENV_EXPECTED_GITHUB_LOGIN]: expectedLogin,
+  };
+  return {
+    ok: true,
+    injected: true,
+    githubAuthMode: GITHUB_AUTH_MODE_INJECTED_TOKEN,
+    runtimeMode,
+    expectedLogin,
+    spawnEnv,
+    envelopeSection: formatDispatchAuthEnvelope({
+      runtimeMode: runtimeMode ?? "cloud-headless",
+      githubAuthMode: GITHUB_AUTH_MODE_INJECTED_TOKEN,
+      expectedGithubLogin: expectedLogin,
+    }),
+  };
+}
 
 function loadJson(path: string): Record<string, unknown> | null {
   try {
@@ -578,6 +790,7 @@ export function buildManifest(
     modelSource?: string | null;
     runtimeMode?: string | null;
     githubAuthMode?: string | null;
+    expectedGithubLogin?: string | null;
     occupancySessionId?: string | null;
   },
 ): Record<string, unknown>[] {
@@ -631,6 +844,10 @@ export function buildManifest(
     }
     if (options.githubAuthMode !== undefined && options.githubAuthMode !== null) {
       entry.github_auth_mode = options.githubAuthMode;
+    }
+    if (options.expectedGithubLogin !== undefined && options.expectedGithubLogin !== null) {
+      assertNoCredentialValue(options.expectedGithubLogin, "expected_github_login");
+      entry.expected_github_login = options.expectedGithubLogin;
     }
     manifest.push(entry);
   }
@@ -698,6 +915,9 @@ export interface LaunchArgs {
    * Defaults to `process.env` when unset.
    */
   environ?: NodeJS.ProcessEnv;
+  /** Optional gh runner for identity-bound credential injection (#1351). */
+  runGh?: GhRunner;
+  expectedPrincipal?: ExpectedGithubWorkerPrincipal | null;
 }
 
 export function swarmLaunch(args: LaunchArgs): {
@@ -890,6 +1110,36 @@ export function swarmLaunch(args: LaunchArgs): {
     };
   }
 
+  const launchEnviron = args.environ ?? process.env;
+  let expectedGithubLogin: string | null = null;
+  // Only the injected-token launch path auto-validates. An ambient GH_TOKEN on
+  // a host-gh probe is often the maintainer workaround, not a worker credential;
+  // local-hybrid injection is the explicit prepareWorkerCredentialInjection call.
+  if (
+    githubAuthMode === GITHUB_AUTH_MODE_INJECTED_TOKEN &&
+    findInjectedToken(launchEnviron) !== null
+  ) {
+    const injection = prepareWorkerCredentialInjection({
+      environ: launchEnviron,
+      githubAuthMode,
+      runtimeMode,
+      dispatchPath: "grok-build",
+      runGh: args.runGh,
+      expectedPrincipal: args.expectedPrincipal,
+      cwd: projectRoot,
+    });
+    if (!injection.ok) {
+      return {
+        exitCode: EXIT_GATE_FAILED,
+        stdout: "",
+        stderr: `${injection.detail}\n${injection.remedy}\n`,
+      };
+    }
+    if (injection.injected) {
+      expectedGithubLogin = injection.expectedLogin;
+    }
+  }
+
   const manifest = buildManifest(ordered, {
     projectRoot,
     group: args.group ?? null,
@@ -906,6 +1156,7 @@ export function swarmLaunch(args: LaunchArgs): {
     modelSource,
     runtimeMode,
     githubAuthMode,
+    expectedGithubLogin,
     occupancySessionId: occupancy.sessionId,
   });
 

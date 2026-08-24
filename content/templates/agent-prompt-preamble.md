@@ -130,6 +130,7 @@ When present, document the fields in a separate `## Runtime and GitHub auth mode
 
 - `runtime_mode`: one of `local-unsandboxed`, `cursor-native-sandbox`, or `cloud-headless` -- the execution envelope the worker runs in (from the read-only runtime probe, #1557a).
 - `github_auth_mode`: one of `host-gh` or `injected-token` -- which GitHub credential rule applies to this worker (#1557b).
+- `expected_github_login`: the bound user login when the dispatcher injected a user-bearing credential (#1351 / #3665). Login only -- never a token value. Omit when `github_auth_mode` is `host-gh` and no injection occurred.
 
 Launch-manifest entries (#1387 C2 contract) carry the same two fields at the top level alongside `allocation_context`. Workers MUST read the dispatch envelope (or launch manifest) and apply the identity-separation rules in §8 according to `github_auth_mode`, not the historical one-size-fits-all injected-token default.
 
@@ -149,9 +150,23 @@ Worked example (cloud / headless worker):
 
 - runtime_mode: cloud-headless
 - github_auth_mode: injected-token
+- expected_github_login: deft-swarm-bot
 ```
 
 Reference: `packages/core/src/platform/platform-capabilities.ts` (#1557a), `packages/core/src/intake/github-auth-modes.ts` (#1557b), issue #1557.
+
+## 2.75 Identity-bound worker credential injection (#1351)
+
+When a dispatcher holds a user-bearing worker credential, it MUST inject that credential at spawn on the grok-build and local hybrid paths. Injection binds an identity; it does not only place a token. This helper is the operator-implemented injection the §8 conjunction names -- a dispatcher-invoked function, not a prompt-embedded token.
+
+- ! Before spawn, call `prepareWorkerCredentialInjection` (`packages/core/src/swarm/launch.ts`). It validates the held credential as a **user** principal with the existing `validateGithubAuthForWorker`. Do not write a second validator and do not invent a second approval surface.
+- ! On success, apply the returned `spawnEnv` to the worker **process environment** (`GH_TOKEN` plus `DEFT_EXPECTED_GITHUB_LOGIN`) and copy `envelopeSection` into the dispatch envelope. Stamp `expected_github_login` on the launch-manifest entry when launch already validated the same credential.
+- ! On no available credential and a write-requiring injected-token operation, halt `BLOCKED`, naming the missing credential (`GH_TOKEN` / `GITHUB_TOKEN` / `GH_ENTERPRISE_TOKEN`) and the dispatcher-side remedy. Do not spawn.
+- ⊗ Inject an App-installation credential. Those fail closed as `installation_identity_unverifiable` (#3693).
+- ⊗ Continue under a detected host or maintainer identity, or fall back to the host `gh` token (`patterns/multi-agent.md` :70-75).
+- ⊗ Place a credential value in the dispatch prompt, a transcript, or a launch-manifest entry. `spawnEnv` is process-env only.
+
+Token minting remains an operator-owned #983 non-goal. This helper delivers a credential the dispatcher already holds; it does not mint one.
 
 ## 3. PowerShell 5.1 non-ASCII rule (#798)
 
@@ -449,6 +464,8 @@ Applies to local interactive workers (`runtime_mode: local-unsandboxed` or, afte
 - ~ When `runtime_mode: cursor-native-sandbox`, host `gh` may fail inside the sandbox even when the parent session is authenticated. Fail loud with remediation (full-access execution, trusted-path allowlist, or switch to injected-token handoff) rather than assuming parent auth is visible to the worker.
 
 Dispatchers MUST inject worker credentials for injected-token / cloud-headless dispatches and MUST record the selected `github_auth_mode` in the launch manifest and dispatch envelope. v1 deliberately keeps token injection operator-implemented; mode labels make the contract explicit without placing token values in prompts or transcripts.
+
+#1351 supplies the identity-bound delivery helper in §2.75. Dispatchers on grok-build and local hybrid still record the mode on **both** the launch manifest and the dispatch envelope. They apply `prepareWorkerCredentialInjection` at spawn so the worker receives the token in process env and a stamped `DEFT_EXPECTED_GITHUB_LOGIN` / `expected_github_login`, not a prompt-embedded secret.
 
 This rule is complementary to §5 (REST-by-default) and §7 (rate-limit-aware throttle): REST-by-default reduces GraphQL demand on whichever bucket the worker is using; rate-limit throttle keeps the worker from exhausting its own bucket; mode-aware identity separation prevents the worker bucket from being the maintainer's bucket when injected-token mode applies. All three are required for stable swarm operation.
 
