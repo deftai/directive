@@ -142,4 +142,65 @@ describe("design-critique parent-side substantiation (#3651)", () => {
       result.failures.some((f) => f.code === "bind-unresolved" && f.detail.includes("b")),
     ).toBe(true);
   });
+
+  it("fails closed when bind declares unresolved markers that computed missed", () => {
+    const result = evaluateParentAudit(
+      okDeposit({
+        bindAttempt: { allAcceptMap: true, unresolvedMarkerIds: ["ghost"] },
+      }),
+    );
+    expect(result.ok).toBe(false);
+    expect(result.failures.some((f) => f.code === "bind-unresolved")).toBe(true);
+  });
+
+  it("fails closed when sha or pointer fail the token grammar", () => {
+    const result = evaluateParentAudit(
+      okDeposit({
+        premises: [
+          {
+            markerId: "c9",
+            sha: "not-a-sha",
+            pointer: "content/contracts/design-critique.md:38-45",
+            reading: "asserted",
+            introducedByRole: "parent",
+            loadBearing: true,
+          },
+        ],
+        bindAttempt: { allAcceptMap: false, unresolvedMarkerIds: ["c9"] },
+        clearances: [],
+      }),
+    );
+    expect(result.ok).toBe(false);
+    expect(result.failures.some((f) => f.code === "missing-token")).toBe(true);
+  });
+
+  it("fails closed when two load-bearing premises share one marker id", () => {
+    const result = evaluateParentAudit({
+      premises: [
+        {
+          markerId: "c9",
+          sha: "8bb1e528",
+          pointer: "comment:1",
+          reading: "measured",
+          introducedByRole: "parent",
+          loadBearing: true,
+        },
+        {
+          markerId: "c9",
+          sha: "8bb1e528",
+          pointer: "comment:2",
+          reading: "asserted",
+          introducedByRole: "parent",
+          loadBearing: true,
+        },
+      ],
+      clearances: [{ markerId: "c9", clearedByRole: "critic", targetsMarker: true }],
+      envelopes: [{ auditTargets: ["c9"], declaredNone: false }],
+      namedAuditTargets: ["c9"],
+      bindAttempt: { allAcceptMap: true, unresolvedMarkerIds: [] },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.failures.some((f) => f.code === "marker-collision")).toBe(true);
+    expect(result.failures.some((f) => f.code === "bind-unresolved")).toBe(true);
+  });
 });

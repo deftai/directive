@@ -47,7 +47,8 @@ export type AuditFailureCode =
   | "parent-self-clear"
   | "silent-clear"
   | "bind-unresolved"
-  | "envelope-omits-target";
+  | "envelope-omits-target"
+  | "marker-collision";
 
 export type AuditFailure = {
   code: AuditFailureCode;
@@ -82,10 +83,24 @@ export function formatAuditToken(parts: {
   return `audit:${parts.markerId} sha=${parts.sha} pointer=${parts.pointer} reading=${parts.reading}`;
 }
 
-function independentlyCleared(markerId: string, clearances: readonly AuditClearance[]): boolean {
+function independentlyCleared(
+  markerId: string,
+  clearances: readonly AuditClearance[],
+  colliding: ReadonlySet<string>,
+): boolean {
+  if (colliding.has(markerId)) return false;
   return clearances.some(
     (c) => c.markerId === markerId && c.clearedByRole === "critic" && c.targetsMarker,
   );
+}
+
+function collidingMarkerIds(premises: readonly AuditPremise[]): Set<string> {
+  const counts = new Map<string, number>();
+  for (const premise of premises) {
+    if (!premise.loadBearing) continue;
+    counts.set(premise.markerId, (counts.get(premise.markerId) ?? 0) + 1);
+  }
+  return new Set([...counts.entries()].filter(([, n]) => n > 1).map(([id]) => id));
 }
 
 export function evaluateParentAudit(deposit: ParentAuditDeposit): {
@@ -93,6 +108,13 @@ export function evaluateParentAudit(deposit: ParentAuditDeposit): {
   failures: AuditFailure[];
 } {
   const failures: AuditFailure[] = [];
+  const colliding = collidingMarkerIds(deposit.premises);
+  for (const id of colliding) {
+    failures.push({
+      code: "marker-collision",
+      detail: `load-bearing premises share marker ${id}`,
+    });
+  }
 
   for (const premise of deposit.premises) {
     if (!premise.loadBearing) continue;
@@ -100,6 +122,19 @@ export function evaluateParentAudit(deposit: ParentAuditDeposit): {
       failures.push({
         code: "missing-token",
         detail: `premise ${premise.markerId} is missing sha, pointer, or reading`,
+      });
+      continue;
+    }
+    const token = formatAuditToken({
+      markerId: premise.markerId,
+      sha: premise.sha,
+      pointer: premise.pointer,
+      reading: premise.reading,
+    });
+    if (!parseAuditToken(token)) {
+      failures.push({
+        code: "missing-token",
+        detail: `premise ${premise.markerId} token failed grammar`,
       });
     }
   }
@@ -114,7 +149,9 @@ export function evaluateParentAudit(deposit: ParentAuditDeposit): {
   }
 
   const computedUnresolved = deposit.premises
-    .filter((p) => p.loadBearing && !independentlyCleared(p.markerId, deposit.clearances))
+    .filter(
+      (p) => p.loadBearing && !independentlyCleared(p.markerId, deposit.clearances, colliding),
+    )
     .map((p) => p.markerId);
 
   const named = deposit.namedAuditTargets ?? [];
@@ -155,10 +192,11 @@ export function evaluateParentAudit(deposit: ParentAuditDeposit): {
         });
       }
     }
-    if (bind.allAcceptMap && computedUnresolved.length > 0) {
+    const unresolvedForBind = [...new Set([...computedUnresolved, ...bind.unresolvedMarkerIds])];
+    if (bind.allAcceptMap && unresolvedForBind.length > 0) {
       failures.push({
         code: "bind-unresolved",
-        detail: `all-accept bind with unresolved markers ${computedUnresolved.join(",")}`,
+        detail: `all-accept bind with unresolved markers ${unresolvedForBind.join(",")}`,
       });
     }
   }
