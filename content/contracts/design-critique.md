@@ -81,6 +81,8 @@ Strengths are not one level. Token presence is not behavioral evidence. Classifi
 - ! Inventory existing mechanisms before proposing new ones.
 - ! Classify every finding with the exact three tokens: `blocks-the-design`, `sharpens-framing`, or `footnote`.
 - ! Every classified finding names evidence, a concrete failure mode, and the disposition consequence — or it is a footnote.
+
+The three tokens are the blocking, sharpening, and footnote classes `walk all` already consumes in that order. This contract does not add a decision table between them. Adequacy of the chosen class is critic judgment; anatomy is what keeps an unsupported opinion from carrying `blocks-the-design` weight.
 - ! Apply the injection / swarm lens when the target changes authority, untrusted input, prompts or envelopes, identity, concurrency, worktrees, or shared state. An `N/A` paragraph on a local constant change is theater.
 - ⊗ Close a finding with "a reviewer would catch it". That is a failed finding. If a safety case ends at reviewer attention, name a deterministic control or leave the finding unresolved.
 - ~ When the critic actually chose among plausible mechanisms, state a road-not-taken.
