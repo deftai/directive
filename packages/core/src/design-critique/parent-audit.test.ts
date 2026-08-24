@@ -25,9 +25,7 @@ function okDeposit(overrides: Partial<ParentAuditDeposit> = {}): ParentAuditDepo
         loadBearing: true,
       },
     ],
-    clearances: [
-      { markerId: "c9", clearedByRole: "critic", targetsMarker: true },
-    ],
+    clearances: [{ markerId: "c9", clearedByRole: "critic", targetsMarker: true }],
     envelopes: [{ auditTargets: ["c9"], declaredNone: false }],
     namedAuditTargets: ["c9"],
     bindAttempt: { allAcceptMap: true, unresolvedMarkerIds: [] },
@@ -140,8 +138,8 @@ describe("design-critique parent-side substantiation (#3651)", () => {
       bindAttempt: { allAcceptMap: true, unresolvedMarkerIds: ["b"] },
     });
     expect(result.ok).toBe(false);
-    expect(result.failures.some((f) => f.code === "bind-unresolved" && f.detail.includes("b"))).toBe(
-      true,
-    );
+    expect(
+      result.failures.some((f) => f.code === "bind-unresolved" && f.detail.includes("b")),
+    ).toBe(true);
   });
 });

@@ -82,10 +82,7 @@ export function formatAuditToken(parts: {
   return `audit:${parts.markerId} sha=${parts.sha} pointer=${parts.pointer} reading=${parts.reading}`;
 }
 
-function independentlyCleared(
-  markerId: string,
-  clearances: readonly AuditClearance[],
-): boolean {
+function independentlyCleared(markerId: string, clearances: readonly AuditClearance[]): boolean {
   return clearances.some(
     (c) => c.markerId === markerId && c.clearedByRole === "critic" && c.targetsMarker,
   );

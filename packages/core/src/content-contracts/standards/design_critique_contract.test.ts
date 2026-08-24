@@ -476,13 +476,17 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(text).toContain("dispatch SHA, source pointer, and measured-versus-asserted");
     expect(text).toContain("The predicate is independence, not provenance.");
     expect(text).toContain("⊗ A `role: parent` artifact clears its own marker.");
-    expect(text).toContain("one independently reproduced premise does not clear an unaudited load-bearing one");
+    expect(text).toContain(
+      "one independently reproduced premise does not clear an unaudited load-bearing one",
+    );
     expect(text).toContain("An unresolved marker is residual and blocks verified-synthesis bind.");
     expect(text).toContain("⊗ Discharge a marker by promising a later pass.");
     expect(text).toContain(
       "Auto-bind requires an all-accept disposition map AND zero unresolved audit markers.",
     );
-    expect(text).toContain("This conjunct applies at Operator verbs auto-stamp and at Bind after accepted synthesis path 1.");
+    expect(text).toContain(
+      "This conjunct applies at Operator verbs auto-stamp and at Bind after accepted synthesis path 1.",
+    );
     const operatorVerbs = text.split("## Operator verbs")[1]?.split("## Dual stop")[0] ?? "";
     const bindPath = text.split("## Bind after accepted synthesis")[1] ?? "";
     expect(operatorVerbs).toContain("AND zero unresolved audit markers");
@@ -503,7 +507,12 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     });
     expect(omitted.ok).toBe(false);
     expect(omitted.failures.map((f) => f.code)).toEqual(
-      expect.arrayContaining(["missing-token", "silent-clear", "bind-unresolved", "envelope-omits-target"]),
+      expect.arrayContaining([
+        "missing-token",
+        "silent-clear",
+        "bind-unresolved",
+        "envelope-omits-target",
+      ]),
     );
     const template = readText(TEMPLATE);
     expect(template).toContain("Audit targets (marker ids, comma-separated, or `none`");
