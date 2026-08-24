@@ -1,0 +1,413 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story xBRIEF for #3665 expected-principal contract; bound SoT successor lean v1 5389679492.",
+    "updated": "2026-08-24T19:53:55Z"
+  },
+  "plan": {
+    "title": "fix(intake,swarm): prove the active GitHub credential is an approved worker principal",
+    "status": "completed",
+    "narratives": {
+      "Description": "Two validators and the worker contract gate GitHub identity on `gh api user`. A GitHub App installation token structurally cannot reach that endpoint -- it has no authenticated user -- so the call returns 403 while repo access on the same credential succeeds. That 403 is currently the only thing preventing an installation credential from being accepted, and it fails closed by accident. Any change that lets installation tokens pass must supply a real principal check in the same unit, or it converts a fail-closed gate into an open one.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3665",
+      "Overview": "Bound SoT is successor lean v1 5389679492; the critique BLOCKED the as-filed design and the as-filed claim that the liveness fix was independently shippable is withdrawn. Read the lean before implementing. Code line numbers were derived at 8bb1e528 -- re-derive with `git grep -n` before editing. #3656 is blocked on this story and unblocks when it lands.",
+      "Labels": "bug, design, process, status:child, design-critique:triage-ready",
+      "UserStory": "As an operator dispatching a worker with a GitHub App installation credential, I want validation to prove the credential belongs to an approved principal rather than merely reaching an endpoint, so that swapping the liveness probe does not silently turn a fail-closed identity gate into an open one.",
+      "ImplementationPlan": "1. Re-derive all line numbers at current origin/master; the body's 8bb1e528 citations are stale. 2. Make an expected worker principal representable in VALIDATOR INPUTS. Today the result merely carries an observed login and validator inputs hold no expected value, so an empty or non-login /user response still validates; the binding comparison exists only in preamble prose. 3. Preserve /user and add the expected-login comparison for credentials that HAVE a user. Removing the observation is a capability loss the installation path does not replace. 4. Require an expected App/installation assertion before accepting an installation credential. Endpoint reachability alone must never suffice. Mechanism is the implementer's choice; that an assertion is required is BOUND. `GET /installation/repositories` was raised as a credential-non-disclosing class check -- it is unreproduced and is only a class check, not a principal check, so it does not by itself satisfy this. 5. Derive the real target repository. DEFAULT_VALIDATION_REPO is `deftai/directive` and is used by both validators, defaulted again by the CLI; scm:status exposes no repo argument and no production caller supplies one. An unauthenticated GET of that public repo returns 200, so against the default the repo call is neither authorization nor principal evidence. 6. Fix the api_unreachable detail string -- on an installation token host-gh mode reports that the API is unreachable, which is measurably false. The API is reachable; the endpoint is inapplicable. 7. Update the preamble's injected-token SHOULD and host-gh MUST IN THE SAME UNIT. A host-gh worker on an installation credential satisfies the gh-auth-status clause, structurally cannot satisfy the expected-account clause, and is therefore required to block. Any validator change not matched in the preamble leaves the contract telling workers to refuse a credential the code just accepted. 8. Regression tests per the acceptance list. 9. CHANGELOG [Unreleased] line. Bound SoT: https://github.com/deftai/directive/issues/3665#issuecomment-5389679492.",
+      "LockedDecisions": "Successor lean v1 5389679492 is bound SoT. This is NOT a probe swap -- replacing /user with a repo GET would reduce deep validation to `gh auth status` plus a public read that proves nothing, while removing the observed login and unlatching the installation-token gate. Editing the preamble in the same unit would make that weakening contractual. The expected-principal contract STAYS on this issue; moving it to its own issue was considered and rejected on critique because it would create an unowned dependency and leave this issue unable to satisfy its own installation-token criterion. Identity separation must be preserved for credentials that have a user and extended to credentials that do not -- never relaxed for either. Out of scope: runtime classification and cloud source authorization (#3656), worker-envelope re-validation (#3663), dispatcher-side credential injection (#1351), gh auth status credential exposure (#3664). DROPPED: the as-filed claim that triage/author-filter.ts @me resolution degrades silently -- it returns an explicit actionable error, the acceptance item is already satisfied, and a correction was posted on #3656. Provider-neutral issues (#2722/#2724/#2731/#2651) are inputs constraining extension shape, not dependencies: do not name a supposedly universal principal as a GitHub login, keep secrets out of manifests, make target authority explicit.",
+      "AcceptanceJustification": "Eleven clauses match the bound issue checklist after a one-round critique blocked the as-filed design. The regression matrix is explicitly enumerated because the failure mode being guarded against is a test that asserts success on an unproven installation token."
+    },
+    "items": [
+      {
+        "id": "s1",
+        "title": "Expected principal representable in validator inputs",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When a validator is invoked, an expected worker principal can be supplied as an input rather than existing only in worker prose.",
+          "Acceptance": "When a validator is invoked, an expected worker principal can be supplied as an input rather than existing only in worker prose.",
+          "Traces": "FR-3665-s1"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-24T19:52:19.752Z",
+          "recorded_by": "leaf-implementation/3665",
+          "kind": "test",
+          "pointer": "packages/core/src/intake/github-auth-modes.test.ts"
+        }
+      },
+      {
+        "id": "s2",
+        "title": "User-bearing credentials keep /user and gain comparison",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When a credential has an authenticated user, /user is still called and its login is compared against the expected principal.",
+          "Acceptance": "When a credential has an authenticated user, /user is still called and its login is compared against the expected principal.",
+          "Traces": "FR-3665-s2"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-24T19:52:19.752Z",
+          "recorded_by": "leaf-implementation/3665",
+          "kind": "test",
+          "pointer": "packages/core/src/intake/github-auth-modes.test.ts"
+        }
+      },
+      {
+        "id": "s3",
+        "title": "Installation credentials require an assertion",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When an installation credential is validated, it is accepted only after an expected App/installation assertion passes; endpoint reachability alone never suffices.",
+          "Acceptance": "When an installation credential is validated, it is accepted only after an expected App/installation assertion passes; endpoint reachability alone never suffices.",
+          "Traces": "FR-3665-s3"
+        },
+        "x-directive/disposition": {
+          "recorded_at": "2026-08-24T19:52:19.752Z",
+          "recorded_by": "leaf-implementation/3665",
+          "disposition": "deferred",
+          "reason": "Operator rescope 2026-08-24: installation identity cannot be verified from the token; acceptance deferred to https://github.com/deftai/directive/issues/3693. Installation credentials fail closed.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-08-24T19:52:19.752Z",
+            "mintedVia": "operator-rescope-3665",
+            "eventRef": "https://github.com/deftai/directive/issues/3693"
+          }
+        }
+      },
+      {
+        "id": "s4",
+        "title": "Assertion does not read the credential value",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the identity assertion runs, it neither reads nor captures the credential value.",
+          "Acceptance": "When the identity assertion runs, it neither reads nor captures the credential value.",
+          "Traces": "FR-3665-s4"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-24T19:52:19.752Z",
+          "recorded_by": "leaf-implementation/3665",
+          "kind": "test",
+          "pointer": "packages/core/src/intake/github-auth-modes.test.ts"
+        }
+      },
+      {
+        "id": "s5",
+        "title": "Validation targets a derived repository",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When a validator performs its repo check, it targets a derived repository rather than the deftai/directive default.",
+          "Acceptance": "When a validator performs its repo check, it targets a derived repository rather than the deftai/directive default.",
+          "Traces": "FR-3665-s5"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-24T19:52:19.752Z",
+          "recorded_by": "leaf-implementation/3665",
+          "kind": "test",
+          "pointer": "packages/core/src/intake/github-auth-modes.test.ts"
+        }
+      },
+      {
+        "id": "s6",
+        "title": "api_unreachable tells the truth",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When an endpoint is inapplicable but the API is reachable, the detail string does not claim the API is unreachable.",
+          "Acceptance": "When an endpoint is inapplicable but the API is reachable, the detail string does not claim the API is unreachable.",
+          "Traces": "FR-3665-s6"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-24T19:52:19.752Z",
+          "recorded_by": "leaf-implementation/3665",
+          "kind": "test",
+          "pointer": "packages/core/src/intake/github-auth-modes.test.ts"
+        }
+      },
+      {
+        "id": "s7",
+        "title": "Preamble updated in the same unit",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the worker contract is read after this change, no worker is required to run a check its credential cannot pass, and none is permitted to skip a check its credential can.",
+          "Acceptance": "When the worker contract is read after this change, no worker is required to run a check its credential cannot pass, and none is permitted to skip a check its credential can.",
+          "Traces": "FR-3665-s7"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-24T19:52:19.752Z",
+          "recorded_by": "leaf-implementation/3665",
+          "kind": "review",
+          "pointer": "content/templates/agent-prompt-preamble.md §8; PR https://github.com/deftai/directive/pull/3691"
+        }
+      },
+      {
+        "id": "s8",
+        "title": "Genuinely unreachable API still fails",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When a credential genuinely cannot reach the API, validation still fails, with a true detail string.",
+          "Acceptance": "When a credential genuinely cannot reach the API, validation still fails, with a true detail string.",
+          "Traces": "FR-3665-s8"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-24T19:52:19.752Z",
+          "recorded_by": "leaf-implementation/3665",
+          "kind": "test",
+          "pointer": "packages/core/src/intake/github-auth-modes.test.ts"
+        }
+      },
+      {
+        "id": "s9",
+        "title": "Regression matrix",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When the test suite runs, it covers an installation token with a valid principal assertion, an installation token without one (must fail), a user-bearing token with matching and with mismatching login, an unreachable API, and repo-access-denied.",
+          "Acceptance": "When the test suite runs, it covers an installation token with a valid principal assertion, an installation token without one (must fail), a user-bearing token with matching and with mismatching login, an unreachable API, and repo-access-denied.",
+          "Traces": "FR-3665-s9"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-24T19:52:19.752Z",
+          "recorded_by": "leaf-implementation/3665",
+          "kind": "test",
+          "pointer": "packages/core/src/intake/github-auth-modes.test.ts"
+        }
+      },
+      {
+        "id": "s10",
+        "title": "No test asserts success on an unproven installation token",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the test suite is read, no test asserts success on an installation token that has not proven its principal.",
+          "Acceptance": "When the test suite is read, no test asserts success on an installation token that has not proven its principal.",
+          "Traces": "FR-3665-s10"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-24T19:52:19.752Z",
+          "recorded_by": "leaf-implementation/3665",
+          "kind": "test",
+          "pointer": "packages/core/src/intake/github-auth-modes.test.ts"
+        }
+      },
+      {
+        "id": "s11",
+        "title": "CHANGELOG entry",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When CHANGELOG.md is read, an [Unreleased] line describes the user-visible change.",
+          "Acceptance": "When CHANGELOG.md is read, an [Unreleased] line describes the user-visible change.",
+          "Traces": "FR-3665-s11"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-24T19:52:19.752Z",
+          "recorded_by": "leaf-implementation/3665",
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3691 merge a10150305b31de028dc598ceca805d10186bf52b"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design",
+      "process",
+      "status:child",
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3665",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3665: gh api user identity gate cannot pass on a GitHub App token"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3656",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3656 (blocked on this story)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3663",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3663 (worker-envelope re-validation; out of scope)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3664",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3664 (credential exposure; constrains the assertion)"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [],
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/core/src/intake/github-auth-modes.ts",
+          "packages/core/src/intake/github-auth-modes.test.ts",
+          "packages/core/src/intake/github-auth-modes-cli.ts",
+          "packages/core/src/scm/readiness.ts",
+          "packages/core/src/scm/readiness-cli.ts",
+          "content/templates/agent-prompt-preamble.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/intake/github-auth-modes.test.ts"
+        ],
+        "expected_outputs": [
+          "expected principal in validator inputs",
+          "installation credential gated on an explicit assertion",
+          "derived target repository",
+          "truthful api_unreachable detail",
+          "preamble updated in the same change",
+          "regression matrix including the must-fail case"
+        ],
+        "depends_on": [],
+        "conflict_group": "github-auth",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "high",
+        "missing_traces_justification": [
+          "Traces are FR-3665-* ids on this story; no parent specification.xbrief requirement ids exist for this child."
+        ],
+        "acceptance_criteria_justification": "Eleven clauses match the bound issue checklist after a one-round critique blocked the as-filed probe-swap design."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/intake/github-auth-modes.ts",
+          "packages/core/src/intake/github-auth-modes.test.ts",
+          "packages/core/src/intake/github-auth-modes-cli.ts",
+          "packages/core/src/scm/readiness.ts",
+          "packages/core/src/scm/readiness-cli.ts",
+          "content/templates/agent-prompt-preamble.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/intake",
+        "cohesion_exemption": "The scm readiness layer forwards validator inputs and must change with them; the worker preamble is contractually coupled per the bound decision that it must be edited in the same unit; CHANGELOG.md is outside any module boundary."
+      },
+      "kind": "story",
+      "capacityBucket": "correctness",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3691,
+        "prBase": null,
+        "mergeCommit": "a10150305b31de028dc598ceca805d10186bf52b",
+        "deliveryBranch": "master",
+        "deliveryCommit": "90e59d41267fb922ec97d676139a217915e575dc",
+        "verifiedAt": "2026-08-24T19:53:55Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "485d4fb0-23d4-468e-b6c3-6b263691c6d4"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-24T19:53:55Z",
+      "completedSessionId": "485d4fb0-23d4-468e-b6c3-6b263691c6d4"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/intake/github-auth-modes.test.ts"
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "Eleven clauses taken from the bound issue checklist at https://github.com/deftai/directive/issues/3665 after the critique blocked the as-filed design.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "An expected worker principal is representable in validator inputs, not only in prose",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "/user and an expected-login comparison are preserved for credentials that have a user",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "An installation credential is accepted only after an expected App/installation assertion passes; endpoint reachability alone never suffices",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "The identity assertion does not read or capture the credential value (#3664)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Validation targets a derived repository, not deftai/directive by default",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "api_unreachable no longer claims the API is unreachable when it is reachable",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Preamble injected-token and host-gh rules updated in the same change; no worker is required to run a check its credential cannot pass, and none is permitted to skip a check its credential can",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "A credential that genuinely cannot reach the API still fails, with a true detail string",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Regression tests: installation token with a valid principal assertion, installation token without one (must fail), user-bearing token with matching and mismatching login, unreachable API, repo-access-denied",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "No test asserts success on an installation token that has not proven its principal",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "CHANGELOG [Unreleased] line",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "issue-3665-expected-worker-principal",
+    "updated": "2026-08-24T19:53:55Z"
+  },
+  "vBRIEFInfo": {
+    "version": "0.8",
+    "updated": "2026-08-24T19:53:55Z"
+  }
+}
