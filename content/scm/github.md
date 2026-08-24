@@ -306,7 +306,10 @@ auth.
   `--with-network` / `DEFT_SESSION_START_NETWORK=1`.
 - ! `deft scm:status` (alias `scm:readiness`) is the explicit probe verb:
   exit `0` ready / `1` not ready / `2` config. Flags: `--json`,
-  `--deep` / `--shallow` / `--depth shallow|deep`.
+  `--deep` / `--shallow` / `--depth shallow|deep`, `--repo OWNER/REPO`,
+  `--expected-login`, `--expected-app-slug`, `--expected-installation-id`.
+  Deep validation derives the target repository and compares an expected
+  worker principal when one is supplied (#3665).
 - ! When not ready, diagnostics MUST name the reason
   (`binary-absent` | `missing-token` | `unauthenticated` | ...) and list
   skipped gates (`triage:queue`, `issue:ingest`, `pr:*`, `reconcile:issues`,

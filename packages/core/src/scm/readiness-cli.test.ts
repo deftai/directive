@@ -29,6 +29,22 @@ describe("scm readiness CLI (#2275)", () => {
     expect(args.depth).toBe("deep");
   });
 
+  it("parses repo and expected principal flags (#3665)", () => {
+    const { args, error } = parseScmReadinessArgs([
+      "--deep",
+      "--repo",
+      "acme/widgets",
+      "--expected-app-slug",
+      "deft-worker",
+      "--expected-installation-id",
+      "42",
+    ]);
+    expect(error).toBeNull();
+    expect(args.repo).toBe("acme/widgets");
+    expect(args.expectedAppSlug).toBe("deft-worker");
+    expect(args.expectedInstallationId).toBe(42);
+  });
+
   it("rejects unknown flags with config error shape", () => {
     const { error } = parseScmReadinessArgs(["--bogus"]);
     expect(error).toMatch(/unknown flag/);

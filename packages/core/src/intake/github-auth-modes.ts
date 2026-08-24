@@ -17,13 +17,21 @@ export const KNOWN_GITHUB_AUTH_MODES = new Set<string>([
   GITHUB_AUTH_MODE_HOST_GH,
 ]);
 
-export const DEFAULT_VALIDATION_REPO = "deftai/directive";
+export const PRINCIPAL_KIND_USER = "user";
+export const PRINCIPAL_KIND_APP_INSTALLATION = "app-installation";
 
 export const FAILURE_MISSING_INJECTED_TOKEN = "missing_injected_token";
 export const FAILURE_GH_AUTH = "gh_auth_failed";
 export const FAILURE_API_UNREACHABLE = "api_unreachable";
 export const FAILURE_REPO_ACCESS = "repo_access_denied";
 export const FAILURE_INVALID_MODE = "invalid_auth_mode";
+export const FAILURE_MISSING_EXPECTED_PRINCIPAL = "missing_expected_principal";
+export const FAILURE_PRINCIPAL_MISMATCH = "principal_mismatch";
+export const FAILURE_MISSING_TARGET_REPO = "missing_target_repo";
+
+export const ENV_EXPECTED_GITHUB_LOGIN = "DEFT_EXPECTED_GITHUB_LOGIN";
+export const ENV_EXPECTED_GITHUB_APP_SLUG = "DEFT_EXPECTED_GITHUB_APP_SLUG";
+export const ENV_EXPECTED_GITHUB_INSTALLATION_ID = "DEFT_EXPECTED_GITHUB_INSTALLATION_ID";
 
 const INJECTED_TOKEN_ENV_VARS = ["GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN"] as const;
 
@@ -39,6 +47,28 @@ const REPO_ACCESS_REMEDIATION =
   "  - Run the GitHub step with full-access execution if host gh has access\n" +
   "  - Use injected-token handoff scoped to the required repository";
 
+const PRINCIPAL_REMEDIATION =
+  "Remediation for GitHub worker-principal failures:\n" +
+  "  - User-bearing credential: pass expectedPrincipal.login or set DEFT_EXPECTED_GITHUB_LOGIN\n" +
+  "  - GitHub App installation credential: pass expectedPrincipal.appSlug (and installationId when known)\n" +
+  "    or set DEFT_EXPECTED_GITHUB_APP_SLUG / DEFT_EXPECTED_GITHUB_INSTALLATION_ID\n" +
+  "  - Do not treat a /user 403 on an installation token as API unreachability\n" +
+  "  - Endpoint reachability is not an identity assertion";
+
+const TARGET_REPO_REMEDIATION =
+  "Remediation for missing target repository:\n" +
+  "  - Pass repo as owner/repo, or set GH_REPO / GITHUB_REPOSITORY, or run inside a git checkout with origin\n" +
+  "  - Do not fall back to a hard-coded public default";
+
+/** GitHub-specific expected worker principal. Not a universal (provider-neutral) identity. */
+export type ExpectedGithubWorkerPrincipal =
+  | { readonly kind: "user"; readonly login: string }
+  | {
+      readonly kind: "app-installation";
+      readonly appSlug: string;
+      readonly installationId?: number;
+    };
+
 export interface GitHubAuthValidationResult {
   readonly ok: boolean;
   readonly githubAuthMode: string;
@@ -47,9 +77,22 @@ export interface GitHubAuthValidationResult {
   readonly detail: string;
   readonly remediation: string | null;
   readonly login: string | null;
+  readonly principal: ExpectedGithubWorkerPrincipal | null;
+  readonly validationRepo: string | null;
 }
 
 export type GhRunner = (args: readonly string[], environ: NodeJS.ProcessEnv) => CompletedProcess;
+export type GitRemoteReader = (cwd?: string) => string | null;
+
+export interface GithubAuthValidationOptions {
+  repo?: string;
+  runtimeMode?: string | null;
+  runGh?: GhRunner;
+  expectedPrincipal?: ExpectedGithubWorkerPrincipal | null;
+  gitRemoteUrl?: string | null;
+  readGitRemote?: GitRemoteReader;
+  cwd?: string;
+}
 
 export function findInjectedToken(environ: NodeJS.ProcessEnv): string | null {
   for (const name of INJECTED_TOKEN_ENV_VARS) {
@@ -94,6 +137,180 @@ function defaultRunGh(args: readonly string[], environ: NodeJS.ProcessEnv): Comp
   }
 }
 
+export function defaultReadGitOriginUrl(cwd?: string): string | null {
+  try {
+    const result = spawnSync("git", ["remote", "get-url", "origin"], {
+      cwd,
+      encoding: "utf8",
+      timeout: 10_000,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    if ((result.status ?? 1) !== 0) {
+      return null;
+    }
+    const url = (typeof result.stdout === "string" ? result.stdout : "").trim();
+    return url.length > 0 ? url : null;
+  } catch {
+    return null;
+  }
+}
+
+export function parseOwnerRepoSlug(input: string): string | null {
+  const raw = input.trim();
+  if (raw.length === 0) {
+    return null;
+  }
+  const direct = raw.match(/^([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)$/);
+  if (direct) {
+    return `${direct[1]}/${direct[2]}`;
+  }
+  const stripped = raw.replace(/\.git$/i, "");
+  const fromUrl = stripped.match(
+    /(?:github\.com[:/]|[^/\s]\/)([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)$/i,
+  );
+  if (fromUrl) {
+    return `${fromUrl[1]}/${fromUrl[2]}`;
+  }
+  return null;
+}
+
+export function deriveValidationRepo(options: {
+  repo?: string;
+  environ?: NodeJS.ProcessEnv;
+  gitRemoteUrl?: string | null;
+  readGitRemote?: GitRemoteReader;
+  cwd?: string;
+}): { ok: true; repo: string } | { ok: false; detail: string } {
+  if (options.repo !== undefined && options.repo !== null) {
+    const parsed = parseOwnerRepoSlug(options.repo);
+    if (parsed === null) {
+      return {
+        ok: false,
+        detail: `invalid repository slug: ${JSON.stringify(options.repo)} (expected owner/repo)`,
+      };
+    }
+    return { ok: true, repo: parsed };
+  }
+  const env = options.environ ?? {};
+  const fromEnv = (env.GH_REPO ?? env.GITHUB_REPOSITORY ?? "").trim();
+  if (fromEnv.length > 0) {
+    const parsed = parseOwnerRepoSlug(fromEnv);
+    if (parsed === null) {
+      return {
+        ok: false,
+        detail: `invalid repository slug from GH_REPO/GITHUB_REPOSITORY: ${JSON.stringify(fromEnv)}`,
+      };
+    }
+    return { ok: true, repo: parsed };
+  }
+  const remote =
+    options.gitRemoteUrl !== undefined && options.gitRemoteUrl !== null
+      ? options.gitRemoteUrl
+      : (options.readGitRemote ?? defaultReadGitOriginUrl)(options.cwd);
+  if (typeof remote === "string" && remote.trim().length > 0) {
+    const parsed = parseOwnerRepoSlug(remote);
+    if (parsed === null) {
+      return {
+        ok: false,
+        detail: `invalid git origin URL for repository derivation: ${JSON.stringify(remote.trim())}`,
+      };
+    }
+    return { ok: true, repo: parsed };
+  }
+  return {
+    ok: false,
+    detail:
+      "cannot derive target repository; pass repo as owner/repo, set GH_REPO or GITHUB_REPOSITORY, or run inside a git checkout with origin",
+  };
+}
+
+function parsePositiveInt(raw: string): number | null {
+  const trimmed = raw.trim();
+  if (!/^[0-9]+$/.test(trimmed)) {
+    return null;
+  }
+  const value = Number.parseInt(trimmed, 10);
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    return null;
+  }
+  return value;
+}
+
+export function resolveExpectedGithubWorkerPrincipal(
+  environ: NodeJS.ProcessEnv,
+  explicit?: ExpectedGithubWorkerPrincipal | null,
+): ExpectedGithubWorkerPrincipal | { error: string } | null {
+  if (explicit === null) {
+    return null;
+  }
+  if (explicit !== undefined) {
+    return normalizeExpectedPrincipal(explicit);
+  }
+  const login = environ[ENV_EXPECTED_GITHUB_LOGIN]?.trim() ?? "";
+  const appSlug = environ[ENV_EXPECTED_GITHUB_APP_SLUG]?.trim() ?? "";
+  const installationRaw = environ[ENV_EXPECTED_GITHUB_INSTALLATION_ID]?.trim() ?? "";
+  if (login.length > 0 && appSlug.length > 0) {
+    return {
+      error:
+        "expected worker principal is ambiguous: both DEFT_EXPECTED_GITHUB_LOGIN and DEFT_EXPECTED_GITHUB_APP_SLUG are set",
+    };
+  }
+  if (login.length > 0) {
+    return { kind: PRINCIPAL_KIND_USER, login };
+  }
+  if (appSlug.length > 0) {
+    if (installationRaw.length > 0) {
+      const installationId = parsePositiveInt(installationRaw);
+      if (installationId === null) {
+        return {
+          error: `invalid ${ENV_EXPECTED_GITHUB_INSTALLATION_ID}: ${JSON.stringify(installationRaw)}`,
+        };
+      }
+      return { kind: PRINCIPAL_KIND_APP_INSTALLATION, appSlug, installationId };
+    }
+    return { kind: PRINCIPAL_KIND_APP_INSTALLATION, appSlug };
+  }
+  if (installationRaw.length > 0) {
+    return {
+      error:
+        "DEFT_EXPECTED_GITHUB_INSTALLATION_ID requires DEFT_EXPECTED_GITHUB_APP_SLUG (installation id is not a principal by itself)",
+    };
+  }
+  return null;
+}
+
+function normalizeExpectedPrincipal(
+  principal: ExpectedGithubWorkerPrincipal,
+): ExpectedGithubWorkerPrincipal | { error: string } {
+  if (principal.kind === PRINCIPAL_KIND_USER) {
+    const login = principal.login.trim();
+    if (login.length === 0) {
+      return { error: "user principal requires a non-empty login" };
+    }
+    return { kind: PRINCIPAL_KIND_USER, login };
+  }
+  if (principal.kind === PRINCIPAL_KIND_APP_INSTALLATION) {
+    const appSlug = principal.appSlug.trim();
+    if (appSlug.length === 0) {
+      return { error: "app-installation principal requires a non-empty appSlug" };
+    }
+    if (principal.installationId !== undefined) {
+      if (!Number.isSafeInteger(principal.installationId) || principal.installationId <= 0) {
+        return { error: "app-installation installationId must be a positive integer when set" };
+      }
+      return {
+        kind: PRINCIPAL_KIND_APP_INSTALLATION,
+        appSlug,
+        installationId: principal.installationId,
+      };
+    }
+    return { kind: PRINCIPAL_KIND_APP_INSTALLATION, appSlug };
+  }
+  return {
+    error: `unknown expected principal kind ${pyRepr((principal as { kind: string }).kind)}`,
+  };
+}
+
 function splitRepo(repo: string): [string, string] {
   const idx = repo.indexOf("/");
   if (idx <= 0 || idx >= repo.length - 1) {
@@ -109,15 +326,30 @@ function sandboxRemediation(runtimeMode: string | null, failureKind: string): st
   if (
     failureKind === FAILURE_GH_AUTH ||
     failureKind === FAILURE_API_UNREACHABLE ||
-    failureKind === FAILURE_REPO_ACCESS
+    failureKind === FAILURE_REPO_ACCESS ||
+    failureKind === FAILURE_MISSING_EXPECTED_PRINCIPAL ||
+    failureKind === FAILURE_PRINCIPAL_MISMATCH ||
+    failureKind === FAILURE_MISSING_TARGET_REPO
   ) {
     return SANDBOX_REMEDIATION;
   }
   return null;
 }
 
-function repoAccessRemediation(failureKind: string): string | null {
-  return failureKind === FAILURE_REPO_ACCESS ? REPO_ACCESS_REMEDIATION : null;
+function extraRemediation(failureKind: string): string | null {
+  if (failureKind === FAILURE_REPO_ACCESS) {
+    return REPO_ACCESS_REMEDIATION;
+  }
+  if (
+    failureKind === FAILURE_MISSING_EXPECTED_PRINCIPAL ||
+    failureKind === FAILURE_PRINCIPAL_MISMATCH
+  ) {
+    return PRINCIPAL_REMEDIATION;
+  }
+  if (failureKind === FAILURE_MISSING_TARGET_REPO) {
+    return TARGET_REPO_REMEDIATION;
+  }
+  return null;
 }
 
 function mergeRemediation(runtimeMode: string | null, failureKind: string): string | null {
@@ -126,9 +358,9 @@ function mergeRemediation(runtimeMode: string | null, failureKind: string): stri
   if (sandbox !== null) {
     parts.push(sandbox);
   }
-  const repo = repoAccessRemediation(failureKind);
-  if (repo !== null && !parts.includes(repo)) {
-    parts.push(repo);
+  const extra = extraRemediation(failureKind);
+  if (extra !== null && !parts.includes(extra)) {
+    parts.push(extra);
   }
   return parts.length > 0 ? parts.join("\n\n") : null;
 }
@@ -155,144 +387,382 @@ function parseLogin(stdout: string): string | null {
   return null;
 }
 
-export function validateInjectedTokenMode(
-  environ: NodeJS.ProcessEnv,
+function combinedGhText(proc: CompletedProcess): string {
+  return `${proc.stdout}\n${proc.stderr}`;
+}
+
+export function isInstallationUserEndpointInapplicable(proc: CompletedProcess): boolean {
+  const blob = combinedGhText(proc).toLowerCase();
+  return (
+    blob.includes("resource not accessible by integration") ||
+    blob.includes("not accessible by integration")
+  );
+}
+
+function clipFailureText(text: string, max = 240): string {
+  const compact = text.replace(/\s+/g, " ").trim();
+  if (compact.length === 0) {
+    return "";
+  }
+  if (compact.length <= max) {
+    return compact;
+  }
+  return `${compact.slice(0, max - 3)}...`;
+}
+
+function parseGhApiMessage(proc: CompletedProcess): string | null {
+  for (const chunk of [proc.stdout, proc.stderr]) {
+    const text = chunk.trim();
+    if (text.length === 0) {
+      continue;
+    }
+    try {
+      const payload = JSON.parse(text) as unknown;
+      if (payload !== null && typeof payload === "object" && !Array.isArray(payload)) {
+        const message = (payload as Record<string, unknown>).message;
+        if (typeof message === "string" && message.length > 0) {
+          const status = (payload as Record<string, unknown>).status;
+          if (typeof status === "string" || typeof status === "number") {
+            return `${message} (HTTP ${status})`;
+          }
+          return message;
+        }
+      }
+    } catch {
+      // fall through to raw text
+    }
+  }
+  return null;
+}
+
+function isNetworkUnreachableText(text: string): boolean {
+  return /timed out|timeout|econnrefused|enotfound|eai_again|network is unreachable|could not resolve host/i.test(
+    text,
+  );
+}
+
+export function formatUserApiFailureDetail(mode: string, proc: CompletedProcess): string {
+  const parsed = parseGhApiMessage(proc);
+  const raw = clipFailureText(combinedGhText(proc));
+  const cause = parsed ?? (raw.length > 0 ? raw : `exit ${proc.returncode}`);
+  const prefix =
+    mode === GITHUB_AUTH_MODE_INJECTED_TOKEN
+      ? "injected token present but GitHub /user failed"
+      : "gh auth status passed but GitHub /user failed";
+  if (isNetworkUnreachableText(cause) || isNetworkUnreachableText(raw)) {
+    return `${prefix}: GitHub API is unreachable (${cause})`;
+  }
+  return `${prefix}: ${cause}`;
+}
+
+function emptyResult(
+  mode: string,
+  runtimeMode: string | null,
+  failureKind: string | null,
+  detail: string,
   options: {
-    repo?: string;
-    runtimeMode?: string | null;
-    runGh?: GhRunner;
+    ok?: boolean;
+    login?: string | null;
+    principal?: ExpectedGithubWorkerPrincipal | null;
+    validationRepo?: string | null;
   } = {},
 ): GitHubAuthValidationResult {
-  const runner = options.runGh ?? defaultRunGh;
-  const repo = options.repo ?? DEFAULT_VALIDATION_REPO;
-  const runtimeMode = options.runtimeMode ?? null;
-  const token = findInjectedToken(environ);
-  if (token === null) {
-    return {
-      ok: false,
-      githubAuthMode: GITHUB_AUTH_MODE_INJECTED_TOKEN,
+  const ok = options.ok ?? false;
+  return {
+    ok,
+    githubAuthMode: mode,
+    runtimeMode,
+    failureKind: ok ? null : failureKind,
+    detail,
+    remediation: ok ? null : mergeRemediation(runtimeMode, failureKind ?? ""),
+    login: options.login ?? null,
+    principal: options.principal ?? null,
+    validationRepo: options.validationRepo ?? null,
+  };
+}
+
+function loginsMatch(expected: string, observed: string): boolean {
+  return expected.localeCompare(observed, undefined, { sensitivity: "accent" }) === 0;
+}
+
+function installationListsTargetRepo(stdout: string, repo: string): boolean | null {
+  const text = stdout.trim();
+  if (text.length === 0) {
+    return null;
+  }
+  try {
+    const payload = JSON.parse(text) as unknown;
+    if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
+      return null;
+    }
+    const record = payload as Record<string, unknown>;
+    const selection = record.repository_selection;
+    if (selection === "all") {
+      return true;
+    }
+    const repositories = record.repositories;
+    if (!Array.isArray(repositories)) {
+      return null;
+    }
+    const wanted = repo.toLowerCase();
+    for (const item of repositories) {
+      if (item === null || typeof item !== "object" || Array.isArray(item)) {
+        continue;
+      }
+      const fullName = (item as Record<string, unknown>).full_name;
+      if (typeof fullName === "string" && fullName.toLowerCase() === wanted) {
+        return true;
+      }
+    }
+    return false;
+  } catch {
+    return null;
+  }
+}
+
+function checkTargetRepoAccess(
+  mode: string,
+  runtimeMode: string | null,
+  runner: GhRunner,
+  environ: NodeJS.ProcessEnv,
+  repo: string,
+  login: string | null,
+  principal: ExpectedGithubWorkerPrincipal | null,
+): GitHubAuthValidationResult {
+  const [owner, name] = splitRepo(repo);
+  const repoApi = runner(["api", `repos/${owner}/${name}`], environ);
+  if (repoApi.returncode !== 0) {
+    const detail =
+      mode === GITHUB_AUTH_MODE_INJECTED_TOKEN
+        ? `injected token can reach GitHub API but cannot access ${repo}`
+        : `GitHub API reachable but repository access failed for ${repo}`;
+    return emptyResult(mode, runtimeMode, FAILURE_REPO_ACCESS, detail, {
+      login,
+      principal,
+      validationRepo: repo,
+    });
+  }
+  const okDetail =
+    mode === GITHUB_AUTH_MODE_INJECTED_TOKEN
+      ? "injected-token mode validated in worker environment"
+      : "host-gh mode validated in worker environment";
+  return emptyResult(mode, runtimeMode, null, okDetail, {
+    ok: true,
+    login,
+    principal,
+    validationRepo: repo,
+  });
+}
+
+function validateInstallationCredential(
+  mode: string,
+  runtimeMode: string | null,
+  runner: GhRunner,
+  environ: NodeJS.ProcessEnv,
+  repo: string,
+  expectedPrincipal: ExpectedGithubWorkerPrincipal | { error: string } | null,
+): GitHubAuthValidationResult {
+  const inapplicable =
+    "GitHub /user is inapplicable to a GitHub App installation credential (no authenticated user). The API is reachable.";
+  if (expectedPrincipal === null) {
+    return emptyResult(
+      mode,
       runtimeMode,
-      failureKind: FAILURE_MISSING_INJECTED_TOKEN,
-      detail:
-        "injected-token mode requires GH_TOKEN, GITHUB_TOKEN, or GH_ENTERPRISE_TOKEN; host gh credential store is not used",
-      remediation: null,
-      login: null,
-    };
+      FAILURE_MISSING_EXPECTED_PRINCIPAL,
+      `${inapplicable} Accepting this credential requires an expected App/installation principal assertion.`,
+      { validationRepo: repo },
+    );
+  }
+  if ("error" in expectedPrincipal) {
+    return emptyResult(
+      mode,
+      runtimeMode,
+      FAILURE_MISSING_EXPECTED_PRINCIPAL,
+      expectedPrincipal.error,
+      {
+        validationRepo: repo,
+      },
+    );
+  }
+  if (expectedPrincipal.kind !== PRINCIPAL_KIND_APP_INSTALLATION) {
+    return emptyResult(
+      mode,
+      runtimeMode,
+      FAILURE_PRINCIPAL_MISMATCH,
+      `${inapplicable} Expected user principal ${expectedPrincipal.login}, but the credential has no user login.`,
+      { validationRepo: repo },
+    );
+  }
+
+  // Credential-non-disclosing class/authority check: do not read token values (#3664).
+  const installRepos = runner(["api", "installation/repositories"], environ);
+  if (installRepos.returncode === 0) {
+    const listed = installationListsTargetRepo(installRepos.stdout, repo);
+    if (listed === false) {
+      return emptyResult(
+        mode,
+        runtimeMode,
+        FAILURE_REPO_ACCESS,
+        `installation principal ${expectedPrincipal.appSlug} cannot access ${repo}`,
+        { principal: expectedPrincipal, validationRepo: repo },
+      );
+    }
+  }
+
+  return checkTargetRepoAccess(mode, runtimeMode, runner, environ, repo, null, expectedPrincipal);
+}
+
+function validateAfterAuth(
+  mode: string,
+  environ: NodeJS.ProcessEnv,
+  options: GithubAuthValidationOptions,
+  runtimeMode: string | null,
+  runner: GhRunner,
+): GitHubAuthValidationResult {
+  const derived = deriveValidationRepo({
+    repo: options.repo,
+    environ,
+    gitRemoteUrl: options.gitRemoteUrl,
+    readGitRemote: options.readGitRemote,
+    cwd: options.cwd,
+  });
+  if (!derived.ok) {
+    return emptyResult(mode, runtimeMode, FAILURE_MISSING_TARGET_REPO, derived.detail);
+  }
+  const repo = derived.repo;
+  const expectedPrincipal = resolveExpectedGithubWorkerPrincipal(
+    environ,
+    options.expectedPrincipal,
+  );
+  if (expectedPrincipal !== null && "error" in expectedPrincipal && options.expectedPrincipal) {
+    return emptyResult(
+      mode,
+      runtimeMode,
+      FAILURE_MISSING_EXPECTED_PRINCIPAL,
+      expectedPrincipal.error,
+      {
+        validationRepo: repo,
+      },
+    );
+  }
+
+  const userApi = runner(["api", "user"], environ);
+  if (userApi.returncode !== 0) {
+    if (isInstallationUserEndpointInapplicable(userApi)) {
+      return validateInstallationCredential(
+        mode,
+        runtimeMode,
+        runner,
+        environ,
+        repo,
+        expectedPrincipal,
+      );
+    }
+    return emptyResult(
+      mode,
+      runtimeMode,
+      FAILURE_API_UNREACHABLE,
+      formatUserApiFailureDetail(mode, userApi),
+      { validationRepo: repo },
+    );
+  }
+
+  const login = parseLogin(userApi.stdout);
+  if (login === null) {
+    return emptyResult(
+      mode,
+      runtimeMode,
+      FAILURE_PRINCIPAL_MISMATCH,
+      "GitHub /user succeeded but returned no login",
+      { validationRepo: repo },
+    );
+  }
+
+  if (expectedPrincipal !== null && "error" in expectedPrincipal) {
+    return emptyResult(
+      mode,
+      runtimeMode,
+      FAILURE_MISSING_EXPECTED_PRINCIPAL,
+      expectedPrincipal.error,
+      {
+        login,
+        validationRepo: repo,
+      },
+    );
+  }
+
+  if (expectedPrincipal !== null) {
+    if (expectedPrincipal.kind !== PRINCIPAL_KIND_USER) {
+      return emptyResult(
+        mode,
+        runtimeMode,
+        FAILURE_PRINCIPAL_MISMATCH,
+        `expected App/installation principal ${expectedPrincipal.appSlug} but /user returned login ${login}`,
+        { login, validationRepo: repo },
+      );
+    }
+    if (!loginsMatch(expectedPrincipal.login, login)) {
+      return emptyResult(
+        mode,
+        runtimeMode,
+        FAILURE_PRINCIPAL_MISMATCH,
+        `identity mismatch: expected ${expectedPrincipal.login}, observed ${login}`,
+        { login, validationRepo: repo },
+      );
+    }
+  }
+
+  const principal: ExpectedGithubWorkerPrincipal = { kind: PRINCIPAL_KIND_USER, login };
+  return checkTargetRepoAccess(mode, runtimeMode, runner, environ, repo, login, principal);
+}
+
+export function validateInjectedTokenMode(
+  environ: NodeJS.ProcessEnv,
+  options: GithubAuthValidationOptions = {},
+): GitHubAuthValidationResult {
+  const runner = options.runGh ?? defaultRunGh;
+  const runtimeMode = options.runtimeMode ?? null;
+  const tokenPresent = findInjectedToken(environ) !== null;
+  if (!tokenPresent) {
+    return emptyResult(
+      GITHUB_AUTH_MODE_INJECTED_TOKEN,
+      runtimeMode,
+      FAILURE_MISSING_INJECTED_TOKEN,
+      "injected-token mode requires GH_TOKEN, GITHUB_TOKEN, or GH_ENTERPRISE_TOKEN; host gh credential store is not used",
+    );
   }
 
   const authStatus = runner(["auth", "status"], environ);
   if (authStatus.returncode !== 0) {
-    return {
-      ok: false,
-      githubAuthMode: GITHUB_AUTH_MODE_INJECTED_TOKEN,
+    return emptyResult(
+      GITHUB_AUTH_MODE_INJECTED_TOKEN,
       runtimeMode,
-      failureKind: FAILURE_GH_AUTH,
-      detail: "injected token present but gh auth status failed in worker",
-      remediation: mergeRemediation(runtimeMode, FAILURE_GH_AUTH),
-      login: null,
-    };
+      FAILURE_GH_AUTH,
+      "injected token present but gh auth status failed in worker",
+    );
   }
 
-  const userApi = runner(["api", "user", "--jq", ".login"], environ);
-  if (userApi.returncode !== 0) {
-    return {
-      ok: false,
-      githubAuthMode: GITHUB_AUTH_MODE_INJECTED_TOKEN,
-      runtimeMode,
-      failureKind: FAILURE_API_UNREACHABLE,
-      detail: "injected token present but GitHub API is unreachable",
-      remediation: mergeRemediation(runtimeMode, FAILURE_API_UNREACHABLE),
-      login: null,
-    };
-  }
-
-  const login = parseLogin(userApi.stdout);
-  const [owner, name] = splitRepo(repo);
-  const repoApi = runner(["api", `repos/${owner}/${name}`], environ);
-  if (repoApi.returncode !== 0) {
-    return {
-      ok: false,
-      githubAuthMode: GITHUB_AUTH_MODE_INJECTED_TOKEN,
-      runtimeMode,
-      failureKind: FAILURE_REPO_ACCESS,
-      detail: `injected token can reach GitHub API but cannot access ${repo}`,
-      remediation: mergeRemediation(runtimeMode, FAILURE_REPO_ACCESS),
-      login,
-    };
-  }
-
-  return {
-    ok: true,
-    githubAuthMode: GITHUB_AUTH_MODE_INJECTED_TOKEN,
-    runtimeMode,
-    failureKind: null,
-    detail: "injected-token mode validated in worker environment",
-    remediation: null,
-    login,
-  };
+  return validateAfterAuth(GITHUB_AUTH_MODE_INJECTED_TOKEN, environ, options, runtimeMode, runner);
 }
 
 export function validateHostGhMode(
   environ: NodeJS.ProcessEnv,
-  options: {
-    repo?: string;
-    runtimeMode?: string | null;
-    runGh?: GhRunner;
-  } = {},
+  options: GithubAuthValidationOptions = {},
 ): GitHubAuthValidationResult {
   const runner = options.runGh ?? defaultRunGh;
-  const repo = options.repo ?? DEFAULT_VALIDATION_REPO;
   const runtimeMode = options.runtimeMode ?? null;
 
   const authStatus = runner(["auth", "status"], environ);
   if (authStatus.returncode !== 0) {
-    return {
-      ok: false,
-      githubAuthMode: GITHUB_AUTH_MODE_HOST_GH,
+    return emptyResult(
+      GITHUB_AUTH_MODE_HOST_GH,
       runtimeMode,
-      failureKind: FAILURE_GH_AUTH,
-      detail: "gh auth status failed in worker environment",
-      remediation: mergeRemediation(runtimeMode, FAILURE_GH_AUTH),
-      login: null,
-    };
+      FAILURE_GH_AUTH,
+      "gh auth status failed in worker environment",
+    );
   }
 
-  const userApi = runner(["api", "user", "--jq", ".login"], environ);
-  if (userApi.returncode !== 0) {
-    return {
-      ok: false,
-      githubAuthMode: GITHUB_AUTH_MODE_HOST_GH,
-      runtimeMode,
-      failureKind: FAILURE_API_UNREACHABLE,
-      detail: "gh auth status passed but GitHub API is unreachable",
-      remediation: mergeRemediation(runtimeMode, FAILURE_API_UNREACHABLE),
-      login: null,
-    };
-  }
-
-  const [owner, name] = splitRepo(repo);
-  const repoApi = runner(["api", `repos/${owner}/${name}`], environ);
-  if (repoApi.returncode !== 0) {
-    return {
-      ok: false,
-      githubAuthMode: GITHUB_AUTH_MODE_HOST_GH,
-      runtimeMode,
-      failureKind: FAILURE_REPO_ACCESS,
-      detail: `GitHub API reachable but repository access failed for ${repo}`,
-      remediation: mergeRemediation(runtimeMode, FAILURE_REPO_ACCESS),
-      login: parseLogin(userApi.stdout),
-    };
-  }
-
-  return {
-    ok: true,
-    githubAuthMode: GITHUB_AUTH_MODE_HOST_GH,
-    runtimeMode,
-    failureKind: null,
-    detail: "host-gh mode validated in worker environment",
-    remediation: null,
-    login: parseLogin(userApi.stdout),
-  };
+  return validateAfterAuth(GITHUB_AUTH_MODE_HOST_GH, environ, options, runtimeMode, runner);
 }
 
 export function validateGithubAuth(
@@ -302,35 +772,38 @@ export function validateGithubAuth(
     runtimeReport?: RuntimeCapabilityReport | null;
     repo?: string;
     runGh?: GhRunner;
+    expectedPrincipal?: ExpectedGithubWorkerPrincipal | null;
+    gitRemoteUrl?: string | null;
+    readGitRemote?: GitRemoteReader;
+    cwd?: string;
   } = {},
 ): GitHubAuthValidationResult {
   const env = options.environ ?? process.env;
   const runtimeMode = options.runtimeReport?.runtimeMode ?? null;
 
   if (!KNOWN_GITHUB_AUTH_MODES.has(githubAuthMode)) {
-    return {
-      ok: false,
+    return emptyResult(
       githubAuthMode,
       runtimeMode,
-      failureKind: FAILURE_INVALID_MODE,
-      detail: `unknown github_auth_mode ${pyRepr(githubAuthMode)}; expected one of ${pyRepr([...KNOWN_GITHUB_AUTH_MODES].sort())}`,
-      remediation: null,
-      login: null,
-    };
+      FAILURE_INVALID_MODE,
+      `unknown github_auth_mode ${pyRepr(githubAuthMode)}; expected one of ${pyRepr([...KNOWN_GITHUB_AUTH_MODES].sort())}`,
+    );
   }
 
-  if (githubAuthMode === GITHUB_AUTH_MODE_INJECTED_TOKEN) {
-    return validateInjectedTokenMode(env, {
-      repo: options.repo,
-      runtimeMode,
-      runGh: options.runGh,
-    });
-  }
-  return validateHostGhMode(env, {
+  const shared: GithubAuthValidationOptions = {
     repo: options.repo,
     runtimeMode,
     runGh: options.runGh,
-  });
+    expectedPrincipal: options.expectedPrincipal,
+    gitRemoteUrl: options.gitRemoteUrl,
+    readGitRemote: options.readGitRemote,
+    cwd: options.cwd,
+  };
+
+  if (githubAuthMode === GITHUB_AUTH_MODE_INJECTED_TOKEN) {
+    return validateInjectedTokenMode(env, shared);
+  }
+  return validateHostGhMode(env, shared);
 }
 
 export function validateGithubAuthForWorker(
@@ -340,6 +813,10 @@ export function validateGithubAuthForWorker(
     runtimeReport?: RuntimeCapabilityReport | null;
     repo?: string;
     runGh?: GhRunner;
+    expectedPrincipal?: ExpectedGithubWorkerPrincipal | null;
+    gitRemoteUrl?: string | null;
+    readGitRemote?: GitRemoteReader;
+    cwd?: string;
   } = {},
 ): GitHubAuthValidationResult {
   const report = options.runtimeReport ?? getPlatformCapabilities();
@@ -356,6 +833,14 @@ export function resultToDict(result: GitHubAuthValidationResult): Record<string,
     detail: result.detail,
     remediation: result.remediation,
     login: result.login,
+    principal_kind: result.principal?.kind ?? null,
+    app_slug:
+      result.principal?.kind === PRINCIPAL_KIND_APP_INSTALLATION ? result.principal.appSlug : null,
+    installation_id:
+      result.principal?.kind === PRINCIPAL_KIND_APP_INSTALLATION
+        ? (result.principal.installationId ?? null)
+        : null,
+    validation_repo: result.validationRepo,
   };
 }
 
@@ -364,12 +849,51 @@ export interface GitHubAuthModesCliArgs {
   repo?: string;
   json?: boolean;
   runGh?: GhRunner;
+  expectedLogin?: string;
+  expectedAppSlug?: string;
+  expectedInstallationId?: number;
+  expectedPrincipal?: ExpectedGithubWorkerPrincipal | null;
+}
+
+function expectedPrincipalFromCliArgs(
+  args: GitHubAuthModesCliArgs,
+): ExpectedGithubWorkerPrincipal | { error: string } | undefined {
+  if (args.expectedPrincipal !== undefined) {
+    return args.expectedPrincipal ?? undefined;
+  }
+  const login = args.expectedLogin?.trim() ?? "";
+  const appSlug = args.expectedAppSlug?.trim() ?? "";
+  if (login.length > 0 && appSlug.length > 0) {
+    return { error: "pass either --expected-login or --expected-app-slug, not both" };
+  }
+  if (args.expectedInstallationId !== undefined && appSlug.length === 0) {
+    return { error: "--expected-installation-id requires --expected-app-slug" };
+  }
+  if (login.length > 0) {
+    return { kind: PRINCIPAL_KIND_USER, login };
+  }
+  if (appSlug.length > 0) {
+    return args.expectedInstallationId !== undefined
+      ? {
+          kind: PRINCIPAL_KIND_APP_INSTALLATION,
+          appSlug,
+          installationId: args.expectedInstallationId,
+        }
+      : { kind: PRINCIPAL_KIND_APP_INSTALLATION, appSlug };
+  }
+  return undefined;
 }
 
 export function githubAuthModesMain(args: GitHubAuthModesCliArgs): number {
+  const fromFlags = expectedPrincipalFromCliArgs(args);
+  if (fromFlags !== undefined && "error" in fromFlags) {
+    process.stderr.write(`${fromFlags.error}\n`);
+    return 1;
+  }
   const result = validateGithubAuthForWorker(args.githubAuthMode ?? null, {
-    repo: args.repo ?? DEFAULT_VALIDATION_REPO,
+    repo: args.repo,
     runGh: args.runGh,
+    expectedPrincipal: fromFlags,
   });
   if (args.json) {
     process.stdout.write(`${JSON.stringify(resultToDict(result), null, 2)}\n`);
