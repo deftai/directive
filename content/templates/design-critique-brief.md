@@ -13,12 +13,14 @@ Dispatch envelope skeleton for one critic or synthesis pass. Fill the fields. Re
 - Id ceiling (GitHub comment id, inclusive):
 - SHA at dispatch:
 - Target (work issue or umbrella):
+- Audit targets (marker ids, comma-separated, or `none`; ids only, no parent rationale):
 
 ## Forbidden inputs
 
 Do not put these in the envelope:
 
 - parent hypotheses
+- parent rationale on the audit-targets field (ids only)
 - named refutation target (unless the recorded charter is refutation)
 - parent-edited critic text
 - thread comments after the id ceiling
@@ -39,6 +41,7 @@ Read, do not restate:
 | Fresh reiteration | Stop 4 — Residual reiteration |
 | Operator-gated loop | Operator-gated loop |
 | Successor lean | Successor lean |
+| Parent-side substantiation | Parent-side substantiation |
 | Operator verbs | Operator verbs |
 | Dual stop | Dual stop |
 | Halt line | Halt line |

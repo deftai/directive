@@ -30,7 +30,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Stops
 
-Normative rules live in [`contracts/design-critique.md`](../../contracts/design-critique.md). Fill [`templates/design-critique-brief.md`](../../templates/design-critique-brief.md) and dispatch from there. Phase 1 gate: [`docs/decisions/ADR-005-design-critique-judgment-gate.md`](../../../docs/decisions/ADR-005-design-critique-judgment-gate.md).
+Normative rules live in [`contracts/design-critique.md`](../../contracts/design-critique.md). Fill [`templates/design-critique-brief.md`](../../templates/design-critique-brief.md) and dispatch from there. Phase 1 gate: [`docs/decisions/ADR-005-design-critique-judgment-gate.md`](../../../docs/decisions/ADR-005-design-critique-judgment-gate.md). Parent-audit principle: [`docs/decisions/ADR-006-parent-side-substantiation.md`](../../../docs/decisions/ADR-006-parent-side-substantiation.md).
 
 1. Stop 1 — Gate
 2. Stop 2 — Variant selection
@@ -39,7 +39,7 @@ Normative rules live in [`contracts/design-critique.md`](../../contracts/design-
 5. Stop 5 — Verified synthesis
 
 Comment lead (model then role): Stop 3 — Critic envelope.
-Operator-gated loop. Successor lean. Operator verbs. Dual stop. Halt line. Bind after accepted synthesis.
+Operator-gated loop. Successor lean. Parent-side substantiation. Operator verbs. Dual stop. Halt line. Bind after accepted synthesis.
 Walk / walk all. Auto-stamp when agents agree: Operator verbs.
 Parent chip write: scm:issue:design-critique-chip.
 

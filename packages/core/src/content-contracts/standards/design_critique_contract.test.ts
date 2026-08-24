@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { remainingSetAfterDesignCritiqueChip } from "../../design-critique/exclusive-chip.js";
+import { evaluateParentAudit } from "../../design-critique/parent-audit.js";
 import { isFile, readText, repoRoot, resolveContentPath } from "./_helpers.js";
 
 const CONTRACT = "contracts/design-critique.md";
@@ -84,6 +85,12 @@ const REQUIRED_CONTRACT_POINTERS = [
   "accept synt",
   "synt accepted",
   "synt approved",
+  "## Parent-side substantiation",
+  "ADR-006-parent-side-substantiation.md",
+  "evaluateParentAudit",
+  "AND zero unresolved audit markers",
+  "independence, not provenance",
+  "measured-versus-asserted",
 ];
 
 const REQUIRED_TEMPLATE_POINTERS = [
@@ -100,6 +107,8 @@ const REQUIRED_TEMPLATE_POINTERS = [
   "first line",
   "role:",
   "second line",
+  "Audit targets",
+  "ids only",
 ];
 
 const METHOD_RECONCILIATION =
@@ -120,6 +129,7 @@ const REQUIRED_SKILL_POINTERS = [
   "Operator verbs",
   "Halt line",
   "Bind after accepted synthesis",
+  "Parent-side substantiation",
   "EXITs after posting",
   "scm:issue:design-critique-chip",
 ];
@@ -457,6 +467,47 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(anyOf).toContain("design-critique:mechanism-shaped");
     expect(anyOf).not.toContain("design-critique:triage-ready");
     expect(anyOf).not.toContain("critic-posted");
+  });
+
+  it("locks parent-side substantiation MUSTs, both auto-bind sites, and omission fail-closed (#3651)", () => {
+    const text = readText(CONTRACT);
+    expect(text).toContain("## Parent-side substantiation");
+    expect(text).toContain("ADR-006-parent-side-substantiation.md");
+    expect(text).toContain("dispatch SHA, source pointer, and measured-versus-asserted");
+    expect(text).toContain("The predicate is independence, not provenance.");
+    expect(text).toContain("⊗ A `role: parent` artifact clears its own marker.");
+    expect(text).toContain("one independently reproduced premise does not clear an unaudited load-bearing one");
+    expect(text).toContain("An unresolved marker is residual and blocks verified-synthesis bind.");
+    expect(text).toContain("⊗ Discharge a marker by promising a later pass.");
+    expect(text).toContain(
+      "Auto-bind requires an all-accept disposition map AND zero unresolved audit markers.",
+    );
+    expect(text).toContain("This conjunct applies at Operator verbs auto-stamp and at Bind after accepted synthesis path 1.");
+    const operatorVerbs = text.split("## Operator verbs")[1]?.split("## Dual stop")[0] ?? "";
+    const bindPath = text.split("## Bind after accepted synthesis")[1] ?? "";
+    expect(operatorVerbs).toContain("AND zero unresolved audit markers");
+    expect(bindPath).toContain("AND zero unresolved audit markers");
+    expect(text).toContain("Walk comments stay slim");
+    expect(text).toContain("A token plus pointer satisfies this at the walk surface");
+    expect(text).toContain("evaluateParentAudit");
+    const adr = readText("docs/decisions/ADR-006-parent-side-substantiation.md");
+    expect(adr).toContain("Parent adjudicating artifacts are arbitration surfaces");
+    expect(adr).toContain("Primary-source citation is not independent clearance");
+    expect(adr).toContain("The parent cannot self-clear");
+    const omitted = evaluateParentAudit({
+      premises: [{ markerId: "c9", introducedByRole: "parent", loadBearing: true }],
+      clearances: [],
+      envelopes: [],
+      namedAuditTargets: ["c9"],
+      bindAttempt: { allAcceptMap: true, unresolvedMarkerIds: [] },
+    });
+    expect(omitted.ok).toBe(false);
+    expect(omitted.failures.map((f) => f.code)).toEqual(
+      expect.arrayContaining(["missing-token", "silent-clear", "bind-unresolved", "envelope-omits-target"]),
+    );
+    const template = readText(TEMPLATE);
+    expect(template).toContain("Audit targets (marker ids, comma-separated, or `none`");
+    expect(template).toContain("parent rationale on the audit-targets field (ids only)");
   });
 
   it("indexes the skill on-demand and does not always-pin it", () => {
