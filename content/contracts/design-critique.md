@@ -27,15 +27,21 @@ The write-back first two lines name the model and role (Stop 3).
 
 ## Stop 2 — Variant selection
 
-Record one line per arc: which variant, why, N.
+Record one line per arc: the **charter** (`refutation` | `open critique`), the **spend** (`N=1`, or `N≥3` when the permission is used), and why.
+
+- ! Record the charter and the spend as two fields. The charter is what the critic is given. The spend is how many critics that charter may use.
+- ⊗ Record `panel` as the variant or charter. The panel row is spend permission, not a third charter.
 
 ### Variant table
 
-| Condition | Variant | N | Exemplar |
+| Condition | Charter | N | Exemplar |
 |---|---|---|---|
 | Issue body names a defensible presumption with a refutation target | refutation | N=1 | #3462 |
 | Otherwise (default) | open critique | N=1 | #3547 |
-| A genuinely open solution space or high blast radius | panel | N≥3 permitted | #3383 |
+
+| Condition | Spend | N | Exemplar |
+|---|---|---|---|
+| A genuinely open solution space or high blast radius | panel permission (not a charter) | N≥3 permitted | #3383 |
 
 Supersedes #3434 disposition comment 5364365428 item 4, which accepted "no defensible presumption + genuinely open solution space / high blast radius → N≥3 panel" on 2026-08-20. The conjunct treated a drafted proposal and high blast radius as mutually exclusive, so a well-specified high-blast-radius issue could not earn a panel. This table drops that conjunct and grants N≥3 as permitted, not selected.
 
@@ -44,7 +50,7 @@ Supersedes #3434 disposition comment 5364365428 item 4, which accepted "no defen
 Charter selection and spend permission are evaluated independently.
 
 - The first two rows select the **charter**: refutation when the issue names a defensible presumption with a refutation target; otherwise open critique. Those rows are unchanged in behaviour.
-- The panel row grants **permission** for N≥3 when the solution space is genuinely open or blast radius is high. It does not select the variant and does not override charter.
+- The panel row grants **permission** for N≥3 when the solution space is genuinely open or blast radius is high. It does not select the charter and does not override charter.
 - An issue that matches both a refutation charter and the panel condition is refutation with N≥3 permitted.
 - A drafted-MUSTs issue with no refutation target and whole-motion blast radius is open critique with N≥3 permitted.
 

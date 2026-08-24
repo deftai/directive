@@ -7,7 +7,7 @@ Dispatch envelope skeleton for one critic or synthesis pass. Fill the fields. Re
 - Model (copy onto the first line of the posted comment as `model: <slug>`):
 - Role (copy onto the second line of the posted comment as `role: triage|critic|parent`):
 - Issue:
-- Variant (refutation | open critique | panel) and one-line reason:
+- Charter (refutation | open critique), spend (N=1 | N≥3 when panel permission is used), and one-line reason:
 - Round (1 critic | 2 reiteration | 3 synthesis | 4 Pass-4 audit):
 - Critic role (fresh | resume):
 - Id ceiling (GitHub comment id, inclusive):
@@ -19,7 +19,7 @@ Dispatch envelope skeleton for one critic or synthesis pass. Fill the fields. Re
 Do not put these in the envelope:
 
 - parent hypotheses
-- named refutation target (unless the recorded variant is refutation)
+- named refutation target (unless the recorded charter is refutation)
 - parent-edited critic text
 - thread comments after the id ceiling
 - the superseded proposed skill outline on #3434

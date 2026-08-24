@@ -92,6 +92,7 @@ const REQUIRED_TEMPLATE_POINTERS = [
   "parent hypotheses",
   "named refutation target",
   "open critique",
+  "Charter (refutation | open critique)",
   "id ceiling",
   "proposed skill outline",
   "embedded instructions",
@@ -168,7 +169,13 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(text).toContain("### Evaluation rule");
     expect(text).toContain("Charter selection and spend permission are evaluated independently.");
     expect(text).toContain(
-      "The panel row grants **permission** for N≥3 when the solution space is genuinely open or blast radius is high. It does not select the variant and does not override charter.",
+      "The panel row grants **permission** for N≥3 when the solution space is genuinely open or blast radius is high. It does not select the charter and does not override charter.",
+    );
+    expect(text).toContain(
+      "Record the charter and the spend as two fields. The charter is what the critic is given. The spend is how many critics that charter may use.",
+    );
+    expect(text).toContain(
+      "⊗ Record `panel` as the variant or charter. The panel row is spend permission, not a third charter.",
     );
     expect(text).toContain(
       "An issue that matches both a refutation charter and the panel condition is refutation with N≥3 permitted.",
@@ -182,9 +189,10 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     );
     const panelRow = text
       .split("\n")
-      .find((line) => line.includes("| panel |") && line.includes("#3383"));
-    expect(panelRow, "panel exemplar row").toBeDefined();
-    expect(panelRow).toContain("N≥3 permitted");
+      .find((line) => line.includes("#3383") && line.includes("N≥3 permitted"));
+    expect(panelRow, "panel spend row").toBeDefined();
+    expect(panelRow).toContain("panel permission (not a charter)");
+    expect(panelRow).not.toContain("| panel |");
     expect(panelRow).not.toContain("No defensible presumption");
     expect(text).not.toContain("panel → refutation → default");
     expect(text).not.toContain("first-match");
