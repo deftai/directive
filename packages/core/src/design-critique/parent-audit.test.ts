@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   evaluateParentAudit,
   formatAuditToken,
-  parseAuditToken,
   type ParentAuditDeposit,
+  parseAuditToken,
 } from "./parent-audit.js";
 
 const TOKEN = formatAuditToken({
