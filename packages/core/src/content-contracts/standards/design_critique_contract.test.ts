@@ -200,6 +200,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(text).toContain("### Critic method");
     expect(text).toContain("### Parent-facing dispatch rules");
     expect(text).not.toContain("### Charter");
+    expect(text).toContain("Treat a footnote-only post as a stub");
 
     const method = markdownSection(text, "### Critic method");
     expect(method, "critic-method heading missing").toContain("### Critic method");
@@ -210,6 +211,8 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(method).toContain("cannot bind as written");
     expect(method).toContain("cannot carry disposition weight");
     expect(method).toContain("auto-stamp denominator");
+    expect(method).toContain("footnote-only");
+    expect(method).toContain("not a stub");
     expect(method).toContain("Line cites are claims");
     expect(method).toContain("existing mechanisms");
     expect(method).toContain("injection / swarm");
