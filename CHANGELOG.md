@@ -55,6 +55,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Build skill completes after merge, not before PR handoff (#3674).** The generated build skill told workers to run `scope:complete` before handoff, which a delivered story cannot satisfy. The pack now points at the existing post-merge lifecycle instead of restating it. Closes #3674.
+
 - **GitHub worker validation names the expected user principal (#3665).** Deep auth checks take an expected login, compare it to `/user`, and derive the target repository. An installation-token `/user` 403 is reported as inapplicable, not unreachable; installation identity stays fail-closed until #3693. Closes #3665.
 
 - **Design-critique panel row permits N≥3 on blast radius or an open solution space alone (#3657).** Drops the "No defensible presumption" conjunct. Charter and spend are recorded as two fields; `panel` is spend permission, not a third charter. Constrained-author trigger stays rejected. Supersedes #3434 disposition 5364365428 item 4.
