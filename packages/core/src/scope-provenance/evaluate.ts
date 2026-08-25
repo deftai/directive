@@ -282,7 +282,11 @@ function remediationForExpansion(): string {
     "`.deft/approved-scope/<plan-id>.json` with a humanApproval stamp). Commit that " +
     "approval on the merge base (or a prior PR) before expanding or activating the " +
     "scoped xBRIEF in the implementation change set. Editing the active xBRIEF alone " +
-    "does not authorize new paths (#3145 / #3205). See content/docs/scope-provenance.md."
+    "does not authorize new paths (#3145 / #3205). See content/docs/scope-provenance.md. " +
+    "If you cannot mint a digest (human TTY required), drop active/ from this product " +
+    "change set and land the completed artifact in a leftover land PR after merge (#3476). " +
+    "Run `task scope:complete` on the brief (it can stamp a file already in completed/). " +
+    "Do not git-add a completed/ husk to skip that PR (#3679)."
   );
 }
 

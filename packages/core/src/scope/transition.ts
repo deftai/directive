@@ -49,6 +49,7 @@ import {
   stampDeliveryProvenance,
 } from "./delivery-evidence.js";
 import { evaluateEffortActivateGate } from "./effort-activate-gate.js";
+import { stampLifecycleWrite } from "./lifecycle-write.js";
 import { syncProjectDefinitionAfterScopeMove } from "./project-definition-sync.js";
 import { syncSpecificationAfterScopeMove } from "./specification-sync.js";
 import { utcNowIso } from "./vbrief-json.js";
@@ -149,7 +150,11 @@ export function runTransition(
   }
 
   const { allowedSources, targetFolder, targetStatus } = TRANSITIONS[act];
-  if (!allowedSources.includes(currentFolder as (typeof allowedSources)[number])) {
+  const restampCompleted = act === "complete" && currentFolder === "completed";
+  if (
+    !restampCompleted &&
+    !allowedSources.includes(currentFolder as (typeof allowedSources)[number])
+  ) {
     const allowedStr = allowedSources.map((s) => `${s}/`).join(", ");
     return {
       ok: false,
@@ -175,15 +180,9 @@ export function runTransition(
   const requiredStatus = STATUS_PRECONDITIONS[act];
   if (requiredStatus !== undefined) {
     if (currentStatus === targetStatus) {
-      // Surface legacy delivery disposition on already-completed briefs (#3041).
-      let dispositionSuffix = "";
-      if (act === "complete" && currentFolder === "completed") {
-        const disposition = classifyStoredDeliveryDisposition(planObj);
-        dispositionSuffix = ` (deliveryDisposition=${disposition})`;
-      }
       return {
         ok: true,
-        message: `No-op: ${basename} is already ${targetStatus} in ${currentFolder}/${dispositionSuffix}`,
+        message: `No-op: ${basename} is already ${targetStatus} in ${currentFolder}/`,
       };
     }
     if (currentStatus !== requiredStatus) {
@@ -196,15 +195,32 @@ export function runTransition(
     }
   }
 
+  const nowIso = utcNowIso(now);
+  const vbriefRoot = dirname(dirname(resolvedPath));
+  const projectRoot = dirname(vbriefRoot);
+
+  // #3679: lift #3041 already-completed handling out of STATUS_PRECONDITIONS
+  // so complete can stamp a brief already in completed/ without a folder trip.
+  if (restampCompleted) {
+    return restampCompletedBrief({
+      resolvedPath,
+      basename,
+      data,
+      planObj,
+      projectRoot,
+      vbriefRoot,
+      now,
+      nowIso,
+      options,
+    });
+  }
+
   if (targetFolder !== null && targetFolder === currentFolder) {
     return {
       ok: true,
       message: `No-op: ${basename} is already in ${currentFolder}/ (status: ${currentStatus})`,
     };
   }
-
-  const vbriefRoot = dirname(dirname(resolvedPath));
-  const projectRoot = dirname(vbriefRoot);
 
   if (targetFolder !== null) {
     const destDir = join(vbriefRoot, targetFolder);
@@ -219,8 +235,6 @@ export function runTransition(
       throw err;
     }
   }
-
-  const nowIso = utcNowIso(now);
 
   // #3360: hand-authored briefs run #3323 clause derivation on activate/promote.
   // #3355: stamp is state-observed (before vs after), not derivation-notice-bound.
@@ -272,6 +286,7 @@ export function runTransition(
           : gate.provenance,
       );
     }
+    stampLifecycleWrite(planObj, "complete", nowIso);
   }
 
   // #3240: per-criterion typed evidence or human-origin disposition before auto-advance.
@@ -354,6 +369,10 @@ export function runTransition(
         acceptanceReports,
       };
     }
+  }
+
+  if (act === "fail") {
+    stampLifecycleWrite(planObj, "fail", nowIso);
   }
 
   const formatted = formatBriefJson(data);
@@ -468,6 +487,91 @@ export function runTransition(
     ok: true,
     message: stayMsg,
     acceptanceReports,
+  };
+}
+
+interface RestampArgs {
+  readonly resolvedPath: string;
+  readonly basename: string;
+  readonly data: Record<string, unknown>;
+  readonly planObj: Record<string, unknown>;
+  readonly projectRoot: string;
+  readonly vbriefRoot: string;
+  readonly now: Date;
+  readonly nowIso: string;
+  readonly options: TransitionOptions;
+}
+
+/**
+ * Stamp a brief already in completed/ (#3679). Runs the #3041 delivery gate
+ * and writes in place so recovery does not need a folder round-trip.
+ * The #3041 deliveryDisposition suffix now actually executes for complete.
+ */
+function restampCompletedBrief(args: RestampArgs): TransitionResult {
+  const { resolvedPath, basename, data, planObj, projectRoot, vbriefRoot, now, nowIso, options } =
+    args;
+
+  const gate = evaluateDeliveryGate({
+    projectRoot,
+    plan: planObj,
+    nowIso,
+    evidence: options.deliveryEvidence,
+    nonDeliveryDisposition: options.nonDeliveryDisposition,
+    runGit: options.runGit,
+    verifier: options.verifier ?? "scope:complete",
+    assumeEvidenceValidated: options.assumeEvidenceValidated,
+  });
+  if (!gate.ok) {
+    return { ok: false, message: gate.message };
+  }
+  if (gate.provenance !== null) {
+    const sessionId = resolveCompletionSessionId(projectRoot);
+    stampDeliveryProvenance(
+      planObj,
+      sessionId !== null ? { ...gate.provenance, completedSessionId: sessionId } : gate.provenance,
+    );
+  }
+
+  planObj.status = "completed";
+  planObj.updated = nowIso;
+  stampEnvelopeUpdated(data, nowIso);
+  stampCompletionMetadata(planObj, projectRoot, nowIso, {
+    completedSessionId: resolveCompletionSessionId(projectRoot),
+  });
+  stampLifecycleWrite(planObj, "complete", nowIso);
+
+  const writeResult = atomicWriteBrief(resolvedPath, data, vbriefRoot, { projectRoot });
+  if (!writeResult.ok) {
+    return { ok: false, message: writeResult.message };
+  }
+
+  const crud = new InstrumentedVbriefCrud({ now: () => now });
+  crud.recordTrustedUpdate(resolvedPath, formatBriefJson(data));
+  try {
+    persistCrudMetrics(projectRoot, crud.getMetrics());
+  } catch {
+    /* best-effort telemetry persistence */
+  }
+
+  const sessionId = resolveCompletionSessionId(projectRoot);
+  if (sessionId !== null) {
+    try {
+      writeSessionCompletedMarker(projectRoot, {
+        path: resolvedPath,
+        sessionId,
+        completedAt: nowIso,
+      });
+    } catch {
+      return { ok: false, message: SESSION_COMPLETED_AC_REMEDIATION };
+    }
+  }
+
+  const disposition = classifyStoredDeliveryDisposition(planObj);
+  return {
+    ok: true,
+    message:
+      `Restamped ${basename} in completed/ (status: completed, ` +
+      `deliveryDisposition=${disposition})`,
   };
 }
 

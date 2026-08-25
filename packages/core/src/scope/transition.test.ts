@@ -346,10 +346,14 @@ describe("runTransition", () => {
     const dest = join(root, "xbrief", "completed", "story.xbrief.json");
     expect(existsSync(file)).toBe(false);
     const data = JSON.parse(readFileSync(dest, "utf8")) as {
-      plan: { status: string; metadata: { completedAt: string } };
+      plan: {
+        status: string;
+        metadata: { completedAt: string; lifecycleWrite?: { action: string } };
+      };
     };
     expect(data.plan.status).toBe("completed");
     expect(data.plan.metadata.completedAt).toMatch(/Z$/);
+    expect(data.plan.metadata.lifecycleWrite?.action).toBe("complete");
   });
 
   it("fails complete when last-completed marker cannot be written (#3357)", () => {
@@ -649,8 +653,48 @@ describe("runTransition", () => {
     expect(result.ok).toBe(true);
     expect(existsSync(file)).toBe(false);
     const dest = join(root, "xbrief", "completed", "story.xbrief.json");
-    const data = JSON.parse(readFileSync(dest, "utf8")) as { plan: { status: string } };
+    const data = JSON.parse(readFileSync(dest, "utf8")) as {
+      plan: { status: string; metadata?: { lifecycleWrite?: { action: string } } };
+    };
     expect(data.plan.status).toBe("failed");
+    expect(data.plan.metadata?.lifecycleWrite?.action).toBe("fail");
+    expect(data.plan.metadata).not.toHaveProperty("completionProvenance");
+  });
+
+  it("stamps a brief already in completed/ and surfaces deliveryDisposition (#3679 / #3041)", () => {
+    root = makeRepo();
+    const path = join(root, "xbrief", "completed", "husk.xbrief.json");
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: { title: "husk", status: "running", items: [] },
+    });
+    const result = runTransition("complete", path, new Date("2026-08-25T12:00:00.000Z"));
+    expect(result.ok).toBe(true);
+    expect(result.message).toMatch(/Restamped/);
+    expect(result.message).toMatch(/deliveryDisposition=/);
+    expect(existsSync(path)).toBe(true);
+    const data = JSON.parse(readFileSync(path, "utf8")) as {
+      plan: {
+        status: string;
+        metadata: {
+          completedAt: string;
+          lifecycleWrite: { action: string };
+        };
+      };
+    };
+    expect(data.plan.status).toBe("completed");
+    expect(data.plan.metadata.completedAt).toMatch(/Z$/);
+    expect(data.plan.metadata.lifecycleWrite.action).toBe("complete");
+    expect(existsSync(join(root, "xbrief", "active", "husk.xbrief.json"))).toBe(false);
+  });
+
+  it("still refuses complete from pending/", () => {
+    root = makeRepo();
+    const file = writeVbrief(root, "pending", "pending");
+    const result = runTransition("complete", file);
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/requires file in active\//);
+    expect(existsSync(file)).toBe(true);
   });
 
   it("blocks and unblocks in place", () => {

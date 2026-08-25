@@ -8,6 +8,7 @@ export * from "./decomposed-refs.js";
 export * from "./delivery-evidence.js";
 export * from "./demote.js";
 export * from "./effort-activate-gate.js";
+export * from "./lifecycle-write.js";
 export * from "./main.js";
 export * from "./open-umbrella-warning.js";
 export * from "./parent-lineage.js";

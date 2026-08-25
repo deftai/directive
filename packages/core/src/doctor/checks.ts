@@ -17,6 +17,7 @@ import {
 } from "../init-deposit/migrate.js";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { scanCompletedLifecycleConsistency } from "../lifecycle/completed-consistency.js";
+import { scanCompletedWriteCorpus } from "../lifecycle/completed-write-guard.js";
 import { resolveCheckResume } from "../policy/check-resume.js";
 import { resolveCoverageDebt } from "../policy/coverage-debt.js";
 import { classifyXbriefSchemaDistance } from "../staleness-tickler/probe-xbrief.js";
@@ -69,6 +70,7 @@ export const DOCTOR_ADVISORY_FAIL_CHECKS: ReadonlySet<string> = new Set([
   "stale-xbrief-schema-deposit",
   "typescript-7-side-by-side",
   "completed-open-items",
+  "completed-unguarded-write",
   "coverage-check-resume-policy",
 ]);
 
@@ -1368,6 +1370,40 @@ export function checkCompletedOpenItems(projectRoot: string): CheckResult {
 }
 
 /**
+ * Surface completed/ artifacts that never passed runTransition (#3679).
+ * Exit-exempt so historical corpora do not red-light doctor; the change-set
+ * verify (`verify:completed-write-guard`) fails closed on new adds.
+ */
+export function checkCompletedUnguardedWrite(projectRoot: string): CheckResult {
+  const checkName = "completed-unguarded-write";
+  const result = scanCompletedWriteCorpus(projectRoot);
+  if (result.findings.length === 0) {
+    return {
+      name: checkName,
+      status: "pass",
+      detail:
+        "Completed write-guard OK (#3679): no completed/ artifacts lack a runTransition write",
+      data: { finding_count: 0, scanned: result.scanned },
+    };
+  }
+  const message =
+    `Completed unguarded writes (#3679, advisory). ` +
+    `${result.findings.length} artifact(s) under completed/ have no runTransition write:\n` +
+    result.findings.map((f) => `  - ${f.detail}`).join("\n") +
+    `\nNew adds fail closed via verify:completed-write-guard; historical corpus is advisory.`;
+  return {
+    name: checkName,
+    status: "fail",
+    detail: message,
+    data: {
+      finding_count: result.findings.length,
+      advisory: true,
+      findings: result.findings.map((f) => ({ rel_path: f.relPath, detail: f.detail })),
+    },
+  };
+}
+
+/**
  * Surface invalid coverageDebt + checkResume typed blocks (#3314).
  * Absent / default / valid typed values pass. Invalid blocks skip (advisory,
  * fail-closed resolution). Doctor no longer reports "undecided".
@@ -1455,6 +1491,7 @@ export function runChecksImpl(
     checks.push(checkCoverageCheckResumePolicy(projectRoot));
     checks.push(checkCompletedLifecycleConsistency(projectRoot));
     checks.push(checkCompletedOpenItems(projectRoot));
+    checks.push(checkCompletedUnguardedWrite(projectRoot));
     return {
       projectRoot,
       installRoot: null,
@@ -1477,6 +1514,7 @@ export function runChecksImpl(
   checks.push(checkCoverageCheckResumePolicy(projectRoot));
   checks.push(checkCompletedLifecycleConsistency(projectRoot));
   checks.push(checkCompletedOpenItems(projectRoot));
+  checks.push(checkCompletedUnguardedWrite(projectRoot));
   return {
     projectRoot,
     installRoot,

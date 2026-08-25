@@ -231,6 +231,7 @@ describe("evaluateScopeProvenance (#3145)", () => {
     });
     expect(result.exitCode).toBe(1);
     expect(result.findings[0]?.kind).toBe("active-xbrief-modified-without-digest");
+    expect(result.message).toMatch(/leftover land PR after merge \(#3476\)/);
   });
 
   it("warns without failing for body-only modified xBRIEF with empty scope (migration)", () => {

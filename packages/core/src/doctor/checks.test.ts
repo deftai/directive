@@ -7,6 +7,7 @@ import { renderXbriefMigrationLine } from "../xbrief-migrate/signpost.js";
 import {
   checkCompletedLifecycleConsistency,
   checkCompletedOpenItems,
+  checkCompletedUnguardedWrite,
   checkCoverageCheckResumePolicy,
   checkGitignoreCoverage,
   checkInstallPathConsistency,
@@ -35,6 +36,12 @@ describe("checks", () => {
     expect(deriveExitCode([], ["err"])).toBe(2);
     expect(
       deriveExitCode([{ name: "completed-open-items", status: "fail", detail: "advisory" }], []),
+    ).toBe(0);
+    expect(
+      deriveExitCode(
+        [{ name: "completed-unguarded-write", status: "fail", detail: "advisory" }],
+        [],
+      ),
     ).toBe(0);
     expect(deriveExitCode([{ name: "legacy-layout", status: "fail", detail: "legacy" }], [])).toBe(
       0,
@@ -175,9 +182,33 @@ describe("checks", () => {
       const names = result.checks.map((c) => c.name);
       expect(names).toContain("completed-lifecycle-consistency");
       expect(names).toContain("completed-open-items");
+      expect(names).toContain("completed-unguarded-write");
       const statusCheck = result.checks.find((c) => c.name === "completed-lifecycle-consistency");
       expect(statusCheck?.status).toBe("fail");
       expect(result.exitCode).toBe(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("treats completed-unguarded-write as advisory (#3679)", () => {
+    const root = mkdtempSync(join(tmpdir(), "doc-unguarded-"));
+    try {
+      const dir = join(root, "xbrief", "completed");
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(
+        join(dir, "husk.xbrief.json"),
+        JSON.stringify({
+          xBRIEFInfo: { version: "0.8" },
+          plan: { title: "husk", status: "completed", items: [], metadata: { kind: "fix" } },
+        }),
+        "utf8",
+      );
+      const result = checkCompletedUnguardedWrite(root);
+      expect(result.status).toBe("fail");
+      expect(result.data?.advisory).toBe(true);
+      expect(DOCTOR_ADVISORY_FAIL_CHECKS.has("completed-unguarded-write")).toBe(true);
+      expect(deriveExitCode([result], [])).toBe(0);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
