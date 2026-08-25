@@ -7,7 +7,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { GitCommandError, GitNotFoundError } from "../encoding/git.js";
 import {
@@ -172,24 +172,41 @@ function discoverAddedFiles(projectRoot: string, baseRef: string): string[] {
   return [...out];
 }
 
+type PayloadRead =
+  | { readonly kind: "ok"; readonly raw: string }
+  | { readonly kind: "missing" }
+  | { readonly kind: "unsafe"; readonly detail: string };
+
 function readPayload(
   projectRoot: string,
   relPath: string,
   payloads: ReadonlyMap<string, string> | undefined,
-): string | null {
+): PayloadRead {
   const n = normalizeRepoRelPath(relPath);
   const injected = payloads?.get(n);
   if (injected !== undefined) {
-    return injected;
+    return { kind: "ok", raw: injected };
   }
   const abs = join(projectRoot, n);
-  if (!existsSync(abs)) {
-    return null;
+  let st;
+  try {
+    st = lstatSync(abs);
+  } catch {
+    return { kind: "missing" };
+  }
+  if (st.isSymbolicLink()) {
+    return { kind: "unsafe", detail: `${n}: completed/ add is a symlink; refuse without following` };
+  }
+  if (!st.isFile()) {
+    return {
+      kind: "unsafe",
+      detail: `${n}: completed/ add is not a regular file; refuse without reading`,
+    };
   }
   try {
-    return readFileSync(abs, "utf8");
+    return { kind: "ok", raw: readFileSync(abs, "utf8") };
   } catch {
-    return null;
+    return { kind: "missing" };
   }
 }
 
@@ -219,11 +236,12 @@ export function evaluateCompletedWriteGuard(
         const resolved = resolveDefaultBaseRef(root);
         if (resolved === null) {
           return {
-            code: 0,
+            code: 2,
             findings: [],
             message:
-              "verify_completed_write_guard: skipped -- no merge-base ref found " +
-              "(origin/master|main, DEFT_BASE_REF, or GITHUB_BASE_REF).",
+              "verify_completed_write_guard: no merge-base ref found " +
+              "(origin/master|main, DEFT_BASE_REF, or GITHUB_BASE_REF). " +
+              "Pass --base-ref. Unguarded completed/ adds cannot be skipped.",
           };
         }
         baseRef = resolved;
@@ -267,15 +285,22 @@ export function evaluateCompletedWriteGuard(
     if (!isCompletedArtifactRel(rel)) {
       continue;
     }
-    const raw = readPayload(root, rel, options.payloads);
-    if (raw === null) {
+    const payload = readPayload(root, rel, options.payloads);
+    if (payload.kind === "missing") {
       findings.push({
         relPath: rel,
         detail: `${rel}: added under completed/ but unreadable`,
       });
       continue;
     }
-    const plan = parsePlan(raw);
+    if (payload.kind === "unsafe") {
+      findings.push({
+        relPath: rel,
+        detail: payload.detail,
+      });
+      continue;
+    }
+    const plan = parsePlan(payload.raw);
     if (plan === null) {
       findings.push({
         relPath: rel,
@@ -342,11 +367,11 @@ export function scanCompletedWriteCorpus(projectRoot: string): CompletedWriteCor
   const findings: CompletedWriteGuardFinding[] = [];
   const rels = listCompletedArtifactRels(projectRoot);
   for (const rel of rels) {
-    const raw = readPayload(resolve(projectRoot), rel, undefined);
-    if (raw === null) {
+    const payload = readPayload(resolve(projectRoot), rel, undefined);
+    if (payload.kind !== "ok") {
       continue;
     }
-    const plan = parsePlan(raw);
+    const plan = parsePlan(payload.raw);
     if (plan === null) {
       continue;
     }

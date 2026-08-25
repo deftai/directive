@@ -1,8 +1,19 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { evaluateCompletedWriteGuard, scanCompletedWriteCorpus } from "./completed-write-guard.js";
+
+function isolatedGitEnv(projectRoot: string): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...process.env };
+  delete env.GIT_DIR;
+  delete env.GIT_WORK_TREE;
+  delete env.DEFT_BASE_REF;
+  delete env.GITHUB_BASE_REF;
+  env.GIT_CEILING_DIRECTORIES = dirname(resolve(projectRoot));
+  return env;
+}
 
 function husk(status = "completed"): string {
   return JSON.stringify({
@@ -93,12 +104,63 @@ describe("evaluateCompletedWriteGuard (#3679)", () => {
     expect(result.code).toBe(0);
   });
 
-  it("skips when the project root has no merge-base or is not a git working tree", () => {
+  it("skips when the project root is not a git working tree", () => {
     const root = mkdtempSync(join(tmpdir(), "completed-write-nongit-"));
     try {
       const result = evaluateCompletedWriteGuard(root);
       expect(result.code).toBe(0);
       expect(result.message).toMatch(/skipped -- not a git working tree/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses a newly added completed/ path that is not a regular file", () => {
+    const root = mkdtempSync(join(tmpdir(), "completed-write-dir-"));
+    try {
+      const rel = "xbrief/completed/2026-08-25-dir.xbrief.json";
+      mkdirSync(join(root, rel), { recursive: true });
+      const result = evaluateCompletedWriteGuard(root, { addedFiles: [rel] });
+      expect(result.code).toBe(1);
+      expect(result.findings[0]?.detail).toMatch(/not a regular file/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses a newly added completed/ symlink without following it", () => {
+    const root = mkdtempSync(join(tmpdir(), "completed-write-link-"));
+    try {
+      const dir = join(root, "xbrief", "completed");
+      mkdirSync(dir, { recursive: true });
+      const target = join(root, "target.json");
+      writeFileSync(target, husk(), "utf8");
+      const rel = "xbrief/completed/2026-08-25-link.xbrief.json";
+      try {
+        symlinkSync(target, join(root, rel));
+      } catch {
+        return;
+      }
+      const result = evaluateCompletedWriteGuard(root, { addedFiles: [rel] });
+      expect(result.code).toBe(1);
+      expect(result.findings[0]?.detail).toMatch(/symlink/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when a git tree has no merge-base ref", { timeout: 20_000 }, () => {
+    const root = mkdtempSync(join(tmpdir(), "completed-write-nobase-"));
+    try {
+      const init = spawnSync("git", ["init", "-q", "-b", "deft-no-base"], {
+        cwd: root,
+        encoding: "utf8",
+        env: isolatedGitEnv(root),
+      });
+      expect(init.status, String(init.stderr ?? "")).toBe(0);
+      const result = evaluateCompletedWriteGuard(root);
+      expect(result.code).toBe(2);
+      expect(result.message).toMatch(/no merge-base ref found|base ref .* not found|Pass --base-ref/);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -127,8 +189,9 @@ describe("scanCompletedWriteCorpus (#3679)", () => {
       const dir = join(root, "xbrief", "completed");
       mkdirSync(dir, { recursive: true });
       writeFileSync(join(dir, "empty-dir-placeholder.xbrief.json"), "[", "utf8");
+      mkdirSync(join(dir, "dir-not-file.xbrief.json"));
       const result = scanCompletedWriteCorpus(root);
-      expect(result.scanned).toBe(1);
+      expect(result.scanned).toBe(2);
       expect(result.findings).toHaveLength(0);
     } finally {
       rmSync(root, { recursive: true, force: true });
