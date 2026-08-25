@@ -46,15 +46,18 @@ import {
   decisionCarriesSoftAgentsRebind,
   formatSoftAgentsRebindChecklist,
 } from "../session/compact-ritual.js";
-import { detectBranch } from "../session/git.js";
+import { detectBranch, type GitRunner } from "../session/git.js";
 import { evaluateOccupancyWriteGate } from "../session/occupancy.js";
 import { emitSessionRitualBlockedProcessCost } from "../session/process-cost.js";
 import { markRitualStaleAfterCompact } from "../session/ritual-sentinel.js";
 import { runSessionStartHookWrite } from "../session/session-start-hook.js";
 import {
+  type DetectWorkSelection,
   formatRitualRecoveryInstruction,
+  type RitualRunner,
   type VerifyResult,
   verifySessionRitual,
+  writeGateRitualOptions,
 } from "../session/verify-session-ritual.js";
 import {
   type HookPayloadContext,
@@ -186,6 +189,21 @@ export interface HookPolicySeams {
   readonly verifyRitual?: (projectRoot: string) => VerifyResult;
   /** @deprecated Compatibility seam for existing tests and callers. */
   readonly inspectRitual?: (projectRoot: string) => VerifyResult;
+  /**
+   * Test seam: ritual runner used by the default write-gate verifier (#3738).
+   * Ignored when `verifyRitual` / `inspectRitual` is supplied.
+   */
+  readonly ritualRunner?: RitualRunner;
+  /**
+   * Test seam: work-selection detector for the default write-gate verifier (#3738).
+   * Ignored when `verifyRitual` / `inspectRitual` is supplied.
+   */
+  readonly detectWorkSelection?: DetectWorkSelection;
+  /**
+   * Test seam: git runner for the default write-gate verifier (#3738).
+   * Ignored when `verifyRitual` / `inspectRitual` is supplied.
+   */
+  readonly ritualRunGit?: GitRunner;
   readonly inspectScope?: (projectRoot: string) => ActiveScopeInspection;
   readonly sessionStart?: (projectRoot: string) => { code: number; stdout: string; stderr: string };
   /** Test seam for #2926 root opt-out on SessionStart. */
@@ -863,17 +881,23 @@ function inspectMutationGates(
   try {
     // Mutation dispatch is a live gated boundary: active verification reruns
     // non-cacheable agent-hook readiness instead of trusting persisted success.
+    // Write-surface authority executes agent_hooks only (#3738). cache_fresh
+    // is not required and is never executed. doctor is read from the record.
     // Its allow fixture is non-write and its deny fixture is read-only, so the
     // installed-shim probe cannot recurse into this mutation path.
     ritual = (
       seams.verifyRitual ??
       seams.inspectRitual ??
       ((root) =>
-        verifySessionRitual(root, {
-          tier: "gated",
-          posture: "mutation",
-          bypass: false,
-        }))
+        verifySessionRitual(
+          root,
+          writeGateRitualOptions({
+            bypass: false,
+            runner: seams.ritualRunner,
+            detectWorkSelection: seams.detectWorkSelection,
+            runGit: seams.ritualRunGit,
+          }),
+        ))
     )(projectRoot);
   } catch (cause) {
     // #2994: best-effort local process-cost; never changes deny verdict.

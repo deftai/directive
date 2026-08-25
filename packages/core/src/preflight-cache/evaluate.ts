@@ -361,12 +361,18 @@ function runDriftProbe(
   source: string,
   options: EvaluateOptions,
 ): CacheDriftProbeResult | null {
-  if (options.probeDriftFn) {
-    return options.probeDriftFn(resolvedRepo, cacheRoot, source);
-  }
   try {
+    if (options.probeDriftFn) {
+      return options.probeDriftFn(resolvedRepo, cacheRoot, source);
+    }
     return probeCacheDrift({ repo: resolvedRepo, source, cacheRoot });
   } catch {
+    // Deliberate fail-open (#3738 / #3422): a thrown probe (429 after retry,
+    // 502/503, DNS, auth) returns null; evaluate treats null as pass.
+    // Work-selection / session:start still inherit this. The write path no
+    // longer executes cache_fresh, so this is not a write-authorization bypass.
+    // Do not silently convert to fail-closed without revisiting #3422 (local
+    // work MAY continue when it does not need the forge).
     return null;
   }
 }

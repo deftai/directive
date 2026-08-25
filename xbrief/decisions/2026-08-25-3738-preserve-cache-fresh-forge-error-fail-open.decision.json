@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "3738-preserve-cache-fresh-forge-error-fail-open",
+  "decision": "Keep the existing cache_fresh forge-error fail-open on evaluate; do not convert a thrown drift probe into a deny",
+  "governingRule": {
+    "description": "Forge-outage drop-back: local work MAY continue when it does not need the forge (#3422)",
+    "path": "content/scm/github.md",
+    "rfc2119": "MAY"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Fail closed when runDriftProbe throws",
+      "whyNot": "Would deny session:start / work-selection on 429, 502/503, or DNS failure, colliding with #3422 and converting an outage into a local-write block even after cache_fresh left the write path"
+    },
+    {
+      "option": "Return a visible probe-errored verdict that still passes",
+      "whyNot": "Needs a new evaluate contract and ritual-state field; not required to land #3738, and would still be a silent pass at the gate"
+    }
+  ],
+  "whyWinner": "The write path no longer executes cache_fresh, so the fail-open is no longer a write-authorization bypass. Changing the evaluate outcome here would retarget session and work-selection callers without a #3422 design. Record the existing pass-on-throw as deliberate rather than leaving it silent.",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-08-25-3738-bughooks-cache-fresh-is-in-the-write-gates-required-set-and.xbrief.json"
+  ],
+  "timestamp": "2026-08-25T22:20:00Z",
+  "revisitTrigger": "If session:start or verify:cache-fresh should surface forge errors without denying local writes, add a visible probe-errored field without changing the pass/fail outcome",
+  "relatedIssues": [3738, 3422],
+  "tags": ["hooks", "cache", "forge-outage"]
+}

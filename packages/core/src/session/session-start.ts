@@ -142,8 +142,27 @@ export const QUICK_STEPS = [
   "triage_welcome",
   "verify_tools",
 ] as const;
+/** Session / full gated ritual set. Write dispatch uses a per-surface subset (#3738). */
 export const GATED_STEPS = ["agent_hooks", "doctor", "cache_fresh"] as const;
 export type GatedStepName = (typeof GATED_STEPS)[number];
+
+/**
+ * Gated steps a write/spawn mutation must prove from recorded ritual state (#3738).
+ * `cache_fresh` is a work-selection precondition, not a write-authorization one.
+ */
+export const WRITE_GATED_REQUIRED_STEPS = [
+  "agent_hooks",
+  "doctor",
+] as const satisfies readonly GatedStepName[];
+
+/**
+ * Gated steps the write path may execute (#3738).
+ * Hook readiness is deliberately non-cacheable; doctor and cache_fresh stay
+ * session-surface only.
+ */
+export const WRITE_GATED_EXECUTE_STEPS = [
+  "agent_hooks",
+] as const satisfies readonly GatedStepName[];
 
 /** Per-clone ignore/index hide of lifecycle roots — warn-only (#3505). */
 function pushLifecycleVisibleAdvisory(

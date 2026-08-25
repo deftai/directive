@@ -33,6 +33,8 @@ import {
   type GatedStepName,
   QUICK_STEPS,
   type SessionCeremonyTier,
+  WRITE_GATED_EXECUTE_STEPS,
+  WRITE_GATED_REQUIRED_STEPS,
 } from "./session-start.js";
 import { resolveSessionRitualStalenessHours } from "./staleness.js";
 
@@ -40,6 +42,7 @@ export {
   formatCacheFetchAllRecoveryCommand,
   recoveryHintForStaleFailure,
 } from "./cache-recovery.js";
+export { WRITE_GATED_EXECUTE_STEPS, WRITE_GATED_REQUIRED_STEPS };
 export const ENV_SKIP = "DEFT_SESSION_RITUAL_SKIP";
 export {
   ENTRYPOINT_TIMEOUT_EXIT_CODE,
@@ -280,7 +283,13 @@ type EvaluateLoadedResult = {
 function evaluateLoadedState(
   projectRoot: string,
   state: RitualState,
-  input: { tier: string; now: Date; runGit?: GitRunner; rebindForwardHead?: boolean },
+  input: {
+    tier: string;
+    now: Date;
+    runGit?: GitRunner;
+    rebindForwardHead?: boolean;
+    requiredGatedSteps?: readonly GatedStepName[];
+  },
 ): EvaluateLoadedResult {
   const runGit = input.runGit ?? defaultGitRunner;
   const coldCmd = formatSessionStartRecoveryCommand("cold");
@@ -362,7 +371,8 @@ function evaluateLoadedState(
     }
   }
   if (input.tier === "gated") {
-    for (const stepName of GATED_STEPS) {
+    const requiredGated = input.requiredGatedSteps ?? GATED_STEPS;
+    for (const stepName of requiredGated) {
       const step = state.gatedSteps[stepName];
       if (!stepPasses(step)) {
         return {
@@ -410,6 +420,37 @@ export interface VerifySessionRitualOptions {
   ) => ActiveCliCheckResult;
   /** Injectable work-selection detector for gated `cache_fresh` (#3507). */
   readonly detectWorkSelection?: DetectWorkSelection;
+  /**
+   * Required gated steps for this surface. Defaults to all {@link GATED_STEPS}
+   * (session / full gated verify). Write dispatch uses
+   * {@link WRITE_GATED_REQUIRED_STEPS} (#3738).
+   */
+  readonly requiredGatedSteps?: readonly GatedStepName[];
+  /**
+   * Gated steps this surface may execute. Defaults to all {@link GATED_STEPS}.
+   * Write dispatch uses {@link WRITE_GATED_EXECUTE_STEPS} so `cache_fresh` and
+   * `doctor` cannot run as write-path repair (#3738).
+   */
+  readonly executeGatedSteps?: readonly GatedStepName[];
+}
+
+/**
+ * Options for the write/spawn mutation verifier (#3738).
+ * Required set omits `cache_fresh`; execution authority is `agent_hooks` only.
+ */
+export function writeGateRitualOptions(
+  extras: Omit<
+    VerifySessionRitualOptions,
+    "requiredGatedSteps" | "executeGatedSteps" | "tier"
+  > = {},
+): VerifySessionRitualOptions {
+  return {
+    ...extras,
+    tier: "gated",
+    posture: extras.posture ?? "mutation",
+    requiredGatedSteps: WRITE_GATED_REQUIRED_STEPS,
+    executeGatedSteps: WRITE_GATED_EXECUTE_STEPS,
+  };
 }
 
 export interface InspectSessionRitualOptions {
@@ -425,8 +466,9 @@ export interface InspectSessionRitualOptions {
  * Read-only ritual-state inspection for host hooks.
  *
  * Unlike {@link verifySessionRitual}, this never runs missing gated entrypoints
- * and never rewrites `.deft/ritual-state.json`. A PreToolUse decision must be a
- * probe, not a hidden `doctor` / cache-refresh mutation boundary.
+ * and never rewrites `.deft/ritual-state.json`. Write dispatch does **not** use
+ * this function: it must still execute `agent_hooks` (#3738). A PreToolUse
+ * decision must not become a hidden `doctor` / cache-refresh mutation boundary.
  */
 export function inspectSessionRitual(
   projectRoot: string,
@@ -619,7 +661,9 @@ export function verifySessionRitual(
     const runCmd = options.runner ?? defaultRitualRunner;
     const forced = new Set<GatedStepName>(options.forceGatedSteps ?? []);
     const detect = options.detectWorkSelection ?? detectWorkSelection;
+    const executable = new Set<GatedStepName>(options.executeGatedSteps ?? [...GATED_STEPS]);
     for (const stepName of GATED_STEPS) {
+      if (!executable.has(stepName)) continue;
       const step = gated[stepName];
       if (step?.deferred_reason && stepName !== "agent_hooks") continue;
       // Hook readiness is a live mutation prerequisite, not a cacheable doctor
@@ -697,6 +741,7 @@ export function verifySessionRitual(
     now: instant,
     runGit: options.runGit,
     rebindForwardHead: true,
+    requiredGatedSteps: options.requiredGatedSteps,
   });
   if (isBypassed) {
     return {

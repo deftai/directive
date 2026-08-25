@@ -287,6 +287,25 @@ describe("evaluate -- fresh cache", () => {
     expect(result.message).not.toContain("--force");
   });
 
+  it("fails open when the drift probe throws (#3738 / #3422)", () => {
+    const root = setupProjectRoot();
+    writeCandidates(root, [
+      { issue: 9, repo: "owner/repo", decision: "accept", ts: new Date().toISOString() },
+    ]);
+    writeCacheEntry(root, "owner/repo", 9, nowMinus(1).toISOString(), { state: "open" });
+
+    const result = evaluate(root, {
+      allowMissingBootstrap: true,
+      repo: "owner/repo",
+      nowFn: () => new Date(),
+      probeDriftFn: () => {
+        throw new Error("forge unreachable");
+      },
+    });
+    expect(result.code).toBe(0);
+    expect(result.message).toContain("✓");
+  });
+
   it("allows stale cache with drift when allowStale=true", () => {
     const root = setupProjectRoot();
     writeCandidates(root, [
