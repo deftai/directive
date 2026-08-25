@@ -1,7 +1,12 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { evaluateCompletedTracked } from "@deftai/directive-core/lifecycle";
+import {
+  COMPLETED_TRACKED_PROGRESS_THRESHOLD_MS,
+  type CompletedTrackedProgress,
+  evaluateCompletedTracked,
+  shouldAnnounceProgress,
+} from "@deftai/directive-core/lifecycle";
 
 interface ParsedArgs {
   projectRoot: string;
@@ -99,12 +104,24 @@ export function run(argv: string[]): number {
   }
 
   const projectRoot = resolve(args.projectRoot);
+  const thresholdMs = resolveProgressThresholdMs();
+  let announced = false;
   const result = evaluateCompletedTracked(projectRoot, {
     quiet: args.quiet,
     repo: args.repo,
     tip: args.tip,
     issue: args.issue,
     skipGh: args.skipGh,
+    onProgress: (event) => {
+      if (args.quiet || announced) {
+        return;
+      }
+      if (!shouldAnnounceProgress(event.elapsedMs, thresholdMs)) {
+        return;
+      }
+      announced = true;
+      writeProgress(event);
+    },
   });
 
   if (result.message.length > 0) {
@@ -116,6 +133,21 @@ export function run(argv: string[]): number {
   }
 
   return result.code;
+}
+
+function resolveProgressThresholdMs(): number {
+  const raw = process.env.DEFT_COMPLETED_TRACKED_PROGRESS_MS;
+  if (raw !== undefined && /^\d+$/.test(raw)) {
+    return Number(raw);
+  }
+  return COMPLETED_TRACKED_PROGRESS_THRESHOLD_MS;
+}
+
+function writeProgress(event: CompletedTrackedProgress): void {
+  process.stderr.write(
+    `verify:completed-tracked: still running (${event.elapsedMs}ms); ` +
+      `reading ${event.terminalCount} terminal and ${event.nonterminalCount} nonterminal blobs.\n`,
+  );
 }
 
 if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1]) {

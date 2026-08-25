@@ -156,6 +156,72 @@ describe("run", () => {
     expect(silentRun(["--bogus"])).toBe(2);
   });
 
+  it("stays silent when the run is under the progress threshold (#3673)", () => {
+    const root = buildRepo();
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const previous = process.env.DEFT_COMPLETED_TRACKED_PROGRESS_MS;
+    try {
+      // High ceiling so a loaded host's fixture git work does not look like a stall.
+      process.env.DEFT_COMPLETED_TRACKED_PROGRESS_MS = "60000";
+      expect(run(["--project-root", root, "--tip", "HEAD", "--skip-gh"])).toBe(0);
+      const stderr = err.mock.calls.map((c) => String(c[0])).join("");
+      expect(stderr).not.toContain("still running");
+    } finally {
+      if (previous === undefined) {
+        delete process.env.DEFT_COMPLETED_TRACKED_PROGRESS_MS;
+      } else {
+        process.env.DEFT_COMPLETED_TRACKED_PROGRESS_MS = previous;
+      }
+      err.mockRestore();
+      out.mockRestore();
+    }
+  });
+
+  it("does not print progress in quiet mode even when the threshold is 0 (#3673)", () => {
+    const root = buildRepo();
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const previous = process.env.DEFT_COMPLETED_TRACKED_PROGRESS_MS;
+    try {
+      process.env.DEFT_COMPLETED_TRACKED_PROGRESS_MS = "0";
+      expect(run(["--project-root", root, "--tip", "HEAD", "--skip-gh", "--quiet"])).toBe(0);
+      const stderr = err.mock.calls.map((c) => String(c[0])).join("");
+      expect(stderr).not.toContain("still running");
+    } finally {
+      if (previous === undefined) {
+        delete process.env.DEFT_COMPLETED_TRACKED_PROGRESS_MS;
+      } else {
+        process.env.DEFT_COMPLETED_TRACKED_PROGRESS_MS = previous;
+      }
+      err.mockRestore();
+      out.mockRestore();
+    }
+  });
+
+  it("prints an up-front blob count when the duration threshold is 0 (#3673)", () => {
+    const root = buildRepo();
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const previous = process.env.DEFT_COMPLETED_TRACKED_PROGRESS_MS;
+    try {
+      process.env.DEFT_COMPLETED_TRACKED_PROGRESS_MS = "0";
+      expect(run(["--project-root", root, "--tip", "HEAD", "--skip-gh"])).toBe(0);
+      const stderr = err.mock.calls.map((c) => String(c[0])).join("");
+      expect(stderr).toContain("still running");
+      expect(stderr).toMatch(/terminal/);
+      expect(stderr).toMatch(/nonterminal/);
+    } finally {
+      if (previous === undefined) {
+        delete process.env.DEFT_COMPLETED_TRACKED_PROGRESS_MS;
+      } else {
+        process.env.DEFT_COMPLETED_TRACKED_PROGRESS_MS = previous;
+      }
+      err.mockRestore();
+      out.mockRestore();
+    }
+  });
+
   it("returns 1 for --issue N when only that closed issue is untracked", () => {
     const root = buildRepo();
     writeFileSync(

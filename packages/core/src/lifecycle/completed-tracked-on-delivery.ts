@@ -22,7 +22,7 @@ import { collectGithubRefs, type IssueRef } from "../orphan-active/refs.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { defaultRunGh } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
-import { defaultGitRunner, type GitRunner } from "../session/git.js";
+import { defaultGitRunner, type GitRunner, showBlobsBatch } from "../session/git.js";
 import { CACHE_DIR_NAME, CACHE_SOURCE_GITHUB_ISSUE } from "../triage/queue/constants.js";
 import { resolveRepo } from "../triage/queue/repo.js";
 
@@ -72,6 +72,31 @@ export interface EvaluateCompletedTrackedOptions {
   readonly runGit?: GitRunner;
   /** Test seam: override issue state resolution. */
   readonly resolveIssueState?: (ref: IssueRef) => "open" | "closed" | null;
+  /**
+   * Progress hook (#3673). Fired after tip listing and after the batch
+   * blob read so a CLI can announce an up-front count only when elapsed
+   * time crosses a measured threshold.
+   */
+  readonly onProgress?: (event: CompletedTrackedProgress) => void;
+  /** Test seam: override wall clock for progress elapsedMs. */
+  readonly now?: () => number;
+}
+
+/** Default silence window so a ~2s batch read does not emit progress noise. */
+export const COMPLETED_TRACKED_PROGRESS_THRESHOLD_MS = 3_000;
+
+export interface CompletedTrackedProgress {
+  readonly phase: "listed" | "read";
+  readonly terminalCount: number;
+  readonly nonterminalCount: number;
+  readonly elapsedMs: number;
+}
+
+export function shouldAnnounceProgress(
+  elapsedMs: number,
+  thresholdMs: number = COMPLETED_TRACKED_PROGRESS_THRESHOLD_MS,
+): boolean {
+  return elapsedMs >= thresholdMs;
 }
 
 interface OriginHit {
@@ -309,19 +334,6 @@ function listTreePaths(
     .filter((line) => line.length > 0 && hasArtifactSuffix(line));
 }
 
-function showBlob(
-  projectRoot: string,
-  tip: string,
-  path: string,
-  runGit: GitRunner,
-): string | null {
-  const result = runGit(projectRoot, ["show", `${tip}:${path}`]);
-  if (result.code !== 0) {
-    return null;
-  }
-  return result.stdout;
-}
-
 function terminalPrefixes(): string[] {
   const out: string[] = [];
   for (const root of [MIGRATED_ARTIFACT_DIR, LEGACY_ARTIFACT_DIR]) {
@@ -342,18 +354,16 @@ function nonterminalPrefixes(): string[] {
   return out;
 }
 
-function issuesFromBlobPaths(
-  projectRoot: string,
-  tip: string,
+function issuesFromBlobBodies(
   paths: readonly string[],
+  bodies: ReadonlyMap<string, string | null>,
   defaultRepo: string | null,
-  runGit: GitRunner,
   originPrefix: string,
 ): OriginHit[] {
   const hits: OriginHit[] = [];
   for (const path of paths) {
-    const body = showBlob(projectRoot, tip, path, runGit);
-    if (body === null) {
+    const body = bodies.get(path);
+    if (body === undefined || body === null) {
       continue;
     }
     let parsed: unknown;
@@ -498,30 +508,51 @@ export function evaluateCompletedTracked(
     };
   }
 
+  const startedAt = (options.now ?? Date.now)();
+  const emitProgress = (
+    phase: CompletedTrackedProgress["phase"],
+    terminalCount: number,
+    nonterminalCount: number,
+  ) => {
+    options.onProgress?.({
+      phase,
+      terminalCount,
+      nonterminalCount,
+      elapsedMs: (options.now ?? Date.now)() - startedAt,
+    });
+  };
+
   const localHits = scanLocalOrigins(root, defaultRepo);
   const tipNonterminalPaths = listTreePaths(root, tip, nonterminalPrefixes(), runGit);
-  const tipNonterminalHits = issuesFromBlobPaths(
-    root,
-    tip,
-    tipNonterminalPaths,
-    defaultRepo,
-    runGit,
-    `tip:${tip}`,
-  );
-  let originMap = mergeOrigins([...localHits, ...tipNonterminalHits]);
-
   // Delivery tip only — the land invariant is post-merge tip truth (#3264 AC).
   // Lifecycle PRs that commit completed/ on a feature branch are not expected
   // to satisfy this gate until merge; run the verb with --tip HEAD when
   // validating an in-flight land PR. The gate is a standalone verify verb
   // (not wired into check:consumer) so product PRs are not deadlocked.
   const tipTerminalPaths = listTreePaths(root, tip, terminalPrefixes(), runGit);
-  const tipTerminalHits = issuesFromBlobPaths(
+  emitProgress("listed", tipTerminalPaths.length, tipNonterminalPaths.length);
+
+  // One process for every tip artifact. Issue identity still comes from
+  // parsed plan.references / plan.metadata["x-tracking"] — never the path.
+  const tipBodies = showBlobsBatch(
     root,
     tip,
-    tipTerminalPaths,
-    defaultRepo,
+    [...tipNonterminalPaths, ...tipTerminalPaths],
     runGit,
+  );
+  emitProgress("read", tipTerminalPaths.length, tipNonterminalPaths.length);
+
+  const tipNonterminalHits = issuesFromBlobBodies(
+    tipNonterminalPaths,
+    tipBodies,
+    defaultRepo,
+    `tip:${tip}`,
+  );
+  let originMap = mergeOrigins([...localHits, ...tipNonterminalHits]);
+  const tipTerminalHits = issuesFromBlobBodies(
+    tipTerminalPaths,
+    tipBodies,
+    defaultRepo,
     `tip:${tip}`,
   );
   const landedKeys = new Set(tipTerminalHits.map((h) => issueKey(h.issue)));

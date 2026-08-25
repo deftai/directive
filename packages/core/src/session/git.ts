@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 
 export interface GitRunResult {
@@ -87,6 +87,104 @@ export function gitIsAncestor(
     return false;
   }
   return null;
+}
+
+/**
+ * Ceiling for one `git cat-file --batch` payload. The directive terminal
+ * corpus is ~8 MiB today; this leaves headroom without reintroducing
+ * per-blob `git show` on a truncated read.
+ */
+export const GIT_CAT_FILE_BATCH_MAX_BUFFER = 64 * 1024 * 1024;
+
+/**
+ * Parse `git cat-file --batch` stdout for `paths.length` objects, in the
+ * same order the names were written to stdin. Returns null if the stream
+ * is truncated or a header is malformed so callers can fall back.
+ */
+export function parseGitCatFileBatch(
+  stdout: Buffer,
+  paths: readonly string[],
+): Map<string, string | null> | null {
+  const out = new Map<string, string | null>();
+  let offset = 0;
+  for (const path of paths) {
+    const nl = stdout.indexOf(0x0a, offset);
+    if (nl < 0) {
+      return null;
+    }
+    const header = stdout.subarray(offset, nl).toString("utf8");
+    offset = nl + 1;
+    if (header.endsWith(" missing") || header.endsWith(" ambiguous")) {
+      out.set(path, null);
+      continue;
+    }
+    const match = /^[0-9a-fA-F]+ \S+ (\d+)$/.exec(header);
+    if (match === null) {
+      return null;
+    }
+    const size = Number(match[1]);
+    if (!Number.isInteger(size) || size < 0 || offset + size > stdout.length) {
+      return null;
+    }
+    const content = stdout.subarray(offset, offset + size);
+    offset += size;
+    if (offset < stdout.length && stdout[offset] === 0x0a) {
+      offset += 1;
+    } else if (offset !== stdout.length) {
+      return null;
+    }
+    out.set(path, content.toString("utf8"));
+  }
+  return out;
+}
+
+function showBlobViaRunner(
+  projectRoot: string,
+  tip: string,
+  path: string,
+  runGit: GitRunner,
+): string | null {
+  const result = runGit(projectRoot, ["show", `${tip}:${path}`]);
+  if (result.code !== 0) {
+    return null;
+  }
+  return result.stdout;
+}
+
+/**
+ * Read many `tip:path` blobs in one `git cat-file --batch` process.
+ * Falls back to per-path `git show` only when the batch stream cannot be
+ * parsed, so verdicts stay content-authoritative.
+ */
+export function showBlobsBatch(
+  projectRoot: string,
+  tip: string,
+  paths: readonly string[],
+  runGit: GitRunner = defaultGitRunner,
+): Map<string, string | null> {
+  const out = new Map<string, string | null>();
+  if (paths.length === 0) {
+    return out;
+  }
+
+  const input = Buffer.from(`${paths.map((path) => `${tip}:${path}`).join("\n")}\n`, "utf8");
+  const result = spawnSync("git", ["cat-file", "--batch"], {
+    cwd: projectRoot,
+    input,
+    maxBuffer: GIT_CAT_FILE_BATCH_MAX_BUFFER,
+    windowsHide: true,
+  });
+  if (result.error === undefined && result.status === 0 && result.stdout !== undefined) {
+    const parsed = parseGitCatFileBatch(coerceGitBytes(result.stdout), paths);
+    if (parsed !== null) {
+      return parsed;
+    }
+  }
+
+  for (const path of paths) {
+    out.set(path, showBlobViaRunner(projectRoot, tip, path, runGit));
+  }
+  return out;
 }
 
 export function detectBranch(
