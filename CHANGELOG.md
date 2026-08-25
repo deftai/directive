@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Land leftover completed-tracked artifact for #3741 (#3264 / #1358).** The #3741 xBRIEF stayed untracked after squash of PR 3743. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Faster completed-tracked land check (#3673).** `verify:completed-tracked` reads tip xBRIEFs in one `git cat-file --batch` instead of one `git show` per blob, and prints a blob count if the run exceeds three seconds. Verdicts stay content-authoritative. Refs #3476, #3264.
 - **Refuse unguarded writes into completed/ and restamp there (#3679).** Newly added completed briefs must come from `scope:complete` or `scope:fail`. A brief already in `completed/` can be stamped in place. After a scope-provenance strip, the leftover land PR is the designed path. Does not change `verify:completed-tracked`. Closes #3679.
 - **Consumers can mark a hard-stop with `BLOCKER` in the issue title.** That token is the only classification allowed in a title; everything else stays on labels. `task feedback:file --blocker` writes it next to `[framework-gap]` and carries the body evidence a privileged actor needs before applying `adoption-blocker`. The title never writes the ranking label. Closes #3713.

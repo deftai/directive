@@ -1,0 +1,236 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story: after critic EXIT, parent posts a successor lean before operator verbs (#3741). Bound SoT is the accepted synthesis, not the issue-body chat-preview wording.",
+    "updated": "2026-08-25T23:56:07Z"
+  },
+  "plan": {
+    "id": "issue-3741-map-before-verbs",
+    "title": "design-critique: post successor lean before operator verbs after critic EXIT",
+    "status": "completed",
+    "narratives": {
+      "Description": "After critic EXIT, parent posts a successor lean with proposed per-heading takes before printing accept / retry differences / walk / walk all. That posted lean is the first operator surface. Chat is not the record. No third map type. Bind to the accepted synthesis, not the pre-critique issue body.",
+      "Origin": "GitHub issue #3741. Parent #3434. Recut of #3627 first-lean order. Chip: design-critique:triage-ready. Bound SoT: successor lean 5417570071, verified claims 5417571027, synthesis accepted 5417572190.",
+      "Overview": "Dogfood on #3604: after critic EXIT the parent printed the verb menu with no per-heading map. #3627 recut moved the successor lean to after accept-X, so the first operator surface became the verb list. Accepted synthesis: the first lean is posted after critic EXIT with proposed takes; later leans may still follow accept-X / walk-end. Operator confirm/amend binds. All-accept drafts still go through the offer. Tests lock the SoT MUST and thin skill pointer; they do not claim a string pin fails closed on live parent turns. First posted map is an ADR-006 arbitration surface. Empty-lean verb menu is a contract miss. Keep ADR-005: do not mechanize judgment.",
+      "UserStory": "As the operator after a critic posts, I want a posted successor lean with proposed per-heading takes before any verb menu, so I can judge aspect-by-aspect instead of picking a process move over an invisible disposition.",
+      "When": "When the contract requires a posted successor lean after critic EXIT before accept / retry differences / walk / walk all; explicitly supersedes #3627 for that first lean; operator confirm/amend binds takes; all-accept still goes through the offer; thin skill has one pointer stop; content-contract tests lock the MUST and pointer without claiming live parent-turn fail-closed; first posted map is an ADR-006 arbitration surface; empty-lean verb menu is a contract miss; CHANGELOG Unreleased.",
+      "LockedDecisions": "Bind to synthesis 5417572190, not the issue-body chat-preview wording. Successor lean remains the disposition map; do not add a third map type. Do not stamp triage-ready at critic-post. Do not auto-dispatch. Do not add a #3607 thread interlock. Do not fold #3604 occupancy product or #3607. Do not extend evaluateParentAudit unless shipping runtime parent-turn detection (not required). Do not claim the string pin fails closed on live parent turns. Keep ADR-005: do not mechanize judgment. Later leans may still follow accept-X / walk-end.",
+      "ImplementationPlan": "1. Contract: after critic EXIT, parent posts a successor lean with proposed takes before printing accept / retry differences / walk / walk all; rewrite when they apply so an empty-lean verb menu is a miss; first posted map is ADR-006 arbitration; operator confirm/amend binds; all-accept still goes through the offer; explicitly supersede #3627 for the first lean. 2. Thin skill pointer (pack source then packs:render): After critic post: posted successor lean, then verbs. Stay under line cap; no table copy. 3. Content-contract tests lock the SoT MUST + thin skill pointer. 4. CHANGELOG Unreleased. Verify with pnpm exec vitest run packages/core/src/content-contracts/standards/design_critique_contract.test.ts. Closes #3741. Refs #3434, #3627, ADR-005, ADR-006, #1140, #3604."
+    },
+    "items": [
+      {
+        "id": "s1",
+        "title": "Contract: posted successor lean before verbs after critic EXIT",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When content/contracts/design-critique.md is read, after critic EXIT the parent posts a successor lean with proposed per-heading takes before printing accept / retry differences / walk / walk all; that posted lean is the first operator surface; chat is not the record; no third map type; #3627 after-accept-X is superseded for that first lean only; operator confirm/amend binds; all-accept drafts still go through the offer; empty-lean verb menu is a contract miss; first posted map is an ADR-006 arbitration surface.",
+          "Acceptance": "When content/contracts/design-critique.md is read, after critic EXIT the parent posts a successor lean with proposed per-heading takes before printing accept / retry differences / walk / walk all; that posted lean is the first operator surface; chat is not the record; no third map type; #3627 after-accept-X is superseded for that first lean only; operator confirm/amend binds; all-accept drafts still go through the offer; empty-lean verb menu is a contract miss; first posted map is an ADR-006 arbitration surface.",
+          "Traces": "FR-3741-s1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-25T23:43:15Z",
+          "recorded_by": "leaf-implementation"
+        }
+      },
+      {
+        "id": "s2",
+        "title": "Thin skill pointer under line cap",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the thin skill is under the line cap with no-normative-content, it points After critic post: posted successor lean, then verbs, without copying the variant table or verb body.",
+          "Acceptance": "When the thin skill is under the line cap with no-normative-content, it points After critic post: posted successor lean, then verbs, without copying the variant table or verb body.",
+          "Traces": "FR-3741-s2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-25T23:43:15Z",
+          "recorded_by": "leaf-implementation"
+        }
+      },
+      {
+        "id": "s3",
+        "title": "Content-contract tests lock MUST and pointer, not live parent turns",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When packages/core/src/content-contracts/standards/design_critique_contract.test.ts is run, it fails closed if the first-lean MUST or the thin skill pointer is dropped, and the contract Test surface states that this suite does not fail-close live parent turns.",
+          "Acceptance": "When packages/core/src/content-contracts/standards/design_critique_contract.test.ts is run, it fails closed if the first-lean MUST or the thin skill pointer is dropped, and the contract Test surface states that this suite does not fail-close live parent turns.",
+          "Traces": "FR-3741-s3"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-25T23:43:15Z",
+          "recorded_by": "leaf-implementation"
+        }
+      },
+      {
+        "id": "s4",
+        "title": "CHANGELOG Unreleased",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When CHANGELOG [Unreleased] is read, it records the map-before-verbs recording obligation and closes #3741.",
+          "Acceptance": "When CHANGELOG [Unreleased] is read, it records the map-before-verbs recording obligation and closes #3741.",
+          "Traces": "FR-3741-s4"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3743",
+          "recorded_at": "2026-08-25T23:51:41Z",
+          "recorded_by": "leaf-implementation"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "process"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3741",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3741"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3741#issuecomment-5417570071",
+        "type": "x-xbrief/document",
+        "title": "Successor lean (bindable SoT)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3741#issuecomment-5417571027",
+        "type": "x-xbrief/document",
+        "title": "Verified claims"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3741#issuecomment-5417572190",
+        "type": "x-xbrief/document",
+        "title": "Synthesis accepted"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3434",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3434 (umbrella)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3627",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3627 (superseded for first lean)"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "literal_acceptance_commands": [
+        "pnpm exec vitest run packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "content/contracts/design-critique.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-design-critique/SKILL.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
+        ],
+        "expected_outputs": [
+          "posted successor lean before verbs after critic EXIT",
+          "thin skill pointer",
+          "content-contract token lock without live parent-turn claim"
+        ],
+        "depends_on": [],
+        "conflict_group": "design-critique-contract",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Bindable SoT is synthesis 5417572190 plus successor lean 5417570071, not the issue body."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/contracts/design-critique.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "content/contracts",
+        "cohesion_exemption": "CHANGELOG.md already exceeds FILE_SIZE_REVIEW_TRIGGER_LINES; this slice adds one Unreleased entry."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3743,
+        "prBase": null,
+        "mergeCommit": "19ca6b44e972dc168ed27e6728bd8efa3780efd9",
+        "deliveryBranch": "master",
+        "deliveryCommit": "19ca6b44e972dc168ed27e6728bd8efa3780efd9",
+        "verifiedAt": "2026-08-25T23:56:07Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "3f820c3e-ede8-457b-876b-e837a9b24216"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-25T23:56:07Z"
+      },
+      "completedAt": "2026-08-25T23:56:07Z",
+      "completedSessionId": "3f820c3e-ede8-457b-876b-e837a9b24216",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "derived 1 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Contract records \"first operator surface\" and \"empty-lean verb menu\".",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Thin skill points \"After critic post: posted successor lean, then verbs\".",
+          "artifact_path": "content/skills/deft-directive-design-critique/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Test locks \"locks first-lean recording obligation after critic EXIT (#3741)\".",
+          "artifact_path": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "CHANGELOG records \"Posted successor lean before operator verbs after critic EXIT (#3741)\".",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-08-25T23:56:07Z"
+  }
+}
