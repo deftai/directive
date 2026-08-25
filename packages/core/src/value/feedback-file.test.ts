@@ -488,22 +488,18 @@ describe("adoption-blocker title token (#3713)", () => {
     );
     expect(markedMatch?.url).toBe(unmarkedOpen.html_url);
 
-    const unmarkedMatch = findDuplicateIssue(
-      "deftai/directive",
-      buildFrameworkGapTitle(summary),
-      {
-        runGhApiFn: vi.fn(() => ({
-          returncode: 0,
-          stdout: JSON.stringify([
-            {
-              title: "[framework-gap] BLOCKER Missing skill coverage",
-              html_url: "https://github.com/deftai/directive/issues/43",
-            },
-          ]),
-          stderr: "",
-        })),
-      },
-    );
+    const unmarkedMatch = findDuplicateIssue("deftai/directive", buildFrameworkGapTitle(summary), {
+      runGhApiFn: vi.fn(() => ({
+        returncode: 0,
+        stdout: JSON.stringify([
+          {
+            title: "[framework-gap] BLOCKER Missing skill coverage",
+            html_url: "https://github.com/deftai/directive/issues/43",
+          },
+        ]),
+        stderr: "",
+      })),
+    });
     expect(unmarkedMatch?.url).toContain("/issues/43");
   });
 
