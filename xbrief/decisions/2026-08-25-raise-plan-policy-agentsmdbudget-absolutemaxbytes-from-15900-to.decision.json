@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "raise-plan-policy-agentsmdbudget-absolutemaxbytes-from-15900-to-",
+  "decision": "Raise plan.policy.agentsMdBudget.absoluteMaxBytes from 15900 to 16016 so the #3713 consumer propagation lands intact, instead of trimming governance prose to fit. Managed section measures 16002 B; 16016 preserves the ~13 B margin the prior 15900/15887 pairing had, so the ratchet still catches unnoticed growth.",
+  "governingRule": {
+    "description": "When a quality gate fails, fix the product/process/test under test. Do not clear red by editing the gate, verifier, required check, coverage floor, or policy flag solely to go green.",
+    "path": "content/docs/gate-integrity.md",
+    "rfc2119": null
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Trim the managed section to fit 15900 | Attempted first and reverted. The only remaining slack was prose no contract test asserts, and cutting there deleted the #3153 default envelope sentence, which the 2026-08-13 keep-3153-3145-3225-despite-3321 decision names as an explicitly rejected alternative and which docs/analysis/2026-08-13-3321-092-099-hard-task-regression.md quotes as the behavior-changing instruction. A decorrelated critic caught it; no test could have."
+    },
+    {
+      "option": "Drop the #3713 rule from AGENTS.md and keep it only in scm/github.md | Violates #1309 template propagation discipline. Consumers cannot apply labels, so the title convention has to reach the always-on surface."
+    },
+    {
+      "option": "Park #3731 until the north-star gap is closed structurally | Blocks a small consumer-facing fix behind a large relocation program. Filed as its own issue instead."
+    }
+  ],
+  "whyWinner": "The gate's own remediation text invites this exact move: 'If the growth is deliberate, raise the matching line in plan.policy.agentsMdBudget in PROJECT-DEFINITION (a reviewed diff).' #3156 prohibits editing a gate SOLELY to go green; admitting a rule that #1309 requires and keeping one a high-confidence decision says must stay is a substantive capacity judgement, not green-washing. The trim alternative was tried first and cost meaning.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-08-25T19:43:46Z",
+  "revisitTrigger": "Re-open when the AGENTS.md relocation work closes the north-star gap (managed 16002 B against a 8192 B target). At that point absoluteMaxBytes should ratchet back DOWN, not up. Also re-open if a further propagation needs another raise before any relocation lands - two consecutive raises means the trim-vs-relocate balance is wrong.",
+  "tags": [
+    "agents-md",
+    "budget"
+  ],
+  "relatedIssues": [
+    3713,
+    645
+  ]
+}
