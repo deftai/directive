@@ -1,0 +1,324 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story xBRIEF for #3650 canonical consumer-hard-blocker label; bound after a single-critic arc refuted the title-token proposal.",
+    "updated": "2026-08-25T01:11:51Z"
+  },
+  "plan": {
+    "title": "feat(scm,guidance): one canonical consumer-hard-blocker label, not a title token",
+    "status": "completed",
+    "narratives": {
+      "Description": "No canonical label means 'a Directive consumer cannot complete an intended flow and has no reasonable workaround'. adoption-blocker is scoped to onboarding and first session by its own wording, Upgrade Blocker is upgrade-specific, status:blocked means this issue waits on something else, and urgent has drifted into broad priority across eleven open issues. So a consumer hard stop at update, task check, or ship has no home. This story defines one canonical label with positive-only semantics and reviewable classification evidence.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3650",
+      "Overview": "The original proposal -- require a BLOCKER token in issue titles -- was REFUTED by its critic and is withdrawn. Do not implement a title token, and do not implement a title linter. The arc established that triage:queue ranks exclusively by labels, that gh issue list and the queue renderer both already display labels, and that ten open issues already carry BLOCKER titles in a form contradicting the original proposal with eight of them unlabeled. Those ten are #3699's problem, not this story's.",
+      "Labels": "documentation, enhancement, agent-experience, process, scm, urgent, area:guidance, design-critique:triage-ready",
+      "UserStory": "As a maintainer triaging a consumer hard stop, I want one canonical label whose definition covers the whole intended-flow range, so that the ranking queue surfaces it and I am not forced to choose between a too-narrow label and a priority label that means something else.",
+      "ImplementationPlan": "1. Decide the label. Prefer BROADENING adoption-blocker to 'consumer cannot complete an intended Directive flow without a reasonable workaround' if its onboarding-specific meaning need not be preserved; otherwise add one canonical ranking label through the normal taxonomy process. Record which was chosen and why. 2. Ensure the definition covers the full range named in the issue: install, first session, update, task check, ship. 3. State the classification test and the required body evidence in content/scm/github.md Issue Workflow -- affected consumer flow and version, documented alternatives attempted, observed recovery cost, triage owner and date. 4. State the positive-only semantics explicitly and prominently: the label means classified as a blocker; its absence means NOT CLASSIFIED, never 'a workaround exists'. 5. Update .github/ISSUE_LABELS.md so the label is distinguished from Upgrade Blocker, status:blocked and urgent. 6. Confirm the label is present in ranking configuration and displays on triage:queue rows -- the renderer already prints the matched ranking label, so verify rather than build. 7. CHANGELOG [Unreleased] line.",
+      "LockedDecisions": "The BLOCKER title token is WITHDRAWN in any form -- refuted as a fifth parallel authoritative signal. Reasons, all measured: triage:queue ranks only labels; gh issue list and the queue renderer both display labels already; title and label are independently mutable and can disagree while the queue trusts one; a title is filer-controlled untrusted content whereas a label is taxonomy state applied or confirmed by triage; and absence of an unenforced token cannot be made informative, because a negative inference does not degrade gracefully the way a positive cue does. A fail-closed title linter is also rejected -- it would need authority rules, exceptions, recut handling and label synchronization, which is a second state machine around data already modelled as labels. Do NOT substitute urgent; the open set shows it is broad priority and this issue is itself urgent while explicitly not being a blocker. This story OVERRIDES the original non-goal 'inventing a new BLOCKER GitHub label' -- recorded deliberately, because the taxonomy gap is real and a parallel channel is the wrong way to close it. Out of scope: relabeling the ten existing BLOCKER-titled issues (#3699), rewriting historical titles, and building for Slack or any other title-only integration before one is measured to exist and to be unable to display labels.",
+      "AcceptanceJustification": "Eight clauses from the recut issue checklist. The ranking and display clause is verify-only because the renderer already prints the matched ranking label.",
+      "Decisions": "- xbrief/decisions/2026-08-24-broaden-adoption-blocker-to-the-full-intended-flow-range-instead.decision.json — Broaden adoption-blocker to the full intended-flow range instead of adding a new ranking label"
+    },
+    "items": [
+      {
+        "id": "s1",
+        "title": "One canonical label exists",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When the label taxonomy is read, exactly one label means 'consumer cannot complete an intended flow, no reasonable workaround', reached either by broadening adoption-blocker or by adding one label, with the choice recorded.",
+          "Acceptance": "When the label taxonomy is read, exactly one label means 'consumer cannot complete an intended flow, no reasonable workaround', reached either by broadening adoption-blocker or by adding one label, with the choice recorded.",
+          "Traces": "FR-3650-s1"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-25T00:56:10.000Z",
+          "recorded_by": "leaf-implementation/3650",
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/3706 — .github/ISSUE_LABELS.md adoption-blocker section + decision record"
+        }
+      },
+      {
+        "id": "s2",
+        "title": "Definition covers the full range",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the label definition is read, it covers install, first session, update, task check and ship rather than onboarding alone.",
+          "Acceptance": "When the label definition is read, it covers install, first session, update, task check and ship rather than onboarding alone.",
+          "Traces": "FR-3650-s2"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-25T00:56:10.000Z",
+          "recorded_by": "leaf-implementation/3650",
+          "kind": "review",
+          "pointer": "content/scm/github.md Consumer hard-blocker section: install, first session, update, task check, ship"
+        }
+      },
+      {
+        "id": "s3",
+        "title": "Classification test and evidence stated",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When content/scm/github.md Issue Workflow is read, it states the classification test and requires body evidence: affected consumer flow and version, documented alternatives attempted, observed recovery cost, triage owner and date.",
+          "Acceptance": "When content/scm/github.md Issue Workflow is read, it states the classification test and requires body evidence: affected consumer flow and version, documented alternatives attempted, observed recovery cost, triage owner and date.",
+          "Traces": "FR-3650-s3"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-25T00:56:10.000Z",
+          "recorded_by": "leaf-implementation/3650",
+          "kind": "review",
+          "pointer": "content/scm/github.md classification test + required body evidence"
+        }
+      },
+      {
+        "id": "s4",
+        "title": "Positive-only semantics stated",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the guidance is read, it states explicitly that the label means classified as a blocker and its absence means not classified, never that a workaround exists.",
+          "Acceptance": "When the guidance is read, it states explicitly that the label means classified as a blocker and its absence means not classified, never that a workaround exists.",
+          "Traces": "FR-3650-s4"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-25T00:56:10.000Z",
+          "recorded_by": "leaf-implementation/3650",
+          "kind": "review",
+          "pointer": "content/scm/github.md and .github/ISSUE_LABELS.md Positive-only sentences"
+        }
+      },
+      {
+        "id": "s5",
+        "title": "Distinguished from adjacent signals",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When .github/ISSUE_LABELS.md is read, the label is distinguished from Upgrade Blocker, status:blocked and urgent.",
+          "Acceptance": "When .github/ISSUE_LABELS.md is read, the label is distinguished from Upgrade Blocker, status:blocked and urgent.",
+          "Traces": "FR-3650-s5"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-25T00:56:10.000Z",
+          "recorded_by": "leaf-implementation/3650",
+          "kind": "review",
+          "pointer": ".github/ISSUE_LABELS.md distinction table vs Upgrade Blocker, status:blocked, urgent"
+        }
+      },
+      {
+        "id": "s6",
+        "title": "Ranks and displays",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When triage:queue runs, the label participates in ranking configuration and appears on ranked rows.",
+          "Acceptance": "When triage:queue runs, the label participates in ranking configuration and appears on ranked rows.",
+          "Traces": "FR-3650-s6"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-25T00:56:10.000Z",
+          "recorded_by": "leaf-implementation/3650",
+          "kind": "review",
+          "pointer": "plan.policy.triageRankingLabels already lists adoption-blocker; packages/core/src/triage/queue/render.ts prints (label: matchedLabel)"
+        }
+      },
+      {
+        "id": "s7",
+        "title": "No title token and no linter",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the change is reviewed, it introduces no title token convention and no title linter.",
+          "Acceptance": "When the change is reviewed, it introduces no title token convention and no title linter.",
+          "Traces": "FR-3650-s7"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-25T00:56:10.000Z",
+          "recorded_by": "leaf-implementation/3650",
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/3706 diff: no title token, no title linter"
+        }
+      },
+      {
+        "id": "s8",
+        "title": "CHANGELOG entry",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When CHANGELOG.md is read, an [Unreleased] line describes the user-visible change.",
+          "Acceptance": "When CHANGELOG.md is read, an [Unreleased] line describes the user-visible change.",
+          "Traces": "FR-3650-s8"
+        },
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-25T00:56:10.000Z",
+          "recorded_by": "leaf-implementation/3650",
+          "kind": "review",
+          "pointer": "CHANGELOG.md [Unreleased] Changed: adoption-blocker is the canonical consumer hard-stop label"
+        }
+      }
+    ],
+    "tags": [
+      "documentation",
+      "enhancement",
+      "agent-experience",
+      "process",
+      "scm",
+      "urgent",
+      "area:guidance",
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3650",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3650: one canonical consumer-hard-blocker label"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3699",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3699 (the ten unlabeled BLOCKER-titled issues; sequenced after this)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2609",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2609 (maintainer label taxonomy)"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [],
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          "content/scm/github.md",
+          ".github/ISSUE_LABELS.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task verify:branch"
+        ],
+        "expected_outputs": [
+          "one canonical consumer-hard-blocker label with a full-range definition",
+          "classification test and required body evidence in the Issue Workflow",
+          "explicit positive-only semantics",
+          "label distinguished from adjacent signals",
+          "no title token, no linter"
+        ],
+        "depends_on": [],
+        "conflict_group": "scm-guidance",
+        "size": "S",
+        "file_scope_confidence": "medium",
+        "model_tier": "high",
+        "missing_traces_justification": [
+          "Traces are FR-3650-* ids on this story; no parent specification.xbrief requirement ids exist for this child."
+        ],
+        "acceptance_criteria_justification": "Eight clauses from the recut checklist after the arc refuted the title-token proposal and rescoped to a label definition."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/scm/github.md",
+          ".github/ISSUE_LABELS.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "content/scm",
+        "cohesion_exemption": "The label catalog under .github/ and CHANGELOG.md sit outside the content/scm module boundary; the label definition and its prose guidance must change together."
+      },
+      "kind": "story",
+      "capacityBucket": "correctness",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3706,
+        "prBase": null,
+        "mergeCommit": "969408d69cdab968f40a9af6cfccf602d6abbd37",
+        "deliveryBranch": "master",
+        "deliveryCommit": "969408d69cdab968f40a9af6cfccf602d6abbd37",
+        "verifiedAt": "2026-08-25T01:11:51Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "6de3be15-61d4-40d2-b3df-c4244dd7568c"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-08-25T01:11:51Z",
+      "completedSessionId": "6de3be15-61d4-40d2-b3df-c4244dd7568c"
+    },
+    "acceptance": {
+      "commands": [
+        "task verify:branch"
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "Eight clauses taken from the recut issue checklist at https://github.com/deftai/directive/issues/3650 after synthesis. Leftover complete replaces recursive task-check AC with task verify:branch so verify:ac cannot fork-bomb.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "One canonical label exists meaning consumer cannot complete an intended flow with no reasonable workaround",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Its definition covers install, first session, update, task check, ship",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "content/scm/github.md Issue Workflow states the classification test and the required body evidence",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Documentation states positive-only semantics: absence means not classified, not workaround exists",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": ".github/ISSUE_LABELS.md distinguishes it from Upgrade Blocker, status:blocked and urgent",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "The label is reflected in ranking configuration and displays on triage:queue rows",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "No title token is introduced, and no title linter",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "CHANGELOG [Unreleased] line",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "issue-3650-canonical-consumer-hard-blocker-label",
+    "updated": "2026-08-25T01:11:51Z"
+  },
+  "vBRIEFInfo": {
+    "version": "0.8",
+    "updated": "2026-08-25T01:11:51Z"
+  }
+}
