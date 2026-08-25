@@ -4,6 +4,10 @@
  * Historical corpus is advisory (doctor). New work in the change set is hard
  * (verify:completed-write-guard). Does not read completionProvenance and does
  * not change verify:completed-tracked.
+ *
+ * Disk reads are capped at COMPLETED_WRITE_GUARD_MAX_BYTES so a huge
+ * contributor-controlled completed/ add fails through the guard instead of
+ * exhausting memory on the required gate path.
  */
 
 import { spawnSync } from "node:child_process";
@@ -38,6 +42,13 @@ export interface CompletedWriteGuardOptions {
   /** Inject payloads: relPath -> raw JSON. */
   readonly payloads?: ReadonlyMap<string, string>;
 }
+
+/**
+ * In-repo completed xBRIEFs average ~5.5 KiB and peak near 44 KiB.
+ * 1 MiB is ~23× that peak and still refuses a multi-hundred-MB add
+ * before the bytes are loaded.
+ */
+export const COMPLETED_WRITE_GUARD_MAX_BYTES = 1_048_576;
 
 const COMPLETED_REL_RE = /^(?:xbrief|vbrief)\/completed\/[^/]+$/;
 
@@ -195,6 +206,14 @@ function readPayload(
   const n = normalizeRepoRelPath(relPath);
   const injected = payloads?.get(n);
   if (injected !== undefined) {
+    if (injected.length > COMPLETED_WRITE_GUARD_MAX_BYTES) {
+      return {
+        kind: "unsafe",
+        detail:
+          `${n}: completed/ artifact is ${String(injected.length)} bytes; ` +
+          `exceeds the ${String(COMPLETED_WRITE_GUARD_MAX_BYTES)}-byte read limit`,
+      };
+    }
     return { kind: "ok", raw: injected };
   }
   const parts = n.split("/").filter((part) => part.length > 0 && part !== ".");
@@ -224,6 +243,14 @@ function readPayload(
     return {
       kind: "unsafe",
       detail: `${n}: completed/ add is not a regular file; refuse without reading`,
+    };
+  }
+  if (st.size > COMPLETED_WRITE_GUARD_MAX_BYTES) {
+    return {
+      kind: "unsafe",
+      detail:
+        `${n}: completed/ artifact is ${String(st.size)} bytes; ` +
+        `exceeds the ${String(COMPLETED_WRITE_GUARD_MAX_BYTES)}-byte read limit`,
     };
   }
   try {

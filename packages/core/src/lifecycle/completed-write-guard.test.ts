@@ -3,7 +3,11 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { evaluateCompletedWriteGuard, scanCompletedWriteCorpus } from "./completed-write-guard.js";
+import {
+  COMPLETED_WRITE_GUARD_MAX_BYTES,
+  evaluateCompletedWriteGuard,
+  scanCompletedWriteCorpus,
+} from "./completed-write-guard.js";
 
 function isolatedGitEnv(projectRoot: string): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...process.env };
@@ -123,6 +127,41 @@ describe("evaluateCompletedWriteGuard (#3679)", () => {
       const result = evaluateCompletedWriteGuard(root);
       expect(result.code).toBe(0);
       expect(result.message).toMatch(/skipped -- not a git working tree/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses an over-limit completed/ artifact through the controlled path", () => {
+    const root = mkdtempSync(join(tmpdir(), "completed-write-oversize-"));
+    try {
+      const dir = join(root, "xbrief", "completed");
+      mkdirSync(dir, { recursive: true });
+      const rel = "xbrief/completed/2026-08-25-huge.xbrief.json";
+      writeFileSync(join(root, rel), "x".repeat(COMPLETED_WRITE_GUARD_MAX_BYTES + 1), "utf8");
+      const result = evaluateCompletedWriteGuard(root, { addedFiles: [rel] });
+      expect(result.code).toBe(1);
+      expect(result.findings).toHaveLength(1);
+      expect(result.findings[0]?.detail).toContain(rel);
+      expect(result.findings[0]?.detail).toContain(
+        `${String(COMPLETED_WRITE_GUARD_MAX_BYTES)}-byte read limit`,
+      );
+      expect(result.message).toMatch(/unguarded completed\/ add/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("accepts a stamped completed/ artifact under the read limit from disk", () => {
+    const root = mkdtempSync(join(tmpdir(), "completed-write-undersize-"));
+    try {
+      const dir = join(root, "xbrief", "completed");
+      mkdirSync(dir, { recursive: true });
+      const rel = "xbrief/completed/2026-08-25-ok.xbrief.json";
+      writeFileSync(join(root, rel), stamped(), "utf8");
+      const result = evaluateCompletedWriteGuard(root, { addedFiles: [rel] });
+      expect(result.code).toBe(0);
+      expect(result.findings).toHaveLength(0);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
