@@ -394,11 +394,13 @@ This is the canonical ranking label for **a Directive consumer cannot complete a
 **Required body evidence** -- apply the label only when all four are present:
 
 - affected consumer flow and version
-- documented alternatives attempted
+- documented alternatives attempted, or why the documented alternatives are not a reasonable workaround
 - observed recovery cost
 - triage owner and date
 
-**Not this label:** `Upgrade Blocker` is upgrade-specific. `status:blocked` means *this issue* waits on something else. `urgent` is priority; an issue may be `urgent` and still not a consumer hard stop.
+**Upgrade path:** a hard stop on the upgrade flow is still a consumer hard stop. Apply `adoption-blocker` so it ranks. Also apply `Upgrade Blocker` as the upgrade-specific adjacent signal. `Upgrade Blocker` alone does not rank. A hard stop at `task check` or ship is `adoption-blocker` only.
+
+**Not this label:** `status:blocked` means *this issue* waits on something else. `urgent` is priority; an issue may be `urgent` and still not a consumer hard stop.
 
 **Ranking / display:** `plan.policy.triageRankingLabels` already lists `adoption-blocker` (after `blocks-merge` and `blocks-release-tag`). `triage:queue` prints `(label: adoption-blocker)` on matched rows. Confirm participation; do not add ranking code.
 

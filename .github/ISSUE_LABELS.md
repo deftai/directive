@@ -248,7 +248,7 @@ Inventory ~85 labels at #2609 implement time. This section lists **canonical** n
 
 **GitHub description (100-char cap):** `Consumer cannot complete an intended Directive flow; no reasonable workaround`
 
-**Required evidence:** body must name affected consumer flow and version, documented alternatives attempted, observed recovery cost, and triage owner and date. Full test: `content/scm/github.md` Issue Workflow.
+**Required evidence:** body must name affected consumer flow and version; documented alternatives attempted, or why the documented alternatives are not a reasonable workaround; observed recovery cost; and triage owner and date. Full test: `content/scm/github.md` Issue Workflow.
 
 **Ranking / display (verified, not newly built):** already in `plan.policy.triageRankingLabels` after `blocks-merge` and `blocks-release-tag`. `triage:queue` prints `(label: adoption-blocker)` on ranked rows. Do not add ranking code. Do not encode this classification in the title.
 
@@ -256,9 +256,11 @@ Inventory ~85 labels at #2609 implement time. This section lists **canonical** n
 
 | Label | Means | Not `adoption-blocker` because |
 |---|---|---|
-| `Upgrade Blocker` | Blocks the user from upgrading | Upgrade path only. A hard stop at `task check` or ship is not this. |
+| `Upgrade Blocker` | Blocks the user from upgrading | Upgrade facet only. A hard stop at `task check` or ship is not this. |
 | `status:blocked` | *This* issue waits on something else | Lifecycle of the issue, not "consumer cannot complete an intended flow". |
 | `urgent` | High priority; ranks above `bug` | Priority, not hard-stop. An issue may be `urgent` and still not a blocker (this recut of #3650 is the example). |
+
+**Upgrade overlap:** when the stuck flow is upgrade, apply both. `adoption-blocker` is the ranking chip; `Upgrade Blocker` is the upgrade facet. `Upgrade Blocker` alone does not rank.
 
 **Choice recorded:** broaden `adoption-blocker` rather than add a new slug. Onboarding-specific wording did not need preserving -- historical use already stretched past first session, and a second label would split the same class. Relabel of existing `BLOCKER`-titled issues is #3699, not this story.
 

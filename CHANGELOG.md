@@ -48,7 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **`adoption-blocker` is the canonical consumer hard-stop label.** It now covers any intended Directive flow (install, first session, update, `task check`, ship) with no reasonable workaround, not only first session. The label means classified as a blocker; its absence means not classified, never that a workaround exists. Classification requires body evidence. Closes #3650.
+- **`adoption-blocker` is the canonical consumer hard-stop label.** It now covers any intended Directive flow (install, first session, update, `task check`, ship) with no reasonable workaround, not only first session. The label means classified as a blocker; its absence means not classified, never that a workaround exists. Classification requires body evidence (attempted alternatives, or why documented alternatives are not reasonable). An upgrade-path hard stop wears this label plus `Upgrade Blocker`; `Upgrade Blocker` alone does not rank. Closes #3650.
 
 - **Stop 1 premises stay outside parent substantiation; Stop 1 records `refutation-target:` (#3672).** The contract now states why a pre-critic premise is excluded. Stop 1 write-backs record a non-binding `refutation-target:`. Not an audit marker; never blocks bind. Closes #3672.
 
