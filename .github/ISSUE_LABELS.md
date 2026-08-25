@@ -281,7 +281,7 @@ Inventory ~85 labels at #2609 implement time. This section lists **canonical** n
 7. ! Machine labels: closed set above; mirror is primary writer.
 8. ! Platform only for OS-intrinsic work.
 9. ~ Consumer projects: follow **#2611** kit when shipped — do not copy the full maintainer set by default.
-10. ! Consumer hard-stop uses `adoption-blocker` only, with body evidence (`content/scm/github.md` Issue Workflow). ⊗ Infer that a workaround exists from the label's absence. ⊗ Encode the classification in the issue title.
+10. ! Consumer hard-stop uses `adoption-blocker`, with body evidence (`content/scm/github.md` Issue Workflow); an upgrade-path hard stop also uses `Upgrade Blocker`. ⊗ Infer that a workaround exists from the label's absence. ⊗ Encode the classification in the issue title.
 
 Skill / SCM pointer: `content/scm/github.md` § Issue Labels (framework source) links here.
 
