@@ -240,6 +240,28 @@ Inventory ~85 labels at #2609 implement time. This section lists **canonical** n
 
 `urgent`, `adoption-blocker`, `agent-experience`, `blocks-merge`, `blocks-release-tag`, `Upgrade Blocker`
 
+#### `adoption-blocker` -- canonical consumer hard-blocker (#3650)
+
+**Positive-only:** this label means the issue is *classified as a blocker*. Its absence means *not classified* -- never that a workaround exists.
+
+**Definition:** a Directive consumer cannot complete an intended flow without a reasonable workaround. The range is install, first session, update, `task check`, and ship -- not first session alone.
+
+**GitHub description (100-char cap):** `Consumer cannot complete an intended Directive flow; no reasonable workaround`
+
+**Required evidence:** body must name affected consumer flow and version, documented alternatives attempted, observed recovery cost, and triage owner and date. Full test: `content/scm/github.md` Issue Workflow.
+
+**Ranking / display (verified, not newly built):** already in `plan.policy.triageRankingLabels` after `blocks-merge` and `blocks-release-tag`. `triage:queue` prints `(label: adoption-blocker)` on ranked rows. Do not add ranking code. Do not encode this classification in the title.
+
+**Distinguished from adjacent signals:**
+
+| Label | Means | Not `adoption-blocker` because |
+|---|---|---|
+| `Upgrade Blocker` | Blocks the user from upgrading | Upgrade path only. A hard stop at `task check` or ship is not this. |
+| `status:blocked` | *This* issue waits on something else | Lifecycle of the issue, not "consumer cannot complete an intended flow". |
+| `urgent` | High priority; ranks above `bug` | Priority, not hard-stop. An issue may be `urgent` and still not a blocker (this recut of #3650 is the example). |
+
+**Choice recorded:** broaden `adoption-blocker` rather than add a new slug. Onboarding-specific wording did not need preserving -- historical use already stretched past first session, and a second label would split the same class. Relabel of existing `BLOCKER`-titled issues is #3699, not this story.
+
 ### Process / workflow (selected)
 
 `process` (if present), `Workflow`, `triage`, `swarm`, `meta`, `scm`, `determinism`, `source-of-truth`, …
@@ -257,6 +279,7 @@ Inventory ~85 labels at #2609 implement time. This section lists **canonical** n
 7. ! Machine labels: closed set above; mirror is primary writer.
 8. ! Platform only for OS-intrinsic work.
 9. ~ Consumer projects: follow **#2611** kit when shipped — do not copy the full maintainer set by default.
+10. ! Consumer hard-stop uses `adoption-blocker` only, with body evidence (`content/scm/github.md` Issue Workflow). ⊗ Infer that a workaround exists from the label's absence. ⊗ Encode the classification in the issue title.
 
 Skill / SCM pointer: `content/scm/github.md` § Issue Labels (framework source) links here.
 
@@ -312,6 +335,7 @@ Skill / SCM pointer: `content/scm/github.md` § Issue Labels (framework source) 
 
 | Date | Change |
 |------|--------|
+| 2026-08-24 | Broaden `adoption-blocker` to the full intended-flow range; state positive-only semantics; distinguish from `Upgrade Blocker`, `status:blocked`, and `urgent` (#3650) |
 | 2026-08-21 | Design-critique stamp label `design-critique:mechanism-shaped` + write-back field `mechanism-shaped: true` (ADR-005 / #3434 Story 1) |
 | 2026-08-05 | Quarantine zero-open twins/synonyms as lowercase `legacy:<former>` (colon form wins) |
 | 2026-08-05 | Open-issue migration notes + re-run instructions (#3128) |

@@ -48,6 +48,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`adoption-blocker` is the canonical consumer hard-stop label.** It now covers any intended Directive flow (install, first session, update, `task check`, ship) with no reasonable workaround, not only first session. The label means classified as a blocker; its absence means not classified, never that a workaround exists. Classification requires body evidence. Closes #3650.
+
 - **Stop 1 premises stay outside parent substantiation; Stop 1 records `refutation-target:` (#3672).** The contract now states why a pre-critic premise is excluded. Stop 1 write-backs record a non-binding `refutation-target:`. Not an audit marker; never blocks bind. Closes #3672.
 
 - **Design-critique critics get a stated method (#3661).** The contract now says how to critique, at three distinct strengths, instead of only telling the parent how to dispatch. Stop 3's overloaded Charter heading is renamed to parent-facing dispatch rules. Closes #3661.

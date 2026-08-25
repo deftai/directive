@@ -377,6 +377,31 @@ Agent `edit_files` operations can fail when structured file sections contain Uni
 
 **Mirror** (if using `triage:classify -- --mirror`): at least `triaged`; optional `triage:deferred` / `triage:archived` when `actionLabels` maps them
 
+### Consumer hard-blocker (`adoption-blocker`)
+
+**Framework source (`deftai/directive` only).** Consumer kits do not ship this label; see `.github/ISSUE_LABELS.md`.
+
+**Positive-only:** the `adoption-blocker` label means the issue is *classified as a blocker*. Its absence means *not classified*. Absence never means a workaround exists.
+
+This is the canonical ranking label for **a Directive consumer cannot complete an intended flow and has no reasonable workaround**. The range is install, first session, update, `task check`, and ship -- not onboarding alone. Do not invent a second ranking label for that class, and do not encode it in the title.
+
+**Classification test** (all must hold, and a second person must be able to check them from the body):
+
+1. An intended consumer flow at a named version does not complete.
+2. Documented alternatives were tried and failed, or are not a reasonable workaround.
+3. Recovery cost is observed (time, lost work, or a stuck session), not inferred.
+
+**Required body evidence** -- apply the label only when all four are present:
+
+- affected consumer flow and version
+- documented alternatives attempted
+- observed recovery cost
+- triage owner and date
+
+**Not this label:** `Upgrade Blocker` is upgrade-specific. `status:blocked` means *this issue* waits on something else. `urgent` is priority; an issue may be `urgent` and still not a consumer hard stop.
+
+**Ranking / display:** `plan.policy.triageRankingLabels` already lists `adoption-blocker` (after `blocks-merge` and `blocks-release-tag`). `triage:queue` prints `(label: adoption-blocker)` on matched rows. Confirm participation; do not add ranking code.
+
 ### Post-1.0.0 Issue Linking
 
 Following a v1.0.0 release, commits:

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "broaden-adoption-blocker-to-the-full-intended-flow-range-instead",
+  "decision": "Broaden adoption-blocker to the full intended-flow range instead of adding a new ranking label",
+  "governingRule": {
+    "description": "Exactly one canonical label means consumer cannot complete an intended Directive flow with no reasonable workaround",
+    "path": "xbrief/active/2026-08-24-3650-featscmguidance-one-canonical-consumer-hard-blocker-label.xbrief.json",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Add a new ranking label (for example consumer-blocker) and keep adoption-blocker as first-session-only",
+      "whyNot": "Two labels would split the same class of harm. The story asks for exactly one canonical label. A new slug also needs ranking-config and live-label creation; adoption-blocker already ranks and displays."
+    },
+    {
+      "option": "Rename adoption-blocker to a fuller slug",
+      "whyNot": "Rename is a larger taxonomy change than this story asked for (search, ranking config, historical filters). The definition text is what agents read; the existing slug already participates in triageRankingLabels."
+    },
+    {
+      "option": "Use urgent as the consumer hard-stop signal",
+      "whyNot": "LockedDecision and the recut forbid this. urgent is broad priority; #3650 itself is urgent and explicitly not a blocker."
+    }
+  ],
+  "whyWinner": "Onboarding-specific wording need not be preserved: live historical use already stretched past first session (doctor, update, release hangs), only one open issue currently wears the label, and install through ship is one class of consumer hard stop. Broadening keeps a single ranking chip that triage:queue already consumes via matchedLabelFor. Upgrade Blocker stays the upgrade-specific adjacent signal.",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-08-24-3650-featscmguidance-one-canonical-consumer-hard-blocker-label.xbrief.json"
+  ],
+  "timestamp": "2026-08-24T21:41:55Z",
+  "revisitTrigger": "Revisit if operators need a separate first-session-only queue distinct from update/check/ship hard stops, or if a measured title-only integration cannot display labels.",
+  "tags": [
+    "taxonomy",
+    "triage",
+    "scm"
+  ],
+  "relatedIssues": [
+    3650,
+    3699,
+    2609
+  ]
+}
