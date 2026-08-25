@@ -109,9 +109,8 @@ describe("READY_REQUIRES_PARALLEL_SAFE shared message (#3666 / #3252)", () => {
     expect(READY_REQUIRES_PARALLEL_SAFE).toMatch(/parallel_safe=true/);
     expect(READY_REQUIRES_PARALLEL_SAFE).toMatch(/not eligible for concurrent swarm:launch/);
     expect(READY_REQUIRES_PARALLEL_SAFE).toMatch(/interactive swarm-skill solo-worker path/);
-    expect(READY_REQUIRES_PARALLEL_SAFE).toMatch(
-      /swarm:readiness exit 0 gates concurrent workers only/,
-    );
+    expect(READY_REQUIRES_PARALLEL_SAFE).toMatch(/not gated by swarm:readiness exiting 0/);
+    expect(READY_REQUIRES_PARALLEL_SAFE).toMatch(/exit 0 gates concurrent workers only/);
     expect(READY_REQUIRES_PARALLEL_SAFE).not.toMatch(LAUNCH_REMEDIATION_READINESS);
   });
 

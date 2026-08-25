@@ -308,7 +308,7 @@ export interface StoryQualityParams {
  * launch remediation — Gate B rejects that value on the same call.
  */
 export const READY_REQUIRES_PARALLEL_SAFE =
-  "readiness=ready requires parallel_safe=true. This story is not eligible for concurrent swarm:launch; dispatch non-concurrent work via the interactive swarm-skill solo-worker path (swarm:readiness exit 0 gates concurrent workers only; see #3669)";
+  "readiness=ready requires parallel_safe=true. This story is not eligible for concurrent swarm:launch; dispatch non-concurrent work via the interactive swarm-skill solo-worker path (that path is not gated by swarm:readiness exiting 0; exit 0 gates concurrent workers only; see #3669)";
 
 export function storyQualityIssues(params: StoryQualityParams): string[] {
   const issues: string[] = [];
