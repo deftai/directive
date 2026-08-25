@@ -113,6 +113,8 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ! `plan.policy.valueFeedback.enabled` defaults OFF — `deft policy:show --field=valueFeedback` / `deft policy:enable-value-feedback -- --confirm`; `deft value:show`; `deft feedback:file`; `.deft/core/.agents/skills/deft-directive-feedback/SKILL.md` (#1709).
 
+! Consumer hard-stop filing (#3713): `BLOCKER` is the only classification allowed in an issue title. `deft feedback:file --blocker` writes it next to `[framework-gap]` and carries body evidence. ⊗ Derive or apply `adoption-blocker` from a consumer-authored title -- a privileged actor applies that ranking label after the body-evidence test. Absence of `BLOCKER` does not mean "not a blocker."
+
 ## Structured decision log (#1396 / #3211)
 ! Significant choices → `deft decision:write`; re-load → `deft decision:list` / `xbrief/decisions/`; depth `.deft/core/docs/decision-log.md` (not triage/ADRs/lessons).
 ## Eval and framework health (#1703)
