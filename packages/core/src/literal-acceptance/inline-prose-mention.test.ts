@@ -194,6 +194,65 @@ describe("inline backtick in prose is not a stated command (#3721)", () => {
     expect(result.runs).toEqual([]);
   });
 
+  it("does not let a not-command disposition drop a promoted verify_commands peer", () => {
+    const plan = {
+      title: "t",
+      narratives: { Overview: "The critic mentioned `task check` while describing verify." },
+      metadata: {
+        literal_acceptance_commands: [
+          { command: "task check", source: "task_statement", sourceSpan: "inline@L1" },
+          { command: "task check", source: "verify_commands", sourceSpan: "swarm.verify_commands" },
+        ],
+        swarm: { verify_commands: ["task check"] },
+        literal_acceptance_not_commands: ["task check"],
+      },
+      items: [],
+    };
+    const result = evaluateLiteralAcceptanceFromPlan(plan, {
+      projectRoot: process.cwd(),
+      captureFromNarratives: false,
+      runner: () => ({ exitCode: 0, stdout: "ok", stderr: "" }),
+    });
+    expect(result.ok).toBe(true);
+    expect(result.commands.some((c) => c.source === "verify_commands")).toBe(true);
+    expect(result.runs).toHaveLength(1);
+  });
+
+  it("still runs a structured plan.acceptance.commands peer that shares mention text", () => {
+    const plan = {
+      title: "t",
+      narratives: { Overview: "A critic mentioned `task doctor` while describing verify." },
+      metadata: {
+        literal_acceptance_commands: [
+          { command: "task doctor", source: "task_statement", sourceSpan: "inline@L1" },
+          {
+            command: "task doctor",
+            source: "verify_commands",
+            sourceSpan: "swarm.verify_commands",
+          },
+        ],
+        swarm: { verify_commands: ["task doctor"] },
+      },
+      acceptance: {
+        commands: [{ command: "task doctor" }],
+        none_stated: false,
+        source_rung: "stated",
+      },
+      items: [],
+    };
+    let executions = 0;
+    const result = evaluateVerifyAcFromPlan(plan, {
+      projectRoot: process.cwd(),
+      captureFromNarratives: false,
+      runner: () => {
+        executions += 1;
+        return { exitCode: 0, stdout: "ok", stderr: "" };
+      },
+    });
+    expect(result.ok).toBe(true);
+    expect(executions).toBeGreaterThan(0);
+  });
+
   it("lets the complete verify:ac walk pass the #3712 shape without promotion", () => {
     const walk = evaluateScopeCompleteAcceptanceWalk(
       plan3712Shape({

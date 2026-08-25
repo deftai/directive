@@ -118,7 +118,26 @@ function pushCommand(buckets: CaptureBuckets, cmd: LiteralAcceptanceCommand): vo
     return;
   }
   const key = commandDedupeKey(cmd);
-  if (buckets.seen.has(key)) return;
+  if (buckets.seen.has(key)) {
+    const idx = buckets.out.findIndex((row) => commandDedupeKey(row) === key);
+    const existing = idx >= 0 ? buckets.out[idx] : undefined;
+    if (
+      existing !== undefined &&
+      idx >= 0 &&
+      isInlineProseMention(existing) &&
+      isExecutableSource(cmd.source)
+    ) {
+      buckets.out[idx] = {
+        command: cmd.command,
+        cwd: cmd.cwd ?? null,
+        expectedStdout: cmd.expectedStdout ?? null,
+        expectedExitCode: cmd.expectedExitCode ?? 0,
+        source: cmd.source,
+        sourceSpan: cmd.sourceSpan ?? null,
+      };
+    }
+    return;
+  }
   buckets.seen.add(key);
   buckets.out.push({
     command: cmd.command,
@@ -609,7 +628,7 @@ export function readStoredLiteralAcceptanceDetailed(
       // literal_acceptance_commands rows already loaded — do not invent a
       // null-cwd duplicate for the same command text.
       const alreadyHasCommand = (command: string): boolean =>
-        buckets.out.some((c) => c.command === command);
+        buckets.out.some((c) => c.command === command && !isInlineProseMention(c));
       for (const cmd of coerceCommandList(
         swarm.verify_commands,
         "verify_commands",

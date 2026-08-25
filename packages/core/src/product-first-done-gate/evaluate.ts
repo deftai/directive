@@ -19,6 +19,7 @@ import {
   appendLiteralAcceptanceAdvisory,
   type EvaluateLiteralAcceptanceOptions,
   evaluateLiteralAcceptanceFromPlan,
+  isExecutableLiteralSource,
   isInlineProseMention,
   isNoopRefusalReason,
   type LiteralAcceptanceGateResult,
@@ -450,19 +451,46 @@ export function evaluateVerifyAcFromPlan(
   return applyOracle(annotate(base, acceptance, optionsWithScope.quiet), optionsWithScope, plan);
 }
 
-function isInlineScrapedAcceptanceCommand(plan: Record<string, unknown>, command: string): boolean {
-  if (readNotAcceptanceCommands(plan).has(command)) return true;
+function hasNonDefaultAcceptanceContext(command: PlanAcceptance["commands"][number]): boolean {
+  const cwd = command.cwd !== undefined && command.cwd !== null && String(command.cwd).trim();
+  const stdout =
+    command.expectedStdout !== undefined &&
+    command.expectedStdout !== null &&
+    String(command.expectedStdout).length > 0;
+  const exit = typeof command.expectedExitCode === "number" && command.expectedExitCode !== 0;
+  return Boolean(cwd) || stdout || exit;
+}
+
+function hasStructuredAcceptancePeer(plan: Record<string, unknown>, command: string): boolean {
   return readStoredLiteralAcceptanceCommands(plan).some(
-    (c) => c.command === command && isInlineProseMention(c),
+    (c) => c.command === command && isExecutableLiteralSource(c.source),
   );
 }
 
-/** plan.acceptance.commands minus inline-prose scrapes and operator dispositions (#3721). */
+/**
+ * True when a plan.acceptance.commands row is only an ingest copy of an inline
+ * prose mention (or an operator not-command disposition) and has no structured
+ * peer. Independently authored rows — promoted verify_commands, or a command
+ * with its own cwd/expectedStdout/exit — still run (#3721 Greptile).
+ */
+function isInlineScrapedAcceptanceCommand(
+  plan: Record<string, unknown>,
+  command: PlanAcceptance["commands"][number],
+): boolean {
+  if (hasNonDefaultAcceptanceContext(command)) return false;
+  if (hasStructuredAcceptancePeer(plan, command.command)) return false;
+  if (readNotAcceptanceCommands(plan).has(command.command)) return true;
+  return readStoredLiteralAcceptanceCommands(plan).some(
+    (c) => c.command === command.command && isInlineProseMention(c),
+  );
+}
+
+/** plan.acceptance.commands minus ingest-copied inline mentions (#3721). */
 function statedAcceptanceCommands(
   acceptance: PlanAcceptance,
   plan: Record<string, unknown>,
 ): PlanAcceptance["commands"] {
-  return acceptance.commands.filter((c) => !isInlineScrapedAcceptanceCommand(plan, c.command));
+  return acceptance.commands.filter((c) => !isInlineScrapedAcceptanceCommand(plan, c));
 }
 
 function shouldRunPlanAcceptanceDirectly(

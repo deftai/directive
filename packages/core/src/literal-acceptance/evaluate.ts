@@ -101,7 +101,7 @@ export function resolveLiteralAcceptanceDetailed(
       });
       continue;
     }
-    if (notCommands.has(c.command)) {
+    if (c.source === "task_statement" && notCommands.has(c.command)) {
       mentionAdvisory.push({
         command: c.command,
         reason: "operator recorded this capture as not an acceptance command (#3721)",
