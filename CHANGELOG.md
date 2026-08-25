@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Land leftover completed-tracked artifact for #3708 (#3264 / #1358).** The #3708 xBRIEF stayed untracked after squash of PR 3711. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Accept names the optional design-critique skill (#3708).** `task triage:accept` prints `deft-directive-design-critique`; the triage skill offers the same choice after Accept, including `--auto-promote`. Declining writes nothing. No gate. Closes #3708.
 - **Land leftover completed-tracked artifact for #1351 (#3264 / #1358).** The #1351 xBRIEF stayed untracked after squash of PR 3705. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
 
