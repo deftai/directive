@@ -67,6 +67,42 @@ describe("evaluateCompletedWriteGuard (#3679)", () => {
     });
     expect(result.code).toBe(0);
   });
+
+  it("refuses an added completed/ blob with unreadable plan JSON", () => {
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      addedFiles: ["xbrief/completed/2026-08-25-bad.xbrief.json"],
+      payloads: new Map([["xbrief/completed/2026-08-25-bad.xbrief.json", "{not json"]]),
+    });
+    expect(result.code).toBe(1);
+    expect(result.findings[0]?.detail).toMatch(/unreadable plan/);
+  });
+
+  it("refuses an added completed/ blob that is missing on disk", () => {
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      addedFiles: ["xbrief/completed/2026-08-25-missing.xbrief.json"],
+    });
+    expect(result.code).toBe(1);
+    expect(result.findings[0]?.detail).toMatch(/unreadable$/);
+  });
+
+  it("accepts a vbrief/completed stamp the same as xbrief/", () => {
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      addedFiles: ["vbrief/completed/2026-08-25-ok.xbrief.json"],
+      payloads: new Map([["vbrief/completed/2026-08-25-ok.xbrief.json", stamped()]]),
+    });
+    expect(result.code).toBe(0);
+  });
+
+  it("skips when the project root has no merge-base or is not a git working tree", () => {
+    const root = mkdtempSync(join(tmpdir(), "completed-write-nongit-"));
+    try {
+      const result = evaluateCompletedWriteGuard(root);
+      expect(result.code).toBe(0);
+      expect(result.message).toMatch(/skipped -- (not a git working tree|no merge-base ref found)/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });
 
 describe("scanCompletedWriteCorpus (#3679)", () => {
@@ -80,6 +116,20 @@ describe("scanCompletedWriteCorpus (#3679)", () => {
       const result = scanCompletedWriteCorpus(root);
       expect(result.scanned).toBe(2);
       expect(result.findings.map((f) => f.relPath)).toEqual(["xbrief/completed/husk.xbrief.json"]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("skips unreadable and invalid corpus blobs without counting them as husks", () => {
+    const root = mkdtempSync(join(tmpdir(), "completed-write-corpus-bad-"));
+    try {
+      const dir = join(root, "xbrief", "completed");
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, "empty-dir-placeholder.xbrief.json"), "[", "utf8");
+      const result = scanCompletedWriteCorpus(root);
+      expect(result.scanned).toBe(1);
+      expect(result.findings).toHaveLength(0);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
