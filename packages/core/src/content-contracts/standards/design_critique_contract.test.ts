@@ -95,6 +95,10 @@ const REQUIRED_CONTRACT_POINTERS = [
   "before any critic exists",
   "`refutation-target:`",
   "highest-leverage asserted premise",
+  "first operator surface",
+  "empty-lean verb menu",
+  "supersedes #3627",
+  "does not fail-close live parent turns",
 ];
 
 const REQUIRED_TEMPLATE_POINTERS = [
@@ -139,6 +143,7 @@ const REQUIRED_SKILL_POINTERS = [
   "Parent-side substantiation",
   "EXITs after posting",
   "scm:issue:design-critique-chip",
+  "After critic post: posted successor lean, then verbs",
 ];
 
 const DEFAULT_ALWAYS_PINS = [
@@ -555,6 +560,39 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(anyOf).toContain("design-critique:mechanism-shaped");
     expect(anyOf).not.toContain("design-critique:triage-ready");
     expect(anyOf).not.toContain("critic-posted");
+  });
+
+  it("locks first-lean recording obligation after critic EXIT (#3741)", () => {
+    const text = readText(CONTRACT);
+    const loop = markdownSection(text, "## Operator-gated loop");
+    const lean = markdownSection(text, "## Successor lean");
+    const verbs = markdownSection(text, "## Operator verbs");
+    const testSurface = markdownSection(text, "## Test surface");
+    expect(loop).toContain("After each critic EXIT");
+    expect(loop).toContain(
+      "**before** printing `accept` / `retry differences` / `walk` / `walk all`",
+    );
+    expect(loop).toContain("first operator surface");
+    expect(loop).toContain("Chat is not the record");
+    expect(loop).toContain("supersedes #3627");
+    expect(loop).toContain("empty-lean verb menu");
+    expect(lean).toContain("Operator confirm or amend");
+    expect(lean).toContain("all-accept draft still goes through this offer");
+    expect(lean).toContain("Do not post a third map type");
+    expect(lean).toContain("ADR-006 arbitration surface");
+    expect(lean).toContain("same party authored the triage");
+    expect(verbs).toContain("when they apply");
+    expect(verbs).toContain("empty-lean verb menu");
+    expect(verbs).toContain("Do not skip the first-lean offer because the draft is all-accept");
+    expect(verbs).toContain(
+      "Auto-stamp a parent-drafted all-accept map that the operator has not confirmed",
+    );
+    expect(testSurface).toContain("does not fail-close live parent turns");
+    expect(testSurface).toContain("evaluateParentAudit");
+    const skill = readText(SKILL_REL);
+    expect(skill).toContain("After critic post: posted successor lean, then verbs");
+    expect(skill).not.toContain("accept-into-contract");
+    expect(skill).not.toContain("| Condition | Variant | N |");
   });
 
   it("locks same-round shared input ceiling, narrowed fallback, and N=3 dual-stop (#3660)", () => {

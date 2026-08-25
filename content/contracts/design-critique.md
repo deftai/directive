@@ -170,7 +170,9 @@ Keep the arc in this contract until a verified synthesis is accepted.
 
 - ! Each critic dispatch EXITs after posting.
 - ! Operator (or parent after an operator verb) dispatches the next envelope.
-- ! After each accept-X, or before synthesis, parent posts a successor lean.
+- ! After each critic EXIT, parent posts a successor lean with proposed per-heading takes **before** printing `accept` / `retry differences` / `walk` / `walk all`. That posted lean is the first operator surface. Chat is not the record.
+- ! Later successor leans follow accept-X or walk-end, or land before synthesis. This supersedes #3627's "successor lean only after accept-X" for the first lean after critic EXIT. Later leans may still follow accept-X / walk-end.
+- ⊗ Print `accept` / `retry differences` / `walk` / `walk all` when no successor lean is posted for this critic EXIT. An empty-lean verb menu is a contract miss.
 - ⊗ Auto-dispatch critics (#3578 / #1702).
 - ⊗ Hand the arc to `triage:accept` / `scope:promote` until `design-critique:triage-ready`.
 - ⊗ Stamp `design-critique:triage-ready` at critic-post.
@@ -180,11 +182,14 @@ Keep the arc in this contract until a verified synthesis is accepted.
 
 ## Successor lean
 
-After each accept-X, or before synthesis, parent posts a successor `**Lean:**` comment.
+After each critic EXIT, parent posts a successor `**Lean:**` comment with proposed per-heading takes. That posted lean is the first operator surface. Later successor leans follow accept-X or walk-end, or land before synthesis.
 
+- ! After critic EXIT, post the successor lean before printing `accept` / `retry differences` / `walk` / `walk all`.
+- ! Operator confirm or amend is what makes those takes bindable. An all-accept draft still goes through this offer.
 - ! Cite accepted critic ids/headings, the still-open residual, and the write-back or prior lean it supersedes.
 - ! Carry a per-heading take on the successor lean: `accept-into-contract` | `disagree` | `defer`. Defer is not accepted.
 - ! The successor lean is the disposition map. Do not post a third map type.
+- ! The first posted map is an ADR-006 arbitration surface. Record a substantiation token when takes introduce load-bearing premises. Non-self-arbitration applies when the same party authored the triage and the proposed takes.
 - ! Bind synthesis and `design-critique:triage-ready` to the latest successor lean, never a superseded write-back.
 - ! Full template (accepted set, residual, supersedes-id, ceiling if retrying) lives only on the successor lean and on a retry disagreement map.
 - ! Walk comments stay slim (model and role lines, Accept X, critic id, heading, decision, and when needed a token plus pointer).
@@ -218,7 +223,7 @@ audit:<id> sha=<git-sha> pointer=<path:start-end|comment:<id>> reading=measured|
 
 ## Operator verbs
 
-Contract stops stay internal. Parent prints these phrases when they apply. The operator does not have to remember them.
+Contract stops stay internal. Parent prints these phrases when they apply. They apply only after a successor lean is posted for this critic EXIT. Printing the verb menu with no posted successor lean is a contract miss. The operator does not have to remember them.
 
 - **accept** (cite findings)
 - **retry differences**
@@ -229,9 +234,13 @@ Contract stops stay internal. Parent prints these phrases when they apply. The o
 
 **walk** iterates recorded parent-disagree headings (successor-lean take is `disagree`). **walk all** is the census of every classified finding in existing order (blocking then sharpening then footnotes — or the critic's numbering). For one release, `walk findings one at a time` is an alias of **walk all**. Short forms of accept synthesis are valid: `accept synt`, `synt accepted`, `synt approved`, `accept synthesis`, `synthesis accepted`, `synthesis approved`. Same idea for other printed verbs when the short form is unambiguous (`retry` for `retry differences`). If the operator types a bare word that could be either **walk** or **walk all** and only one was offered, map it to the offered one. If ambiguous, parent re-prints the offered phrases and waits.
 
-- ! Print the phrases when they apply.
+- ! Print the phrases when they apply. An empty-lean verb menu is a miss.
+- ! Do not print **walk** until at least one proposed take on the posted lean is `disagree`.
+- ! Do not print **retry differences** until residual headings are named on that map.
+- ! Do not skip the first-lean offer because the draft is all-accept.
 - ! Non-empty disagree set: print **walk** / **walk all** / **retry differences** / **accept**. Walk is an option, not the only path. Do not auto-start the walk.
 - ! When the successor lean's per-heading map is total over a **non-empty** in-envelope classified-finding set, every heading is `accept-into-contract` (no `disagree`, no `defer`), AND zero unresolved audit markers: parent auto-posts the verified-claims table as its own comment, then auto-posts `design-critique: synthesis accepted, because agents agreed (empty disagreement set)` and remaining-set-replaces the chip via `task scm:issue:design-critique-chip -- --issue N --chip triage-ready`. Do not print **accept synthesis**, **post the verified-claims table**, **walk**, or **walk all**.
+- ⊗ Auto-stamp a parent-drafted all-accept map that the operator has not confirmed or amended.
 - ⊗ Auto-stamp when any audit marker is unresolved.
 - ! The auto-stamp denominator is the union of (a) classified headings from critic comments posted in this arc and (b) still-open residual headings on the latest successor lean. Classified headings in (a) are blocking and sharpening; footnotes stay in the walk-all census and are not in (a). Each critic's own post is in-envelope for the pass that dispatched it, including a Stop 4 retry that posts after the disagreement-map input ceiling. The input id ceiling bounds what the critic may read; it does not exclude that critic's own post from the denominator. Headings already `accept-into-contract` remain in the accepted set. Still-open residual headings persist in the denominator until they receive an explicit take on a successor lean. A retry may add headings. A retry that omits, renames, splits, or merges a still-open heading does not drop the prior heading unless the successor lean cites that prior heading and records the take. Uncited still-open headings remain `disagree` (walkable) and the map is not total. A successor-lean map is total only when every heading in that union has a take. Do not auto-stamp on a partial map.
 - ! Parse classified headings only.
@@ -339,4 +348,4 @@ This motion ingests untrusted issue threads by design.
 
 ## Test surface
 
-`packages/core/src/content-contracts/standards/design_critique_contract.test.ts` locks required pointer strings, the scaffolds framing, the comment-lead field as model then role from the closed set (not an issue label), the operator-gated loop (successor lean, operator verbs including walk / walk all, dual stop, halt line, exclusive remaining-set replace of the two catalog chips, #3640 auto-stamp on a non-empty all-accept map and no-stamp on stubs), the parent-side substantiation token and independence rules, the Stop 1 exclusion (pre-critic premises outside the trigger) and `refutation-target:` field tokens rather than full body sentences, the composed auto-bind conjunct (all-accept map AND zero unresolved audit markers) at Operator verbs and Bind path 1, the variant-table evaluation rule (charter selection and spend permission evaluated independently), the critic-method heading and distinctive obligation tokens (exact class tokens, citations-are-claims, existing mechanisms, injection / swarm trigger nouns, failed-reviewer phrase, finding anatomy) rather than full body sentences, the brief-template forbidden-inputs list, and the thin router skill (existence, line cap, pointer resolution, no-normative-content). `evaluateParentAudit` locks the omission failure modes.
+`packages/core/src/content-contracts/standards/design_critique_contract.test.ts` locks required pointer strings, the scaffolds framing, the comment-lead field as model then role from the closed set (not an issue label), the operator-gated loop (successor lean, operator verbs including walk / walk all, dual stop, halt line, exclusive remaining-set replace of the two catalog chips, #3640 auto-stamp on a non-empty all-accept map and no-stamp on stubs, first-lean recording obligation after critic EXIT), the parent-side substantiation token and independence rules, the Stop 1 exclusion (pre-critic premises outside the trigger) and `refutation-target:` field tokens rather than full body sentences, the composed auto-bind conjunct (all-accept map AND zero unresolved audit markers) at Operator verbs and Bind path 1, the variant-table evaluation rule (charter selection and spend permission evaluated independently), the critic-method heading and distinctive obligation tokens (exact class tokens, citations-are-claims, existing mechanisms, injection / swarm trigger nouns, failed-reviewer phrase, finding anatomy) rather than full body sentences, the brief-template forbidden-inputs list, and the thin router skill (existence, line cap, pointer resolution, no-normative-content). `evaluateParentAudit` locks the omission failure modes. This suite locks the SoT MUST and the thin skill pointer for the first-lean recording obligation. It does not fail-close live parent turns. Runtime parent-turn detection only if `evaluateParentAudit` is extended; that extension is not required to ship the recording obligation.

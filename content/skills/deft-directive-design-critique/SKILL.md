@@ -40,6 +40,7 @@ Normative rules live in [`contracts/design-critique.md`](../../contracts/design-
 
 Comment lead (model then role): Stop 3 — Critic envelope.
 Operator-gated loop. Successor lean. Parent-side substantiation. Operator verbs. Dual stop. Halt line. Bind after accepted synthesis.
+After critic post: posted successor lean, then verbs.
 Walk / walk all. Auto-stamp when agents agree: Operator verbs.
 Parent chip write: scm:issue:design-critique-chip.
 

@@ -74,6 +74,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Posted successor lean before operator verbs after critic EXIT (#3741).** After a critic posts, the parent posts a successor lean with proposed per-heading takes before printing accept / retry differences / walk / walk all. That posted lean is the first operator surface. This supersedes #3627 for the first lean only. Operator confirm/amend binds. All-accept drafts still go through the offer. Thin skill pointer. Content-contract tests lock the MUST, not live parent turns. Closes #3741. Refs #3434, #3627, ADR-005, ADR-006.
+
 - **A verb mentioned in issue prose is no longer a stated acceptance command (#3721).** Inline backticks in a sentence stay advisory mentions. Labeled lines, `$` prompts, and fences still require promotion. An operator can list a capture under `literal_acceptance_not_commands` instead of promoting it. `scope:complete --help` now lists `--merge-commit` and `--pr`. Closes #3721.
 - **Completed-write guard refuses oversized completed/ artifacts (#3679).** Newly added completed briefs larger than 1 MiB fail with the file path and the limit instead of an unbounded read. The lifecycle-stamp check is unchanged.
 - **Concurrent launcher no longer tells you to set `readiness=sequential` (#3666).** Gate A now says a `parallel_safe: false` story is not eligible for `swarm:launch` and points at the interactive swarm-skill path, which is not gated by a non-zero `swarm:readiness` exit (exit 0 gates concurrent workers only). Gate B is unchanged. Closes #3666.
