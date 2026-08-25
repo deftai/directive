@@ -86,7 +86,8 @@ const INJECTION_MISSING_CREDENTIAL = "GH_TOKEN (or GITHUB_TOKEN / GH_ENTERPRISE_
 const INJECTION_DISPATCHER_REMEDY =
   "Dispatcher-side remedy: load an approved user-bearing worker credential into the dispatcher environment, then call prepareWorkerCredentialInjection before spawn. Do not fall back to the host gh token or continue under the maintainer identity. Installation credentials are not injectable; see #3693.";
 
-const SIBLING_INJECTED_TOKEN_VARS = [
+const HELD_WORKER_TOKEN_VARS = [
+  "GH_TOKEN",
   "GITHUB_TOKEN",
   "GH_ENTERPRISE_TOKEN",
   "GITHUB_ENTERPRISE_TOKEN",
@@ -108,13 +109,35 @@ function sanitizeEnvelopeField(value: string, label: string): string {
   return cleaned;
 }
 
-/** Present only the selected token so validation cannot bind a sibling env var. */
+/**
+ * Bind validation to the selected token. Stamp it into every gh token slot and
+ * drop GH_CONFIG_DIR so a host/enterprise config cannot authenticate as someone
+ * else. GH_HOST stays: it selects the API host, not the secret.
+ */
 function isolateHeldWorkerToken(environ: NodeJS.ProcessEnv, token: string): NodeJS.ProcessEnv {
-  const isolated: NodeJS.ProcessEnv = { ...environ, GH_TOKEN: token };
-  for (const name of SIBLING_INJECTED_TOKEN_VARS) {
-    delete isolated[name];
+  const isolated: NodeJS.ProcessEnv = { ...environ };
+  for (const name of HELD_WORKER_TOKEN_VARS) {
+    isolated[name] = token;
   }
+  delete isolated.GH_CONFIG_DIR;
   return isolated;
+}
+
+function boundWorkerSpawnEnv(
+  token: string,
+  expectedLogin: string,
+): {
+  GH_TOKEN: string;
+  GITHUB_TOKEN: string;
+  GH_ENTERPRISE_TOKEN: string;
+  DEFT_EXPECTED_GITHUB_LOGIN: string;
+} {
+  return {
+    GH_TOKEN: token,
+    GITHUB_TOKEN: token,
+    GH_ENTERPRISE_TOKEN: token,
+    [ENV_EXPECTED_GITHUB_LOGIN]: expectedLogin,
+  };
 }
 
 /**
@@ -161,7 +184,12 @@ export type WorkerCredentialInjectionResult =
       githubAuthMode: typeof GITHUB_AUTH_MODE_INJECTED_TOKEN;
       runtimeMode: string | null;
       expectedLogin: string;
-      spawnEnv: { GH_TOKEN: string; DEFT_EXPECTED_GITHUB_LOGIN: string };
+      spawnEnv: {
+        GH_TOKEN: string;
+        GITHUB_TOKEN: string;
+        GH_ENTERPRISE_TOKEN: string;
+        DEFT_EXPECTED_GITHUB_LOGIN: string;
+      };
       envelopeSection: string;
     }
   | {
@@ -280,10 +308,7 @@ export function prepareWorkerCredentialInjection(
 
   const expectedLogin = validated.login.trim();
   assertNoCredentialValue(expectedLogin, "expected_github_login");
-  const spawnEnv = {
-    GH_TOKEN: token,
-    [ENV_EXPECTED_GITHUB_LOGIN]: expectedLogin,
-  };
+  const spawnEnv = boundWorkerSpawnEnv(token, expectedLogin);
   return {
     ok: true,
     injected: true,

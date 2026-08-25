@@ -224,16 +224,25 @@ describe("prepareWorkerCredentialInjection (#1351)", () => {
 
   it("validates the selected token, not a sibling enterprise token", () => {
     const enterpriseToken = "gho_enterprise_other_principal_1351";
-    const seen: { ghToken?: string; enterprise?: string } = {};
+    const seen: {
+      ghToken?: string;
+      githubToken?: string;
+      enterprise?: string;
+      configDir?: string;
+    } = {};
     const runGh: GhRunner = (args, environ) => {
       seen.ghToken = environ.GH_TOKEN;
+      seen.githubToken = environ.GITHUB_TOKEN;
       seen.enterprise = environ.GH_ENTERPRISE_TOKEN;
+      seen.configDir = environ.GH_CONFIG_DIR;
       return stubGh({})(args, environ);
     };
     const result = prepareWorkerCredentialInjection({
       environ: {
         GH_TOKEN: FAKE_TOKEN,
         GH_ENTERPRISE_TOKEN: enterpriseToken,
+        GH_HOST: "ghe.example.invalid",
+        GH_CONFIG_DIR: "/tmp/other-gh-store",
         GH_REPO: TARGET_REPO,
       },
       githubAuthMode: "injected-token",
@@ -246,9 +255,13 @@ describe("prepareWorkerCredentialInjection (#1351)", () => {
       return;
     }
     expect(result.spawnEnv.GH_TOKEN).toBe(FAKE_TOKEN);
+    expect(result.spawnEnv.GITHUB_TOKEN).toBe(FAKE_TOKEN);
+    expect(result.spawnEnv.GH_ENTERPRISE_TOKEN).toBe(FAKE_TOKEN);
     expect(result.expectedLogin).toBe(WORKER_LOGIN);
     expect(seen.ghToken).toBe(FAKE_TOKEN);
-    expect(seen.enterprise).toBeUndefined();
+    expect(seen.githubToken).toBe(FAKE_TOKEN);
+    expect(seen.enterprise).toBe(FAKE_TOKEN);
+    expect(seen.configDir).toBeUndefined();
     expect(JSON.stringify(result)).not.toContain(enterpriseToken);
   });
 
