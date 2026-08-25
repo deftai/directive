@@ -70,6 +70,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Scope provenance is no longer described as warn-only (#3712).** Agents now read that `--enforce` governs only the empty-scope case, and that a declared file scope without base approval fails closed. Test-boundary stays warn-only until authored policy; missing check-composition still fails closed. Closes #3712.
+
 - **Build skill completes after merge, not before PR handoff (#3674).** The generated build skill told workers to run `scope:complete` before handoff, which a delivered story cannot satisfy. The pack now points at the existing post-merge lifecycle instead of restating it. Closes #3674.
 
 - **GitHub worker validation names the expected user principal (#3665).** Deep auth checks take an expected login, compare it to `/user`, and derive the target repository. An installation-token `/user` 403 is reported as inapplicable, not unreachable; installation identity stays fail-closed until #3693. Closes #3665.
