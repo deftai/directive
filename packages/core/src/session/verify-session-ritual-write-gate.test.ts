@@ -91,6 +91,9 @@ describe("write-gate ritual surface (#3738)", () => {
     expect(WRITE_GATED_REQUIRED_STEPS).not.toContain("cache_fresh");
     expect(WRITE_GATED_EXECUTE_STEPS).not.toContain("cache_fresh");
     expect(WRITE_GATED_EXECUTE_STEPS).not.toContain("doctor");
+    const isolated = writeGateRitualOptions();
+    expect(isolated.bypass).toBe(false);
+    expect(isolated.envSkip).toBe("");
   });
 
   it("does not execute cache_fresh on the clean-cache re-arm path", () => {
@@ -206,6 +209,7 @@ describe("write-gate ritual surface (#3738)", () => {
       tier: "gated",
       posture: "mutation",
       now,
+      envSkip: "",
       runGit: fakeGit(root),
       detectWorkSelection: () => ({ inPlay: true, kind: "active-story" }),
       runner: (command) => {

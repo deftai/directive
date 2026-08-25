@@ -450,6 +450,11 @@ export function writeGateRitualOptions(
     posture: extras.posture ?? "mutation",
     requiredGatedSteps: WRITE_GATED_REQUIRED_STEPS,
     executeGatedSteps: WRITE_GATED_EXECUTE_STEPS,
+    // Write dispatch already refuses skip (dispatcher passes bypass: false).
+    // Default the same here so CI DEFT_SESSION_RITUAL_SKIP=1 cannot empty
+    // the execute loop in tests that use this helper (#3738).
+    bypass: extras.bypass ?? false,
+    envSkip: extras.envSkip ?? "",
   };
 }
 
