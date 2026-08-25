@@ -101,7 +101,7 @@ What would you like to do with this candidate?
 - ~ Bulk: `task triage:bulk-{accept,reject,defer,needs-ac}`; results still flow through the audit log.
 - ⊗ Write to `xbrief/proposed/` directly -- only `task triage:accept` is authorised.
 - ~ **Accept → pending chain (#1136):** `task triage:accept` ingests into **`proposed/`**. To stage into WIP (`pending/`) in one operator action: `task triage:accept -- --issue <N> --repo OWNER/NAME --auto-promote` (WIP cap still enforced; use `--force` on the accept command for WIP override). Separately, promote an already-accepted proposed scope by issue: `task scope:promote -- --from-issue=<N> [--repo OWNER/NAME]` (gates on latest `candidates.jsonl` decision = `accept`; non-accept refuses unless `--force-no-cache`; no decision soft-warns, `--strict` fails). Path-based `task scope:promote -- <file>` remains ungated for refinement scaffolds.
-- ? **After Accept (#3708):** offer `deft-directive-design-critique`. Optional; same after `--auto-promote` (promote already happened). Decline writes nothing. Menu: 1. Run critique (existing ADR-005 path) 2. Skip 3. Discuss 4. Back.
+- ? **After Accept (#3708):** offer `deft-directive-design-critique`. Optional; same after `--auto-promote` (promote already happened). Decline writes nothing. Menu: 1. Run critique (existing ADR-005 path) 2. Skip 3. Discuss 4. Back. Back = Skip (do not re-open Accept; undo is `task triage:reset`).
 
 ## Phase 4 -- Audit
 

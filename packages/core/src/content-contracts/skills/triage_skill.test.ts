@@ -80,6 +80,7 @@ describe("test_triage_skill", () => {
     expect(text).toContain("deft-directive-design-critique");
     expect(text).toContain("Decline writes nothing");
     expect(text).toContain("--auto-promote");
+    expect(text).toContain("Back = Skip");
   });
   it("triage_action_menu_is_host_portable_numbered_contract", () => {
     const text = readRepoFile(_TRIAGE_PATH);
