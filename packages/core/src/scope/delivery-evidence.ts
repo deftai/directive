@@ -41,6 +41,29 @@ export type DeliveryDisposition =
   | "unknown"
   | "unverified";
 
+/**
+ * Historical audit snapshot stamped onto `plan.metadata.completionProvenance`
+ * at `scope:complete` (#3041 / #3690).
+ *
+ * Completed xBRIEFs have full standing as a record of *what is* and zero
+ * authority over *what to build next* (#3383). Fields stay because they
+ * answer a later reconstruction question after branches are deleted and
+ * refs move. A field does not need a current production-code reader.
+ *
+ * Reconstruction groups:
+ * - Identity and location: `repository`, `implementationCommit`, `prNumber`,
+ *   `prBase`, `deliveryBranch`
+ * - Delivery evidence: `mergeCommit`, `deliveryCommit`, `disposition`,
+ *   `handoffState`
+ * - Verification attribution: `verifiedAt`, `verifier`
+ * - Explicit operator-supplied facts: `deployed`, `uatVerified` (never
+ *   inferred from Git)
+ *
+ * `completedSessionId` is duplicated. This nested copy is stamped so the
+ * snapshot is self-contained. Consumers (`verify:ac` /
+ * `session-completed-ac`) read the sibling
+ * `plan.metadata.completedSessionId`, not this field.
+ */
 export interface CompletionProvenance {
   readonly repository: string | null;
   readonly implementationCommit: string | null;
@@ -57,7 +80,10 @@ export interface CompletionProvenance {
   readonly deployed: boolean | null;
   /** Always null unless explicitly supplied — never inferred from Git (#3041). */
   readonly uatVerified: boolean | null;
-  /** Session that completed the brief; used by check to target xbrief/completed (#3357). */
+  /**
+   * Nested session correlation for a self-contained snapshot.
+   * Consumers read sibling `plan.metadata.completedSessionId`, not this field.
+   */
   readonly completedSessionId?: string | null;
 }
 
