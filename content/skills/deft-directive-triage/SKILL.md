@@ -37,7 +37,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Deterministic Questions Contract
 
-! Every numbered-menu prompt rendered in this skill (Phase 2 candidate selection, Phase 3 per-item decision walk) ! MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md): render the canonical numbered menu in chat unless the host UI visibly preserves numeric option labels and returns numeric selections or exact displayed option text. The final two numbered options are `Discuss` and `Back`, in that order, and the Discuss-pause semantic from the contract applies verbatim -- on `Discuss` the agent halts the in-progress sequence and resumes only on an explicit user signal.
+! Every numbered-menu prompt rendered in this skill (Phase 2 candidate selection, Phase 3 per-item decision walk, post-Accept offer) ! MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md): render the canonical numbered menu in chat unless the host UI visibly preserves numeric option labels and returns numeric selections or exact displayed option text. The final two numbered options are `Discuss` and `Back`, in that order, and the Discuss-pause semantic from the contract applies verbatim -- on `Discuss` the agent halts the in-progress sequence and resumes only on an explicit user signal.
 
 ## Work selection fork (#2542 / #2402)
 
@@ -101,6 +101,7 @@ What would you like to do with this candidate?
 - ~ Bulk: `task triage:bulk-{accept,reject,defer,needs-ac}`; results still flow through the audit log.
 - ⊗ Write to `xbrief/proposed/` directly -- only `task triage:accept` is authorised.
 - ~ **Accept → pending chain (#1136):** `task triage:accept` ingests into **`proposed/`**. To stage into WIP (`pending/`) in one operator action: `task triage:accept -- --issue <N> --repo OWNER/NAME --auto-promote` (WIP cap still enforced; use `--force` on the accept command for WIP override). Separately, promote an already-accepted proposed scope by issue: `task scope:promote -- --from-issue=<N> [--repo OWNER/NAME]` (gates on latest `candidates.jsonl` decision = `accept`; non-accept refuses unless `--force-no-cache`; no decision soft-warns, `--strict` fails). Path-based `task scope:promote -- <file>` remains ungated for refinement scaffolds.
+- ? **After Accept (#3708):** offer `deft-directive-design-critique`. Optional; same after `--auto-promote` (promote already happened). Decline writes nothing. Menu: 1. Run critique (existing ADR-005 path) 2. Skip 3. Discuss 4. Back.
 
 ## Phase 4 -- Audit
 
@@ -141,5 +142,5 @@ Live walkers (`triage:queue`, scope-drift, bootstrap) scan `.deft-cache/github-i
 
 ## References
 
-- #1119 D6; #1128 D11 (`triage:queue` / `show` / `audit`); #2890 Phase 3 operator brief; #3116 validity + URL-first; #1122 / #1123 / #1127 / #1129 / #1131; #1136 (`scope:promote --from-issue` / `triage:accept --auto-promote`)
+- #1119 D6; #1128 D11 (`triage:queue` / `show` / `audit`); #2890 Phase 3 operator brief; #3116 validity + URL-first; #1122 / #1123 / #1127 / #1129 / #1131; #1136 (`scope:promote --from-issue` / `triage:accept --auto-promote`); #3708 (post-Accept design-critique offer)
 - Siblings: `deft-directive-refinement`, `deft-directive-swarm`, `deft-directive-sync`

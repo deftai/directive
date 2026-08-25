@@ -74,6 +74,13 @@ describe("test_triage_skill", () => {
     expect(text).toContain("task triage:reset");
     expect(text).toContain("## Reversibility");
   });
+  it("triage_skill_offers_design_critique_after_accept_3708", () => {
+    const text = readRepoFile(_TRIAGE_PATH);
+    expect(text).toContain("After Accept");
+    expect(text).toContain("deft-directive-design-critique");
+    expect(text).toContain("Decline writes nothing");
+    expect(text).toContain("--auto-promote");
+  });
   it("triage_action_menu_is_host_portable_numbered_contract", () => {
     const text = readRepoFile(_TRIAGE_PATH);
     expect(text).toContain("1. Accept");

@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-
+- **Accept names the optional design-critique skill (#3708).** `task triage:accept` prints `deft-directive-design-critique`; the triage skill offers the same choice after Accept, including `--auto-promote`. Declining writes nothing. No gate. Closes #3708.
 - **Land leftover completed-tracked artifact for #1351 (#3264 / #1358).** The #1351 xBRIEF stayed untracked after squash of PR 3705. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
 
 - **Identity-bound worker credential injection at spawn (#1351).** A dispatcher that holds a user-bearing worker credential validates it with the existing principal check, injects it into the worker process environment, and stamps the expected GitHub login so comparison is not optional. Installation credentials still fail closed. Closes #1351.

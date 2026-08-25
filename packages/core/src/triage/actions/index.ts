@@ -559,6 +559,20 @@ export function reset(
   return deps.candidatesLog.append(entry, { path: logPath });
 }
 
+/** Success line for ``triage:accept``, plus the optional design-critique affordance (#3708). */
+export function formatAcceptOutput(
+  issueNumber: number,
+  repo: string,
+  decisionId: string,
+  options: { autoPromote?: boolean } = {},
+): string {
+  const promoteNote = options.autoPromote === true ? " + auto-promote" : "";
+  return (
+    `accept #${issueNumber} (${repo}) -> ${decisionId}${promoteNote}\n` +
+    "optional: deft-directive-design-critique (declining writes nothing)"
+  );
+}
+
 /** Format a decision entry for CLI ``status`` / ``history`` output. */
 export function formatDecision(entry: AuditEntry | null): string {
   if (entry === null) {

@@ -5,6 +5,7 @@ import {
   accept,
   createDefaultDeps,
   deferAction,
+  formatAcceptOutput,
   formatDecision,
   history,
   markDuplicate,
@@ -173,8 +174,9 @@ export function run(argv: string[]): number {
         autoPromote: args.autoPromote === true,
         force: args.force === true,
       });
-      const promoteNote = args.autoPromote === true ? " + auto-promote" : "";
-      process.stdout.write(`accept #${n} (${repo}) -> ${decisionId}${promoteNote}\n`);
+      process.stdout.write(
+        `${formatAcceptOutput(n, repo, decisionId, { autoPromote: args.autoPromote === true })}\n`,
+      );
     } else if (args.cmd === "reject") {
       const decisionId = reject(n, repo, args.reason ?? "", deps, {
         actor: args.actor,

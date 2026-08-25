@@ -9,6 +9,7 @@ import {
   accept,
   createDefaultDeps,
   deferAction,
+  formatAcceptOutput,
   history,
   markDuplicate,
   needsAc,
@@ -278,6 +279,20 @@ describe("rollbackAuditEntry", () => {
     log.append(entry, { path });
     expect(rollbackAuditEntry(entry.decision_id, root, path)).toBe(true);
     expect(readFileSync(path, "utf8").trim()).toBe("");
+  });
+});
+
+describe("formatAcceptOutput", () => {
+  it("names the design-critique command after the accept line (#3708)", () => {
+    expect(formatAcceptOutput(12, "owner/repo", "dec-1")).toBe(
+      "accept #12 (owner/repo) -> dec-1\noptional: deft-directive-design-critique (declining writes nothing)",
+    );
+  });
+
+  it("keeps the same offer after --auto-promote (#3708)", () => {
+    const text = formatAcceptOutput(12, "owner/repo", "dec-1", { autoPromote: true });
+    expect(text).toContain("accept #12 (owner/repo) -> dec-1 + auto-promote");
+    expect(text).toContain("optional: deft-directive-design-critique (declining writes nothing)");
   });
 });
 
