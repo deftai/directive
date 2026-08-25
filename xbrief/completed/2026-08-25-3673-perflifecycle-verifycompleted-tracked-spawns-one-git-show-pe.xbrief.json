@@ -1,0 +1,171 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3673",
+    "updated": "2026-08-25T18:47:43Z"
+  },
+  "plan": {
+    "title": "perf(lifecycle): verify:completed-tracked spawns one git show per terminal blob (1371) on the mandated DONE gate",
+    "status": "completed",
+    "narratives": {
+      "Description": "perf(lifecycle): verify:completed-tracked spawns one git show per terminal blob (1371) on the mandated DONE gate",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3673",
+      "Overview": "> **Recut after a refutation-variant critique.** The ordering diagnosis survived; the remedy it implied did not. Filename-derived early filtering would ship a false negative into a fail-closed gate. Trail: critic [5405300706](https://github.com/deftai/directive/issues/3673#issuecomment-5405300706), successor lean [5405308118](https://github.com/deftai/directive/issues/3673#issuecomment-5405308118), verified claims [5405308250](https://github.com/deftai/directive/issues/3673#issuecomment-5405308250).\n\n## Problem\n\n`task verify:completed-tracked -- --issue N` spawns **one `git show` per terminal blob** — 1371 subprocesses at present — before it applies `--issue`. On win32 this ran past four minutes with no output, twice tonight, on the mandated DONE path.\n\nPer AGENTS.md a `drive-to: merge-ready` worker MUST get this verb to exit 0 before `DONE` (#3476). On two consecutive completions the verb produced no verdict and the worker substituted an improvised `git ls-tree` check. A fallback an agent invents is not the gate.\n\n## Cause: process topology, not corpus size\n\n`packages/core/src/lifecycle/completed-tracked-on-delivery.ts`\n\n- `:501-527` — both listings run and every tip path is parsed\n- `:312-323` — `showBlob` executes one `git show` per file\n- `:345-374` — called once per path\n- `:529-540` — `options.issue` is read and `filterOriginsByIssue` applied only afterwards\n\nThe runner is Node `execFileSync` (`packages/core/src/session/git.ts:26-46`), not a shell loop.\n\nMeasured with that production primitive at `origin/master`:\n\n| Method | Result |\n|---|---|\n| 30 sequential `execFileSync git show` | 24,349.8 ms total, 811.7 ms mean |\n| One `spawnSync git cat-file --batch`, all 1345 terminal blobs | 7,742,069 bytes in 1,766.7 ms (reproduced independently at 1,685 ms, identical byte count) |\n\nThe entire corpus reads in under two seconds in one process. The current path pays roughly 800 ms per blob, 1371 times. Reading the corpus is cheap; spawning per blob is not.\n\nTerminal blobs were 1336 at filing and 1345 hours later, so the spawn count grows monotonically.\n\n## Do not filter by filename\n\nThe tempting fix — select candidate paths by issue number in the filename — is unsafe and would put a false negative in a fail-closed gate.\n\nIssue identity comes from parsed `plan.references` and `plan.metadata[\"x-tracking\"]` (`packages/core/src/orphan-active/refs.ts:97-141`). Paths are screened only by artifact suffix (`:293-310`). Filenames are a convention, not the authority.\n\nParsing all 1345 terminal artifacts: **148** carry an authoritative issue reference whose number appears nowhere in the filename. Five cancelled artifacts parse to `deftai/directive#2001` with no `2001` in their names, for example `2026-06-26-add-a-read-only-gate-subcommand-to-the-frozen-go-binary-deft.xbrief.json`. For those, `--issue 2001` would report unlanded while a tip artifact proves land.\n\n(An independent count put this at 145 rather than 148, and multi-reference artifacts at 179 rather than 489. Method-breadth discrepancies in `x-tracking` extraction; both refute filename authority and neither is load-bearing.)\n\nFilename-first selection becomes viable only if filename-to-origin agreement is made a deterministic invariant — a fail-closed validator plus migration of the counterexamples. Convention alone does not earn it.\n\n## Scope\n\nReplace the per-blob spawn with a **single-process batch read** — `git cat-file --batch` or equivalent — keeping the JSON parse and `collectGithubRefs` unchanged. This preserves the proof exactly, so the filename-authority question never has to be answered.\n\nNarrowing after authoritative parsing is separately safe: once `--issue` is applied the verdict loop only asks `landedKeys.has(key)` for the requested origin (`:529-560`, `:576-600`), so a complete `landedKeys` for every issue is not a correctness requirement. Candidate *discovery* from filenames is what is unsafe. Those are different operations and the original filing conflated them.\n\nTreat the silent stall as a separate defect. The CLI emits nothing until the evaluator returns (`packages/cli/src/verify-completed-tracked.ts:93-118`), so an agent cannot distinguish a slow gate from a hung one — which is how it got killed and routed around twice. Condition any progress or up-front-count output on a measured duration threshold, so a two-second batch implementation does not emit noise.\n\n## Acceptance\n\n- [ ] `verify:completed-tracked` **does not spawn once per terminal blob, and remains content-authoritative** — a full-corpus single-process batch is a valid fix\n- [ ] Issue identity is still derived from parsed `plan.references` / `plan.metadata[\"x-tracking\"]`, never from the path\n- [ ] No filename-derived candidate selection, absent a fail-closed filename-to-origin invariant that does not exist today\n- [ ] `--issue N` returns a verdict fast enough that no worker needs a fallback\n- [ ] Verdicts are unchanged: same pass/fail for the same inputs, with coverage over at least one of the 148 filename-mismatched artifacts\n- [ ] Progress or an up-front count when the run exceeds a measured duration threshold\n- [ ] No gate weakened and no proof narrowed to make it faster (#3156)\n- [ ] CHANGELOG `[Unreleased]` entry\n\nRefs #3476, #2321, #3145.\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-08-25T04:34:33Z)\n\nmodel: claude-opus-5-thinking-high-fast\nrole: triage\n\n**mechanism-shaped: true**\n\ndesign-critique: warranted, because the obvious remedy trades a correctness property for speed and the issue deliberately declined to pick one. Filtering earlier is fast but would rest on a filename convention rather than on parsed plan content, which is the authoritative source today. Whether that trade is acceptable on a mandated gate is a design call, not an optimisation detail.\n\n## Authorship disclosure\n\nI filed #3673 and I am running this arc as parent. Non-self-arbitration applies: findings I originated need primary-source re-derivation before they can be marked verified. Two of my premises have already been refuted tonight on #3712 and #3713, so treat the body's measurements as claims to check.\n\n## Triage decision\n\nAccepted. `6ad7dcfb-f971-4300-8a58-f28e5c268e3c`.\n\n## Variant (Stop 2)\n\n**refutation, N=1.** The body names a defensible presumption with a crisp refutation target, which is the condition for this variant. The diagnosis is falsifiable from the code in one read, and the remedy space is small enough that a panel would be spending three critics to reach the same short list.\n\n## Refutation target\n\n> `verify:completed-tracked --issue N` is slow because it parses the entire terminal corpus before applying the `--issue` filter, and the fix is to reduce the work that happens before that filter.\n\n## Re-derived since filing\n\nIndependently confirmed at `origin/master` before dispatch, not taken from the body:\n\n| Quantity | At filing | Now | Method |\n|---|---|---|---|\n| Terminal blobs (`completed` + `cancelled`) | 1336 | **1345** | `git ls-tree -r --name-only origin/master -- xbrief/completed xbrief/cancelled` |\n| Nonterminal blobs | 26 | **26** | same, over `active`/`pending`/`proposed` |\n| Minimum `git show` spawns | 1362 | **1371** | sum |\n\nThe count rose by nine in the hours between filing and this dispatch, which is the monotonic-degradation claim demonstrating itself rather than being argued.\n\nOrdering confirmed in the source at tip: `listTreePaths` then `issuesFromBlobPaths` (which calls `showBlob` per path at `:354-355`), and only afterwards `const issueFilter = options.issue ?? null` and `filterOriginsByIssue`. The expensive step does not know which issue was asked for.\n\n## Recurrence since filing\n\nThis fired a second time tonight, on the #3708 completion. The worker exceeded four minutes, fell back to `git ls-tree`, and reported which method it used. That is now two of two `drive-to: merge-ready` completions where the mandated gate did not produce a verdict and a human-authored fallback stood in for it.\n\nThat changes the character of the issue and the critic should weigh it: this is not only slow, it is a gate that workers are learning to route around. A fallback that an agent improvises is not the gate.\n\n## Worth attacking\n\nNot an exhaustive list and not the parent's position:\n\n- Whether the ordering is genuinely the cause, or whether per-spawn cost, `git show` specifically, or something upstream dominates. The body's own timing method is disclosed as inflated by PowerShell overhead and should not be trusted.\n- Whether filtering earlier is **safe**. `landedKeys` is built from the full terminal scan. Determine what depends on that complete set and whether narrowing it changes any verdict.\n- Whether a filename-derived pre-filter is sound. Artifact names embed the issue number by convention; parsed plan content is authoritative. Is the convention reliable enough to gate on, and what happens to an artifact whose name and content disagree?\n- Whether the spawn count can be removed without changing semantics at all — `git cat-file --batch` and similar answer the same question in one process. If a semantics-preserving fix exists, the correctness question above may not need answering.\n- Whether a gate on the mandated DONE path should be allowed to run for minutes with no output regardless of the eventual speed, given an agent cannot distinguish a slow gate from a hung one.\n\n\n### Comment by @MScottAdams (2026-08-25T04:38:06Z)\n\nmodel: gpt-5.6-sol-medium\nrole: critic\n\n### blocks-the-design — Filename-derived early filtering cannot preserve the current proof\n\nThe issue's first acceptance item is too strong if it means candidate selection from filenames. Issue identity is derived from parsed `plan.references` and `plan.metadata[\"x-tracking\"]`, not from the path (`packages/core/src/orphan-active/refs.ts:97-141`); terminal paths are screened only by artifact suffix before every blob is parsed (`packages/core/src/lifecycle/completed-tracked-on-delivery.ts:293-310`, `packages/core/src/lifecycle/completed-tracked-on-delivery.ts:345-374`).\n\nEvidence: at dispatch SHA `a9a48f6fa3f6ea29163dd10ca32597a3e2aaea3a`, I listed the 1,345 terminal artifacts from `origin/master`, read them in one `git cat-file --batch`, parsed the same two authoritative issue surfaces named above, and compared those issue numbers with numeric filename tokens. 145 artifacts with an authoritative issue reference had none of their authoritative issue numbers in the filename; 179 carried more than one authoritative issue reference. Examples include five cancelled artifacts whose parsed issue is `deftai/directive#2001` but whose filenames contain no `2001`. A filename pre-filter can therefore miss a valid landed artifact and falsely fail the DONE gate.\n\nFailure mode: `--issue 2001` can report unlanded even though a terminal tip artifact proves land, weakening the gate contract that requires tracked completed/cancelled evidence on the delivery tip (`AGENTS.md:257-258`; `content/commands.md:294-297`). Disposition: replace \"does not scan the full terminal corpus\" with a semantics requirement such as \"does not spawn once per terminal blob and remains content-authoritative.\" A full-corpus single-process batch is a valid fix even though it still reads the corpus.\n\nRoad not taken: filename-first filtering would be attractive and proportional if filename-to-origin agreement were a deterministic invariant, including multi-origin artifacts. A fail-closed validator plus migration of the 145 counterexamples would flip this verdict; convention alone does not.\n\n### sharpens-framing — The ordering claim is true, but process topology is the measured cost\n\nThe source performs nonterminal listing/parsing, terminal listing/parsing, and construction of `landedKeys` before reading `options.issue` and filtering `originMap` (`packages/core/src/lifecycle/completed-tracked-on-delivery.ts:501-540`). Each parsed tip path calls `showBlob`, which executes one `git show` (`packages/core/src/lifecycle/completed-tracked-on-delivery.ts:312-323`, `packages/core/src/lifecycle/completed-tracked-on-delivery.ts:345-374`). The production runner is synchronous Node `execFileSync`, not PowerShell (`packages/core/src/session/git.ts:26-46`). Thus the target's ordering clause survives.\n\nI also measured the cost with the production subprocess primitive on this host. Method 1: 30 sequential Node `execFileSync(\"git\", [\"show\", \"origin/master:<path>\"])` calls over the first 30 terminal paths took 24,349.8 ms total, 811.7 ms mean. Method 2: one Node `spawnSync(\"git\", [\"cat-file\", \"--batch\"])` over all 1,345 terminal blobs returned 7,742,069 bytes in 1,766.7 ms. The same `git ls-tree` method counted 26 nonterminal blobs, so the current path performs 1,371 per-blob reads after its two listings (`packages/core/src/lifecycle/completed-tracked-on-delivery.ts:501-527`).\n\nFailure mode: framing this as \"parsing before filtering\" steers implementation toward unsafe filename filtering when the demonstrated avoidable cost is one process per blob. Disposition: keep the ordering diagnosis, but make `git cat-file --batch` (or an equivalently semantics-preserving single-process read) the baseline design. It removes the spawn count while retaining JSON parsing and `collectGithubRefs` unchanged, so the filename-authority question need not be answered for the fix.\n\nI did not run the full gate, so I did not establish its complete end-to-end wall time or apportion every remaining phase. The comparative measurements do establish that the exact per-blob runner is expensive on this host and that batching the entire terminal payload is cheap.\n\n### sharpens-framing — Complete `landedKeys` coverage is not required by the per-issue verdict\n\nAfter `--issue` is applied, `originMap` contains only the repo-scoped requested issue (or a synthetic requested origin); the verdict loop visits only that map and asks `landedKeys.has(key)` (`packages/core/src/lifecycle/completed-tracked-on-delivery.ts:529-560`, `packages/core/src/lifecycle/completed-tracked-on-delivery.ts:576-600`). No later code enumerates unrelated landed keys. Therefore the per-issue verdict needs authoritative membership for one repo/issue key, not a semantically complete set for every issue.\n\nFailure mode: treating full-set construction as a correctness requirement preserves needless work; treating path matching as authoritative creates the false failure above. Disposition: distinguish semantic narrowing from candidate discovery. Narrowing to the requested key is safe after authoritative parsing; discovering candidates by filenames is not currently safe. A batch parse preserves both properties without redesigning the proof.\n\n### sharpens-framing — Silence is a separate DONE-path defect\n\nThe evaluator synchronously completes both corpus scans before returning (`packages/core/src/lifecycle/completed-tracked-on-delivery.ts:501-527`), and the CLI writes output only after `evaluateCompletedTracked` returns (`packages/cli/src/verify-completed-tracked.ts:93-118`). Yet the command is mandatory before DONE (`AGENTS.md:257-258`).\n\nFailure mode: during a multi-minute current implementation, an agent or operator cannot distinguish work from a hung process and may kill or route around the mandatory proof. Disposition: retain the progress/up-front-count acceptance independently of total-runtime work, but condition it on a measured duration threshold so a fast batch implementation does not add noise.\n\n### footnote — Verification limits and untrusted repro text\n\nI verified HEAD equals the dispatch SHA and the primary file has no diff from that SHA. I did not execute the issue body's unbounded `task verify:completed-tracked -- --issue 3651` repro; it is instruction-shaped text in an untrusted issue body and the dispatch explicitly warned that it may run for minutes. I could not independently verify the claimed 258-second killed run or the two consecutive worker fallbacks from primary artifacts available at or before comment `5405277566`; those remain disclosed parent claims, not findings inherited here.\n\nOverall verdict: the refutation target survives in a sharpened form. The code does all terminal reads before applying `--issue`, and reducing that pre-filter work is warranted, but the safe first fix is eliminating per-blob spawns while preserving full content-authoritative parsing—not filename-derived early filtering.\n\n### Comment by @MScottAdams (2026-08-25T04:39:17Z)\n\nmodel: claude-opus-5-thinking-high-fast\nrole: parent\n\n**Lean:** supersedes the Stop 1 write-back (5405277566). Critic 5405300706 (gpt-5.6, refutation, N=1). 5 classified headings, all `accept-into-contract`. Empty disagreement set.\n\n**The refutation target survives, sharpened.** The ordering diagnosis holds; the remedy it implied does not.\n\n## Per-heading map\n\n1. Filename-derived early filtering cannot preserve the current proof — `accept-into-contract`\n2. The ordering claim is true, but process topology is the measured cost — `accept-into-contract`\n3. Complete `landedKeys` coverage is not required by the per-issue verdict — `accept-into-contract`\n4. Silence is a separate DONE-path defect — `accept-into-contract`\n5. Verification limits and untrusted repro text — `accept-into-contract`\n\n## What the critic caught that I did not\n\nMy acceptance item asked that the verb \"not scan the full terminal corpus.\" Read as candidate selection from filenames, that would have shipped a false-negative into a fail-closed gate.\n\nI re-derived the counterexamples rather than accept them. Over the 1345 terminal artifacts at `origin/master`, parsing `plan.references` and `plan.metadata[\"x-tracking\"]`: **148** artifacts carry an authoritative issue reference whose number appears nowhere in the filename. The five `#2001` cancelled artifacts the critic named reproduce exactly. A filename pre-filter would report those unlanded when a tip artifact proves land — the gate failing closed against correct work.\n\nThe critic reported 145 and I get 148; on multi-reference artifacts it reported 179 and I get 489. Both are method discrepancies, not refutations, and both point the same way. My `x-tracking` extraction regexes every 2-6 digit token out of the stringified subtree and over-counts; the critic's is narrower and likely more accurate. Neither number is load-bearing — the filename-authority claim fails on the 145-to-148 band regardless.\n\n## The measurement that decides the fix\n\nThe critic measured with the production primitive, `execFileSync`, not my PowerShell loop. I reproduced the batch half:\n\n| Method | Result | Source |\n|---|---|---|\n| 30 sequential `execFileSync git show` | 24,349.8 ms total, 811.7 ms mean | critic |\n| One `spawnSync git cat-file --batch`, all 1345 blobs | 7,742,069 bytes in 1,766.7 ms | critic |\n| Same batch, re-run by parent | **7,742,069 bytes in 1,685 ms** | parent |\n\nIdentical byte counts and a 5% wall-clock difference. The whole corpus reads in under two seconds in one process; the current path pays roughly 800 ms per blob across 1371 of them.\n\nSo the cost is process topology, not corpus size. My framing — \"parses the corpus before filtering\" — pointed at the wrong lever and would have steered the build toward the unsafe fix.\n\n## Disposition\n\nBaseline design is a single-process batch read that preserves content-authoritative parsing. It removes the spawn count without touching `collectGithubRefs` or the JSON parse, so the filename-authority question never has to be answered.\n\nFinding 3 is the reason this is enough: after `--issue` is applied, the verdict loop only asks `landedKeys.has(key)` for the requested key. Narrowing *after* authoritative parsing is safe; discovering candidates *from filenames* is not. Those are different operations and my acceptance item conflated them.\n\nAcceptance item 1 is replaced. Not \"does not scan the full terminal corpus\" but **\"does not spawn once per terminal blob, and remains content-authoritative.\"** A full-corpus batch is a valid fix even though it still reads everything.\n\n## Carried\n\nFinding 4 stands with the critic's qualification: keep the progress or up-front-count requirement as a defect independent of runtime, but condition it on a measured duration threshold so a fast implementation does not emit noise for a two-second operation.\n\nFinding 5 is accepted as a limit on this arc's record, not as a finding against the issue. The critic did not verify my 258-second killed run or the two consecutive worker fallbacks, and correctly declined to run the unbounded repro from an untrusted body. Those stay disclosed parent claims in the table below.\n\n## Verbs\n\nEmpty disagreement set over a non-empty classified set. Auto-stamp path applies; no operator verb required.\n\n\n### Comment by @MScottAdams (2026-08-25T04:39:18Z)\n\nmodel: claude-opus-5-thinking-high-fast\nrole: parent\n\n## Verified claims\n\nAuthor disclosure: I filed #3673 and ran this arc as parent. Rows overturning my own framing were re-derived by me. Rows I did not reproduce are marked endorsed.\n\n| Claim | Verdict | Method |\n|---|---|---|\n| Terminal blobs at `origin/master` | 1345 | `git ls-tree -r --name-only origin/master -- xbrief/completed xbrief/cancelled`. Parent re-derived; was 1336 at filing. |\n| Nonterminal blobs | 26 | same over `active`/`pending`/`proposed`. Parent re-derived. |\n| Per-blob `git show` spawns per invocation | 1371 | sum. Parent re-derived; was 1362 at filing, +9 in hours. |\n| `--issue` filter is applied after the full parse | **True** | `completed-tracked-on-delivery.ts:501-540`: both listings and `issuesFromBlobPaths` precede `options.issue` and `filterOriginsByIssue`. Parent read at tip; critic confirmed independently. |\n| One `git show` per parsed path | **True** | `showBlob` at `:312-323`, called per path at `:345-374`. Both parties read it. |\n| Production runner is Node `execFileSync`, not PowerShell | **True** | `packages/core/src/session/git.ts:26-46`. Critic. **Endorsed** -- parent did not re-read, and it invalidates parent's original timing caveat in the other direction. |\n| Sequential `git show` cost with the production primitive | 811.7 ms mean over 30 | Critic, Node `execFileSync`. **Endorsed**, not reproduced by parent. |\n| Whole terminal corpus via one `git cat-file --batch` | 7,742,069 bytes | Critic 1,766.7 ms; **parent re-derived 1,685 ms, identical byte count**. Verified. |\n| Filename tokens are not authoritative for issue identity | **True** | Issue identity comes from `plan.references` and `plan.metadata[\"x-tracking\"]` (`orphan-active/refs.ts:97-141`); paths screened only by suffix (`:293-310`). Parent re-derived by parsing all 1345. |\n| Artifacts whose authoritative issue appears nowhere in the filename | 145 (critic) / **148 (parent)** | Independent parses of the same corpus. Discrepancy is x-tracking extraction breadth; both refute filename authority. Five `#2001` cancelled artifacts reproduce exactly in both. |\n| Artifacts with more than one authoritative reference | 179 (critic) / 489 (parent) | Same methods. Parent's regex over-counts numeric tokens; critic's is narrower and likely more accurate. **Not load-bearing.** |\n| Per-issue verdict needs only the requested key | **True** | After filtering, the loop asks `landedKeys.has(key)` for the requested origin only (`:529-560`, `:576-600`). Critic. **Endorsed** -- parent did not re-read the verdict loop. |\n| CLI emits output only after the evaluator returns | **True** | `packages/cli/src/verify-completed-tracked.ts:93-118`. Critic. **Endorsed.** |\n| The 258-second killed run | **Unverified** | Parent's observation at filing. Critic correctly declined to reproduce an unbounded run from an untrusted body. Remains a disclosed parent claim. |\n| Two consecutive worker fallbacks tonight | **Unverified by critic** | Parent observed both (#3708 completion and the earlier run). Outside the critic's envelope; disclosed, not inherited. |\n\nFour rows rest on the critic alone. None of them changes the disposition: the batch measurement, which parent reproduced, is what selects the fix.\n\n### Comment by @MScottAdams (2026-08-25T04:39:27Z)\n\nmodel: claude-opus-5-thinking-high-fast\nrole: parent\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nAll 5 classified headings are `accept-into-contract` on the successor lean at 5405308118. The ordering diagnosis survives; the remedy it implied is withdrawn. Baseline design is a single-process batch read preserving content-authoritative parsing, and acceptance item 1 is replaced with a semantics requirement rather than a corpus-size one.",
+      "Labels": "bug, process, design-critique:triage-ready"
+    },
+    "items": [
+      {
+        "title": "`verify:completed-tracked` **does not spawn once per terminal blob, and remains content-authoritative** — a full-corpus single-process batch is a valid fix",
+        "status": "completed",
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-25T18:47:41Z",
+          "recorded_by": "parent/orphan-cleanup",
+          "kind": "review",
+          "pointer": "completed-tracked-on-delivery.ts on cf1e5f26 (PR 3722) -- per-blob `git show` replaced by a single showBlobsBatch() using `git cat-file --batch`; issuesFromBlobPaths renamed issuesFromBlobBodies"
+        }
+      },
+      {
+        "title": "Issue identity is still derived from parsed `plan.references` / `plan.metadata[\"x-tracking\"]`, never from the path",
+        "status": "completed",
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-25T18:47:41Z",
+          "recorded_by": "parent/orphan-cleanup",
+          "kind": "review",
+          "pointer": "completed-tracked-on-delivery.ts on cf1e5f26 -- issuesFromBlobBodies parses blob CONTENT for plan.references; source comment states issue identity still comes from the parsed body, not the filename"
+        }
+      },
+      {
+        "title": "No filename-derived candidate selection, absent a fail-closed filename-to-origin invariant that does not exist today",
+        "status": "completed",
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-25T18:47:41Z",
+          "recorded_by": "parent/orphan-cleanup",
+          "kind": "review",
+          "pointer": "completed-tracked-on-delivery.ts on cf1e5f26 -- no filename-derived candidate selection was introduced; the filename-filter remedy was refuted at bind and deliberately not adopted, keeping the read content-authoritative"
+        }
+      },
+      {
+        "title": "`--issue N` returns a verdict fast enough that no worker needs a fallback",
+        "status": "completed",
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-25T18:47:41Z",
+          "recorded_by": "parent/orphan-cleanup",
+          "kind": "observed_behavior",
+          "pointer": "measured 2026-08-25 on cf1e5f26: `verify:completed-tracked --issue 3690` returned a verdict in 8.1s wall, of which the batch read of 1345 terminal + 26 nonterminal blobs took 1726ms -- 1371 blobs, previously 1371 subprocesses"
+        }
+      },
+      {
+        "title": "Verdicts are unchanged: same pass/fail for the same inputs, with coverage over at least one of the 148 filename-mismatched artifacts",
+        "status": "completed",
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-25T18:47:41Z",
+          "recorded_by": "parent/orphan-cleanup",
+          "kind": "test",
+          "pointer": "cf1e5f26 adds coverage in 3 files (+299 test lines): completed-tracked-on-delivery.test.ts, verify-completed-tracked.test.ts, session/git.test.ts -- verdict parity over the same inputs"
+        }
+      },
+      {
+        "title": "Progress or an up-front count when the run exceeds a measured duration threshold",
+        "status": "completed",
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-25T18:47:41Z",
+          "recorded_by": "parent/orphan-cleanup",
+          "kind": "observed_behavior",
+          "pointer": "measured 2026-08-25: progress line fired -- 'verify:completed-tracked: still running (1726ms); reading 1345 terminal and 26 nonterminal blobs'; silence window and up-front count floor added for #3673 Greptile P2"
+        }
+      },
+      {
+        "title": "No gate weakened and no proof narrowed to make it faster (#3156)",
+        "status": "completed",
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-25T18:47:41Z",
+          "recorded_by": "parent/orphan-cleanup",
+          "kind": "review",
+          "pointer": "cf1e5f26 keeps content-authoritative parsing and fail-closed verdicts; the speedup is I/O batching only, no predicate loosened (#3156). Exit 1 still correctly reported #3690's untracked artifact during the measurement above"
+        }
+      },
+      {
+        "title": "CHANGELOG `[Unreleased]` entry",
+        "status": "completed",
+        "x-directive/evidence": {
+          "recorded_at": "2026-08-25T18:47:41Z",
+          "recorded_by": "parent/orphan-cleanup",
+          "kind": "review",
+          "pointer": "CHANGELOG.md [Unreleased] on cf1e5f26 -- batch-read entry present"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "process",
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3673",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3673: perf(lifecycle): verify:completed-tracked spawns one git show per terminal blob (1371) on the mandated DONE gate"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3476",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3476"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [
+        {
+          "command": "task verify:completed-tracked -- --issue N",
+          "source": "task_statement",
+          "sourceSpan": "inline@L7"
+        }
+      ],
+      "literal_acceptance_rejected": [
+        {
+          "command": "git show",
+          "reason": "first token \"git\" is not in the literal-AC allowlist",
+          "sourceSpan": "inline@L7"
+        }
+      ],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3722,
+        "prBase": null,
+        "mergeCommit": "cf1e5f26",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0a5d7e63134a7e606fc7d5d3fbd47876c7973e28",
+        "verifiedAt": "2026-08-25T18:47:43Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "5d5c1907-4251-417d-9d9f-2557647a80ee"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-25T18:47:43Z"
+      },
+      "completedAt": "2026-08-25T18:47:43Z",
+      "completedSessionId": "5d5c1907-4251-417d-9d9f-2557647a80ee",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "stated",
+      "derived_reason": "derived 9 independently testable clauses from the task statement before product edit (#3323) Ingest-derived acceptance dropped by operator decision (#3721 precedent). 9 clause(s) came from the issue's markdown checklist, 9 with no artifact_path. The #3497 clause walk requires artifact-bound clauses, so prose assertions and negative claims (\"no field is removed\", \"no gate weakened\") cannot verify by construction; binding them to an existing path would mark them verified because the file exists, proving nothing about the claim. Stored command(s) [\"task verify:completed-tracked -- --issue N\"] were prose captures, not commands the story promised to run. Acceptance is carried by per-item x-directive/evidence, each pointer checked against the merged diff.",
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-08-25T18:47:43Z"
+  }
+}
