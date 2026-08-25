@@ -144,6 +144,7 @@ const REQUIRED_SKILL_POINTERS = [
   "EXITs after posting",
   "scm:issue:design-critique-chip",
   "After critic post: posted successor lean, then verbs",
+  "Auto-stamp after operator confirm; not while same-round siblings outstanding",
 ];
 
 const DEFAULT_ALWAYS_PINS = [
@@ -581,16 +582,30 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(lean).toContain("Do not post a third map type");
     expect(lean).toContain("ADR-006 arbitration surface");
     expect(lean).toContain("same party authored the triage");
+    expect(loop).toContain("Binding takes is not synthesis bind");
+    expect(loop).toContain("The first lean after one critic EXIT is the take-offer, not the bind");
     expect(verbs).toContain("when they apply");
     expect(verbs).toContain("empty-lean verb menu");
     expect(verbs).toContain("Do not skip the first-lean offer because the draft is all-accept");
     expect(verbs).toContain(
       "Auto-stamp a parent-drafted all-accept map that the operator has not confirmed",
     );
+    expect(verbs).toContain("the operator has confirmed or amended that map");
+    expect(verbs).toContain("no unposted same-round siblings named on the panel-deposit remain");
+    expect(verbs).toContain(
+      "Auto-stamp while a panel-deposit for this round still has unposted siblings",
+    );
     expect(testSurface).toContain("does not fail-close live parent turns");
     expect(testSurface).toContain("evaluateParentAudit");
+    const bind = markdownSection(text, "## Bind after accepted synthesis");
+    expect(bind).toContain("the operator has confirmed or amended that map");
+    expect(bind).toContain("no unposted same-round siblings named on the panel-deposit remain");
+    expect(bind).toContain("an unconfirmed parent draft");
     const skill = readText(SKILL_REL);
     expect(skill).toContain("After critic post: posted successor lean, then verbs");
+    expect(skill).toContain(
+      "Auto-stamp after operator confirm; not while same-round siblings outstanding",
+    );
     expect(skill).not.toContain("accept-into-contract");
     expect(skill).not.toContain("| Condition | Variant | N |");
   });
@@ -649,7 +664,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(text).toContain("An unresolved marker is residual and blocks verified-synthesis bind.");
     expect(text).toContain("⊗ Discharge a marker by promising a later pass.");
     expect(text).toContain(
-      "Auto-bind requires an all-accept disposition map AND zero unresolved audit markers.",
+      "Auto-bind requires an all-accept disposition map AND zero unresolved audit markers AND the operator has confirmed or amended that map AND no unposted same-round siblings named on the panel-deposit remain.",
     );
     expect(text).toContain(
       "This conjunct applies at Operator verbs auto-stamp and at Bind after accepted synthesis path 1.",
