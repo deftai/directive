@@ -42,8 +42,8 @@ export type DeliveryDisposition =
   | "unverified";
 
 /**
- * Historical audit snapshot stamped onto `plan.metadata.completionProvenance`
- * at `scope:complete` (#3041 / #3690).
+ * This is a historical audit snapshot stamped onto
+ * `plan.metadata.completionProvenance` at `scope:complete` (#3041 / #3690).
  *
  * Completed xBRIEFs have full standing as a record of *what is* and zero
  * authority over *what to build next* (#3383). Fields stay because they
