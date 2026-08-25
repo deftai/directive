@@ -8,6 +8,7 @@ import {
   evaluateCompletedTracked,
   resolveDeliveryTip,
   shouldAnnounceProgress,
+  shouldAnnounceUpFrontCount,
 } from "./completed-tracked-on-delivery.js";
 
 const temps: string[] = [];
@@ -676,5 +677,18 @@ describe("shouldAnnounceProgress (#3673)", () => {
   it("announces once the measured duration threshold is crossed", () => {
     expect(shouldAnnounceProgress(3_000)).toBe(true);
     expect(shouldAnnounceProgress(10, 5)).toBe(true);
+  });
+});
+
+describe("shouldAnnounceUpFrontCount (#3673)", () => {
+  it("stays silent for fixture-sized corpora", () => {
+    expect(shouldAnnounceUpFrontCount(1, 0)).toBe(false);
+    expect(shouldAnnounceUpFrontCount(0, 26)).toBe(false);
+  });
+
+  it("announces after listing when the corpus is large enough to stall", () => {
+    expect(shouldAnnounceUpFrontCount(1345, 26)).toBe(true);
+    expect(shouldAnnounceUpFrontCount(31, 1, 32)).toBe(true);
+    expect(shouldAnnounceUpFrontCount(31, 0, 32)).toBe(false);
   });
 });

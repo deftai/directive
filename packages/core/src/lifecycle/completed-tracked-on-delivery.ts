@@ -85,6 +85,15 @@ export interface EvaluateCompletedTrackedOptions {
 /** Default silence window so a ~2s batch read does not emit progress noise. */
 export const COMPLETED_TRACKED_PROGRESS_THRESHOLD_MS = 3_000;
 
+/**
+ * Up-front count floor (#3673 Greptile P2). Listing is cheap; the batch
+ * read is the remaining stall. Announce the blob count after listing
+ * (before `cat-file --batch`) when the corpus is large enough that a
+ * silent wait is the old DONE-path failure mode. Fixture-sized runs stay
+ * quiet unless the duration threshold is also crossed.
+ */
+export const COMPLETED_TRACKED_PROGRESS_MIN_BLOBS = 32;
+
 export interface CompletedTrackedProgress {
   readonly phase: "listed" | "read";
   readonly terminalCount: number;
@@ -97,6 +106,14 @@ export function shouldAnnounceProgress(
   thresholdMs: number = COMPLETED_TRACKED_PROGRESS_THRESHOLD_MS,
 ): boolean {
   return elapsedMs >= thresholdMs;
+}
+
+export function shouldAnnounceUpFrontCount(
+  terminalCount: number,
+  nonterminalCount: number,
+  minBlobs: number = COMPLETED_TRACKED_PROGRESS_MIN_BLOBS,
+): boolean {
+  return terminalCount + nonterminalCount >= minBlobs;
 }
 
 interface OriginHit {

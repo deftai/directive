@@ -199,6 +199,35 @@ describe("run", () => {
     }
   });
 
+  it("prints an up-front blob count after listing when the corpus floor is 0 (#3673)", () => {
+    const root = buildRepo();
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const previousMs = process.env.DEFT_COMPLETED_TRACKED_PROGRESS_MS;
+    const previousBlobs = process.env.DEFT_COMPLETED_TRACKED_PROGRESS_MIN_BLOBS;
+    try {
+      process.env.DEFT_COMPLETED_TRACKED_PROGRESS_MS = "60000";
+      process.env.DEFT_COMPLETED_TRACKED_PROGRESS_MIN_BLOBS = "0";
+      expect(run(["--project-root", root, "--tip", "HEAD", "--skip-gh"])).toBe(0);
+      const stderr = err.mock.calls.map((c) => String(c[0])).join("");
+      expect(stderr).toContain("still running");
+      expect(stderr).toMatch(/terminal/);
+    } finally {
+      if (previousMs === undefined) {
+        delete process.env.DEFT_COMPLETED_TRACKED_PROGRESS_MS;
+      } else {
+        process.env.DEFT_COMPLETED_TRACKED_PROGRESS_MS = previousMs;
+      }
+      if (previousBlobs === undefined) {
+        delete process.env.DEFT_COMPLETED_TRACKED_PROGRESS_MIN_BLOBS;
+      } else {
+        process.env.DEFT_COMPLETED_TRACKED_PROGRESS_MIN_BLOBS = previousBlobs;
+      }
+      err.mockRestore();
+      out.mockRestore();
+    }
+  });
+
   it("prints an up-front blob count when the duration threshold is 0 (#3673)", () => {
     const root = buildRepo();
     const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);

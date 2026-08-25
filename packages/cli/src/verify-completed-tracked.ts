@@ -2,10 +2,12 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  COMPLETED_TRACKED_PROGRESS_MIN_BLOBS,
   COMPLETED_TRACKED_PROGRESS_THRESHOLD_MS,
   type CompletedTrackedProgress,
   evaluateCompletedTracked,
   shouldAnnounceProgress,
+  shouldAnnounceUpFrontCount,
 } from "@deftai/directive-core/lifecycle";
 
 interface ParsedArgs {
@@ -116,7 +118,11 @@ export function run(argv: string[]): number {
       if (args.quiet || announced) {
         return;
       }
-      if (!shouldAnnounceProgress(event.elapsedMs, thresholdMs)) {
+      const minBlobs = resolveProgressMinBlobs();
+      const upFront =
+        event.phase === "listed" &&
+        shouldAnnounceUpFrontCount(event.terminalCount, event.nonterminalCount, minBlobs);
+      if (!upFront && !shouldAnnounceProgress(event.elapsedMs, thresholdMs)) {
         return;
       }
       announced = true;
@@ -141,6 +147,14 @@ function resolveProgressThresholdMs(): number {
     return Number(raw);
   }
   return COMPLETED_TRACKED_PROGRESS_THRESHOLD_MS;
+}
+
+function resolveProgressMinBlobs(): number {
+  const raw = process.env.DEFT_COMPLETED_TRACKED_PROGRESS_MIN_BLOBS;
+  if (raw !== undefined && /^\d+$/.test(raw)) {
+    return Number(raw);
+  }
+  return COMPLETED_TRACKED_PROGRESS_MIN_BLOBS;
 }
 
 function writeProgress(event: CompletedTrackedProgress): void {
