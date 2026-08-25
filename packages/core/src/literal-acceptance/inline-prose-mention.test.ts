@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { evaluateVerifyAcFromPlan } from "../product-first-done-gate/evaluate.js";
+import { evaluateScopeCompleteAcceptanceWalk } from "../scope/acceptance-evidence.js";
 import { renderVerbHelp } from "../triage/help/index.js";
 import {
   captureLiteralAcceptanceCommandsDetailed,
@@ -171,6 +173,44 @@ describe("inline backtick in prose is not a stated command (#3721)", () => {
     expect(result.advisoryRejected?.map((r) => r.command)).toContain("task check");
     const swarm = (plan.metadata as { swarm?: { verify_commands?: string[] } }).swarm;
     expect(swarm?.verify_commands ?? []).not.toContain("task check");
+  });
+
+  it("does not execute ingest-stamped plan.acceptance.commands that are inline mentions", () => {
+    const plan = plan3712Shape({
+      acceptance: {
+        commands: [{ command: "deft verify:*" }],
+        none_stated: false,
+        source_rung: "stated",
+      },
+    });
+    const result = evaluateVerifyAcFromPlan(plan, {
+      projectRoot: process.cwd(),
+      captureFromNarratives: true,
+      runner: () => {
+        throw new Error("must not run deft verify:* from the #3449 fallback");
+      },
+    });
+    expect(result.ok).toBe(true);
+    expect(result.runs).toEqual([]);
+  });
+
+  it("lets the complete verify:ac walk pass the #3712 shape without promotion", () => {
+    const walk = evaluateScopeCompleteAcceptanceWalk(
+      plan3712Shape({
+        acceptance: {
+          commands: [{ command: "deft verify:*" }],
+          none_stated: false,
+          source_rung: "stated",
+        },
+      }),
+      {
+        projectRoot: process.cwd(),
+        runner: () => {
+          throw new Error("must not spawn on the complete walk");
+        },
+      },
+    );
+    expect(walk.ok).toBe(true);
   });
 
   it("still blocks an unsafe command stated in a structured field", () => {

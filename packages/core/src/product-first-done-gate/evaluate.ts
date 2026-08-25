@@ -19,10 +19,13 @@ import {
   appendLiteralAcceptanceAdvisory,
   type EvaluateLiteralAcceptanceOptions,
   evaluateLiteralAcceptanceFromPlan,
+  isInlineProseMention,
   isNoopRefusalReason,
   type LiteralAcceptanceGateResult,
   type LiteralAcceptanceRunner,
   type RejectedLiteralCommand,
+  readNotAcceptanceCommands,
+  readStoredLiteralAcceptanceCommands,
   runLiteralAcceptanceCommands,
   stripLiteralAcceptanceAdvisory,
 } from "../literal-acceptance/index.js";
@@ -360,10 +363,11 @@ export function evaluateVerifyAcFromPlan(
   // the #3267 ledger is a parallel store and can be empty while stated commands exist.
   // Stated was previously excluded, so rung=stated + empty ledger printed "nothing to run".
   // Do not override a blocking rejected ledger or a config error.
-  if (shouldRunPlanAcceptanceDirectly(base, acceptance)) {
+  if (shouldRunPlanAcceptanceDirectly(base, acceptance, plan)) {
     const runner: LiteralAcceptanceRunner | undefined = optionsWithScope.runner;
+    const directCommands = statedAcceptanceCommands(acceptance, plan);
     const direct = runLiteralAcceptanceCommands(
-      acceptance.commands.map((c) => ({
+      directCommands.map((c) => ({
         command: c.command,
         cwd: c.cwd ?? null,
         expectedStdout: c.expectedStdout ?? null,
@@ -446,11 +450,27 @@ export function evaluateVerifyAcFromPlan(
   return applyOracle(annotate(base, acceptance, optionsWithScope.quiet), optionsWithScope, plan);
 }
 
+function isInlineScrapedAcceptanceCommand(plan: Record<string, unknown>, command: string): boolean {
+  if (readNotAcceptanceCommands(plan).has(command)) return true;
+  return readStoredLiteralAcceptanceCommands(plan).some(
+    (c) => c.command === command && isInlineProseMention(c),
+  );
+}
+
+/** plan.acceptance.commands minus inline-prose scrapes and operator dispositions (#3721). */
+function statedAcceptanceCommands(
+  acceptance: PlanAcceptance,
+  plan: Record<string, unknown>,
+): PlanAcceptance["commands"] {
+  return acceptance.commands.filter((c) => !isInlineScrapedAcceptanceCommand(plan, c.command));
+}
+
 function shouldRunPlanAcceptanceDirectly(
   base: LiteralAcceptanceGateResult,
   acceptance: PlanAcceptance,
+  plan: Record<string, unknown>,
 ): boolean {
-  if (acceptance.commands.length === 0) return false;
+  if (statedAcceptanceCommands(acceptance, plan).length === 0) return false;
   if (base.runs.length > 0) return false;
   if (base.code === 2) return false;
   if ((base.rejected?.length ?? 0) > 0) return false;
