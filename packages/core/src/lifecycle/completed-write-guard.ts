@@ -7,7 +7,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync, type Stats } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { GitCommandError, GitNotFoundError } from "../encoding/git.js";
 import {
@@ -188,14 +188,17 @@ function readPayload(
     return { kind: "ok", raw: injected };
   }
   const abs = join(projectRoot, n);
-  let st;
+  let st: Stats;
   try {
     st = lstatSync(abs);
   } catch {
     return { kind: "missing" };
   }
   if (st.isSymbolicLink()) {
-    return { kind: "unsafe", detail: `${n}: completed/ add is a symlink; refuse without following` };
+    return {
+      kind: "unsafe",
+      detail: `${n}: completed/ add is a symlink; refuse without following`,
+    };
   }
   if (!st.isFile()) {
     return {

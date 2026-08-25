@@ -160,7 +160,9 @@ describe("evaluateCompletedWriteGuard (#3679)", () => {
       expect(init.status, String(init.stderr ?? "")).toBe(0);
       const result = evaluateCompletedWriteGuard(root);
       expect(result.code).toBe(2);
-      expect(result.message).toMatch(/no merge-base ref found|base ref .* not found|Pass --base-ref/);
+      expect(result.message).toMatch(
+        /no merge-base ref found|base ref .* not found|Pass --base-ref/,
+      );
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
