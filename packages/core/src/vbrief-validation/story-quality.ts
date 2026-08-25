@@ -301,6 +301,15 @@ export interface StoryQualityParams {
   readonly concurrentReady?: boolean;
 }
 
+/**
+ * Shared Gate A text for `readiness=ready` + `parallel_safe: false` (#3666 / #3252).
+ * Authoring (`scope:decompose`) and launch (`swarm:readiness` / `swarm:launch`)
+ * both emit this string. It must not recommend `readiness=sequential` as a
+ * launch remediation — Gate B rejects that value on the same call.
+ */
+export const READY_REQUIRES_PARALLEL_SAFE =
+  "readiness=ready requires parallel_safe=true. This story is not eligible for concurrent swarm:launch; dispatch non-concurrent work via the interactive swarm-skill solo-worker path (see #3669)";
+
 export function storyQualityIssues(params: StoryQualityParams): string[] {
   const issues: string[] = [];
   const concurrentReady = params.concurrentReady ?? true;
@@ -343,9 +352,7 @@ export function storyQualityIssues(params: StoryQualityParams): string[] {
     issues.push(...fileScopeIssues(params.swarm));
     issues.push(...verifyCommandIssues(params.swarm));
     if (params.swarm.parallel_safe === false) {
-      issues.push(
-        "readiness=ready requires parallel_safe=true; use readiness=sequential or needs_refinement for non-concurrent work",
-      );
+      issues.push(READY_REQUIRES_PARALLEL_SAFE);
     }
     if (params.swarm.file_scope_confidence === "low") {
       issues.push("readiness=ready requires file_scope_confidence above low");

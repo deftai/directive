@@ -23,6 +23,7 @@ import {
 import { resolveRepo } from "../triage/queue/repo.js";
 import { referenceWithDefaultTrust, slugify } from "../vbrief-build/build.js";
 import { EMITTED_VBRIEF_VERSION } from "../vbrief-build/constants.js";
+import { READY_REQUIRES_PARALLEL_SAFE } from "../vbrief-validation/story-quality.js";
 import { formatCoverageReportLine, validateCoverageMap } from "./coverage-map.js";
 import { buildParentLineageArtifact } from "./parent-lineage.js";
 import { formatBriefJson } from "./vbrief-json.js";
@@ -473,9 +474,7 @@ export function storyQualityIssues(opts: {
     issues.push(...fileScopeIssues(swarm));
     issues.push(...verifyCommandIssues(swarm));
     if (swarm.parallel_safe === false) {
-      issues.push(
-        "readiness=ready requires parallel_safe=true; use readiness=sequential or needs_refinement for non-concurrent work",
-      );
+      issues.push(READY_REQUIRES_PARALLEL_SAFE);
     }
     if (swarm.file_scope_confidence === "low") {
       issues.push("readiness=ready requires file_scope_confidence above low");
