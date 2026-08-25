@@ -92,6 +92,14 @@ export interface LiteralAcceptanceGateResult {
 /** Metadata key for operator-visible rejected command ledger (#3267). */
 export const LITERAL_ACCEPTANCE_REJECTED_METADATA_KEY = "literal_acceptance_rejected" as const;
 
+/**
+ * Metadata key: command strings the operator recorded as *not* acceptance
+ * commands (#3721). Disposition without promotion — listing a string here does
+ * not assert it is the story's verification.
+ */
+export const LITERAL_ACCEPTANCE_NOT_COMMANDS_METADATA_KEY =
+  "literal_acceptance_not_commands" as const;
+
 /** Injectable shell runner for tests (default: spawnSync shell). */
 export type LiteralAcceptanceRunner = (input: {
   readonly command: string;

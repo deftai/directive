@@ -60,11 +60,11 @@ describe("captureLiteralAcceptanceCommands", () => {
     expect(cmds.map((c) => c.command)).toEqual(["task verify:branch", "pnpm test"]);
   });
 
-  it("captures inline verify spans", () => {
+  it("does not treat inline backtick spans in prose as stated commands (#3721)", () => {
     const cmds = captureLiteralAcceptanceCommands(
       "Before done, verify `pnpm test --filter ac` and claim nothing else.",
     );
-    expect(cmds.map((c) => c.command)).toContain("pnpm test --filter ac");
+    expect(cmds.map((c) => c.command)).not.toContain("pnpm test --filter ac");
   });
 });
 

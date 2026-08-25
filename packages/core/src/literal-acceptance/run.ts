@@ -8,6 +8,7 @@
 
 import { spawnSync } from "node:child_process";
 import { isAbsolute, resolve } from "node:path";
+import { isInlineProseMention } from "./capture.js";
 import { evaluateCommandSafety, isExecutableLiteralSource } from "./safety.js";
 import type {
   LiteralAcceptanceCommand,
@@ -133,7 +134,10 @@ export function runLiteralAcceptanceCommands(
   }
 
   const untrusted = commands.filter(
-    (c) => c.source === "task_statement" && options.allowTaskStatement !== true,
+    (c) =>
+      c.source === "task_statement" &&
+      options.allowTaskStatement !== true &&
+      !isInlineProseMention(c),
   );
   const executable = commands.filter(
     (c) =>
@@ -192,8 +196,11 @@ export function runLiteralAcceptanceCommands(
       message:
         `Literal acceptance-command gate FAILED (#3267): ${unpromoted.length} stated command(s) ` +
         `are capture-only (source=task_statement) and have no matching agent-promoted peer.\n` +
-        `Promote the exact command strings (and cwd/expectedStdout/expectedExitCode when stated) ` +
-        `into plan.metadata.swarm.verify_commands (or plan item / explicit metadata), then re-run.\n` +
+        `If the command is this story's acceptance, promote the exact strings ` +
+        `(and cwd/expectedStdout/expectedExitCode when stated) into ` +
+        `plan.metadata.swarm.verify_commands (or plan item / explicit metadata), then re-run.\n` +
+        `If the capture is not an acceptance command, record the exact string in ` +
+        `plan.metadata.literal_acceptance_not_commands without promoting it (#3721).\n` +
         `Note: an unrelated executable peer or a same-text peer with different context does not waive.\n` +
         listed,
       commands,

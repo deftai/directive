@@ -13,7 +13,10 @@ export {
   captureLiteralAcceptanceCommandsDetailed,
   formatRejectedLedger,
   hasStructuredAcceptanceCommands,
+  INLINE_PROSE_MENTION_REASON,
+  isInlineProseMention,
   isProseDerivedRejection,
+  readNotAcceptanceCommands,
   readStoredLiteralAcceptanceCommands,
   readStoredLiteralAcceptanceDetailed,
 } from "./capture.js";
@@ -55,6 +58,7 @@ export {
   EXECUTABLE_LITERAL_SOURCES,
   LITERAL_ACCEPTANCE_METADATA_KEY,
   LITERAL_ACCEPTANCE_METADATA_KEY_CAMEL,
+  LITERAL_ACCEPTANCE_NOT_COMMANDS_METADATA_KEY,
   LITERAL_ACCEPTANCE_REJECTED_METADATA_KEY,
   type LiteralAcceptanceCommand,
   type LiteralAcceptanceGateResult,

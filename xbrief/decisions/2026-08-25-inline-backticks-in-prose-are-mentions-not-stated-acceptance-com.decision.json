@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "inline-backticks-in-prose-are-mentions-not-stated-acceptance-com",
+  "decision": "Inline backticks in prose are mentions, not stated acceptance commands",
+  "governingRule": {
+    "description": "Do not weaken the literal-AC gate beyond the identified false-positive class; a genuinely stated command must still be caught (#3156 / #3721)",
+    "path": "packages/core/src/literal-acceptance/capture.ts",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Demote all task_statement captures to advisory the way #3511 did for fences",
+      "whyNot": "Would drop promotion for labeled verify: lines and fenced AC. That is the Greptile P1 ambient-authority protection, not the false-positive class."
+    },
+    {
+      "option": "Exclude the comment-thread suffix of Overview from the complete re-scan",
+      "whyNot": "Two of the three #3712 blockers came from the issue body, not comments. Insufficient and would hide AC stated only in a later maintainer comment (#2143)."
+    },
+    {
+      "option": "Keep the block and only add a disposition field",
+      "whyNot": "Would still turn a verb mentioned in prose into a stated command until an operator acts. AC 1 requires the mention not become stated by itself."
+    }
+  ],
+  "whyWinner": "The measured failure is extractInlineVerifySpans treating a backtick on a verify/run line as stated AC. Narrowing that scraper plus evaluate-time demotion of stored inline@ rows unblocks #3712 without promotion. Labeled lines, $ prompts, and fences stay fail-closed. literal_acceptance_not_commands dispositions remaining uncertain labeled/fence captures without asserting they are AC.",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-08-25-3721-bugscope-a-verb-discussed-in-issue-prose-becomes-a-stated-ac.xbrief.json"
+  ],
+  "timestamp": "2026-08-25T15:00:02Z",
+  "revisitTrigger": "If a legitimate story states AC only as an inline backtick in a prose sentence and that command is missed",
+  "tags": [
+    "process",
+    "literal-ac",
+    "scope-complete"
+  ],
+  "relatedIssues": [
+    3721
+  ]
+}

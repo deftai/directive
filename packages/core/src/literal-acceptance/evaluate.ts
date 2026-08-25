@@ -7,7 +7,10 @@ import { resolve } from "node:path";
 import {
   captureLiteralAcceptanceCommandsDetailed,
   formatRejectedLedger,
+  INLINE_PROSE_MENTION_REASON,
+  isInlineProseMention,
   isProseDerivedRejection,
+  readNotAcceptanceCommands,
   readStoredLiteralAcceptanceDetailed,
 } from "./capture.js";
 import { runLiteralAcceptanceCommands } from "./run.js";
@@ -86,11 +89,33 @@ export function resolveLiteralAcceptanceDetailed(
   options: { readonly captureFromNarratives?: boolean } = {},
 ): ResolvedLiteralAcceptance {
   const raw = resolveRawLiteralAcceptance(plan, options);
+  const notCommands = readNotAcceptanceCommands(plan);
+  const stated: LiteralAcceptanceCommand[] = [];
+  const mentionAdvisory: RejectedLiteralCommand[] = [];
+  for (const c of raw.commands) {
+    if (isInlineProseMention(c)) {
+      mentionAdvisory.push({
+        command: c.command,
+        reason: INLINE_PROSE_MENTION_REASON,
+        sourceSpan: c.sourceSpan ?? null,
+      });
+      continue;
+    }
+    if (notCommands.has(c.command)) {
+      mentionAdvisory.push({
+        command: c.command,
+        reason: "operator recorded this capture as not an acceptance command (#3721)",
+        sourceSpan: c.sourceSpan ?? null,
+      });
+      continue;
+    }
+    stated.push(c);
+  }
   const split = partitionRejected(raw.rejected);
   return {
-    commands: raw.commands,
+    commands: stated,
     rejected: split.blocking,
-    advisoryRejected: split.advisory,
+    advisoryRejected: [...split.advisory, ...mentionAdvisory],
     transcriptPromptSkipped: raw.transcriptPromptSkipped,
   };
 }

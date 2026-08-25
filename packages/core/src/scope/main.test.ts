@@ -70,6 +70,28 @@ describe("lifecycleMain", () => {
     expect(lifecycleMain([])).toBe(2);
   });
 
+  it("scope:complete --help lists --merge-commit and --pr (#3721)", () => {
+    const err: string[] = [];
+    const out: string[] = [];
+    const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      err.push(String(chunk));
+      return true;
+    });
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      out.push(String(chunk));
+      return true;
+    });
+    try {
+      expect(lifecycleMain(["complete", "--help"])).toBe(0);
+      const text = `${out.join("")}${err.join("")}`;
+      expect(text).toMatch(/--merge-commit/);
+      expect(text).toMatch(/--pr/);
+    } finally {
+      stderrSpy.mockRestore();
+      stdoutSpy.mockRestore();
+    }
+  });
+
   it("scope:promote --help does not dump scope_lifecycle.py required action (#3439)", () => {
     const err: string[] = [];
     const out: string[] = [];

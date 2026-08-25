@@ -82,10 +82,12 @@ const LIFECYCLE_USAGE_STDERR =
   "usage: deft scope:<action> [file] [--batch] [--from-issue N] [--repo OWNER/NAME]\n" +
   "                          [--force] [--project-root PATH] [--strict] [--force-no-cache]\n" +
   "                          [--path PATH]\n" +
+  "  complete also accepts: --merge-commit SHA --pr N [--pr-base BRANCH] [--delivery-branch BRANCH]\n" +
   "  actions: activate, block, cancel, complete, fail, promote, restore, unblock\n" +
   "The verb already encodes the action (e.g. deft scope:promote <file>). Do not pass the action again.\n" +
   "(promote --batch may omit file and promotes all proposed/ scopes; #3011)\n" +
-  "(promote --from-issue=N may omit file; #1136)\n";
+  "(promote --from-issue=N may omit file; #1136)\n" +
+  "(complete --merge-commit / --pr are required for code-bearing delivery evidence; #3041 / #3721)\n";
 
 function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error?: string } {
   if (argv.length < 1) {

@@ -74,6 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A verb mentioned in issue prose is no longer a stated acceptance command (#3721).** Inline backticks in a sentence stay advisory mentions. Labeled lines, `$` prompts, and fences still require promotion. An operator can list a capture under `literal_acceptance_not_commands` instead of promoting it. `scope:complete --help` now lists `--merge-commit` and `--pr`. Closes #3721.
 - **Completed-write guard refuses oversized completed/ artifacts (#3679).** Newly added completed briefs larger than 1 MiB fail with the file path and the limit instead of an unbounded read. The lifecycle-stamp check is unchanged.
 - **Concurrent launcher no longer tells you to set `readiness=sequential` (#3666).** Gate A now says a `parallel_safe: false` story is not eligible for `swarm:launch` and points at the interactive swarm-skill path, which is not gated by a non-zero `swarm:readiness` exit (exit 0 gates concurrent workers only). Gate B is unchanged. Closes #3666.
 - **Scope provenance is no longer described as warn-only (#3712).** Agents now read that `--enforce` governs only the empty-scope case, and that a declared file scope without base approval fails closed. Test-boundary stays warn-only until authored policy; missing check-composition still fails closed. Closes #3712.

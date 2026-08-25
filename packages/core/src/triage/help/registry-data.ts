@@ -868,16 +868,31 @@ export const registryData = {
     "task scope:complete": {
       name: "task scope:complete",
       summary: "active/ -> completed/ (set status completed)",
-      refs: "(#845)",
+      refs: "(#845, #3041, #3721)",
       description:
-        "Mark an active vBRIEF complete and move it to vbrief/completed/. Terminal transition; use scope:undo if you need reversibility (refused on terminal actions per D15).",
-      usage: "task scope:complete -- <file>",
+        "Mark an active vBRIEF complete and move it to vbrief/completed/. Terminal transition; use scope:undo if you need reversibility (refused on terminal actions per D15). Code-bearing completion requires delivery evidence: --merge-commit and --pr. Those flags feed the delivery gate; they do not skip literal-AC.",
+      usage: "task scope:complete -- <file> [--merge-commit SHA] [--pr N]",
       flags: [
         ["<file>", "(required)", "Path to vBRIEF."],
         ["--project-root PATH", "(detected)", "Consumer project root override."],
+        [
+          "--merge-commit SHA",
+          "(required for code-bearing)",
+          "Merge commit SHA for delivery evidence (#3041).",
+        ],
+        [
+          "--pr N",
+          "(required for code-bearing)",
+          "Merged PR number for delivery evidence (#3041).",
+        ],
+        ["--pr-base BRANCH", "(optional)", "PR base branch for delivery evidence."],
+        ["--delivery-branch BRANCH", "(optional)", "Delivery branch tip for completed-tracked."],
       ],
-      examples: ["task scope:complete -- vbrief/active/2026-05-19-foo.vbrief.json"],
-      see_also: ["task scope:fail", "task scope:cancel", "#1119 / #845"],
+      examples: [
+        "task scope:complete -- vbrief/active/2026-05-19-foo.vbrief.json",
+        "task scope:complete -- xbrief/active/story.xbrief.json --merge-commit abc123 --pr 42",
+      ],
+      see_also: ["task scope:fail", "task scope:cancel", "#1119 / #845", "#3041"],
       placeholder: false,
     },
     "task scope:fail": {

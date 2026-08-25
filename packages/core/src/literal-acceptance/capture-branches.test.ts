@@ -87,10 +87,16 @@ describe("captureLiteralAcceptanceCommands branch matrix (#3287)", () => {
     expect(cmds).not.toContain("pnpm --version");
   });
 
-  it("extracts inline backtick spans next to verify/run language", () => {
+  it("records inline backtick spans as advisory mentions, not stated commands (#3721)", () => {
     const text = "Please run `task check` before done and verify `pnpm test`.";
-    const cmds = captureLiteralAcceptanceCommands(text).map((c) => c.command);
-    expect(cmds).toEqual(expect.arrayContaining(["task check", "pnpm test"]));
+    const detailed = captureLiteralAcceptanceCommandsDetailed(text);
+    expect(detailed.commands.map((c) => c.command)).not.toEqual(
+      expect.arrayContaining(["task check", "pnpm test"]),
+    );
+    expect(detailed.rejected.map((r) => r.command)).toEqual(
+      expect.arrayContaining(["task check", "pnpm test"]),
+    );
+    expect(detailed.rejected.every((r) => (r.sourceSpan ?? "").startsWith("inline@"))).toBe(true);
   });
 
   it("dedupes identical command+cwd+exit and records rejected ledger lines", () => {

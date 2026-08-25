@@ -181,8 +181,10 @@ describe("output-shaped fences are not captured (#3511)", () => {
       "verify: task check",
       "Please run `pnpm test` before done.",
     ].join("\n");
-    const cmds = captureLiteralAcceptanceCommandsDetailed(text).commands.map((c) => c.command);
-    expect(cmds).toEqual(expect.arrayContaining(["task check", "pnpm test"]));
+    const detailed = captureLiteralAcceptanceCommandsDetailed(text);
+    expect(detailed.commands.map((c) => c.command)).toContain("task check");
+    // Inline backtick in the following prose sentence is a mention, not stated (#3721).
+    expect(detailed.commands.map((c) => c.command)).not.toContain("pnpm test");
   });
 
   it("still captures a genuine command next to a comment in an acceptance fence", () => {
