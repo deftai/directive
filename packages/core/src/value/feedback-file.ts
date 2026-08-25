@@ -13,6 +13,23 @@ import { resolveProjectRoot } from "../scope/project-context.js";
 
 export const DEFAULT_UPSTREAM_REPO = "deftai/directive";
 export const FRAMEWORK_GAP_TITLE_PREFIX = "[framework-gap]";
+/** Sole sanctioned title classification (#3713). Does not write `adoption-blocker`. */
+export const ADOPTION_BLOCKER_TITLE_TOKEN = "BLOCKER";
+
+const FRAMEWORK_GAP_PREFIX_RE = /^\[framework-gap\]\s*/i;
+const BLOCKER_TITLE_TOKEN_RE = /^BLOCKER\b[:\s-]*/i;
+
+/** Strip source prefix and the optional BLOCKER token so marked/unmarked titles dedup. */
+export function stripTitleClassificationTokens(title: string): string {
+  let rest = title.trim();
+  let previous = "";
+  while (rest !== previous) {
+    previous = rest;
+    rest = rest.replace(FRAMEWORK_GAP_PREFIX_RE, "").trim();
+    rest = rest.replace(BLOCKER_TITLE_TOKEN_RE, "").trim();
+  }
+  return rest;
+}
 
 export type FeedbackFileOutcome =
   | "draft"
@@ -31,6 +48,11 @@ export interface FeedbackGapInput {
   readonly expected?: string;
   readonly actual?: string;
   readonly sessionNotes?: string;
+  /** Consumer hard-stop judgment. Advisory title token only — never applies a label. */
+  readonly adoptionBlocker?: boolean;
+  readonly flowAndVersion?: string;
+  readonly alternatives?: string;
+  readonly recoveryCost?: string;
 }
 
 export interface FeedbackFileOptions extends FeedbackGapInput {
@@ -67,23 +89,61 @@ export function isMaintainerFrameworkRepo(projectRoot: string): boolean {
   return isFrameworkRepoRoot(resolve(projectRoot));
 }
 
-/** Normalize a title for duplicate comparison (#1709). */
+/** Normalize a title for duplicate comparison (#1709 / #3713). */
 export function normalizeForDedup(title: string): string {
-  return title
-    .trim()
-    .replace(/^\[framework-gap\]\s*/i, "")
+  return stripTitleClassificationTokens(title)
     .toLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, " ")
     .trim();
 }
 
 /** Build the upstream issue title for a framework-gap report. */
-export function buildFrameworkGapTitle(summary: string): string {
+export function buildFrameworkGapTitle(
+  summary: string,
+  options?: { adoptionBlocker?: boolean },
+): string {
   const clean = sanitizeOneLine(summary);
+  if (options?.adoptionBlocker) {
+    const rest = stripTitleClassificationTokens(clean);
+    return `${FRAMEWORK_GAP_TITLE_PREFIX} ${ADOPTION_BLOCKER_TITLE_TOKEN} ${rest}`;
+  }
   if (clean.toLowerCase().startsWith(FRAMEWORK_GAP_TITLE_PREFIX.toLowerCase())) {
     return clean;
   }
   return `${FRAMEWORK_GAP_TITLE_PREFIX} ${clean}`;
+}
+
+function buildAdoptionImpactSection(input: FeedbackGapInput): readonly string[] {
+  if (!input.adoptionBlocker) {
+    return [];
+  }
+  return [
+    "## Adoption impact",
+    "",
+    "This report is a consumer hard-stop: the consumer cannot complete an intended Directive flow and has no reasonable workaround.",
+    "",
+    `Title token: \`${ADOPTION_BLOCKER_TITLE_TOKEN}\`. This token does not apply the \`adoption-blocker\` ranking label. A privileged actor applies that label after the body-evidence test.`,
+    "",
+    "### Affected consumer flow and version",
+    "",
+    sectionOrPlaceholder(input.flowAndVersion, "_(not provided)_"),
+    "",
+    "### Documented alternatives attempted",
+    "",
+    sectionOrPlaceholder(
+      input.alternatives,
+      "_(not provided — why documented alternatives are not a reasonable workaround)_",
+    ),
+    "",
+    "### Observed recovery cost",
+    "",
+    sectionOrPlaceholder(input.recoveryCost, "_(not provided)_"),
+    "",
+    "### Triage owner and date",
+    "",
+    "_(to be filled by a privileged actor when applying `adoption-blocker`)_",
+    "",
+  ];
 }
 
 /** Build the structured framework-gap issue body. */
@@ -110,6 +170,7 @@ export function buildFrameworkGapBody(input: FeedbackGapInput): string {
     "",
     sectionOrPlaceholder(input.sessionNotes, "_(not provided)_"),
     "",
+    ...buildAdoptionImpactSection(input),
     "---",
     "_Filed via `task feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._",
     "",
@@ -201,7 +262,7 @@ export function runFeedbackFile(options: FeedbackFileOptions): FeedbackFileResul
   const projectRoot = resolve(projectRootRaw);
 
   const repo = resolveRepo(options);
-  const title = buildFrameworkGapTitle(summary);
+  const title = buildFrameworkGapTitle(summary, { adoptionBlocker: options.adoptionBlocker });
   const body = buildFrameworkGapBody(options);
 
   if (isMaintainerFrameworkRepo(projectRoot)) {
@@ -329,6 +390,10 @@ export interface FeedbackFileCliArgs {
   expected?: string;
   actual?: string;
   sessionNotes?: string;
+  adoptionBlocker?: boolean;
+  flowAndVersion?: string;
+  alternatives?: string;
+  recoveryCost?: string;
   confirm?: boolean;
   dryRun?: boolean;
   json?: boolean;
@@ -354,6 +419,7 @@ export function parseFeedbackFileArgs(argv: readonly string[]): FeedbackFileCliA
     if (arg === "--confirm") out.confirm = true;
     else if (arg === "--dry-run") out.dryRun = true;
     else if (arg === "--json") out.json = true;
+    else if (arg === "--blocker") out.adoptionBlocker = true;
     else if (arg === "--summary") {
       out.summary = argv[++i];
     } else if (arg?.startsWith("--summary=")) {
@@ -376,6 +442,20 @@ export function parseFeedbackFileArgs(argv: readonly string[]): FeedbackFileCliA
       out.sessionNotes = arg.slice("--notes=".length);
     } else if (arg?.startsWith("--session-notes=")) {
       out.sessionNotes = arg.slice("--session-notes=".length);
+    } else if (arg === "--flow" || arg === "--flow-and-version") {
+      out.flowAndVersion = argv[++i];
+    } else if (arg?.startsWith("--flow=")) {
+      out.flowAndVersion = arg.slice("--flow=".length);
+    } else if (arg?.startsWith("--flow-and-version=")) {
+      out.flowAndVersion = arg.slice("--flow-and-version=".length);
+    } else if (arg === "--alternatives") {
+      out.alternatives = argv[++i];
+    } else if (arg?.startsWith("--alternatives=")) {
+      out.alternatives = arg.slice("--alternatives=".length);
+    } else if (arg === "--recovery-cost") {
+      out.recoveryCost = argv[++i];
+    } else if (arg?.startsWith("--recovery-cost=")) {
+      out.recoveryCost = arg.slice("--recovery-cost=".length);
     } else if (arg === "--repo") {
       out.repo = argv[++i];
     } else if (arg?.startsWith("--repo=")) {
@@ -413,6 +493,10 @@ export function feedbackFileMain(argv: readonly string[]): number {
     expected: args.expected,
     actual: args.actual,
     sessionNotes: args.sessionNotes,
+    adoptionBlocker: args.adoptionBlocker,
+    flowAndVersion: args.flowAndVersion,
+    alternatives: args.alternatives,
+    recoveryCost: args.recoveryCost,
     confirm: args.confirm,
     dryRun: args.dryRun,
     json: args.json,

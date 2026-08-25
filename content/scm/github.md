@@ -383,7 +383,9 @@ Agent `edit_files` operations can fail when structured file sections contain Uni
 
 **Positive-only:** the `adoption-blocker` label means the issue is *classified as a blocker*. Its absence means *not classified*. Absence never means a workaround exists.
 
-This is the canonical ranking label for **a Directive consumer cannot complete an intended flow and has no reasonable workaround**. The range is install, first session, update, `task check`, and ship -- not onboarding alone. Do not invent a second ranking label for that class, and do not encode it in the title.
+This is the canonical ranking label for **a Directive consumer cannot complete an intended flow and has no reasonable workaround**. The range is install, first session, update, `task check`, and ship -- not onboarding alone. Do not invent a second ranking label for that class.
+
+**Title classification (the one sanctioned exception, #3713):** `BLOCKER` in the title is permitted for this class, and is the **only** classification allowed in an issue title. Every other classification stays label-only. Reason: the filing population cannot apply labels -- GitHub requires push access to set them at issue creation. The token is an inbound flare; it never writes `adoption-blocker`. A privileged actor applies the label after the body-evidence test below. Absence of the token does not mean "not a blocker." `task feedback:file --blocker` is the consumer filing path that carries the token and this evidence.
 
 **Classification test** (all must hold, and a second person must be able to check them from the body):
 

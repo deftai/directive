@@ -250,7 +250,9 @@ Inventory ~85 labels at #2609 implement time. This section lists **canonical** n
 
 **Required evidence:** body must name affected consumer flow and version; documented alternatives attempted, or why the documented alternatives are not a reasonable workaround; observed recovery cost; and triage owner and date. Full test: `content/scm/github.md` Issue Workflow.
 
-**Ranking / display (verified, not newly built):** already in `plan.policy.triageRankingLabels` after `blocks-merge` and `blocks-release-tag`. `triage:queue` prints `(label: adoption-blocker)` on ranked rows. Do not add ranking code. Do not encode this classification in the title.
+**Ranking / display (verified, not newly built):** already in `plan.policy.triageRankingLabels` after `blocks-merge` and `blocks-release-tag`. `triage:queue` prints `(label: adoption-blocker)` on ranked rows. Do not add ranking code.
+
+**Title classification (the one sanctioned exception, #3713):** `BLOCKER` in the title is permitted for this consumer hard-stop class, and is the **only** classification allowed in an issue title. Every other classification stays label-only. Reason: the filing population cannot apply labels -- GitHub requires push access to set them at issue creation, and labels are silently dropped otherwise. The title token is the inbound flare so a maintainer scanning a list can see the report; it does not apply `adoption-blocker`. A privileged actor applies the ranking label after the body-evidence test. Absence of the token does not mean "not a blocker." ⊗ Auto-mirror a consumer-authored title into `adoption-blocker`.
 
 **Distinguished from adjacent signals:**
 
@@ -281,7 +283,7 @@ Inventory ~85 labels at #2609 implement time. This section lists **canonical** n
 7. ! Machine labels: closed set above; mirror is primary writer.
 8. ! Platform only for OS-intrinsic work.
 9. ~ Consumer projects: follow **#2611** kit when shipped — do not copy the full maintainer set by default.
-10. ! Consumer hard-stop uses `adoption-blocker`, with body evidence (`content/scm/github.md` Issue Workflow); an upgrade-path hard stop also uses `Upgrade Blocker`. ⊗ Infer that a workaround exists from the label's absence. ⊗ Encode the classification in the issue title.
+10. ! Consumer hard-stop uses `adoption-blocker`, with body evidence (`content/scm/github.md` Issue Workflow); an upgrade-path hard stop also uses `Upgrade Blocker`. ⊗ Infer that a workaround exists from the label's absence. ? Encode `BLOCKER` in the issue title for this class only -- the filing population cannot apply labels (GitHub requires push access at issue creation). `BLOCKER` is the only permitted title classification; every other classification stays label-only. ⊗ Encode any other classification in the issue title. ⊗ Auto-mirror title text to `adoption-blocker`. Absence of the token does not mean "not a blocker."
 
 Skill / SCM pointer: `content/scm/github.md` § Issue Labels (framework source) links here.
 

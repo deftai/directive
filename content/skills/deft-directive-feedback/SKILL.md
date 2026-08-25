@@ -37,12 +37,19 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ! Batch multiple friction items into one upstream issue when they share a root cause; otherwise prepare separate drafts
 - ~ Prefer attributed phrasing ("encoding gate blocked a valid file") over vague quality claims
 
+## Phase 1.5 -- Adoption-blocker judgment
+
+- ! Ask whether the gap blocks adoption. A gap blocks adoption when the consumer cannot complete an intended Directive flow and has no reasonable workaround.
+- ! When the answer is yes, collect the body evidence a privileged actor needs before applying `adoption-blocker`: affected consumer flow and version; documented alternatives attempted, or why they are not a reasonable workaround; observed recovery cost. Pass `--blocker` (and `--flow`, `--alternatives`, `--recovery-cost` when known) so the title carries `BLOCKER` and the body carries those sections.
+- ! When the answer is no or unknown, omit `--blocker`. Absence of the token does not mean "not a blocker" -- it means not classified.
+- ⊗ Apply or request the `adoption-blocker` ranking label from a consumer-authored title. The label is a privileged write after the body-evidence test.
+
 ## Phase 2 -- Draft + dedup
 
 - ! For each candidate report, run a dry draft:
 
 ```bash
-task feedback:file -- --summary "<one-line summary>" --context "<session context>" --expected "<expected>" --actual "<actual>" --notes "<optional>"
+task feedback:file -- --summary "<one-line summary>" --context "<session context>" --expected "<expected>" --actual "<actual>" --notes "<optional>" [--blocker --flow "<flow and version>" --alternatives "<alts>" --recovery-cost "<cost>"]
 ```
 
 - ! Read the printed draft title/body with the operator before proceeding
@@ -55,7 +62,7 @@ task feedback:file -- --summary "<one-line summary>" --context "<session context
 - ! Only after approval, re-run with `--confirm`:
 
 ```bash
-task feedback:file -- --summary "<one-line summary>" --context "<session context>" --expected "<expected>" --actual "<actual>" --confirm
+task feedback:file -- --summary "<one-line summary>" --context "<session context>" --expected "<expected>" --actual "<actual>" --confirm [--blocker]
 ```
 
 - ! Print the filed issue URL to the operator
@@ -71,3 +78,5 @@ task feedback:file -- --summary "<one-line summary>" --context "<session context
 - ⊗ Filing from the maintainer framework repo (consumer-only guard)
 - ⊗ Skipping dedup review when the command reports an existing open issue
 - ⊗ Treating `--confirm` as implicit from broad session approval -- require an explicit filing confirmation step
+- ⊗ Infer "not a blocker" from an unmarked report -- absence of `BLOCKER` means not classified
+- ⊗ Auto-apply `adoption-blocker` from a consumer-authored title

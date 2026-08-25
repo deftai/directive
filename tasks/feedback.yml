@@ -5,7 +5,7 @@ vars:
 
 tasks:
   file:
-    desc: "Draft or file a deduped framework-gap issue upstream (#1709). -- task feedback:file -- [--summary TEXT | positional] [--context ...] [--confirm] [--dry-run] [--json]"
+    desc: "Draft or file a deduped framework-gap issue upstream (#1709 / #3713). -- task feedback:file -- [--summary TEXT | positional] [--context ...] [--blocker] [--confirm] [--dry-run] [--json]"
     deps:
       - task: :engine:_ts-build
     cmds:

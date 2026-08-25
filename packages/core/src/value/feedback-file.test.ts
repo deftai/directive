@@ -1,8 +1,9 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import {
+  ADOPTION_BLOCKER_TITLE_TOKEN,
   buildFrameworkGapBody,
   buildFrameworkGapTitle,
   FRAMEWORK_GAP_TITLE_PREFIX,
@@ -435,5 +436,198 @@ describe("feedback-file CLI", () => {
       })),
     });
     expect(match?.url).toContain("/issues/9");
+  });
+});
+
+describe("adoption-blocker title token (#3713)", () => {
+  const summary = "Missing skill coverage";
+
+  it("builds a marked title with [framework-gap] and BLOCKER", () => {
+    expect(buildFrameworkGapTitle(summary, { adoptionBlocker: true })).toBe(
+      `${FRAMEWORK_GAP_TITLE_PREFIX} ${ADOPTION_BLOCKER_TITLE_TOKEN} ${summary}`,
+    );
+    expect(
+      buildFrameworkGapTitle("[framework-gap] BLOCKER: already tagged", { adoptionBlocker: true }),
+    ).toBe(`${FRAMEWORK_GAP_TITLE_PREFIX} ${ADOPTION_BLOCKER_TITLE_TOKEN} already tagged`);
+  });
+
+  it("leaves unmarked titles without the BLOCKER token", () => {
+    expect(buildFrameworkGapTitle(summary)).toBe(`${FRAMEWORK_GAP_TITLE_PREFIX} ${summary}`);
+    expect(buildFrameworkGapTitle(summary, { adoptionBlocker: false })).toBe(
+      `${FRAMEWORK_GAP_TITLE_PREFIX} ${summary}`,
+    );
+    expect(buildFrameworkGapTitle(summary)).not.toMatch(/\bBLOCKER\b/);
+  });
+
+  it("dedups marked and unmarked titles to the same needle", () => {
+    const marked = buildFrameworkGapTitle(summary, { adoptionBlocker: true });
+    const unmarked = buildFrameworkGapTitle(summary);
+    expect(normalizeForDedup(marked)).toBe(normalizeForDedup(unmarked));
+    expect(normalizeForDedup(marked)).toBe("missing skill coverage");
+    expect(normalizeForDedup("BLOCKER: Missing skill coverage")).toBe("missing skill coverage");
+    expect(normalizeForDedup("[framework-gap] Missing skill coverage")).toBe(
+      "missing skill coverage",
+    );
+  });
+
+  it("finds a duplicate when one side is marked and the other is not", () => {
+    const unmarkedOpen = {
+      title: "[framework-gap] Missing skill coverage",
+      html_url: "https://github.com/deftai/directive/issues/42",
+    };
+    const markedMatch = findDuplicateIssue(
+      "deftai/directive",
+      buildFrameworkGapTitle(summary, { adoptionBlocker: true }),
+      {
+        runGhApiFn: vi.fn(() => ({
+          returncode: 0,
+          stdout: JSON.stringify([unmarkedOpen]),
+          stderr: "",
+        })),
+      },
+    );
+    expect(markedMatch?.url).toBe(unmarkedOpen.html_url);
+
+    const unmarkedMatch = findDuplicateIssue(
+      "deftai/directive",
+      buildFrameworkGapTitle(summary),
+      {
+        runGhApiFn: vi.fn(() => ({
+          returncode: 0,
+          stdout: JSON.stringify([
+            {
+              title: "[framework-gap] BLOCKER Missing skill coverage",
+              html_url: "https://github.com/deftai/directive/issues/43",
+            },
+          ]),
+          stderr: "",
+        })),
+      },
+    );
+    expect(unmarkedMatch?.url).toContain("/issues/43");
+  });
+
+  it("puts #3706 evidence in the body only when marked", () => {
+    const marked = buildFrameworkGapBody({
+      summary,
+      adoptionBlocker: true,
+      flowAndVersion: "task check on 0.80.0",
+      alternatives: "reran doctor",
+      recoveryCost: "session stuck 40m",
+    });
+    expect(marked).toContain("## Adoption impact");
+    expect(marked).toContain("task check on 0.80.0");
+    expect(marked).toContain("reran doctor");
+    expect(marked).toContain("session stuck 40m");
+    expect(marked).toContain("does not apply the `adoption-blocker` ranking label");
+    expect(marked).toContain("### Triage owner and date");
+
+    const unmarked = buildFrameworkGapBody({ summary });
+    expect(unmarked).not.toContain("## Adoption impact");
+    expect(unmarked).not.toContain("not a blocker");
+  });
+
+  it("parses --blocker and evidence flags", () => {
+    const parsed = parseFeedbackFileArgs([
+      "--summary",
+      summary,
+      "--blocker",
+      "--flow",
+      "install 0.80",
+      "--alternatives",
+      "none work",
+      "--recovery-cost",
+      "blocked",
+    ]);
+    expect(parsed.adoptionBlocker).toBe(true);
+    expect(parsed.flowAndVersion).toBe("install 0.80");
+    expect(parsed.alternatives).toBe("none work");
+    expect(parsed.recoveryCost).toBe("blocked");
+    expect(parseFeedbackFileArgs(["--summary", summary]).adoptionBlocker).toBeUndefined();
+    expect(parseFeedbackFileArgs(["--flow=eq-flow", "--alternatives=eq-alt"]).flowAndVersion).toBe(
+      "eq-flow",
+    );
+  });
+
+  it("files a marked report without writing adoption-blocker", () => {
+    const root = makeConsumerProject();
+    try {
+      const result = runFeedbackFile({
+        summary,
+        adoptionBlocker: true,
+        flowAndVersion: "update",
+        alternatives: "pin prior",
+        recoveryCost: "lost hour",
+        projectRoot: root,
+        confirm: true,
+        seams: {
+          runGhApiFn: (args: readonly string[]) => {
+            if (args.includes("POST")) {
+              const input = args[args.indexOf("--input") + 1];
+              const payload = JSON.parse(readFileSync(String(input), "utf8")) as {
+                title?: string;
+                body?: string;
+                labels?: unknown;
+              };
+              expect(payload.labels).toBeUndefined();
+              expect(payload.title).toBe(
+                `${FRAMEWORK_GAP_TITLE_PREFIX} ${ADOPTION_BLOCKER_TITLE_TOKEN} ${summary}`,
+              );
+              expect(payload.body).toContain("## Adoption impact");
+              return {
+                returncode: 0,
+                stdout: JSON.stringify({
+                  html_url: "https://github.com/deftai/directive/issues/2001",
+                  number: 2001,
+                }),
+                stderr: "",
+              };
+            }
+            return { returncode: 0, stdout: "[]", stderr: "" };
+          },
+        },
+      });
+      expect(result.outcome).toBe("filed");
+      expect(result.title).toContain(ADOPTION_BLOCKER_TITLE_TOKEN);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("does not fail or gate when the token is absent", () => {
+    const root = makeConsumerProject();
+    try {
+      const result = runFeedbackFile({
+        summary,
+        projectRoot: root,
+        confirm: true,
+        seams: {
+          runGhApiFn: (args: readonly string[]) => {
+            if (args.includes("POST")) {
+              const input = args[args.indexOf("--input") + 1];
+              const payload = JSON.parse(readFileSync(String(input), "utf8")) as {
+                title?: string;
+                body?: string;
+              };
+              expect(payload.title).not.toMatch(/\bBLOCKER\b/);
+              expect(payload.body).not.toContain("## Adoption impact");
+              return {
+                returncode: 0,
+                stdout: JSON.stringify({
+                  html_url: "https://github.com/deftai/directive/issues/2002",
+                  number: 2002,
+                }),
+                stderr: "",
+              };
+            }
+            return { returncode: 0, stdout: "[]", stderr: "" };
+          },
+        },
+      });
+      expect(result.outcome).toBe("filed");
+      expect(result.exitCode).toBe(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
