@@ -98,7 +98,7 @@ describe("evaluateCompletedWriteGuard (#3679)", () => {
     try {
       const result = evaluateCompletedWriteGuard(root);
       expect(result.code).toBe(0);
-      expect(result.message).toMatch(/skipped -- (not a git working tree|no merge-base ref found)/);
+      expect(result.message).toMatch(/skipped -- not a git working tree/);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

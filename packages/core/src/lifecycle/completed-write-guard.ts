@@ -8,7 +8,7 @@
 
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { GitCommandError, GitNotFoundError } from "../encoding/git.js";
 import {
   hasArtifactSuffix,
@@ -70,11 +70,20 @@ function parsePlan(raw: string): Record<string, unknown> | null {
   }
 }
 
+function gitEnv(projectRoot: string): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...process.env };
+  delete env.GIT_DIR;
+  delete env.GIT_WORK_TREE;
+  env.GIT_CEILING_DIRECTORIES = dirname(resolve(projectRoot));
+  return env;
+}
+
 function git(args: string[], projectRoot: string): { status: number; stdout: string } {
   const result = spawnSync("git", args, {
     cwd: projectRoot,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
+    env: gitEnv(projectRoot),
   });
   if (result.error !== undefined) {
     const e = result.error as NodeJS.ErrnoException;
@@ -197,6 +206,14 @@ export function evaluateCompletedWriteGuard(
     if (options.addedFiles !== undefined) {
       added = options.addedFiles.map(normalizeRepoRelPath);
     } else {
+      const inside = git(["rev-parse", "--is-inside-work-tree"], root);
+      if (inside.status !== 0 || inside.stdout.trim() !== "true") {
+        return {
+          code: 0,
+          findings: [],
+          message: "verify_completed_write_guard: skipped -- not a git working tree.",
+        };
+      }
       let baseRef = options.baseRef ?? "";
       if (baseRef.length === 0 || baseRef === "HEAD") {
         const resolved = resolveDefaultBaseRef(root);
