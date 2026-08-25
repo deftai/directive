@@ -162,6 +162,27 @@ describe("evaluateCompletedWriteGuard (#3679)", () => {
     }
   });
 
+  it("refuses a completed/ path whose parent directory is a symlink", () => {
+    const root = mkdtempSync(join(tmpdir(), "completed-write-parent-link-"));
+    try {
+      const realDir = join(root, "real-completed");
+      mkdirSync(realDir, { recursive: true });
+      writeFileSync(join(realDir, "2026-08-25-link.xbrief.json"), husk(), "utf8");
+      mkdirSync(join(root, "xbrief"), { recursive: true });
+      const rel = "xbrief/completed/2026-08-25-link.xbrief.json";
+      try {
+        symlinkSync(realDir, join(root, "xbrief", "completed"), "dir");
+      } catch {
+        return;
+      }
+      const result = evaluateCompletedWriteGuard(root, { addedFiles: [rel] });
+      expect(result.code).toBe(1);
+      expect(result.findings[0]?.detail).toMatch(/symlink/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("fails closed when a git tree has no merge-base ref", { timeout: 20_000 }, () => {
     const root = mkdtempSync(join(tmpdir(), "completed-write-nobase-"));
     try {

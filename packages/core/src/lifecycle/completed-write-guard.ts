@@ -161,18 +161,22 @@ function discoverAddedFiles(projectRoot: string, baseRef: string): string[] {
     out.add(normalizeRepoRelPath(p));
   }
   const vsHead = git(["diff", "--name-status", "--diff-filter=AR", "HEAD"], projectRoot);
-  if (vsHead.status === 0) {
-    for (const p of addedPathsFromNameStatus(vsHead.stdout)) {
-      out.add(normalizeRepoRelPath(p));
-    }
+  if (vsHead.status !== 0) {
+    const detail = vsHead.stdout.trim() || `git diff HEAD exited ${String(vsHead.status)}`;
+    throw new GitCommandError(`working-tree change-set unavailable: ${detail}`);
+  }
+  for (const p of addedPathsFromNameStatus(vsHead.stdout)) {
+    out.add(normalizeRepoRelPath(p));
   }
   const untracked = git(["ls-files", "--others", "--exclude-standard"], projectRoot);
-  if (untracked.status === 0) {
-    for (const line of untracked.stdout.split("\n")) {
-      const p = normalizeRepoRelPath(unquoteGitPath(line));
-      if (p.length > 0) {
-        out.add(p);
-      }
+  if (untracked.status !== 0) {
+    const detail = untracked.stdout.trim() || `git ls-files exited ${String(untracked.status)}`;
+    throw new GitCommandError(`untracked change-set unavailable: ${detail}`);
+  }
+  for (const line of untracked.stdout.split("\n")) {
+    const p = normalizeRepoRelPath(unquoteGitPath(line));
+    if (p.length > 0) {
+      out.add(p);
     }
   }
   return [...out];
@@ -193,20 +197,30 @@ function readPayload(
   if (injected !== undefined) {
     return { kind: "ok", raw: injected };
   }
-  const abs = join(projectRoot, n);
-  let st: Stats;
-  try {
-    st = lstatSync(abs);
-  } catch {
-    return { kind: "missing" };
+  const parts = n.split("/").filter((part) => part.length > 0 && part !== ".");
+  let abs = resolve(projectRoot);
+  let st: Stats | undefined;
+  for (const part of parts) {
+    if (part === "..") {
+      return {
+        kind: "unsafe",
+        detail: `${n}: completed/ path escapes project root; refuse without following`,
+      };
+    }
+    abs = join(abs, part);
+    try {
+      st = lstatSync(abs);
+    } catch {
+      return { kind: "missing" };
+    }
+    if (st.isSymbolicLink()) {
+      return {
+        kind: "unsafe",
+        detail: `${n}: completed/ path contains a symlink; refuse without following`,
+      };
+    }
   }
-  if (st.isSymbolicLink()) {
-    return {
-      kind: "unsafe",
-      detail: `${n}: completed/ add is a symlink; refuse without following`,
-    };
-  }
-  if (!st.isFile()) {
+  if (st === undefined || !st.isFile()) {
     return {
       kind: "unsafe",
       detail: `${n}: completed/ add is not a regular file; refuse without reading`,
