@@ -222,6 +222,36 @@ describe("prepareWorkerCredentialInjection (#1351)", () => {
     }
   });
 
+  it("validates the selected token, not a sibling enterprise token", () => {
+    const enterpriseToken = "gho_enterprise_other_principal_1351";
+    const seen: { ghToken?: string; enterprise?: string } = {};
+    const runGh: GhRunner = (args, environ) => {
+      seen.ghToken = environ.GH_TOKEN;
+      seen.enterprise = environ.GH_ENTERPRISE_TOKEN;
+      return stubGh({})(args, environ);
+    };
+    const result = prepareWorkerCredentialInjection({
+      environ: {
+        GH_TOKEN: FAKE_TOKEN,
+        GH_ENTERPRISE_TOKEN: enterpriseToken,
+        GH_REPO: TARGET_REPO,
+      },
+      githubAuthMode: "injected-token",
+      runtimeMode: "cloud-headless",
+      dispatchPath: "grok-build",
+      runGh,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok || !result.injected) {
+      return;
+    }
+    expect(result.spawnEnv.GH_TOKEN).toBe(FAKE_TOKEN);
+    expect(result.expectedLogin).toBe(WORKER_LOGIN);
+    expect(seen.ghToken).toBe(FAKE_TOKEN);
+    expect(seen.enterprise).toBeUndefined();
+    expect(JSON.stringify(result)).not.toContain(enterpriseToken);
+  });
+
   it("never continues under host identity from injected-token mode", () => {
     const result = prepareWorkerCredentialInjection({
       environ: { GH_REPO: TARGET_REPO },
@@ -268,6 +298,18 @@ describe("formatDispatchAuthEnvelope (#1351)", () => {
         githubAuthMode: "injected-token",
       }),
     ).toThrow(/credential value/i);
+  });
+
+  it("collapses newlines in envelope fields so they stay on one bullet", () => {
+    const section = formatDispatchAuthEnvelope({
+      runtimeMode: "cloud-headless\ninjected",
+      githubAuthMode: "injected-token\nextra",
+      expectedGithubLogin: `${WORKER_LOGIN}\nnot-a-new-block`,
+    });
+    expect(section).toContain("runtime_mode: cloud-headless injected");
+    expect(section).toContain("github_auth_mode: injected-token extra");
+    expect(section).toContain(`expected_github_login: ${WORKER_LOGIN} not-a-new-block`);
+    expect(section.split("\n").filter((line) => line.startsWith("- "))).toHaveLength(3);
   });
 
   it("rejects a credential-shaped expected login", () => {
@@ -372,6 +414,25 @@ describe("swarmLaunch identity-bound injection (#1351)", () => {
     const manifest = JSON.parse(result.stdout) as Record<string, unknown>[];
     expect(manifest[0]?.github_auth_mode).toBe("host-gh");
     expect(manifest[0]?.expected_github_login).toBeUndefined();
+    expect(result.stdout).not.toContain(FAKE_TOKEN);
+  });
+
+  it("fails launch when injected-token has no credential", () => {
+    const project = launchProject();
+    const result = swarmLaunch({
+      stories: ["1351"],
+      projectRoot: project,
+      autonomous: true,
+      preflightGate: () => ({ exitCode: 0, message: "" }),
+      readinessGate: () => ({ exitCode: 0, report: "" }),
+      runtimeAuthProbe: () => ["cloud-headless", "injected-token"],
+      environ: { CURSOR_AGENT: "1", GH_REPO: TARGET_REPO },
+      runGh: stubGh({}),
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr).toMatch(/BLOCKED/i);
+    expect(result.stderr).toMatch(/GH_TOKEN|GITHUB_TOKEN|GH_ENTERPRISE_TOKEN/);
+    expect(result.stderr).toMatch(/dispatcher/i);
     expect(result.stdout).not.toContain(FAKE_TOKEN);
   });
 

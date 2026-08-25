@@ -86,6 +86,12 @@ const INJECTION_MISSING_CREDENTIAL = "GH_TOKEN (or GITHUB_TOKEN / GH_ENTERPRISE_
 const INJECTION_DISPATCHER_REMEDY =
   "Dispatcher-side remedy: load an approved user-bearing worker credential into the dispatcher environment, then call prepareWorkerCredentialInjection before spawn. Do not fall back to the host gh token or continue under the maintainer identity. Installation credentials are not injectable; see #3693.";
 
+const SIBLING_INJECTED_TOKEN_VARS = [
+  "GITHUB_TOKEN",
+  "GH_ENTERPRISE_TOKEN",
+  "GITHUB_ENTERPRISE_TOKEN",
+] as const;
+
 function looksLikeCredentialValue(value: string): boolean {
   return CREDENTIAL_VALUE_PATTERN.test(value.trim());
 }
@@ -94,6 +100,21 @@ function assertNoCredentialValue(value: string, label: string): void {
   if (looksLikeCredentialValue(value)) {
     throw new Error(`${label} must not contain a credential value`);
   }
+}
+
+function sanitizeEnvelopeField(value: string, label: string): string {
+  const cleaned = value.replace(/\r?\n/g, " ").trim();
+  assertNoCredentialValue(cleaned, label);
+  return cleaned;
+}
+
+/** Present only the selected token so validation cannot bind a sibling env var. */
+function isolateHeldWorkerToken(environ: NodeJS.ProcessEnv, token: string): NodeJS.ProcessEnv {
+  const isolated: NodeJS.ProcessEnv = { ...environ, GH_TOKEN: token };
+  for (const name of SIBLING_INJECTED_TOKEN_VARS) {
+    delete isolated[name];
+  }
+  return isolated;
 }
 
 /**
@@ -105,18 +126,17 @@ export function formatDispatchAuthEnvelope(fields: {
   githubAuthMode: string;
   expectedGithubLogin?: string | null;
 }): string {
-  assertNoCredentialValue(fields.runtimeMode, "runtime_mode");
-  assertNoCredentialValue(fields.githubAuthMode, "github_auth_mode");
+  const runtimeMode = sanitizeEnvelopeField(fields.runtimeMode, "runtime_mode");
+  const githubAuthMode = sanitizeEnvelopeField(fields.githubAuthMode, "github_auth_mode");
   const lines = [
     "## Runtime and GitHub auth mode",
     "",
-    `- runtime_mode: ${fields.runtimeMode}`,
-    `- github_auth_mode: ${fields.githubAuthMode}`,
+    `- runtime_mode: ${runtimeMode}`,
+    `- github_auth_mode: ${githubAuthMode}`,
   ];
   if (fields.expectedGithubLogin !== undefined && fields.expectedGithubLogin !== null) {
-    const login = fields.expectedGithubLogin.trim();
+    const login = sanitizeEnvelopeField(fields.expectedGithubLogin, "expected_github_login");
     if (login.length > 0) {
-      assertNoCredentialValue(login, "expected_github_login");
       lines.push(`- expected_github_login: ${login}`);
     }
   }
@@ -236,8 +256,9 @@ export function prepareWorkerCredentialInjection(
     });
   }
 
+  const isolatedEnviron = isolateHeldWorkerToken(environ, token);
   const validated = validateGithubAuthForWorker(GITHUB_AUTH_MODE_INJECTED_TOKEN, {
-    environ,
+    environ: isolatedEnviron,
     runtimeReport: { runtimeMode: runtimeMode ?? "cloud-headless" },
     repo: request.repo,
     runGh: request.runGh,
@@ -1112,13 +1133,11 @@ export function swarmLaunch(args: LaunchArgs): {
 
   const launchEnviron = args.environ ?? process.env;
   let expectedGithubLogin: string | null = null;
-  // Only the injected-token launch path auto-validates. An ambient GH_TOKEN on
-  // a host-gh probe is often the maintainer workaround, not a worker credential;
-  // local-hybrid injection is the explicit prepareWorkerCredentialInjection call.
-  if (
-    githubAuthMode === GITHUB_AUTH_MODE_INJECTED_TOKEN &&
-    findInjectedToken(launchEnviron) !== null
-  ) {
+  // Only the injected-token launch path auto-validates (and fail-closes on a
+  // missing token). An ambient GH_TOKEN on a host-gh probe is often the
+  // maintainer workaround, not a worker credential; local-hybrid injection is
+  // the explicit prepareWorkerCredentialInjection call.
+  if (githubAuthMode === GITHUB_AUTH_MODE_INJECTED_TOKEN) {
     const injection = prepareWorkerCredentialInjection({
       environ: launchEnviron,
       githubAuthMode,
