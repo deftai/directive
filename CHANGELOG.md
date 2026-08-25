@@ -73,7 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Concurrent launcher no longer tells you to set `readiness=sequential` (#3666).** Gate A now says a `parallel_safe: false` story is not eligible for `swarm:launch` and points at the interactive swarm-skill path. Gate B is unchanged. Closes #3666.
+- **Concurrent launcher no longer tells you to set `readiness=sequential` (#3666).** Gate A now says a `parallel_safe: false` story is not eligible for `swarm:launch` and points at the interactive swarm-skill path, noting that `swarm:readiness` exit 0 gates concurrent workers only. Gate B is unchanged. Closes #3666.
 - **Scope provenance is no longer described as warn-only (#3712).** Agents now read that `--enforce` governs only the empty-scope case, and that a declared file scope without base approval fails closed. Test-boundary stays warn-only until authored policy; missing check-composition still fails closed. Closes #3712.
 
 - **Build skill completes after merge, not before PR handoff (#3674).** The generated build skill told workers to run `scope:complete` before handoff, which a delivered story cannot satisfy. The pack now points at the existing post-merge lifecycle instead of restating it. Closes #3674.
