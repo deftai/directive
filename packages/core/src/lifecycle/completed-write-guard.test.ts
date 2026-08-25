@@ -12,7 +12,20 @@ function isolatedGitEnv(projectRoot: string): NodeJS.ProcessEnv {
   delete env.DEFT_BASE_REF;
   delete env.GITHUB_BASE_REF;
   env.GIT_CEILING_DIRECTORIES = dirname(resolve(projectRoot));
+  env.GIT_AUTHOR_NAME = "t";
+  env.GIT_AUTHOR_EMAIL = "t@t.test";
+  env.GIT_COMMITTER_NAME = "t";
+  env.GIT_COMMITTER_EMAIL = "t@t.test";
   return env;
+}
+
+function gitOk(args: string[], cwd: string): void {
+  const r = spawnSync("git", args, {
+    cwd,
+    encoding: "utf8",
+    env: isolatedGitEnv(cwd),
+  });
+  expect(r.status, `${args.join(" ")}\n${r.stderr ?? ""}${r.stdout ?? ""}`).toBe(0);
 }
 
 function husk(status = "completed"): string {
@@ -162,6 +175,23 @@ describe("evaluateCompletedWriteGuard (#3679)", () => {
       expect(result.code).toBe(2);
       expect(result.message).toMatch(
         /no merge-base ref found|base ref .* not found|Pass --base-ref/,
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when the base ref has no merge-base with HEAD", { timeout: 20_000 }, () => {
+    const root = mkdtempSync(join(tmpdir(), "completed-write-unrelated-"));
+    try {
+      gitOk(["init", "-q", "-b", "master"], root);
+      gitOk(["-c", "commit.gpgsign=false", "commit", "--allow-empty", "-m", "base"], root);
+      gitOk(["checkout", "--orphan", "other"], root);
+      gitOk(["-c", "commit.gpgsign=false", "commit", "--allow-empty", "-m", "other"], root);
+      const result = evaluateCompletedWriteGuard(root, { baseRef: "master" });
+      expect(result.code).toBe(2);
+      expect(result.message).toMatch(
+        /committed change-set unavailable|no merge base|Pass --base-ref/,
       );
     } finally {
       rmSync(root, { recursive: true, force: true });

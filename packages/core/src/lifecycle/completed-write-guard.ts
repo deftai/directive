@@ -149,10 +149,16 @@ function discoverAddedFiles(projectRoot: string, baseRef: string): string[] {
   const out = new Set<string>();
   const range = resolved.includes("...") ? resolved : `${resolved}...HEAD`;
   const committed = git(["diff", "--name-status", "--diff-filter=AR", range], projectRoot);
-  if (committed.status === 0) {
-    for (const p of addedPathsFromNameStatus(committed.stdout)) {
-      out.add(normalizeRepoRelPath(p));
-    }
+  if (committed.status !== 0) {
+    const detail =
+      committed.stdout.trim() || `git diff ${range} exited ${String(committed.status)}`;
+    throw new GitCommandError(
+      `committed change-set unavailable for '${range}': ${detail}. ` +
+        "Pass --base-ref to a merge-base ancestor of HEAD.",
+    );
+  }
+  for (const p of addedPathsFromNameStatus(committed.stdout)) {
+    out.add(normalizeRepoRelPath(p));
   }
   const vsHead = git(["diff", "--name-status", "--diff-filter=AR", "HEAD"], projectRoot);
   if (vsHead.status === 0) {
