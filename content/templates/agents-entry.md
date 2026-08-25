@@ -3,7 +3,7 @@
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
-! If any .deft/core/.agents/skills/ path referenced in this file cannot be read (missing file, stale path from a previous framework version, or a deprecation redirect stub), read .deft/core/QUICK-START.md instead and follow it. QUICK-START refreshes this section idempotently for the current framework version.
+! If any .deft/core/.agents/skills/ path here cannot be read (missing, stale, or a redirect stub), read .deft/core/QUICK-START.md and follow it — it refreshes this section idempotently for the current version.
 
 ## Temporary test kill-switch (#3039)
 
@@ -57,7 +57,7 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 ! Before improvising: `deft packs:slice --list-packs`, then `deft packs:slice <pack> --list` / `deft packs:slice <pack> <slice>` — `commands.md` (§ packs); never enumerate names here.
 ## Codebase MAP Projection (#1595 / #1498)
 
-! `plan.architecture.codeStructure` is durable SoT; `.planning/codebase/MAP.md` is generated — `deft codebase:map` / `deft verify:codebase-map-fresh` (`commands.md`). ⊗ Do not hand-edit MAP, block on stale/absent MAP, or elevate projection above xBRIEF (#1595 / #1498).
+! `plan.architecture.codeStructure` is durable SoT; `.planning/codebase/MAP.md` is generated — `deft codebase:map` / `deft verify:codebase-map-fresh` (`commands.md`). ⊗ Hand-edit MAP, block on stale/absent MAP, or elevate projection above xBRIEF (#1595 / #1498).
 
 ## Skills
 
@@ -87,11 +87,10 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ## Envelope selection SLA (#3153)
 
-! Default story / through-merge unit of work is `drive-to: merge-ready`. Deliberate `stop-at: pr-open` is allowed only when a **partner merge-path owner** is planned (review-cycle babysit / Approach 1 lease / parent-retained) for Greptile + CI + post-merge `scope:complete` — triggers: capacity stall, wall-clock budget, large multi-gate, host nest limits (swarm Phase 0 decision tree). Depth: `deft-directive-swarm` + `deft-directive-review-cycle` partner merge-path.
-! Under human-merge policy, a **durable** owner (parent/monitor sticky lease or Phase 6 closer) MUST remain for post-merge `scope:complete` — CLEAN alone is not lifecycle complete.
+! Deliberate `stop-at: pr-open` is allowed only when a **partner merge-path owner** is planned (review-cycle babysit / Approach 1 lease / parent-retained) for Greptile + CI + post-merge `scope:complete` — triggers: capacity stall, wall-clock budget, large multi-gate, host nest limits (swarm Phase 0 decision tree). Depth: `deft-directive-swarm` + `deft-directive-review-cycle` partner merge-path.
+! Under human-merge policy, a **durable** owner (parent/monitor sticky lease or Phase 6 closer) MUST remain for post-merge `scope:complete` — CLEAN alone is not lifecycle complete; ⊗ stand down at CLEAN with no reachable owner.
 ⊗ Silent PR-open handback for a worker already scoped `drive-to: merge-ready`.
 ⊗ `stop-at: pr-open` without a named babysit / merge-path owner, or dual review-monitor leases on recovery (#3044 / #2261).
-⊗ Stand down at CLEAN under human-merge with no reachable post-merge `scope:complete` owner.
 ! After merge of issue `#N`, `deft verify:orphan-active -- --issue N` MUST exit 0 before `DONE` (#3429). After `scope:complete`, `deft verify:completed-tracked -- --issue N` MUST exit 0 on `origin/<deliveryBranch>` before `DONE` (#3476). Exit 1 shipped → printed `scope:complete`; missing tracked land → `swarm:finalize-cohort` or a lifecycle PR; unresolved lookup → retry / `BLOCKED` (⊗ complete unfinished scope).
 ⊗ Emit `ISSUE: closed` while that brief is still in `active/`.
 
@@ -112,8 +111,7 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 ## Value feedback and attribution (#1709)
 
 ! `plan.policy.valueFeedback.enabled` defaults OFF — `deft policy:show --field=valueFeedback` / `deft policy:enable-value-feedback -- --confirm`; `deft value:show`; `deft feedback:file`; `.deft/core/.agents/skills/deft-directive-feedback/SKILL.md` (#1709).
-
-! Consumer hard-stop filing (#3713): `BLOCKER` is the only classification allowed in an issue title. `deft feedback:file --blocker` writes it next to `[framework-gap]` and carries body evidence. ⊗ Derive or apply `adoption-blocker` from a consumer-authored title -- a privileged actor applies that ranking label after the body-evidence test. Absence of `BLOCKER` does not mean "not a blocker."
+! Consumer hard-stop (#3713): `BLOCKER` is the sole permitted title classification — `deft feedback:file --blocker`; absence is not a verdict. ⊗ Derive `adoption-blocker` from a consumer title (privileged, body-evidence gated); `.deft/core/scm/github.md`.
 
 ## Structured decision log (#1396 / #3211)
 ! Significant choices → `deft decision:write`; re-load → `deft decision:list` / `xbrief/decisions/`; depth `.deft/core/docs/decision-log.md` (not triage/ADRs/lessons).
@@ -124,7 +122,7 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 ## Branch policy & branch verification
 
 ! Feature branches — `deft verify:branch`, `deft verify:forward-coverage` (90% warn-first changed-branch coverage, not the 75 floor, #3514), `deft coverage:hotspots`, hooks, `deft check` (#746 / #747) — `.deft/core/scm/github.md` § Branch policy.
-! Test placement + scope provenance (#3145) — `deft verify:test-boundary` (warn-only until authored policy), `deft verify:scope-provenance` (`--enforce` is empty-scope only; declared `file_scope` without base approval fails closed), `deft verify:consumer-check-contract` (check composition fails closed; CI omissions warn) (docs: `docs/test-boundary.md`, `docs/scope-provenance.md`, `docs/consumer-check-contract.md`).
+! Test placement + scope provenance (#3145) — `deft verify:test-boundary` (warn-only until authored policy), `deft verify:scope-provenance` (`--enforce` is empty-scope only; declared `file_scope` without base approval fails closed), `deft verify:consumer-check-contract` (composition fails closed; CI omissions warn); docs `docs/{test-boundary,scope-provenance,consumer-check-contract}.md`.
 
 ## Branch Policy Disclosure (#746)
 
