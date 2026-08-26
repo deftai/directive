@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -105,6 +105,7 @@ describe("swarm worktrees", () => {
       git,
     });
     expect(first).toEqual(second);
+    expect(existsSync(join(wt, ".deft-scratch", "subagent-status"))).toBe(true);
     rmSync(repo, { recursive: true, force: true });
   });
 

@@ -102,7 +102,8 @@ task swarm:pre-dispatch -- --scope-id <story|issue|xbrief-id> --target-id <workt
 Default unit key: `scopeId` + `targetId` + `workflowId=drive-to:merge-ready`.
 Actions: `begin` (default), `complete` (`--status succeeded|failed|cancelled|blocked`), `cancel` (takeover step 1).
 Monitors MUST run begin before any peer implement spawn; spawn only on exit 0.
-Takeover: cancel prior attempt, then begin again — never concurrent dual active.
+Takeover after REDISPATCH_OK: cancel prior attempt, then begin again — never concurrent dual active.
+A killed worker stays `queued`/`running` until cancel; REDISPATCH_OK does not lift `DENY_DUPLICATE_ACTIVE` (#3730).
 Implementation: `packages/core/src/swarm/pre-dispatch.ts` + `task swarm:pre-dispatch`.
 
 ## Skill routing

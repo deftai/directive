@@ -14,6 +14,7 @@ export { routingSetMain } from "./routing-set-cli.js";
 export * from "./routing-verify.js";
 export { routingVerifyMain } from "./routing-verify-cli.js";
 export * from "./subagent-backend.js";
+export * from "./subagent-status-dir.js";
 export * from "./subprocess.js";
 export * from "./verify-review-clean.js";
 export { verifyReviewCleanMain } from "./verify-review-clean-cli.js";

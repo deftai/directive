@@ -115,6 +115,7 @@ describe("verify-session-ritual branches", () => {
     });
     expect(result.code).toBe(1);
     expect(result.message).toContain("older than 1h");
+    expect(result.message).toContain("session:start --rearm");
   });
 
   it("reports a message-less quick failure and blocks gated precheck", () => {

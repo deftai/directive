@@ -16,7 +16,7 @@ import { utcIso } from "./types.js";
 export function nextSafeActionFor(decision: PreDispatchDecision): string {
   switch (decision) {
     case "DENY_DUPLICATE_ACTIVE":
-      return "Wait for the active attempt to finish or cancel it; do not start a duplicate dispatch.";
+      return "A running attempt is not proof the worker is alive. Takeover: swarm:pre-dispatch --action cancel, then begin. REDISPATCH_OK does not lift this deny.";
     case "BLOCK_NON_RETRYABLE":
       return "Fix the deterministic configuration/schema/permission failure, record a relevant material delta, then resume.";
     case "BLOCK_NO_MATERIAL_PROGRESS":

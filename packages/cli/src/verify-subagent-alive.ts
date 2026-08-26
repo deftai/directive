@@ -201,7 +201,11 @@ export function evaluateSubagentAliveGate(
   }
   lines.push("");
   lines.push("REDISPATCH_OK: host-reported running + missing/STALE heartbeat authorizes takeover.");
-  lines.push("Re-dispatch a replacement worker; do not wait on Cursor false-alive state.");
+  lines.push("A killed worker's delivery attempt stays running until cancelled.");
+  lines.push("Takeover: task swarm:pre-dispatch -- --scope-id <id> --target-id <worktree> --action cancel");
+  lines.push("then:     task swarm:pre-dispatch -- --scope-id <id> --target-id <worktree>");
+  lines.push("If verify:session-ritual --tier=gated fails, run session:start --rearm --session-id=<same> first.");
+  lines.push("Do not wait on Cursor false-alive state. Do not spawn while DENY_DUPLICATE_ACTIVE.");
 
   return {
     exitCode: EXIT_STALE,

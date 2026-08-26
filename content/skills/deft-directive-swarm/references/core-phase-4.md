@@ -11,16 +11,17 @@
 
 ! On the Grok Build hybrid path (`spawn_subagent` dispatch, no native lifecycle channel back to the monitor), worktree git state alone is INSUFFICIENT to distinguish a healthy mid-poll sub-agent from a stalled one. Long-running review-cycle pollers spend most of their wall-clock waiting on Greptile and emit no commits during that wait -- the #1166 swarm session is the recurrence record (two of three dispatched pollers went silent with zero observable signals; the monitor could not tell).
 
-! The canonical alive-check on the Grok Build hybrid path is the heartbeat contract documented in `docs/subagent-heartbeat.md`. Every long-running sub-agent (pollers, watchdogs, implementation agents whose tool loop exceeds ~3 min) writes a JSON heartbeat to `.deft-scratch/subagent-status/<agent-id>.json` per the canonical poller template + agent preamble; the monitor reads those records via `task agent:monitor` (three-state exit 0 ok / 1 stale-or-malformed / 2 config error). Default threshold is 30 minutes; `--threshold-minutes` overrides.
+! The canonical alive-check on the Grok Build hybrid path is the heartbeat contract documented in `docs/subagent-heartbeat.md`. Every long-running sub-agent (pollers, watchdogs, implementation agents whose tool loop exceeds ~3 min) writes a JSON heartbeat to `.deft-scratch/subagent-status/<agent-id>.json` per the canonical poller template + agent preamble. Default threshold is 30 minutes; `--threshold-minutes` overrides.
+
+! Monitors MUST poll with `task verify:subagent-alive -- --require-agent <agent-id> [--scratch-dir <worktree>/.deft-scratch/subagent-status]` so a missing required record is exit `1` + `REDISPATCH_OK`, not a raw sweep that treats an empty dir as OK. `task agent:monitor` remains the raw sweep.
 
 ```
-# Scan all worktrees in the cohort
-task agent:monitor -- \
-  --scratch-dir <worktree-1>/.deft-scratch/subagent-status \
-  --scratch-dir <worktree-2>/.deft-scratch/subagent-status
+task verify:subagent-alive -- \
+  --require-agent <agent-id> \
+  --scratch-dir <worktree>/.deft-scratch/subagent-status
 ```
 
-! Run the heartbeat sweep alongside the worktree git checks at every monitor polling iteration (~2-3 min). When a record is reported STALE (mid-flight, terminal_state unpopulated, age > threshold), treat it as a candidate for the Takeover Triggers below; when it is reported MALFORMED, surface the diagnostics to the user and re-dispatch the agent with a fresh prompt that re-establishes the heartbeat contract. A TERMINAL record (terminal_state set) is NEVER stale -- the agent reached its exit on its own terms.
+! Run the liveness gate alongside the worktree git checks at every monitor polling iteration (~2-3 min). When a record is reported STALE (mid-flight, terminal_state unpopulated, age > threshold), treat it as a candidate for the Takeover Triggers below; when it is reported MALFORMED, surface the diagnostics to the user and re-dispatch the agent with a fresh prompt that re-establishes the heartbeat contract. A TERMINAL record (terminal_state set) is NEVER stale -- the agent reached its exit on its own terms.
 
 ~ The heartbeat is filesystem-only by design; a network partition or rate-limit ceiling cannot mask agent liveness. Pair the on-disk sweep with the worktree git checks (`git status --short`, `git log --oneline -3`) and the per-PR readiness gate (`task pr:merge-ready`) for the full alive + progressing + clean picture.
 
@@ -144,12 +145,14 @@ task swarm:pre-dispatch -- \
   --scope-id <id> --target-id <target> \
   --action complete --status succeeded|failed|cancelled|blocked
 
-# Takeover: cancel prior attempt, THEN pre-dispatch begin again (never dual active)
+# Takeover after REDISPATCH_OK: cancel prior attempt, THEN pre-dispatch begin again (never dual active)
 task swarm:pre-dispatch -- --scope-id <id> --target-id <target> --action cancel
 task swarm:pre-dispatch -- --scope-id <id> --target-id <target>   # begin
+# If verify:session-ritual --tier=gated fails first:
+task session:start --rearm --session-id=<same>
 ```
 
-! Gate authority is **#3143** `DENY_DUPLICATE_ACTIVE` (`maxActiveAttempts: 1`) on the delivery-attempt unit ledger (`scopeId` + `targetId` + `workflowId`, default workflow `drive-to:merge-ready`). CLI is authoritative; this section is a pointer only.
+! Gate authority is **#3143** `DENY_DUPLICATE_ACTIVE` (`maxActiveAttempts: 1`) on the delivery-attempt unit ledger (`scopeId` + `targetId` + `workflowId`, default workflow `drive-to:merge-ready`). A killed worker stays `queued`/`running` until cancel; `REDISPATCH_OK` does not lift the deny (#3730). CLI is authoritative; this section is a pointer only.
 ⊗ Spawn a second implement leaf while pre-dispatch exits 1 (active attempt exists).
 ⊗ Treat "resume failed" / host false-alive as license to skip the gate.
 ⊗ Lift DENY by concurrent dual active — escape hatch is cancel-then-begin, not override-while-both-run.

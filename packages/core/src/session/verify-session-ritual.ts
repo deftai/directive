@@ -384,10 +384,14 @@ function evaluateLoadedState(
     for (const stepName of requiredGated) {
       const step = state.gatedSteps[stepName];
       if (!stepPasses(step)) {
+        const recoveryTier: SessionCeremonyTier = "cold";
         return {
           code: 1,
-          message: failedStepMessage("gated", stepName, step),
-          recoveryTier: "cold",
+          message:
+            failedStepMessage("gated", stepName, step) +
+            " " +
+            formatRitualRecoveryInstruction(recoveryTier),
+          recoveryTier,
           boundSessionId: state.sessionId,
         };
       }

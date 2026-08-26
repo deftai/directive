@@ -375,6 +375,7 @@ describe("direct-write hook policy", () => {
     );
 
     expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-ritual-mismatch" });
+    expect(decision.message).toContain("session:start --rearm");
   });
 
   it("reports ritual-not-ready for a stale matching owner instead of occupancy denial (#3611)", () => {

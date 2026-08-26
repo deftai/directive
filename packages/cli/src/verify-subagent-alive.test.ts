@@ -55,6 +55,8 @@ describe("verify-subagent-alive gate (#2824 / cohort-2804-2814)", () => {
     expect(verdict.redispatchOk).toBe(true);
     expect(verdict.message).toContain("REDISPATCH_OK");
     expect(verdict.message).toContain("2804-deposit-package-absent-prune");
+    expect(verdict.message).toContain("--action cancel");
+    expect(verdict.message).toContain("session:start --rearm");
 
     rmSync(root, { recursive: true, force: true });
   });

@@ -103,7 +103,10 @@ missing and has zero records. A worker that dies before its first heartbeat
 never creates `.deft-scratch/subagent-status/`, so a probe against a non-existent
 dir blocks the takeover this contract promises. Parents MUST create the worker
 worktree's status directory at dispatch time **and** honor a startup grace before
-treating a missing required-agent record as dead:
+treating a missing required-agent record as dead. `task swarm:launch` (worktree
+map) and `task swarm:pre-dispatch --action begin` on a filesystem target mkdir
+this directory mechanically (#3730). Interactive spawn without those verbs still
+MUST mkdir before the spawn primitive:
 
 ```pwsh path=null start=null
 New-Item -ItemType Directory -Force -Path <worktree>/.deft-scratch/subagent-status | Out-Null
@@ -121,6 +124,19 @@ task verify:subagent-alive -- \
 Once the directory exists **and** the startup grace has elapsed, a missing
 required-agent record is exit `1` + `REDISPATCH_OK` (same as Cursor #2824).
 Exit `2` stays reserved for true config errors (invalid args, wrong path).
+
+! **Takeover after REDISPATCH_OK (#3730):** Exit `1` does not cancel the
+delivery-attempt row. A killed worker stays `running`, and
+`DENY_DUPLICATE_ACTIVE` still blocks a second spawn. Takeover is
+`task swarm:pre-dispatch -- --action cancel` then begin. If gated ritual
+verify fails, run `session:start --rearm --session-id=<same>` first.
+
+! **Commit early (#3730):** Long-running workers MUST commit as soon as a
+coherent unit exists. A host-kill leaves uncommitted work invisible to every
+gate.
+
+⊗ Put runtime last-seen on the C2 launch manifest (written `mode: "replace"`)
+or in `occupancy.json` — those are the wrong primitives (#3730).
 
 ! **Startup grace is mandatory (#2879 Greptile P1):** An immediate first probe
 against a parent-created empty status directory will correctly emit

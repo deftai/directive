@@ -98,7 +98,8 @@ Before spawning a peer implement leaf: run with default --action begin.
   exit 1  active deny / gate block (do not spawn)
   exit 2  config / usage error
 
-Takeover: --action cancel, then pre-dispatch begin again (not concurrent dual active).
+Takeover after REDISPATCH_OK: --action cancel, then pre-dispatch begin again
+(not concurrent dual active; a killed worker stays running until cancelled).
 Terminal: --action complete [--status succeeded|failed|cancelled|blocked]
 
 Options:

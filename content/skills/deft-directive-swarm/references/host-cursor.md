@@ -11,6 +11,7 @@ Load this file only after detect selects Cursor. Do not load other host adapters
 ### Step 2e: Cursor Launch (Task tool available) — #1877
 
 ! When the platform descriptor is `cursor-composer` or `cursor-cloud-agent` (Cursor `Task` tool detected with Cursor signals, no `start_agent`, no `WARP_*`, no Claude Code classification, no OpenClaw `sessions_spawn`, no `spawn_subagent`), dispatch each worker via the Cursor `Task` tool with:
+0. Create `<worktree>/.deft-scratch/subagent-status/` before spawn if `swarm:launch` / `swarm:pre-dispatch` did not already (#3730). Include preamble § 10.5 (heartbeat + commit early) and poll with `task verify:subagent-alive -- --require-agent <agent-id>`.
 1. The canonical `templates/agent-prompt-preamble.md` content as the preamble (AGENTS.md read mandate, #810 xBRIEF gate, #798 PowerShell UTF-8, pre-PR + review-cycle mandates).
 2. The standard worktree prompt (STEP 1-6 from the Prompt Template below).
 3. The worktree path set to the agent's isolated git worktree.

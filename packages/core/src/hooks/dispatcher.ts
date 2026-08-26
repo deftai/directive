@@ -1213,8 +1213,9 @@ function inspectMutationGates(
         "occupancy-ritual-mismatch",
         toolName,
         `Directive denied ${toolName}: ${detail}. ` +
-          "Run the canonical session recovery with the same explicit --session-id; " +
-          "intermediate lease/ritual mismatches fail closed." +
+          "Run `deft session:start --rearm --session-id=<same-session-id>` when re-arm is eligible; " +
+          "otherwise run `deft session:start --session-id=<same-session-id>` for a cold ceremony. " +
+          "Intermediate lease/ritual mismatches fail closed." +
           rootsNote,
       );
     }
@@ -1288,7 +1289,9 @@ function inspectMutationGates(
         "occupancy-ritual-mismatch",
         toolName,
         `Directive denied ${toolName}: final lease owner ${actor.sessionId} does not match ` +
-          `the exact verified ritual owner ${ritual.boundSessionId ?? "<unbound>"}.` +
+          `the exact verified ritual owner ${ritual.boundSessionId ?? "<unbound>"}. ` +
+          "Run `deft session:start --rearm --session-id=<same-session-id>` when re-arm is eligible; " +
+          "otherwise run `deft session:start --session-id=<same-session-id>` for a cold ceremony." +
           rootsNote,
       );
     }

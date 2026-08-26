@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -229,6 +229,22 @@ describe("swarmPreDispatch (#3228)", () => {
     const report = formatPreDispatchReport(denied);
     expect(report).toContain("DENY_DUPLICATE_ACTIVE");
     expect(report).toContain("do not spawn");
+    expect(report).toContain("--action cancel");
+  });
+
+  it("begin on an existing worktree path mkdirs subagent-status (#3730)", () => {
+    const root = tempRoot();
+    const rel = ".deft-scratch/worktrees/3730-arm";
+    mkdirSync(join(root, rel), { recursive: true });
+    const begun = swarmPreDispatch({
+      projectRoot: root,
+      scopeId: "3730",
+      targetId: rel,
+      action: "begin",
+      sourceRevision: "r1",
+    });
+    expect(begun.exitCode).toBe(0);
+    expect(existsSync(join(root, rel, ".deft-scratch", "subagent-status"))).toBe(true);
   });
 
   it("equivalent worktree path forms share one unit key (deny peer)", () => {
