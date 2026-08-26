@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3738",
-    "updated": "2026-08-25T22:04:57Z"
+    "updated": "2026-08-26T00:15:26Z"
   },
   "plan": {
     "title": "bug(hooks): cache_fresh is in the write gate's required set and does live forge I/O to satisfy it (80.4s measured on a clean cache)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(hooks): cache_fresh is in the write gate's required set and does live forge I/O to satisfy it (80.4s measured on a clean cache)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3738",
@@ -43,7 +43,30 @@
         "schema": "deft.scope.intended_placement.v1",
         "files": [],
         "module_boundary": ""
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3744,
+        "prBase": null,
+        "mergeCommit": "13addcece8682aaa41a6bded3635eb4e8312158e",
+        "deliveryBranch": "master",
+        "deliveryCommit": "13addcece8682aaa41a6bded3635eb4e8312158e",
+        "verifiedAt": "2026-08-26T00:15:26Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-26T00:15:26Z"
+      },
+      "completedAt": "2026-08-26T00:15:26Z",
+      "capacityBucket": "technical-debt"
     },
     "acceptance": {
       "commands": [],
@@ -96,6 +119,6 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-08-25T22:04:57Z"
+    "updated": "2026-08-26T00:15:26Z"
   }
 }
