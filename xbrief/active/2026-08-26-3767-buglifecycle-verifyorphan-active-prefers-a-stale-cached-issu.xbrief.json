@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3767",
-    "updated": "2026-08-26T19:19:28Z"
+    "updated": "2026-08-26T19:52:45Z"
   },
   "plan": {
     "title": "bug(lifecycle): verify:orphan-active prefers a stale cached issue state over the live read that would correct it",
@@ -16,39 +16,39 @@
     "items": [
       {
         "title": "A cache hit is not returned unconditionally — either bounded by age, or re-validated, with the choice recorded",
-        "status": "proposed"
+        "status": "done"
       },
       {
         "title": "A tracked running brief whose issue is closed is detected regardless of `.deft-cache` contents or age, within the stated `ghx` caveat",
-        "status": "proposed"
+        "status": "done"
       },
       {
         "title": "Unscoped aggregate resolves state via one complete, fail-closed open-issue inventory, not per-brief reads",
-        "status": "proposed"
+        "status": "done"
       },
       {
         "title": "The inventory is complete: no truncation ambiguity, PR rows excluded, fail closed on command failure, malformed pages, pagination exhaustion, and buffer exhaustion",
-        "status": "proposed"
+        "status": "done"
       },
       {
         "title": "Scoped `--issue N` keeps its authoritative read and stays fail-closed on unknown",
-        "status": "proposed"
+        "status": "done"
       },
       {
         "title": "Output reports the **basis** of each verdict — cache or live, and cache age where cache was used — so a pass is distinguishable from an unverified pass",
-        "status": "proposed"
+        "status": "done"
       },
       {
         "title": "Separate latency budgets are recorded for scoped and aggregate modes. None exist today, which is why \"affordable\" was unfalsifiable",
-        "status": "proposed"
+        "status": "done"
       },
       {
         "title": "No regression: a running brief with an open issue still passes",
-        "status": "proposed"
+        "status": "done"
       },
       {
         "title": "CHANGELOG `[Unreleased]` entry",
-        "status": "proposed"
+        "status": "done"
       }
     ],
     "tags": [
@@ -103,69 +103,69 @@
         {
           "id": 1,
           "text": "A cache hit is not returned unconditionally — either bounded by age, or re-validated, with the choice recorded",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/orphan-active/issue-state.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
           "text": "A tracked running brief whose issue is closed is detected regardless of `.deft-cache` contents or age, within the stated `ghx` caveat",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/orphan-active/issue-state.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
           "text": "Unscoped aggregate resolves state via one complete, fail-closed open-issue inventory, not per-brief reads",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/orphan-active/issue-state.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 4,
           "text": "The inventory is complete: no truncation ambiguity, PR rows excluded, fail closed on command failure, malformed pages, pagination exhaustion, and buffer exhaustion",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/scm/gh-rest.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 5,
           "text": "Scoped `--issue N` keeps its authoritative read and stays fail-closed on unknown",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/orphan-active/evaluate.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 6,
           "text": "Output reports the basis of each verdict — cache or live, and cache age where cache was used — so a pass is distinguishable from an unverified pass",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/orphan-active/evaluate.ts",
           "ambiguous": false,
           "provenance": "implementation"
         },
         {
           "id": 7,
           "text": "Separate latency budgets are recorded for scoped and aggregate modes. None exist today, which is why \"affordable\" was unfalsifiable",
-          "artifact_path": null,
+          "artifact_path": "content/docs/orphan-active-verdict-basis.md",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 8,
           "text": "No regression: a running brief with an open issue still passes",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/orphan-active/evaluate.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 9,
           "text": "CHANGELOG `[Unreleased]` entry",
-          "artifact_path": null,
+          "artifact_path": "CHANGELOG.md",
           "ambiguous": false,
           "provenance": "statement"
         }
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-08-26T19:19:28Z"
+    "updated": "2026-08-26T19:52:45Z"
   }
 }
