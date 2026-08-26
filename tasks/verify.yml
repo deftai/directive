@@ -503,7 +503,7 @@ tasks:
           ENGINE_CMD: 'verify:lifecycle-visible --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   orphan-active:
-    desc: "Fail-closed orphan-active guard (#2321 / #3429). Detects xbrief/active/ briefs with plan.status==running whose referenced GitHub issues are all closed and/or whose linked PR is merged — the stop-at:pr-open lifecycle leak. Confirmed shipped remediates with task scope:complete / scope:cancel or swarm finalize. Unresolved GitHub lookup still exits 1 but prints a retry, not scope:complete. Three-state exit (0 clean / 1 orphan / 2 config). Pass --issue N to scan one origin after merge; --skip-gh to rely on triage cache only."
+    desc: "Fail-closed orphan-active guard (#2321 / #3429). Detects xbrief/active/ briefs with plan.status==running whose referenced GitHub issues are all closed and/or whose linked PR is merged — the stop-at:pr-open lifecycle leak. Confirmed shipped remediates with task scope:complete / scope:cancel or swarm finalize. Unresolved GitHub lookup still exits 1 but prints a retry, not scope:complete. Three-state exit (0 clean / 1 orphan / 2 config). Pass --issue N to scan one origin after merge; --skip-gh to rely on triage cache only. Issue state resolves by query shape (#3767): scoped --issue N takes an authoritative read and stays fail-closed on unknown; the unscoped sweep uses one complete open-issue inventory and stays fail-open on unknown. A cache hit counts only within 15 minutes, and every run prints the basis of its verdict — see content/docs/orphan-active-verdict-basis.md."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
       - task: :engine:_ts-build
