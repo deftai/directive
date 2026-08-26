@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "bound-the-occupancy-lease-with-an-absolute-12-hour-age-cap-on-cl",
+  "decision": "Bound the occupancy lease with an absolute 12-hour age cap on claimed_at that no refresh path may extend",
+  "governingRule": {
+    "description": "Occupancy is a bearer-string boundary, so lease liveness must stay bounded by something a holder cannot extend, or the heartbeat TTL stops reclaiming worktrees from dead sessions",
+    "path": "packages/core/src/session/occupancy.ts",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Heartbeat TTL only, refreshed by the owner's writes (no absolute bound)",
+      "whyNot": null
+    },
+    {
+      "option": "Eight hours (24 TTLs), sized by the longest actively-working session observed",
+      "whyNot": null
+    },
+    {
+      "option": "A shorter cap near a single long session, such as four hours",
+      "whyNot": null
+    },
+    {
+      "option": "A 24-hour cap",
+      "whyNot": null
+    },
+    {
+      "option": "Bound liveness by a liveness probe of the holder's process instead of by clock",
+      "whyNot": null
+    }
+  ],
+  "whyWinner": "Refresh without a bound lets any process holding the occupant's session id keep a worktree forever, which disables the crash-recovery reclaim the TTL exists for. Keying the cap on claimed_at and deciding it where liveness is decided makes it unreachable from every refresh path. The bound is sized by the stalled owner, not the busy one: refresh keys on writes, so an agent dispatched overnight that finishes its work and then waits for operator input is alive, correct, and silent, and stops refreshing while remaining entirely legitimate. Overnight cohorts with a morning handoff are a normal operating shape here, so an eight-hour cap would expire a live owner between a 23:00 dispatch and a 09:00 return; twelve hours (36 TTLs) spans that window and still bounds reclaim well inside a day. Four hours would interrupt real sessions, twenty-four hours would not reclaim inside a day, and probing the holder's process is outside the cooperative local-file model. Reaching the cap costs one re-claim, not the work. Known limitation: a pure time cap cannot distinguish a stalled-but-live owner from a dead one, because the only liveness signal on this path is a write; twelve hours buys headroom but does not resolve that ambiguity.",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-08-26-3599-fixsession-occupancy-lease-never-heartbeats-during-active-wo.xbrief.json"
+  ],
+  "timestamp": "2026-08-26T19:07:25Z",
+  "revisitTrigger": "Revisit if the stalled-but-live versus dead ambiguity becomes a real problem, in which case the answer is a liveness signal that does not require a write (an explicit parked state, or refresh on non-write activity) rather than a larger number; also revisit if operators report re-claim churn at the bound, or if occupancy gains an authenticated holder identity that makes bearer-string reasoning obsolete",
+  "tags": [
+    "architecture",
+    "occupancy",
+    "session"
+  ],
+  "relatedIssues": [
+    3599,
+    3611,
+    3755
+  ]
+}

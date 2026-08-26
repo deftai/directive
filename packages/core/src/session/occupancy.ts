@@ -46,12 +46,20 @@ export const OCCUPANCY_STALE_WARN_MS = (OCCUPANCY_TTL_MS * 3) / 4;
  * the sole mechanism that reclaims a worktree from a dead session — into
  * something a writer can extend forever.
  *
- * Twenty-four TTLs is eight hours: one working day, so a tree claimed in the
- * morning is always reclaimable before that day ends, and a comfortable
- * multiple of the longest legitimate sessions seen here (hours, not shifts).
- * Reaching the cap costs the owner one re-claim, not its work.
+ * Thirty-six TTLs is twelve hours, sized by the stalled owner rather than the
+ * busy one. Refresh keys on writes, so an agent that finishes overnight and
+ * waits for its operator is alive, correct, and silent — it stops refreshing
+ * while staying entirely legitimate. Twelve hours spans a 23:00 dispatch to a
+ * 09:00 handoff and still bounds reclaim well inside a day. Reaching the cap
+ * costs the owner one re-claim, not its work.
+ *
+ * Known limitation: a pure time cap cannot tell a stalled-but-live owner from a
+ * dead one, because the only liveness signal on this path is a write. If that
+ * ambiguity starts to bite, the answer is a liveness signal that needs no write
+ * — an explicit parked state, or refresh on non-write activity — not a larger
+ * number here.
  */
-export const OCCUPANCY_MAX_LEASE_MS = OCCUPANCY_TTL_MS * 24;
+export const OCCUPANCY_MAX_LEASE_MS = OCCUPANCY_TTL_MS * 36;
 export const OCCUPANCY_INTENTS = ["mutation", "swarm", "review"] as const;
 export type OccupancyIntent = (typeof OCCUPANCY_INTENTS)[number];
 export const OCCUPANCY_JOIN_PROTOCOLS = ["none", "heartbeat-file", "parent-message"] as const;
