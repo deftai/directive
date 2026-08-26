@@ -488,7 +488,10 @@ function issueRowOrThrow(item: unknown, endpoint: string): Record<string, unknow
 }
 
 /** Flatten `gh api --paginate --slurp` issue-list output (pages or single page). */
-export function flattenOpenInventoryPayload(parsed: unknown[], endpoint: string): Record<string, unknown>[] {
+export function flattenOpenInventoryPayload(
+  parsed: unknown[],
+  endpoint: string,
+): Record<string, unknown>[] {
   if (parsed.length === 0) {
     return [];
   }

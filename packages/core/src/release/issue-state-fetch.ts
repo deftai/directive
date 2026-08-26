@@ -4,8 +4,8 @@
  */
 import { detectRateLimit } from "../cache/fetch.js";
 import { IssueState } from "../intake/reconcile-issues.js";
-import { type RunGhApiFn, GhRestError, restIssueListOpenInventory } from "../scm/gh-rest.js";
 import { type CallOptions, type CompletedProcess, call } from "../scm/call.js";
+import { GhRestError, type RunGhApiFn, restIssueListOpenInventory } from "../scm/gh-rest.js";
 
 export type ScmCallFn = (
   source: string,
@@ -89,10 +89,7 @@ interface OpenInventoryAttempt {
   readonly failureReason: string | null;
 }
 
-function fetchOpenInventoryAttempt(
-  repo: string,
-  runGhApiFn: RunGhApiFn,
-): OpenInventoryAttempt {
+function fetchOpenInventoryAttempt(repo: string, runGhApiFn: RunGhApiFn): OpenInventoryAttempt {
   let sawRateLimit = false;
   let rateLimitStderr = "";
   const trackingFn: RunGhApiFn = (args, options) => {
