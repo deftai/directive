@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **Claim occupancy before creating swarm worktrees (#3649).** `swarm:launch` takes the occupancy lease before resolving or creating trees from `--worktree-map`. A foreign live occupant creates zero worktrees. If this launch newly claimed the lease and a later step fails, it releases that lease so close-out is not left with a stranded occupant. Does not change reuse of already-registered worktrees. Closes #3649.
 
 - **Release Step 3 no longer issues one sequential `gh api` call per anchored issue (#3752).** Pre-flight vBRIEF lifecycle sync now loads the complete open-issue inventory in one paginated REST subprocess and treats anchors absent from that set as non-open, with fail-closed handling for truncated or malformed inventory. Step 3 reports anchor counts up front; `task release` usage documents `--allow-vbrief-drift`.
 

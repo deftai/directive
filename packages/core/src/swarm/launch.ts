@@ -20,7 +20,7 @@ import {
   stripArtifactSuffix,
 } from "../layout/resolve.js";
 import { evaluate as preflightEvaluate } from "../preflight/evaluate.js";
-import { applyWorktreeOccupancy } from "../session/occupancy.js";
+import { applyWorktreeOccupancy, releaseOccupancy } from "../session/occupancy.js";
 import { issueNumbersFromPlan, scopeMetadataRank } from "../triage/queue/scope-walk.js";
 import { selectionOrderingKey } from "../triage/queue/selection.js";
 import {
@@ -1074,17 +1074,43 @@ export function swarmLaunch(args: LaunchArgs): {
     args.operatorApproval ??
     `task swarm:launch (${args.autonomous ? "autonomous" : "interactive"})`;
 
+  const occupancy = applyWorktreeOccupancy(projectRoot, {
+    env: args.environ ?? process.env,
+    intent: "swarm",
+  });
+  if (occupancy.code !== 0) {
+    return {
+      exitCode: EXIT_GATE_FAILED,
+      stdout: "",
+      stderr: `${occupancy.message}\n`,
+    };
+  }
+  // Heartbeat on an existing owner is not a new claim -- only release a lease
+  // this process just minted (#3649 paired failure clause).
+  const newlyClaimed = occupancy.action === "claimed";
+  const failAfterClaim = (
+    exitCode: number,
+    stderr: string,
+  ): { exitCode: number; stdout: string; stderr: string } => {
+    if (newlyClaimed) {
+      releaseOccupancy(projectRoot, {
+        sessionId: occupancy.sessionId,
+        env: args.environ ?? process.env,
+      });
+    }
+    return { exitCode, stdout: "", stderr };
+  };
+
   let worktreeRecordMap = new Map<string, WorktreeRecord>();
   if (args.worktreeMap !== undefined && args.worktreeMap !== null) {
     const resolver = args.worktreeResolver ?? resolveWorktreeMap;
     try {
       const payload = JSON.parse(readFileSync(args.worktreeMap, "utf8")) as unknown;
       if (!Array.isArray(payload)) {
-        return {
-          exitCode: EXIT_CONFIG_ERROR,
-          stdout: "",
-          stderr: `Error: --worktree-map ${args.worktreeMap} must contain a JSON array of records.\n`,
-        };
+        return failAfterClaim(
+          EXIT_CONFIG_ERROR,
+          `Error: --worktree-map ${args.worktreeMap} must contain a JSON array of records.\n`,
+        );
       }
       const records = resolver(
         payload as Record<string, unknown>[],
@@ -1096,11 +1122,10 @@ export function swarmLaunch(args: LaunchArgs): {
       );
       worktreeRecordMap = new Map(records.map((r) => [r.story_id, r]));
     } catch (exc: unknown) {
-      return {
-        exitCode: EXIT_CONFIG_ERROR,
-        stdout: "",
-        stderr: `Error: worktree map resolution failed: ${String(exc)}\n`,
-      };
+      return failAfterClaim(
+        EXIT_CONFIG_ERROR,
+        `Error: worktree map resolution failed: ${String(exc)}\n`,
+      );
     }
   }
 
@@ -1110,7 +1135,7 @@ export function swarmLaunch(args: LaunchArgs): {
     const probe = args.runtimeAuthProbe ?? defaultRuntimeAuthProbe;
     [runtimeMode, githubAuthMode] = probe();
   } catch (exc: unknown) {
-    return { exitCode: EXIT_CONFIG_ERROR, stdout: "", stderr: `Error: ${String(exc)}\n` };
+    return failAfterClaim(EXIT_CONFIG_ERROR, `Error: ${String(exc)}\n`);
   }
 
   let resolvedModel: string | null = null;
@@ -1124,11 +1149,10 @@ export function swarmLaunch(args: LaunchArgs): {
     // would emit an exit-0 manifest with no model and no error to follow. Match
     // verify:routing, which treats the same state as a config error (#1739).
     if (route.source === "invalid") {
-      return {
-        exitCode: EXIT_CONFIG_ERROR,
-        stdout: "",
-        stderr: `Error: routing gate misconfigured: ${route.error ?? "invalid routing decision"}\n`,
-      };
+      return failAfterClaim(
+        EXIT_CONFIG_ERROR,
+        `Error: routing gate misconfigured: ${route.error ?? "invalid routing decision"}\n`,
+      );
     }
     if (route.decided) {
       resolvedModel = route.model;
@@ -1143,18 +1167,6 @@ export function swarmLaunch(args: LaunchArgs): {
         ? dispatchProviderFor(backend.backend_id)
         : null;
   const workerRoleValue = routingFile !== null || backend !== null ? LEAF_CODING_WORKER_ROLE : null;
-
-  const occupancy = applyWorktreeOccupancy(projectRoot, {
-    env: args.environ ?? process.env,
-    intent: "swarm",
-  });
-  if (occupancy.code !== 0) {
-    return {
-      exitCode: EXIT_GATE_FAILED,
-      stdout: "",
-      stderr: `${occupancy.message}\n`,
-    };
-  }
 
   const launchEnviron = args.environ ?? process.env;
   let expectedGithubLogin: string | null = null;
@@ -1173,11 +1185,7 @@ export function swarmLaunch(args: LaunchArgs): {
       cwd: projectRoot,
     });
     if (!injection.ok) {
-      return {
-        exitCode: EXIT_GATE_FAILED,
-        stdout: "",
-        stderr: `${injection.detail}\n${injection.remedy}\n`,
-      };
+      return failAfterClaim(EXIT_GATE_FAILED, `${injection.detail}\n${injection.remedy}\n`);
     }
     if (injection.injected) {
       expectedGithubLogin = injection.expectedLogin;
@@ -1223,11 +1231,10 @@ export function swarmLaunch(args: LaunchArgs): {
       cohort_key: cohortKey,
     });
   } catch (exc: unknown) {
-    return {
-      exitCode: EXIT_CONFIG_ERROR,
-      stdout: "",
-      stderr: `Error: could not persist launch occupancy_session_id: ${String(exc)}\n`,
-    };
+    return failAfterClaim(
+      EXIT_CONFIG_ERROR,
+      `Error: could not persist launch occupancy_session_id: ${String(exc)}\n`,
+    );
   }
 
   if (args.output !== undefined && args.output !== null) {

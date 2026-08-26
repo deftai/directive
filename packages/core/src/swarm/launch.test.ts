@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -10,6 +10,7 @@ import {
   type GhRunner,
 } from "../intake/github-auth-modes.js";
 import type { CompletedProcess } from "../scm/call.js";
+import { applyWorktreeOccupancy, occupancyPath, readOccupancy } from "../session/occupancy.js";
 import {
   buildManifest,
   formatDispatchAuthEnvelope,
@@ -465,6 +466,117 @@ describe("swarmLaunch identity-bound injection (#1351)", () => {
     expect(result.stderr).toMatch(/BLOCKED/i);
     expect(result.stderr).toMatch(/installation|#3693/i);
     expect(result.stdout).not.toContain(FAKE_TOKEN);
+  });
+});
+
+describe("swarmLaunch occupancy-before-create (#3649)", () => {
+  const savedRouting = process.env.DEFT_ROUTING_PATH;
+  const cleanups: string[] = [];
+  afterEach(() => {
+    if (savedRouting === undefined) {
+      delete process.env.DEFT_ROUTING_PATH;
+    } else {
+      process.env.DEFT_ROUTING_PATH = savedRouting;
+    }
+    while (cleanups.length > 0) {
+      const dir = cleanups.pop();
+      if (dir !== undefined) {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    }
+  });
+
+  function launchProject(): string {
+    const project = mkdtempSync(join(tmpdir(), "launch-occ-"));
+    cleanups.push(project);
+    writeReadyStory(project, "story-a", 3649);
+    const routePath = join(project, "routing.local.json");
+    writeFileSync(
+      routePath,
+      JSON.stringify({
+        cursor: { "leaf-implementation": { model: "composer-2.5-fast", mode: "pinned" } },
+      }),
+    );
+    process.env.DEFT_ROUTING_PATH = routePath;
+    return project;
+  }
+
+  it("denies a foreign occupant before creating a mapped worktree", () => {
+    const project = launchProject();
+    applyWorktreeOccupancy(project, { sessionId: "foreign-owner", intent: "swarm" });
+    const missing = join(project, "wt-missing");
+    const mapPath = join(project, "worktree-map.json");
+    writeFileSync(
+      mapPath,
+      JSON.stringify([
+        {
+          story_id: "story-a",
+          worktree_path: missing.replace(/\\/g, "/"),
+          base_branch: "master",
+        },
+      ]),
+    );
+    let resolverCalls = 0;
+    const result = swarmLaunch({
+      stories: ["3649"],
+      projectRoot: project,
+      autonomous: true,
+      worktreeMap: mapPath,
+      baseBranch: "master",
+      preflightGate: () => ({ exitCode: 0, message: "" }),
+      readinessGate: () => ({ exitCode: 0, report: "" }),
+      runtimeAuthProbe: () => ["local-unsandboxed", "host-gh"],
+      worktreeResolver: () => {
+        resolverCalls += 1;
+        throw new Error("worktree resolver must not run after occupancy deny");
+      },
+      environ: { CURSOR_AGENT: "1" },
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr).toMatch(/occupied|occupancy/i);
+    expect(resolverCalls).toBe(0);
+    expect(existsSync(missing)).toBe(false);
+    expect(readOccupancy(project)?.sessionId).toBe("foreign-owner");
+  });
+
+  it("releases a newly claimed lease when a later step fails", () => {
+    const project = launchProject();
+    const mapPath = join(project, "worktree-map.json");
+    writeFileSync(mapPath, "{}\n");
+    const result = swarmLaunch({
+      stories: ["3649"],
+      projectRoot: project,
+      autonomous: true,
+      worktreeMap: mapPath,
+      preflightGate: () => ({ exitCode: 0, message: "" }),
+      readinessGate: () => ({ exitCode: 0, report: "" }),
+      runtimeAuthProbe: () => ["local-unsandboxed", "host-gh"],
+      environ: { CURSOR_AGENT: "1" },
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr).toMatch(/worktree-map|JSON array/i);
+    expect(existsSync(occupancyPath(project))).toBe(false);
+    expect(readOccupancy(project)).toBeNull();
+  });
+
+  it("does not release a heartbeat on an existing owner after a later failure", () => {
+    const project = launchProject();
+    applyWorktreeOccupancy(project, { sessionId: "owner", intent: "mutation" });
+    const mapPath = join(project, "worktree-map.json");
+    writeFileSync(mapPath, "{}\n");
+    const result = swarmLaunch({
+      stories: ["3649"],
+      projectRoot: project,
+      autonomous: true,
+      worktreeMap: mapPath,
+      preflightGate: () => ({ exitCode: 0, message: "" }),
+      readinessGate: () => ({ exitCode: 0, report: "" }),
+      runtimeAuthProbe: () => ["local-unsandboxed", "host-gh"],
+      environ: { CURSOR_AGENT: "1", DEFT_SESSION_ID: "owner" },
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(readOccupancy(project)?.sessionId).toBe("owner");
+    expect(existsSync(occupancyPath(project))).toBe(true);
   });
 });
 
