@@ -16,39 +16,39 @@
     "items": [
       {
         "title": "A cache hit is not returned unconditionally — either bounded by age, or re-validated, with the choice recorded",
-        "status": "done"
+        "status": "completed"
       },
       {
         "title": "A tracked running brief whose issue is closed is detected regardless of `.deft-cache` contents or age, within the stated `ghx` caveat",
-        "status": "done"
+        "status": "completed"
       },
       {
         "title": "Unscoped aggregate resolves state via one complete, fail-closed open-issue inventory, not per-brief reads",
-        "status": "done"
+        "status": "completed"
       },
       {
         "title": "The inventory is complete: no truncation ambiguity, PR rows excluded, fail closed on command failure, malformed pages, pagination exhaustion, and buffer exhaustion",
-        "status": "done"
+        "status": "completed"
       },
       {
         "title": "Scoped `--issue N` keeps its authoritative read and stays fail-closed on unknown",
-        "status": "done"
+        "status": "completed"
       },
       {
         "title": "Output reports the **basis** of each verdict — cache or live, and cache age where cache was used — so a pass is distinguishable from an unverified pass",
-        "status": "done"
+        "status": "completed"
       },
       {
         "title": "Separate latency budgets are recorded for scoped and aggregate modes. None exist today, which is why \"affordable\" was unfalsifiable",
-        "status": "done"
+        "status": "completed"
       },
       {
         "title": "No regression: a running brief with an open issue still passes",
-        "status": "done"
+        "status": "completed"
       },
       {
         "title": "CHANGELOG `[Unreleased]` entry",
-        "status": "done"
+        "status": "completed"
       }
     ],
     "tags": [
