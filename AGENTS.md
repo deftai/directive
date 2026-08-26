@@ -160,7 +160,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=874082af5a1c refreshed=2026-08-25T19:42:30Z session=7b571bd60eee -->
+<!-- deft:managed-section v3 sha=6cb5a43f3d0e refreshed=2026-08-26T01:13:44Z session=8b9aa598b0e3 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -174,7 +174,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Session routing (#2176)
 
-! **Read-only default** until mutation intent: load AGENTS.md / main.md / USER.md / `xbrief/PROJECT-DEFINITION.xbrief.json`; resolve USER.md via `deft session:start` (`USER.md resolved …`; win32 `%APPDATA%\deft\USER.md`; unix `~/.config/deft/USER.md`; ⊗ invent `~/.config/deft` on Windows #2544); confirm Deft alignment + addressing-name; ⊗ no mutable `deft session:start` / triage welcome / sync / branch-policy unless asked or implementation-ready (#2176) — `.deft/core/commands.md` § Session routing. Bootstrap: cold-start → README § Cold-start (#2273) ⊗ never `.deft/core/`; pre-cutover → setup Pre-Cutover (#2068); missing USER.md / PROJECT-DEFINITION → setup Phase 1/2 (#1813) ⊗ before answering; else main → USER → PROJECT-DEFINITION; ~ sync. Mutation → `deft session:start` then `deft verify:session-ritual -- --tier=gated` (#1149). Mutation ceremony claims a worktree occupancy lease (#3433; `commands.md` § Session routing). ? `deft session:start -- --read-only` (#2176).
+! **Read-only default** until mutation intent: load AGENTS.md / main.md / USER.md / `xbrief/PROJECT-DEFINITION.xbrief.json`; resolve USER.md via `deft session:start` (`USER.md resolved …`; win32 `%APPDATA%\deft\USER.md`; unix `~/.config/deft/USER.md`; ⊗ invent `~/.config/deft` on Windows #2544); confirm Deft alignment + addressing-name; ⊗ no mutable `deft session:start` / triage welcome / sync / branch-policy unless asked or implementation-ready (#2176) — `.deft/core/commands.md` § Session routing. Bootstrap: cold-start → README § Cold-start (#2273) ⊗ never `.deft/core/`; pre-cutover → setup Pre-Cutover (#2068); missing USER.md / PROJECT-DEFINITION → setup Phase 1/2 (#1813) ⊗ before answering; else main → USER → PROJECT-DEFINITION; ~ sync. Mutation → `deft session:start` then `deft verify:session-ritual -- --tier=gated` (#1149). Mutation ceremony claims a worktree occupancy lease (#3433 / #3604; `commands.md` § Session routing). The occupant drops a live lease with `occupancy:release` or `session:end`; a non-owner cannot clear a live lease. ? `deft session:start -- --read-only` (#2176).
 
 ## Session-start ritual (#1149)
 
