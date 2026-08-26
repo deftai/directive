@@ -7,13 +7,13 @@ import type { TextCaptureResult } from "./subprocess.js";
 import {
   BaseBranchMismatchError,
   compareKey,
+  defaultGitRunner,
   parseWorktreePorcelain,
   resolveWorktreeMap,
   WorktreeCollisionError,
   WorktreeMapConfigError,
   WorktreePathEscapeError,
   WorktreeRevisionMismatchError,
-  defaultGitRunner,
 } from "./worktrees.js";
 
 function gitInit(repo: string): void {
@@ -182,69 +182,69 @@ describe("swarm worktrees", () => {
     rmSync(repo, { recursive: true, force: true });
   });
 
-  it.each([true, false])(
-    "hard-fails a leftover worktree at the wrong OID (createMissing=%s)",
-    (createMissing) => {
-      const repo = mkdtempSync(join(tmpdir(), "sw-wt-oid-"));
-      gitInit(repo);
-      const sha1 = headOid(repo);
-      writeFileSync(join(repo, "f.txt"), "y\n", "utf8");
-      execFileSync("git", ["add", "-A"], { cwd: repo, encoding: "utf8" });
-      execFileSync("git", ["commit", "-q", "-m", "second"], { cwd: repo, encoding: "utf8" });
-      const sha2 = headOid(repo);
-      expect(sha1).not.toBe(sha2);
+  it.each([
+    true,
+    false,
+  ])("hard-fails a leftover worktree at the wrong OID (createMissing=%s)", (createMissing) => {
+    const repo = mkdtempSync(join(tmpdir(), "sw-wt-oid-"));
+    gitInit(repo);
+    const sha1 = headOid(repo);
+    writeFileSync(join(repo, "f.txt"), "y\n", "utf8");
+    execFileSync("git", ["add", "-A"], { cwd: repo, encoding: "utf8" });
+    execFileSync("git", ["commit", "-q", "-m", "second"], { cwd: repo, encoding: "utf8" });
+    const sha2 = headOid(repo);
+    expect(sha1).not.toBe(sha2);
 
-      const wt = join(repo, "wt-stale");
-      addDetachedWorktree(repo, wt, sha1);
-      const posix = wt.replace(/\\/g, "/");
+    const wt = join(repo, "wt-stale");
+    addDetachedWorktree(repo, wt, sha1);
+    const posix = wt.replace(/\\/g, "/");
 
-      expect(() =>
-        resolveWorktreeMap([{ story_id: "s1", worktree_path: wt }], "master", createMissing, {
-          repoRoot: repo,
-        }),
-      ).toThrow(WorktreeRevisionMismatchError);
+    expect(() =>
+      resolveWorktreeMap([{ story_id: "s1", worktree_path: wt }], "master", createMissing, {
+        repoRoot: repo,
+      }),
+    ).toThrow(WorktreeRevisionMismatchError);
 
-      try {
-        resolveWorktreeMap([{ story_id: "s1", worktree_path: wt }], "master", createMissing, {
-          repoRoot: repo,
-        });
-        expect.fail("expected WorktreeRevisionMismatchError");
-      } catch (err) {
-        expect(err).toBeInstanceOf(WorktreeRevisionMismatchError);
-        const message = (err as Error).message;
-        expect(message).toContain(posix);
-        expect(message).toContain(sha1);
-        expect(message).toContain(sha2);
-        expect(message).toContain("snapshot check at resolution time");
-        expect(message).toContain("not a pin on the worker's start revision");
-      }
+    try {
+      resolveWorktreeMap([{ story_id: "s1", worktree_path: wt }], "master", createMissing, {
+        repoRoot: repo,
+      });
+      expect.fail("expected WorktreeRevisionMismatchError");
+    } catch (err) {
+      expect(err).toBeInstanceOf(WorktreeRevisionMismatchError);
+      const message = (err as Error).message;
+      expect(message).toContain(posix);
+      expect(message).toContain(sha1);
+      expect(message).toContain(sha2);
+      expect(message).toContain("snapshot check at resolution time");
+      expect(message).toContain("not a pin on the worker's start revision");
+    }
 
-      expect(headOid(wt)).toBe(sha1);
-      removeWorktree(repo, wt);
-      rmSync(repo, { recursive: true, force: true });
-    },
-  );
+    expect(headOid(wt)).toBe(sha1);
+    removeWorktree(repo, wt);
+    rmSync(repo, { recursive: true, force: true });
+  });
 
-  it.each([true, false])(
-    "reuses a registered worktree whose HEAD OID matches the base (createMissing=%s)",
-    (createMissing) => {
-      const repo = mkdtempSync(join(tmpdir(), "sw-wt-match-"));
-      gitInit(repo);
-      const sha = headOid(repo);
-      const wt = join(repo, "wt-ok");
-      addDetachedWorktree(repo, wt, sha);
-      const result = resolveWorktreeMap(
-        [{ story_id: "s1", worktree_path: wt }],
-        "master",
-        createMissing,
-        { repoRoot: repo },
-      );
-      expect(result).toHaveLength(1);
-      expect(headOid(wt)).toBe(sha);
-      removeWorktree(repo, wt);
-      rmSync(repo, { recursive: true, force: true });
-    },
-  );
+  it.each([
+    true,
+    false,
+  ])("reuses a registered worktree whose HEAD OID matches the base (createMissing=%s)", (createMissing) => {
+    const repo = mkdtempSync(join(tmpdir(), "sw-wt-match-"));
+    gitInit(repo);
+    const sha = headOid(repo);
+    const wt = join(repo, "wt-ok");
+    addDetachedWorktree(repo, wt, sha);
+    const result = resolveWorktreeMap(
+      [{ story_id: "s1", worktree_path: wt }],
+      "master",
+      createMissing,
+      { repoRoot: repo },
+    );
+    expect(result).toHaveLength(1);
+    expect(headOid(wt)).toBe(sha);
+    removeWorktree(repo, wt);
+    rmSync(repo, { recursive: true, force: true });
+  });
 
   it("hard-fails a named leftover branch at the wrong OID rather than trusting the branch label", () => {
     const repo = mkdtempSync(join(tmpdir(), "sw-wt-br-"));
@@ -319,7 +319,6 @@ describe("swarm worktrees", () => {
     ).toThrow(WorktreeMapConfigError);
     rmSync(repo, { recursive: true, force: true });
   });
-
 
   it("fails closed when git worktree list throws", () => {
     const repo = mkdtempSync(join(tmpdir(), "sw-wt-listthrow-"));
