@@ -1,0 +1,147 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3598"
+  },
+  "plan": {
+    "title": "BLOCKER: bug(setup,render): greenfield export handoff regressed after #1502",
+    "status": "proposed",
+    "narratives": {
+      "Description": "BLOCKER: bug(setup,render): greenfield export handoff regressed after #1502",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3598",
+      "Overview": "# Summary\n\nThe `deft-directive-setup` end-of-Phase-3 export contract does not match the current greenfield xBRIEF runtime. A canonical xBRIEF-only project can export `SPECIFICATION.md`, but the exact commands taught by the setup skill have three correctness defects:\n\n1. `task prd:render` fails because it still requires `xbrief/specification.xbrief.json`, an artifact greenfield setup intentionally does not create.\n2. `task project:export-spec -- --audience=internal` does not include the just-created proposed scopes, despite the setup skill explicitly saying that it does.\n3. The generated xBRIEF export claims its source of truth is the legacy `vbrief/PROJECT-DEFINITION.vbrief.json` path.\n\nThis regresses the greenfield export resolution recorded on closed #1502 and PR #2051. It is a framework contract defect, not a consumer-project configuration problem.\n\n## Environment\n\n- Released runtime reproduced: `@deftai/directive` / `@deftai/directive-core` 0.105.0\n- Current `master` verified: `522643763423b57d4ca7e9ddb551785d3a2bfb84` (2026-08-21)\n- Host: macOS, zsh\n- Consumer layout: xBRIEF v0.8\n- Authority shape:\n  - `xbrief/PROJECT-DEFINITION.xbrief.json`\n  - one or more `xbrief/proposed/*.xbrief.json` scopes\n  - no `xbrief/specification.xbrief.json` (correct for greenfield setup)\n\n## Reproduction\n\nStarting from a greenfield project that has a non-empty `Overview` narrative and a proposed scope:\n\n```sh\ndeft project:export-spec \"$PROJECT_ROOT\" /tmp/internal.md --audience=internal\ndeft project:export-spec \"$PROJECT_ROOT\" /tmp/internal-with-scopes.md --audience=internal --include-scopes=current\ndeft prd:render --project-root \"$PROJECT_ROOT\" --output /tmp/PRD.md\n```\n\nEquivalent consumer task surfaces are:\n\n```sh\ntask deft:project:export-spec -- --audience=internal\ntask deft:prd:render\n```\n\n## Observed behavior\n\nThe first export exits 0 but contains neither `## Scope outlook` nor the proposed scope. The second export contains both, proving the missing `--include-scopes=current` is the behavioral difference.\n\nBoth exports begin with the wrong provenance marker:\n\n```md\n<!-- Source of truth: vbrief/PROJECT-DEFINITION.vbrief.json -->\n```\n\nThe PRD command exits 1:\n\n```text\nError: specification file not found: <project>/xbrief/specification.xbrief.json\n```\n\nThe setup flow therefore cannot satisfy its own `Yes — export spec (+ PRD if selected)` or `PRD.md only` branches without introducing an artifact the greenfield authority model intentionally omits. Its internal handoff path also silently hides the scope it just produced.\n\n## Current-master evidence\n\n- The setup skill offers PRD for greenfield projects and says `--audience=internal` includes proposed scopes: [setup skill lines 792-805](https://github.com/deftai/directive/blob/522643763423b57d4ca7e9ddb551785d3a2bfb84/content/skills/deft-directive-setup/SKILL.md#L792-L805).\n- `exportSpec()` defaults `includeScopes` to `off`; `audience=internal` only enables proposed-scope filtering after scope rendering is separately enabled: [export-spec.ts lines 64-110](https://github.com/deftai/directive/blob/522643763423b57d4ca7e9ddb551785d3a2bfb84/packages/core/src/render/export-spec.ts#L64-L110).\n- The tests encode this split explicitly: the internal-audience test passes `includeScopes: \"all\"`, while the default test requires no `Scope outlook`: [spec-authority.test.ts lines 120-157](https://github.com/deftai/directive/blob/522643763423b57d4ca7e9ddb551785d3a2bfb84/packages/core/src/spec-authority/spec-authority.test.ts#L120-L157).\n- The greenfield banner hardcodes the legacy PD token even though an xBRIEF token is defined beside it: [constants.ts lines 4-35](https://github.com/deftai/directive/blob/522643763423b57d4ca7e9ddb551785d3a2bfb84/packages/core/src/spec-authority/constants.ts#L4-L35).\n- `prd-render` only reads a specification artifact and fails if it is absent: [prd-render.ts lines 21-31](https://github.com/deftai/directive/blob/522643763423b57d4ca7e9ddb551785d3a2bfb84/packages/core/src/render/prd-render.ts#L21-L31). The CLI resolves that artifact to `xbrief/specification.xbrief.json`: [prd-render-cli.ts lines 35-45](https://github.com/deftai/directive/blob/522643763423b57d4ca7e9ddb551785d3a2bfb84/packages/cli/src/render-cli/prd-render-cli.ts#L35-L45).\n\n## Regression history and duplicate check\n\nClosed #1502 described the original greenfield export-contract conflict. Its close-out comment says PR #2051 implemented:\n\n- a PROJECT-DEFINITION-backed greenfield export,\n- a PROJECT-DEFINITION source-of-truth banner, and\n- proposed scopes gated by `--audience=internal`.\n\nThe current implementation retains the export path but no longer delivers the latter two behaviors through the command documented by setup, and PRD remains unavailable on the same authority shape.\n\nNo open issue owns this regression. Body/comment-level checks were performed for the plausible open neighbors:\n\n- #453 concerns rendering raw preparatory-strategy context, not setup's generated scope or PRD branches.\n- #630 concerns automatic rendering after legacy migration.\n- #1589 concerns reconstruction and drift freshness of long-lived specs.\n- #1812 concerns seed-document ingestion; it references the setup flow but does not own export behavior.\n\n## Expected behavior\n\nEvery export branch offered by greenfield setup should either work from the canonical greenfield authority (`PROJECT-DEFINITION` plus lifecycle scopes) or the skill should stop offering that unsupported branch. Generated files must identify their actual source paths, and the documented internal handoff command must include proposed scopes as promised.\n\n## Suggested implementation direction\n\n1. Give PRD export a greenfield authority path, preferably by reusing `resolveSpecAuthority()` / `resolveExportNarratives()` rather than creating a second authority model. A dedicated `project:export-prd` would also be coherent if `prd:render` remains full-spec-only.\n2. Make the setup command and renderer semantics agree for internal handoff: either teach `--include-scopes=current` in the setup skill or make `audience=internal` imply current scope inclusion on this surface. Preserve the compact stakeholder default.\n3. Select the generated PD banner from the resolved layout instead of hardcoding the legacy vBRIEF token.\n4. Add one end-to-end greenfield fixture that runs the exact commands printed by the setup skill. Unit tests that call `exportSpec()` with extra options or `renderPrd()` with a synthetic full spec do not protect this contract.\n\n## Acceptance criteria\n\n- [ ] On an xBRIEF-only greenfield fixture with no `specification.xbrief.json`, every export choice presented by `deft-directive-setup` has defined, truthful behavior.\n- [ ] The setup-documented internal export command includes proposed scopes under `## Scope outlook`.\n- [ ] Greenfield PRD export succeeds from current authority, or setup no longer offers `PRD.md` for that state and clearly documents the supported replacement.\n- [ ] Generated xBRIEF exports carry `<!-- Source of truth: xbrief/PROJECT-DEFINITION.xbrief.json -->`.\n- [ ] No workaround creates or dual-writes `xbrief/specification.xbrief.json` solely to satisfy export.\n- [ ] Consumer-task integration coverage invokes the exact setup command lines and checks output content, provenance, and exit status.\n\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @dbcall2 (2026-08-21T17:09:19Z)\n\n## Additional confirmed downstream blocker: cost phase cannot consume greenfield authority\n\nThis surfaced while following the build handoff from the same real greenfield onboarding on Directive 0.105.0. It also reproduces in current `master` at `522643763423b57d4ca7e9ddb551785d3a2bfb84`.\n\n### Reproduction state\n\nThe project is in the authority shape required by setup:\n\n- `xbrief/PROJECT-DEFINITION.xbrief.json`\n- `xbrief/proposed/YYYY-MM-DD-*.xbrief.json`\n- generated `SPECIFICATION.md`\n- no `xbrief/specification.xbrief.json` (intentional greenfield state)\n\nThe operator selects setup's **Continue to build** handoff.\n\n### Observed contract loop\n\n1. The build skill refuses implementation until `COST-ESTIMATE.md` contains a recorded decision: [build skill lines 152-190](https://github.com/deftai/directive/blob/522643763423b57d4ca7e9ddb551785d3a2bfb84/content/skills/deft-directive-build/SKILL.md#L152-L190).\n2. The required cost skill says setup must have produced an approved `xbrief/specification.xbrief.json`, and makes that file a MUST input: [cost skill lines 25-69](https://github.com/deftai/directive/blob/522643763423b57d4ca7e9ddb551785d3a2bfb84/content/skills/deft-directive-cost/SKILL.md#L25-L69).\n3. Greenfield setup intentionally does not create that artifact; creating it would reintroduce the legacy dual-write conflict fixed by #1502.\n4. The setup skill hands directly to build rather than routing through cost: [setup skill lines 814-819](https://github.com/deftai/directive/blob/522643763423b57d4ca7e9ddb551785d3a2bfb84/content/skills/deft-directive-setup/SKILL.md#L814-L819).\n\nResult: a valid greenfield project reaches a hard loop:\n\n```text\nsetup -> build requires COST-ESTIMATE.md\ncost -> requires forbidden specification.xbrief.json\ncost -> redirects back to setup\n```\n\nThere is no conformant way to record the required cost decision. Manufacturing `specification.xbrief.json` breaks the greenfield authority contract; bypassing `COST-ESTIMATE.md` breaks the build gate.\n\n### Impact on #3598\n\nThis is the downstream build-blocking consequence of the same authority mismatch. Fixing only PRD, scope inclusion, and the banner would still leave setup unable to hand a greenfield project to build.\n\nThe build skill's prose also defines a current generated spec as requiring an xBRIEF specification artifact and specification-source banner, excluding PROJECT-DEFINITION-backed greenfield exports: [build skill lines 102-130](https://github.com/deftai/directive/blob/522643763423b57d4ca7e9ddb551785d3a2bfb84/content/skills/deft-directive-build/SKILL.md#L102-L130). The deterministic validator should remain authoritative, but the shipped skill must not teach a conflicting state model.\n\n### Acceptance additions\n\n- [ ] The cost skill resolves the same greenfield authority as `project:export-spec` (PROJECT-DEFINITION plus lifecycle scopes), without requiring or creating `specification.xbrief.json`.\n- [ ] Setup routes **Continue to build** through the required cost decision phase, or explicitly documents a deterministic equivalent.\n- [ ] Build's pre-cutover guidance recognizes a current PROJECT-DEFINITION-backed greenfield export.\n- [ ] An end-to-end consumer fixture covers `setup -> internal export -> cost decision -> build preflight` on an xBRIEF-only greenfield tree."
+    },
+    "items": [
+      {
+        "title": "On an xBRIEF-only greenfield fixture with no `specification.xbrief.json`, every export choice presented by `deft-directive-setup` has defined, truthful behavior.",
+        "status": "proposed"
+      },
+      {
+        "title": "The setup-documented internal export command includes proposed scopes under `## Scope outlook`.",
+        "status": "proposed"
+      },
+      {
+        "title": "Greenfield PRD export succeeds from current authority, or setup no longer offers `PRD.md` for that state and clearly documents the supported replacement.",
+        "status": "proposed"
+      },
+      {
+        "title": "Generated xBRIEF exports carry `<!-- Source of truth: xbrief/PROJECT-DEFINITION.xbrief.json -->`.",
+        "status": "proposed"
+      },
+      {
+        "title": "No workaround creates or dual-writes `xbrief/specification.xbrief.json` solely to satisfy export.",
+        "status": "proposed"
+      },
+      {
+        "title": "Consumer-task integration coverage invokes the exact setup command lines and checks output content, provenance, and exit status.",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3598",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3598: BLOCKER: bug(setup,render): greenfield export handoff regressed after #1502"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1502",
+        "type": "x-xbrief/closes",
+        "title": "Issue #1502"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft project:export-spec \"$PROJECT_ROOT\" /tmp/internal.md --audience=internal",
+          "reason": "shell metacharacter \"$\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L28:sh"
+        },
+        {
+          "command": "deft project:export-spec \"$PROJECT_ROOT\" /tmp/internal-with-scopes.md --audience=internal --include-scopes=current",
+          "reason": "shell metacharacter \"$\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L28:sh"
+        },
+        {
+          "command": "deft prd:render --project-root \"$PROJECT_ROOT\" --output /tmp/PRD.md",
+          "reason": "shell metacharacter \"$\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L28:sh"
+        },
+        {
+          "command": "task deft:project:export-spec -- --audience=internal",
+          "reason": "wrapper subcommand must be check|doctor|verify:*|help|--version (scope/policy/swarm/scm/merge and other ambient-authority verbs denied)",
+          "sourceSpan": "fence@L36:sh"
+        },
+        {
+          "command": "task deft:prd:render",
+          "reason": "wrapper subcommand must be check|doctor|verify:*|help|--version (scope/policy/swarm/scm/merge and other ambient-authority verbs denied)",
+          "sourceSpan": "fence@L36:sh"
+        }
+      ],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 7 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "On an xBRIEF-only greenfield fixture with no `specification.xbrief.json`, every export choice presented by `deft-directive-setup` has defined, truthful behavior.",
+          "artifact_path": "specification.xbrief.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The setup-documented internal export command includes proposed scopes under `## Scope outlook`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Greenfield PRD export succeeds from current authority, or setup no longer offers `PRD.md` for that state and clearly documents the supported replacement.",
+          "artifact_path": "PRD.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Generated xBRIEF exports carry `<!-- Source of truth: xbrief/PROJECT-DEFINITION.xbrief.json -->`.",
+          "artifact_path": "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "No workaround creates or dual-writes `xbrief/specification.xbrief.json` solely to satisfy export.",
+          "artifact_path": "xbrief/specification.xbrief.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Consumer-task integration coverage invokes the exact setup command lines and checks output content, provenance, and exit status.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "--",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    }
+  }
+}

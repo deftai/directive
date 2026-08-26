@@ -1,0 +1,117 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3729"
+  },
+  "plan": {
+    "title": "bug(session): the occupancy lease is exclusion-only -- an agent that never claims is never gated",
+    "status": "proposed",
+    "narratives": {
+      "Description": "bug(session): the occupancy lease is exclusion-only -- an agent that never claims is never gated",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3729",
+      "Overview": "## Problem\n\nThe worktree occupancy lease is **exclusion-only**. It blocks you if someone *else* holds a live lease. Nothing requires a mutating actor to hold one. An agent that never claims is never blocked, never blocks anyone, and is invisible to the mechanism.\n\nCombined with #3599, the protection is self-disabling: after 20 minutes no lease is live, so the gate permits everything from everyone.\n\n## Root cause\n\n`packages/core/src/session/occupancy.ts:394-415`:\n\n```ts\nconst live = liveOccupant(projectRoot, now);\nif (live === null) return { allow: true, message: null, occupant: null };\n```\n\n`liveOccupant` (`:130-138`) returns `null` when the record is absent **or expired**, and `OCCUPANCY_TTL_MS = 20 * 60 * 1000` (`:28`). So the gate has exactly two failure-open paths — nobody ever claimed, or the claim aged out — and both resolve to `allow: true` for any actor.\n\nThere is no counterpart check anywhere: nothing asks \"is *this* actor holding a lease before it mutates.\" Claiming happens only inside `session:start` / `session:ready`, which an agent reaches only by entering the mutation ceremony deliberately. Skipping the ceremony skips the claim, and skipping the claim costs nothing.\n\n## Measured\n\nThis session, on `C:\\Repos\\deft\\directive`:\n\n- The parent ran roughly **14 hours** of mutation work — merges, force-pushes, rebases, issue writes, ~14 agent dispatches — **without ever claiming a lease**. It never ran `session:start`.\n- The lease file held a **21-hour-old** record from a different session (`b71f5825`, heartbeat `2026-08-24T23:14:37Z`). Long expired, so `liveOccupant` returned `null` and every write was permitted.\n- **Six of seven** subagent worktrees have no `.deft/occupancy.json` at all. Only `b3666` claimed one. Nothing in the dispatch envelope asked them to, and one did it anyway — so the capability is reachable and its use is incidental.\n- `plan.policy.hostHooks` is `{\"cursor\": true, ...}`, so the write gate **was active the whole time**. It had nothing to enforce against.\n\nUp to six concurrent mutating workers plus the parent is precisely the shape #3433 exists to guard. Nothing collided, but only because each worker had its own worktree and the parent serialised merges by hand. That is construction, not enforcement.\n\n## Relationship to #3599\n\nSame function, different half, and the remedies do not overlap.\n\n- **#3599** is the *owner-side* defect: a session that correctly claimed has its heartbeat go stale during active work and gets legitimately stolen. Its fix is to refresh `heartbeat_at` on owner writes.\n- **This issue** is the *non-claimant* case: an actor that never claimed is never gated. #3599's fix does not touch it — refreshing a heartbeat that was never written changes nothing, and the six unclaimed worktrees here would behave identically after #3599 lands.\n\nThey compound. #3599 guarantees leases go stale; this issue guarantees staleness means no protection rather than a warning.\n\n## What is genuinely open\n\nNot selecting a direction.\n\n- Should mutation without a held lease be **denied**, or **warned**? Denying is a new fail-closed gate on every product write and would have blocked this entire session; that may be correct or may be intolerable.\n- Should workers claim leases on their own worktrees at all? Worktree isolation already prevents collision in the common case. If the lease is only meaningful for shared trees, say so and stop implying broader coverage.\n- Should the dispatch envelope require it? Nothing in `agent-prompt-preamble.md` mentions occupancy, which is why six of seven workers skipped it.\n- Is a 20-minute TTL right for agent sessions that routinely run for hours? The TTL was presumably sized for human sessions.\n\n## Constraint\n\nDo not make this a fail-closed gate on every product-path write without weighing the cost. A gate that denies writes whenever a lease is missing would have stopped every piece of work in this session, including the work that fixed other gates. If the answer is enforcement, it needs a migration posture, not a flag flip (#3156).\n\n## Acceptance\n\n- [ ] An agent mutating a worktree without holding its lease is detectable — denied or warned, decided deliberately\n- [ ] The dispatch path tells workers whether they are expected to claim, and they do so consistently\n- [ ] The TTL is justified against how long agent sessions actually run, or made configurable\n- [ ] Documentation stops implying the lease protects a worktree when it protects only against live claimants\n- [ ] Whatever lands is coherent with #3599's owner-side fix rather than duplicating it\n- [ ] CHANGELOG `[Unreleased]` entry\n\nRefs #3433, #3599, #954.\n\n",
+      "Labels": "bug, agent-experience, process"
+    },
+    "items": [
+      {
+        "title": "An agent mutating a worktree without holding its lease is detectable — denied or warned, decided deliberately",
+        "status": "proposed"
+      },
+      {
+        "title": "The dispatch path tells workers whether they are expected to claim, and they do so consistently",
+        "status": "proposed"
+      },
+      {
+        "title": "The TTL is justified against how long agent sessions actually run, or made configurable",
+        "status": "proposed"
+      },
+      {
+        "title": "Documentation stops implying the lease protects a worktree when it protects only against live claimants",
+        "status": "proposed"
+      },
+      {
+        "title": "Whatever lands is coherent with #3599's owner-side fix rather than duplicating it",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG `[Unreleased]` entry",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3729",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3729: bug(session): the occupancy lease is exclusion-only -- an agent that never claims is never gated"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3433",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3433"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "An agent mutating a worktree without holding its lease is detectable — denied or warned, decided deliberately",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The dispatch path tells workers whether they are expected to claim, and they do so consistently",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The TTL is justified against how long agent sessions actually run, or made configurable",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Documentation stops implying the lease protects a worktree when it protects only against live claimants",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Whatever lands is coherent with #3599's owner-side fix rather than duplicating it",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "CHANGELOG `[Unreleased]` entry",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      }
+    }
+  }
+}

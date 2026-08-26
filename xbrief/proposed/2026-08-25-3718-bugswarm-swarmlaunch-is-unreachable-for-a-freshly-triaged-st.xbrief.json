@@ -1,0 +1,166 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3718"
+  },
+  "plan": {
+    "title": "bug(swarm): swarm:launch is unreachable for a freshly-triaged story -- readiness needs 15 hand-authored fields and file_scope collides with the provenance gate",
+    "status": "proposed",
+    "narratives": {
+      "Description": "bug(swarm): swarm:launch is unreachable for a freshly-triaged story -- readiness needs 15 hand-authored fields and file_scope collides with the provenance gate",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3718",
+      "Overview": "## Problem\n\n`swarm:launch` cannot accept a freshly-triaged story. The artifact `triage:accept` produces is rejected by `swarm:readiness` on fifteen fields, no verb or skill bridges the gap, and the one field that would bridge it — `file_scope` — triggers a separate enforced gate that demands a prior merged PR and a human TTY.\n\nThe result is that the sanctioned batch-launch path is unreachable for exactly the work most likely to need it: a cohort of newly-accepted issues.\n\n## Reproduction, tonight, six stories\n\nIssues #3666, #3673, #3679, #3690, #3712, #3713. All accepted via `triage:accept`, promoted, and activated.\n\n**First failure** — `swarm:launch --stories …` against `pending/`:\n\n```\nError: could not resolve every cohort member:\n  - #3666: no active story references this issue.\n```\n\n`swarm:launch` requires `active/`, not `pending/`. Nothing says so before you run it.\n\n**Second failure** — after `scope:activate` on all six:\n\n```\nError: story '…3666…' is not launch-ready -- swarm:readiness gate failed:\nMissing fields: plan.metadata.kind=story, plan.id, plan.narratives.ImplementationPlan,\nplan.narratives.UserStory, plan.items[].narrative.Acceptance,\nplan.metadata.swarm.readiness=ready for concurrent allocation,\nplan.metadata.swarm.parallel_safe, plan.metadata.swarm.file_scope,\nplan.metadata.swarm.verify_commands, plan.metadata.swarm.expected_outputs,\nplan.metadata.swarm.depends_on, plan.metadata.swarm.conflict_group,\nplan.metadata.swarm.size, plan.metadata.swarm.file_scope_confidence,\nplan.metadata.swarm.model_tier, Traces or missing_traces_justification\n```\n\nEvery story, all fifteen fields. Meanwhile `task xbrief:preflight` exits **0** on the same artifacts — \"ready for implementation.\"\n\nSo two gates disagree about whether the same brief is buildable, and the one that says yes is the one the intent gate uses.\n\n## Nothing produces the metadata\n\nThe shape is documented — `content/vbrief/vbrief.md` § Swarm-Ready Story Contract gives the full `plan.metadata.swarm` block. What is missing is anything that writes it for a story-sized issue:\n\n- `triage:accept` emits narratives, items, and acceptance clauses, and no `swarm` block at all.\n- `deft-directive-refinement` covers ingest, evaluate, reconcile, promote/demote, prioritize, and prompts for `effort` on accept (#1581). It never touches `plan.metadata.swarm`.\n- `deft-directive-decompose` is scoped to \"a specification, Phase 4 implementation scope, or epic xBRIEF … too broad for direct concurrent swarm work.\" A one-sentence documentation fix is not too broad. `packages/core/src/scope/decompose.ts` only *validates* `file_scope` quality (`BROAD_FILE_SCOPE_ROOTS`); it does not generate the block.\n- There is no `swarm:*` scaffolding verb in the CLI help.\n\nThe only path is hand-authoring fifteen fields per story, and nothing in the flow tells an operator that is the expectation.\n\n## The `file_scope` requirement collides with an enforced gate\n\nThis is the part that makes hand-authoring insufficient rather than merely tedious.\n\n`swarm:readiness` **requires** a non-empty `file_scope`. But `verify:scope-provenance` — which runs in the required merge gate via `task check:merge` (`Taskfile.yml:435`, `ci.yml:119`/`:388`) — fails closed on a declared non-empty `file_scope` with no base-committed approval. Recording that approval requires a separate merged PR *and* `scope:record-approved-scope`, which needs a real TTY and refuses agent shells.\n\nSo satisfying `swarm:readiness` obligates, per story: author the block, mint approval at a human terminal, land an approval-only PR, then launch. For a six-story cohort that is six mints and an approval PR before any work starts.\n\nThe corpus shows nobody does this. Of 1309 completed briefs, 616 declare a `file_scope` and **4** approval records exist. Empty `file_scope` soft-warns past the provenance gate — which `content/docs/scope-provenance.md:136` names as the anti-pattern that removes the fence — but it also fails `swarm:readiness`. There is no value of `file_scope` that satisfies both gates without the two-PR bootstrap.\n\n## Why it matters\n\nAGENTS.md (#3032) requires through-merge story work to be dispatched via the swarm or solo-worker launch path, cohort size 1 included. When `swarm:launch` is unreachable, every operator falls back to hand-rolled worktrees — which is what happened tonight for all six stories, and what happened earlier for #3708. The sanctioned path is the one nobody can use, so the unsanctioned one becomes the norm and its correctness is re-derived by each operator.\n\n## Candidate directions\n\nNot selecting one.\n\n- A scaffolding verb that fills the swarm block from an accepted brief, leaving the operator to correct it.\n- Relax `swarm:readiness` where a field is not load-bearing for the launch it is gating, rather than requiring all fifteen for a solo cohort.\n- Reconcile the `file_scope` requirement with the provenance gate so the two are jointly satisfiable without a per-story two-PR bootstrap.\n- Make `swarm:launch` accept `pending/` and activate as part of launch, or say plainly at the point of failure that activation comes first.\n- Decide that hand-authoring is intended, and put that expectation somewhere an operator meets before the second failed command.\n\n## Related\n\n- **#3666** — a sequential story has no launchable configuration; adjacent, currently in build. This issue is the freshly-triaged-story case rather than the sequential-vs-parallel one.\n- **#3715** — the fence engages for 4 of 600 declared scopes. The `file_scope` half of this issue is a concrete instance of why declaration is avoided.\n- **#3714** — surfacing the approval obligation before implementation.\n- **#3717** — recut issues leave scaffolds stale; same scaffold, different defect.\n\n## Acceptance\n\n- [ ] A freshly-accepted story can reach `swarm:launch` without hand-authoring fifteen fields, or the requirement to do so is stated where the operator meets it\n- [ ] `swarm:readiness` and `verify:scope-provenance` are jointly satisfiable without a per-story approval PR and TTY mint\n- [ ] `swarm:launch` failing on a `pending/` brief says activation is the prerequisite\n- [ ] `xbrief:preflight` and `swarm:readiness` no longer disagree silently about the same artifact, or the difference is explained where both are used\n- [ ] No gate weakened purely to make launch succeed (#3156)\n- [ ] CHANGELOG `[Unreleased]` entry\n\nRefs #3032, #3145, #3205.\n\n",
+      "Labels": "bug, agent-experience, process"
+    },
+    "items": [
+      {
+        "title": "A freshly-accepted story can reach `swarm:launch` without hand-authoring fifteen fields, or the requirement to do so is stated where the operator meets it",
+        "status": "proposed"
+      },
+      {
+        "title": "`swarm:readiness` and `verify:scope-provenance` are jointly satisfiable without a per-story approval PR and TTY mint",
+        "status": "proposed"
+      },
+      {
+        "title": "`swarm:launch` failing on a `pending/` brief says activation is the prerequisite",
+        "status": "proposed"
+      },
+      {
+        "title": "`xbrief:preflight` and `swarm:readiness` no longer disagree silently about the same artifact, or the difference is explained where both are used",
+        "status": "proposed"
+      },
+      {
+        "title": "No gate weakened purely to make launch succeed (#3156)",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG `[Unreleased]` entry",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3718",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3718: bug(swarm): swarm:launch is unreachable for a freshly-triaged story -- readiness needs 15 hand-authored fields and file_scope collides with the provenance gate"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3032",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3032"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "- #3666: no active story references this issue",
+          "reason": "first token \"-\" is not in the literal-AC allowlist",
+          "sourceSpan": "fence@L15"
+        },
+        {
+          "command": "plan.narratives.UserStory, plan.items[].narrative.Acceptance,",
+          "reason": "first token \"plan.narratives.userstory,\" is not in the literal-AC allowlist",
+          "sourceSpan": "fence@L24"
+        },
+        {
+          "command": "plan.metadata.swarm.readiness=ready for concurrent allocation,",
+          "reason": "first token \"plan.metadata.swarm.readiness=ready\" is not in the literal-AC allowlist",
+          "sourceSpan": "fence@L24"
+        },
+        {
+          "command": "plan.metadata.swarm.parallel_safe, plan.metadata.swarm.file_scope,",
+          "reason": "first token \"plan.metadata.swarm.parallel_safe,\" is not in the literal-AC allowlist",
+          "sourceSpan": "fence@L24"
+        },
+        {
+          "command": "plan.metadata.swarm.verify_commands, plan.metadata.swarm.expected_outputs,",
+          "reason": "first token \"plan.metadata.swarm.verify_commands,\" is not in the literal-AC allowlist",
+          "sourceSpan": "fence@L24"
+        },
+        {
+          "command": "plan.metadata.swarm.depends_on, plan.metadata.swarm.conflict_group,",
+          "reason": "first token \"plan.metadata.swarm.depends_on,\" is not in the literal-AC allowlist",
+          "sourceSpan": "fence@L24"
+        },
+        {
+          "command": "plan.metadata.swarm.size, plan.metadata.swarm.file_scope_confidence,",
+          "reason": "first token \"plan.metadata.swarm.size,\" is not in the literal-AC allowlist",
+          "sourceSpan": "fence@L24"
+        },
+        {
+          "command": "plan.metadata.swarm.model_tier, Traces or missing_traces_justification",
+          "reason": "first token \"plan.metadata.swarm.model_tier,\" is not in the literal-AC allowlist",
+          "sourceSpan": "fence@L24"
+        },
+        {
+          "command": "task check:merge",
+          "reason": "wrapper subcommand must be check|doctor|verify:*|help|--version (scope/policy/swarm/scm/merge and other ambient-authority verbs denied)",
+          "sourceSpan": "inline@L55"
+        }
+      ],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "A freshly-accepted story can reach `swarm:launch` without hand-authoring fifteen fields, or the requirement to do so is stated where the operator meets it",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "`swarm:readiness` and `verify:scope-provenance` are jointly satisfiable without a per-story approval PR and TTY mint",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "`swarm:launch` failing on a `pending/` brief says activation is the prerequisite",
+          "artifact_path": "pending/",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "`xbrief:preflight` and `swarm:readiness` no longer disagree silently about the same artifact, or the difference is explained where both are used",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "No gate weakened purely to make launch succeed (#3156)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "CHANGELOG `[Unreleased]` entry",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    }
+  }
+}

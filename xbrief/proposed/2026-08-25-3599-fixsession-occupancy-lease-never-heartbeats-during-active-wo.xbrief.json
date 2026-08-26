@@ -1,0 +1,344 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3599"
+  },
+  "plan": {
+    "title": "fix(session): occupancy lease never heartbeats during active work, so a working session gets stolen (#3433)",
+    "status": "proposed",
+    "narratives": {
+      "Description": "fix(session): occupancy lease never heartbeats during active work, so a working session gets stolen (#3433)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3599",
+      "Overview": "## What happened\n\nA mutation session claimed the occupancy lease on a worktree, worked for ~3.5 hours, and\nproduced three pushed commits. Its `heartbeat_at` never advanced past the original claim. A\nconcurrent agent correctly read that lease as abandoned and stole it.\n\n```json\n{\n  \"session_id\": \"285342a2-…\",\n  \"intent\": \"mutation\",\n  \"claimed_at\":   \"2026-08-21T13:24:13Z\",\n  \"heartbeat_at\": \"2026-08-21T13:24:13Z\"   // never advanced, across 3 commits\n}\n```\n\nNothing was lost here because the work was already pushed, but the steal is a data-loss\nmechanism in general: two sessions mutating one worktree is exactly what #3433 exists to\nprevent.\n\nThe stealing agent did nothing wrong. The lease genuinely looked dead.\n\n## Defect 1 — the write gate discards a liveness signal it already has\n\n`evaluateOccupancyWriteGate` (`packages/core/src/session/occupancy.ts:394`) runs on **every**\nproduct-path write. It resolves the live occupant, compares session ids, and returns `allow`:\n\n```ts\nconst live = liveOccupant(projectRoot, now);\nif (live === null) return { allow: true, message: null, occupant: null };\nconst incoming = input.sessionId?.trim() || (input.env ?? process.env).DEFT_SESSION_ID?.trim() || \"\";\nif (incoming.length > 0 && incoming === live.sessionId) {\n  return { allow: true, message: null, occupant: live };   // <-- no heartbeat\n}\n```\n\nSo a session that is *actively writing files* — the strongest available evidence of liveness —\nnever refreshes its own lease. Liveness is judged on a wall-clock timestamp that nothing\nadvances while work happens.\n\nThe same-session branch is the natural place to re-stamp: it already knows the identity\nmatches, it already runs on the cadence of real work, and it costs one write on a path that is\nalready writing.\n\n## Defect 2 — no way to refresh through the documented surface\n\n`task --list` exposes exactly one occupancy verb:\n\n```\n* occupancy:steal:   Supersede a live worktree occupancy lease (#3433). Flags: --confirm --occupant <id>\n```\n\nThere is no `occupancy:heartbeat` / `occupancy:renew`. Refreshing requires reverse-engineering:\n\n1. `resolveOccupancySessionId` (`occupancy.ts:106`) consults `DEFT_SESSION_ID`\n2. `applyWorktreeOccupancy` (`occupancy.ts:140`) treats an incoming id equal to the live\n   occupant as a heartbeat rather than a denial\n3. therefore `DEFT_SESSION_ID=<existing-id> task session:start` re-stamps\n\nNo agent or operator will discover that from the exposed surface. In practice **every**\nlong-running mutation session goes stale and becomes a steal candidate, which makes the\nmechanism actively misleading: `occupancy:steal` exists and works, while staying alive does not.\n\n## Why this matters more than a single lost lease\n\nThe lease is the only thing standing between two agents and concurrent mutation of one\nworktree. If the holder cannot signal liveness, the gate degrades into \"whoever ran most\nrecently wins,\" and the failure is silent on both sides — the holder gets no warning that its\nlease expired, and the stealer gets no signal that the occupant is mid-work.\n\n## Proposed fix\n\n- [ ] Re-stamp `heartbeat_at` in `evaluateOccupancyWriteGate`'s same-session branch (guard\n      against write amplification — e.g. only when the beat is older than some fraction of the\n      staleness window)\n- [ ] Expose `occupancy:heartbeat` (or `occupancy:renew`) as a task/CLI verb so refresh is\n      discoverable without reading source\n- [ ] Document the refresh path in `.deft/core/commands.md` § Session routing alongside\n      `occupancy:request` / `occupancy:steal`\n- [ ] Warn the holder when its own lease is within the staleness window rather than letting it\n      expire silently\n- [ ] Consider requiring `occupancy:steal --confirm` to report the occupant's last *write*\n      time, not just heartbeat age, so a mid-work occupant is visible to the stealer\n\n## Repro\n\n1. In a worktree, `task session:start` (mutation intent) — note `heartbeat_at`\n2. Make and commit file changes for longer than the staleness window\n3. Re-read `.deft/occupancy.json` — `heartbeat_at` is unchanged\n4. From another session, the lease reads as expired and `occupancy:steal` succeeds against an\n   actively-working holder\n\nFound while landing #3588. Refs #3433, #3110, #3597.\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-08-21T17:13:32Z)\n\n## Triage analysis\n\n_By: Grok 4.6 (xAI), 2026-08-21. Checked against issue body via REST (no comments), then `origin/master` occupancy + dispatcher. Working tree not modified._\n\n**Verdict:** accurate, desirable, ready as **one story** after locking a thin v1. Do not decompose children.\n\n`design-critique: warranted, because the lean proposes where liveness is stamped (write gate vs CLI verb vs steal reporting last write), which is the occupancy mechanism itself — not a copy-only bugfix.`\n\n### Accuracy\n\nHigh.\n\n- Same-session write allow **does not** re-stamp (`evaluateOccupancyWriteGate` `occupancy.ts:394–408`: identity match → `{ allow: true }` with no `heartbeatAt` write). Line numbers in the body match this SHA’s structure.\n- That function **is** on the product-write path (`hooks/dispatcher.ts:883`).\n- Same-session **`session:start` / `applyWorktreeOccupancy`** already heartbeats (`occupancy.ts:140–218`). The hole is the write gate, not claim.\n- TTL is 20 minutes (`OCCUPANCY_TTL_MS` `:27–28`). A 3.5h session with `heartbeat_at == claimed_at` is expired; steal is correct given the file.\n- Documented occupancy verbs: `tasks/occupancy.yml` exposes **only** `occupancy:steal`. `occupancy:heartbeat` / `occupancy:renew` do not exist. Refresh via `DEFT_SESSION_ID=<id> session:start` is real (`resolveOccupancySessionId` `:106` + same-id branch of `applyWorktreeOccupancy`) and undiscoverable from `task --list`.\n- Remediation names `occupancy:request` (`:102`) while the module header says join is **out of scope** (`:6`). False surface, same class as #3439’s missing verbs — footnote, not this story’s AC.\n\n### Desirability\n\nHigh. #3433 exists to stop two mutators on one tree. If the holder cannot stay live except by re-running ceremony, the lease becomes “whoever claimed last and then went quiet.” Steal is honest; staying alive is not.\n\n### Readiness\n\nYes, with a thin first ship. Body lists five bullets; do not boil:\n\n| In v1 | Out / follow-up |\n|---|---|\n| **A.** Re-stamp `heartbeat_at` on the same-session branch of `evaluateOccupancyWriteGate`, **debounced** (only if age > fraction of `OCCUPANCY_TTL_MS`, e.g. ¼ of 20 min) so a tight write loop does not hammer `.deft/occupancy.json` | Steal reporting “last write time” as a new field (needs a second timestamp; separate if still wanted) |\n| **B.** Discoverable refresh: `occupancy:heartbeat` **or** document that same-session `session:start` already renews — pick one, not both as required | Holder warning “your lease is about to expire” (needs a reader; not the fail-closed hole) |\n| **C.** `commands.md` § occupancy: name the actual refresh path; stop implying `occupancy:request` is a live verb unless it ships | Implementing `occupancy:request` join protocol |\n\n**Do not require B if A lands** and docs tell operators/agents that product writes keep the lease. B is still worth it: Shell-only mutation (#3438) may **never** hit `evaluateOccupancyWriteGate`. A covers Edit/Write; B covers long work that only shells. Cheap together.\n\nHostile/swarm: a headless leaf that never re-runs `session:start` and writes only via Bash still looks dead after 20 min even with A. Admit that residual (points at #3438) rather than pretending A closes all paths.\n\n### Disposition\n\n**Accept as one story.** Pair write-gate heartbeat (A) + discoverable refresh (B) + honest docs (C). Keep #3433 closed. Refs #3433, #3438 (Shell bypass of this gate), #3110, #3597.\n\n\n### Comment by @MScottAdams (2026-08-21T17:19:26Z)\n\nAdditional evidence: the heartbeat path itself works, it is just never invoked automatically and is undiscoverable.\n\nDemonstrated on a live lease — `DEFT_SESSION_ID=<existing-id> task session:start` in the worktree produced a true heartbeat (`claimed_at` unchanged at 17:04:05Z, `heartbeat_at` advanced to 17:17:50Z). So no new mechanism is needed for the refresh itself; the fix is (a) calling it from the same-session branch of `evaluateOccupancyWriteGate`, and (b) exposing it as a verb.\n\nOne more observation for the fix: **release deletes `.deft/occupancy.json` rather than marking it released.** After the lease on the primary checkout was released there was no file at all, so there is no record of who last held it or when. A tombstone (or an append-only lease log) would make steal-vs-release distinguishable after the fact — which matters when diagnosing exactly the kind of concurrent-mutation incident this gate exists to prevent.\n\n### Comment by @MScottAdams (2026-08-21T17:21:46Z)\n\n## Design critique of the triage comment (checked at `522643763423b57d4ca7e9ddb551785d3a2bfb84`)\n\n_By: Grok 4.5 (xAI)_\n\nCeiling: triage comment id `5372982342` only. Re-verified file:line claims against `origin/master` at the SHA above via `git show`. No product edits; no post-ceiling comments read.\n\n### What holds\n\n- **Defect is real and correctly located.** Same-session allow in `evaluateOccupancyWriteGate` returns without writing (`occupancy.ts:407–408`). Reproduced: that branch is `return { allow: true, message: null, occupant: live }` with no `heartbeatAt` / `writeOccupancyRecord` call.\n- **Product-write wiring holds.** Non-spawn mutation path calls the gate at `hooks/dispatcher.ts:881–883`.\n- **Claim/heartbeat path already exists and is separate.** `applyWorktreeOccupancy` same-session write path re-stamps `heartbeatAt: now` (`occupancy.ts:140–218`, esp. `:202`). `session:start` / `session:ready` already go through that path. The hole is the write gate, not claim.\n- **TTL / expiry math holds.** `OCCUPANCY_TTL_MS = 20 * 60 * 1000` (`:27–28`). A 3.5h session with `heartbeat_at == claimed_at` is expired; steal against that file is correct behavior.\n- **Discoverability claim holds (reproduced claimant method).** `tasks/occupancy.yml` exposes only `steal`. Live `task --list` shows only `occupancy:steal`. No `occupancy:heartbeat` / `occupancy:renew` task. Same-session renew via `DEFT_SESSION_ID=<id> session:start` is real (`resolveOccupancySessionId` `:106` + same-id branch of `applyWorktreeOccupancy`) and not listed as an occupancy verb.\n- **False-surface footnote holds.** Remediation names `occupancy:request` (`:102`) while the module header says join is out of scope (`:6`). `commands.md` Session routing already admits join is \"named in the remediation only\" (`content/commands.md:398` at this SHA).\n- **One-story / keep #3433 closed** is the right shape. This is a liveness-stamp hole in an existing lease, not a new concurrency model.\n- **design-critique warranted** judgment is sound: the lean proposes *where* liveness is stamped.\n\n### Findings\n\n1. **[blocks-the-design]** Side-effecting the pure write-gate evaluator must not fail closed on heartbeat I/O.\n   - Today `evaluateOccupancyWriteGate` is allow/deny only (`:394–413`); sole caller is the dispatcher (`dispatcher.ts:883`). Tests assert allow/deny only (`occupancy.test.ts` write-gate cases).\n   - If same-session re-stamp is inlined into that function and a lock/write failure flips `allow` to deny, active holders lose product writes because the liveness sidecar hiccuped — inverted fail-closed.\n   - v1 must keep deny criteria identity-only; heartbeat touch is **best-effort** after allow (dispatcher post-allow, or a separate `touchOccupancyHeartbeat` that never changes the gate verdict). Debounce alone does not solve this.\n\n2. **[sharpens-framing]** \"Do not require B if A lands\" contradicts the Shell residual the triage itself admits — and the residual is structural, not \"may\".\n   - Reproduced: `decideHook` early-returns Shell/Bash/MCP through `decideShellOrMcpRuntimeAuthority` at `dispatcher.ts:1268–1273` and **never** reaches `inspectMutationGates` / `evaluateOccupancyWriteGate`.\n   - So A (write-gate re-stamp) covers Edit/Write-class tools only. Headless leaves that mutate via Shell/Bash for >20 min stay steal-bait even after A.\n   - Triage correctly says \"A covers Edit/Write; B covers long work that only shells\" and \"admit that residual (points at #3438)\". Drop or rewrite \"Do not require B if A lands\". For v1, **B (or an equivalent renew path Shell can hit without ceremony) is required**, not optional polish. #3438 remains the scope-gate cousin; occupancy Shell bypass is the same router, proven here by early-return.\n\n3. **[sharpens-framing]** Docs already half-promise renew; C is corrective, not greenfield.\n   - `content/commands.md:398` says \"Same-session re-arm heartbeats\" — true for `session:start` re-arm, easy to misread as \"active work keeps the lease\".\n   - C must state the actual refresh surfaces (same-session `session:start` / future `occupancy:heartbeat` / write-path touch if A lands) and that product Shell mutations do not refresh today. Stop implying a live `occupancy:request` verb beyond the existing remediation disclaimer.\n\n4. **[footnote]** Assist-scratch early-return also skips the occupancy gate (`dispatcher.ts:816–842` → allow `write-assist-scratch-ready` before `:881`). Not the incident class; do not expand v1 to scratch. Note it so A is not marketed as \"every PreToolUse write\".\n\n5. **[footnote]** `OCCUPANCY_JOIN_PROTOCOLS` includes `heartbeat-file` / `parent-message` (`occupancy.ts:31`) but join remains out of scope. Do not revive join protocol as this story's vehicle; keep A/B as lease touch, not join negotiation.\n\n### Existing mechanisms (inventory before new)\n\n| Mechanism | Role | Reuse? |\n|---|---|---|\n| `applyWorktreeOccupancy` same-session write | Already heartbeats | Prefer calling this (or shared write helper) over inventing a second serializer |\n| `session:start` / `session:ready` occupancy claim | Ceremony renew | Document; too heavy as the *only* long-session refresh |\n| `occupancy:steal` + `stealOccupancy` | Supersede | Keep; do not overload steal with renew |\n| `liveOccupant` / `isOccupancyExpired` / `OCCUPANCY_TTL_MS` | Liveness read model | Keep; do not \"fix\" by lengthening TTL alone (#3156) |\n| `formatOccupancyRemediation` | Operator text | Fix false `occupancy:request` when docs/verb land |\n| `DEFT_SESSION_ID` + `resolveOccupancySessionId` | Identity | Required for A and B; unset id still denies against a live occupant |\n| Swarm cohort `occupancy_session_id` (`commands.md:398`) | Close-out identity | Orthogonal; do not bind heartbeat to launch manifest |\n| Subagent heartbeat (`orchestration/subagent-monitor.ts`, `docs/subagent-heartbeat.md`) | Different SoT | Do not conflate agent-liveness files with worktree `occupancy.json` |\n\nNo second timestamp / last-write field exists on `OccupancyRecord` — correctly parked outside v1.\n\n### Injection / swarm lens\n\n- **Holder must keep `DEFT_SESSION_ID`.** A only re-stamps when incoming id matches live (`:407`). Lost env → deny against own lease, or empty-id deny — not a silent refresh.\n- **Spawn tools skip occupancy evaluation** (`dispatcher.ts:881–882` allow stub). Parent/worktree holder must renew; child Edit in the *same* tree needs the holder id in env or is denied. Cohort worktrees with their own leases are fine.\n- **Hostile / sleepy leaf:** Shell-only worker + A-only ship = still abandoned at 20 min. That is the steal path working as designed against a mute holder — unless B (or Shell-path touch) exists.\n- **Lock contention:** synchronous heartbeat inside the PreToolUse allow path can contend with steal; debounce + best-effort + shared lock helper keep steal fail-closed and writes moving.\n- **Cross-session:** steal after TTL remains the recovery; fixing refresh stops *false* abandonment, not legitimate reclaim.\n\n### Road not taken\n\n- **Lengthen TTL / disable expiry** — masks abandonment; violates gate integrity (#3156).\n- **Rely on ritual-state staleness** (`sessionRitualStalenessHours`, default 4h) — wrong SoT; occupancy header already forbids overloading ritual-state.\n- **Git pre-commit / commit hook heartbeat only** — misses long edit sessions that have not committed yet; too sparse and tool-coupled as the sole renew path.\n- **Stamp every PreToolUse including Shell without a renew verb** — closes Shell residual without B, but couples lease I/O to every shell command and still needs debounce + best-effort; possible alternative to B, not free.\n- **Implement `occupancy:request` join** — out of scope by design; different problem.\n- **Steal reports filesystem mtime as \"last write\"** — noisy, wrong boundary; keep last-write field deferred.\n\n### Score against Directive rules\n\n| Rule | Score |\n|---|---|\n| Authority ladder | Pass if B ships as a real `task`/`deft` verb; fail if docs-only \"use session:start\" remains the sole discoverable renew. |\n| Fail-closed | Steal-on-stale is correct. Missing renew is fail-open for the *holder*. Fix renew without weakening deny. |\n| Propose-not-apply | Triage proposes; good. |\n| Claim-cites-state (#2066) | Line cites matched this SHA; good. Open critique re-verified rather than trusting triage. |\n| Gate integrity (#3156) | Do not clear the incident by editing TTL or steal policy alone. |\n| Thin fail-closed (#3265) | Prefer **one** heartbeat touch helper + **one** discoverable renew verb; docs are remediation text, not a third gate. A+B+C as three *ship items* is fine if A and B share one writer. |\n\n### Disposition\n\n**Uphold accept-as-one-story**, with v1 locked as:\n\n1. **A** — best-effort same-session lease touch on the direct-write allow path (not verdict-changing inside the pure evaluator).\n2. **B** — discoverable `occupancy:heartbeat` (or documented equivalent Shell/agents can run) — **required**, not optional, given `dispatcher.ts:1268–1273`.\n3. **C** — honest `commands.md` refresh path; no live `occupancy:request` implication.\n\nKeep holder-expiry warning and steal \"last write time\" out. Keep #3433 closed. Point Shell residual at #3438 as sibling router debt, not as an excuse to ship A without B.\n\n**design-critique: complete (open-critique).** Ready for synthesis / first-ship lock.\n\n\n### Comment by @MScottAdams (2026-08-21T17:23:57Z)\n\n## Verified synthesis (critique-pass-1, 2026-08-21)\n\n_By: Grok 4.6 (xAI) — synthesizer, not a critic in this run. Triage author was also Grok 4.6; critic was Grok 4.5. Rows marked **hold** only on a primary-source re-read of `origin/master`, not on critic agreement._\n\nHand-run of #3434 Pass 3. Not implementation. Working tree not modified.\n\n**SHA:** `522643763423b57d4ca7e9ddb551785d3a2bfb84` (`origin/master` at synthesis; critic named the same tip).\n\n**Thread note:** After triage, the issue was amended by [additional evidence](https://github.com/deftai/directive/issues/3599#issuecomment-5373040255) (`id` 5373040255). The critic’s ceiling was the triage comment (`5372982342`), so that evidence was **out of the critic’s allowed inputs**. Synthesis reads the full thread.\n\nThread: issue body; [triage](https://github.com/deftai/directive/issues/3599#issuecomment-5372982342); [additional evidence](https://github.com/deftai/directive/issues/3599#issuecomment-5373040255); [R1 critique](https://github.com/deftai/directive/issues/3599#issuecomment-5373063874).\n\n### Disposition\n\n**Accept as one story.** Keep #3433 closed. Do not decompose children.\n\n| Slice | In v1 | Out |\n|---|---|---|\n| **A** | Best-effort same-session **lease touch** on the Edit/Write allow path. Reuse `applyWorktreeOccupancy` (author showed it already heartbeats). Debounce (fraction of `OCCUPANCY_TTL_MS`). **Must not** flip `evaluateOccupancyWriteGate` allow→deny on heartbeat I/O (critic F1). | Inlining a failing write into the pure evaluator’s verdict |\n| **B** | Discoverable `occupancy:heartbeat` (or equivalent Shell/agents can run without full ceremony) wrapping the **same** helper. **Required**, not optional: Shell/MCP early-return never hits A (`dispatcher.ts:1268–1273`). | Docs-only “use session:start” as the sole renew |\n| **C** | `commands.md`: name A/B surfaces; same-session `session:start` already renews; product Shell does not. Stop implying live `occupancy:request`. | Implementing join protocol |\n| **D tombstone** | | Release currently **deletes** `.deft/occupancy.json` (`removeOccupancyFile` `:569–572`). Author’s steal-vs-release log is a **follow-up**, not this hole. |\n| Holder warning / steal last-write field | | Follow-up |\n\nAuthor evidence: `DEFT_SESSION_ID=<id> session:start` advanced `heartbeat_at` and left `claimed_at` unchanged. **No new heartbeat serializer.** Call the existing path from A and B.\n\n### Verified claims\n\n| Claim | Claimant | Verdict | Method | Evidence at `52264376` |\n|---|---|---|---|---|\n| Same-session write gate does not re-stamp | body, triage, R1 | **hold** | `git show` | `occupancy.ts:407–408` allow, no write |\n| Gate is on non-spawn product writes | body, triage, R1 | **hold** | `git show` | `dispatcher.ts:881–883` (spawn stubs allow without occupancy) |\n| `applyWorktreeOccupancy` already heartbeats | body, triage, author comment, R1 | **hold** | `git show` + author live demo | `:140–218` `heartbeatAt: now`; comment 5373040255 |\n| TTL 20 min | body, triage, R1 | **hold** | `git show` | `OCCUPANCY_TTL_MS` `:27–28` |\n| Only `occupancy:steal` is a task | body, triage, R1 | **hold** | `git show` | `tasks/occupancy.yml` steal-only |\n| `occupancy:request` named, join out of scope | triage, R1 | **hold** | `git show` | `:6` and `:102`; `commands.md:398` “remediation only” |\n| Shell never reaches occupancy gate | triage residual, R1 F2 | **hold** | `git show` | `dispatcher.ts:1268–1273` |\n| Assist-scratch skips occupancy | R1 F4 | **hold** | `git show` | `dispatcher.ts:816–842` before `:881` |\n| Release deletes the file | author comment | **hold** | `git show` | `releaseOccupancy` `:380` → `removeOccupancyFile` `:572` `containedRemove` |\n| Live session:start heartbeat demo | author comment | **unverified here** | not re-run | code path makes the demo expected |\n\n### Finding → slice\n\n| Finding | Source | Slice |\n|---|---|---|\n| Heartbeat I/O must not deny product writes | R1 F1 | **A** (post-allow / separate touch) |\n| “Do not require B if A lands” is wrong | R1 F2 | **B required** |\n| Docs already half-promise renew | R1 F3, `commands.md:398` | **C** |\n| Release is delete not tombstone | author 5373040255 | **D follow-up** |\n| `occupancy:request` false verb | triage footnote | **C** |\n\n### What the triage got right\n\nDiagnosis, TTL/steal correctness, one story, #3433 stays closed, debounce, Shell residual pointing at #3438.\n\n### What changed after triage (load-bearing)\n\n1. **Author:** refresh mechanism already works; v1 is **invoke + discover**, not a new lease format.\n2. **Critic:** A must be best-effort; B is **required** because Shell never hits the write gate. Drop “do not require B if A lands.”\n3. **Author:** tombstone/log after release is real and **out of v1**.\n\n### Out of scope here\n\nLengthening TTL. Occupancy join. Steal last-write field. Folding #3438 Shell dest-form into this PR. Tombstone file.\n\n\n### Comment by @MScottAdams (2026-08-21T17:26:53Z)\n\nScope is wider than the single incident. Surveying every `.deft/occupancy.json` in the repo (13 worktrees) found **12 orphaned mutation leases**, none released:\n\n| Worktree | Last heartbeat | Age |\n| --- | --- | --- |\n| issue-3438-shell-dest-form | 2026-08-21 17:17Z | fresh (actively held) |\n| issue-3439-cli-namespace | 2026-08-21 03:30Z | ~14h |\n| 3545-appsec… | 2026-08-20 18:10Z | ~23h |\n| 3504 / 3505 / 3514 / 3528 | 2026-08-20 | ~1.5d |\n| 3449 / 3490 / 3511 | 2026-08-19 | ~1.8d |\n| 3437 / 3462 | 2026-08-18 | ~3d |\n| 3433-occupancy-lease | 2026-08-18 00:47Z | ~3.7d |\n\nSo there are two failure modes, not one:\n\n1. **Live sessions go stale** (the original report) — nothing heartbeats during work.\n2. **Finished sessions never release** — the lease outlives the session indefinitely, so dead locks accumulate. Every one of the 12 above is a worktree that now reads as occupied by a session that no longer exists.\n\nConsequence: a new agent entering any of those worktrees must either wait out a holder that will never return or `occupancy:steal`. That normalises stealing as routine, which is how an actively-working lease (mine) got taken — the habit is rational given the state of the repo.\n\nWorth considering alongside the heartbeat fix: release on session end where detectable, and treat a lease whose heartbeat is older than some hard ceiling as reapable without `--confirm`, distinct from stealing a live one.\n\nNoting for whoever picks this up: the oldest orphan is in `3433-occupancy-lease`, the worktree where this feature was built.\n\n### Comment by @MScottAdams (2026-08-21T17:29:24Z)\n\nSplit the second failure mode out to #3604 (leases never released outside swarm completion, 12 orphans as of filing). Keeping this issue scoped to the first: a live session's lease never heartbeats during work.\n\nRoot cause found for #3604 while separating them, and it is relevant here too: `releaseOccupancy` has only two callers — a stress-test harness and `releaseSwarmOccupancy` in `swarm/complete-cohort.ts:637`. There is no session-end hook and no release verb, so a lease is released only when a swarm cohort finishes. The two issues compound: nothing marks a live session alive, and nothing marks a dead session dead.\n\n### Comment by @MScottAdams (2026-08-21T17:39:39Z)\n\nCorrecting my own comments on this thread — I posted them without reading the triage, and two of them are wrong.\n\n**My \"additional evidence\" comment (17:19) was redundant and procedurally disruptive.** The triage at 17:13 had already established the same fact from primary source: refresh via `DEFT_SESSION_ID=<id> session:start` is real and undiscoverable from `task --list`. Mine added an empirical demo of a fact already documented. Worse, it landed between triage and critique — the critic's ceiling was the triage comment, so my comment was outside its allowed inputs and the synthesizer had to reconcile an input the critic never saw. That is my error; I should not have written into a thread mid-pass.\n\n**My scope-widening comments (17:26, 17:29) contradict the disposition.** Triage said \"ready as one story… Do not decompose children.\" I then argued two failure modes and split one to #3604. I defer to the one-story disposition for THIS issue. To be clear about #3604: it is an **adjacent defect, not a decomposition of this story** — it covers leases never being released at all (`releaseOccupancy` has two callers: a stress harness and `releaseSwarmOccupancy` at `swarm/complete-cohort.ts:637`), which the triage did not cover and which no part of A/B/C addresses. If the maintainers would rather fold it in or close it as out of scope, that is fine by me.\n\n**Two points from the triage that correct me and should survive into implementation:**\n\n1. **Debounce.** My proposal omitted it. Re-stamping on every product write hammers `.deft/occupancy.json`; gating on age > a fraction of `OCCUPANCY_TTL_MS` is required, not optional.\n2. **Fix A does not cover Bash-only agents.** The triage's residual is sharper than anything I wrote: a session mutating only through Shell may never reach `evaluateOccupancyWriteGate`, so it still reads dead after the 20-minute TTL even with A. That is a direct #3438 interaction — the Shell dest-form gate only routes *recognized* dest-forms through the mutation gates, and the large fail-open surface documented on #3597 never touches it at all. So B (a discoverable refresh verb) is not merely \"cheap together\" — it is the only cover for exactly the agents most likely to run long.\n\nStanding data that I believe is still accurate and unaffected by the above: the 12 orphaned leases (surveyed 17:18Z) and the release-deletes-the-file observation. Both are recorded on #3604.\n\n### Comment by @MScottAdams (2026-08-21T17:46:23Z)\n\nFiled #3607 for the process gap this thread exposed: there is no interlock on issue threads, so an agent in another worktree can post inside an open triage/critique pass and fall outside the critic's declared ceiling. That is what happened here at 17:19 — my comment landed between triage and critique, and the synthesizer had to reconcile an input the critic was never allowed to see.\n\nWorktree occupancy (#3433) cannot cover this: it is keyed on a worktree path, so two agents holding valid leases on two different worktrees have no interlock on issue #N at all. The signal has to live on the forge to be visible to another worktree or a headless host.\n\n### Comment by @MScottAdams (2026-08-21T18:08:11Z)\n\n## Note (not a new critique pass)\n\n_By: Grok 4.6 (xAI), 2026-08-21._\n\n**Pass 1 still stands.** The [verified synthesis](https://github.com/deftai/directive/issues/3599#issuecomment-5373084952) (`5373084952`) remains the v1 lock: A best-effort write-path heartbeat (debounced; must not deny on I/O), B `occupancy:heartbeat` **required**, C honest docs. One story. Do not decompose children. Keep #3433 closed.\n\nPost-synthesis comments do **not** reopen this story. The 17:26 scope-widening (12 orphans / never-release) was [withdrawn at 17:39](https://github.com/deftai/directive/issues/3599#issuecomment-5373238573) — treat it as superseded. [#3604](https://github.com/deftai/directive/issues/3604) is adjacent (leases never released), not a child. [#3607](https://github.com/deftai/directive/issues/3607) is the thread-ceiling process gap, not occupancy heartbeat.\n\nNo second triage/critic/synthesis pass. Implement against pass 1.\n\n\n### Comment by @MScottAdams (2026-08-21T18:23:51Z)\n\nGrouped under tracker #3613 (multi-agent coordination defects: lease liveness, lease lifecycle, issue-thread interlock).\n\nTo be explicit, since it touches the triage disposition: grouping does **not** decompose this issue. The `status:child` label records that it has a parent in the issue graph; the \"ready as one story — do not decompose children\" verdict stands unchanged.\n\n### Comment by @MScottAdams (2026-08-25T15:30:48Z)\n\nmodel: claude-opus-5-thinking-high-fast\nrole: parent\n\n## Companion filed: #3729 -- the non-claimant half\n\nReproduced this issue's core mechanism from a different direction and filed the complementary case.\n\nThis issue is the **owner-side** defect: a session that claimed correctly has `heartbeat_at` go stale during active work and gets legitimately stolen. **#3729** is the **non-claimant** case: `evaluateOccupancyWriteGate` returns `allow: true` whenever `liveOccupant` is `null` (`occupancy.ts:404`), so an actor that never claimed is never gated at all.\n\nThey compound rather than duplicate. This issue guarantees leases go stale; #3729 is why staleness means *no protection* instead of a warning. Refreshing a heartbeat that was never written does not help the non-claimant case, so #3599's fix leaves it untouched.\n\nFresh evidence supporting the heartbeat claim here, from a session on `C:\\Repos\\deft\\directive`:\n\n- The lease found at session start was **21 hours** past its `heartbeat_at` (`2026-08-24T23:14:37Z`, session `b71f5825`), against `OCCUPANCY_TTL_MS = 20 * 60 * 1000` (`occupancy.ts:28`).\n- Confirmed by grep that no occupancy heartbeat caller exists in `packages/core/src` or `packages/cli/src` -- every `heartbeat` hit belongs to the sub-agent monitor (#1365), a separate mechanism.\n\nSo the 21-hour record is consistent with this issue's diagnosis: a session that claimed properly and was never refreshed.",
+      "Labels": "bug, swarm, patterns:multi-agent, dogfood, status:child"
+    },
+    "items": [
+      {
+        "title": "Re-stamp `heartbeat_at` in `evaluateOccupancyWriteGate`'s same-session branch (guard",
+        "status": "proposed"
+      },
+      {
+        "title": "Expose `occupancy:heartbeat` (or `occupancy:renew`) as a task/CLI verb so refresh is",
+        "status": "proposed"
+      },
+      {
+        "title": "Document the refresh path in `.deft/core/commands.md` § Session routing alongside",
+        "status": "proposed"
+      },
+      {
+        "title": "Warn the holder when its own lease is within the staleness window rather than letting it",
+        "status": "proposed"
+      },
+      {
+        "title": "Consider requiring `occupancy:steal --confirm` to report the occupant's last *write*",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "patterns:multi-agent",
+      "dogfood",
+      "status:child"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3599",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3599: fix(session): occupancy lease never heartbeats during active work, so a working session gets stolen (#3433)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3433",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3433"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "* occupancy:steal:   Supersede a live worktree occupancy lease (#3433). Flags: --confirm --occupant <id>",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L50"
+        }
+      ],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 26 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "`resolveOccupancySessionId` (`occupancy.ts:106`) consults `DEFT_SESSION_ID`",
+          "artifact_path": "occupancy.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "`applyWorktreeOccupancy` (`occupancy.ts:140`) treats an incoming id equal to the live",
+          "artifact_path": "occupancy.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Document the refresh path in `.deft/core/commands.md` § Session routing alongside",
+          "artifact_path": ".deft/core/commands.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Re-read `.deft/occupancy.json` — `heartbeat_at` is unchanged",
+          "artifact_path": ".deft/occupancy.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Same-session write allow does not re-stamp (`evaluateOccupancyWriteGate` `occupancy.ts:394–408`: identity match → `{ allow: true }` with no `heartbeatAt` write). Line numbers in the body match this SHA’s structure.",
+          "artifact_path": "occupancy.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "That function is on the product-write path (`hooks/dispatcher.ts:883`).",
+          "artifact_path": "hooks/dispatcher.ts:883",
+          "ambiguous": true,
+          "readings": [
+            {
+              "text": "That function is on the product-write path (`hooks/dispatcher.ts:883`). [reading: hooks/dispatcher.ts:883]",
+              "artifact_path": "hooks/dispatcher.ts:883"
+            },
+            {
+              "text": "That function is on the product-write path (`hooks/dispatcher.ts:883`). [reading: hooks/dispatcher.ts]",
+              "artifact_path": "hooks/dispatcher.ts"
+            }
+          ],
+          "chosen_reading": 0,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Same-session `session:start` / `applyWorktreeOccupancy` already heartbeats (`occupancy.ts:140–218`). The hole is the write gate, not claim.",
+          "artifact_path": "occupancy.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Documented occupancy verbs: `tasks/occupancy.yml` exposes only `occupancy:steal`. `occupancy:heartbeat` / `occupancy:renew` do not exist. Refresh via `DEFT_SESSION_ID=<id> session:start` is real (`resolveOccupancySessionId` `:106` + same-id branch of `applyWorktreeOccupancy`) and undiscoverable from `task --list`.",
+          "artifact_path": "tasks/occupancy.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Defect is real and correctly located. Same-session allow in `evaluateOccupancyWriteGate` returns without writing (`occupancy.ts:407–408`). Reproduced: that branch is `return { allow: true, message: null, occupant: live }` with no `heartbeatAt` / `writeOccupancyRecord` call.",
+          "artifact_path": "occupancy.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Product-write wiring holds. Non-spawn mutation path calls the gate at `hooks/dispatcher.ts:881–883`.",
+          "artifact_path": "hooks/dispatcher.ts:881–883",
+          "ambiguous": true,
+          "readings": [
+            {
+              "text": "Product-write wiring holds. Non-spawn mutation path calls the gate at `hooks/dispatcher.ts:881–883`. [reading: hooks/dispatcher.ts:881–883]",
+              "artifact_path": "hooks/dispatcher.ts:881–883"
+            },
+            {
+              "text": "Product-write wiring holds. Non-spawn mutation path calls the gate at `hooks/dispatcher.ts:881–883`. [reading: hooks/dispatcher.ts]",
+              "artifact_path": "hooks/dispatcher.ts"
+            }
+          ],
+          "chosen_reading": 0,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Claim/heartbeat path already exists and is separate. `applyWorktreeOccupancy` same-session write path re-stamps `heartbeatAt: now` (`occupancy.ts:140–218`, esp. `:202`). `session:start` / `session:ready` already go through that path. The hole is the write gate, not claim.",
+          "artifact_path": "occupancy.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Discoverability claim holds (reproduced claimant method). `tasks/occupancy.yml` exposes only `steal`. Live `task --list` shows only `occupancy:steal`. No `occupancy:heartbeat` / `occupancy:renew` task. Same-session renew via `DEFT_SESSION_ID=<id> session:start` is real (`resolveOccupancySessionId` `:106` + same-id branch of `applyWorktreeOccupancy`) and not listed as an occupancy verb.",
+          "artifact_path": "tasks/occupancy.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "False-surface footnote holds. Remediation names `occupancy:request` (`:102`) while the module header says join is out of scope (`:6`). `commands.md` Session routing already admits join is \"named in the remediation only\" (`content/commands.md:398` at this SHA).",
+          "artifact_path": "commands.md",
+          "ambiguous": true,
+          "readings": [
+            {
+              "text": "False-surface footnote holds. Remediation names `occupancy:request` (`:102`) while the module header says join is out of scope (`:6`). `commands.md` Session routing already admits join is \"named in the remediation only\" (`content/commands.md:398` at this SHA). [reading: commands.md]",
+              "artifact_path": "commands.md"
+            },
+            {
+              "text": "False-surface footnote holds. Remediation names `occupancy:request` (`:102`) while the module header says join is out of scope (`:6`). `commands.md` Session routing already admits join is \"named in the remediation only\" (`content/commands.md:398` at this SHA). [reading: content/commands.md:398]",
+              "artifact_path": "content/commands.md:398"
+            },
+            {
+              "text": "False-surface footnote holds. Remediation names `occupancy:request` (`:102`) while the module header says join is out of scope (`:6`). `commands.md` Session routing already admits join is \"named in the remediation only\" (`content/commands.md:398` at this SHA). [reading: content/commands.md]",
+              "artifact_path": "content/commands.md"
+            }
+          ],
+          "chosen_reading": 0,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Today `evaluateOccupancyWriteGate` is allow/deny only (`:394–413`); sole caller is the dispatcher (`dispatcher.ts:883`). Tests assert allow/deny only (`occupancy.test.ts` write-gate cases).",
+          "artifact_path": "occupancy.test.ts",
+          "ambiguous": true,
+          "readings": [
+            {
+              "text": "Today `evaluateOccupancyWriteGate` is allow/deny only (`:394–413`); sole caller is the dispatcher (`dispatcher.ts:883`). Tests assert allow/deny only (`occupancy.test.ts` write-gate cases). [reading: occupancy.test.ts]",
+              "artifact_path": "occupancy.test.ts"
+            },
+            {
+              "text": "Today `evaluateOccupancyWriteGate` is allow/deny only (`:394–413`); sole caller is the dispatcher (`dispatcher.ts:883`). Tests assert allow/deny only (`occupancy.test.ts` write-gate cases). [reading: dispatcher.ts]",
+              "artifact_path": "dispatcher.ts"
+            }
+          ],
+          "chosen_reading": 0,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Reproduced: `decideHook` early-returns Shell/Bash/MCP through `decideShellOrMcpRuntimeAuthority` at `dispatcher.ts:1268–1273` and never reaches `inspectMutationGates` / `evaluateOccupancyWriteGate`.",
+          "artifact_path": "dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "`content/commands.md:398` says \"Same-session re-arm heartbeats\" — true for `session:start` re-arm, easy to misread as \"active work keeps the lease\".",
+          "artifact_path": "content/commands.md:398",
+          "ambiguous": true,
+          "readings": [
+            {
+              "text": "`content/commands.md:398` says \"Same-session re-arm heartbeats\" — true for `session:start` re-arm, easy to misread as \"active work keeps the lease\". [reading: content/commands.md:398]",
+              "artifact_path": "content/commands.md:398"
+            },
+            {
+              "text": "`content/commands.md:398` says \"Same-session re-arm heartbeats\" — true for `session:start` re-arm, easy to misread as \"active work keeps the lease\". [reading: content/commands.md]",
+              "artifact_path": "content/commands.md"
+            }
+          ],
+          "chosen_reading": 0,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "[footnote] Assist-scratch early-return also skips the occupancy gate (`dispatcher.ts:816–842` → allow `write-assist-scratch-ready` before `:881`). Not the incident class; do not expand v1 to scratch. Note it so A is not marketed as \"every PreToolUse write\".",
+          "artifact_path": "dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "[footnote] `OCCUPANCY_JOIN_PROTOCOLS` includes `heartbeat-file` / `parent-message` (`occupancy.ts:31`) but join remains out of scope. Do not revive join protocol as this story's vehicle; keep A/B as lease touch, not join negotiation.",
+          "artifact_path": "occupancy.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "Spawn tools skip occupancy evaluation (`dispatcher.ts:881–882` allow stub). Parent/worktree holder must renew; child Edit in the *same* tree needs the holder id in env or is denied. Cohort worktrees with their own leases are fine.",
+          "artifact_path": "dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "B — discoverable `occupancy:heartbeat` (or documented equivalent Shell/agents can run) — required, not optional, given `dispatcher.ts:1268–1273`.",
+          "artifact_path": "dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "C — honest `commands.md` refresh path; no live `occupancy:request` implication.",
+          "artifact_path": "commands.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "*SHA: `522643763423b57d4ca7e9ddb551785d3a2bfb84` (`origin/master` at synthesis; critic named the same tip).",
+          "artifact_path": "origin/master",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "*My scope-widening comments (17:26, 17:29) contradict the disposition. Triage said \"ready as one story… Do not decompose children.\" I then argued two failure modes and split one to #3604. I defer to the one-story disposition for THIS issue. To be clear about #3604: it is an adjacent defect, not a decomposition of this story — it covers leases never being released at all (`releaseOccupancy` has two callers: a stress harness and `releaseSwarmOccupancy` at `swarm/complete-cohort.ts:637`), which the triage did not cover and which no part of A/B/C addresses. If the maintainers would rather fold it in or close it as out of scope, that is fine by me.",
+          "artifact_path": "swarm/complete-cohort.ts:637",
+          "ambiguous": true,
+          "readings": [
+            {
+              "text": "*My scope-widening comments (17:26, 17:29) contradict the disposition. Triage said \"ready as one story… Do not decompose children.\" I then argued two failure modes and split one to #3604. I defer to the one-story disposition for THIS issue. To be clear about #3604: it is an adjacent defect, not a decomposition of this story — it covers leases never being released at all (`releaseOccupancy` has two callers: a stress harness and `releaseSwarmOccupancy` at `swarm/complete-cohort.ts:637`), which the triage did not cover and which no part of A/B/C addresses. If the maintainers would rather fold it in or close it as out of scope, that is fine by me. [reading: swarm/complete-cohort.ts:637]",
+              "artifact_path": "swarm/complete-cohort.ts:637"
+            },
+            {
+              "text": "*My scope-widening comments (17:26, 17:29) contradict the disposition. Triage said \"ready as one story… Do not decompose children.\" I then argued two failure modes and split one to #3604. I defer to the one-story disposition for THIS issue. To be clear about #3604: it is an adjacent defect, not a decomposition of this story — it covers leases never being released at all (`releaseOccupancy` has two callers: a stress harness and `releaseSwarmOccupancy` at `swarm/complete-cohort.ts:637`), which the triage did not cover and which no part of A/B/C addresses. If the maintainers would rather fold it in or close it as out of scope, that is fine by me. [reading: swarm/complete-cohort.ts]",
+              "artifact_path": "swarm/complete-cohort.ts"
+            }
+          ],
+          "chosen_reading": 0,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "Debounce. My proposal omitted it. Re-stamping on every product write hammers `.deft/occupancy.json`; gating on age > a fraction of `OCCUPANCY_TTL_MS` is required, not optional.",
+          "artifact_path": ".deft/occupancy.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "The lease found at session start was 21 hours past its `heartbeat_at` (`2026-08-24T23:14:37Z`, session `b71f5825`), against `OCCUPANCY_TTL_MS = 20 * 60 * 1000` (`occupancy.ts:28`).",
+          "artifact_path": "occupancy.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 26,
+          "text": "Confirmed by grep that no occupancy heartbeat caller exists in `packages/core/src` or `packages/cli/src` -- every `heartbeat` hit belongs to the sub-agent monitor (#1365), a separate mechanism.",
+          "artifact_path": "packages/core/src",
+          "ambiguous": true,
+          "readings": [
+            {
+              "text": "Confirmed by grep that no occupancy heartbeat caller exists in `packages/core/src` or `packages/cli/src` -- every `heartbeat` hit belongs to the sub-agent monitor (#1365), a separate mechanism. [reading: packages/core/src]",
+              "artifact_path": "packages/core/src"
+            },
+            {
+              "text": "Confirmed by grep that no occupancy heartbeat caller exists in `packages/core/src` or `packages/cli/src` -- every `heartbeat` hit belongs to the sub-agent monitor (#1365), a separate mechanism. [reading: packages/cli/src]",
+              "artifact_path": "packages/cli/src"
+            }
+          ],
+          "chosen_reading": 0,
+          "provenance": "statement"
+        }
+      ]
+    }
+  }
+}

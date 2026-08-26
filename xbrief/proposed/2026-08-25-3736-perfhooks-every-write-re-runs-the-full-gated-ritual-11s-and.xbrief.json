@@ -1,0 +1,50 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3736"
+  },
+  "plan": {
+    "title": "perf(hooks): every write re-runs the full gated ritual (~11s), and a merge makes the next write time out and fail closed",
+    "status": "proposed",
+    "narratives": {
+      "Description": "perf(hooks): every write re-runs the full gated ritual (~11s), and a merge makes the next write time out and fail closed",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3736",
+      "Overview": "## Summary\n\nEvery write and every spawn re-runs the **full gated session ritual** inside the `tool.before` hook. Measured cost is **~11 seconds per write** on the happy path, against a 30-second fail-closed timeout. After anything that moves git HEAD -- a merge, a rebase, a pull -- the ritual goes stale and the next write inherits the **cold ceremony path, measured at 48-57s**, which blows the timeout. Because the matcher is `failClosed: true`, the timeout is delivered to the agent as a denial.\n\nThis is not a maintainer-only concern. Consumers run the same deposit with the same timeout.\n\n## Measurements\n\nAll on `origin/master` `71bf8216`, Windows, warm cache, ritual green.\n\n| Probe | Latency | Verdict |\n|---|---|---|\n| `tool.before` with a **Write** payload | **11.2s / 11.2s / 11.3s** | `allow` / `write-ready` |\n| `tool.before` with a **Task/spawn** payload | **9.3s** | `allow` / `spawn-ready` |\n| `tool.before` with a **Shell** payload | **0.5s / 0.5s** | `allow` / `shell-op-unclassifiable` |\n| `verify:session-ritual -- --tier=gated` alone | **8.9s / 8.8s** | exit 0 |\n| `session:ready` (cold path) | **48s**, **57s** | -- |\n\nThe ritual accounts for essentially all of the write cost. Shell short-circuits **before** the ritual, which is why it is fast -- and why it is the only escape hatch when the gate misbehaves.\n\n## Cause\n\n`packages/core/src/hooks/dispatcher.ts` re-runs the gated ritual on every matched call, and deliberately refuses to trust a cached pass:\n\n```ts\n// Mutation dispatch is a live gated boundary: active verification reruns\n// non-cacheable agent-hook readiness instead of trusting persisted success.\nritual = verifySessionRitual(projectRoot, {\n  tier: \"gated\", posture: \"mutation\", bypass: false,\n});\n```\n\nThe non-cacheable part live-probes all four host hook registrations on **every** write. The timeout was sized against this: the deposit comment says Cursor's `tool.before` timeout sits *\"above the gated-ritual / live agent-hook readiness budget\"* (`CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS`, #3246). That sizing holds for the warm path at 11s. It does not hold for the cold path at 48-57s.\n\n## The failure I hit\n\nTurned hooks on in this repo. Worked for about ten minutes, then an ordinary file write returned:\n\n```\nTool blocked because this hook is configured to fail closed.\nHook \"deft-hook --host cursor --event tool.before\" timed out after 30s.\n```\n\nI had just merged two PRs and pulled master. HEAD moved discontinuously, the ritual staled (`\"stale because git HEAD changed discontinuously ... full cold ceremony required\"`), and the next write inherited the cold evaluation.\n\n**The gate is incompatible with the merge step of the workflow it governs.** Merging is ordinary agent work, it is the one action guaranteed to move HEAD, and it reliably poisons the following write. A `drive-to: merge-ready` worker does exactly this by design.\n\n## Consumer cost\n\nAt ~11.2s of pure gate latency per write, with no caching between calls:\n\n| Writes in a session | Added clock time |\n|---|---|\n| 20 | ~3.7 min |\n| 50 | ~9.3 min |\n| 100 | ~19 min |\n| 200 | ~37 min |\n\nThat is wall time the consumer pays and cannot see the reason for. The matcher covers `Edit`, `Write`, `WriteFile`, `CreateFile`, `MultiEdit`, `NotebookEdit`, `StrReplace`, `SearchReplace`, `Delete`, `DeleteFile`, `ApplyPatch`, `apply_patch` -- i.e. essentially all file authoring.\n\n## Two distinct defects\n\n1. **Cost.** An unbounded readiness computation sits on the synchronous path of every write, uncached by design. Even when it succeeds it is a ~11s tax per edit.\n2. **Correctness of the failure mode.** `failClosed: true` renders a *timeout* indistinguishable from a *policy refusal*. A timeout is not a policy decision. An agent cannot tell \"you are not allowed to write\" from \"the check did not finish\", and neither can a consumer reading the message.\n\n## Directions (not a design)\n\n- Cache the ritual verdict for the session and invalidate on the events that actually matter (HEAD change, compact, policy edit) rather than re-deriving per call.\n- Or evaluate at `sessionStart` only, and keep `tool.before` to the cheap policy checks -- occupancy, scope, intent ceiling -- that do not require probing host registrations.\n- Or separate the two failure modes: fail **open** on timeout with a loud warning, keep fail-closed for genuine denials. A gate that cannot answer in time has not decided anything.\n- If the live agent-hook probe must stay non-cacheable, bound it explicitly and report which sub-check exceeded its budget.\n\n## Notes\n\nRecovery when it fires: the hook config is already loaded by the host, so deleting `.cursor/hooks.json` does **not** disable it mid-session -- it makes things worse, because the ritual's `agent_hooks` step then fails and every write is denied for a new reason. The way out is to re-deposit through the shell and re-run the ritual. Shell being ungated is load-bearing for recovery and appears incidental.\n\nRelated: #3732 (where this surfaced, and which should keep the doctor-vs-ritual reconciliation question), #3246 (timeout sizing), #3611.\n\n"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3736",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3736: perf(hooks): every write re-runs the full gated ritual (~11s), and a merge makes the next write time out and fail closed"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "Hook \"deft-hook --host cursor --event tool.before\" timed out after 30s",
+          "reason": "first token \"hook\" is not in the literal-AC allowlist",
+          "sourceSpan": "fence@L41"
+        },
+        {
+          "command": "verify:session-ritual -- --tier=gated",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L18"
+        }
+      ],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "project_floor",
+      "derived_reason": "no shell acceptance commands stated in task text; floor until agent derives AC (#3284 ladder)"
+    }
+  }
+}

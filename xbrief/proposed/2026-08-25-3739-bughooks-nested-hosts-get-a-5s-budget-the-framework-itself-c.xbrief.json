@@ -1,0 +1,60 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3739"
+  },
+  "plan": {
+    "title": "bug(hooks): nested hosts get a 5s budget the framework itself calls too small, and a killed hook renders identically to an allow",
+    "status": "proposed",
+    "narratives": {
+      "Description": "bug(hooks): nested hosts get a 5s budget the framework itself calls too small, and a killed hook renders identically to an allow",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3739",
+      "Overview": "## Summary\n\nNested hosts (Claude, Grok, Codex) get a **5-second** hook timeout. The framework's own source says 5s is below the work's ceiling, and says so while raising *Cursor* to 30s for exactly that reason. The nested deposits were left at 5.\n\nBecause a nested **allow renders as an empty string** and a deny requires structured JSON, a hook killed at 5s emits nothing — which is byte-identical to an allow. The gate cannot deliver a deny it never printed.\n\nSplit from #3736 after an N=3 design-critique panel.\n\n## The asymmetry, in the framework's own words\n\n```ts\n// packages/core/src/init-deposit/agent-hooks.ts\n/**\n * Mutation tool.before runs `inspectMutationGates` -> gated `verifySessionRitual`,\n * which re-runs non-cacheable agent-hook readiness on every boundary. Live\n * readiness alone has a multi-host fixture ceiling of ~24s\n * (`content/contracts/agent-hook-readiness.md`); the historical deposit default\n * of 5s was below that budget. ...\n */\nexport const CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS = 30;\n\n/** Nested Claude/Grok/Codex command-hook default timeout (seconds). */\nexport const NESTED_HOOK_TIMEOUT_SECONDS = 5;\n```\n\nThe diagnosis is correct and the remedy was applied to one host of four. `failClosed: true` likewise appears only in the Cursor block.\n\n## Why a nested deny cannot be emitted\n\n`renderHostDecision` returns an empty string for an allow on the nested hosts, and this is pinned by test:\n\n```ts\n// packages/core/src/hooks/dispatcher.test.ts:2110\nexpect(renderHostDecision(\"claude\", allow)).toBe(\"\");\nexpect(renderHostDecision(\"grok\",   allow)).toBe(\"\");\nexpect(renderHostDecision(\"codex\",  allow)).toBe(\"\");\n```\n\nA deny, by contrast, requires emitting structured JSON (`hookSpecificOutput.permissionDecision: \"deny\"` for Claude/Codex, `{decision: \"deny\"}` for Grok). If the host kills the process at 5s, nothing is written. **The framework cannot deliver a verdict it never printed**, whatever the host then does with the silence.\n\n## Measured work exceeds the budget routinely\n\nSame machine, same SHA, four independent observers, with the live probe **skipped** (maintainer checkout):\n\n| Observer | `tool.before`, Write payload |\n|---|---|\n| critic B | 6.379s |\n| critic A | 5.9 / 7.7 / 9.6s |\n| critic C | 8.1 / 12.7s |\n| parent | 6.3 / 7.0s quiet; 11.2-11.6s under load |\n\nEvery one of these exceeds 5s. On a consumer where the live probe actually runs, the published ceiling is ~24s. And with the `cache_fresh` drift probe armed (#3738) a single call was measured at ~115s.\n\nSo the nested budget is not marginal. It is exceeded on the happy path, by a factor of at least one and sometimes twenty.\n\n## What is verified and what is not\n\n**Verified in-repo:** the 5s constant; the 24s ceiling and the comment conceding 5s is too small; allow renders empty on nested hosts, pinned by test; deny requires structured output; measured work of 5-12s baseline.\n\n**Not verified:** what each host *does* with a killed hook. If a host treats silence as permission granted, this is a silent authorization bypass on three of four hosts. If it treats a kill as an error, it is instead an opaque breakage. Either way the gate does not render its verdict, but the severity differs and someone should confirm per host.\n\nNote that a related question is open for Grok specifically — its deposit may not be loaded at all (separate issue), which would make the timeout question moot on that host.\n\n## Acceptance\n\n- The nested deposit budget is sized against the same measured work the Cursor budget was sized against, or the work is moved off the synchronous path so a small budget is honest.\n- A nested host that cannot complete in budget produces a **distinguishable** outcome — not an empty string that is indistinguishable from allow.\n- Whatever the choice, it is stated per host rather than inherited by default.\n\nSplit from #3736. Related: #3738 (the drift read that makes the overrun routine), #3732 (agent-hook boundary), #3246 (Cursor timeout sizing).\n\n"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3739",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3739: bug(hooks): nested hosts get a 5s budget the framework itself calls too small, and a killed hook renders identically to an allow"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "The nested deposit budget is sized against the same measured work the Cursor budget was sized against, or the work is moved off the synchronous path so a small budget is honest.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "A nested host that cannot complete in budget produces a distinguishable outcome — not an empty string that is indistinguishable from allow.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "implementation"
+        },
+        {
+          "id": 3,
+          "text": "Whatever the choice, it is stated per host rather than inherited by default.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      }
+    }
+  }
+}
