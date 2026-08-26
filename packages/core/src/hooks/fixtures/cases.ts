@@ -693,6 +693,38 @@ export const HOOK_FIXTURE_CASES: readonly HookFixtureCase[] = [
     },
   },
   {
+    // #3599 item 5: the refresh verb is only useful if the id it renews is the
+    // one later hook processes compare against. #3611's bridge supplies that.
+    id: "cursor-posix-shell-occupancy-heartbeat-rewrite",
+    host: "cursor",
+    os: "posix",
+    tool: "Shell",
+    regression: ["#3599", "#3611"],
+    payload: {
+      tool_name: "Bash",
+      conversation_id: "session-a",
+      tool_input: { command: "task occupancy:heartbeat" },
+    },
+    expected: {
+      toolName: "Bash",
+      writeIntent: "shell",
+      writeTargetPath: null,
+      hostIdentity: {
+        status: "ok",
+        sessionId: "host:cursor:v1:c2Vzc2lvbi1h",
+      },
+      lifecycle: {
+        verb: "occupancy:heartbeat",
+        requestedSessionId: "host:cursor:v1:c2Vzc2lvbi1h",
+        resultKind: "rewrite",
+        rewrittenCommand: "task occupancy:heartbeat -- --session-id=host:cursor:v1:c2Vzc2lvbi1h",
+        updatedInput: {
+          command: "task occupancy:heartbeat -- --session-id=host:cursor:v1:c2Vzc2lvbi1h",
+        },
+      },
+    },
+  },
+  {
     id: "claude-posix-shell-identity-missing",
     host: "claude",
     os: "posix",

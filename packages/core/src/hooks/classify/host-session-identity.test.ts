@@ -204,6 +204,7 @@ describe("rewriteExactLifecycleCommand (#3611)", () => {
     ["deft session:start", "session:start"],
     ["directive occupancy:release", "occupancy:release"],
     ["deft swarm-launch", "swarm:launch"],
+    ["task occupancy:heartbeat", "occupancy:heartbeat"],
     ["task swarm:launch -- --stories 3611", "swarm:launch"],
     [`task session:ready -- --session-id=${CODEX_SESSION_ID}`, "session:ready"],
   ] as const)("classifies exact lifecycle command %j as %s", (command, verb) => {
@@ -251,6 +252,7 @@ describe("rewriteExactLifecycleCommand (#3611)", () => {
     "session:end",
     "occupancy:steal",
     "occupancy:release",
+    "occupancy:heartbeat",
   ])("rewrites the exact directive lifecycle verb %s", (verb) => {
     const result = rewriteExactLifecycleCommand(
       { tool_name: "Shell", tool_input: { command: `directive ${verb}` } },

@@ -3,7 +3,11 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_RUNTIME_AUTHORITY_POLICY } from "../policy/runtime-authority.js";
-import { applyWorktreeOccupancy } from "../session/occupancy.js";
+import {
+  applyWorktreeOccupancy,
+  OCCUPANCY_STALE_WARN_MS,
+  readOccupancy,
+} from "../session/occupancy.js";
 import { ritualStatePath } from "../session/ritual-sentinel.js";
 import { fixtureCaseById, fixtureCasesFor, HOOK_FIXTURE_CASES } from "./fixtures/index.js";
 import {
@@ -199,6 +203,38 @@ describe("direct-write hook policy", () => {
     );
 
     expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
+  });
+
+  it("an allowed write renews the owner's lease and warns when it went stale (#3599)", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-occ-refresh-"));
+    hookTemps.push(root);
+    const sessionId = "host:codex:v1:c2Vzc2lvbi1h";
+    const claimedAt = new Date(Date.now() - OCCUPANCY_STALE_WARN_MS - 1_000);
+    applyWorktreeOccupancy(root, { sessionId, now: claimedAt });
+
+    const decision = decideHook(
+      {
+        host: "codex",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "apply_patch",
+          session_id: "session-a",
+          tool_input: { file_path: join(root, "src", "app.ts") },
+        },
+        environ: {},
+      },
+      readySeams({
+        verifyRitual: () => ({ ...READY_RITUAL, boundSessionId: sessionId }),
+      }),
+    );
+
+    expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
+    expect(decision.message).toContain("occupancy:heartbeat --session-id=");
+    const record = readOccupancy(root);
+    expect(record?.sessionId).toBe(sessionId);
+    expect(record?.heartbeatAt.getTime()).toBeGreaterThan(claimedAt.getTime());
+    expect(record?.lastWriteAt).not.toBeNull();
   });
 
   it("denies missing or conflicting host identity while a lease is live (#3611)", () => {
