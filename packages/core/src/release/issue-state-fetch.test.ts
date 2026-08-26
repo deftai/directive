@@ -200,7 +200,11 @@ describe("issue-state-fetch", () => {
         return completed(
           JSON.stringify([
             { number: 11, state: "open" },
-            { number: 401, state: "open", pull_request: { url: "https://github.com/o/r/pull/401" } },
+            {
+              number: 401,
+              state: "open",
+              pull_request: { url: "https://github.com/o/r/pull/401" },
+            },
           ]),
         );
       }
