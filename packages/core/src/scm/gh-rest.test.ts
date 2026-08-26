@@ -110,6 +110,24 @@ describe("restIssueListOpenInventory", () => {
     ]);
   });
 
+  it("flattens slurped page arrays from gh paginate output", () => {
+    const runGhApiFn: RunGhApiFn = () => ({
+      returncode: 0,
+      stdout: JSON.stringify([
+        [
+          { number: 10, state: "open" },
+          { number: 11, state: "open", pull_request: { url: "https://github.com/o/r/pull/11" } },
+        ],
+        [{ number: 12, state: "open" }],
+      ]),
+      stderr: "",
+    });
+    expect(restIssueListOpenInventory("deftai/directive", { runGhApiFn })).toEqual([
+      { number: 10, state: "open" },
+      { number: 12, state: "open" },
+    ]);
+  });
+
   it("returns empty list for empty stdout", () => {
     const runGhApiFn: RunGhApiFn = () => ({ returncode: 0, stdout: "", stderr: "" });
     expect(restIssueListOpenInventory("deftai/directive", { runGhApiFn })).toEqual([]);

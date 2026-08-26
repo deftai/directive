@@ -474,6 +474,51 @@ export interface RestIssueListPaginatedOptions extends RestIssueListOptions {
 
 const OPEN_INVENTORY_MAX_ISSUES = REST_PAGINATION_MAX_PAGES * REST_MAX_PER_PAGE;
 
+function issueRowOrThrow(item: unknown, endpoint: string): Record<string, unknown> {
+  if (typeof item !== "object" || item === null || Array.isArray(item)) {
+    throw new GhRestError({
+      stderr: "open-issue inventory row is not an object",
+      exitCode: 0,
+      endpoint,
+      payload: null,
+      hint: "REST issue list rows must be objects",
+    });
+  }
+  return item as Record<string, unknown>;
+}
+
+/** Flatten `gh api --paginate --slurp` issue-list output (pages or single page). */
+export function flattenOpenInventoryPayload(parsed: unknown[], endpoint: string): Record<string, unknown>[] {
+  if (parsed.length === 0) {
+    return [];
+  }
+  const out: Record<string, unknown>[] = [];
+  const allPages = parsed.every((item) => Array.isArray(item));
+  if (allPages) {
+    for (const page of parsed) {
+      if (!Array.isArray(page)) {
+        continue;
+      }
+      for (const item of page) {
+        const row = issueRowOrThrow(item, endpoint);
+        if ("pull_request" in row) {
+          continue;
+        }
+        out.push(row);
+      }
+    }
+    return out;
+  }
+  for (const item of parsed) {
+    const row = issueRowOrThrow(item, endpoint);
+    if ("pull_request" in row) {
+      continue;
+    }
+    out.push(row);
+  }
+  return out;
+}
+
 /**
  * Complete open-issue inventory in one `gh api --paginate --slurp` subprocess (#3752).
  * Fail-closed on command failure, non-array JSON, buffer exhaustion, or cap hit.
@@ -522,23 +567,7 @@ export function restIssueListOpenInventory(
       hint: "open-issue inventory must be a JSON array",
     });
   }
-  const out: Record<string, unknown>[] = [];
-  for (const item of parsed) {
-    if (typeof item !== "object" || item === null || Array.isArray(item)) {
-      throw new GhRestError({
-        stderr: "open-issue inventory row is not an object",
-        exitCode: 0,
-        endpoint,
-        payload: null,
-        hint: "REST issue list rows must be objects",
-      });
-    }
-    const row = item as Record<string, unknown>;
-    if ("pull_request" in row) {
-      continue;
-    }
-    out.push(row);
-  }
+  const out = flattenOpenInventoryPayload(parsed, endpoint);
   if (out.length >= OPEN_INVENTORY_MAX_ISSUES) {
     throw new GhRestError({
       stderr: `open-issue inventory reached cap ${OPEN_INVENTORY_MAX_ISSUES}; pagination may be incomplete`,
