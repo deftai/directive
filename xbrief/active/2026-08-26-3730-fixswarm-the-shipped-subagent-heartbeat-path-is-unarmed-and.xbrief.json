@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3730",
-    "updated": "2026-08-26T19:21:46Z"
+    "updated": "2026-08-26T20:28:56.478Z"
   },
   "plan": {
     "title": "fix(swarm): the shipped subagent-heartbeat path is unarmed and a killed worker blocks its own resume",
@@ -66,7 +66,9 @@
       }
     ],
     "metadata": {
-      "literal_acceptance_commands": [],
+      "literal_acceptance_commands": [
+        "pnpm exec vitest run packages/core/src/swarm/subagent-status-dir.test.ts packages/core/src/swarm/pre-dispatch.test.ts packages/cli/src/verify-subagent-alive.test.ts packages/core/src/session/verify-session-ritual-branches.test.ts"
+      ],
       "literal_acceptance_rejected": [
         {
           "command": "task agent:monitor",
@@ -82,54 +84,65 @@
       "swarm": {},
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
-        "files": [],
-        "module_boundary": ""
+        "files": [
+          "packages/core/src/swarm/subagent-status-dir.ts",
+          "packages/core/src/swarm/worktrees.ts",
+          "packages/core/src/swarm/pre-dispatch.ts",
+          "packages/cli/src/verify-subagent-alive.ts",
+          "packages/core/src/session/verify-session-ritual.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "content/templates/agent-prompt-preamble.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/swarm"
       }
     },
     "acceptance": {
-      "commands": [],
-      "none_stated": true,
+      "commands": [
+        "pnpm exec vitest run packages/core/src/swarm/subagent-status-dir.test.ts packages/core/src/swarm/pre-dispatch.test.ts packages/cli/src/verify-subagent-alive.test.ts packages/core/src/session/verify-session-ritual-branches.test.ts"
+      ],
+      "none_stated": false,
       "source_rung": "derived",
-      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "derived_reason": "Issue acceptance converted into one deterministic vitest command covering mkdir, cancel-then-begin, ritual --rearm, and REDISPATCH_OK takeover copy (#3323).",
       "clauses": [
         {
           "id": 1,
-          "text": "Dispatch envelopes arm the shipped path: parent creates the scratch directory, worker is instructed to heartbeat, `--require-agent` is set",
-          "artifact_path": null,
+          "text": "Dispatch envelopes arm the shipped path: parent creates the scratch directory, worker is instructed to heartbeat, `--require-agent` is set (\"ensureSubagentStatusDir\")",
+          "artifact_path": "packages/core/src/swarm/subagent-status-dir.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
-          "text": "A killed worker's delivery attempt reaches a terminal state so `DENY_DUPLICATE_ACTIVE` stops blocking resume; takeover documented as cancel-then-begin",
-          "artifact_path": null,
+          "text": "A killed worker's delivery attempt reaches a terminal state so `DENY_DUPLICATE_ACTIVE` stops blocking resume; takeover documented as cancel-then-begin (\"--action cancel\")",
+          "artifact_path": "packages/core/src/swarm/pre-dispatch.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
-          "text": "A recovery dispatch after a disconnect is not blocked by a stale ritual, or the denial names the re-arm verb",
-          "artifact_path": null,
+          "text": "A recovery dispatch after a disconnect is not blocked by a stale ritual, or the denial names the re-arm verb (\"session:start --rearm\")",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 4,
-          "text": "Dispatch envelopes instruct workers to commit early",
-          "artifact_path": null,
+          "text": "Dispatch envelopes instruct workers to commit early (\"Commit early\")",
+          "artifact_path": "content/templates/agent-prompt-preamble.md",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 5,
-          "text": "CHANGELOG `[Unreleased]` entry",
-          "artifact_path": null,
+          "text": "CHANGELOG `[Unreleased]` entry (\"#3730\")",
+          "artifact_path": "CHANGELOG.md",
           "ambiguous": false,
           "provenance": "statement"
         }
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-08-26T19:21:46Z"
+    "updated": "2026-08-26T20:28:56.478Z"
   }
 }
