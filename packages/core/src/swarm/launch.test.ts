@@ -578,7 +578,8 @@ describe("swarmLaunch occupancy-before-create (#3649)", () => {
     });
     expect(result.exitCode).not.toBe(0);
     expect(result.stderr).toMatch(/worktree-map|JSON array/i);
-    expect(result.stderr).not.toMatch(/lock compromised/);
+    expect(result.stderr).toMatch(/occupancy:steal --confirm/);
+    expect(result.stderr).toMatch(/lock compromised/);
     expect(existsSync(occupancyPath(project))).toBe(true);
   });
 

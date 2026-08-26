@@ -1096,15 +1096,22 @@ export function swarmLaunch(args: LaunchArgs): {
     stderr: string,
   ): { exitCode: number; stdout: string; stderr: string } => {
     if (newlyClaimed) {
+      const recovery =
+        "Occupancy release failed after this launch error; the lease may still be live. " +
+        "The occupant may release (occupancy:release / session:end), or steal (occupancy:steal --confirm).";
       try {
         const release = args.releaseOccupancyFn ?? releaseOccupancy;
-        release(projectRoot, {
+        const decision = release(projectRoot, {
           sessionId: occupancy.sessionId,
           env: args.environ ?? process.env,
         });
-      } catch {
-        // Best-effort: a throw here must not replace the original launch error
-        // or skip the structured return (#3649 Greptile P1).
+        if (decision.code !== 0) {
+          stderr = `${stderr}\n${recovery} ${decision.message}\n`;
+        }
+      } catch (exc: unknown) {
+        // Do not replace the original structured launch error; tell the operator
+        // the lease may still deny later sessions (#3649 Greptile P1).
+        stderr = `${stderr}\n${recovery} ${String(exc)}\n`;
       }
     }
     return { exitCode, stdout: "", stderr };
