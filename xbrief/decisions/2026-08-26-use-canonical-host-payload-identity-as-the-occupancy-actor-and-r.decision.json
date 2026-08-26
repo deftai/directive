@@ -4,7 +4,7 @@
   "decision": "Use canonical host-payload identity as the occupancy actor and require exact host, lease, and verified ritual alignment",
   "governingRule": {
     "description": "Issue #3611's approved cooperative host-session routing contract is authoritative and must not be represented as same-user authentication",
-    "path": "xbrief/active/2026-08-26-3611-blocker-bugcodex-occupancy-lease-self-denies-direct-writes-a.xbrief.json",
+    "path": "packages/core/src/hooks/classify/host-session-identity.ts",
     "rfc2119": "MUST"
   },
   "alternativesConsidered": [
@@ -20,9 +20,7 @@
   ],
   "whyWinner": "Host payload IDs survive fresh hook processes without adding replayable project state; exact lifecycle rewriting bridges claim time, while lease and exact verified ritual equality fail closed under the existing cooperative file model",
   "confidence": "high",
-  "activeScopeRefs": [
-    "xbrief/active/2026-08-26-3611-blocker-bugcodex-occupancy-lease-self-denies-direct-writes-a.xbrief.json"
-  ],
+  "activeScopeRefs": [],
   "timestamp": "2026-08-26T13:27:45Z",
   "revisitTrigger": "Revisit if a supported host lacks a stable payload ID, Cursor family semantics change, or Directive adopts an OS-authenticated broker",
   "tags": [
