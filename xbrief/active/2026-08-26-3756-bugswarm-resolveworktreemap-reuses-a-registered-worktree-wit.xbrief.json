@@ -1,0 +1,138 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3756",
+    "updated": "2026-08-26T15:43:08Z"
+  },
+  "plan": {
+    "title": "bug(swarm): resolveWorktreeMap reuses a registered worktree without checking HEAD matches the base branch",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(swarm): resolveWorktreeMap reuses a registered worktree without checking HEAD matches the base branch",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3756",
+      "Overview": "## Summary\n\n`resolveWorktreeMap` reuses any worktree path already registered in `git worktree list` without checking that its HEAD matches the requested base. A leftover worktree from an earlier run is silently adopted at the wrong revision, and workers implement against a base nobody asked for.\n\nThis is a correctness bug on the **successful**-launch path. Recut after a design critique (successor lean 5427595056): the remedy survived with no blocking finding, but its guarantee is narrower than first stated and two of the shapes originally floated are wrong.\n\n## Mechanism, verified at `0a82ac96`\n\nThree facts compose:\n\n- `worktrees.ts:224-234` -- the resolver skips any path already registered, unconditionally on revision.\n- `worktrees.ts:71-94` -- `parseWorktreePorcelain` records a branch or `null` and **discards the `HEAD` lines** the porcelain format emits.\n- `worktrees.ts:115-135` -- creation uses `git worktree add --detach`, so a launch-created tree has no branch line and is indistinguishable from a correctly-prepared one.\n\n## Reproduced, twice, independently\n\nCommit `sha1`; commit `sha2` on `master`; register a detached worktree at `sha1`; call `resolveWorktreeMap` with `createMissing` true and then false. Both calls return success and leave the worktree at `sha1` while the base resolves to `sha2`. Parsed value for that path: `null`. Result `reusedWrongRevision: true` in both.\n\nFirst measured during the #3649 arc, then **re-run independently** by this issue's critic rather than inherited.\n\nThe supply of leftovers is not hypothetical: 213 registered worktrees here, with #3604 (trees and leases never released) and #3730 (host disconnects killing workers mid-flight) both producing more.\n\n## What the fix is\n\nCompare **commit OIDs**, not branch names:\n\n1. Parse the porcelain `HEAD` OID instead of discarding it.\n2. Resolve the requested base once to a commit OID.\n3. Compare OIDs. On mismatch, hard-fail naming the path, the requested base OID, and the actual OID.\n\n## What the fix is NOT -- all three rejected on evidence\n\n- **Do not re-point the tree.** It mutates shared state and violates the worktree-boundary rule against changing another owner's HEAD (`core-phase-5-6.md:300-305`). It would also discard uncommitted work in a leftover tree -- #3730 showed a killed worker's tree holding ~18 KB of fully recoverable work.\n- **Do not use the branch name as the validator.** A branch label is not proof of commit identity; a named branch can sit at the wrong OID and pass. The manifest derives a separate per-story feature branch (`launch.ts:843-871`), so branch and revision are independent.\n- **Do not replace `--detach`.** It would create branch-ownership collisions and still would not establish revision equality.\n\n## The guarantee, stated honestly\n\nThis is **snapshot validation at resolution time. It does not pin the worker's start revision.**\n\n`swarm:launch` is dispatch prep -- it emits a manifest and stops (`core-phase-3.md:14-19`). A registered path's HEAD can still move between resolution and spawn. Making the stronger end-to-end guarantee would require the manifest to carry the verified OID and the pre-dispatch path to re-check it. That is a separate change and is out of scope here.\n\n## No resume opt-in is needed\n\nThe obvious objection is that resume-after-disconnect legitimately wants to adopt a moved tree. Inventoried and refuted: the only two consumers are the `swarm:launch` worktree-map path (`launch.ts:1145-1169`) and the standalone resolver CLI (`worktrees-cli.ts:38-52`), and neither exposes resume or adopt-moved-HEAD semantics. Supported recovery resumes the original agent or verifies state before spawning a replacement (`core-phase-4.md:173-178`); blocked-leaf continuation dispatches a continuation worker to the same worktree without re-running resolution (`core-phase-5-6.md:25-33`).\n\nSo unconditional hard failure is correct for the current resolver contract. Add an opt-in only if a future consumer intentionally resumes through this resolver -- and if so, require an expected existing OID and never re-point or clean the tree.\n\n## Acceptance\n\n- [ ] `parseWorktreePorcelain` parses the `HEAD` OID rather than discarding it\n- [ ] The requested base is resolved once to a commit OID and compared by OID, not by branch name\n- [ ] A registered path whose HEAD OID differs from the requested base OID is a hard error naming the path, the requested OID, and the actual OID\n- [ ] The tree is never re-pointed, cleaned, or converted away from `--detach`\n- [ ] Regression test with `createMissing` both true and false\n- [ ] Documentation or error text states the guarantee as snapshot-at-resolution, not a pin on the worker's start revision\n- [ ] CHANGELOG `[Unreleased]` line\n\n## Out of scope\n\n- Carrying the verified OID into the manifest and re-checking pre-dispatch (the end-to-end pin).\n- Any resume or adopt-moved-HEAD opt-in.\n- Branch-versus-detach creation semantics.\n- Claim-before-create ordering -- shipped in #3649 (PR #3759, `0118519b`), which explicitly does not inspect HEAD.\n\n## Refs\n\n#3649, #3604, #3730, #3433, #1387.\r\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-08-26T15:29:18Z)\n\nmodel: claude-opus-5-thinking-high-fast\nrole: triage\n\n## Triage\n\nmechanism-shaped: true\n\ndesign-critique: warranted, because the proposed remedy is a new hard failure on a path that currently succeeds. Turning silent reuse into a hard error is right if every reuse at a differing revision is wrong, and wrong if any legitimate flow depends on adopting an existing tree as-is. The issue asserts the former without testing it.\n\nrefutation-target: rejecting reuse of a registered worktree whose HEAD does not match the requested base branch is the right fix and is safe.\n\n## What is established, by measurement\n\nReproduced by the #3649 critic on a temp repository: commit `sha2` on `master`, register a detached worktree pinned at `sha1`, and `resolveWorktreeMap` returns that path leaving HEAD at `sha1` — with `createMissing` both true and false. Result recorded as `reusedWrongRevision: true`.\n\nThe mechanism is three facts that compose: `worktrees.ts:224-227` skips any path already in `git worktree list` unconditionally on revision; `parseWorktreePorcelain:72-94` records a branch or `null` and never reads the `HEAD` lines the porcelain format emits; and `createWorktree:124` adds with `--detach`, so a launch-created tree has no branch line and is indistinguishable from a correctly-prepared one.\n\nThe supply of leftovers is real rather than hypothetical: 213 registered worktrees in this repository, with #3604 (leases and trees never released) and #3730 (host disconnects kill workers mid-flight) both producing more.\n\n## What the critique should press on\n\n- **Is hard failure right, or should it re-point?** The issue specifies a hard error naming path, requested base, and actual revision. An alternative is to re-point the existing tree at the requested base and continue. That is more convenient and more dangerous — it would discard uncommitted work in a leftover tree, which is exactly the state #3730 showed is often recoverable and worth keeping.\n- **Does any flow legitimately reuse at a differing revision?** Resume-after-disconnect is the obvious candidate: a worker's tree sits at whatever it had reached, and a relaunch may want it. If so, the fix needs an explicit opt-in rather than an unconditional error.\n- **Is `--detach` the right shape at all?** Detached trees are what make the parser blind here. If launch-created trees carried a branch, the skip would already be distinguishable.\n\n## Relationship to #3649, stated so it is not re-litigated\n\n#3649 shipped claim-before-create (PR #3759, merge `0118519b`). That prevents *new* denied-launch orphans. It does not inspect HEAD, so it does nothing about adopting existing ones — its CHANGELOG line says so explicitly. This is the successful-launch half: #3649 leaked directories on a denied launch, this ships a wrong tree on a launch that reports success.\n\nThe #3649 critic argued this half is the more valuable of the two. The parent recorded agreement in that arc's successor lean and is not re-deciding it here.\n\n## Provenance\n\nThe reproduction and the `reusedWrongRevision` result are the #3649 critic's measurement (comment 5420830427). The parent verified the `resolveWorktreeMap` and `applyWorktreeOccupancy` signatures directly but **did not re-run the temp-repo reproduction**. Re-derive it if it is load-bearing for a finding.\n\n\n### Comment by @MScottAdams (2026-08-26T15:29:35Z)\n\nmodel: claude-opus-5-thinking-high-fast\nrole: parent\n\ncharter: refutation -- the write-back names a defensible presumption (rejecting reuse at a mismatched HEAD is the right fix and is safe) with a stated refutation target.\nspend: N=1 -- panel permission not used. One predicate on one function, with a single real fork (hard-fail versus re-point). Not an open space.\n\nround: 1\ninput-ceiling: 5427505396\ncritic role: fresh\naudit targets: none\n\r\n\n\n### Comment by @MScottAdams (2026-08-26T15:38:29Z)\n\nmodel: gpt-5.6-sol-medium\nrole: critic\n\n## Snapshot validation is not an end-to-end pin\n`sharpens-framing`\n\nAt `0a82ac96` I re-ran the body's temp-repo method: commit `sha1`, commit `sha2` on `master`, add a detached worktree at `sha1`, then call `resolveWorktreeMap` with `createMissing=true` and `false`. Both calls returned success and left the worktree at `sha1` while the base resolved to `sha2`; the parsed value for that path was `null`. This reproduces `reusedWrongRevision: true` twice. The mechanism matches the source: the parser discards `HEAD` lines [(worktrees.ts:71-94)](https://github.com/deftai/directive/blob/0a82ac9665880210b4b7da3c0e841733ad927ea5/packages/core/src/swarm/worktrees.ts#L71-L94), and the resolver skips any registered path [(worktrees.ts:224-234)](https://github.com/deftai/directive/blob/0a82ac9665880210b4b7da3c0e841733ad927ea5/packages/core/src/swarm/worktrees.ts#L224-L234).\n\nConcrete failure mode: a resolver-time check can pass, then the shared path's HEAD can change before worker dispatch. `swarm:launch` is explicitly prep that emits a manifest and stops, not the spawn [(core-phase-3.md:14-19)](https://github.com/deftai/directive/blob/0a82ac9665880210b4b7da3c0e841733ad927ea5/content/skills/deft-directive-swarm/references/core-phase-3.md#L14-L19). Disposition consequence: keep the hard fail, but state its guarantee as snapshot validation at resolution. If acceptance intends to guarantee the worker's start revision, the manifest must carry the verified OID and the pre-dispatch path must re-check it.\n\n## Recovery is not resolver reuse\n`sharpens-framing`\n\nThe production inventory found two consumer shapes: the `swarm:launch` worktree-map path [(launch.ts:1145-1169)](https://github.com/deftai/directive/blob/0a82ac9665880210b4b7da3c0e841733ad927ea5/packages/core/src/swarm/launch.ts#L1145-L1169) and the standalone resolver CLI [(worktrees-cli.ts:38-52)](https://github.com/deftai/directive/blob/0a82ac9665880210b4b7da3c0e841733ad927ea5/packages/core/src/swarm/worktrees-cli.ts#L38-L52). Neither exposes resume/adopt-moved-HEAD semantics. Supported recovery instead resumes the original agent or verifies state before directly spawning a replacement [(core-phase-4.md:173-178)](https://github.com/deftai/directive/blob/0a82ac9665880210b4b7da3c0e841733ad927ea5/content/skills/deft-directive-swarm/references/core-phase-4.md#L173-L178); blocked-leaf continuation dispatches one continuation worker to the same worktree [(core-phase-5-6.md:25-33)](https://github.com/deftai/directive/blob/0a82ac9665880210b4b7da3c0e841733ad927ea5/content/skills/deft-directive-swarm/references/core-phase-5-6.md#L25-L33).\n\nConcrete failure mode would be a supported continuation implemented by re-running `resolveWorktreeMap` against an already-advanced tree; I found no such path. Disposition consequence: unconditional hard failure survives for the current resolver contract. Add an explicit opt-in only if a future consumer intentionally resumes through this resolver; require an expected existing OID and never re-point or clean the tree.\n\n## Keep detach; compare commit OIDs\n`sharpens-framing`\n\nCreation deliberately uses `git worktree add --detach <path> <base>` [(worktrees.ts:115-135)](https://github.com/deftai/directive/blob/0a82ac9665880210b4b7da3c0e841733ad927ea5/packages/core/src/swarm/worktrees.ts#L115-L135), while the manifest derives a separate per-story feature branch [(launch.ts:843-871)](https://github.com/deftai/directive/blob/0a82ac9665880210b4b7da3c0e841733ad927ea5/packages/core/src/swarm/launch.ts#L843-L871). A branch label is not proof of commit identity. Re-pointing a registered tree also mutates shared state, contrary to the worktree-boundary rule against changing another owner's HEAD [(core-phase-5-6.md:300-305)](https://github.com/deftai/directive/blob/0a82ac9665880210b4b7da3c0e841733ad927ea5/content/skills/deft-directive-swarm/references/core-phase-5-6.md#L300-L305).\n\nConcrete failure mode: using `branch` as the validator can accept a named branch at the wrong OID, while replacing `--detach` can create branch-ownership collisions and still does not establish revision equality. Disposition consequence: parse the porcelain `HEAD` OID, resolve the requested base once to a commit OID, compare OIDs, and name both in the error. Do not re-point the tree or replace `--detach` as part of this fix.\n\n## Verdict\n\nNo `blocks-the-design` finding survived. The refutation target survives: unconditional hard failure in `resolveWorktreeMap` when a registered path's HEAD differs from the requested base is the right default and is safer and more deterministic than re-pointing.\n\nThe strongest rejected position is that resume-after-disconnect needs to adopt the moved tree. It does need the tree, but the supported paths resume or redispatch the agent directly rather than resolving launch prep again. I would flip the verdict if a production caller, contract, or regression test required `resolveWorktreeMap` to adopt a differing HEAD as supported resume semantics. None was found.\n\n\n### Comment by @MScottAdams (2026-08-26T15:40:23Z)\n\nmodel: claude-opus-5-thinking-high-fast\nrole: parent\n\n## Successor lean -- round 1, N=1\n\nCritic: `gpt-5.6-sol-medium` (5427579830). One of one posted. Stop 2 record 5427507832.\n\n**Refutation target: survives.**\n\n> Rejecting reuse of a registered worktree whose HEAD does not match the requested base branch is the right fix and is safe.\n\nNo `blocks-the-design` finding. Three sharpenings, all accepted. This is the only arc in the current wave whose remedy survived contact.\n\nThe critic did not inherit the reproduction -- it re-ran the temp-repo method at the dispatch SHA and got `reusedWrongRevision: true` twice, with `createMissing` both true and false, parsed value `null` for the registered path. That clears the provenance caveat I put on the write-back: the measurement is now first-hand from someone other than its author.\n\n## Disposition map\n\n| Heading | Class | Take |\n|---|---|---|\n| Snapshot validation is not an end-to-end pin | sharpens-framing | accept-into-contract |\n| Recovery is not resolver reuse | sharpens-framing | accept-into-contract |\n| Keep detach; compare commit OIDs | sharpens-framing | accept-into-contract |\n\nTotal over the classified set, all accepted, disagreement set empty. No audit markers were set at dispatch; zero unresolved.\n\n## What the findings change\n\n**The guarantee is narrower than the issue implies, and must be stated that way.** `swarm:launch` is dispatch prep -- it emits a manifest and stops. So a resolver-time HEAD check is a *snapshot* at resolution, and the shared path's HEAD can still move before a worker is spawned. The fix is still worth making; the acceptance criteria must not claim it pins the worker's start revision. If that stronger guarantee is wanted, the manifest has to carry the verified OID and the pre-dispatch path has to re-check it -- a separate change, not this one.\n\n**The resume-adoption worry I raised in triage is unfounded.** I asked whether resume-after-disconnect legitimately wants to adopt a moved tree. The critic inventoried both consumers -- the `swarm:launch` worktree-map path and the standalone resolver CLI -- and found neither exposes resume or adopt-moved-HEAD semantics. Supported recovery resumes the original agent or verifies state before spawning a replacement; blocked-leaf continuation dispatches a continuation worker to the same worktree without re-running resolution. So unconditional hard failure survives for the current resolver contract, and no opt-in is needed until some future consumer wants one.\n\n**Compare OIDs, not branch names, and leave `--detach` alone.** Both of the shapes I floated in triage are wrong. A branch label is not proof of commit identity -- a named branch can sit at the wrong OID and pass. And replacing `--detach` would create branch-ownership collisions while still not establishing revision equality. Re-pointing the tree is worse again: it mutates shared state and violates the worktree-boundary rule against changing another owner's HEAD.\n\n## Recut\n\n- Parse the porcelain `HEAD` OID in `parseWorktreePorcelain` rather than discarding it.\n- Resolve the requested base once to a commit OID; compare OIDs.\n- On mismatch, hard-fail naming the path, the requested base OID, and the actual OID.\n- **Do not** re-point the tree, clean it, or replace `--detach`.\n- State the guarantee as snapshot validation at resolution time, explicitly not a pin on the worker's start revision.\n- Regression test both `createMissing` true and false.\n- CHANGELOG `[Unreleased]` line.\n\nOut of scope, recorded so it is not absorbed: carrying the verified OID into the manifest and re-checking pre-dispatch; any resume/adopt opt-in; branch-versus-detach creation semantics.\n\n## Parent-side substantiation\n\n**Re-derived by me:** the `resolveWorktreeMap` and `applyWorktreeOccupancy` signatures, checked during the #3649 arc.\n\n**Reported, not verified by me:** the critic's temp-repo reproduction, the two-consumer inventory, and the `core-phase-3` / `core-phase-4` / `core-phase-5-6` citations. Each is line-cited at the dispatch SHA and independently checkable.\n\n**Non-self-arbitration:** I wrote this arc's Stop 1 triage and set its refutation target. The target survived and all three of the alternatives I floated were rejected on evidence. I cleared none of my own claims.\n\n## Operator gate\n\nMap is total and all-accept, zero unresolved markers, recorded under the operator's standing instruction rather than a silent self-confirm. Proceeding to build: this arc has no blocking finding, the remedy is a parser change plus an OID comparison, and it is independent of the rest of the cluster.\r\n\n\n### Comment by @MScottAdams (2026-08-26T15:41:07Z)\n\nmodel: claude-opus-5-thinking-high-fast\nrole: parent\n\n## Verified claims -- #3756\n\n| # | Claim | Status | Basis |\n|---|---|---|---|\n| 1 | `parseWorktreePorcelain` discards `HEAD` lines (worktrees.ts:71-94) | reported | critic, re-opened at dispatch SHA |\n| 2 | `resolveWorktreeMap` skips any registered path unconditionally on revision (worktrees.ts:224-234) | reported | critic |\n| 3 | `reusedWrongRevision` reproduces with `createMissing` both true and false | reported, **independently re-run** | critic re-executed the temp-repo method rather than inheriting the #3649 result |\n| 4 | Creation uses `git worktree add --detach <path> <base>` (worktrees.ts:115-135) | reported | critic |\n| 5 | Only two consumers exist: swarm:launch worktree-map path and the standalone resolver CLI | reported | critic inventory |\n| 6 | Neither consumer exposes resume or adopt-moved-HEAD semantics | reported | critic; this refutes the parent's triage worry |\n| 7 | `swarm:launch` is dispatch prep that emits a manifest and stops (core-phase-3.md:14-19) | reported | critic; makes the check a snapshot, not a pin |\n| 8 | Supported recovery resumes the original agent or verifies before replacement (core-phase-4.md:173-178) | reported | critic |\n| 9 | Worktree-boundary rule forbids changing another owner's HEAD (core-phase-5-6.md:300-305) | reported | critic; rules out re-pointing |\n| 10 | A branch label is not proof of commit identity | verified | parent, from the manifest deriving a separate per-story feature branch |\n| 11 | 213 registered worktrees in this repository | verified | parent, counted during the #3649 arc |\n| 12 | #3649 shipped claim-before-create and does not inspect HEAD | verified | parent read the merged source at `0118519b` |\n\nDecorrelation: rows 10 through 12 are the parent's. Rows 1 through 9 are the critic's, each line-cited at `0a82ac96`. Row 3 is the strongest evidence in the set precisely because it was re-run by someone other than its originator -- the parent had flagged it as unverified on the write-back.\n\nNon-self-arbitration: the parent authored the Stop 1 triage and the refutation target. The target survived; all three alternative shapes the parent floated (hard-fail versus re-point, resume opt-in, dropping `--detach`) were rejected on evidence. No parent claim cleared by the parent.\r\n\n\n### Comment by @MScottAdams (2026-08-26T15:41:08Z)\n\nmodel: claude-opus-5-thinking-high-fast\nrole: parent\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)",
+      "Labels": "bug, design-critique:triage-ready"
+    },
+    "items": [
+      {
+        "title": "`parseWorktreePorcelain` parses the `HEAD` OID rather than discarding it",
+        "status": "proposed"
+      },
+      {
+        "title": "The requested base is resolved once to a commit OID and compared by OID, not by branch name",
+        "status": "proposed"
+      },
+      {
+        "title": "A registered path whose HEAD OID differs from the requested base OID is a hard error naming the path, the requested OID, and the actual OID",
+        "status": "proposed"
+      },
+      {
+        "title": "The tree is never re-pointed, cleaned, or converted away from `--detach`",
+        "status": "proposed"
+      },
+      {
+        "title": "Regression test with `createMissing` both true and false",
+        "status": "proposed"
+      },
+      {
+        "title": "Documentation or error text states the guarantee as snapshot-at-resolution, not a pin on the worker's start revision",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG `[Unreleased]` line",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3756",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3756: bug(swarm): resolveWorktreeMap reuses a registered worktree without checking HEAD matches the base branch"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3649",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3649"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "git worktree list",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        }
+      ],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 7 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "`parseWorktreePorcelain` parses the `HEAD` OID rather than discarding it",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The requested base is resolved once to a commit OID and compared by OID, not by branch name",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "A registered path whose HEAD OID differs from the requested base OID is a hard error naming the path, the requested OID, and the actual OID",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "The tree is never re-pointed, cleaned, or converted away from `--detach`",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Regression test with `createMissing` both true and false",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Documentation or error text states the guarantee as snapshot-at-resolution, not a pin on the worker's start revision",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "CHANGELOG `[Unreleased]` line",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-08-26T15:43:08Z"
+  }
+}

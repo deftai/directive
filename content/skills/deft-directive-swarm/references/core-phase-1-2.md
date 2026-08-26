@@ -37,7 +37,7 @@
 #### Mode A -- Pre-created worktree map (C3, headless via `--worktree-map`)
 
 - ! When `task swarm:launch -- ... --worktree-map <path>` supplied a **pre-created worktree map** (**C3**), Phase 2 CONSUMES it instead of running `git worktree add` per agent. The C3 map is a JSON array of `{ "story_id": str, "worktree_path": str, "base_branch": str }`.
-- ! The launch engine resolves the worktree map via `resolveWorktreeMap` (`packages/core/src/swarm/worktrees.ts`), which validates normalized C3 records and RAISES on same-path collisions or base-branch mismatches. The monitor MUST surface any such raise verbatim and HALT setup -- a same-path collision means two agents would share one worktree (the Duplicate-Agent Failure Mode in Phase 4).
+- ! The launch engine resolves the worktree map via `resolveWorktreeMap` (`packages/core/src/swarm/worktrees.ts`), which validates normalized C3 records and RAISES on same-path collisions, base-branch mismatches, or a registered path whose HEAD OID differs from the requested base OID. The HEAD check is a snapshot at resolution time -- `swarm:launch` emits a manifest and stops, so HEAD can still move before spawn. The monitor MUST surface any such raise verbatim and HALT setup -- a same-path collision means two agents would share one worktree (the Duplicate-Agent Failure Mode in Phase 4).
 - ! Each resolved record's `worktree_path` and `base_branch` feed straight into Phase 3 dispatch and MUST match the **C2** launch-manifest's `worktree_path` / `branch` fields for the same `story_id`.
 
 #### Mode B -- Monitor-created worktrees (interactive path)

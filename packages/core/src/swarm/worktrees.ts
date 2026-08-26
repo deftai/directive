@@ -35,6 +35,10 @@ export class WorktreePathEscapeError extends WorktreeMapError {
   override name = "WorktreePathEscapeError";
 }
 
+export class WorktreeRevisionMismatchError extends WorktreeMapError {
+  override name = "WorktreeRevisionMismatchError";
+}
+
 export type GitRunner = (args: readonly string[], cwd: string) => TextCaptureResult;
 
 export const defaultGitRunner: GitRunner = (args, cwd) => runText(["git", ...args], { cwd });
@@ -68,15 +72,22 @@ export interface WorktreeRecord {
   readonly base_branch: string;
 }
 
-/** Parse `git worktree list --porcelain` into `{compareKey: branch|null}`. */
-export function parseWorktreePorcelain(text: string): Map<string, string | null> {
-  const registered = new Map<string, string | null>();
+/** One `git worktree list --porcelain` record. `head` is the commit OID or null. */
+export interface WorktreePorcelainEntry {
+  readonly branch: string | null;
+  readonly head: string | null;
+}
+
+/** Parse `git worktree list --porcelain` into `{compareKey: {branch, head}}`. */
+export function parseWorktreePorcelain(text: string): Map<string, WorktreePorcelainEntry> {
+  const registered = new Map<string, WorktreePorcelainEntry>();
   let currentPath: string | null = null;
   let currentBranch: string | null = null;
+  let currentHead: string | null = null;
 
   const flush = (): void => {
     if (currentPath !== null) {
-      registered.set(compareKey(currentPath), currentBranch);
+      registered.set(compareKey(currentPath), { branch: currentBranch, head: currentHead });
     }
   };
 
@@ -85,6 +96,10 @@ export function parseWorktreePorcelain(text: string): Map<string, string | null>
       flush();
       currentPath = pathResolve(line.slice("worktree ".length).trim());
       currentBranch = null;
+      currentHead = null;
+    } else if (line.startsWith("HEAD ")) {
+      const oid = line.slice("HEAD ".length).trim().toLowerCase();
+      currentHead = oid.length > 0 ? oid : null;
     } else if (line.startsWith("branch ")) {
       const ref = line.slice("branch ".length).trim();
       currentBranch = ref.startsWith("refs/heads/") ? ref.slice("refs/heads/".length) : ref;
@@ -94,7 +109,7 @@ export function parseWorktreePorcelain(text: string): Map<string, string | null>
   return registered;
 }
 
-function gitWorktreeList(repoRoot: string, git: GitRunner): Map<string, string | null> {
+function gitWorktreeList(repoRoot: string, git: GitRunner): Map<string, WorktreePorcelainEntry> {
   let proc: TextCaptureResult;
   try {
     proc = git(["worktree", "list", "--porcelain"], repoRoot);
@@ -110,6 +125,30 @@ function gitWorktreeList(repoRoot: string, git: GitRunner): Map<string, string |
     );
   }
   return parseWorktreePorcelain(proc.stdout);
+}
+
+function resolveCommitOid(repoRoot: string, revision: string, git: GitRunner): string {
+  let proc: TextCaptureResult;
+  try {
+    proc = git(["rev-parse", "--verify", "--end-of-options", `${revision}^{commit}`], repoRoot);
+  } catch (exc: unknown) {
+    throw new WorktreeMapConfigError(
+      `could not resolve base '${revision}' to a commit OID in ${repoRoot}: ${String(exc)}`,
+    );
+  }
+  if (proc.returncode !== 0) {
+    throw new WorktreeMapConfigError(
+      `could not resolve base '${revision}' to a commit OID in ${repoRoot} ` +
+        `(rc=${proc.returncode}): ${proc.stderr.trim() || "<no stderr>"}`,
+    );
+  }
+  const oid = (proc.stdout.trim().split(/\s+/)[0] ?? "").toLowerCase();
+  if (!/^[0-9a-f]{40,64}$/.test(oid)) {
+    throw new WorktreeMapConfigError(
+      `git rev-parse for base '${revision}' did not return a commit OID: ${JSON.stringify(oid)}`,
+    );
+  }
+  return oid;
 }
 
 function createWorktree(
@@ -140,7 +179,13 @@ interface InternalRecord extends WorktreeRecord {
   readonly _abs: string;
 }
 
-/** Resolve a story-to-worktree mapping into normalized C3 records (frozen contract). */
+/**
+ * Resolve a story-to-worktree mapping into normalized C3 records (frozen contract).
+ *
+ * Registered paths are reused only when their porcelain HEAD OID matches the
+ * requested base OID. That comparison is a snapshot at resolution time — not a
+ * pin on the worker's start revision (`swarm:launch` emits a manifest and stops).
+ */
 export function resolveWorktreeMap(
   mapping: readonly Record<string, unknown>[],
   baseBranch: string,
@@ -222,8 +267,18 @@ export function resolveWorktreeMap(
   }
 
   const registered = gitWorktreeList(root, git);
+  const requestedOid = resolveCommitOid(root, trimmedBase, git);
   for (const entry of resolved) {
-    if (registered.has(entry._key)) {
+    const existing = registered.get(entry._key);
+    if (existing !== undefined) {
+      const actualOid = existing.head ?? "";
+      if (actualOid !== requestedOid) {
+        throw new WorktreeRevisionMismatchError(
+          `registered worktree '${entry.worktree_path}' HEAD OID is ${actualOid || "(missing)"} ` +
+            `but requested base '${trimmedBase}' resolves to ${requestedOid}; ` +
+            `this is a snapshot check at resolution time, not a pin on the worker's start revision`,
+        );
+      }
       continue;
     }
     if (!createMissing) {
