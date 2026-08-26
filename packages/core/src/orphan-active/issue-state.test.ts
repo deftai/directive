@@ -9,11 +9,11 @@ import {
   ISSUE_CACHE_MAX_AGE_MS,
   makeGateRunner,
   OpenIssueInventory,
+  type ResolveContext,
   readCachedIssue,
   resolveIssueStateAggregate,
   resolveIssueStateScoped,
   SCOPED_LATENCY_BUDGET_MS,
-  type ResolveContext,
 } from "./issue-state.js";
 import type { IssueRef } from "./refs.js";
 

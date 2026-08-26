@@ -101,7 +101,14 @@ function cacheEntryDir(projectRoot: string, ref: IssueRef): string | null {
   if (!owner || !name) {
     return null;
   }
-  return join(projectRoot, CACHE_DIR_NAME, CACHE_SOURCE_GITHUB_ISSUE, owner, name, String(ref.number));
+  return join(
+    projectRoot,
+    CACHE_DIR_NAME,
+    CACHE_SOURCE_GITHUB_ISSUE,
+    owner,
+    name,
+    String(ref.number),
+  );
 }
 
 function cacheEntryAgeMs(entryDir: string, rawPath: string, nowMs: number): number | null {

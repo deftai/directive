@@ -6,14 +6,14 @@ import { resolveRepo } from "../triage/queue/repo.js";
 import {
   AGGREGATE_LATENCY_BUDGET_MS,
   formatAge,
+  type GateRunner,
+  type IssueState,
   makeGateRunner,
   OpenIssueInventory,
+  type ResolveContext,
   resolveIssueStateAggregate,
   resolveIssueStateScoped,
   SCOPED_LATENCY_BUDGET_MS,
-  type GateRunner,
-  type IssueState,
-  type ResolveContext,
   type StateResolution,
 } from "./issue-state.js";
 import { collectGithubRefs, type IssueRef, type PrRef } from "./refs.js";
