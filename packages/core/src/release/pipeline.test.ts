@@ -78,6 +78,21 @@ describe("runPipeline dry-run", () => {
       todayIso: () => "2026-04-28",
       fileExists: (p) => p.endsWith("CHANGELOG.md"),
       readFile: () => `## [Unreleased]\n\n### Added\n`,
+      checkActiveCli: () => ({
+        ok: false,
+        code: 1,
+        active: {
+          command: "deft",
+          path: "C:\\npm\\deft.cmd",
+          version: "0.95.0",
+          precedence: 0,
+          versionSource: "exec",
+        },
+        candidates: [],
+        targetVersion: "0.21.0",
+        message: "stale",
+        lines: [],
+      }),
     };
 
     try {
@@ -91,6 +106,10 @@ describe("runPipeline dry-run", () => {
       // gate; the functional native-TS-task-check rewiring is asserted via the
       // runCi seam in the test below, not via the cosmetic dry-run label.
       expect(err).toContain("Pre-flight CI (task ci:local | fallback task check)");
+      expect(err).toContain("CLI drift report (#3753):");
+      expect(err).toContain("released: 0.21.0");
+      expect(err).toContain("--prefer-online");
+      expect(err).toContain("does not run npm i -g");
     } finally {
       process.stderr.write = orig;
     }

@@ -115,4 +115,23 @@ export interface ReleaseSeams {
    * Tests inject `{}` so a host env bypass cannot leak into fail-closed cases.
    */
   readonly closedVerbEnv?: EnvMap;
+  /**
+   * #3753 — override the active-CLI probe used by the local-vs-released report.
+   * When omitted, production calls `checkActiveCliAgainstTarget`.
+   */
+  readonly checkActiveCli?: (
+    targetVersion: string,
+  ) => import("../session/active-cli.js").ActiveCliCheckResult;
+  /**
+   * #3753 — override one `npm view <pkg>@<ver> --prefer-online` (tests).
+   * When omitted, production spawns npm. Never used to install.
+   */
+  readonly viewWorkspacePackage?: (
+    name: string,
+    version: string,
+  ) => {
+    readonly name: string;
+    readonly visible: boolean;
+    readonly version: string | null;
+  };
 }

@@ -11,6 +11,11 @@ import {
   reasonLooksLikeTimeout,
 } from "./auto-hatch.js";
 import { prependUpgradeBanner, promoteChangelog, sectionForVersion } from "./changelog.js";
+import {
+  emitCliDriftReportBestEffort,
+  shouldSkipRegistryPoll,
+  type WorkspacePackageName,
+} from "./cli-drift-report.js";
 import { assertTagPushClosedVerb } from "./closed-verb-gate.js";
 import {
   EXIT_CONFIG_ERROR,
@@ -588,5 +593,23 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
   process.stderr.write(
     `Release v${version} pipeline complete (dry_run=${config.dryRun ? "True" : "False"}, skip_tag=${config.skipTag ? "True" : "False"}, skip_release=${config.skipRelease ? "True" : "False"}).\n`,
   );
+  // #3753 — report-only. Never runs npm i -g. Never fails the cut.
+  // Single-shot registry probe (no wait): Step 13 returns before npm-publish.yml
+  // is green; Phase 7 of the release skill owns the bounded wait.
+  emitCliDriftReportBestEffort(version, {
+    skipRegistryPoll: shouldSkipRegistryPoll(config),
+    pollTimeoutMs: 0,
+    checkActiveCli: seams.checkActiveCli,
+    viewPackage: seams.viewWorkspacePackage
+      ? (name, ver) => {
+          const probe = seams.viewWorkspacePackage?.(name, ver);
+          return {
+            name: name as WorkspacePackageName,
+            visible: probe?.visible ?? false,
+            version: probe?.version ?? null,
+          };
+        }
+      : undefined,
+  });
   return EXIT_OK;
 }
