@@ -83,50 +83,50 @@
       "clauses": [
         {
           "id": 1,
-          "text": "`parseWorktreePorcelain` parses the `HEAD` OID rather than discarding it",
-          "artifact_path": null,
+          "text": "`parseWorktreePorcelain` parses the \"HEAD\" OID rather than discarding it",
+          "artifact_path": "packages/core/src/swarm/worktrees.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
-          "text": "The requested base is resolved once to a commit OID and compared by OID, not by branch name",
-          "artifact_path": null,
+          "text": "The requested base is resolved once to a commit OID via \"rev-parse\" and compared by OID, not by branch name",
+          "artifact_path": "packages/core/src/swarm/worktrees.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
-          "text": "A registered path whose HEAD OID differs from the requested base OID is a hard error naming the path, the requested OID, and the actual OID",
-          "artifact_path": null,
+          "text": "A registered path whose HEAD OID differs from the requested base OID is a hard error naming the path, the requested OID, and the actual OID (\"WorktreeRevisionMismatchError\")",
+          "artifact_path": "packages/core/src/swarm/worktrees.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 4,
-          "text": "The tree is never re-pointed, cleaned, or converted away from `--detach`",
-          "artifact_path": null,
+          "text": "The tree is never re-pointed, cleaned, or converted away from \"--detach\"",
+          "artifact_path": "packages/core/src/swarm/worktrees.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 5,
-          "text": "Regression test with `createMissing` both true and false",
-          "artifact_path": null,
+          "text": "Regression test with \"createMissing\" both true and false",
+          "artifact_path": "packages/core/src/swarm/worktrees.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 6,
-          "text": "Documentation or error text states the guarantee as snapshot-at-resolution, not a pin on the worker's start revision",
-          "artifact_path": null,
+          "text": "Documentation or error text states the guarantee as \"snapshot check at resolution time\", not a pin on the worker's start revision",
+          "artifact_path": "packages/core/src/swarm/worktrees.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 7,
-          "text": "CHANGELOG `[Unreleased]` line",
-          "artifact_path": null,
+          "text": "CHANGELOG \"[Unreleased]\" line",
+          "artifact_path": "CHANGELOG.md",
           "ambiguous": false,
           "provenance": "statement"
         }
