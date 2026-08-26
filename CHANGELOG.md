@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Ordinary occupancy release (#3604).** A holder can drop a live lease with `occupancy:release` or `session:end`. A non-owner cannot clear a live lease. Expired leftover files are residue, not a blocked entry path; the same release path clears them. Steal stays confirm-gated for live occupants and prints existing `claimed_at` / `heartbeat_at`. Swarm close-out stays `releaseSwarmOccupancy` on complete-cohort. No `reap` verb. Closes #3604.
+- **Land leftover completed-tracked artifact for #3604 (#3264 / #1358).** The #3604 xBRIEF stayed untracked after squash of PR 3748. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 
 - **Land leftover completed-tracked artifact for #3741 (#3264 / #1358).** The #3741 xBRIEF stayed untracked after squash of PR 3743. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Faster completed-tracked land check (#3673).** `verify:completed-tracked` reads tip xBRIEFs in one `git cat-file --batch` instead of one `git show` per blob, and prints a blob count if the run exceeds three seconds. Verdicts stay content-authoritative. Refs #3476, #3264.

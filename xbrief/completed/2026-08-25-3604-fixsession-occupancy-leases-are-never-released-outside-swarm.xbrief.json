@@ -1,0 +1,241 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #3604 from operator-accepted design-critique synthesis (comments 5417361723, 5417362476, 5417363311). Issue body proposal is not the next-build contract.",
+    "updated": "2026-08-26T01:28:28Z"
+  },
+  "plan": {
+    "title": "fix(session): occupancy leases are never released outside swarm completion (#3433)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Ship owner-gated ordinary occupancy release so a holder can drop a live lease. Expired residue is not an entry gate.",
+      "Origin": "https://github.com/deftai/directive/issues/3604",
+      "Overview": "SoT is the synthesis-accepted successor lean, not the issue body.\n\nProblem rewrite: leftover `.deft/occupancy.json` after TTL is residue, not a blocked entry path. Claim-over-expired already frees entry. Do not ship wait-or-steal, reap, a second TTL, last-write, or PID.\n\nIn v1:\n1. Owner-gated ordinary release via occupancy:release and session:end so the holder can drop a live lease. Non-owner live clear stays denied. Swarm close-out stays releaseSwarmOccupancy on complete-cohort.\n2. Expired residue may use the same release path (or a sweep that calls it). No reap verb. No second TTL.\n3. Steal stays confirm-gated for live only. Optional steal text may print existing claimedAt/heartbeatAt only.\n4. Tests: owner live release, non-owner live deny, expired hygiene. Docs in commands.md session routing. CHANGELOG [Unreleased].\n\nOut of scope: #3599 heartbeat, #3729 claim-required, #3611 identity, #3649, #3741, tombstones, last-write, PID, reap.",
+      "UserStory": "As a mutation-session holder, I can release my live occupancy lease on ordinary session end so leftover files are hygiene, not a reason to steal.",
+      "ImplementationPlan": "1. Expose occupancy:release and session:end over existing owner-gated releaseOccupancy. 2. Enrich steal/remediation text with claimedAt/heartbeatAt. 3. Tests + commands.md + CHANGELOG."
+    },
+    "items": [
+      {
+        "title": "Owner-gated occupancy:release and session:end drop a live lease",
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts#owner-live-release",
+          "recorded_at": "2026-08-26T01:28:25.886Z",
+          "recorded_by": "leaf-implementation/3604"
+        }
+      },
+      {
+        "title": "Non-owner live release stays denied",
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts#non-owner-live-deny",
+          "recorded_at": "2026-08-26T01:28:25.886Z",
+          "recorded_by": "leaf-implementation/3604"
+        }
+      },
+      {
+        "title": "Expired residue clears via the same release path; no reap; no second TTL",
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts#expired-hygiene",
+          "recorded_at": "2026-08-26T01:28:25.886Z",
+          "recorded_by": "leaf-implementation/3604"
+        }
+      },
+      {
+        "title": "Steal stays confirm-gated for live; optional claimedAt/heartbeatAt in steal text",
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts#steal-claimedAt-heartbeatAt",
+          "recorded_at": "2026-08-26T01:28:25.886Z",
+          "recorded_by": "leaf-implementation/3604"
+        }
+      },
+      {
+        "title": "commands.md session routing + CHANGELOG [Unreleased]",
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "CHANGELOG.md#[Unreleased] #3604",
+          "recorded_at": "2026-08-26T01:28:25.886Z",
+          "recorded_by": "leaf-implementation/3604"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "patterns:multi-agent",
+      "dogfood",
+      "status:child",
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3604",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3604"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3604#issuecomment-5417361723",
+        "type": "x-xbrief/refs",
+        "title": "Successor lean next-build contract"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3604#issuecomment-5417362476",
+        "type": "x-xbrief/refs",
+        "title": "Verified claims"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3604#issuecomment-5417363311",
+        "type": "x-xbrief/refs",
+        "title": "design-critique: synthesis accepted"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/session/occupancy.ts",
+          "packages/core/src/session/occupancy.test.ts",
+          "packages/core/src/content-contracts/standards/taskfile_runtime_session.test.ts",
+          "packages/cli/src/occupancy-release.ts",
+          "packages/cli/src/occupancy-release.test.ts",
+          "packages/cli/src/occupancy-steal.test.ts",
+          "packages/cli/src/dispatch.ts",
+          "tasks/occupancy.yml",
+          "tasks/session.yml",
+          "tasks/engine.yml",
+          "content/commands.md",
+          "CHANGELOG.md",
+          "xbrief/active/2026-08-25-3604-fixsession-occupancy-leases-are-never-released-outside-swarm.xbrief.json"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/session/occupancy.test.ts packages/cli/src/occupancy-release.test.ts packages/cli/src/occupancy-steal.test.ts"
+        ],
+        "expected_outputs": [
+          "occupancy:release / session:end owner live release",
+          "non-owner live deny",
+          "expired hygiene via same release path",
+          "no reap verb",
+          "CHANGELOG #3604"
+        ],
+        "depends_on": [],
+        "conflict_group": "occupancy-lease",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/session/occupancy.ts",
+          "packages/core/src/session/occupancy.test.ts",
+          "packages/core/src/content-contracts/standards/taskfile_runtime_session.test.ts",
+          "packages/cli/src/occupancy-release.ts",
+          "packages/cli/src/occupancy-release.test.ts",
+          "packages/cli/src/occupancy-steal.test.ts",
+          "packages/cli/src/dispatch.ts",
+          "tasks/occupancy.yml",
+          "tasks/session.yml",
+          "tasks/engine.yml",
+          "content/commands.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/session + occupancy CLI/task surface",
+        "cohesion_exemption": "CHANGELOG.md and dispatch.ts already exceed the review trigger; this slice adds the #3604 ship note and occupancy:release routing. occupancy.ts stays the lease module; no split."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3748,
+        "prBase": null,
+        "mergeCommit": "b37b0df1137eab91cc86b9b6650e5efc5bb8ee19",
+        "deliveryBranch": "master",
+        "deliveryCommit": "b37b0df1137eab91cc86b9b6650e5efc5bb8ee19",
+        "verifiedAt": "2026-08-26T01:28:28Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "ea5fdc3a-3867-424e-a301-d64d302361a1"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-26T01:28:28Z"
+      },
+      "completedAt": "2026-08-26T01:28:28Z",
+      "completedSessionId": "ea5fdc3a-3867-424e-a301-d64d302361a1",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/session/occupancy.test.ts packages/cli/src/occupancy-release.test.ts packages/cli/src/occupancy-steal.test.ts"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "derived independently testable clauses from operator-accepted synthesis before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Owner of a live occupancy lease can release it via occupancy:release and/or session:end",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Non-owner cannot clear a live occupancy lease",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Expired residue is not an entry gate; the same release path may clear it; no reap verb; no second TTL",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Steal stays confirm-gated for live occupants; steal text may print existing claimedAt/heartbeatAt only",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Swarm close-out stays releaseSwarmOccupancy on complete-cohort",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "commands.md session routing documents ordinary release; CHANGELOG [Unreleased] records #3604",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-08-26T01:28:28Z"
+  }
+}
