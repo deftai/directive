@@ -16,14 +16,13 @@ export type IssueState = "open" | "closed";
  */
 export type StateBasis = "inventory" | "live" | "cache" | "unverified";
 
-export interface StateResolution {
-  readonly state: IssueState | null;
-  readonly basis: StateBasis;
-  /** Age of the cache entry that produced the verdict, when `basis === "cache"`. */
-  readonly cacheAgeMs: number | null;
-  /** Why state could not be established, when `basis === "unverified"`. */
-  readonly detail: string | null;
-}
+export type StateResolution =
+  /** Resolved from the complete open-issue inventory or an authoritative read. */
+  | { readonly state: IssueState; readonly basis: "inventory" | "live" }
+  /** Resolved from a triage-cache entry inside the freshness bound. */
+  | { readonly state: IssueState; readonly basis: "cache"; readonly cacheAgeMs: number }
+  /** State could not be established; a pass on this reference proves nothing. */
+  | { readonly state: null; readonly basis: "unverified"; readonly detail: string };
 
 /**
  * A cache hit older than this is no longer evidence (#3767). The measured
@@ -220,15 +219,20 @@ export interface ResolveContext {
 }
 
 function unverified(detail: string): StateResolution {
-  return { state: null, basis: "unverified", cacheAgeMs: null, detail };
+  return { state: null, basis: "unverified", detail };
 }
 
-function fromCache(cached: CachedIssue): StateResolution {
-  return { state: cached.state, basis: "cache", cacheAgeMs: cached.ageMs, detail: null };
+/** A cache entry recent enough to still count as evidence, with its age pinned. */
+type FreshCache = { readonly state: IssueState; readonly ageMs: number };
+
+function freshOrNull(cached: CachedIssue): FreshCache | null {
+  return cached.state !== null && cached.ageMs !== null && cached.ageMs <= ISSUE_CACHE_MAX_AGE_MS
+    ? { state: cached.state, ageMs: cached.ageMs }
+    : null;
 }
 
-function isFresh(cached: CachedIssue): boolean {
-  return cached.state !== null && cached.ageMs !== null && cached.ageMs <= ISSUE_CACHE_MAX_AGE_MS;
+function fromCache(fresh: FreshCache): StateResolution {
+  return { state: fresh.state, basis: "cache", cacheAgeMs: fresh.ageMs };
 }
 
 function staleDetail(cached: CachedIssue): string {
@@ -262,12 +266,13 @@ export function resolveIssueStateScoped(ref: IssueRef, ctx: ResolveContext): Sta
   if (!ctx.skipGh) {
     const live = fetchIssueStateLive(ref, ctx.runGh);
     if (live !== null) {
-      return { state: live, basis: "live", cacheAgeMs: null, detail: null };
+      return { state: live, basis: "live" };
     }
   }
   const cached = readCachedIssue(ctx.projectRoot, ref, ctx.nowMs);
-  if (isFresh(cached)) {
-    return fromCache(cached);
+  const fresh = freshOrNull(cached);
+  if (fresh !== null) {
+    return fromCache(fresh);
   }
   if (cached.state !== null) {
     return unverified(`${staleDetail(cached)} and the authoritative read was unavailable`);
@@ -289,28 +294,31 @@ export function resolveIssueStateAggregate(ref: IssueRef, ctx: ResolveContext): 
     return unverified(`reference repo '${ref.repo}' is not a valid owner/repo slug`);
   }
   const cached = readCachedIssue(ctx.projectRoot, ref, ctx.nowMs);
+  const fresh = freshOrNull(cached);
   if (ctx.skipGh) {
-    if (isFresh(cached)) {
-      return fromCache(cached);
+    if (fresh !== null) {
+      return fromCache(fresh);
     }
     return unverified(
-      cached.state === null ? "--skip-gh with no cache entry" : `--skip-gh and ${staleDetail(cached)}`,
+      cached.state === null
+        ? "--skip-gh with no cache entry"
+        : `--skip-gh and ${staleDetail(cached)}`,
     );
   }
 
   const inventory = ctx.inventory.lookup(ref.repo);
   if ("error" in inventory) {
-    if (isFresh(cached)) {
-      return fromCache(cached);
+    if (fresh !== null) {
+      return fromCache(fresh);
     }
     return unverified(`open-issue inventory unavailable: ${inventory.error}`);
   }
   if (inventory.numbers.has(ref.number)) {
-    return { state: "open", basis: "inventory", cacheAgeMs: null, detail: null };
+    return { state: "open", basis: "inventory" };
   }
   const confirmed = fetchIssueStateLive(ref, ctx.runGh);
   if (confirmed !== null) {
-    return { state: confirmed, basis: "live", cacheAgeMs: null, detail: null };
+    return { state: confirmed, basis: "live" };
   }
   return unverified("absent from the open-issue inventory but the confirming read failed");
 }

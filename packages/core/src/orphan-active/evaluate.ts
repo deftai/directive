@@ -134,7 +134,7 @@ class BasisTally {
   inventory = 0;
   live = 0;
   cache = 0;
-  maxCacheAgeMs: number | null = null;
+  maxCacheAgeMs = 0;
   readonly unverifiedReasons: string[] = [];
 
   record(ref: IssueRef, resolution: StateResolution): void {
@@ -147,12 +147,10 @@ class BasisTally {
         break;
       case "cache":
         this.cache += 1;
-        if (resolution.cacheAgeMs !== null) {
-          this.maxCacheAgeMs = Math.max(this.maxCacheAgeMs ?? 0, resolution.cacheAgeMs);
-        }
+        this.maxCacheAgeMs = Math.max(this.maxCacheAgeMs, resolution.cacheAgeMs);
         break;
       default: {
-        const line = `#${ref.number} (${resolution.detail ?? "state could not be resolved"})`;
+        const line = `#${ref.number} (${resolution.detail})`;
         if (!this.unverifiedReasons.includes(line)) {
           this.unverifiedReasons.push(line);
         }
@@ -173,8 +171,7 @@ class BasisTally {
       parts.push(`live ${this.live}`);
     }
     if (this.cache > 0) {
-      const age = this.maxCacheAgeMs === null ? "" : ` (max age ${formatAge(this.maxCacheAgeMs)})`;
-      parts.push(`cache ${this.cache}${age}`);
+      parts.push(`cache ${this.cache} (max age ${formatAge(this.maxCacheAgeMs)})`);
     }
     if (this.unverified > 0) {
       parts.push(`unverified ${this.unverified}`);
@@ -244,10 +241,13 @@ function assessOrphanSignature(
   const skipGh = ctx.skipGh;
   const scoped = selectedIssue !== null;
   if (selectedIssue !== null) {
-    // Confirmed closed origin is shipped even if a linked PR lookup fails.
     const selectedRef = issueRefs.find((ref) => ref.number === selectedIssue);
-    const selectedState =
-      selectedRef === undefined ? null : resolveIssueState(selectedRef, ctx, scoped, tally);
+    if (selectedRef === undefined) {
+      // evaluate() only reaches here for briefs that name the issue.
+      return PASS;
+    }
+    // Confirmed closed origin is shipped even if a linked PR lookup fails.
+    const selectedState = resolveIssueState(selectedRef, ctx, scoped, tally);
     if (selectedState === "closed") {
       return shipped(`issue #${selectedIssue} is closed`);
     }
@@ -264,25 +264,8 @@ function assessOrphanSignature(
       }
     }
     // --issue N is one origin: sibling open/unknown must not mask it (#3429).
-    if (selectedRef !== undefined) {
-      if (selectedState === null) {
-        return unresolved(`issue #${selectedIssue} state could not be resolved`);
-      }
-      return PASS;
-    }
-    const issueStates = issueRefs.map((ref) => ({
-      ref,
-      state: resolveIssueState(ref, ctx, scoped, tally),
-    }));
-    const unknownIssue = issueStates.find((row) => row.state === null);
-    if (unknownIssue !== undefined) {
-      return unresolved(`issue #${unknownIssue.ref.number} state could not be resolved`);
-    }
-    if (issueStates.some((row) => row.state === "closed")) {
-      return shipped("all referenced issues are closed");
-    }
-    if (prRefs.length > 0 && skipGh) {
-      return unresolved(`linked PR #${prRefs[0]?.number} state could not be resolved`);
+    if (selectedState === null) {
+      return unresolved(`issue #${selectedIssue} state could not be resolved`);
     }
     return PASS;
   }
@@ -301,22 +284,15 @@ function assessOrphanSignature(
     return PASS;
   }
 
-  let resolved = 0;
   for (const ref of issueRefs) {
     const state = resolveIssueState(ref, ctx, scoped, tally);
-    if (state === null) {
-      return PASS;
-    }
-    resolved += 1;
+    // Unknown keeps the sweep fail-open so offline work is not network-authorized;
+    // the unverified basis line stops the pass reading as verified evidence (#3767).
     if (state !== "closed") {
       return PASS;
     }
   }
-
-  if (resolved > 0) {
-    return shipped("all referenced issues are closed");
-  }
-  return PASS;
+  return shipped("all referenced issues are closed");
 }
 
 function briefReferencesIssue(issues: readonly IssueRef[], issue: number): boolean {
@@ -530,7 +506,7 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
     live: tally.live,
     cache: tally.cache,
     unverified: tally.unverified,
-    maxCacheAgeMs: tally.maxCacheAgeMs,
+    maxCacheAgeMs: tally.cache > 0 ? tally.maxCacheAgeMs : null,
     proxied: runner?.proxied ?? false,
     elapsedMs: Math.max(0, clock() - startedMs),
     budgetMs,

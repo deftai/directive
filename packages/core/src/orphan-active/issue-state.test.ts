@@ -128,8 +128,6 @@ describe("resolveIssueStateScoped", () => {
     expect(resolveIssueStateScoped(REF, context(root, runGh))).toEqual({
       state: "closed",
       basis: "live",
-      cacheAgeMs: null,
-      detail: null,
     });
   });
 
@@ -204,7 +202,7 @@ describe("resolveIssueStateAggregate", () => {
       return { returncode: 0, stdout: JSON.stringify({ state: "closed" }), stderr: "" };
     };
     const resolved = resolveIssueStateAggregate(REF, context(root, runGh));
-    expect(resolved).toEqual({ state: "closed", basis: "live", cacheAgeMs: null, detail: null });
+    expect(resolved).toEqual({ state: "closed", basis: "live" });
     expect(calls).toHaveLength(2);
   });
 

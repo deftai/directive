@@ -756,6 +756,58 @@ describe("evaluate", () => {
     expect(result.message).toContain("Budget:");
   });
 
+  it("reports no GitHub lookups for a PR-only brief on the unscoped sweep", () => {
+    const root = makeRepo();
+    writeBrief(root, "pr-only.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/pull/43",
+          type: "x-xbrief/github-pr",
+        },
+      ],
+    });
+    const result = evaluate(root, { repo: "deftai/directive", skipGh: true });
+    expect(result.code).toBe(0);
+    expect(result.message).toContain("Basis: no GitHub lookups");
+  });
+
+  it("lists a shared unresolvable reference once across briefs", () => {
+    const root = makeRepo();
+    for (const name of ["first", "second"]) {
+      writeBrief(root, `${name}.xbrief.json`, {
+        status: "running",
+        references: [
+          {
+            uri: "https://github.com/deftai/directive/issues/9100",
+            type: "x-xbrief/github-issue",
+          },
+        ],
+      });
+    }
+    const result = evaluate(root, { repo: "deftai/directive", skipGh: true });
+    expect(result.code).toBe(0);
+    expect(result.basis.unverified).toBe(1);
+    expect(result.message).toContain("#9100 (--skip-gh with no cache entry)");
+  });
+
+  it("carries the basis into the refusal message", () => {
+    const root = makeRepo();
+    writeBrief(root, "shipped.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/1001",
+          type: "x-xbrief/github-issue",
+        },
+      ],
+    });
+    writeCachedIssue(root, "deftai/directive", 1001, "closed", 2 * 60_000);
+    const result = evaluate(root, { repo: "deftai/directive", skipGh: true });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("Basis: cache 1 (max age 2m)");
+  });
+
   it("reports unverified rather than passing for a traversal-shaped repo slug", () => {
     const root = makeRepo();
     writeBrief(root, "bad-repo.xbrief.json", {
