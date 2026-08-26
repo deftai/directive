@@ -60,6 +60,9 @@ export function checkVbriefLifecycleSyncNative(
         anchorIssueNumbers.add(num);
       }
     }
+    process.stderr.write(
+      `[release Step 3] ${anchors.length} lifecycle anchor(s), ${anchorIssueNumbers.size} unique issue number(s) to evaluate\n`,
+    );
     const fetchResult = fetchIssueStatesForRelease(repo, anchorIssueNumbers, {
       cwd: projectRoot,
     });

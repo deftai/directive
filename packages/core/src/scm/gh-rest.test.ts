@@ -4,6 +4,7 @@ import {
   InvalidRepoError,
   type RunGhApiFn,
   restIssueList,
+  restIssueListOpenInventory,
   restIssueView,
   splitRepo,
 } from "./gh-rest.js";
@@ -86,5 +87,60 @@ describe("restIssueList", () => {
       stderr: "",
     });
     expect(() => restIssueList("deftai/directive", {}, { runGhApiFn })).toThrow(GhRestError);
+  });
+});
+
+describe("restIssueListOpenInventory", () => {
+  const endpoint = "repos/deftai/directive/issues?state=open&per_page=100";
+
+  it("uses one paginate+slurp subprocess and filters pull requests", () => {
+    const runGhApiFn: RunGhApiFn = (args) => {
+      expect(args).toEqual(["--paginate", "--slurp", endpoint]);
+      return {
+        returncode: 0,
+        stdout: JSON.stringify([
+          { number: 1, state: "open" },
+          { number: 2, state: "open", pull_request: { url: "https://github.com/o/r/pull/2" } },
+        ]),
+        stderr: "",
+      };
+    };
+    expect(restIssueListOpenInventory("deftai/directive", { runGhApiFn })).toEqual([
+      { number: 1, state: "open" },
+    ]);
+  });
+
+  it("returns empty list for empty stdout", () => {
+    const runGhApiFn: RunGhApiFn = () => ({ returncode: 0, stdout: "", stderr: "" });
+    expect(restIssueListOpenInventory("deftai/directive", { runGhApiFn })).toEqual([]);
+  });
+
+  it("raises GhRestError on command failure", () => {
+    const runGhApiFn: RunGhApiFn = () => ({ returncode: 1, stdout: "", stderr: "auth failed" });
+    expect(() => restIssueListOpenInventory("deftai/directive", { runGhApiFn })).toThrow(
+      GhRestError,
+    );
+  });
+
+  it("raises GhRestError on non-array JSON", () => {
+    const runGhApiFn: RunGhApiFn = () => ({
+      returncode: 0,
+      stdout: JSON.stringify({ not: "array" }),
+      stderr: "",
+    });
+    expect(() => restIssueListOpenInventory("deftai/directive", { runGhApiFn })).toThrow(
+      GhRestError,
+    );
+  });
+
+  it("raises GhRestError when a row is not an object", () => {
+    const runGhApiFn: RunGhApiFn = () => ({
+      returncode: 0,
+      stdout: JSON.stringify([null]),
+      stderr: "",
+    });
+    expect(() => restIssueListOpenInventory("deftai/directive", { runGhApiFn })).toThrow(
+      GhRestError,
+    );
   });
 });

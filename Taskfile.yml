@@ -738,7 +738,7 @@ tasks:
   #                    tests/cli/test_release_e2e.py
   # Refs #74, #233, #642, #635, #709, #710, #716, #718.
   release:
-    desc: "Automate the v0.X.Y release flow (#74) -- task release -- <version> [--dry-run] [--skip-tag] [--skip-release] [--no-draft]"
+    desc: "Automate the v0.X.Y release flow (#74) -- task release -- <version> [--dry-run] [--skip-tag] [--skip-release] [--no-draft] [--allow-vbrief-drift]"
     deps: [ts:build]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:

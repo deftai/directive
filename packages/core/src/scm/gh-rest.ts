@@ -241,6 +241,7 @@ export const PUBLIC_HELPERS = [
   "restPrView",
   "restIssueList",
   "restIssueListPaginated",
+  "restIssueListOpenInventory",
 ] as const;
 
 function writeJsonPayload(payload: Record<string, unknown>): { path: string; dir: string } {
@@ -469,6 +470,85 @@ export function restPrView(
 export interface RestIssueListPaginatedOptions extends RestIssueListOptions {
   readonly limit?: number | null;
   readonly excludePulls?: boolean;
+}
+
+const OPEN_INVENTORY_MAX_ISSUES = REST_PAGINATION_MAX_PAGES * REST_MAX_PER_PAGE;
+
+/**
+ * Complete open-issue inventory in one `gh api --paginate --slurp` subprocess (#3752).
+ * Fail-closed on command failure, non-array JSON, buffer exhaustion, or cap hit.
+ * Pull-request rows are excluded.
+ */
+export function restIssueListOpenInventory(
+  repo: string,
+  seams: GhRestSeams = {},
+): Record<string, unknown>[] {
+  const [owner, name] = splitRepo(repo);
+  const endpoint = `repos/${owner}/${name}/issues?state=open&per_page=${REST_MAX_PER_PAGE}`;
+  const runner = seams.runGhApiFn ?? runGhApi;
+  const result = runner(["--paginate", "--slurp", endpoint], { timeout: 120 });
+  if (result.returncode !== 0) {
+    throw new GhRestError({
+      stderr: result.stderr.trim(),
+      exitCode: result.returncode,
+      endpoint,
+      payload: null,
+      hint: "verify gh auth and core REST quota; open-issue inventory must be complete",
+    });
+  }
+  const stdout = result.stdout.trim();
+  if (stdout.length === 0) {
+    return [];
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(stdout);
+  } catch (exc: unknown) {
+    const message = exc instanceof Error ? exc.message : String(exc);
+    throw new GhRestError({
+      stderr: `non-JSON open-issue inventory: ${message}`,
+      exitCode: 0,
+      endpoint,
+      payload: null,
+      hint: "gh api --paginate --slurp must return a JSON array",
+    });
+  }
+  if (!Array.isArray(parsed)) {
+    throw new GhRestError({
+      stderr: `unexpected top-level type ${typeof parsed}`,
+      exitCode: 0,
+      endpoint,
+      payload: null,
+      hint: "open-issue inventory must be a JSON array",
+    });
+  }
+  const out: Record<string, unknown>[] = [];
+  for (const item of parsed) {
+    if (typeof item !== "object" || item === null || Array.isArray(item)) {
+      throw new GhRestError({
+        stderr: "open-issue inventory row is not an object",
+        exitCode: 0,
+        endpoint,
+        payload: null,
+        hint: "REST issue list rows must be objects",
+      });
+    }
+    const row = item as Record<string, unknown>;
+    if ("pull_request" in row) {
+      continue;
+    }
+    out.push(row);
+  }
+  if (out.length >= OPEN_INVENTORY_MAX_ISSUES) {
+    throw new GhRestError({
+      stderr: `open-issue inventory reached cap ${OPEN_INVENTORY_MAX_ISSUES}; pagination may be incomplete`,
+      exitCode: 0,
+      endpoint,
+      payload: null,
+      hint: "repo may exceed supported open-issue count; fail closed rather than truncate",
+    });
+  }
+  return out;
 }
 
 export function restIssueListPaginated(

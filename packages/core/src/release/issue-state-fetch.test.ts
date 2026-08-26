@@ -16,6 +16,16 @@ function completed(stdout = "", stderr = "", returncode = 0): CompletedProcess {
 const RATE_LIMIT_STDERR =
   "gh: API rate limit exceeded for user (HTTP 403)\nX-RateLimit-Reset: 2000000300\n";
 
+const OPEN_INVENTORY_ENDPOINT = "repos/deftai/directive/issues?state=open&per_page=100";
+
+function inventoryCall(args: readonly string[] | null): boolean {
+  return (
+    args?.includes("--paginate") === true &&
+    args?.includes("--slurp") === true &&
+    args?.includes(OPEN_INVENTORY_ENDPOINT) === true
+  );
+}
+
 describe("issue-state-fetch", () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -68,7 +78,7 @@ describe("issue-state-fetch", () => {
   it("fetchIssueStatesForRelease retries once after rate-limit sleep", () => {
     const sleep = vi.fn();
     const now = vi.fn().mockReturnValue(2_000_000_000);
-    let issueCalls = 0;
+    let inventoryCalls = 0;
     const scmCall = vi.fn((_source: string, _verb: string, args: readonly string[] | null) => {
       if (args?.[0] === "rate_limit") {
         return completed(
@@ -80,11 +90,14 @@ describe("issue-state-fetch", () => {
           }),
         );
       }
-      issueCalls += 1;
-      if (issueCalls === 1) {
-        return completed("", RATE_LIMIT_STDERR, 1);
+      if (inventoryCall(args)) {
+        inventoryCalls += 1;
+        if (inventoryCalls === 1) {
+          return completed("", RATE_LIMIT_STDERR, 1);
+        }
+        return completed(JSON.stringify([{ number: 206, state: "open" }]));
       }
-      return completed(JSON.stringify({ state: "open", state_reason: null }));
+      throw new Error(`unexpected REST args: ${String(args?.join(" "))}`);
     });
 
     const result = fetchIssueStatesForRelease("deftai/directive", new Set([206]), {
@@ -98,7 +111,7 @@ describe("issue-state-fetch", () => {
       expect(result.states.get(206)?.value).toBe("OPEN");
     }
     expect(sleep).toHaveBeenCalledTimes(1);
-    expect(issueCalls).toBe(2);
+    expect(inventoryCalls).toBe(2);
   });
 
   it("fetchIssueStatesForRelease emits actionable failure after retry still rate-limited", () => {
@@ -115,7 +128,10 @@ describe("issue-state-fetch", () => {
           }),
         );
       }
-      return completed("", RATE_LIMIT_STDERR, 1);
+      if (inventoryCall(args)) {
+        return completed("", RATE_LIMIT_STDERR, 1);
+      }
+      throw new Error(`unexpected REST args: ${String(args?.join(" "))}`);
     });
 
     const result = fetchIssueStatesForRelease("deftai/directive", new Set([206]), {
@@ -138,7 +154,13 @@ describe("issue-state-fetch", () => {
   it("fetchIssueStatesForRelease does not probe rate_limit on non-rate-limit failures", () => {
     const sleep = vi.fn();
     const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-    const scmCall = vi.fn().mockReturnValue(completed("", "auth failed", 1));
+    const scmCall = vi.fn((...callArgs: unknown[]) => {
+      const args = callArgs[2] as readonly string[] | null;
+      if (inventoryCall(args)) {
+        return completed("", "auth failed", 1);
+      }
+      return completed("", "auth failed", 1);
+    });
     const result = fetchIssueStatesForRelease("deftai/directive", new Set([1]), {
       scmCall,
       sleep,
@@ -153,7 +175,13 @@ describe("issue-state-fetch", () => {
 
   it("fetchIssueStatesForRelease does not retry on non-rate-limit failures", () => {
     const sleep = vi.fn();
-    const scmCall = vi.fn().mockReturnValue(completed("", "auth failed", 1));
+    const scmCall = vi.fn((...callArgs: unknown[]) => {
+      const args = callArgs[2] as readonly string[] | null;
+      if (inventoryCall(args)) {
+        return completed("", "auth failed", 1);
+      }
+      return completed("", "auth failed", 1);
+    });
     const result = fetchIssueStatesForRelease("deftai/directive", new Set([1]), {
       scmCall,
       sleep,
@@ -165,20 +193,40 @@ describe("issue-state-fetch", () => {
     expect(sleep).not.toHaveBeenCalled();
   });
 
-  it("fetchIssueStatesForRelease succeeds without retry when first fetch works", () => {
+  it("fetchIssueStatesForRelease maps open inventory to OPEN and absent anchors to NOT_FOUND", () => {
     const sleep = vi.fn();
-    const scmCall = vi
-      .fn()
-      .mockReturnValue(completed(JSON.stringify({ state: "closed", state_reason: "completed" })));
-    const result = fetchIssueStatesForRelease("deftai/directive", new Set([11]), {
+    const scmCall = vi.fn((_source: string, _verb: string, args: readonly string[] | null) => {
+      if (inventoryCall(args)) {
+        return completed(
+          JSON.stringify([
+            { number: 11, state: "open" },
+            { number: 401, state: "open", pull_request: { url: "https://github.com/o/r/pull/401" } },
+          ]),
+        );
+      }
+      throw new Error(`unexpected REST args: ${String(args?.join(" "))}`);
+    });
+    const result = fetchIssueStatesForRelease("deftai/directive", new Set([11, 99]), {
       scmCall,
       sleep,
     });
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.states.get(11)).toEqual(new IssueState("CLOSED", "COMPLETED"));
+      expect(result.states.get(11)).toEqual(new IssueState("OPEN"));
+      expect(result.states.get(99)).toEqual(new IssueState("NOT_FOUND"));
     }
     expect(sleep).not.toHaveBeenCalled();
+  });
+
+  it("fetchIssueStatesForRelease fails closed on non-array inventory JSON", () => {
+    const scmCall = vi.fn((_source: string, _verb: string, args: readonly string[] | null) => {
+      if (inventoryCall(args)) {
+        return completed(JSON.stringify({ not: "an array" }));
+      }
+      throw new Error(`unexpected REST args: ${String(args?.join(" "))}`);
+    });
+    const result = fetchIssueStatesForRelease("deftai/directive", new Set([1]), { scmCall });
+    expect(result.ok).toBe(false);
   });
 
   it("probeGithubRateLimit fails open on throw, non-zero, empty, and bad JSON (#2952)", () => {
@@ -221,7 +269,6 @@ describe("issue-state-fetch", () => {
         ),
       ),
     ).toBeNull();
-    // Missing remaining fields yield nulls (not NaN).
     expect(
       probeGithubRateLimit(
         vi
@@ -236,7 +283,6 @@ describe("issue-state-fetch", () => {
   it("computeRateLimitSleepSeconds uses probe reset when header absent (#2952)", () => {
     const nowSec = 1_000;
     const probe = { coreRemaining: 0, coreResetUnix: nowSec + 30, graphqlRemaining: 1 };
-    // detectRateLimit must see a rate-limit stderr shape without X-RateLimit-Reset.
     const sleepS = computeRateLimitSleepSeconds(
       "gh: API rate limit exceeded for user (HTTP 403)",
       probe,

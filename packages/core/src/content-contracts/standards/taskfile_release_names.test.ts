@@ -65,6 +65,21 @@ describe("test_taskfile_release_names.py", () => {
     },
   );
 
+  it.skipIf(!taskAvailable)("test_release_task_desc_documents_allow_vbrief_drift (#3752)", () => {
+    const out = execFileSync(
+      "task",
+      ["-t", join(repoRoot(), "Taskfile.yml"), "--list-all", "--json"],
+      {
+        cwd: repoRoot(),
+        encoding: "utf8",
+        env: { ...process.env, PYTHONUTF8: "1" },
+      },
+    );
+    const parsed = JSON.parse(out) as { tasks?: Array<{ task?: string; desc?: string }> };
+    const release = (parsed.tasks ?? []).find((entry) => entry.task === "release");
+    expect(release?.desc ?? "").toContain("--allow-vbrief-drift");
+  });
+
   it.skipIf(!taskAvailable)(
     "test_task_release_summary_with_apostrophe_does_not_shell_parse_fail (#2547)",
     () => {
