@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3756",
-    "updated": "2026-08-26T15:43:08Z"
+    "updated": "2026-08-26T17:59:30Z"
   },
   "plan": {
     "title": "bug(swarm): resolveWorktreeMap reuses a registered worktree without checking HEAD matches the base branch",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(swarm): resolveWorktreeMap reuses a registered worktree without checking HEAD matches the base branch",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3756",
@@ -16,31 +16,73 @@
     "items": [
       {
         "title": "`parseWorktreePorcelain` parses the `HEAD` OID rather than discarding it",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3772 merge 6df19e0a615091b4197f81dd09dac67c8bebe1d3",
+          "recorded_at": "2026-08-26T17:59:26.319Z",
+          "recorded_by": "3756-merge-ready-worker"
+        }
       },
       {
         "title": "The requested base is resolved once to a commit OID and compared by OID, not by branch name",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3772 merge 6df19e0a615091b4197f81dd09dac67c8bebe1d3",
+          "recorded_at": "2026-08-26T17:59:26.319Z",
+          "recorded_by": "3756-merge-ready-worker"
+        }
       },
       {
         "title": "A registered path whose HEAD OID differs from the requested base OID is a hard error naming the path, the requested OID, and the actual OID",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3772 merge 6df19e0a615091b4197f81dd09dac67c8bebe1d3",
+          "recorded_at": "2026-08-26T17:59:26.319Z",
+          "recorded_by": "3756-merge-ready-worker"
+        }
       },
       {
         "title": "The tree is never re-pointed, cleaned, or converted away from `--detach`",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3772 merge 6df19e0a615091b4197f81dd09dac67c8bebe1d3",
+          "recorded_at": "2026-08-26T17:59:26.319Z",
+          "recorded_by": "3756-merge-ready-worker"
+        }
       },
       {
         "title": "Regression test with `createMissing` both true and false",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3772 merge 6df19e0a615091b4197f81dd09dac67c8bebe1d3",
+          "recorded_at": "2026-08-26T17:59:26.319Z",
+          "recorded_by": "3756-merge-ready-worker"
+        }
       },
       {
         "title": "Documentation or error text states the guarantee as snapshot-at-resolution, not a pin on the worker's start revision",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3772 merge 6df19e0a615091b4197f81dd09dac67c8bebe1d3",
+          "recorded_at": "2026-08-26T17:59:26.319Z",
+          "recorded_by": "3756-merge-ready-worker"
+        }
       },
       {
         "title": "CHANGELOG `[Unreleased]` line",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3772 merge 6df19e0a615091b4197f81dd09dac67c8bebe1d3",
+          "recorded_at": "2026-08-26T17:59:26.319Z",
+          "recorded_by": "3756-merge-ready-worker"
+        }
       }
     ],
     "tags": [
@@ -73,7 +115,32 @@
         "schema": "deft.scope.intended_placement.v1",
         "files": [],
         "module_boundary": ""
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3772,
+        "prBase": null,
+        "mergeCommit": "6df19e0a615091b4197f81dd09dac67c8bebe1d3",
+        "deliveryBranch": "master",
+        "deliveryCommit": "6df19e0a615091b4197f81dd09dac67c8bebe1d3",
+        "verifiedAt": "2026-08-26T17:59:30Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "1b6b8a19-012c-48f3-bb92-9de245457abd"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-26T17:59:30Z"
+      },
+      "completedAt": "2026-08-26T17:59:30Z",
+      "completedSessionId": "1b6b8a19-012c-48f3-bb92-9de245457abd",
+      "capacityBucket": "technical-debt"
     },
     "acceptance": {
       "commands": [],
@@ -133,6 +200,6 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-08-26T15:43:08Z"
+    "updated": "2026-08-26T17:59:30Z"
   }
 }

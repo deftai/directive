@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Land leftover completed-tracked artifact for #3756 (#3264 / #1358).** The #3756 xBRIEF stayed untracked after squash of PR 3772. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
+
 - **Land leftover completed-tracked artifact for #3649 (#3264 / #1358).** The #3649 xBRIEF stayed untracked after squash of PR 3759. Moved to `xbrief/completed/` via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 
 - **After a release, the machine that cut it reports its own CLI.** `task release` now prints the local global CLI version, the version just shipped, whether they match, and the exact upgrade command with `--prefer-online`. It does not run `npm i -g`. Closes #3753.
