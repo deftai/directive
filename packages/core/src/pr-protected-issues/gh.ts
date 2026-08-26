@@ -4,12 +4,16 @@ import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import { GH_TIMEOUT_S } from "./constants.js";
 import type { RunGhFn, RunGhResult } from "./types.js";
 
-/** UTF-8-safe gh capture via execFile (no shell) — mirrors _safe_subprocess.run_text (#1366). */
-export function defaultRunGh(cmd: readonly string[]): RunGhResult {
+/**
+ * UTF-8-safe gh capture via execFile (no shell) — mirrors _safe_subprocess.run_text (#1366).
+ * `binaryOverride` lets a caller pin the SCM binary (e.g. plain `gh` instead of
+ * the `ghx` cached proxy) when its guarantee depends on an uncached read (#3767).
+ */
+export function defaultRunGh(cmd: readonly string[], binaryOverride?: string): RunGhResult {
   if (cmd.length === 0 || cmd[0] !== "gh") {
     return { returncode: -1, stdout: "", stderr: "expected gh as first argv element" };
   }
-  const binary = resolveBinary();
+  const binary = binaryOverride ?? resolveBinary();
   const args = cmd.slice(1);
   try {
     const stdout = execFileSync(binary, args, {

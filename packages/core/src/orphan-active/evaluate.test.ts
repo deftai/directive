@@ -31,11 +31,14 @@ function writeBrief(root: string, name: string, plan: Record<string, unknown>): 
   );
 }
 
+const TWELVE_HOURS_MS = 12 * 3_600_000;
+
 function writeCachedIssue(
   root: string,
   repo: string,
   number: number,
   state: "open" | "closed",
+  ageMs = 0,
 ): void {
   const [owner, name] = repo.split("/", 2);
   if (!owner || !name) {
@@ -44,7 +47,21 @@ function writeCachedIssue(
   const dir = join(root, ".deft-cache", "github-issue", owner, name, String(number));
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "raw.json"), JSON.stringify({ number, state }), "utf8");
+  writeFileSync(
+    join(dir, "meta.json"),
+    JSON.stringify({ fetched_at: new Date(Date.now() - ageMs).toISOString() }),
+    "utf8",
+  );
 }
+
+/** `gh api --paginate --slurp` shape: an array of pages, each an array of rows. */
+function openInventory(numbers: readonly number[]): string {
+  return JSON.stringify([numbers.map((number) => ({ number }))]);
+}
+
+const NEVER_CALLED: RunGhFn = () => {
+  throw new Error("runGh must not be called");
+};
 
 describe("parseGithubPrUri", () => {
   it("parses full GitHub PR URLs", () => {
@@ -568,7 +585,7 @@ describe("evaluate", () => {
     expect(result.orphans).toEqual([]);
   });
 
-  it("uses live gh issue state when cache is absent", () => {
+  it("uses a live gh issue read for --issue N when cache is absent", () => {
     const root = makeRepo();
     writeBrief(root, "live-issue.xbrief.json", {
       status: "running",
@@ -585,7 +602,174 @@ describe("evaluate", () => {
       }
       return { returncode: 1, stdout: "", stderr: "unexpected" };
     };
+    const result = evaluate(root, { repo: "deftai/directive", runGh, issue: 5000 });
+    expect(result.code).toBe(0);
+    expect(result.basis.live).toBe(1);
+  });
+
+  // #3767 -- the measured defect: a ~12 h old cached `open` was returned
+  // unconditionally and suppressed the live read that would have corrected it.
+  it("detects a closed origin for --issue N despite a stale cached open", () => {
+    const root = makeRepo();
+    writeBrief(root, "stale-cache.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/3611",
+          type: "x-xbrief/github-issue",
+        },
+      ],
+    });
+    writeCachedIssue(root, "deftai/directive", 3611, "open", TWELVE_HOURS_MS);
+    const runGh: RunGhFn = (cmd) =>
+      cmd.join(" ").includes("/issues/3611")
+        ? { returncode: 0, stdout: JSON.stringify({ state: "closed" }), stderr: "" }
+        : { returncode: 1, stdout: "", stderr: "unexpected" };
+    const result = evaluate(root, { repo: "deftai/directive", runGh, issue: 3611 });
+    expect(result.code).toBe(1);
+    expect(result.orphans[0]?.reason).toBe("issue #3611 is closed");
+    expect(result.basis.live).toBe(1);
+    expect(result.basis.cache).toBe(0);
+  });
+
+  it("detects a closed origin on the unscoped sweep despite a stale cached open", () => {
+    const root = makeRepo();
+    writeBrief(root, "stale-cache.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/3611",
+          type: "x-xbrief/github-issue",
+        },
+      ],
+    });
+    writeCachedIssue(root, "deftai/directive", 3611, "open", TWELVE_HOURS_MS);
+    const runGh: RunGhFn = (cmd) =>
+      cmd.join(" ").includes("--slurp")
+        ? { returncode: 0, stdout: openInventory([9999]), stderr: "" }
+        : { returncode: 0, stdout: JSON.stringify({ state: "closed" }), stderr: "" };
+    const result = evaluate(root, { repo: "deftai/directive", runGh });
+    expect(result.code).toBe(1);
+    expect(result.orphans[0]?.reason).toBe("all referenced issues are closed");
+  });
+
+  it("resolves the unscoped sweep from one inventory call, not one read per brief", () => {
+    const root = makeRepo();
+    for (const number of [7001, 7002, 7003]) {
+      writeBrief(root, `open-${number}.xbrief.json`, {
+        status: "running",
+        references: [
+          {
+            uri: `https://github.com/deftai/directive/issues/${number}`,
+            type: "x-xbrief/github-issue",
+          },
+        ],
+      });
+    }
+    const calls: string[] = [];
+    const runGh: RunGhFn = (cmd) => {
+      calls.push(cmd.join(" "));
+      return { returncode: 0, stdout: openInventory([7001, 7002, 7003]), stderr: "" };
+    };
     const result = evaluate(root, { repo: "deftai/directive", runGh });
     expect(result.code).toBe(0);
+    expect(calls).toHaveLength(1);
+    expect(result.basis.inventory).toBe(3);
+    expect(result.message).toContain("Basis: inventory 3");
+  });
+
+  it("marks a pass unverified when the open-issue inventory is unavailable", () => {
+    const root = makeRepo();
+    writeBrief(root, "unknown.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/8001",
+          type: "x-xbrief/github-issue",
+        },
+      ],
+    });
+    const runGh: RunGhFn = () => ({ returncode: 1, stdout: "", stderr: "gh: bad credentials" });
+    const result = evaluate(root, { repo: "deftai/directive", runGh });
+    expect(result.code).toBe(0);
+    expect(result.basis.unverified).toBe(1);
+    expect(result.message).toContain("UNVERIFIED");
+    expect(result.message).toContain("open-issue inventory unavailable");
+  });
+
+  it("reports the age of a cache entry it relied on", () => {
+    const root = makeRepo();
+    writeBrief(root, "open-story.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/2321",
+          type: "x-xbrief/github-issue",
+        },
+      ],
+    });
+    writeCachedIssue(root, "deftai/directive", 2321, "open", 4 * 60_000);
+    const result = evaluate(root, { repo: "deftai/directive", skipGh: true });
+    expect(result.code).toBe(0);
+    expect(result.basis.cache).toBe(1);
+    expect(result.message).toContain("Basis: cache 1 (max age 4m)");
+  });
+
+  it("stops trusting a stale cached closed under --skip-gh", () => {
+    const root = makeRepo();
+    writeBrief(root, "stale-closed.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/1001",
+          type: "x-xbrief/github-issue",
+        },
+      ],
+    });
+    writeCachedIssue(root, "deftai/directive", 1001, "closed", TWELVE_HOURS_MS);
+    const result = evaluate(root, { repo: "deftai/directive", skipGh: true });
+    expect(result.code).toBe(0);
+    expect(result.orphans).toEqual([]);
+    expect(result.basis.unverified).toBe(1);
+  });
+
+  it("prints a budget advisory without changing the exit code", () => {
+    const root = makeRepo();
+    writeBrief(root, "open-story.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/2321",
+          type: "x-xbrief/github-issue",
+        },
+      ],
+    });
+    writeCachedIssue(root, "deftai/directive", 2321, "open");
+    const ticks = [0, 0, 999_000];
+    let i = 0;
+    const result = evaluate(root, {
+      repo: "deftai/directive",
+      skipGh: true,
+      nowMs: () => ticks[Math.min(i++, ticks.length - 1)] ?? 0,
+    });
+    expect(result.code).toBe(0);
+    expect(result.message).toContain("Budget:");
+  });
+
+  it("reports unverified rather than passing for a traversal-shaped repo slug", () => {
+    const root = makeRepo();
+    writeBrief(root, "bad-repo.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/a/../../../evil/issues/3611",
+          type: "x-xbrief/github-issue",
+        },
+      ],
+    });
+    const result = evaluate(root, { repo: "deftai/directive", runGh: NEVER_CALLED });
+    expect(result.code).toBe(0);
+    expect(result.basis.unverified).toBe(1);
+    expect(result.message).toContain("not a valid owner/repo slug");
   });
 });
