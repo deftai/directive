@@ -1110,12 +1110,17 @@ function inspectMutationGates(
   // take long enough for another session to transition the lease. Re-read
   // only occupancy immediately before each direct-write allow, while retaining
   // the exact ritual owner above (never adopt a later ritual file here).
+  // #3599: the owner's lease is only kept alive here, on the last evaluation
+  // before an allowed write, so the stamp records a write that really happened.
+  let occupancyWarning: string | null = null;
   const recheckOccupancyBeforeWriteAllow = (): HookDecision | null => {
     if (actor === null) return null;
     const finalOccupancy = evaluateOccupancyWriteGate(projectRoot, {
       sessionId: actor.sessionId,
       env: actor.payloadAuthoritative ? {} : environ,
+      refresh: true,
     });
+    occupancyWarning = finalOccupancy.warning;
     if (finalOccupancy.occupant !== null && actor.issue !== null) {
       return deny(
         input,
@@ -1151,6 +1156,8 @@ function inspectMutationGates(
     }
     return null;
   };
+  const withOccupancyWarning = (message: string): string =>
+    occupancyWarning === null ? message : `${message} ${occupancyWarning}`;
 
   if (options.proposedLifecycleExempt) {
     const writeTarget = hookWriteTargetPath(input.payload);
@@ -1176,9 +1183,10 @@ function inspectMutationGates(
         host: input.host,
         toolName,
         projectRoot,
-        message:
+        message: withOccupancyWarning(
           `Directive write gate allowed ${toolName} for a proposed lifecycle xBRIEF ` +
-          "(planning write; active scope not required).",
+            "(planning write; active scope not required).",
+        ),
         scopePath: null,
       };
     }
@@ -1278,7 +1286,9 @@ function inspectMutationGates(
     host: input.host,
     toolName,
     projectRoot,
-    message: `Directive ${isSpawnTool(toolName) ? "spawn" : "write"} gate passed for ${toolName}.`,
+    message: withOccupancyWarning(
+      `Directive ${isSpawnTool(toolName) ? "spawn" : "write"} gate passed for ${toolName}.`,
+    ),
     scopePath: scope.path,
   };
 }

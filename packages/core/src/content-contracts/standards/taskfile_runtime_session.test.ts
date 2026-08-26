@@ -21,6 +21,7 @@ const RUNTIME_SESSION_TASKFILES: Readonly<
   "occupancy.yml": [
     { task: "steal", mustNotDependOnBuild: true },
     { task: "release", mustNotDependOnBuild: true },
+    { task: "heartbeat", mustNotDependOnBuild: true },
   ],
   "triage-summary.yml": [{ task: "summary", mustNotDependOnBuild: true }],
   "triage-welcome.yml": [{ task: "welcome", mustNotDependOnBuild: true }],
@@ -38,6 +39,8 @@ const RUNTIME_VERB_TOKENS = [
   "occupancy-steal",
   "occupancy:release",
   "occupancy-release",
+  "occupancy:heartbeat",
+  "occupancy-heartbeat",
   "session:end",
   "session-end",
   "lifecycle:event",

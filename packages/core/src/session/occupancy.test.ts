@@ -13,7 +13,10 @@ import {
   evaluateOccupancyWriteGate,
   formatOccupancyRemediation,
   heartbeatAgeSeconds,
+  heartbeatOccupancy,
   isOccupancyExpired,
+  OCCUPANCY_REFRESH_AFTER_MS,
+  OCCUPANCY_STALE_WARN_MS,
   OCCUPANCY_TTL_MS,
   occupancyPath,
   readOccupancy,
@@ -173,6 +176,182 @@ describe("worktree occupancy lease (#3433)", () => {
       true,
     );
     expect(evaluateOccupancyWriteGate(root, { now }).allow).toBe(false);
+  });
+
+  it("write-gate refresh keeps a working owner's lease alive past the TTL (#3599)", () => {
+    const root = tempRoot();
+    const claimedAt = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "owner", now: claimedAt });
+
+    // Writes spaced under the TTL used to expire the lease anyway, because the
+    // owner-allow path never re-stamped. Walk past the TTL one write at a time.
+    let at = claimedAt;
+    for (let step = 0; step < 4; step += 1) {
+      at = new Date(at.getTime() + OCCUPANCY_TTL_MS / 2);
+      const gate = evaluateOccupancyWriteGate(root, {
+        sessionId: "owner",
+        now: at,
+        refresh: true,
+      });
+      expect(gate.allow).toBe(true);
+      expect(gate.refreshed).toBe(true);
+    }
+    expect(at.getTime() - claimedAt.getTime()).toBeGreaterThan(OCCUPANCY_TTL_MS);
+
+    const record = readOccupancy(root);
+    expect(record?.heartbeatAt.toISOString()).toBe(at.toISOString());
+    expect(record?.claimedAt.toISOString()).toBe(claimedAt.toISOString());
+    expect(record?.lastWriteAt?.toISOString()).toBe(at.toISOString());
+    expect(isOccupancyExpired(record as NonNullable<typeof record>, at)).toBe(false);
+  });
+
+  it("write-gate refresh is off by default and floored to avoid amplification (#3599)", () => {
+    const root = tempRoot();
+    const claimedAt = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "owner", now: claimedAt });
+    const wellPastFloor = new Date(claimedAt.getTime() + OCCUPANCY_REFRESH_AFTER_MS + 1);
+
+    const readOnly = evaluateOccupancyWriteGate(root, { sessionId: "owner", now: wellPastFloor });
+    expect(readOnly.allow).toBe(true);
+    expect(readOnly.refreshed).toBe(false);
+    expect(readOccupancy(root)?.heartbeatAt.toISOString()).toBe(claimedAt.toISOString());
+
+    const underFloor = new Date(claimedAt.getTime() + OCCUPANCY_REFRESH_AFTER_MS - 1);
+    const skipped = evaluateOccupancyWriteGate(root, {
+      sessionId: "owner",
+      now: underFloor,
+      refresh: true,
+    });
+    expect(skipped.allow).toBe(true);
+    expect(skipped.refreshed).toBe(false);
+    expect(readOccupancy(root)?.heartbeatAt.toISOString()).toBe(claimedAt.toISOString());
+  });
+
+  it("write-gate warns the holder inside its own staleness window (#3599)", () => {
+    const root = tempRoot();
+    const claimedAt = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "owner", now: claimedAt });
+
+    const fresh = new Date(claimedAt.getTime() + OCCUPANCY_STALE_WARN_MS - 1);
+    expect(evaluateOccupancyWriteGate(root, { sessionId: "owner", now: fresh }).warning).toBeNull();
+
+    const stale = new Date(claimedAt.getTime() + OCCUPANCY_STALE_WARN_MS);
+    const warned = evaluateOccupancyWriteGate(root, { sessionId: "owner", now: stale });
+    expect(warned.allow).toBe(true);
+    expect(warned.warning).toContain("has not beaten for 900s");
+    expect(warned.warning).toContain("occupancy:heartbeat --session-id=owner");
+  });
+
+  it("write-gate refresh never resurrects a lease taken by another session (#3599)", () => {
+    const root = tempRoot();
+    const claimedAt = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "owner", now: claimedAt });
+    const later = new Date(claimedAt.getTime() + OCCUPANCY_REFRESH_AFTER_MS + 1);
+    stealOccupancy(root, {
+      sessionId: "thief",
+      occupant: "owner",
+      confirm: true,
+      now: later,
+    });
+
+    const gate = evaluateOccupancyWriteGate(root, {
+      sessionId: "owner",
+      now: later,
+      refresh: true,
+    });
+    expect(gate.allow).toBe(false);
+    expect(gate.refreshed).toBe(false);
+    expect(readOccupancy(root)?.sessionId).toBe("thief");
+  });
+
+  it("heartbeatOccupancy refreshes the owner and refuses everything else (#3599)", () => {
+    const root = tempRoot();
+    const claimedAt = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "owner", now: claimedAt });
+    const later = new Date(claimedAt.getTime() + 10 * 60 * 1000);
+
+    const beat = heartbeatOccupancy(root, { sessionId: "owner", now: later, env: {} });
+    expect(beat.code).toBe(0);
+    expect(beat.action).toBe("heartbeat");
+    expect(readOccupancy(root)?.heartbeatAt.toISOString()).toBe(later.toISOString());
+    // A manual refresh is not a product write.
+    expect(readOccupancy(root)?.lastWriteAt).toBeNull();
+
+    const foreign = heartbeatOccupancy(root, { sessionId: "other", now: later, env: {} });
+    expect(foreign.code).toBe(1);
+    expect(foreign.message).toContain("Worktree occupied by session owner");
+
+    const anonymous = heartbeatOccupancy(root, { now: later, env: {} });
+    expect(anonymous.code).toBe(2);
+    expect(anonymous.message).toContain("never mints an owner");
+    expect(readOccupancy(root)?.sessionId).toBe("owner");
+  });
+
+  it("heartbeatOccupancy refuses to claim a free or expired worktree (#3599)", () => {
+    const root = tempRoot();
+    const now = new Date("2026-08-17T12:00:00Z");
+    expect(heartbeatOccupancy(root, { sessionId: "owner", now, env: {} }).code).toBe(1);
+    expect(readOccupancy(root)).toBeNull();
+
+    applyWorktreeOccupancy(root, { sessionId: "owner", now });
+    const expiredAt = new Date(now.getTime() + OCCUPANCY_TTL_MS + 1);
+    expect(heartbeatOccupancy(root, { sessionId: "owner", now: expiredAt, env: {} }).code).toBe(1);
+    expect(readOccupancy(root)?.heartbeatAt.toISOString()).toBe(now.toISOString());
+  });
+
+  it("steal surfaces the occupant's last write, not only heartbeat age (#3599)", () => {
+    const root = tempRoot();
+    const claimedAt = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "busy", now: claimedAt });
+    const wroteAt = new Date(claimedAt.getTime() + OCCUPANCY_REFRESH_AFTER_MS + 1_000);
+    evaluateOccupancyWriteGate(root, { sessionId: "busy", now: wroteAt, refresh: true });
+
+    const askedAt = new Date(wroteAt.getTime() + 30_000);
+    const unconfirmed = stealOccupancy(root, {
+      sessionId: "thief",
+      occupant: "busy",
+      now: askedAt,
+    });
+    expect(unconfirmed.code).toBe(2);
+    expect(unconfirmed.message).toContain("last write 30s ago");
+
+    const stolen = stealOccupancy(root, {
+      sessionId: "thief",
+      occupant: "busy",
+      confirm: true,
+      now: askedAt,
+    });
+    expect(stolen.code).toBe(0);
+    expect(stolen.message).toContain("last write 30s ago");
+    expect(stolen.message).toContain("last_write_at=2026-08-17T12:05:01Z");
+    // The new owner inherits no write history.
+    expect(readOccupancy(root)?.lastWriteAt).toBeNull();
+  });
+
+  it("reads a pre-#3599 record that carries no last_write_at", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(
+      occupancyPath(root),
+      JSON.stringify({
+        schemaVersion: 1,
+        session_id: "legacy",
+        worktree_path: root,
+        intent: "mutation",
+        claimed_at: "2026-08-17T12:00:00Z",
+        heartbeat_at: "2026-08-17T12:00:00Z",
+      }),
+      "utf8",
+    );
+    const record = readOccupancy(root);
+    expect(record?.sessionId).toBe("legacy");
+    expect(record?.lastWriteAt).toBeNull();
+    expect(
+      formatOccupancyRemediation(
+        record as NonNullable<typeof record>,
+        new Date("2026-08-17T12:00:09Z"),
+      ),
+    ).toContain("no recorded write");
   });
 
   it("release of an expired lease does not delete a replacement claim", () => {

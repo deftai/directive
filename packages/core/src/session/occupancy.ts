@@ -27,6 +27,16 @@ export const OCCUPANCY_SCHEMA_VERSION = 1;
 export const OCCUPANCY_RELPATH = [".deft", "occupancy.json"] as const;
 /** Crash recovery TTL: 20 minutes without heartbeat (15–30 window). */
 export const OCCUPANCY_TTL_MS = 20 * 60 * 1000;
+/**
+ * Owner-allow re-stamp floor (#3599). The write gate runs on every gated write,
+ * so refreshing unconditionally would rewrite the lease file per keystroke-scale
+ * event. A quarter of the TTL bounds that without shortening the safe window:
+ * a write at any age past this floor resets the clock, so an owner that writes
+ * at least once per TTL never expires.
+ */
+export const OCCUPANCY_REFRESH_AFTER_MS = OCCUPANCY_TTL_MS / 4;
+/** Owner-allow staleness warning floor: three quarters of the TTL (#3599). */
+export const OCCUPANCY_STALE_WARN_MS = (OCCUPANCY_TTL_MS * 3) / 4;
 export const OCCUPANCY_INTENTS = ["mutation", "swarm", "review"] as const;
 export type OccupancyIntent = (typeof OCCUPANCY_INTENTS)[number];
 export const OCCUPANCY_JOIN_PROTOCOLS = ["none", "heartbeat-file", "parent-message"] as const;
@@ -39,6 +49,14 @@ export interface OccupancyRecord {
   readonly intent: OccupancyIntent;
   readonly claimedAt: Date;
   readonly heartbeatAt: Date;
+  /**
+   * Last gated product write by the owner, or null when none is recorded
+   * (#3599). Distinct from `heartbeatAt`, which any lease touch advances.
+   * Coarse to `OCCUPANCY_REFRESH_AFTER_MS`: a write inside that floor does not
+   * re-stamp, so the recorded time can trail the true last write by up to the
+   * refresh interval.
+   */
+  readonly lastWriteAt: Date | null;
   readonly host: string;
   readonly address: string;
   readonly retainCapable: boolean;
@@ -70,6 +88,8 @@ export interface ApplyOccupancyInput {
   readonly address?: string;
   readonly retainCapable?: boolean;
   readonly joinProtocol?: OccupancyJoinProtocol;
+  /** Record this touch as a product write, not only a heartbeat (#3599). */
+  readonly markWrite?: boolean;
   /** When false, evaluate only (including confirmed steal) without writing. */
   readonly write?: boolean;
   /** Test seam for lock wait / timeout. */
@@ -84,6 +104,24 @@ export function heartbeatAgeSeconds(record: OccupancyRecord, now: Date = new Dat
   return Math.max(0, Math.round((now.getTime() - record.heartbeatAt.getTime()) / 1000));
 }
 
+/** Age of the occupant's last recorded product write, or null when none (#3599). */
+export function lastWriteAgeSeconds(
+  record: OccupancyRecord,
+  now: Date = new Date(),
+): number | null {
+  if (record.lastWriteAt === null) return null;
+  return Math.max(0, Math.round((now.getTime() - record.lastWriteAt.getTime()) / 1000));
+}
+
+/**
+ * Human phrase for how recently the occupant wrote (#3599). Heartbeat age alone
+ * cannot distinguish an occupant mid-edit from one that merely claimed and left.
+ */
+export function formatLastWritePhrase(record: OccupancyRecord, now: Date = new Date()): string {
+  const age = lastWriteAgeSeconds(record, now);
+  return age === null ? "no recorded write" : `last write ${age}s ago`;
+}
+
 export function isOccupancyExpired(
   record: OccupancyRecord,
   now: Date = new Date(),
@@ -93,7 +131,26 @@ export function isOccupancyExpired(
 }
 
 function occupancyClockLine(record: OccupancyRecord): string {
-  return `claimed_at=${timestampIso(record.claimedAt)} heartbeat_at=${timestampIso(record.heartbeatAt)}`;
+  const lastWrite =
+    record.lastWriteAt === null ? "" : ` last_write_at=${timestampIso(record.lastWriteAt)}`;
+  return `claimed_at=${timestampIso(record.claimedAt)} heartbeat_at=${timestampIso(record.heartbeatAt)}${lastWrite}`;
+}
+
+/**
+ * Warn the holder that its own lease is inside the staleness window (#3599).
+ * Without this the owner learns it went stale only when a peer steals the lease.
+ */
+export function formatOccupancyStaleWarning(
+  record: OccupancyRecord,
+  now: Date = new Date(),
+  ttlMs: number = OCCUPANCY_TTL_MS,
+): string {
+  const age = heartbeatAgeSeconds(record, now);
+  return (
+    `Occupancy lease for session ${record.sessionId} has not beaten for ${age}s of its ` +
+    `${Math.round(ttlMs / 1000)}s window; another session may read it as abandoned. ` +
+    `Refresh it with \`deft occupancy:heartbeat --session-id=${record.sessionId}\`.`
+  );
 }
 
 export function formatOccupancyRemediation(
@@ -103,7 +160,7 @@ export function formatOccupancyRemediation(
   const age = heartbeatAgeSeconds(record, now);
   return (
     `Worktree occupied by session ${record.sessionId} (intent=${record.intent}, heartbeat ${age}s ago, ` +
-    `${occupancyClockLine(record)}).\n` +
+    `${formatLastWritePhrase(record, now)}, ${occupancyClockLine(record)}).\n` +
     "Stay read-only (`session:start --read-only`), use another worktree,\n" +
     "queue a join (`occupancy:request`), or run a confirmed owner transition " +
     "(`session:start --steal --confirm --occupant <reported-session-id> --session-id=<your-session-id>`).\n" +
@@ -208,6 +265,7 @@ export function applyWorktreeOccupancy(
           intent: input.intent ?? liveLocked?.intent ?? "mutation",
           claimedAt: liveLocked?.claimedAt ?? now,
           heartbeatAt: now,
+          lastWriteAt: input.markWrite === true ? now : (liveLocked?.lastWriteAt ?? null),
           host: input.host ?? liveLocked?.host ?? occupancyHost(input.env),
           address: input.address ?? liveLocked?.address ?? occupancyAddress(input.env),
           retainCapable: input.retainCapable ?? liveLocked?.retainCapable ?? false,
@@ -240,12 +298,19 @@ export function stealOccupancy(
   const path = occupancyPath(projectRoot);
   const incoming = resolveOccupancySessionId(input);
   if (input.confirm !== true) {
+    const current = readOccupancy(projectRoot);
+    // Show the occupant's write recency before the steal, not only after it
+    // (#3599): heartbeat age alone hides an occupant that is mid-edit.
+    const occupantDetail =
+      current !== null && !isOccupancyExpired(current, now)
+        ? `\n${formatOccupancyRemediation(current, now)}`
+        : "";
     return {
       action: "denied",
       sessionId: incoming,
-      record: readOccupancy(projectRoot),
+      record: current,
       path,
-      message: "occupancy:steal requires --confirm after naming the occupant.",
+      message: `occupancy:steal requires --confirm after naming the occupant.${occupantDetail}`,
       code: 2,
     };
   }
@@ -305,7 +370,10 @@ export function stealOccupancy(
           code: 1,
         };
       }
-      const priorClock = existingLocked !== null ? ` (${occupancyClockLine(existingLocked)})` : "";
+      const priorClock =
+        existingLocked !== null
+          ? ` (${formatLastWritePhrase(existingLocked, now)}, ${occupancyClockLine(existingLocked)})`
+          : "";
       const record = writeOccupancyRecord(
         projectRoot,
         {
@@ -314,6 +382,7 @@ export function stealOccupancy(
           intent: input.intent ?? "mutation",
           claimedAt: now,
           heartbeatAt: now,
+          lastWriteAt: null,
           host: input.host ?? occupancyHost(input.env),
           address: input.address ?? occupancyAddress(input.env),
           retainCapable: input.retainCapable ?? false,
@@ -418,26 +487,192 @@ export function releaseOccupancy(
   );
 }
 
+export interface OccupancyWriteGateResult {
+  readonly allow: boolean;
+  readonly message: string | null;
+  readonly occupant: OccupancyRecord | null;
+  /** True when this call re-stamped the owner's lease (#3599). */
+  readonly refreshed: boolean;
+  /** Set when the owner's own lease was inside the staleness window (#3599). */
+  readonly warning: string | null;
+}
+
+export interface OccupancyWriteGateInput {
+  readonly sessionId?: string;
+  readonly env?: NodeJS.ProcessEnv;
+  readonly now?: Date;
+  /**
+   * Re-stamp the owner's lease on the same-session allow (#3599). Off by
+   * default so the gate stays a pure read for callers that only probe; the
+   * dispatcher turns it on for the evaluation that immediately precedes an
+   * allowed write, so the stamp records a write that actually happened.
+   */
+  readonly refresh?: boolean;
+  readonly lockDeps?: LockDeps;
+}
+
+/**
+ * Decide whether the presented session may write, and — on the owner-allow
+ * path — keep the owner's lease alive (#3599).
+ *
+ * Before this, the gate was read-only on owner-allow, so the one event that
+ * proves the owner is alive did not extend its lease: the live window was
+ * twenty minutes from claim, once, regardless of how long the session worked.
+ */
 export function evaluateOccupancyWriteGate(
   projectRoot: string,
-  input: {
-    readonly sessionId?: string;
-    readonly env?: NodeJS.ProcessEnv;
-    readonly now?: Date;
-  } = {},
-): { allow: boolean; message: string | null; occupant: OccupancyRecord | null } {
+  input: OccupancyWriteGateInput = {},
+): OccupancyWriteGateResult {
   const now = input.now ?? new Date();
   const live = liveOccupant(projectRoot, now);
-  if (live === null) return { allow: true, message: null, occupant: null };
+  if (live === null) {
+    return { allow: true, message: null, occupant: null, refreshed: false, warning: null };
+  }
   const incoming =
     input.sessionId?.trim() || (input.env ?? process.env).DEFT_SESSION_ID?.trim() || "";
-  if (incoming.length > 0 && incoming === live.sessionId) {
-    return { allow: true, message: null, occupant: live };
+  if (incoming.length === 0 || incoming !== live.sessionId) {
+    return {
+      allow: false,
+      message: formatOccupancyRemediation(live, now),
+      occupant: live,
+      refreshed: false,
+      warning: null,
+    };
+  }
+
+  const ageMs = now.getTime() - live.heartbeatAt.getTime();
+  const warning = ageMs >= OCCUPANCY_STALE_WARN_MS ? formatOccupancyStaleWarning(live, now) : null;
+  if (input.refresh !== true || ageMs < OCCUPANCY_REFRESH_AFTER_MS) {
+    return { allow: true, message: null, occupant: live, refreshed: false, warning };
+  }
+  const refreshed = restampOccupancyHeartbeat(projectRoot, live.sessionId, now, true, input.lockDeps);
+  return {
+    allow: true,
+    message: null,
+    occupant: refreshed ?? live,
+    refreshed: refreshed !== null,
+    warning,
+  };
+}
+
+/**
+ * Re-stamp an existing live lease held by `sessionId`. Returns null when the
+ * lease is gone, expired, or now held by someone else — refresh must never
+ * claim or resurrect a lease, only extend one the caller already holds.
+ *
+ * Best-effort by design: a failed refresh must not turn a legitimate owner's
+ * write into a denial, so lock contention and IO errors return null.
+ */
+function restampOccupancyHeartbeat(
+  projectRoot: string,
+  sessionId: string,
+  now: Date,
+  markWrite: boolean,
+  lockDeps?: LockDeps,
+): OccupancyRecord | null {
+  try {
+    return withOccupancyLock(
+      projectRoot,
+      (fence) => {
+        const current = readOccupancy(projectRoot);
+        if (current === null || current.sessionId !== sessionId) return null;
+        if (isOccupancyExpired(current, now)) return null;
+        return writeOccupancyRecord(
+          projectRoot,
+          {
+            sessionId: current.sessionId,
+            worktreePath: current.worktreePath,
+            intent: current.intent,
+            claimedAt: current.claimedAt,
+            heartbeatAt: now,
+            lastWriteAt: markWrite ? now : current.lastWriteAt,
+            host: current.host,
+            address: current.address,
+            retainCapable: current.retainCapable,
+            joinProtocol: current.joinProtocol,
+          },
+          fence,
+        );
+      },
+      lockDeps,
+    );
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Refresh the caller's own live lease (#3599). Discoverable counterpart to the
+ * automatic write-gate refresh, for sessions whose work is long and quiet:
+ * reading, building, or waiting produces no gated write to ride on.
+ *
+ * Never claims and never mints an owner — an unheld or foreign lease is denied.
+ */
+export function heartbeatOccupancy(
+  projectRoot: string,
+  input: ApplyOccupancyInput = {},
+): OccupancyDecision {
+  const now = input.now ?? new Date();
+  const path = occupancyPath(projectRoot);
+  const caller =
+    input.sessionId?.trim() || (input.env ?? process.env).DEFT_SESSION_ID?.trim() || "";
+  if (caller.length === 0) {
+    return {
+      action: "denied",
+      sessionId: "",
+      record: readOccupancy(projectRoot),
+      path,
+      message:
+        "occupancy:heartbeat needs the owner id: pass --session-id <your-session-id> or set " +
+        "DEFT_SESSION_ID. Refresh extends an existing lease and never mints an owner.",
+      code: 2,
+    };
+  }
+  const live = liveOccupant(projectRoot, now);
+  if (live === null) {
+    return {
+      action: "denied",
+      sessionId: caller,
+      record: null,
+      path,
+      message:
+        "occupancy:heartbeat found no live lease to refresh. Claim one with " +
+        `\`deft session:start --session-id=${caller}\`.`,
+      code: 1,
+    };
+  }
+  if (live.sessionId !== caller) {
+    return {
+      action: "denied",
+      sessionId: caller,
+      record: live,
+      path,
+      message: formatOccupancyRemediation(live, now),
+      code: 1,
+    };
+  }
+  const record = restampOccupancyHeartbeat(projectRoot, caller, now, false, input.lockDeps);
+  if (record === null) {
+    return {
+      action: "denied",
+      sessionId: caller,
+      record: readOccupancy(projectRoot),
+      path,
+      message:
+        "occupancy:heartbeat could not refresh the lease: it expired or changed owner " +
+        "while the refresh was running.",
+      code: 1,
+    };
   }
   return {
-    allow: false,
-    message: formatOccupancyRemediation(live, now),
-    occupant: live,
+    action: "heartbeat",
+    sessionId: record.sessionId,
+    record,
+    path,
+    message:
+      `occupancy heartbeat session ${record.sessionId} (intent=${record.intent}, ` +
+      `${occupancyClockLine(record)})`,
+    code: 0,
   };
 }
 
@@ -505,6 +740,9 @@ function parseOccupancy(payload: unknown, fallbackWorktree: string): OccupancyRe
   const claimedAt = parseTimestamp(obj.claimed_at) ?? parseTimestamp(obj.heartbeat_at);
   const heartbeatAt = parseTimestamp(obj.heartbeat_at) ?? claimedAt;
   if (claimedAt === null || heartbeatAt === null) return null;
+  // Additive and optional (#3599): records written before the field exists,
+  // and by older CLIs, stay readable — absence means "no recorded write".
+  const lastWriteAt = parseTimestamp(obj.last_write_at);
   const joinRaw = typeof obj.join_protocol === "string" ? obj.join_protocol : "none";
   const joinProtocol = (OCCUPANCY_JOIN_PROTOCOLS as readonly string[]).includes(joinRaw)
     ? (joinRaw as OccupancyJoinProtocol)
@@ -521,6 +759,7 @@ function parseOccupancy(payload: unknown, fallbackWorktree: string): OccupancyRe
     intent,
     claimedAt,
     heartbeatAt,
+    lastWriteAt,
     host: typeof obj.host === "string" && obj.host.length > 0 ? obj.host : "none",
     address: typeof obj.address === "string" && obj.address.length > 0 ? obj.address : "none",
     retainCapable: obj.retain_capable === true,
@@ -529,17 +768,20 @@ function parseOccupancy(payload: unknown, fallbackWorktree: string): OccupancyRe
   };
 }
 
-function occupancyPayload(record: {
-  sessionId: string;
-  worktreePath: string;
-  intent: OccupancyIntent;
-  claimedAt: Date;
-  heartbeatAt: Date;
-  host: string;
-  address: string;
-  retainCapable: boolean;
-  joinProtocol: OccupancyJoinProtocol;
-}): Record<string, unknown> {
+interface OccupancyWriteFields {
+  readonly sessionId: string;
+  readonly worktreePath: string;
+  readonly intent: OccupancyIntent;
+  readonly claimedAt: Date;
+  readonly heartbeatAt: Date;
+  readonly lastWriteAt: Date | null;
+  readonly host: string;
+  readonly address: string;
+  readonly retainCapable: boolean;
+  readonly joinProtocol: OccupancyJoinProtocol;
+}
+
+function occupancyPayload(record: OccupancyWriteFields): Record<string, unknown> {
   return {
     schemaVersion: OCCUPANCY_SCHEMA_VERSION,
     session_id: record.sessionId,
@@ -547,6 +789,7 @@ function occupancyPayload(record: {
     intent: record.intent,
     claimed_at: timestampIso(record.claimedAt),
     heartbeat_at: timestampIso(record.heartbeatAt),
+    ...(record.lastWriteAt === null ? {} : { last_write_at: timestampIso(record.lastWriteAt) }),
     host: record.host,
     address: record.address,
     retain_capable: record.retainCapable,
@@ -556,17 +799,7 @@ function occupancyPayload(record: {
 
 function writeOccupancyRecord(
   projectRoot: string,
-  record: {
-    sessionId: string;
-    worktreePath: string;
-    intent: OccupancyIntent;
-    claimedAt: Date;
-    heartbeatAt: Date;
-    host: string;
-    address: string;
-    retainCapable: boolean;
-    joinProtocol: OccupancyJoinProtocol;
-  },
+  record: OccupancyWriteFields,
   fence: () => void,
 ): OccupancyRecord {
   const root = resolve(projectRoot);

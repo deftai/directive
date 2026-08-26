@@ -26,3 +26,14 @@ tasks:
       - task: :engine:invoke
         vars:
           ENGINE_CMD: 'occupancy:release --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
+  heartbeat:
+    desc: "Refresh your own live lease during long quiet stretches (#3599). Manual/Grok owner: --session-id <id> or DEFT_SESSION_ID. Gated writes refresh automatically; this never claims."
+    dir: '{{.USER_WORKING_DIR}}'
+    # Runtime/session dispatch: no engine:_ts-build / pnpm build (#2181).
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'occupancy:heartbeat --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'

@@ -172,6 +172,7 @@ export const EXACT_LIFECYCLE_VERBS = [
   "session:end",
   "occupancy:steal",
   "occupancy:release",
+  "occupancy:heartbeat",
   "swarm:launch",
 ] as const;
 export type ExactLifecycleVerb = (typeof EXACT_LIFECYCLE_VERBS)[number];
@@ -182,6 +183,7 @@ const DIRECT_LIFECYCLE_VERBS: Readonly<Record<string, ExactLifecycleVerb>> = {
   "session:end": "session:end",
   "occupancy:steal": "occupancy:steal",
   "occupancy:release": "occupancy:release",
+  "occupancy:heartbeat": "occupancy:heartbeat",
   "swarm-launch": "swarm:launch",
 };
 
@@ -281,6 +283,11 @@ const LIFECYCLE_ARGUMENT_POLICIES: Readonly<Record<ExactLifecycleVerb, Lifecycle
     rewriteUnsafeFlags: new Set(["--project-root"]),
   },
   "occupancy:release": {
+    booleanFlags: new Set(),
+    valueFlags: new Set(["--session-id", "--project-root"]),
+    rewriteUnsafeFlags: new Set(["--project-root"]),
+  },
+  "occupancy:heartbeat": {
     booleanFlags: new Set(),
     valueFlags: new Set(["--session-id", "--project-root"]),
     rewriteUnsafeFlags: new Set(["--project-root"]),

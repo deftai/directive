@@ -103,6 +103,7 @@ tasks:
             " session:ready "|" session-ready "|\
             " occupancy:steal "|" occupancy-steal "|\
             " occupancy:release "|" occupancy-release "|\
+            " occupancy:heartbeat "|" occupancy-heartbeat "|\
             " session:end "|" session-end "|\
             " lifecycle:event "|" lifecycle-event "|\
             " verify:session-ritual "|" verify-session-ritual "|\
