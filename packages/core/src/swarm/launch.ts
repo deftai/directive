@@ -61,6 +61,7 @@ export type WorktreeResolverFn = (
   options?: { repoRoot?: string },
 ) => WorktreeRecord[];
 export type RuntimeAuthProbeFn = () => [string, string];
+export type OccupancyReleaseFn = typeof releaseOccupancy;
 
 export const defaultPreflightGate: PreflightGateFn = (vbriefPath) => {
   const result = preflightEvaluate(vbriefPath);
@@ -955,6 +956,8 @@ export interface LaunchArgs {
   readinessGate?: ReadinessGateFn;
   worktreeResolver?: WorktreeResolverFn;
   runtimeAuthProbe?: RuntimeAuthProbeFn;
+  /** Test seam: override occupancy release after a newly minted claim fails. */
+  releaseOccupancyFn?: OccupancyReleaseFn;
   /**
    * Injection seam for the routing-provider environment lookup, mirroring
    * `resolveRoutingPath`'s `environ` parameter (#1877 Greptile follow-up).
@@ -1093,10 +1096,16 @@ export function swarmLaunch(args: LaunchArgs): {
     stderr: string,
   ): { exitCode: number; stdout: string; stderr: string } => {
     if (newlyClaimed) {
-      releaseOccupancy(projectRoot, {
-        sessionId: occupancy.sessionId,
-        env: args.environ ?? process.env,
-      });
+      try {
+        const release = args.releaseOccupancyFn ?? releaseOccupancy;
+        release(projectRoot, {
+          sessionId: occupancy.sessionId,
+          env: args.environ ?? process.env,
+        });
+      } catch {
+        // Best-effort: a throw here must not replace the original launch error
+        // or skip the structured return (#3649 Greptile P1).
+      }
     }
     return { exitCode, stdout: "", stderr };
   };

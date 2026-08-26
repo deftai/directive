@@ -559,6 +559,29 @@ describe("swarmLaunch occupancy-before-create (#3649)", () => {
     expect(readOccupancy(project)).toBeNull();
   });
 
+  it("keeps the original later-step error when occupancy release throws", () => {
+    const project = launchProject();
+    const mapPath = join(project, "worktree-map.json");
+    writeFileSync(mapPath, "{}\n");
+    const result = swarmLaunch({
+      stories: ["3649"],
+      projectRoot: project,
+      autonomous: true,
+      worktreeMap: mapPath,
+      preflightGate: () => ({ exitCode: 0, message: "" }),
+      readinessGate: () => ({ exitCode: 0, report: "" }),
+      runtimeAuthProbe: () => ["local-unsandboxed", "host-gh"],
+      releaseOccupancyFn: () => {
+        throw new Error("lock compromised: occupancy session changed before release");
+      },
+      environ: { CURSOR_AGENT: "1" },
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr).toMatch(/worktree-map|JSON array/i);
+    expect(result.stderr).not.toMatch(/lock compromised/);
+    expect(existsSync(occupancyPath(project))).toBe(true);
+  });
+
   it("does not release a heartbeat on an existing owner after a later failure", () => {
     const project = launchProject();
     applyWorktreeOccupancy(project, { sessionId: "owner", intent: "mutation" });
