@@ -301,19 +301,101 @@ describe("worktree occupancy lease (#3433)", () => {
     expect(isOccupancyExpired(record, past)).toBe(true);
     expect(liveOccupant(root, past)).toBeNull();
 
-    // The holder's next write is allowed but unprotected, and says so in the
-    // cap's own words rather than the stale-heartbeat ones.
+    // The holder's next write is refused, in the cap's own words rather than
+    // the stale-heartbeat ones. Allowing it would hand a write to the very
+    // bearer the cap exists to bound, on a tree a peer may already be claiming.
     const gate = evaluateOccupancyWriteGate(root, {
       sessionId: "owner",
       now: past,
       refresh: true,
     });
-    expect(gate.allow).toBe(true);
+    expect(gate.allow).toBe(false);
     expect(gate.occupant).toBeNull();
     expect(gate.refreshed).toBe(false);
-    expect(gate.warning).toContain("absolute age cap");
-    expect(gate.warning).toContain("session:start --session-id=owner");
-    expect(gate.warning).not.toContain("has not beaten");
+    expect(gate.message).toContain("absolute age cap");
+    expect(gate.message).toContain("session:start --session-id=owner");
+    expect(gate.message).not.toContain("has not beaten");
+
+    // The refusal is aimed at the stale holder, not at the tree: a peer taking
+    // over the abandoned worktree is the reclaim the cap exists to enable.
+    const reclaimer = evaluateOccupancyWriteGate(root, { sessionId: "peer", now: past });
+    expect(reclaimer.allow).toBe(true);
+    expect(reclaimer.message).toBeNull();
+  });
+
+  it("a refresh that discovers the lease moved denies the former owner (#3599)", () => {
+    const root = tempRoot();
+    const claimedAt = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "owner", now: claimedAt });
+    const wroteAt = new Date(claimedAt.getTime() + OCCUPANCY_REFRESH_AFTER_MS + 1000);
+
+    // Hold the lock so the re-stamp has to wait, then hand the lease to another
+    // session during that wait: the gate's unlocked read saw "owner", but the
+    // locked read will see "thief". Allowing on the record we started from is
+    // what would let a former owner write into someone else's worktree.
+    const lockPath = `${occupancyPath(root)}.lock`;
+    writeFileSync(lockPath, `${process.pid}\n${Date.now()}\n`, "utf8");
+    let handedOver = false;
+    const gate = evaluateOccupancyWriteGate(root, {
+      sessionId: "owner",
+      now: wroteAt,
+      refresh: true,
+      lockDeps: {
+        sleepMs: () => {
+          if (handedOver) return;
+          handedOver = true;
+          rmSync(lockPath, { force: true });
+          // Rewrite the record as the peer process would, rather than through
+          // the lease API: the occupancy lock is not reentrant, and the point
+          // of the test is an out-of-process handover mid-attempt.
+          const occupancyFile = occupancyPath(root);
+          writeFileSync(
+            occupancyFile,
+            readFileSync(occupancyFile, "utf8").replace(/"owner"/g, '"thief"'),
+            "utf8",
+          );
+        },
+      },
+    });
+
+    expect(handedOver).toBe(true);
+    expect(readOccupancy(root)?.sessionId).toBe("thief");
+    expect(gate.allow).toBe(false);
+    expect(gate.refreshed).toBe(false);
+    expect(gate.message).toContain("Worktree occupied by session thief");
+  });
+
+  it("a refresh blocked only by the lock keeps the owner writing (#3599)", () => {
+    const root = tempRoot();
+    const claimedAt = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "owner", now: claimedAt });
+    const wroteAt = new Date(claimedAt.getTime() + OCCUPANCY_REFRESH_AFTER_MS + 1000);
+
+    // Lock held for the whole attempt: contention says nothing about who owns
+    // the lease, so it must not become a denial for the rightful owner.
+    const lockPath = `${occupancyPath(root)}.lock`;
+    writeFileSync(lockPath, `${process.pid}\n${Date.now()}\n`, "utf8");
+    let clock = 0;
+    const gate = evaluateOccupancyWriteGate(root, {
+      sessionId: "owner",
+      now: wroteAt,
+      refresh: true,
+      lockDeps: {
+        now: () => {
+          clock += 31_000;
+          return clock;
+        },
+        sleepMs: () => {
+          /* no-op */
+        },
+      },
+    });
+
+    expect(gate.allow).toBe(true);
+    expect(gate.refreshed).toBe(false);
+    expect(gate.message).toBeNull();
+    expect(gate.occupant?.sessionId).toBe("owner");
+    expect(readOccupancy(root)?.heartbeatAt.toISOString()).toBe(claimedAt.toISOString());
   });
 
   it("a lease refreshed continuously under the cap stays live (#3599)", () => {
@@ -413,6 +495,35 @@ describe("worktree occupancy lease (#3433)", () => {
     const expiredAt = new Date(now.getTime() + OCCUPANCY_TTL_MS + 1);
     expect(heartbeatOccupancy(root, { sessionId: "owner", now: expiredAt, env: {} }).code).toBe(1);
     expect(readOccupancy(root)?.heartbeatAt.toISOString()).toBe(now.toISOString());
+  });
+
+  it("the refresh verb separates a lost lease from an unavailable lock (#3599)", () => {
+    const root = tempRoot();
+    const now = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "owner", now });
+    const lockPath = `${occupancyPath(root)}.lock`;
+    writeFileSync(lockPath, `${process.pid}\n${Date.now()}\n`, "utf8");
+    let clock = 0;
+
+    const blocked = heartbeatOccupancy(root, {
+      sessionId: "owner",
+      now,
+      env: {},
+      lockDeps: {
+        now: () => {
+          clock += 31_000;
+          return clock;
+        },
+        sleepMs: () => {
+          /* no-op */
+        },
+      },
+    });
+
+    expect(blocked.code).toBe(1);
+    expect(blocked.message).toContain("still yours");
+    expect(blocked.message).not.toContain("changed owner");
+    expect(readOccupancy(root)?.sessionId).toBe("owner");
   });
 
   it("steal surfaces the occupant's last write, not only heartbeat age (#3599)", () => {

@@ -203,11 +203,10 @@ export function formatOccupancyStaleWarning(
 
 /**
  * Tell the holder its lease aged out of the absolute cap (#3599). Distinct
- * remediation from a stale heartbeat: beating harder cannot help, and the tree
- * is now unprotected while the holder keeps writing, so the answer is to
- * re-claim rather than to refresh.
+ * remediation from a stale heartbeat: beating harder cannot help, because the
+ * lease is gone rather than merely quiet, so the answer is to re-claim.
  */
-export function formatOccupancyAgeCapWarning(
+export function formatOccupancyAgeCapRemediation(
   record: OccupancyRecord,
   now: Date = new Date(),
   maxLeaseMs: number = OCCUPANCY_MAX_LEASE_MS,
@@ -216,8 +215,9 @@ export function formatOccupancyAgeCapWarning(
   return (
     `Occupancy lease for session ${record.sessionId} passed its ${hours}h absolute age cap ` +
     `(claimed ${leaseAgeSeconds(record, now)}s ago, ${occupancyClockLine(record)}), so this ` +
-    "worktree is no longer held and a peer may claim it. Heartbeats cannot extend a capped " +
-    `lease. Re-claim with \`deft session:start --session-id=${record.sessionId}\`.`
+    "worktree is no longer held and a peer may claim it at any moment. Heartbeats cannot " +
+    "extend a capped lease — re-claim the worktree with " +
+    `\`deft session:start --session-id=${record.sessionId}\` before writing again.`
   );
 }
 
@@ -597,15 +597,22 @@ export function evaluateOccupancyWriteGate(
     input.sessionId?.trim() || (input.env ?? process.env).DEFT_SESSION_ID?.trim() || "";
   const record = readOccupancy(projectRoot);
   const liveness = record === null ? null : occupancyLiveness(record, now);
+  if (record !== null && liveness === "age-capped" && incoming === record.sessionId) {
+    // Refuse the capped holder rather than warn it (#3599). Its tree is now
+    // unheld, so allowing the write would let the very bearer the cap exists to
+    // bound keep mutating a worktree a peer may claim between this allow and
+    // the write itself. On gated writes the identity comes from the host
+    // payload, so the holder cannot present a stranger's id to dodge this.
+    return {
+      allow: false,
+      message: formatOccupancyAgeCapRemediation(record, now),
+      occupant: null,
+      refreshed: false,
+      warning: null,
+    };
+  }
   if (record === null || liveness !== "live") {
-    // A lease that ages out of the cap leaves its holder writing an unheld
-    // tree (#3599). Say so on the holder's own next write instead of letting
-    // the protection vanish silently mid-session.
-    const warning =
-      liveness === "age-capped" && record !== null && incoming === record.sessionId
-        ? formatOccupancyAgeCapWarning(record, now)
-        : null;
-    return { allow: true, message: null, occupant: null, refreshed: false, warning };
+    return { allow: true, message: null, occupant: null, refreshed: false, warning: null };
   }
   const live = record;
   if (incoming.length === 0 || incoming !== live.sessionId) {
@@ -623,29 +630,43 @@ export function evaluateOccupancyWriteGate(
   if (input.refresh !== true || ageMs < OCCUPANCY_REFRESH_AFTER_MS) {
     return { allow: true, message: null, occupant: live, refreshed: false, warning };
   }
-  const refreshed = restampOccupancyHeartbeat(
-    projectRoot,
-    live.sessionId,
-    now,
-    true,
-    input.lockDeps,
-  );
+  const outcome = restampOccupancyHeartbeat(projectRoot, live.sessionId, now, true, input.lockDeps);
+  if (outcome.status === "lost") {
+    // The lease died or changed hands between the unlocked read above and the
+    // locked re-stamp. Decide against what is on disk now rather than allowing
+    // on the stale record we started from: a replacement owner must win, or
+    // this gate hands a former owner a write into someone else's worktree
+    // (#3599). Re-entry cannot recurse further — refresh is off.
+    return evaluateOccupancyWriteGate(projectRoot, { ...input, now, refresh: false });
+  }
   return {
     allow: true,
     message: null,
-    occupant: refreshed ?? live,
-    refreshed: refreshed !== null,
+    occupant: outcome.status === "refreshed" ? outcome.record : live,
+    refreshed: outcome.status === "refreshed",
     warning,
   };
 }
 
 /**
- * Re-stamp an existing live lease held by `sessionId`. Returns null when the
+ * Outcome of a re-stamp attempt (#3599). `lost` and `unavailable` are kept
+ * apart because they demand opposite answers: the caller no longer holds the
+ * lease, versus the caller still holds it but the file could not be touched
+ * right now.
+ */
+type RestampOutcome =
+  | { readonly status: "refreshed"; readonly record: OccupancyRecord }
+  | { readonly status: "lost" }
+  | { readonly status: "unavailable" };
+
+/**
+ * Re-stamp an existing live lease held by `sessionId`. Reports `lost` when the
  * lease is gone, expired, or now held by someone else — refresh must never
  * claim or resurrect a lease, only extend one the caller already holds.
  *
- * Best-effort by design: a failed refresh must not turn a legitimate owner's
- * write into a denial, so lock contention and IO errors return null.
+ * Lock contention and IO errors report `unavailable` rather than `lost`: they
+ * say nothing about who owns the lease, so they must not turn a legitimate
+ * owner's write into a denial.
  */
 function restampOccupancyHeartbeat(
   projectRoot: string,
@@ -653,15 +674,15 @@ function restampOccupancyHeartbeat(
   now: Date,
   markWrite: boolean,
   lockDeps?: LockDeps,
-): OccupancyRecord | null {
+): RestampOutcome {
   try {
-    return withOccupancyLock(
+    return withOccupancyLock<RestampOutcome>(
       projectRoot,
       (fence) => {
         const current = readOccupancy(projectRoot);
-        if (current === null || current.sessionId !== sessionId) return null;
-        if (isOccupancyExpired(current, now)) return null;
-        return writeOccupancyRecord(
+        if (current === null || current.sessionId !== sessionId) return { status: "lost" };
+        if (isOccupancyExpired(current, now)) return { status: "lost" };
+        const record = writeOccupancyRecord(
           projectRoot,
           {
             sessionId: current.sessionId,
@@ -677,11 +698,12 @@ function restampOccupancyHeartbeat(
           },
           fence,
         );
+        return { status: "refreshed", record };
       },
       lockDeps,
     );
   } catch {
-    return null;
+    return { status: "unavailable" };
   }
 }
 
@@ -726,7 +748,7 @@ export function heartbeatOccupancy(
       path,
       message:
         capped && existing !== null
-          ? formatOccupancyAgeCapWarning(existing, now)
+          ? formatOccupancyAgeCapRemediation(existing, now)
           : "occupancy:heartbeat found no live lease to refresh. Claim one with " +
             `\`deft session:start --session-id=${caller}\`.`,
       code: 1,
@@ -742,19 +764,23 @@ export function heartbeatOccupancy(
       code: 1,
     };
   }
-  const record = restampOccupancyHeartbeat(projectRoot, caller, now, false, input.lockDeps);
-  if (record === null) {
+  const outcome = restampOccupancyHeartbeat(projectRoot, caller, now, false, input.lockDeps);
+  if (outcome.status !== "refreshed") {
     return {
       action: "denied",
       sessionId: caller,
       record: readOccupancy(projectRoot),
       path,
       message:
-        "occupancy:heartbeat could not refresh the lease: it expired or changed owner " +
-        "while the refresh was running.",
+        outcome.status === "lost"
+          ? "occupancy:heartbeat could not refresh the lease: it expired or changed owner " +
+            "while the refresh was running."
+          : "occupancy:heartbeat could not take the occupancy lock, so the lease is " +
+            "unchanged and still yours. Retry in a moment.",
       code: 1,
     };
   }
+  const record = outcome.record;
   return {
     action: "heartbeat",
     sessionId: record.sessionId,

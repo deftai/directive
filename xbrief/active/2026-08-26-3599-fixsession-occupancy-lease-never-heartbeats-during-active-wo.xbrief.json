@@ -169,7 +169,7 @@
         },
         {
           "id": 11,
-          "text": "Deny and warning text distinguishes a stale heartbeat from a lease past the absolute cap (\"formatOccupancyAgeCapWarning\" versus \"formatOccupancyStaleWarning\").",
+          "text": "Deny and warning text distinguishes a stale heartbeat from a lease past the absolute cap (\"formatOccupancyAgeCapRemediation\" versus \"formatOccupancyStaleWarning\"), and a capped holder's own gated write is refused rather than allowed.",
           "artifact_path": "packages/core/src/session/occupancy.ts",
           "ambiguous": false,
           "provenance": "implementation"
