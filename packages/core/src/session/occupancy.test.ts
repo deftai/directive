@@ -124,6 +124,8 @@ describe("worktree occupancy lease (#3433)", () => {
     });
     expect(stolen.code).toBe(0);
     expect(stolen.action).toBe("stolen");
+    expect(stolen.message).toContain("claimed_at=2026-08-17T12:00:00Z");
+    expect(stolen.message).toContain("heartbeat_at=2026-08-17T12:00:00Z");
     expect(readOccupancy(root)?.sessionId).toBe("new");
   });
 
@@ -227,6 +229,31 @@ describe("worktree occupancy lease (#3433)", () => {
     expect(readOccupancy(root)?.sessionId).toBe("mut");
   });
 
+  it("owner releases a live lease and a non-owner is denied (#3604)", () => {
+    const root = tempRoot();
+    const now = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "owner", now });
+    const denied = releaseOccupancy(root, { sessionId: "other", now });
+    expect(denied.code).toBe(1);
+    expect(denied.action).toBe("denied");
+    expect(readOccupancy(root)?.sessionId).toBe("owner");
+    const released = releaseOccupancy(root, { sessionId: "owner", now });
+    expect(released.code).toBe(0);
+    expect(released.action).toBe("released");
+    expect(readOccupancy(root)).toBeNull();
+  });
+
+  it("clears expired residue without ownership (#3604)", () => {
+    const root = tempRoot();
+    const claimedAt = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "stale", now: claimedAt });
+    const expiredAt = new Date(claimedAt.getTime() + OCCUPANCY_TTL_MS + 1);
+    const released = releaseOccupancy(root, { sessionId: "hygiene", now: expiredAt });
+    expect(released.code).toBe(0);
+    expect(released.action).toBe("released");
+    expect(readOccupancy(root)).toBeNull();
+  });
+
   it("formats heartbeat age in whole seconds", () => {
     const root = tempRoot();
     const now = new Date("2026-08-17T12:00:00Z");
@@ -242,6 +269,12 @@ describe("worktree occupancy lease (#3433)", () => {
         new Date("2026-08-17T12:00:09Z"),
       ),
     ).toContain("heartbeat 9s ago");
+    expect(
+      formatOccupancyRemediation(
+        record as NonNullable<typeof record>,
+        new Date("2026-08-17T12:00:09Z"),
+      ),
+    ).toContain("claimed_at=2026-08-17T12:00:00Z");
   });
 
   it("mutation session:start claims and a second session is denied", () => {

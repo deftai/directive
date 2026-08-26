@@ -14,8 +14,14 @@ import { repoRoot } from "./_helpers.js";
 const RUNTIME_SESSION_TASKFILES: Readonly<
   Record<string, readonly { task: string; mustNotDependOnBuild?: boolean }[]>
 > = {
-  "session.yml": [{ task: "start", mustNotDependOnBuild: true }],
-  "occupancy.yml": [{ task: "steal", mustNotDependOnBuild: true }],
+  "session.yml": [
+    { task: "start", mustNotDependOnBuild: true },
+    { task: "end", mustNotDependOnBuild: true },
+  ],
+  "occupancy.yml": [
+    { task: "steal", mustNotDependOnBuild: true },
+    { task: "release", mustNotDependOnBuild: true },
+  ],
   "triage-summary.yml": [{ task: "summary", mustNotDependOnBuild: true }],
   "triage-welcome.yml": [{ task: "welcome", mustNotDependOnBuild: true }],
   "verify.yml": [
@@ -30,6 +36,10 @@ const RUNTIME_VERB_TOKENS = [
   "session-start",
   "occupancy:steal",
   "occupancy-steal",
+  "occupancy:release",
+  "occupancy-release",
+  "session:end",
+  "session-end",
   "lifecycle:event",
   "lifecycle-event",
   "verify:session-ritual",

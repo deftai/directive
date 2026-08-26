@@ -15,3 +15,14 @@ tasks:
       - task: :engine:invoke
         vars:
           ENGINE_CMD: 'occupancy:steal --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
+  release:
+    desc: "Release this worktree occupancy lease (#3604). Owner live or expired residue. Non-owner live denied."
+    dir: '{{.USER_WORKING_DIR}}'
+    # Runtime/session dispatch: no engine:_ts-build / pnpm build (#2181).
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'occupancy:release --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'

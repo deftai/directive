@@ -119,6 +119,7 @@ export const CLI_MODULE_VERBS = [
   "session-start",
   "session-ready",
   "occupancy-steal",
+  "occupancy-release",
   "plan-sequence",
   "slice",
   "subagent-monitor",
@@ -441,6 +442,8 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "session:start": "session-start",
   "session:ready": "session-ready",
   "occupancy:steal": "occupancy-steal",
+  "occupancy:release": "occupancy-release",
+  "session:end": "occupancy-release",
   ...FRESHNESS_COLON_ALIASES,
   "lifecycle:event": "lifecycle-event",
   "lifecycle:stats": "lifecycle-stats",
@@ -3034,6 +3037,14 @@ const CURATED_HELP_GROUPS: readonly HelpGroup[] = [
       {
         name: "occupancy:steal",
         summary: "Supersede a live worktree occupancy lease (--confirm --occupant)",
+      },
+      {
+        name: "occupancy:release",
+        summary: "Release this worktree occupancy lease (owner live, or expired residue)",
+      },
+      {
+        name: "session:end",
+        summary: "End this mutation session by releasing occupancy (same as occupancy:release)",
       },
       {
         name: "freshness:report",

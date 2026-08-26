@@ -102,6 +102,8 @@ tasks:
             " session:start "|" session-start "|\
             " session:ready "|" session-ready "|\
             " occupancy:steal "|" occupancy-steal "|\
+            " occupancy:release "|" occupancy-release "|\
+            " session:end "|" session-end "|\
             " lifecycle:event "|" lifecycle-event "|\
             " verify:session-ritual "|" verify-session-ritual "|\
             " verify:tools "|" verify-tools "|\

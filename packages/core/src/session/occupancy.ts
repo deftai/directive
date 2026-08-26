@@ -3,7 +3,8 @@
  *
  * Ritual-state is "this session completed ceremony." Occupancy is "who may
  * mutate this tree right now." Those lifetimes differ; do not overload
- * ritual-state.json. Join negotiation (`occupancy:request`) is out of scope.
+ * ritual-state.json. Ordinary end is occupancy:release / session:end (#3604).
+ * Join negotiation (`occupancy:request`) is out of scope.
  *
  * Concurrency model:
  * - Assumptions: local filesystem; cooperating processes on one machine.
@@ -91,15 +92,21 @@ export function isOccupancyExpired(
   return now.getTime() - record.heartbeatAt.getTime() > ttlMs;
 }
 
+function occupancyClockLine(record: OccupancyRecord): string {
+  return `claimed_at=${timestampIso(record.claimedAt)} heartbeat_at=${timestampIso(record.heartbeatAt)}`;
+}
+
 export function formatOccupancyRemediation(
   record: OccupancyRecord,
   now: Date = new Date(),
 ): string {
   const age = heartbeatAgeSeconds(record, now);
   return (
-    `Worktree occupied by session ${record.sessionId} (intent=${record.intent}, heartbeat ${age}s ago).\n` +
+    `Worktree occupied by session ${record.sessionId} (intent=${record.intent}, heartbeat ${age}s ago, ` +
+    `${occupancyClockLine(record)}).\n` +
     "Stay read-only (`session:start --read-only`), use another worktree,\n" +
-    "queue a join (`occupancy:request`), or steal (`occupancy:steal --confirm`)."
+    "queue a join (`occupancy:request`), or steal (`occupancy:steal --confirm`).\n" +
+    "The occupant may release (`occupancy:release` / `session:end`)."
   );
 }
 
@@ -284,6 +291,7 @@ export function stealOccupancy(
         };
       }
       const incoming = resolveOccupancySessionId(input);
+      const priorClock = existingLocked !== null ? ` (${occupancyClockLine(existingLocked)})` : "";
       const record = writeOccupancyRecord(
         projectRoot,
         {
@@ -304,7 +312,7 @@ export function stealOccupancy(
         sessionId: record.sessionId,
         record,
         path,
-        message: `occupancy stolen from ${named}; writer is now session ${record.sessionId}`,
+        message: `occupancy stolen from ${named}${priorClock}; writer is now session ${record.sessionId}`,
         code: 0,
       };
     },
