@@ -15,9 +15,12 @@ import {
   heartbeatAgeSeconds,
   heartbeatOccupancy,
   isOccupancyExpired,
+  liveOccupant,
+  OCCUPANCY_MAX_LEASE_MS,
   OCCUPANCY_REFRESH_AFTER_MS,
   OCCUPANCY_STALE_WARN_MS,
   OCCUPANCY_TTL_MS,
+  occupancyLiveness,
   occupancyPath,
   readOccupancy,
   releaseOccupancy,
@@ -38,6 +41,23 @@ function tempRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "occupancy-"));
   temps.push(root);
   return root;
+}
+
+/**
+ * Beat an owner's lease every half TTL until its claim age crosses the absolute
+ * cap, and return the moment of the crossing (#3599). The last beat before the
+ * crossing succeeds, so heartbeat freshness can never be the reason a lease
+ * built this way reads as dead — only the cap can.
+ */
+function beatUntilPastCap(root: string, sessionId: string, claimedAt: Date): Date {
+  let at = claimedAt;
+  const maxBeats = Math.ceil((OCCUPANCY_MAX_LEASE_MS / OCCUPANCY_TTL_MS) * 2) + 4;
+  for (let beat = 0; beat <= maxBeats; beat += 1) {
+    if (at.getTime() - claimedAt.getTime() > OCCUPANCY_MAX_LEASE_MS) return at;
+    at = new Date(at.getTime() + OCCUPANCY_TTL_MS / 2);
+    evaluateOccupancyWriteGate(root, { sessionId, now: at, refresh: true });
+  }
+  throw new Error("lease never crossed the absolute age cap");
 }
 
 describe("worktree occupancy lease (#3433)", () => {
@@ -262,6 +282,102 @@ describe("worktree occupancy lease (#3433)", () => {
     expect(gate.allow).toBe(false);
     expect(gate.refreshed).toBe(false);
     expect(readOccupancy(root)?.sessionId).toBe("thief");
+  });
+
+  it("the absolute age cap expires a lease that never stops refreshing (#3599)", () => {
+    const root = tempRoot();
+    const claimedAt = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "owner", now: claimedAt });
+
+    const past = beatUntilPastCap(root, "owner", claimedAt);
+    expect(past.getTime() - claimedAt.getTime()).toBeGreaterThan(OCCUPANCY_MAX_LEASE_MS);
+
+    const record = readOccupancy(root) as NonNullable<ReturnType<typeof readOccupancy>>;
+    expect(record.claimedAt.toISOString()).toBe(claimedAt.toISOString());
+    // The lease is dead on claim age, not on neglect: it was beaten well inside
+    // the heartbeat window right up to the crossing.
+    expect(heartbeatAgeSeconds(record, past)).toBeLessThan(OCCUPANCY_TTL_MS / 1000);
+    expect(occupancyLiveness(record, past)).toBe("age-capped");
+    expect(isOccupancyExpired(record, past)).toBe(true);
+    expect(liveOccupant(root, past)).toBeNull();
+
+    // The holder's next write is allowed but unprotected, and says so in the
+    // cap's own words rather than the stale-heartbeat ones.
+    const gate = evaluateOccupancyWriteGate(root, {
+      sessionId: "owner",
+      now: past,
+      refresh: true,
+    });
+    expect(gate.allow).toBe(true);
+    expect(gate.occupant).toBeNull();
+    expect(gate.refreshed).toBe(false);
+    expect(gate.warning).toContain("absolute age cap");
+    expect(gate.warning).toContain("session:start --session-id=owner");
+    expect(gate.warning).not.toContain("has not beaten");
+  });
+
+  it("a lease refreshed continuously under the cap stays live (#3599)", () => {
+    const root = tempRoot();
+    const claimedAt = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "owner", now: claimedAt });
+
+    let at = claimedAt;
+    while (at.getTime() + OCCUPANCY_TTL_MS / 2 - claimedAt.getTime() <= OCCUPANCY_MAX_LEASE_MS) {
+      at = new Date(at.getTime() + OCCUPANCY_TTL_MS / 2);
+      const gate = evaluateOccupancyWriteGate(root, {
+        sessionId: "owner",
+        now: at,
+        refresh: true,
+      });
+      expect(gate.allow).toBe(true);
+      expect(gate.refreshed).toBe(true);
+      expect(gate.warning).toBeNull();
+    }
+    expect(at.getTime() - claimedAt.getTime()).toBeGreaterThan(OCCUPANCY_TTL_MS);
+
+    const record = readOccupancy(root) as NonNullable<ReturnType<typeof readOccupancy>>;
+    expect(occupancyLiveness(record, at)).toBe("live");
+    expect(liveOccupant(root, at)?.sessionId).toBe("owner");
+  });
+
+  it("claimed_at survives every refresh path, or the cap is unenforceable (#3599)", () => {
+    const root = tempRoot();
+    const claimedAt = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "owner", now: claimedAt });
+    const beatAt = new Date(claimedAt.getTime() + OCCUPANCY_REFRESH_AFTER_MS + 1000);
+
+    applyWorktreeOccupancy(root, { sessionId: "owner", now: beatAt });
+    expect(readOccupancy(root)?.claimedAt.toISOString()).toBe(claimedAt.toISOString());
+
+    heartbeatOccupancy(root, { sessionId: "owner", now: beatAt, env: {} });
+    expect(readOccupancy(root)?.claimedAt.toISOString()).toBe(claimedAt.toISOString());
+
+    evaluateOccupancyWriteGate(root, { sessionId: "owner", now: beatAt, refresh: true });
+    expect(readOccupancy(root)?.claimedAt.toISOString()).toBe(claimedAt.toISOString());
+
+    // Guard the inverse too: the refresh really did land, so the assertions
+    // above cannot pass by simply never writing the record.
+    expect(readOccupancy(root)?.heartbeatAt.toISOString()).toBe(beatAt.toISOString());
+  });
+
+  it("the refresh verb tells a capped holder to re-claim, not to beat harder (#3599)", () => {
+    const root = tempRoot();
+    const claimedAt = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "owner", now: claimedAt });
+    const past = beatUntilPastCap(root, "owner", claimedAt);
+
+    const capped = heartbeatOccupancy(root, { sessionId: "owner", now: past, env: {} });
+    expect(capped.code).toBe(1);
+    expect(capped.message).toContain("absolute age cap");
+    expect(capped.message).not.toContain("found no live lease");
+
+    // An ordinary idle lease still reads as an ordinary idle lease.
+    const idle = tempRoot();
+    applyWorktreeOccupancy(idle, { sessionId: "owner", now: claimedAt });
+    const stale = new Date(claimedAt.getTime() + OCCUPANCY_TTL_MS + 1000);
+    const idleBeat = heartbeatOccupancy(idle, { sessionId: "owner", now: stale, env: {} });
+    expect(idleBeat.code).toBe(1);
+    expect(idleBeat.message).toContain("found no live lease");
   });
 
   it("heartbeatOccupancy refreshes the owner and refuses everything else (#3599)", () => {

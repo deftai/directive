@@ -11,7 +11,8 @@
  * - Guarantees: mutual exclusion under crash-free operation; detect-and-abort
  *   if the sidecar lock is compromised (fence before rename/unlink).
  * - Non-goals: network filesystems; Byzantine processes; perfect off-Linux
- *   PID-reuse detection (hard age cap + fence instead).
+ *   PID-reuse detection (hard age cap — `OCCUPANCY_MAX_LEASE_MS` — plus fence
+ *   instead).
  */
 
 import { randomUUID } from "node:crypto";
@@ -37,6 +38,20 @@ export const OCCUPANCY_TTL_MS = 20 * 60 * 1000;
 export const OCCUPANCY_REFRESH_AFTER_MS = OCCUPANCY_TTL_MS / 4;
 /** Owner-allow staleness warning floor: three quarters of the TTL (#3599). */
 export const OCCUPANCY_STALE_WARN_MS = (OCCUPANCY_TTL_MS * 3) / 4;
+/**
+ * Absolute lease age cap, keyed on `claimedAt` and independent of refresh
+ * (#3599). Occupancy admits whoever presents the occupant's session id, so
+ * "the owner is still writing" only proves that some process holds that
+ * string. Without a bound on claim age, refresh would turn the heartbeat TTL —
+ * the sole mechanism that reclaims a worktree from a dead session — into
+ * something a writer can extend forever.
+ *
+ * Twenty-four TTLs is eight hours: one working day, so a tree claimed in the
+ * morning is always reclaimable before that day ends, and a comfortable
+ * multiple of the longest legitimate sessions seen here (hours, not shifts).
+ * Reaching the cap costs the owner one re-claim, not its work.
+ */
+export const OCCUPANCY_MAX_LEASE_MS = OCCUPANCY_TTL_MS * 24;
 export const OCCUPANCY_INTENTS = ["mutation", "swarm", "review"] as const;
 export type OccupancyIntent = (typeof OCCUPANCY_INTENTS)[number];
 export const OCCUPANCY_JOIN_PROTOCOLS = ["none", "heartbeat-file", "parent-message"] as const;
@@ -122,12 +137,37 @@ export function formatLastWritePhrase(record: OccupancyRecord, now: Date = new D
   return age === null ? "no recorded write" : `last write ${age}s ago`;
 }
 
+/** Age of the lease itself, measured from the claim that opened it (#3599). */
+export function leaseAgeSeconds(record: OccupancyRecord, now: Date = new Date()): number {
+  return Math.max(0, Math.round((now.getTime() - record.claimedAt.getTime()) / 1000));
+}
+
+/**
+ * Why a lease is or is not live (#3599). The two dead states are not the same
+ * operator problem: `heartbeat-stale` says nobody has touched the lease, while
+ * `age-capped` says the holder may well be active but has held the tree past
+ * the bound that keeps crash recovery possible.
+ */
+export type OccupancyLiveness = "live" | "heartbeat-stale" | "age-capped";
+
+export function occupancyLiveness(
+  record: OccupancyRecord,
+  now: Date = new Date(),
+  ttlMs: number = OCCUPANCY_TTL_MS,
+  maxLeaseMs: number = OCCUPANCY_MAX_LEASE_MS,
+): OccupancyLiveness {
+  if (now.getTime() - record.heartbeatAt.getTime() > ttlMs) return "heartbeat-stale";
+  if (now.getTime() - record.claimedAt.getTime() > maxLeaseMs) return "age-capped";
+  return "live";
+}
+
 export function isOccupancyExpired(
   record: OccupancyRecord,
   now: Date = new Date(),
   ttlMs: number = OCCUPANCY_TTL_MS,
+  maxLeaseMs: number = OCCUPANCY_MAX_LEASE_MS,
 ): boolean {
-  return now.getTime() - record.heartbeatAt.getTime() > ttlMs;
+  return occupancyLiveness(record, now, ttlMs, maxLeaseMs) !== "live";
 }
 
 function occupancyClockLine(record: OccupancyRecord): string {
@@ -150,6 +190,26 @@ export function formatOccupancyStaleWarning(
     `Occupancy lease for session ${record.sessionId} has not beaten for ${age}s of its ` +
     `${Math.round(ttlMs / 1000)}s window; another session may read it as abandoned. ` +
     `Refresh it with \`deft occupancy:heartbeat --session-id=${record.sessionId}\`.`
+  );
+}
+
+/**
+ * Tell the holder its lease aged out of the absolute cap (#3599). Distinct
+ * remediation from a stale heartbeat: beating harder cannot help, and the tree
+ * is now unprotected while the holder keeps writing, so the answer is to
+ * re-claim rather than to refresh.
+ */
+export function formatOccupancyAgeCapWarning(
+  record: OccupancyRecord,
+  now: Date = new Date(),
+  maxLeaseMs: number = OCCUPANCY_MAX_LEASE_MS,
+): string {
+  const hours = Math.round(maxLeaseMs / (60 * 60 * 1000));
+  return (
+    `Occupancy lease for session ${record.sessionId} passed its ${hours}h absolute age cap ` +
+    `(claimed ${leaseAgeSeconds(record, now)}s ago, ${occupancyClockLine(record)}), so this ` +
+    "worktree is no longer held and a peer may claim it. Heartbeats cannot extend a capped " +
+    `lease. Re-claim with \`deft session:start --session-id=${record.sessionId}\`.`
   );
 }
 
@@ -196,9 +256,10 @@ export function liveOccupant(
   projectRoot: string,
   now: Date = new Date(),
   ttlMs: number = OCCUPANCY_TTL_MS,
+  maxLeaseMs: number = OCCUPANCY_MAX_LEASE_MS,
 ): OccupancyRecord | null {
   const record = readOccupancy(projectRoot);
-  if (record === null || isOccupancyExpired(record, now, ttlMs)) return null;
+  if (record === null || isOccupancyExpired(record, now, ttlMs, maxLeaseMs)) return null;
   return record;
 }
 
@@ -524,12 +585,21 @@ export function evaluateOccupancyWriteGate(
   input: OccupancyWriteGateInput = {},
 ): OccupancyWriteGateResult {
   const now = input.now ?? new Date();
-  const live = liveOccupant(projectRoot, now);
-  if (live === null) {
-    return { allow: true, message: null, occupant: null, refreshed: false, warning: null };
-  }
   const incoming =
     input.sessionId?.trim() || (input.env ?? process.env).DEFT_SESSION_ID?.trim() || "";
+  const record = readOccupancy(projectRoot);
+  const liveness = record === null ? null : occupancyLiveness(record, now);
+  if (record === null || liveness !== "live") {
+    // A lease that ages out of the cap leaves its holder writing an unheld
+    // tree (#3599). Say so on the holder's own next write instead of letting
+    // the protection vanish silently mid-session.
+    const warning =
+      liveness === "age-capped" && record !== null && incoming === record.sessionId
+        ? formatOccupancyAgeCapWarning(record, now)
+        : null;
+    return { allow: true, message: null, occupant: null, refreshed: false, warning };
+  }
+  const live = record;
   if (incoming.length === 0 || incoming !== live.sessionId) {
     return {
       allow: false,
@@ -545,7 +615,13 @@ export function evaluateOccupancyWriteGate(
   if (input.refresh !== true || ageMs < OCCUPANCY_REFRESH_AFTER_MS) {
     return { allow: true, message: null, occupant: live, refreshed: false, warning };
   }
-  const refreshed = restampOccupancyHeartbeat(projectRoot, live.sessionId, now, true, input.lockDeps);
+  const refreshed = restampOccupancyHeartbeat(
+    projectRoot,
+    live.sessionId,
+    now,
+    true,
+    input.lockDeps,
+  );
   return {
     allow: true,
     message: null,
@@ -628,16 +704,23 @@ export function heartbeatOccupancy(
       code: 2,
     };
   }
-  const live = liveOccupant(projectRoot, now);
+  const existing = readOccupancy(projectRoot);
+  const live = existing !== null && !isOccupancyExpired(existing, now) ? existing : null;
   if (live === null) {
+    const capped =
+      existing !== null &&
+      existing.sessionId === caller &&
+      occupancyLiveness(existing, now) === "age-capped";
     return {
       action: "denied",
       sessionId: caller,
-      record: null,
+      record: capped ? existing : null,
       path,
       message:
-        "occupancy:heartbeat found no live lease to refresh. Claim one with " +
-        `\`deft session:start --session-id=${caller}\`.`,
+        capped && existing !== null
+          ? formatOccupancyAgeCapWarning(existing, now)
+          : "occupancy:heartbeat found no live lease to refresh. Claim one with " +
+            `\`deft session:start --session-id=${caller}\`.`,
       code: 1,
     };
   }
