@@ -320,6 +320,89 @@ describe("swarm worktrees", () => {
     rmSync(repo, { recursive: true, force: true });
   });
 
+
+  it("fails closed when git worktree list throws", () => {
+    const repo = mkdtempSync(join(tmpdir(), "sw-wt-listthrow-"));
+    const wt = join(repo, "wt-a");
+    const git = (): TextCaptureResult => {
+      throw new Error("list boom");
+    };
+    expect(() =>
+      resolveWorktreeMap([{ story_id: "s1", worktree_path: wt }], "master", false, {
+        repoRoot: repo,
+        git,
+      }),
+    ).toThrow(WorktreeMapConfigError);
+    rmSync(repo, { recursive: true, force: true });
+  });
+
+  it("fails closed when git worktree list returns nonzero", () => {
+    const repo = mkdtempSync(join(tmpdir(), "sw-wt-listrc-"));
+    const wt = join(repo, "wt-a");
+    const git = (): TextCaptureResult => ({
+      returncode: 1,
+      stdout: "",
+      stderr: "",
+    });
+    expect(() =>
+      resolveWorktreeMap([{ story_id: "s1", worktree_path: wt }], "master", false, {
+        repoRoot: repo,
+        git,
+      }),
+    ).toThrow(WorktreeMapConfigError);
+    rmSync(repo, { recursive: true, force: true });
+  });
+
+  it("fails closed when git worktree add throws", () => {
+    const repo = mkdtempSync(join(tmpdir(), "sw-wt-addthrow-"));
+    const wt = join(repo, "wt-a");
+    const sha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const git = (args: readonly string[]): TextCaptureResult => {
+      if (args[0] === "worktree" && args[1] === "list") {
+        return { returncode: 0, stdout: "", stderr: "" };
+      }
+      if (args[0] === "rev-parse") {
+        return { returncode: 0, stdout: `${sha}\n`, stderr: "" };
+      }
+      if (args[0] === "worktree" && args[1] === "add") {
+        throw new Error("add boom");
+      }
+      return { returncode: 1, stdout: "", stderr: "unhandled" };
+    };
+    expect(() =>
+      resolveWorktreeMap([{ story_id: "s1", worktree_path: wt }], "master", true, {
+        repoRoot: repo,
+        git,
+      }),
+    ).toThrow(WorktreeMapConfigError);
+    rmSync(repo, { recursive: true, force: true });
+  });
+
+  it("fails closed when git worktree add returns nonzero", () => {
+    const repo = mkdtempSync(join(tmpdir(), "sw-wt-addrc-"));
+    const wt = join(repo, "wt-a");
+    const sha = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    const git = (args: readonly string[]): TextCaptureResult => {
+      if (args[0] === "worktree" && args[1] === "list") {
+        return { returncode: 0, stdout: "", stderr: "" };
+      }
+      if (args[0] === "rev-parse") {
+        return { returncode: 0, stdout: `${sha}\n`, stderr: "" };
+      }
+      if (args[0] === "worktree" && args[1] === "add") {
+        return { returncode: 1, stdout: "", stderr: "" };
+      }
+      return { returncode: 1, stdout: "", stderr: "unhandled" };
+    };
+    expect(() =>
+      resolveWorktreeMap([{ story_id: "s1", worktree_path: wt }], "master", true, {
+        repoRoot: repo,
+        git,
+      }),
+    ).toThrow(WorktreeMapConfigError);
+    rmSync(repo, { recursive: true, force: true });
+  });
+
   it("hard-fails a registered path with no porcelain HEAD OID", () => {
     const repo = mkdtempSync(join(tmpdir(), "sw-wt-nohead-"));
     gitInit(repo);
