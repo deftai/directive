@@ -5,7 +5,7 @@
     "updated": "2026-08-26T01:28:28Z"
   },
   "plan": {
-    "title": "fix(session): occupancy leases are never released outside swarm completion (#3433)",
+    "title": "fix(session): occupancy leases are never released outside swarm completion (#3604)",
     "status": "completed",
     "narratives": {
       "Description": "Ship owner-gated ordinary occupancy release so a holder can drop a live lease. Expired residue is not an entry gate.",
@@ -21,7 +21,7 @@
         "effort": "S",
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "packages/core/src/session/occupancy.test.ts#owner-live-release",
+          "pointer": "packages/core/src/session/occupancy.test.ts:owner releases a live lease and a non-owner is denied (#3604)",
           "recorded_at": "2026-08-26T01:28:25.886Z",
           "recorded_by": "leaf-implementation/3604"
         }
@@ -32,7 +32,7 @@
         "effort": "S",
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "packages/core/src/session/occupancy.test.ts#non-owner-live-deny",
+          "pointer": "packages/cli/src/occupancy-release.test.ts:non-owner live release exits 1",
           "recorded_at": "2026-08-26T01:28:25.886Z",
           "recorded_by": "leaf-implementation/3604"
         }
@@ -43,7 +43,7 @@
         "effort": "S",
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "packages/core/src/session/occupancy.test.ts#expired-hygiene",
+          "pointer": "packages/core/src/session/occupancy.test.ts:clears expired residue without ownership (#3604)",
           "recorded_at": "2026-08-26T01:28:25.886Z",
           "recorded_by": "leaf-implementation/3604"
         }
@@ -54,7 +54,7 @@
         "effort": "S",
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "packages/core/src/session/occupancy.test.ts#steal-claimedAt-heartbeatAt",
+          "pointer": "packages/core/src/session/occupancy.test.ts:steals after naming the occupant with --confirm",
           "recorded_at": "2026-08-26T01:28:25.886Z",
           "recorded_by": "leaf-implementation/3604"
         }
