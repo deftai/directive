@@ -59,7 +59,7 @@
         "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "packages/core/src/scm/design-critique-chip.ts",
+          "pointer": "packages/core/src/scm/design-critique-chip.test.ts",
           "recorded_at": "2026-08-27T19:27:30Z",
           "recorded_by": "vitest"
         }
@@ -88,10 +88,10 @@
         "title": "#3796 is **not** in this issue's file scope (incident cite only)",
         "status": "completed",
         "x-directive/evidence": {
-          "kind": "test",
+          "kind": "review",
           "pointer": "packages/core/src/design-critique/completed-arc-record.ts",
           "recorded_at": "2026-08-27T19:27:30Z",
-          "recorded_by": "vitest"
+          "recorded_by": "review-cycle"
         }
       }
     ],
