@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3736",
-    "updated": "2026-08-26T19:37:16Z"
+    "updated": "2026-08-27T01:30:23Z"
   },
   "plan": {
     "title": "perf(hooks): the write path spends 5.8s on a duplicate forge call and 11s on redundant git spawns, and the host kills it",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "perf(hooks): the write path spends 5.8s on a duplicate forge call and 11s on redundant git spawns, and the host kills it",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3736",
@@ -16,31 +16,73 @@
     "items": [
       {
         "title": "`inspectActiveScope` evaluates every candidate with \"skipOriginFreshness: true\", so the authorization path performs no network I/O and no forge round trip can land inside the host tool.before budget.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/scope.test.ts -- afterEach asserts every evaluateOriginFreshness call carries { skip: true }, across the ready and both denial paths (merged tree 749343f60d135bb359108880c51a568421c1d8ec)",
+          "recorded_at": "2026-08-27T02:10:00Z",
+          "recorded_by": "Cursor/Claude Opus 5 (issue_3736_drive_to_merge_ready)"
+        }
       },
       {
         "title": "Redundant git subprocesses on the write path are memoized within a dispatch: HEAD, worktree root, and branch come from one git child via \"DISPATCH_GIT_CONTEXT_ARGS\".",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/git.test.ts -- \"answers the three context reads from one child\" plus lazy-probe, detached-HEAD, per-root, non-cacheable-verb, and failed-probe fallback cases (merged tree 749343f60d135bb359108880c51a568421c1d8ec)",
+          "recorded_at": "2026-08-27T02:10:00Z",
+          "recorded_by": "Cursor/Claude Opus 5 (issue_3736_drive_to_merge_ready)"
+        }
       },
       {
         "title": "The host mutation gate wraps its runner with \"memoizeGitRunner(seams.ritualRunGit ?? defaultGitRunner)\", so the allow/write-ready path spawns git once per tool call. Stated as a spawn count rather than a wall-clock duration: measured latency here is a function of concurrent machine load, so a duration would pass or fail on load rather than on the change.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-write-gate.test.ts -- \"renders allow on the clean-cache re-arm path without forge I/O\" asserts gitCalls equals exactly one coalesced rev-parse; measured 5 spawns before the change by temporarily unwrapping memoizeGitRunner (merged tree 749343f60d135bb359108880c51a568421c1d8ec)",
+          "recorded_at": "2026-08-27T02:10:00Z",
+          "recorded_by": "Cursor/Claude Opus 5 (issue_3736_drive_to_merge_ready)"
+        }
       },
       {
         "title": "Hook cost per tool call stays constant as tool calls accumulate, so N concurrent agents cost N git spawns and not 5N. Covered by the repeated-dispatch test \"keeps its git cost flat as concurrent tool calls pile up\" rather than by a benchmark.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-write-gate.test.ts -- \"keeps its git cost flat as concurrent tool calls pile up (#3736)\" asserts 7 dispatches spawn 7 git children, not 35 (merged tree 749343f60d135bb359108880c51a568421c1d8ec)",
+          "recorded_at": "2026-08-27T02:10:00Z",
+          "recorded_by": "Cursor/Claude Opus 5 (issue_3736_drive_to_merge_ready)"
+        }
       },
       {
         "title": "Acceptance states the effective budget as the minimum across loaded registrations, not the value in any single deposit, asserted as \"effectiveTimeoutSeconds\".",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/agent-hooks.test.ts -- effectiveTimeoutSeconds is the Math.min across the flat Cursor preToolUse entries and the nested Claude/Grok/Codex deposits, asserted equal to NESTED_HOOK_TIMEOUT_SECONDS (merged tree 749343f60d135bb359108880c51a568421c1d8ec)",
+          "recorded_at": "2026-08-27T02:10:00Z",
+          "recorded_by": "Cursor/Claude Opus 5 (issue_3736_drive_to_merge_ready)"
+        }
       },
       {
         "title": "No regression: the gate still denies what it denied before, covered by \"reports an active artifact whose canonical preflight rejects it\", and xbrief:preflight still enforces origin freshness per brief.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/scope.test.ts -- \"reports an active artifact whose canonical preflight rejects it\" and \"checks every candidate despite deterministic filename ordering\" still pass; preflight/evaluate.ts keeps evaluateOriginFreshness unskipped by default so xbrief:preflight remains fail-closed per brief (merged tree 749343f60d135bb359108880c51a568421c1d8ec)",
+          "recorded_at": "2026-08-27T02:10:00Z",
+          "recorded_by": "Cursor/Claude Opus 5 (issue_3736_drive_to_merge_ready)"
+        }
       },
       {
         "title": "CHANGELOG [Unreleased] entry \"Authorized writes are no longer refused by a hook that ran out of time\".",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "CHANGELOG.md [Unreleased] Fixed -- \"Authorized writes are no longer refused by a hook that ran out of time (#3736)\"; merged in PR #3787 (merge commit 749343f60d135bb359108880c51a568421c1d8ec)",
+          "recorded_at": "2026-08-27T02:10:00Z",
+          "recorded_by": "Cursor/Claude Opus 5 (issue_3736_drive_to_merge_ready)"
+        }
       }
     ],
     "tags": [
@@ -128,8 +170,33 @@
       },
       "literal_acceptance_not_commands": [
         "deft verify:hooks-installed --scope=agent --live"
-      ]
+      ],
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3787,
+        "prBase": null,
+        "mergeCommit": "749343f60d135bb359108880c51a568421c1d8ec",
+        "deliveryBranch": "master",
+        "deliveryCommit": "749343f60d135bb359108880c51a568421c1d8ec",
+        "verifiedAt": "2026-08-27T01:30:23Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "47749e5f-189a-4230-b699-b3e9e23e2728"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-27T01:30:23Z"
+      },
+      "completedAt": "2026-08-27T01:30:23Z",
+      "completedSessionId": "47749e5f-189a-4230-b699-b3e9e23e2728",
+      "capacityBucket": "technical-debt"
     },
-    "updated": "2026-08-26T19:37:16Z"
+    "updated": "2026-08-27T01:30:23Z"
   }
 }
