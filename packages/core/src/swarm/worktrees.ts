@@ -5,8 +5,8 @@ import {
   ProjectionContainmentError,
 } from "../fs/projection-containment.js";
 import { C3_FIELDS } from "./constants.js";
-import { runText, type TextCaptureResult } from "./subprocess.js";
 import { ensureSubagentStatusDir } from "./subagent-status-dir.js";
+import { runText, type TextCaptureResult } from "./subprocess.js";
 
 export class WorktreeMapError extends Error {
   override name = "WorktreeMapError";

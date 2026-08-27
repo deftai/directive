@@ -22,9 +22,9 @@ describe("ensureSubagentStatusDir (#3730)", () => {
     temps.push(root);
     mkdirSync(join(root, "wt"), { recursive: true });
     const wt = join(root, "wt");
-    const dir = ensureSubagentStatusDir(wt);
-    expect(dir).toBe(defaultScratchDir(wt));
-    expect(existsSync(dir!)).toBe(true);
+    const expected = defaultScratchDir(wt);
+    expect(ensureSubagentStatusDir(wt)).toBe(expected);
+    expect(existsSync(expected)).toBe(true);
   });
 
   it("returns null when the worktree path does not exist", () => {

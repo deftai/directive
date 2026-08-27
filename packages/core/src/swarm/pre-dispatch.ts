@@ -28,8 +28,8 @@ import {
   withUnitLock,
 } from "../delivery-attempt/index.js";
 import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_OK } from "./constants.js";
-import { runText } from "./subprocess.js";
 import { ensureSubagentStatusDir } from "./subagent-status-dir.js";
+import { runText } from "./subprocess.js";
 
 /** Default workflow id for drive-to:merge-ready implement leaves. */
 export const IMPLEMENT_LEAF_WORKFLOW_ID = "drive-to:merge-ready";
