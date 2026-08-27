@@ -140,7 +140,7 @@ describe("evaluateCompletedArcRecord (#3806)", () => {
     });
   });
 
-  it("blocks when a verified-claims table was posted but not cited", () => {
+  it("does not let a historical table block a recut that cites only the new lean", () => {
     const shaped: ThreadComment = {
       id: SYNTHESIS_ID,
       body: `design-critique: synthesis accepted, because yes\n\nsuccessor lean ${LEAN_ID}\n`,
@@ -148,7 +148,35 @@ describe("evaluateCompletedArcRecord (#3806)", () => {
     const verdict = evaluateCompletedArcRecord({
       comments: [lean, table, shaped],
     });
-    expect(verdict).toMatchObject({ status: "blocked", reason: "missing-table-cite" });
+    expect(verdict).toEqual({
+      status: "complete",
+      synthesisCommentId: SYNTHESIS_ID,
+      citedLeanId: LEAN_ID,
+      citedTableId: null,
+    });
+  });
+
+  it("blocks a chipless in-flight critique that has a critic post but no record", () => {
+    const critic: ThreadComment = {
+      id: CRITIC_ID,
+      body: "model: grok-4.6\nrole: critic\n\n## Finding 1\nchips are load-bearing\n",
+    };
+    const verdict = evaluateCompletedArcRecord({ comments: [critic] });
+    expect(verdict).toMatchObject({ status: "blocked", reason: "missing-record" });
+  });
+
+  it("keeps a valid completed-arc record when a later lone-shape comment exists", () => {
+    const lone: ThreadComment = {
+      id: SYNTHESIS_ID + 1,
+      body: "design-critique: synthesis accepted, because noise\n",
+    };
+    const verdict = evaluateCompletedArcRecord({
+      comments: [lean, table, synthesis, lone],
+    });
+    expect(verdict.status).toBe("complete");
+    if (verdict.status === "complete") {
+      expect(verdict.synthesisCommentId).toBe(SYNTHESIS_ID);
+    }
   });
 });
 

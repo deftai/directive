@@ -86,12 +86,69 @@ export function hasDesignCritiqueCatalogChip(labels: readonly string[]): boolean
   return labels.some((name) => CATALOG.has(name));
 }
 
+const CRITIC_ROLE_RE = /(?:^|\n)\s*role:\s*critic\b/i;
+const MECHANISM_SHAPED_FIELD_RE = /(?:^|\n)\s*mechanism-shaped:\s*true\b/i;
+
+export function isInFlightCritiqueThread(comments: readonly ThreadComment[]): boolean {
+  return comments.some(
+    (comment) =>
+      isSuccessorLeanBody(comment.body) ||
+      CRITIC_ROLE_RE.test(comment.body) ||
+      MECHANISM_SHAPED_FIELD_RE.test(comment.body),
+  );
+}
+
 function byId(comments: readonly ThreadComment[]): Map<number, ThreadComment> {
   const map = new Map<number, ThreadComment>();
   for (const comment of comments) {
     map.set(comment.id, comment);
   }
   return map;
+}
+
+function verdictForSynthesis(
+  comment: ThreadComment,
+  comments: readonly ThreadComment[],
+): CompletedArcVerdict {
+  const cited = extractCitedCommentIds(comment.body);
+  if (cited.length === 0) {
+    return {
+      status: "blocked",
+      reason: "lone-shape",
+      detail:
+        "synthesis-accepted sentence shape is present but does not cite an accepted successor lean",
+    };
+  }
+  const byCommentId = byId(comments);
+  const citedLean = cited
+    .map((id) => byCommentId.get(id))
+    .find((row) => row !== undefined && isSuccessorLeanBody(row.body));
+  if (citedLean === undefined) {
+    return {
+      status: "blocked",
+      reason: "cite-not-lean",
+      detail: "cited id is not a successor lean on this thread",
+    };
+  }
+  const citedTable = cited
+    .map((id) => byCommentId.get(id))
+    .find((row) => row !== undefined && isVerifiedClaimsTableBody(row.body));
+  if (citedTable === undefined) {
+    const claimedTable = /\bverified-claims table\s+\d{8,}\b/i.test(comment.body);
+    if (claimedTable) {
+      return {
+        status: "blocked",
+        reason: "missing-table-cite",
+        detail: "synthesis cites a verified-claims table id that is not a table on this thread",
+      };
+    }
+  }
+  return {
+    status: "complete",
+    synthesisCommentId: comment.id,
+    citedLeanId: citedLean.id,
+    citedTableId: citedTable?.id ?? null,
+  };
 }
 
 /**
@@ -105,66 +162,28 @@ export function evaluateCompletedArcRecord(input: {
   const comments = input.comments;
   const labels = input.labels ?? [];
   const synthesis = comments.filter((c) => isSynthesisAcceptedShape(c.body));
-  const inArc = synthesis.length > 0 || hasDesignCritiqueCatalogChip(labels);
-
+  const completeRecords = synthesis
+    .map((comment) => verdictForSynthesis(comment, comments))
+    .filter((verdict): verdict is Extract<CompletedArcVerdict, { status: "complete" }> => {
+      return verdict.status === "complete";
+    });
+  if (completeRecords.length > 0) {
+    return completeRecords.reduce((a, b) => (a.synthesisCommentId >= b.synthesisCommentId ? a : b));
+  }
+  if (synthesis.length > 0) {
+    const latest = synthesis.reduce((a, b) => (a.id >= b.id ? a : b));
+    return verdictForSynthesis(latest, comments);
+  }
+  const inArc = hasDesignCritiqueCatalogChip(labels) || isInFlightCritiqueThread(comments);
   if (!inArc) {
     return { status: "not-in-arc" };
   }
-  if (synthesis.length === 0) {
-    return {
-      status: "blocked",
-      reason: "missing-record",
-      detail:
-        "catalog chip is present but the completed-arc record is missing: " +
-        "`design-critique: synthesis accepted, because ...` citing the accepted successor lean",
-    };
-  }
-
-  const latest = synthesis.reduce((a, b) => (a.id >= b.id ? a : b));
-  const cited = extractCitedCommentIds(latest.body);
-  if (cited.length === 0) {
-    return {
-      status: "blocked",
-      reason: "lone-shape",
-      detail:
-        "synthesis-accepted sentence shape is present but does not cite an accepted successor lean",
-    };
-  }
-
-  const byCommentId = byId(comments);
-  const citedLean = cited
-    .map((id) => byCommentId.get(id))
-    .find((comment) => comment !== undefined && isSuccessorLeanBody(comment.body));
-  if (citedLean === undefined) {
-    return {
-      status: "blocked",
-      reason: "cite-not-lean",
-      detail: "cited id is not a successor lean on this thread",
-    };
-  }
-
-  const tables = comments.filter((c) => isVerifiedClaimsTableBody(c.body));
-  let citedTableId: number | null = null;
-  if (tables.length > 0) {
-    const citedTable = cited
-      .map((id) => byCommentId.get(id))
-      .find((comment) => comment !== undefined && isVerifiedClaimsTableBody(comment.body));
-    if (citedTable === undefined) {
-      return {
-        status: "blocked",
-        reason: "missing-table-cite",
-        detail:
-          "verified-claims table was posted but the synthesis-accepted record does not cite it",
-      };
-    }
-    citedTableId = citedTable.id;
-  }
-
   return {
-    status: "complete",
-    synthesisCommentId: latest.id,
-    citedLeanId: citedLean.id,
-    citedTableId,
+    status: "blocked",
+    reason: "missing-record",
+    detail:
+      "design-critique is in flight but the completed-arc record is missing: " +
+      "`design-critique: synthesis accepted, because ...` citing the accepted successor lean",
   };
 }
 

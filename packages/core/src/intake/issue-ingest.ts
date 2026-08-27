@@ -1038,6 +1038,7 @@ export function ingestBulk(
     duplicate: [],
     dryrun: [],
     failed: [],
+    blocked: [],
     notices: [],
   };
 
@@ -1049,8 +1050,13 @@ export function ingestBulk(
       // #2306: a per-issue quarantine hard-fail must not sink the whole batch;
       // record it, emit nothing for that issue, and surface a non-zero exit
       // upstream via the `failed` bucket.
-      if (exc instanceof ScannerHardFailError || exc instanceof DesignCritiqueIngestBlockedError) {
+      if (exc instanceof ScannerHardFailError) {
         (summary.failed as string[]).push(`#${exc.issueNumber}`);
+        process.stderr.write(`${exc.message}\n`);
+        continue;
+      }
+      if (exc instanceof DesignCritiqueIngestBlockedError) {
+        (summary.blocked as string[]).push(`#${exc.issueNumber}`);
         process.stderr.write(`${exc.message}\n`);
         continue;
       }
@@ -1142,8 +1148,9 @@ export function issueIngestMain(args: IssueIngestCliArgs): number {
     const duplicate = summary.duplicate as string[];
     const dryrun = summary.dryrun as string[];
     const failed = (summary.failed as string[] | undefined) ?? [];
+    const blocked = (summary.blocked as string[] | undefined) ?? [];
     process.stdout.write(
-      `issue:ingest bulk summary: ${created.length} created, ${duplicate.length} duplicate, ${dryrun.length} dry-run, ${failed.length} refused (total considered: ${summary.total})\n`,
+      `issue:ingest bulk summary: ${created.length} created, ${duplicate.length} duplicate, ${dryrun.length} dry-run, ${failed.length} refused, ${blocked.length} blocked (total considered: ${summary.total})\n`,
     );
     for (const entry of created) {
       process.stdout.write(`  CREATED ${entry}\n`);
@@ -1160,8 +1167,16 @@ export function issueIngestMain(args: IssueIngestCliArgs): number {
     for (const entry of failed) {
       process.stdout.write(`  REFUSED ${entry} (quarantine scanner hard-fail; nothing written)\n`);
     }
+    for (const entry of blocked) {
+      process.stdout.write(
+        `  BLOCKED ${entry} (design-critique completed-arc record; nothing written)\n`,
+      );
+    }
     // #2306: fail closed on any quarantine hard-fail in the batch.
-    return failed.length > 0 ? 2 : 0;
+    // Design-critique protocol holds are exit 1, not the scanner fatal path.
+    if (failed.length > 0) return 2;
+    if (blocked.length > 0) return 1;
+    return 0;
   }
 
   const issue = fetchIssue(repo, args.number as number, { cwd: projectRoot });
