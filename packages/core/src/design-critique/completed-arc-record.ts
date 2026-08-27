@@ -88,13 +88,25 @@ export function hasDesignCritiqueCatalogChip(labels: readonly string[]): boolean
 
 const CRITIC_ROLE_RE = /(?:^|\n)\s*role:\s*critic\b/i;
 const MECHANISM_SHAPED_FIELD_RE = /(?:^|\n)\s*mechanism-shaped:\s*true\b/i;
+const PANEL_DEPOSIT_RE = /(?:^|\n)\s*panel-deposit\b/i;
+const PARENT_ROLE_RE = /(?:^|\n)\s*role:\s*parent\b/i;
+const SIBLINGS_FIELD_RE = /(?:^|\n)\s*siblings:\s*\d+/i;
+const INPUT_CEILING_FIELD_RE = /(?:^|\n)\s*input-ceiling:\s*\d+/i;
+
+export function isPanelDepositBody(body: string): boolean {
+  if (PANEL_DEPOSIT_RE.test(body)) return true;
+  return (
+    PARENT_ROLE_RE.test(body) && SIBLINGS_FIELD_RE.test(body) && INPUT_CEILING_FIELD_RE.test(body)
+  );
+}
 
 export function isInFlightCritiqueThread(comments: readonly ThreadComment[]): boolean {
   return comments.some(
     (comment) =>
       isSuccessorLeanBody(comment.body) ||
       CRITIC_ROLE_RE.test(comment.body) ||
-      MECHANISM_SHAPED_FIELD_RE.test(comment.body),
+      MECHANISM_SHAPED_FIELD_RE.test(comment.body) ||
+      isPanelDepositBody(comment.body),
   );
 }
 
@@ -104,6 +116,15 @@ function byId(comments: readonly ThreadComment[]): Map<number, ThreadComment> {
     map.set(comment.id, comment);
   }
   return map;
+}
+
+function latestSuccessorLean(comments: readonly ThreadComment[]): ThreadComment | undefined {
+  let latest: ThreadComment | undefined;
+  for (const comment of comments) {
+    if (!isSuccessorLeanBody(comment.body)) continue;
+    if (latest === undefined || comment.id > latest.id) latest = comment;
+  }
+  return latest;
 }
 
 function verdictForSynthesis(
@@ -154,6 +175,8 @@ function verdictForSynthesis(
 /**
  * Ingest clearance from thread structure. Labels and author identity are not
  * predicates. A lone synthesis-accepted sentence shape is not the record.
+ * Clearance cites the latest successor lean; an older complete record does not
+ * clear a later recut. A panel-deposit is in-flight even before critic posts.
  */
 export function evaluateCompletedArcRecord(input: {
   readonly labels?: readonly string[];
@@ -168,7 +191,29 @@ export function evaluateCompletedArcRecord(input: {
       return verdict.status === "complete";
     });
   if (completeRecords.length > 0) {
-    return completeRecords.reduce((a, b) => (a.synthesisCommentId >= b.synthesisCommentId ? a : b));
+    const latestLean = latestSuccessorLean(comments);
+    const matching =
+      latestLean === undefined
+        ? completeRecords
+        : completeRecords.filter((record) => record.citedLeanId === latestLean.id);
+    if (matching.length > 0) {
+      return matching.reduce((a, b) => (a.synthesisCommentId >= b.synthesisCommentId ? a : b));
+    }
+    const latestCompleteId = completeRecords.reduce(
+      (max, record) => Math.max(max, record.synthesisCommentId),
+      0,
+    );
+    const laterSynthesis = synthesis.filter((comment) => comment.id > latestCompleteId);
+    if (laterSynthesis.length > 0) {
+      const latest = laterSynthesis.reduce((a, b) => (a.id >= b.id ? a : b));
+      return verdictForSynthesis(latest, comments);
+    }
+    return {
+      status: "blocked",
+      reason: "missing-record",
+      detail:
+        "a later successor lean recut the arc; ingest waits on a completed-arc record citing that latest lean",
+    };
   }
   if (synthesis.length > 0) {
     const latest = synthesis.reduce((a, b) => (a.id >= b.id ? a : b));

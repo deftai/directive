@@ -178,6 +178,63 @@ describe("evaluateCompletedArcRecord (#3806)", () => {
       expect(verdict.synthesisCommentId).toBe(SYNTHESIS_ID);
     }
   });
+
+  it("blocks a chipless panel-deposit before any critic posts", () => {
+    const deposit: ThreadComment = {
+      id: CRITIC_ID - 1,
+      body: "model: grok-4.6\nrole: parent\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5390001612\n",
+    };
+    const verdict = evaluateCompletedArcRecord({ comments: [deposit] });
+    expect(verdict).toMatchObject({ status: "blocked", reason: "missing-record" });
+  });
+
+  it("blocks a recut lean plus incomplete later synthesis instead of reusing stale clearance", () => {
+    const recutLean: ThreadComment = {
+      id: SYNTHESIS_ID + 10,
+      body: "**Lean:** recut of 5442939496. New takes.\n",
+    };
+    const incomplete: ThreadComment = {
+      id: SYNTHESIS_ID + 20,
+      body: "design-critique: synthesis accepted, because recut still open\n",
+    };
+    const verdict = evaluateCompletedArcRecord({
+      comments: [lean, table, synthesis, recutLean, incomplete],
+    });
+    expect(verdict).toMatchObject({ status: "blocked", reason: "lone-shape" });
+  });
+
+  it("blocks a recut lean with no new synthesis yet", () => {
+    const recutLean: ThreadComment = {
+      id: SYNTHESIS_ID + 10,
+      body: "**Lean:** recut of 5442939496. New takes.\n",
+    };
+    const verdict = evaluateCompletedArcRecord({
+      comments: [lean, table, synthesis, recutLean],
+    });
+    expect(verdict).toMatchObject({ status: "blocked", reason: "missing-record" });
+  });
+
+  it("completes a recut when synthesis cites the latest lean", () => {
+    const recutLean: ThreadComment = {
+      id: SYNTHESIS_ID + 10,
+      body: "**Lean:** recut of 5442939496. New takes.\n",
+    };
+    const recutSynthesis: ThreadComment = {
+      id: SYNTHESIS_ID + 20,
+      body:
+        "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+        `successor lean ${recutLean.id}\n`,
+    };
+    const verdict = evaluateCompletedArcRecord({
+      comments: [lean, table, synthesis, recutLean, recutSynthesis],
+    });
+    expect(verdict).toEqual({
+      status: "complete",
+      synthesisCommentId: recutSynthesis.id,
+      citedLeanId: recutLean.id,
+      citedTableId: null,
+    });
+  });
 });
 
 describe("assertCompletedArcAllowsIngest", () => {

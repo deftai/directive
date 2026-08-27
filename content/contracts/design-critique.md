@@ -325,6 +325,7 @@ Closed catalog (last chip wins): `design-critique:mechanism-shaped` (in-flight, 
 - ⊗ Intercept mixed `scm issue edit` adds/removes for this facet.
 - ⊗ General-purpose labels CLI.
 - ! After the completed-arc record is present, `triage:accept` / `scope:promote` / `issue:ingest` / build may proceed. Any identity may run those verbs. Same-session parent continuation is not required. GitHub Triage on the implementer is not required. They read the accepted verified synthesis (latest successor lean plus the verified-claims table).
+- ! Ingest clearance cites the latest successor lean. An older completed-arc record does not clear a later recut lean. A panel-deposit is in-flight even when the catalog chip missed and no critic has posted.
 - ! Keep `plan.policy.judgmentGates` matching only `design-critique:mechanism-shaped`. After `triage-ready` replaces it, the issue leaves the gate match.
 - ! Chip is list-visible state, not consent. Do not drop `mechanism-shaped` without the synthesis-accepted line (or the #3640 empty-disagreement path).
 - ⊗ Treat `design-critique:triage-ready` as ingest clearance.
