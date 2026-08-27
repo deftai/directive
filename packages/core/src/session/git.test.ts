@@ -1,18 +1,21 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import {
   defaultGitRunner,
   detectBranch,
+  existingAncestorDir,
   type GitRunner,
+  gitCommonDir,
   gitHead,
   gitIsAncestor,
   memoizeGitRunner,
   parseGitCatFileBatch,
   showBlobsBatch,
   worktreePath,
+  worktreePathOrNull,
 } from "./git.js";
 
 const temps: string[] = [];
@@ -33,6 +36,49 @@ describe("session git helpers", () => {
     expect(worktreePath("/tmp/project", () => ({ code: 1, stdout: "", stderr: "" }))).toContain(
       "project",
     );
+  });
+
+  it("worktreePathOrNull returns null instead of falling back (#3794)", () => {
+    expect(
+      worktreePathOrNull("/tmp/project", () => ({ code: 1, stdout: "", stderr: "" })),
+    ).toBeNull();
+    expect(
+      worktreePathOrNull("/tmp/project", () => ({ code: 0, stdout: "   ", stderr: "" })),
+    ).toBeNull();
+    expect(
+      worktreePathOrNull("/tmp/project", () => ({ code: 0, stdout: "/tmp/wt", stderr: "" })),
+    ).toBe(resolve("/tmp/wt"));
+  });
+
+  it("existingAncestorDir walks up to a real directory", () => {
+    const root = mkdtempSync(join(tmpdir(), "git-ancestor-"));
+    temps.push(root);
+    const missing = join(root, "nested", "dir", "file.ts");
+    expect(existingAncestorDir(missing)).toBe(resolve(root));
+    expect(existingAncestorDir(root)).toBe(resolve(root));
+    const filePath = join(root, "leaf.txt");
+    writeFileSync(filePath, "x", "utf8");
+    expect(existingAncestorDir(filePath)).toBe(resolve(root));
+  });
+
+  it("gitCommonDir resolves a relative .git against the worktree", () => {
+    expect(gitCommonDir("/tmp/project", () => ({ code: 0, stdout: ".git", stderr: "" }))).toBe(
+      resolve("/tmp/project", ".git"),
+    );
+    expect(
+      gitCommonDir("/tmp/project", () => ({ code: 0, stdout: "/tmp/project/.git", stderr: "" })),
+    ).toBe(resolve("/tmp/project/.git"));
+    expect(gitCommonDir("/tmp/project", () => ({ code: 1, stdout: "", stderr: "" }))).toBeNull();
+  });
+
+  it("fuzzes existingAncestorDir over nested missing paths (#3794)", () => {
+    const root = mkdtempSync(join(tmpdir(), "git-ancestor-fuzz-"));
+    temps.push(root);
+    for (let i = 0; i < 50; i += 1) {
+      const rel = Array.from({ length: (i % 5) + 1 }, (_, j) => `d${i}-${j}`).join("/");
+      const target = join(root, rel, "file.ts");
+      expect(existingAncestorDir(target)).toBe(resolve(root));
+    }
   });
 
   it("detectBranch uses detached sha fallback", () => {
@@ -233,5 +279,42 @@ describe("showBlobsBatch (#3673)", () => {
     );
     expect(calls).toEqual([["show", "HEAD:a.json"]]);
     expect(bodies.get("a.json")).toBeNull();
+  });
+});
+
+describe("linked worktree git-common-dir (#3794)", () => {
+  it("matches across linked worktrees and differs for a foreign repo", () => {
+    const base = mkdtempSync(join(tmpdir(), "git-common-wt-"));
+    temps.push(base);
+    const primary = join(base, "primary");
+    const wtA = join(base, "wt-a");
+    const foreign = join(base, "foreign");
+    mkdirSync(primary);
+    execFileSync("git", ["init", "-q"], { cwd: primary });
+    execFileSync("git", ["config", "user.email", "t@t.dev"], { cwd: primary });
+    execFileSync("git", ["config", "user.name", "t"], { cwd: primary });
+    execFileSync("git", ["commit", "--allow-empty", "-q", "-m", "base"], { cwd: primary });
+    execFileSync("git", ["worktree", "add", "--detach", "-q", wtA], { cwd: primary });
+    mkdirSync(foreign);
+    execFileSync("git", ["init", "-q"], { cwd: foreign });
+    execFileSync("git", ["config", "user.email", "t@t.dev"], { cwd: foreign });
+    execFileSync("git", ["config", "user.name", "t"], { cwd: foreign });
+    execFileSync("git", ["commit", "--allow-empty", "-q", "-m", "base"], { cwd: foreign });
+
+    const missing = join(wtA, "missing", "file.ts");
+    const ancestor = existingAncestorDir(missing);
+    expect(ancestor).toBe(resolve(wtA));
+    const primaryTop = worktreePathOrNull(primary);
+    const wtTop = worktreePathOrNull(ancestor ?? "");
+    expect(primaryTop).not.toBeNull();
+    expect(wtTop).toBe(resolve(wtA));
+
+    const primaryCommon = gitCommonDir(primary);
+    const wtCommon = gitCommonDir(wtA);
+    const foreignCommon = gitCommonDir(foreign);
+    expect(primaryCommon).not.toBeNull();
+    expect(wtCommon).not.toBeNull();
+    expect(resolve(primaryCommon ?? "")).toBe(resolve(wtCommon ?? ""));
+    expect(resolve(foreignCommon ?? "")).not.toBe(resolve(primaryCommon ?? ""));
   });
 });

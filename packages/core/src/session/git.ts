@@ -1,5 +1,6 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { resolve } from "node:path";
+import { existsSync, statSync } from "node:fs";
+import { dirname, isAbsolute, resolve } from "node:path";
 
 export interface GitRunResult {
   readonly code: number;
@@ -157,6 +158,55 @@ export function worktreePath(projectRoot: string, runGit: GitRunner = defaultGit
     return resolve(stdout);
   }
   return resolve(projectRoot);
+}
+
+/**
+ * Walk from `targetPath` to the nearest existing directory. A write that
+ * creates a missing nested file is the common case; git cannot use a
+ * nonexistent cwd.
+ */
+export function existingAncestorDir(targetPath: string): string | null {
+  let current = resolve(targetPath);
+  for (;;) {
+    if (existsSync(current)) {
+      try {
+        if (statSync(current).isDirectory()) return current;
+      } catch {
+        // Fall through to dirname when the path is not stat-able.
+      }
+      const parent = dirname(current);
+      return parent === current ? null : parent;
+    }
+    const parent = dirname(current);
+    if (parent === current) return null;
+    current = parent;
+  }
+}
+
+/**
+ * Failure-expressing sibling of {@link worktreePath}. Returns null instead of
+ * falling back to `startDir` so a missing git tree is distinguishable from
+ * success (#3794).
+ */
+export function worktreePathOrNull(
+  startDir: string,
+  runGit: GitRunner = defaultGitRunner,
+): string | null {
+  const { code, stdout } = runGit(startDir, ["rev-parse", "--show-toplevel"]);
+  const trimmed = stdout.trim();
+  if (code !== 0 || trimmed.length === 0) return null;
+  return resolve(trimmed);
+}
+
+/** Absolute `--git-common-dir` for `projectRoot`, or null on failure. */
+export function gitCommonDir(
+  projectRoot: string,
+  runGit: GitRunner = defaultGitRunner,
+): string | null {
+  const { code, stdout } = runGit(projectRoot, ["rev-parse", "--git-common-dir"]);
+  const trimmed = stdout.trim();
+  if (code !== 0 || trimmed.length === 0) return null;
+  return isAbsolute(trimmed) ? resolve(trimmed) : resolve(projectRoot, trimmed);
 }
 
 /** True when `ancestor` is reachable from `descendant` (same commit counts). */
