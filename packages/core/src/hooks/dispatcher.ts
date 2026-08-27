@@ -518,6 +518,8 @@ export function admitEffectiveHookRoot(
   if (normalizeHookProjectRoot(payloadCommon) === normalizeHookProjectRoot(candidateCommon)) {
     return candidate;
   }
+  // Foreign-repo refusal: do not relocate occupancy or ritual into another
+  // repository. Payload-root gates still apply (adoption, not fallback-open).
   return payload;
 }
 
