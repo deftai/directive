@@ -69,8 +69,8 @@ const NEVER_CALLED: RunGhFn = () => {
   throw new Error("runGh must not be called");
 };
 
-function opts(fetchClosingIssues: FetchClosingIssuesFn) {
-  return { repo: REPO, runGh: NEVER_CALLED, fetchClosingIssues };
+function opts(fetchClosingIssues: FetchClosingIssuesFn, proxied = false) {
+  return { repo: REPO, runner: { runGh: NEVER_CALLED, proxied }, fetchClosingIssues };
 }
 
 describe("pr-closeout-attestable evaluate", () => {
@@ -257,6 +257,26 @@ describe("pr-closeout-attestable failure message", () => {
     expect(message).toContain("closing references, not the branch diff");
     expect(message).toContain("task verify:pr-closeout-attestable -- --pr 3786");
     expect(message).toContain("recorded_by accepts any non-empty string");
+    expect(message).not.toContain("cached");
+  });
+
+  it("discloses the ghx cache caveat when the read could not be pinned to gh", () => {
+    const root = makeRepo();
+    writeBrief(root, "2026-08-26-3609-story.xbrief.json", {
+      title: "story",
+      status: "running",
+      references: [issueRef(3609)],
+      items: bareItems(1),
+    });
+
+    const refused = evaluate(root, 3786, opts(closing(3609), true));
+    expect(refused.code).toBe(1);
+    expect(refused.proxied).toBe(true);
+    expect(refused.message).toContain("cached");
+
+    const passed = evaluate(root, 3786, opts(closing(3610), true));
+    expect(passed.code).toBe(0);
+    expect(passed.message).toContain("cached");
   });
 });
 

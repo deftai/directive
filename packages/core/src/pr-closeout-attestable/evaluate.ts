@@ -17,7 +17,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
-import { makeGateRunner } from "../orphan-active/issue-state.js";
+import { type GateRunner, makeGateRunner } from "../orphan-active/issue-state.js";
 import { collectGithubRefs } from "../orphan-active/refs.js";
 import { fetchClosingIssuesReferences } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
@@ -79,7 +79,11 @@ export type FetchClosingIssuesFn = (
 
 export interface EvaluateOptions {
   readonly repo?: string | null;
-  readonly runGh?: RunGhFn;
+  /**
+   * SCM read seam plus its freshness basis. Defaults to `makeGateRunner()`, which
+   * pins plain `gh` when present so a cached `ghx` GET cannot fail this gate open.
+   */
+  readonly runner?: GateRunner;
   readonly quiet?: boolean;
   /** Closing-reference seam so tests do not need a forge. */
   readonly fetchClosingIssues?: FetchClosingIssuesFn;
@@ -116,8 +120,8 @@ function relBriefPath(path: string, projectRoot: string): string {
   }
 }
 
-function listActiveRunningBriefs(projectRoot: string): ActiveBrief[] {
-  const activeDir = join(resolveLifecycleRoot(projectRoot), "active");
+function listActiveRunningBriefs(lifecycleRoot: string): ActiveBrief[] {
+  const activeDir = join(lifecycleRoot, "active");
   if (!existsSync(activeDir)) {
     return [];
   }
@@ -207,10 +211,20 @@ function renderCriterion(criterion: UnattestedCriterion): string[] {
   return lines;
 }
 
+/**
+ * `gh` was absent so the closing-reference read went through `ghx`, a cached GET
+ * proxy this gate cannot inspect. Say so rather than implying a fresh read
+ * (#3767 / #3737).
+ */
+const PROXIED_CAVEAT =
+  "  Note: `gh` was not on PATH, so the closing-reference read resolved through `ghx`, a cached\n" +
+  "  GET proxy; freshness is bounded by that proxy, which this gate cannot inspect (#3737).";
+
 function formatRefusal(
   prNumber: number,
   findings: readonly CloseoutFinding[],
   projectRoot: string,
+  proxied: boolean,
 ): string {
   const criteria = findings.reduce((sum, f) => sum + f.unattested.length, 0);
   const briefNoun = findings.length === 1 ? "brief" : "briefs";
@@ -245,10 +259,17 @@ function formatRefusal(
     "  Trigger is the PR's closing references, not the branch diff. A PR that leaves an unattested",
     "  brief without closing its issue is unaffected.",
   );
+  if (proxied) {
+    lines.push(PROXIED_CAVEAT);
+  }
   return lines.join("\n");
 }
 
-function configError(prNumber: number, message: string): PrCloseoutAttestableResult {
+function configError(
+  prNumber: number,
+  message: string,
+  proxied = false,
+): PrCloseoutAttestableResult {
   return {
     code: 2,
     message: `verify:pr-closeout-attestable: ${message}`,
@@ -256,7 +277,7 @@ function configError(prNumber: number, message: string): PrCloseoutAttestableRes
     prNumber,
     closingIssues: [],
     findings: [],
-    proxied: false,
+    proxied,
   };
 }
 
@@ -324,8 +345,7 @@ export function evaluate(
 
   // Pin plain `gh` when it exists: `ghx` is a cached GET proxy and a stale
   // closing-reference read would fail this gate open (#3767 / #3737).
-  const runner =
-    options.runGh === undefined ? makeGateRunner() : { runGh: options.runGh, proxied: false };
+  const runner = options.runner ?? makeGateRunner();
   const fetchClosing = options.fetchClosingIssues ?? fetchClosingIssuesReferences;
   const repo = resolveRepo(options.repo, root);
 
@@ -337,6 +357,7 @@ export function evaluate(
         `${repo === null ? "" : ` (repo=${repo})`}. ` +
         "Refusing to certify the merge on an unverified lookup — retry after fixing gh auth, " +
         "rate limit, or network.",
+      runner.proxied,
     );
   }
 
@@ -358,7 +379,7 @@ export function evaluate(
   const closingSet = new Set(closingIssues);
   const findings: CloseoutFinding[] = [];
 
-  for (const brief of listActiveRunningBriefs(root)) {
+  for (const brief of listActiveRunningBriefs(lifecycleRoot)) {
     const { issues } = collectGithubRefs(brief.plan, repo);
     // Match on issue number, the same origin identity `--issue N` uses (#3429).
     const issue = issues.find((ref) => closingSet.has(ref.number))?.number;
@@ -388,7 +409,7 @@ export function evaluate(
   if (findings.length > 0) {
     return {
       code: 1,
-      message: formatRefusal(prNumber, findings, root),
+      message: formatRefusal(prNumber, findings, root, runner.proxied),
       stream: "stderr",
       prNumber,
       closingIssues,
@@ -398,12 +419,12 @@ export function evaluate(
   }
 
   const issueList = closingIssues.map((n) => `#${n}`).join(", ");
+  const pass =
+    `verify:pr-closeout-attestable: PR #${prNumber} closes ${issueList}; ` +
+    "no active/running brief for those issues has unattested acceptance criteria.";
   return {
     code: 0,
-    message: quiet
-      ? ""
-      : `verify:pr-closeout-attestable: PR #${prNumber} closes ${issueList}; ` +
-        "no active/running brief for those issues has unattested acceptance criteria.",
+    message: quiet ? "" : runner.proxied ? `${pass}\n${PROXIED_CAVEAT}` : pass,
     stream: quiet ? "none" : "stdout",
     prNumber,
     closingIssues,
