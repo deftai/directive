@@ -109,13 +109,13 @@ describe("effectiveRoot admission (#3794)", () => {
       stdout: "",
       stderr: "",
     }));
-    expect(failed).toEqual({ root: payload, foreign: false, candidate: null });
+    expect(failed).toEqual({ root: payload, foreign: false, candidate: null, refusal: null });
     expect(
       admitEffectiveHookRoot(payload, null, () => ({ code: 1, stdout: "", stderr: "" })),
-    ).toEqual({ root: payload, foreign: false, candidate: null });
+    ).toEqual({ root: payload, foreign: false, candidate: null, refusal: null });
   });
 
-  it("falls back when git-common-dir lookup is unproven instead of denying as foreign", () => {
+  it("falls back when payloadRoot is not a Git repository, so containment never applied", () => {
     const payload = resolve("/tmp/payload-root");
     const root = mkdtempSync(join(tmpdir(), "hook-3794-common-fail-"));
     temps.push(root);
@@ -123,11 +123,44 @@ describe("effectiveRoot admission (#3794)", () => {
       if (args.includes("--show-toplevel")) {
         return { code: 0, stdout: "/tmp/other-repo", stderr: "" };
       }
+      // Neither root can answer --git-common-dir: payloadRoot is not a repo.
       return { code: 1, stdout: "", stderr: "" };
     });
     expect(admission.foreign).toBe(false);
+    expect(admission.refusal).toBeNull();
     expect(resolve(admission.root)).toBe(payload);
     expect(resolve(admission.candidate ?? "")).toBe(resolve("/tmp/other-repo"));
+  });
+
+  it("fails closed when payloadRoot is a repository but target identity is unreadable", () => {
+    const { primary } = linkedFixture();
+    const other = mkdtempSync(join(tmpdir(), "hook-3794-unproven-"));
+    temps.push(other);
+    const admission = admitEffectiveHookRoot(primary, join(other, "src", "a.ts"), (cwd, args) => {
+      if (args.includes("--show-toplevel")) {
+        return { code: 0, stdout: other, stderr: "" };
+      }
+      // payloadRoot answers; the resolved target does not.
+      if (args.includes("--git-common-dir")) {
+        return resolve(cwd) === resolve(primary)
+          ? defaultGitRunner(cwd, args)
+          : { code: 128, stdout: "", stderr: "fatal: unreadable" };
+      }
+      return defaultGitRunner(cwd, args);
+    });
+    expect(admission.foreign).toBe(true);
+    expect(admission.refusal).toBe("unproven-identity");
+    expect(resolve(admission.root)).toBe(resolve(primary));
+  });
+
+  it("reports a proven separate repository as foreign-repository", () => {
+    const { primary, foreign } = linkedFixture();
+    const admission = admitEffectiveHookRoot(
+      primary,
+      join(foreign, "src", "app.ts"),
+      defaultGitRunner,
+    );
+    expect(admission.refusal).toBe("foreign-repository");
   });
 });
 
@@ -286,6 +319,64 @@ describe("direct-write occupancy/ritual follow the target worktree (#3794)", () 
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "foreign-repository-deny" });
     expect(decision.message).toContain("span more than one Git worktree");
+    expect(ritualRoots).toEqual([]);
+  });
+
+  it("refuses an ApplyPatch whose `Move to` destination lands in another worktree", () => {
+    const { primary, wtA, wtB } = linkedFixture();
+    const { ritualRoots, seams } = recordingSeams("owner");
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: {
+          tool_name: "ApplyPatch",
+          tool_input: {
+            path: join(wtA, "src", "a.ts"),
+            patch:
+              "*** Begin Patch\n*** Update File: " +
+              join(wtA, "src", "a.ts") +
+              "\n*** Move to: " +
+              join(wtB, "src", "a.ts") +
+              "\n+x\n*** End Patch",
+          },
+        },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      seams,
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "foreign-repository-deny" });
+    expect(decision.message).toContain("span more than one Git worktree");
+    expect(ritualRoots).toEqual([]);
+  });
+
+  it("refuses an ApplyPatch whose `Move to` destination leaves the repository", () => {
+    const { primary, wtA, foreign } = linkedFixture();
+    const { ritualRoots, seams } = recordingSeams("owner");
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: {
+          tool_name: "ApplyPatch",
+          tool_input: {
+            path: join(wtA, "src", "a.ts"),
+            patch:
+              "*** Begin Patch\n*** Update File: " +
+              join(wtA, "src", "a.ts") +
+              "\n*** Move to: " +
+              join(foreign, "src", "a.ts") +
+              "\n+x\n*** End Patch",
+          },
+        },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      seams,
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "foreign-repository-deny" });
+    expect(decision.message).toContain("different Git repository");
     expect(ritualRoots).toEqual([]);
   });
 

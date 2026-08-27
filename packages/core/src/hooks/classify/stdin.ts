@@ -10,21 +10,33 @@ const APPLY_PATCH_BEGIN_MARKER = "*** Begin Patch";
 /** Single-file Add/Update only — other *** … File: ops must fail closed (#2738 Greptile). */
 const APPLY_PATCH_MUTATION_LINE_RE =
   /^\*\*\* (Add File|Update File|Delete File|Move File|Rename File): (.+)$/gm;
+/**
+ * Canonical apply_patch spells a rename as `*** Update File:` followed by
+ * `*** Move to:`. The destination is a mutation target in its own right, so it
+ * must reach root admission; kept separate from the header regex above so the
+ * single-mutation #2738 synthesis contract is unchanged (#3794).
+ */
+const APPLY_PATCH_MOVE_DESTINATION_RE = /^\*\*\* Move to: (.+)$/gm;
 
 export function stripUtf8Bom(raw: string): string {
   return raw.startsWith(UTF8_BOM) ? raw.slice(UTF8_BOM.length) : raw;
 }
 
-/** Paths named by ApplyPatch mutation headers. Order preserved, duplicates dropped. */
+/**
+ * Paths named by ApplyPatch mutation headers, plus `*** Move to:` rename
+ * destinations. Order preserved, duplicates dropped.
+ */
 export function applyPatchMutationPaths(text: string): string[] {
   const paths: string[] = [];
   const seen = new Set<string>();
-  for (const match of text.matchAll(APPLY_PATCH_MUTATION_LINE_RE)) {
-    const path = match[2]?.trim();
-    if (!path || seen.has(path)) continue;
+  const push = (raw: string | undefined): void => {
+    const path = raw?.trim();
+    if (!path || seen.has(path)) return;
     seen.add(path);
     paths.push(path);
-  }
+  };
+  for (const match of text.matchAll(APPLY_PATCH_MUTATION_LINE_RE)) push(match[2]);
+  for (const match of text.matchAll(APPLY_PATCH_MOVE_DESTINATION_RE)) push(match[1]);
   return paths;
 }
 

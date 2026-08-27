@@ -24,6 +24,19 @@ describe("path/shell extractors (#2950)", () => {
       }),
     ).toEqual(["declared.ts", "body.ts"]);
   });
+
+  it("hookMutationTargetPaths includes a canonical `Move to` destination (#3794)", () => {
+    expect(
+      hookMutationTargetPaths({
+        tool_input: {
+          path: "declared.ts",
+          patch:
+            "*** Begin Patch\n*** Update File: src/from.ts\n" +
+            "*** Move to: /elsewhere/to.ts\n+x\n*** End Patch",
+        },
+      }),
+    ).toEqual(["declared.ts", "src/from.ts", "/elsewhere/to.ts"]);
+  });
   it("hookShellCommand and hookMcpArgsText", () => {
     expect(hookShellCommand({ tool_input: { command: "git push" } })).toBe("git push");
     expect(hookMcpArgsText({ tool_input: { x: 1 } })).toBe('{"x":1}');

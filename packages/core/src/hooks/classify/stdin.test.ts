@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseHookStdin, stripUtf8Bom } from "./stdin.js";
+import { applyPatchMutationPaths, parseHookStdin, stripUtf8Bom } from "./stdin.js";
 
 describe("parseHookStdin (#2734 / #2738 / #2950)", () => {
   it("strips BOM and parses JSON", () => {
@@ -25,6 +25,48 @@ describe("parseHookStdin (#2734 / #2738 / #2950)", () => {
       payload: {
         tool_name: "ApplyPatch",
         tool_input: { path: "only.txt", patch: freeForm },
+      },
+      context: {},
+    });
+  });
+});
+
+describe("applyPatchMutationPaths (#3794)", () => {
+  it("collects mutation headers and `Move to` destinations", () => {
+    const patch = [
+      "*** Begin Patch",
+      "*** Update File: src/from.ts",
+      "*** Move to: /other/tree/to.ts",
+      "+x",
+      "*** End Patch",
+    ].join("\n");
+    expect(applyPatchMutationPaths(patch)).toEqual(["src/from.ts", "/other/tree/to.ts"]);
+  });
+
+  it("drops duplicates across both header kinds", () => {
+    const patch = [
+      "*** Begin Patch",
+      "*** Update File: same.ts",
+      "*** Move to: same.ts",
+      "*** End Patch",
+    ].join("\n");
+    expect(applyPatchMutationPaths(patch)).toEqual(["same.ts"]);
+  });
+
+  it("leaves the #2738 single-mutation synthesis contract unchanged", () => {
+    // `Move to` is not a mutation header, so a canonical rename still presents
+    // exactly one mutation and still synthesizes.
+    const freeForm = [
+      "*** Begin Patch",
+      "*** Update File: from.txt",
+      "*** Move to: to.txt",
+      "+x",
+      "*** End Patch",
+    ].join("\n");
+    expect(parseHookStdin(freeForm)).toEqual({
+      payload: {
+        tool_name: "ApplyPatch",
+        tool_input: { path: "from.txt", patch: freeForm },
       },
       context: {},
     });

@@ -497,18 +497,37 @@ export function formatHookRootNote(payloadRoot: string, effectiveRoot: string): 
   return `payloadRoot=${payloadRoot} effectiveRoot=${effectiveRoot}`;
 }
 
+/** Why a mutation target was refused, so the deny message can be specific (#3794). */
+export type EffectiveHookRootRefusal =
+  /** Both common-dirs resolved and differ: a proven separate repository. */
+  | "foreign-repository"
+  /** `payloadRoot` is a repository but the target's identity could not be read. */
+  | "unproven-identity"
+  /** Members of one mutation resolved to two admitted worktrees. */
+  | "worktree-span";
+
 export interface EffectiveHookRootAdmission {
   readonly root: string;
-  /** True when a distinct Git repository was resolved and refused (#3794). */
+  /** True when the target was refused and the dispatcher must deny (#3794). */
   readonly foreign: boolean;
   readonly candidate: string | null;
+  readonly refusal: EffectiveHookRootRefusal | null;
+}
+
+function admitPayload(payload: string, candidate: string | null): EffectiveHookRootAdmission {
+  return { root: payload, foreign: false, candidate, refusal: null };
 }
 
 /**
  * Admit the Git toplevel of the write target only when it shares
- * `--git-common-dir` with `payloadRoot`. Lookup failure falls back to
- * `payloadRoot`. A resolved foreign repository is marked `foreign` so the
- * dispatcher can refuse the write instead of inheriting payloadRoot gates.
+ * `--git-common-dir` with `payloadRoot`.
+ *
+ * Identity resolves to one of three outcomes, not two. A `payloadRoot` that is
+ * not a Git repository never posed a containment question, so it keeps today's
+ * payloadRoot gating. A `payloadRoot` that *is* a repository, paired with a
+ * target that resolved to some other toplevel whose identity cannot be read, is
+ * a question asked and left unanswered — that fails closed rather than
+ * inheriting payloadRoot's occupancy and ritual state (#3794).
  */
 export function admitEffectiveHookRoot(
   payloadRoot: string,
@@ -516,29 +535,33 @@ export function admitEffectiveHookRoot(
   runGit: GitRunner,
 ): EffectiveHookRootAdmission {
   const payload = normalizeHookProjectRoot(payloadRoot);
-  if (writeTarget === null) return { root: payload, foreign: false, candidate: null };
+  if (writeTarget === null) return admitPayload(payload, null);
   const ancestor = existingAncestorDir(writeTarget);
-  if (ancestor === null) return { root: payload, foreign: false, candidate: null };
+  if (ancestor === null) return admitPayload(payload, null);
   const candidateRaw = worktreePathOrNull(ancestor, runGit);
-  if (candidateRaw === null) return { root: payload, foreign: false, candidate: null };
+  if (candidateRaw === null) return admitPayload(payload, null);
   const candidate = normalizeHookProjectRoot(candidateRaw);
-  if (candidate === payload) return { root: payload, foreign: false, candidate };
+  if (candidate === payload) return admitPayload(payload, candidate);
   const payloadCommon = gitCommonDir(payload, runGit);
+  if (payloadCommon === null) {
+    // No containment question exists: payloadRoot is not a repository, so there
+    // is no boundary for the target to be inside or outside of. Denying here
+    // would invent a class this defect never had.
+    return admitPayload(payload, candidate);
+  }
   const candidateCommon = gitCommonDir(candidate, runGit);
-  if (payloadCommon === null || candidateCommon === null) {
-    // Unproven identity: do not adopt the candidate. Do not classify the
-    // write as foreign -- that deny is only for a proven-different common-dir.
-    return { root: payload, foreign: false, candidate };
+  if (candidateCommon === null) {
+    return { root: payload, foreign: true, candidate, refusal: "unproven-identity" };
   }
   if (normalizeHookProjectRoot(payloadCommon) === normalizeHookProjectRoot(candidateCommon)) {
-    return { root: candidate, foreign: false, candidate };
+    return { root: candidate, foreign: false, candidate, refusal: null };
   }
-  return { root: payload, foreign: true, candidate };
+  return { root: payload, foreign: true, candidate, refusal: "foreign-repository" };
 }
 
 /**
- * Admit every mutation target and require one effectiveRoot. A proven-foreign
- * member is refused; a span of two admitted worktrees is also refused so
+ * Admit every mutation target and require one effectiveRoot. A refused member
+ * short-circuits; a span of two admitted worktrees is also refused so
  * occupancy/ritual cannot follow only the declared ApplyPatch path (#3794).
  */
 export function admitMutationTargetSet(
@@ -547,7 +570,7 @@ export function admitMutationTargetSet(
   runGit: GitRunner,
 ): EffectiveHookRootAdmission {
   const payload = normalizeHookProjectRoot(payloadRoot);
-  if (targets.length === 0) return { root: payload, foreign: false, candidate: null };
+  if (targets.length === 0) return admitPayload(payload, null);
   const admitted: EffectiveHookRootAdmission[] = [];
   for (const target of targets) {
     const next = admitEffectiveHookRoot(payload, target, runGit);
@@ -556,9 +579,14 @@ export function admitMutationTargetSet(
   }
   const roots = [...new Set(admitted.map((item) => item.root))];
   if (roots.length > 1) {
-    return { root: payload, foreign: true, candidate: roots.join(" | ") };
+    return {
+      root: payload,
+      foreign: true,
+      candidate: roots.join(" | "),
+      refusal: "worktree-span",
+    };
   }
-  return admitted[0] ?? { root: payload, foreign: false, candidate: null };
+  return admitted[0] ?? admitPayload(payload, null);
 }
 
 export function isHookHost(value: string): value is HookHost {
@@ -1010,17 +1038,21 @@ function inspectMutationGates(
   const environ = input.environ ?? process.env;
   const dispatchGit = memoizeGitRunner(seams.ritualRunGit ?? defaultGitRunner);
   const mutationTargets = isSpawnTool(toolName) ? [] : hookMutationTargetPaths(input.payload);
-  const admission = isSpawnTool(toolName)
-    ? { root: payloadRoot, foreign: false, candidate: null }
+  const admission: EffectiveHookRootAdmission = isSpawnTool(toolName)
+    ? { root: payloadRoot, foreign: false, candidate: null, refusal: null }
     : admitMutationTargetSet(payloadRoot, mutationTargets, dispatchGit);
   const effectiveRoot = admission.root;
   const rootsNote = ` ${formatHookRootNote(payloadRoot, effectiveRoot)}`;
   if (admission.foreign) {
-    const spanning = (admission.candidate ?? "").includes(" | ");
-    const reason = spanning
-      ? `write targets span more than one Git worktree (candidate=${admission.candidate}).`
-      : `write target is in a different Git repository ` +
-        `than the hook payload root (candidate=${admission.candidate ?? "<none>"}).`;
+    const candidate = admission.candidate ?? "<none>";
+    const reason =
+      admission.refusal === "worktree-span"
+        ? `write targets span more than one Git worktree (candidate=${candidate}).`
+        : admission.refusal === "unproven-identity"
+          ? `write target resolved to a separate Git working tree whose repository ` +
+            `identity could not be read, so containment is unproven (candidate=${candidate}).`
+          : `write target is in a different Git repository ` +
+            `than the hook payload root (candidate=${candidate}).`;
     return deny(
       input,
       "foreign-repository-deny",
