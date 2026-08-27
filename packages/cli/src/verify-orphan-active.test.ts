@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it, vi } from "vitest";
@@ -213,5 +213,58 @@ describe("run", () => {
 
   it("returns 2 for bad args", () => {
     expect(silentRun(["--bogus"])).toBe(2);
+  });
+
+  it("returns 2 when gh and ghx are absent from PATH and the cache misses (#3774)", () => {
+    const root = buildRepo();
+    writeFileSync(
+      join(root, "xbrief", "active", "live.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/3774",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const isWin = process.platform === "win32";
+    const keys = isWin ? ["Path", "PATH"] : ["PATH"];
+    const sep = isWin ? ";" : ":";
+    const previous = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+    const names = isWin ? ["gh.exe", "gh.cmd", "ghx.exe", "ghx.cmd", "gh", "ghx"] : ["gh", "ghx"];
+    const filtered = (process.env.Path ?? process.env.PATH ?? "")
+      .split(sep)
+      .filter((dir) => dir.length > 0 && !names.some((name) => existsSync(join(dir, name))))
+      .join(sep);
+    for (const key of keys) {
+      process.env[key] = filtered;
+    }
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    try {
+      expect(run(["--project-root", root, "--repo", "deftai/directive", "--issue", "3774"])).toBe(
+        2,
+      );
+    } finally {
+      const text = err.mock.calls.map((c) => String(c[0])).join("");
+      err.mockRestore();
+      for (const key of keys) {
+        const value = previous[key];
+        if (value === undefined) {
+          delete process.env[key];
+        } else {
+          process.env[key] = value;
+        }
+      }
+      expect(text).toMatch(/^verify:orphan-active:/);
+      expect(text).toMatch(/neither 'ghx' nor 'gh'/);
+      expect(text).not.toContain("directive:");
+      expect(text).not.toContain("task scope:complete");
+    }
   });
 });

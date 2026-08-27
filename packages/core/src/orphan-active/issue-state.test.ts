@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
+import { ScmStubError } from "../scm/errors.js";
 import {
   AGGREGATE_LATENCY_BUDGET_MS,
   formatAge,
@@ -316,6 +317,13 @@ describe("OpenIssueInventory", () => {
   it("reports an invalid repo slug as an inventory error", () => {
     const looked = new OpenIssueInventory(NEVER_CALLED).lookup("not-a-slug");
     expect("error" in looked).toBe(true);
+  });
+
+  it("rethrows ScmStubError from an inventory lookup so evaluate() can map it (#3774)", () => {
+    const runGh: RunGhFn = () => {
+      throw new ScmStubError("neither 'ghx' nor 'gh' found on PATH");
+    };
+    expect(() => new OpenIssueInventory(runGh).lookup("deftai/directive")).toThrow(ScmStubError);
   });
 });
 

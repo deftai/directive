@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
+import { ScmStubError } from "../scm/errors.js";
 import { resolveRepo } from "../triage/queue/repo.js";
 import {
   AGGREGATE_LATENCY_BUDGET_MS,
@@ -479,62 +480,76 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
     inventory: new OpenIssueInventory(runGh),
   };
 
-  const orphans: OrphanActiveBrief[] = [];
-  let scanned = 0;
-  for (const brief of listActiveRunningBriefs(root)) {
-    scanned += 1;
-    const { issues, prs } = collectGithubRefs(brief.plan, defaultRepo);
-    // --issue N is one origin: briefs that name that issue. PR-only briefs stay on the unscoped scan (#3429).
-    if (issueFilter !== null && !briefReferencesIssue(issues, issueFilter)) {
-      continue;
+  try {
+    // #3774: missing gh/ghx is config (code 2), not an uncaught throw.
+    const orphans: OrphanActiveBrief[] = [];
+    let scanned = 0;
+    for (const brief of listActiveRunningBriefs(root)) {
+      scanned += 1;
+      const { issues, prs } = collectGithubRefs(brief.plan, defaultRepo);
+      // --issue N is one origin: briefs that name that issue. PR-only briefs stay on the unscoped scan (#3429).
+      if (issueFilter !== null && !briefReferencesIssue(issues, issueFilter)) {
+        continue;
+      }
+      if (issues.length === 0 && prs.length === 0) {
+        continue;
+      }
+      const assessment = assessOrphanSignature(issues, prs, ctx, issueFilter, tally);
+      if (assessment.orphaned && assessment.reason !== null && assessment.kind !== null) {
+        orphans.push({
+          path: relBriefPath(brief.path, root),
+          reason: assessment.reason,
+          kind: assessment.kind,
+        });
+      }
     }
-    if (issues.length === 0 && prs.length === 0) {
-      continue;
-    }
-    const assessment = assessOrphanSignature(issues, prs, ctx, issueFilter, tally);
-    if (assessment.orphaned && assessment.reason !== null && assessment.kind !== null) {
-      orphans.push({
-        path: relBriefPath(brief.path, root),
-        reason: assessment.reason,
-        kind: assessment.kind,
-      });
-    }
-  }
 
-  const basis: OrphanActiveBasis = {
-    inventory: tally.inventory,
-    live: tally.live,
-    cache: tally.cache,
-    unverified: tally.unverified,
-    maxCacheAgeMs: tally.cache > 0 ? tally.maxCacheAgeMs : null,
-    proxied: runner?.proxied ?? false,
-    elapsedMs: Math.max(0, clock() - startedMs),
-    budgetMs,
-  };
+    const basis: OrphanActiveBasis = {
+      inventory: tally.inventory,
+      live: tally.live,
+      cache: tally.cache,
+      unverified: tally.unverified,
+      maxCacheAgeMs: tally.cache > 0 ? tally.maxCacheAgeMs : null,
+      proxied: runner?.proxied ?? false,
+      elapsedMs: Math.max(0, clock() - startedMs),
+      budgetMs,
+    };
 
-  if (orphans.length > 0) {
+    if (orphans.length > 0) {
+      return {
+        code: 1,
+        message: formatRefusal(orphans, root, issueFilter, tally, basis),
+        stream: "stderr",
+        orphans,
+        basis,
+      };
+    }
+
+    if (quiet) {
+      return { code: 0, message: "", stream: "none", orphans: [], basis };
+    }
+
+    const issueNote = issueFilter === null ? "" : ` for issue #${issueFilter}`;
+    const headline =
+      `verify:orphan-active: no orphaned active/running xBRIEFs${issueNote} ` +
+      `(scanned ${scanned} running brief${scanned === 1 ? "" : "s"} in active/).`;
     return {
-      code: 1,
-      message: formatRefusal(orphans, root, issueFilter, tally, basis),
-      stream: "stderr",
-      orphans,
+      code: 0,
+      message: [headline, ...basisLines(tally, basis)].join("\n"),
+      stream: "stdout",
+      orphans: [],
       basis,
     };
+  } catch (err: unknown) {
+    if (err instanceof ScmStubError) {
+      return {
+        code: 2,
+        message: `verify:orphan-active: ${err.message}`,
+        stream: "stderr",
+        orphans: [],
+        basis: emptyBasis(budgetMs),
+      };
+    }
+    throw err;
   }
-
-  if (quiet) {
-    return { code: 0, message: "", stream: "none", orphans: [], basis };
-  }
-
-  const issueNote = issueFilter === null ? "" : ` for issue #${issueFilter}`;
-  const headline =
-    `verify:orphan-active: no orphaned active/running xBRIEFs${issueNote} ` +
-    `(scanned ${scanned} running brief${scanned === 1 ? "" : "s"} in active/).`;
-  return {
-    code: 0,
-    message: [headline, ...basisLines(tally, basis)].join("\n"),
-    stream: "stdout",
-    orphans: [],
-    basis,
-  };
 }

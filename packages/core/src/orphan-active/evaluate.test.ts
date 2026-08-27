@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
@@ -824,4 +824,60 @@ describe("evaluate", () => {
     expect(result.basis.unverified).toBe(1);
     expect(result.message).toContain("not a valid owner/repo slug");
   });
+  it("maps a missing gh/ghx toolchain to config exit 2 without throwing (#3774)", () => {
+    const root = makeRepo();
+    writeBrief(root, "live.xbrief.json", {
+      status: "running",
+      references: [
+        {
+          uri: "https://github.com/deftai/directive/issues/3774",
+          type: "x-xbrief/github-issue",
+        },
+      ],
+    });
+    const restore = stripGhGhxFromPath();
+    try {
+      const unscoped = evaluate(root, { repo: "deftai/directive" });
+      expect(unscoped.code).toBe(2);
+      expect(unscoped.stream).toBe("stderr");
+      expect(unscoped.message).toMatch(/^verify:orphan-active:/);
+      expect(unscoped.message).toMatch(/neither 'ghx' nor 'gh'/);
+      expect(unscoped.message).not.toContain("task scope:complete");
+      expect(unscoped.orphans).toEqual([]);
+
+      const scoped = evaluate(root, { repo: "deftai/directive", issue: 3774 });
+      expect(scoped.code).toBe(2);
+      expect(scoped.message).toMatch(/^verify:orphan-active:/);
+      expect(scoped.message).toMatch(/neither 'ghx' nor 'gh'/);
+      expect(scoped.message).not.toContain("task scope:complete");
+    } finally {
+      restore();
+    }
+  });
 });
+
+function stripGhGhxFromPath(): () => void {
+  const isWin = process.platform === "win32";
+  const keys = isWin ? ["Path", "PATH"] : ["PATH"];
+  const sep = isWin ? ";" : ":";
+  const previous = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+  const raw = process.env.Path ?? process.env.PATH ?? "";
+  const names = isWin ? ["gh.exe", "gh.cmd", "ghx.exe", "ghx.cmd", "gh", "ghx"] : ["gh", "ghx"];
+  const filtered = raw
+    .split(sep)
+    .filter((dir) => dir.length > 0 && !names.some((name) => existsSync(join(dir, name))))
+    .join(sep);
+  for (const key of keys) {
+    process.env[key] = filtered;
+  }
+  return () => {
+    for (const key of keys) {
+      const value = previous[key];
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+  };
+}

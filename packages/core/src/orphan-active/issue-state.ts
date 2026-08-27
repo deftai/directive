@@ -4,6 +4,7 @@ import { REPO_RE } from "../cache/constants.js";
 import { defaultRunGh } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import { defaultWhich, resolveBinary, type WhichFn } from "../scm/binary.js";
+import { ScmStubError } from "../scm/errors.js";
 import { restIssueListOpenInventory } from "../scm/gh-rest.js";
 import { CACHE_DIR_NAME, CACHE_SOURCE_GITHUB_ISSUE } from "../triage/queue/constants.js";
 import type { IssueRef } from "./refs.js";
@@ -226,6 +227,9 @@ export class OpenIssueInventory {
       }
       return { numbers };
     } catch (err: unknown) {
+      if (err instanceof ScmStubError) {
+        throw err;
+      }
       const message = err instanceof Error ? err.message : String(err);
       return { error: message.split("\n")[0] ?? "unknown error" };
     }
