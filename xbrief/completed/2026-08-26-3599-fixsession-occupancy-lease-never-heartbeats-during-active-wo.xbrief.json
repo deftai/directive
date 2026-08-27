@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3599",
-    "updated": "2026-08-26T18:10:25.162Z"
+    "updated": "2026-08-27T03:35:44Z"
   },
   "plan": {
     "title": "fix(session): occupancy lease never heartbeats during active work, so a working session gets stolen (#3433)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "fix(session): occupancy lease never heartbeats during active work, so a working session gets stolen (#3433)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3599",
@@ -17,35 +17,83 @@
     "items": [
       {
         "title": "Re-stamp `heartbeat_at` in `evaluateOccupancyWriteGate`'s same-session branch (guard",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts \"write-gate refresh keeps a working owner's lease alive past the TTL (#3599)\" + \"write-gate refresh is off by default and floored to avoid amplification (#3599)\"; packages/core/src/hooks/dispatcher.test.ts \"an allowed write renews the owner's lease and warns when it went stale (#3599)\"",
+          "recorded_at": "2026-08-27T03:35:14Z",
+          "recorded_by": "leaf-worker/3599"
+        }
       },
       {
         "title": "Expose `occupancy:heartbeat` (or `occupancy:renew`) as a task/CLI verb so refresh is",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/occupancy-heartbeat.ts + packages/cli/src/occupancy-heartbeat.test.ts; tasks/occupancy.yml occupancy:heartbeat; packages/core/src/session/occupancy.test.ts \"heartbeatOccupancy refreshes the owner and refuses everything else (#3599)\" + \"heartbeatOccupancy refuses to claim a free or expired worktree (#3599)\"",
+          "recorded_at": "2026-08-27T03:35:14Z",
+          "recorded_by": "leaf-worker/3599"
+        }
       },
       {
         "title": "Document the refresh path in `.deft/core/commands.md` § Session routing alongside",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/commands.md section Lease refresh (#3599) and Absolute lease age cap (#3599); reviewed on PR #3776, Greptile 5/5 on ee9fa512",
+          "recorded_at": "2026-08-27T03:35:14Z",
+          "recorded_by": "leaf-worker/3599"
+        }
       },
       {
         "title": "Warn the holder when its own lease is within the staleness window rather than letting it",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts \"write-gate warns the holder inside its own staleness window (#3599)\" + \"a successful refresh drops the staleness warning it was about to print (#3599)\"",
+          "recorded_at": "2026-08-27T03:35:14Z",
+          "recorded_by": "leaf-worker/3599"
+        }
       },
       {
         "title": "Consider requiring `occupancy:steal --confirm` to report the occupant's last *write*",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts \"steal surfaces the occupant's last write, not only heartbeat age (#3599)\" + \"reads a pre-#3599 record that carries no last_write_at\"",
+          "recorded_at": "2026-08-27T03:35:14Z",
+          "recorded_by": "leaf-worker/3599"
+        }
       },
       {
         "title": "An absolute lease-age cap keyed on claimed_at bounds the lease independent of refresh: a lease refreshed continuously past the cap reads as expired.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts \"the absolute age cap expires a lease that never stops refreshing (#3599)\" + \"a lease past the cap reads as capped even once its heartbeat also lapses (#3599)\" + \"the refresh verb tells a capped holder to re-claim, not to beat harder (#3599)\"",
+          "recorded_at": "2026-08-27T03:35:14Z",
+          "recorded_by": "leaf-worker/3599"
+        }
       },
       {
         "title": "A lease refreshed continuously under the cap stays live - no regression to the owner-refresh fix.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts \"a lease refreshed continuously under the cap stays live (#3599)\"",
+          "recorded_at": "2026-08-27T03:35:14Z",
+          "recorded_by": "leaf-worker/3599"
+        }
       },
       {
         "title": "claimed_at survives a refresh, pinned by test - it is the single line whose regression silently disables the cap.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts \"claimed_at survives every refresh path, or the cap is unenforceable (#3599)\"",
+          "recorded_at": "2026-08-27T03:35:14Z",
+          "recorded_by": "leaf-worker/3599"
+        }
       }
     ],
     "tags": [
@@ -88,7 +136,38 @@
           "command": "deft verify:hooks-installed --scope=agent",
           "reason": "Quoted from the arc as evidence that hooks were unwired on the reporting host. It is a diagnostic the critic ran, not acceptance for this story (#3721)."
         }
-      ]
+      ],
+      "x-directive/originDivergence": {
+        "reviewed_at": "2026-08-27T03:35:14Z",
+        "reviewed_by": "leaf-worker/3599",
+        "origin_updated_at": "2026-08-27T03:27:53Z",
+        "reason": "Re-read issue #3599 body and all 27 comments (#2143). The newer origin timestamp is the close event from merging PR #3776; the newest comment predates this brief. No requirement text changed, so no origin text is copied onto the brief (#309 D12)."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3776,
+        "prBase": null,
+        "mergeCommit": "9a216fff62260270a7cf670d81739761f54da7cb",
+        "deliveryBranch": "master",
+        "deliveryCommit": "9a216fff62260270a7cf670d81739761f54da7cb",
+        "verifiedAt": "2026-08-27T03:35:44Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "aed3141e-e3dc-4736-9266-970907771a50"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-27T03:35:44Z"
+      },
+      "completedAt": "2026-08-27T03:35:44Z",
+      "completedSessionId": "aed3141e-e3dc-4736-9266-970907771a50",
+      "capacityBucket": "technical-debt"
     },
     "acceptance": {
       "commands": [],
@@ -183,6 +262,6 @@
         }
       ]
     },
-    "updated": "2026-08-26T15:25:51Z"
+    "updated": "2026-08-27T03:35:44Z"
   }
 }
