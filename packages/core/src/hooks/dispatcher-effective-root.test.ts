@@ -115,7 +115,7 @@ describe("effectiveRoot admission (#3794)", () => {
     ).toEqual({ root: payload, foreign: false, candidate: null });
   });
 
-  it("refuses a resolved distinct toplevel when git-common-dir lookup fails", () => {
+  it("falls back when git-common-dir lookup is unproven instead of denying as foreign", () => {
     const payload = resolve("/tmp/payload-root");
     const root = mkdtempSync(join(tmpdir(), "hook-3794-common-fail-"));
     temps.push(root);
@@ -125,8 +125,9 @@ describe("effectiveRoot admission (#3794)", () => {
       }
       return { code: 1, stdout: "", stderr: "" };
     });
-    expect(admission.foreign).toBe(true);
+    expect(admission.foreign).toBe(false);
     expect(resolve(admission.root)).toBe(payload);
+    expect(resolve(admission.candidate ?? "")).toBe(resolve("/tmp/other-repo"));
   });
 });
 
