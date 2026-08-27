@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3781",
-    "updated": "2026-08-27T03:58:35Z"
+    "updated": "2026-08-27T16:01:42Z"
   },
   "plan": {
     "title": "bug(lifecycle): a PR can merge while closing an issue whose brief is left running and unattested",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(lifecycle): a PR can merge while closing an issue whose brief is left running and unattested",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3781",
@@ -17,7 +17,7 @@
     "items": [
       {
         "title": "A PR that closes issue `N` and leaves `N`'s brief `running` in `active/` with unattested items fails a merge-time check",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/pr-wait-mergeable/cascade.test.ts::waitMergeableAndMerge > closeout attestability gate before merge (#3781) > refuses the merge when the PR closes an issue whose brief is unattested",
@@ -27,7 +27,7 @@
       },
       {
         "title": "The trigger is the PR's closing reference, **not** the branch diff",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/pr-closeout-attestable/evaluate.test.ts::#3598 shape (brief predates the closing branch) > fires on the closing reference even though the brief is absent from the branch diff -- asserts the branch diff is exactly [src.ts] while the gate still fires",
@@ -37,7 +37,7 @@
       },
       {
         "title": "The failure names each unattested item and the exact shape it needs (`{kind, pointer, recorded_at, recorded_by}` or `{disposition, reason, provenance, recorded_at}`)",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/pr-closeout-attestable/evaluate.test.ts::pr-closeout-attestable failure message > names every unattested criterion and the shape it needs",
@@ -47,7 +47,7 @@
       },
       {
         "title": "A PR that leaves an unattested brief **without** closing its issue is unaffected",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/pr-closeout-attestable/evaluate.test.ts::pr-closeout-attestable evaluate > leaves an unattested brief alone when the PR does not close its issue",
@@ -57,7 +57,7 @@
       },
       {
         "title": "The check reuses `evaluateAcceptanceEvidenceGate` rather than reimplementing the rule, so the two cannot drift",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "task verify:ac clause 5 (#3323) -- anchor \"evaluateAcceptanceEvidenceGate\" verified present in packages/core/src/pr-closeout-attestable/evaluate.ts; the gate calls it rather than restating the rule",
@@ -67,7 +67,7 @@
       },
       {
         "title": "Regression fixture reproducing #3609: PR closes the issue, brief has five unattested items, gate fails",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/pr-closeout-attestable/evaluate.test.ts::pr-closeout-attestable evaluate > fails closed when the PR closes an issue whose running brief is unattested -- five bare items, exit 1",
@@ -77,7 +77,7 @@
       },
       {
         "title": "Regression fixture for the #3598 shape: brief already on master well before the closing PR, gate still fires on the closing reference",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/pr-closeout-attestable/evaluate.test.ts::pr-closeout-attestable #3598 shape (brief predates the closing branch) -- brief committed to master before the branch, gate still fires",
@@ -87,7 +87,7 @@
       },
       {
         "title": "CHANGELOG `[Unreleased]` entry",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "task verify:ac clause 8 (#3323) -- anchor \"verify:pr-closeout-attestable\" verified present in the CHANGELOG.md [Unreleased] Added section",
@@ -135,7 +135,32 @@
         "schema": "deft.scope.intended_placement.v1",
         "files": [],
         "module_boundary": ""
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3802,
+        "prBase": null,
+        "mergeCommit": "0c4cc490bf27b51ac86fc8ed3f4e2997f480463e",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0c4cc490bf27b51ac86fc8ed3f4e2997f480463e",
+        "verifiedAt": "2026-08-27T16:01:42Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "5cbf87b3-27ed-48af-b925-239b746d70da"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-27T16:01:42Z"
+      },
+      "completedAt": "2026-08-27T16:01:42Z",
+      "completedSessionId": "5cbf87b3-27ed-48af-b925-239b746d70da",
+      "capacityBucket": "new-capability"
     },
     "acceptance": {
       "commands": [],
@@ -202,6 +227,6 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-08-27T03:58:35Z"
+    "updated": "2026-08-27T16:01:42Z"
   }
 }
