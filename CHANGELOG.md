@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Land leftover completed-tracked artifact for #3774 (#3264 / #1358).** The #3774 xBRIEF stayed untracked after squash of PR 3808. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
+
 - **Land leftover completed-tracked artifact for #3781 (#3264 / #1358).** The #3781 xBRIEF stayed in active/ after squash of PR 3802. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 
 - **A PR can no longer merge while closing an issue whose brief is left running and unattested.** New `task verify:pr-closeout-attestable -- --pr N` fails closed when the PR's closing references name an issue whose brief is still `running` in `xbrief/active/` with acceptance criteria carrying neither evidence nor disposition, and `pr:wait-mergeable-and-merge` now runs it as the last gate before the merge call. The trigger is the closing reference, not the branch diff: CI runs before the merge and the issue closes on it, so a diff-keyed gate can never fail the PR that creates the orphan. Matching is repository-qualified and case-insensitive on the owner/repo slug (GitHub slugs are case-insensitive), so a same-numbered issue in another repository cannot block, a mixed-case slug for this repository still matches, a bare tracking number still reads as this repository, and an unresolvable OWNER/REPO is exit 2 rather than a pass. The refusal names each unattested criterion and the exact shape it needs, including which evidence kinds its axis allows. Reuses `evaluateAcceptanceEvidenceGate`, the same rule `scope:complete` enforces. Closes #3781. Refs #3609, #3598, #3611, #3240.
