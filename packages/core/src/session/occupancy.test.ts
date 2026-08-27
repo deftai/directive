@@ -323,6 +323,38 @@ describe("worktree occupancy lease (#3433)", () => {
     expect(reclaimer.message).toBeNull();
   });
 
+  it("a lease past the cap reads as capped even once its heartbeat also lapses (#3599)", () => {
+    const root = tempRoot();
+    const claimedAt = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "owner", now: claimedAt });
+    // Both dead at once: past the cap, and silent for longer than the TTL.
+    const past = new Date(claimedAt.getTime() + OCCUPANCY_MAX_LEASE_MS + OCCUPANCY_TTL_MS + 1000);
+
+    const record = readOccupancy(root) as NonNullable<ReturnType<typeof readOccupancy>>;
+    expect(heartbeatAgeSeconds(record, past)).toBeGreaterThan(OCCUPANCY_TTL_MS / 1000);
+    expect(occupancyLiveness(record, past)).toBe("age-capped");
+
+    // Reading this as merely stale would route the holder to the refresh
+    // remediation, which a capped lease cannot accept, and would skip the
+    // refusal — giving the deader lease the more permissive verdict.
+    const gate = evaluateOccupancyWriteGate(root, {
+      sessionId: "owner",
+      now: past,
+      refresh: true,
+    });
+    expect(gate.allow).toBe(false);
+    expect(gate.message).toContain("absolute age cap");
+    expect(gate.message).not.toContain("has not beaten");
+
+    // Reclaim by anyone else is unaffected; both dead states free the tree.
+    expect(evaluateOccupancyWriteGate(root, { sessionId: "peer", now: past }).allow).toBe(true);
+
+    // The heartbeat verb tells the holder the same thing the gate did.
+    const beat = heartbeatOccupancy(root, { sessionId: "owner", now: past, env: {} });
+    expect(beat.code).toBe(1);
+    expect(beat.message).toContain("absolute age cap");
+  });
+
   it("a refresh that discovers the lease moved denies the former owner (#3599)", () => {
     const root = tempRoot();
     const claimedAt = new Date("2026-08-17T12:00:00Z");

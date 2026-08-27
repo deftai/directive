@@ -13,6 +13,12 @@
  * - Non-goals: network filesystems; Byzantine processes; perfect off-Linux
  *   PID-reuse detection (hard age cap — `OCCUPANCY_MAX_LEASE_MS` — plus fence
  *   instead).
+ * - Residual: the write gate authorizes a write it does not itself perform, so
+ *   no verdict is atomic with the write. A takeover that publishes after the
+ *   allow — including one already holding the lock but not yet written — is
+ *   outside what this gate can see. Closing that would mean denying every
+ *   owner whose lease file is momentarily locked, which is the load-shedding
+ *   regression #3736 fixed. The bound is the TTL, not the gate.
  */
 
 import { randomUUID } from "node:crypto";
@@ -164,8 +170,14 @@ export function occupancyLiveness(
   ttlMs: number = OCCUPANCY_TTL_MS,
   maxLeaseMs: number = OCCUPANCY_MAX_LEASE_MS,
 ): OccupancyLiveness {
-  if (now.getTime() - record.heartbeatAt.getTime() > ttlMs) return "heartbeat-stale";
+  // The cap is checked first because it is the answer that survives (#3599).
+  // A lease can be both, and then the stale reading is actively misleading:
+  // it sends the holder to refresh, which a capped lease cannot accept. Order
+  // also decides the write gate — the capped-holder refusal below keys on this
+  // value, so reading a doubly-dead lease as merely stale would give the more
+  // dead lease the more permissive answer.
   if (now.getTime() - record.claimedAt.getTime() > maxLeaseMs) return "age-capped";
+  if (now.getTime() - record.heartbeatAt.getTime() > ttlMs) return "heartbeat-stale";
   return "live";
 }
 
