@@ -17,35 +17,83 @@
     "items": [
       {
         "title": "A PR that closes issue `N` and leaves `N`'s brief `running` in `active/` with unattested items fails a merge-time check",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/pr-wait-mergeable/cascade.test.ts::waitMergeableAndMerge > closeout attestability gate before merge (#3781) > refuses the merge when the PR closes an issue whose brief is unattested",
+          "recorded_at": "2026-08-27T04:21:47Z",
+          "recorded_by": "claude-opus-5 leaf worker (deftai/directive#3781, PR #3802)"
+        }
       },
       {
         "title": "The trigger is the PR's closing reference, **not** the branch diff",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/pr-closeout-attestable/evaluate.test.ts::#3598 shape (brief predates the closing branch) > fires on the closing reference even though the brief is absent from the branch diff -- asserts the branch diff is exactly [src.ts] while the gate still fires",
+          "recorded_at": "2026-08-27T04:21:47Z",
+          "recorded_by": "claude-opus-5 leaf worker (deftai/directive#3781, PR #3802)"
+        }
       },
       {
         "title": "The failure names each unattested item and the exact shape it needs (`{kind, pointer, recorded_at, recorded_by}` or `{disposition, reason, provenance, recorded_at}`)",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/pr-closeout-attestable/evaluate.test.ts::pr-closeout-attestable failure message > names every unattested criterion and the shape it needs",
+          "recorded_at": "2026-08-27T04:21:47Z",
+          "recorded_by": "claude-opus-5 leaf worker (deftai/directive#3781, PR #3802)"
+        }
       },
       {
         "title": "A PR that leaves an unattested brief **without** closing its issue is unaffected",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/pr-closeout-attestable/evaluate.test.ts::pr-closeout-attestable evaluate > leaves an unattested brief alone when the PR does not close its issue",
+          "recorded_at": "2026-08-27T04:21:47Z",
+          "recorded_by": "claude-opus-5 leaf worker (deftai/directive#3781, PR #3802)"
+        }
       },
       {
         "title": "The check reuses `evaluateAcceptanceEvidenceGate` rather than reimplementing the rule, so the two cannot drift",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "task verify:ac clause 5 (#3323) -- anchor \"evaluateAcceptanceEvidenceGate\" verified present in packages/core/src/pr-closeout-attestable/evaluate.ts; the gate calls it rather than restating the rule",
+          "recorded_at": "2026-08-27T04:21:47Z",
+          "recorded_by": "claude-opus-5 leaf worker (deftai/directive#3781, PR #3802)"
+        }
       },
       {
         "title": "Regression fixture reproducing #3609: PR closes the issue, brief has five unattested items, gate fails",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/pr-closeout-attestable/evaluate.test.ts::pr-closeout-attestable evaluate > fails closed when the PR closes an issue whose running brief is unattested -- five bare items, exit 1",
+          "recorded_at": "2026-08-27T04:21:47Z",
+          "recorded_by": "claude-opus-5 leaf worker (deftai/directive#3781, PR #3802)"
+        }
       },
       {
         "title": "Regression fixture for the #3598 shape: brief already on master well before the closing PR, gate still fires on the closing reference",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/pr-closeout-attestable/evaluate.test.ts::pr-closeout-attestable #3598 shape (brief predates the closing branch) -- brief committed to master before the branch, gate still fires",
+          "recorded_at": "2026-08-27T04:21:47Z",
+          "recorded_by": "claude-opus-5 leaf worker (deftai/directive#3781, PR #3802)"
+        }
       },
       {
         "title": "CHANGELOG `[Unreleased]` entry",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "task verify:ac clause 8 (#3323) -- anchor \"verify:pr-closeout-attestable\" verified present in the CHANGELOG.md [Unreleased] Added section",
+          "recorded_at": "2026-08-27T04:21:47Z",
+          "recorded_by": "claude-opus-5 leaf worker (deftai/directive#3781, PR #3802)"
+        }
       }
     ],
     "tags": [
