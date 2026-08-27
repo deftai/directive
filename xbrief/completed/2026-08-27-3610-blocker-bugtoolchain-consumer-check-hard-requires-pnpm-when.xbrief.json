@@ -89,10 +89,17 @@
         "status": "completed",
         "x-directive/disposition": {
           "disposition": "deferred",
-          "reason": "Cross-platform shim coverage requires macOS/Linux CI lanes not exercised on this Windows worker; Windows path covered by CI run above and unit tests.",
-          "provenance": "human-origin/operator",
-          "recorded_at": "2026-08-27T22:20:00Z",
-          "recorded_by": "leaf-worker/3610"
+          "reason": "Deferred by operator decision; cross-platform coverage tracked at #3820. The Windows defect that motivated this issue is fixed and verified. Measured gap at 342d1c7d: the consumer-path toolchain-check invocation runs only in the windows-latest job (ci.yml:760, runner at :546), and all six platform pins in packages/core/src/verify-env/toolchain-check.test.ts are win32, so the POSIX direct-exec branch has no coverage at any platform value.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-08-27T22:44:08Z",
+            "mintedVia": "operator-decision-3610-clause8",
+            "eventRef": "https://github.com/deftai/directive/issues/3610#issuecomment-5446100197"
+          },
+          "recorded_at": "2026-08-27T22:44:30Z",
+          "recorded_by": "parent-orchestrator/3610",
+          "resume_when": "https://github.com/deftai/directive/issues/3820"
         }
       },
       {
