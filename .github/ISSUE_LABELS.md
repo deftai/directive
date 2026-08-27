@@ -120,11 +120,11 @@ Closed set (one current chip; remaining-set replace, last chip wins):
 | Body-text field (artifact) | `mechanism-shaped: true` | Survives in the write-back comment; history after remaining-set replace |
 | Mirrored label (predicate / lists) | `design-critique:mechanism-shaped` | In-flight; what `plan.policy.judgmentGates` matches |
 | Synthesis-accepted line | `design-critique: synthesis accepted, because …` | Bind record (operator **accept synthesis** or #3640 auto-stamp) |
-| Bind-ready label | `design-critique:triage-ready` | Bound; remaining-set replace after synthesis-accepted |
+| Bind-ready label | `design-critique:triage-ready` | List-visible convenience after synthesis-accepted; not ingest clearance |
 
 Applying one catalog chip: parent MUST call `task scm:issue:design-critique-chip -- --issue N --chip triage-ready|mechanism-shaped [--repo OWNER/NAME]`. GET current labels, drop the other catalog names (`design-critique:mechanism-shaped` and `design-critique:triage-ready`), PUT/PATCH that remaining set. Other facets stay. Inventory: `LabelClient.apply` / `mergeIssueLabels`. Do not DELETE-then-POST (unchipped window). Do not PUT a naive full wipe. Do not `gh api POST .../labels` or additive `scm:issue:edit --add-label`.
 
-Chip is list state, not consent. Do not drop `mechanism-shaped` without the synthesis-accepted line (or the #3640 empty-disagreement path).
+Chip is list state, not consent. Ingest waits on the completed-arc record (`design-critique: synthesis accepted, because …` citing the accepted successor lean), not this chip. Chip apply miss is non-blocking. Do not drop `mechanism-shaped` without the synthesis-accepted line (or the #3640 empty-disagreement path).
 
 Do **not** invent a classifier for "mechanism-shaped." Stamp or omit. No stamp -> gate never fires (voluntary critiques stay legal). Clearance line is separate: `design-critique: warranted \| not warranted, because ...` (ADR-005).
 
@@ -340,6 +340,7 @@ Skill / SCM pointer: `content/scm/github.md` § Issue Labels (framework source) 
 | Date | Change |
 |------|--------|
 | 2026-08-24 | Broaden `adoption-blocker` to the full intended-flow range; state positive-only semantics; distinguish from `Upgrade Blocker`, `status:blocked`, and `urgent` (#3650) |
+| 2026-08-27 | Catalog chips are list convenience; ingest waits on the completed-arc record (#3806) |
 | 2026-08-21 | Design-critique stamp label `design-critique:mechanism-shaped` + write-back field `mechanism-shaped: true` (ADR-005 / #3434 Story 1) |
 | 2026-08-05 | Quarantine zero-open twins/synonyms as lowercase `legacy:<former>` (colon form wins) |
 | 2026-08-05 | Open-issue migration notes + re-run instructions (#3128) |

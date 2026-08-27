@@ -44,6 +44,7 @@ After critic post: posted successor lean, then verbs.
 Auto-stamp after operator confirm; not while same-round siblings outstanding.
 Walk / walk all. Auto-stamp when agents agree: Operator verbs.
 Parent chip write: scm:issue:design-critique-chip.
+Chip apply miss is non-blocking convenience; do not halt. Ingest waits on the completed-arc record, not a catalog chip.
 
 Each critic dispatch EXITs after posting.
 

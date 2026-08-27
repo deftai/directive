@@ -11,7 +11,7 @@ import {
   type DesignCritiqueCatalogChip,
 } from "../design-critique/exclusive-chip.js";
 import { parseGithubOwnerRepo } from "../policy/sync-default.js";
-import { ScmLabelClient, ScmLabelError } from "../vbrief-reconcile/labels.js";
+import { ScmLabelClient } from "../vbrief-reconcile/labels.js";
 import type { LabelClient } from "../vbrief-reconcile/types.js";
 import { extractFlag, extractValueFlag } from "./argv.js";
 import { InvalidRepoError, splitRepo } from "./gh-rest.js";
@@ -19,10 +19,13 @@ import { pyRepr } from "./py-format.js";
 
 export const DESIGN_CRITIQUE_CHIP_VERB = "design-critique-chip" as const;
 
+export const CHIP_APPLY_MISS_TOKEN = "chip apply missed (non-blocking convenience)";
+
 export const DESIGN_CRITIQUE_CHIP_USAGE =
   "usage: scm issue design-critique-chip --issue N --chip triage-ready|mechanism-shaped [--repo OWNER/NAME] [--json]\n" +
   "       Parent attach of design-critique:triage-ready / recut mechanism-shaped.\n" +
-  "       Closed catalog remaining-set replace. One write. Other facets stay.\n";
+  "       Closed catalog remaining-set replace. One write. Other facets stay.\n" +
+  "       Apply miss is non-blocking convenience; ingest is not blocked.\n";
 
 const CHIP_ALIASES: Readonly<Record<string, DesignCritiqueCatalogChip>> = {
   "triage-ready": "design-critique:triage-ready",
@@ -209,10 +212,25 @@ export function runDesignCritiqueChip(
       stderr: "",
     };
   } catch (err: unknown) {
-    if (err instanceof ScmLabelError) {
-      return { exitCode: 1, stdout: "", stderr: `error: ${err.message}\n` };
-    }
     const message = err instanceof Error ? err.message : String(err);
-    return { exitCode: 1, stdout: "", stderr: `error: ${message}\n` };
+    const payload = {
+      repo,
+      issue: args.issue,
+      chip: args.chip,
+      applied: false,
+      miss: true,
+      blocking: false,
+      error: message,
+    };
+    if (args.json) {
+      return { exitCode: 0, stdout: `${JSON.stringify(payload)}\n`, stderr: "" };
+    }
+    return {
+      exitCode: 0,
+      stdout: "",
+      stderr:
+        `${CHIP_APPLY_MISS_TOKEN}: ${message}\n` +
+        "ingest is not blocked; remaining-set hygiene is optional for a write-capable identity\n",
+    };
   }
 }

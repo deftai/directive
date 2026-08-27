@@ -99,6 +99,10 @@ const REQUIRED_CONTRACT_POINTERS = [
   "empty-lean verb menu",
   "supersedes #3627",
   "does not fail-close live parent turns",
+  "completed-arc record",
+  "Chip apply miss",
+  "Any identity may run those verbs",
+  "evaluateCompletedArcRecord",
 ];
 
 const REQUIRED_TEMPLATE_POINTERS = [
@@ -145,6 +149,8 @@ const REQUIRED_SKILL_POINTERS = [
   "scm:issue:design-critique-chip",
   "After critic post: posted successor lean, then verbs",
   "Auto-stamp after operator confirm; not while same-round siblings outstanding",
+  "completed-arc record",
+  "Chip apply miss is non-blocking",
 ];
 
 const DEFAULT_ALWAYS_PINS = [
@@ -699,6 +705,26 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     const template = readText(TEMPLATE);
     expect(template).toContain("Audit targets (marker ids, comma-separated, or `none`");
     expect(template).toContain("parent rationale on the audit-targets field (ids only)");
+  });
+
+  it("locks completed-arc ingest vs chip-is-not-consent (#3806)", () => {
+    const text = readText(CONTRACT);
+    const loop = markdownSection(text, "## Operator-gated loop");
+    expect(loop).toContain("completed-arc record");
+    expect(loop).not.toContain("until `design-critique:triage-ready`.");
+    const bind = markdownSection(text, "## Bind after accepted synthesis");
+    expect(bind).toContain("Chip apply miss");
+    expect(bind).toContain("Any identity may run those verbs");
+    expect(bind).toContain("judgmentGates");
+    expect(bind).toContain("advisory/observe");
+    expect(bind).toContain("Treat `design-critique:triage-ready` as ingest clearance");
+    expect(text).toContain("evaluateCompletedArcRecord");
+    const skill = readText(SKILL_REL);
+    expect(skill).toContain("completed-arc record");
+    expect(skill).toContain("Chip apply miss is non-blocking");
+    const labelsDoc = readText(".github/ISSUE_LABELS.md");
+    expect(labelsDoc).toContain("not ingest clearance");
+    expect(labelsDoc).toContain("Chip apply miss is non-blocking");
   });
 
   it("pins Stop 1 exclusion and refutation-target tokens by content (#3672)", () => {

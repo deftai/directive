@@ -2,6 +2,11 @@ import { lstatSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSyn
 import { basename, dirname, join, resolve } from "node:path";
 import { cacheGet } from "../cache/operations.js";
 import { type ScanFlag, scan } from "../cache/scanner.js";
+import {
+  assertCompletedArcAllowsIngest,
+  DesignCritiqueIngestBlockedError,
+  type ThreadComment,
+} from "../design-critique/completed-arc-record.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { captureAndAttachLiteralAcceptance } from "../literal-acceptance/index.js";
@@ -891,6 +896,38 @@ function resolveIngestProjectRoot(
   return null;
 }
 
+function issueLabelNames(issue: Record<string, unknown>): string[] {
+  const labels = issue.labels;
+  if (!Array.isArray(labels)) return [];
+  const names: string[] = [];
+  for (const lbl of labels) {
+    if (typeof lbl === "string") {
+      names.push(lbl);
+      continue;
+    }
+    if (lbl !== null && typeof lbl === "object" && !Array.isArray(lbl)) {
+      const name = (lbl as Record<string, unknown>).name;
+      if (typeof name === "string") names.push(name);
+    }
+  }
+  return names;
+}
+
+function threadCommentsFromIssue(issue: Record<string, unknown>): ThreadComment[] {
+  const raw = issue[ISSUE_COMMENT_THREAD_KEY];
+  if (!Array.isArray(raw)) return [];
+  const out: ThreadComment[] = [];
+  for (const entry of raw) {
+    if (entry === null || typeof entry !== "object" || Array.isArray(entry)) continue;
+    const rec = entry as Record<string, unknown>;
+    const id = Number(rec.id);
+    if (!Number.isSafeInteger(id) || id <= 0) continue;
+    const body = typeof rec.body === "string" ? rec.body : "";
+    out.push({ id, body });
+  }
+  return out;
+}
+
 export function ingestOne(
   issue: Record<string, unknown>,
   options: {
@@ -919,6 +956,11 @@ export function ingestOne(
     scmCall: options.scmCall,
     cwd: options.cwd,
     cacheRoot: options.cacheRoot,
+  });
+  assertCompletedArcAllowsIngest({
+    issueNumber: number,
+    labels: issueLabelNames(enriched),
+    comments: threadCommentsFromIssue(enriched),
   });
   const emissionLayout = resolveIngestEmissionLayout(options.vbriefDir);
   const [vbrief, folder] = buildIssueVbrief(enriched, options.status, options.repoUrl, {
@@ -1007,7 +1049,7 @@ export function ingestBulk(
       // #2306: a per-issue quarantine hard-fail must not sink the whole batch;
       // record it, emit nothing for that issue, and surface a non-zero exit
       // upstream via the `failed` bucket.
-      if (exc instanceof ScannerHardFailError) {
+      if (exc instanceof ScannerHardFailError || exc instanceof DesignCritiqueIngestBlockedError) {
         (summary.failed as string[]).push(`#${exc.issueNumber}`);
         process.stderr.write(`${exc.message}\n`);
         continue;
@@ -1141,6 +1183,10 @@ export function issueIngestMain(args: IssueIngestCliArgs): number {
     if (exc instanceof ScannerHardFailError) {
       process.stderr.write(`${exc.message}\n`);
       return 2;
+    }
+    if (exc instanceof DesignCritiqueIngestBlockedError) {
+      process.stderr.write(`${exc.message}\n`);
+      return 1;
     }
     throw exc;
   }

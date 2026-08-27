@@ -1,9 +1,18 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { cachePut } from "../cache/operations.js";
 import { FixedClock } from "../cache/test-helpers.js";
+import { DesignCritiqueIngestBlockedError } from "../design-critique/completed-arc-record.js";
 import { INTENDED_PLACEMENT_SCHEMA } from "../preflight/intended-placement.js";
 import type { CompletedProcess } from "../scm/call.js";
 import * as scm from "../scm/call.js";
@@ -949,6 +958,87 @@ describe("ingestOne with fetchIssue", () => {
       const plan = written.plan as Record<string, unknown>;
       expect(plan.title).toBe("Fresh live title");
       expect((plan.narratives as Record<string, string>).Overview).toBe("Fresh live body");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("ingestOne completed-arc record (#3806)", () => {
+  const lean = {
+    id: 5442939496,
+    body: "**Lean:** chips are convenience.\n",
+  };
+  const table = {
+    id: 5443106967,
+    body: "## Verified-claims table\n",
+  };
+  const synthesis = {
+    id: 5443114746,
+    body:
+      "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+      "Bound contract: successor lean 5442939496, verified-claims table 5443106967.\n",
+  };
+
+  it("ingests leftover mechanism-shaped when the completed-arc record cites the lean", () => {
+    const root = mkdtempSync(join(tmpdir(), "ingest-3806-ok-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(xbriefDir, { recursive: true });
+    try {
+      const [result, path] = ingestOne(
+        {
+          number: 3806,
+          title: "chips not clearance",
+          html_url: "https://github.com/o/r/issues/3806",
+          body: "## Acceptance\n- wait on completed-arc record\n",
+          labels: [{ name: "design-critique:mechanism-shaped" }, { name: "bug" }],
+          [ISSUE_COMMENT_THREAD_KEY]: [lean, table, synthesis],
+        },
+        {
+          vbriefDir: xbriefDir,
+          status: "proposed",
+          repoUrl: "https://github.com/o/r",
+          cwd: root,
+          scmCall: () => completed("[]", "", 0),
+        },
+      );
+      expect(result).toBe("created");
+      expect(path).toBeTruthy();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses ingest for a lone synthesis-accepted shape even with triage-ready", () => {
+    const root = mkdtempSync(join(tmpdir(), "ingest-3806-lone-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(xbriefDir, { recursive: true });
+    try {
+      expect(() =>
+        ingestOne(
+          {
+            number: 3806,
+            title: "lone shape",
+            html_url: "https://github.com/o/r/issues/3806",
+            body: "body",
+            labels: [{ name: "design-critique:triage-ready" }],
+            [ISSUE_COMMENT_THREAD_KEY]: [
+              {
+                id: 5443114746,
+                body: "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n",
+              },
+            ],
+          },
+          {
+            vbriefDir: xbriefDir,
+            status: "proposed",
+            repoUrl: "https://github.com/o/r",
+            cwd: root,
+            scmCall: () => completed("[]", "", 0),
+          },
+        ),
+      ).toThrow(DesignCritiqueIngestBlockedError);
+      expect(readdirSync(xbriefDir).filter((n) => n.endsWith(".json"))).toEqual([]);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

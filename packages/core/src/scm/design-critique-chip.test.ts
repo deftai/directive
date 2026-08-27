@@ -254,7 +254,7 @@ describe("runDesignCritiqueChip", () => {
     expect(result.stderr).toMatch(/invalid --repo value/);
   });
 
-  it("surfaces ScmLabelError as exit 1", () => {
+  it("treats fetch LabelClient failure as a non-blocking apply miss (#3806)", () => {
     const client: LabelClient = {
       fetchLabels: () => {
         throw new ScmLabelError("issue view failed");
@@ -267,8 +267,11 @@ describe("runDesignCritiqueChip", () => {
       ["--issue", "1", "--chip", "triage-ready", "--repo", "deftai/directive"],
       { client },
     );
-    expect(result.exitCode).toBe(1);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).not.toContain("already exclusive");
+    expect(result.stderr).toMatch(/chip apply missed \(non-blocking convenience\)/);
     expect(result.stderr).toMatch(/issue view failed/);
+    expect(result.stderr).toMatch(/ingest is not blocked/);
   });
 
   it("parses git origin as OWNER/NAME in this checkout", () => {
@@ -299,18 +302,26 @@ describe("runDesignCritiqueChip", () => {
     expect(client.applyCalls).toHaveLength(0);
   });
 
-  it("surfaces generic apply errors as exit 1", () => {
+  it("treats mocked LabelClient.apply failure as a miss, not already exclusive (#3806)", () => {
     const client: LabelClient = {
       fetchLabels: () => ["bug"],
       apply: () => {
-        throw new Error("network");
+        throw new Error("HTTP 403 Forbidden");
       },
     };
     const result = runDesignCritiqueChip(
-      ["--issue", "1", "--chip", "triage-ready", "--repo", "deftai/directive"],
+      ["--issue", "1", "--chip", "triage-ready", "--repo", "deftai/directive", "--json"],
       { client },
     );
-    expect(result.exitCode).toBe(1);
-    expect(result.stderr).toMatch(/network/);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).not.toContain("already exclusive");
+    const payload = JSON.parse(result.stdout) as {
+      applied: boolean;
+      miss: boolean;
+      blocking: boolean;
+      error: string;
+    };
+    expect(payload).toMatchObject({ applied: false, miss: true, blocking: false });
+    expect(payload.error).toMatch(/403/);
   });
 });
