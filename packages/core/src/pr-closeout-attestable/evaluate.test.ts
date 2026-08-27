@@ -140,6 +140,23 @@ describe("pr-closeout-attestable evaluate", () => {
     expect(result.findings).toEqual([]);
   });
 
+  it("still matches when the brief slug differs from the PR repo only by case", () => {
+    const root = makeRepo();
+    writeBrief(root, "2026-08-26-3609-story.xbrief.json", {
+      title: "story",
+      status: "running",
+      references: [issueRef(3609, "DeftAI/Directive")],
+      items: bareItems(5),
+    });
+
+    // GitHub owner/repo slugs are case-insensitive. A case-sensitive compare
+    // would miss this brief and fail the gate open on an unattested closeout.
+    const result = evaluate(root, 3786, opts(closing(3609)));
+
+    expect(result.code).toBe(1);
+    expect(result.findings[0]?.issue).toBe(3609);
+  });
+
   it("still matches a brief that names the issue as a bare tracking number", () => {
     const root = makeRepo();
     writeBrief(root, "2026-08-26-3609-story.xbrief.json", {

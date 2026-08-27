@@ -396,7 +396,11 @@ export function evaluate(
     // so a bare-number match would let an unrelated brief tracking the same number in
     // another repository block this merge. Refs with no repo of their own inherit the
     // PR's repo from collectGithubRefs, which is the correct reading of a bare number.
-    const issue = issues.find((ref) => ref.repo === repo && closingSet.has(ref.number))?.number;
+    // GitHub slugs are case-insensitive; a case-sensitive compare would let
+    // DeftAI/Directive vs deftai/directive miss and fail the gate open.
+    const issue = issues.find(
+      (ref) => ref.repo.toLowerCase() === repo.toLowerCase() && closingSet.has(ref.number),
+    )?.number;
     if (issue === undefined) {
       continue;
     }
