@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3599",
-    "updated": "2026-08-27T03:35:44Z"
+    "updated": "2026-08-27T04:05:17Z"
   },
   "plan": {
     "title": "fix(session): occupancy lease never heartbeats during active work, so a working session gets stolen (#3433)",
@@ -20,7 +20,7 @@
         "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "packages/core/src/session/occupancy.test.ts \"write-gate refresh keeps a working owner's lease alive past the TTL (#3599)\" + \"write-gate refresh is off by default and floored to avoid amplification (#3599)\"; packages/core/src/hooks/dispatcher.test.ts \"an allowed write renews the owner's lease and warns when it went stale (#3599)\"",
+          "pointer": "packages/core/src/session/occupancy.test.ts \"write-gate refresh keeps a working owner's lease alive past the TTL (#3599)\" + \"write-gate refresh is off by default and floored to avoid amplification (#3599)\"; packages/core/src/hooks/dispatcher.test.ts \"an allowed write renews the owner's lease instead of warning about it (#3599)\"",
           "recorded_at": "2026-08-27T03:35:14Z",
           "recorded_by": "leaf-worker/3599"
         }
@@ -70,7 +70,7 @@
         "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
-          "pointer": "packages/core/src/session/occupancy.test.ts \"the absolute age cap expires a lease that never stops refreshing (#3599)\" + \"a lease past the cap reads as capped even once its heartbeat also lapses (#3599)\" + \"the refresh verb tells a capped holder to re-claim, not to beat harder (#3599)\"",
+          "pointer": "packages/core/src/session/occupancy.test.ts \"the absolute age cap expires a lease that never stops refreshing (#3599)\" + \"a lease past the cap reads as capped even once its heartbeat also lapses (#3599)\" + \"the refresh verb tells a capped holder to re-claim, not to beat harder (#3599)\"; packages/core/src/hooks/dispatcher.test.ts \"denies a capped holder's write but not the release it is told to run (#3599)\"",
           "recorded_at": "2026-08-27T03:35:14Z",
           "recorded_by": "leaf-worker/3599"
         }
@@ -262,6 +262,6 @@
         }
       ]
     },
-    "updated": "2026-08-27T03:35:44Z"
+    "updated": "2026-08-27T04:05:17Z"
   }
 }
