@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3609",
-    "updated": "2026-08-26T23:50:52Z"
+    "updated": "2026-08-27T02:28:20Z"
   },
   "plan": {
     "title": "BLOCKER: bug(setup): Phase 2 emits bare plan.policy that vBRIEF conformance rejects",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "BLOCKER: bug(setup): Phase 2 emits bare plan.policy that vBRIEF conformance rejects",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3609",
@@ -15,23 +15,53 @@
     "items": [
       {
         "title": "Setup writes `plan[\"x-directive/policy\"].allowDirectCommitsToMaster`.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/skills/deft-directive-setup/SKILL.md + packages/core/src/policy/resolve.test.ts (verify:ac clause 1, 2026-08-27)",
+          "recorded_at": "2026-08-27T02:28:13Z",
+          "recorded_by": "leaf-worker/3767"
+        }
       },
       {
         "title": "Setup re-entry handles namespaced-only, legacy-only, and conflicting dual-key inputs safely.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/policy/resolve.test.ts dual policy blocks (verify:ac clause 2, 2026-08-27)",
+          "recorded_at": "2026-08-27T02:28:13Z",
+          "recorded_by": "leaf-worker/3767"
+        }
       },
       {
         "title": "A greenfield setup integration fixture runs `verify:vbrief-conformance` successfully.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/policy.test.ts greenfield verify:vbrief-conformance fixture (verify:ac clause 3, 2026-08-27)",
+          "recorded_at": "2026-08-27T02:28:13Z",
+          "recorded_by": "leaf-worker/3767"
+        }
       },
       {
         "title": "Documentation distinguishes the operator-facing `plan.policy.*` name from the stored namespaced extension key where necessary.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/commands.md logical field distinction (verify:ac clause 4, 2026-08-27)",
+          "recorded_at": "2026-08-27T02:28:13Z",
+          "recorded_by": "leaf-worker/3767"
+        }
       },
       {
         "title": "Existing legacy consumers retain an explicit migration path.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/UPGRADING.md Legacy-only projects remain supported (verify:ac clause 5, 2026-08-27)",
+          "recorded_at": "2026-08-27T02:28:13Z",
+          "recorded_by": "leaf-worker/3767"
+        }
       }
     ],
     "references": [
@@ -98,7 +128,32 @@
         ],
         "module_boundary": "Policy mutation, shared PROJECT-DEFINITION path and lock resolution, conformance of the configured PROJECT-DEFINITION path, consumer CLI routing, canonical setup guidance and its generated projection, focused contracts, and operator documentation only.",
         "cohesion_exemption": "The inherited DEFT_PROJECT_PATH setup contract permits a noncanonical PROJECT-DEFINITION path. The shared I/O/lock, conformance files, dispatcher alias handoff, and policy shadow diagnostic are required to preserve that override without lock aliasing, fail-open validation, or hostile-key disclosure while still routing setup through the exact canonical writer and verifier; no other policy writer cleanup is included. content/UPGRADING.md and CHANGELOG.md already exceed the review trigger; this slice adds only focused migration guidance and one Unreleased entry. Splitting either append-oriented document is outside issue #3609."
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3786,
+        "prBase": null,
+        "mergeCommit": "e2b6221721ca60ccb5241d4ddb75a000bff52a11",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e2b6221721ca60ccb5241d4ddb75a000bff52a11",
+        "verifiedAt": "2026-08-27T02:28:20Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "b3b0cbcf-ffa9-4281-9d91-25ad5de51f45"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-27T02:28:20Z"
+      },
+      "completedAt": "2026-08-27T02:28:20Z",
+      "completedSessionId": "b3b0cbcf-ffa9-4281-9d91-25ad5de51f45",
+      "capacityBucket": "new-capability"
     },
     "acceptance": {
       "commands": [
@@ -146,6 +201,6 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-08-27T00:11:04Z"
+    "updated": "2026-08-27T02:28:20Z"
   }
 }
