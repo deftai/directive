@@ -15,8 +15,19 @@ import { classifyMonitorOutcome, parseMonitorPayload } from "./classify.js";
 import { EXIT_CONFIG_ERROR, EXIT_MERGED, EXIT_TIMEOUT_OR_ESCALATION } from "./constants.js";
 import { makeResult } from "./result.js";
 import { evaluateSemanticGreen, type SemanticGreenFn } from "./semantic-green.js";
-import type { MergeFn, MonitorFn, ProtectedCheckFn, WaitMergeableResult } from "./types.js";
-import { runGhMerge, runMonitor, runProtectedCheck } from "./wrappers.js";
+import type {
+  CloseoutAttestableFn,
+  MergeFn,
+  MonitorFn,
+  ProtectedCheckFn,
+  WaitMergeableResult,
+} from "./types.js";
+import {
+  runCloseoutAttestableCheck,
+  runGhMerge,
+  runMonitor,
+  runProtectedCheck,
+} from "./wrappers.js";
 
 /** Node module-not-found / missing script — not a protected-issue overlap (#2667). */
 function isProtectedCheckConfigFailure(stderr: string): boolean {
@@ -66,6 +77,14 @@ export interface WaitMergeableOptions {
   readonly skipMergeApprovalHeadGate?: boolean;
   /** Inject head-bound approval enforcer (unit tests). */
   readonly mergeApprovalHeadFn?: (input: EnforceMergeApprovalHeadInput) => MergeApprovalHeadResult;
+  /**
+   * When true, skip the merge-time closeout attestability gate (#3781).
+   * Default: same as skipHumanMergeGate, matching the head-gate convention —
+   * test harnesses that skip human-merge also skip this unless they opt in.
+   */
+  readonly skipCloseoutAttestableGate?: boolean;
+  /** Inject the closeout attestability gate (unit tests). */
+  readonly closeoutAttestableFn?: CloseoutAttestableFn;
   /** Inject PR HEAD fetch (unit tests; defaults to REST `pulls/<N>`). */
   readonly fetchPrHeadShaFn?: (prNumber: number, repo: string | null) => string | null;
   /**
@@ -305,6 +324,28 @@ export function waitMergeableAndMerge(
       } else if (typeof monitorPayload.head_sha === "string") {
         matchHeadCommit = monitorPayload.head_sha;
       }
+    }
+  }
+
+  // #3781: last gate before the merge call. A PR may leave a brief unattested; it
+  // may not merge one whose issue it closes in the same act. Keyed on the PR's
+  // closing references, so it fires even when the brief is not in the branch diff.
+  const skipCloseoutGate =
+    options.skipCloseoutAttestableGate === true ||
+    (options.skipCloseoutAttestableGate === undefined && options.skipHumanMergeGate === true);
+  if (!skipCloseoutGate) {
+    const closeoutFn = options.closeoutAttestableFn ?? runCloseoutAttestableCheck;
+    const [coRc, , coStderr] = closeoutFn(prNumber, repo, projectRoot);
+    if (coRc !== 0) {
+      return makeResult({
+        prNumber,
+        repo,
+        outcome: coRc === 1 ? "closeout-unattested" : "config-error",
+        exitCode: coRc === 1 ? EXIT_TIMEOUT_OR_ESCALATION : EXIT_CONFIG_ERROR,
+        monitorResult: monitorPayload,
+        protectedCheck: protectedCheckPayload,
+        error: coStderr.trim(),
+      });
     }
   }
 

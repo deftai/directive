@@ -196,6 +196,10 @@
       "types": "./dist/pr-closing-keywords/index.d.ts",
       "default": "./dist/pr-closing-keywords/index.js"
     },
+    "./pr-closeout-attestable": {
+      "types": "./dist/pr-closeout-attestable/index.d.ts",
+      "default": "./dist/pr-closeout-attestable/index.js"
+    },
     "./pr-monitor": {
       "types": "./dist/pr-monitor/index.d.ts",
       "default": "./dist/pr-monitor/index.js"

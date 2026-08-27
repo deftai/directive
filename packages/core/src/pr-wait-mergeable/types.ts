@@ -31,3 +31,10 @@ export type MergeFn = (
   repo: string | null,
   options?: { readonly matchHeadCommit?: string | null },
 ) => SubprocessTriple;
+
+/** Merge-time closeout attestability gate (#3781): 0 attestable / 1 unattested / 2 lookup. */
+export type CloseoutAttestableFn = (
+  prNumber: number,
+  repo: string | null,
+  projectRoot: string,
+) => SubprocessTriple;

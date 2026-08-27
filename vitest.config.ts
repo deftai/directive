@@ -145,6 +145,7 @@ const subpathAliases: Record<string, string> = {
   "@deftai/directive-core/pr-merge-readiness": sub("core", "pr-merge-readiness"),
   "@deftai/directive-core/pr-protected-issues": sub("core", "pr-protected-issues"),
   "@deftai/directive-core/pr-closing-keywords": sub("core", "pr-closing-keywords"),
+  "@deftai/directive-core/pr-closeout-attestable": sub("core", "pr-closeout-attestable"),
   "@deftai/directive-core/pr-monitor": sub("core", "pr-monitor"),
   "@deftai/directive-core/pr-wait-mergeable": sub("core", "pr-wait-mergeable"),
   "@deftai/directive-core/vbrief-build": sub("core", "vbrief-build"),

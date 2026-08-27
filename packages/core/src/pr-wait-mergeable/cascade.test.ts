@@ -3,7 +3,17 @@ import { waitMergeableAndMerge } from "./cascade.js";
 import { EXIT_CONFIG_ERROR, EXIT_MERGED, EXIT_TIMEOUT_OR_ESCALATION } from "./constants.js";
 import { toResultDict } from "./result.js";
 import type { SemanticGreenResult } from "./semantic-green.js";
-import type { MergeFn, MonitorFn, ProtectedCheckFn } from "./types.js";
+import type { CloseoutAttestableFn, MergeFn, MonitorFn, ProtectedCheckFn } from "./types.js";
+
+function makeCloseoutFn(returncode: number, stderr = ""): CloseoutAttestableFn {
+  const calls: Array<readonly [number, string | null, string]> = [];
+  const fn: CloseoutAttestableFn = (prNumber, repo, projectRoot) => {
+    calls.push([prNumber, repo, projectRoot]);
+    return [returncode, "", stderr];
+  };
+  (fn as { calls: typeof calls }).calls = calls;
+  return fn;
+}
 
 function makeProtectedFn(returncode: number, stdout = "", stderr = ""): ProtectedCheckFn {
   const calls: Array<readonly [number, string | null, readonly number[]]> = [];
@@ -592,5 +602,87 @@ describe("toResultDict", () => {
     });
     expect(dict.error).toBeUndefined();
     expect(dict.merge_stdout).toBeUndefined();
+  });
+});
+
+describe("closeout attestability gate before merge (#3781)", () => {
+  const base = {
+    capMinutes: 30,
+    protected: [] as number[],
+    skipHumanMergeGate: true,
+    skipMergeApprovalHeadGate: true,
+    skipCloseoutAttestableGate: false,
+    fetchPrHeadShaFn: () => "a".repeat(40),
+    umbrellaReconcileFn: null,
+  };
+
+  it("refuses the merge when the PR closes an issue whose brief is unattested", () => {
+    const mergeFn = makeMergeFn(0);
+    const closeoutFn = makeCloseoutFn(1, "PR #3786 closes #3609, leaving 5 unattested criteria");
+
+    const result = waitMergeableAndMerge(3786, "deftai/directive", {
+      ...base,
+      monitorFn: makeMonitorFn(0, cleanMonitorPayload(3786)),
+      mergeFn,
+      closeoutAttestableFn: closeoutFn,
+      projectRoot: "/tmp/worktree",
+    });
+
+    expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);
+    expect(result.outcome).toBe("closeout-unattested");
+    expect(result.error).toContain("5 unattested criteria");
+    expect((mergeFn as { calls: unknown[] }).calls).toEqual([]);
+    expect((closeoutFn as { calls: unknown[] }).calls).toEqual([
+      [3786, "deftai/directive", "/tmp/worktree"],
+    ]);
+  });
+
+  it("treats a failed closing-reference lookup as a config error, not a pass", () => {
+    const mergeFn = makeMergeFn(0);
+
+    const result = waitMergeableAndMerge(3786, "deftai/directive", {
+      ...base,
+      monitorFn: makeMonitorFn(0, cleanMonitorPayload(3786)),
+      mergeFn,
+      closeoutAttestableFn: makeCloseoutFn(2, "could not read closing-issue references"),
+    });
+
+    expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
+    expect(result.outcome).toBe("config-error");
+    expect((mergeFn as { calls: unknown[] }).calls).toEqual([]);
+  });
+
+  it("merges when the closeout gate is clean", () => {
+    const mergeFn = makeMergeFn(0, "merged via squash");
+
+    const result = waitMergeableAndMerge(3786, "deftai/directive", {
+      ...base,
+      monitorFn: makeMonitorFn(0, cleanMonitorPayload(3786)),
+      mergeFn,
+      closeoutAttestableFn: makeCloseoutFn(0),
+    });
+
+    expect(result.exitCode).toBe(EXIT_MERGED);
+    expect((mergeFn as { calls: unknown[] }).calls).toHaveLength(1);
+  });
+
+  it("skips the gate when the harness skips the human-merge gate", () => {
+    const closeoutFn = makeCloseoutFn(1, "should never run");
+    const mergeFn = makeMergeFn(0);
+
+    const result = waitMergeableAndMerge(3786, "deftai/directive", {
+      capMinutes: 30,
+      protected: [],
+      skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
+      fetchPrHeadShaFn: () => "a".repeat(40),
+      umbrellaReconcileFn: null,
+      monitorFn: makeMonitorFn(0, cleanMonitorPayload(3786)),
+      mergeFn,
+      closeoutAttestableFn: closeoutFn,
+    });
+
+    expect(result.exitCode).toBe(EXIT_MERGED);
+    expect((closeoutFn as { calls: unknown[] }).calls).toEqual([]);
   });
 });

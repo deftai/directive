@@ -512,6 +512,16 @@ tasks:
         vars:
           ENGINE_CMD: 'verify:orphan-active --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
+  pr-closeout-attestable:
+    desc: "Fail-closed merge-time closeout gate (#3781). Refuses a merge when the PR's structured closing references name an issue whose brief is still running in xbrief/active/ with acceptance criteria carrying neither x-directive/evidence nor x-directive/disposition. The trigger is the closing reference, not the branch diff — CI runs before the merge and the issue closes on it, so a diff-keyed gate can never fail the PR that creates the orphan. Reuses evaluateAcceptanceEvidenceGate, the same rule scope:complete enforces. A PR that leaves an unattested brief WITHOUT closing its issue is unaffected. Three-state exit (0 attestable or closes nothing / 1 unattested closeout / 2 config or closing-reference lookup error). -- task verify:pr-closeout-attestable -- --pr N [--repo OWNER/REPO]"
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify:pr-closeout-attestable --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
   completed-write-guard:
     desc: "Fail-closed completed/ write guard (#3679). Newly added xbrief/completed/ (or vbrief/completed/) artifacts must have been written by scope:complete / scope:fail. Historical corpus is advisory via doctor. Remediation names the leftover land PR (#3476). Three-state exit (0 clean / 1 unguarded add / 2 config). Does not change verify:completed-tracked."
     dir: '{{.USER_WORKING_DIR}}'

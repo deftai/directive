@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { evaluate as evaluateCloseoutAttestable } from "../pr-closeout-attestable/evaluate.js";
 import { resolveBinary } from "../scm/binary.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import type { SubprocessTriple } from "./types.js";
@@ -136,6 +137,21 @@ export function runProtectedCheck(
     env: { ...process.env, NODE_NO_WARNINGS: "1" },
   });
   return [result.returncode, result.stdout, result.stderr];
+}
+
+/**
+ * Merge-time closeout attestability gate (#3781). In-process: the evaluator lives
+ * in this package, and a subprocess hop would only add a script-path failure mode
+ * to a gate that must fail closed.
+ */
+export function runCloseoutAttestableCheck(
+  prNumber: number,
+  repo: string | null,
+  projectRoot: string,
+): SubprocessTriple {
+  const result = evaluateCloseoutAttestable(projectRoot, prNumber, { repo });
+  const text = result.message.length > 0 ? `${result.message}\n` : "";
+  return result.code === 0 ? [0, text, ""] : [result.code, "", text];
 }
 
 export interface RunMonitorOptions {
