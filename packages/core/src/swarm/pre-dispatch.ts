@@ -28,7 +28,7 @@ import {
   withUnitLock,
 } from "../delivery-attempt/index.js";
 import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_OK } from "./constants.js";
-import { ensureSubagentStatusDir } from "./subagent-status-dir.js";
+import { ensureSubagentStatusDir, looksLikeWorktreeDir } from "./subagent-status-dir.js";
 import { runText } from "./subprocess.js";
 
 /** Default workflow id for drive-to:merge-ready implement leaves. */
@@ -251,8 +251,11 @@ function runBegin(input: SwarmPreDispatchInput): SwarmPreDispatchResult {
   const trigger: AttemptTrigger = input.trigger ?? "automatic";
   // Arm heartbeat scratch so verify:subagent-alive can return REDISPATCH_OK
   // instead of exit 2 ("scratch dir does not exist") after a host-kill (#3730).
-  if (looksLikeFilesystemTarget(input.targetId)) {
-    ensureSubagentStatusDir(resolve(input.projectRoot, input.targetId.trim()));
+  // A bare relative worktree name (`b3730`) is opaque to the branch-vs-path
+  // heuristic, so accept an on-disk worktree as the second arming signal.
+  const armTarget = resolve(input.projectRoot, input.targetId.trim());
+  if (looksLikeFilesystemTarget(input.targetId) || looksLikeWorktreeDir(armTarget)) {
+    ensureSubagentStatusDir(armTarget);
   }
 
   // Exclusive lock → reload → evaluate → begin+save (same decision under lock;
