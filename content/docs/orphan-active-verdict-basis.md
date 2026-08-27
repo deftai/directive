@@ -69,8 +69,9 @@ misclassify open issue 1001+ in a larger repository.
 Membership in a successful inventory means open. **Absence means "not open"**,
 which is the direction that tells an operator to run `scope:complete` on what
 may be live work — so absence is confirmed by one authoritative per-issue read
-before the gate acts on it. In the ordinary case (everything open) that costs
-zero extra calls.
+before the gate acts on it. That confirming result is reused for the rest of
+the run when several briefs name the same issue. In the ordinary case
+(everything open) that costs zero extra calls.
 
 When the inventory is unavailable the gate reports `unverified` rather than
 inferring closed. Fail-closed here means never manufacturing a false "closed",

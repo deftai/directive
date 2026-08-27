@@ -184,6 +184,7 @@ type InventoryLookup = { numbers: ReadonlySet<number> } | { error: string };
  */
 export class OpenIssueInventory {
   private readonly byRepo = new Map<string, InventoryLookup>();
+  private readonly confirmations = new Map<string, IssueState | null>();
 
   constructor(private readonly runGh: RunGhFn) {}
 
@@ -195,6 +196,20 @@ export class OpenIssueInventory {
     const resolved = this.fetch(repo);
     this.byRepo.set(repo, resolved);
     return resolved;
+  }
+
+  /**
+   * Confirm an inventory absence with one authoritative read, reused for the
+   * rest of this run when several briefs name the same issue (#3767).
+   */
+  confirm(ref: IssueRef): IssueState | null {
+    const key = `${ref.repo}#${ref.number}`;
+    if (this.confirmations.has(key)) {
+      return this.confirmations.get(key) ?? null;
+    }
+    const confirmed = fetchIssueStateLive(ref, this.runGh);
+    this.confirmations.set(key, confirmed);
+    return confirmed;
   }
 
   private fetch(repo: string): InventoryLookup {
@@ -323,7 +338,7 @@ export function resolveIssueStateAggregate(ref: IssueRef, ctx: ResolveContext): 
   if (inventory.numbers.has(ref.number)) {
     return { state: "open", basis: "inventory" };
   }
-  const confirmed = fetchIssueStateLive(ref, ctx.runGh);
+  const confirmed = ctx.inventory.confirm(ref);
   if (confirmed !== null) {
     return { state: confirmed, basis: "live" };
   }

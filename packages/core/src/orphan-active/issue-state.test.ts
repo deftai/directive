@@ -206,6 +206,25 @@ describe("resolveIssueStateAggregate", () => {
     expect(calls).toHaveLength(2);
   });
 
+  it("reuses a confirming read when several briefs name the same absent issue", () => {
+    const root = makeRoot();
+    const calls: string[] = [];
+    const runGh: RunGhFn = (cmd) => {
+      const joined = cmd.join(" ");
+      calls.push(joined);
+      if (joined.includes("--slurp")) {
+        return { returncode: 0, stdout: inventoryPayload([1]), stderr: "" };
+      }
+      return { returncode: 0, stdout: JSON.stringify({ state: "closed" }), stderr: "" };
+    };
+    const ctx = context(root, runGh);
+    const first = resolveIssueStateAggregate(REF, ctx);
+    const second = resolveIssueStateAggregate(REF, ctx);
+    expect(first).toEqual({ state: "closed", basis: "live" });
+    expect(second).toEqual({ state: "closed", basis: "live" });
+    expect(calls.filter((c) => !c.includes("--slurp"))).toHaveLength(1);
+  });
+
   it("treats an inventory absence whose confirming read fails as unverified, not closed", () => {
     const root = makeRoot();
     const runGh: RunGhFn = (cmd) =>
