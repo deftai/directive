@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Land leftover completed-tracked artifact for #3767 (#3264 / #1358).** The #3767 xBRIEF stayed in active/ after squash of PR 3789. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
+
 - **Land leftover completed-tracked artifact for #3609 (#3264 / #1358).** The #3609 xBRIEF stayed in active/ after squash of PR 3786. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 
 - **Land leftover completed-tracked artifact for #3756 (#3264 / #1358).** The #3756 xBRIEF stayed untracked after squash of PR 3772. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
