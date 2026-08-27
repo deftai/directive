@@ -631,28 +631,34 @@ export function evaluateOccupancyWriteGate(
     return { allow: true, message: null, occupant: live, refreshed: false, warning };
   }
   const outcome = restampOccupancyHeartbeat(projectRoot, live.sessionId, now, true, input.lockDeps);
-  if (outcome.status === "lost") {
-    // The lease died or changed hands between the unlocked read above and the
-    // locked re-stamp. Decide against what is on disk now rather than allowing
-    // on the stale record we started from: a replacement owner must win, or
-    // this gate hands a former owner a write into someone else's worktree
-    // (#3599). Re-entry cannot recurse further — refresh is off.
+  if (outcome.status !== "refreshed") {
+    // Neither failure leaves the pre-lock record usable. `lost` says the lease
+    // changed hands outright. `unavailable` says only that the lock could not
+    // be taken — but a peer takeover is one of the things that holds it, so a
+    // re-stamp that blocks until timeout hides the same handover. Decide
+    // against what is on disk now instead of the snapshot read at 598: a lease
+    // still ours under contention re-allows exactly as before (#3736), while a
+    // replacement owner wins (#3599). Re-entry cannot recurse — refresh is off.
     return evaluateOccupancyWriteGate(projectRoot, { ...input, now, refresh: false });
   }
   return {
     allow: true,
     message: null,
-    occupant: outcome.status === "refreshed" ? outcome.record : live,
-    refreshed: outcome.status === "refreshed",
-    warning,
+    occupant: outcome.record,
+    refreshed: true,
+    // `warning` was measured against the pre-refresh heartbeat. Returning it
+    // beside a successful re-stamp would tell the owner its lease is going
+    // stale on the very write that renewed it.
+    warning: null,
   };
 }
 
 /**
  * Outcome of a re-stamp attempt (#3599). `lost` and `unavailable` are kept
- * apart because they demand opposite answers: the caller no longer holds the
- * lease, versus the caller still holds it but the file could not be touched
- * right now.
+ * apart because they are different facts: the lease is provably not the
+ * caller's any more, versus nothing about ownership was observed because the
+ * file could not be touched. Collapsing them to one null loses the only
+ * evidence a caller has for telling a takeover from a busy lock.
  */
 type RestampOutcome =
   | { readonly status: "refreshed"; readonly record: OccupancyRecord }
@@ -665,8 +671,9 @@ type RestampOutcome =
  * claim or resurrect a lease, only extend one the caller already holds.
  *
  * Lock contention and IO errors report `unavailable` rather than `lost`: they
- * say nothing about who owns the lease, so they must not turn a legitimate
- * owner's write into a denial.
+ * observed no owner at all, so they are not evidence of replacement. `heartbeat`
+ * says so and leaves the lease alone; the write gate re-reads the file rather
+ * than trusting either its own stale snapshot or a denial the lock never earned.
  */
 function restampOccupancyHeartbeat(
   projectRoot: string,

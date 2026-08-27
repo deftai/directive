@@ -5,7 +5,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_RUNTIME_AUTHORITY_POLICY } from "../policy/runtime-authority.js";
 import {
   applyWorktreeOccupancy,
+  OCCUPANCY_MAX_LEASE_MS,
   OCCUPANCY_STALE_WARN_MS,
+  occupancyPath,
   readOccupancy,
 } from "../session/occupancy.js";
 import { ritualStatePath } from "../session/ritual-sentinel.js";
@@ -153,6 +155,67 @@ describe("direct-write hook policy", () => {
     expect(decision.message).toContain("Worktree occupied by session owner");
   });
 
+  it("denies a capped holder's write but not the release it is told to run (#3599)", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-occ-capped-"));
+    hookTemps.push(root);
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    // A lease that kept beating until just now but was claimed past the
+    // absolute cap. Written directly because reaching this state through the
+    // lease API needs a day of wall-clock heartbeats.
+    const nowMs = Date.now();
+    writeFileSync(
+      occupancyPath(root),
+      `${JSON.stringify({
+        schemaVersion: 1,
+        session_id: "owner",
+        worktree_path: resolve(root),
+        intent: "mutation",
+        claimed_at: new Date(nowMs - OCCUPANCY_MAX_LEASE_MS - 60_000).toISOString(),
+        heartbeat_at: new Date(nowMs - 1_000).toISOString(),
+        host: "test",
+        address: "test",
+        retain_capable: false,
+        join_protocol: "none",
+      })}\n`,
+      "utf8",
+    );
+
+    const write = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: { toolName: "Edit", file_path: join(root, "src", "app.ts") },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      readySeams(),
+    );
+    expect(write).toMatchObject({ verdict: "deny", code: "occupancy-occupied" });
+    expect(write.message).toContain("absolute age cap");
+
+    // The capped holder is the first owner this gate ever denies, so the
+    // remediation's "release and re-claim" has to stay reachable. Product
+    // writes route through the occupancy gate; a plain lifecycle command is not
+    // a dest form, so it never enters it. Pin that: if Shell gating ever widens
+    // to cover these commands, the cap would deny the only way out of itself.
+    for (const command of [
+      "deft occupancy:release --session-id=owner",
+      "deft session:start --session-id=owner",
+    ]) {
+      const wayOut = decideHook(
+        {
+          host: "grok",
+          event: "tool.before",
+          projectRoot: root,
+          payload: { tool_name: "Bash", tool_input: { command } },
+          environ: { DEFT_SESSION_ID: "owner" },
+        },
+        enforcingSeams(),
+      );
+      expect(wayOut.verdict, command).toBe("allow");
+    }
+  });
+
   it("composes occupancy deny with ritual-not-ready (#3433)", () => {
     const root = mkdtempSync(join(tmpdir(), "hook-occ-ritual-"));
     hookTemps.push(root);
@@ -205,7 +268,7 @@ describe("direct-write hook policy", () => {
     expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
   });
 
-  it("an allowed write renews the owner's lease and warns when it went stale (#3599)", () => {
+  it("an allowed write renews the owner's lease instead of warning about it (#3599)", () => {
     const root = mkdtempSync(join(tmpdir(), "hook-occ-refresh-"));
     hookTemps.push(root);
     const sessionId = "host:codex:v1:c2Vzc2lvbi1h";
@@ -230,7 +293,11 @@ describe("direct-write hook policy", () => {
     );
 
     expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
-    expect(decision.message).toContain("occupancy:heartbeat --session-id=");
+    // The lease entered this call inside the staleness window, and this call
+    // renewed it. Appending "your lease is going stale, run occupancy:heartbeat"
+    // would name a state the same write already resolved.
+    expect(decision.message).not.toContain("occupancy:heartbeat --session-id=");
+    expect(decision.message).not.toContain("has not beaten");
     const record = readOccupancy(root);
     expect(record?.sessionId).toBe(sessionId);
     expect(record?.heartbeatAt.getTime()).toBeGreaterThan(claimedAt.getTime());
