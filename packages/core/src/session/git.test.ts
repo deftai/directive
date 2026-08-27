@@ -6,8 +6,10 @@ import { afterAll, describe, expect, it } from "vitest";
 import {
   defaultGitRunner,
   detectBranch,
+  type GitRunner,
   gitHead,
   gitIsAncestor,
+  memoizeGitRunner,
   parseGitCatFileBatch,
   showBlobsBatch,
   worktreePath,
@@ -59,6 +61,99 @@ describe("session git helpers", () => {
     expect(
       gitIsAncestor("/tmp", "old", "new", () => ({ code: 128, stdout: "", stderr: "bad" })),
     ).toBeNull();
+  });
+});
+
+describe("memoizeGitRunner (#3736)", () => {
+  const HEAD_SHA = "abcdef0123456789abcdef0123456789abcdef01";
+
+  function recordingRunner(branch = "fix/3736-hook-latency"): {
+    calls: string[][];
+    runGit: GitRunner;
+  } {
+    const calls: string[][] = [];
+    return {
+      calls,
+      runGit: (_root, args) => {
+        calls.push([...args]);
+        if (args[0] === "rev-parse" && args.includes("--show-toplevel")) {
+          return { code: 0, stdout: `${HEAD_SHA}\n/tmp/project\n${branch}`, stderr: "" };
+        }
+        return { code: 0, stdout: "spawned", stderr: "" };
+      },
+    };
+  }
+
+  it("answers the three context reads from one child", () => {
+    const { calls, runGit } = recordingRunner();
+    const memo = memoizeGitRunner(runGit);
+
+    expect(memo("/tmp/project", ["rev-parse", "--verify", "HEAD"]).stdout).toBe(HEAD_SHA);
+    expect(memo("/tmp/project", ["rev-parse", "--show-toplevel"]).stdout).toBe("/tmp/project");
+    expect(memo("/tmp/project", ["symbolic-ref", "--short", "HEAD"]).stdout).toBe(
+      "fix/3736-hook-latency",
+    );
+
+    expect(calls).toEqual([["rev-parse", "HEAD", "--show-toplevel", "--abbrev-ref", "HEAD"]]);
+  });
+
+  it("does not probe context for a read the probe cannot answer", () => {
+    const { calls, runGit } = recordingRunner();
+    const memo = memoizeGitRunner(runGit);
+
+    memo("/tmp/project", ["merge-base", "--is-ancestor", "old", "new"]);
+
+    expect(calls).toEqual([["merge-base", "--is-ancestor", "old", "new"]]);
+  });
+
+  it("reports a detached head as a symbolic-ref failure without inventing a short sha", () => {
+    const { calls, runGit } = recordingRunner("HEAD");
+    const memo = memoizeGitRunner(runGit);
+
+    expect(memo("/tmp/project", ["symbolic-ref", "--short", "HEAD"]).code).toBe(1);
+    // Abbreviation length is repo-dependent, so the short sha stays git's answer.
+    expect(memo("/tmp/project", ["rev-parse", "--short", "HEAD"]).stdout).toBe("spawned");
+    expect(calls).toEqual([
+      ["rev-parse", "HEAD", "--show-toplevel", "--abbrev-ref", "HEAD"],
+      ["rev-parse", "--short", "HEAD"],
+    ]);
+  });
+
+  it("caches per resolved project root", () => {
+    const { calls, runGit } = recordingRunner();
+    const memo = memoizeGitRunner(runGit);
+
+    memo("/tmp/project", ["rev-parse", "--verify", "HEAD"]);
+    memo("/tmp/other", ["rev-parse", "--verify", "HEAD"]);
+
+    expect(calls).toHaveLength(2);
+  });
+
+  it("never caches a command that is not a ref read", () => {
+    const { calls, runGit } = recordingRunner();
+    const memo = memoizeGitRunner(runGit);
+
+    memo("/tmp/project", ["fetch", "--quiet", "origin", "master"]);
+    memo("/tmp/project", ["fetch", "--quiet", "origin", "master"]);
+
+    expect(calls).toHaveLength(2);
+  });
+
+  it("falls back to individual reads when the probe fails", () => {
+    const calls: string[][] = [];
+    const memo = memoizeGitRunner((_root, args) => {
+      calls.push([...args]);
+      if (args.includes("--show-toplevel")) return { code: 128, stdout: "", stderr: "not a repo" };
+      return { code: 0, stdout: "fallback", stderr: "" };
+    });
+
+    expect(memo("/tmp/project", ["rev-parse", "--verify", "HEAD"]).stdout).toBe("fallback");
+    expect(memo("/tmp/project", ["symbolic-ref", "--short", "HEAD"]).stdout).toBe("fallback");
+    expect(calls).toEqual([
+      ["rev-parse", "HEAD", "--show-toplevel", "--abbrev-ref", "HEAD"],
+      ["rev-parse", "--verify", "HEAD"],
+      ["symbolic-ref", "--short", "HEAD"],
+    ]);
   });
 });
 

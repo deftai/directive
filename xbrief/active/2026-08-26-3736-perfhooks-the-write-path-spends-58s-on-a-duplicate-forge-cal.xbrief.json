@@ -15,27 +15,31 @@
     },
     "items": [
       {
-        "title": "`inspectActiveScope` performs no network I/O on the authorization path",
+        "title": "`inspectActiveScope` evaluates every candidate with \"skipOriginFreshness: true\", so the authorization path performs no network I/O and no forge round trip can land inside the host tool.before budget.",
         "status": "proposed"
       },
       {
-        "title": "Redundant git subprocesses on the write path are memoized within a dispatch",
+        "title": "Redundant git subprocesses on the write path are memoized within a dispatch: HEAD, worktree root, and branch come from one git child via \"DISPATCH_GIT_CONTEXT_ARGS\".",
         "status": "proposed"
       },
       {
-        "title": "The host-observed `tool.before` path renders a verdict inside the effective budget, measured end to end rather than by child-process count",
+        "title": "The host mutation gate wraps its runner with \"memoizeGitRunner(seams.ritualRunGit ?? defaultGitRunner)\", so the allow/write-ready path spawns git once per tool call. Stated as a spawn count rather than a wall-clock duration: measured latency here is a function of concurrent machine load, so a duration would pass or fail on load rather than on the change.",
         "status": "proposed"
       },
       {
-        "title": "Acceptance states the effective budget as the minimum across loaded registrations, not the value in any single deposit",
+        "title": "Hook cost per tool call stays constant as tool calls accumulate, so N concurrent agents cost N git spawns and not 5N. Covered by the repeated-dispatch test \"keeps its git cost flat as concurrent tool calls pile up\" rather than by a benchmark.",
         "status": "proposed"
       },
       {
-        "title": "No regression: the gate still denies what it denied before, and `xbrief:preflight` still enforces origin freshness per brief",
+        "title": "Acceptance states the effective budget as the minimum across loaded registrations, not the value in any single deposit, asserted as \"effectiveTimeoutSeconds\".",
         "status": "proposed"
       },
       {
-        "title": "CHANGELOG `[Unreleased]` entry",
+        "title": "No regression: the gate still denies what it denied before, covered by \"reports an active artifact whose canonical preflight rejects it\", and xbrief:preflight still enforces origin freshness per brief.",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG [Unreleased] entry \"Authorized writes are no longer refused by a hook that ran out of time\".",
         "status": "proposed"
       }
     ],
@@ -62,47 +66,54 @@
       "commands": [],
       "none_stated": true,
       "source_rung": "derived",
-      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "derived_reason": "derived from the recut task statement, then amended per issue comment 5431700487: the wall-clock acceptance clause was replaced with load-independent structural clauses (git spawn count, absence of a second freshness probe) because the reported timings are machine- and load-dependent and no idle-box baseline exists",
       "clauses": [
         {
           "id": 1,
-          "text": "`inspectActiveScope` performs no network I/O on the authorization path",
-          "artifact_path": null,
+          "text": "`inspectActiveScope` evaluates every candidate with \"skipOriginFreshness: true\", so the authorization path performs no network I/O and no forge round trip can land inside the host tool.before budget.",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
-          "text": "Redundant git subprocesses on the write path are memoized within a dispatch",
-          "artifact_path": null,
+          "text": "Redundant git subprocesses on the write path are memoized within a dispatch: HEAD, worktree root, and branch come from one git child via \"DISPATCH_GIT_CONTEXT_ARGS\".",
+          "artifact_path": "packages/core/src/session/git.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
-          "text": "The host-observed `tool.before` path renders a verdict inside the effective budget, measured end to end rather than by child-process count",
-          "artifact_path": null,
+          "text": "The host mutation gate wraps its runner with \"memoizeGitRunner(seams.ritualRunGit ?? defaultGitRunner)\", so the allow/write-ready path spawns git once per tool call. Stated as a spawn count rather than a wall-clock duration: measured latency here is a function of concurrent machine load, so a duration would pass or fail on load rather than on the change.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "operator-amendment"
         },
         {
           "id": 4,
-          "text": "Acceptance states the effective budget as the minimum across loaded registrations, not the value in any single deposit",
-          "artifact_path": null,
+          "text": "Hook cost per tool call stays constant as tool calls accumulate, so N concurrent agents cost N git spawns and not 5N. Covered by the repeated-dispatch test \"keeps its git cost flat as concurrent tool calls pile up\" rather than by a benchmark.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-write-gate.test.ts",
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "operator-amendment"
         },
         {
           "id": 5,
-          "text": "No regression: the gate still denies what it denied before, and `xbrief:preflight` still enforces origin freshness per brief",
-          "artifact_path": null,
+          "text": "Acceptance states the effective budget as the minimum across loaded registrations, not the value in any single deposit, asserted as \"effectiveTimeoutSeconds\".",
+          "artifact_path": "packages/core/src/init-deposit/agent-hooks.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 6,
-          "text": "CHANGELOG `[Unreleased]` entry",
-          "artifact_path": null,
+          "text": "No regression: the gate still denies what it denied before, covered by \"reports an active artifact whose canonical preflight rejects it\", and xbrief:preflight still enforces origin freshness per brief.",
+          "artifact_path": "packages/core/src/hooks/scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "CHANGELOG [Unreleased] entry \"Authorized writes are no longer refused by a hook that ran out of time\".",
+          "artifact_path": "CHANGELOG.md",
           "ambiguous": false,
           "provenance": "statement"
         }
@@ -114,7 +125,10 @@
         "schema": "deft.scope.intended_placement.v1",
         "files": [],
         "module_boundary": ""
-      }
+      },
+      "literal_acceptance_not_commands": [
+        "deft verify:hooks-installed --scope=agent --live"
+      ]
     },
     "updated": "2026-08-26T19:37:16Z"
   }

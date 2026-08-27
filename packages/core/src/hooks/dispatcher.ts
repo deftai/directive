@@ -47,7 +47,12 @@ import {
   decisionCarriesSoftAgentsRebind,
   formatSoftAgentsRebindChecklist,
 } from "../session/compact-ritual.js";
-import { detectBranch, type GitRunner } from "../session/git.js";
+import {
+  defaultGitRunner,
+  detectBranch,
+  type GitRunner,
+  memoizeGitRunner,
+} from "../session/git.js";
 import { evaluateOccupancyWriteGate } from "../session/occupancy.js";
 import { emitSessionRitualBlockedProcessCost } from "../session/process-cost.js";
 import { markRitualStaleAfterCompact } from "../session/ritual-sentinel.js";
@@ -703,7 +708,12 @@ function authzForMutation(
   input: HookDispatchInput,
   toolName: string,
   seams: HookPolicySeams,
-  options: { isDirectWrite: boolean; relPath: string | null; scopePath: string | null },
+  options: {
+    isDirectWrite: boolean;
+    relPath: string | null;
+    scopePath: string | null;
+    runGit?: GitRunner;
+  },
 ): HookDecision | null {
   const projectRoot = resolve(input.projectRoot);
   let state: AuthzState;
@@ -752,7 +762,7 @@ function authzForMutation(
   // Structural context for bound grants (branch from git; repo optional env).
   let branch: string | null = null;
   try {
-    branch = detectBranch(projectRoot);
+    branch = detectBranch(projectRoot, options.runGit);
   } catch {
     branch = null;
   }
@@ -918,6 +928,7 @@ function inspectMutationGates(
 ): HookDecision {
   const projectRoot = resolve(input.projectRoot);
   const environ = input.environ ?? process.env;
+  const dispatchGit = memoizeGitRunner(seams.ritualRunGit ?? defaultGitRunner);
 
   // Assist/scratch low-ceremony writes (#1802): allowlisted gitignored roots under
   // assist/ephemeral classification skip ritual + active-scope (no fake scope:activate).
@@ -931,6 +942,7 @@ function inspectMutationGates(
         isDirectWrite: true,
         relPath,
         scopePath: null,
+        runGit: dispatchGit,
       });
       if (authzDeny !== null) return authzDeny;
       const runtimeDeny = runtimeAuthorityForDirectWrite(input, toolName, seams, null);
@@ -970,7 +982,7 @@ function inspectMutationGates(
             bypass: false,
             runner: seams.ritualRunner,
             detectWorkSelection: seams.detectWorkSelection,
-            runGit: seams.ritualRunGit,
+            runGit: dispatchGit,
           }),
         ))
     )(projectRoot);
@@ -1150,6 +1162,7 @@ function inspectMutationGates(
         isDirectWrite: true,
         relPath,
         scopePath: null,
+        runGit: dispatchGit,
       });
       if (authzDeny !== null) return authzDeny;
       const runtimeDeny = runtimeAuthorityForDirectWrite(input, toolName, seams, null);
@@ -1250,6 +1263,7 @@ function inspectMutationGates(
       isDirectWrite: true,
       relPath,
       scopePath: scope.path,
+      runGit: dispatchGit,
     });
     if (authzDeny !== null) return authzDeny;
     const runtimeDeny = runtimeAuthorityForDirectWrite(input, toolName, seams, scope.path);

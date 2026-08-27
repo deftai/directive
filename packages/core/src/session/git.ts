@@ -47,6 +47,96 @@ export const defaultGitRunner: GitRunner = (projectRoot, args) => {
   }
 };
 
+/**
+ * One `git rev-parse` that answers the three ref reads the mutation gates
+ * otherwise make separately. Output is one line per requested value, in
+ * argument order: full HEAD, worktree root, branch name.
+ */
+const DISPATCH_GIT_CONTEXT_ARGS = [
+  "rev-parse",
+  "HEAD",
+  "--show-toplevel",
+  "--abbrev-ref",
+  "HEAD",
+] as const;
+
+/** The individual reads `DISPATCH_GIT_CONTEXT_ARGS` can answer without a spawn. */
+const COALESCED_GIT_ARGS: readonly (readonly string[])[] = [
+  ["rev-parse", "--verify", "HEAD"],
+  ["rev-parse", "--show-toplevel"],
+  ["symbolic-ref", "--short", "HEAD"],
+];
+
+/**
+ * Ref and identity reads whose answer cannot change inside one dispatch.
+ * Deliberately excludes content reads (no repeat callers, unbounded memory)
+ * and anything that touches the object store or a remote.
+ */
+const CACHEABLE_GIT_VERBS: ReadonlySet<string> = new Set([
+  "rev-parse",
+  "symbolic-ref",
+  "merge-base",
+  "rev-list",
+]);
+
+function isCoalescedGitArgs(args: readonly string[]): boolean {
+  return COALESCED_GIT_ARGS.some(
+    (candidate) => candidate.length === args.length && candidate.every((arg, i) => arg === args[i]),
+  );
+}
+
+/**
+ * Serve a dispatch's repeated ref reads from one `git` child (#3736).
+ *
+ * The host mutation gate resolved HEAD, the worktree root, and the branch with
+ * a separate spawn each, twice over; on a loaded Windows box a spawn measured a
+ * 2.2s p50, so every concurrent agent's hook slowed every other agent's hook.
+ * The probe is lazy on purpose: it only fires for a read it can actually
+ * answer, so a caller that never asks for context never pays for it.
+ */
+export function memoizeGitRunner(runGit: GitRunner = defaultGitRunner): GitRunner {
+  const cache = new Map<string, GitRunResult>();
+  const probed = new Set<string>();
+  const keyFor = (root: string, args: readonly string[]) => JSON.stringify([root, args]);
+
+  const probeContext = (projectRoot: string, root: string): void => {
+    probed.add(root);
+    const context = runGit(projectRoot, DISPATCH_GIT_CONTEXT_ARGS);
+    if (context.code !== 0) return;
+    const [head, worktree, branch, ...extra] = context.stdout.split(/\r?\n/);
+    if (!head || !worktree || !branch || extra.length > 0) return;
+    const ok = (stdout: string): GitRunResult => ({ code: 0, stdout, stderr: "" });
+    cache.set(keyFor(root, ["rev-parse", "--verify", "HEAD"]), ok(head));
+    cache.set(keyFor(root, ["rev-parse", "--show-toplevel"]), ok(worktree));
+    // `--abbrev-ref` prints the literal "HEAD" on a detached head, where
+    // `symbolic-ref` exits non-zero — which is what callers branch on.
+    cache.set(
+      keyFor(root, ["symbolic-ref", "--short", "HEAD"]),
+      branch === "HEAD" ? { code: 1, stdout: "", stderr: "" } : ok(branch),
+    );
+  };
+
+  return (projectRoot, args) => {
+    const root = resolve(projectRoot);
+    const key = keyFor(root, args);
+    const cached = cache.get(key);
+    if (cached !== undefined) return cached;
+
+    if (!probed.has(root) && isCoalescedGitArgs(args)) {
+      probeContext(projectRoot, root);
+      const coalesced = cache.get(key);
+      if (coalesced !== undefined) return coalesced;
+    }
+
+    const result = runGit(projectRoot, args);
+    const verb = args[0];
+    if (verb !== undefined && CACHEABLE_GIT_VERBS.has(verb)) {
+      cache.set(key, result);
+    }
+    return result;
+  };
+}
+
 export function gitHead(
   projectRoot: string,
   runGit: GitRunner = defaultGitRunner,

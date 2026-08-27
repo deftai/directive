@@ -34,7 +34,9 @@ export function inspectActiveScope(projectRoot: string): ActiveScopeInspection {
   candidates.sort();
   let firstRejection: string | null = null;
   for (const candidate of candidates) {
-    const result = evaluate(candidate);
+    // #3736: origin freshness remains fail-closed at explicit xbrief:preflight.
+    // The host mutation path must stay local and render before its effective timeout.
+    const result = evaluate(candidate, { skipOriginFreshness: true });
     if (result.exitCode === 0) {
       return { ready: true, path: candidate, message: result.message };
     }

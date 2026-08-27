@@ -1,13 +1,33 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { inspectActiveScope } from "./index.js";
+
+const originFreshness = vi.hoisted(() => ({
+  evaluate: vi.fn((_payload: unknown, _options?: { readonly skip?: boolean }) => ({
+    ok: true,
+    message: "origin freshness skipped",
+  })),
+}));
+vi.mock("../vbrief-reconcile/origin-freshness.js", () => ({
+  evaluateOriginFreshness: originFreshness.evaluate,
+}));
 
 const temps: string[] = [];
 
+beforeEach(() => {
+  originFreshness.evaluate.mockClear();
+});
+
 afterEach(() => {
   for (const root of temps.splice(0)) rmSync(root, { recursive: true, force: true });
+  // #3736: the authorization path is local-only. Any candidate evaluated
+  // without `skip` would reach live `gh api` and put a forge round trip
+  // inside the host's tool.before budget.
+  for (const [, options] of originFreshness.evaluate.mock.calls) {
+    expect(options).toMatchObject({ skip: true });
+  }
 });
 
 function root(): string {
@@ -35,6 +55,10 @@ it("reuses canonical preflight for active/running scope", () => {
   writeFileSync(path, JSON.stringify({ plan: runningPlacement }), "utf8");
 
   expect(inspectActiveScope(project)).toMatchObject({ ready: true, path });
+  expect(originFreshness.evaluate).toHaveBeenCalledWith(
+    expect.anything(),
+    expect.objectContaining({ skip: true }),
+  );
 });
 
 describe("scope denial", () => {

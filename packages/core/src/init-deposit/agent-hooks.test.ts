@@ -143,6 +143,29 @@ describe("writeAgentHookDeposit", () => {
         group.hooks.some((h) => h.timeout === NESTED_HOOK_TIMEOUT_SECONDS),
       ),
     ).toBe(true);
+
+    // #3736: Cursor loads its flat registrations plus nested host registrations.
+    // Its effective tool.before budget is the minimum across every loaded entry,
+    // not the timeout declared by any one deposit schema.
+    const nestedTimeouts = [
+      ".claude/settings.json",
+      ".grok/hooks/deft.json",
+      ".codex/hooks.json",
+    ].flatMap((relativePath) => {
+      const config = JSON.parse(readFileSync(join(root, relativePath), "utf8")) as {
+        hooks: { PreToolUse?: Array<{ hooks?: Array<{ timeout?: number }> }> };
+      };
+      return (config.hooks.PreToolUse ?? []).flatMap((group) =>
+        (group.hooks ?? []).flatMap((hook) =>
+          typeof hook.timeout === "number" ? [hook.timeout] : [],
+        ),
+      );
+    });
+    const cursorTimeouts = cursor.hooks.preToolUse.flatMap((entry) =>
+      typeof entry.timeout === "number" ? [entry.timeout] : [],
+    );
+    const effectiveTimeoutSeconds = Math.min(...cursorTimeouts, ...nestedTimeouts);
+    expect(effectiveTimeoutSeconds).toBe(NESTED_HOOK_TIMEOUT_SECONDS);
   });
 
   it("ledgers adapter deletes even when the writer return is discarded (#3392)", () => {
