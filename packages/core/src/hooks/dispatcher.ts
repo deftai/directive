@@ -525,7 +525,8 @@ export function admitEffectiveHookRoot(
   const payloadCommon = gitCommonDir(payload, runGit);
   const candidateCommon = gitCommonDir(candidate, runGit);
   if (payloadCommon === null || candidateCommon === null) {
-    return { root: payload, foreign: false, candidate };
+    // Distinct toplevel with unproven identity is refused, not inherited.
+    return { root: payload, foreign: true, candidate };
   }
   if (normalizeHookProjectRoot(payloadCommon) === normalizeHookProjectRoot(candidateCommon)) {
     return { root: candidate, foreign: false, candidate };

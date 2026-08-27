@@ -114,6 +114,20 @@ describe("effectiveRoot admission (#3794)", () => {
       admitEffectiveHookRoot(payload, null, () => ({ code: 1, stdout: "", stderr: "" })),
     ).toEqual({ root: payload, foreign: false, candidate: null });
   });
+
+  it("refuses a resolved distinct toplevel when git-common-dir lookup fails", () => {
+    const payload = resolve("/tmp/payload-root");
+    const root = mkdtempSync(join(tmpdir(), "hook-3794-common-fail-"));
+    temps.push(root);
+    const admission = admitEffectiveHookRoot(payload, join(root, "src", "a.ts"), (_cwd, args) => {
+      if (args.includes("--show-toplevel")) {
+        return { code: 0, stdout: "/tmp/other-repo", stderr: "" };
+      }
+      return { code: 1, stdout: "", stderr: "" };
+    });
+    expect(admission.foreign).toBe(true);
+    expect(resolve(admission.root)).toBe(payload);
+  });
 });
 
 describe("direct-write occupancy/ritual follow the target worktree (#3794)", () => {
