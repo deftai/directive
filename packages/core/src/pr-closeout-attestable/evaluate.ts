@@ -348,13 +348,24 @@ export function evaluate(
   const runner = options.runner ?? makeGateRunner();
   const fetchClosing = options.fetchClosingIssues ?? fetchClosingIssuesReferences;
   const repo = resolveRepo(options.repo, root);
+  if (repo === null || repo.length === 0) {
+    // Closing references are repository-scoped. Without the slug this gate could
+    // only compare bare numbers, and a same-numbered issue in an unrelated
+    // repository would block a valid merge.
+    return configError(
+      prNumber,
+      "cannot resolve OWNER/REPO for the closing-reference read. Pass --repo OWNER/REPO, " +
+        "set $GH_REPO, or run inside a checkout with a GitHub origin remote.",
+      runner.proxied,
+    );
+  }
 
   const linked = fetchClosing(prNumber, repo, runner.runGh);
   if (linked === null) {
     return configError(
       prNumber,
       `could not read closing-issue references for PR #${prNumber}` +
-        `${repo === null ? "" : ` (repo=${repo})`}. ` +
+        ` (repo=${repo}). ` +
         "Refusing to certify the merge on an unverified lookup — retry after fixing gh auth, " +
         "rate limit, or network.",
       runner.proxied,
@@ -381,8 +392,11 @@ export function evaluate(
 
   for (const brief of listActiveRunningBriefs(lifecycleRoot)) {
     const { issues } = collectGithubRefs(brief.plan, repo);
-    // Match on issue number, the same origin identity `--issue N` uses (#3429).
-    const issue = issues.find((ref) => closingSet.has(ref.number))?.number;
+    // Match on (repo, number). Closing references are scoped to the PR's repository,
+    // so a bare-number match would let an unrelated brief tracking the same number in
+    // another repository block this merge. Refs with no repo of their own inherit the
+    // PR's repo from collectGithubRefs, which is the correct reading of a bare number.
+    const issue = issues.find((ref) => ref.repo === repo && closingSet.has(ref.number))?.number;
     if (issue === undefined) {
       continue;
     }

@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
+import { ENV_TRIAGE_REPO } from "../triage/queue/constants.js";
 import { evaluate, type FetchClosingIssuesFn } from "./evaluate.js";
 
 const REPO = "deftai/directive";
@@ -32,9 +33,9 @@ function writeBrief(root: string, name: string, plan: Record<string, unknown>): 
   return path;
 }
 
-function issueRef(number: number): Record<string, unknown> {
+function issueRef(number: number, repo: string = REPO): Record<string, unknown> {
   return {
-    uri: `https://github.com/${REPO}/issues/${number}`,
+    uri: `https://github.com/${repo}/issues/${number}`,
     type: "x-xbrief/github-issue",
     title: `Issue #${number}`,
   };
@@ -120,6 +121,70 @@ describe("pr-closeout-attestable evaluate", () => {
 
     expect(result.code).toBe(0);
     expect(result.findings).toEqual([]);
+  });
+
+  it("ignores a same-numbered issue that belongs to another repository", () => {
+    const root = makeRepo();
+    writeBrief(root, "2026-08-26-3609-story.xbrief.json", {
+      title: "story",
+      status: "running",
+      references: [issueRef(3609, "otherorg/otherrepo")],
+      items: bareItems(5),
+    });
+
+    // The PR closes deftai/directive#3609; the brief tracks otherorg/otherrepo#3609.
+    // A bare-number match would block this merge on an unrelated brief.
+    const result = evaluate(root, 3786, opts(closing(3609)));
+
+    expect(result.code).toBe(0);
+    expect(result.findings).toEqual([]);
+  });
+
+  it("still matches a brief that names the issue as a bare tracking number", () => {
+    const root = makeRepo();
+    writeBrief(root, "2026-08-26-3609-story.xbrief.json", {
+      title: "story",
+      status: "running",
+      metadata: { "x-tracking": { parent_issue: "#3609" } },
+      items: bareItems(2),
+    });
+
+    // A bare number carries no repo of its own, so it reads as this repository.
+    const result = evaluate(root, 3786, opts(closing(3609)));
+
+    expect(result.code).toBe(1);
+    expect(result.findings[0]?.issue).toBe(3609);
+  });
+
+  it("refuses when OWNER/REPO cannot be resolved for the closing-reference read", () => {
+    const root = makeRepo();
+    writeBrief(root, "2026-08-26-3609-story.xbrief.json", {
+      title: "story",
+      status: "running",
+      references: [issueRef(3609)],
+      items: bareItems(1),
+    });
+    // Stop git walking into this checkout, and drop the env fallback, so
+    // resolveRepo cannot inherit deftai/directive from the parent tree.
+    execFileSync("git", ["init", "-q", "-b", "master"], { cwd: root, stdio: "ignore" });
+    const prevRepo = process.env[ENV_TRIAGE_REPO];
+    delete process.env[ENV_TRIAGE_REPO];
+    try {
+      const result = evaluate(root, 3786, {
+        repo: null,
+        runner: { runGh: NEVER_CALLED, proxied: false },
+        fetchClosingIssues: closing(3609),
+      });
+
+      expect(result.code).toBe(2);
+      expect(result.message).toContain("cannot resolve OWNER/REPO");
+    } finally {
+      if (prevRepo === undefined) {
+        delete process.env[ENV_TRIAGE_REPO];
+      } else {
+        process.env[ENV_TRIAGE_REPO] = prevRepo;
+      }
+    }
   });
 
   it("passes when the PR closes nothing", () => {
