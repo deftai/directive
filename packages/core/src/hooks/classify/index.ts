@@ -24,7 +24,9 @@ export {
   rewriteExactLifecycleCommand,
 } from "./host-session-identity.js";
 export {
+  hookApplyPatchBodyPaths,
   hookMcpArgsText,
+  hookMutationTargetPaths,
   hookPathSet,
   hookShellCommand,
   hookWriteTargetPath,
@@ -37,7 +39,7 @@ export {
   record,
   toolInputRecord,
 } from "./payload.js";
-export { parseHookStdin, stripUtf8Bom } from "./stdin.js";
+export { applyPatchMutationPaths, parseHookStdin, stripUtf8Bom } from "./stdin.js";
 export {
   hookToolName,
   inferCursorDirectWriteToolName,

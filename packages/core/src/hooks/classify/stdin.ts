@@ -15,6 +15,19 @@ export function stripUtf8Bom(raw: string): string {
   return raw.startsWith(UTF8_BOM) ? raw.slice(UTF8_BOM.length) : raw;
 }
 
+/** Paths named by ApplyPatch mutation headers. Order preserved, duplicates dropped. */
+export function applyPatchMutationPaths(text: string): string[] {
+  const paths: string[] = [];
+  const seen = new Set<string>();
+  for (const match of text.matchAll(APPLY_PATCH_MUTATION_LINE_RE)) {
+    const path = match[2]?.trim();
+    if (!path || seen.has(path)) continue;
+    seen.add(path);
+    paths.push(path);
+  }
+  return paths;
+}
+
 function trySynthesizeFreeFormApplyPatch(normalized: string): ParsedHookPayload | null {
   if (!normalized.includes(APPLY_PATCH_BEGIN_MARKER)) return null;
   const mutations: { op: string; path: string }[] = [];

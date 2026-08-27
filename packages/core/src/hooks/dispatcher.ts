@@ -71,6 +71,7 @@ import {
 import {
   type HookPayloadContext,
   hookMcpArgsText,
+  hookMutationTargetPaths,
   hookShellCommand,
   hookToolName,
   hookWriteTargetPath,
@@ -535,6 +536,31 @@ export function admitEffectiveHookRoot(
   return { root: payload, foreign: true, candidate };
 }
 
+/**
+ * Admit every mutation target and require one effectiveRoot. A proven-foreign
+ * member is refused; a span of two admitted worktrees is also refused so
+ * occupancy/ritual cannot follow only the declared ApplyPatch path (#3794).
+ */
+export function admitMutationTargetSet(
+  payloadRoot: string,
+  targets: readonly string[],
+  runGit: GitRunner,
+): EffectiveHookRootAdmission {
+  const payload = normalizeHookProjectRoot(payloadRoot);
+  if (targets.length === 0) return { root: payload, foreign: false, candidate: null };
+  const admitted: EffectiveHookRootAdmission[] = [];
+  for (const target of targets) {
+    const next = admitEffectiveHookRoot(payload, target, runGit);
+    if (next.foreign) return next;
+    admitted.push(next);
+  }
+  const roots = [...new Set(admitted.map((item) => item.root))];
+  if (roots.length > 1) {
+    return { root: payload, foreign: true, candidate: roots.join(" | ") };
+  }
+  return admitted[0] ?? { root: payload, foreign: false, candidate: null };
+}
+
 export function isHookHost(value: string): value is HookHost {
   return (HOOK_HOSTS as readonly string[]).includes(value);
 }
@@ -983,20 +1009,23 @@ function inspectMutationGates(
   const projectRoot = payloadRoot;
   const environ = input.environ ?? process.env;
   const dispatchGit = memoizeGitRunner(seams.ritualRunGit ?? defaultGitRunner);
-  const writeTargetForRoot = isSpawnTool(toolName) ? null : hookWriteTargetPath(input.payload);
+  const mutationTargets = isSpawnTool(toolName) ? [] : hookMutationTargetPaths(input.payload);
   const admission = isSpawnTool(toolName)
     ? { root: payloadRoot, foreign: false, candidate: null }
-    : admitEffectiveHookRoot(payloadRoot, writeTargetForRoot, dispatchGit);
+    : admitMutationTargetSet(payloadRoot, mutationTargets, dispatchGit);
   const effectiveRoot = admission.root;
   const rootsNote = ` ${formatHookRootNote(payloadRoot, effectiveRoot)}`;
   if (admission.foreign) {
+    const spanning = (admission.candidate ?? "").includes(" | ");
+    const reason = spanning
+      ? `write targets span more than one Git worktree (candidate=${admission.candidate}).`
+      : `write target is in a different Git repository ` +
+        `than the hook payload root (candidate=${admission.candidate ?? "<none>"}).`;
     return deny(
       input,
       "foreign-repository-deny",
       toolName,
-      `Directive denied ${toolName}: write target is in a different Git repository ` +
-        `than the hook payload root (candidate=${admission.candidate ?? "<none>"}).` +
-        rootsNote,
+      `Directive denied ${toolName}: ${reason}${rootsNote}`,
     );
   }
 

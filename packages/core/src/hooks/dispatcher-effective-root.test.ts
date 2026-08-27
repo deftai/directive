@@ -261,4 +261,58 @@ describe("direct-write occupancy/ritual follow the target worktree (#3794)", () 
     expect(ritualRoots).toEqual([resolve(wtA)]);
     expect(ritualRoots).not.toContain(resolve(primary));
   });
+
+  it("refuses ApplyPatch when declared path and patch body land in different worktrees", () => {
+    const { primary, wtA, wtB } = linkedFixture();
+    const { ritualRoots, seams } = recordingSeams("owner");
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: {
+          tool_name: "ApplyPatch",
+          tool_input: {
+            path: join(wtA, "src", "a.ts"),
+            patch:
+              "*** Begin Patch\n*** Update File: " +
+              join(wtB, "src", "b.ts") +
+              "\n+x\n*** End Patch",
+          },
+        },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      seams,
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "foreign-repository-deny" });
+    expect(decision.message).toContain("span more than one Git worktree");
+    expect(ritualRoots).toEqual([]);
+  });
+
+  it("admits ApplyPatch when declared path and patch body share a worktree", () => {
+    const { primary, wtA } = linkedFixture();
+    applyWorktreeOccupancy(wtA, { sessionId: "wt-owner", intent: "mutation" });
+    const { ritualRoots, seams } = recordingSeams("wt-owner");
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: {
+          tool_name: "ApplyPatch",
+          tool_input: {
+            path: join(wtA, "src", "a.ts"),
+            patch:
+              "*** Begin Patch\n*** Update File: " +
+              join(wtA, "src", "b.ts") +
+              "\n+x\n*** End Patch",
+          },
+        },
+        environ: { DEFT_SESSION_ID: "wt-owner" },
+      },
+      seams,
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
+    expect(ritualRoots).toEqual([resolve(wtA)]);
+  });
 });

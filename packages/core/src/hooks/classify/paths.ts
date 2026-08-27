@@ -4,6 +4,7 @@
  */
 
 import { firstString, record, toolInputRecord } from "./payload.js";
+import { applyPatchMutationPaths } from "./stdin.js";
 
 /**
  * Best-effort write-target path from host PreToolUse payloads (#2625).
@@ -21,6 +22,39 @@ export function hookWriteTargetPath(payload: unknown): string | null {
     input.filePath,
     input.path,
   ]);
+}
+
+/** ApplyPatch body paths from patch / unified_diff / diff fields. */
+export function hookApplyPatchBodyPaths(payload: unknown): string[] {
+  const input = record(payload);
+  if (input === null) return [];
+  const toolInput = toolInputRecord(input);
+  const patch = firstString([
+    toolInput?.patch,
+    toolInput?.unified_diff,
+    toolInput?.diff,
+    input.patch,
+    input.unified_diff,
+    input.diff,
+  ]);
+  return patch === null ? [] : applyPatchMutationPaths(patch);
+}
+
+/**
+ * Declared write target plus ApplyPatch body members. Used to admit one
+ * effectiveRoot; a span across two Git toplevels is refused (#3794).
+ */
+export function hookMutationTargetPaths(payload: unknown): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  const push = (value: string | null): void => {
+    if (value === null || value.length === 0 || seen.has(value)) return;
+    seen.add(value);
+    out.push(value);
+  };
+  push(hookWriteTargetPath(payload));
+  for (const path of hookApplyPatchBodyPaths(payload)) push(path);
+  return out;
 }
 
 /**
