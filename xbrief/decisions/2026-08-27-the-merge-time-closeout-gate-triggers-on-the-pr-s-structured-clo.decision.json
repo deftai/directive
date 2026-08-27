@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "the-merge-time-closeout-gate-triggers-on-the-pr-s-structured-clo",
+  "decision": "The merge-time closeout gate triggers on the PR's structured closing references and runs as the last step of the pr:wait-mergeable-and-merge cascade, immediately before the gh pr merge call.",
+  "governingRule": {
+    "description": "#3781 fail-closed prevention; #3156 gate integrity; #3265 thin fail-closed design",
+    "path": null,
+    "rfc2119": null
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Key the gate on the branch diff (add --base-ref to verify:orphan-active) and run it inside task check"
+    },
+    {
+      "option": "Run the gate early in the cascade, before the wait loop, as the #701 protected-issue check does"
+    }
+  ],
+  "whyWinner": "A diff trigger cannot fire on the culprit: CI runs before the merge and the issue closes on it, so at check time no orphan exists -- PR 3786's own merge gate returned success while creating one -- and for #3598 the brief landed on master 17h before its closing PR, so it was never in the diff. Running last binds the verdict to the tree that actually merges; the standalone task verify:pr-closeout-attestable verb covers the early-warning case without a second, drift-prone call site.",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-08-27-3781-buglifecycle-a-pr-can-merge-while-closing-an-issue-whose-bri.xbrief.json"
+  ],
+  "timestamp": "2026-08-27T04:20:04Z",
+  "revisitTrigger": "If post-merge automation (#3791) closes the lifecycle window to seconds, or if recorded_by is hardened into an authenticated human gate -- fail-closed would then become a #3779-shaped trap for agent and drive-by authors."
+}
