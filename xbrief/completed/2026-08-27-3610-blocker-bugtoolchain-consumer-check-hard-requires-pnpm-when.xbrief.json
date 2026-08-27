@@ -89,7 +89,7 @@
         "status": "completed",
         "x-directive/disposition": {
           "disposition": "deferred",
-          "reason": "Deferred by operator decision; cross-platform coverage tracked at #3820. The Windows defect that motivated this issue is fixed and verified. Measured gap at 342d1c7d: the consumer-path toolchain-check invocation runs only in the windows-latest job (ci.yml:760, runner at :546), and all six platform pins in packages/core/src/verify-env/toolchain-check.test.ts are win32, so the POSIX direct-exec branch has no coverage at any platform value.",
+          "reason": "Deferred by operator decision; cross-platform coverage tracked at #3820. The Windows defect that motivated this issue is fixed and verified. The remaining gap at 342d1c7d is CI-lane breadth, not unit coverage: the POSIX direct-exec branch of defaultCommandRunner IS covered by the darwin/linux parameterized test at packages/core/src/verify-env/toolchain-check.test.ts:247, which asserts it execs without a shell. What is unverified is the consumer path end-to-end on non-Windows -- the toolchain-check --consumer invocation runs only in the windows-latest job (ci.yml:760, runner at :546), and the repository has no macOS runner.",
           "provenance": {
             "kind": "operator-session",
             "actor": "Scott",
