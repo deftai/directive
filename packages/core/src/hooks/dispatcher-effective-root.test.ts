@@ -89,32 +89,53 @@ describe("effectiveRoot admission (#3794)", () => {
   it("admits a linked worktree and refuses a foreign repository", () => {
     const { primary, wtA, foreign } = linkedFixture();
     const admitted = admitEffectiveHookRoot(primary, join(wtA, "src", "app.ts"), defaultGitRunner);
-    expect(resolve(admitted)).toBe(resolve(wtA));
+    expect(admitted.foreign).toBe(false);
+    expect(resolve(admitted.root)).toBe(resolve(wtA));
 
     const refused = admitEffectiveHookRoot(
       primary,
       join(foreign, "src", "app.ts"),
       defaultGitRunner,
     );
-    expect(resolve(refused)).toBe(resolve(primary));
+    expect(refused.foreign).toBe(true);
+    expect(resolve(refused.root)).toBe(resolve(primary));
+    expect(resolve(refused.candidate ?? "")).toBe(resolve(foreign));
   });
 
   it("falls back to payloadRoot when git cannot express a toplevel", () => {
     const payload = resolve("/tmp/payload-root");
+    const failed = admitEffectiveHookRoot(payload, "/tmp/payload-root/src/a.ts", () => ({
+      code: 1,
+      stdout: "",
+      stderr: "",
+    }));
+    expect(failed).toEqual({ root: payload, foreign: false, candidate: null });
     expect(
-      admitEffectiveHookRoot(payload, "/tmp/payload-root/src/a.ts", () => ({
-        code: 1,
-        stdout: "",
-        stderr: "",
-      })),
-    ).toBe(payload);
-    expect(admitEffectiveHookRoot(payload, null, () => ({ code: 1, stdout: "", stderr: "" }))).toBe(
-      payload,
-    );
+      admitEffectiveHookRoot(payload, null, () => ({ code: 1, stdout: "", stderr: "" })),
+    ).toEqual({ root: payload, foreign: false, candidate: null });
   });
 });
 
 describe("direct-write occupancy/ritual follow the target worktree (#3794)", () => {
+  it("refuses a foreign-repository target even when the payload lease matches", () => {
+    const { primary, foreign } = linkedFixture();
+    applyWorktreeOccupancy(primary, { sessionId: "owner", intent: "mutation" });
+    const { ritualRoots, seams } = recordingSeams("owner");
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: { toolName: "Write", file_path: join(foreign, "src", "app.ts") },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      seams,
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "foreign-repository-deny" });
+    expect(decision.message).toContain("different Git repository");
+    expect(ritualRoots).toEqual([]);
+  });
+
   it("does not block a worktree write for an unrelated primary lease", () => {
     const { primary, wtA } = linkedFixture();
     applyWorktreeOccupancy(primary, { sessionId: "primary-owner", intent: "mutation" });

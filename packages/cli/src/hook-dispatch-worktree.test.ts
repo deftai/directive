@@ -94,8 +94,8 @@ describe("deposited hook CLI without --project-root (#3794)", () => {
     });
     expect(refused.body.decision).toBe("deny");
     const refusedMsg = String(refused.body.reason ?? "");
-    expect(refusedMsg).toContain("Worktree occupied");
+    expect(refusedMsg).toContain("different Git repository");
     expect(refusedMsg.toLowerCase()).toContain(resolve(primary).toLowerCase());
-    expect(refusedMsg.toLowerCase()).not.toContain(resolve(foreign).toLowerCase());
+    expect(refusedMsg.toLowerCase()).toContain(resolve(foreign).toLowerCase());
   });
 });

@@ -81,6 +81,7 @@ Agents, host adapters, and tests **must** key permission outcomes off `HookDecis
 | `occupancy-identity-unavailable` | deny | A payload-supported host omitted/malformed its owner, or a recognized owner-requiring lifecycle form cannot be safely rewritten and lacks an explicit owner (#3611) |
 | `occupancy-identity-conflict` | deny | Payload owner, lifecycle owner syntax/duplicates, environment, or execution root conflict (#3611) |
 | `occupancy-ritual-mismatch` | deny | Live lease and exact verified ritual state name different owners (#3611) |
+| `foreign-repository-deny` | deny | Write target resolved to a Git repository that does not share git-common-dir with payloadRoot (#3794) |
 | `scope-not-ready` | deny | No active running scope for in-root write |
 | `write-propose-ready` | allow | Write to proposed lifecycle path allowed |
 | `write-assist-scratch-ready` | allow | Allowlisted assist/scratch write without active xBRIEF (#1802) |

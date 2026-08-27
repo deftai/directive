@@ -154,6 +154,8 @@ export type HookDecisionCode =
   | "occupancy-identity-conflict"
   /** Live lease and exact verified ritual state name different owners (#3611). */
   | "occupancy-ritual-mismatch"
+  /** Write target resolved to a Git repository that does not share git-common-dir (#3794). */
+  | "foreign-repository-deny"
   | "scope-not-ready"
   | "write-propose-ready"
   /** Allowlisted assist/scratch write without active xBRIEF (#1802). */
@@ -494,33 +496,41 @@ export function formatHookRootNote(payloadRoot: string, effectiveRoot: string): 
   return `payloadRoot=${payloadRoot} effectiveRoot=${effectiveRoot}`;
 }
 
+export interface EffectiveHookRootAdmission {
+  readonly root: string;
+  /** True when a distinct Git repository was resolved and refused (#3794). */
+  readonly foreign: boolean;
+  readonly candidate: string | null;
+}
+
 /**
  * Admit the Git toplevel of the write target only when it shares
- * `--git-common-dir` with `payloadRoot`. Otherwise keep `payloadRoot`
- * (linked-worktree admission, foreign-repo refusal, and fallback).
+ * `--git-common-dir` with `payloadRoot`. Lookup failure falls back to
+ * `payloadRoot`. A resolved foreign repository is marked `foreign` so the
+ * dispatcher can refuse the write instead of inheriting payloadRoot gates.
  */
 export function admitEffectiveHookRoot(
   payloadRoot: string,
   writeTarget: string | null,
   runGit: GitRunner,
-): string {
+): EffectiveHookRootAdmission {
   const payload = normalizeHookProjectRoot(payloadRoot);
-  if (writeTarget === null) return payload;
+  if (writeTarget === null) return { root: payload, foreign: false, candidate: null };
   const ancestor = existingAncestorDir(writeTarget);
-  if (ancestor === null) return payload;
+  if (ancestor === null) return { root: payload, foreign: false, candidate: null };
   const candidateRaw = worktreePathOrNull(ancestor, runGit);
-  if (candidateRaw === null) return payload;
+  if (candidateRaw === null) return { root: payload, foreign: false, candidate: null };
   const candidate = normalizeHookProjectRoot(candidateRaw);
-  if (candidate === payload) return payload;
+  if (candidate === payload) return { root: payload, foreign: false, candidate };
   const payloadCommon = gitCommonDir(payload, runGit);
   const candidateCommon = gitCommonDir(candidate, runGit);
-  if (payloadCommon === null || candidateCommon === null) return payload;
-  if (normalizeHookProjectRoot(payloadCommon) === normalizeHookProjectRoot(candidateCommon)) {
-    return candidate;
+  if (payloadCommon === null || candidateCommon === null) {
+    return { root: payload, foreign: false, candidate };
   }
-  // Foreign-repo refusal: do not relocate occupancy or ritual into another
-  // repository. Payload-root gates still apply (adoption, not fallback-open).
-  return payload;
+  if (normalizeHookProjectRoot(payloadCommon) === normalizeHookProjectRoot(candidateCommon)) {
+    return { root: candidate, foreign: false, candidate };
+  }
+  return { root: payload, foreign: true, candidate };
 }
 
 export function isHookHost(value: string): value is HookHost {
@@ -972,10 +982,21 @@ function inspectMutationGates(
   const environ = input.environ ?? process.env;
   const dispatchGit = memoizeGitRunner(seams.ritualRunGit ?? defaultGitRunner);
   const writeTargetForRoot = isSpawnTool(toolName) ? null : hookWriteTargetPath(input.payload);
-  const effectiveRoot = isSpawnTool(toolName)
-    ? payloadRoot
+  const admission = isSpawnTool(toolName)
+    ? { root: payloadRoot, foreign: false, candidate: null }
     : admitEffectiveHookRoot(payloadRoot, writeTargetForRoot, dispatchGit);
+  const effectiveRoot = admission.root;
   const rootsNote = ` ${formatHookRootNote(payloadRoot, effectiveRoot)}`;
+  if (admission.foreign) {
+    return deny(
+      input,
+      "foreign-repository-deny",
+      toolName,
+      `Directive denied ${toolName}: write target is in a different Git repository ` +
+        `than the hook payload root (candidate=${admission.candidate ?? "<none>"}).` +
+        rootsNote,
+    );
+  }
 
   // Assist/scratch low-ceremony writes (#1802): allowlisted gitignored roots under
   // assist/ephemeral classification skip ritual + active-scope (no fake scope:activate).
