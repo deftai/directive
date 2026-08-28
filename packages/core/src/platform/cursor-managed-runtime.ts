@@ -138,16 +138,54 @@ export function bodyReportsManagedRuntime(body: string): boolean {
   return false;
 }
 
+/** Shape the reader child writes to stdout. */
+interface ProbeResponse {
+  readonly status?: number;
+  readonly body?: string;
+  readonly error?: string;
+}
+
 /**
- * Per-process memo keyed by socket path. The runtime kind cannot change within
- * a process, and classification runs from several verbs, so this holds the child
- * spawn to one per socket even on a managed VM.
+ * Interpret the reader child's stdout, or null when it is not a usable object.
+ *
+ * Exported for the same reason as `bodyReportsManagedRuntime`: it is the parsing
+ * step and it has to be provably total. `JSON.parse("null")` returns null
+ * without throwing, so a bare try/catch around the parse would still leave the
+ * field reads that follow able to throw -- and a probe that throws aborts
+ * classification instead of failing closed.
  */
-const probeCache = new Map<string, ManagedRuntimeProbeResult>();
+export function parseProbeResponse(stdout: string): ProbeResponse | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(stdout);
+  } catch {
+    return null;
+  }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return null;
+  return parsed as ProbeResponse;
+}
+
+/**
+ * Per-process memo of *positive* managed reads, keyed by socket path.
+ *
+ * Only the `managed` verdict is memoized, and that asymmetry is the safety
+ * property. A managed VM cannot stop being managed mid-process, so holding that
+ * deny costs nothing and keeps classification to one child spawn per socket.
+ *
+ * Every other verdict says only that the API did not assert `managed` on that
+ * attempt: the socket may not have been listening yet, or the read may have
+ * failed outright. Memoizing one would let a transient miss suppress a later
+ * deny -- a managed VM whose first probe lost the startup race would stay
+ * ambiguous for the life of the process, and an explicit `host-gh` selection
+ * would then hand it host credentials. Re-probing an ambiguous runtime costs a
+ * child spawn bounded by the timeouts below; caching one is unbounded in the
+ * only direction that matters.
+ */
+const managedVerdictMemo = new Map<string, ManagedRuntimeProbeResult>();
 
 /** Clear the probe memo. Test seam only. */
 export function resetManagedRuntimeProbeCache(): void {
-  probeCache.clear();
+  managedVerdictMemo.clear();
 }
 
 /** Default managed-runtime probe. Never throws. */
@@ -156,10 +194,10 @@ export const probeManagedRuntime: ManagedRuntimeProbe = (environ) => {
   if (socketPath.length === 0) {
     return unavailable(null, `${MANAGED_RUNTIME_SOCKET_ENV} is not set; runtime not asserted`);
   }
-  const cached = probeCache.get(socketPath);
-  if (cached !== undefined) return cached;
+  const memoized = managedVerdictMemo.get(socketPath);
+  if (memoized !== undefined) return memoized;
   const result = readManagedRuntime(socketPath);
-  probeCache.set(socketPath, result);
+  if (result.verdict === "managed") managedVerdictMemo.set(socketPath, result);
   return result;
 };
 
@@ -185,10 +223,8 @@ function readManagedRuntime(socketPath: string): ManagedRuntimeProbeResult {
   if (stdout.trim().length === 0) {
     return unavailable(socketPath, `${MANAGED_RUNTIME_PATH} returned no response`);
   }
-  let payload: { status?: number; body?: string; error?: string };
-  try {
-    payload = JSON.parse(stdout) as typeof payload;
-  } catch {
+  const payload = parseProbeResponse(stdout);
+  if (payload === null) {
     return unavailable(socketPath, `${MANAGED_RUNTIME_PATH} response was unparseable`);
   }
   if (typeof payload.error === "string") {

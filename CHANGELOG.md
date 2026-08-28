@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- Fixed: local Cursor sessions no longer misread as cloud, so SCM-dependent gates stop silently skipping when a healthy gh login is available. Cursor-managed VMs are now denied host credentials by a positive gent/runtime=managed metadata read, an ambiguous Cursor runtime requires an explicit DEFT_GITHUB_AUTH_MODE=host-gh opt-in, and skipped gates now report why (#3859).
+- Fixed: local Cursor sessions no longer misread as cloud, so SCM-dependent gates stop silently skipping when a healthy gh login is available. Cursor-managed VMs are now denied host credentials by a positive agent/runtime=managed metadata read that still lands if an earlier probe failed, an ambiguous Cursor runtime requires an explicit DEFT_GITHUB_AUTH_MODE=host-gh opt-in, and skipped gates now report why (#3859).
 
 ### Added
 - **Land completed-tracked artifact for #3850 (#3264 / #1358).** The #3850 xBRIEF stayed in `active/` after squash of PR 3856. Moved to `xbrief/completed/` via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.

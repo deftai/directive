@@ -13,7 +13,7 @@
  * are Ubuntu" is a versioned fact about a third party's fleet.
  */
 
-import { spawn } from "node:child_process";
+import { type ChildProcess, spawn } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -24,6 +24,7 @@ import {
   MANAGED_RUNTIME_PATH,
   MANAGED_RUNTIME_SOCKET_ENV,
   type ManagedRuntimeProbe,
+  parseProbeResponse,
   probeManagedRuntime,
   resetManagedRuntimeProbeCache,
 } from "./cursor-managed-runtime.js";
@@ -104,14 +105,18 @@ const server = http.createServer((req, res) => {
 server.listen(process.env.SRV_SOCK, () => { process.stdout.write("ready\\n"); });
 `;
 
-async function withMetadataServer(
+/** A socket path nothing is listening on yet. */
+function reserveSocketPath(): string {
+  const unique = `deft-3859-${process.pid}-${Math.random().toString(36).slice(2)}`;
+  return process.platform === "win32" ? `\\\\.\\pipe\\${unique}` : join(tmpdir(), `${unique}.sock`);
+}
+
+/** Start serving `body` on `socketPath` and resolve once it accepts. */
+async function startMetadataServer(
+  socketPath: string,
   body: string,
   status: number,
-  run: (socketPath: string) => void,
-): Promise<void> {
-  const unique = `deft-3859-${process.pid}-${Math.random().toString(36).slice(2)}`;
-  const socketPath =
-    process.platform === "win32" ? `\\\\.\\pipe\\${unique}` : join(tmpdir(), `${unique}.sock`);
+): Promise<ChildProcess> {
   const child = spawn(process.execPath, ["-e", SERVER_SCRIPT], {
     env: {
       ...process.env,
@@ -141,6 +146,21 @@ async function withMetadataServer(
         reject(new Error(`metadata server exited early (${code})`));
       });
     });
+  } catch (err) {
+    child.kill();
+    throw err;
+  }
+  return child;
+}
+
+async function withMetadataServer(
+  body: string,
+  status: number,
+  run: (socketPath: string) => void,
+): Promise<void> {
+  const socketPath = reserveSocketPath();
+  const child = await startMetadataServer(socketPath, body, status);
+  try {
     resetManagedRuntimeProbeCache();
     run(socketPath);
   } finally {
@@ -190,7 +210,7 @@ describe("probeManagedRuntime default (#3859)", () => {
     });
   });
 
-  it("memoizes per socket path so repeat classification does not respawn", async () => {
+  it("memoizes a positive managed read so repeat classification does not respawn", async () => {
     await withMetadataServer(JSON.stringify({ runtime: "managed" }), 200, (socketPath) => {
       const environ = { [MANAGED_RUNTIME_SOCKET_ENV]: socketPath };
       const first = probeManagedRuntime(environ);
@@ -198,6 +218,103 @@ describe("probeManagedRuntime default (#3859)", () => {
       expect(first.verdict).toBe("managed");
       // Identity, not equality: a second read would build a fresh object.
       expect(second).toBe(first);
+    });
+  });
+});
+
+describe("parseProbeResponse (#3859)", () => {
+  it("returns null for anything that is not a response object", () => {
+    // "null" is the case a bare try/catch misses: JSON.parse accepts it, and
+    // reading a field off the result would throw out of a probe documented to
+    // never throw.
+    for (const stdout of ["null", "42", '"managed"', "[]", "[1,2]", "not json {", ""]) {
+      expect(parseProbeResponse(stdout)).toBeNull();
+    }
+  });
+
+  it("returns the response object when the reader reported one", () => {
+    expect(parseProbeResponse(JSON.stringify({ status: 200, body: "managed" }))).toEqual({
+      status: 200,
+      body: "managed",
+    });
+    expect(parseProbeResponse(JSON.stringify({ error: "ENOENT" }))).toEqual({ error: "ENOENT" });
+  });
+});
+
+/**
+ * The inconclusive-cache recovery case.
+ *
+ * A managed VM whose first probe loses the metadata-socket startup race reads
+ * `unavailable`. If that verdict were memoized it would stand for the life of
+ * the process, so a later healthy endpoint reporting `managed` would never be
+ * seen -- and the explicit host-gh opt-in, which only ever resolves an
+ * *ambiguous* runtime, would go on authorizing host credentials on a VM the
+ * probe was supposed to deny. That is the fail-open direction, so the deny has
+ * to survive a transient miss.
+ */
+describe("recovery after an inconclusive probe (#3859)", () => {
+  it("re-probes an unavailable read and denies once the socket reports managed", async () => {
+    const socketPath = reserveSocketPath();
+    const environ = {
+      CURSOR_AGENT: "1",
+      [GITHUB_AUTH_MODE_ENV]: "host-gh",
+      [MANAGED_RUNTIME_SOCKET_ENV]: socketPath,
+    };
+    resetManagedRuntimeProbeCache();
+    try {
+      // Nothing is listening yet. The runtime is ambiguous, and the opt-in an
+      // operator set on a machine they believed was theirs resolves it local.
+      expect(probeManagedRuntime(environ).verdict).toBe("unavailable");
+      const before = bothClassifiers(environ, probeManagedRuntime);
+      expect(before.mode).toBe("local-unsandboxed");
+      expect(before.reason).toBe("explicit-host-gh-selection");
+
+      const child = await startMetadataServer(
+        socketPath,
+        JSON.stringify({ runtime: "managed" }),
+        200,
+      );
+      try {
+        // Same process, same socket path, endpoint now healthy.
+        expect(probeManagedRuntime(environ).verdict).toBe("managed");
+        const after = bothClassifiers(environ, probeManagedRuntime);
+        expect(after.mode).toBe("cloud-headless");
+        expect(after.reason).toBe("cursor-managed-runtime-probe");
+      } finally {
+        child.kill();
+      }
+    } finally {
+      resetManagedRuntimeProbeCache();
+    }
+  });
+
+  it("does not memoize an unavailable read", () => {
+    resetManagedRuntimeProbeCache();
+    try {
+      const environ = { [MANAGED_RUNTIME_SOCKET_ENV]: reserveSocketPath() };
+      const first = probeManagedRuntime(environ);
+      const second = probeManagedRuntime(environ);
+      expect(first.verdict).toBe("unavailable");
+      expect(second.verdict).toBe("unavailable");
+      // Identity: a memoized verdict hands back the same object, which is what
+      // would freeze this socket at "not managed" for the whole process.
+      expect(second).not.toBe(first);
+    } finally {
+      resetManagedRuntimeProbeCache();
+    }
+  });
+
+  it("does not memoize a not-managed read", async () => {
+    await withMetadataServer(JSON.stringify({ runtime: "machine" }), 200, (socketPath) => {
+      const environ = { [MANAGED_RUNTIME_SOCKET_ENV]: socketPath };
+      const first = probeManagedRuntime(environ);
+      const second = probeManagedRuntime(environ);
+      expect(first.verdict).toBe("not-managed");
+      expect(second.verdict).toBe("not-managed");
+      // Only a positive managed read earns a memo. A 200 that does not assert
+      // managed is still a read of an endpoint whose shape is documented only
+      // loosely, so it does not get to stand in for one.
+      expect(second).not.toBe(first);
     });
   });
 });
