@@ -1,0 +1,114 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #3850",
+    "updated": "2026-08-28T16:25:17Z"
+  },
+  "plan": {
+    "title": "bug(design-critique): the panel-deposit guards are inconsistent prose, and panel completeness has no executable consumer",
+    "status": "running",
+    "narratives": {
+      "Description": "Reconcile the seven bind-guard loci in content/contracts/design-critique.md onto the deposit-independent sibling-completeness phrasing that already exists, and state plainly that panel completeness is behavioural.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3850 (body recut 2026-08-28 to the bound contract; synthesis comment 5454966234, successor lean 5454472108)",
+      "Overview": "Issue #3850 was recut on 2026-08-28 after a three-critic refutation panel. The original filing's diagnosis and all three of its remedies were refuted; one was actively dangerous.\n\nTwo separate defects, which the filing conflated.\n\n1. Seven contract loci disagree about the same guard. `panel-deposit` appears as a bind-guard qualifier at `:177`, `:192`, `:224`, `:246`, `:248`, `:260`, `:320`. Five condition sibling completeness on siblings \"named on the panel-deposit\". Two already use deposit-independent phrasing: `:320`'s closing clause (\"or while same-round siblings remain unposted\") and router skill line 44 (\"not while same-round siblings outstanding\"). Converge the seven on the wording that already exists; do not invent new wording.\n\n2. Panel completeness has no executable consumer. `evaluateCompletedArcRecord` reads the deposit only as an in-flight marker; `SIBLINGS_FIELD_RE` is consumed solely as one term of `isPanelDepositBody`'s shape test. It never counts critic posts and never compares them against an expected N. `evaluateParentAudit` carries no round, sibling, or deposit field and has zero non-test call sites. The contract's phrasing implies a gate that does not exist.\n\nThe operator decided prose-only on 2026-08-28 (human-origin). The contract should describe reality rather than gain a new machine gate.\n\nOut of bounds, each measured rather than guessed:\n\n- Do NOT key any gate on panel-deposit contents. The repository is public, comments are world-writable, and `isPanelDepositBody` accepts a bare `panel-deposit` token with zero fields as well-formed. One `siblings: 99` comment would permanently block auto-bind on every open arc.\n- Do NOT implement absence-as-unsatisfied. `:107` requires a deposit only for two or more critics and N=1 is the default spend; this would block every N=1 arc.\n- Do NOT change the router skill `content/skills/deft-directive-design-critique/SKILL.md`. Line 44 already says the right thing, and that file is generated from `content/packs/skills/skills-pack-0.1.json`.\n- Do NOT touch `packages/core/src/design-critique/completed-arc-record.ts`. No code change is in scope.\n- Do NOT add a new predicate or a regression test for panel completeness. There is no predicate to pin and the operator decided not to create one.\n\nRefs #3824, #3848, #3851.",
+      "Labels": "bug, design-critique"
+    },
+    "items": [
+      {
+        "title": "All seven loci carry consistent, deposit-independent phrasing for the sibling-completeness conjunct",
+        "status": "proposed"
+      },
+      {
+        "title": "The contract states explicitly that panel completeness is a parent obligation with no machine enforcement",
+        "status": "proposed"
+      },
+      {
+        "title": "The content-contract test is updated for any changed pinned strings, and no new predicate is introduced",
+        "status": "proposed"
+      },
+      {
+        "title": "No gate anywhere reads deposit contents",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG `[Unreleased]` entry",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "design-critique"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3850",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3850: the panel-deposit guards are inconsistent prose, and panel completeness has no executable consumer"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3850#issuecomment-5454966234",
+        "type": "x-xbrief/refs",
+        "title": "Synthesis accepted (bound contract, operator prose-only decision)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3850#issuecomment-5454472108",
+        "type": "x-xbrief/refs",
+        "title": "Successor lean (round-1 panel, 3 of 3 posted)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": false,
+      "source_rung": "literal",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "All seven loci carry consistent, deposit-independent phrasing for the sibling-completeness conjunct",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The contract states explicitly that panel completeness is a parent obligation with no machine enforcement",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The content-contract test is updated for any changed pinned strings, and no new predicate is introduced",
+          "artifact_path": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "No gate anywhere reads deposit contents",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "CHANGELOG `[Unreleased]` entry",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      }
+    },
+    "updated": "2026-08-28T16:25:17Z"
+  },
+  "vBRIEFInfo": {
+    "updated": "2026-08-28T16:25:23Z"
+  }
+}

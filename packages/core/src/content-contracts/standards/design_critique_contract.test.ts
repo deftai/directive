@@ -605,6 +605,9 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(lean).toContain("same party authored the triage");
     expect(loop).toContain("Binding takes is not synthesis bind");
     expect(loop).toContain("The first lean after one critic EXIT is the take-offer, not the bind");
+    expect(loop).toContain(
+      "⊗ Bind synthesis or stamp `design-critique:triage-ready` while same-round siblings remain unposted.",
+    );
     expect(verbs).toContain("when they apply");
     expect(verbs).toContain("empty-lean verb menu");
     expect(verbs).toContain("Do not skip the first-lean offer because the draft is all-accept");
@@ -612,16 +615,19 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
       "Auto-stamp a parent-drafted all-accept map that the operator has not confirmed",
     );
     expect(verbs).toContain("the operator has confirmed or amended that map");
-    expect(verbs).toContain("no unposted same-round siblings named on the panel-deposit remain");
-    expect(verbs).toContain(
-      "Auto-stamp while a panel-deposit for this round still has unposted siblings",
-    );
+    expect(verbs).toContain("no unposted same-round siblings remain");
+    expect(verbs).toContain("Auto-stamp while same-round siblings remain unposted");
     expect(testSurface).toContain("does not fail-close live parent turns");
     expect(testSurface).toContain("evaluateParentAudit");
     const bind = markdownSection(text, "## Bind after accepted synthesis");
     expect(bind).toContain("the operator has confirmed or amended that map");
-    expect(bind).toContain("no unposted same-round siblings named on the panel-deposit remain");
+    expect(bind).toContain("no unposted same-round siblings remain");
     expect(bind).toContain("an unconfirmed parent draft");
+    const ceiling = markdownSection(text, "### Envelope and ceiling");
+    expect(ceiling).toContain("**Panel completeness is behavioural.**");
+    expect(ceiling).toContain("No code observes them.");
+    expect(ceiling).toContain("nothing machine-checks it");
+    expect(testSurface).toContain("Panel completeness is locked as contract text only");
     const skill = readText(SKILL_REL);
     expect(skill).toContain("After critic post: posted successor lean, then verbs");
     expect(skill).toContain(
@@ -685,7 +691,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(text).toContain("An unresolved marker is residual and blocks verified-synthesis bind.");
     expect(text).toContain("⊗ Discharge a marker by promising a later pass.");
     expect(text).toContain(
-      "Auto-bind requires an all-accept disposition map AND zero unresolved audit markers AND the operator has confirmed or amended that map AND no unposted same-round siblings named on the panel-deposit remain.",
+      "Auto-bind requires an all-accept disposition map AND zero unresolved audit markers AND the operator has confirmed or amended that map AND no unposted same-round siblings remain.",
     );
     expect(text).toContain(
       "This conjunct applies at Operator verbs auto-stamp and at Bind after accepted synthesis path 1.",
