@@ -165,16 +165,23 @@ describe("review-owner GitHub lease seams", () => {
 
 describe("pass marker GitHub surface (#3607)", () => {
   const PASS_START = new Date("2026-08-28T12:00:00.000Z");
-  const PASS_BODY = renderPassOpenComment({
-    kind: "pass",
-    pass_kind: "design-critique",
-    owner: "dbcall2",
-    agent_id: "critic-parent-1",
-    ceiling: "5430302222",
-    started_at: PASS_START.toISOString(),
-    expires_at: computeExpiresAt(PASS_START, 60),
-    ended_at: null,
-  });
+
+  function passBody(
+    overrides: { passKind?: string; owner?: string; agentId?: string; ceiling?: string } = {},
+  ): string {
+    return renderPassOpenComment({
+      kind: "pass",
+      pass_kind: overrides.passKind ?? "design-critique",
+      owner: overrides.owner ?? "dbcall2",
+      agent_id: overrides.agentId ?? "critic-parent-1",
+      ceiling: overrides.ceiling ?? "5430302222",
+      started_at: PASS_START.toISOString(),
+      expires_at: computeExpiresAt(PASS_START, 60),
+      ended_at: null,
+    });
+  }
+
+  const PASS_BODY = passBody();
 
   interface ThreadComment {
     id: number;
@@ -375,6 +382,93 @@ describe("pass marker GitHub surface (#3607)", () => {
     expect(thread.comments.map((c) => c.id)).toEqual([900]);
   });
 
+  it("refuses to renew a mark it cannot prove is its own", () => {
+    // The comment id an `observed` result hands back names someone else's pass. Feeding
+    // it to a renewal must not overwrite that pass's kind, ceiling, expiry or owner.
+    const cases = [
+      {
+        label: "another author",
+        comment: threadComment(500, passBody({ owner: "other" }), "MEMBER", "other"),
+      },
+      {
+        label: "another owner in the body",
+        comment: threadComment(500, passBody({ owner: "other" })),
+      },
+      {
+        label: "author GitHub did not report",
+        comment: threadComment(500, PASS_BODY, "MEMBER", ""),
+      },
+      { label: "same login, different pass", comment: threadComment(500, PASS_BODY) },
+    ];
+    for (const { label, comment } of cases) {
+      const thread = fakeThread([{ ...comment }]);
+      let updates = 0;
+      const seams = {
+        ...thread.seams,
+        updateComment: (repo: string, commentId: number, body: string) => {
+          updates += 1;
+          return thread.seams.updateComment(repo, commentId, body);
+        },
+      };
+      const refused = openPassMarker({
+        repo: "deftai/directive",
+        issue: 3607,
+        owner: "dbcall2",
+        passKind: "triage",
+        agentId: "triage-1",
+        ceiling: "9999999999",
+        commentId: 500,
+        startedAt: new Date("2026-08-28T12:30:00.000Z"),
+        seams,
+      });
+      expect(refused, label).toMatchObject({ status: "observed", commentId: 500 });
+      expect(updates, label).toBe(0);
+      expect(thread.comments[0]?.body, label).toBe(comment.body);
+    }
+  });
+
+  it("opens its own mark when the comment id it was given is no longer on the thread", () => {
+    const thread = fakeThread();
+    expect(
+      openPassMarker({
+        repo: "deftai/directive",
+        issue: 3607,
+        owner: "dbcall2",
+        passKind: "triage",
+        commentId: 4242,
+        startedAt: PASS_START,
+        seams: thread.seams,
+      }),
+    ).toMatchObject({ status: "opened", commentId: 1000 });
+    expect(thread.comments).toHaveLength(1);
+  });
+
+  it("refuses to close a mark whose author GitHub did not report", () => {
+    // A marker body can claim any owner; without a reported author the claim is
+    // unverifiable, and PATCHing another user's comment is a 403 for a non-maintainer.
+    const thread = fakeThread([threadComment(500, PASS_BODY, "CONTRIBUTOR", "")]);
+    let updates = 0;
+    const seams = {
+      ...thread.seams,
+      updateComment: (repo: string, commentId: number, body: string) => {
+        updates += 1;
+        return thread.seams.updateComment(repo, commentId, body);
+      },
+    };
+    expect(
+      closePassMarker({
+        repo: "deftai/directive",
+        issue: 3607,
+        owner: "dbcall2",
+        commentId: 500,
+        endedAt: new Date("2026-08-28T12:20:00.000Z"),
+        seams,
+      }),
+    ).toEqual({ status: "held-by-other", commentId: 500 });
+    expect(updates).toBe(0);
+    expect(thread.comments[0]?.body).toBe(PASS_BODY);
+  });
+
   it("closes by comment id over the marker as currently read", () => {
     // ended_at is rendered over the freshly read marker, so a close cannot resurrect the
     // metadata its caller opened with after a renewal changed it.
@@ -390,16 +484,18 @@ describe("pass marker GitHub surface (#3607)", () => {
       }),
     ).toMatchObject({ status: "opened", commentId: 1000 });
 
-    openPassMarker({
-      repo: "deftai/directive",
-      issue: 3607,
-      owner: "dbcall2",
-      passKind: "review-response",
-      ceiling: "7777777777",
-      commentId: 1000,
-      startedAt: new Date("2026-08-28T12:20:00.000Z"),
-      seams: thread.seams,
-    });
+    expect(
+      openPassMarker({
+        repo: "deftai/directive",
+        issue: 3607,
+        owner: "dbcall2",
+        passKind: "design-critique",
+        ceiling: "7777777777",
+        commentId: 1000,
+        startedAt: new Date("2026-08-28T12:20:00.000Z"),
+        seams: thread.seams,
+      }),
+    ).toMatchObject({ status: "renewed", commentId: 1000 });
 
     expect(
       closePassMarker({
@@ -411,7 +507,6 @@ describe("pass marker GitHub surface (#3607)", () => {
         seams: thread.seams,
       }),
     ).toEqual({ status: "cleared", commentId: 1000 });
-    expect(thread.comments[0]?.body).toContain("pass_kind: review-response");
     expect(thread.comments[0]?.body).toContain("ceiling: 7777777777");
     expect(thread.comments[0]?.body).toContain("ended_at: 2026-08-28T12:40:00.000Z");
 
@@ -515,10 +610,26 @@ describe("pass marker GitHub surface (#3607)", () => {
         issue: 3607,
         owner: "dbcall2",
         passKind: "design-critique",
-        commentId: 1000,
-        seams: { updateComment: () => ({ error: "patch denied" }) },
+        agentId: "critic-parent-1",
+        commentId: 500,
+        startedAt: PASS_START,
+        seams: {
+          fetchComments: () => [threadComment(500, PASS_BODY)],
+          updateComment: () => ({ error: "patch denied" }),
+        },
       }),
     ).toEqual({ error: "patch denied" });
+
+    expect(
+      openPassMarker({
+        repo: "deftai/directive",
+        issue: 3607,
+        owner: "dbcall2",
+        passKind: "design-critique",
+        commentId: 500,
+        seams: failing,
+      }),
+    ).toEqual({ error: "boom" });
 
     expect(
       openPassMarker({

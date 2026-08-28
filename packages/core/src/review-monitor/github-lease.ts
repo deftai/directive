@@ -293,13 +293,47 @@ function resolvePassCreateRace(
 }
 
 /**
+ * Proof, read from the thread, that a mark is the caller's own to write (#3607).
+ *
+ * Both the comment's GitHub author and the marker's `owner` must be the caller. An
+ * author GitHub did not report is refused rather than assumed: an unreported author is
+ * exactly the case where a marker body claiming the caller as `owner` is unverifiable,
+ * and PATCHing another user's comment is a 403 for a non-maintainer.
+ */
+function isOwnOpenPassComment(
+  comment: PassOpenComment,
+  owner: string,
+): comment is PassOpenComment & { readonly marker: PassOpenMarker } {
+  const mark = comment.marker;
+  return (
+    mark !== null &&
+    mark.ended_at === null &&
+    comment.authorLogin.length > 0 &&
+    comment.authorLogin === owner &&
+    mark.owner === owner
+  );
+}
+
+/**
+ * A refresh must name the pass it refreshes (#3607). Owner login, agent id and pass kind
+ * identify a pass; the ceiling and the expiry window are what a refresh moves. Two runs
+ * agreeing on all three are one pass identity by construction, so a refresh then moves
+ * only that pass's own window.
+ */
+function refreshesSamePass(marker: PassOpenMarker, input: OpenPassMarkerInput): boolean {
+  return marker.pass_kind === input.passKind && marker.agent_id === (input.agentId ?? null);
+}
+
+/**
  * Mark a pass open on an issue thread (#3607).
  *
  * A marker comment belongs to the one pass that created it. An open never edits a
  * comment it did not create -- it creates its own, or reports the mark already there --
  * so two concurrent passes can never overwrite each other's metadata, including two
  * agents sharing one GitHub login. Refreshing an existing mark requires the `commentId`
- * that open handed back, which makes the writer of any comment unique.
+ * that open handed back, and the mark on that comment is re-read and checked against the
+ * caller before the write: a `commentId` taken from an `observed` result names another
+ * pass, so it is refused and the caller opens its own mark instead of overwriting.
  *
  * `observed` means a mark is already open on the thread. The caller is informed and MAY
  * still write; nothing is held. Concurrent creates resolve oldest-comment-id wins, and
@@ -311,18 +345,26 @@ export function openPassMarker(input: OpenPassMarkerInput): OpenPassMarkerResult
   const marker = buildPassMarker(input, startedAt);
   const body = renderPassOpenComment(marker);
 
-  if (input.commentId !== undefined && input.commentId !== null) {
-    const updated = updateReviewOwnerComment(input.repo, input.commentId, body, seams);
-    if ("error" in updated) {
-      return { error: updated.error };
-    }
-    return { status: "renewed", commentId: input.commentId, marker };
-  }
-
   const listed = listPassMarkerComments(input.repo, input.issue, seams);
   if (!Array.isArray(listed)) {
     return { error: listed.error };
   }
+
+  if (input.commentId !== undefined && input.commentId !== null) {
+    const target = listed.find((comment) => comment.id === input.commentId);
+    if (
+      target !== undefined &&
+      isOwnOpenPassComment(target, input.owner) &&
+      refreshesSamePass(target.marker, input)
+    ) {
+      const updated = updateReviewOwnerComment(input.repo, target.id, body, seams);
+      if ("error" in updated) {
+        return { error: updated.error };
+      }
+      return { status: "renewed", commentId: target.id, marker };
+    }
+  }
+
   const active = findActivePassComment(listed, { now: startedAt });
   if (active !== null && active.marker !== null) {
     return { status: "observed", commentId: active.id, marker: active.marker };
@@ -357,7 +399,9 @@ export type ClosePassMarkerResult =
  *
  * `ended_at` is rendered over the marker as just read from the thread, never over the
  * snapshot the caller opened with, so closing does not resurrect stale pass metadata.
- * Another author's mark is reported back, never overwritten.
+ * A mark the thread does not prove is the caller's own -- another author's, another
+ * owner's, or one whose author GitHub did not report -- is reported back, never
+ * overwritten.
  */
 export function closePassMarker(input: ClosePassMarkerInput): ClosePassMarkerResult {
   const seams = input.seams ?? {};
@@ -373,10 +417,7 @@ export function closePassMarker(input: ClosePassMarkerInput): ClosePassMarkerRes
   if (target === null || target.marker === null || target.marker.ended_at !== null) {
     return { status: "not-open", commentId: null };
   }
-  if (
-    target.marker.owner !== input.owner ||
-    (target.authorLogin.length > 0 && target.authorLogin !== input.owner)
-  ) {
+  if (!isOwnOpenPassComment(target, input.owner)) {
     return { status: "held-by-other", commentId: target.id };
   }
   const body = renderPassOpenComment({ ...target.marker, ended_at: endedAt.toISOString() });
