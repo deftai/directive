@@ -1,0 +1,144 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #3828",
+    "updated": "2026-08-28T17:08:07Z"
+  },
+  "plan": {
+    "title": "bug(lifecycle): the D12 stale-origin gate denies its own named remedy and blocks every linked worktree",
+    "status": "running",
+    "narratives": {
+      "Description": "Make three printed strings honest: the xbrief:preflight origin-freshness recovery, the interim bump path it must name, and the dest-form coverage hint.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3828",
+      "Overview": "> **Recut 2026-08-28** to the bound contract in the accepted synthesis `5455159649`, citing successor lean `5455125143`. The original filing's central diagnosis was refuted by a three-critic panel and by the parent's own re-measurement. Do not implement the body's original remedies. History is in the thread.\n\n## What was refuted\n\nThe filing claimed \"the D12 stale-origin gate denies the write that performs its own named remedy.\" That is **false of master**. `749343f6` (#3736 / #3787) changed `packages/core/src/hooks/scope.ts` to `evaluate(candidate, { skipOriginFreshness: true })`, so the host mutation path no longer evaluates origin freshness at all. The reproduced denial came from the released CLI `v0.107.0`, which predates that commit (`git merge-base --is-ancestor 749343f6 v0.107.0` exits 1). There is no write-path deny to fix.\n\nThe negative-existence claim (\"no verb performs the bump\") was also false. `scope:block` then `scope:unblock` performs the stamp.\n\n## What survives — message quality\n\nThree printed strings are wrong or misleading.\n\n1. **`xbrief:preflight`'s origin-freshness recovery names a verb that fails from the state it prints in.** `buildReject` appends `ACTIVATE_HINT` (`preflight/evaluate.ts`), which names `task scope:activate`. On a brief already in `active/` that hard-errors: `Invalid transition: 'activate' requires file in pending/`. Origin freshness is only ever evaluated after the active+running checks pass, so the recovery is unreachable by construction.\n\n2. **No printed path performs the bump.** `scope:block` then `scope:unblock` does: `scope/constants.ts` gives both `allowedSources: [\"active\"]` and `targetFolder: null`; `block` requires `status: running` and `unblock` returns it; both land on `transition.ts`, which sets `planObj.updated` and calls `stampEnvelopeUpdated` (the `xBRIEFInfo.updated` field the deny names). This is the **interim** path chosen by the operator. It writes a `blocked` -> `running` pair into the scope-lifecycle audit log for a brief that was never blocked; that tradeoff was accepted knowingly. #3857 owns the honest dedicated verb.\n\n3. **The dest-form coverage hint overclaims.** `scopeNotReadyCoverageHint` (`hooks/dispatcher.ts`) prints unconditionally on direct-write denials and claims coverage of \"recognized Shell dest-forms (git checkout --, git restore, rm/rmdir)\". That coverage requires `plan.policy.runtimeAuthority.shellDestForms === \"enforce\"`; the default is `\"off\"` (`policy/runtime-authority.ts`) and this repository measures `source: default`. The sentence also understates the hole in the other direction: naming `python -c` as the exception implies a narrow gap, when at default policy the entire Shell surface is outside this deny.\n\n4. **Record the released-binary lag** in the CHANGELOG entry.\n\n## Out of scope\n\n- **Do not loosen the D12 write fence.** The fail-closed tripwire at `xbrief:preflight` is correct and is not the defect.\n- **Do not implement `xbrief:bump` / `xbrief:acknowledge-origin`.** That is #3857.\n- **Do not fold in the `payloadRoot` blast radius.** `inspectMutationGates` sets `projectRoot = payloadRoot` while occupancy and ritual use `effectiveRoot`. That is #3794's commit 2 and needs its own refutation target. `inspectActiveScope` is an OR-fold, so \"one stale brief denies every linked worktree\" requires zero passing candidates; the filing overstated the trigger.\n- **Do not treat the dest-form fail-open as this gate's remedy**, and do not inherit #3779's ordering claim without re-derivation.\n\n## Testing note\n\nTests pin the recovery text **against the state it is printed in**. Asserting the new string exists is not sufficient: the defect class is advice and state drifting apart. The regression executes `scope:activate` against the same active+running brief and asserts it refuses, then executes `block` / `unblock` and asserts both succeed and move `xBRIEFInfo.updated`.\n\nRefs #309, #3363, #3736, #3779, #3787, #3794, #3857.",
+      "Labels": "design-critique:triage-ready"
+    },
+    "items": [
+      {
+        "title": "xbrief:preflight's recovery names a path that succeeds from the printed state, and links #3857",
+        "status": "pending"
+      },
+      {
+        "title": "scope:activate no longer appears in that recovery",
+        "status": "pending"
+      },
+      {
+        "title": "The dest-form coverage hint reflects the policy actually in force",
+        "status": "pending"
+      },
+      {
+        "title": "Tests pin the recovery text against the states it is printed in",
+        "status": "pending"
+      },
+      {
+        "title": "CHANGELOG `[Unreleased]` line",
+        "status": "pending"
+      }
+    ],
+    "tags": [
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3828",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3828: bug(lifecycle): the D12 stale-origin gate denies its own named remedy and blocks every linked worktree"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3857",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3857: durable origin-acknowledge verb"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3736",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3736: origin freshness removed from the host mutation path"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/preflight/evaluate.test.ts packages/core/src/hooks/dispatcher.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "derived 8 independently testable clauses from the accepted synthesis 5455159649 before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "The origin-freshness reject does not contain `scope:activate`",
+          "artifact_path": "packages/core/src/preflight/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The origin-freshness reject names `scope:block` then `scope:unblock` and links #3857",
+          "artifact_path": "packages/core/src/preflight/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "`scope:activate` refuses the same active+running brief the reject was printed for",
+          "artifact_path": "packages/core/src/preflight/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "`scope:block` then `scope:unblock` succeeds on that brief and advances `xBRIEFInfo.updated`",
+          "artifact_path": "packages/core/src/preflight/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Non-origin-freshness rejects still carry the `scope:activate` hint",
+          "artifact_path": "packages/core/src/preflight/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "The scope-not-ready hint claims Shell dest-form coverage only when `shellDestForms` is `enforce`",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "At the default `off` policy the hint states that no Shell command is covered",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "CHANGELOG \"[Unreleased]\" entry for #3828 records the released-binary lag",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/preflight/evaluate.ts",
+          "packages/core/src/preflight/evaluate.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src (preflight recovery text + hooks deny text)",
+        "cohesion_exemption": "Message-text edits inside existing modules. dispatcher.ts and its test are already over the review trigger; this scope edits one helper (scopeNotReadyCoverageHint) and adds cases rather than adding placement. Splitting either file is #3794/#3438 work, not this scope."
+      },
+      "capacityBucket": "defect-repair"
+    },
+    "updated": "2026-08-28T17:08:07Z"
+  }
+}

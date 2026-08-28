@@ -597,7 +597,17 @@ export function isHookEvent(value: string): value is HookEvent {
   return (HOOK_EVENTS as readonly string[]).includes(value);
 }
 
-function scopeNotReadyCoverageHint(toolName: string): string {
+/**
+ * Coverage sentence appended to a scope-not-ready deny.
+ *
+ * #3828: this used to claim Shell dest-form coverage unconditionally. Coverage
+ * is opt-in (`plan.policy.runtimeAuthority.shellDestForms: "enforce"`) and the
+ * default is `off`, so on a default-policy repository the sentence advertised a
+ * fence that was not there and, by naming `python -c` as the exception, implied
+ * the gap was a sliver rather than the whole Shell surface. State the coverage
+ * actually in force.
+ */
+function scopeNotReadyCoverageHint(toolName: string, shellDestFormsEnforced: boolean): string {
   if (isSpawnTool(toolName)) return "";
   if (isShellTool(toolName)) {
     return (
@@ -605,10 +615,19 @@ function scopeNotReadyCoverageHint(toolName: string): string {
       "(git checkout --, git restore, rm/rmdir of in-repo paths)."
     );
   }
+  if (shellDestFormsEnforced) {
+    return (
+      " This gate covers direct-write tools (Edit/Write), implementation spawn, and " +
+      "recognized Shell dest-forms (git checkout --, git restore, rm/rmdir), because " +
+      "plan.policy.runtimeAuthority.shellDestForms is enforce. Shell whose target " +
+      "cannot be resolved to a product path stays outside this deny."
+    );
+  }
   return (
-    " This gate covers direct-write tools (Edit/Write) and implementation spawn, " +
-    "plus recognized Shell dest-forms (git checkout --, git restore, rm/rmdir). " +
-    "Other shell (python -c, cmd /c copy, git status) is not this deny."
+    " This gate covers direct-write tools (Edit/Write) and implementation spawn. " +
+    "plan.policy.runtimeAuthority.shellDestForms is off (the default), so no Shell " +
+    "command is covered by this deny -- reaching for one to get around it defeats " +
+    "the gate rather than satisfying it."
   );
 }
 
@@ -1391,7 +1410,10 @@ function inspectMutationGates(
         denyCode,
         toolName,
         `Directive denied ${toolName}: ${scope.message}${proposedPathHint}` +
-          scopeNotReadyCoverageHint(toolName),
+          scopeNotReadyCoverageHint(
+            toolName,
+            loadRuntimeAuthorityPolicySafe(input, seams)?.shellDestForms === "enforce",
+          ),
       );
     }
   }

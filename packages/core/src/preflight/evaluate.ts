@@ -26,6 +26,28 @@ export const ELIGIBLE_STATUS = "running";
 export const ACTIVATE_HINT =
   "Run `task scope:activate -- {path}` (or legacy `task vbrief:activate -- {path}`) before spawning an implementation agent.";
 
+/**
+ * Recovery for the origin-freshness reject (#3828).
+ *
+ * Freshness is only reached after the active/ + running checks pass, so
+ * `ACTIVATE_HINT` names a transition that cannot apply here: `activate` accepts
+ * `pending/` alone and fails with `Invalid transition: 'activate' requires file
+ * in pending/`. `block` -> `unblock` is in place (`targetFolder: null`), requires
+ * and restores `running`, and stamps `plan.updated` plus `xBRIEFInfo.updated`,
+ * the field this reject compares. It is interim: the pair also records a
+ * `blocked` -> `running` transition for a brief that was never blocked, a
+ * tradeoff accepted knowingly. #3857 owns the dedicated acknowledge verb.
+ */
+export const ORIGIN_FRESHNESS_HINT =
+  "Recovery: this xBRIEF is already in active/ at status running. " +
+  "Once you have re-read the origin delta, stamp xBRIEFInfo.updated in place with " +
+  "`task scope:block -- {path}` then `task scope:unblock -- {path}`. " +
+  "That pair is interim: it records a blocked -> running transition for a brief " +
+  "that was never blocked, and #3857 owns the verb that records the " +
+  "acknowledgement honestly. If the origin could not be fetched or compared, " +
+  "restore `gh` REST access to the origin repository first -- a stamp does not " +
+  "clear that.";
+
 /** Lifecycle folder names eligible for implementation (#810). */
 export const ELIGIBLE_LIFECYCLE_DIRS = ["xbrief/active", "vbrief/active"] as const;
 
@@ -60,8 +82,13 @@ export function formatActivateHint(path: string): string {
   return ACTIVATE_HINT.replace("{path}", () => path);
 }
 
-function buildReject(path: string, reason: string): string {
-  return `${reason}\n  ${PREFLIGHT_USAGE_HINT}\n  ${formatActivateHint(path)}`;
+/** Substitute every `{path}` without `$`-pattern expansion in user paths (#1721). */
+export function formatOriginFreshnessHint(path: string): string {
+  return ORIGIN_FRESHNESS_HINT.split("{path}").join(path);
+}
+
+function buildReject(path: string, reason: string, hint?: string): string {
+  return `${reason}\n  ${PREFLIGHT_USAGE_HINT}\n  ${hint ?? formatActivateHint(path)}`;
 }
 
 /** Map Node `JSON.parse` errors to CPython `json.JSONDecodeError.msg` for parity (#1721). */
@@ -233,7 +260,9 @@ export function evaluate(vbriefPath: string, options: EvaluateOptions = {}): Eva
     return {
       exitCode: 1,
       parentLineage: lineage,
-      message: buildReject(path, originFreshness.message),
+      // #3828: the brief is active + running by this point, so the activate
+      // hint would name a transition that hard-errors from the printed state.
+      message: buildReject(path, originFreshness.message, formatOriginFreshnessHint(path)),
     };
   }
 

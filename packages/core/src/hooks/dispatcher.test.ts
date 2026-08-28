@@ -527,7 +527,10 @@ describe("direct-write hook policy", () => {
     expect(decision.message).toContain("deft scope:activate");
     expect(decision.message).toMatch(/direct-write/);
     expect(decision.message).toMatch(/spawn/);
-    expect(decision.message).toMatch(/not this deny/);
+    // #3828: the coverage sentence names the policy in force. `readySeams` carries
+    // the production default, under which no Shell command is behind this deny.
+    expect(decision.message).toMatch(/shellDestForms is off/);
+    expect(decision.message).toMatch(/no Shell command is covered by this deny/);
   });
 
   it("allows Write outside projectRoot when no active scope (#2885)", () => {
@@ -3295,6 +3298,61 @@ describe("runtimeAuthority shell/MCP push/merge in decideHook (#2711)", () => {
         code: "shell-op-unclassifiable",
       });
     }
+  });
+
+  it("states the Shell coverage the policy in force actually provides (#3828)", () => {
+    const scopeNotReady = {
+      inspectScope: () => ({
+        ready: false,
+        path: null,
+        message: "No active xBRIEF artifact was found under xbrief/active/",
+      }),
+    };
+    const write = {
+      host: "claude" as const,
+      event: "tool.before" as const,
+      projectRoot: "/project",
+      payload: { tool_name: "Write", tool_input: { file_path: "/project/src/a.ts" } },
+    };
+
+    // Default policy: dest-forms are off, so no Shell command is behind this deny.
+    // The old text claimed rm / git restore coverage here and named `python -c` as
+    // the only gap, which understated the hole by the whole Shell surface.
+    const off = decideHook(write, readySeams(scopeNotReady));
+    expect(off).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(off.message).toContain("shellDestForms is off");
+    expect(off.message).toContain("no Shell command is covered by this deny");
+    expect(off.message).not.toContain("plus recognized Shell dest-forms");
+
+    // The same deny under `enforce` may claim the coverage, because it exists.
+    const enforced = decideHook(write, enforcingSeams(scopeNotReady));
+    expect(enforced).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(enforced.message).toContain("shellDestForms is enforce");
+    expect(enforced.message).toContain("recognized Shell dest-forms");
+  });
+
+  it("matches the coverage claim to the dest-form verdict it predicts (#3828)", () => {
+    // Pins the claim against behaviour rather than against itself: whatever the
+    // Write deny says about Shell must be what a Shell dest-form actually gets.
+    const scopeNotReady = {
+      inspectScope: () => ({
+        ready: false,
+        path: null,
+        message: "No active xBRIEF artifact was found under xbrief/active/",
+      }),
+    };
+    const shellRm = {
+      host: "claude" as const,
+      event: "tool.before" as const,
+      projectRoot: "/project",
+      payload: { tool_name: "Bash", tool_input: { command: "rm src/a.ts" } },
+    };
+
+    expect(decideHook(shellRm, readySeams(scopeNotReady)).verdict).toBe("allow");
+    expect(decideHook(shellRm, enforcingSeams(scopeNotReady))).toMatchObject({
+      verdict: "deny",
+      code: "scope-not-ready",
+    });
   });
 
   it("allows recognized dest-forms under assist scratch and proposed lifecycle (#3438)", () => {

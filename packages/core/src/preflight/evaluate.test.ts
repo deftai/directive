@@ -7,6 +7,7 @@ import { afterAll, describe, expect, it } from "vitest";
 const itChmod = it.skipIf(process.platform === "win32");
 
 import { buildIssueVbrief } from "../intake/issue-ingest.js";
+import { runTransition } from "../scope/transition.js";
 import {
   ELIGIBLE_STATUS,
   emitJson,
@@ -475,6 +476,91 @@ describe("origin freshness (#3363)", () => {
     });
     expect(result.exitCode).toBe(1);
     expect(result.message).toContain("newer than this xBRIEF");
+  });
+});
+
+describe("origin-freshness recovery (#3828)", () => {
+  const ORIGIN_UPDATED = "2026-08-28T17:00:00Z";
+  const staleFetch = () => ({ updatedAt: ORIGIN_UPDATED });
+
+  /** A brief in the exact state the reject prints from: active/, running, behind origin. */
+  function writeStaleActiveBrief(): string {
+    const root = mkdtempSync(join(tmpdir(), "deft-3828-recovery-"));
+    temps.push(root);
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    const path = join(root, "xbrief", "active", "3828-origin.xbrief.json");
+    writeFileSync(
+      path,
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", updated: "2026-08-28T16:00:00Z" },
+        plan: {
+          title: "stale against origin",
+          status: "running",
+          items: [],
+          metadata: underThresholdPlacement(),
+          references: [
+            {
+              type: "x-xbrief/github-issue",
+              uri: "https://github.com/deftai/directive/issues/3828",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    return path;
+  }
+
+  it("prints a recovery the brief's own state can execute", () => {
+    const path = writeStaleActiveBrief();
+    const reject = evaluate(path, { fetchOriginUpdatedAt: staleFetch });
+    expect(reject.exitCode).toBe(1);
+    expect(reject.message).toContain("newer than this xBRIEF");
+
+    // The withdrawn advice must be absent, and it must be absent for a reason:
+    // `activate` hard-errors from the state this reject is printed in.
+    expect(reject.message).not.toContain("scope:activate");
+    expect(runTransition("activate", path)).toMatchObject({
+      ok: false,
+      message: expect.stringContaining("requires file in pending/"),
+    });
+
+    // The printed advice must succeed from that same state and clear the reject.
+    expect(reject.message).toContain(`task scope:block -- ${path}`);
+    expect(reject.message).toContain(`task scope:unblock -- ${path}`);
+    expect(reject.message).toContain("#3857");
+    const stampedAt = new Date("2026-08-28T18:00:00Z");
+    expect(runTransition("block", path, stampedAt).ok).toBe(true);
+    expect(runTransition("unblock", path, stampedAt).ok).toBe(true);
+
+    const after = JSON.parse(readFileSync(path, "utf8")) as {
+      xBRIEFInfo: { updated: string };
+      plan: { status: string };
+    };
+    expect(after.plan.status).toBe("running");
+    expect(Date.parse(after.xBRIEFInfo.updated)).toBeGreaterThan(Date.parse(ORIGIN_UPDATED));
+    expect(evaluate(path, { fetchOriginUpdatedAt: staleFetch }).exitCode).toBe(0);
+  });
+
+  it("does not offer the stamp as a cure for an unreachable origin", () => {
+    const path = writeStaleActiveBrief();
+    const result = evaluate(path, { fetchOriginUpdatedAt: () => ({ error: "offline" }) });
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toContain("Could not fetch origin");
+    expect(result.message).not.toContain("scope:activate");
+    expect(result.message).toContain("restore `gh` REST access");
+  });
+
+  it("keeps the activate hint on rejects where activating is the right move", () => {
+    const path = writeVbrief(
+      "pending",
+      "3828-pending.xbrief.json",
+      JSON.stringify({ plan: { status: "pending", metadata: underThresholdPlacement() } }),
+    );
+    const result = evaluate(path);
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toContain(formatActivateHint(path));
   });
 });
 
