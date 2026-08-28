@@ -45,6 +45,19 @@ export const FAIL_CLOSED_HOOK_HOSTS: readonly HookHost[] = ["cursor"];
 /** Manifest carrying the committed runtime anchor. */
 export const RUNTIME_ANCHOR_MANIFEST = "package.json";
 
+/**
+ * Spec prefixes that name a location instead of a published release. Each one
+ * resolves against something outside the tree -- a path, a symlink target, a
+ * workspace member -- so the clone that receives the registration cannot
+ * install from it.
+ */
+export const NON_PORTABLE_SPEC_PREFIXES = ["file:", "link:", "portal:", "workspace:"] as const;
+
+function reconstitutesFromRegistry(rawSpec: string): boolean {
+  const spec = rawSpec.trim().toLowerCase();
+  return !NON_PORTABLE_SPEC_PREFIXES.some((prefix) => spec.startsWith(prefix));
+}
+
 export type GitLsFilesProbe = (projectDir: string, paths: readonly string[]) => string | null;
 
 export interface HookRuntimeTravelSeams {
@@ -131,8 +144,47 @@ function recoveryHosts(failClosed: readonly HookRegistrationRef[]): string {
     .join(" / ");
 }
 
-/** Why the runtime does not travel: no declaration at all, or one not committed. */
-type AnchorState = "absent" | "uncommitted";
+/** Why the runtime does not travel with the registration. */
+type AnchorState =
+  /** No declaration on `@deftai/directive` at all. */
+  | { readonly kind: "absent" }
+  /** Declared, but the manifest is not in the index. */
+  | { readonly kind: "uncommitted" }
+  /** Declared and committed, but pinned to something only this machine has. */
+  | { readonly kind: "non-portable"; readonly spec: string };
+
+function causeLine(anchor: AnchorState): string {
+  if (anchor.kind === "uncommitted") {
+    return `  ${RUNTIME_ANCHOR_MANIFEST} declares ${PIN_DEPENDENCY_NAME} but is not committed, so a fresh`;
+  }
+  if (anchor.kind === "non-portable") {
+    return `  ${RUNTIME_ANCHOR_MANIFEST} pins ${PIN_DEPENDENCY_NAME} to \`${anchor.spec}\`, which resolves only here, so a fresh`;
+  }
+  return `  No ${RUNTIME_ANCHOR_MANIFEST} dependency on ${PIN_DEPENDENCY_NAME} travels with this tree, so a fresh`;
+}
+
+function fixLine(anchor: AnchorState): string {
+  if (anchor.kind === "uncommitted") {
+    return `  Fix: commit ${RUNTIME_ANCHOR_MANIFEST} so the runtime travels with the registration.`;
+  }
+  if (anchor.kind === "non-portable") {
+    return `  Fix: pin ${PIN_DEPENDENCY_NAME} to a published version so a clone can install it.`;
+  }
+  return `  Fix: commit a ${RUNTIME_ANCHOR_MANIFEST} dependency on ${PIN_DEPENDENCY_NAME} so the runtime travels too.`;
+}
+
+function resolveAnchorState(
+  spec: string | null,
+  portable: boolean,
+  report: TravelReport,
+): AnchorState {
+  if (spec === null) return { kind: "absent" };
+  // A location spec never anchors, committed or not: naming where the runtime
+  // lives on this machine tells a clone nothing it can install from.
+  if (!portable) return { kind: "non-portable", spec };
+  if (report.untracked.has(RUNTIME_ANCHOR_MANIFEST)) return { kind: "uncommitted" };
+  return { kind: "absent" };
+}
 
 function buildWarning(
   traveling: readonly HookRegistrationRef[],
@@ -142,10 +194,7 @@ function buildWarning(
   const listed = traveling
     .map((entry) => `${entry.path}${isFailClosed(entry.host) ? " (fail-closed)" : ""}`)
     .join(", ");
-  const cause =
-    anchor === "uncommitted"
-      ? `  ${RUNTIME_ANCHOR_MANIFEST} declares ${PIN_DEPENDENCY_NAME} but is not committed, so a fresh`
-      : `  No ${RUNTIME_ANCHOR_MANIFEST} dependency on ${PIN_DEPENDENCY_NAME} travels with this tree, so a fresh`;
+  const cause = causeLine(anchor);
   const lines = [
     `\u26a0 Hook registration travels without its runtime (#3785): ${listed}`,
     cause,
@@ -157,11 +206,7 @@ function buildWarning(
       "  code runs to say why. There is no in-session recovery on a host without Node.",
     );
   }
-  lines.push(
-    anchor === "uncommitted"
-      ? `  Fix: commit ${RUNTIME_ANCHOR_MANIFEST} so the runtime travels with the registration.`
-      : `  Fix: commit a ${RUNTIME_ANCHOR_MANIFEST} dependency on ${PIN_DEPENDENCY_NAME} so the runtime travels too.`,
-  );
+  lines.push(fixLine(anchor));
   if (failClosed.length > 0) {
     lines.push(`  Or, accepting the capability cost: ${recoveryHosts(failClosed)}.`);
   }
@@ -208,11 +253,12 @@ export function inspectHookRuntimeTravel(
   // free to commit the generated registration and leave `package.json` behind
   // -- crediting an uncommitted manifest would silence the warning in exactly
   // that case. A range spec reconstitutes as well as an exact pin: either way
-  // `npm install` resolves the runtime.
-  const declaresRuntime = pin.rawSpec !== null;
-  const runtimeTravels = declaresRuntime && report.tracked.has(RUNTIME_ANCHOR_MANIFEST);
-  const anchor: AnchorState =
-    declaresRuntime && report.untracked.has(RUNTIME_ANCHOR_MANIFEST) ? "uncommitted" : "absent";
+  // `npm install` resolves the runtime. A location spec does not reconstitute
+  // at all, so it is not an anchor even when committed.
+  const spec = pin.rawSpec;
+  const portable = spec !== null && reconstitutesFromRegistry(spec);
+  const runtimeTravels = portable && report.tracked.has(RUNTIME_ANCHOR_MANIFEST);
+  const anchor = resolveAnchorState(spec, portable, report);
 
   const travels = (path: string): boolean => report.tracked.has(path) || report.untracked.has(path);
   const travelingRegistrations = enabled.filter((entry) => travels(entry.path));

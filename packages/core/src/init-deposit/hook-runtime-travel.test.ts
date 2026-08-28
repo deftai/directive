@@ -4,13 +4,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { DEFAULT_HOST_HOOKS_POLICY } from "../policy/host-hooks.js";
-import type { PinReadResult } from "../resolution/pin.js";
+import { PIN_DEPENDENCY_NAME, type PinReadResult } from "../resolution/pin.js";
 import { AGENT_HOOK_PATHS, writeAgentHookDeposit } from "./agent-hooks.js";
 import {
   FAIL_CLOSED_HOOK_HOSTS,
   type HookRegistrationRef,
   type HookRuntimeTravelSeams,
   inspectHookRuntimeTravel,
+  NON_PORTABLE_SPEC_PREFIXES,
   RUNTIME_ANCHOR_MANIFEST,
 } from "./hook-runtime-travel.js";
 
@@ -42,6 +43,11 @@ const RANGE_PIN: PinReadResult = {
   isPrivate: false,
   nonExact: true,
 };
+
+/** `readPin` reports whatever the manifest says, including location specs. */
+function specPin(rawSpec: string): PinReadResult {
+  return { pinVersion: null, rawSpec, isPrivate: false, nonExact: true };
+}
 
 /** What git reports: `H` for indexed paths, `?` for untracked-and-not-ignored. */
 interface GitView {
@@ -131,6 +137,34 @@ describe("inspectHookRuntimeTravel", () => {
     expect(result.warning).toContain(`${RUNTIME_ANCHOR_MANIFEST} declares`);
     expect(result.warning).toContain("is not committed");
     expect(result.warning).toContain(`Fix: commit ${RUNTIME_ANCHOR_MANIFEST}`);
+  });
+
+  // Greptile P1 on PR #3890: `readPin` reports the spec verbatim, so a
+  // location spec looked like an anchor. It resolves against something outside
+  // the tree, which is precisely what a clone does not have.
+  it.each([
+    ...NON_PORTABLE_SPEC_PREFIXES,
+  ])("does not credit a committed `%s` spec as the runtime anchor", (prefix) => {
+    const spec = `${prefix}../directive`;
+    const result = inspect(
+      { tracked: [CURSOR_REGISTRATION, RUNTIME_ANCHOR_MANIFEST] },
+      specPin(spec),
+    );
+
+    expect(result.runtimeTravels).toBe(false);
+    expect(result.warning).toContain(`pins ${PIN_DEPENDENCY_NAME} to \`${spec}\``);
+    expect(result.warning).toContain("resolves only here");
+    expect(result.warning).toContain("Fix: pin");
+  });
+
+  it("credits an npm alias: a clone installs it from the registry like any other spec", () => {
+    const result = inspect(
+      { tracked: [CURSOR_REGISTRATION, RUNTIME_ANCHOR_MANIFEST] },
+      specPin("npm:@deftai/directive@0.9.1"),
+    );
+
+    expect(result.runtimeTravels).toBe(true);
+    expect(result.warning).toBeNull();
   });
 
   it("counts a registration that is untracked but not ignored: one `git add` sends it", () => {
