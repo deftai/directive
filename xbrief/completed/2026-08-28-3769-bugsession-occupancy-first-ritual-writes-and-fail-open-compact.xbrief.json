@@ -2,12 +2,12 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Occupancy-first ritual writes plus fail-open compact stale-mark. Issue #3769 with its accepted design-critique synthesis is SoT.",
-    "updated": "2026-08-28T17:17:11Z"
+    "updated": "2026-08-28T19:03:46Z"
   },
   "plan": {
     "id": "issue-3769-occupancy-first-ritual",
     "title": "occupancy-first ritual writes, and a fail-open compact stale-mark",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Close two paths by which a session that does not own a worktree lease can rewrite the owner ritual state. Path 1: a denied foreign write must leave the owner ritual bytes untouched. Path 2: a compact stays always-allow, and when the acting identity cannot be bound the stale-mark is written anyway (fail-open).",
       "Origin": "GitHub issue #3769, child of tracker #3613. Round-1 panel of three: 5441671854, 5441678318, 5441679066. First lean 5441712084. Successor lean 5455499276 resolved the one residual by operator amend. Verified-claims table 5455502197. Bind line 5455503730. Chip design-critique:triage-ready.",
@@ -21,29 +21,47 @@
     "items": [
       {
         "title": "Occupancy or no-write inspect completes before any ritual persist",
-        "status": "proposed",
+        "status": "completed",
         "effort": "M",
         "narrative": {
           "When": "When a foreign session write is denied by occupancy on a fresh record, the owner ritual-state file is byte-identical afterwards, and no session_id retitle has occurred on the denied path.",
           "Acceptance": "When a foreign session write is denied by occupancy on a fresh record, the owner ritual-state file is byte-identical afterwards, and no session_id retitle has occurred on the denied path."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher.test.ts#reads the ritual without persisting when occupancy denies (#3769)",
+          "recorded_at": "2026-08-28T20:05:00Z",
+          "recorded_by": "orchestrator/3769-post-merge"
         }
       },
       {
         "title": "Compact stale-mark fails open when the actor cannot be bound",
-        "status": "proposed",
+        "status": "completed",
         "effort": "M",
         "narrative": {
           "When": "When a compact runs and the acting identity cannot be bound, the compact verdict stays allow, the stale-mark is still written so the owner re-arm flag is set, and the compact path does not enter inspectMutationGates.",
           "Acceptance": "When a compact runs and the acting identity cannot be bound, the compact verdict stays allow, the stale-mark is still written so the owner re-arm flag is set, and the compact path does not enter inspectMutationGates."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/compact-ritual.test.ts#marks the occupant's ritual stale when no acting identity can be bound",
+          "recorded_at": "2026-08-28T20:05:00Z",
+          "recorded_by": "orchestrator/3769-post-merge"
         }
       },
       {
         "title": "Occupancy tests stop stubbing the ritual verify, plus CHANGELOG",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "When": "When the occupancy test suite runs, it exercises the real ritual-verify path so Path 1 is observable rather than stubbed, and CHANGELOG Unreleased carries one line.",
           "Acceptance": "When the occupancy test suite runs, it exercises the real ritual-verify path so Path 1 is observable rather than stubbed, and CHANGELOG Unreleased carries one line."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts#leaves the owner's ritual state byte-identical when a foreign write is denied",
+          "recorded_at": "2026-08-28T20:05:00Z",
+          "recorded_by": "orchestrator/3769-post-merge"
         }
       }
     ],
@@ -117,9 +135,33 @@
         "module_boundary": "packages/core/src/session",
         "cohesion_exemption": "CHANGELOG.md, dispatcher.ts and the dispatcher/occupancy suites already exceed FILE_SIZE_REVIEW_TRIGGER_LINES; this change appends to existing seams rather than splitting them."
       },
-      "capacityBucket": "defect-repair"
+      "capacityBucket": "defect-repair",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3870,
+        "prBase": null,
+        "mergeCommit": "6a64eaaf5e",
+        "deliveryBranch": "master",
+        "deliveryCommit": "6a64eaaf5e63589496195591ce14a2a8fc875e12",
+        "verifiedAt": "2026-08-28T19:03:46Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "29cc91e6-7157-4ee6-b5dc-6d9eb3fde18e"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-28T19:03:46Z"
+      },
+      "completedAt": "2026-08-28T19:03:46Z",
+      "completedSessionId": "29cc91e6-7157-4ee6-b5dc-6d9eb3fde18e"
     },
-    "updated": "2026-08-28T17:17:11Z",
+    "updated": "2026-08-28T19:03:46Z",
     "acceptance": {
       "commands": [],
       "none_stated": true,
@@ -153,6 +195,6 @@
   },
   "vBRIEFInfo": {
     "version": "0.8",
-    "updated": "2026-08-28T17:17:11Z"
+    "updated": "2026-08-28T19:03:46Z"
   }
 }
