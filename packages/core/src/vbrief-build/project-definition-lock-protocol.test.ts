@@ -312,23 +312,41 @@ describe("reap requires an unambiguously dead owner (#3796 AC3)", () => {
     expect(existsSync(lockPath)).toBe(true);
   });
 
-  it("reports an empty lock directory as malformed rather than reapable", () => {
+  it("never reaps an empty lock directory, on either platform", () => {
     const { root, lockPath } = seedProject("pd-dir-empty-");
     mkdirSync(lockPath);
 
     let error: unknown;
+    let result: string | undefined;
     try {
-      projectDefinitionMutationLock(
+      result = projectDefinitionMutationLock(
         root,
-        () => "unreachable",
+        () => {
+          // Whoever holds the lock holds a non-empty directory with its own
+          // owner entry -- the barrier property still holds.
+          expect(readdirSync(lockPath)).toHaveLength(1);
+          return "acquired";
+        },
         instantBudget({ probeProcess: () => "dead" }),
       );
     } catch (err) {
       error = err;
     }
 
-    expect((error as ProjectDefinitionLockError).reason).toBe("malformed-lock-directory");
-    expect(existsSync(lockPath)).toBe(true);
+    // The platforms diverge here, and both outcomes are safe. POSIX `rename`
+    // may replace an empty directory, so publication wins the pathname outright
+    // -- no reap, and any old generation's delayed rmdir then fails against the
+    // non-empty replacement. Windows `MoveFileEx` refuses a directory
+    // destination, so the state stays unattributable and fails closed to manual
+    // recovery. Neither path removes a directory it cannot attribute to a dead
+    // owner, which is the invariant that matters.
+    if (process.platform === "win32") {
+      expect((error as ProjectDefinitionLockError).reason).toBe("malformed-lock-directory");
+      expect(existsSync(lockPath)).toBe(true);
+    } else {
+      expect(error).toBeUndefined();
+      expect(result).toBe("acquired");
+    }
   });
 });
 

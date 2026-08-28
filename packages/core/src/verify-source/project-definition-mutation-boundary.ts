@@ -324,3 +324,60 @@ export function formatMutationBoundaryFindings(
     .sort()
     .join("\n");
 }
+
+export interface MutationBoundaryVerdict {
+  readonly ok: boolean;
+  readonly errors: readonly string[];
+  readonly scan: MutationBoundaryScan;
+}
+
+/**
+ * The fail-closed verdict: no bypass, and the mutation inventory still matches
+ * the recorded census. Adding or removing a mutation site is a deliberate edit
+ * to {@link PRODUCTION_MUTATION_INVENTORY} and the census constants above.
+ */
+export function evaluateProjectDefinitionMutationBoundary(
+  projectRoot: string,
+): MutationBoundaryVerdict {
+  const scan = scanProjectDefinitionMutationBoundary(projectRoot);
+  const errors: string[] = [];
+
+  if (scan.findings.length > 0) {
+    errors.push(
+      `${scan.findings.length} raw resolver/lock/write bypass(es) outside the mutation capability:\n` +
+        formatMutationBoundaryFindings(scan.findings),
+    );
+  }
+
+  for (const [path, expected] of Object.entries(PRODUCTION_MUTATION_INVENTORY)) {
+    const actual = scan.inventory[path] ?? 0;
+    if (actual !== expected) {
+      errors.push(`${path}: expected ${expected} mutation call(s), found ${actual}`);
+    }
+  }
+  for (const path of Object.keys(scan.inventory)) {
+    if (!(path in PRODUCTION_MUTATION_INVENTORY)) {
+      errors.push(`${path}: mutation call site not in the recorded inventory`);
+    }
+  }
+
+  const total = Object.values(scan.inventory).reduce((sum, n) => sum + n, 0);
+  const expectedTotal =
+    PREVIOUSLY_LOCKED_CORE_CALL_EXPRESSIONS +
+    PREVIOUSLY_UNLOCKED_CLI_WRITERS +
+    PARITY_HARNESS_CALL_EXPRESSIONS;
+  if (total !== expectedTotal) {
+    errors.push(`census total: expected ${expectedTotal} mutation call(s), found ${total}`);
+  }
+
+  const coreFiles = Object.keys(scan.inventory).filter(
+    (path) => path.startsWith("packages/core/") && !path.includes("parity-scenarios"),
+  );
+  if (coreFiles.length !== PREVIOUSLY_LOCKED_CORE_FILES) {
+    errors.push(
+      `census files: expected ${PREVIOUSLY_LOCKED_CORE_FILES} core file(s), found ${coreFiles.length}`,
+    );
+  }
+
+  return { ok: errors.length === 0, errors, scan };
+}

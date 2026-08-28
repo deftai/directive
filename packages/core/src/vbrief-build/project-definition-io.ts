@@ -362,7 +362,18 @@ export function projectDefinitionMutationLock<T>(
     // recovery branch below. Callback execution happens after acquisition and is
     // deliberately outside this budget.
     const budget = createAcquisitionBudget(monotonicNowMs, budgetMs);
-    let lastReason: LockBlockedReason = "contended";
+    // Every blocked branch either yields for a retry or spends the shared budget
+    // and reports the blocker it just observed. Keeping that in one place means
+    // no branch carries a reason it never reports.
+    const yieldOrFail = (reason: LockBlockedReason): void => {
+      if (budget.expired()) {
+        throw new ProjectDefinitionLockError(
+          describeLockFailure(artifactLabel, lockPath, reason, budget.totalMs),
+          reason,
+        );
+      }
+      sleepMs(20);
+    };
     while (true) {
       // Check for a legacy file BEFORE attempting to publish. POSIX `rename`
       // refuses to move a directory onto a file (ENOTDIR), but Windows
@@ -375,14 +386,7 @@ export function projectDefinitionMutationLock<T>(
       // portable Node makes the publish itself conditional on the destination.)
       const existing = lstatIfExists(lockPath);
       if (existing !== null && !existing.isDirectory()) {
-        lastReason = "legacy-file-sidecar";
-        if (budget.expired()) {
-          throw new ProjectDefinitionLockError(
-            describeLockFailure(artifactLabel, lockPath, lastReason, budget.totalMs),
-            lastReason,
-          );
-        }
-        sleepMs(20);
+        yieldOrFail("legacy-file-sidecar");
         continue;
       }
       try {
@@ -404,32 +408,21 @@ export function projectDefinitionMutationLock<T>(
           // contention. Propagate them instead of spinning until timeout.
           if (code === "EACCES" || code === "EPERM") throw err;
           // The observed owner released between rename and inspection.
-          lastReason = "contended";
           continue;
         }
         if (lockStat.isDirectory()) {
           const outcome = reapDirectoryLock(lockPath, probeProcess, beforeLockDirRemove);
-          if (outcome.reaped) {
-            lastReason = "contended";
-            continue;
-          }
-          lastReason = outcome.reason;
-        } else {
-          // A legacy client took the public lock pathname with a plain file
-          // between the pre-check above and this rename. `rename` is atomic name
-          // movement, not compare-and-remove: vacating this name -- by unlink or
-          // by quarantine -- hands it to a non-cooperating `open(..., "wx")`
-          // waiter while the displaced holder's descriptor and critical section
-          // stay live. So the file is preserved and recovery is manual (#3796).
-          lastReason = "legacy-file-sidecar";
+          if (outcome.reaped) continue;
+          yieldOrFail(outcome.reason);
+          continue;
         }
-        if (budget.expired()) {
-          throw new ProjectDefinitionLockError(
-            describeLockFailure(artifactLabel, lockPath, lastReason, budget.totalMs),
-            lastReason,
-          );
-        }
-        sleepMs(20);
+        // A legacy client took the public lock pathname with a plain file
+        // between the pre-check above and this rename. `rename` is atomic name
+        // movement, not compare-and-remove: vacating this name -- by unlink or
+        // by quarantine -- hands it to a non-cooperating `open(..., "wx")`
+        // waiter while the displaced holder's descriptor and critical section
+        // stay live. So the file is preserved and recovery is manual (#3796).
+        yieldOrFail("legacy-file-sidecar");
       }
     }
     return fn(path);

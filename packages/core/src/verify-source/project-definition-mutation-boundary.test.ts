@@ -3,15 +3,11 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
+  evaluateProjectDefinitionMutationBoundary,
   extractMutationSections,
   formatMutationBoundaryFindings,
   MUTATION_CAPABILITY_MODULE,
-  PARITY_HARNESS_CALL_EXPRESSIONS,
-  PREVIOUSLY_LOCKED_CORE_CALL_EXPRESSIONS,
-  PREVIOUSLY_LOCKED_CORE_FILES,
-  PREVIOUSLY_UNLOCKED_CLI_WRITERS,
   PRODUCTION_MUTATION_INVENTORY,
-  scanProjectDefinitionMutationBoundary,
 } from "./project-definition-mutation-boundary.js";
 
 function repoRoot(): string {
@@ -24,38 +20,24 @@ function repoRoot(): string {
 }
 
 describe("PROJECT-DEFINITION mutation boundary (#3796)", () => {
-  const scan = scanProjectDefinitionMutationBoundary(repoRoot());
+  const verdict = evaluateProjectDefinitionMutationBoundary(repoRoot());
 
   it("scans the production TypeScript surface", () => {
-    expect(scan.filesScanned).toBeGreaterThan(200);
+    expect(verdict.scan.filesScanned).toBeGreaterThan(200);
+  });
+
+  it("passes the fail-closed boundary and census gate", () => {
+    expect(verdict.errors.join("\n")).toBe("");
+    expect(verdict.ok).toBe(true);
   });
 
   it("finds no raw resolver, lock, or write bypass in production sources", () => {
-    expect(formatMutationBoundaryFindings(scan.findings)).toBe("");
-    expect(scan.findings).toEqual([]);
+    expect(formatMutationBoundaryFindings(verdict.scan.findings)).toBe("");
+    expect(verdict.scan.findings).toEqual([]);
   });
 
   it("matches the recorded per-file mutation inventory", () => {
-    expect(scan.inventory).toEqual(PRODUCTION_MUTATION_INVENTORY);
-  });
-
-  it("accounts for every call expression in the #3796 census", () => {
-    const total = Object.values(scan.inventory).reduce((sum, n) => sum + n, 0);
-    expect(total).toBe(
-      PREVIOUSLY_LOCKED_CORE_CALL_EXPRESSIONS +
-        PREVIOUSLY_UNLOCKED_CLI_WRITERS +
-        PARITY_HARNESS_CALL_EXPRESSIONS,
-    );
-
-    const cliCalls = Object.entries(scan.inventory)
-      .filter(([path]) => path.startsWith("packages/cli/"))
-      .reduce((sum, [, n]) => sum + n, 0);
-    expect(cliCalls).toBe(PREVIOUSLY_UNLOCKED_CLI_WRITERS);
-
-    const coreFiles = Object.keys(scan.inventory).filter(
-      (path) => path.startsWith("packages/core/") && !path.includes("parity-scenarios"),
-    );
-    expect(coreFiles).toHaveLength(PREVIOUSLY_LOCKED_CORE_FILES);
+    expect(verdict.scan.inventory).toEqual(PRODUCTION_MUTATION_INVENTORY);
   });
 
   it("fails closed on a raw lock call added outside the capability", () => {
