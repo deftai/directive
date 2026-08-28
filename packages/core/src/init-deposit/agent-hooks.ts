@@ -15,6 +15,7 @@ import {
   loadHostHooksPolicyFromProject,
 } from "../policy/host-hooks.js";
 import type { InitDepositIo } from "./constants.js";
+import { type HookRuntimeTravelSeams, inspectHookRuntimeTravel } from "./hook-runtime-travel.js";
 
 export {
   DIRECT_WRITE_HOOK_MATCHER,
@@ -346,6 +347,7 @@ export function writeAgentHookDeposit(
   projectRoot: string,
   io: InitDepositIo = { printf: () => undefined },
   hostHooksPolicy: HostHooksPolicy = loadHostHooksPolicyFromProject(projectRoot),
+  travelSeams: HookRuntimeTravelSeams = {},
 ): AgentHookDepositResult {
   const changedPaths: AgentHookPath[] = [];
   const strippedPaths: AgentHookPath[] = [];
@@ -449,6 +451,16 @@ export function writeAgentHookDeposit(
   if (changedPaths.length === 0 && strippedPaths.length === 0 && adaptersRemoved === 0) {
     io.printf("Directive agent hooks already current.\n");
   }
+  // #3785: the registration is trackable and the deposit that implements it is
+  // born-ignored, so warn when a clone would inherit the fence without a way to
+  // obtain the runtime it names.
+  const travel = inspectHookRuntimeTravel(
+    projectRoot,
+    definitions.map((definition) => ({ host: definition.host, path: definition.path })),
+    hostHooksPolicy,
+    travelSeams,
+  );
+  if (travel.warning !== null) io.printf(`${travel.warning}\n`);
   return {
     changed: changedPaths.length + strippedPaths.length + adaptersRemoved > 0,
     changedPaths: [...changedPaths, ...strippedPaths],

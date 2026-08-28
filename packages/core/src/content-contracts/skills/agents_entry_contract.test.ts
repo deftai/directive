@@ -137,6 +137,20 @@ const DEFT_DIRECTIVE_DISABLE_MARKERS = [
   "no-deft-directive",
 ] as const;
 
+/**
+ * Always-on hook-runtime lockout card (#3785). A session denied on exit 127
+ * can still read files, so this card is the only channel that reaches it: it
+ * must name the out-of-band recovery and forbid the failClosed hand-edit,
+ * which the next `deft update` silently reverts.
+ */
+const HOOK_RUNTIME_UNAVAILABLE_MARKERS = [
+  "Hook runtime unavailable (#3785)",
+  "is not executable on this host",
+  "policy:disable-host-hooks --host cursor --confirm",
+  "hook-runtime-unavailable.md",
+  "silently re-arms the lockout",
+] as const;
+
 /** Always-on through-merge dispatch doctrine (#3032) — parent must not implement. */
 /** Pointer bodies for Rule Authority / #3265 — headings alone are not enough (#3313). */
 const RULE_AUTHORITY_THIN_FAIL_CLOSED_POINTER_MARKERS = [
@@ -837,6 +851,11 @@ describe("test_agents_entry_contract", () => {
   it("deft_directive_disable_markers_present_in_both_files", () => {
     expect(missingMarkers(template, DEFT_DIRECTIVE_DISABLE_MARKERS)).toEqual([]);
     expect(missingMarkers(agents, DEFT_DIRECTIVE_DISABLE_MARKERS)).toEqual([]);
+  });
+
+  it("hook_runtime_unavailable_markers_present_in_both_files", () => {
+    expect(missingMarkers(template, HOOK_RUNTIME_UNAVAILABLE_MARKERS)).toEqual([]);
+    expect(missingMarkers(agents, HOOK_RUNTIME_UNAVAILABLE_MARKERS)).toEqual([]);
   });
 
   it("portable_shell_orientation_markers_present_in_both_files", () => {

@@ -1,0 +1,145 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #3785 (partial: bound items 3 and 4; items 1 and 2 split out on portability evidence)",
+    "updated": "2026-08-28T20:30:45Z"
+  },
+  "plan": {
+    "title": "bug(hooks): warn when a fail-closed hook registration travels without a hostable runtime",
+    "status": "running",
+    "narratives": {
+      "Description": "Directive git-tracks the fail-closed Cursor hook registration while gitignoring the runtime it names. The registration travels via git; the implementation does not. Any clone, CI runner, or container without a global npm install fail-closes every mutation at exit 127 with no in-session recovery. This scope warns at the one moment a runtime is provably present, and documents the durable out-of-band recovery.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3785",
+      "Overview": "## Bound remedy and what this scope covers\n\nThe #3785 bind comment `5455783077` carries the operator-ratified Stop 5 verified-claims table and a four-item bound remedy. Fail-open-on-absence was refuted 3/3 as unimplementable and as an escalation primitive; `failClosed: true` stays.\n\nThis scope delivers bound items **3** and **4**, plus the acceptance clause that locks fail-closed on. Bound items **1** and **2** are split out on cross-platform evidence gathered during this scope (see Out of scope).\n\n## Item 4 -- warn when the registration travels without its runtime\n\nThe reachability condition for the lockout is: an agent-hook registration file is git-tracked while nothing in the tree lets a clone obtain the `deft-hook` runtime. The committed `package.json` pin on `@deftai/directive` (#2264) is the existing reconstitution anchor -- with it, a clone can install the runtime; without it, the registration names a command that no clone can host.\n\nDeposit and update warn on that pairing. Cursor is named specifically because it is the only host deposited `failClosed: true`, so it is the only host where a missing runtime denies rather than fails open.\n\nWarn-only, never fail-closed: refusing `deft update` on this condition would itself be a lockout.\n\n## Item 3 -- document the out-of-band recovery\n\nRecovery docs lead with `deft policy:disable-host-hooks --host cursor --confirm` (`plan.policy.hostHooks.cursor = false`). They state explicitly that hand-editing `failClosed: false` in the deposited `.cursor/hooks.json` works once and is silently reverted by the next `deft update`, which re-arms the lockout. Two critics found that upgrade trap independently in the reporter's own repository history.\n\nAbsent, crashed, and timed-out are recorded as one non-decision class: the hook exit contract already renders every verdict as exit 0 with a JSON body, so every non-zero exit is by construction a non-decision. That answers the question left open on #3736 at `5431700487` rather than re-deriving it.\n\n## Legibility through the channel that provably travels\n\nA no-Node host cannot run any Directive verb, so a documented CLI recovery is a note to a human outside the session. AGENTS.md is tracked and travels with the clone, so the locked-out session can still read it. A managed card names the exit-127 signature and the recovery, so the agent reports the exact remedy instead of guessing. Mirrored into `content/templates/agents-entry.md` per #1309.\n\n## Out of scope -- split on portability evidence\n\nBound items 1 (hostable no-Node runtime) and 2 (wrapper that renders an explicit deny with a decision code) both require the deposited `command` string to name a repo-local runner. Measured during this scope:\n\n- `cmd.exe` cannot execute a forward-slash relative path as the command token (`'.deft' is not recognized`); backslashes work but break POSIX `sh`.\n- Windows PowerShell 5.1 has no `&&` / `||`, so a compound fallback command string is a parse error there.\n- Cursor shell-evaluates the command through the host shell, which is PowerShell on Windows and `sh` on Linux, and third-party guidance states shebang scripts do not work on Windows.\n\nA single tracked `hooks.json` therefore cannot name a repo-local runner portably. Delivering items 1 and 2 needs a per-platform command token, which is a deposit-architecture decision (per-machine untracked registration, or a PATH-installed shim), not a code change inside this scope. Shipping a POSIX-only registration would lock out Windows consumers -- the same failure class this issue reports.\n\n## Acceptance\n\nSee clauses. Items 1 and 2 of the #3785 acceptance list stay open on the split issue; this scope does not claim them.\n\nRefs #3785, #3736, #3732, #3742, #3156, #2752, #3100, #3801, #3571, #2264.",
+      "Labels": "bug, agent-experience, documentation",
+      "Decisions": "- xbrief/decisions/2026-08-28-re-seed-the-agents-md-managed-section-ratchet-166-lines-16530-by.decision.json — Re-seed the AGENTS.md managed-section ratchet (166 lines / 16530 bytes) to carry the #3785 hook-runtime lockout card"
+    },
+    "items": [
+      {
+        "title": "Fail-closed stays on: the deposited Cursor registration keeps `failClosed: true` and a regression test locks that absence of the runtime is never a write allow",
+        "status": "proposed"
+      },
+      {
+        "title": "Deposit and update warn when an agent-hook registration is git-tracked while no committed runtime anchor travels with the tree",
+        "status": "proposed"
+      },
+      {
+        "title": "Recovery docs lead with `deft policy:disable-host-hooks --host cursor --confirm` and warn that hand-editing `failClosed: false` is reverted by the next `deft update`",
+        "status": "proposed"
+      },
+      {
+        "title": "Docs record absent, crashed, and timed-out as one non-decision class that stays fail-closed and needs legibility plus an escape, carrying the answer to #3736",
+        "status": "proposed"
+      },
+      {
+        "title": "AGENTS.md card names the exit-127 lockout signature and its recovery, mirrored into `content/templates/agents-entry.md` per #1309",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG `[Unreleased]` entry names the durable workaround rather than the hand-edit",
+        "status": "proposed"
+      },
+      {
+        "title": "Split issue filed for bound items 1 and 2 carrying the cross-platform portability evidence",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "documentation"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3785",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3785: bug(hooks): fail-closed hook registration travels without a hostable runtime (exit 127)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3736",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3736"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3571",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3571"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": false,
+      "source_rung": "stated",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Fail-closed stays on: the deposited Cursor registration keeps `failClosed: true` and a regression test locks that absence of the runtime is never a write allow",
+          "artifact_path": "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Deposit and update warn when an agent-hook registration is git-tracked while no committed runtime anchor travels with the tree",
+          "artifact_path": "packages/core/src/init-deposit/hook-runtime-travel.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Recovery docs lead with `deft policy:disable-host-hooks --host cursor --confirm` and warn that hand-editing `failClosed: false` is reverted by the next `deft update`",
+          "artifact_path": "content/docs/hook-runtime-unavailable.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Docs record absent, crashed, and timed-out as one non-decision class that stays fail-closed and needs legibility plus an escape, carrying the answer to #3736",
+          "artifact_path": "content/docs/hook-runtime-unavailable.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "AGENTS.md card names the exit-127 lockout signature and its recovery, mirrored into `content/templates/agents-entry.md` per #1309",
+          "artifact_path": "content/templates/agents-entry.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "CHANGELOG `[Unreleased]` entry names the durable workaround rather than the hand-edit",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Split issue filed for bound items 1 and 2 carrying the cross-platform portability evidence",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/init-deposit/hook-runtime-travel.ts",
+          "packages/core/src/init-deposit/hook-runtime-travel.test.ts",
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "content/docs/hook-runtime-unavailable.md",
+          "content/templates/agents-entry.md",
+          "AGENTS.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/init-deposit",
+        "cohesion_exemption": "CHANGELOG.md is a chronological append-only release log; its length is the record, not a cohesion defect. This slice appends one [Unreleased] entry and edits nothing else in the file."
+      }
+    },
+    "updated": "2026-08-28T20:30:45Z"
+  }
+}

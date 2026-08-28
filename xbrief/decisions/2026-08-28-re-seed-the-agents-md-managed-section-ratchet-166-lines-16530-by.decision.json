@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "re-seed-the-agents-md-managed-section-ratchet-166-lines-16530-by",
+  "decision": "Re-seed the AGENTS.md managed-section ratchet (166 lines / 16530 bytes) to carry the #3785 hook-runtime lockout card",
+  "governingRule": {
+    "description": "Deliberate AGENTS.md growth is accepted only by raising the matching plan.policy.agentsMdBudget line in a reviewed diff (#645); no other route to green is permitted (#3156)",
+    "path": "content/docs/gate-integrity.md",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Ship the doc only and leave AGENTS.md untouched"
+    },
+    {
+      "option": "Fold the pointer into an existing managed card"
+    },
+    {
+      "option": "Trim an unrelated card to stay under the ratchet"
+    }
+  ],
+  "whyWinner": "A session locked out on exit 127 cannot run any deft verb, so a tracked AGENTS.md card is the only channel that still reaches it. The ratchet is a strict no-growth seed, so any card at all requires re-seeding; the card was cut to 4 lines and the ratchet re-seeded to exactly the new size with zero slack.",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-08-28-3785-bughooks-fail-closed-hook-registration-travels-without-a-hos.xbrief.json"
+  ],
+  "timestamp": "2026-08-28T20:47:28Z",
+  "revisitTrigger": "When the managed section is restructured toward the 8 KB north star, fold this card into a consolidated why-am-I-blocked section and lower the ratchet",
+  "tags": [
+    "process"
+  ],
+  "relatedIssues": [
+    3785,
+    645,
+    3156
+  ]
+}
