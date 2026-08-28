@@ -20,7 +20,7 @@
         "status": "proposed"
       },
       {
-        "title": "Deposit and update warn when an agent-hook registration is git-tracked while no committed runtime anchor travels with the tree",
+        "title": "Deposit and update warn when an agent-hook registration travels with the repository (tracked, or trackable and not ignored) while no runtime anchor travels with it",
         "status": "proposed"
       },
       {
@@ -93,7 +93,7 @@
         },
         {
           "id": 2,
-          "text": "Deposit and update warn when an agent-hook registration is git-tracked while no committed runtime anchor travels with the tree",
+          "text": "Deposit and update warn when an agent-hook registration travels with the repository (tracked, or trackable and not ignored) while no runtime anchor travels with it",
           "artifact_path": "packages/core/src/init-deposit/hook-runtime-travel.ts",
           "ambiguous": false,
           "provenance": "statement"
