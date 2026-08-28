@@ -20,6 +20,14 @@ export const MONITORING_TIER_3 = 3;
 
 export const DEFAULT_STALE_MINUTES = 30;
 
+/** `kind:` value marking an advisory pass-open mark rather than an ownership lease (#3607). */
+export const PASS_MARKER_KIND = "pass";
+
+/**
+ * Advisory pass marks expire on read (#3607). Passes run in minutes, so an hour
+ * bounds an abandoned mark without needing a heartbeat.
+ */
+export const DEFAULT_PASS_STALE_MINUTES = 60;
 export const REVIEW_MONITOR_HELP =
   "usage: task verify:review-monitor -- --pr <N> [options]\n" +
   "\n" +

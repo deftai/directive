@@ -1,13 +1,21 @@
 import { describe, expect, it, vi } from "vitest";
 import * as ghRest from "../scm/gh-rest.js";
 import {
+  closePassMarker,
   createReviewOwnerComment,
   deleteReviewOwnerComment,
+  fetchActivePassMarker,
+  listPassMarkerComments,
   listReviewOwnerComments,
+  openPassMarker,
   resolveGitHubLogin,
   updateReviewOwnerComment,
 } from "./github-lease.js";
-import { renderReviewOwnerComment } from "./lease-comment.js";
+import {
+  computeExpiresAt,
+  renderPassOpenComment,
+  renderReviewOwnerComment,
+} from "./lease-comment.js";
 
 const LEASE_BODY = renderReviewOwnerComment({
   owner: "alice",
@@ -152,5 +160,238 @@ describe("review-owner GitHub lease seams", () => {
     });
     expect(resolveGitHubLogin()).toBeNull();
     failSpy.mockRestore();
+  });
+});
+
+describe("pass marker GitHub surface (#3607)", () => {
+  const PASS_START = new Date("2026-08-28T12:00:00.000Z");
+  const PASS_BODY = renderPassOpenComment({
+    kind: "pass",
+    pass_kind: "design-critique",
+    owner: "dbcall2",
+    agent_id: "critic-parent-1",
+    ceiling: "5430302222",
+    started_at: PASS_START.toISOString(),
+    expires_at: computeExpiresAt(PASS_START, 60),
+    ended_at: null,
+  });
+
+  interface ThreadComment {
+    id: number;
+    body: string;
+    htmlUrl: string;
+    updatedAt: string;
+    authorLogin: string;
+    authorAssociation: string;
+  }
+
+  function threadComment(id: number, body: string, association = "CONTRIBUTOR"): ThreadComment {
+    return {
+      id,
+      body,
+      htmlUrl: "",
+      updatedAt: PASS_START.toISOString(),
+      authorLogin: "dbcall2",
+      authorAssociation: association,
+    };
+  }
+
+  function fakeThread(
+    initial: ThreadComment[] = [],
+    onCreate?: (comments: ThreadComment[]) => void,
+  ) {
+    const comments = [...initial];
+    let nextId = 1000;
+    const seams = {
+      fetchComments: () => comments.map((c) => ({ ...c })),
+      createComment: (_repo: string, _issue: number, body: string) => {
+        const id = nextId;
+        nextId += 1;
+        comments.push(threadComment(id, body));
+        onCreate?.(comments);
+        return { id };
+      },
+      updateComment: (_repo: string, commentId: number, body: string) => {
+        const target = comments.find((c) => c.id === commentId);
+        if (target === undefined) {
+          return { error: `no comment ${commentId}` };
+        }
+        target.body = body;
+        return { ok: true as const };
+      },
+      deleteComment: (_repo: string, commentId: number) => {
+        const index = comments.findIndex((c) => c.id === commentId);
+        if (index >= 0) {
+          comments.splice(index, 1);
+        }
+        return { ok: true as const };
+      },
+    };
+    return { comments, seams };
+  }
+
+  it("reads a CONTRIBUTOR-authored mark that the ownership lease reader drops", () => {
+    // Field instance: comment 5429316778 on PR #3775, authored by dbcall2 with
+    // author_association CONTRIBUTOR (#3607 verified-claims table 5455218052).
+    const fieldComment = threadComment(5429316778, PASS_BODY);
+
+    const marks = listPassMarkerComments("deftai/directive", 3607, {
+      fetchComments: () => [fieldComment],
+    });
+    expect(Array.isArray(marks)).toBe(true);
+    if (Array.isArray(marks)) {
+      expect(marks).toHaveLength(1);
+      expect(marks[0]?.id).toBe(5429316778);
+      expect(marks[0]?.marker?.owner).toBe("dbcall2");
+    }
+
+    // The same association on the gating lease path stays excluded by #2307.
+    expect(
+      listReviewOwnerComments("deftai/directive", 3775, {
+        fetchComments: () => [threadComment(5429316778, LEASE_BODY)],
+      }),
+    ).toEqual([]);
+  });
+
+  it("opens, renews, and reports another owner's open mark without blocking", () => {
+    const thread = fakeThread();
+    const opened = openPassMarker({
+      repo: "deftai/directive",
+      issue: 3607,
+      owner: "dbcall2",
+      passKind: "design-critique",
+      ceiling: "5430302222",
+      startedAt: PASS_START,
+      seams: thread.seams,
+    });
+    expect(opened).toMatchObject({ status: "opened", commentId: 1000 });
+    expect(thread.comments).toHaveLength(1);
+
+    const renewedAt = new Date("2026-08-28T12:30:00.000Z");
+    const renewed = openPassMarker({
+      repo: "deftai/directive",
+      issue: 3607,
+      owner: "dbcall2",
+      passKind: "design-critique",
+      startedAt: renewedAt,
+      seams: thread.seams,
+    });
+    expect(renewed).toMatchObject({ status: "renewed", commentId: 1000 });
+    expect(thread.comments).toHaveLength(1);
+
+    const observed = openPassMarker({
+      repo: "deftai/directive",
+      issue: 3607,
+      owner: "someone-else",
+      passKind: "triage",
+      startedAt: renewedAt,
+      seams: thread.seams,
+    });
+    expect(observed).toMatchObject({ status: "observed", commentId: 1000 });
+    if ("marker" in observed) {
+      expect(observed.marker.owner).toBe("dbcall2");
+    }
+    expect(thread.comments).toHaveLength(1);
+  });
+
+  it("reuses an expired mark comment instead of stacking a second one", () => {
+    const thread = fakeThread([threadComment(500, PASS_BODY)]);
+    const afterExpiry = new Date("2026-08-28T14:00:00.000Z");
+    const opened = openPassMarker({
+      repo: "deftai/directive",
+      issue: 3607,
+      owner: "someone-else",
+      passKind: "triage",
+      startedAt: afterExpiry,
+      seams: thread.seams,
+    });
+    expect(opened).toMatchObject({ status: "opened", commentId: 500 });
+    expect(thread.comments).toHaveLength(1);
+  });
+
+  it("loses a create race to the older comment id and removes its duplicate", () => {
+    const thread = fakeThread([], (comments) => {
+      comments.unshift(threadComment(900, PASS_BODY));
+    });
+    const result = openPassMarker({
+      repo: "deftai/directive",
+      issue: 3607,
+      owner: "late-arriver",
+      passKind: "design-critique",
+      startedAt: PASS_START,
+      seams: thread.seams,
+    });
+    expect(result).toMatchObject({ status: "observed", commentId: 900 });
+    expect(thread.comments.map((c) => c.id)).toEqual([900]);
+  });
+
+  it("clears its own mark, reports another owner's, and no-ops when none is open", () => {
+    const thread = fakeThread([threadComment(500, PASS_BODY)]);
+    const endedAt = new Date("2026-08-28T12:20:00.000Z");
+
+    expect(
+      closePassMarker({
+        repo: "deftai/directive",
+        issue: 3607,
+        owner: "someone-else",
+        endedAt,
+        seams: thread.seams,
+      }),
+    ).toEqual({ status: "held-by-other", commentId: 500 });
+
+    expect(
+      closePassMarker({
+        repo: "deftai/directive",
+        issue: 3607,
+        owner: "dbcall2",
+        endedAt,
+        seams: thread.seams,
+      }),
+    ).toEqual({ status: "cleared", commentId: 500 });
+
+    expect(
+      fetchActivePassMarker("deftai/directive", 3607, { now: endedAt, seams: thread.seams }),
+    ).toBeNull();
+
+    expect(
+      closePassMarker({
+        repo: "deftai/directive",
+        issue: 3607,
+        owner: "dbcall2",
+        endedAt,
+        seams: thread.seams,
+      }),
+    ).toEqual({ status: "not-open", commentId: null });
+  });
+
+  it("surfaces fetch errors on every pass-marker entry point", () => {
+    const seams = { fetchComments: () => ({ error: "boom" }) };
+    expect(listPassMarkerComments("deftai/directive", 3607, seams)).toEqual({ error: "boom" });
+    expect(fetchActivePassMarker("deftai/directive", 3607, { seams })).toEqual({ error: "boom" });
+    expect(
+      openPassMarker({
+        repo: "deftai/directive",
+        issue: 3607,
+        owner: "dbcall2",
+        passKind: "design-critique",
+        seams,
+      }),
+    ).toEqual({ error: "boom" });
+    expect(
+      closePassMarker({ repo: "deftai/directive", issue: 3607, owner: "dbcall2", seams }),
+    ).toEqual({ error: "boom" });
+  });
+
+  it("reads back the active mark for an arriving agent", () => {
+    const thread = fakeThread([threadComment(500, PASS_BODY)]);
+    const active = fetchActivePassMarker("deftai/directive", 3607, {
+      now: new Date("2026-08-28T12:30:00.000Z"),
+      seams: thread.seams,
+    });
+    expect(active).toMatchObject({ commentId: 500 });
+    if (active !== null && active !== undefined && "marker" in active) {
+      expect(active.marker.pass_kind).toBe("design-critique");
+      expect(active.marker.ceiling).toBe("5430302222");
+    }
   });
 });
