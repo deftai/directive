@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3794",
-    "updated": "2026-08-28T17:23:42Z"
+    "updated": "2026-08-28T22:00:57Z"
   },
   "plan": {
     "title": "bug(hooks,session): linked-worktree writes are gated against the parent checkout lease",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(hooks,session): linked-worktree writes are gated against the parent checkout lease",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3794",
@@ -17,7 +17,7 @@
     "items": [
       {
         "title": "A direct write is gated against the Git worktree containing its target",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/hooks/dispatcher-effective-root.test.ts describe \"direct-write occupancy/ritual follow the target worktree (#3794)\" and \"active scope follows the write target worktree (#3794 commit 2)\"; green under task check at 61821723939daf60c2e7fe7db5a0d3e4127275ea",
@@ -27,7 +27,7 @@
       },
       {
         "title": "`effectiveRoot` is admitted only when `--git-common-dir` matches `payloadRoot`'s; otherwise fall back to `payloadRoot`",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/hooks/dispatcher-effective-root.test.ts describe \"effectiveRoot admission (#3794)\" - admits a linked worktree, refuses a foreign repository, and falls back to payloadRoot when git cannot express a toplevel or identity is unreadable",
@@ -37,7 +37,7 @@
       },
       {
         "title": "**Occupancy and ritual move together in this commit** -- see the atomic-seam note below",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/hooks/dispatcher-effective-root.test.ts:315 \"keeps occupancy and ritual on the same effectiveRoot\" - the seam landed in commit 1 (PR #3807) and is re-asserted unchanged on this branch",
@@ -47,7 +47,7 @@
       },
       {
         "title": "Authz grant scoping, the authz audit trail, and the kill-switch are **explicitly pinned** to `payloadRoot`",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/hooks/dispatcher-effective-root.test.ts:285 \"pins the kill-switch to payloadRoot, not the write-target worktree\" and packages/core/src/hooks/dispatcher-effective-root.test.ts:538 \"keeps the #2885 outside-root skip measured from payloadRoot\"; authz grant scoping and the audit trail read payloadRoot at their dispatcher.ts call sites, each with a pinning comment",
@@ -57,7 +57,7 @@
       },
       {
         "title": "A resolver that returns `string | null` replaces bare `worktreePath()` for this path, with a walk-up to the nearest existing ancestor before spawning",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/session/git.test.ts:41 \"worktreePathOrNull returns null instead of falling back (#3794)\", :53 \"existingAncestorDir walks up to a real directory\", :74 fuzz over nested missing paths; consumed at dispatcher.ts:541-543",
@@ -67,7 +67,7 @@
       },
       {
         "title": "Git output is normalised through `normalizeHookProjectRoot` before comparison",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "dispatcher.ts:539-558 normalises payload root, candidate toplevel and both --git-common-dir values through normalizeHookProjectRoot before comparison; covered by packages/core/src/hooks/dispatcher-effective-root.test.ts describe \"effectiveRoot admission (#3794)\"",
@@ -77,7 +77,7 @@
       },
       {
         "title": "Both roots appear in every deny message, so an operator can see which tree was judged",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/hooks/dispatcher-effective-root.test.ts:241 \"denies a foreign target-worktree lease and names both roots\", :464 \"names the tree the recovery must run in when the two roots differ\", :647 \"still denies an out-of-fence worktree path, naming the tree it relativised against\"; :484 and :664 pin the same-root case to no added noise",
@@ -87,7 +87,7 @@
       },
       {
         "title": "A foreign-repository target is refused rather than adopted",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/hooks/dispatcher-effective-root.test.ts:124 \"admits a linked worktree and refuses a foreign repository\", :191 \"reports a proven separate repository as foreign-repository\", :203 \"refuses a foreign-repository target even when the payload lease matches\"; end-to-end at packages/cli/src/hook-dispatch-worktree.test.ts:105-113",
@@ -97,7 +97,7 @@
       },
       {
         "title": "Integration regression: one primary repo plus two real linked worktrees, invoking the deposited hook CLI without `--project-root`",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/cli/src/hook-dispatch-worktree.test.ts describe \"deposited hook CLI without --project-root (#3794)\" - real git fixture of one primary plus two linked worktrees (wt-a, wt-b) plus a separate repository, dispatched through run() with only workspace_roots",
@@ -107,7 +107,7 @@
       },
       {
         "title": "Allow/deny matrix pinned: unrelated primary lease does not block; foreign target-worktree lease denies; matching target-worktree lease allows",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/cli/src/hook-dispatch-worktree.test.ts:81-103 unrelated primary lease does not attribute the deny, foreign target-worktree lease denies naming both roots; packages/core/src/hooks/dispatcher-effective-root.test.ts:222 \"does not block a worktree write for an unrelated primary lease\" and :266 \"allows a matching target-worktree lease and inspects ritual there\"",
@@ -117,7 +117,7 @@
       },
       {
         "title": "CHANGELOG `[Unreleased]` entry",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "review",
           "pointer": "CHANGELOG.md [Unreleased] entry for #3794 including the assist-scratch migration note, reviewed on PR #3882 (Greptile 5/5, P0=0 P1=0 at 61821723939daf60c2e7fe7db5a0d3e4127275ea)",
@@ -127,7 +127,7 @@
       },
       {
         "title": "Active scope and `file_scope` relativization move to `effectiveRoot`",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/hooks/dispatcher-effective-root.test.ts describe \"active scope follows the write target worktree (#3794 commit 2)\" and \"story file_scope relativises against the write target worktree (#3794 commit 2)\"; dispatcher.ts inspectActiveScope and loadStoryWriteFence now read effectiveRoot",
@@ -137,7 +137,7 @@
       },
       {
         "title": "The assist-scratch reclassification lands with a named migration note -- see below",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/hooks/dispatcher-effective-root.test.ts describe \"assist-scratch reclassification (#3794 commit 2)\" and packages/cli/src/hook-dispatch-worktree.test.ts:117 \"stops treating worktree product files as disposable scratch\"; migration note published in CHANGELOG.md [Unreleased] and in the PR #3882 body under \"Migration - new denial class\"",
@@ -266,8 +266,33 @@
         "schema": "deft.scope.intended_placement.v1",
         "files": [],
         "module_boundary": ""
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3882,
+        "prBase": null,
+        "mergeCommit": "8600355b18dfeb8e7f029a0225041b411139b431",
+        "deliveryBranch": "master",
+        "deliveryCommit": "732b0e49fa0a72427c4b56d796097805370b438a",
+        "verifiedAt": "2026-08-28T22:00:57Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "c4932ed7-6866-49de-9ff7-778e0953aee8"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-28T22:00:57Z"
+      },
+      "completedAt": "2026-08-28T22:00:57Z",
+      "completedSessionId": "c4932ed7-6866-49de-9ff7-778e0953aee8",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-08-28T17:23:42Z"
+    "updated": "2026-08-28T22:00:57Z"
   }
 }
