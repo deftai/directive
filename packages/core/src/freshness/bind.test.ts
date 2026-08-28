@@ -122,7 +122,9 @@ describe("bindSessionGeneration (#3117)", () => {
 });
 
 describe("bind record file names (#3768)", () => {
-  const sessionId = "760cf3b0-3cfd-440e-a9f6-f90738e7d082";
+  // Synthetic id: a real host session id would be published by this fixture,
+  // which is the exact exposure #3768 removes from the record names.
+  const sessionId = "deadbeef-1234-4567-89ab-cdef01234567";
 
   function writeLegacyRecord(root: string, bound: Record<string, unknown>): string {
     const path = legacySessionBindPath(root, sessionId);
