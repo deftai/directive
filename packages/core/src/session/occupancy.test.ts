@@ -1198,6 +1198,27 @@ function git(root: string, args: readonly string[]): string {
   return (result.stdout ?? "").trim();
 }
 
+/** Fresh, fully-green mutation ritual payload for `sessionId`. */
+function ritualPayloadFor(root: string, sessionId: string, head: string, startedAt: Date) {
+  return newRitualStatePayload({
+    sessionId,
+    gitHead: head,
+    worktreePath: resolve(root),
+    startedAt,
+    quickSteps: {
+      alignment: ritualStep({ ok: true, ts: startedAt }),
+      branch_policy: ritualStep({ ok: true, ts: startedAt }),
+      triage_welcome: ritualStep({ ok: true, ts: startedAt }),
+      verify_tools: ritualStep({ ok: true, ts: startedAt }),
+    },
+    gatedSteps: {
+      agent_hooks: ritualStep({ ok: true, ts: startedAt }),
+      doctor: ritualStep({ ok: true, ts: startedAt }),
+      cache_fresh: ritualStep({ ok: true, ts: startedAt }),
+    },
+  });
+}
+
 /** Real repo plus a fresh mutation ritual owned by `sessionId`. */
 function ownedRitualRepo(sessionId: string, startedAt: Date): string {
   const root = mkdtempSync(join(tmpdir(), "occ-ritual-order-"));
@@ -1220,23 +1241,7 @@ function ownedRitualRepo(sessionId: string, startedAt: Date): string {
   git(root, ["commit", "-q", "-m", "init"]);
   writeRitualState(
     root,
-    newRitualStatePayload({
-      sessionId,
-      gitHead: git(root, ["rev-parse", "HEAD"]),
-      worktreePath: resolve(root),
-      startedAt,
-      quickSteps: {
-        alignment: ritualStep({ ok: true, ts: startedAt }),
-        branch_policy: ritualStep({ ok: true, ts: startedAt }),
-        triage_welcome: ritualStep({ ok: true, ts: startedAt }),
-        verify_tools: ritualStep({ ok: true, ts: startedAt }),
-      },
-      gatedSteps: {
-        agent_hooks: ritualStep({ ok: true, ts: startedAt }),
-        doctor: ritualStep({ ok: true, ts: startedAt }),
-        cache_fresh: ritualStep({ ok: true, ts: startedAt }),
-      },
-    }),
+    ritualPayloadFor(root, sessionId, git(root, ["rev-parse", "HEAD"]), startedAt),
   );
   return root;
 }
@@ -1302,5 +1307,38 @@ describe("occupancy decides before any ritual persist (#3769)", () => {
     expect(result.code).toBe(0);
     expect(readFileSync(ritualStatePath(root)).equals(before)).toBe(false);
     expect(readRitualState(root)[0]?.sessionId).toBe("owner");
+  });
+
+  it("refuses an in-flight ritual write once the tree is re-armed under a new owner", () => {
+    const startedAt = new Date();
+    const root = ownedRitualRepo("owner", startedAt);
+    const head = git(root, ["rev-parse", "HEAD"]);
+
+    // The gated runner stands in for wall-clock: a rival session takes the
+    // lease and re-arms the record while agent_hooks is still executing.
+    const result = verifySessionRitual(
+      root,
+      writeGateRitualOptions({
+        runner: () => {
+          writeRitualState(root, ritualPayloadFor(root, "rival", head, new Date()));
+          return { code: 0, stdout: "hooks ready", stderr: "" };
+        },
+        checkActiveCli: () => ({
+          ok: true,
+          code: 0,
+          active: null,
+          candidates: [],
+          targetVersion: null,
+          message: "ok",
+          lines: [],
+        }),
+      }),
+    );
+
+    // The losing session is refused rather than silently overwriting the
+    // record the new occupant depends on.
+    expect(result.code).toBe(2);
+    expect(result.message).toContain("re-armed by rival");
+    expect(readRitualState(root)[0]?.sessionId).toBe("rival");
   });
 });

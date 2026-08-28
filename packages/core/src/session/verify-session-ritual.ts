@@ -240,12 +240,51 @@ function shouldRearmDriftProbe(
   return detect(projectRoot).inPlay;
 }
 
+/**
+ * Persist a payload derived from `expected` only while the record on disk is
+ * still the one this verification read (#3769).
+ *
+ * A lease transfer mid-verification can re-arm the tree under a new owner. The
+ * losing session is denied by the occupancy recheck, but without this
+ * compare-and-swap its in-flight write would already have replaced the new
+ * owner record. Serializing ritual writes outright is the separate
+ * ritual-state locking item, deliberately out of scope.
+ *
+ * Returns null on success, or the reason the write was refused.
+ */
+function writeRitualStateIfStillOwned(
+  projectRoot: string,
+  payload: Record<string, unknown>,
+  expected: { sessionId?: string; startedAt: Date },
+): string | null {
+  const [current] = readRitualState(projectRoot);
+  if (current === null) {
+    return "session ritual state was removed while this verification was running";
+  }
+  if (
+    current.sessionId !== expected.sessionId ||
+    current.startedAt.getTime() !== expected.startedAt.getTime()
+  ) {
+    return (
+      `session ritual state was re-armed by ${current.sessionId ?? "<unbound>"} while this ` +
+      "verification was running; refusing to overwrite the current owner record"
+    );
+  }
+  try {
+    writeRitualState(projectRoot, payload);
+  } catch (exc) {
+    return String(exc);
+  }
+  return null;
+}
+
 function runGatedStep(
   projectRoot: string,
   payload: Record<string, unknown>,
   stepName: GatedStepName,
   runner: RitualRunner,
   now: Date,
+  expected: { sessionId?: string; startedAt: Date },
   detect: DetectWorkSelection = detectWorkSelection,
 ): string | null {
   const command = resolveGatedEntrypointCommand(stepName, projectRoot, detect);
@@ -263,10 +302,9 @@ function runGatedStep(
   if (stepName === "cache_fresh") {
     applyCacheFreshDriftProbeField(payload, command);
   }
-  try {
-    writeRitualState(projectRoot, payload);
-  } catch (exc) {
-    return `could not write session ritual state after ${stepName}: ${String(exc)}`;
+  const refusal = writeRitualStateIfStillOwned(projectRoot, payload, expected);
+  if (refusal !== null) {
+    return `could not write session ritual state after ${stepName}: ${refusal}`;
   }
   return null;
 }
@@ -331,13 +369,15 @@ function evaluateLoadedState(
       return { code: 1, message: headDriftRecoveryMessage(), recoveryTier: "cold" };
     }
     if (input.rebindForwardHead) {
-      const payload = { ...state.raw, git_head: currentHead };
-      try {
-        writeRitualState(projectRoot, payload);
-      } catch (exc) {
+      const refusal = writeRitualStateIfStillOwned(
+        projectRoot,
+        { ...state.raw, git_head: currentHead },
+        { sessionId: state.sessionId, startedAt: state.startedAt },
+      );
+      if (refusal !== null) {
         return {
           code: 2,
-          message: `could not rebind session ritual git HEAD: ${String(exc)}`,
+          message: `could not rebind session ritual git HEAD: ${refusal}`,
           recoveryTier: "cold",
         };
       }
@@ -687,6 +727,9 @@ export function verifySessionRitual(
     }
 
     const payload = { ...state.raw };
+    // Identity of the record this verification is amending; a mid-flight lease
+    // transfer must not let these writes land on a newer owner (#3769).
+    const ownerAtVerify = { sessionId: state.sessionId, startedAt: state.startedAt };
     const gated = { ...(payload.gated_steps as Record<string, Record<string, unknown>>) };
     payload.gated_steps = gated;
     const runCmd = options.runner ?? defaultRitualRunner;
@@ -705,7 +748,15 @@ export function verifySessionRitual(
       if (stepName !== "agent_hooks" && stepPasses(step) && !forced.has(stepName) && !rearmDrift) {
         continue;
       }
-      const writeError = runGatedStep(projectRoot, payload, stepName, runCmd, instant, detect);
+      const writeError = runGatedStep(
+        projectRoot,
+        payload,
+        stepName,
+        runCmd,
+        instant,
+        ownerAtVerify,
+        detect,
+      );
       if (writeError !== null) {
         return {
           code: 2,
