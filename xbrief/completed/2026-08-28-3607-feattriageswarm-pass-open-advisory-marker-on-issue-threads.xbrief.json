@@ -1,0 +1,207 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Pass-open advisory marker on issue threads, delivered by extending the incumbent review-owner lease. Issue #3607 recut body plus its accepted design-critique synthesis are SoT. Origin comments 5456509832 / 5456710251 correct one verified-claims row (the lease author filter does exclude CONTRIBUTOR); the delivered reader and its comment already state that, so scope is unchanged.",
+    "updated": "2026-08-28T20:58:43Z"
+  },
+  "plan": {
+    "id": "issue-3607-pass-open-advisory-marker",
+    "title": "pass-open advisory marker on issue threads via the review-owner lease",
+    "status": "completed",
+    "narratives": {
+      "Description": "Extend the existing review-owner comment lease so a design-critique pass can mark an issue thread as open. Advisory observe-and-mark only: it records who is running a pass and when the mark expires. It never holds, blocks, or gates another actor's write.",
+      "Origin": "GitHub issue #3607, child of tracker #3613. Recut after a 3-critic design-critique panel. Bind trail: synthesis 5430557487, disposition map 5431688810, verified-claims table 5455218052, synthesis-accepted line 5455220182. Chip design-critique:triage-ready.",
+      "Overview": "The incumbent lease is already an issue-comment lease: packages/core/src/review-monitor/github-lease.ts builds repos/{repo}/issues/{pr}/comments, so --pr is a parameter name rather than a constraint, and l4-owner.ts declares headSha optional. Delivery is adoption plus two fields plus a call site: expires_at on the marker, oldest-id-wins when two marks race, and a stated trust boundary for who may author a mark. No new mechanism, no lock, no label.",
+      "UserStory": "As an agent arriving at an issue thread, I want to see that a critique pass is already open and when that mark expires, so that I can stay clear of the pass without being blocked by a gate that has no coherent owner.",
+      "When": "When a pass opens, a review-owner-style marker exists on the issue thread carrying an expiry; when two marks race, the oldest comment id wins; when a mark is expired it is ignored on read; when a CONTRIBUTOR-associated actor authors a mark, the documented trust boundary states whether it is honored, and a test pins that answer.",
+      "LockedDecisions": "Blocking is refuted 3/3 by the panel: a pass has N+1 writers by construction (parent plus panel), so an exclusive lock names no actual actor, and 16 of 16 measured mid-round writes across 27 rounds were the pass owner's own. Observe-and-mark only. The label option is struck because a label cannot state its own expiry. The original acceptance item 4 (make post-ceiling amendment an exception) is deleted as unreachable: the design-critique contract mandates a panel-deposit after the ceiling every round, and this arc's own ceiling 5430302222 was followed by deposit 5430304791 fourteen seconds later. Content pinning and input reproducibility are out of scope and belong to #3780. MUST NOT add a thread interlock to content/contracts/design-critique.md: that contract explicitly forbids it.",
+      "ImplementationPlan": "1) Extend the review-owner lease surface for issue-thread passes with expires_at and oldest-id-wins resolution, reusing the existing marker parse and REST path. 2) State and test the author trust boundary, including the CONTRIBUTOR case. 3) Document advisory semantics in the review-cycle skill via its pack source and add a CHANGELOG entry. Closes #3607.",
+      "OriginDivergence": "The accepted finding that the lease's author filter excludes CONTRIBUTOR-authored comments did NOT reproduce at d0c015a6: no author_association, OWNER or MEMBER filter exists in github-lease.ts, lease-comment.ts or l4-owner.ts, which key on the marker and user.login. Recorded in verified-claims table 5455218052. The acceptance criterion is therefore stated as trust boundary stated and tested, and the worker must name where any filter actually lives rather than assume the exclusion exists. The field instance is real: comment 5429316778 on PR #3775 is a CONTRIBUTOR-authored lease comment."
+    },
+    "items": [
+      {
+        "title": "Issue-thread pass marker on the review-owner lease with expires_at and oldest-id-wins",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When a pass marker is written to an issue thread and read back, it carries an expiry, an expired marker is ignored on read, and two competing markers resolve to the oldest comment id.",
+          "Acceptance": "When a pass marker is written to an issue thread and read back, it carries an expiry, an expired marker is ignored on read, and two competing markers resolve to the oldest comment id."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/review-monitor/lease-comment.test.ts#round-trips a mark carrying its own expiry",
+          "recorded_at": "2026-08-28T21:05:00Z",
+          "recorded_by": "orchestrator/3607-post-merge"
+        }
+      },
+      {
+        "title": "Author trust boundary stated and tested, including the CONTRIBUTOR case",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When the lease path is read, the module states which author associations may hold a pass marker and why; a test pins the CONTRIBUTOR outcome; and if an author-association filter exists anywhere in the read path, its location is named in the code comment.",
+          "Acceptance": "When the lease path is read, the module states which author associations may hold a pass marker and why; a test pins the CONTRIBUTOR outcome; and if an author-association filter exists anywhere in the read path, its location is named in the code comment."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/review-monitor/github-lease.test.ts#reads a CONTRIBUTOR-authored mark that the ownership lease reader drops",
+          "recorded_at": "2026-08-28T21:05:00Z",
+          "recorded_by": "orchestrator/3607-post-merge"
+        }
+      },
+      {
+        "title": "Advisory semantics documented in the review-cycle pack source, plus CHANGELOG",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the review-cycle skill is read, it describes the pass marker as advisory observe-and-mark with an expiry and no blocking, the text is edited in the pack source and rendered, no interlock is added to the design-critique contract, and CHANGELOG Unreleased carries one line.",
+          "Acceptance": "When the review-cycle skill is read, it describes the pass marker as advisory observe-and-mark with an expiry and no blocking, the text is edited in the pack source and rendered, no interlock is added to the design-critique contract, and CHANGELOG Unreleased carries one line."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/review-monitor/github-lease.test.ts#refuses to renew a mark it cannot prove is its own",
+          "recorded_at": "2026-08-28T21:05:00Z",
+          "recorded_by": "orchestrator/3607-post-merge"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "patterns:multi-agent",
+      "critic"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3607",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3607"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3613",
+        "type": "x-xbrief/refs",
+        "title": "Tracker #3613 occupancy model gaps"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3780",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3780 owns content pinning, out of scope here"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3607#issuecomment-5430557487",
+        "type": "x-xbrief/refs",
+        "title": "Verified synthesis"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3607#issuecomment-5455218052",
+        "type": "x-xbrief/refs",
+        "title": "Verified-claims table with method column"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/core/src/review-monitor/github-lease.ts",
+          "packages/core/src/review-monitor/lease-comment.ts",
+          "packages/core/src/review-monitor/constants.ts",
+          "packages/core/src/review-monitor/lease-comment.test.ts",
+          "packages/core/src/review-monitor/github-lease.test.ts",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/review-monitor",
+          "pnpm exec vitest run packages/core/src/content-contracts"
+        ],
+        "expected_outputs": [
+          "issue-thread pass marker with expires_at and oldest-id-wins resolution",
+          "author trust boundary stated and pinned by test",
+          "advisory semantics in the review-cycle skill pack source"
+        ],
+        "depends_on": [],
+        "conflict_group": "review-monitor-lease-3607",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "high",
+        "missing_traces_justification": [
+          "Content pinning split to #3780; no dependency on it."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/review-monitor/github-lease.ts",
+          "packages/core/src/review-monitor/lease-comment.ts",
+          "content/packs/skills/skills-pack-0.1.json",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/review-monitor",
+        "cohesion_exemption": "CHANGELOG.md and the skills pack may exceed FILE_SIZE_REVIEW_TRIGGER_LINES."
+      },
+      "capacityBucket": "new-capability",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3864,
+        "prBase": null,
+        "mergeCommit": "e44c686171",
+        "deliveryBranch": "master",
+        "deliveryCommit": "f185399602a0c1d9284d4be54fa588b806e8a949",
+        "verifiedAt": "2026-08-28T20:58:43Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "a327e92d-f0c8-481a-855d-4258a32fc6af"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-28T20:58:43Z"
+      },
+      "completedAt": "2026-08-28T20:58:43Z",
+      "completedSessionId": "a327e92d-f0c8-481a-855d-4258a32fc6af"
+    },
+    "updated": "2026-08-28T20:58:43Z",
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When a pass marker is written to an issue thread and read back, it carries an expiry, an expired marker is ignored on read, and two competing markers resolve to the oldest comment id.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When the lease path is read, the module states which author associations may hold a pass marker and why; a test pins the CONTRIBUTOR outcome; and if an author-association filter exists anywhere in the read path, its location is named in the code comment.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When the review-cycle skill is read, it describes the pass marker as advisory observe-and-mark with an expiry and no blocking, the text is edited in the pack source and rendered, no interlock is added to the design-critique contract, and CHANGELOG Unreleased carries one line.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    }
+  },
+  "vBRIEFInfo": {
+    "version": "0.8",
+    "updated": "2026-08-28T20:58:43Z"
+  }
+}
