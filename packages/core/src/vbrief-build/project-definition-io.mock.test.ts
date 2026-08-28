@@ -55,13 +55,9 @@ describe("projectDefinitionIO mocked fs branches", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it("times out on a live owner without deleting its sidecar", () => {
+  it("never opens the public lock pathname held by a legacy sidecar (#3796)", () => {
     hoisted.existsSyncMock.mockImplementation((path) => actualFs().existsSync(path));
-    hoisted.openSyncMock.mockImplementation(() => {
-      const err = new Error("busy") as NodeJS.ErrnoException;
-      err.code = "EEXIST";
-      throw err;
-    });
+    hoisted.openSyncMock.mockImplementation((...args) => actualFs().openSync(...args));
     hoisted.readFileSyncMock.mockImplementation((path, ...args) =>
       actualFs().readFileSync(
         path,
@@ -72,17 +68,19 @@ describe("projectDefinitionIO mocked fs branches", () => {
     const lockPath = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json.lock");
     mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(lockPath, `${process.pid}\n`, "utf8");
-    let tick = 0;
+
     expect(() =>
       projectDefinitionMutationLock(root, () => undefined, {
         sleepMs: () => undefined,
-        now: () => {
-          tick += 20_000;
-          return tick;
-        },
+        acquisitionBudgetMs: 0,
       }),
-    ).toThrow("timed out waiting for project definition mutation lock");
+    ).toThrow("timed out acquiring the PROJECT-DEFINITION mutation lock");
+
     expect(existsSync(lockPath)).toBe(true);
+    // Owner metadata is only ever opened inside this acquisition's own prepared
+    // directory; the legacy pathname is read for classification, never opened.
+    const openedPaths = hoisted.openSyncMock.mock.calls.map((call) => String(call[0]));
+    expect(openedPaths.every((opened) => opened !== lockPath)).toBe(true);
     rmSync(root, { recursive: true, force: true });
   });
 
@@ -104,18 +102,9 @@ describe("projectDefinitionIO mocked fs branches", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it("retries exclusive creation after EEXIST", () => {
-    let calls = 0;
+  it("retries publication after a contended rename", () => {
     hoisted.existsSyncMock.mockImplementation((path) => actualFs().existsSync(path));
-    hoisted.openSyncMock.mockImplementation((...args) => {
-      calls += 1;
-      if (calls === 1) {
-        const err = new Error("locked") as NodeJS.ErrnoException;
-        err.code = "EEXIST";
-        throw err;
-      }
-      return actualFs().openSync(...args);
-    });
+    hoisted.openSyncMock.mockImplementation((...args) => actualFs().openSync(...args));
     hoisted.readFileSyncMock.mockImplementation((path, ...args) =>
       actualFs().readFileSync(
         path,
@@ -123,10 +112,22 @@ describe("projectDefinitionIO mocked fs branches", () => {
       ),
     );
     const root = mkdtempSync(join(tmpdir(), "vb-lock-retry-"));
-    expect(projectDefinitionMutationLock(root, () => "ok", { sleepMs: () => undefined })).toBe(
-      "ok",
-    );
-    expect(calls).toBe(2);
+    let renames = 0;
+    expect(
+      projectDefinitionMutationLock(root, () => "ok", {
+        sleepMs: () => undefined,
+        renameLock: (source, destination) => {
+          renames += 1;
+          if (renames === 1) {
+            const err = new Error("locked") as NodeJS.ErrnoException;
+            err.code = "EEXIST";
+            throw err;
+          }
+          actualFs().renameSync(source, destination);
+        },
+      }),
+    ).toBe("ok");
+    expect(renames).toBe(2);
     rmSync(root, { recursive: true, force: true });
   });
 
@@ -148,7 +149,7 @@ describe("projectDefinitionIO mocked fs branches", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it("reaps a dead lock owner and acquires the sidecar", () => {
+  it("reaps a dead directory owner and republishes its own generation", () => {
     hoisted.existsSyncMock.mockImplementation((path) => actualFs().existsSync(path));
     hoisted.openSyncMock.mockImplementation((...args) => actualFs().openSync(...args));
     hoisted.readFileSyncMock.mockImplementation((path, ...args) =>
@@ -160,16 +161,21 @@ describe("projectDefinitionIO mocked fs branches", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-lock-stale-"));
     const lockPath = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json.lock");
     mkdirSync(join(root, "xbrief"), { recursive: true });
-    writeFileSync(lockPath, `${JSON.stringify({ pid: 999_999, token: "stale" })}\n`, "utf8");
+    mkdirSync(lockPath);
+    const staleEntry = `999999-${"a".repeat(32)}`;
+    writeFileSync(join(lockPath, staleEntry), "{}", "utf8");
 
+    const probed: number[] = [];
     expect(
       projectDefinitionMutationLock(root, () => "ok", {
-        isProcessAlive: (pid) => {
-          expect(pid).toBe(999_999);
-          return false;
+        sleepMs: () => undefined,
+        probeProcess: (pid) => {
+          probed.push(pid);
+          return "dead";
         },
       }),
     ).toBe("ok");
+    expect(probed).toContain(999_999);
     expect(existsSync(lockPath)).toBe(false);
     rmSync(root, { recursive: true, force: true });
   });

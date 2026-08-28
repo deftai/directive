@@ -73,7 +73,11 @@
       }
     ],
     "acceptance": {
-      "commands": [],
+      "commands": [
+        "pnpm exec vitest run packages/core/src/vbrief-build/project-definition-lock-protocol.test.ts --reporter=dot",
+        "pnpm exec vitest run packages/core/src/verify-source/project-definition-mutation-boundary.test.ts --reporter=dot",
+        "pnpm exec vitest run packages/core/src/policy/plan-extensions.test.ts packages/core/src/vbrief-validate/extra-coverage.test.ts --reporter=dot"
+      ],
       "none_stated": true,
       "source_rung": "derived",
       "derived_reason": "derived 8 independently testable clauses from the task statement before product edit (#3323)",
@@ -81,42 +85,42 @@
         {
           "id": 1,
           "text": "Legacy file locks at the public pathname are never auto-unlinked or auto-quarantined. After the bounded acquisition budget, diagnostics name constant-label manual recovery steps.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/vbrief-build/project-definition-lock-protocol.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
           "text": "Current-version directory locks use non-empty directory plus unique-owner-entry. A delayed rmdir cannot remove a published replacement generation (direct barrier regression).",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/vbrief-build/project-definition-lock-protocol.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
           "text": "Directory reap is automatic only when the PID oracle reports unambiguously dead. PID-alive / possible reuse fails closed to manual recovery.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/vbrief-build/project-definition-lock-protocol.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 4,
           "text": "A mutation capability owns captured-path load/parse/persist. Mechanized inventory of all 18 lock call expressions plus unlocked CLI writers fails closed on raw resolver/lock/write bypass.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/verify-source/project-definition-mutation-boundary.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 5,
           "text": "Exact semantic keys stay separate from bounded display summaries. Lock and loader diagnostics use a constant artifact label.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/policy/plan-extensions.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 6,
           "text": "One injected monotonic acquisition budget covers every retry/recovery branch; callback execution is outside that budget.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/vbrief-build/project-definition-io.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
@@ -130,7 +134,7 @@
         {
           "id": 8,
           "text": "CHANGELOG `[Unreleased]` entry.",
-          "artifact_path": null,
+          "artifact_path": "CHANGELOG.md",
           "ambiguous": false,
           "provenance": "statement"
         }

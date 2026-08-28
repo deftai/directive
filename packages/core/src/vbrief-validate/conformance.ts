@@ -89,8 +89,25 @@ export interface ConformanceFinding {
   readonly location: string;
 }
 
+const SAFE_FINDING_KEY = /^[A-Za-z][A-Za-z0-9._/-]{0,63}$/;
+const SENSITIVE_FINDING_KEY = /(?:auth|credential|password|private|secret|token|api.?key)/i;
+
+/**
+ * Bounded presentation of a raw finding key (#3796). `finding.key` stays exact
+ * for machine consumers; only this rendered form is sanitised, so a hostile or
+ * sensitive key cannot ride a stderr diagnostic out of the process.
+ */
+function renderFindingKey(key: string): string {
+  return SAFE_FINDING_KEY.test(key) && !SENSITIVE_FINDING_KEY.test(key)
+    ? key
+    : `<redacted-key length=${[...key].length}>`;
+}
+
 export function renderFinding(finding: ConformanceFinding): string {
-  return `  ${finding.path} [${finding.level}] bare key '${finding.key}' at ${finding.location}`;
+  return (
+    `  ${finding.path} [${finding.level}] bare key ` +
+    `'${renderFindingKey(finding.key)}' at ${finding.location}`
+  );
 }
 
 function isConformant(key: string, core: ReadonlySet<string>): boolean {

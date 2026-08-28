@@ -19,7 +19,6 @@ import {
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { engineInfo, userConfig } from "@deftai/directive-core";
-import { assertWriteTargetSafe } from "@deftai/directive-core/dist/fs/projection-containment.js";
 import { parseInitArgv, runInitDepositCli } from "@deftai/directive-core/init-deposit";
 import {
   appendAuditLog,
@@ -42,7 +41,10 @@ import {
   resolveSwarmSubagentBackend,
   type SubagentBackendDescriptor,
 } from "@deftai/directive-core/swarm";
-import { atomicWriteProjectDefinition } from "@deftai/directive-core/vbrief-build";
+import {
+  type ProjectDefinitionMutation,
+  withProjectDefinitionMutation,
+} from "@deftai/directive-core/vbrief-build";
 
 export type CommandHandler = (argv: string[]) => number | Promise<number>;
 
@@ -2448,33 +2450,33 @@ function parsePolicySetArgs(argv: readonly string[]): PolicySetArgs {
 }
 
 interface PdWriteContext {
-  path: string;
   data: Record<string, unknown>;
   policyBlock: Record<string, unknown>;
   legacyMigrated: boolean;
 }
 
-/** Load PROJECT-DEFINITION for an in-place typed-field write (mirrors the .setdefault chain). */
-function loadProjectDefinitionForWrite(projectRoot: string): PdWriteContext {
-  const path = projectDefinitionPath(projectRoot);
+/**
+ * Load PROJECT-DEFINITION for an in-place typed-field write (mirrors the
+ * .setdefault chain). Reads the artifact the mutation lock captured (#3796) so
+ * these CLI writers can no longer resolve, read, and write a PROJECT-DEFINITION
+ * outside the shared mutation lock.
+ */
+function loadProjectDefinitionForWrite(mutation: ProjectDefinitionMutation): PdWriteContext {
+  const path = mutation.artifactPath;
   if (!existsSync(path)) {
-    throw new PolicySetError(`PROJECT-DEFINITION not found at ${path}`, "not-found");
-  }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(readFileSync(path, "utf8"));
-  } catch (err) {
     throw new PolicySetError(
-      `PROJECT-DEFINITION at ${path} is not valid JSON: ${String(err)}`,
-      "config",
+      `PROJECT-DEFINITION not found at ${mutation.artifactLabel}`,
+      "not-found",
     );
   }
-  // JSON.parse can yield a non-object top level (null / array / scalar) without
-  // throwing; reject it before the .plan/.policy property chain dereferences it.
-  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-    throw new PolicySetError(`PROJECT-DEFINITION at ${path} is not a JSON object`, "config");
+  let data: Record<string, unknown>;
+  try {
+    // The shared loader rejects unreadable, malformed, and non-object top-level
+    // payloads; every one of those is a config error for the CLI writers.
+    data = mutation.load();
+  } catch (err) {
+    throw new PolicySetError(err instanceof Error ? err.message : String(err), "config");
   }
-  const data = parsed as Record<string, unknown>;
   let plan = data.plan;
   if (plan === undefined) {
     plan = {};
@@ -2493,7 +2495,7 @@ function loadProjectDefinitionForWrite(projectRoot: string): PdWriteContext {
   if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
     throw new PolicySetError("plan.policy is not an object", "config");
   }
-  return { path, data, policyBlock: policy as Record<string, unknown>, legacyMigrated };
+  return { data, policyBlock: policy as Record<string, unknown>, legacyMigrated };
 }
 
 /** Write plan.policy.wipCap in place + append the audit row (mirrors set_wip_cap). */
@@ -2503,19 +2505,20 @@ function writeWipCap(
   actor: string,
   note: string,
 ): { changed: boolean; auditEntry: string } {
-  const { path, data, policyBlock, legacyMigrated } = loadProjectDefinitionForWrite(projectRoot);
-  const previous = policyBlock.wipCap;
-  policyBlock.wipCap = cap;
-  const changed = previous !== cap || legacyMigrated;
-  const parts = [`actor=${actor}`, `wipCap=${cap}`, `previous=${pyRepr(previous)}`];
-  if (note) parts.push(`note=${sanitizeNote(note)}`);
-  const auditEntry = stampChangedToken(parts.join(" "), changed);
-  if (changed) {
-    assertWriteTargetSafe(projectRoot, path);
-    atomicWriteProjectDefinition(path, data);
-  }
-  appendAuditLog(projectRoot, auditEntry, changed);
-  return { changed, auditEntry };
+  return withProjectDefinitionMutation(projectRoot, (mutation) => {
+    const { data, policyBlock, legacyMigrated } = loadProjectDefinitionForWrite(mutation);
+    const previous = policyBlock.wipCap;
+    policyBlock.wipCap = cap;
+    const changed = previous !== cap || legacyMigrated;
+    const parts = [`actor=${actor}`, `wipCap=${cap}`, `previous=${pyRepr(previous)}`];
+    if (note) parts.push(`note=${sanitizeNote(note)}`);
+    const auditEntry = stampChangedToken(parts.join(" "), changed);
+    if (changed) {
+      mutation.persist(data);
+    }
+    appendAuditLog(projectRoot, auditEntry, changed);
+    return { changed, auditEntry };
+  });
 }
 
 /** Write plan.policy.swarmSubagentBackend in place + append the audit row. */
@@ -2525,23 +2528,24 @@ function writeSubagentBackend(
   actor: string,
   note: string,
 ): { changed: boolean; auditEntry: string } {
-  const { path, data, policyBlock, legacyMigrated } = loadProjectDefinitionForWrite(projectRoot);
-  const previous = policyBlock.swarmSubagentBackend;
-  policyBlock.swarmSubagentBackend = backendId;
-  const changed = previous !== backendId || legacyMigrated;
-  const parts = [
-    `actor=${actor}`,
-    `swarmSubagentBackend=${backendId}`,
-    `previous=${pyRepr(previous)}`,
-  ];
-  if (note) parts.push(`note=${sanitizeNote(note)}`);
-  const auditEntry = stampChangedToken(parts.join(" "), changed);
-  if (changed) {
-    assertWriteTargetSafe(projectRoot, path);
-    atomicWriteProjectDefinition(path, data);
-  }
-  appendAuditLog(projectRoot, auditEntry, changed);
-  return { changed, auditEntry };
+  return withProjectDefinitionMutation(projectRoot, (mutation) => {
+    const { data, policyBlock, legacyMigrated } = loadProjectDefinitionForWrite(mutation);
+    const previous = policyBlock.swarmSubagentBackend;
+    policyBlock.swarmSubagentBackend = backendId;
+    const changed = previous !== backendId || legacyMigrated;
+    const parts = [
+      `actor=${actor}`,
+      `swarmSubagentBackend=${backendId}`,
+      `previous=${pyRepr(previous)}`,
+    ];
+    if (note) parts.push(`note=${sanitizeNote(note)}`);
+    const auditEntry = stampChangedToken(parts.join(" "), changed);
+    if (changed) {
+      mutation.persist(data);
+    }
+    appendAuditLog(projectRoot, auditEntry, changed);
+    return { changed, auditEntry };
+  });
 }
 
 /** Serialise the probe output for `subagent-backends --format json`. */

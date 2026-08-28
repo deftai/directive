@@ -12,6 +12,7 @@ import {
   readPlanOnboarding,
   readPlanPolicy,
   SHADOWABLE_PLAN_EXTENSIONS,
+  summarizeShadowedPlanSubKeys,
 } from "./plan-extensions.js";
 
 describe("plan-extensions namespaced accessors (#1650)", () => {
@@ -123,6 +124,36 @@ describe("plan-extension shadow detection (#2301)", () => {
     expect(shadows.map((s) => s.legacyKey).sort()).toEqual(
       [LEGACY_PLAN_COMPLETED_NOTE_KEY, LEGACY_PLAN_POLICY_KEY].sort(),
     );
+  });
+
+  it("keeps the complete raw sub-key inventory, bounding only the display (#3796)", () => {
+    const many: Record<string, unknown> = {};
+    for (let i = 0; i < 12; i += 1) many[`field${i}`] = i;
+    many.authToken = "sensitive";
+    const shadows = detectShadowedPlanExtensions({
+      [PLAN_POLICY_KEY]: { wipCap: 9 },
+      policy: many,
+    });
+
+    // Machine consumers (the doctor finding's shadowed_sub_keys) get every key,
+    // exactly as written, so an inventory is never silently truncated.
+    expect(shadows[0]?.shadowedSubKeys).toEqual(Object.keys(many).sort());
+    expect(shadows[0]?.shadowedSubKeys).toContain("authToken");
+
+    // The rendered diagnostic is capped and redacts the sensitive key.
+    const described = describeShadowedPlanExtension(
+      shadows[0] ?? { namespacedKey: "", legacyKey: "", shadowedSubKeys: [] },
+    );
+    expect(described).toContain("more keys>");
+    expect(described).not.toContain("authToken");
+  });
+
+  it("redacts an unsafe or sensitive key in the bounded summary (#3796)", () => {
+    expect(summarizeShadowedPlanSubKeys(["apiKey"])).toEqual(["<redacted-key length=6>"]);
+    expect(summarizeShadowedPlanSubKeys(["bad key with spaces"])).toEqual([
+      "<redacted-key length=19>",
+    ]);
+    expect(summarizeShadowedPlanSubKeys(["wipCap"])).toEqual(["wipCap"]);
   });
 
   it("reports no sub-keys when the shadowed bare value is not an object", () => {

@@ -30,10 +30,19 @@ export {
 } from "./parity-scenarios.js";
 export {
   atomicWriteProjectDefinition,
+  CONFIGURED_PROJECT_DEFINITION_LABEL,
   loadProjectDefinitionForMutation,
+  type MutationLockDeps,
+  ProjectDefinitionLockError,
+  parseProjectDefinitionAt,
+  projectDefinitionArtifactLabel,
   projectDefinitionMutationLock,
   projectDefinitionPath,
 } from "./project-definition-io.js";
+export {
+  type ProjectDefinitionMutation,
+  withProjectDefinitionMutation,
+} from "./project-definition-mutation.js";
 export { loadProjectInvariants, parseProjectInvariantsField } from "./project-invariants-io.js";
 export {
   buildScopeVbriefFromReconciled,

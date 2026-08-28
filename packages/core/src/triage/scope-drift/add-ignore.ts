@@ -1,41 +1,5 @@
-import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { resolveProjectDefinitionPath } from "../../layout/resolve.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY } from "../../policy/plan-extensions.js";
-import { projectDefinitionMutationLock } from "../../vbrief-build/project-definition-io.js";
-
-function loadForMutation(projectRoot: string): [Record<string, unknown>, string] {
-  const path = resolveProjectDefinitionPath(resolve(projectRoot));
-  if (!existsSync(path)) {
-    throw new Error(
-      `PROJECT-DEFINITION not found at ${path}; run task triage:welcome / task triage:bootstrap to scaffold one first.`,
-    );
-  }
-  let raw: string;
-  try {
-    raw = readFileSync(path, "utf8");
-  } catch (err) {
-    throw new Error(`Could not read PROJECT-DEFINITION at ${path}: ${String(err)}`);
-  }
-  let data: unknown;
-  try {
-    data = JSON.parse(raw);
-  } catch (err) {
-    throw new Error(`PROJECT-DEFINITION at ${path} is not valid JSON: ${String(err)}`);
-  }
-  if (typeof data !== "object" || data === null || Array.isArray(data)) {
-    throw new Error(`PROJECT-DEFINITION at ${path} top-level value is not a JSON object`);
-  }
-  return [data as Record<string, unknown>, path];
-}
-
-function atomicWrite(path: string, data: Record<string, unknown>): void {
-  const dir = dirname(path);
-  const payload = `${JSON.stringify(data, null, 2)}\n`;
-  const tmp = join(dir, `.${Date.now()}.tmp`);
-  writeFileSync(tmp, payload, "utf8");
-  renameSync(tmp, path);
-}
+import { withProjectDefinitionMutation } from "../../vbrief-build/project-definition-mutation.js";
 
 export interface AddIgnoreResult {
   readonly changed: boolean;
@@ -60,11 +24,13 @@ export function addIgnore(
 
   // Serialise the read-modify-write under the shared PROJECT-DEFINITION
   // mutation lock so concurrent mutators cannot lose an update (#1260).
-  return projectDefinitionMutationLock(projectRoot, (): AddIgnoreResult => {
-    const [data, path] = loadForMutation(projectRoot);
+  return withProjectDefinitionMutation(projectRoot, (mutation): AddIgnoreResult => {
+    const data = mutation.load();
     const plan = data.plan;
     if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
-      throw new Error(`PROJECT-DEFINITION at ${path} has a non-object 'plan' key`);
+      throw new Error(
+        `PROJECT-DEFINITION at ${mutation.artifactLabel} has a non-object 'plan' key`,
+      );
     }
     const planRec = plan as Record<string, unknown>;
     migrateLegacyPolicyKey(planRec);
@@ -86,7 +52,7 @@ export function addIgnore(
       }
     }
     raw.push({ [key]: value });
-    atomicWrite(path, data);
+    mutation.persist(data);
     return { changed: true, message: `added ignore (${key}=${value})` };
   });
 }

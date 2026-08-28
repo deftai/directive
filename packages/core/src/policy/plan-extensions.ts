@@ -100,8 +100,14 @@ export interface ShadowedPlanExtension {
   /** The bare legacy key that is silently ignored (e.g. `policy`). */
   readonly legacyKey: string;
   /**
-   * Best-effort list of sub-keys present in the shadowed bare object (e.g.
-   * `["triageScope", "wipCap"]`). Empty when the bare value is not an object.
+   * Complete, sorted list of the exact sub-keys present in the shadowed bare
+   * object (e.g. `["triageScope", "wipCap"]`). Empty when the bare value is not
+   * an object.
+   *
+   * These are raw semantic keys, kept whole so machine-readable inventories
+   * (the doctor finding's `shadowed_sub_keys`) stay complete. Bounding and
+   * redaction belong at a display boundary -- see
+   * {@link summarizeShadowedPlanSubKeys} (#3796).
    */
   readonly shadowedSubKeys: readonly string[];
 }
@@ -110,7 +116,12 @@ const SAFE_DIAGNOSTIC_KEY = /^[A-Za-z][A-Za-z0-9._/-]{0,31}$/;
 const SENSITIVE_DIAGNOSTIC_KEY = /(?:auth|credential|password|private|secret|token|api.?key)/i;
 const MAX_DIAGNOSTIC_KEYS = 8;
 
-function boundedKeySummary(keys: readonly string[]): string[] {
+/**
+ * Bounded, redacted presentation of shadowed sub-keys for a human diagnostic.
+ * Callers keep the raw semantic inventory; only the rendered string is capped
+ * and sanitised (#3796).
+ */
+export function summarizeShadowedPlanSubKeys(keys: readonly string[]): string[] {
   const ordered = [...keys].sort();
   const summary = ordered
     .slice(0, MAX_DIAGNOSTIC_KEYS)
@@ -145,7 +156,7 @@ export function detectShadowedPlanExtensions(plan: unknown): ShadowedPlanExtensi
     const legacyValue = planObj[legacyKey];
     const shadowedSubKeys =
       typeof legacyValue === "object" && legacyValue !== null && !Array.isArray(legacyValue)
-        ? boundedKeySummary(Object.keys(legacyValue as Record<string, unknown>))
+        ? Object.keys(legacyValue as Record<string, unknown>).sort()
         : [];
     shadows.push({ namespacedKey, legacyKey, shadowedSubKeys });
   }
@@ -158,9 +169,10 @@ export function detectShadowedPlanExtensions(plan: unknown): ShadowedPlanExtensi
  * prefix it (`[policy:show]`, a doctor finding, ...).
  */
 export function describeShadowedPlanExtension(shadow: ShadowedPlanExtension): string {
+  const displaySubKeys = summarizeShadowedPlanSubKeys(shadow.shadowedSubKeys);
   const subKeys =
-    shadow.shadowedSubKeys.length > 0
-      ? ` Shadowed field(s): ${shadow.shadowedSubKeys
+    displaySubKeys.length > 0
+      ? ` Shadowed field(s): ${displaySubKeys
           .map((k) => `plan.${shadow.legacyKey}.${k}`)
           .join(", ")}.`
       : "";

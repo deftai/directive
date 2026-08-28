@@ -1,11 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve as pathResolve } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
-import {
-  atomicWriteProjectDefinition,
-  projectDefinitionMutationLock,
-  projectDefinitionPath as resolveProjectDefinitionArtifactPath,
-} from "../vbrief-build/project-definition-io.js";
+import { projectDefinitionPath as resolveProjectDefinitionArtifactPath } from "../vbrief-build/project-definition-io.js";
+import { withProjectDefinitionMutation } from "../vbrief-build/project-definition-mutation.js";
 import {
   describeShadowedPlanExtension,
   detectShadowedPlanExtensions,
@@ -339,12 +336,8 @@ export function setPolicy(
   // Serialise the read-modify-write + audit-log append behind the shared
   // PROJECT-DEFINITION mutation lock so a concurrent policy/ritual mutator
   // cannot lose this update or desync the typed flag from the audit row (#1260).
-  return projectDefinitionMutationLock(projectRoot, () => {
-    const parsed: unknown = JSON.parse(readFileSync(path, { encoding: "utf8" }));
-    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-      throw new Error(`PROJECT-DEFINITION at ${path} top-level value is not a JSON object`);
-    }
-    const data = parsed as Record<string, unknown>;
+  return withProjectDefinitionMutation(projectRoot, (mutation) => {
+    const data = mutation.load();
     if (typeof data.plan !== "object" || data.plan === null || Array.isArray(data.plan)) {
       if (data.plan === undefined) {
         data.plan = {};
@@ -400,7 +393,7 @@ export function setPolicy(
     }
     const auditEntry = stampChangedToken(parts.join(" "), changed);
     if (changed) {
-      atomicWriteProjectDefinition(path, data);
+      mutation.persist(data);
     }
     appendAuditLog(projectRoot, auditEntry, changed);
     return { changed, auditEntry };

@@ -6,10 +6,7 @@ import {
   stripArtifactSuffix,
 } from "../layout/resolve.js";
 import { EMITTED_VBRIEF_VERSION } from "../vbrief-build/constants.js";
-import {
-  atomicWriteProjectDefinition,
-  projectDefinitionMutationLock,
-} from "../vbrief-build/project-definition-io.js";
+import { withProjectDefinitionMutation } from "../vbrief-build/project-definition-mutation.js";
 import {
   deriveRegistryItemStatus,
   registryMetadataReferencesFromScope,
@@ -272,11 +269,15 @@ export function renderProjectDefinition(
   // Serialise the whole read-modify-write of PROJECT-DEFINITION under the shared
   // mutation lock so a concurrent policy/triage mutator cannot be clobbered by the
   // materialised items/metadata write (or vice versa) (#1260).
-  return projectDefinitionMutationLock(resolve(vbriefDir, ".."), (): RenderProjectResult => {
+  const projectRoot = resolve(vbriefDir, "..");
+  return withProjectDefinitionMutation(projectRoot, (mutation): RenderProjectResult => {
     const nowDate = options.now ?? new Date();
     const now = nowDate.toISOString().replace(/\.\d{3}Z$/, "Z");
     const layout = resolveProjectDefinitionLayout(vbriefDir);
-    const projectDefPath = join(vbriefDir, layout.filename);
+    // Read and write the artifact the lock captured, not a second independent
+    // resolution of the same file (#3796). Resolving it again here is how a
+    // render could lock one identity and materialise items into another.
+    const projectDefPath = mutation.artifactPath;
     const items = scanLifecycleFolders(vbriefDir);
     const createdNew = !existsSync(projectDefPath);
 
@@ -327,7 +328,7 @@ export function renderProjectDefinition(
     mkdirSync(vbriefDir, { recursive: true });
     // Atomic temp+rename write under the lock so external readers never observe
     // a partially-written PROJECT-DEFINITION (#1260).
-    atomicWriteProjectDefinition(projectDefPath, projectDef);
+    mutation.persist(projectDef);
 
     const itemCount = items.length;
     const planMeta = ((projectDef.plan as JsonObject)?.metadata ?? {}) as JsonObject;
@@ -351,11 +352,14 @@ export function acknowledgeProjectDefinitionStaleness(
 ): RenderProjectResult {
   // Serialise the read-modify-write of PROJECT-DEFINITION under the shared
   // mutation lock so a concurrent policy/triage mutator is not clobbered (#1260).
-  return projectDefinitionMutationLock(resolve(vbriefDir, ".."), (): RenderProjectResult => {
+  const projectRoot = resolve(vbriefDir, "..");
+  return withProjectDefinitionMutation(projectRoot, (mutation): RenderProjectResult => {
     const nowDate = options.now ?? new Date();
     const now = isoTimestamp(nowDate);
     const layout = resolveProjectDefinitionLayout(vbriefDir);
-    const projectDefPath = join(vbriefDir, layout.filename);
+    // Read and write the artifact the lock captured (#3796) -- see the note in
+    // `renderProjectDefinition`.
+    const projectDefPath = mutation.artifactPath;
     if (!existsSync(projectDefPath)) {
       return [false, `✗ ${projectDefPath} not found — run project:render first`];
     }
@@ -409,7 +413,7 @@ export function acknowledgeProjectDefinitionStaleness(
 
     // Atomic temp+rename write under the lock so external readers never observe
     // a partially-written PROJECT-DEFINITION (#1260).
-    atomicWriteProjectDefinition(projectDefPath, projectDef);
+    mutation.persist(projectDef);
     const ackCount = completedItems.length;
     return [
       true,

@@ -1,71 +1,25 @@
 import { randomUUID } from "node:crypto";
-import {
-  appendFileSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  renameSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
-import { resolveProjectDefinitionPath } from "../../layout/resolve.js";
+import { appendFileSync, mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY } from "../../policy/plan-extensions.js";
-import { projectDefinitionMutationLock } from "../../vbrief-build/project-definition-io.js";
+import { withProjectDefinitionMutation } from "../../vbrief-build/project-definition-mutation.js";
 import { resolveTriageCachePath } from "../cache-path.js";
 import { SUBSCRIPTION_HISTORY_SCHEMA } from "./constants.js";
 import { pyStrRepr } from "./python-repr.js";
 import { utcIso } from "./time.js";
 
-export class ProjectDefinitionIOError extends Error {
-  override readonly name = "ProjectDefinitionIOError";
-}
-
-export function projectDefinitionPath(projectRoot: string): string {
-  return resolveProjectDefinitionPath(projectRoot);
-}
-
-export function loadProjectDefinitionForMutation(
-  projectRoot: string,
-): [Record<string, unknown>, string] {
-  const path = projectDefinitionPath(projectRoot);
-  if (!existsSync(path)) {
-    throw new ProjectDefinitionIOError(
-      `PROJECT-DEFINITION not found at ${path}; run task triage:welcome / ` +
-        "task triage:bootstrap to scaffold one first.",
-    );
-  }
-  let raw: string;
-  try {
-    raw = readFileSync(path, "utf8");
-  } catch (err) {
-    throw new ProjectDefinitionIOError(
-      `Could not read PROJECT-DEFINITION at ${path}: ${String(err)}`,
-    );
-  }
-  let data: unknown;
-  try {
-    data = JSON.parse(raw);
-  } catch (err) {
-    throw new ProjectDefinitionIOError(
-      `PROJECT-DEFINITION at ${path} is not valid JSON: ${String(err)}`,
-    );
-  }
-  if (typeof data !== "object" || data === null || Array.isArray(data)) {
-    throw new ProjectDefinitionIOError(
-      `PROJECT-DEFINITION at ${path} top-level value is not a JSON object`,
-    );
-  }
-  return [data as Record<string, unknown>, path];
-}
-
-export function atomicWriteProjectDefinition(path: string, data: Record<string, unknown>): void {
-  mkdirSync(dirname(path), { recursive: true });
-  const payload = `${JSON.stringify(data, null, 2)}\n`;
-  const tmp = join(tmpdir(), `${randomUUID()}.tmp`);
-  writeFileSync(tmp, payload, "utf8");
-  renameSync(tmp, path);
-}
+// One canonical PROJECT-DEFINITION identity (#3796). The resolver, loader,
+// error type, and write sink are the shared implementations the mutation
+// capability binds. Module-local duplicates used to resolve the layout path
+// directly -- ignoring the `DEFT_PROJECT_PATH` override the lock honours -- and
+// wrote through an uncontained temp sink, so a caller could lock one artifact
+// and load or persist another.
+export {
+  atomicWriteProjectDefinition,
+  loadProjectDefinitionForMutation,
+  projectDefinitionPath,
+} from "../../vbrief-build/project-definition-io.js";
+export { ProjectDefinitionIOError } from "../../vbrief-build/types.js";
 
 function resolveActor(actor: string | null | undefined): string {
   if (typeof actor === "string" && actor.trim()) return actor;
@@ -176,24 +130,30 @@ export function subscribe(
   // Serialise the read-modify-write + subscription-history append under the
   // shared PROJECT-DEFINITION mutation lock so concurrent mutators cannot lose
   // an update or emit out-of-order audit rows (#1260).
-  return projectDefinitionMutationLock(projectRoot, (): [boolean, string] => {
-    const [data, path] = loadProjectDefinitionForMutation(projectRoot);
+  return withProjectDefinitionMutation(projectRoot, (mutation): [boolean, string] => {
+    const data = mutation.load();
     const plan = data.plan;
     if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
-      throw new Error(`PROJECT-DEFINITION at ${path} has a non-object 'plan' key`);
+      throw new Error(
+        `PROJECT-DEFINITION at ${mutation.artifactLabel} has a non-object 'plan' key`,
+      );
     }
     const planRec = plan as Record<string, unknown>;
     migrateLegacyPolicyKey(planRec);
     if (planRec[PLAN_POLICY_KEY] === undefined) planRec[PLAN_POLICY_KEY] = {};
     const policy = planRec[PLAN_POLICY_KEY];
     if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
-      throw new Error(`PROJECT-DEFINITION at ${path} has a non-object 'plan.policy' key`);
+      throw new Error(
+        `PROJECT-DEFINITION at ${mutation.artifactLabel} has a non-object 'plan.policy' key`,
+      );
     }
     const policyRec = policy as Record<string, unknown>;
     if (policyRec.triageScope === undefined) policyRec.triageScope = [];
     const rules = policyRec.triageScope;
     if (!Array.isArray(rules)) {
-      throw new Error(`PROJECT-DEFINITION at ${path} has a non-list 'plan.policy.triageScope'`);
+      throw new Error(
+        `PROJECT-DEFINITION at ${mutation.artifactLabel} has a non-list 'plan.policy.triageScope'`,
+      );
     }
 
     const before = snapshotRules(rules);
@@ -208,7 +168,7 @@ export function subscribe(
     }
     if (!changed) return [false, message];
 
-    atomicWriteProjectDefinition(path, data);
+    mutation.persist(data);
     recordSubscriptionChange(projectRoot, {
       op: "subscribe",
       label: options.label ?? null,
@@ -227,25 +187,29 @@ export function addIgnore(projectRoot: string, label: string): [boolean, string]
 
   // Serialise the read-modify-write + subscription-history append under the
   // shared PROJECT-DEFINITION mutation lock (#1260).
-  return projectDefinitionMutationLock(projectRoot, (): [boolean, string] => {
-    const [data, path] = loadProjectDefinitionForMutation(projectRoot);
+  return withProjectDefinitionMutation(projectRoot, (mutation): [boolean, string] => {
+    const data = mutation.load();
     const plan = data.plan;
     if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
-      throw new Error(`PROJECT-DEFINITION at ${path} has a non-object 'plan' key`);
+      throw new Error(
+        `PROJECT-DEFINITION at ${mutation.artifactLabel} has a non-object 'plan' key`,
+      );
     }
     const planRec = plan as Record<string, unknown>;
     migrateLegacyPolicyKey(planRec);
     if (planRec[PLAN_POLICY_KEY] === undefined) planRec[PLAN_POLICY_KEY] = {};
     const policy = planRec[PLAN_POLICY_KEY];
     if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
-      throw new Error(`PROJECT-DEFINITION at ${path} has a non-object 'plan.policy' key`);
+      throw new Error(
+        `PROJECT-DEFINITION at ${mutation.artifactLabel} has a non-object 'plan.policy' key`,
+      );
     }
     const policyRec = policy as Record<string, unknown>;
     if (policyRec.triageScopeIgnores === undefined) policyRec.triageScopeIgnores = [];
     const raw = policyRec.triageScopeIgnores;
     if (!Array.isArray(raw)) {
       throw new Error(
-        `PROJECT-DEFINITION at ${path} has a non-list 'plan.policy.triageScopeIgnores'`,
+        `PROJECT-DEFINITION at ${mutation.artifactLabel} has a non-list 'plan.policy.triageScopeIgnores'`,
       );
     }
 
@@ -261,7 +225,7 @@ export function addIgnore(projectRoot: string, label: string): [boolean, string]
       }
     }
     raw.push({ label });
-    atomicWriteProjectDefinition(path, data);
+    mutation.persist(data);
     const after = snapshotRules(raw);
     recordSubscriptionChange(projectRoot, {
       op: "ignore-label",

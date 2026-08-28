@@ -3,13 +3,10 @@ import { join, resolve } from "node:path";
 import { sortKeysDeep } from "../codebase/json.js";
 import { readCorePackageVersion } from "../engine-version.js";
 import { containedWrite } from "../fs/contained-write.js";
-import {
-  atomicWriteProjectDefinition,
-  projectDefinitionMutationLock,
-} from "../vbrief-build/project-definition-io.js";
+import { withProjectDefinitionMutation } from "../vbrief-build/project-definition-mutation.js";
 import { isNoDeftDirectivePresent } from "./no-deft-directive.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY, readPlanPolicy } from "./plan-extensions.js";
-import { appendAuditLog, loadProjectDefinition, projectDefinitionPath } from "./resolve.js";
+import { appendAuditLog, loadProjectDefinition } from "./resolve.js";
 import {
   detectOriginOrg,
   isTrustedOrgAutoEnable,
@@ -451,19 +448,14 @@ function applyForceOn(
     readonly existingMarker: OrgForceOnMarker | null;
   },
 ): OrgForceOnMigrationResult {
-  const path = projectDefinitionPath(projectRoot);
   let valueFeedbackChanged = false;
   let productSignalChanged = false;
   let ran = false;
   let skippedReason: string | null = null;
   const existing = intent.existingMarker;
 
-  projectDefinitionMutationLock(projectRoot, () => {
-    const parsed: unknown = JSON.parse(readFileSync(path, { encoding: "utf8" }));
-    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-      throw new Error(`PROJECT-DEFINITION at ${path} top-level value is not a JSON object`);
-    }
-    const rootData = parsed as Record<string, unknown>;
+  withProjectDefinitionMutation(projectRoot, (mutation) => {
+    const rootData = mutation.load();
     if (
       typeof rootData.plan !== "object" ||
       rootData.plan === null ||
@@ -541,7 +533,7 @@ function applyForceOn(
     }
 
     if (valueFeedbackChanged || productSignalChanged) {
-      atomicWriteProjectDefinition(path, rootData);
+      mutation.persist(rootData);
     }
 
     // Marker previous*: forced fields record pre-apply current; unforced fields

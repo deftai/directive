@@ -690,6 +690,15 @@ jobs:
       - name: Windows package-manager shim probe (#3610)
         run: pnpm exec vitest run packages/core/src/verify-env/toolchain-check.test.ts
 
+      # The mixed-version lock protocol is filesystem behaviour, and the two
+      # platforms differ where it matters: POSIX `rename` refuses to move a
+      # directory onto a file, Windows `MoveFileEx` replaces it. The directory
+      # barrier and the legacy-sidecar preservation guarantee are therefore
+      # asserted on Windows as a delivery precondition, not inferred from the
+      # Darwin probes that shaped the design (#3796).
+      - name: Windows PROJECT-DEFINITION lock protocol regression (#3796)
+        run: pnpm exec vitest run packages/core/src/vbrief-build/project-definition-lock-protocol.test.ts
+
       - name: task deft:verify:cache-fresh consumer smoke (#2120)
         shell: pwsh
         run: |

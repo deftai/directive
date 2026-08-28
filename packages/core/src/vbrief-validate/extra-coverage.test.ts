@@ -382,6 +382,19 @@ describe("vbrief-validate extra coverage", () => {
     }
     expect(renderFinding(first)).toContain("bare key");
 
+    // #3796: the finding keeps the exact key for machine consumers, while the
+    // rendered diagnostic bounds and redacts it.
+    const hostile = scanVbrief("x.xbrief.json", {
+      plan: { "api_key\nInjected: line": true, ["a".repeat(200)]: true },
+    });
+    for (const finding of hostile) {
+      const rendered = renderFinding(finding);
+      expect(rendered).toContain("<redacted-key length=");
+      expect(rendered).not.toContain("Injected: line");
+      expect(rendered.split("\n")).toHaveLength(1);
+    }
+    expect(hostile.map((f) => f.key)).toContain("api_key\nInjected: line");
+
     const root = mkdtempSync(join(tmpdir(), "vb-conf-full-"));
     mkdirSync(join(root, "xbrief"), { recursive: true });
     execSync("git init", { cwd: root, stdio: "ignore" });

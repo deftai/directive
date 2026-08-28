@@ -2,11 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createScopeVbrief, referenceWithDefaultTrust, slugify } from "./build.js";
 import { pythonJsonPretty } from "./json.js";
-import {
-  atomicWriteProjectDefinition,
-  loadProjectDefinitionForMutation,
-  projectDefinitionMutationLock,
-} from "./project-definition-io.js";
+import { withProjectDefinitionMutation } from "./project-definition-mutation.js";
 import {
   buildScopeVbriefFromReconciled,
   folderForStatus,
@@ -259,11 +255,11 @@ export function runParityScenario(name: string, ctx: ParityScenarioContext): Par
       const pdPath = join(vbriefDir, "PROJECT-DEFINITION.xbrief.json");
       writeFileSync(pdPath, pythonJsonPretty(seed), "utf8");
       let roundtrip: JsonObject = {};
-      projectDefinitionMutationLock(ctx.fixtureRoot, () => {
-        const [data, path] = loadProjectDefinitionForMutation(ctx.fixtureRoot);
+      withProjectDefinitionMutation(ctx.fixtureRoot, (mutation) => {
+        const data = mutation.load();
         (data.plan as JsonObject).policy = { wipCap: 12 };
-        atomicWriteProjectDefinition(path, data);
-        roundtrip = JSON.parse(readFileSync(path, "utf8")) as JsonObject;
+        mutation.persist(data);
+        roundtrip = JSON.parse(readFileSync(mutation.artifactPath, "utf8")) as JsonObject;
       });
       return { scenario: name, ok: true, payload: roundtrip };
     }

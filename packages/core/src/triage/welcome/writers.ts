@@ -1,27 +1,14 @@
-import {
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  renameSync,
-  rmSync,
-  statSync,
-} from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { containedWrite } from "../../fs/contained-write.js";
-import { assertWriteTargetSafe } from "../../fs/projection-containment.js";
-import {
-  hasArtifactSuffix,
-  resolveLifecycleFolder,
-  resolveProjectDefinitionPath,
-} from "../../layout/resolve.js";
+import { hasArtifactSuffix, resolveLifecycleFolder } from "../../layout/resolve.js";
 import {
   migrateLegacyPolicyKey,
   PLAN_ONBOARDING_KEY,
   PLAN_POLICY_KEY,
 } from "../../policy/plan-extensions.js";
 import { stampChangedToken } from "../../policy/resolve.js";
-import { projectDefinitionMutationLock } from "../../vbrief-build/project-definition-io.js";
+import { withProjectDefinitionMutation } from "../../vbrief-build/project-definition-mutation.js";
 import {
   AUDIT_LOG_REL_PATH,
   DEFAULT_RELIEF_AGE_DAYS,
@@ -29,10 +16,6 @@ import {
   SUBSCRIPTION_PRESETS,
   WELCOME_AUDIT_TAG,
 } from "./constants.js";
-
-function projectDefinitionPath(projectRoot: string): string {
-  return resolveProjectDefinitionPath(projectRoot);
-}
 
 function utcIso(): string {
   return new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
@@ -64,53 +47,14 @@ export function appendAuditEntry(projectRoot: string, entry: string, changed = t
   return logPath;
 }
 
-/**
- * Atomically write PROJECT-DEFINITION JSON under projectRoot containment (#3077).
- * Containment root is projectRoot (not dirname(path)) so a force-added `xbrief/`
- * directory symlink fails closed before temp+rename — same class as #3042.
- */
-function atomicWrite(projectRoot: string, path: string, data: Record<string, unknown>): void {
-  const root = resolve(projectRoot);
-  const targetAbs = resolve(path);
-  // Refuse leaf/parent symlinks and out-of-root targets before temp+rename.
-  assertWriteTargetSafe(root, targetAbs);
-  const dir = dirname(targetAbs);
-  const payload = `${JSON.stringify(data, null, 2)}\n`;
-  const tmpName = `.${Date.now()}.tmp`;
-  const tmp = join(dir, tmpName);
-  try {
-    // #2980 wave D / #3077: product write routes through containedWrite under projectRoot.
-    containedWrite({
-      root,
-      target: tmp,
-      data: payload,
-      mode: "create",
-    });
-    renameSync(tmp, targetAbs);
-  } catch (err) {
-    try {
-      rmSync(tmp, { force: true });
-    } catch {
-      /* best-effort cleanup */
-    }
-    throw err;
-  }
-}
-
 export function writeTriageScope(
   projectRoot: string,
   rules: Array<Record<string, unknown>>,
   options: { presetLabel: string; actor?: string } = { presetLabel: "custom" },
 ): [boolean, string] {
   // Serialise read-modify-write + audit append under the shared lock (#1260).
-  return projectDefinitionMutationLock(projectRoot, (): [boolean, string] => {
-    const path = projectDefinitionPath(projectRoot);
-    if (!existsSync(path)) throw new Error(`PROJECT-DEFINITION not found at ${path}`);
-    const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
-    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-      throw new Error(`PROJECT-DEFINITION at ${path} top-level value is not a JSON object`);
-    }
-    const data = parsed as Record<string, unknown>;
+  return withProjectDefinitionMutation(projectRoot, (mutation): [boolean, string] => {
+    const data = mutation.load();
     const plan = data.plan;
     if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
       throw new Error("PROJECT-DEFINITION 'plan' is not an object");
@@ -125,7 +69,7 @@ export function writeTriageScope(
     const policyRec = policy as Record<string, unknown>;
     const previous = policyRec.triageScope;
     policyRec.triageScope = rules;
-    atomicWrite(projectRoot, path, data);
+    mutation.persist(data);
     const changed = JSON.stringify(previous) !== JSON.stringify(rules);
     const actor = options.actor ?? WELCOME_AUDIT_TAG;
     const auditEntry = [
@@ -153,14 +97,8 @@ export function writeWipCapDecision(
     value?: number | null;
   } = {},
 ): [boolean, string] {
-  return projectDefinitionMutationLock(projectRoot, (): [boolean, string] => {
-    const path = projectDefinitionPath(projectRoot);
-    if (!existsSync(path)) throw new Error(`PROJECT-DEFINITION not found at ${path}`);
-    const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
-    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-      throw new Error(`PROJECT-DEFINITION at ${path} top-level value is not a JSON object`);
-    }
-    const data = parsed as Record<string, unknown>;
+  return withProjectDefinitionMutation(projectRoot, (mutation): [boolean, string] => {
+    const data = mutation.load();
     const plan = data.plan;
     if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
       throw new Error("PROJECT-DEFINITION 'plan' is not an object");
@@ -185,7 +123,7 @@ export function writeWipCapDecision(
       next.value = options.value;
     }
     planRec[PLAN_ONBOARDING_KEY] = next;
-    atomicWrite(projectRoot, path, data);
+    mutation.persist(data);
     const changed = !alreadyDecided || previousRec.acceptedDefault !== acceptedDefault;
     const auditEntry = [
       `actor=${actor}`,
@@ -208,14 +146,8 @@ export function writeWipCap(
     throw new Error(`wipCap must be a positive int, got ${JSON.stringify(wipCap)}`);
   }
   // Serialise read-modify-write + audit append under the shared lock (#1260).
-  return projectDefinitionMutationLock(projectRoot, (): [boolean, string] => {
-    const path = projectDefinitionPath(projectRoot);
-    if (!existsSync(path)) throw new Error(`PROJECT-DEFINITION not found at ${path}`);
-    const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
-    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-      throw new Error(`PROJECT-DEFINITION at ${path} top-level value is not a JSON object`);
-    }
-    const data = parsed as Record<string, unknown>;
+  return withProjectDefinitionMutation(projectRoot, (mutation): [boolean, string] => {
+    const data = mutation.load();
     const plan = data.plan;
     if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
       throw new Error("PROJECT-DEFINITION 'plan' is not an object");
@@ -248,7 +180,7 @@ export function writeWipCap(
     planRec[PLAN_ONBOARDING_KEY] = onboardingRecord;
 
     if (previous === undefined && wipCap === DEFAULT_WIP_CAP) {
-      atomicWrite(projectRoot, path, data);
+      mutation.persist(data);
       const auditEntry =
         `actor=${actor} field=${PLAN_ONBOARDING_KEY}.wipCapDecided value=true ` +
         `acceptedDefault=true changed=true note=default-no-materialize`;
@@ -257,7 +189,7 @@ export function writeWipCap(
     }
     if (previous !== undefined && wipCap === DEFAULT_WIP_CAP) {
       delete policyRec.wipCap;
-      atomicWrite(projectRoot, path, data);
+      mutation.persist(data);
       const auditEntry =
         `actor=${actor} field=plan.policy.wipCap action=cleared-to-default value=${wipCap} ` +
         `previous=${JSON.stringify(previous)} changed=true`;
@@ -265,7 +197,7 @@ export function writeWipCap(
       return [true, auditEntry];
     }
     policyRec.wipCap = wipCap;
-    atomicWrite(projectRoot, path, data);
+    mutation.persist(data);
     const changed = previous !== wipCap;
     const auditEntry =
       `actor=${actor} field=plan.policy.wipCap value=${wipCap} previous=${JSON.stringify(previous)} ` +

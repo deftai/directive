@@ -1,8 +1,4 @@
-import { readFileSync } from "node:fs";
-import {
-  atomicWriteProjectDefinition,
-  projectDefinitionMutationLock,
-} from "../vbrief-build/project-definition-io.js";
+import { withProjectDefinitionMutation } from "../vbrief-build/project-definition-mutation.js";
 import { valueFeedbackInstallForceOnSource } from "./org-force-on-migration.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY, readPlanPolicy } from "./plan-extensions.js";
 import { policyColonInvocation } from "./policy-invocation.js";
@@ -332,14 +328,10 @@ export function enableValueFeedback(
     };
   }
 
-  const path = projectDefinitionPath(projectRoot);
+  const _path = projectDefinitionPath(projectRoot);
   try {
-    const { changed } = projectDefinitionMutationLock(projectRoot, () => {
-      const parsed: unknown = JSON.parse(readFileSync(path, { encoding: "utf8" }));
-      if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-        throw new Error(`PROJECT-DEFINITION at ${path} top-level value is not a JSON object`);
-      }
-      const data = parsed as Record<string, unknown>;
+    const { changed } = withProjectDefinitionMutation(projectRoot, (mutation) => {
+      const data = mutation.load();
       if (typeof data.plan !== "object" || data.plan === null || Array.isArray(data.plan)) {
         if (data.plan === undefined) {
           data.plan = {};
@@ -392,7 +384,7 @@ export function enableValueFeedback(
         legacyKeyMigrated;
       policyBlock.valueFeedback = nextBlock;
       if (changedFlag) {
-        atomicWriteProjectDefinition(path, data);
+        mutation.persist(data);
       }
 
       const actor = options.actor ?? policyColonInvocation("enable-value-feedback");
@@ -448,14 +440,10 @@ export function clearValueFeedback(
   projectRoot: string,
   options: ClearValueFeedbackOptions = {},
 ): ClearValueFeedbackResult {
-  const path = projectDefinitionPath(projectRoot);
+  const _path = projectDefinitionPath(projectRoot);
   try {
-    const { changed } = projectDefinitionMutationLock(projectRoot, () => {
-      const parsed: unknown = JSON.parse(readFileSync(path, { encoding: "utf8" }));
-      if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-        throw new Error(`PROJECT-DEFINITION at ${path} top-level value is not a JSON object`);
-      }
-      const data = parsed as Record<string, unknown>;
+    const { changed } = withProjectDefinitionMutation(projectRoot, (mutation) => {
+      const data = mutation.load();
       if (typeof data.plan !== "object" || data.plan === null || Array.isArray(data.plan)) {
         throw new Error("PROJECT-DEFINITION 'plan' is not an object");
       }
@@ -475,7 +463,7 @@ export function clearValueFeedback(
       }
       const previous = policyBlock.valueFeedback;
       delete policyBlock.valueFeedback;
-      atomicWriteProjectDefinition(path, data);
+      mutation.persist(data);
 
       const actor = options.actor ?? policyColonInvocation("clear-value-feedback");
       const note = options.note ?? "";
