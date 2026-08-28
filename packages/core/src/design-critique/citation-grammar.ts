@@ -189,6 +189,8 @@ type BlockPosition = {
   readonly insideFence: boolean;
   /** Where inline scanning starts: after the last blank or fence line. */
   readonly inlineStart: number;
+  /** A blockquote marker opened this block, so an unmarked line is lazy quoted text. */
+  readonly quotedBlock: boolean;
 };
 
 /**
@@ -197,11 +199,14 @@ type BlockPosition = {
  * character, the closer is at least as long, and a closer carries no info
  * string, so `` ```ts more text `` inside an open fence is content and not a
  * closer. Inline scanning restarts after a blank line or a fence delimiter
- * because neither a code span nor a strikethrough run crosses one.
+ * because neither a code span nor a strikethrough run crosses one. A blockquote
+ * marker carries forward to the blank line that ends the quote, so an unmarked
+ * lazy-continuation line is still quoted text.
  */
 function blockPosition(body: string, offset: number): BlockPosition {
   let open: FenceDelimiter | null = null;
   let inlineStart = 0;
+  let quotedBlock = false;
   let lineStart = 0;
   while (lineStart < offset) {
     let lineEnd = body.indexOf("\n", lineStart);
@@ -222,23 +227,37 @@ function blockPosition(body: string, offset: number): BlockPosition {
         open = null;
       }
     }
-    if (!partial && (line.trim().length === 0 || fence !== null)) {
-      inlineStart = lineEnd + 1;
+    if (!partial) {
+      const blank = line.trim().length === 0;
+      if (blank || fence !== null) {
+        inlineStart = lineEnd + 1;
+      }
+      if (blank) {
+        quotedBlock = false;
+      } else if (BLOCKQUOTE_RE.test(line)) {
+        quotedBlock = true;
+      }
     }
     if (lineEnd >= offset) {
       break;
     }
     lineStart = lineEnd + 1;
   }
-  return { insideFence: open !== null, inlineStart };
+  return { insideFence: open !== null, inlineStart, quotedBlock };
 }
 
+/**
+ * Refused positions are exactly the five published classes. An indented code
+ * block and an HTML comment are deliberately not classified: a four-space
+ * indent is also ordinary list-continuation content, so refusing it would block
+ * valid records more often than it would catch example text.
+ */
 function classifyPosition(body: string, offset: number): CitationRejectionClass | null {
   const block = blockPosition(body, offset);
   if (block.insideFence) return "code-fence";
   const { start, end } = lineBounds(body, offset);
   const line = body.slice(start, end);
-  if (BLOCKQUOTE_RE.test(line)) return "blockquote";
+  if (BLOCKQUOTE_RE.test(line) || block.quotedBlock) return "blockquote";
   const preceding = body.slice(block.inlineStart, offset);
   if (isInsideInlineCode(preceding)) return "inline-code";
   if (isStruckThrough(preceding)) return "strikethrough";

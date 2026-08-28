@@ -210,6 +210,18 @@ describe("scanCitations position predicate (#3831)", () => {
     expect(scan.rejected).toEqual([{ id: ID, reason: "blockquote" }]);
   });
 
+  it("refuses a citation on a blockquote lazy-continuation line", () => {
+    const scan = scanCitations(`> on another thread they wrote:\nsuccessor lean ${ID}\n`);
+    expect(scan.citations).toEqual([]);
+    expect(scan.rejected).toEqual([{ id: ID, reason: "blockquote" }]);
+  });
+
+  it("ends the blockquote at the blank line", () => {
+    expect(ids(`> they quoted something\n\nbound contract is successor lean ${ID}\n`)).toEqual([
+      ID,
+    ]);
+  });
+
   it("refuses a struck-through citation", () => {
     const scan = scanCitations(`~~successor lean ${ID}~~ was withdrawn`);
     expect(scan.citations).toEqual([]);

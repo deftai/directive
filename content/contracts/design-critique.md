@@ -369,12 +369,15 @@ Accepted forms, and nothing else:
 Accepting an id is not accepting a citation. A match is classified by where it landed, and an occurrence that is not affirmative does not clear:
 
 - inside a fenced code block, including a fence indented up to three spaces — prose that shows the form
-- keyword inside an inline code span — `` the parser wants `successor lean 12345678` shaped text ``
-- on a blockquoted line — `> they wrote: successor lean 12345678`
+- keyword inside an inline code span, including a span that opened on an earlier line — `` the parser wants `successor lean 12345678` shaped text ``
+- in a blockquote, including an unmarked lazy-continuation line — `> they wrote: successor lean 12345678`
 - struck through — `~~successor lean 12345678~~`
 - explicitly negated within three words of the keyword — `do not use successor lean 12345678`
 
+Those five are the whole refused set. An indented code block and an HTML comment are deliberately outside it: a four-space indent is also ordinary list-continuation content, so refusing it would block valid records more often than it would catch example text. Widening the refused set is a contract change, not an implementation detail.
+
 - ! Classify the position of a match. Prior art is `classifyHit` (`packages/core/src/pr-closing-keywords/detect.ts`), which records where a hit landed.
+- ! Read the enclosing block, not one physical line. A code span, a strikethrough run, and a blockquote all carry across a newline, and they end at the blank line.
 - ! The negation form is explicit: `cannot`, `never`, `no longer`, an auxiliary plus `not`, or an auxiliary contraction ending in `n't`, closing within three plain words of the citation keyword and inside the same sentence.
 - ⊗ Refuse on a negation word anywhere in the sentence prefix. `without a doubt, successor lean 12345678 is accepted` and `not only successor lean 12345678 but also the table` are affirmative citations, and refusing them blocks a valid record.
 - ⊗ Strip the span instead. The established markdown scanners delete a code span with its contents, which destroys the digits.
