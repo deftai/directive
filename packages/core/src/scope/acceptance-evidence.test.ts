@@ -669,6 +669,8 @@ describe("scope:complete acceptance parity with verify:ac (#3497)", () => {
         literal_acceptance_commands: [
           { command: "pnpm exec vitest run packages/core/src/swarm/", source: "explicit" },
         ],
+        // #3835: the clause walk adjudicates only paths the brief declared.
+        swarm: { file_scope: ["packages/core/src"] },
       },
       items: [],
     };

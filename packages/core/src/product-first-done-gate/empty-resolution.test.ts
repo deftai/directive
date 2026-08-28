@@ -228,12 +228,23 @@ describe("verify:ac clause walk (#3323)", () => {
   it("walks stamped clauses and leads the done report with failed/unverifiable", () => {
     const root = mkdtempSync(join(tmpdir(), "clause-ac-eval-"));
     writeFileSync(join(root, "shipped.ts"), "export const ok = true;\n", "utf8");
-    const clauses = deriveAcceptanceClauses(`
-## Acceptance Criteria
-- shipped.ts exists at the stated path
-- behavioral contract with no machine check against shipped.ts
-- missing.ts must exist
-`);
+    // #3835: the walk binds from the declared surface, so a brief that wants its
+    // clauses adjudicated declares the artifacts on plan.metadata.swarm.file_scope.
+    const clauses = [
+      {
+        id: 1,
+        text: "shipped.ts exists at the stated path",
+        artifact_path: "shipped.ts",
+        ambiguous: false,
+      },
+      {
+        id: 2,
+        text: "behavioral contract with no machine check against shipped.ts",
+        artifact_path: "shipped.ts",
+        ambiguous: false,
+      },
+      { id: 3, text: "missing.ts must exist", artifact_path: "missing.ts", ambiguous: false },
+    ];
     const result = evaluateVerifyAcFromPlan(
       {
         title: "derived",
@@ -245,6 +256,7 @@ describe("verify:ac clause walk (#3323)", () => {
           clauses,
         },
         items: [],
+        metadata: { swarm: { file_scope: ["shipped.ts", "missing.ts"] } },
       },
       { projectRoot: root, captureFromNarratives: false },
     );
@@ -264,9 +276,14 @@ describe("verify:ac clause walk (#3323)", () => {
   it("does not treat a successful clause walk as #3334 empty resolution", () => {
     const root = mkdtempSync(join(tmpdir(), "clause-ac-pass-"));
     writeFileSync(join(root, "CHANGELOG.md"), "- cites #3323\n", "utf8");
-    const clauses = deriveAcceptanceClauses(
-      "## Acceptance Criteria\n- CHANGELOG.md exists and cites the issue\n",
-    );
+    const clauses = [
+      {
+        id: 1,
+        text: "CHANGELOG.md exists and cites the issue",
+        artifact_path: "CHANGELOG.md",
+        ambiguous: false,
+      },
+    ];
     const summary = join(root, "summary.jsonl");
     const result = evaluateVerifyAcFromPlan(
       {
@@ -279,6 +296,7 @@ describe("verify:ac clause walk (#3323)", () => {
           clauses,
         },
         items: [],
+        metadata: { swarm: { file_scope: ["CHANGELOG.md"] } },
       },
       {
         projectRoot: root,

@@ -185,23 +185,24 @@ describe("runTransition", () => {
     const result = runTransition("activate", path);
     expect(result.ok).toBe(true);
     expect(result.message).toMatch(/#3323 clause derivation stamped 3 clause/);
-    expect(result.message).toMatch(/flagged-ambiguous: 1/);
-    expect(result.message).toMatch(/chosen_reading=0/);
+    // #3835: the two-path line is no longer ambiguous, because derivation no
+    // longer selects a path out of the statement at all.
+    expect(result.message).not.toMatch(/flagged-ambiguous/);
     const dest = join(root, "xbrief", "active", "trial.xbrief.json");
     const data = JSON.parse(readFileSync(dest, "utf8")) as {
       plan: {
         acceptance: {
           source_rung: string;
           none_stated: boolean;
-          clauses: { ambiguous: boolean; chosen_reading?: number }[];
+          clauses: { ambiguous: boolean; artifact_path: string | null }[];
         };
       };
     };
     expect(data.plan.acceptance.source_rung).toBe("derived");
     expect(data.plan.acceptance.none_stated).toBe(true);
     expect(data.plan.acceptance.clauses).toHaveLength(3);
-    expect(data.plan.acceptance.clauses[1]?.ambiguous).toBe(true);
-    expect(data.plan.acceptance.clauses[1]?.chosen_reading).toBe(0);
+    expect(data.plan.acceptance.clauses.every((c) => c.ambiguous === false)).toBe(true);
+    expect(data.plan.acceptance.clauses.every((c) => c.artifact_path === null)).toBe(true);
   });
 
   it("promotes a command-only brief after stamping derived clauses (#3360)", () => {

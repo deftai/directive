@@ -169,8 +169,10 @@ describe("buildIssueVbrief", () => {
     expect(acceptance.source_rung).toBe("derived");
     expect(acceptance.commands).toEqual([]);
     expect(acceptance.clauses).toHaveLength(3);
-    expect(acceptance.clauses[1]?.artifact_path).toBe("packages/core/src/verify-ac/clauses.ts");
     expect(acceptance.clauses.map((c) => c.id)).toEqual([1, 2, 3]);
+    // #3835: an ingested clause carries no artifact binding — the issue body and
+    // its comment thread are untrusted, so they may not select a file to read.
+    expect(acceptance.clauses.every((c) => c.artifact_path === null)).toBe(true);
   });
 
   it("emits acceptance_stamp when ingest writes a none_stated brief (#3323)", () => {

@@ -29,6 +29,25 @@ export interface ClauseWalkResult {
   readonly artifact_path: string | null;
   readonly outcome: ClauseOutcome;
   readonly detail: string;
+  /**
+   * True when the walk had an oracle for this clause — a path the brief declared
+   * on `plan.metadata.swarm.file_scope`. An unbound or undeclared clause can only
+   * ever come back `unverifiable`, so it carries no weight either way (#3835).
+   */
+  readonly adjudicable: boolean;
+}
+
+/** Read-scope for the walk. Empty means nothing is read (#3835). */
+export interface ClauseWalkOptions {
+  /**
+   * The brief's declared artifact surface: `plan.metadata.swarm.file_scope`,
+   * which carries the #3145 approved-scope digest and `humanApproval` gate.
+   *
+   * Required rather than optional, and fail-closed when empty: the walk reads
+   * files, and a caller that forgets to pass a scope must read nothing rather
+   * than fall back to whatever path a clause happens to carry.
+   */
+  readonly declaredScope: readonly string[];
 }
 
 export interface ClauseWalkReport {
@@ -275,28 +294,20 @@ export function deriveAcceptanceClauses(
   return clauses;
 }
 
+/**
+ * Clause text is untrusted: the statement is the issue body plus its whole
+ * comment thread, and anyone can comment on a public issue. Lifting a path out
+ * of it chose both the file `walkOne` read and the needle it matched, so a
+ * third-party comment could ask the gate a question about any in-root file and
+ * read the answer off the report (#3835).
+ *
+ * Derivation therefore binds no path at all. `walkOne` binds only what the brief
+ * declares on `plan.metadata.swarm.file_scope`. Measured across the six live
+ * briefs at filing, prose extraction bound two paths and verified zero clauses,
+ * so this costs no verification capability.
+ */
 function buildClause(id: number, text: string): AcceptanceClause {
-  const paths = extractPathTokens(text);
-  if (paths.length <= 1) {
-    return {
-      id,
-      text,
-      artifact_path: paths[0] ?? null,
-      ambiguous: false,
-    };
-  }
-  const readings: AcceptanceClauseReading[] = paths.map((artifact_path) => ({
-    text: `${text} [reading: ${artifact_path}]`,
-    artifact_path,
-  }));
-  return {
-    id,
-    text,
-    artifact_path: paths[0] ?? null,
-    ambiguous: true,
-    readings,
-    chosen_reading: 0,
-  };
+  return { id, text, artifact_path: null, ambiguous: false };
 }
 
 export function readAcceptanceClauses(acceptance: unknown): AcceptanceClause[] {
@@ -421,6 +432,63 @@ export function isScratchArtifactPath(artifactPath: string): boolean {
   return unified.split("/").some((seg) => SCRATCH_SEGMENTS.has(seg));
 }
 
+/**
+ * Repo-relative comparison form: forward slashes, no `./` prefix, no trailing slash.
+ *
+ * Segment-split rather than regex-replaced: the inputs include clause text a
+ * commenter wrote, and the anchored slash-run patterns this replaced backtrack
+ * quadratically on a long run of separators (`js/polynomial-redos`).
+ */
+function normalizeScopePath(value: string): string {
+  const unified = value.trim().split("\\").join("/");
+  const rooted = unified.startsWith("/") ? "/" : "";
+  const segments = unified.split("/").filter((segment) => segment.length > 0);
+  if (rooted.length === 0 && segments[0] === ".") {
+    segments.shift();
+  }
+  return rooted + segments.join("/");
+}
+
+/**
+ * The declared artifact surface for a brief: `plan.metadata.swarm.file_scope`.
+ *
+ * This is the only surface the walk reads from (#3835). It sits inside the
+ * xBRIEF, so a GitHub commenter cannot write it, and it is already gated by the
+ * #3145 approved-scope digest and `humanApproval` stamp.
+ */
+export function readDeclaredArtifactScope(plan: unknown): string[] {
+  const swarm = asRecord(asRecord(asRecord(plan)?.metadata)?.swarm);
+  if (swarm === null || !Array.isArray(swarm.file_scope)) {
+    return [];
+  }
+  const declared = new Set<string>();
+  for (const entry of swarm.file_scope) {
+    if (!isNonEmptyString(entry)) {
+      continue;
+    }
+    const normalized = normalizeScopePath(entry);
+    if (normalized.length > 0) {
+      declared.add(normalized);
+    }
+  }
+  return [...declared];
+}
+
+/** True when the clause binding is a declared entry or sits under a declared directory. */
+export function isDeclaredArtifactPath(
+  artifactPath: string,
+  declaredScope: readonly string[],
+): boolean {
+  const candidate = normalizeScopePath(artifactPath);
+  if (candidate.length === 0 || candidate === ".." || candidate.startsWith("../")) {
+    return false;
+  }
+  return declaredScope.some((raw) => {
+    const entry = normalizeScopePath(raw);
+    return entry.length > 0 && (candidate === entry || candidate.startsWith(`${entry}/`));
+  });
+}
+
 function isContained(root: string, child: string): boolean {
   const rel = relative(resolve(root), resolve(child));
   return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
@@ -447,7 +515,11 @@ function extractExpectedTokens(clause: AcceptanceClause): string[] {
   return tokens;
 }
 
-function walkOne(clause: AcceptanceClause, projectRoot: string): ClauseWalkResult {
+function walkOne(
+  clause: AcceptanceClause,
+  projectRoot: string,
+  declaredScope: readonly string[],
+): ClauseWalkResult {
   const artifactPath = clause.artifact_path;
   if (artifactPath === null || artifactPath.trim().length === 0) {
     return {
@@ -456,26 +528,43 @@ function walkOne(clause: AcceptanceClause, projectRoot: string): ClauseWalkResul
       artifact_path: artifactPath,
       outcome: "unverifiable",
       detail: "no artifact path bound",
+      adjudicable: false,
     };
   }
-  if (isScratchArtifactPath(artifactPath)) {
+  // #3835: every filesystem touch below this line — existence, stat, and the
+  // token read — is gated here. A path the brief did not declare is refused
+  // before the walk learns anything about it, and the refusal detail is a
+  // function of the path alone, so a rejected clause reports the same thing
+  // whatever needle it carries. Filtering the shape of the path upstream was
+  // measured to narrow this by zero; this is the line that closes it.
+  if (!isDeclaredArtifactPath(artifactPath, declaredScope)) {
     return {
       id: clause.id,
       text: clause.text,
       artifact_path: artifactPath,
-      outcome: "failed",
-      detail: "artifact path is a buffer/scratch copy, not the shipped path",
+      outcome: "unverifiable",
+      detail:
+        `artifact path is not declared on plan.metadata.swarm.file_scope, so nothing ` +
+        `was read: ${artifactPath} (#3835)`,
+      adjudicable: false,
     };
+  }
+  // Past the declared-scope gate the walk has an oracle, so every outcome below
+  // counts toward the `ok` predicate.
+  const bound = (outcome: ClauseOutcome, detail: string): ClauseWalkResult => ({
+    id: clause.id,
+    text: clause.text,
+    artifact_path: artifactPath,
+    outcome,
+    detail,
+    adjudicable: true,
+  });
+  if (isScratchArtifactPath(artifactPath)) {
+    return bound("failed", "artifact path is a buffer/scratch copy, not the shipped path");
   }
   const abs = resolve(projectRoot, artifactPath);
   if (!isContained(projectRoot, abs)) {
-    return {
-      id: clause.id,
-      text: clause.text,
-      artifact_path: artifactPath,
-      outcome: "failed",
-      detail: "artifact path escaped the project root",
-    };
+    return bound("failed", "artifact path escaped the project root");
   }
   if (!existsSync(abs)) {
     if (NEGATED_EXISTENCE.test(clause.text)) {
@@ -483,51 +572,23 @@ function walkOne(clause: AcceptanceClause, projectRoot: string): ClauseWalkResul
       // whole clause text, so on a derived clause it routinely refers to something
       // other than the bound path — a bare `git.ts` in analysis prose passed here
       // and was the sole `verified` row propping up the `ok` predicate on #3794.
-      return {
-        id: clause.id,
-        text: clause.text,
-        artifact_path: artifactPath,
-        outcome: "unverifiable",
-        detail:
-          `artifact absent at ${artifactPath}; a prose negation is not evidence ` +
+      return bound(
+        "unverifiable",
+        `artifact absent at ${artifactPath}; a prose negation is not evidence ` +
           `the clause requires this path to be absent (#3826)`,
-      };
+      );
     }
-    return {
-      id: clause.id,
-      text: clause.text,
-      artifact_path: artifactPath,
-      outcome: "failed",
-      detail: `artifact missing at stated path ${artifactPath}`,
-    };
+    return bound("failed", `artifact missing at stated path ${artifactPath}`);
   }
   try {
     if (!statSync(abs).isFile()) {
-      return {
-        id: clause.id,
-        text: clause.text,
-        artifact_path: artifactPath,
-        outcome: "failed",
-        detail: `stated path is not a shipped file: ${artifactPath}`,
-      };
+      return bound("failed", `stated path is not a shipped file: ${artifactPath}`);
     }
   } catch {
-    return {
-      id: clause.id,
-      text: clause.text,
-      artifact_path: artifactPath,
-      outcome: "failed",
-      detail: `artifact unreadable at stated path ${artifactPath}`,
-    };
+    return bound("failed", `artifact unreadable at stated path ${artifactPath}`);
   }
   if (NEGATED_EXISTENCE.test(clause.text)) {
-    return {
-      id: clause.id,
-      text: clause.text,
-      artifact_path: artifactPath,
-      outcome: "failed",
-      detail: `artifact exists at ${artifactPath} but the clause requires absence`,
-    };
+    return bound("failed", `artifact exists at ${artifactPath} but the clause requires absence`);
   }
   const expected = extractExpectedTokens(clause);
   if (expected.length > 0) {
@@ -535,72 +596,58 @@ function walkOne(clause: AcceptanceClause, projectRoot: string): ClauseWalkResul
     try {
       body = readFileSync(abs, "utf8");
     } catch {
-      return {
-        id: clause.id,
-        text: clause.text,
-        artifact_path: artifactPath,
-        outcome: "failed",
-        detail: `artifact unreadable at stated path ${artifactPath}`,
-      };
+      return bound("failed", `artifact unreadable at stated path ${artifactPath}`);
     }
     const missing = expected.filter((token) => !body.includes(token));
     if (missing.length > 0) {
-      return {
-        id: clause.id,
-        text: clause.text,
-        artifact_path: artifactPath,
-        outcome: "failed",
-        detail: `expected token(s) missing from ${artifactPath}: ${missing.join(", ")}`,
-      };
+      return bound(
+        "failed",
+        `expected token(s) missing from ${artifactPath}: ${missing.join(", ")}`,
+      );
     }
-    return {
-      id: clause.id,
-      text: clause.text,
-      artifact_path: artifactPath,
-      outcome: "verified",
-      detail: `tokens present in shipped artifact ${artifactPath}`,
-    };
+    return bound("verified", `tokens present in shipped artifact ${artifactPath}`);
   }
   if (EXISTENCE_CLAIM.test(clause.text)) {
-    return {
-      id: clause.id,
-      text: clause.text,
-      artifact_path: artifactPath,
-      outcome: "verified",
-      detail: `shipped artifact exists at ${artifactPath}`,
-    };
+    return bound("verified", `shipped artifact exists at ${artifactPath}`);
   }
-  return {
-    id: clause.id,
-    text: clause.text,
-    artifact_path: artifactPath,
-    outcome: "unverifiable",
-    detail: `cannot evaluate behavioral claim against shipped artifact ${artifactPath}`,
-  };
+  return bound(
+    "unverifiable",
+    `cannot evaluate behavioral claim against shipped artifact ${artifactPath}`,
+  );
 }
 
 /**
- * Clauses the walk has any oracle for — i.e. bound to an artifact path (#3826).
+ * Clauses the walk had an oracle for — bound to a declared artifact path.
  *
- * A clause with no bound path can only ever be `unverifiable`, so requiring a
- * positive `verified` from a set of them is unsatisfiable by correct work rather
- * than a quality bar. `verified > 0` binds only where this count is non-zero.
+ * A clause with no oracle can only ever be `unverifiable`, so requiring a positive
+ * `verified` from a set of them is unsatisfiable by correct work rather than a
+ * quality bar (#3826).
  */
 export function countAdjudicableClauses(rows: readonly ClauseWalkResult[]): number {
-  return rows.filter((row) => (row.artifact_path ?? "").trim().length > 0).length;
+  return rows.filter((row) => row.adjudicable).length;
+}
+
+/**
+ * Adjudicable clauses the walk did not verify.
+ *
+ * #3826 made `verified > 0` a *set* predicate excused by an empty oracle set, so
+ * one bound-and-verified clause re-armed the whole set and covered siblings with
+ * their own unmet oracle. Counting per clause is what removes that seam (#3835).
+ */
+export function countUnverifiedAdjudicableClauses(rows: readonly ClauseWalkResult[]): number {
+  return rows.filter((row) => row.adjudicable && row.outcome !== "verified").length;
 }
 
 export function walkAcceptanceClauses(
   clauses: readonly AcceptanceClause[],
   projectRoot: string,
+  options: ClauseWalkOptions,
 ): ClauseWalkReport {
-  const walked = clauses.map((clause) => walkOne(clause, projectRoot));
+  const walked = clauses.map((clause) => walkOne(clause, projectRoot, options.declaredScope));
   const failed = walked.filter((row) => row.outcome === "failed");
   const unverifiable = walked.filter((row) => row.outcome === "unverifiable");
   const verified = walked.filter((row) => row.outcome === "verified");
-  const ok =
-    failed.length === 0 &&
-    (verified.length > 0 || walked.length === 0 || countAdjudicableClauses(walked) === 0);
+  const ok = failed.length === 0 && countUnverifiedAdjudicableClauses(walked) === 0;
   return {
     clauses: walked,
     failed,

@@ -43,31 +43,56 @@ function proseRejectedPlan(): Record<string, unknown> {
   };
 }
 
-describe("clauseWalkBlocks (#3497)", () => {
+describe("clauseWalkBlocks (#3497 / #3835)", () => {
   it("always blocks a clause the shipped artifact contradicts", () => {
     expect(
-      clauseWalkBlocks({ failed: 1, verified: 3, walked: 4, hasGreenExecutableRun: true }),
+      clauseWalkBlocks({
+        failed: 1,
+        walked: 4,
+        adjudicableUnverified: 0,
+        hasGreenExecutableRun: true,
+      }),
     ).toBe(true);
   });
 
-  it("does not block when at least one clause verified", () => {
+  it("does not block when every clause with an oracle verified", () => {
     expect(
-      clauseWalkBlocks({ failed: 0, verified: 1, walked: 4, hasGreenExecutableRun: false }),
+      clauseWalkBlocks({
+        failed: 0,
+        walked: 4,
+        adjudicableUnverified: 0,
+        hasGreenExecutableRun: false,
+      }),
     ).toBe(false);
   });
 
-  it("blocks an all-unverifiable walk only when nothing executable ran green", () => {
+  it("blocks an unmet oracle only when nothing executable ran green", () => {
     expect(
-      clauseWalkBlocks({ failed: 0, verified: 0, walked: 4, hasGreenExecutableRun: false }),
+      clauseWalkBlocks({
+        failed: 0,
+        walked: 4,
+        adjudicableUnverified: 4,
+        hasGreenExecutableRun: false,
+      }),
     ).toBe(true);
     expect(
-      clauseWalkBlocks({ failed: 0, verified: 0, walked: 4, hasGreenExecutableRun: true }),
+      clauseWalkBlocks({
+        failed: 0,
+        walked: 4,
+        adjudicableUnverified: 4,
+        hasGreenExecutableRun: true,
+      }),
     ).toBe(false);
   });
 
   it("does not block an empty walk", () => {
     expect(
-      clauseWalkBlocks({ failed: 0, verified: 0, walked: 0, hasGreenExecutableRun: false }),
+      clauseWalkBlocks({
+        failed: 0,
+        walked: 0,
+        adjudicableUnverified: 0,
+        hasGreenExecutableRun: false,
+      }),
     ).toBe(false);
   });
 
@@ -75,30 +100,22 @@ describe("clauseWalkBlocks (#3497)", () => {
     expect(
       clauseWalkBlocks({
         failed: 0,
-        verified: 0,
         walked: 8,
-        adjudicable: 0,
+        adjudicableUnverified: 0,
         hasGreenExecutableRun: false,
       }),
     ).toBe(false);
-    // One bound clause restores the requirement.
+  });
+
+  it("blocks a verified set that still leaves one oracle unmet (#3835)", () => {
+    // Seven verified clauses no longer cover the eighth. As a set predicate,
+    // `verified > 0` returned false here.
     expect(
       clauseWalkBlocks({
         failed: 0,
-        verified: 0,
         walked: 8,
-        adjudicable: 1,
+        adjudicableUnverified: 1,
         hasGreenExecutableRun: false,
-      }),
-    ).toBe(true);
-    // A contradicted clause blocks regardless.
-    expect(
-      clauseWalkBlocks({
-        failed: 1,
-        verified: 0,
-        walked: 8,
-        adjudicable: 0,
-        hasGreenExecutableRun: true,
       }),
     ).toBe(true);
   });
@@ -239,6 +256,7 @@ describe("verify:ac message agrees with its verdict (#3497)", () => {
           literal_acceptance_commands: [
             { command: "pnpm exec vitest run packages/core/src/swarm/", source: "explicit" },
           ],
+          swarm: { file_scope: ["packages/core/src/not-shipped-3497.ts"] },
         },
         items: [],
       },

@@ -217,29 +217,28 @@ export function formatAcceptanceVerdict(verdictResult: AcceptanceVerdict): strin
  * something: the product-first oracle already ran. Before #3497 an all-unverifiable
  * clause set refused an artifact whose stated command had just exited 0.
  *
- * #3826 adds `adjudicable`: how many clauses the walk has any oracle for at all.
- * A clause with no bound artifact path can only ever come back `unverifiable`, so
- * demanding a positive `verified` from a set of them cannot be satisfied by doing
- * the work correctly — only by coincidence, which is what the absent-artifact false
- * positive was. Where the walk has no oracle, `failed === 0` is the strongest verdict
- * available and `evaluateAcceptanceEvidenceGate` is what adjudicates those criteria
- * at `scope:complete`. Omit the field to keep the pre-#3826 behaviour of treating
- * every walked clause as adjudicable.
+ * #3826 excused a set the walk has no oracle for at all: a clause with no bound
+ * artifact path can only ever come back `unverifiable`, so demanding a positive
+ * `verified` from a set of them cannot be satisfied by doing the work correctly.
+ * Where the walk has no oracle, `failed === 0` is the strongest verdict available
+ * and `evaluateAcceptanceEvidenceGate` adjudicates those criteria at `scope:complete`.
+ *
+ * #3835 makes that excusal per clause. As a *set* predicate, `verified > 0` was
+ * re-armed for every clause by any single bound one, so one verified binding
+ * covered siblings that had their own oracle and did not meet it.
+ * `adjudicableUnverified` counts exactly those siblings.
  */
 export function clauseWalkBlocks(input: {
   readonly failed: number;
-  readonly verified: number;
   readonly walked: number;
-  readonly adjudicable?: number;
+  /** Clauses the walk had an oracle for and that did not come back `verified`. */
+  readonly adjudicableUnverified: number;
   readonly hasGreenExecutableRun: boolean;
 }): boolean {
   if (input.failed > 0) {
     return true;
   }
-  if (input.walked === 0 || input.verified > 0) {
-    return false;
-  }
-  if ((input.adjudicable ?? input.walked) === 0) {
+  if (input.walked === 0 || input.adjudicableUnverified === 0) {
     return false;
   }
   return !input.hasGreenExecutableRun;

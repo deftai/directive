@@ -48,6 +48,8 @@ function fieldPlan(extra: Record<string, unknown> = {}): Record<string, unknown>
     title: "field stamp",
     acceptance: fieldAcceptance(extra),
     items: [],
+    // #3835: the walk adjudicates only what the brief declared.
+    metadata: { swarm: { file_scope: ["shipped-a.txt", "shipped-b.txt"] } },
   };
 }
 

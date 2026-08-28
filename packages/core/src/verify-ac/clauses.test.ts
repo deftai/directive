@@ -1,14 +1,16 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, parse } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   collectPlanItemAcceptanceSurface,
   countAdjudicableClauses,
+  countUnverifiedAdjudicableClauses,
   deriveAcceptanceClauses,
   formatClauseWalkMessage,
   isScratchArtifactPath,
   readAcceptanceClauses,
+  serializeAcceptanceClauses,
   stampDerivedClausesOnAcceptance,
   walkAcceptanceClauses,
 } from "./clauses.js";
@@ -30,31 +32,32 @@ describe("deriveAcceptanceClauses (#3323)", () => {
     expect(clauses[0]?.text).toMatch(/N recorded clauses/);
   });
 
-  it("binds a file path and marks two-path clauses ambiguous", () => {
+  // #3835 changed this pair: a path named in prose is no longer the clause's
+  // binding, and a two-path line is no longer ambiguous, because neither path is
+  // selected. Ambiguity survives only on clauses a brief stored explicitly.
+  it("derives a clause per constraint and binds no path from the prose", () => {
     const clauses = deriveAcceptanceClauses(`
 ## Acceptance Criteria
 - Write the helper to packages/core/src/verify-ac/clauses.ts
 - Emit to packages/core/src/run-summary/types.ts or packages/core/src/run-summary/emit.ts
 `);
     expect(clauses).toHaveLength(2);
-    expect(clauses[0]?.artifact_path).toBe("packages/core/src/verify-ac/clauses.ts");
-    expect(clauses[0]?.ambiguous).toBe(false);
-    expect(clauses[1]?.ambiguous).toBe(true);
-    expect(clauses[1]?.readings).toHaveLength(2);
-    expect(clauses[1]?.chosen_reading).toBe(0);
-    expect(clauses[1]?.artifact_path).toBe("packages/core/src/run-summary/types.ts");
+    expect(clauses.map((c) => c.artifact_path)).toEqual([null, null]);
+    expect(clauses.map((c) => c.ambiguous)).toEqual([false, false]);
+    expect(clauses[1]?.readings).toBeUndefined();
   });
 
   it("extracts Test: / AcceptanceCriteria: labeled prose when no list is present", () => {
     const clauses = deriveAcceptanceClauses(
       "Overview text.\nTest: CHANGELOG.md cites #3323\nAcceptanceCriteria: packages/core/src/verify-ac/clauses.ts exists\n",
     );
-    expect(clauses).toHaveLength(2);
-    expect(clauses[0]?.artifact_path).toBe("CHANGELOG.md");
-    expect(clauses[1]?.artifact_path).toBe("packages/core/src/verify-ac/clauses.ts");
+    expect(clauses.map((c) => c.text)).toEqual([
+      "CHANGELOG.md cites #3323",
+      "packages/core/src/verify-ac/clauses.ts exists",
+    ]);
     const padded = deriveAcceptanceClauses(`Test:${" ".repeat(80)}CHANGELOG.md exists\n`);
     expect(padded).toHaveLength(1);
-    expect(padded[0]?.artifact_path).toBe("CHANGELOG.md");
+    expect(padded[0]?.text).toBe("CHANGELOG.md exists");
   });
 
   it("skips Relates meta lines and empty input", () => {
@@ -75,10 +78,10 @@ describe("deriveAcceptanceClauses (#3323)", () => {
 ### Comment by @MScottAdams
 AcceptanceCriteria: Third constraint binds CHANGELOG.md
 `);
-    expect(clauses.map((c) => c.artifact_path)).toEqual([
-      "packages/core/src/verify-ac/clauses.ts",
-      "packages/core/src/run-summary/types.ts",
-      "CHANGELOG.md",
+    expect(clauses.map((c) => c.text)).toEqual([
+      "First constraint binds packages/core/src/verify-ac/clauses.ts",
+      "Second constraint binds packages/core/src/run-summary/types.ts",
+      "Third constraint binds CHANGELOG.md",
     ]);
   });
 
@@ -88,12 +91,15 @@ AcceptanceCriteria: Third constraint binds CHANGELOG.md
 1. Store the walk in packages/core/src/verify-ac/clauses.ts
 `);
     expect(fromFix).toHaveLength(1);
-    expect(fromFix[0]?.artifact_path).toBe("packages/core/src/verify-ac/clauses.ts");
+    expect(fromFix[0]?.text).toBe("Store the walk in packages/core/src/verify-ac/clauses.ts");
+    // A path token still *selects* which bullet is a clause on the fallback
+    // branch; #3835 stops it from becoming that clause's binding.
     const fromBare = deriveAcceptanceClauses(
       "- Write CHANGELOG.md under Unreleased\n- Ignore this narrative sentence without a path\n",
     );
     expect(fromBare).toHaveLength(1);
-    expect(fromBare[0]?.artifact_path).toBe("CHANGELOG.md");
+    expect(fromBare[0]?.text).toBe("Write CHANGELOG.md under Unreleased");
+    expect(fromBare[0]?.artifact_path).toBeNull();
   });
 });
 
@@ -162,6 +168,7 @@ describe("walkAcceptanceClauses (#3323)", () => {
         },
       ],
       root,
+      { declaredScope: ["shipped.ts", "nope.ts"] },
     );
     expect(report.clauses.map((c) => c.outcome)).toEqual([
       "verified",
@@ -203,6 +210,7 @@ describe("walkAcceptanceClauses (#3323)", () => {
         },
       ],
       root,
+      { declaredScope: ["src/out.ts", ".deft-scratch/buffer/out.ts"] },
     );
     expect(report.clauses[0]?.outcome).toBe("verified");
     expect(report.clauses[1]?.outcome).toBe("failed");
@@ -231,27 +239,42 @@ describe("walkAcceptanceClauses (#3323)", () => {
         },
       ],
       root,
+      { declaredScope: ["ghost.ts", "present.ts"] },
     );
     expect(report.clauses[0]?.outcome).toBe("unverifiable");
     expect(report.clauses[1]?.outcome).toBe("failed");
     expect(report.clauses[1]?.detail).toMatch(/requires absence/);
   });
 
-  it("round-trips serialized clauses including chosen ambiguous reading", () => {
-    const derived = deriveAcceptanceClauses(`
-## Acceptance Criteria
-- Land the stamp in packages/core/src/run-summary/types.ts or packages/core/src/run-summary/emit.ts
-`);
-    const read = readAcceptanceClauses({ clauses: derived });
+  // Derivation stopped emitting readings at #3835, but a stored brief may still
+  // carry them, so the round-trip stays supported on the read side.
+  it("round-trips a stored ambiguous clause and its chosen reading", () => {
+    const stored = [
+      {
+        id: 1,
+        text: "Land the stamp in the run-summary module",
+        artifact_path: "packages/core/src/run-summary/types.ts",
+        ambiguous: true,
+        chosen_reading: 1,
+        readings: [
+          { text: "reading a", artifact_path: "packages/core/src/run-summary/types.ts" },
+          { text: "reading b", artifact_path: "packages/core/src/run-summary/emit.ts" },
+        ],
+      },
+    ];
+    const read = readAcceptanceClauses({ clauses: serializeAcceptanceClauses(stored) });
     expect(read).toHaveLength(1);
     expect(read[0]?.ambiguous).toBe(true);
-    expect(read[0]?.artifact_path).toBe("packages/core/src/run-summary/types.ts");
+    expect(read[0]?.artifact_path).toBe("packages/core/src/run-summary/emit.ts");
   });
 
   it("fails escaped paths, directories, missing tokens, and empty artifact strings", () => {
     const root = mkdtempSync(join(tmpdir(), "clause-edges-"));
     mkdirSync(join(root, "dir"), { recursive: true });
     writeFileSync(join(root, "shipped.ts"), "only-alpha\n", "utf8");
+    // Filesystem root, so the path is outside the project and outside tmp — the
+    // scratch predicate must not claim it before the containment check runs.
+    const outsideRoot = join(parse(root).root, "outside-3835.ts");
     const report = walkAcceptanceClauses(
       [
         {
@@ -269,12 +292,13 @@ describe("walkAcceptanceClauses (#3323)", () => {
         {
           id: 3,
           text: "escape the project",
-          artifact_path: "../outside.ts",
+          artifact_path: outsideRoot,
           ambiguous: false,
         },
         { id: 4, text: "blank path", artifact_path: "   ", ambiguous: false },
       ],
       root,
+      { declaredScope: ["shipped.ts", "dir", outsideRoot] },
     );
     expect(report.clauses.map((c) => c.outcome)).toEqual([
       "failed",
@@ -285,6 +309,17 @@ describe("walkAcceptanceClauses (#3323)", () => {
     expect(report.clauses[0]?.detail).toMatch(/missing/);
     expect(report.clauses[1]?.detail).toMatch(/not a shipped file/);
     expect(report.clauses[2]?.detail).toMatch(/escaped/);
+  });
+
+  it("refuses a relative escape before the containment check can run (#3835)", () => {
+    const root = mkdtempSync(join(tmpdir(), "clause-3835-escape-"));
+    const report = walkAcceptanceClauses(
+      [{ id: 1, text: "escape the project", artifact_path: "../outside.ts", ambiguous: false }],
+      root,
+      { declaredScope: ["../outside.ts"] },
+    );
+    expect(report.clauses[0]?.outcome).toBe("unverifiable");
+    expect(report.clauses[0]?.adjudicable).toBe(false);
   });
 
   it("covers stamp and read edges", () => {
@@ -450,7 +485,7 @@ describe("deriveAcceptanceClauses prefers a declared item surface (#3826)", () =
       THREAD_SCRAPE_STATEMENT,
     );
     expect(clauses).toHaveLength(declared.length);
-    const report = walkAcceptanceClauses(clauses, root);
+    const report = walkAcceptanceClauses(clauses, root, { declaredScope: [] });
     expect(report.failed).toEqual([]);
   });
 
@@ -481,6 +516,7 @@ describe("absent artifacts do not verify on prose alone (#3826)", () => {
         },
       ],
       root,
+      { declaredScope: ["git.ts"] },
     );
     expect(report.clauses[0]?.outcome).toBe("unverifiable");
     expect(report.clauses[0]?.detail).toMatch(/prose negation is not evidence/);
@@ -505,11 +541,12 @@ describe("absent artifacts do not verify on prose alone (#3826)", () => {
         },
       ],
       root,
+      { declaredScope: ["ghost.ts"] },
     );
     expect(report.failed).toHaveLength(0);
     expect(report.verified).toHaveLength(0);
-    // One clause is still bound to a path, so the walk has an oracle and the
-    // `verified > 0` requirement still binds. Absence no longer satisfies it.
+    // One clause is still bound to a declared path, so the walk has an oracle and
+    // the `verified` requirement still binds. Absence no longer satisfies it.
     expect(countAdjudicableClauses(report.clauses)).toBe(1);
     expect(report.ok).toBe(false);
   });
@@ -529,6 +566,7 @@ describe("verified > 0 binds only where the walk has an oracle (#3826)", () => {
         { id: 2, text: "No clause-count cap is introduced", artifact_path: null, ambiguous: false },
       ],
       root,
+      { declaredScope: [] },
     );
     expect(report.failed).toHaveLength(0);
     expect(report.verified).toHaveLength(0);
@@ -550,19 +588,50 @@ describe("verified > 0 binds only where the walk has an oracle (#3826)", () => {
         },
       ],
       root,
+      { declaredScope: ["completed"] },
     );
     expect(report.failed).toHaveLength(1);
     expect(report.ok).toBe(false);
   });
 
-  it("counts only non-blank bound paths as adjudicable", () => {
-    expect(
-      countAdjudicableClauses([
-        { id: 1, text: "a", artifact_path: null, outcome: "unverifiable", detail: "" },
-        { id: 2, text: "b", artifact_path: "   ", outcome: "unverifiable", detail: "" },
-        { id: 3, text: "c", artifact_path: "src/a.ts", outcome: "verified", detail: "" },
-      ]),
-    ).toBe(1);
+  it("counts only clauses the walk had an oracle for", () => {
+    const rows = [
+      {
+        id: 1,
+        text: "a",
+        artifact_path: null,
+        outcome: "unverifiable",
+        detail: "",
+        adjudicable: false,
+      },
+      {
+        id: 2,
+        text: "b",
+        artifact_path: "undeclared.ts",
+        outcome: "unverifiable",
+        detail: "",
+        adjudicable: false,
+      },
+      {
+        id: 3,
+        text: "c",
+        artifact_path: "src/a.ts",
+        outcome: "verified",
+        detail: "",
+        adjudicable: true,
+      },
+      {
+        id: 4,
+        text: "d",
+        artifact_path: "src/b.ts",
+        outcome: "unverifiable",
+        detail: "",
+        adjudicable: true,
+      },
+    ] as const;
+    expect(countAdjudicableClauses(rows)).toBe(2);
+    expect(countUnverifiedAdjudicableClauses(rows)).toBe(1);
     expect(countAdjudicableClauses([])).toBe(0);
+    expect(countUnverifiedAdjudicableClauses([])).toBe(0);
   });
 });

@@ -50,8 +50,9 @@ import {
 } from "../session/verify-ac-session-cache.js";
 import {
   type ClauseWalkResult,
-  countAdjudicableClauses,
+  countUnverifiedAdjudicableClauses,
   formatClauseWalkMessage,
+  readDeclaredArtifactScope,
   walkAcceptanceClauses,
 } from "../verify-ac/clauses.js";
 import {
@@ -701,22 +702,28 @@ export function emitVerifyAcTerminalOutcome(input: {
   );
 }
 
-function applyClauseWalk(result: VerifyAcResult, options: EvaluateVerifyAcOptions): VerifyAcResult {
+function applyClauseWalk(
+  result: VerifyAcResult,
+  options: EvaluateVerifyAcOptions,
+  plan: Record<string, unknown>,
+): VerifyAcResult {
   const clauses = result.acceptance.clauses ?? [];
   if (clauses.length === 0 || result.resolution === "config" || result.resolution === "skipped") {
     return result;
   }
   const projectRoot = resolve(options.projectRoot ?? process.cwd());
-  const report = walkAcceptanceClauses(clauses, projectRoot);
+  // #3835: the walk reads files, so it reads only what this brief declared.
+  const report = walkAcceptanceClauses(clauses, projectRoot, {
+    declaredScope: readDeclaredArtifactScope(plan),
+  });
   const message = options.quiet ? result.message : formatClauseWalkMessage(report, result.message);
   // #3497: a clause the static walk cannot decide is evidence of nothing. It blocks
   // only when nothing else verified the product; a green executable acceptance run
   // already is the product-first oracle. Failed clauses still block unconditionally.
   const blocked = clauseWalkBlocks({
     failed: report.failed.length,
-    verified: report.verified.length,
     walked: report.clauses.length,
-    adjudicable: countAdjudicableClauses(report.clauses),
+    adjudicableUnverified: countUnverifiedAdjudicableClauses(report.clauses),
     hasGreenExecutableRun:
       result.ok && result.runs.length > 0 && result.runs.every((run) => run.ok),
   });
@@ -726,8 +733,10 @@ function applyClauseWalk(result: VerifyAcResult, options: EvaluateVerifyAcOption
     ok,
     code: ok ? result.code : result.code === 2 ? 2 : 1,
     message,
+    // #3835: only a clause that actually verified may relabel an empty pass as
+    // verified. A walk that verified nothing has not verified anything.
     resolution: ok
-      ? result.resolution === "empty-pass"
+      ? result.resolution === "empty-pass" && report.verified.length > 0
         ? "verified-pass"
         : result.resolution
       : "fail",
@@ -789,8 +798,14 @@ function applyOracle(
   plan: Record<string, unknown> = {},
 ): VerifyAcResult {
   const projectRoot = resolve(options.projectRoot ?? process.cwd());
-  const walked = applyClauseWalk(applyRejectedNoop(result), options);
-  const gated = walked.clauseWalked === true ? walked : applyEmptyFloorPolicy(walked, options);
+  const walked = applyClauseWalk(applyRejectedNoop(result), options, plan);
+  // #3835: the clause walk may stand in for the empty floor only when it actually
+  // verified something. A walk that verified nothing is not positive evidence, so
+  // an otherwise-empty acceptance still answers to the project floor rather than
+  // passing on the strength of a clause set nothing adjudicated.
+  const walkVerified = (walked.clauseOutcomes ?? []).some((row) => row.outcome === "verified");
+  const gated =
+    walked.clauseWalked === true && walkVerified ? walked : applyEmptyFloorPolicy(walked, options);
   // Emit/read disk only when the caller supplied env (CLI passes process.env).
   // Tests stay isolated unless they opt in with env or runSummaryText.
   if (options.env !== undefined) {

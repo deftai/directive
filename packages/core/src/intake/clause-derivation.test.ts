@@ -153,7 +153,10 @@ describe("applyClauseDerivationToPlan (#3360)", () => {
     }
   });
 
-  it("derives N clauses and flags the two-reading trial clause", () => {
+  // #3835 removed prose path binding, so the two-reading trial clause is no
+  // longer ambiguous: neither path is selected, so there is nothing to choose
+  // between. Ambiguity survives only on clauses a brief stored explicitly.
+  it("derives N clauses and binds no path from the trial statement", () => {
     const plan: Record<string, unknown> = {
       title: "trial",
       narratives: { Overview: TRIAL_OVERVIEW },
@@ -161,14 +164,10 @@ describe("applyClauseDerivationToPlan (#3360)", () => {
     const result = applyClauseDerivationToPlan(plan);
     expect(result.applied).toBe(true);
     expect(result.clauses).toHaveLength(3);
-    expect(result.clauses[0]?.ambiguous).toBe(false);
-    expect(result.clauses[0]?.artifact_path).toBe("packages/core/src/session/token.ts");
-    expect(result.clauses[1]?.ambiguous).toBe(true);
-    expect(result.clauses[1]?.readings).toHaveLength(2);
-    expect(result.clauses[1]?.chosen_reading).toBe(0);
-    expect(result.clauses[1]?.artifact_path).toBe("packages/core/src/verify-ac/clauses.ts");
-    expect(result.notice).toMatch(/flagged-ambiguous: 1/);
-    expect(result.notice).toMatch(/chosen_reading=0/);
+    expect(result.clauses.every((clause) => clause.artifact_path === null)).toBe(true);
+    expect(result.clauses.every((clause) => clause.ambiguous === false)).toBe(true);
+    expect(result.notice).toMatch(/stamped 3 clause\(s\)/);
+    expect(result.notice).not.toMatch(/flagged-ambiguous/);
     expect(result.notice).not.toMatch(/\?/);
     const acc = plan.acceptance as {
       none_stated: boolean;
@@ -352,7 +351,8 @@ describe("statement traceability (#3398)", () => {
       ambiguity_attestation?: string;
     };
     expect(acc.clauses.every((clause) => clause.provenance === "statement")).toBe(true);
-    expect(acc.ambiguity_attestation).toBeUndefined();
+    // #3835: no derived clause is ambiguous any more, so the stamp attests none_found.
+    expect(acc.ambiguity_attestation).toBe("none_found");
   });
 
   it("refuses a stamp whose every clause is implementation-provenance", () => {
@@ -546,12 +546,26 @@ describe("ambiguity attestation (#3398)", () => {
     ).toBeNull();
   });
 
-  it("accepts an ambiguous clause with readings as the attestation", () => {
-    const plan: Record<string, unknown> = {
-      narratives: { Overview: TRIAL_OVERVIEW },
-    };
-    applyClauseDerivationToPlan(plan);
-    const check = evaluateAmbiguityAttestation(plan.acceptance);
+  // Derivation stopped producing readings at #3835; a stored brief may still
+  // carry them, and they still stand in for the attestation.
+  it("accepts a stored ambiguous clause with readings as the attestation", () => {
+    const check = evaluateAmbiguityAttestation({
+      commands: [],
+      none_stated: true,
+      clauses: [
+        {
+          id: 1,
+          text: "land the stamp in the run-summary module",
+          artifact_path: "packages/core/src/run-summary/types.ts",
+          ambiguous: true,
+          chosen_reading: 0,
+          readings: [
+            { text: "reading a", artifact_path: "packages/core/src/run-summary/types.ts" },
+            { text: "reading b", artifact_path: "packages/core/src/run-summary/emit.ts" },
+          ],
+        },
+      ],
+    });
     expect(check.ok).toBe(true);
     expect(check.kind).toBe("ambiguous-clause");
   });
