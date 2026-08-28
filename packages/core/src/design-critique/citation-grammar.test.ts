@@ -222,6 +222,32 @@ describe("scanCitations position predicate (#3831)", () => {
     ]);
   });
 
+  it("does not carry a fenced quote marker past the closing fence", () => {
+    expect(
+      ids(`\`\`\`text\n> quoted example\n\`\`\`\nbound contract is successor lean ${ID}\n`),
+    ).toEqual([ID]);
+  });
+
+  it("ends the blockquote at a fence delimiter", () => {
+    expect(
+      ids(
+        `> they quoted something\n\`\`\`text\nexample\n\`\`\`\nbound contract is successor lean ${ID}\n`,
+      ),
+    ).toEqual([ID]);
+  });
+
+  it("still refuses a citation inside a blockquoted fence", () => {
+    const scan = scanCitations(`> \`\`\`text\n> successor lean ${ID}\n> \`\`\`\n`);
+    expect(scan.citations).toEqual([]);
+    expect(scan.rejected).toEqual([{ id: ID, reason: "blockquote" }]);
+  });
+
+  it("still refuses a citation inside a fence that quotes prose", () => {
+    const scan = scanCitations(`\`\`\`text\n> quoted example\nsuccessor lean ${ID}\n\`\`\`\n`);
+    expect(scan.citations).toEqual([]);
+    expect(scan.rejected).toEqual([{ id: ID, reason: "code-fence" }]);
+  });
+
   it("refuses a struck-through citation", () => {
     const scan = scanCitations(`~~successor lean ${ID}~~ was withdrawn`);
     expect(scan.citations).toEqual([]);
@@ -272,6 +298,34 @@ describe("scanCitations position predicate (#3831)", () => {
     ]) {
       expect(scanCitations(body).citations, body).toEqual([{ id: ID, kind: "lean" }]);
     }
+  });
+
+  it("keeps a citation whose negation binds a verb of denial", () => {
+    for (const body of [
+      `we cannot deny that successor lean ${ID} binds`,
+      `we do not doubt that successor lean ${ID} binds`,
+      `we don't dispute that successor lean ${ID} binds`,
+      `it has not been disputed that successor lean ${ID} binds`,
+      `we could not contest that successor lean ${ID} binds`,
+    ]) {
+      expect(scanCitations(body).citations, body).toEqual([{ id: ID, kind: "lean" }]);
+    }
+  });
+
+  it("keeps the negation when `that` is a determiner rather than a complementizer", () => {
+    for (const body of [
+      `do not use that successor lean ${ID}`,
+      `the record is not that successor lean ${ID}`,
+    ]) {
+      expect(scanCitations(body).citations, body).toEqual([]);
+      expect(scanCitations(body).rejected, body).toEqual([{ id: ID, reason: "negation" }]);
+    }
+  });
+
+  it("reads a second negation inside a denial complement clause", () => {
+    const scan = scanCitations(`we do not doubt that this does not bind successor lean ${ID}`);
+    expect(scan.citations).toEqual([]);
+    expect(scan.rejected).toEqual([{ id: ID, reason: "negation" }]);
   });
 });
 

@@ -378,7 +378,10 @@ Those five are the whole refused set. An indented code block and an HTML comment
 
 - ! Classify the position of a match. Prior art is `classifyHit` (`packages/core/src/pr-closing-keywords/detect.ts`), which records where a hit landed.
 - ! Read the enclosing block, not one physical line. A code span, a strikethrough run, and a blockquote all carry across a newline, and they end at the blank line.
+- ! A quote block also ends at a fence delimiter, and a `>` line inside an open fence is example text rather than a marker. A quoted line in a fenced example does not refuse the citation that follows the closing fence.
 - ! The negation form is explicit: `cannot`, `never`, `no longer`, an auxiliary plus `not`, or an auxiliary contraction ending in `n't`, closing within three plain words of the citation keyword and inside the same sentence.
+- ! A negated verb of denial affirms the citation instead of refusing it, because the negation binds the verb and the citation sits in the complement clause. The verb set is closed: `deny`, `doubt`, `dispute`, `contest`, `question`. `we cannot deny that successor lean 12345678 binds` cites.
+- ⊗ Read a trailing `that` as the complement-clause signal on its own. `that` is also a determiner, so `do not use that successor lean 12345678` and the cleft `the record is not that successor lean 12345678` stay refused, and a second negation inside the complement clause still binds.
 - ⊗ Refuse on a negation word anywhere in the sentence prefix. `without a doubt, successor lean 12345678 is accepted` and `not only successor lean 12345678 but also the table` are affirmative citations, and refusing them blocks a valid record.
 - ⊗ Strip the span instead. The established markdown scanners delete a code span with its contents, which destroys the digits.
 

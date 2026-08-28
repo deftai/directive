@@ -99,6 +99,23 @@ const LAST_SENTENCE_RE = /[.!?;][^.!?;]*$/;
 const NEGATED_CITATION_RE =
   /\b(?:cannot|never|no longer|(?:do|does|did|is|are|was|were|has|have|had|will|would|shall|should|must|can|could|may|might)\s+not|(?:do|does|did|is|are|was|were|has|have|had|wo|would|should|must|ca|could|sha)n['\u2019]t)\b(?:\s+[A-Za-z][A-Za-z'\u2019-]*){0,3}\s*$/i;
 
+/**
+ * A negated verb of denial affirms the citation rather than refusing it, so the
+ * negation belongs to the verb and not to the occurrence: `we cannot deny that
+ * successor lean N binds` cites N. The verb set is closed and published --
+ * negating `deny`, `doubt`, `dispute`, `contest`, or `question` affirms the
+ * complement clause those verbs introduce.
+ *
+ * A trailing `that` alone is not the signal, because `that` is also a
+ * determiner. `do not use that successor lean N` and the cleft `the record is
+ * not that successor lean N` are genuine refusals, and both keep the negation
+ * class. The anchor is the end of the sentence segment, so a second negation
+ * inside the complement clause still binds: `we do not doubt that this does not
+ * bind successor lean N` is refused.
+ */
+const DENIAL_COMPLEMENT_RE =
+  /\b(?:den(?:y|ies|ied|ying)|doubt(?:s|ed|ing)?|disput(?:e|es|ed|ing)|contest(?:s|ed|ing)?|question(?:s|ed|ing)?)\s+that\s*$/i;
+
 function kindForKeyword(keyword: string | undefined): CitationKind {
   if (keyword === undefined) return "comment";
   const normalized = keyword.toLowerCase().replace(/[ \t]+/g, " ");
@@ -164,6 +181,7 @@ function isNegated(line: string, column: number): boolean {
   const before = line.slice(0, column);
   const tail = LAST_SENTENCE_RE.exec(before);
   const segment = tail === null ? before : before.slice(tail.index + 1);
+  if (DENIAL_COMPLEMENT_RE.test(segment)) return false;
   return NEGATED_CITATION_RE.test(segment);
 }
 
@@ -202,6 +220,14 @@ type BlockPosition = {
  * because neither a code span nor a strikethrough run crosses one. A blockquote
  * marker carries forward to the blank line that ends the quote, so an unmarked
  * lazy-continuation line is still quoted text.
+ *
+ * A fence delimiter also ends the quote block, and a line inside an open fence
+ * never opens one: a `>` in a fenced example is example text, so the marker must
+ * not survive the closing fence and refuse the citation that follows it. Lazy
+ * continuation is a paragraph rule, and a fence line is not paragraph text. A
+ * fence marked by `>` on every line is not a fence here -- `fenceDelimiter`
+ * requires the run at the line start -- so the line-level blockquote test still
+ * refuses a citation inside a blockquoted fence.
  */
 function blockPosition(body: string, offset: number): BlockPosition {
   let open: FenceDelimiter | null = null;
@@ -231,10 +257,8 @@ function blockPosition(body: string, offset: number): BlockPosition {
       const blank = line.trim().length === 0;
       if (blank || fence !== null) {
         inlineStart = lineEnd + 1;
-      }
-      if (blank) {
         quotedBlock = false;
-      } else if (BLOCKQUOTE_RE.test(line)) {
+      } else if (open === null && BLOCKQUOTE_RE.test(line)) {
         quotedBlock = true;
       }
     }
