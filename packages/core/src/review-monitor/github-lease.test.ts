@@ -185,13 +185,18 @@ describe("pass marker GitHub surface (#3607)", () => {
     authorAssociation: string;
   }
 
-  function threadComment(id: number, body: string, association = "CONTRIBUTOR"): ThreadComment {
+  function threadComment(
+    id: number,
+    body: string,
+    association = "CONTRIBUTOR",
+    authorLogin = "dbcall2",
+  ): ThreadComment {
     return {
       id,
       body,
       htmlUrl: "",
       updatedAt: PASS_START.toISOString(),
-      authorLogin: "dbcall2",
+      authorLogin,
       authorAssociation: association,
     };
   }
@@ -294,19 +299,44 @@ describe("pass marker GitHub surface (#3607)", () => {
     expect(thread.comments).toHaveLength(1);
   });
 
-  it("reuses an expired mark comment instead of stacking a second one", () => {
+  it("reuses its own expired mark comment instead of stacking a second one", () => {
     const thread = fakeThread([threadComment(500, PASS_BODY)]);
     const afterExpiry = new Date("2026-08-28T14:00:00.000Z");
     const opened = openPassMarker({
       repo: "deftai/directive",
       issue: 3607,
-      owner: "someone-else",
+      owner: "dbcall2",
       passKind: "triage",
       startedAt: afterExpiry,
       seams: thread.seams,
     });
     expect(opened).toMatchObject({ status: "opened", commentId: 500 });
     expect(thread.comments).toHaveLength(1);
+  });
+
+  it("creates rather than editing an expired mark authored by someone else", () => {
+    // Editing another author's comment is a 403 for a non-maintainer, so a second owner
+    // must never recycle it. Distinct owners land on distinct comments (#3607).
+    const thread = fakeThread([threadComment(500, PASS_BODY)]);
+    let updates = 0;
+    const seams = {
+      ...thread.seams,
+      updateComment: (repo: string, commentId: number, body: string) => {
+        updates += 1;
+        return thread.seams.updateComment(repo, commentId, body);
+      },
+    };
+    const opened = openPassMarker({
+      repo: "deftai/directive",
+      issue: 3607,
+      owner: "someone-else",
+      passKind: "triage",
+      startedAt: new Date("2026-08-28T14:00:00.000Z"),
+      seams,
+    });
+    expect(opened).toMatchObject({ status: "opened", commentId: 1000 });
+    expect(updates).toBe(0);
+    expect(thread.comments.map((c) => c.id)).toEqual([500, 1000]);
   });
 
   it("loses a create race to the older comment id and removes its duplicate", () => {
@@ -481,9 +511,11 @@ describe("pass marker GitHub surface (#3607)", () => {
     });
     const afterExpiry = new Date("2026-08-28T14:00:00.000Z");
 
-    // Our PATCH lands, but the re-list shows an older comment carrying a live mark:
-    // oldest id wins, so we report the winner instead of a false `opened`.
+    // Our PATCH lands on our own comment, but another owner created an older mark
+    // meanwhile: oldest id wins, so we clear ours and report theirs, never a false
+    // `opened` that hides one of the two passes.
     let calls = 0;
+    const written: { id: number; body: string }[] = [];
     const contested = openPassMarker({
       repo: "deftai/directive",
       issue: 3607,
@@ -495,15 +527,24 @@ describe("pass marker GitHub surface (#3607)", () => {
           calls += 1;
           return calls === 1
             ? [threadComment(500, PASS_BODY)]
-            : [threadComment(400, OTHER_BODY), threadComment(500, PASS_BODY)];
+            : [
+                threadComment(400, OTHER_BODY, "MEMBER", "other-owner"),
+                threadComment(500, PASS_BODY),
+              ];
         },
-        updateComment: () => ({ ok: true as const }),
+        updateComment: (_repo: string, commentId: number, body: string) => {
+          written.push({ id: commentId, body });
+          return { ok: true as const };
+        },
       },
     });
     expect(contested).toMatchObject({ status: "observed", commentId: 400 });
     if ("marker" in contested) {
       expect(contested.marker.owner).toBe("other-owner");
     }
+    // Second write clears our own losing mark rather than touching the winner.
+    expect(written.map((w) => w.id)).toEqual([500, 500]);
+    expect(written[1]?.body).toContain("ended_at:");
 
     expect(
       openPassMarker({
@@ -519,5 +560,37 @@ describe("pass marker GitHub surface (#3607)", () => {
         },
       }),
     ).toEqual({ error: "relist failed" });
+  });
+
+  it("surfaces a failure to clear its own losing mark", () => {
+    const OTHER = renderPassOpenComment({
+      kind: "pass",
+      pass_kind: "triage",
+      owner: "other-owner",
+      agent_id: null,
+      ceiling: null,
+      started_at: "2026-08-28T13:59:00.000Z",
+      expires_at: "2026-08-28T14:59:00.000Z",
+      ended_at: null,
+    });
+    let calls = 0;
+    expect(
+      openPassMarker({
+        repo: "deftai/directive",
+        issue: 3607,
+        owner: "dbcall2",
+        passKind: "design-critique",
+        startedAt: new Date("2026-08-28T14:00:00.000Z"),
+        seams: {
+          fetchComments: () => {
+            calls += 1;
+            return calls === 1
+              ? [threadComment(500, PASS_BODY)]
+              : [threadComment(400, OTHER, "MEMBER", "other-owner"), threadComment(500, PASS_BODY)];
+          },
+          updateComment: () => (calls > 1 ? { error: "clear denied" } : { ok: true as const }),
+        },
+      }),
+    ).toEqual({ error: "clear denied" });
   });
 });

@@ -201,6 +201,7 @@ export function listPassMarkerComments(
       id: entry.id,
       body: entry.body,
       created_at: entry.updatedAt,
+      author_login: entry.authorLogin,
     });
     if (mapped !== null) {
       comments.push(mapped);
@@ -287,11 +288,12 @@ function resolvePassCreateRace(
 }
 
 /**
- * Confirm our write is the winning active mark after PATCHing a reused comment.
+ * Confirm our write is still the winning mark, and stand down when it is not.
  *
- * Two owners can both PATCH the same inactive marker comment, so an update needs the
- * same post-write arbitration the lease applies after a create (#3607). Returns a
- * result when someone else's mark won, or null when ours stands.
+ * Only the comment's own author ever PATCHes it (see `openPassMarker`), so a readback
+ * cannot be raced by a second writer on the same comment. What it must still catch is
+ * an older mark another owner created concurrently: oldest comment id wins, so we clear
+ * our own mark and report theirs (#3607).
  */
 function verifyExclusivePassMark(
   input: OpenPassMarkerInput,
@@ -305,14 +307,19 @@ function verifyExclusivePassMark(
     return { error: relisted.error };
   }
   const winner = findActivePassComment(relisted, { now });
-  if (winner === null || winner.marker === null) {
+  if (winner === null || winner.marker === null || winner.id === commentId) {
     return null;
   }
-  const ours =
-    winner.id === commentId &&
-    winner.marker.owner === marker.owner &&
-    winner.marker.started_at === marker.started_at;
-  return ours ? null : { status: "observed", commentId: winner.id, marker: winner.marker };
+  const cleared = updateReviewOwnerComment(
+    input.repo,
+    commentId,
+    renderPassOpenComment({ ...marker, ended_at: now.toISOString() }),
+    seams,
+  );
+  if ("error" in cleared) {
+    return { error: cleared.error };
+  }
+  return { status: "observed", commentId: winner.id, marker: winner.marker };
 }
 
 /**
@@ -335,7 +342,15 @@ export function openPassMarker(input: OpenPassMarkerInput): OpenPassMarkerResult
   }
   const marker = buildPassMarker(input, startedAt);
   const body = renderPassOpenComment(marker);
-  const target = active ?? selectWinningPassComment(listed);
+  // Recycle only a comment this owner authored. Editing another author's comment is a
+  // 403 for a non-maintainer, and two owners PATCHing one comment cannot be arbitrated
+  // after the fact -- each would read back its own write. Distinct owners therefore
+  // always land on distinct comments and resolve by oldest comment id (#3607).
+  const ownComments = listed.filter((comment) => comment.authorLogin === input.owner);
+  const target =
+    active !== null && active.authorLogin === input.owner
+      ? active
+      : selectWinningPassComment(ownComments);
   if (target !== null) {
     const updated = updateReviewOwnerComment(input.repo, target.id, body, seams);
     if ("error" in updated) {
@@ -345,7 +360,10 @@ export function openPassMarker(input: OpenPassMarkerInput): OpenPassMarkerResult
     if (contested !== null) {
       return contested;
     }
-    return { status: active === null ? "opened" : "renewed", commentId: target.id, marker };
+    // Two runs of the SAME owner may both land here; both marks then name that owner,
+    // so no owner's pass disappears and the observable state is identical.
+    const renewed = active !== null && target.id === active.id;
+    return { status: renewed ? "renewed" : "opened", commentId: target.id, marker };
   }
   const created = createReviewOwnerComment(input.repo, input.issue, body, seams);
   if ("error" in created) {

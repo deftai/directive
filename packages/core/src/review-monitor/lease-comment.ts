@@ -243,6 +243,8 @@ export interface PassOpenComment {
   readonly id: number;
   readonly body: string;
   readonly createdAt: string;
+  /** GitHub login that authored the comment; "" when the source did not report one. */
+  readonly authorLogin: string;
   readonly marker: PassOpenMarker | null;
 }
 
@@ -326,6 +328,7 @@ export function mapPassCommentEntry(entry: unknown): PassOpenComment | null {
     id: rec.id,
     body: rec.body,
     createdAt: typeof rec.created_at === "string" ? rec.created_at : "",
+    authorLogin: typeof rec.author_login === "string" ? rec.author_login : "",
     marker,
   };
 }

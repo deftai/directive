@@ -648,6 +648,8 @@ expires_at: 2026-08-28T20:48:24Z
 2. ! **Read** on arrival: `gh api repos/<owner>/<repo>/issues/<N>/comments`, then take the **oldest unexpired** `kind: pass` block.
 3. ! **Clear** at synthesis: re-post the same block with `ended_at: <now>` via `task scm:body:comment:edit -- --repo <owner>/<repo> --comment <id> --body-file <file>`.
 
+⊗ Edit a mark you did not author. Post your own comment and let oldest-comment-id-wins settle it — editing another author's comment is a 403 for a non-maintainer and cannot be arbitrated afterwards.
+
 ! **Expiry is the release.** A mark self-clears on read once `expires_at` passes, and the owner clears it at synthesis (`ended_at`), so an abandoned pass never marks a thread forever and no heartbeat is needed. Concurrent marks resolve **oldest comment id wins**, matching the lease; the later mark is removed and its author is told which mark stands.
 
 ! **Trust boundary.** Pass marks are read from **any** author association, including `CONTRIBUTOR`, because they inform rather than gate. Ownership leases stay maintainer-authored (`OWNER` / `MEMBER` / `COLLABORATOR`, #2307) because `verify:review-monitor` / `verify:l4-owner` exit 0 on a live lease.
