@@ -84,8 +84,8 @@ const ID_RUN_RE = /\d{8,}/g;
 
 const BLOCKQUOTE_RE = /^ {0,3}>/;
 
-/** CommonMark fence opener or closer: up to three leading spaces, then the run. */
-const CODE_FENCE_LINE_RE = /^ {0,3}(`{3,}|~{3,})/;
+/** CommonMark fence delimiter: up to three leading spaces, the run, then the rest. */
+const FENCE_LINE_RE = /^ {0,3}(`{3,}|~{3,})(.*)$/;
 
 /** The last sentence break in a slice, and everything after it. */
 const LAST_SENTENCE_RE = /[.!?;][^.!?;]*$/;
@@ -117,17 +117,20 @@ function lineBounds(text: string, offset: number): { start: number; end: number 
  * CommonMark inline code: a run of N backticks opens a span that only a run of
  * exactly N backticks closes. Counting single backticks would read a
  * double-backtick span as balanced and let documentation prose cite.
+ *
+ * `text` is the whole span from the enclosing block start, not one line: a code
+ * span may carry a newline, so a line-scoped count cannot see the opener.
  */
-function isInsideInlineCode(line: string, column: number): boolean {
+function isInsideInlineCode(text: string): boolean {
   let openRun = 0;
   let i = 0;
-  while (i < column) {
-    if (line[i] !== "`") {
+  while (i < text.length) {
+    if (text[i] !== "`") {
       i += 1;
       continue;
     }
     let run = 0;
-    while (i + run < line.length && line[i + run] === "`") run += 1;
+    while (i + run < text.length && text[i + run] === "`") run += 1;
     if (openRun === 0) {
       openRun = run;
     } else if (run === openRun) {
@@ -138,11 +141,11 @@ function isInsideInlineCode(line: string, column: number): boolean {
   return openRun !== 0;
 }
 
-function isStruckThrough(line: string, column: number): boolean {
+function isStruckThrough(text: string): boolean {
   let runs = 0;
   let i = 0;
-  while (i < column - 1) {
-    if (line[i] === "~" && line[i + 1] === "~") {
+  while (i < text.length - 1) {
+    if (text[i] === "~" && text[i + 1] === "~") {
       runs += 1;
       i += 2;
       continue;
@@ -164,48 +167,82 @@ function isNegated(line: string, column: number): boolean {
   return NEGATED_CITATION_RE.test(segment);
 }
 
+type FenceDelimiter = {
+  readonly char: "`" | "~";
+  readonly len: number;
+  readonly info: string;
+};
+
+function fenceDelimiter(line: string): FenceDelimiter | null {
+  const match = FENCE_LINE_RE.exec(line);
+  if (match === null) return null;
+  const run = match[1] ?? "";
+  const info = match[2] ?? "";
+  const char = run.startsWith("~") ? "~" : "`";
+  // A backtick opener's info string may not contain a backtick.
+  if (char === "`" && info.includes("`")) return null;
+  return { char, len: run.length, info };
+}
+
+type BlockPosition = {
+  /** An unclosed fence encloses the offset. */
+  readonly insideFence: boolean;
+  /** Where inline scanning starts: after the last blank or fence line. */
+  readonly inlineStart: number;
+};
+
 /**
- * CommonMark fence stack. Opener and closer must use the same character and the
- * closer must be at least as long. A fence may be indented up to three spaces.
+ * Walk the lines up to `offset` once and record both block facts the classifier
+ * needs. The fence stack follows CommonMark: opener and closer share the
+ * character, the closer is at least as long, and a closer carries no info
+ * string, so `` ```ts more text `` inside an open fence is content and not a
+ * closer. Inline scanning restarts after a blank line or a fence delimiter
+ * because neither a code span nor a strikethrough run crosses one.
  */
-function isInsideCodeFence(body: string, offset: number): boolean {
-  let openChar: "`" | "~" | null = null;
-  let openLen = 0;
+function blockPosition(body: string, offset: number): BlockPosition {
+  let open: FenceDelimiter | null = null;
+  let inlineStart = 0;
   let lineStart = 0;
   while (lineStart < offset) {
     let lineEnd = body.indexOf("\n", lineStart);
-    if (lineEnd === -1 || lineEnd > offset) {
+    const partial = lineEnd === -1 || lineEnd > offset;
+    if (partial) {
       lineEnd = Math.min(body.length, offset);
     }
-    const fence = CODE_FENCE_LINE_RE.exec(body.slice(lineStart, lineEnd));
+    const line = body.slice(lineStart, lineEnd);
+    const fence = fenceDelimiter(line);
     if (fence !== null) {
-      const run = fence[1] ?? "";
-      const char = run.startsWith("~") ? "~" : "`";
-      if (openChar === null) {
-        openChar = char;
-        openLen = run.length;
-      } else if (char === openChar && run.length >= openLen) {
-        openChar = null;
-        openLen = 0;
+      if (open === null) {
+        open = fence;
+      } else if (
+        fence.char === open.char &&
+        fence.len >= open.len &&
+        fence.info.trim().length === 0
+      ) {
+        open = null;
       }
+    }
+    if (!partial && (line.trim().length === 0 || fence !== null)) {
+      inlineStart = lineEnd + 1;
     }
     if (lineEnd >= offset) {
       break;
     }
     lineStart = lineEnd + 1;
   }
-  return openChar !== null;
+  return { insideFence: open !== null, inlineStart };
 }
 
 function classifyPosition(body: string, offset: number): CitationRejectionClass | null {
-  if (isInsideCodeFence(body, offset)) return "code-fence";
+  const block = blockPosition(body, offset);
+  if (block.insideFence) return "code-fence";
   const { start, end } = lineBounds(body, offset);
   const line = body.slice(start, end);
-  const column = offset - start;
   if (BLOCKQUOTE_RE.test(line)) return "blockquote";
-  if (isInsideInlineCode(line, column)) return "inline-code";
-  if (isStruckThrough(line, column)) return "strikethrough";
-  if (isNegated(line, column)) return "negation";
+  const preceding = body.slice(block.inlineStart, offset);
+  if (isInsideInlineCode(preceding)) return "inline-code";
+  if (isStruckThrough(preceding)) return "strikethrough";
+  if (isNegated(line, offset - start)) return "negation";
   return null;
 }
 

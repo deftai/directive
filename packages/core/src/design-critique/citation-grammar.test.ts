@@ -139,6 +139,37 @@ describe("scanCitations position predicate (#3831)", () => {
     expect(scan.rejected).toEqual([{ id: ID, reason: "code-fence" }]);
   });
 
+  it("does not treat a same-character run carrying an info string as a closer", () => {
+    const scan = scanCitations(
+      `\`\`\`\nexample\n\`\`\`ts more text\nsuccessor lean ${ID}\n\`\`\`\n`,
+    );
+    expect(scan.citations).toEqual([]);
+    expect(scan.rejected).toEqual([{ id: ID, reason: "code-fence" }]);
+  });
+
+  it("refuses a code span that opened on an earlier line", () => {
+    const scan = scanCitations(`here is \`an example\nsuccessor lean ${ID}\` in prose\n`);
+    expect(scan.citations).toEqual([]);
+    expect(scan.rejected).toEqual([{ id: ID, reason: "inline-code" }]);
+  });
+
+  it("refuses a strikethrough that opened on an earlier line", () => {
+    const scan = scanCitations(`~~withdrawn text\nsuccessor lean ${ID}~~\n`);
+    expect(scan.citations).toEqual([]);
+    expect(scan.rejected).toEqual([{ id: ID, reason: "strikethrough" }]);
+  });
+
+  it("restarts inline scanning at a blank line", () => {
+    expect(ids(`a stray \` backtick\n\nbound contract is successor lean ${ID}\n`)).toEqual([ID]);
+    expect(ids(`a stray ~~ run\n\nbound contract is successor lean ${ID}\n`)).toEqual([ID]);
+  });
+
+  it("restarts inline scanning after a closed fence", () => {
+    expect(ids(`\`\`\`text\nexample\n\`\`\`\nbound contract is successor lean ${ID}\n`)).toEqual([
+      ID,
+    ]);
+  });
+
   it("accepts a citation after a fence has closed", () => {
     expect(ids(`\`\`\`text\nexample\n\`\`\`\n\nbound contract is successor lean ${ID}\n`)).toEqual([
       ID,
