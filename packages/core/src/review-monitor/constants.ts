@@ -28,6 +28,7 @@ export const PASS_MARKER_KIND = "pass";
  * bounds an abandoned mark without needing a heartbeat.
  */
 export const DEFAULT_PASS_STALE_MINUTES = 60;
+
 export const REVIEW_MONITOR_HELP =
   "usage: task verify:review-monitor -- --pr <N> [options]\n" +
   "\n" +
