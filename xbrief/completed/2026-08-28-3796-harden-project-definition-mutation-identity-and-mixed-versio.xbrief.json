@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3796",
-    "updated": "2026-08-28T01:33:18Z"
+    "updated": "2026-08-28T03:08:01Z"
   },
   "plan": {
     "title": "Harden PROJECT-DEFINITION mutation identity and mixed-version locking",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Harden PROJECT-DEFINITION mutation identity and mixed-version locking",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3796",
@@ -16,35 +16,83 @@
     "items": [
       {
         "title": "Legacy file locks at the public pathname are never auto-unlinked or auto-quarantined. After the bounded acquisition budget, diagnostics name constant-label manual recovery steps.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/vbrief-build/project-definition-lock-protocol.test.ts :: \"preserves a legacy file at the public lock pathname and fails closed\" + \"preserves the legacy file even when its recorded owner is dead\" + \"does not quarantine or move the legacy sidecar\" + \"names constant-label manual recovery steps in the diagnostic\"",
+          "recorded_at": "2026-08-28T03:10:00Z",
+          "recorded_by": "agent:deft-directive-build"
+        }
       },
       {
         "title": "Current-version directory locks use non-empty directory plus unique-owner-entry. A delayed rmdir cannot remove a published replacement generation (direct barrier regression).",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/vbrief-build/project-definition-lock-protocol.test.ts :: \"a delayed rmdir cannot remove a published replacement generation\" + \"publishes a non-empty directory holding one unique owner entry\"; Windows CI: .github/workflows/ci.yml step \"Windows PROJECT-DEFINITION lock protocol regression (#3796)\"",
+          "recorded_at": "2026-08-28T03:10:00Z",
+          "recorded_by": "agent:deft-directive-build"
+        }
       },
       {
         "title": "Directory reap is automatic only when the PID oracle reports unambiguously dead. PID-alive / possible reuse fails closed to manual recovery.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/vbrief-build/project-definition-lock-protocol.test.ts :: \"fails closed while the recorded owner probes alive\" + \"fails closed when liveness is unknown\" + \"never recovers a malformed lock directory, however old\" + \"reaps a directory whose owner is unambiguously dead\"",
+          "recorded_at": "2026-08-28T03:10:00Z",
+          "recorded_by": "agent:deft-directive-build"
+        }
       },
       {
         "title": "A mutation capability owns captured-path load/parse/persist. Mechanized inventory of all 18 lock call expressions plus unlocked CLI writers fails closed on raw resolver/lock/write bypass.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-source/project-definition-mutation-boundary.test.ts :: \"passes the fail-closed boundary and census gate\" + \"matches the recorded per-file mutation inventory\"; capability identity: packages/core/src/vbrief-build/project-definition-mutation.test.ts :: \"keeps one artifact identity when the configured path is retargeted mid-section\"",
+          "recorded_at": "2026-08-28T03:10:00Z",
+          "recorded_by": "agent:deft-directive-build"
+        }
       },
       {
         "title": "Exact semantic keys stay separate from bounded display summaries. Lock and loader diagnostics use a constant artifact label.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/policy/plan-extensions.test.ts :: \"keeps the complete raw sub-key inventory, bounding only the display (#3796)\"; constant artifact label: packages/core/src/vbrief-build/project-definition-lock-protocol.test.ts :: \"never interpolates a configured path into a lock timeout diagnostic\"",
+          "recorded_at": "2026-08-28T03:10:00Z",
+          "recorded_by": "agent:deft-directive-build"
+        }
       },
       {
         "title": "One injected monotonic acquisition budget covers every retry/recovery branch; callback execution is outside that budget.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/vbrief-build/project-definition-lock-protocol.test.ts :: \"shares one budget across retry and recovery branches\" + \"reads the acquisition deadline only from the injected monotonic clock\" + \"runs the critical section outside the acquisition budget\"",
+          "recorded_at": "2026-08-28T03:10:00Z",
+          "recorded_by": "agent:deft-directive-build"
+        }
       },
       {
         "title": "Fresh branch and fresh PR. Do not reopen or land PR #3793.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3832 squash-merged as 98bd3509a706b83090215993d56f1eff177a06b9 from fresh branch fix/3796-pd-mutation-identity cut from origin/master eacd7435; PR #3793 was neither reopened nor landed",
+          "recorded_at": "2026-08-28T03:10:00Z",
+          "recorded_by": "agent:deft-directive-build"
+        }
       },
       {
         "title": "CHANGELOG `[Unreleased]` entry.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "CHANGELOG.md [Unreleased] > Fixed > \"A stale PROJECT-DEFINITION lock is no longer cleared by guesswork (#3796)\", landed in 98bd3509a706b83090215993d56f1eff177a06b9",
+          "recorded_at": "2026-08-28T03:10:00Z",
+          "recorded_by": "agent:deft-directive-build"
+        }
       }
     ],
     "tags": [
@@ -146,8 +194,33 @@
         "schema": "deft.scope.intended_placement.v1",
         "files": [],
         "module_boundary": ""
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3832,
+        "prBase": null,
+        "mergeCommit": "98bd3509a706b83090215993d56f1eff177a06b9",
+        "deliveryBranch": "master",
+        "deliveryCommit": "98bd3509a706b83090215993d56f1eff177a06b9",
+        "verifiedAt": "2026-08-28T03:08:01Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "b039b5a8-bd53-4779-827c-5563cd0e5d86"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-28T03:08:01Z"
+      },
+      "completedAt": "2026-08-28T03:08:01Z",
+      "completedSessionId": "b039b5a8-bd53-4779-827c-5563cd0e5d86",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-08-28T01:33:18Z"
+    "updated": "2026-08-28T03:08:01Z"
   }
 }
