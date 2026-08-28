@@ -67,14 +67,27 @@
       }
     ],
     "acceptance": {
-      "commands": [],
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/init-deposit/hook-runtime-travel.test.ts packages/core/src/init-deposit/agent-hooks.test.ts"
+        },
+        {
+          "command": "pnpm exec vitest run packages/core/src/content-contracts/skills/agents_entry_contract.test.ts"
+        },
+        {
+          "command": "task verify:agents-md-budget"
+        },
+        {
+          "command": "task verify:encoding"
+        }
+      ],
       "none_stated": false,
       "source_rung": "stated",
       "clauses": [
         {
           "id": 1,
           "text": "Fail-closed stays on: the deposited Cursor registration keeps `failClosed: true` and a regression test locks that absence of the runtime is never a write allow",
-          "artifact_path": "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "artifact_path": "packages/core/src/init-deposit/hook-runtime-travel.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
