@@ -48,9 +48,15 @@ Chip apply miss is non-blocking convenience; do not halt. Ingest waits on the co
 
 Each critic dispatch EXITs after posting.
 
+## Motion shape
+
+Not sequential review. Same-round critics are isolated: each reads one fixed input ceiling and cannot read other siblings' posts through the thread. More: [`references/motion-shape.md`](references/motion-shape.md).
+
+After each critic EXIT, the parent posts the successor lean; the operator confirms or amends before bind or stamp.
+
 ⊗ Auto-dispatch critics from this skill.
 ⊗ Copy the variant table, synthesis rules, or other contract bodies into this skill.
 
 ## EXIT
 
-deft-directive-design-critique complete -- exiting skill. Next: fill the brief template and dispatch.
+deft-directive-design-critique complete -- exiting skill. Next: operator fills the brief template and dispatches the next envelope.
