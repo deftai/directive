@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3824",
-    "updated": "2026-08-28T04:27:36Z"
+    "updated": "2026-08-28T04:45:00Z"
   },
   "plan": {
     "title": "fix(design-critique): the model slug has no verifier, so the contract must stop offering a real one to copy",
@@ -16,27 +16,63 @@
     "items": [
       {
         "title": "No fenced example in the contract contains a real model slug",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts :: locks the comment lead as model then role, not an issue label expects model: <your-model-slug>; content/contracts/design-critique.md has no grok-4.6",
+          "recorded_at": "2026-08-28T04:45:00Z",
+          "recorded_by": "agent:leaf-implementation"
+        }
       },
       {
         "title": "The contract states that `model:` is self-attested and unverified where the field is defined",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts :: locks self-attestation ceiling; content/contracts/design-critique.md Comment lead section",
+          "recorded_at": "2026-08-28T04:45:00Z",
+          "recorded_by": "agent:leaf-implementation"
+        }
       },
       {
         "title": "Contract tests no longer assert a real slug as the canonical example",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts :: REQUIRED_CONTRACT_POINTERS includes model: <your-model-slug>",
+          "recorded_at": "2026-08-28T04:45:00Z",
+          "recorded_by": "agent:leaf-implementation"
+        }
       },
       {
         "title": "The `:150` line cite is corrected",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts :: expects disambiguated Omit the model line and Omit the role line rules",
+          "recorded_at": "2026-08-28T04:45:00Z",
+          "recorded_by": "agent:leaf-implementation"
+        }
       },
       {
         "title": "No envelope-authoritative or fail-closed slug mechanism is introduced",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "PR #3838 diff excludes packages/core/src/swarm/routing-verify.ts and verify:routing changes",
+          "recorded_at": "2026-08-28T04:45:00Z",
+          "recorded_by": "agent:leaf-implementation"
+        }
       },
       {
         "title": "CHANGELOG `[Unreleased]` entry",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "CHANGELOG.md [Unreleased] > Fixed > Design-critique comment-lead examples no longer copy a real model slug (#3824)",
+          "recorded_at": "2026-08-28T04:45:00Z",
+          "recorded_by": "agent:leaf-implementation"
+        }
       }
     ],
     "tags": [
@@ -122,6 +158,6 @@
         "module_boundary": ""
       }
     },
-    "updated": "2026-08-28T04:27:36Z"
+    "updated": "2026-08-28T04:45:00Z"
   }
 }
