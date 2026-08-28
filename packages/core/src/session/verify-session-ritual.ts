@@ -480,6 +480,12 @@ export interface InspectSessionRitualOptions {
   readonly posture?: DirectivePosture;
   readonly envPosture?: string | undefined;
   readonly handoffText?: string | null;
+  /**
+   * Required gated steps for this surface. Defaults to all {@link GATED_STEPS}.
+   * Write dispatch passes {@link WRITE_GATED_REQUIRED_STEPS} so a no-write
+   * inspect reports the same readiness its verifying counterpart would (#3738).
+   */
+  readonly requiredGatedSteps?: readonly GatedStepName[];
 }
 
 /**
@@ -543,6 +549,7 @@ export function inspectSessionRitual(
     now: options.now ?? new Date(),
     runGit: options.runGit,
     rebindForwardHead: false,
+    requiredGatedSteps: options.requiredGatedSteps,
   });
   return {
     code: evaluated.code,

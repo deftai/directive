@@ -2,10 +2,11 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { decideHook, renderHostDecision } from "../hooks/dispatcher.js";
 import {
   appendSoftAgentsRebindToMessage,
+  applyWorktreeOccupancy,
   depositOpenClawSoftRebindSkill,
   formatOpenClawSoftRebindSkillMarkdown,
   formatSoftAgentsRebindChecklist,
@@ -15,6 +16,8 @@ import {
   markRitualStaleAfterCompact,
   newRitualStatePayload,
   OPENCLAW_SOFT_REBIND_SKILL_ID,
+  readOccupancy,
+  readRitualState,
   ritualStep,
   SOFT_AGENTS_REBIND_CHECKLIST,
   SOFT_AGENTS_REBIND_MARKER,
@@ -189,6 +192,41 @@ describe("session.compact hook dispatch (#2113)", () => {
       runGit,
     });
     expect(ready.code).toBe(0);
+
+    rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("compact stale-mark is fail-open on an unbindable actor (#3769)", () => {
+  it("marks the occupant's ritual stale when no acting identity can be bound", () => {
+    const { root } = freshRitualRoot();
+    applyWorktreeOccupancy(root, { sessionId: "owner", intent: "mutation" });
+    // Neither a host payload identity nor DEFT_SESSION_ID: the compact actor
+    // cannot be bound. Operator amend 2026-08-28 takes the write anyway.
+    const verifyRitual = vi.fn();
+
+    const compact = decideHook(
+      {
+        host: "cursor",
+        event: "session.compact",
+        projectRoot: root,
+        payload: {},
+        environ: {},
+      },
+      { verifyRitual },
+    );
+
+    expect(compact).toMatchObject({ verdict: "allow", code: "session-compact-rearm" });
+    // Compact must not route through inspectMutationGates, so the mutation
+    // verifier is never consulted and occupancy never denies an owner compact.
+    expect(verifyRitual).not.toHaveBeenCalled();
+
+    const [state] = readRitualState(root);
+    expect(state?.raw.rearm_needed).toBe(true);
+    // The accepted cost: a stranger's compact re-arms the owner. It must not
+    // also retitle the record or disturb the lease.
+    expect(state?.sessionId).toBe("session-1");
+    expect(readOccupancy(root)?.sessionId).toBe("owner");
 
     rmSync(root, { recursive: true, force: true });
   });

@@ -63,9 +63,11 @@ import { runSessionStartHookWrite } from "../session/session-start-hook.js";
 import {
   type DetectWorkSelection,
   formatRitualRecoveryInstruction,
+  inspectSessionRitual,
   type RitualRunner,
   type VerifyResult,
   verifySessionRitual,
+  WRITE_GATED_REQUIRED_STEPS,
   writeGateRitualOptions,
 } from "../session/verify-session-ritual.js";
 import {
@@ -1114,6 +1116,91 @@ function inspectMutationGates(
     }
   }
 
+  const actor = isSpawnTool(toolName) ? null : resolveMutationActor(input, environ);
+  const occupancyGate = isSpawnTool(toolName)
+    ? { allow: true, message: null as string | null, occupant: null }
+    : evaluateOccupancyWriteGate(effectiveRoot, {
+        sessionId: actor?.sessionId,
+        // Payload-supported hosts must not fall back to a stale ambient owner.
+        env: actor?.payloadAuthoritative === true ? {} : environ,
+      });
+
+  // #3769: occupancy decides before any ritual persist. The gated verifier
+  // executes agent_hooks and rebinds a forward HEAD, and both rewrite
+  // .deft/ritual-state.json — so verifying first let a session this gate was
+  // about to deny rewrite the occupant's record. The deny paths below read the
+  // ritual through the no-write inspect, which runs no step and never rebinds;
+  // only a session occupancy would admit reaches the verifier.
+  //
+  // Ritual detail on an occupancy deny is telemetry and message decoration, so
+  // an inspect failure must not convert an occupancy verdict into a ritual one.
+  const ritualDetailForOccupancyDeny = (): VerifyResult | null => {
+    try {
+      return (
+        seams.inspectRitual ??
+        seams.verifyRitual ??
+        ((root: string) =>
+          inspectSessionRitual(root, {
+            tier: "gated",
+            posture: "mutation",
+            runGit: dispatchGit,
+            requiredGatedSteps: WRITE_GATED_REQUIRED_STEPS,
+          }))
+      )(effectiveRoot);
+    } catch {
+      return null;
+    }
+  };
+
+  if (occupancyGate.occupant !== null && actor?.issue !== null && actor !== null) {
+    const inspected = ritualDetailForOccupancyDeny();
+    const code: HookDecisionCode =
+      actor.issue === "conflict" ? "occupancy-identity-conflict" : "occupancy-identity-unavailable";
+    const detail =
+      actor.message ??
+      "The host did not supply a usable cooperative session/conversation identity.";
+    emitSessionRitualBlockedProcessCost(
+      {
+        toolName,
+        code,
+        recoveryTier: inspected?.recoveryTier === "rearm" ? "rearm" : "cold",
+        detail,
+      },
+      { projectRoot },
+    );
+    return deny(
+      input,
+      code,
+      toolName,
+      `Directive denied ${toolName}: ${detail} A live occupancy lease exists for ` +
+        `session ${occupancyGate.occupant.sessionId}; use an exact host-mediated lifecycle ` +
+        "command or pass the matching --session-id explicitly." +
+        rootsNote,
+    );
+  }
+  if (!occupancyGate.allow && occupancyGate.message !== null) {
+    const inspected = ritualDetailForOccupancyDeny();
+    const ritualNote =
+      inspected !== null && inspected.code !== 0
+        ? ` Also ritual-not-ready: ${inspected.message}`
+        : "";
+    emitSessionRitualBlockedProcessCost(
+      {
+        toolName,
+        code: "occupancy-occupied",
+        recoveryTier: inspected?.recoveryTier === "rearm" ? "rearm" : "cold",
+        detail: occupancyGate.message,
+      },
+      { projectRoot },
+    );
+    return deny(
+      input,
+      "occupancy-occupied",
+      toolName,
+      `Directive denied ${toolName}: ${occupancyGate.message}${ritualNote}${rootsNote}`,
+    );
+  }
+
   let ritual: VerifyResult;
   try {
     // Mutation dispatch is a live gated boundary: active verification reruns
@@ -1154,57 +1241,6 @@ function inspectMutationGates(
       `Directive could not inspect the gated session ritual: ${String(cause)}. ` +
         formatRitualRecoveryInstruction("cold") +
         rootsNote,
-    );
-  }
-  const actor = isSpawnTool(toolName) ? null : resolveMutationActor(input, environ);
-  const occupancyGate = isSpawnTool(toolName)
-    ? { allow: true, message: null as string | null, occupant: null }
-    : evaluateOccupancyWriteGate(effectiveRoot, {
-        sessionId: actor?.sessionId,
-        // Payload-supported hosts must not fall back to a stale ambient owner.
-        env: actor?.payloadAuthoritative === true ? {} : environ,
-      });
-  if (occupancyGate.occupant !== null && actor?.issue !== null && actor !== null) {
-    const code: HookDecisionCode =
-      actor.issue === "conflict" ? "occupancy-identity-conflict" : "occupancy-identity-unavailable";
-    const detail =
-      actor.message ??
-      "The host did not supply a usable cooperative session/conversation identity.";
-    emitSessionRitualBlockedProcessCost(
-      {
-        toolName,
-        code,
-        recoveryTier: ritual.recoveryTier === "rearm" ? "rearm" : "cold",
-        detail,
-      },
-      { projectRoot },
-    );
-    return deny(
-      input,
-      code,
-      toolName,
-      `Directive denied ${toolName}: ${detail} A live occupancy lease exists for ` +
-        `session ${occupancyGate.occupant.sessionId}; use an exact host-mediated lifecycle ` +
-        "command or pass the matching --session-id explicitly." +
-        rootsNote,
-    );
-  }
-  if (!occupancyGate.allow && occupancyGate.message !== null) {
-    const ritualNote = ritual.code !== 0 ? ` Also ritual-not-ready: ${ritual.message}` : "";
-    emitSessionRitualBlockedProcessCost(
-      {
-        toolName,
-        code: "occupancy-occupied",
-        recoveryTier: ritual.recoveryTier === "rearm" ? "rearm" : "cold",
-        detail: occupancyGate.message,
-      },
-      { projectRoot },
-    );
-    return deny(
-      input,
-      "occupancy-occupied",
-      toolName,
-      `Directive denied ${toolName}: ${occupancyGate.message}${ritualNote}${rootsNote}`,
     );
   }
   if (occupancyGate.occupant !== null && actor !== null) {
@@ -1744,6 +1780,12 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
   }
 
   if (input.event === "session.compact") {
+    // #3769 Path 2: compact stays always-allow and never routes through
+    // inspectMutationGates — entering the mutation gates would re-run the
+    // ritual persist Path 1 closes, or occupancy-deny an owner's own compact.
+    // The stale-mark is fail-open: it writes even when no acting identity can
+    // be bound, because compact has no issue context and no surface a human
+    // reads. The accepted cost is an unidentified compact re-arming the owner.
     try {
       const result = (seams.markCompactStale ?? markRitualStaleAfterCompact)(projectRoot);
       if (!result.changed) {

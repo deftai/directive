@@ -1,7 +1,9 @@
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { decideHook } from "../hooks/dispatcher.js";
 import { completeCohort } from "../swarm/complete-cohort.js";
 import {
   persistLaunchOccupancyRecord,
@@ -28,8 +30,15 @@ import {
   resolveOccupancySessionId,
   stealOccupancy,
 } from "./occupancy.js";
-import { newRitualStatePayload, ritualStep, writeRitualState } from "./ritual-sentinel.js";
+import {
+  newRitualStatePayload,
+  readRitualState,
+  ritualStatePath,
+  ritualStep,
+  writeRitualState,
+} from "./ritual-sentinel.js";
 import { READ_ONLY_POSTURE, REARM_CEREMONY_TIER, runSessionStart } from "./session-start.js";
+import { verifySessionRitual, writeGateRitualOptions } from "./verify-session-ritual.js";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -1170,5 +1179,128 @@ describe("worktree occupancy lease (#3433)", () => {
     expect(live.exitCode).toBe(1);
     expect(live.sweep?.errors.some((err) => err.includes("session:start --steal"))).toBe(true);
     expect(readOccupancy(root)?.sessionId).toBeTruthy();
+  });
+});
+
+function git(root: string, args: readonly string[]): string {
+  const result = spawnSync("git", [...args], {
+    cwd: root,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      GIT_AUTHOR_NAME: "T",
+      GIT_AUTHOR_EMAIL: "t@t.local",
+      GIT_COMMITTER_NAME: "T",
+      GIT_COMMITTER_EMAIL: "t@t.local",
+    },
+  });
+  if (result.status !== 0) throw new Error((result.stderr ?? result.stdout ?? "git failed").trim());
+  return (result.stdout ?? "").trim();
+}
+
+/** Real repo plus a fresh mutation ritual owned by `sessionId`. */
+function ownedRitualRepo(sessionId: string, startedAt: Date): string {
+  const root = mkdtempSync(join(tmpdir(), "occ-ritual-order-"));
+  temps.push(root);
+  mkdirSync(join(root, ".deft"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
+  writeFileSync(join(root, "README.md"), "x\n", "utf8");
+  writeFileSync(
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+    JSON.stringify({
+      xBRIEFInfo: { version: "0.8" },
+      plan: { policy: { sessionRitualStalenessHours: 4 } },
+    }),
+    "utf8",
+  );
+  git(root, ["init", "-q"]);
+  git(root, ["config", "user.email", "t@t.local"]);
+  git(root, ["config", "user.name", "T"]);
+  git(root, ["add", "-A"]);
+  git(root, ["commit", "-q", "-m", "init"]);
+  writeRitualState(
+    root,
+    newRitualStatePayload({
+      sessionId,
+      gitHead: git(root, ["rev-parse", "HEAD"]),
+      worktreePath: resolve(root),
+      startedAt,
+      quickSteps: {
+        alignment: ritualStep({ ok: true, ts: startedAt }),
+        branch_policy: ritualStep({ ok: true, ts: startedAt }),
+        triage_welcome: ritualStep({ ok: true, ts: startedAt }),
+        verify_tools: ritualStep({ ok: true, ts: startedAt }),
+      },
+      gatedSteps: {
+        agent_hooks: ritualStep({ ok: true, ts: startedAt }),
+        doctor: ritualStep({ ok: true, ts: startedAt }),
+        cache_fresh: ritualStep({ ok: true, ts: startedAt }),
+      },
+    }),
+  );
+  return root;
+}
+
+describe("occupancy decides before any ritual persist (#3769)", () => {
+  // The ritual verifier is deliberately NOT stubbed in this suite: only the
+  // gated entrypoint runner and the active-scope reader are. A persist by the
+  // real verifier is therefore observable in the owner's state file, which is
+  // what makes the ordering testable at all.
+  const hookSeams = {
+    ritualRunner: () => ({ code: 0, stdout: "hooks ready", stderr: "" }),
+    inspectScope: () => ({
+      ready: true,
+      path: "xbrief/active/story.xbrief.json",
+      message: "OK active scope",
+    }),
+  };
+
+  it("leaves the owner's ritual state byte-identical when a foreign write is denied", () => {
+    const root = ownedRitualRepo("owner", new Date());
+    applyWorktreeOccupancy(root, { sessionId: "owner", intent: "mutation" });
+    const before = readFileSync(ritualStatePath(root));
+
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: { toolName: "Write", file_path: join(root, "src", "app.ts") },
+        environ: { DEFT_SESSION_ID: "intruder" },
+      },
+      hookSeams,
+    );
+
+    expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-occupied" });
+    expect(readFileSync(ritualStatePath(root)).equals(before)).toBe(true);
+    expect(readRitualState(root)[0]?.sessionId).toBe("owner");
+  });
+
+  it("pins the premise: the write-gate verifier does persist when it runs", () => {
+    const root = ownedRitualRepo("owner", new Date());
+    const before = readFileSync(ritualStatePath(root));
+
+    // The same verifier the dispatcher reaches on the allow path. agent_hooks
+    // is re-executed and recorded on every admitted write (#3738), which is
+    // exactly why a denied session must never reach this call.
+    const result = verifySessionRitual(
+      root,
+      writeGateRitualOptions({
+        runner: hookSeams.ritualRunner,
+        checkActiveCli: () => ({
+          ok: true,
+          code: 0,
+          active: null,
+          candidates: [],
+          targetVersion: null,
+          message: "ok",
+          lines: [],
+        }),
+      }),
+    );
+
+    expect(result.code).toBe(0);
+    expect(readFileSync(ritualStatePath(root)).equals(before)).toBe(false);
+    expect(readRitualState(root)[0]?.sessionId).toBe("owner");
   });
 });

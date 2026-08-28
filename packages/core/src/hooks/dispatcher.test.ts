@@ -216,6 +216,54 @@ describe("direct-write hook policy", () => {
     }
   });
 
+  it("reads the ritual without persisting when occupancy denies (#3769)", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-occ-order-"));
+    hookTemps.push(root);
+    applyWorktreeOccupancy(root, { sessionId: "owner" });
+    const verifyRitual = vi.fn(() => READY_RITUAL);
+    const inspectRitual = vi.fn(() => READY_RITUAL);
+
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: { toolName: "Write", file_path: join(root, "src", "app.ts") },
+        environ: { DEFT_SESSION_ID: "other" },
+      },
+      readySeams({ verifyRitual, inspectRitual }),
+    );
+
+    expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-occupied" });
+    // The verifier executes gated steps and rebinds a forward HEAD, so a
+    // denied session must never reach it — the no-write inspect answers here.
+    expect(verifyRitual).not.toHaveBeenCalled();
+    expect(inspectRitual).toHaveBeenCalledTimes(1);
+  });
+
+  it("reads the ritual without persisting when host identity is unavailable (#3769)", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-occ-order-identity-"));
+    hookTemps.push(root);
+    applyWorktreeOccupancy(root, { sessionId: "host:codex:v1:c2Vzc2lvbi1h" });
+    const verifyRitual = vi.fn(() => READY_RITUAL);
+    const inspectRitual = vi.fn(() => READY_RITUAL);
+
+    const decision = decideHook(
+      {
+        host: "codex",
+        event: "tool.before",
+        projectRoot: root,
+        payload: { tool_name: "apply_patch", tool_input: { file_path: join(root, "src", "a.ts") } },
+        environ: {},
+      },
+      readySeams({ verifyRitual, inspectRitual }),
+    );
+
+    expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-identity-unavailable" });
+    expect(verifyRitual).not.toHaveBeenCalled();
+    expect(inspectRitual).toHaveBeenCalledTimes(1);
+  });
+
   it("composes occupancy deny with ritual-not-ready (#3433)", () => {
     const root = mkdtempSync(join(tmpdir(), "hook-occ-ritual-"));
     hookTemps.push(root);

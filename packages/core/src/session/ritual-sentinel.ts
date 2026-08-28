@@ -276,6 +276,11 @@ export interface MarkRitualStaleAfterCompactResult {
  * Invalidate an existing mutation ritual after host context compaction/resume (#2113).
  * Reuses ritual-state age semantics — no parallel policy stack.
  * Marks rearm_needed so recovery messaging prefers session:start --rearm when cold is unnecessary (#2992).
+ *
+ * Fail-open on an unbindable actor (#3769, operator amend 2026-08-28): compact
+ * carries no acting identity and runs inside a hook budget, so a skipped write
+ * has no surface a human reliably sees. The accepted cost is that an
+ * unidentified compact re-arms whoever owns the record.
  */
 export function markRitualStaleAfterCompact(
   projectRoot: string,
