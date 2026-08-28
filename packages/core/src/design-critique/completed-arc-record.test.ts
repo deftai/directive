@@ -492,6 +492,87 @@ describe("completed-arc citation grammar (#3831)", () => {
     }
   });
 
+  it("picks the newest of several records that all cite the latest lean", () => {
+    const first: ThreadComment = {
+      id: SYNTHESIS_ID,
+      body: `design-critique: synthesis accepted, because first\n\nsuccessor lean ${LEAN_ID}\n`,
+    };
+    const second: ThreadComment = {
+      id: SYNTHESIS_ID + 5,
+      body: `design-critique: synthesis accepted, because second\n\nsuccessor lean \`${LEAN_ID}\`\n`,
+    };
+    for (const order of [
+      [lean, first, second],
+      [lean, second, first],
+    ]) {
+      const verdict = evaluateCompletedArcRecord({ comments: order });
+      expect(verdict).toMatchObject({ status: "complete", synthesisCommentId: second.id });
+    }
+  });
+
+  it("re-evaluates the newest of several later syntheses after a stale record", () => {
+    const recutLean: ThreadComment = {
+      id: SYNTHESIS_ID + 10,
+      body: "**Lean:** recut take\n",
+    };
+    const staleLater: ThreadComment = {
+      id: SYNTHESIS_ID + 20,
+      body: "design-critique: synthesis accepted, because still open\n",
+    };
+    const newestLater: ThreadComment = {
+      id: SYNTHESIS_ID + 30,
+      body: `design-critique: synthesis accepted, because recut bound\n\nsuccessor lean ${recutLean.id}\n`,
+    };
+    const verdict = evaluateCompletedArcRecord({
+      comments: [lean, synthesis, recutLean, staleLater, newestLater],
+    });
+    expect(verdict).toMatchObject({ status: "complete", synthesisCommentId: newestLater.id });
+  });
+
+  it("evaluates the newest synthesis when none of them completes", () => {
+    const older: ThreadComment = {
+      id: SYNTHESIS_ID,
+      body: "design-critique: synthesis accepted, because older\n",
+    };
+    const newer: ThreadComment = {
+      id: SYNTHESIS_ID + 1,
+      body: `design-critique: synthesis accepted, because newer\n\ncomment ${CRITIC_ID}\n`,
+    };
+    const critic: ThreadComment = { id: CRITIC_ID, body: "role: critic\n\n## Finding 1\n" };
+    expect(evaluateCompletedArcRecord({ comments: [critic, older, newer] })).toMatchObject({
+      status: "blocked",
+      reason: "cite-not-lean",
+    });
+  });
+
+  it("reads the latest lean when the thread lists leans newest first", () => {
+    const newerLean: ThreadComment = { id: LEAN_ID + 100, body: "**Lean:** recut take\n" };
+    const record: ThreadComment = {
+      id: SYNTHESIS_ID,
+      body: `design-critique: synthesis accepted, because yes\n\nsuccessor lean ${newerLean.id}\n`,
+    };
+    expect(evaluateCompletedArcRecord({ comments: [newerLean, lean, record] })).toMatchObject({
+      status: "complete",
+      citedLeanId: newerLean.id,
+    });
+  });
+
+  it("recognises a panel-deposit from its fields when the literal token is absent", () => {
+    const deposit: ThreadComment = {
+      id: CRITIC_ID,
+      body: "model: grok-4.6\nrole: parent\n\nround: 1\nsiblings: 3\ninput-ceiling: 5390001612\n",
+    };
+    expect(evaluateCompletedArcRecord({ comments: [deposit] })).toMatchObject({
+      status: "blocked",
+      reason: "missing-record",
+    });
+  });
+
+  it("leaves a thread with neither deposit fields nor a critic post out of the arc", () => {
+    const chatter: ThreadComment = { id: CRITIC_ID, body: "role: parent\n\nsiblings: 3\n" };
+    expect(evaluateCompletedArcRecord({ comments: [chatter] })).toEqual({ status: "not-in-arc" });
+  });
+
   it("names the accepted forms when the record is missing entirely", () => {
     const verdict = evaluateCompletedArcRecord({
       labels: ["design-critique:mechanism-shaped"],

@@ -75,68 +75,68 @@
       "commands": [],
       "none_stated": true,
       "source_rung": "derived",
-      "derived_reason": "derived 9 independently testable clauses from the task statement before product edit (#3323)",
+      "derived_reason": "derived 9 independently testable clauses from the task statement and bound each to the path it landed at (#3323)",
       "clauses": [
         {
           "id": 1,
-          "text": "The contract publishes the closed set of accepted citation forms",
-          "artifact_path": null,
+          "text": "The contract publishes the closed set of accepted citation forms under the heading \"## Citation grammar\"",
+          "artifact_path": "content/contracts/design-critique.md",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
-          "text": "A synthesis citing `` successor lean `NNNNNNNN` `` parses; #3796's original synthesis parses without being rewritten",
-          "artifact_path": null,
+          "text": "A synthesis whose id sits in a code span parses, and the live 3796 body extracts both ids without being rewritten: \"reads a balanced single-backtick id -- the form that blocked #3796\"",
+          "artifact_path": "packages/core/src/design-critique/citation-grammar.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
-          "text": "Blockquoted, fenced, struck-through, and negated occurrences do not clear",
-          "artifact_path": null,
+          "text": "Blockquoted, fenced, struck-through, and negated occurrences do not clear: \"scanCitations position predicate (#3831)\"",
+          "artifact_path": "packages/core/src/design-critique/citation-grammar.test.ts",
           "ambiguous": false,
           "provenance": "implementation"
         },
         {
           "id": 4,
-          "text": "Citation extraction and table-claim detection share one parser; mixed-form matrices assert the typed `citedTableId`",
-          "artifact_path": null,
+          "text": "Citation extraction and table-claim detection share one parser, and mixed-form matrices assert the typed citedTableId: \"resolves the typed table id across mixed-form matrices\"",
+          "artifact_path": "packages/core/src/design-critique/completed-arc-record.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 5,
-          "text": "Citing the superseded lean before the bound contract does not block",
-          "artifact_path": null,
+          "text": "Citing the superseded lean before the bound contract does not block: \"clears on set membership, so citing the superseded lean first does not block\"",
+          "artifact_path": "packages/core/src/design-critique/completed-arc-record.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 6,
-          "text": "The `missing-record` detail does not assert a recut that did not occur",
-          "artifact_path": null,
+          "text": "The missing-record detail does not assert a recut that did not occur: \"does not assert a recut when a record cites only the superseded lean\"",
+          "artifact_path": "packages/core/src/design-critique/completed-arc-record.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 7,
-          "text": "Fixtures cover decorated ids, bolded keywords, and each negative position class",
-          "artifact_path": null,
+          "text": "Fixtures cover decorated ids, bolded keywords, and each negative position class: \"reads an emphasised keyword, which is the mandated house style\"",
+          "artifact_path": "packages/core/src/design-critique/citation-grammar.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 8,
-          "text": "No regression: a genuinely uncited synthesis still blocks",
-          "artifact_path": null,
+          "text": "No regression: a genuinely uncited synthesis still blocks: \"says so plainly when the body carries no id at all\"",
+          "artifact_path": "packages/core/src/design-critique/completed-arc-record.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 9,
-          "text": "CHANGELOG `[Unreleased]` entry",
-          "artifact_path": null,
+          "text": "CHANGELOG [Unreleased] entry: \"publishes the citation grammar as a closed set\"",
+          "artifact_path": "CHANGELOG.md",
           "ambiguous": false,
           "provenance": "statement"
         }

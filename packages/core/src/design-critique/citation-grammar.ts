@@ -49,7 +49,7 @@ export type CitationScan = {
   readonly idShapedRuns: readonly number[];
 };
 
-/** The published closed set, in the order the contract table lists it. */
+/** The published closed set, in the order the contract lists it. */
 export const ACCEPTED_CITATION_FORMS: readonly string[] = [
   "successor lean 12345678",
   "successor lean: 12345678",
@@ -80,7 +80,8 @@ const ID_RUN_RE = /\d{8,}/g;
 
 const BLOCKQUOTE_RE = /^\s{0,3}>/;
 
-const SENTENCE_BREAK_RE = /[.!?;]/;
+/** The last sentence break in a slice, and everything after it. */
+const LAST_SENTENCE_RE = /[.!?;][^.!?;]*$/;
 
 const NEGATION_MARKERS: readonly RegExp[] = [
   /\bnot\s/i,
@@ -144,17 +145,15 @@ function isStruckThrough(line: string, column: number): boolean {
   return runs % 2 === 1;
 }
 
+/**
+ * A negation binds the sentence it sits in, not the whole line. Scoping to the
+ * text after the last sentence break keeps `this is not stale. Bound contract
+ * is successor lean N` an affirmative citation.
+ */
 function isNegated(line: string, column: number): boolean {
   const before = line.slice(0, column);
-  let segmentStart = 0;
-  for (let i = before.length - 1; i >= 0; i -= 1) {
-    const char = before[i] ?? "";
-    if (SENTENCE_BREAK_RE.test(char)) {
-      segmentStart = i + 1;
-      break;
-    }
-  }
-  const segment = before.slice(segmentStart);
+  const tail = LAST_SENTENCE_RE.exec(before);
+  const segment = tail === null ? before : before.slice((tail.index ?? 0) + 1);
   return NEGATION_MARKERS.some((marker) => marker.test(segment));
 }
 
