@@ -15,23 +15,53 @@
     "items": [
       {
         "title": "Bind record filenames no longer embed a recoverable prefix of the session id",
-        "status": "pending"
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/freshness/bind.test.ts#bind record file names (#3768) > names records by hash only, with no fragment of the session id",
+          "recorded_at": "2026-08-28T20:35:00.000Z",
+          "recorded_by": "leaf-implementation/3768"
+        }
       },
       {
         "title": "Lookup remains derivable from the id in O(1) -- no index, no directory scan",
-        "status": "pending"
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/freshness/bind.test.ts#bind record file names (#3768) > resolves a written record from the id through one derived path",
+          "recorded_at": "2026-08-28T20:35:00.000Z",
+          "recorded_by": "leaf-implementation/3768"
+        }
       },
       {
         "title": "Existing bind records either migrate or are tolerated; say which, and do not silently orphan freshness pins",
-        "status": "pending"
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/freshness/bind.test.ts#bind record file names (#3768) > tolerates pre-rename records instead of orphaning their pins",
+          "recorded_at": "2026-08-28T20:35:00.000Z",
+          "recorded_by": "leaf-implementation/3768"
+        }
       },
       {
         "title": "A comment or doc line records the coupling warning",
-        "status": "pending"
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "packages/core/src/freshness/bind.ts > safeSessionFileName docblock, Coupling warning paragraph",
+          "recorded_at": "2026-08-28T20:35:00.000Z",
+          "recorded_by": "leaf-implementation/3768"
+        }
       },
       {
         "title": "CHANGELOG `[Unreleased]` entry",
-        "status": "pending"
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "CHANGELOG.md [Unreleased] > Changed: Bind record filenames no longer carry a session-id prefix (#3768)",
+          "recorded_at": "2026-08-28T20:35:00.000Z",
+          "recorded_by": "leaf-implementation/3768"
+        }
       }
     ],
     "references": [
