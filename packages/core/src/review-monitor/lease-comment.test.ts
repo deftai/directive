@@ -205,4 +205,8 @@ describe("pass-open advisory marker (#3607)", () => {
     expect(mapPassCommentEntry({ id: "7", body: renderPassOpenComment(MARKER) })).toBeNull();
     expect(mapPassCommentEntry({ id: 7, body: renderPassOpenComment(MARKER) })?.createdAt).toBe("");
   });
+
+  it("treats an unparseable expiry as inactive", () => {
+    expect(isPassMarkerActive({ ...MARKER, expires_at: "not-a-date" })).toBe(false);
+  });
 });

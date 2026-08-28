@@ -394,4 +394,77 @@ describe("pass marker GitHub surface (#3607)", () => {
       expect(active.marker.ceiling).toBe("5430302222");
     }
   });
+
+  it("surfaces write-path errors from create, update, delete and re-list", () => {
+    const emptyThread = { fetchComments: () => [] as never[] };
+
+    expect(
+      openPassMarker({
+        repo: "deftai/directive",
+        issue: 3607,
+        owner: "dbcall2",
+        passKind: "design-critique",
+        seams: { ...emptyThread, createComment: () => ({ error: "post denied" }) },
+      }),
+    ).toEqual({ error: "post denied" });
+
+    expect(
+      openPassMarker({
+        repo: "deftai/directive",
+        issue: 3607,
+        owner: "dbcall2",
+        passKind: "design-critique",
+        startedAt: PASS_START,
+        seams: {
+          fetchComments: () => [threadComment(500, PASS_BODY)],
+          updateComment: () => ({ error: "patch denied" }),
+        },
+      }),
+    ).toEqual({ error: "patch denied" });
+
+    let listCalls = 0;
+    expect(
+      openPassMarker({
+        repo: "deftai/directive",
+        issue: 3607,
+        owner: "dbcall2",
+        passKind: "design-critique",
+        seams: {
+          fetchComments: () => {
+            listCalls += 1;
+            return listCalls === 1 ? [] : { error: "relist failed" };
+          },
+          createComment: () => ({ id: 1000 }),
+        },
+      }),
+    ).toEqual({ error: "relist failed" });
+
+    expect(
+      openPassMarker({
+        repo: "deftai/directive",
+        issue: 3607,
+        owner: "late-arriver",
+        passKind: "design-critique",
+        startedAt: PASS_START,
+        seams: {
+          fetchComments: () => (listCalls++ === 2 ? [] : [threadComment(900, PASS_BODY)]),
+          createComment: () => ({ id: 1000 }),
+          deleteComment: () => ({ error: "delete denied" }),
+        },
+      }),
+    ).toEqual({ error: "delete denied" });
+
+    expect(
+      closePassMarker({
+        repo: "deftai/directive",
+        issue: 3607,
+        owner: "dbcall2",
+        endedAt: new Date("2026-08-28T12:20:00.000Z"),
+        seams: {
+          fetchComments: () => [threadComment(500, PASS_BODY)],
+          updateComment: () => ({ error: "patch denied" }),
+        },
+      }),
+    ).toEqual({ error: "patch denied" });
+  });
 });
