@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "completed-arc-citation-clearance-is-a-published-closed-grammar-p",
+  "decision": "Completed-arc citation clearance is a published closed grammar plus a position predicate, read through one parser",
+  "governingRule": {
+    "description": "design-critique completed-arc ingest",
+    "path": "content/contracts/design-critique.md",
+    "rfc2119": null
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Widen CITE_RE to tolerate surrounding markup"
+    },
+    {
+      "option": "Keep the strict bare-digit grammar and refuse decorated ids loudly"
+    }
+  ],
+  "whyWinner": "A three-critic panel on #3831 refuted widening 3/3: the parser already admits fenced, blockquoted and negated occurrences and already fail-opens the table guard, so a broader accept set is a net safety regression. Strictness was refuted too: a whole phrase inside a code span already parses while a backticked id does not, and there is no author predicate, so strictness buys no oracle strength. Publishing a closed set and classifying match position closes both halves and narrows the accept set on net.",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-08-28-3831-bugdesign-critique-the-completed-arc-citation-grammar-is-unp.xbrief.json"
+  ],
+  "timestamp": "2026-08-28T03:30:25Z",
+  "revisitTrigger": "A second measured field refusal on a decorator outside the published set, or an in-tree synthesis emitter that would make a generated wire format viable",
+  "tags": [
+    "design-critique",
+    "ingest"
+  ],
+  "relatedIssues": [
+    3831,
+    3806
+  ]
+}
