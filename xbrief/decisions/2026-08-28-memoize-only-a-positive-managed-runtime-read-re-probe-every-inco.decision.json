@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "memoize-only-a-positive-managed-runtime-read-re-probe-every-inco",
+  "decision": "Memoize only a positive managed-runtime read; re-probe every inconclusive verdict",
+  "governingRule": {
+    "description": "A cached inconclusive probe must never suppress a later credential deny",
+    "path": "content/scm/github.md",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Memoize every verdict (as shipped): one child spawn per socket, but a managed VM that lost the socket startup race stays ambiguous for the whole process and an explicit host-gh opt-in then grants host credentials"
+    },
+    {
+      "option": "Memoize non-managed verdicts behind a short TTL: keeps the spawn saving, but needs clock injection and makes the deny window a tuning parameter"
+    },
+    {
+      "option": "Bounded re-probe budget per socket: still sticky once the budget is spent, so it only moves the failure later"
+    }
+  ],
+  "whyWinner": "A managed VM cannot stop being managed mid-process, so caching the deny is sound and keeps the memo's original purpose; every other verdict only says the API did not assert managed on that attempt, and re-probing costs a spawn bounded by the existing timeouts while caching one is unbounded in the fail-open direction",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-08-28-3859-bugscmplatform-cursor-agent-treated-as-proof-of-cloud-on-loc.xbrief.json"
+  ],
+  "timestamp": "2026-08-28T19:28:22Z",
+  "revisitTrigger": "If ambiguous-runtime classification becomes hot enough that repeated child spawns show up in verb latency, add a short TTL with an injected clock rather than restoring an unbounded memo",
+  "tags": [
+    "security"
+  ],
+  "relatedIssues": [
+    3859
+  ]
+}
