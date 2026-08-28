@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3848",
-    "updated": "2026-08-28T15:36:44.143Z"
+    "updated": "2026-08-28T16:01:10Z"
   },
   "plan": {
     "title": "bug(skills): the design-critique router conveys its prohibitions but not its structure, and its EXIT line invites self-dispatch",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(skills): the design-critique router conveys its prohibitions but not its structure, and its EXIT line invites self-dispatch",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3848",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "The skill states whether same-round critics may read each other",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "content/skills/deft-directive-design-critique/SKILL.md",
@@ -26,7 +26,7 @@
       },
       {
         "title": "The skill conveys who adjudicates findings, without containing the forbidden role-set strings",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "content/skills/deft-directive-design-critique/references/motion-shape.md",
@@ -36,7 +36,7 @@
       },
       {
         "title": "The EXIT line no longer reads as an instruction to dispatch",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "content/skills/deft-directive-design-critique/SKILL.md",
@@ -46,7 +46,7 @@
       },
       {
         "title": "Changes are made in the pack source and rendered; no hand edit to `SKILL.md`",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "content/packs/skills/skills-pack-0.1.json",
@@ -56,7 +56,7 @@
       },
       {
         "title": "`design_critique_contract.test.ts` passes unchanged in its prohibitions",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
@@ -66,7 +66,7 @@
       },
       {
         "title": "Line count stays at or under `MAX_SKILL_LINES`",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
@@ -76,7 +76,7 @@
       },
       {
         "title": "A fresh reader given only the skill can answer the sibling-visibility and who-adjudicates questions",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "content/skills/deft-directive-design-critique/SKILL.md",
@@ -86,7 +86,7 @@
       },
       {
         "title": "CHANGELOG `[Unreleased]` entry",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "CHANGELOG.md",
@@ -184,8 +184,33 @@
         "schema": "deft.scope.intended_placement.v1",
         "files": [],
         "module_boundary": ""
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3853,
+        "prBase": null,
+        "mergeCommit": "802e3d5e2fd339535fbb900afdbf64f94b6dc877",
+        "deliveryBranch": "master",
+        "deliveryCommit": "802e3d5e2fd339535fbb900afdbf64f94b6dc877",
+        "verifiedAt": "2026-08-28T16:01:10Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "4575195f-0764-4621-b9d1-1af63f64568f"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-28T16:01:10Z"
+      },
+      "completedAt": "2026-08-28T16:01:10Z",
+      "completedSessionId": "4575195f-0764-4621-b9d1-1af63f64568f",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-08-28T15:36:44.143Z"
+    "updated": "2026-08-28T16:01:10Z"
   }
 }
