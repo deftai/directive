@@ -209,24 +209,37 @@ export function formatAcceptanceVerdict(verdictResult: AcceptanceVerdict): strin
 }
 
 /**
- * Clause-walk composition (#3323 / #3497).
+ * Clause-walk composition (#3323 / #3497 / #3826).
  *
  * A clause the shipped artifact contradicts (`failed`) always blocks. A clause the
  * static walk cannot decide (`unverifiable`) is evidence of nothing — it blocks only
  * when nothing else verified the product. A green executable acceptance run IS that
  * something: the product-first oracle already ran. Before #3497 an all-unverifiable
  * clause set refused an artifact whose stated command had just exited 0.
+ *
+ * #3826 adds `adjudicable`: how many clauses the walk has any oracle for at all.
+ * A clause with no bound artifact path can only ever come back `unverifiable`, so
+ * demanding a positive `verified` from a set of them cannot be satisfied by doing
+ * the work correctly — only by coincidence, which is what the absent-artifact false
+ * positive was. Where the walk has no oracle, `failed === 0` is the strongest verdict
+ * available and `evaluateAcceptanceEvidenceGate` is what adjudicates those criteria
+ * at `scope:complete`. Omit the field to keep the pre-#3826 behaviour of treating
+ * every walked clause as adjudicable.
  */
 export function clauseWalkBlocks(input: {
   readonly failed: number;
   readonly verified: number;
   readonly walked: number;
+  readonly adjudicable?: number;
   readonly hasGreenExecutableRun: boolean;
 }): boolean {
   if (input.failed > 0) {
     return true;
   }
   if (input.walked === 0 || input.verified > 0) {
+    return false;
+  }
+  if ((input.adjudicable ?? input.walked) === 0) {
     return false;
   }
   return !input.hasGreenExecutableRun;

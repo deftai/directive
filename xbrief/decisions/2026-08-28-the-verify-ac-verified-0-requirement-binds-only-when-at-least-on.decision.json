@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "the-verify-ac-verified-0-requirement-binds-only-when-at-least-on",
+  "decision": "The verify:ac verified > 0 requirement binds only when at least one walked clause is bound to an artifact path (adjudicable > 0); a zero-failed clause set with no bound paths passes.",
+  "governingRule": {
+    "description": "#3826 bound remedy 2 (fix the ok predicate); #3156 gate integrity; #3265 thin fail-closed design",
+    "path": null,
+    "rfc2119": null
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Scope the conjunct by AcceptanceReaderProfile so task check relaxes it and scope:complete keeps it"
+    },
+    {
+      "option": "Exclude source_rung: derived clause sets from the committability gate entirely"
+    },
+    {
+      "option": "Stop stamping derived clauses when plan.items already declares the acceptance surface"
+    },
+    {
+      "option": "Leave the conjunct alone and split the durability defect into a separate issue"
+    }
+  ],
+  "whyWinner": "A clause with no bound artifact path can only ever return unverifiable, so requiring a positive verified from such a set is unsatisfiable by correct work; the only way to pass it was the absent-artifact false positive that remedy 1 removes. Keying on adjudicable keeps the done-time standard wherever the walk actually has an oracle, unlike profile scoping (which would leave standalone verify:ac and pre-pr still blocked) or a blanket source_rung exemption (which drops the standard even where paths are bound). Non-path criteria remain gated by evaluateAcceptanceEvidenceGate at scope:complete.",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-08-28-3826-bugintake-clause-derivation-falls-through-to-thread-scraping.xbrief.json"
+  ],
+  "timestamp": "2026-08-28T05:43:20Z",
+  "revisitTrigger": "If artifact_path shape validation lands (critic A finding 5 / #3835) so derived clauses reliably bind real paths, adjudicable would approach walked and the carve-out would stop mattering; revisit also if a brief is observed passing with zero bound paths and no per-item evidence."
+}

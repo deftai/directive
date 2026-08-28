@@ -70,6 +70,38 @@ describe("clauseWalkBlocks (#3497)", () => {
       clauseWalkBlocks({ failed: 0, verified: 0, walked: 0, hasGreenExecutableRun: false }),
     ).toBe(false);
   });
+
+  it("does not block when no walked clause is adjudicable (#3826)", () => {
+    expect(
+      clauseWalkBlocks({
+        failed: 0,
+        verified: 0,
+        walked: 8,
+        adjudicable: 0,
+        hasGreenExecutableRun: false,
+      }),
+    ).toBe(false);
+    // One bound clause restores the requirement.
+    expect(
+      clauseWalkBlocks({
+        failed: 0,
+        verified: 0,
+        walked: 8,
+        adjudicable: 1,
+        hasGreenExecutableRun: false,
+      }),
+    ).toBe(true);
+    // A contradicted clause blocks regardless.
+    expect(
+      clauseWalkBlocks({
+        failed: 1,
+        verified: 0,
+        walked: 8,
+        adjudicable: 0,
+        hasGreenExecutableRun: true,
+      }),
+    ).toBe(true);
+  });
 });
 
 describe("resolveAcceptanceGateProfile (#3497)", () => {

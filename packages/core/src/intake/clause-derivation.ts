@@ -13,6 +13,7 @@ import {
 } from "../run-summary/index.js";
 import {
   type AcceptanceClause,
+  collectPlanItemAcceptanceSurface,
   deriveAcceptanceClauses,
   readAcceptanceClauses,
   serializeAcceptanceClauses,
@@ -118,7 +119,11 @@ export function collectTaskStatementFromPlan(plan: Record<string, unknown>): str
         continue;
       }
       const narrative = asRecord(rec.narrative);
-      const text = narrative?.Acceptance;
+      const declared = narrative?.Acceptance;
+      // #3826: criteria commonly live in item.title with an empty narrative object.
+      // Reading only narrative.Acceptance left them out of the statement entirely,
+      // so a clause derived from a title could not trace back to it.
+      const text = isNonEmptyString(declared) ? declared : rec.title;
       if (isNonEmptyString(text)) {
         parts.push(text.trim());
       }
@@ -381,7 +386,9 @@ export function applyClauseDerivationToPlan(
       notice: "",
     };
   }
-  const clauses = deriveAcceptanceClauses(collectTaskStatementFromPlan(plan));
+  const clauses = deriveAcceptanceClauses(collectTaskStatementFromPlan(plan), {
+    itemSurface: collectPlanItemAcceptanceSurface(plan),
+  });
   if (clauses.length === 0) {
     return { applied: false, clauses: [], notice: "" };
   }

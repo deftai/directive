@@ -50,6 +50,7 @@ import {
 } from "../session/verify-ac-session-cache.js";
 import {
   type ClauseWalkResult,
+  countAdjudicableClauses,
   formatClauseWalkMessage,
   walkAcceptanceClauses,
 } from "../verify-ac/clauses.js";
@@ -715,6 +716,7 @@ function applyClauseWalk(result: VerifyAcResult, options: EvaluateVerifyAcOption
     failed: report.failed.length,
     verified: report.verified.length,
     walked: report.clauses.length,
+    adjudicable: countAdjudicableClauses(report.clauses),
     hasGreenExecutableRun:
       result.ok && result.runs.length > 0 && result.runs.every((run) => run.ok),
   });

@@ -8,9 +8,12 @@
 export {
   type AcceptanceClause,
   type AcceptanceClauseReading,
+  type ClauseDerivationSources,
   type ClauseOutcome,
   type ClauseWalkReport,
   type ClauseWalkResult,
+  collectPlanItemAcceptanceSurface,
+  countAdjudicableClauses,
   deriveAcceptanceClauses,
   formatClauseWalkMessage,
   isScratchArtifactPath,

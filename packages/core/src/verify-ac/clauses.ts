@@ -182,14 +182,54 @@ function collectPathBearingLines(text: string): string[] {
   return items;
 }
 
-/** Numbered independently testable clauses from the task statement (#3323). */
-export function deriveAcceptanceClauses(taskStatement: string): AcceptanceClause[] {
-  const text = taskStatement.trim();
-  if (text.length === 0) {
+/**
+ * Acceptance lines declared on `plan.items` (#3826).
+ *
+ * Prefers `item.narrative.Acceptance`, then `item.title` — criteria routinely live
+ * in the title with an empty `narrative`, which is how a declared acceptance
+ * surface stayed invisible to derivation on #3794 and #3819.
+ */
+export function collectPlanItemAcceptanceSurface(plan: Record<string, unknown>): string[] {
+  if (!Array.isArray(plan.items)) {
     return [];
   }
-  const acHeading = findAcHeading(text);
+  const lines: string[] = [];
+  const seen = new Set<string>();
+  for (const entry of plan.items) {
+    const item = asRecord(entry);
+    if (item === null) {
+      continue;
+    }
+    const narrative = asRecord(item.narrative);
+    const declared = narrative === null ? undefined : narrative.Acceptance;
+    const source = isNonEmptyString(declared) ? declared : item.title;
+    if (!isNonEmptyString(source)) {
+      continue;
+    }
+    const line = normalizeClauseText(source.replace(/\*\*/g, ""));
+    const key = line.toLowerCase();
+    if (line.length === 0 || isMetaClause(line) || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    lines.push(line);
+  }
+  return lines;
+}
+
+export interface ClauseDerivationSources {
+  /**
+   * Declared acceptance lines from `plan.items`. When non-empty this IS the
+   * derived clause set; the statement extractors below are the path for a brief
+   * that declares no items (#3826).
+   */
+  readonly itemSurface?: readonly string[];
+}
+
+/** Acceptance lines the statement itself declares, in extractor precedence order. */
+function collectStatementSurface(text: string): string[] {
   const raw: string[] = [];
+  const acHeading = findAcHeading(text);
   if (acHeading !== null) {
     raw.push(
       ...parseListItems(sliceAcSection(text, acHeading))
@@ -201,6 +241,26 @@ export function deriveAcceptanceClauses(taskStatement: string): AcceptanceClause
   raw.push(...collectLabeledLines(text));
   if (raw.length === 0) {
     raw.push(...collectPathBearingLines(text));
+  }
+  return raw;
+}
+
+/** Numbered independently testable clauses from the task statement (#3323). */
+export function deriveAcceptanceClauses(
+  taskStatement: string,
+  sources: ClauseDerivationSources = {},
+): AcceptanceClause[] {
+  const text = taskStatement.trim();
+  const itemSurface = (sources.itemSurface ?? [])
+    .map((line) => normalizeClauseText(line))
+    .filter((line) => line.length > 0 && !isMetaClause(line));
+  // #3826: `plan.items` is a declared, body-scoped acceptance surface, while the
+  // statement carries the whole untrusted issue comment thread. Preferring the
+  // declared surface is what keeps an acceptance-shaped heading buried in that
+  // thread from becoming the gate — the #3794 and #3819 mechanism.
+  let raw: readonly string[] = itemSurface;
+  if (raw.length === 0) {
+    raw = text.length > 0 ? collectStatementSurface(text) : [];
   }
   const seen = new Set<string>();
   const clauses: AcceptanceClause[] = [];
@@ -335,7 +395,9 @@ export function stampDerivedClausesOnAcceptance(
   if (Array.isArray(commands) && commands.length > 0) {
     return { plan, clauses: [] };
   }
-  const clauses = deriveAcceptanceClauses(taskStatement);
+  const clauses = deriveAcceptanceClauses(taskStatement, {
+    itemSurface: collectPlanItemAcceptanceSurface(plan),
+  });
   if (clauses.length === 0) {
     return { plan, clauses: [] };
   }
@@ -417,12 +479,18 @@ function walkOne(clause: AcceptanceClause, projectRoot: string): ClauseWalkResul
   }
   if (!existsSync(abs)) {
     if (NEGATED_EXISTENCE.test(clause.text)) {
+      // #3826: absence is not evidence. The negation phrase is matched against the
+      // whole clause text, so on a derived clause it routinely refers to something
+      // other than the bound path — a bare `git.ts` in analysis prose passed here
+      // and was the sole `verified` row propping up the `ok` predicate on #3794.
       return {
         id: clause.id,
         text: clause.text,
         artifact_path: artifactPath,
-        outcome: "verified",
-        detail: `artifact correctly absent at ${artifactPath}`,
+        outcome: "unverifiable",
+        detail:
+          `artifact absent at ${artifactPath}; a prose negation is not evidence ` +
+          `the clause requires this path to be absent (#3826)`,
       };
     }
     return {
@@ -511,6 +579,17 @@ function walkOne(clause: AcceptanceClause, projectRoot: string): ClauseWalkResul
   };
 }
 
+/**
+ * Clauses the walk has any oracle for — i.e. bound to an artifact path (#3826).
+ *
+ * A clause with no bound path can only ever be `unverifiable`, so requiring a
+ * positive `verified` from a set of them is unsatisfiable by correct work rather
+ * than a quality bar. `verified > 0` binds only where this count is non-zero.
+ */
+export function countAdjudicableClauses(rows: readonly ClauseWalkResult[]): number {
+  return rows.filter((row) => (row.artifact_path ?? "").trim().length > 0).length;
+}
+
 export function walkAcceptanceClauses(
   clauses: readonly AcceptanceClause[],
   projectRoot: string,
@@ -519,7 +598,9 @@ export function walkAcceptanceClauses(
   const failed = walked.filter((row) => row.outcome === "failed");
   const unverifiable = walked.filter((row) => row.outcome === "unverifiable");
   const verified = walked.filter((row) => row.outcome === "verified");
-  const ok = failed.length === 0 && (verified.length > 0 || walked.length === 0);
+  const ok =
+    failed.length === 0 &&
+    (verified.length > 0 || walked.length === 0 || countAdjudicableClauses(walked) === 0);
   return {
     clauses: walked,
     failed,

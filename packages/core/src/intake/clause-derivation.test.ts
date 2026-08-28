@@ -68,6 +68,75 @@ describe("collectTaskStatementFromPlan (#3360)", () => {
     expect(text).toContain("also this");
     expect(text).toContain("docs/notes.md");
   });
+
+  it("reads item.title when the item narrative is empty (#3826)", () => {
+    const text = collectTaskStatementFromPlan({
+      title: "Recut brief",
+      narratives: { Overview: "Analysis prose only." },
+      items: [
+        { title: "A foreign-repository target is refused", narrative: {} },
+        { title: "ignored", narrative: { Acceptance: "Declared narrative criterion" } },
+        { status: "proposed" },
+      ],
+    });
+    expect(text).toContain("A foreign-repository target is refused");
+    expect(text).toContain("Declared narrative criterion");
+    expect(text).not.toContain("ignored");
+  });
+});
+
+/**
+ * #3826: the declared `plan.items` surface outranks the statement, and a clause
+ * derived from a title must still trace back to the statement so the #3398
+ * provenance stamp holds.
+ */
+describe("applyClauseDerivationToPlan prefers the declared item surface (#3826)", () => {
+  const THREAD = `## Summary
+
+Analysis prose.
+
+### Comment by @critic
+
+- Evidence. packages/core/src/hooks/dispatcher.ts:1431-1434 swallowed the failure.
+- Cost. The copy under .deft-scratch/worktrees/ is not the shipped path.
+`;
+
+  it("derives from item.title instead of scraping the thread, and traces provenance", () => {
+    const plan: Record<string, unknown> = {
+      title: "recut",
+      narratives: { Overview: THREAD },
+      items: [
+        { title: "A foreign-repository target is refused rather than adopted", narrative: {} },
+        { title: "CHANGELOG `[Unreleased]` entry", narrative: {} },
+      ],
+    };
+    const result = applyClauseDerivationToPlan(plan);
+    expect(result.applied).toBe(true);
+    expect(result.clauses.map((c) => c.text)).toEqual([
+      "A foreign-repository target is refused rather than adopted",
+      "CHANGELOG `[Unreleased]` entry",
+    ]);
+    expect(result.clauses.every((c) => c.provenance === "statement")).toBe(true);
+    expect(result.clauses.some((c) => c.artifact_path?.includes(".deft-scratch"))).toBe(false);
+  });
+
+  it("leaves an already-stamped brief untouched (#3826 item 7)", () => {
+    const stamped = {
+      commands: [],
+      none_stated: true,
+      source_rung: "derived",
+      clauses: [{ id: 1, text: "already stamped", artifact_path: null, ambiguous: false }],
+    };
+    const plan: Record<string, unknown> = {
+      title: "landed",
+      narratives: { Overview: THREAD },
+      items: [{ title: "a declared criterion", narrative: {} }],
+      acceptance: { ...stamped },
+    };
+    const result = applyClauseDerivationToPlan(plan);
+    expect(result.applied).toBe(false);
+    expect(plan.acceptance).toEqual(stamped);
+  });
 });
 
 describe("applyClauseDerivationToPlan (#3360)", () => {
