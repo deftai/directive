@@ -52,7 +52,7 @@ const REQUIRED_CONTRACT_POINTERS = [
   "#3383",
   "scaffolds",
   "content-contract tests",
-  "model: grok-4.6",
+  "model: <your-model-slug>",
   "role: critic",
   "role: parent",
   "role: triage",
@@ -373,11 +373,13 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
 
   it("locks the comment lead as model then role, not an issue label", () => {
     const contract = readText(CONTRACT);
-    expect(contract).toContain("```text\nmodel: grok-4.6\nrole: critic\n```");
+    expect(contract).toContain("```text\nmodel: <your-model-slug>\nrole: critic\n```");
+    expect(contract).toContain("self-attestation");
+    expect(contract).toContain("Nothing in this repository verifies which model produced a comment");
     expect(contract).toContain("! First line of the triage write-back comment is `model: <slug>`.");
     expect(contract).toContain("! Second line of the triage write-back comment is `role: triage`.");
     expect(contract).toContain(
-      "! First line of every critic comment is `model: <slug>` for the model that produced that comment.",
+      "! First line of every critic comment is `model: <slug>` naming the model slug the critic self-attests.",
     );
     expect(contract).toContain("! Second line of every critic comment is `role: critic`.");
     expect(contract).toContain("! Same first-two-lines on a Stop 4 retry critic (`role: critic`).");
@@ -399,7 +401,10 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(contract).toContain("GitHub login");
     expect(contract).toContain("verify:routing");
     expect(contract).toContain(
-      "⊗ Infer role from `verify:routing` or spawn metadata and omit it from the comment.",
+      "⊗ Omit the model line. Post `model: <slug>` on the comment; do not substitute a slug inferred from `verify:routing` or spawn metadata.",
+    );
+    expect(contract).toContain(
+      "⊗ Omit the role line. Post `role: triage|critic|parent` on the comment; do not substitute a role inferred from `verify:routing` or spawn metadata.",
     );
     const template = readText(TEMPLATE);
     expect(template).toContain(

@@ -111,7 +111,7 @@ The envelope is [`templates/design-critique-brief.md`](../templates/design-criti
 Canonical panel-deposit:
 
 ```text
-model: grok-4.6
+model: <your-model-slug>
 role: parent
 
 panel-deposit
@@ -124,10 +124,12 @@ input-ceiling: 5390001612
 
 Comment-lead field. The first two lines of the triage write-back and of every critic, parent, and #3640 auto-posted comment name the LLM and the posting role. Keep the first line as `model: <slug>`. The second line is `role: triage|critic|parent`.
 
+The `model:` line is a self-attestation. Nothing in this repository verifies which model produced a comment; do not treat it as provenance.
+
 Canonical lead:
 
 ```text
-model: grok-4.6
+model: <your-model-slug>
 role: critic
 ```
 
@@ -141,7 +143,7 @@ Closed role set (do not invent chips or extra roles in v1): `role: triage|critic
 
 - ! First line of the triage write-back comment is `model: <slug>`.
 - ! Second line of the triage write-back comment is `role: triage`.
-- ! First line of every critic comment is `model: <slug>` for the model that produced that comment.
+- ! First line of every critic comment is `model: <slug>` naming the model slug the critic self-attests.
 - ! Second line of every critic comment is `role: critic`.
 - ! Same first-two-lines on a Stop 4 retry critic (`role: critic`).
 - ! Same first-two-lines on #3640 auto-posted table / synthesis-accepted comments (`role: parent`).
@@ -151,8 +153,8 @@ Closed role set (do not invent chips or extra roles in v1): `role: triage|critic
 - ⊗ Put role in an issue label (`design-critique:critic`, author/role chips).
 - ⊗ Put a GitHub login, author name, or role name in that lead line in place of the model.
 - ⊗ Replace the model line with a role or GitHub login.
-- ⊗ Infer the model from `verify:routing` or spawn metadata and omit it from the comment.
-- ⊗ Infer role from `verify:routing` or spawn metadata and omit it from the comment.
+- ⊗ Omit the model line. Post `model: <slug>` on the comment; do not substitute a slug inferred from `verify:routing` or spawn metadata.
+- ⊗ Omit the role line. Post `role: triage|critic|parent` on the comment; do not substitute a role inferred from `verify:routing` or spawn metadata.
 
 ## Stop 4 — Residual reiteration
 
