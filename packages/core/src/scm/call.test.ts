@@ -28,4 +28,26 @@ describe("call", () => {
     expect(result.args).toEqual(["/usr/bin/true", "auth"]);
     expect(result.returncode).toBe(0);
   });
+
+  it("captures stdout larger than Node's 1 MB default (#3903)", () => {
+    // The paginated open-issue inventory of a large repo runs to several MB;
+    // 2 MB overflows the 1 MB default that aborted the capture with ENOBUFS.
+    const bytes = 2 * 1024 * 1024;
+    const result = call("github-issue", "-e", [`process.stdout.write("x".repeat(${bytes}))`], {
+      binary: process.execPath,
+    });
+    expect(result.returncode).toBe(0);
+    expect(result.stdout.length).toBe(bytes);
+    expect(result.stderr).toBe("");
+  });
+
+  it("reports a non-empty reason when the spawn itself fails (#3903)", () => {
+    // A spawn-level failure returns status null with no stderr; without the
+    // error.message fallback the caller sees a bare exit 1 and no reason.
+    const result = call("github-issue", "api", [], {
+      binary: "deft-nonexistent-binary-xyz",
+    });
+    expect(result.returncode).toBe(1);
+    expect(result.stderr.trim().length).toBeGreaterThan(0);
+  });
 });

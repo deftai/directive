@@ -6,6 +6,7 @@ vi.mock("node:child_process", () => ({
   spawnSync: (...args: unknown[]) => spawnSyncMock(...args),
 }));
 
+import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import { call } from "./call.js";
 
 afterEach(() => {
@@ -66,6 +67,36 @@ describe("call option branches", () => {
         stdio: "inherit",
       }),
     );
+  });
+
+  it("passes the shared subprocess ceiling to spawnSync (#3903)", () => {
+    spawnSyncMock.mockReturnValue({ status: 0, stdout: "ok", stderr: "" });
+    call("github-issue", "api", ["--paginate", "repos/o/r/issues"], { binary: "/usr/bin/gh" });
+    expect(spawnSyncMock).toHaveBeenCalledWith(
+      "/usr/bin/gh",
+      ["api", "--paginate", "repos/o/r/issues"],
+      expect.objectContaining({ maxBuffer: SUBPROCESS_MAX_BUFFER }),
+    );
+  });
+
+  it("surfaces the spawn error message on an ENOBUFS overflow (#3903)", () => {
+    const error = Object.assign(new Error("spawnSync /usr/bin/gh ENOBUFS"), { code: "ENOBUFS" });
+    spawnSyncMock.mockReturnValue({ status: null, stdout: "truncated", stderr: "", error });
+    const result = call("github-issue", "api", ["--paginate", "repos/o/r/issues"], {
+      binary: "/usr/bin/gh",
+    });
+    expect(result.returncode).toBe(1);
+    expect(result.stderr).toContain("ENOBUFS");
+  });
+
+  it("throws the spawn error message when check is set and status is null (#3903)", () => {
+    const error = Object.assign(new Error("spawnSync /usr/bin/gh ETIMEDOUT"), {
+      code: "ETIMEDOUT",
+    });
+    spawnSyncMock.mockReturnValue({ status: null, stdout: "", stderr: "", error });
+    expect(() =>
+      call("github-issue", "api", ["repos/o/r/issues"], { binary: "/usr/bin/gh", check: true }),
+    ).toThrow(/ETIMEDOUT/);
   });
 
   it("defaults null status to returncode 1 and empty captured strings", () => {
