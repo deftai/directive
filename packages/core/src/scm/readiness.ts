@@ -89,7 +89,7 @@ export interface ScmReadinessReport {
   readonly githubAuthMode: string;
   /** Runtime mode from the #1557a probe. */
   readonly runtimeMode: string;
-  /** Why the runtime was classified that way; names the win32 carve-out (#3859). */
+  /** Stable id naming why the runtime was classified that way (#3859). */
   readonly runtimeModeReason: string | null;
   /** Whether an injected token env var is present (value never reported). */
   readonly injectedTokenPresent: boolean;
