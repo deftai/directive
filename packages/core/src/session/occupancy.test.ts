@@ -1821,4 +1821,99 @@ describe("explicit lease membership (#3755)", () => {
     expect(overflow.message).toContain("Revoke a finished child");
     expect(readRecord(root).grants).toHaveLength(OCCUPANCY_MAX_GRANTS);
   });
+  it("refuses a steal by a child granted while it waited for the lock", () => {
+    const now = new Date("2026-08-28T09:00:00Z");
+    const root = leasedRoot(now);
+    const at = new Date(now.getTime() + 60_000);
+    // The unlocked read sees no grant for this child, so only the locked read
+    // can catch the grant the owner issued during the wait. Without the check
+    // on that path, a child could take the lease it was just admitted to.
+    const lockPath = `${occupancyPath(root)}.lock`;
+    writeFileSync(lockPath, `${process.pid}\n${Date.now()}\n`, "utf8");
+    let granted = false;
+
+    const stolen = stealOccupancy(root, {
+      sessionId: MEMBERSHIP_CHILD,
+      occupant: MEMBERSHIP_OWNER,
+      confirm: true,
+      now: at,
+      lockDeps: {
+        sleepMs: () => {
+          if (granted) return;
+          granted = true;
+          rmSync(lockPath, { force: true });
+          // Written as the owner's process would, not through the lease API:
+          // the occupancy lock is not reentrant.
+          const record = readRecord(root);
+          writeRawOccupancy(root, {
+            ...record.raw,
+            grants: [
+              {
+                owner_session_id: MEMBERSHIP_OWNER,
+                child_session_id: MEMBERSHIP_CHILD,
+                worktree_path: record.worktreePath,
+                role: "leaf-implementation",
+                expires_at: new Date(at.getTime() + 60 * 60 * 1000).toISOString(),
+              },
+            ],
+          });
+        },
+      },
+    });
+
+    expect(granted).toBe(true);
+    expect(stolen.code).toBe(1);
+    expect(stolen.message).toContain("occupancy:steal is owner-only");
+    expect(readRecord(root).sessionId).toBe(MEMBERSHIP_OWNER);
+  });
+
+  it("keeps a lease readable when a grant entry is malformed", () => {
+    const now = new Date("2026-08-28T09:00:00Z");
+    const root = tempRoot();
+    writeRawOccupancy(root, {
+      schemaVersion: 1,
+      session_id: MEMBERSHIP_OWNER,
+      worktree_path: resolve(root),
+      intent: "mutation",
+      claimed_at: now.toISOString(),
+      heartbeat_at: now.toISOString(),
+      grants: [
+        "not-an-object",
+        null,
+        {
+          owner_session_id: MEMBERSHIP_OWNER,
+          child_session_id: "   ",
+          role: "leaf-implementation",
+        },
+        { owner_session_id: MEMBERSHIP_OWNER, child_session_id: "no-expiry", role: "orchestrator" },
+        {
+          owner_session_id: MEMBERSHIP_OWNER,
+          child_session_id: "bad-role",
+          role: "typist",
+          expires_at: new Date(now.getTime() + 60_000).toISOString(),
+        },
+        {
+          owner_session_id: MEMBERSHIP_OWNER,
+          child_session_id: MEMBERSHIP_CHILD,
+          role: "merge-release",
+          expires_at: new Date(now.getTime() + 60_000).toISOString(),
+          join_protocol: "telepathy",
+        },
+      ],
+    });
+
+    const record = readRecord(root);
+
+    // Only the last entry is usable, and its absent fields fall back rather
+    // than taking the whole lease down with them.
+    expect(record.grants).toHaveLength(1);
+    expect(record.grants[0]?.childSessionId).toBe(MEMBERSHIP_CHILD);
+    expect(record.grants[0]?.worktreePath).toBe(record.worktreePath);
+    expect(record.grants[0]?.host).toBe("none");
+    expect(record.grants[0]?.address).toBe("none");
+    expect(record.grants[0]?.joinProtocol).toBe("none");
+    expect(evaluateOccupancyWriteGate(root, { sessionId: MEMBERSHIP_CHILD, now }).admitted).toBe(
+      "member",
+    );
+  });
 });
