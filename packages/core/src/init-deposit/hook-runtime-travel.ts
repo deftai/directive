@@ -26,8 +26,6 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import {
   disableHostHooksInvocation,
   type HookHost,
@@ -70,11 +68,11 @@ export interface HookRuntimeTravelResult {
 }
 
 function defaultGitLsFiles(projectDir: string, paths: readonly string[]): string | null {
-  // `.git` is a directory in a clone and a file in a linked worktree. Absent
-  // means the deposit root is not a repository root, so travel has no answer
-  // worth reporting -- and the probe costs nothing.
-  if (!existsSync(join(projectDir, ".git"))) return null;
   try {
+    // Ask git rather than looking for `.git`: a project deposited into a
+    // subdirectory of a repository has no `.git` of its own, yet its
+    // registration is trackable by the parent and travels on the parent's next
+    // commit. `ls-files` answers from any depth, relative to this directory.
     // `--cached` catches an already-committed registration; `--others
     // --exclude-standard` catches one a first `deft init` just wrote, which is
     // untracked yet trackable and so lands in the consumer's next `git add`.

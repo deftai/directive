@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -221,6 +221,22 @@ describe("writeAgentHookDeposit hook-runtime travel warning", () => {
     expect(execFileSync("git", ["ls-files"], { cwd: root, encoding: "utf8" }).trim()).toBe("");
     expect(output).toContain("Hook registration travels without its runtime (#3785)");
     expect(output).toContain(".cursor/hooks.json (fail-closed)");
+  });
+
+  // Greptile P1 on PR #3890: a project deposited into a subdirectory has no
+  // `.git` of its own, so a `.git`-existence short-circuit went quiet while the
+  // parent repository was still free to commit the fence.
+  it("warns for a project nested inside a repository it does not root", () => {
+    const parent = repo();
+    const nested = join(parent, "consumer");
+    mkdirSync(nested, { recursive: true });
+    writeFileSync(join(nested, RUNTIME_ANCHOR_MANIFEST), '{"name":"nested"}\n', "utf8");
+    const lines: string[] = [];
+
+    writeAgentHookDeposit(nested, { printf: (text) => lines.push(text) });
+
+    expect(existsSync(join(nested, ".git"))).toBe(false);
+    expect(lines.join("")).toContain("Hook registration travels without its runtime (#3785)");
   });
 
   it("stays quiet when the consumer ignores the registrations: nothing travels", () => {
