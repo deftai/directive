@@ -1,6 +1,6 @@
 # Design critique — motion shape
 
-Orientation only. Normative rules: [`contracts/design-critique.md`](../../contracts/design-critique.md).
+Orientation only. Normative rules: [`contracts/design-critique.md`](../../../contracts/design-critique.md).
 
 ## Same-round critics
 
