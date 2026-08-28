@@ -35,9 +35,14 @@ When a mutation `session:start` (cold or re-arm) loads payload surfaces into
 runtime context, it binds the live generation:
 
 ```text
-.deft/session-binds/<safe-session-id>.json   # multi-agent isolation (preferred)
+.deft/session-binds/<sha256-slice>.json      # multi-agent isolation (preferred)
 .deft/session-bind.json                      # default / last-bind convenience
 ```
+
+The per-session record is named by a 24-hex SHA-256 slice of the session id, so
+a directory listing carries no fragment of the id (#3768). Records written
+before that rename also carried a 32-character id prefix; they are read-accepted
+until the next bind supersedes them.
 
 Multi-agent hosts **must** pin session identity so one session cannot certify
 another as current:

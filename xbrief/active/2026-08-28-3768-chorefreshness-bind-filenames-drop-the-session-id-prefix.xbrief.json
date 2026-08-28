@@ -1,0 +1,122 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #3768",
+    "updated": "2026-08-28T19:17:37Z"
+  },
+  "plan": {
+    "title": "chore(freshness): bind filenames embed a recoverable 32-char prefix of the session id",
+    "status": "running",
+    "narratives": {
+      "Description": "Name `.deft/session-binds/` records by their hash alone, so a directory listing carries no fragment of a session id, and keep lookup derivable from the id.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3768",
+      "Overview": "## Summary\n\n`safeSessionFileName` kept a 32-character prefix of the session UUID in every `.deft/session-binds/<name>.json` filename. The prefix was never used for lookup, and removing it costs nothing.\n\nSplit out of #3754, which was closed as not-a-defect. What is left is hygiene, and it is cheap.\n\n## Mechanism\n\n`packages/core/src/freshness/bind.ts` built the record name from the first 32 characters of the session id plus a 24-hex SHA-256 slice of the full id. A UUID is 36 characters, so 4 hex characters remained unknown and the filename itself was the oracle to test them against. Measured on the issue at `0a82ac96` against a synthetic UUID: recovery succeeded in 58,946 candidates, 64.8 ms.\n\n## Hygiene, not security\n\n`occupancy.ts` declares cooperating local processes with Byzantine behaviour an explicit non-goal, and the #3611 decision record forbids representing occupancy as same-user authentication. The same session id is already published in `.deft/occupancy.json`, `.deft/ritual-state.json`, the bind record body, and `.deft/swarm-launch-occupancy/*.json`, so the prefix was redundant rather than dangerous. The reason to remove it is that it is gratuitous.\n\n## The derived path is load-bearing; the prefix is not\n\n`sessionBindPath` computes the filename from the id, and `readBoundGeneration` plus `report.ts` open that path directly -- neither ever calls `readdir`. Lookup must therefore stay derivable from the id; an opaque random name would need an index and would break O(1) resolution. The 24-hex SHA-256 slice is already deterministic and unique, so dropping the prefix and keeping the hash preserves lookup exactly.\n\n## Existing records: tolerated, not migrated\n\nWrites always use the hash-only name. `readBoundGeneration` falls back to the pre-rename name (`legacySessionFileName`) when the hash-only record is absent, so pins written before the rename are not orphaned and the next bind supersedes them. The fallback is a second derived path, not a scan, so lookup stays O(1).\n\n## Coupling warning\n\nIf the JSON bodies under `.deft/` are ever tightened (say to `0600`) while prefixed bind filenames stay in place, the prefix stops being redundant and becomes independently load-bearing -- directory read permission alone would then recover an id that file permissions were meant to protect. That is a constraint on any future threat-model change, recorded in the `safeSessionFileName` docblock.\n\n## Out of scope\n\n- Occupancy admission semantics (#3611) and the cooperative-versus-authorization framing.\n- Unbounded growth of `.deft/session-binds` -- no prune or reaper exists. Real, and separate resource hygiene.\n- File permission modes on `.deft/` contents.\n\nRefs #3117, #3754, #3611."
+    },
+    "items": [
+      {
+        "title": "Bind record filenames no longer embed a recoverable prefix of the session id",
+        "status": "pending"
+      },
+      {
+        "title": "Lookup remains derivable from the id in O(1) -- no index, no directory scan",
+        "status": "pending"
+      },
+      {
+        "title": "Existing bind records either migrate or are tolerated; say which, and do not silently orphan freshness pins",
+        "status": "pending"
+      },
+      {
+        "title": "A comment or doc line records the coupling warning",
+        "status": "pending"
+      },
+      {
+        "title": "CHANGELOG `[Unreleased]` entry",
+        "status": "pending"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3768",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3768: chore(freshness): bind filenames embed a recoverable 32-char prefix of the session id"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3117",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3117: the freshness bind mechanism that owns this store"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3754",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3754: closed as not-a-defect; this scope was split from it"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3611",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3611: cooperative occupancy is not same-user authentication"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/freshness"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Bind record filenames no longer embed a recoverable prefix of the session id",
+          "artifact_path": "packages/core/src/freshness/bind.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Lookup remains derivable from the id in O(1) -- no index, no directory scan",
+          "artifact_path": "packages/core/src/freshness/bind.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Existing bind records are tolerated rather than migrated, and freshness pins written under the old name are not orphaned",
+          "artifact_path": "packages/core/src/freshness/bind.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "A comment or doc line records the permission-tightening coupling warning",
+          "artifact_path": "packages/core/src/freshness/bind.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "CHANGELOG \"[Unreleased]\" entry for #3768",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/freshness/bind.ts",
+          "packages/core/src/freshness/bind.test.ts",
+          "content/docs/freshness-contract.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/freshness (session bind record naming)",
+        "cohesion_exemption": "Rename of one derived filename inside the module that owns it, plus its test and the contract doc that prints the path. No new placement."
+      },
+      "capacityBucket": "defect-repair"
+    },
+    "updated": "2026-08-28T19:17:37Z"
+  }
+}
