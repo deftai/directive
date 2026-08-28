@@ -90,14 +90,28 @@ const FENCE_LINE_RE = /^ {0,3}(`{3,}|~{3,})(.*)$/;
 /** The last sentence break in a slice, and everything after it. */
 const LAST_SENTENCE_RE = /[.!?;][^.!?;]*$/;
 
+/** Everything up to the first sentence break. */
+const FIRST_SENTENCE_RE = /^[^.!?;]*/;
+
+/** The closed set of explicit negation markers the class recognises. */
+const NEGATION_MARKER =
+  "\\b(?:cannot|never|no longer" +
+  "|(?:do|does|did|is|are|was|were|has|have|had|will|would|shall|should|must|can|could|may|might)\\s+not" +
+  "|(?:do|does|did|is|are|was|were|has|have|had|wo|would|should|must|ca|could|sha)n['\\u2019]t)\\b";
+
 /**
  * Explicit negation of the citation itself, ending within three plain words of
  * the keyword. A bare marker anywhere in the sentence prefix is not enough: it
  * reads `without a doubt, successor lean N is accepted` and `not only successor
  * lean N but also the table` as refusals, which blocks a valid record.
  */
-const NEGATED_CITATION_RE =
-  /\b(?:cannot|never|no longer|(?:do|does|did|is|are|was|were|has|have|had|will|would|shall|should|must|can|could|may|might)\s+not|(?:do|does|did|is|are|was|were|has|have|had|wo|would|should|must|ca|could|sha)n['\u2019]t)\b(?:\s+[A-Za-z][A-Za-z'\u2019-]*){0,3}\s*$/i;
+const NEGATED_CITATION_RE = new RegExp(
+  `${NEGATION_MARKER}(?:\\s+[A-Za-z][A-Za-z'\\u2019-]*){0,3}\\s*$`,
+  "i",
+);
+
+/** The same markers, unanchored, for the complement clause after a citation. */
+const NEGATION_ANYWHERE_RE = new RegExp(NEGATION_MARKER, "i");
 
 /**
  * A negated verb of denial affirms the citation rather than refusing it, so the
@@ -110,8 +124,17 @@ const NEGATED_CITATION_RE =
  * determiner. `do not use that successor lean N` and the cleft `the record is
  * not that successor lean N` are genuine refusals, and both keep the negation
  * class. The anchor is the end of the sentence segment, so a second negation
- * inside the complement clause still binds: `we do not doubt that this does not
- * bind successor lean N` is refused.
+ * before the keyword still binds: `we do not doubt that this does not bind
+ * successor lean N` is refused.
+ *
+ * The carve-out only suspends a prefix rule that already fired; it never
+ * refuses on its own, so it cannot widen the refused set. It also does not
+ * accept the citation outright. The complement clause is what carries the
+ * claim, so a negation anywhere in the rest of that sentence keeps the refusal:
+ * `we do not doubt that successor lean N does not bind` says the lean does not
+ * bind. That scan runs to the sentence break rather than to a clause boundary,
+ * which refuses more than it strictly must inside this one carve-out -- the
+ * fail-closed direction, and every such body was already refused before it.
  */
 const DENIAL_COMPLEMENT_RE =
   /\b(?:den(?:y|ies|ied|ying)|doubt(?:s|ed|ing)?|disput(?:e|es|ed|ing)|contest(?:s|ed|ing)?|question(?:s|ed|ing)?)\s+that\s*$/i;
@@ -181,8 +204,10 @@ function isNegated(line: string, column: number): boolean {
   const before = line.slice(0, column);
   const tail = LAST_SENTENCE_RE.exec(before);
   const segment = tail === null ? before : before.slice(tail.index + 1);
-  if (DENIAL_COMPLEMENT_RE.test(segment)) return false;
-  return NEGATED_CITATION_RE.test(segment);
+  if (!NEGATED_CITATION_RE.test(segment)) return false;
+  if (!DENIAL_COMPLEMENT_RE.test(segment)) return true;
+  const after = line.slice(column);
+  return NEGATION_ANYWHERE_RE.test(FIRST_SENTENCE_RE.exec(after)?.[0] ?? after);
 }
 
 type FenceDelimiter = {

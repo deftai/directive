@@ -781,6 +781,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(grammar).toContain("The negation form is explicit");
     expect(grammar).toContain("A quote block also ends at a fence delimiter");
     expect(grammar).toContain("A negated verb of denial affirms the citation");
+    expect(grammar).toContain("That carve-out suspends a negation that already fired");
     expect(grammar).toContain(
       "⊗ Read a trailing `that` as the complement-clause signal on its own.",
     );

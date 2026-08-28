@@ -327,6 +327,24 @@ describe("scanCitations position predicate (#3831)", () => {
     expect(scan.citations).toEqual([]);
     expect(scan.rejected).toEqual([{ id: ID, reason: "negation" }]);
   });
+
+  it("reads a negated denial complement whose negation follows the citation", () => {
+    for (const body of [
+      `we do not doubt that successor lean ${ID} does not bind`,
+      `we cannot deny that successor lean ${ID} is not the bound contract`,
+      `it is not disputed that successor lean ${ID} no longer binds`,
+      `we could not contest that successor lean ${ID} doesn't bind`,
+    ]) {
+      expect(scanCitations(body).citations, body).toEqual([]);
+      expect(scanCitations(body).rejected, body).toEqual([{ id: ID, reason: "negation" }]);
+    }
+  });
+
+  it("keeps a denial complement whose next sentence carries an unrelated negation", () => {
+    expect(ids(`we cannot deny that successor lean ${ID} binds. The table is not stale.`)).toEqual([
+      ID,
+    ]);
+  });
 });
 
 describe("scanCitations diagnostics surface (#3831)", () => {
