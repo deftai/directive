@@ -11,7 +11,7 @@ import {
   type HookRegistrationRef,
   type HookRuntimeTravelSeams,
   inspectHookRuntimeTravel,
-  NON_PORTABLE_SPEC_PREFIXES,
+  LOCATION_SPEC_PREFIXES,
   RUNTIME_ANCHOR_MANIFEST,
 } from "./hook-runtime-travel.js";
 
@@ -139,13 +139,20 @@ describe("inspectHookRuntimeTravel", () => {
     expect(result.warning).toContain(`Fix: commit ${RUNTIME_ANCHOR_MANIFEST}`);
   });
 
-  // Greptile P1 on PR #3890: `readPin` reports the spec verbatim, so a
-  // location spec looked like an anchor. It resolves against something outside
-  // the tree, which is precisely what a clone does not have.
+  // Greptile P1 on PR #3890, twice: `readPin` reports the spec verbatim, so a
+  // location spec looked like an anchor. Denying four prefixes left the shapes
+  // below uncovered, and each uncovered shape silences the warning -- hence an
+  // allowlist of what a clone can actually fetch.
   it.each([
-    ...NON_PORTABLE_SPEC_PREFIXES,
-  ])("does not credit a committed `%s` spec as the runtime anchor", (prefix) => {
-    const spec = `${prefix}../directive`;
+    ...LOCATION_SPEC_PREFIXES.map((prefix) => `${prefix}../directive`),
+    "../directive",
+    "./vendor/directive",
+    "/opt/directive",
+    "~/dev/directive",
+    "C:\\src\\directive",
+    "C:/src/directive",
+    "deftai/directive#main",
+  ])("does not credit `%s` as the runtime anchor", (spec) => {
     const result = inspect(
       { tracked: [CURSOR_REGISTRATION, RUNTIME_ANCHOR_MANIFEST] },
       specPin(spec),
@@ -153,14 +160,21 @@ describe("inspectHookRuntimeTravel", () => {
 
     expect(result.runtimeTravels).toBe(false);
     expect(result.warning).toContain(`pins ${PIN_DEPENDENCY_NAME} to \`${spec}\``);
-    expect(result.warning).toContain("resolves only here");
+    expect(result.warning).toContain("no clone can install");
     expect(result.warning).toContain("Fix: pin");
   });
 
-  it("credits an npm alias: a clone installs it from the registry like any other spec", () => {
+  it.each([
+    "0.9.1",
+    "^0.9.0",
+    "latest",
+    "npm:@deftai/directive@0.9.1",
+    "https://registry.example.com/directive-0.9.1.tgz",
+    "git+https://github.com/deftai/directive.git#v0.9.1",
+  ])("credits `%s`: a clone can fetch it", (spec) => {
     const result = inspect(
       { tracked: [CURSOR_REGISTRATION, RUNTIME_ANCHOR_MANIFEST] },
-      specPin("npm:@deftai/directive@0.9.1"),
+      specPin(spec),
     );
 
     expect(result.runtimeTravels).toBe(true);

@@ -46,16 +46,55 @@ export const FAIL_CLOSED_HOOK_HOSTS: readonly HookHost[] = ["cursor"];
 export const RUNTIME_ANCHOR_MANIFEST = "package.json";
 
 /**
- * Spec prefixes that name a location instead of a published release. Each one
- * resolves against something outside the tree -- a path, a symlink target, a
- * workspace member -- so the clone that receives the registration cannot
- * install from it.
+ * Spec prefixes that name a location instead of a release. Each resolves
+ * against something outside the tree -- a path, a symlink target, a workspace
+ * member -- so the clone that receives the registration cannot install from it.
  */
-export const NON_PORTABLE_SPEC_PREFIXES = ["file:", "link:", "portal:", "workspace:"] as const;
+export const LOCATION_SPEC_PREFIXES = [
+  "file:",
+  "link:",
+  "portal:",
+  "workspace:",
+  "git+file:",
+] as const;
 
-function reconstitutesFromRegistry(rawSpec: string): boolean {
-  const spec = rawSpec.trim().toLowerCase();
-  return !NON_PORTABLE_SPEC_PREFIXES.some((prefix) => spec.startsWith(prefix));
+/** Prefixes any clone can fetch: a registry alias or a remote repository. */
+const REMOTE_SPEC_PREFIXES = [
+  "npm:",
+  "http:",
+  "https:",
+  "git:",
+  "git+http:",
+  "git+https:",
+  "git+ssh:",
+  "github:",
+  "gitlab:",
+  "bitbucket:",
+] as const;
+
+/**
+ * Whether a clone could install `deft-hook` from this spec.
+ *
+ * Allowlist, not denylist. Location forms are open-ended -- `file:`,
+ * `git+file:`, `../directive`, `/opt/directive`, `C:\src\directive`, `~/dev` --
+ * so enumerating them leaves the next shape uncovered, and an uncovered shape
+ * silences the warning. Anything that is not recognisably a registry release or
+ * a fetchable remote is therefore treated as not travelling. A bare
+ * `owner/repo` shorthand is refused on the same rule: it warns where the
+ * runtime might in fact arrive, which is the harmless direction for a
+ * warn-only probe.
+ */
+function reconstitutesForAClone(rawSpec: string): boolean {
+  const spec = rawSpec.trim();
+  if (spec.length === 0) return false;
+  const lower = spec.toLowerCase();
+  if (LOCATION_SPEC_PREFIXES.some((prefix) => lower.startsWith(prefix))) return false;
+  if (REMOTE_SPEC_PREFIXES.some((prefix) => lower.startsWith(prefix))) return true;
+  // Bare paths: relative, home-anchored, POSIX-absolute, or a Windows drive.
+  if (/^[.~/\\]/.test(spec) || /^[a-z]:[\\/]/i.test(spec)) return false;
+  // Anything else with a separator is a path or a repository shorthand, not a
+  // version, a range, or a dist-tag.
+  return !(spec.includes("/") || spec.includes("\\"));
 }
 
 export type GitLsFilesProbe = (projectDir: string, paths: readonly string[]) => string | null;
@@ -150,7 +189,7 @@ type AnchorState =
   | { readonly kind: "absent" }
   /** Declared, but the manifest is not in the index. */
   | { readonly kind: "uncommitted" }
-  /** Declared and committed, but pinned to something only this machine has. */
+  /** Declared, but pinned to something a clone cannot install from. */
   | { readonly kind: "non-portable"; readonly spec: string };
 
 function causeLine(anchor: AnchorState): string {
@@ -158,7 +197,7 @@ function causeLine(anchor: AnchorState): string {
     return `  ${RUNTIME_ANCHOR_MANIFEST} declares ${PIN_DEPENDENCY_NAME} but is not committed, so a fresh`;
   }
   if (anchor.kind === "non-portable") {
-    return `  ${RUNTIME_ANCHOR_MANIFEST} pins ${PIN_DEPENDENCY_NAME} to \`${anchor.spec}\`, which resolves only here, so a fresh`;
+    return `  ${RUNTIME_ANCHOR_MANIFEST} pins ${PIN_DEPENDENCY_NAME} to \`${anchor.spec}\`, which no clone can install, so a fresh`;
   }
   return `  No ${RUNTIME_ANCHOR_MANIFEST} dependency on ${PIN_DEPENDENCY_NAME} travels with this tree, so a fresh`;
 }
@@ -181,7 +220,7 @@ function resolveAnchorState(
   if (spec === null) return { kind: "absent" };
   // A location spec never anchors, committed or not: naming where the runtime
   // lives on this machine tells a clone nothing it can install from.
-  if (!portable) return { kind: "non-portable", spec };
+  if (!portable) return { kind: "non-portable", spec: spec.trim() };
   if (report.untracked.has(RUNTIME_ANCHOR_MANIFEST)) return { kind: "uncommitted" };
   return { kind: "absent" };
 }
@@ -256,7 +295,7 @@ export function inspectHookRuntimeTravel(
   // `npm install` resolves the runtime. A location spec does not reconstitute
   // at all, so it is not an anchor even when committed.
   const spec = pin.rawSpec;
-  const portable = spec !== null && reconstitutesFromRegistry(spec);
+  const portable = spec !== null && reconstitutesForAClone(spec);
   const runtimeTravels = portable && report.tracked.has(RUNTIME_ANCHOR_MANIFEST);
   const anchor = resolveAnchorState(spec, portable, report);
 

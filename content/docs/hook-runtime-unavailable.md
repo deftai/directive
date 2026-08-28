@@ -28,7 +28,7 @@ That sets `plan.policy.hostHooks.cursor = false` in `xbrief/PROJECT-DEFINITION.x
 
 If Cursor is a host you rely on, restore the runtime rather than removing the fence. Either:
 
-- commit a `package.json` dependency on `@deftai/directive` — a published version, since a `file:` / `link:` / `portal:` / `workspace:` spec resolves only on the machine that wrote it — and run `npm install` in the image or clone, which puts `deft-hook` in `node_modules/.bin`; or
+- commit a `package.json` dependency on `@deftai/directive` — a published version or another spec a clone can fetch, since a location spec (`file:`, `link:`, `../directive`, an absolute path) resolves only on the machine that wrote it — and run `npm install` in the image or clone, which puts `deft-hook` in `node_modules/.bin`; or
 - add `npm i -g @deftai/directive` to the image build.
 
 `deft init` and `deft update` warn when a hook registration travels with the repository — already committed, or merely untracked and not ignored, so the next `git add` carries it — while neither anchor is present. The warning names the affected file and this document.
