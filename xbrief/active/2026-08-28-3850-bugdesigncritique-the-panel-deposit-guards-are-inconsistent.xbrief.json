@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for GitHub issue #3850",
-    "updated": "2026-08-28T16:25:17Z"
+    "updated": "2026-08-28T16:25:23Z"
   },
   "plan": {
     "title": "bug(design-critique): the panel-deposit guards are inconsistent prose, and panel completeness has no executable consumer",
@@ -15,23 +15,23 @@
     },
     "items": [
       {
-        "title": "All seven loci carry consistent, deposit-independent phrasing for the sibling-completeness conjunct",
+        "title": "All seven bind guards in the contract read \"no unposted same-round siblings remain\" or \"same-round siblings remain unposted\", the deposit-independent wording that already existed",
         "status": "proposed"
       },
       {
-        "title": "The contract states explicitly that panel completeness is a parent obligation with no machine enforcement",
+        "title": "The contract states \"Panel completeness is behavioural.\" and that \"nothing machine-checks it\", so no reader infers a gate that is not there",
         "status": "proposed"
       },
       {
-        "title": "The content-contract test is updated for any changed pinned strings, and no new predicate is introduced",
+        "title": "The content-contract test pins \"no unposted same-round siblings remain\" and \"Panel completeness is locked as contract text only\", and introduces no new predicate",
         "status": "proposed"
       },
       {
-        "title": "No gate anywhere reads deposit contents",
+        "title": "No gate anywhere reads panel-deposit contents",
         "status": "proposed"
       },
       {
-        "title": "CHANGELOG `[Unreleased]` entry",
+        "title": "CHANGELOG [Unreleased] entry: the contract now \"guards sibling completeness the same way in all seven places\"",
         "status": "proposed"
       }
     ],
@@ -58,40 +58,41 @@
     ],
     "acceptance": {
       "commands": [],
-      "none_stated": false,
-      "source_rung": "literal",
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "issue #3850 states its acceptance in prose and names no verification commands; 5 independently testable clauses transcribed from the recut body and bound to the shipped artifacts before product edit (#3323)",
       "clauses": [
         {
           "id": 1,
-          "text": "All seven loci carry consistent, deposit-independent phrasing for the sibling-completeness conjunct",
+          "text": "All seven bind guards in the contract read \"no unposted same-round siblings remain\" or \"same-round siblings remain unposted\", the deposit-independent wording that already existed",
           "artifact_path": "content/contracts/design-critique.md",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
-          "text": "The contract states explicitly that panel completeness is a parent obligation with no machine enforcement",
+          "text": "The contract states \"Panel completeness is behavioural.\" and that \"nothing machine-checks it\", so no reader infers a gate that is not there",
           "artifact_path": "content/contracts/design-critique.md",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
-          "text": "The content-contract test is updated for any changed pinned strings, and no new predicate is introduced",
+          "text": "The content-contract test pins \"no unposted same-round siblings remain\" and \"Panel completeness is locked as contract text only\", and introduces no new predicate",
           "artifact_path": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 4,
-          "text": "No gate anywhere reads deposit contents",
+          "text": "No gate anywhere reads panel-deposit contents",
           "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 5,
-          "text": "CHANGELOG `[Unreleased]` entry",
+          "text": "CHANGELOG [Unreleased] entry: the contract now \"guards sibling completeness the same way in all seven places\"",
           "artifact_path": "CHANGELOG.md",
           "ambiguous": false,
           "provenance": "statement"
@@ -107,8 +108,5 @@
       }
     },
     "updated": "2026-08-28T16:25:17Z"
-  },
-  "vBRIEFInfo": {
-    "updated": "2026-08-28T16:25:23Z"
   }
 }
