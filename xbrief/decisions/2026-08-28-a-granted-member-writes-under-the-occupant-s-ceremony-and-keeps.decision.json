@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "a-granted-member-writes-under-the-occupant-s-ceremony-and-keeps-",
+  "decision": "A granted member writes under the occupant's ceremony and keeps the lease alive: the composite hook gate measures the verified ritual owner against the occupant that issued the grant, and a member's gated write re-stamps heartbeat_at and last_write_at on the owner's floor.",
+  "governingRule": {
+    "description": "Occupancy is a cooperative bearer-id boundary: the lease names who may write, and administration stays with one owner (#3755).",
+    "path": "content/commands.md",
+    "rfc2119": null
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Keep membership at the occupancy layer only and leave the hook gate owner-exact (shipped first; Greptile P1 showed the grant then authorized no reachable write)."
+    },
+    {
+      "option": "Admit members but never refresh on their writes (shipped first; Greptile P1 showed a quiet owner costs an actively-writing child its worktree)."
+    }
+  ],
+  "whyWinner": "Ritual state is single-owner and a child cannot bind its own while the owner's lease is live, so requiring the writer's own binding made every grant authorize nothing; and a tree an admitted child is actively writing is in use, so letting the lease lapse hands the worktree to a peer mid-edit. Both bounds still hold: claimed_at is untouched by refresh, so the 12-hour cap is unmoved, and the grant expires on its own clock.",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "packages/core/src/session/occupancy.ts",
+    "packages/core/src/hooks/dispatcher.ts"
+  ],
+  "timestamp": "2026-08-28T22:04:50Z",
+  "revisitTrigger": "When ritual-state serialization (#3872) lands, revisit whether a member should hold its own ritual binding instead of writing under the occupant's.",
+  "tags": [
+    "occupancy",
+    "session",
+    "boundaries"
+  ]
+}
