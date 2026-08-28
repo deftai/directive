@@ -1916,4 +1916,76 @@ describe("explicit lease membership (#3755)", () => {
       "member",
     );
   });
+  it("admits a granted member's write through the composite hook gate", () => {
+    const now = new Date();
+    const root = ownedRitualRepo(MEMBERSHIP_OWNER, now);
+    applyWorktreeOccupancy(root, { sessionId: MEMBERSHIP_OWNER, intent: "mutation", now });
+    grantOccupancyMembership(root, {
+      sessionId: MEMBERSHIP_OWNER,
+      childSessionId: MEMBERSHIP_CHILD,
+      role: "leaf-implementation",
+      now,
+    });
+    const seams = {
+      ritualRunner: () => ({ code: 0, stdout: "hooks ready", stderr: "" }),
+      inspectScope: () => ({
+        ready: true,
+        path: "xbrief/active/story.xbrief.json",
+        message: "OK active scope",
+      }),
+    };
+    const write = {
+      host: "grok" as const,
+      event: "tool.before" as const,
+      projectRoot: root,
+      payload: { toolName: "Write", file_path: join(root, "src", "app.ts") },
+    };
+
+    // Ritual state is single-owner, so the child writes under the owner's
+    // ceremony; without the member rule this denies as occupancy-ritual-mismatch
+    // and the grant authorizes nothing.
+    const member = decideHook({ ...write, environ: { DEFT_SESSION_ID: MEMBERSHIP_CHILD } }, seams);
+    const stranger = decideHook({ ...write, environ: { DEFT_SESSION_ID: "drifter" } }, seams);
+
+    expect(member.verdict).toBe("allow");
+    expect(stranger).toMatchObject({ verdict: "deny", code: "occupancy-occupied" });
+    expect(readRitualState(root)[0]?.sessionId).toBe(MEMBERSHIP_OWNER);
+  });
+
+  it("denies the same child once its grant is revoked", () => {
+    const now = new Date();
+    const root = ownedRitualRepo(MEMBERSHIP_OWNER, now);
+    applyWorktreeOccupancy(root, { sessionId: MEMBERSHIP_OWNER, intent: "mutation", now });
+    grantOccupancyMembership(root, {
+      sessionId: MEMBERSHIP_OWNER,
+      childSessionId: MEMBERSHIP_CHILD,
+      role: "leaf-implementation",
+      now,
+    });
+    revokeOccupancyMembership(root, {
+      sessionId: MEMBERSHIP_OWNER,
+      childSessionId: MEMBERSHIP_CHILD,
+      now,
+    });
+
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: { toolName: "Write", file_path: join(root, "src", "app.ts") },
+        environ: { DEFT_SESSION_ID: MEMBERSHIP_CHILD },
+      },
+      {
+        ritualRunner: () => ({ code: 0, stdout: "hooks ready", stderr: "" }),
+        inspectScope: () => ({
+          ready: true,
+          path: "xbrief/active/story.xbrief.json",
+          message: "OK active scope",
+        }),
+      },
+    );
+
+    expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-occupied" });
+  });
 });

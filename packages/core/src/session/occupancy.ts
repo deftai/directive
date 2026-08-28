@@ -15,8 +15,9 @@
  * steal, heartbeat and cohort close-out stay owner-only, so a grant cannot be
  * spent on the lease itself. Child-initiated join queuing stays out of scope —
  * the owner issues membership; the child does not request it. Ritual state is
- * still single-owner and a grant does not extend it (#3872), so the composite
- * hook write gate keeps requiring a ritual owner that matches the writer.
+ * still single-owner, so a member writes under the occupant's ceremony: the
+ * composite hook write gate measures the tree's verified ritual owner against
+ * the occupant that issued the grant, not against the writer.
  *
  * Concurrency model:
  * - Assumptions: local filesystem; cooperating processes on one machine.

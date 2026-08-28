@@ -1118,7 +1118,12 @@ function inspectMutationGates(
 
   const actor = isSpawnTool(toolName) ? null : resolveMutationActor(input, environ);
   const occupancyGate = isSpawnTool(toolName)
-    ? { allow: true, message: null as string | null, occupant: null }
+    ? {
+        allow: true,
+        message: null as string | null,
+        occupant: null,
+        admitted: null as "owner" | "member" | null,
+      }
     : evaluateOccupancyWriteGate(effectiveRoot, {
         sessionId: actor?.sessionId,
         // Payload-supported hosts must not fall back to a stale ambient owner.
@@ -1244,7 +1249,14 @@ function inspectMutationGates(
     );
   }
   if (occupancyGate.occupant !== null && actor !== null) {
-    const expectedOwner = actor.sessionId;
+    // A granted member writes under the owner's ceremony (#3755). Ritual state
+    // is single-owner and a child cannot bind its own while the owner's lease is
+    // live, so requiring the writer's own binding would make every admitted
+    // member's write unreachable — the grant would authorize nothing. What is
+    // checked instead is the identity that issued the grant: the tree's exact
+    // verified ritual owner must be the occupant whose lease admits this member.
+    const expectedOwner =
+      occupancyGate.admitted === "member" ? occupancyGate.occupant.sessionId : actor.sessionId;
     const verifiedOwner = ritual.boundSessionId;
     const ritualOwnerMismatch =
       expectedOwner !== undefined &&
@@ -1334,16 +1346,22 @@ function inspectMutationGates(
           rootsNote,
       );
     }
+    // Same member rule as the pre-gate check above (#3755): an admitted member
+    // is measured against the occupant that granted it, not against itself.
+    const finalExpectedOwner =
+      finalOccupancy.admitted === "member" && finalOccupancy.occupant !== null
+        ? finalOccupancy.occupant.sessionId
+        : actor.sessionId;
     if (
       finalOccupancy.occupant !== null &&
-      actor.sessionId !== undefined &&
-      ritual.boundSessionId !== actor.sessionId
+      finalExpectedOwner !== undefined &&
+      ritual.boundSessionId !== finalExpectedOwner
     ) {
       return deny(
         input,
         "occupancy-ritual-mismatch",
         toolName,
-        `Directive denied ${toolName}: final lease owner ${actor.sessionId} does not match ` +
+        `Directive denied ${toolName}: final lease owner ${finalExpectedOwner} does not match ` +
           `the exact verified ritual owner ${ritual.boundSessionId ?? "<unbound>"}. ` +
           "Run `deft session:start --rearm --session-id=<same-session-id>` when re-arm is eligible; " +
           "otherwise run `deft session:start --session-id=<same-session-id>` for a cold ceremony." +
