@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3826. Intentional divergence (D12): comment 5448680655 postdates ingest. Read and assessed — it withdraws the claim that #3819's brief is uncommittable because the walk fails (a done-time walk failing pre-work is normal) and narrows the damage to its 2 `failed` clauses bound to paths nothing will ship. The bound contract in successor lean 5448167030 is unchanged; no brief text refreshed from origin.",
-    "updated": "2026-08-28T05:22:00Z"
+    "updated": "2026-08-28T06:00:09Z"
   },
   "plan": {
     "title": "bug(intake): clause derivation falls through to thread-scraping while an acceptance surface sits unread in item.title",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(intake): clause derivation falls through to thread-scraping while an acceptance surface sits unread in item.title",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3826",
@@ -17,7 +17,7 @@
     "items": [
       {
         "title": "Derivation reads `item.title` when `narrative` is empty, and prefers a present `plan.items` acceptance surface over thread scraping",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/verify-ac/clauses.test.ts :: \"collectPlanItemAcceptanceSurface (#3826) > reads item.title when narrative is empty and prefers narrative.Acceptance when set\" and \"deriveAcceptanceClauses prefers a declared item surface (#3826) > uses plan.items instead of scraping an acceptance heading out of the thread\"; statement side pinned by packages/core/src/intake/clause-derivation.test.ts :: \"collectTaskStatementFromPlan (#3360) > reads item.title when the item narrative is empty (#3826)\"",
@@ -27,7 +27,7 @@
       },
       {
         "title": "The #3794 brief derives a clause set that passes `verify:ac` and can be committed",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/verify-ac/clauses.test.ts :: \"deriveAcceptanceClauses prefers a declared item surface (#3826) > derives a zero-failed clause set from a #3794-shaped brief\". Measured against the live untracked brief: re-derivation goes from 58 clauses / 55 failed to 13 clauses / 0 failed. Committability is `failed === 0` per the operator's correction in comment 5448680655; the walk still reports 0 verified pre-work, which that comment records as the benign done-time-gate shape and which this change deliberately does not weaken (#3156)",
@@ -37,7 +37,7 @@
       },
       {
         "title": "An absent artifact no longer yields `verified` on prose alone",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/verify-ac/clauses.test.ts :: \"absent artifacts do not verify on prose alone (#3826) > reports unverifiable, not verified, when a prose negation names no bound absence\" (reproduces the #3794 clause-55 `git.ts` shape); the exists-and-contradicts half stays `failed` per \"walkAcceptanceClauses (#3323) > fails a negated clause the artifact contradicts and cannot verify absence\"",
@@ -47,7 +47,7 @@
       },
       {
         "title": "The `ok` predicate does not pass on a false-positive `verified`",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/verify-ac/clauses.test.ts :: \"absent artifacts do not verify on prose alone (#3826) > does not let a false-positive verified satisfy the ok predicate\" — asserts failed === 0, verified === 0, ok === false, so the `verified > 0` conjunct is no longer satisfiable by an absent-artifact prose match",
@@ -57,7 +57,7 @@
       },
       {
         "title": "No clause-count cap is introduced",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/verify-ac/clauses.test.ts :: \"deriveAcceptanceClauses prefers a declared item surface (#3826) > introduces no clause-count cap: a declared surface of 40 yields 40 clauses\" (also 30 path-bearing statement bullets yield 30 clauses); no threshold constant added in packages/core/src/verify-ac/clauses.ts",
@@ -67,7 +67,7 @@
       },
       {
         "title": "Regression pins the #3794 shape: three primary extractors returning zero must not silently produce a thread-scraped surface",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/verify-ac/clauses.test.ts :: \"deriveAcceptanceClauses prefers a declared item surface (#3826) > pins the #3794 shape: three primary extractors returning zero does not scrape the thread\" — asserts the fallback fires without a declared surface and is bypassed with one",
@@ -77,7 +77,7 @@
       },
       {
         "title": "Existing briefs are not retroactively invalidated",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/intake/clause-derivation.test.ts :: \"applyClauseDerivationToPlan prefers the declared item surface (#3826) > leaves an already-stamped brief untouched (#3826 item 7)\". Corpus measurement across 1409 briefs (115 carrying clauses): the absence-verified outcome appears on 2 briefs and flips `ok` on 0",
@@ -87,7 +87,7 @@
       },
       {
         "title": "CHANGELOG `[Unreleased]` entry",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "review",
           "pointer": "CHANGELOG.md `[Unreleased]` > `### Fixed` — \"An issue's own acceptance list is now what gates it, instead of prose scraped out of its comment thread (#3826)\"",
@@ -135,7 +135,32 @@
         "schema": "deft.scope.intended_placement.v1",
         "files": [],
         "module_boundary": ""
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3840,
+        "prBase": null,
+        "mergeCommit": "36929de014c40b9416e7fc84b3d287f5f3c90fed",
+        "deliveryBranch": "master",
+        "deliveryCommit": "36929de014c40b9416e7fc84b3d287f5f3c90fed",
+        "verifiedAt": "2026-08-28T06:00:09Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "79f75392-bc6d-4ca8-a575-d7e24f4ddf5e"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-28T06:00:09Z"
+      },
+      "completedAt": "2026-08-28T06:00:09Z",
+      "completedSessionId": "79f75392-bc6d-4ca8-a575-d7e24f4ddf5e",
+      "capacityBucket": "new-capability"
     },
     "acceptance": {
       "commands": [],
@@ -202,6 +227,6 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-08-28T05:05:46Z"
+    "updated": "2026-08-28T06:00:09Z"
   }
 }
