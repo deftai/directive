@@ -628,6 +628,29 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(ceiling).toContain("No code observes them.");
     expect(ceiling).toContain("nothing machine-checks it");
     expect(testSurface).toContain("Panel completeness is locked as contract text only");
+    // #3850: presence anywhere in a section is not enough — one bind guard can
+    // regress to the deposit-qualified wording while a sibling occurrence keeps
+    // the substring assertion green. Pin the superseded qualifiers out of the
+    // document and anchor each of the seven guards to its own sentence.
+    expect(text).not.toContain("named on the panel-deposit");
+    expect(text).not.toContain("panel-deposit for this round");
+    const substantiation = markdownSection(text, "## Parent-side substantiation");
+    expect(lean).toContain(
+      "It does not auto-stamp synthesis or `design-critique:triage-ready` while same-round siblings remain unposted.",
+    );
+    expect(substantiation).toContain(
+      "AND no unposted same-round siblings remain. This conjunct applies at Operator verbs auto-stamp",
+    );
+    expect(verbs).toContain(
+      "AND no unposted same-round siblings remain: parent auto-posts the verified-claims table",
+    );
+    expect(verbs).toContain(
+      "AND no unposted same-round siblings remain, the auto-table + auto-stamp path runs",
+    );
+    expect(bind).toContain(
+      "AND no unposted same-round siblings remain, parent posts `design-critique: synthesis accepted",
+    );
+    expect(bind).toContain("or while same-round siblings remain unposted.");
     const skill = readText(SKILL_REL);
     expect(skill).toContain("After critic post: posted successor lean, then verbs");
     expect(skill).toContain(
