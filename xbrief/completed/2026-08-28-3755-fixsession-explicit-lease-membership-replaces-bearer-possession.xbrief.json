@@ -1,0 +1,195 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Explicit lease membership for dispatched children, owner-only administration, and honest boundary naming. Issue #3755 with its accepted round-2 synthesis is SoT.",
+    "updated": "2026-08-28T21:52:40Z"
+  },
+  "plan": {
+    "id": "issue-3755-lease-membership",
+    "title": "explicit lease membership replaces bearer-string possession",
+    "status": "completed",
+    "narratives": {
+      "Description": "The occupancy lease admits any process presenting the owner session string, and nothing says so. Replace accidental possession with explicit membership: administration stays owner-only, a dispatched child gets a recorded grant, and write admission accepts the owner or a valid member.",
+      "Origin": "GitHub issue #3755, spun out of the #3613 occupancy cluster. Two arcs ran. Arc 1's decision was withdrawn. Arc 2's round-2 panel of three refuted it 3 of 3 and the operator adopted the panel shape at comment 5428178049. Synthesis accepted at 5456036084 with verified-claims table 5456035926. Chip design-critique:triage-ready.",
+      "Overview": "Bound shape: one lease owner for release, steal, heartbeat-as-administration and cohort close-out; explicit membership or grant for a dispatched child carrying owner id, child id, worktree, role and expiry; write admission accepting owner or valid member; honest naming as a cooperative bearer-id boundary until membership exists; and reuse of the parked OCCUPANCY_JOIN_PROTOCOLS, the per-actor host and address fields, and occupancy:request rather than a parallel mechanism.",
+      "UserStory": "As the owner of a worktree lease, I want a dispatched child to hold a recorded grant rather than my session string, so that a write stays attributable to whoever actually made it.",
+      "When": "When a child is dispatched, a grant records owner id, child id, worktree, role and expiry; when a write arrives, admission accepts the owner or a valid unexpired member and refuses anything else; when an administrative verb is called, only the owner may run it; when documentation describes the boundary, it says cooperative bearer-id rather than lineage.",
+      "LockedDecisions": "The withdrawn arc-1 decision -- a child inherits the holder's rights, exclusion is between lineages -- MUST NOT be implemented. It failed on three measured grounds: administration is not mutation and same-string callers can already release a live lease; payload-authoritative hosts discard DEFT_SESSION_ID entirely so the inheritance premise is false on the deciding host; and lineage is not a type on the record, so the word converted accidental possession into ancestry. Reuse parked machinery rather than inventing: OCCUPANCY_JOIN_PROTOCOLS, per-actor host and address fields, occupancy:request. occupancy.ts records join negotiation as out of scope, so unparking it is a coordination point with the shipped #3599 work. Ritual-state locking is #3872 and is out of scope here. The absolute 12-hour lease age cap already exists and must not be weakened.",
+      "ImplementationPlan": "1) Add the grant or membership record with its five fields and expiry, reusing the parked join-protocol surface. 2) Split admission: owner-or-member for writes, owner-only for release, steal, heartbeat-as-administration and cohort close-out. 3) Correct the boundary language in the module and in commands.md to cooperative bearer-id. 4) Tests and CHANGELOG. Closes #3755.",
+      "OriginDivergence": "The brief deliberately declares no swarm file_scope: verify:scope-provenance fails closed on a declared scope without an operator-minted digest on the merge base, which a worker cannot obtain without forging a human gate. Filed as #3874. Intended files are named in ImplementationPlan and intended_placement instead. Also note an audit answered during the arc: children get their own worktree because the dispatch envelope sets it, not because anything enforces it, so same-tree dispatch stays reachable and membership must not assume otherwise."
+    },
+    "items": [
+      {
+        "title": "Grant record with owner, child, worktree, role and expiry",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts#explicit lease membership (#3755) > records owner, child, worktree, role and expiry for a dispatched child",
+          "recorded_at": "2026-08-28T21:47:45Z",
+          "recorded_by": "agent:swarm/3755-lease-membership"
+        },
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When a child is granted access to a lease, the record carries owner id, child id, worktree, role and expiry, and an expired grant is refused on read.",
+          "Acceptance": "When a child is granted access to a lease, the record carries owner id, child id, worktree, role and expiry, and an expired grant is refused on read."
+        }
+      },
+      {
+        "title": "Admission splits owner-only administration from owner-or-member writes",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts#explicit lease membership (#3755) > admits the owner or a valid member and refuses anyone else",
+          "recorded_at": "2026-08-28T21:47:45Z",
+          "recorded_by": "agent:swarm/3755-lease-membership"
+        },
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "When": "When release, steal, heartbeat-as-administration or cohort close-out is called by a non-owner it is refused; when a write arrives from the owner or a valid unexpired member it is admitted; when it arrives from anyone else it is refused.",
+          "Acceptance": "When release, steal, heartbeat-as-administration or cohort close-out is called by a non-owner it is refused; when a write arrives from the owner or a valid unexpired member it is admitted; when it arrives from anyone else it is refused."
+        }
+      },
+      {
+        "title": "Boundary named honestly in module and docs, plus CHANGELOG",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/occupancy_membership_docs.test.ts#occupancy boundary naming (#3755) > names the module boundary as cooperative bearer-id rather than lineage",
+          "recorded_at": "2026-08-28T21:47:45Z",
+          "recorded_by": "agent:swarm/3755-lease-membership"
+        },
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the occupancy module and commands.md are read, they describe a cooperative bearer-id boundary rather than a lineage, and CHANGELOG Unreleased carries one line.",
+          "Acceptance": "When the occupancy module and commands.md are read, they describe a cooperative bearer-id boundary rather than a lineage, and CHANGELOG Unreleased carries one line."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3755",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3755"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3613",
+        "type": "x-xbrief/refs",
+        "title": "Tracker #3613"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3755#issuecomment-5428178049",
+        "type": "x-xbrief/refs",
+        "title": "Revised operator decision adopting the panel shape"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3755#issuecomment-5456036084",
+        "type": "x-xbrief/refs",
+        "title": "Synthesis-accepted bind line"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3872",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3872 ritual-state locking, out of scope here"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/session"
+        ],
+        "expected_outputs": [
+          "grant record with five fields and expiry",
+          "owner-only administration, owner-or-member writes",
+          "cooperative bearer-id language in module and docs"
+        ],
+        "depends_on": [],
+        "conflict_group": "session-occupancy-3755",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "high",
+        "missing_traces_justification": [
+          "file_scope deliberately undeclared: verify:scope-provenance fails closed without an operator-minted digest a worker cannot obtain (#3874).",
+          "Ritual-state locking is #3872, out of scope."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/session/occupancy.ts",
+          "packages/core/src/session/occupancy.test.ts",
+          "content/commands.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/session",
+        "cohesion_exemption": "CHANGELOG.md and commands.md may exceed FILE_SIZE_REVIEW_TRIGGER_LINES."
+      },
+      "capacityBucket": "defect-repair",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3879,
+        "prBase": null,
+        "mergeCommit": "b5bdd6de7c2a33d9aa040b10f7be7745c31b325c",
+        "deliveryBranch": "master",
+        "deliveryCommit": "b5bdd6de7c2a33d9aa040b10f7be7745c31b325c",
+        "verifiedAt": "2026-08-28T21:52:40Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "37de507d-9c68-4734-9a53-787af85fffaf"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-28T21:52:40Z"
+      },
+      "completedAt": "2026-08-28T21:52:40Z",
+      "completedSessionId": "37de507d-9c68-4734-9a53-787af85fffaf"
+    },
+    "updated": "2026-08-28T21:52:40Z",
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When a child is granted access to a lease, the record carries owner id, child id, worktree, role and expiry, and an expired grant is refused on read.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When release, steal, heartbeat-as-administration or cohort close-out is called by a non-owner it is refused; when a write arrives from the owner or a valid unexpired member it is admitted; when it arrives from anyone else it is refused.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When the occupancy module and commands.md are read, they describe a cooperative bearer-id boundary rather than a lineage, and CHANGELOG Unreleased carries one line.",
+          "artifact_path": "content/commands.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    }
+  },
+  "vBRIEFInfo": {
+    "version": "0.8",
+    "updated": "2026-08-28T21:52:40Z"
+  }
+}
