@@ -37,9 +37,22 @@ function fixture(): { primary: string; wtA: string; wtB: string; foreign: string
   return { primary, wtA, wtB, foreign };
 }
 
+/** The swarm layout: a linked worktree under `<primary>/.deft-scratch/worktrees/`. */
+function nestedFixture(): { primary: string; nested: string } {
+  const base = mkdtempSync(join(tmpdir(), "cli-3794-nested-"));
+  temps.push(base);
+  const primary = join(base, "primary");
+  initRepo(primary);
+  const nested = join(primary, ".deft-scratch", "worktrees", "story");
+  mkdirSync(join(primary, ".deft-scratch", "worktrees"), { recursive: true });
+  git(primary, ["worktree", "add", "--detach", "-q", nested]);
+  return { primary, nested };
+}
+
 function dispatchWrite(opts: { primary: string; target: string }): {
   code: number;
   body: Record<string, unknown>;
+  raw: string;
 } {
   const out: string[] = [];
   const exit = run(["--host=grok", "--event=tool.before"], {
@@ -55,8 +68,9 @@ function dispatchWrite(opts: { primary: string; target: string }): {
     stdinEmptyRetryMs: 0,
   });
   const raw = out.join("").trim();
-  const body = JSON.parse(raw) as Record<string, unknown>;
-  return { code: exit, body };
+  // An allowed write leaves the host output empty; only a deny emits a body.
+  const body = raw.length === 0 ? {} : (JSON.parse(raw) as Record<string, unknown>);
+  return { code: exit, body, raw };
 }
 
 describe("deposited hook CLI without --project-root (#3794)", () => {
@@ -97,5 +111,30 @@ describe("deposited hook CLI without --project-root (#3794)", () => {
     expect(refusedMsg).toContain("different Git repository");
     expect(refusedMsg.toLowerCase()).toContain(resolve(primary).toLowerCase());
     expect(refusedMsg.toLowerCase()).toContain(resolve(foreign).toLowerCase());
+  });
+});
+
+describe("assist-scratch reclassification through the deposited CLI (#3794)", () => {
+  it("stops treating worktree product files as disposable scratch", () => {
+    const { primary, nested } = nestedFixture();
+    const previous = process.env.DEFT_SESSION_POSTURE;
+    process.env.DEFT_SESSION_POSTURE = "assist";
+    try {
+      const product = dispatchWrite({
+        primary,
+        target: join(nested, "packages", "core", "src", "app.ts"),
+      });
+      expect(String(product.body.reason ?? "")).not.toContain("assist scratch");
+      expect(product.body.decision).toBe("deny");
+
+      const scratch = dispatchWrite({
+        primary,
+        target: join(nested, ".deft-scratch", "notes.md"),
+      });
+      expect(scratch.body.decision).not.toBe("deny");
+    } finally {
+      if (previous === undefined) delete process.env.DEFT_SESSION_POSTURE;
+      else process.env.DEFT_SESSION_POSTURE = previous;
+    }
   });
 });

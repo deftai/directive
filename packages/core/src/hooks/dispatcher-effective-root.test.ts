@@ -60,6 +60,41 @@ function linkedFixture(): { primary: string; wtA: string; wtB: string; foreign: 
   return { primary, wtA, wtB, foreign };
 }
 
+/**
+ * The swarm layout: a linked worktree under `<primary>/.deft-scratch/worktrees/`.
+ * Relative to the primary every file in it reads as an assist-scratch path, and
+ * it is inside the payload root so the #2885 outside-root skip does not apply.
+ */
+function nestedWorktreeFixture(): { primary: string; nested: string } {
+  const base = mkdtempSync(join(tmpdir(), "hook-3794-nested-"));
+  temps.push(base);
+  const primary = join(base, "primary");
+  initRepo(primary);
+  const nested = join(primary, ".deft-scratch", "worktrees", "story");
+  mkdirSync(join(primary, ".deft-scratch", "worktrees"), { recursive: true });
+  git(primary, ["worktree", "add", "--detach", "-q", nested]);
+  return { primary, nested };
+}
+
+/** Ready only for `readyRoot`; every other tree reports no active scope. */
+function scopeSeams(readyRoot: string | null): {
+  scopeRoots: string[];
+  seams: HookPolicySeams;
+} {
+  const scopeRoots: string[] = [];
+  return {
+    scopeRoots,
+    seams: {
+      verifyRitual: () => ({ ...READY_RITUAL, boundSessionId: "owner" }),
+      inspectScope: (root) => {
+        scopeRoots.push(resolve(root));
+        if (readyRoot !== null && resolve(root) === resolve(readyRoot)) return READY_SCOPE;
+        return { ready: false, path: null, message: "no active scope xBRIEF" };
+      },
+    },
+  };
+}
+
 function recordingSeams(sessionId?: string): {
   ritualRoots: string[];
   scopeRoots: string[];
@@ -200,7 +235,7 @@ describe("direct-write occupancy/ritual follow the target worktree (#3794)", () 
     );
     expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
     expect(ritualRoots).toEqual([resolve(wtA)]);
-    expect(scopeRoots).toEqual([resolve(primary)]);
+    expect(scopeRoots).toEqual([resolve(wtA)]);
   });
 
   it("denies a foreign target-worktree lease and names both roots", () => {
@@ -244,7 +279,7 @@ describe("direct-write occupancy/ritual follow the target worktree (#3794)", () 
     );
     expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
     expect(ritualRoots).toEqual([resolve(wtA)]);
-    expect(scopeRoots).toEqual([resolve(primary)]);
+    expect(scopeRoots).toEqual([resolve(wtA)]);
   });
 
   it("pins the kill-switch to payloadRoot, not the write-target worktree", () => {
@@ -405,5 +440,241 @@ describe("direct-write occupancy/ritual follow the target worktree (#3794)", () 
     );
     expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
     expect(ritualRoots).toEqual([resolve(wtA)]);
+  });
+});
+
+describe("active scope follows the write target worktree (#3794 commit 2)", () => {
+  it("denies a nested-worktree write when only the primary has an active scope", () => {
+    const { primary, nested } = nestedWorktreeFixture();
+    const { scopeRoots, seams } = scopeSeams(primary);
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: { toolName: "Write", file_path: join(nested, "packages", "core", "a.ts") },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      seams,
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(scopeRoots).toEqual([resolve(nested)]);
+  });
+
+  it("names the tree the recovery must run in when the two roots differ", () => {
+    const { primary, nested } = nestedWorktreeFixture();
+    const { seams } = scopeSeams(primary);
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: { toolName: "Write", file_path: join(nested, "packages", "core", "a.ts") },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      seams,
+    );
+    expect(decision.code).toBe("scope-not-ready");
+    // Both concrete paths, and which of them scope:activate has to run in.
+    expect(decision.message).toContain(`Active scope was read from ${resolve(nested)}`);
+    expect(decision.message).toContain(`rather than in ${resolve(primary)}`);
+    expect(decision.message).toContain(formatHookRootNote(resolve(primary), resolve(nested)));
+  });
+
+  it("omits the extra root sentence when both roots are the same tree", () => {
+    const { primary } = nestedWorktreeFixture();
+    const { seams } = scopeSeams(null);
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: { toolName: "Write", file_path: join(primary, "packages", "core", "a.ts") },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      seams,
+    );
+    expect(decision.code).toBe("scope-not-ready");
+    expect(decision.message).not.toContain("Active scope was read from");
+    expect(decision.message).toContain(formatHookRootNote(resolve(primary), resolve(primary)));
+  });
+
+  it("allows a nested-worktree write against that worktree's own active scope", () => {
+    const { primary, nested } = nestedWorktreeFixture();
+    const { scopeRoots, seams } = scopeSeams(nested);
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: { toolName: "Write", file_path: join(nested, "packages", "core", "a.ts") },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      seams,
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
+    expect(scopeRoots).toEqual([resolve(nested)]);
+  });
+
+  it("exempts a proposed-lifecycle write inside the worktree that hosts it", () => {
+    const { primary, nested } = nestedWorktreeFixture();
+    const { seams } = scopeSeams(null);
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: {
+          toolName: "Write",
+          file_path: join(nested, "xbrief", "proposed", "story.xbrief.json"),
+        },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      seams,
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "write-propose-ready" });
+  });
+
+  it("keeps the #2885 outside-root skip measured from payloadRoot", () => {
+    const { primary, wtA } = linkedFixture();
+    const { seams } = scopeSeams(null);
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: { toolName: "Write", file_path: join(wtA, "packages", "core", "a.ts") },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      seams,
+    );
+    // wtA is a sibling of the payload root, so the carve-out still skips the deny.
+    expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
+  });
+});
+
+describe("assist-scratch reclassification (#3794 commit 2)", () => {
+  const assistEnv = { DEFT_SESSION_ID: "owner", DEFT_SESSION_POSTURE: "assist" };
+
+  it("no longer treats worktree product files as assist scratch", () => {
+    const { primary, nested } = nestedWorktreeFixture();
+    const { scopeRoots, seams } = scopeSeams(null);
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: { toolName: "Write", file_path: join(nested, "packages", "core", "a.ts") },
+        environ: assistEnv,
+      },
+      seams,
+    );
+    expect(decision.code).not.toBe("write-assist-scratch-ready");
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(scopeRoots).toEqual([resolve(nested)]);
+  });
+
+  it("still allows genuine scratch inside the worktree", () => {
+    const { primary, nested } = nestedWorktreeFixture();
+    const { scopeRoots, seams } = scopeSeams(null);
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: { toolName: "Write", file_path: join(nested, ".deft-scratch", "notes.md") },
+        environ: assistEnv,
+      },
+      seams,
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "write-assist-scratch-ready" });
+    expect(scopeRoots).toEqual([]);
+  });
+
+  it("still allows genuine scratch in the primary checkout", () => {
+    const { primary } = nestedWorktreeFixture();
+    const { seams } = scopeSeams(null);
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: { toolName: "Write", file_path: join(primary, ".deft-scratch", "notes.md") },
+        environ: assistEnv,
+      },
+      seams,
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "write-assist-scratch-ready" });
+  });
+});
+
+describe("story file_scope relativises against the write target worktree (#3794 commit 2)", () => {
+  function fenceSeams(readyRoot: string): {
+    fenceRoots: string[];
+    seams: HookPolicySeams;
+  } {
+    const fenceRoots: string[] = [];
+    const base = scopeSeams(readyRoot);
+    return {
+      fenceRoots,
+      seams: {
+        ...base.seams,
+        loadStoryWriteFence: (root) => {
+          fenceRoots.push(resolve(root));
+          return { fileScope: ["packages/**"], denyPaths: [] };
+        },
+      },
+    };
+  }
+
+  it("matches an in-fence worktree path instead of its payload-relative prefix", () => {
+    const { primary, nested } = nestedWorktreeFixture();
+    const { fenceRoots, seams } = fenceSeams(nested);
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: { toolName: "Write", file_path: join(nested, "packages", "core", "a.ts") },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      seams,
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
+    expect(fenceRoots).toEqual([resolve(nested)]);
+  });
+
+  it("still denies an out-of-fence worktree path, naming the tree it relativised against", () => {
+    const { primary, nested } = nestedWorktreeFixture();
+    const { seams } = fenceSeams(nested);
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: { toolName: "Write", file_path: join(nested, "docs", "note.md") },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      seams,
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.message).toContain(formatHookRootNote(resolve(primary), resolve(nested)));
+  });
+
+  it("leaves a same-root fence deny unannotated", () => {
+    const { primary } = nestedWorktreeFixture();
+    const { seams } = fenceSeams(primary);
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: { toolName: "Write", file_path: join(primary, "docs", "note.md") },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      seams,
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.message).not.toContain("payloadRoot=");
   });
 });

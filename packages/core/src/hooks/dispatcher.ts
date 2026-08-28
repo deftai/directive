@@ -710,8 +710,15 @@ function runtimeAuthorityForDirectWrite(
   toolName: string,
   seams: HookPolicySeams,
   scopePath: string | null,
+  effectiveRoot: string,
 ): HookDecision | null {
+  // #3794 commit 2: the project runtimeAuthority layer is project-level
+  // authorization config and stays on payloadRoot, alongside authz. Only the
+  // story fence and the path it is matched against follow the tree the write
+  // lands in, so a story `file_scope` of `packages/**` still matches a write
+  // inside a linked worktree rather than `.deft-scratch/worktrees/<x>/packages/`.
   const projectRoot = resolve(input.projectRoot);
+  const fenceRoot = resolve(effectiveRoot);
   // Project policy load failure: treat as disabled project layer, still apply
   // independent story file_scope when present (#516 / #2443 Greptile P1).
   let basePolicy: RuntimeAuthorityPolicy = DEFAULT_RUNTIME_AUTHORITY_POLICY;
@@ -726,7 +733,7 @@ function runtimeAuthorityForDirectWrite(
   let storyFence: { fileScope: readonly string[]; denyPaths: readonly string[] };
   try {
     storyFence = seams.loadStoryWriteFence
-      ? seams.loadStoryWriteFence(projectRoot, scopePath)
+      ? seams.loadStoryWriteFence(fenceRoot, scopePath)
       : loadStoryWriteFenceFromPath(scopePath);
   } catch {
     // Residual: host cannot load active story — project fence still applies.
@@ -738,17 +745,23 @@ function runtimeAuthorityForDirectWrite(
   // Neither layer active → allow (same as disabled runtimeAuthority historically).
   if (!fence.fenceActive) return null;
   const writeTarget = hookWriteTargetPath(input.payload);
-  const relPath = writeTarget !== null ? toProjectRelativePosix(projectRoot, writeTarget) : null;
+  const relPath = writeTarget !== null ? toProjectRelativePosix(fenceRoot, writeTarget) : null;
   const verdict = evaluateRuntimeAuthorityDirectWrite({
     policy: fence.policy,
     relPathPosix: relPath,
   });
   if (verdict.allowed) return null;
+  // #3794: relPath is now measured from the tree the write lands in. When that
+  // differs from the payload root, a bare "outside file_scope" reason does not
+  // say which tree the fence was relativised against.
+  const fenceRootNote =
+    fenceRoot === projectRoot ? "" : ` ${formatHookRootNote(projectRoot, fenceRoot)}`;
   return deny(
     input,
     verdict.code ?? "runtime-policy-deny-path",
     toolName,
-    verdict.reason ?? "Directive denied this direct write under write fence policy.",
+    (verdict.reason ?? "Directive denied this direct write under write fence policy.") +
+      fenceRootNote,
     scopePath,
   );
 }
@@ -1052,8 +1065,10 @@ function inspectMutationGates(
   seams: HookPolicySeams,
   options: { proposedLifecycleExempt: boolean },
 ): HookDecision {
-  // payloadRoot stays authoritative for authz, audit trail, kill-switch,
-  // #2885 outside-root, file_scope (commit 2), and deny().projectRoot.
+  // payloadRoot stays authoritative for authz grant scoping, the authz audit
+  // trail, the kill-switch, the #2885 outside-root carve-out, and
+  // deny().projectRoot. effectiveRoot governs occupancy and ritual (commit 1),
+  // and active scope, the story write fence and assist-scratch (commit 2).
   const payloadRoot = resolve(input.projectRoot);
   const projectRoot = payloadRoot;
   const environ = input.environ ?? process.env;
@@ -1087,7 +1102,10 @@ function inspectMutationGates(
   // Tracked product paths never match the path fence. Read-only still denied upstream.
   if (!isSpawnTool(toolName)) {
     const scratchTarget = hookWriteTargetPath(input.payload);
-    if (isAssistScratchWrite(projectRoot, scratchTarget, input.payload, environ)) {
+    // #3794 commit 2: classify against effectiveRoot. Relative to payloadRoot every
+    // file in a `.deft-scratch/worktrees/<x>/` worktree read as assist scratch, so
+    // assist/ephemeral worktree writes skipped ritual, occupancy and scope entirely.
+    if (isAssistScratchWrite(effectiveRoot, scratchTarget, input.payload, environ)) {
       const relPath =
         scratchTarget !== null ? toProjectRelativePosix(projectRoot, scratchTarget) : null;
       const authzDeny = authzForMutation(input, toolName, seams, {
@@ -1097,7 +1115,13 @@ function inspectMutationGates(
         runGit: dispatchGit,
       });
       if (authzDeny !== null) return authzDeny;
-      const runtimeDeny = runtimeAuthorityForDirectWrite(input, toolName, seams, null);
+      const runtimeDeny = runtimeAuthorityForDirectWrite(
+        input,
+        toolName,
+        seams,
+        null,
+        effectiveRoot,
+      );
       if (runtimeDeny !== null) return runtimeDeny;
       return {
         verdict: "allow",
@@ -1357,7 +1381,7 @@ function inspectMutationGates(
 
   if (options.proposedLifecycleExempt) {
     const writeTarget = hookWriteTargetPath(input.payload);
-    if (isProposedLifecycleWrite(projectRoot, writeTarget)) {
+    if (isProposedLifecycleWrite(effectiveRoot, writeTarget)) {
       const relPath =
         writeTarget !== null ? toProjectRelativePosix(projectRoot, writeTarget) : null;
       // UAT still allows xbrief/proposed/** as evidence/defect capture (#2944).
@@ -1368,7 +1392,13 @@ function inspectMutationGates(
         runGit: dispatchGit,
       });
       if (authzDeny !== null) return authzDeny;
-      const runtimeDeny = runtimeAuthorityForDirectWrite(input, toolName, seams, null);
+      const runtimeDeny = runtimeAuthorityForDirectWrite(
+        input,
+        toolName,
+        seams,
+        null,
+        effectiveRoot,
+      );
       if (runtimeDeny !== null) return runtimeDeny;
       const occupancyDeny = recheckOccupancyBeforeWriteAllow();
       if (occupancyDeny !== null) return occupancyDeny;
@@ -1390,18 +1420,25 @@ function inspectMutationGates(
 
   let scope: ActiveScopeInspection;
   try {
-    scope = (seams.inspectScope ?? inspectActiveScope)(projectRoot);
+    // #3794 commit 2: a write is governed by the active scope of the worktree it
+    // lands in, not the primary checkout's. Admission has already proved
+    // effectiveRoot shares --git-common-dir with payloadRoot.
+    scope = (seams.inspectScope ?? inspectActiveScope)(effectiveRoot);
   } catch (cause) {
     scope = { ready: false, path: null, message: String(cause) };
   }
   if (!scope.ready) {
     const writeTarget = hookWriteTargetPath(input.payload);
     const relTarget =
-      writeTarget !== null ? toProjectRelativePosix(projectRoot, writeTarget) : null;
+      writeTarget !== null ? toProjectRelativePosix(effectiveRoot, writeTarget) : null;
     // Active-scope governs in-repo lifecycle work only. Outside-root Write/Edit
     // (agent memory, $TMPDIR, user config) skips the deny; null/unparseable
     // targets stay fail-closed. Spawn has no write target → still requires scope (#2885).
     // Lexical ../ + realpath re-entry guard (not bare startsWith(".."); not symlink aliases).
+    // #3794: the #2885 carve-out is measured from payloadRoot, so a linked
+    // worktree that lives outside the payload root keeps today's skip. Worktrees
+    // under the payload root -- `.deft-scratch/worktrees/`, the swarm layout --
+    // are inside it and are now gated on their own active scope.
     const outsideRoot = writeTarget !== null && isOutsideProjectRootWrite(projectRoot, writeTarget);
     if (!outsideRoot || isSpawnTool(toolName)) {
       let proposedPathHint: string;
@@ -1441,6 +1478,14 @@ function inspectMutationGates(
               "assist posture (commands.md #1802) — do not fake `scope:activate` for notes.");
       }
       const denyCode = isSpawnTool(toolName) ? "spawn-not-ready" : "scope-not-ready";
+      // #3794: the recovery has to run in the tree whose active scope was read.
+      // Once the two roots differ, "the project root" names no single directory
+      // the agent can act on, and activating in the payload root does not clear
+      // a deny measured against the worktree.
+      const recoveryRootNote =
+        resolve(effectiveRoot) === payloadRoot
+          ? ""
+          : ` Active scope was read from ${effectiveRoot}, so run that recovery there rather than in ${payloadRoot}.`;
       return deny(
         input,
         denyCode,
@@ -1449,7 +1494,9 @@ function inspectMutationGates(
           scopeNotReadyCoverageHint(
             toolName,
             loadRuntimeAuthorityPolicySafe(input, seams)?.shellDestForms === "enforce",
-          ),
+          ) +
+          recoveryRootNote +
+          rootsNote,
       );
     }
   }
@@ -1473,7 +1520,13 @@ function inspectMutationGates(
       runGit: dispatchGit,
     });
     if (authzDeny !== null) return authzDeny;
-    const runtimeDeny = runtimeAuthorityForDirectWrite(input, toolName, seams, scope.path);
+    const runtimeDeny = runtimeAuthorityForDirectWrite(
+      input,
+      toolName,
+      seams,
+      scope.path,
+      effectiveRoot,
+    );
     if (runtimeDeny !== null) return runtimeDeny;
     const occupancyDeny = recheckOccupancyBeforeWriteAllow();
     if (occupancyDeny !== null) return occupancyDeny;
@@ -1707,8 +1760,8 @@ function attachLifecycleIdentityRewrite(
       "occupancy-identity-conflict",
       toolName,
       `Directive denied exact lifecycle command ${lifecycle.verb}: ${executionRoot.message}. ` +
-        "Run the lifecycle command from the hook project root so policy, lease, and ritual " +
-        "state target the same worktree.",
+        `Run the lifecycle command from ${normalizeHookProjectRoot(resolve(input.projectRoot))} ` +
+        "so policy, lease, and ritual state target the same worktree.",
     );
   }
   const rewriteAllowed = lifecycle.rewriteSafe && sourceTask;

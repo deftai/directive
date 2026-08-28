@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "commit-2-of-3794-moves-active-scope-the-story-file-scope-fence-a",
+  "decision": "Commit 2 of #3794 moves active scope, the story file_scope fence and assist-scratch classification to effectiveRoot; authz, the audit trail, the kill-switch and the #2885 outside-root carve-out stay on payloadRoot",
+  "governingRule": {
+    "description": "Root selection for a mutation gate must name the tree the write lands in, and an authorization frame is only relocated deliberately",
+    "path": "packages/core/src/hooks/dispatcher.ts",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Move every projectRoot consumer in inspectMutationGates to effectiveRoot"
+    },
+    {
+      "option": "Leave scope and file_scope on payloadRoot and accept the wrong-tree gating"
+    },
+    {
+      "option": "Also move the #2885 outside-root carve-out to effectiveRoot"
+    }
+  ],
+  "whyWinner": "The round-1 panel measured that authz grant scoping is an exact string match, the audit trail is repository-global evidence, and the kill-switch is untracked and therefore absent from linked worktrees; each breaks a live behaviour if re-pointed. The #2885 carve-out was pinned by the same enumeration, so worktrees under the payload root gain scope gating while worktrees outside it keep today's skip",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-08-27-3794-bughookssession-linked-worktree-writes-are-gated-against-the.xbrief.json"
+  ],
+  "timestamp": "2026-08-28T17:42:42Z",
+  "revisitTrigger": "If a worktree outside the payload root needs active-scope gating, the #2885 carve-out has to be re-derived rather than widened here",
+  "tags": [
+    "security",
+    "process"
+  ],
+  "relatedIssues": [
+    3794,
+    3807
+  ]
+}
