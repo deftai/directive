@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for GitHub issue #3828",
-    "updated": "2026-08-28T17:08:07Z"
+    "updated": "2026-08-28T18:26:20Z"
   },
   "plan": {
     "title": "bug(lifecycle): the D12 stale-origin gate denies its own named remedy and blocks every linked worktree",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Make three printed strings honest: the xbrief:preflight origin-freshness recovery, the interim bump path it must name, and the dest-form coverage hint.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3828",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "xbrief:preflight's recovery names a path that succeeds from the printed state, and links #3857",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/preflight/evaluate.test.ts::origin-freshness recovery (#3828) > prints a recovery the brief's own state can execute",
@@ -26,7 +26,7 @@
       },
       {
         "title": "scope:activate no longer appears in that recovery",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/preflight/evaluate.test.ts::origin-freshness recovery (#3828) > does not offer the stamp as a cure for an unreachable origin",
@@ -36,7 +36,7 @@
       },
       {
         "title": "The dest-form coverage hint reflects the policy actually in force",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/hooks/dispatcher.test.ts::states the Shell coverage the policy in force actually provides (#3828)",
@@ -46,7 +46,7 @@
       },
       {
         "title": "Tests pin the recovery text against the states it is printed in",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/preflight/evaluate.test.ts::origin-freshness recovery (#3828) > keeps the activate hint on rejects where activating is the right move",
@@ -56,7 +56,7 @@
       },
       {
         "title": "CHANGELOG `[Unreleased]` line",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "observed_behavior",
           "pointer": "CHANGELOG.md [Unreleased] > Fixed: \"The stale-origin refusal now names a recovery that works from the state it prints in (#3828)\"",
@@ -167,8 +167,32 @@
         "module_boundary": "packages/core/src (preflight recovery text + hooks deny text)",
         "cohesion_exemption": "Message-text edits inside existing modules. dispatcher.ts and its test are already over the review trigger; this scope edits one helper (scopeNotReadyCoverageHint) and adds cases rather than adding placement. Splitting either file is #3794/#3438 work, not this scope."
       },
-      "capacityBucket": "defect-repair"
+      "capacityBucket": "defect-repair",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3868,
+        "prBase": null,
+        "mergeCommit": "c40da8b1b8cb2dbe633944a22e5b9baaed3f8406",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c40da8b1b8cb2dbe633944a22e5b9baaed3f8406",
+        "verifiedAt": "2026-08-28T18:26:20Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "667f1173-0b35-4ef6-a111-3361cbd6ce6f"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-28T18:26:20Z"
+      },
+      "completedAt": "2026-08-28T18:26:20Z",
+      "completedSessionId": "667f1173-0b35-4ef6-a111-3361cbd6ce6f"
     },
-    "updated": "2026-08-28T17:08:07Z"
+    "updated": "2026-08-28T18:26:20Z"
   }
 }
