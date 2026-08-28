@@ -630,6 +630,24 @@ Cross-links: swarm decision tree `skills/deft-directive-swarm/references/core-ph
 
 ! **Read before writing into an open pass.** Fetch the mark (`fetchActivePassMarker`, or `gh api repos/<owner>/<repo>/issues/<N>/comments` filtered on the marker). When a mark is open, prefer flagging your comment as post-ceiling, or hold voluntarily — your call, not a gate.
 
+! **The lifecycle runs on the issue thread itself — there is no separate verb.** Open the mark by posting a comment whose body is the marker block; clear it at synthesis by editing that same comment to carry `ended_at`. Engine callers use `openPassMarker` / `closePassMarker` / `fetchActivePassMarker` (`packages/core/src/review-monitor/github-lease.ts`); an agent without those bindings posts the identical block through the safe-body verbs, exactly as the #2878 gh-only lease fallback does.
+
+```text
+<!-- deft:review-owner -->
+kind: pass
+pass_kind: design-critique
+owner: <github-login>
+agent_id: <pass owner agent id>
+ceiling: <declared ceiling comment id>
+started_at: 2026-08-28T19:48:24Z
+expires_at: 2026-08-28T20:48:24Z
+<!-- /deft:review-owner -->
+```
+
+1. ! **Open** at pass start: `task scm:body:comment:create -- --repo <owner>/<repo> --issue <N> --body-file <file>`.
+2. ! **Read** on arrival: `gh api repos/<owner>/<repo>/issues/<N>/comments`, then take the **oldest unexpired** `kind: pass` block.
+3. ! **Clear** at synthesis: re-post the same block with `ended_at: <now>` via `task scm:body:comment:edit -- --repo <owner>/<repo> --comment <id> --body-file <file>`.
+
 ! **Expiry is the release.** A mark self-clears on read once `expires_at` passes, and the owner clears it at synthesis (`ended_at`), so an abandoned pass never marks a thread forever and no heartbeat is needed. Concurrent marks resolve **oldest comment id wins**, matching the lease; the later mark is removed and its author is told which mark stands.
 
 ! **Trust boundary.** Pass marks are read from **any** author association, including `CONTRIBUTOR`, because they inform rather than gate. Ownership leases stay maintainer-authored (`OWNER` / `MEMBER` / `COLLABORATOR`, #2307) because `verify:review-monitor` / `verify:l4-owner` exit 0 on a live lease.

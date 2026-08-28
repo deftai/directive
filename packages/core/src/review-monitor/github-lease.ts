@@ -287,6 +287,35 @@ function resolvePassCreateRace(
 }
 
 /**
+ * Confirm our write is the winning active mark after PATCHing a reused comment.
+ *
+ * Two owners can both PATCH the same inactive marker comment, so an update needs the
+ * same post-write arbitration the lease applies after a create (#3607). Returns a
+ * result when someone else's mark won, or null when ours stands.
+ */
+function verifyExclusivePassMark(
+  input: OpenPassMarkerInput,
+  commentId: number,
+  marker: PassOpenMarker,
+  now: Date,
+  seams: ReviewOwnerGithubSeams,
+): OpenPassMarkerResult | null {
+  const relisted = listPassMarkerComments(input.repo, input.issue, seams);
+  if (!Array.isArray(relisted)) {
+    return { error: relisted.error };
+  }
+  const winner = findActivePassComment(relisted, { now });
+  if (winner === null || winner.marker === null) {
+    return null;
+  }
+  const ours =
+    winner.id === commentId &&
+    winner.marker.owner === marker.owner &&
+    winner.marker.started_at === marker.started_at;
+  return ours ? null : { status: "observed", commentId: winner.id, marker: winner.marker };
+}
+
+/**
  * Mark a pass open on an issue thread (#3607).
  *
  * `observed` means another owner's mark is already open: the caller is informed and MAY
@@ -311,6 +340,10 @@ export function openPassMarker(input: OpenPassMarkerInput): OpenPassMarkerResult
     const updated = updateReviewOwnerComment(input.repo, target.id, body, seams);
     if ("error" in updated) {
       return { error: updated.error };
+    }
+    const contested = verifyExclusivePassMark(input, target.id, marker, startedAt, seams);
+    if (contested !== null) {
+      return contested;
     }
     return { status: active === null ? "opened" : "renewed", commentId: target.id, marker };
   }

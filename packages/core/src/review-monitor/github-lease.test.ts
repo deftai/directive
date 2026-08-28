@@ -467,4 +467,57 @@ describe("pass marker GitHub surface (#3607)", () => {
       }),
     ).toEqual({ error: "patch denied" });
   });
+
+  it("arbitrates a reused marker comment against a concurrent writer", () => {
+    const OTHER_BODY = renderPassOpenComment({
+      kind: "pass",
+      pass_kind: "triage",
+      owner: "other-owner",
+      agent_id: null,
+      ceiling: null,
+      started_at: "2026-08-28T13:59:00.000Z",
+      expires_at: "2026-08-28T14:59:00.000Z",
+      ended_at: null,
+    });
+    const afterExpiry = new Date("2026-08-28T14:00:00.000Z");
+
+    // Our PATCH lands, but the re-list shows an older comment carrying a live mark:
+    // oldest id wins, so we report the winner instead of a false `opened`.
+    let calls = 0;
+    const contested = openPassMarker({
+      repo: "deftai/directive",
+      issue: 3607,
+      owner: "dbcall2",
+      passKind: "design-critique",
+      startedAt: afterExpiry,
+      seams: {
+        fetchComments: () => {
+          calls += 1;
+          return calls === 1
+            ? [threadComment(500, PASS_BODY)]
+            : [threadComment(400, OTHER_BODY), threadComment(500, PASS_BODY)];
+        },
+        updateComment: () => ({ ok: true as const }),
+      },
+    });
+    expect(contested).toMatchObject({ status: "observed", commentId: 400 });
+    if ("marker" in contested) {
+      expect(contested.marker.owner).toBe("other-owner");
+    }
+
+    expect(
+      openPassMarker({
+        repo: "deftai/directive",
+        issue: 3607,
+        owner: "dbcall2",
+        passKind: "design-critique",
+        startedAt: afterExpiry,
+        seams: {
+          fetchComments: () =>
+            calls++ < 3 ? [threadComment(500, PASS_BODY)] : { error: "relist failed" },
+          updateComment: () => ({ ok: true as const }),
+        },
+      }),
+    ).toEqual({ error: "relist failed" });
+  });
 });
