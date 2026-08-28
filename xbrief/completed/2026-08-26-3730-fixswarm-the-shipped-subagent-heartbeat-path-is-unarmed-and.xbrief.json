@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3730",
-    "updated": "2026-08-26T20:28:56.478Z"
+    "updated": "2026-08-28T00:38:01Z"
   },
   "plan": {
     "title": "fix(swarm): the shipped subagent-heartbeat path is unarmed and a killed worker blocks its own resume",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "fix(swarm): the shipped subagent-heartbeat path is unarmed and a killed worker blocks its own resume",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3730",
@@ -16,23 +16,53 @@
     "items": [
       {
         "title": "Dispatch envelopes arm the shipped path: parent creates the scratch directory, worker is instructed to heartbeat, `--require-agent` is set",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/swarm/subagent-status-dir.test.ts :: \"creates .deft-scratch/subagent-status under an existing worktree\", \"returns null when the worktree path does not exist\", \"is idempotent\"; packages/core/src/swarm/pre-dispatch.test.ts :: \"begin on an existing worktree path mkdirs subagent-status (#3730)\", \"begin on a bare relative worktree name mkdirs subagent-status (#3730)\", \"begin on a branch name colliding with a source dir does not mkdir there (#3730)\". Worker heartbeat cadence and --require-agent instruction land in content/templates/agent-prompt-preamble.md; merged in PR #3825 at 71dc7c74b1ef6544eae00ff0c8352cbb3457d24f.",
+          "recorded_at": "2026-08-28T00:37:51Z",
+          "recorded_by": "agent:cursor-worker:3730"
+        }
       },
       {
         "title": "A killed worker's delivery attempt reaches a terminal state so `DENY_DUPLICATE_ACTIVE` stops blocking resume; takeover documented as cancel-then-begin",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/swarm/pre-dispatch.test.ts :: \"takeover = cancel prior then begin (not concurrent dual active)\", \"formatPreDispatchReport mentions DENY hint\"; packages/cli/src/verify-subagent-alive.test.ts :: \"cohort-2804-2814: PR open with no heartbeat => not healthy\" asserts the gate message contains \"--action cancel\" (line 58). Takeover documented as cancel-then-begin in content/docs/delivery-attempt.md and docs/subagent-heartbeat.md.",
+          "recorded_at": "2026-08-28T00:37:51Z",
+          "recorded_by": "agent:cursor-worker:3730"
+        }
       },
       {
         "title": "A recovery dispatch after a disconnect is not blocked by a stale ritual, or the denial names the re-arm verb",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher.test.ts :: \"denies a verified ritual owner mismatch even when payload and lease agree (#3611)\" asserts the deny message contains \"session:start --rearm\" (line 378); packages/core/src/session/verify-session-ritual-branches.test.ts :: \"flags stale ritual by configured hours\" asserts the same token (line 118). Both dispatcher deny messages name the re-arm verb and retain the #3807 rootsNote disclosure suffix.",
+          "recorded_at": "2026-08-28T00:37:51Z",
+          "recorded_by": "agent:cursor-worker:3730"
+        }
       },
       {
         "title": "Dispatch envelopes instruct workers to commit early",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/templates/agent-prompt-preamble.md \"Commit early (#3730)\" rule and docs/subagent-heartbeat.md \"Commit early (#3730)\" section, reviewed at Greptile confidence 5/5 on HEAD 27c5f50313ebaa650bd1f14f85c7d4827e1ca937 and merged via https://github.com/deftai/directive/pull/3825.",
+          "recorded_at": "2026-08-28T00:37:51Z",
+          "recorded_by": "agent:cursor-worker:3730"
+        }
       },
       {
         "title": "CHANGELOG `[Unreleased]` entry",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "CHANGELOG.md [Unreleased] entry \"Arm the shipped subagent-heartbeat path (#3730)\" present in merge commit 71dc7c74b1ef6544eae00ff0c8352cbb3457d24f (PR #3825).",
+          "recorded_at": "2026-08-28T00:37:51Z",
+          "recorded_by": "agent:cursor-worker:3730"
+        }
       }
     ],
     "tags": [
@@ -95,7 +125,32 @@
           "CHANGELOG.md"
         ],
         "module_boundary": "packages/core/src/swarm"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3825,
+        "prBase": null,
+        "mergeCommit": "71dc7c74b1ef6544eae00ff0c8352cbb3457d24f",
+        "deliveryBranch": "master",
+        "deliveryCommit": "71dc7c74b1ef6544eae00ff0c8352cbb3457d24f",
+        "verifiedAt": "2026-08-28T00:38:01Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "2b427e0a-e69a-486b-8f4e-870e059a8486"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-28T00:38:01Z"
+      },
+      "completedAt": "2026-08-28T00:38:01Z",
+      "completedSessionId": "2b427e0a-e69a-486b-8f4e-870e059a8486",
+      "capacityBucket": "technical-debt"
     },
     "acceptance": {
       "commands": [
@@ -143,6 +198,6 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-08-26T20:28:56.478Z"
+    "updated": "2026-08-28T00:38:01Z"
   }
 }
