@@ -281,9 +281,16 @@ describe("platform-capabilities branch coverage", () => {
   });
 
   it("classifies cloud-headless across each signal", () => {
+    // The managed-runtime probe is stubbed unavailable so this suite never
+    // depends on an ambient CURSOR_AGENT_SOCKET (#3859).
     const mode = (environ: Record<string, string>): string =>
       getPlatformCapabilities({
         environ,
+        managedRuntimeProbe: () => ({
+          verdict: "unavailable",
+          socketPath: null,
+          detail: "test",
+        }),
         effectiveUidOverride: 1000,
         uidMapPath: "/none",
         cwd: "/none",

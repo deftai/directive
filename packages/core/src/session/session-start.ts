@@ -683,6 +683,7 @@ function resolveSessionScmReadiness(
       authState: "unknown",
       githubAuthMode: "host-gh",
       runtimeMode: "local-unsandboxed",
+      runtimeModeReason: null,
       injectedTokenPresent: false,
       depth: allowOptionalNetwork ? "deep" : "shallow",
       detail: "SCM readiness probe failed unexpectedly; treating SCM-dependent gates as skipped",

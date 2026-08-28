@@ -10,6 +10,17 @@ import {
   RUNTIME_MODE_LOCAL_UNSANDBOXED,
 } from "./constants.js";
 import {
+  hasExplicitHostGhSelection,
+  type ManagedRuntimeProbe,
+  probeManagedRuntime,
+  RUNTIME_REASON_CI_MARKER,
+  RUNTIME_REASON_CURSOR_MARKER_AMBIGUOUS,
+  RUNTIME_REASON_CURSOR_SANDBOX_MARKER,
+  RUNTIME_REASON_EXPLICIT_HOST_GH,
+  RUNTIME_REASON_MANAGED_RUNTIME_PROBE,
+  RUNTIME_REASON_NO_RUNTIME_MARKER,
+} from "./cursor-managed-runtime.js";
+import {
   detectEnvironmentContext,
   environmentContextToDict,
   type ShellContext,
@@ -55,6 +66,8 @@ export interface RuntimeCapabilityReport {
   readonly hostPlatform: NodeJS.Platform;
   readonly shell: ShellContext;
   readonly runtimeMode: string;
+  /** Stable id naming why `runtimeMode` was chosen (#3859). */
+  readonly runtimeModeReason: string;
   readonly identityKind: string;
   readonly effectiveUid: number | null;
   readonly effectiveUsername: string | null;
@@ -115,13 +128,18 @@ export function classifyIdentityKind(options: {
   return IDENTITY_LOCAL_USER;
 }
 
-function isCloudHeadless(environ: Readonly<Record<string, string>>): boolean {
-  if (envTruthy(environ, "CURSOR_AGENT")) return true;
+/** Reason id when a non-Cursor CI/cloud marker forces cloud-headless, else null. */
+function ciCloudReason(environ: Readonly<Record<string, string>>): string | null {
   // GROK_BUILD / DEFT_AGENT_RUNTIME=grok-build identify a local TUI, not CI (#3469).
   const runtime = (environ.DEFT_AGENT_RUNTIME ?? "").trim().toLowerCase();
-  if (runtime === "cloud" || runtime === "headless") return true;
-  if (envTruthy(environ, "GITHUB_ACTIONS") || envTruthy(environ, "BUILDKITE")) return true;
-  return envTruthy(environ, "CI") && !envTruthy(environ, "CURSOR_COMPOSER");
+  if (runtime === "cloud" || runtime === "headless") return RUNTIME_REASON_CI_MARKER;
+  if (envTruthy(environ, "GITHUB_ACTIONS") || envTruthy(environ, "BUILDKITE")) {
+    return RUNTIME_REASON_CI_MARKER;
+  }
+  if (envTruthy(environ, "CI") && !envTruthy(environ, "CURSOR_COMPOSER")) {
+    return RUNTIME_REASON_CI_MARKER;
+  }
+  return null;
 }
 
 function isCursorNativeSandbox(
@@ -133,13 +151,57 @@ function isCursorNativeSandbox(
   return Boolean((environ.CURSOR_SANDBOX_LANDLOCK_STATUS ?? "").trim());
 }
 
+export interface RuntimeClassification {
+  readonly mode: string;
+  readonly reason: string;
+}
+
+/**
+ * Classify runtime mode and name the reason for the verdict (#3859).
+ *
+ * Ordering matches intake/platform-capabilities.ts: CI markers, then a positive
+ * managed-runtime read, then sandbox, then the ambiguous Cursor hop. The Cursor
+ * hop previously ran first here; it now runs last so neither a CI marker nor a
+ * managed read can be overridden by an explicit host-gh selection.
+ */
+export function classifyRuntime(
+  environ: Readonly<Record<string, string>>,
+  sandboxUidRemap: boolean,
+  options: { managedRuntimeProbe?: ManagedRuntimeProbe } = {},
+): RuntimeClassification {
+  const ciReason = ciCloudReason(environ);
+  if (ciReason !== null) return { mode: RUNTIME_MODE_CLOUD_HEADLESS, reason: ciReason };
+  const managedProbe = options.managedRuntimeProbe ?? probeManagedRuntime;
+  if (managedProbe(environ).verdict === "managed") {
+    return {
+      mode: RUNTIME_MODE_CLOUD_HEADLESS,
+      reason: RUNTIME_REASON_MANAGED_RUNTIME_PROBE,
+    };
+  }
+  if (isCursorNativeSandbox(environ, sandboxUidRemap)) {
+    return {
+      mode: RUNTIME_MODE_CURSOR_NATIVE_SANDBOX,
+      reason: RUNTIME_REASON_CURSOR_SANDBOX_MARKER,
+    };
+  }
+  if (envTruthy(environ, "CURSOR_AGENT")) {
+    if (hasExplicitHostGhSelection(environ)) {
+      return { mode: RUNTIME_MODE_LOCAL_UNSANDBOXED, reason: RUNTIME_REASON_EXPLICIT_HOST_GH };
+    }
+    return {
+      mode: RUNTIME_MODE_CLOUD_HEADLESS,
+      reason: RUNTIME_REASON_CURSOR_MARKER_AMBIGUOUS,
+    };
+  }
+  return { mode: RUNTIME_MODE_LOCAL_UNSANDBOXED, reason: RUNTIME_REASON_NO_RUNTIME_MARKER };
+}
+
 export function classifyRuntimeMode(
   environ: Readonly<Record<string, string>>,
   sandboxUidRemap: boolean,
+  options: { managedRuntimeProbe?: ManagedRuntimeProbe } = {},
 ): string {
-  if (isCloudHeadless(environ)) return RUNTIME_MODE_CLOUD_HEADLESS;
-  if (isCursorNativeSandbox(environ, sandboxUidRemap)) return RUNTIME_MODE_CURSOR_NATIVE_SANDBOX;
-  return RUNTIME_MODE_LOCAL_UNSANDBOXED;
+  return classifyRuntime(environ, sandboxUidRemap, options).mode;
 }
 
 function readOwnership(path: string, sandboxUidRemap: boolean): OwnershipFacts | null {
@@ -174,6 +236,8 @@ export interface ProbeRuntimeOptions {
   readonly effectiveUidOverride?: number | null;
   readonly effectiveUsername?: string | null;
   readonly getuid?: () => number;
+  /** Injectable managed-runtime probe (#3859). Defaults to the metadata read. */
+  readonly managedRuntimeProbe?: ManagedRuntimeProbe;
 }
 
 export function probeRuntimeCapabilities(
@@ -215,7 +279,9 @@ export function probeRuntimeCapabilities(
 
   const sandboxUidRemap = detectSandboxUidRemap(uidMap, { effectiveUid, cursorOrigUid });
   const identityKind = classifyIdentityKind({ effectiveUid, sandboxUidRemap });
-  const runtimeMode = classifyRuntimeMode(env, sandboxUidRemap);
+  const runtime = classifyRuntime(env, sandboxUidRemap, {
+    managedRuntimeProbe: options.managedRuntimeProbe,
+  });
 
   const cwdPath = options.cwd ?? process.cwd();
   const ownership = readOwnership(cwdPath, sandboxUidRemap);
@@ -223,7 +289,8 @@ export function probeRuntimeCapabilities(
   return {
     hostPlatform: environment.hostPlatform,
     shell: environment.shell,
-    runtimeMode,
+    runtimeMode: runtime.mode,
+    runtimeModeReason: runtime.reason,
     identityKind,
     effectiveUid,
     effectiveUsername,
@@ -246,6 +313,7 @@ export function reportToDict(report: RuntimeCapabilityReport): Record<string, un
   return {
     ...environmentContextToDict({ hostPlatform: report.hostPlatform, shell: report.shell }),
     runtime_mode: report.runtimeMode,
+    runtime_mode_reason: report.runtimeModeReason,
     identity_kind: report.identityKind,
     effective_uid: report.effectiveUid,
     effective_username: report.effectiveUsername,

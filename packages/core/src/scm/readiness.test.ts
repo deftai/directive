@@ -1,4 +1,9 @@
 import { describe, expect, it } from "vitest";
+import {
+  probeRuntimeCapabilities,
+  type RuntimeCapabilityReport,
+} from "../intake/platform-capabilities.js";
+import type { ManagedRuntimeProbe } from "../platform/cursor-managed-runtime.js";
 import type { CompletedProcess } from "./call.js";
 import { ScmStubError } from "./errors.js";
 import {
@@ -247,5 +252,113 @@ describe("probeScmReadiness (#2275)", () => {
     expect(dict.github_auth_mode).toBe("injected-token");
     expect(dict.injected_token_present).toBe(true);
     expect(JSON.stringify(dict)).not.toContain("super-secret-value-xyz");
+  });
+});
+
+/**
+ * Readiness-level regressions for #3859.
+ *
+ * These are diagnostics, not the safety case. The safety case is that host
+ * credentials require either a non-Cursor runtime or an explicit selection, and
+ * that a positive managed-runtime read outranks both. Each case drives the real
+ * intake classifier so the assertion spans classification, auth-mode inference,
+ * and the readiness verdict rather than one seam.
+ */
+const NEVER_MANAGED: ManagedRuntimeProbe = () => ({
+  verdict: "unavailable",
+  socketPath: null,
+  detail: "test: no metadata socket",
+});
+const REPORTS_MANAGED: ManagedRuntimeProbe = () => ({
+  verdict: "managed",
+  socketPath: "/tmp/cursor.sock",
+  detail: "test: agent/runtime reported managed",
+});
+
+function runtimeFor(
+  environ: NodeJS.ProcessEnv,
+  managedRuntimeProbe: ManagedRuntimeProbe = NEVER_MANAGED,
+): RuntimeCapabilityReport {
+  return probeRuntimeCapabilities(environ, { managedRuntimeProbe });
+}
+
+function readinessFor(
+  environ: NodeJS.ProcessEnv,
+  managedRuntimeProbe: ManagedRuntimeProbe = NEVER_MANAGED,
+) {
+  return probeScmReadiness({
+    whichFn: (name) => (name === "gh" ? "/usr/bin/gh" : null),
+    env: environ,
+    runtimeReport: runtimeFor(environ, managedRuntimeProbe),
+    runGh: () => okProc("Logged in to github.com account octocat"),
+  });
+}
+
+describe("ambiguous Cursor runtime requires explicit selection (#3859)", () => {
+  const LOCAL_DESKTOP = { CURSOR_AGENT: "1", CURSOR_CONVERSATION_ID: "abc" };
+
+  it("is not ready without an explicit selection, unchanged from before", () => {
+    const report = readinessFor({ ...LOCAL_DESKTOP });
+    expect(report.runtimeMode).toBe("cloud-headless");
+    expect(report.githubAuthMode).toBe("injected-token");
+    expect(report.ready).toBe(false);
+    expect(report.failureKind).toBe("missing_injected_token");
+  });
+
+  it("names the ambiguity and the opt-in when it blocks", () => {
+    const report = readinessFor({ ...LOCAL_DESKTOP });
+    expect(scmReadinessToDict(report).runtime_mode_reason).toBe("cursor-marker-runtime-ambiguous");
+    expect(report.remediation).toContain("DEFT_GITHUB_AUTH_MODE=host-gh");
+    const lines = formatScmReadinessLines(report).join("\n");
+    expect(lines).toContain("skipped gates:");
+    expect(lines).toContain("reason: cursor-marker-runtime-ambiguous");
+    expect(lines).toContain("DEFT_GITHUB_AUTH_MODE=host-gh");
+  });
+
+  it("is ready with an explicit selection and a healthy host gh", () => {
+    const report = readinessFor({ ...LOCAL_DESKTOP, DEFT_GITHUB_AUTH_MODE: "host-gh" });
+    expect(report.runtimeMode).toBe("local-unsandboxed");
+    expect(report.githubAuthMode).toBe("host-gh");
+    expect(report.injectedTokenPresent).toBe(false);
+    expect(report.ready).toBe(true);
+    expect(report.authState).toBe("authenticated");
+    expect(report.skippedGates).toEqual([]);
+    for (const gate of SCM_DEPENDENT_GATES) {
+      expect(report.skippedGates).not.toContain(gate);
+    }
+    expect(scmReadinessToDict(report).runtime_mode_reason).toBe("explicit-host-gh-selection");
+  });
+
+  it("does not accept a malformed selection value", () => {
+    for (const value of ["hostgh", "host_gh", "yes", "1", "injected-token", ""]) {
+      const report = readinessFor({ ...LOCAL_DESKTOP, DEFT_GITHUB_AUTH_MODE: value });
+      expect(report.ready).toBe(false);
+      expect(report.runtimeMode).toBe("cloud-headless");
+    }
+  });
+});
+
+describe("managed-runtime read outranks the explicit selection (#3859)", () => {
+  it("stays not-ready on a managed VM even when host-gh was selected", () => {
+    const report = readinessFor(
+      { CURSOR_AGENT: "1", DEFT_GITHUB_AUTH_MODE: "host-gh" },
+      REPORTS_MANAGED,
+    );
+    expect(report.runtimeMode).toBe("cloud-headless");
+    expect(report.githubAuthMode).toBe("injected-token");
+    expect(report.ready).toBe(false);
+    expect(scmReadinessToDict(report).runtime_mode_reason).toBe("cursor-managed-runtime-probe");
+  });
+
+  it("still reports not-ready for a Windows GitHub Actions runner", () => {
+    const report = readinessFor({
+      CURSOR_AGENT: "1",
+      GITHUB_ACTIONS: "true",
+      DEFT_GITHUB_AUTH_MODE: "host-gh",
+    });
+    expect(report.runtimeMode).toBe("cloud-headless");
+    expect(report.githubAuthMode).toBe("injected-token");
+    expect(report.ready).toBe(false);
+    expect(scmReadinessToDict(report).runtime_mode_reason).toBe("ci-marker");
   });
 });

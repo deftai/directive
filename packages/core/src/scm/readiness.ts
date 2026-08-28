@@ -35,6 +35,11 @@ import {
   probeRuntimeCapabilities,
   type RuntimeCapabilityReport,
 } from "../intake/platform-capabilities.js";
+import {
+  EXPLICIT_SELECTION_REMEDIATION,
+  GITHUB_AUTH_MODE_ENV,
+  RUNTIME_REASON_CURSOR_MARKER_AMBIGUOUS,
+} from "../platform/cursor-managed-runtime.js";
 import { defaultWhich, type WhichFn } from "./binary.js";
 import { BINARY_PREFERENCE } from "./constants.js";
 import { ScmStubError } from "./errors.js";
@@ -84,6 +89,8 @@ export interface ScmReadinessReport {
   readonly githubAuthMode: string;
   /** Runtime mode from the #1557a probe. */
   readonly runtimeMode: string;
+  /** Why the runtime was classified that way; names the win32 carve-out (#3859). */
+  readonly runtimeModeReason: string | null;
   /** Whether an injected token env var is present (value never reported). */
   readonly injectedTokenPresent: boolean;
   /** Probe depth used for this report. */
@@ -233,6 +240,7 @@ export function probeScmReadiness(options: ProbeScmReadinessOptions = {}): ScmRe
       authState: "binary-absent",
       githubAuthMode,
       runtimeMode: runtimeReport.runtimeMode,
+      runtimeModeReason: runtimeReport.runtimeModeReason ?? null,
       injectedTokenPresent,
       depth,
       detail,
@@ -245,10 +253,13 @@ export function probeScmReadiness(options: ProbeScmReadinessOptions = {}): ScmRe
 
   // Injected-token mode without a token is a hard not-ready even before auth status.
   if (githubAuthMode === GITHUB_AUTH_MODE_INJECTED_TOKEN && !injectedTokenPresent) {
+    const ambiguousRuntime =
+      runtimeReport.runtimeModeReason === RUNTIME_REASON_CURSOR_MARKER_AMBIGUOUS;
     const detail =
       "injected-token mode requires GH_TOKEN, GITHUB_TOKEN, or GH_ENTERPRISE_TOKEN; " +
       `binary=${binary} present but SCM-dependent gates skipped ` +
-      `(runtime_mode=${runtimeReport.runtimeMode})`;
+      `(runtime_mode=${runtimeReport.runtimeMode}` +
+      `${runtimeReport.runtimeModeReason ? `, reason=${runtimeReport.runtimeModeReason}` : ""})`;
     return {
       ready: false,
       binary,
@@ -256,10 +267,15 @@ export function probeScmReadiness(options: ProbeScmReadinessOptions = {}): ScmRe
       authState: "missing-token",
       githubAuthMode,
       runtimeMode: runtimeReport.runtimeMode,
+      runtimeModeReason: runtimeReport.runtimeModeReason ?? null,
       injectedTokenPresent: false,
       depth,
       detail,
-      remediation: REMEDIATION_MISSING_TOKEN,
+      // An ambiguous Cursor runtime is the #3859 case: name the explicit opt-in
+      // here, because this is where the operator actually meets the block.
+      remediation: ambiguousRuntime
+        ? `${EXPLICIT_SELECTION_REMEDIATION}\n\n${REMEDIATION_MISSING_TOKEN}`
+        : REMEDIATION_MISSING_TOKEN,
       skippedGates: [...SCM_DEPENDENT_GATES],
       login: null,
       failureKind: "missing_injected_token",
@@ -307,6 +323,7 @@ export function probeScmReadiness(options: ProbeScmReadinessOptions = {}): ScmRe
         authState: "authenticated",
         githubAuthMode: deep.githubAuthMode,
         runtimeMode: runtimeReport.runtimeMode,
+        runtimeModeReason: runtimeReport.runtimeModeReason ?? null,
         injectedTokenPresent,
         depth,
         detail: `SCM ready: ${binary} present, ${deep.githubAuthMode} authenticated${loginPart} (deep)`,
@@ -324,6 +341,7 @@ export function probeScmReadiness(options: ProbeScmReadinessOptions = {}): ScmRe
       authState,
       githubAuthMode: deep.githubAuthMode,
       runtimeMode: runtimeReport.runtimeMode,
+      runtimeModeReason: runtimeReport.runtimeModeReason ?? null,
       injectedTokenPresent,
       depth,
       detail: `SCM not ready: ${deep.detail}`,
@@ -347,6 +365,7 @@ export function probeScmReadiness(options: ProbeScmReadinessOptions = {}): ScmRe
       authState: "unknown",
       githubAuthMode,
       runtimeMode: runtimeReport.runtimeMode,
+      runtimeModeReason: runtimeReport.runtimeModeReason ?? null,
       injectedTokenPresent,
       depth,
       detail,
@@ -370,6 +389,7 @@ export function probeScmReadiness(options: ProbeScmReadinessOptions = {}): ScmRe
       authState: "unauthenticated",
       githubAuthMode,
       runtimeMode: runtimeReport.runtimeMode,
+      runtimeModeReason: runtimeReport.runtimeModeReason ?? null,
       injectedTokenPresent,
       depth,
       detail,
@@ -387,6 +407,7 @@ export function probeScmReadiness(options: ProbeScmReadinessOptions = {}): ScmRe
     authState: "authenticated",
     githubAuthMode,
     runtimeMode: runtimeReport.runtimeMode,
+    runtimeModeReason: runtimeReport.runtimeModeReason ?? null,
     injectedTokenPresent,
     depth,
     detail: `SCM ready: ${binary} present, ${githubAuthMode} authenticated (shallow)`,
@@ -406,6 +427,7 @@ export function scmReadinessToDict(report: ScmReadinessReport): Record<string, u
     auth_state: report.authState,
     github_auth_mode: report.githubAuthMode,
     runtime_mode: report.runtimeMode,
+    runtime_mode_reason: report.runtimeModeReason,
     injected_token_present: report.injectedTokenPresent,
     depth: report.depth,
     detail: report.detail,
@@ -429,7 +451,16 @@ export function formatScmReadinessLines(report: ScmReadinessReport): string[] {
   }
   lines.push(`[deft scm] ${report.detail}`);
   if (report.skippedGates.length > 0) {
-    lines.push(`[deft scm] skipped gates: ${report.skippedGates.join(", ")}`);
+    // Name the classification reason next to the skip: a silent skip is what
+    // makes this failure costly, because work-selection surfaces go dark (#3859).
+    const reason = report.runtimeModeReason ? ` (reason: ${report.runtimeModeReason})` : "";
+    lines.push(`[deft scm] skipped gates: ${report.skippedGates.join(", ")}${reason}`);
+    if (report.runtimeModeReason === RUNTIME_REASON_CURSOR_MARKER_AMBIGUOUS) {
+      lines.push(
+        `[deft scm] runtime is ambiguous; set ${GITHUB_AUTH_MODE_ENV}=host-gh to authorize ` +
+          "the host gh credential store on a machine you control (#3859)",
+      );
+    }
   }
   lines.push(
     "[deft scm] run SCM-dependent gates only after auth is ready, or from a matched env; " +
@@ -505,13 +536,15 @@ export function requireScmReady(
   if (hermeticAuthSkip) {
     // Production path uses assertScmBinaryPresent (not test-only).
     const binary = assertScmBinaryPresent(options.whichFn);
+    const hermeticRuntime = options.runtimeReport ?? getPlatformCapabilities();
     const report: ScmReadinessReport = {
       ready: true,
       binary,
       binaryPath: options.whichFn?.(binary) ?? null,
       authState: "unknown",
       githubAuthMode: GITHUB_AUTH_MODE_HOST_GH,
-      runtimeMode: (options.runtimeReport ?? getPlatformCapabilities()).runtimeMode,
+      runtimeMode: hermeticRuntime.runtimeMode,
+      runtimeModeReason: hermeticRuntime.runtimeModeReason ?? null,
       injectedTokenPresent: findInjectedToken(options.env ?? process.env) !== null,
       depth: "shallow",
       detail: `SCM binary present (${binary}); auth status not checked (hermetic)`,
