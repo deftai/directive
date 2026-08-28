@@ -17,9 +17,13 @@
  * strippers delete a span with its contents, which destroys the digits. The
  * prior art for classify-not-strip is `classifyHit`
  * (`pr-closing-keywords/detect.ts`).
+ *
+ * The fence scan is local rather than borrowed from that detector because the
+ * detector's opener regex is anchored at column zero, so a CommonMark fence
+ * indented one to three spaces reads as prose. Relaxing it there would move
+ * hits into the #737 false-positive class and change what that gate suppresses,
+ * which is a separate decision from this one.
  */
-
-import { isInsideCodeFence } from "../pr-closing-keywords/detect.js";
 
 export type CitationKind = "lean" | "table" | "comment";
 
@@ -78,19 +82,22 @@ const CITATION_RE = new RegExp(
 
 const ID_RUN_RE = /\d{8,}/g;
 
-const BLOCKQUOTE_RE = /^\s{0,3}>/;
+const BLOCKQUOTE_RE = /^ {0,3}>/;
+
+/** CommonMark fence opener or closer: up to three leading spaces, then the run. */
+const CODE_FENCE_LINE_RE = /^ {0,3}(`{3,}|~{3,})/;
 
 /** The last sentence break in a slice, and everything after it. */
 const LAST_SENTENCE_RE = /[.!?;][^.!?;]*$/;
 
-const NEGATION_MARKERS: readonly RegExp[] = [
-  /\bnot\s/i,
-  /n't\s/i,
-  /\bnever\s/i,
-  /\bcannot\b/i,
-  /\bwithout\b/i,
-  /\bexcept\b/i,
-];
+/**
+ * Explicit negation of the citation itself, ending within three plain words of
+ * the keyword. A bare marker anywhere in the sentence prefix is not enough: it
+ * reads `without a doubt, successor lean N is accepted` and `not only successor
+ * lean N but also the table` as refusals, which blocks a valid record.
+ */
+const NEGATED_CITATION_RE =
+  /\b(?:cannot|never|no longer|(?:do|does|did|is|are|was|were|has|have|had|will|would|shall|should|must|can|could|may|might)\s+not|(?:do|does|did|is|are|was|were|has|have|had|wo|would|should|must|ca|could|sha)n['\u2019]t)\b(?:\s+[A-Za-z][A-Za-z'\u2019-]*){0,3}\s*$/i;
 
 function kindForKeyword(keyword: string | undefined): CitationKind {
   if (keyword === undefined) return "comment";
@@ -153,8 +160,41 @@ function isStruckThrough(line: string, column: number): boolean {
 function isNegated(line: string, column: number): boolean {
   const before = line.slice(0, column);
   const tail = LAST_SENTENCE_RE.exec(before);
-  const segment = tail === null ? before : before.slice((tail.index ?? 0) + 1);
-  return NEGATION_MARKERS.some((marker) => marker.test(segment));
+  const segment = tail === null ? before : before.slice(tail.index + 1);
+  return NEGATED_CITATION_RE.test(segment);
+}
+
+/**
+ * CommonMark fence stack. Opener and closer must use the same character and the
+ * closer must be at least as long. A fence may be indented up to three spaces.
+ */
+function isInsideCodeFence(body: string, offset: number): boolean {
+  let openChar: "`" | "~" | null = null;
+  let openLen = 0;
+  let lineStart = 0;
+  while (lineStart < offset) {
+    let lineEnd = body.indexOf("\n", lineStart);
+    if (lineEnd === -1 || lineEnd > offset) {
+      lineEnd = Math.min(body.length, offset);
+    }
+    const fence = CODE_FENCE_LINE_RE.exec(body.slice(lineStart, lineEnd));
+    if (fence !== null) {
+      const run = fence[1] ?? "";
+      const char = run.startsWith("~") ? "~" : "`";
+      if (openChar === null) {
+        openChar = char;
+        openLen = run.length;
+      } else if (char === openChar && run.length >= openLen) {
+        openChar = null;
+        openLen = 0;
+      }
+    }
+    if (lineEnd >= offset) {
+      break;
+    }
+    lineStart = lineEnd + 1;
+  }
+  return openChar !== null;
 }
 
 function classifyPosition(body: string, offset: number): CitationRejectionClass | null {

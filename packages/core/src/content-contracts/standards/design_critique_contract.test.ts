@@ -766,15 +766,17 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(grammar).toContain("### Position predicate");
     expect(grammar).toContain("Accepting an id is not accepting a citation.");
     for (const refused of [
-      "fenced code block",
+      "fenced code block, including a fence indented up to three spaces",
       "inline code span",
       "blockquoted line",
       "struck through",
-      "negated earlier in the same sentence",
+      "explicitly negated within three words of the keyword",
     ]) {
       expect(grammar, `refused position missing: ${refused}`).toContain(refused);
     }
     expect(grammar).toContain("classifyHit");
+    expect(grammar).toContain("The negation form is explicit");
+    expect(grammar).toContain("⊗ Refuse on a negation word anywhere in the sentence prefix.");
     expect(grammar).toContain("⊗ Strip the span instead.");
 
     expect(grammar).toContain("### Which code-span convention governs");

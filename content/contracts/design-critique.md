@@ -368,13 +368,15 @@ Accepted forms, and nothing else:
 
 Accepting an id is not accepting a citation. A match is classified by where it landed, and an occurrence that is not affirmative does not clear:
 
-- inside a fenced code block — prose that shows the form
+- inside a fenced code block, including a fence indented up to three spaces — prose that shows the form
 - keyword inside an inline code span — `` the parser wants `successor lean 12345678` shaped text ``
 - on a blockquoted line — `> they wrote: successor lean 12345678`
 - struck through — `~~successor lean 12345678~~`
-- negated earlier in the same sentence — `do not use successor lean 12345678`
+- explicitly negated within three words of the keyword — `do not use successor lean 12345678`
 
 - ! Classify the position of a match. Prior art is `classifyHit` (`packages/core/src/pr-closing-keywords/detect.ts`), which records where a hit landed.
+- ! The negation form is explicit: `cannot`, `never`, `no longer`, an auxiliary plus `not`, or an auxiliary contraction ending in `n't`, closing within three plain words of the citation keyword and inside the same sentence.
+- ⊗ Refuse on a negation word anywhere in the sentence prefix. `without a doubt, successor lean 12345678 is accepted` and `not only successor lean 12345678 but also the table` are affirmative citations, and refusing them blocks a valid record.
 - ⊗ Strip the span instead. The established markdown scanners delete a code span with its contents, which destroys the digits.
 
 ### Which code-span convention governs

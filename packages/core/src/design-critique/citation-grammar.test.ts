@@ -117,6 +117,34 @@ describe("scanCitations position predicate (#3831)", () => {
     expect(scan.rejected).toEqual([{ id: ID, reason: "code-fence" }]);
   });
 
+  it("refuses a fence indented up to three spaces", () => {
+    for (const indent of [" ", "  ", "   "]) {
+      const scan = scanCitations(
+        `prose\n\n${indent}\`\`\`text\n${indent}successor lean ${ID}\n${indent}\`\`\`\n`,
+      );
+      expect(scan.citations, JSON.stringify(indent)).toEqual([]);
+      expect(scan.rejected, JSON.stringify(indent)).toEqual([{ id: ID, reason: "code-fence" }]);
+    }
+  });
+
+  it("refuses a tilde fence", () => {
+    const scan = scanCitations(`~~~\nsuccessor lean ${ID}\n~~~\n`);
+    expect(scan.citations).toEqual([]);
+    expect(scan.rejected).toEqual([{ id: ID, reason: "code-fence" }]);
+  });
+
+  it("does not treat a mismatched fence character as a closer", () => {
+    const scan = scanCitations(`\`\`\`\nexample\n~~~\nsuccessor lean ${ID}\n\`\`\`\n`);
+    expect(scan.citations).toEqual([]);
+    expect(scan.rejected).toEqual([{ id: ID, reason: "code-fence" }]);
+  });
+
+  it("accepts a citation after a fence has closed", () => {
+    expect(ids(`\`\`\`text\nexample\n\`\`\`\n\nbound contract is successor lean ${ID}\n`)).toEqual([
+      ID,
+    ]);
+  });
+
   it("refuses a fenced permalink", () => {
     const scan = scanCitations(`\`\`\`\n#issuecomment-${ID}\n\`\`\`\n`);
     expect(scan.citations).toEqual([]);
@@ -167,14 +195,15 @@ describe("scanCitations position predicate (#3831)", () => {
     expect(scan.rejected).toEqual([{ id: ID, reason: "negation" }]);
   });
 
-  it("refuses the other negation markers", () => {
+  it("refuses the other explicit negations", () => {
     for (const body of [
       `this does not bind successor lean ${ID}`,
       `we never cited successor lean ${ID}`,
       `ingest cannot read successor lean ${ID}`,
-      `clears without successor lean ${ID}`,
-      `every lean except successor lean ${ID}`,
       `doesn't cite successor lean ${ID}`,
+      `the record is not successor lean ${ID}`,
+      `the thread no longer cites successor lean ${ID}`,
+      `this does not cite the bound successor lean ${ID}`,
     ]) {
       expect(scanCitations(body).citations, body).toEqual([]);
     }
@@ -188,6 +217,18 @@ describe("scanCitations position predicate (#3831)", () => {
     expect(ids(`do not reuse the old record\nbound contract is successor lean ${ID}`)).toEqual([
       ID,
     ]);
+  });
+
+  it("keeps an affirmative citation whose sentence merely contains a negation word", () => {
+    for (const body of [
+      `without a doubt, successor lean ${ID} is accepted`,
+      `not only successor lean ${ID} but also the verified-claims table`,
+      `every lean except one: successor lean ${ID} binds`,
+      `the chip does not gate ingest, so successor lean ${ID} binds`,
+      `this does not change the fact that successor lean ${ID} binds`,
+    ]) {
+      expect(scanCitations(body).citations, body).toEqual([{ id: ID, kind: "lean" }]);
+    }
   });
 });
 
