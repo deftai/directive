@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "resolve-an-ambiguous-cursor-runtime-with-an-explicit-deft-github",
+  "decision": "Resolve an ambiguous Cursor runtime with an explicit DEFT_GITHUB_AUTH_MODE=host-gh env selection, and deny managed cloud by a positive CURSOR_AGENT_SOCKET agent/runtime read",
+  "governingRule": {
+    "description": "Marker absence and OS predicates must never select host credentials; a credential grant needs a positive assertion or an explicit operator selection",
+    "path": "content/scm/github.md",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "process.platform === win32 as a cloud discriminator (originally bound, withdrawn: Cursor runs Windows My Machines workers, and an Ubuntu-only managed fleet is a versioned third-party fact)"
+    },
+    {
+      "option": "Principal validation on the enforcing path (stronger, but couples this fix to #3858)"
+    },
+    {
+      "option": "plan.policy field (committed, so it propagates to other machines and managed VMs -- wrong scope)"
+    },
+    {
+      "option": "CLI flag (reaches scm:status only, not the other SCM-dependent verbs)"
+    }
+  ],
+  "whyWinner": "The socket metadata read is a positive managed-cloud assertion and outranks the opt-in, so absence stays ambiguous rather than granting; an env var matches the lifetime and blast radius of an execution-environment decision and mirrors the existing github_auth_mode envelope field",
+  "confidence": "medium",
+  "activeScopeRefs": [
+    "xbrief/active/2026-08-28-3859-bugscmplatform-cursor-agent-treated-as-proof-of-cloud-on-loc.xbrief.json"
+  ],
+  "timestamp": "2026-08-28T17:49:23Z",
+  "revisitTrigger": "If Cursor exposes a positive local-worker runtime identity, or once principal validation (#3858) reaches the enforcing path, replace the explicit selection with the stronger check",
+  "tags": [
+    "security"
+  ],
+  "relatedIssues": [
+    3859,
+    3858,
+    3656
+  ]
+}

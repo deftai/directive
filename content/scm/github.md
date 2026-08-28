@@ -338,8 +338,38 @@ auth.
    `deft github-auth-modes --json` validates API reachability and optional
    repo access.
 
+### Ambiguous Cursor runtime and the host-gh opt-in (#3859)
+
+`CURSOR_AGENT` is set by local desktop Cursor, by Cursor-managed cloud VMs, and
+by Windows "My Machines" workers, so it cannot decide the runtime by itself.
+
+- ! Cursor-managed VMs serve a metadata API on `CURSOR_AGENT_SOCKET` whose
+  `agent/runtime` is `managed`. A positive read classifies `cloud-headless` at
+  higher precedence than any other Cursor signal **and** than the opt-in below.
+- ⊗ Treat absence of that socket as proof of local desktop. Absence means "not
+  managed, or unreachable" and MUST NOT select host credentials -- that is the
+  marker-absence grant this rule exists to prevent.
+- ! When `CURSOR_AGENT` is set and the probe does not report `managed`, the
+  runtime is **ambiguous**. Deft does not guess from `process.platform`. Host
+  credentials then require an explicit selection:
+  `DEFT_GITHUB_AUTH_MODE=host-gh`, set in the execution environment on a
+  machine you control. Dispatchers should export the same `github_auth_mode`
+  label they already record in the dispatch envelope.
+- ! Absent that selection, behaviour is unchanged: the runtime stays
+  `cloud-headless` and SCM-dependent gates are skipped. The skip names its
+  reason (`runtime_mode_reason` in `scm:status --json`, and in the `[deft scm]`
+  session-start lines) and points at this opt-in.
+- ⊗ Use an OS predicate (`process.platform === "win32"`) as a cloud
+  discriminator. Cursor's managed fleet being Ubuntu is a versioned fact about
+  a third party's infrastructure, not a runtime invariant.
+
+Reason ids: `cursor-managed-runtime-probe`, `cursor-marker-runtime-ambiguous`,
+`explicit-host-gh-selection`, `ci-marker`, `cursor-sandbox-marker`,
+`no-runtime-marker`.
+
 Contract file: `content/contracts/scm-readiness.md`. Implementation:
-`packages/core/src/scm/readiness.ts`.
+`packages/core/src/scm/readiness.ts`,
+`packages/core/src/platform/cursor-managed-runtime.ts`.
 
 ## Windows / ASCII Conventions for Machine-Editable Sections
 

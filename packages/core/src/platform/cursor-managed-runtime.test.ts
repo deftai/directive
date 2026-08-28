@@ -13,14 +13,19 @@
  * are Ubuntu" is a versioned fact about a third party's fleet.
  */
 
+import { spawn } from "node:child_process";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { probeRuntimeCapabilities as probeIntakeRuntime } from "../intake/platform-capabilities.js";
 import {
   bodyReportsManagedRuntime,
   GITHUB_AUTH_MODE_ENV,
+  MANAGED_RUNTIME_PATH,
   MANAGED_RUNTIME_SOCKET_ENV,
   type ManagedRuntimeProbe,
   probeManagedRuntime,
+  resetManagedRuntimeProbeCache,
 } from "./cursor-managed-runtime.js";
 import { classifyRuntime } from "./platform-capabilities.js";
 
@@ -78,6 +83,72 @@ describe("bodyReportsManagedRuntime (#3859)", () => {
   });
 });
 
+/**
+ * Serve one metadata body on a platform-appropriate local socket.
+ *
+ * The server MUST live in its own process: the probe uses `spawnSync`, which
+ * blocks this process's event loop, so an in-process server could never accept
+ * the connection.
+ */
+const SERVER_SCRIPT = `
+const http = require("node:http");
+const server = http.createServer((req, res) => {
+  if (req.url === process.env.SRV_ROUTE) {
+    res.writeHead(Number(process.env.SRV_STATUS), { "content-type": "application/json" });
+    res.end(process.env.SRV_BODY);
+    return;
+  }
+  res.writeHead(404);
+  res.end("");
+});
+server.listen(process.env.SRV_SOCK, () => { process.stdout.write("ready\\n"); });
+`;
+
+async function withMetadataServer(
+  body: string,
+  status: number,
+  run: (socketPath: string) => void,
+): Promise<void> {
+  const unique = `deft-3859-${process.pid}-${Math.random().toString(36).slice(2)}`;
+  const socketPath =
+    process.platform === "win32" ? `\\\\.\\pipe\\${unique}` : join(tmpdir(), `${unique}.sock`);
+  const child = spawn(process.execPath, ["-e", SERVER_SCRIPT], {
+    env: {
+      ...process.env,
+      SRV_SOCK: socketPath,
+      SRV_ROUTE: MANAGED_RUNTIME_PATH,
+      SRV_BODY: body,
+      SRV_STATUS: String(status),
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("metadata server did not start")), 10_000);
+      child.stdout?.setEncoding("utf8");
+      child.stdout?.on("data", (chunk: string) => {
+        if (chunk.includes("ready")) {
+          clearTimeout(timer);
+          resolve();
+        }
+      });
+      child.once("error", (err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+      child.once("exit", (code) => {
+        clearTimeout(timer);
+        reject(new Error(`metadata server exited early (${code})`));
+      });
+    });
+    resetManagedRuntimeProbeCache();
+    run(socketPath);
+  } finally {
+    child.kill();
+    resetManagedRuntimeProbeCache();
+  }
+}
+
 describe("probeManagedRuntime default (#3859)", () => {
   it("reports unavailable without spawning when the socket env is unset", () => {
     const result = probeManagedRuntime({});
@@ -87,11 +158,47 @@ describe("probeManagedRuntime default (#3859)", () => {
   });
 
   it("reports unavailable, never managed, for an unreachable socket path", () => {
+    resetManagedRuntimeProbeCache();
     const result = probeManagedRuntime({
       [MANAGED_RUNTIME_SOCKET_ENV]: "/nonexistent/deft-3859-probe.sock",
     });
     expect(result.verdict).toBe("unavailable");
     expect(result.verdict).not.toBe("managed");
+    resetManagedRuntimeProbeCache();
+  });
+
+  it("reads managed from a live metadata socket", async () => {
+    await withMetadataServer(JSON.stringify({ runtime: "managed" }), 200, (socketPath) => {
+      const result = probeManagedRuntime({ [MANAGED_RUNTIME_SOCKET_ENV]: socketPath });
+      expect(result.verdict).toBe("managed");
+      expect(result.socketPath).toBe(socketPath);
+    });
+  });
+
+  it("reads not-managed from a live socket that does not assert managed", async () => {
+    await withMetadataServer(JSON.stringify({ runtime: "machine" }), 200, (socketPath) => {
+      const result = probeManagedRuntime({ [MANAGED_RUNTIME_SOCKET_ENV]: socketPath });
+      expect(result.verdict).toBe("not-managed");
+    });
+  });
+
+  it("treats a non-200 metadata response as unavailable, not managed", async () => {
+    await withMetadataServer("managed", 500, (socketPath) => {
+      const result = probeManagedRuntime({ [MANAGED_RUNTIME_SOCKET_ENV]: socketPath });
+      expect(result.verdict).toBe("unavailable");
+      expect(result.detail).toContain("500");
+    });
+  });
+
+  it("memoizes per socket path so repeat classification does not respawn", async () => {
+    await withMetadataServer(JSON.stringify({ runtime: "managed" }), 200, (socketPath) => {
+      const environ = { [MANAGED_RUNTIME_SOCKET_ENV]: socketPath };
+      const first = probeManagedRuntime(environ);
+      const second = probeManagedRuntime(environ);
+      expect(first.verdict).toBe("managed");
+      // Identity, not equality: a second read would build a fresh object.
+      expect(second).toBe(first);
+    });
   });
 });
 

@@ -138,12 +138,32 @@ export function bodyReportsManagedRuntime(body: string): boolean {
   return false;
 }
 
+/**
+ * Per-process memo keyed by socket path. The runtime kind cannot change within
+ * a process, and classification runs from several verbs, so this holds the child
+ * spawn to one per socket even on a managed VM.
+ */
+const probeCache = new Map<string, ManagedRuntimeProbeResult>();
+
+/** Clear the probe memo. Test seam only. */
+export function resetManagedRuntimeProbeCache(): void {
+  probeCache.clear();
+}
+
 /** Default managed-runtime probe. Never throws. */
 export const probeManagedRuntime: ManagedRuntimeProbe = (environ) => {
   const socketPath = (environ[MANAGED_RUNTIME_SOCKET_ENV] ?? "").trim();
   if (socketPath.length === 0) {
     return unavailable(null, `${MANAGED_RUNTIME_SOCKET_ENV} is not set; runtime not asserted`);
   }
+  const cached = probeCache.get(socketPath);
+  if (cached !== undefined) return cached;
+  const result = readManagedRuntime(socketPath);
+  probeCache.set(socketPath, result);
+  return result;
+};
+
+function readManagedRuntime(socketPath: string): ManagedRuntimeProbeResult {
   let result: ReturnType<typeof spawnSync>;
   try {
     result = spawnSync(process.execPath, ["-e", READER_SCRIPT], {
@@ -189,7 +209,7 @@ export const probeManagedRuntime: ManagedRuntimeProbe = (environ) => {
     socketPath,
     detail: `${MANAGED_RUNTIME_PATH} did not report ${MANAGED_RUNTIME_VALUE}`,
   };
-};
+}
 
 /**
  * True when an operator or dispatcher explicitly selected host-gh for this
