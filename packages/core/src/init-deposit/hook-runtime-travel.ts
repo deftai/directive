@@ -15,7 +15,9 @@
  * The committed `package.json` dependency on `@deftai/directive` (#2264) is the
  * existing reconstitution anchor. With it a clone can install the runtime the
  * registration names; without it the registration names a command no clone can
- * host.
+ * host. The anchor must be committed, not merely present: a consumer can commit
+ * the generated registration and leave `package.json` behind, and that is the
+ * case that strands the clone.
  *
  * Warn-only. Refusing `deft init` / `deft update` on this condition would be
  * the same lockout from the other side, so the deposit still writes and
@@ -71,15 +73,16 @@ function defaultGitLsFiles(projectDir: string, paths: readonly string[]): string
   try {
     // Ask git rather than looking for `.git`: a project deposited into a
     // subdirectory of a repository has no `.git` of its own, yet its
-    // registration is trackable by the parent and travels on the parent's next
-    // commit. `ls-files` answers from any depth, relative to this directory.
-    // `--cached` catches an already-committed registration; `--others
-    // --exclude-standard` catches one a first `deft init` just wrote, which is
-    // untracked yet trackable and so lands in the consumer's next `git add`.
-    // Ignored paths are omitted: they cannot reach a clone.
+    // registration is trackable by the parent. `ls-files` answers from any
+    // depth, relative to this directory, and declines outside a repository.
+    //
+    // `--cached` reports what is in the index, `--others --exclude-standard`
+    // what a first `deft init` just wrote and the next `git add` would sweep
+    // in; ignored paths are omitted, since they cannot reach a clone. `-t` tags
+    // the two apart as `H` and `?`.
     return execFileSync(
       "git",
-      ["ls-files", "--cached", "--others", "--exclude-standard", "--", ...paths],
+      ["ls-files", "-t", "--cached", "--others", "--exclude-standard", "--", ...paths],
       {
         cwd: projectDir,
         encoding: "utf8",
@@ -94,15 +97,27 @@ function defaultGitLsFiles(projectDir: string, paths: readonly string[]): string
   }
 }
 
-/** Paths that travel, as reported by git, or null when git could not answer. */
-function travelingPaths(output: string | null): ReadonlySet<string> | null {
+interface TravelReport {
+  /** Paths in the index: committed, or staged for the next commit. */
+  readonly tracked: ReadonlySet<string>;
+  /** Paths present and not ignored: the next `git add` sweeps them in. */
+  readonly untracked: ReadonlySet<string>;
+}
+
+/** Split `git ls-files -t` output by tag, or null when git could not answer. */
+function travelReport(output: string | null): TravelReport | null {
   if (output === null) return null;
-  return new Set(
-    output
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0),
-  );
+  const tracked = new Set<string>();
+  const untracked = new Set<string>();
+  for (const raw of output.split("\n")) {
+    const line = raw.trim();
+    if (line.length < 3) continue;
+    const path = line.slice(2).trim();
+    if (path.length === 0) continue;
+    if (line.startsWith("? ")) untracked.add(path);
+    else tracked.add(path);
+  }
+  return { tracked, untracked };
 }
 
 function isFailClosed(host: HookHost): boolean {
@@ -116,16 +131,24 @@ function recoveryHosts(failClosed: readonly HookRegistrationRef[]): string {
     .join(" / ");
 }
 
+/** Why the runtime does not travel: no declaration at all, or one not committed. */
+type AnchorState = "absent" | "uncommitted";
+
 function buildWarning(
   traveling: readonly HookRegistrationRef[],
   failClosed: readonly HookRegistrationRef[],
+  anchor: AnchorState,
 ): string {
   const listed = traveling
     .map((entry) => `${entry.path}${isFailClosed(entry.host) ? " (fail-closed)" : ""}`)
     .join(", ");
+  const cause =
+    anchor === "uncommitted"
+      ? `  ${RUNTIME_ANCHOR_MANIFEST} declares ${PIN_DEPENDENCY_NAME} but is not committed, so a fresh`
+      : `  No ${RUNTIME_ANCHOR_MANIFEST} dependency on ${PIN_DEPENDENCY_NAME} travels with this tree, so a fresh`;
   const lines = [
     `\u26a0 Hook registration travels without its runtime (#3785): ${listed}`,
-    `  No ${RUNTIME_ANCHOR_MANIFEST} dependency on ${PIN_DEPENDENCY_NAME} travels with this tree, so a fresh`,
+    cause,
     "  clone, CI runner, or container cannot obtain the `deft-hook` command these files name.",
   ];
   if (failClosed.length > 0) {
@@ -135,7 +158,9 @@ function buildWarning(
     );
   }
   lines.push(
-    `  Fix: commit a ${RUNTIME_ANCHOR_MANIFEST} dependency on ${PIN_DEPENDENCY_NAME} so the runtime travels too.`,
+    anchor === "uncommitted"
+      ? `  Fix: commit ${RUNTIME_ANCHOR_MANIFEST} so the runtime travels with the registration.`
+      : `  Fix: commit a ${RUNTIME_ANCHOR_MANIFEST} dependency on ${PIN_DEPENDENCY_NAME} so the runtime travels too.`,
   );
   if (failClosed.length > 0) {
     lines.push(`  Or, accepting the capability cost: ${recoveryHosts(failClosed)}.`);
@@ -166,8 +191,8 @@ export function inspectHookRuntimeTravel(
   );
   const probePaths = [...enabled.map((entry) => entry.path), RUNTIME_ANCHOR_MANIFEST];
   const gitLsFiles = seams.gitLsFiles ?? defaultGitLsFiles;
-  const traveling = travelingPaths(gitLsFiles(projectRoot, probePaths));
-  if (traveling === null) {
+  const report = travelReport(gitLsFiles(projectRoot, probePaths));
+  if (report === null) {
     return {
       travelingRegistrations: [],
       failClosedRegistrations: [],
@@ -177,12 +202,20 @@ export function inspectHookRuntimeTravel(
   }
 
   const pin = (seams.readPin ?? readPin)(projectRoot);
-  // A range spec reconstitutes as well as an exact pin for this purpose: either
-  // way `npm install` resolves the runtime. The manifest must travel too,
-  // otherwise the declaration never reaches the clone that needs it.
-  const runtimeTravels = pin.rawSpec !== null && traveling.has(RUNTIME_ANCHOR_MANIFEST);
+  // The two sides are judged asymmetrically, deliberately. A registration is
+  // dangerous as soon as it is trackable: one `git add` sends it to every
+  // clone. An anchor only helps once it is in the index, because a consumer is
+  // free to commit the generated registration and leave `package.json` behind
+  // -- crediting an uncommitted manifest would silence the warning in exactly
+  // that case. A range spec reconstitutes as well as an exact pin: either way
+  // `npm install` resolves the runtime.
+  const declaresRuntime = pin.rawSpec !== null;
+  const runtimeTravels = declaresRuntime && report.tracked.has(RUNTIME_ANCHOR_MANIFEST);
+  const anchor: AnchorState =
+    declaresRuntime && report.untracked.has(RUNTIME_ANCHOR_MANIFEST) ? "uncommitted" : "absent";
 
-  const travelingRegistrations = enabled.filter((entry) => traveling.has(entry.path));
+  const travels = (path: string): boolean => report.tracked.has(path) || report.untracked.has(path);
+  const travelingRegistrations = enabled.filter((entry) => travels(entry.path));
   const failClosedRegistrations = travelingRegistrations.filter((entry) =>
     isFailClosed(entry.host),
   );
@@ -191,6 +224,6 @@ export function inspectHookRuntimeTravel(
     travelingRegistrations: travelingRegistrations.map((entry) => entry.path),
     failClosedRegistrations: failClosedRegistrations.map((entry) => entry.path),
     runtimeTravels,
-    warning: unsafe ? buildWarning(travelingRegistrations, failClosedRegistrations) : null,
+    warning: unsafe ? buildWarning(travelingRegistrations, failClosedRegistrations, anchor) : null,
   };
 }

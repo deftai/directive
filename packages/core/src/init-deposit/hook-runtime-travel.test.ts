@@ -43,25 +43,38 @@ const RANGE_PIN: PinReadResult = {
   nonExact: true,
 };
 
-function seams(traveling: readonly string[] | null, pin: PinReadResult): HookRuntimeTravelSeams {
+/** What git reports: `H` for indexed paths, `?` for untracked-and-not-ignored. */
+interface GitView {
+  readonly tracked?: readonly string[];
+  readonly untracked?: readonly string[];
+}
+
+function seams(view: GitView | null, pin: PinReadResult): HookRuntimeTravelSeams {
+  const lines =
+    view === null
+      ? null
+      : [
+          ...(view.tracked ?? []).map((path) => `H ${path}`),
+          ...(view.untracked ?? []).map((path) => `? ${path}`),
+        ];
   return {
-    gitLsFiles: () => (traveling === null ? null : `${traveling.join("\n")}\n`),
+    gitLsFiles: () => (lines === null ? null : `${lines.join("\n")}\n`),
     readPin: () => pin,
   };
 }
 
 function inspect(
-  traveling: readonly string[] | null,
+  view: GitView | null,
   pin: PinReadResult,
   registrations: readonly HookRegistrationRef[] = REGISTRATIONS,
   policy = DEFAULT_HOST_HOOKS_POLICY,
 ) {
-  return inspectHookRuntimeTravel("/repo", registrations, policy, seams(traveling, pin));
+  return inspectHookRuntimeTravel("/repo", registrations, policy, seams(view, pin));
 }
 
 describe("inspectHookRuntimeTravel", () => {
   it("warns when a traveling registration names a runtime no clone can obtain", () => {
-    const result = inspect([CURSOR_REGISTRATION], NO_PIN);
+    const result = inspect({ tracked: [CURSOR_REGISTRATION] }, NO_PIN);
 
     expect(result.travelingRegistrations).toEqual([CURSOR_REGISTRATION]);
     expect(result.failClosedRegistrations).toEqual([CURSOR_REGISTRATION]);
@@ -72,7 +85,7 @@ describe("inspectHookRuntimeTravel", () => {
   });
 
   it("names the disable verb as the recovery and forbids the failClosed hand-edit", () => {
-    const warning = inspect([CURSOR_REGISTRATION], NO_PIN).warning ?? "";
+    const warning = inspect({ tracked: [CURSOR_REGISTRATION] }, NO_PIN).warning ?? "";
 
     expect(warning).toContain("policy:disable-host-hooks");
     expect(warning).toContain("--host cursor --confirm");
@@ -83,28 +96,52 @@ describe("inspectHookRuntimeTravel", () => {
   });
 
   it("stays silent when a committed manifest lets a clone install the runtime", () => {
-    const result = inspect([CURSOR_REGISTRATION, RUNTIME_ANCHOR_MANIFEST], EXACT_PIN);
+    const result = inspect({ tracked: [CURSOR_REGISTRATION, RUNTIME_ANCHOR_MANIFEST] }, EXACT_PIN);
 
     expect(result.runtimeTravels).toBe(true);
     expect(result.warning).toBeNull();
   });
 
   it("accepts a range spec as reconstitution: npm install still resolves the runtime", () => {
-    const result = inspect([CURSOR_REGISTRATION, RUNTIME_ANCHOR_MANIFEST], RANGE_PIN);
+    const result = inspect({ tracked: [CURSOR_REGISTRATION, RUNTIME_ANCHOR_MANIFEST] }, RANGE_PIN);
 
     expect(result.runtimeTravels).toBe(true);
     expect(result.warning).toBeNull();
   });
 
   it("warns when the manifest declares the dependency but does not travel itself", () => {
-    const result = inspect([CURSOR_REGISTRATION], EXACT_PIN);
+    const result = inspect({ tracked: [CURSOR_REGISTRATION] }, EXACT_PIN);
 
     expect(result.runtimeTravels).toBe(false);
     expect(result.warning).not.toBeNull();
   });
 
+  // Greptile P1 on PR #3890: the registration and the manifest are judged
+  // asymmetrically on purpose. A consumer can commit the generated
+  // registration and leave `package.json` uncommitted, so an uncommitted
+  // manifest is not an anchor -- crediting it would silence the warning in
+  // precisely the case that strands a clone.
+  it("does not credit an uncommitted manifest as the runtime anchor", () => {
+    const result = inspect(
+      { tracked: [CURSOR_REGISTRATION], untracked: [RUNTIME_ANCHOR_MANIFEST] },
+      EXACT_PIN,
+    );
+
+    expect(result.runtimeTravels).toBe(false);
+    expect(result.warning).toContain(`${RUNTIME_ANCHOR_MANIFEST} declares`);
+    expect(result.warning).toContain("is not committed");
+    expect(result.warning).toContain(`Fix: commit ${RUNTIME_ANCHOR_MANIFEST}`);
+  });
+
+  it("counts a registration that is untracked but not ignored: one `git add` sends it", () => {
+    const result = inspect({ untracked: [CURSOR_REGISTRATION] }, NO_PIN);
+
+    expect(result.travelingRegistrations).toEqual([CURSOR_REGISTRATION]);
+    expect(result.warning).toContain("exit 127");
+  });
+
   it("stays silent when no registration travels", () => {
-    const result = inspect([RUNTIME_ANCHOR_MANIFEST], NO_PIN);
+    const result = inspect({ tracked: [RUNTIME_ANCHOR_MANIFEST] }, NO_PIN);
 
     expect(result.travelingRegistrations).toEqual([]);
     expect(result.warning).toBeNull();
@@ -118,7 +155,7 @@ describe("inspectHookRuntimeTravel", () => {
   });
 
   it("excludes hosts whose deposit is disabled: a stripped registration denies nothing", () => {
-    const result = inspect([CURSOR_REGISTRATION], NO_PIN, REGISTRATIONS, {
+    const result = inspect({ tracked: [CURSOR_REGISTRATION] }, NO_PIN, REGISTRATIONS, {
       ...DEFAULT_HOST_HOOKS_POLICY,
       cursor: false,
     });
@@ -128,7 +165,7 @@ describe("inspectHookRuntimeTravel", () => {
   });
 
   it("warns without the lockout copy when only fail-open hosts travel", () => {
-    const result = inspect([CLAUDE_REGISTRATION], NO_PIN);
+    const result = inspect({ tracked: [CLAUDE_REGISTRATION] }, NO_PIN);
 
     expect(result.travelingRegistrations).toEqual([CLAUDE_REGISTRATION]);
     expect(result.failClosedRegistrations).toEqual([]);
@@ -163,7 +200,7 @@ describe("writeAgentHookDeposit hook-runtime travel warning", () => {
       root,
       { printf: (text) => lines.push(text) },
       DEFAULT_HOST_HOOKS_POLICY,
-      seams([CURSOR_REGISTRATION], NO_PIN),
+      seams({ tracked: [CURSOR_REGISTRATION] }, NO_PIN),
     );
 
     const output = lines.join("");
@@ -180,7 +217,7 @@ describe("writeAgentHookDeposit hook-runtime travel warning", () => {
       root,
       { printf: (text) => lines.push(text) },
       DEFAULT_HOST_HOOKS_POLICY,
-      seams([CURSOR_REGISTRATION, RUNTIME_ANCHOR_MANIFEST], EXACT_PIN),
+      seams({ tracked: [CURSOR_REGISTRATION, RUNTIME_ANCHOR_MANIFEST] }, EXACT_PIN),
     );
 
     expect(lines.join("")).not.toContain("#3785");
