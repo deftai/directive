@@ -21,7 +21,7 @@
   "whyWinner": "A managed VM cannot stop being managed mid-process, so caching the deny is sound and keeps the memo's original purpose; every other verdict only says the API did not assert managed on that attempt, and re-probing costs a spawn bounded by the existing timeouts while caching one is unbounded in the fail-open direction",
   "confidence": "high",
   "activeScopeRefs": [
-    "xbrief/active/2026-08-28-3859-bugscmplatform-cursor-agent-treated-as-proof-of-cloud-on-loc.xbrief.json"
+    "xbrief/completed/2026-08-28-3859-bugscmplatform-cursor-agent-treated-as-proof-of-cloud-on-loc.xbrief.json"
   ],
   "timestamp": "2026-08-28T19:28:22Z",
   "revisitTrigger": "If ambiguous-runtime classification becomes hot enough that repeated child spawns show up in verb latency, add a short TTL with an injected clock rather than restoring an unbounded memo",

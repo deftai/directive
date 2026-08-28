@@ -24,7 +24,7 @@
   "whyWinner": "The socket metadata read is a positive managed-cloud assertion and outranks the opt-in, so absence stays ambiguous rather than granting; an env var matches the lifetime and blast radius of an execution-environment decision and mirrors the existing github_auth_mode envelope field",
   "confidence": "medium",
   "activeScopeRefs": [
-    "xbrief/active/2026-08-28-3859-bugscmplatform-cursor-agent-treated-as-proof-of-cloud-on-loc.xbrief.json"
+    "xbrief/completed/2026-08-28-3859-bugscmplatform-cursor-agent-treated-as-proof-of-cloud-on-loc.xbrief.json"
   ],
   "timestamp": "2026-08-28T17:49:23Z",
   "revisitTrigger": "If Cursor exposes a positive local-worker runtime identity, or once principal validation (#3858) reaches the enforcing path, replace the explicit selection with the stronger check",

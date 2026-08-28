@@ -21,7 +21,7 @@
   "whyWinner": "Shape filtering was measured to narrow the attack by zero: the working attack was built with every proposed shape rule already applied. plan.items is extractPlanItems(bodyStr), the same untrusted prose one hop later. Emptying the adjudicable set makes ok true with zero positive evidence, so the walk must lose its excusal instead. file_scope is inside the brief, already carries the #3145 digest and humanApproval gate, and a GitHub commenter cannot write it.",
   "confidence": "high",
   "activeScopeRefs": [
-    "xbrief/active/2026-08-28-3835-blocker-securityverify-ac-untrusted-issue-prose-selects-an-i.xbrief.json"
+    "xbrief/completed/2026-08-28-3835-blocker-securityverify-ac-untrusted-issue-prose-selects-an-i.xbrief.json"
   ],
   "timestamp": "2026-08-28T18:01:14Z",
   "revisitTrigger": "If briefs start declaring file_scope widely and clause walking regains real capability, re-measure whether the per-clause verified requirement is too strict",
