@@ -19,6 +19,11 @@ const REQUIRED_CONTRACT_POINTERS = [
   "### Parent-facing dispatch rules",
   "### Critic method",
   "## Variant table",
+  "### The arc",
+  "### Target shape",
+  "one recorded motion over one target revision",
+  "set-level",
+  "against-implementation",
   "### Evaluation rule",
   "evaluated independently",
   "5364365428",
@@ -313,6 +318,92 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(panelRow).not.toContain("No defensible presumption");
     expect(text).not.toContain("panel → refutation → default");
     expect(text).not.toContain("first-match");
+  });
+
+  it("defines the arc unit with derived boundaries (#3797)", () => {
+    const text = readText(CONTRACT);
+    const framing = markdownSection(text, "## Framing");
+    expect(framing, "arc definition missing from ## Framing").toContain("### The arc");
+    expect(framing).toContain("**An arc is one recorded motion over one target revision**");
+    expect(framing).toContain("through accepted synthesis or the halt line");
+    expect(framing).toContain("one or more rounds, and therefore one or more ceilings");
+    expect(framing).toContain("per-target, not per-issue");
+    // Open critique has no refutation target, so the unit cannot be one.
+    expect(framing).toContain("Open critique names no refutation target");
+    // Derived, not asserted: the two proposed absolutes collide, so the implication
+    // runs one way only and recut is qualified as post-bind.
+    expect(framing).toContain("A round takes a new ceiling. The converse does not hold");
+    expect(framing).toContain("Neither event opens an arc.");
+    expect(framing).toContain("a retry continues the arc it retries");
+    expect(framing).toContain("A panel is one round, not N arcs.");
+    expect(framing).toContain("revising a lean before bind is not a boundary");
+    expect(framing).toContain("A **recut** opens the next arc, and only after bind");
+    expect(framing).toContain("post-bind target revision");
+    expect(framing).toContain("! Read `arc` in this document as that unit.");
+    expect(framing).toContain(
+      "\u2297 Read a new ceiling, a new round, or a pre-bind lean revision as a new arc.",
+    );
+    // The refuted formulations must not return.
+    expect(text).not.toContain("An arc is the complete motion over one refutation target");
+    expect(text).not.toContain("A new ceiling starts a new round");
+    expect(text).not.toContain("A recut ends an arc");
+    const testSurface = markdownSection(text, "## Test surface");
+    expect(testSurface).toContain("`### The arc`");
+  });
+
+  it("records target shapes on an axis orthogonal to charter (#3797)", () => {
+    const text = readText(CONTRACT);
+    const stop2 = markdownSection(text, "## Stop 2 \u2014 Variant selection");
+    expect(stop2, "target-shape axis missing from Stop 2").toContain("### Target shape");
+    expect(stop2).toContain("**Target shape is what is being critiqued.**");
+    expect(stop2).toContain("not a row in either table above");
+    expect(stop2).toContain("| set-level |");
+    expect(stop2).toContain("| against-implementation |");
+    // Each shape cites its exemplars, and the limited-exemplar caveat is contract text.
+    expect(stop2).toContain("5433848104");
+    expect(stop2).toContain("5434313019");
+    expect(stop2).toContain("5434122672");
+    expect(stop2).toContain("#3796 with PR #3793");
+    expect(stop2).toContain("Each shape has been run twice, which is not a settled pattern");
+    expect(stop2).toContain("neither row grants a charter or a spend");
+    expect(stop2).toContain("disposition is per-issue");
+    expect(stop2).toContain("check status is unsettled");
+    expect(stop2).toContain(
+      "\u2297 Add a target shape as a charter row or a spend row. It is a third axis",
+    );
+    // The two shapes stay off the charter and spend tables.
+    const charterRow = text.split("\n").find((line) => line.includes("#3462"));
+    expect(charterRow).toContain("| refutation | N=1 |");
+    const defaultRow = text.split("\n").find((line) => line.includes("#3547"));
+    expect(defaultRow).toContain("| open critique | N=1 |");
+    const shapeRows = text
+      .split("\n")
+      .filter((line) => line.includes("set-level") || line.includes("against-implementation"));
+    for (const row of shapeRows) {
+      expect(row, `target shape leaked into a charter/spend row: ${row}`).not.toContain(
+        "N\u22653 permitted",
+      );
+    }
+    const skill = readText(SKILL_REL);
+    expect(skill).not.toContain("### Target shape");
+    expect(skill).not.toContain("against-implementation");
+  });
+
+  it("closes bind path 2 with the non-empty refusals (#3797)", () => {
+    const text = readText(CONTRACT);
+    const bind = markdownSection(text, "## Bind after accepted synthesis");
+    expect(bind).toContain("subject to the two non-empty refusals below");
+    expect(bind).toContain(
+      "\u2297 Bind path 2 when the critic posts zero classified headings (stub / blank).",
+    );
+    expect(bind).toContain("\u2297 Bind path 2 on a footnote-only census.");
+    expect(bind).toContain("denominator set (a) is empty, so it carries no bind at either path");
+    // Path 1 keeps the refusals this mirrors.
+    const verbs = markdownSection(text, "## Operator verbs");
+    expect(verbs).toContain(
+      "\u2297 Stamp when the critic posts zero classified headings (stub / blank).",
+    );
+    expect(verbs).toContain("\u2297 Treat a footnote-only post as a stub.");
   });
 
   it("frames the motion as scaffolds, not enforces, except gate and content-contract tests", () => {

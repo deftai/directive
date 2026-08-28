@@ -13,6 +13,23 @@ This contract scaffolds the motion. Only the ADR-005 judgment gate and the conte
 - ⊗ Pin this contract or `skills/deft-directive-design-critique` into `templates/agents-entry.md` or the AGENTS.md always-pin list. Discovery is on-demand via the Skills Index.
 - ⊗ Auto-dispatch critics from this contract (#3578 / #1702). Operator (or parent after an operator verb) dispatches the next envelope from the brief template.
 
+### The arc
+
+**An arc is one recorded motion over one target revision**, from the Stop 1 write-back (or a voluntary dispatch) through accepted synthesis or the halt line. It holds one or more rounds, and therefore one or more ceilings. An arc is per-target, not per-issue: one issue carries several arcs over time, and one arc can span several issues.
+
+The target is what the arc critiques. Under a refutation charter it is the recorded `refutation-target:`. Open critique names no refutation target, so the target there is the scope the write-back records. `### Target shape` describes the shapes that scope has taken.
+
+Boundaries are read off the machinery in this document, not asserted here.
+
+- A round takes a new ceiling. The converse does not hold: Amendment supersession under `### Audited residuals (panel bookkeeping)` records an amendment adopted as the ceiling **inside** round 2. Neither event opens an arc.
+- Rounds accumulate inside one arc. The auto-stamp denominator is scoped to critic posts in this arc and keeps a Stop 4 retry's post, so a retry continues the arc it retries.
+- Same-round siblings share one ceiling and one panel-deposit. A panel is one round, not N arcs.
+- The arc stays open through the operator-gated loop until a verified synthesis is accepted, or until the halt line. Successor leans are moves inside that loop, so revising a lean before bind is not a boundary.
+- A **recut** opens the next arc, and only after bind: it re-applies `design-critique:mechanism-shaped`, drops `design-critique:triage-ready`, and its new lean is not cleared by the older completed-arc record. That is a post-bind target revision.
+
+- ! Read `arc` in this document as that unit.
+- ⊗ Read a new ceiling, a new round, or a pre-bind lean revision as a new arc.
+
 ## Stop 1 — Gate
 
 ADR-005 is vehicle-invariant. The gate never computes "is this triage mechanism-shaped."
@@ -64,6 +81,26 @@ Charter selection and spend permission are evaluated independently.
 ⊗ Add a Stop 2 variant-table trigger for "the author is the party the proposed rule would constrain." Raising N changes spend; who may substantiate and clear an interested party's claims is a role-and-clearance problem owned by Decorrelation and Non-self-arbitration. Neither requires N≥3. If constrained-party risk needs stronger treatment, it belongs in Stop 5 disclosure and non-self-clearance (#3651).
 
 Default motion after a mechanism-shaped stamp: N=1 fresh open critique. If residual remains, one reiterating pass with a fresh critic that reads a disagreement map, then verified synthesis. Resume is optional sharpening ("does my prior finding still hold"), not the default reiterating agent. A permitted N≥3 does not change that default; the parent records the spend when it uses the permission.
+
+### Target shape
+
+Charter is what the critic is given. **Target shape is what is being critiqued.** The two are independent axes, and target shape selects neither the charter nor the spend, so it is not a row in either table above.
+
+The default shape is one issue's premise, which every row above assumes. Two other shapes have been run.
+
+| Target shape | The target | Exemplars |
+|---|---|---|
+| set-level | N issues as a remedy portfolio — whether they compose | #3781 / #3783 / #3790 (synthesis 5433848104, open critique); #3797 / #3798 / #3799 (synthesis 5434313019, refutation) |
+| against-implementation | the design together with the diff that already implements it | #3610 with PR #3784 (synthesis 5434122672); #3796 with PR #3793 |
+
+Those pairs are the whole record. Each shape has been run twice, which is not a settled pattern, and neither row grants a charter or a spend. The set-level pair is also the evidence for the axis being orthogonal: the same shape ran once under open critique and once under refutation.
+
+**Set-level.** The arc anchors on one issue and takes its ceiling on that thread. The target is the portfolio claim, not any one issue's premise, and disposition is per-issue. The #3781 set arc closed one of the three as dominated and surfaced a fourth issue worth more than any of them.
+
+**Against-implementation.** The implementation already exists, so critics judge the diff alongside the design. Tell them the PR's check status is unsettled, so a green review does not anchor them, and have author responses to earlier findings re-derived rather than accepted. The verdict has two parts — does the target survive, and should the PR merge — and they can differ. On #3610 the target survived 3/3 while the arc struck one acceptance criterion as an already-holding invariant and found two blocking defects a 5/5 review had missed.
+
+- ? Record the target shape on the Stop 2 line when it is not a single issue. Two exemplars do not make it a required field.
+- ⊗ Add a target shape as a charter row or a spend row. It is a third axis, and a row conflates two of them.
 
 ## Stop 3 — Critic envelope
 
@@ -320,10 +357,12 @@ design-critique: synthesis accepted, because …
 ```
 
 1. #3640 auto-stamp: when the successor lean map is total over the auto-stamp denominator (critic posts in this arc, including Stop 4 retry output, plus still-open residual headings) and that set is non-empty and every heading is `accept-into-contract` AND zero unresolved audit markers AND the operator has confirmed or amended that map AND no unposted same-round siblings remain, parent posts `design-critique: synthesis accepted, because agents agreed (empty disagreement set)` and remaining-set-replaces the chip to `design-critique:triage-ready` via `task scm:issue:design-critique-chip -- --issue N --chip triage-ready`. If that write misses, continue; do not halt. Do not print **accept synthesis**. Do not auto-stamp on a partial map, an unconfirmed parent draft, or when any audit marker is unresolved, or while same-round siblings remain unposted.
-2. Explicit operator **accept synthesis** (or a listed short form). Parent may post that line and cite the verb. Then apply `design-critique:triage-ready` as the exclusive catalog chip via remaining-set write. If that write misses, continue; do not halt.
+2. Explicit operator **accept synthesis** (or a listed short form), subject to the two non-empty refusals below. Parent may post that line and cite the verb. Then apply `design-critique:triage-ready` as the exclusive catalog chip via remaining-set write. If that write misses, continue; do not halt.
 
 Closed catalog (last chip wins): `design-critique:mechanism-shaped` (in-flight, gate match) and `design-critique:triage-ready` (bound). No halt chip.
 
+- ⊗ Bind path 2 when the critic posts zero classified headings (stub / blank). The same refusal path 1 carries at Operator verbs. Stop and inform. Do not stamp.
+- ⊗ Bind path 2 on a footnote-only census. A footnote-only post is a valid census and is not a stub, but denominator set (a) is empty, so it carries no bind at either path.
 - ! Exclusive replace is one merged remaining-set write: GET current labels, drop the other catalog names (`design-critique:mechanism-shaped` and `design-critique:triage-ready`), PUT/PATCH that list with the new chip. Other facets stay. Parent write path: `task scm:issue:design-critique-chip -- --issue N --chip triage-ready|mechanism-shaped [--repo OWNER/NAME]` (`deft scm issue design-critique-chip` dual-invoke). The verb GET-drops via `applyDesignCritiqueCatalogChip` / `designCritiqueChipApplyDelta` and one `ScmLabelClient.apply`. Inventory: `LabelClient.apply` / `mergeIssueLabels`.
 - ⊗ `gh api POST .../labels` or additive `scm:issue:edit --add-label` for this facet.
 - ⊗ Intercept mixed `scm issue edit` adds/removes for this facet.
@@ -413,4 +452,4 @@ This motion ingests untrusted issue threads by design.
 
 ## Test surface
 
-`packages/core/src/content-contracts/standards/design_critique_contract.test.ts` locks required pointer strings, the scaffolds framing, the comment-lead field as model then role from the closed set (not an issue label), the operator-gated loop (successor lean, operator verbs including walk / walk all, dual stop, halt line, exclusive remaining-set replace of the two catalog chips, #3640 auto-stamp on a non-empty all-accept map and no-stamp on stubs, first-lean recording obligation after critic EXIT), the parent-side substantiation token and independence rules, the Stop 1 exclusion (pre-critic premises outside the trigger) and `refutation-target:` field tokens rather than full body sentences, the composed auto-bind conjunct (all-accept map AND zero unresolved audit markers) at Operator verbs and Bind path 1, the variant-table evaluation rule (charter selection and spend permission evaluated independently), the critic-method heading and distinctive obligation tokens (exact class tokens, citations-are-claims, existing mechanisms, injection / swarm trigger nouns, failed-reviewer phrase, finding anatomy) rather than full body sentences, the brief-template forbidden-inputs list, and the thin router skill (existence, line cap, pointer resolution, no-normative-content). `evaluateParentAudit` locks the omission failure modes. This suite locks the SoT MUST and the thin skill pointer for the first-lean recording obligation, including the auto-stamp operator-confirm conjunct and the no-bind-while-unposted-same-round-siblings rule. `evaluateCompletedArcRecord` locks ingest on the completed-arc record rather than a catalog chip. It does not fail-close live parent turns. `packages/core/src/design-critique/citation-grammar.test.ts` locks the `## Citation grammar` closed set, the refused positions, and the diagnostics surface; `packages/core/src/design-critique/completed-arc-record.test.ts` locks one parser for both questions, set membership against the latest lean, and the observation-echoing block details (#3831). Runtime parent-turn detection only if `evaluateParentAudit` is extended; that extension is not required to ship the recording obligation. Panel completeness is locked as contract text only. No predicate observes it on a live arc (#3850).
+`packages/core/src/content-contracts/standards/design_critique_contract.test.ts` locks required pointer strings, the scaffolds framing, the comment-lead field as model then role from the closed set (not an issue label), the operator-gated loop (successor lean, operator verbs including walk / walk all, dual stop, halt line, exclusive remaining-set replace of the two catalog chips, #3640 auto-stamp on a non-empty all-accept map and no-stamp on stubs, first-lean recording obligation after critic EXIT), the parent-side substantiation token and independence rules, the Stop 1 exclusion (pre-critic premises outside the trigger) and `refutation-target:` field tokens rather than full body sentences, the composed auto-bind conjunct (all-accept map AND zero unresolved audit markers) at Operator verbs and Bind path 1, the variant-table evaluation rule (charter selection and spend permission evaluated independently), the critic-method heading and distinctive obligation tokens (exact class tokens, citations-are-claims, existing mechanisms, injection / swarm trigger nouns, failed-reviewer phrase, finding anatomy) rather than full body sentences, the brief-template forbidden-inputs list, and the thin router skill (existence, line cap, pointer resolution, no-normative-content). `evaluateParentAudit` locks the omission failure modes. This suite locks the SoT MUST and the thin skill pointer for the first-lean recording obligation, including the auto-stamp operator-confirm conjunct and the no-bind-while-unposted-same-round-siblings rule. `evaluateCompletedArcRecord` locks ingest on the completed-arc record rather than a catalog chip. It does not fail-close live parent turns. `packages/core/src/design-critique/citation-grammar.test.ts` locks the `## Citation grammar` closed set, the refused positions, and the diagnostics surface; `packages/core/src/design-critique/completed-arc-record.test.ts` locks one parser for both questions, set membership against the latest lean, and the observation-echoing block details (#3831). Runtime parent-turn detection only if `evaluateParentAudit` is extended; that extension is not required to ship the recording obligation. Panel completeness is locked as contract text only. No predicate observes it on a live arc (#3850). `### The arc` and its derived boundaries, the `### Target shape` axis with its twice-run caveat, and the two bind-path-2 non-empty refusals are locked as contract text (#3797).

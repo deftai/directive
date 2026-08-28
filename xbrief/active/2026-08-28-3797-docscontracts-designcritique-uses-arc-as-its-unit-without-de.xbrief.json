@@ -1,0 +1,199 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #3797",
+    "updated": "2026-08-28T17:42:21Z"
+  },
+  "plan": {
+    "title": "docs(contracts): design-critique uses 'arc' as its unit without defining it, and the variant table cannot express two proven shapes",
+    "status": "running",
+    "narratives": {
+      "Description": "Define the arc in content/contracts/design-critique.md ## Framing with boundaries derived from the existing round, ceiling, denominator and recut machinery; record set-level and against-implementation as target shapes on an axis orthogonal to charter; and mirror the stub / footnote-only non-empty refusals onto bind path 2.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3797 (round-1 set synthesis 5434313019, amended by round-2 synthesis 5445541979)",
+      "Overview": "The contract uses 'arc' as its unit of work at Stop 2 and never defines it. Two further gaps found by running the motion: the variant table conflates charter with what is being critiqued, and one narrow hole lets a hollow arc reach bind.\n\nThe bound contract is the accepted synthesis, not the body alone. Round 1 (5434313019) bound three sections and refused to let the boundary rules be asserted: 'a new ceiling starts a round, not an arc' and 'a recut ends an arc' cannot both be absolute, because a recut also sets a new ceiling. Round 2 (5445541979) removed the panel-composition section entirely after 3/3 critics broke it, and confirmed the remaining three survived the rewrite.\n\nThe derivation is supplied by the critics, not invented here:\n\n- Round-1 gpt (5434300592, finding 3): define the unit as one recorded motion over one target revision, from gate or voluntary dispatch through accepted synthesis or halt, containing one or more rounds and therefore one or more round ceilings. Only a post-bind target revision starts a new arc. Do not use 'one refutation target' as the universal boundary -- open critique has none.\n- Round-1 opus (5434304398, F1 / F2 / Also press): 'one input ceiling' is wrong because an arc has as many ceilings as rounds. 'Recut' must be qualified as post-bind -- the re-application of mechanism-shaped after triage-ready, not any mid-loop successor lean. And the converse of the ceiling rule fails: an amendment adopted as the ceiling inside round 2 (Amendment supersession) means a new ceiling does not always start a round. The safe form is 'a new round takes a new ceiling'.\n- Round-2 gpt (5445526223) re-raised the open-critique hole on 'one refutation target'; the generalised target -- what is being critiqued -- is what the target-shape axis names, so one definition holds for both charters.\n\nTiming: content/contracts/design-critique.md was changed hours earlier by PR #3856 (#3850, merged 52a5fddc). Every line number in the issue body predates that merge. Re-anchored against master: the zero-heading stub refusal moved from :250 to :254, the footnote-only refusal from :251 to :255, and bind path 2 from :319 to :323. #3856 also converged seven sibling-completeness guards on deposit-independent phrasing, which already supplies bind path 2 with its same-round-siblings limb through the loop-level prohibition at :179. The non-empty limb this issue asks for is still absent, so the scope narrows to the non-empty conditions only.\n\nOut of bounds:\n\n- Do NOT add panel composition to spend or anywhere else. Round 2 removed it 3/3; Decorrelation already owns family correlation.\n- Do NOT add set-level or against-implementation as charter rows or spend rows. They are a third axis; a row would conflate two dimensions.\n- Do NOT require target shape to be recorded. Two exemplars each is not enough; round-1 gpt refused a new recording field before repeated use.\n- Do NOT edit content/skills/deft-directive-design-critique/SKILL.md. It is generated from content/packs/skills/skills-pack-0.1.json, the acceptance forbids normative body there, and the router already says everything it needs to.\n- Do NOT add chip semantics for a set arc (opus F3). It is residual only if a chip reader returns, and #3799's gate half was dropped.\n\nRefs #3434, #3547, #3462, #3610, #3781, #3790, #3796, #3798, #3799, #3803, #3850.",
+      "Labels": "bug, design, process, area:skills, critic"
+    },
+    "items": [
+      {
+        "title": "`## Framing` defines the arc with boundaries derived rather than asserted: the contract states \"An arc is one recorded motion over one target revision\" and \"A round takes a new ceiling. The converse does not hold\"",
+        "status": "running",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-28T17:50:00.000Z",
+          "recorded_by": "leaf-implementation/3797"
+        }
+      },
+      {
+        "title": "Set-level and against-implementation are recorded as target shapes on an axis orthogonal to charter, each citing its exemplars: the contract states \"Target shape is what is being critiqued.\" and \"not a row in either table above\"",
+        "status": "running",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-28T17:50:00.000Z",
+          "recorded_by": "leaf-implementation/3797"
+        }
+      },
+      {
+        "title": "The limited-exemplar caveat is contract text: \"Each shape has been run twice, which is not a settled pattern\"",
+        "status": "running",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-28T17:50:00.000Z",
+          "recorded_by": "leaf-implementation/3797"
+        }
+      },
+      {
+        "title": "Bind path 2 carries the non-empty refusals from Operator verbs: the contract states \"subject to the two non-empty refusals below\" and \"Bind path 2 on a footnote-only census.\"",
+        "status": "running",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-28T17:50:00.000Z",
+          "recorded_by": "leaf-implementation/3797"
+        }
+      },
+      {
+        "title": "No normative body copied into the router skill: it still reads \"Thin router into the design-critique contract.\" and carries neither heading",
+        "status": "running",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-28T17:50:00.000Z",
+          "recorded_by": "leaf-implementation/3797"
+        }
+      },
+      {
+        "title": "The content-contract test pins the arc definition, the target-shape axis, and the bind-path-2 refusals: it asserts \"### The arc\" and \"### Target shape\"",
+        "status": "running",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-28T17:50:00.000Z",
+          "recorded_by": "leaf-implementation/3797"
+        }
+      },
+      {
+        "title": "CHANGELOG [Unreleased] entry: \"The design-critique contract now defines its own unit of work.\"",
+        "status": "running",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-08-28T17:50:00.000Z",
+          "recorded_by": "leaf-implementation/3797"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design",
+      "process",
+      "critic"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3797",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3797: design-critique uses 'arc' as its unit without defining it"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3797#issuecomment-5434313019",
+        "type": "x-xbrief/refs",
+        "title": "Round-1 verified synthesis (set arc; keep-and-recut disposition for #3797)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3797#issuecomment-5445541979",
+        "type": "x-xbrief/refs",
+        "title": "Round-2 verified synthesis (panel-composition section removed 3/3; the other sections confirmed)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3797#issuecomment-5434300592",
+        "type": "x-xbrief/refs",
+        "title": "Round-1 critic: the derived definition (one recorded motion over one target revision)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3797#issuecomment-5434304398",
+        "type": "x-xbrief/refs",
+        "title": "Round-1 critic: F1 ceiling plurality, F2 post-bind recut qualifier, converse of the ceiling rule"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/3856",
+        "type": "x-xbrief/refs",
+        "title": "PR #3856 (#3850): deposit-independent sibling-completeness phrasing; re-anchor every line cite against it"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "issue #3797 states acceptance as a prose checklist and names no verification commands; 7 independently testable clauses transcribed from the body and bound to the shipped artifacts before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "`## Framing` defines the arc with boundaries derived rather than asserted: the contract states \"An arc is one recorded motion over one target revision\" and \"A round takes a new ceiling. The converse does not hold\"",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Set-level and against-implementation are recorded as target shapes on an axis orthogonal to charter, each citing its exemplars: the contract states \"Target shape is what is being critiqued.\" and \"not a row in either table above\"",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The limited-exemplar caveat is contract text: \"Each shape has been run twice, which is not a settled pattern\"",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Bind path 2 carries the non-empty refusals from Operator verbs: the contract states \"subject to the two non-empty refusals below\" and \"Bind path 2 on a footnote-only census.\"",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "No normative body copied into the router skill: it still reads \"Thin router into the design-critique contract.\" and carries neither heading",
+          "artifact_path": "content/skills/deft-directive-design-critique/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "The content-contract test pins the arc definition, the target-shape axis, and the bind-path-2 refusals: it asserts \"### The arc\" and \"### Target shape\"",
+          "artifact_path": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "CHANGELOG [Unreleased] entry: \"The design-critique contract now defines its own unit of work.\"",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/contracts/design-critique.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "content/contracts + content-contract standards",
+        "cohesion_exemption": "The content-contract test and CHANGELOG.md sit outside the contract module boundary; the test lives with the other content-contract standards tests. CHANGELOG.md already exceeds FILE_SIZE_REVIEW_TRIGGER_LINES and this slice adds one Unreleased entry."
+      },
+      "capacityBucket": "new-capability"
+    },
+    "updated": "2026-08-28T17:42:21Z"
+  }
+}
