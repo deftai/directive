@@ -4,7 +4,19 @@
  * Ritual-state is "this session completed ceremony." Occupancy is "who may
  * mutate this tree right now." Those lifetimes differ; do not overload
  * ritual-state.json. Ordinary end is occupancy:release / session:end (#3604).
- * Join negotiation (`occupancy:request`) is out of scope.
+ *
+ * What this boundary is (#3755): a cooperative bearer-id boundary, not a
+ * lineage. The lease admits whoever presents an id the record itself names —
+ * the occupant's id, or a child id the occupant granted — so possession of a
+ * string is the whole credential. Nothing here observes parentage, so a
+ * dispatched child is admitted because a grant records it, never because it
+ * inherited the holder's rights. Membership is explicit, attributable and
+ * expiring (`grantOccupancyMembership`), and it admits writes only: release,
+ * steal, heartbeat and cohort close-out stay owner-only, so a grant cannot be
+ * spent on the lease itself. Child-initiated join queuing stays out of scope —
+ * the owner issues membership; the child does not request it. Ritual state is
+ * still single-owner and a grant does not extend it (#3872), so the composite
+ * hook write gate keeps requiring a ritual owner that matches the writer.
  *
  * Concurrency model:
  * - Assumptions: local filesystem; cooperating processes on one machine.
@@ -27,6 +39,7 @@ import { dirname, join, resolve } from "node:path";
 import { containedRemove, containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { assertAppendLockOwned, type LockDeps, withAppendLock } from "../slice/lock.js";
+import { SWARM_WORKER_ROLES, type SwarmWorkerRole } from "../swarm/routing.js";
 import { stableJson } from "./json.js";
 import { parseTimestamp, timestampIso } from "./time.js";
 
@@ -70,6 +83,52 @@ export const OCCUPANCY_INTENTS = ["mutation", "swarm", "review"] as const;
 export type OccupancyIntent = (typeof OCCUPANCY_INTENTS)[number];
 export const OCCUPANCY_JOIN_PROTOCOLS = ["none", "heartbeat-file", "parent-message"] as const;
 export type OccupancyJoinProtocol = (typeof OCCUPANCY_JOIN_PROTOCOLS)[number];
+/**
+ * Default life of a grant (#3755), sized by one dispatched unit of work:
+ * implement, open the PR, run the review cycle. Four hours is a third of the
+ * absolute lease cap, so a grant that outlives its child still dies well inside
+ * the lease that issued it, and re-granting costs the owner one command.
+ */
+export const OCCUPANCY_GRANT_TTL_MS = 4 * 60 * 60 * 1000;
+/**
+ * Grants a single lease may carry (#3755). Bounded because the list is rewritten
+ * into the lease file on every touch and the topology it serves is a nuclear
+ * family (#3155), not a mesh — a lease needing more than this is a design
+ * problem, not a capacity one.
+ */
+export const OCCUPANCY_MAX_GRANTS = 32;
+
+/**
+ * A child admitted to the owner's lease (#3755). The five recorded fields are
+ * the point: possession of a session string proves nothing about who is behind
+ * it, so admission has to name the owner that issued it, the child it admits,
+ * the tree it covers, the role it was dispatched for, and when it stops being
+ * true. A grant admits writes; it never admits administration.
+ *
+ * `worktreePath` is recorded rather than assumed. Dispatched children land in
+ * their own worktree because the dispatch envelope puts them there, not because
+ * anything enforces it, so same-tree dispatch stays reachable and a lease may
+ * hold several grants over one path.
+ */
+export interface OccupancyGrant {
+  readonly ownerSessionId: string;
+  readonly childSessionId: string;
+  readonly worktreePath: string;
+  readonly role: SwarmWorkerRole;
+  readonly expiresAt: Date;
+  /** Per-actor host of the granted child, mirroring the occupant's own field. */
+  readonly host: string;
+  /** Per-actor address of the granted child, mirroring the occupant's own field. */
+  readonly address: string;
+  /** How this child reports back, from the parked join vocabulary. */
+  readonly joinProtocol: OccupancyJoinProtocol;
+}
+
+/**
+ * Who the presented id is to this lease (#3755). `member` is the only thing a
+ * grant buys, and it buys it for writes alone.
+ */
+export type OccupancyAdmission = "owner" | "member" | "stranger";
 
 export interface OccupancyRecord {
   readonly schemaVersion: number;
@@ -90,10 +149,19 @@ export interface OccupancyRecord {
   readonly address: string;
   readonly retainCapable: boolean;
   readonly joinProtocol: OccupancyJoinProtocol;
+  /** Children the occupant admitted to this lease for writes (#3755). */
+  readonly grants: readonly OccupancyGrant[];
   readonly raw: Record<string, unknown>;
 }
 
-export type OccupancyAction = "claimed" | "heartbeat" | "stolen" | "denied" | "released";
+export type OccupancyAction =
+  | "claimed"
+  | "heartbeat"
+  | "stolen"
+  | "denied"
+  | "released"
+  | "granted"
+  | "revoked";
 
 export interface OccupancyDecision {
   readonly action: OccupancyAction;
@@ -190,6 +258,50 @@ export function isOccupancyExpired(
   return occupancyLiveness(record, now, ttlMs, maxLeaseMs) !== "live";
 }
 
+/** Grants that still admit somebody (#3755). An expired grant admits nobody. */
+export function liveOccupancyGrants(
+  record: OccupancyRecord,
+  now: Date = new Date(),
+): readonly OccupancyGrant[] {
+  return record.grants.filter((grant) => grant.expiresAt.getTime() > now.getTime());
+}
+
+/**
+ * The grant admitting `sessionId`, or null (#3755). Expiry is refused here, on
+ * read, rather than trusted to a sweep: nothing guarantees a lease is ever
+ * touched again after the grant is written, so a grant that outlived its clock
+ * must stop admitting the moment it is read, not the next time it is rewritten.
+ */
+export function occupancyGrantFor(
+  record: OccupancyRecord,
+  sessionId: string,
+  now: Date = new Date(),
+): OccupancyGrant | null {
+  const presented = sessionId.trim();
+  if (presented.length === 0) return null;
+  // The owner holds the lease outright; a grant naming it would add nothing.
+  if (presented === record.sessionId) return null;
+  return (
+    liveOccupancyGrants(record, now).find((grant) => grant.childSessionId === presented) ?? null
+  );
+}
+
+/**
+ * What the presented id is to this lease (#3755). Deliberately not a liveness
+ * question: it answers who, and callers pair it with `occupancyLiveness` to
+ * answer whether the lease is still worth anything.
+ */
+export function occupancyAdmission(
+  record: OccupancyRecord,
+  sessionId: string,
+  now: Date = new Date(),
+): OccupancyAdmission {
+  const presented = sessionId.trim();
+  if (presented.length === 0) return "stranger";
+  if (presented === record.sessionId) return "owner";
+  return occupancyGrantFor(record, presented, now) === null ? "stranger" : "member";
+}
+
 function occupancyClockLine(record: OccupancyRecord): string {
   const lastWrite =
     record.lastWriteAt === null ? "" : ` last_write_at=${timestampIso(record.lastWriteAt)}`;
@@ -242,9 +354,29 @@ export function formatOccupancyRemediation(
     `Worktree occupied by session ${record.sessionId} (intent=${record.intent}, heartbeat ${age}s ago, ` +
     `${formatLastWritePhrase(record, now)}, ${occupancyClockLine(record)}).\n` +
     "Stay read-only (`session:start --read-only`), use another worktree,\n" +
-    "queue a join (`occupancy:request`), or run a confirmed owner transition " +
+    "ask the occupant for a write grant (`occupancy:grant --child-session-id=<your-session-id> " +
+    "--role <worker-role>`, run by the occupant), or run a confirmed owner transition " +
     "(`session:start --steal --confirm --occupant <reported-session-id> --session-id=<your-session-id>`).\n" +
     "The occupant may release (`occupancy:release` / `session:end`)."
+  );
+}
+
+/**
+ * Refuse an administrative verb to a granted child (#3755). Named apart from
+ * the stranger refusal because the answer differs: this caller is admitted, and
+ * telling it to steal or wait would send it to take the very lease its grant
+ * derives from. A grant admits writes; the lease has one owner.
+ */
+export function formatOccupancyMemberAdministrationRefusal(
+  record: OccupancyRecord,
+  grant: OccupancyGrant,
+  verb: string,
+): string {
+  return (
+    `${verb} is owner-only. Session ${grant.childSessionId} holds a write grant on this lease ` +
+    `(role=${grant.role}, expires ${timestampIso(grant.expiresAt)}), not the lease itself, and a ` +
+    "grant never escalates into administration.\n" +
+    `Ask the occupant (session ${record.sessionId}) to run it, or wait for the grant to expire.`
   );
 }
 
@@ -351,6 +483,10 @@ export function applyWorktreeOccupancy(
           address: input.address ?? liveLocked?.address ?? occupancyAddress(input.env),
           retainCapable: input.retainCapable ?? liveLocked?.retainCapable ?? false,
           joinProtocol: input.joinProtocol ?? liveLocked?.joinProtocol ?? "none",
+          // Grants belong to the lease that issued them (#3755): the same owner
+          // keeps its members across a heartbeat, and a fresh claim over expired
+          // residue starts with none.
+          grants: liveLocked === null ? [] : liveOccupancyGrants(liveLocked, now),
         },
         fence,
       );
@@ -408,6 +544,22 @@ export function stealOccupancy(
   }
   const existing = readOccupancy(projectRoot);
   const live = existing !== null && !isOccupancyExpired(existing, now) ? existing : null;
+  // A grant admits writes, never the lease itself (#3755). Letting a child steal
+  // from the owner that admitted it would turn delegated write access into a
+  // path to replace the delegator — the escalation explicit membership exists to
+  // remove. Cooperative, like the rest of this file: a caller can present some
+  // other id, and then it is a stranger doing a confirmed steal, on the record.
+  const stealerGrant = live === null ? null : occupancyGrantFor(live, incoming, now);
+  if (live !== null && stealerGrant !== null) {
+    return {
+      action: "denied",
+      sessionId: incoming,
+      record: live,
+      path,
+      message: formatOccupancyMemberAdministrationRefusal(live, stealerGrant, "occupancy:steal"),
+      code: 1,
+    };
+  }
   if (live !== null && live.sessionId !== named) {
     return {
       action: "denied",
@@ -439,6 +591,22 @@ export function stealOccupancy(
       const existingLocked = readOccupancy(projectRoot);
       const liveLocked =
         existingLocked !== null && !isOccupancyExpired(existingLocked, now) ? existingLocked : null;
+      const lockedStealerGrant =
+        liveLocked === null ? null : occupancyGrantFor(liveLocked, incoming, now);
+      if (liveLocked !== null && lockedStealerGrant !== null) {
+        return {
+          action: "denied" as const,
+          sessionId: incoming,
+          record: liveLocked,
+          path,
+          message: formatOccupancyMemberAdministrationRefusal(
+            liveLocked,
+            lockedStealerGrant,
+            "occupancy:steal",
+          ),
+          code: 1,
+        };
+      }
       if (liveLocked !== null && liveLocked.sessionId !== named) {
         return {
           action: "denied" as const,
@@ -468,6 +636,10 @@ export function stealOccupancy(
           address: input.address ?? occupancyAddress(input.env),
           retainCapable: input.retainCapable ?? false,
           joinProtocol: input.joinProtocol ?? "none",
+          // A steal replaces the owner, and grants are that owner's word about
+          // who may write. The new owner never said it, so it does not inherit
+          // the members either (#3755).
+          grants: [],
         },
         fence,
       );
@@ -525,7 +697,7 @@ export function releaseOccupancy(
           sessionId: caller,
           record: existing,
           path,
-          message: formatOccupancyRemediation(existing, now),
+          message: membershipOwnerDenial(existing, caller, now, "occupancy:release"),
           code: 1,
         };
       }
@@ -550,7 +722,7 @@ export function releaseOccupancy(
           sessionId: caller,
           record: still,
           path,
-          message: formatOccupancyRemediation(still, now),
+          message: membershipOwnerDenial(still, caller, now, "occupancy:release"),
           code: 1,
         };
       }
@@ -568,6 +740,311 @@ export function releaseOccupancy(
   );
 }
 
+export interface OccupancyMembershipInput {
+  /** The owner issuing or withdrawing the grant; never the child. */
+  readonly sessionId?: string;
+  readonly childSessionId?: string;
+  readonly role?: string;
+  readonly worktreePath?: string;
+  /** Explicit end of the grant; clamped to the owner's own lease cap. */
+  readonly expiresAt?: Date;
+  readonly ttlMs?: number;
+  readonly host?: string;
+  readonly address?: string;
+  readonly joinProtocol?: OccupancyJoinProtocol;
+  readonly env?: NodeJS.ProcessEnv;
+  readonly now?: Date;
+  readonly lockDeps?: LockDeps;
+}
+
+function membershipOwnerDenial(
+  live: OccupancyRecord,
+  caller: string,
+  now: Date,
+  verb: string,
+): string {
+  const grant = occupancyGrantFor(live, caller, now);
+  return grant === null
+    ? formatOccupancyRemediation(live, now)
+    : formatOccupancyMemberAdministrationRefusal(live, grant, verb);
+}
+
+/**
+ * Admit a dispatched child to this lease for writes (#3755).
+ *
+ * Owner-only, and the record is the point: a child that writes here is named
+ * on the lease it writes under, so an unexpected edit resolves to a session, a
+ * role and a tree instead of to "somebody who had the string". The grant cannot
+ * outlive the lease that issued it — expiry is clamped to the absolute lease
+ * cap — and it buys writes alone.
+ */
+export function grantOccupancyMembership(
+  projectRoot: string,
+  input: OccupancyMembershipInput = {},
+): OccupancyDecision {
+  const now = input.now ?? new Date();
+  const path = occupancyPath(projectRoot);
+  const owner = input.sessionId?.trim() || (input.env ?? process.env).DEFT_SESSION_ID?.trim() || "";
+  const child = input.childSessionId?.trim() ?? "";
+  const role = input.role?.trim() ?? "";
+  if (owner.length === 0) {
+    return {
+      action: "denied",
+      sessionId: "",
+      record: readOccupancy(projectRoot),
+      path,
+      message:
+        "occupancy:grant needs the owner id: pass --session-id <your-session-id> or set " +
+        "DEFT_SESSION_ID. Only the occupant may admit a child to its lease.",
+      code: 2,
+    };
+  }
+  if (child.length === 0) {
+    return {
+      action: "denied",
+      sessionId: owner,
+      record: readOccupancy(projectRoot),
+      path,
+      message:
+        "occupancy:grant needs --child-session-id <session-id>: the id the dispatched child " +
+        "will present on its own writes.",
+      code: 2,
+    };
+  }
+  if (child === owner) {
+    return {
+      action: "denied",
+      sessionId: owner,
+      record: readOccupancy(projectRoot),
+      path,
+      message:
+        "occupancy:grant refuses a self-grant: the lease already admits its owner, so a grant " +
+        "naming the same id records nothing and would only blur who wrote what.",
+      code: 2,
+    };
+  }
+  if (!(SWARM_WORKER_ROLES as readonly string[]).includes(role)) {
+    return {
+      action: "denied",
+      sessionId: owner,
+      record: readOccupancy(projectRoot),
+      path,
+      message:
+        `occupancy:grant needs --role from ${SWARM_WORKER_ROLES.join(", ")}. The role is what the ` +
+        "grant is for; an unnamed role makes the record unreadable after the fact.",
+      code: 2,
+    };
+  }
+  const ttlMs = input.ttlMs ?? OCCUPANCY_GRANT_TTL_MS;
+  return withOccupancyLock(
+    projectRoot,
+    (fence) => {
+      const current = readOccupancy(projectRoot);
+      const live = current !== null && !isOccupancyExpired(current, now) ? current : null;
+      if (live === null) {
+        const capped =
+          current !== null &&
+          current.sessionId === owner &&
+          occupancyLiveness(current, now) === "age-capped";
+        return {
+          action: "denied" as const,
+          sessionId: owner,
+          record: capped ? current : null,
+          path,
+          message:
+            capped && current !== null
+              ? formatOccupancyAgeCapRemediation(current, now)
+              : "occupancy:grant found no live lease to grant on. A grant is derived authority, " +
+                `so claim the worktree first with \`deft session:start --session-id=${owner}\`.`,
+          code: 1,
+        };
+      }
+      if (live.sessionId !== owner) {
+        return {
+          action: "denied" as const,
+          sessionId: owner,
+          record: live,
+          path,
+          message: membershipOwnerDenial(live, owner, now, "occupancy:grant"),
+          code: 1,
+        };
+      }
+      const requested = input.expiresAt ?? new Date(now.getTime() + ttlMs);
+      if (requested.getTime() <= now.getTime()) {
+        return {
+          action: "denied" as const,
+          sessionId: owner,
+          record: live,
+          path,
+          message:
+            "occupancy:grant refuses an expiry that is already past: a grant that admits nobody " +
+            "is indistinguishable from no grant, and recording one would only mislead.",
+          code: 2,
+        };
+      }
+      // A grant is derived authority, so it dies with the lease it derives from
+      // (#3755). Without this clamp a chain of grants would outlast the absolute
+      // cap that keeps a worktree reclaimable.
+      const leaseEnds = live.claimedAt.getTime() + OCCUPANCY_MAX_LEASE_MS;
+      const expiresAt = requested.getTime() > leaseEnds ? new Date(leaseEnds) : requested;
+      const clamped = expiresAt.getTime() !== requested.getTime();
+      const kept = liveOccupancyGrants(live, now).filter(
+        (existing) => existing.childSessionId !== child,
+      );
+      if (kept.length >= OCCUPANCY_MAX_GRANTS) {
+        return {
+          action: "denied" as const,
+          sessionId: owner,
+          record: live,
+          path,
+          message:
+            `occupancy:grant refuses a ${OCCUPANCY_MAX_GRANTS + 1}th live grant on one lease. ` +
+            "Revoke a finished child (`occupancy:grant --revoke --child-session-id=<id>`) or let " +
+            "its grant expire.",
+          code: 1,
+        };
+      }
+      const grant: OccupancyGrant = {
+        ownerSessionId: owner,
+        childSessionId: child,
+        worktreePath: input.worktreePath?.trim() || live.worktreePath,
+        role: role as SwarmWorkerRole,
+        expiresAt,
+        host: input.host?.trim() || "none",
+        address: input.address?.trim() || "none",
+        joinProtocol: input.joinProtocol ?? "parent-message",
+      };
+      const record = writeOccupancyRecord(
+        projectRoot,
+        {
+          sessionId: live.sessionId,
+          worktreePath: live.worktreePath,
+          intent: live.intent,
+          claimedAt: live.claimedAt,
+          // Issuing a grant is the owner touching its own lease, which is what
+          // heartbeat_at records; claimed_at is untouched, so the cap holds.
+          heartbeatAt: now,
+          lastWriteAt: live.lastWriteAt,
+          host: live.host,
+          address: live.address,
+          retainCapable: live.retainCapable,
+          joinProtocol: live.joinProtocol,
+          grants: [...kept, grant],
+        },
+        fence,
+      );
+      return {
+        action: "granted" as const,
+        sessionId: owner,
+        record,
+        path,
+        message:
+          `occupancy grant issued to session ${child} (role=${grant.role}, ` +
+          `worktree=${grant.worktreePath}, expires ${timestampIso(expiresAt)}` +
+          `${clamped ? ", clamped to this lease's absolute age cap" : ""}). ` +
+          "It admits writes only; release, steal, heartbeat and cohort close-out stay yours.",
+        code: 0,
+      };
+    },
+    input.lockDeps,
+  );
+}
+
+/**
+ * Withdraw a child's grant early (#3755). Expiry already bounds every grant, so
+ * this exists for the case expiry cannot serve: the child finished, or should
+ * never have been admitted, and the owner wants that true now.
+ */
+export function revokeOccupancyMembership(
+  projectRoot: string,
+  input: OccupancyMembershipInput = {},
+): OccupancyDecision {
+  const now = input.now ?? new Date();
+  const path = occupancyPath(projectRoot);
+  const owner = input.sessionId?.trim() || (input.env ?? process.env).DEFT_SESSION_ID?.trim() || "";
+  const child = input.childSessionId?.trim() ?? "";
+  if (owner.length === 0 || child.length === 0) {
+    return {
+      action: "denied",
+      sessionId: owner,
+      record: readOccupancy(projectRoot),
+      path,
+      message:
+        "occupancy:grant --revoke needs both the owner id (--session-id or DEFT_SESSION_ID) and " +
+        "--child-session-id <session-id>.",
+      code: 2,
+    };
+  }
+  return withOccupancyLock(
+    projectRoot,
+    (fence) => {
+      const current = readOccupancy(projectRoot);
+      const live = current !== null && !isOccupancyExpired(current, now) ? current : null;
+      if (live === null) {
+        return {
+          action: "revoked" as const,
+          sessionId: owner,
+          record: null,
+          path,
+          message:
+            "occupancy:grant --revoke found no live lease, so no grant survives it either: " +
+            "grants die with the lease that issued them.",
+          code: 0,
+        };
+      }
+      if (live.sessionId !== owner) {
+        return {
+          action: "denied" as const,
+          sessionId: owner,
+          record: live,
+          path,
+          message: membershipOwnerDenial(live, owner, now, "occupancy:grant --revoke"),
+          code: 1,
+        };
+      }
+      const remaining = liveOccupancyGrants(live, now).filter(
+        (existing) => existing.childSessionId !== child,
+      );
+      if (remaining.length === liveOccupancyGrants(live, now).length) {
+        return {
+          action: "revoked" as const,
+          sessionId: owner,
+          record: live,
+          path,
+          message: `occupancy has no live grant for session ${child}; nothing to revoke.`,
+          code: 0,
+        };
+      }
+      const record = writeOccupancyRecord(
+        projectRoot,
+        {
+          sessionId: live.sessionId,
+          worktreePath: live.worktreePath,
+          intent: live.intent,
+          claimedAt: live.claimedAt,
+          heartbeatAt: now,
+          lastWriteAt: live.lastWriteAt,
+          host: live.host,
+          address: live.address,
+          retainCapable: live.retainCapable,
+          joinProtocol: live.joinProtocol,
+          grants: remaining,
+        },
+        fence,
+      );
+      return {
+        action: "revoked" as const,
+        sessionId: owner,
+        record,
+        path,
+        message: `occupancy grant revoked for session ${child}; its writes are refused from now on.`,
+        code: 0,
+      };
+    },
+    input.lockDeps,
+  );
+}
+
 export interface OccupancyWriteGateResult {
   readonly allow: boolean;
   readonly message: string | null;
@@ -576,6 +1053,10 @@ export interface OccupancyWriteGateResult {
   readonly refreshed: boolean;
   /** Set when the owner's own lease was inside the staleness window (#3599). */
   readonly warning: string | null;
+  /** Why the write was admitted, or null on a refusal (#3755). */
+  readonly admitted: Exclude<OccupancyAdmission, "stranger"> | null;
+  /** The grant that admitted a member, or null (#3755). */
+  readonly grant: OccupancyGrant | null;
 }
 
 export interface OccupancyWriteGateInput {
@@ -609,38 +1090,80 @@ export function evaluateOccupancyWriteGate(
     input.sessionId?.trim() || (input.env ?? process.env).DEFT_SESSION_ID?.trim() || "";
   const record = readOccupancy(projectRoot);
   const liveness = record === null ? null : occupancyLiveness(record, now);
-  if (record !== null && liveness === "age-capped" && incoming === record.sessionId) {
+  const admission = record === null ? "stranger" : occupancyAdmission(record, incoming, now);
+  if (record !== null && liveness === "age-capped" && admission !== "stranger") {
     // Refuse the capped holder rather than warn it (#3599). Its tree is now
     // unheld, so allowing the write would let the very bearer the cap exists to
     // bound keep mutating a worktree a peer may claim between this allow and
     // the write itself. On gated writes the identity comes from the host
     // payload, so the holder cannot present a stranger's id to dodge this.
+    //
+    // A granted child is refused on the same footing (#3755). Its grant is
+    // derived from this lease, so once the lease is gone the grant authorizes
+    // writes to a tree nobody holds — the exact bypass the cap exists to close,
+    // one hop removed.
     return {
       allow: false,
       message: formatOccupancyAgeCapRemediation(record, now),
       occupant: null,
       refreshed: false,
       warning: null,
+      admitted: null,
+      grant: null,
     };
   }
   if (record === null || liveness !== "live") {
-    return { allow: true, message: null, occupant: null, refreshed: false, warning: null };
+    return {
+      allow: true,
+      message: null,
+      occupant: null,
+      refreshed: false,
+      warning: null,
+      admitted: null,
+      grant: null,
+    };
   }
   const live = record;
-  if (incoming.length === 0 || incoming !== live.sessionId) {
+  if (admission === "stranger") {
     return {
       allow: false,
       message: formatOccupancyRemediation(live, now),
       occupant: live,
       refreshed: false,
       warning: null,
+      admitted: null,
+      grant: null,
+    };
+  }
+  if (admission === "member") {
+    // A member writes on the owner's lease but does not carry it (#3755). The
+    // heartbeat answers "is the owner still there", and a child's write is no
+    // evidence for that, so this path never re-stamps: an owner that dispatches
+    // children keeps its own lease alive. Nor does it inherit the owner's stale
+    // warning, which names a remediation only the owner can run.
+    return {
+      allow: true,
+      message: null,
+      occupant: live,
+      refreshed: false,
+      warning: null,
+      admitted: "member",
+      grant: occupancyGrantFor(live, incoming, now),
     };
   }
 
   const ageMs = now.getTime() - live.heartbeatAt.getTime();
   const warning = ageMs >= OCCUPANCY_STALE_WARN_MS ? formatOccupancyStaleWarning(live, now) : null;
   if (input.refresh !== true || ageMs < OCCUPANCY_REFRESH_AFTER_MS) {
-    return { allow: true, message: null, occupant: live, refreshed: false, warning };
+    return {
+      allow: true,
+      message: null,
+      occupant: live,
+      refreshed: false,
+      warning,
+      admitted: "owner",
+      grant: null,
+    };
   }
   const outcome = restampOccupancyHeartbeat(projectRoot, live.sessionId, now, true, input.lockDeps);
   if (outcome.status !== "refreshed") {
@@ -662,6 +1185,8 @@ export function evaluateOccupancyWriteGate(
     // beside a successful re-stamp would tell the owner its lease is going
     // stale on the very write that renewed it.
     warning: null,
+    admitted: "owner",
+    grant: null,
   };
 }
 
@@ -714,6 +1239,9 @@ function restampOccupancyHeartbeat(
             address: current.address,
             retainCapable: current.retainCapable,
             joinProtocol: current.joinProtocol,
+            // Refresh extends the lease, so it also prunes the grants that died
+            // while it ran; expiry is already refused on read (#3755).
+            grants: liveOccupancyGrants(current, now),
           },
           fence,
         );
@@ -779,7 +1307,7 @@ export function heartbeatOccupancy(
       sessionId: caller,
       record: live,
       path,
-      message: formatOccupancyRemediation(live, now),
+      message: membershipOwnerDenial(live, caller, now, "occupancy:heartbeat"),
       code: 1,
     };
   }
@@ -900,8 +1428,58 @@ function parseOccupancy(payload: unknown, fallbackWorktree: string): OccupancyRe
     address: typeof obj.address === "string" && obj.address.length > 0 ? obj.address : "none",
     retainCapable: obj.retain_capable === true,
     joinProtocol,
+    grants: parseOccupancyGrants(obj.grants, sessionId, worktreePath),
     raw: { ...obj },
   };
+}
+
+/**
+ * Read the grant list (#3755). A malformed entry is dropped rather than failing
+ * the whole record: the lease still has an owner, and losing one grant denies a
+ * child a write it can ask for again, while losing the record would strand the
+ * tree. Expiry is parsed but not judged here — `occupancyGrantFor` decides that
+ * against a clock, so an expired grant stays visible to the owner reading its
+ * own lease and is still refused on admission.
+ */
+function parseOccupancyGrants(
+  payload: unknown,
+  ownerSessionId: string,
+  fallbackWorktree: string,
+): readonly OccupancyGrant[] {
+  if (!Array.isArray(payload)) return [];
+  const grants: OccupancyGrant[] = [];
+  for (const entry of payload.slice(0, OCCUPANCY_MAX_GRANTS)) {
+    if (entry === null || typeof entry !== "object" || Array.isArray(entry)) continue;
+    const obj = entry as Record<string, unknown>;
+    const childSessionId =
+      typeof obj.child_session_id === "string" ? obj.child_session_id.trim() : "";
+    if (childSessionId.length === 0) continue;
+    const owner = typeof obj.owner_session_id === "string" ? obj.owner_session_id.trim() : "";
+    // A grant naming a different owner is residue from a lease that has since
+    // changed hands; the current occupant never issued it, so it admits nobody.
+    if (owner.length === 0 || owner !== ownerSessionId) continue;
+    const expiresAt = parseTimestamp(obj.expires_at);
+    if (expiresAt === null) continue;
+    const roleRaw = typeof obj.role === "string" ? obj.role : "";
+    if (!(SWARM_WORKER_ROLES as readonly string[]).includes(roleRaw)) continue;
+    const joinRaw = typeof obj.join_protocol === "string" ? obj.join_protocol : "none";
+    grants.push({
+      ownerSessionId: owner,
+      childSessionId,
+      worktreePath:
+        typeof obj.worktree_path === "string" && obj.worktree_path.trim().length > 0
+          ? obj.worktree_path
+          : fallbackWorktree,
+      role: roleRaw as SwarmWorkerRole,
+      expiresAt,
+      host: typeof obj.host === "string" && obj.host.length > 0 ? obj.host : "none",
+      address: typeof obj.address === "string" && obj.address.length > 0 ? obj.address : "none",
+      joinProtocol: (OCCUPANCY_JOIN_PROTOCOLS as readonly string[]).includes(joinRaw)
+        ? (joinRaw as OccupancyJoinProtocol)
+        : "none",
+    });
+  }
+  return grants;
 }
 
 interface OccupancyWriteFields {
@@ -915,6 +1493,7 @@ interface OccupancyWriteFields {
   readonly address: string;
   readonly retainCapable: boolean;
   readonly joinProtocol: OccupancyJoinProtocol;
+  readonly grants: readonly OccupancyGrant[];
 }
 
 function occupancyPayload(record: OccupancyWriteFields): Record<string, unknown> {
@@ -930,6 +1509,24 @@ function occupancyPayload(record: OccupancyWriteFields): Record<string, unknown>
     address: record.address,
     retain_capable: record.retainCapable,
     join_protocol: record.joinProtocol,
+    // Additive (#3755): absent on records written before membership existed,
+    // and omitted again when empty so an ungranted lease keeps its old shape.
+    ...(record.grants.length === 0
+      ? {}
+      : { grants: record.grants.map((grant) => occupancyGrantPayload(grant)) }),
+  };
+}
+
+function occupancyGrantPayload(grant: OccupancyGrant): Record<string, unknown> {
+  return {
+    owner_session_id: grant.ownerSessionId,
+    child_session_id: grant.childSessionId,
+    worktree_path: grant.worktreePath,
+    role: grant.role,
+    expires_at: timestampIso(grant.expiresAt),
+    host: grant.host,
+    address: grant.address,
+    join_protocol: grant.joinProtocol,
   };
 }
 

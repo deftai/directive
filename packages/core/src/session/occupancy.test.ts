@@ -14,20 +14,28 @@ import {
   applyWorktreeOccupancy,
   evaluateOccupancyWriteGate,
   formatOccupancyRemediation,
+  grantOccupancyMembership,
   heartbeatAgeSeconds,
   heartbeatOccupancy,
   isOccupancyExpired,
+  liveOccupancyGrants,
   liveOccupant,
+  OCCUPANCY_GRANT_TTL_MS,
+  OCCUPANCY_MAX_GRANTS,
   OCCUPANCY_MAX_LEASE_MS,
   OCCUPANCY_REFRESH_AFTER_MS,
   OCCUPANCY_STALE_WARN_MS,
   OCCUPANCY_TTL_MS,
+  occupancyAdmission,
+  occupancyGrantFor,
   occupancyLiveness,
   occupancyPath,
+  type OccupancyRecord,
   readOccupancy,
   releaseOccupancy,
   releaseSwarmOccupancy,
   resolveOccupancySessionId,
+  revokeOccupancyMembership,
   stealOccupancy,
 } from "./occupancy.js";
 import {
@@ -99,7 +107,7 @@ describe("worktree occupancy lease (#3433)", () => {
     expect(denied.message).toContain("Worktree occupied by session owner");
     expect(denied.message).toContain("intent=swarm");
     expect(denied.message).toContain("heartbeat 300s ago");
-    expect(denied.message).toContain("occupancy:request");
+    expect(denied.message).toContain("occupancy:grant --child-session-id=");
     expect(denied.message).toContain("session:start --steal --confirm");
     expect(denied.message).not.toContain("or steal (`occupancy:steal --confirm`)");
     expect(readOccupancy(root)?.sessionId).toBe("owner");
@@ -1340,5 +1348,475 @@ describe("occupancy decides before any ritual persist (#3769)", () => {
     expect(result.code).toBe(2);
     expect(result.message).toContain("re-armed by rival");
     expect(readRitualState(root)[0]?.sessionId).toBe("rival");
+  });
+});
+
+const MEMBERSHIP_OWNER = "owner-session";
+const MEMBERSHIP_CHILD = "child-session";
+
+function readRecord(root: string): OccupancyRecord {
+  const record = readOccupancy(root);
+  if (record === null) throw new Error("expected an occupancy record");
+  return record;
+}
+
+/** A claimed worktree whose owner is `MEMBERSHIP_OWNER`. */
+function leasedRoot(now: Date): string {
+  const root = tempRoot();
+  applyWorktreeOccupancy(root, { sessionId: MEMBERSHIP_OWNER, now, intent: "mutation" });
+  return root;
+}
+
+/** Hand-write a lease file; the local record is editable by design (#3755). */
+function writeRawOccupancy(root: string, payload: Record<string, unknown>): void {
+  mkdirSync(join(root, ".deft"), { recursive: true });
+  writeFileSync(occupancyPath(root), JSON.stringify(payload), { encoding: "utf8" });
+}
+
+function grantChild(
+  root: string,
+  now: Date,
+  overrides: {
+    childSessionId?: string;
+    role?: string;
+    ttlMs?: number;
+    host?: string;
+    address?: string;
+  } = {},
+) {
+  return grantOccupancyMembership(root, {
+    sessionId: MEMBERSHIP_OWNER,
+    childSessionId: overrides.childSessionId ?? MEMBERSHIP_CHILD,
+    role: overrides.role ?? "leaf-implementation",
+    ttlMs: overrides.ttlMs,
+    host: overrides.host,
+    address: overrides.address,
+    now,
+  });
+}
+
+describe("explicit lease membership (#3755)", () => {
+  it("records owner, child, worktree, role and expiry for a dispatched child", () => {
+    const now = new Date("2026-08-28T09:00:00Z");
+    const root = leasedRoot(now);
+
+    const granted = grantChild(root, now, { host: "agent-7", address: "cohort-a" });
+
+    expect(granted.code).toBe(0);
+    expect(granted.action).toBe("granted");
+    const record = readRecord(root);
+    const grant = record.grants[0];
+    expect(record.grants).toHaveLength(1);
+    expect(grant?.ownerSessionId).toBe(MEMBERSHIP_OWNER);
+    expect(grant?.childSessionId).toBe(MEMBERSHIP_CHILD);
+    expect(grant?.worktreePath).toBe(record.worktreePath);
+    expect(grant?.role).toBe("leaf-implementation");
+    expect(grant?.expiresAt.toISOString()).toBe(
+      new Date(now.getTime() + OCCUPANCY_GRANT_TTL_MS).toISOString(),
+    );
+    expect(grant?.host).toBe("agent-7");
+    expect(grant?.address).toBe("cohort-a");
+    expect(grant?.joinProtocol).toBe("parent-message");
+    expect(readFileSync(occupancyPath(root), "utf8")).toContain("child_session_id");
+    expect(granted.message).toContain("admits writes only");
+  });
+
+  it("refuses an expired grant on read", () => {
+    const now = new Date("2026-08-28T09:00:00Z");
+    const root = leasedRoot(now);
+    grantChild(root, now, { ttlMs: 60_000 });
+    const record = readRecord(root);
+
+    const inside = new Date(now.getTime() + 30_000);
+    const past = new Date(now.getTime() + 61_000);
+
+    expect(occupancyGrantFor(record, MEMBERSHIP_CHILD, inside)?.childSessionId).toBe(
+      MEMBERSHIP_CHILD,
+    );
+    expect(occupancyAdmission(record, MEMBERSHIP_CHILD, inside)).toBe("member");
+    expect(occupancyGrantFor(record, MEMBERSHIP_CHILD, past)).toBeNull();
+    expect(occupancyAdmission(record, MEMBERSHIP_CHILD, past)).toBe("stranger");
+    expect(liveOccupancyGrants(record, past)).toHaveLength(0);
+    // The record still names the owner, so the expired child is a stranger to
+    // it rather than an unheld tree.
+    const denied = evaluateOccupancyWriteGate(root, { sessionId: MEMBERSHIP_CHILD, now: past });
+    expect(denied.allow).toBe(false);
+    expect(denied.admitted).toBeNull();
+  });
+
+  it("admits the owner or a valid member and refuses anyone else", () => {
+    const now = new Date("2026-08-28T09:00:00Z");
+    const root = leasedRoot(now);
+    grantChild(root, now);
+    const at = new Date(now.getTime() + 60_000);
+
+    const owner = evaluateOccupancyWriteGate(root, { sessionId: MEMBERSHIP_OWNER, now: at });
+    const member = evaluateOccupancyWriteGate(root, { sessionId: MEMBERSHIP_CHILD, now: at });
+    const stranger = evaluateOccupancyWriteGate(root, { sessionId: "drifter", now: at });
+
+    expect(owner.allow).toBe(true);
+    expect(owner.admitted).toBe("owner");
+    expect(owner.grant).toBeNull();
+    expect(member.allow).toBe(true);
+    expect(member.admitted).toBe("member");
+    expect(member.grant?.role).toBe("leaf-implementation");
+    expect(member.occupant?.sessionId).toBe(MEMBERSHIP_OWNER);
+    expect(stranger.allow).toBe(false);
+    expect(stranger.admitted).toBeNull();
+    expect(stranger.message).toContain(`Worktree occupied by session ${MEMBERSHIP_OWNER}`);
+  });
+
+  it("admits two children granted over one worktree", () => {
+    // Children get their own worktree because the dispatch envelope puts them
+    // there, not because anything enforces it, so same-tree dispatch stays
+    // reachable and membership cannot assume one child per tree.
+    const now = new Date("2026-08-28T09:00:00Z");
+    const root = leasedRoot(now);
+    grantChild(root, now, { childSessionId: "child-a" });
+    grantChild(root, now, { childSessionId: "child-b", role: "review-monitor" });
+    const at = new Date(now.getTime() + 60_000);
+
+    const record = readRecord(root);
+    expect(record.grants.map((grant) => grant.worktreePath)).toEqual([
+      record.worktreePath,
+      record.worktreePath,
+    ]);
+    expect(evaluateOccupancyWriteGate(root, { sessionId: "child-a", now: at }).allow).toBe(true);
+    expect(evaluateOccupancyWriteGate(root, { sessionId: "child-b", now: at }).allow).toBe(true);
+  });
+
+  it("replaces a child's grant instead of stacking a second one", () => {
+    const now = new Date("2026-08-28T09:00:00Z");
+    const root = leasedRoot(now);
+    grantChild(root, now, { role: "leaf-implementation" });
+
+    const regrant = grantChild(root, now, { role: "review-monitor" });
+
+    expect(regrant.code).toBe(0);
+    const record = readRecord(root);
+    expect(record.grants).toHaveLength(1);
+    expect(record.grants[0]?.role).toBe("review-monitor");
+  });
+
+  it("keeps a grant no longer than the lease that issued it", () => {
+    const now = new Date("2026-08-28T09:00:00Z");
+    const root = leasedRoot(now);
+
+    const granted = grantChild(root, now, { ttlMs: OCCUPANCY_MAX_LEASE_MS * 2 });
+
+    expect(granted.code).toBe(0);
+    expect(granted.message).toContain("clamped to this lease's absolute age cap");
+    expect(readRecord(root).grants[0]?.expiresAt.toISOString()).toBe(
+      new Date(now.getTime() + OCCUPANCY_MAX_LEASE_MS).toISOString(),
+    );
+  });
+
+  it("refuses a member on a capped lease, however long its grant claims to run", () => {
+    const now = new Date("2026-08-28T09:00:00Z");
+    const root = tempRoot();
+    const claimedAt = new Date(now.getTime() - OCCUPANCY_MAX_LEASE_MS - 60_000);
+    // Hand-written record: the file is local and editable, which is exactly the
+    // cooperative boundary this module names, so the cap is enforced on read
+    // rather than trusted to the writer.
+    writeRawOccupancy(root, {
+      schemaVersion: 1,
+      session_id: MEMBERSHIP_OWNER,
+      worktree_path: resolve(root),
+      intent: "mutation",
+      claimed_at: claimedAt.toISOString(),
+      heartbeat_at: now.toISOString(),
+      grants: [
+        {
+          owner_session_id: MEMBERSHIP_OWNER,
+          child_session_id: MEMBERSHIP_CHILD,
+          worktree_path: resolve(root),
+          role: "leaf-implementation",
+          expires_at: new Date(now.getTime() + 60 * 60 * 1000).toISOString(),
+        },
+      ],
+    });
+
+    const member = evaluateOccupancyWriteGate(root, { sessionId: MEMBERSHIP_CHILD, now });
+
+    expect(occupancyLiveness(readRecord(root), now)).toBe("age-capped");
+    expect(member.allow).toBe(false);
+    expect(member.message).toContain("absolute age cap");
+  });
+
+  it("drops a grant that names an owner the lease no longer has", () => {
+    const now = new Date("2026-08-28T09:00:00Z");
+    const root = tempRoot();
+    writeRawOccupancy(root, {
+      schemaVersion: 1,
+      session_id: MEMBERSHIP_OWNER,
+      worktree_path: resolve(root),
+      intent: "mutation",
+      claimed_at: now.toISOString(),
+      heartbeat_at: now.toISOString(),
+      grants: [
+        {
+          owner_session_id: "some-earlier-owner",
+          child_session_id: MEMBERSHIP_CHILD,
+          worktree_path: resolve(root),
+          role: "leaf-implementation",
+          expires_at: new Date(now.getTime() + 60 * 60 * 1000).toISOString(),
+        },
+        { child_session_id: "no-owner-at-all", role: "leaf-implementation" },
+      ],
+    });
+
+    expect(readRecord(root).grants).toHaveLength(0);
+    expect(evaluateOccupancyWriteGate(root, { sessionId: MEMBERSHIP_CHILD, now }).allow).toBe(false);
+  });
+
+  it("does not re-stamp the owner's heartbeat on a member's write", () => {
+    const now = new Date("2026-08-28T09:00:00Z");
+    const root = leasedRoot(now);
+    grantChild(root, now);
+    const past = new Date(now.getTime() + OCCUPANCY_REFRESH_AFTER_MS + 1_000);
+
+    const member = evaluateOccupancyWriteGate(root, {
+      sessionId: MEMBERSHIP_CHILD,
+      now: past,
+      refresh: true,
+    });
+
+    expect(member.allow).toBe(true);
+    expect(member.refreshed).toBe(false);
+    expect(member.warning).toBeNull();
+    expect(readRecord(root).heartbeatAt.toISOString()).toBe(now.toISOString());
+  });
+
+  it("refuses release, heartbeat, steal and cohort close-out to a member", () => {
+    const now = new Date("2026-08-28T09:00:00Z");
+    const root = leasedRoot(now);
+    grantChild(root, now);
+    const at = new Date(now.getTime() + 60_000);
+
+    const released = releaseOccupancy(root, { sessionId: MEMBERSHIP_CHILD, now: at });
+    const beat = heartbeatOccupancy(root, { sessionId: MEMBERSHIP_CHILD, now: at });
+    const stolen = stealOccupancy(root, {
+      sessionId: MEMBERSHIP_CHILD,
+      occupant: MEMBERSHIP_OWNER,
+      confirm: true,
+      now: at,
+    });
+    const closeout = releaseSwarmOccupancy(root, { sessionId: MEMBERSHIP_CHILD, now: at });
+
+    for (const [verb, decision] of [
+      ["occupancy:release", released],
+      ["occupancy:heartbeat", beat],
+      ["occupancy:steal", stolen],
+      ["occupancy:release", closeout],
+    ] as const) {
+      expect(decision.code).toBe(1);
+      expect(decision.action).toBe("denied");
+      expect(decision.message).toContain(`${verb} is owner-only`);
+      expect(decision.message).toContain("not the lease itself");
+    }
+    expect(readRecord(root).sessionId).toBe(MEMBERSHIP_OWNER);
+    expect(readRecord(root).grants).toHaveLength(1);
+  });
+
+  it("still lets a stranger run a confirmed owner transition", () => {
+    const now = new Date("2026-08-28T09:00:00Z");
+    const root = leasedRoot(now);
+    grantChild(root, now);
+    const at = new Date(now.getTime() + 60_000);
+
+    const stolen = stealOccupancy(root, {
+      sessionId: "replacement",
+      occupant: MEMBERSHIP_OWNER,
+      confirm: true,
+      now: at,
+    });
+
+    expect(stolen.code).toBe(0);
+    // A steal replaces the owner, and the new owner never issued those grants.
+    expect(readRecord(root).grants).toHaveLength(0);
+    expect(evaluateOccupancyWriteGate(root, { sessionId: MEMBERSHIP_CHILD, now: at }).allow).toBe(
+      false,
+    );
+  });
+
+  it("keeps members across the owner's heartbeat and drops them on a fresh claim", () => {
+    const now = new Date("2026-08-28T09:00:00Z");
+    const root = leasedRoot(now);
+    grantChild(root, now);
+
+    const beat = new Date(now.getTime() + 60_000);
+    applyWorktreeOccupancy(root, { sessionId: MEMBERSHIP_OWNER, now: beat });
+    expect(readRecord(root).grants).toHaveLength(1);
+
+    const afterExpiry = new Date(beat.getTime() + OCCUPANCY_TTL_MS + 60_000);
+    applyWorktreeOccupancy(root, { sessionId: MEMBERSHIP_OWNER, now: afterExpiry });
+    expect(readRecord(root).grants).toHaveLength(0);
+  });
+
+  it("prunes grants that died while the owner kept writing", () => {
+    const now = new Date("2026-08-28T09:00:00Z");
+    const root = leasedRoot(now);
+    grantChild(root, now, { ttlMs: 60_000 });
+    const past = new Date(now.getTime() + OCCUPANCY_REFRESH_AFTER_MS + 1_000);
+
+    const refreshed = evaluateOccupancyWriteGate(root, {
+      sessionId: MEMBERSHIP_OWNER,
+      now: past,
+      refresh: true,
+    });
+
+    expect(refreshed.refreshed).toBe(true);
+    expect(readRecord(root).grants).toHaveLength(0);
+  });
+
+  it("revokes a grant so the child's writes stop being admitted", () => {
+    const now = new Date("2026-08-28T09:00:00Z");
+    const root = leasedRoot(now);
+    grantChild(root, now);
+    const at = new Date(now.getTime() + 60_000);
+
+    const revoked = revokeOccupancyMembership(root, {
+      sessionId: MEMBERSHIP_OWNER,
+      childSessionId: MEMBERSHIP_CHILD,
+      now: at,
+    });
+
+    expect(revoked.code).toBe(0);
+    expect(revoked.action).toBe("revoked");
+    expect(readRecord(root).grants).toHaveLength(0);
+    expect(evaluateOccupancyWriteGate(root, { sessionId: MEMBERSHIP_CHILD, now: at }).allow).toBe(
+      false,
+    );
+  });
+
+  it("reports a revoke that had nothing to withdraw", () => {
+    const now = new Date("2026-08-28T09:00:00Z");
+    const root = leasedRoot(now);
+
+    const missing = revokeOccupancyMembership(root, {
+      sessionId: MEMBERSHIP_OWNER,
+      childSessionId: "never-granted",
+      now,
+    });
+    const free = revokeOccupancyMembership(tempRoot(), {
+      sessionId: MEMBERSHIP_OWNER,
+      childSessionId: MEMBERSHIP_CHILD,
+      now,
+    });
+
+    expect(missing.code).toBe(0);
+    expect(missing.message).toContain("nothing to revoke");
+    expect(free.code).toBe(0);
+    expect(free.message).toContain("no live lease");
+  });
+
+  it("refuses grant and revoke to everyone but the owner", () => {
+    const now = new Date("2026-08-28T09:00:00Z");
+    const root = leasedRoot(now);
+    grantChild(root, now);
+    const at = new Date(now.getTime() + 60_000);
+
+    const memberGrant = grantOccupancyMembership(root, {
+      sessionId: MEMBERSHIP_CHILD,
+      childSessionId: "grandchild",
+      role: "leaf-implementation",
+      now: at,
+    });
+    const memberRevoke = revokeOccupancyMembership(root, {
+      sessionId: MEMBERSHIP_CHILD,
+      childSessionId: MEMBERSHIP_CHILD,
+      now: at,
+    });
+    const strangerGrant = grantOccupancyMembership(root, {
+      sessionId: "drifter",
+      childSessionId: "grandchild",
+      role: "leaf-implementation",
+      now: at,
+    });
+
+    expect(memberGrant.code).toBe(1);
+    expect(memberGrant.message).toContain("occupancy:grant is owner-only");
+    expect(memberRevoke.code).toBe(1);
+    expect(memberRevoke.message).toContain("occupancy:grant --revoke is owner-only");
+    expect(strangerGrant.code).toBe(1);
+    expect(strangerGrant.message).toContain("Worktree occupied by session");
+    expect(readRecord(root).grants).toHaveLength(1);
+  });
+
+  it("refuses a grant that names nothing usable", () => {
+    const now = new Date("2026-08-28T09:00:00Z");
+    const root = leasedRoot(now);
+
+    const noOwner = grantOccupancyMembership(root, {
+      env: {},
+      childSessionId: MEMBERSHIP_CHILD,
+      role: "leaf-implementation",
+      now,
+    });
+    const noChild = grantOccupancyMembership(root, {
+      sessionId: MEMBERSHIP_OWNER,
+      role: "leaf-implementation",
+      now,
+    });
+    const selfGrant = grantChild(root, now, { childSessionId: MEMBERSHIP_OWNER });
+    const badRole = grantChild(root, now, { role: "typist" });
+    const pastExpiry = grantOccupancyMembership(root, {
+      sessionId: MEMBERSHIP_OWNER,
+      childSessionId: MEMBERSHIP_CHILD,
+      role: "leaf-implementation",
+      expiresAt: new Date(now.getTime() - 1_000),
+      now,
+    });
+    const noRevokeTarget = revokeOccupancyMembership(root, {
+      sessionId: MEMBERSHIP_OWNER,
+      now,
+    });
+
+    for (const decision of [noOwner, noChild, selfGrant, badRole, pastExpiry, noRevokeTarget]) {
+      expect(decision.code).toBe(2);
+      expect(decision.action).toBe("denied");
+    }
+    expect(noOwner.message).toContain("needs the owner id");
+    expect(noChild.message).toContain("--child-session-id");
+    expect(selfGrant.message).toContain("self-grant");
+    expect(badRole.message).toContain("leaf-implementation");
+    expect(pastExpiry.message).toContain("already past");
+    expect(readRecord(root).grants).toHaveLength(0);
+  });
+
+  it("refuses to grant on a lease this session does not hold yet", () => {
+    const now = new Date("2026-08-28T09:00:00Z");
+    const free = grantOccupancyMembership(tempRoot(), {
+      sessionId: MEMBERSHIP_OWNER,
+      childSessionId: MEMBERSHIP_CHILD,
+      role: "leaf-implementation",
+      now,
+    });
+    expect(free.code).toBe(1);
+    expect(free.message).toContain("no live lease to grant on");
+
+    const root = leasedRoot(now);
+    const capped = grantOccupancyMembership(root, {
+      sessionId: MEMBERSHIP_OWNER,
+      childSessionId: MEMBERSHIP_CHILD,
+      role: "leaf-implementation",
+      now: new Date(now.getTime() + OCCUPANCY_MAX_LEASE_MS + 60_000),
+    });
+    expect(capped.code).toBe(1);
+    expect(capped.message).toContain("absolute age cap");
+  });
+
+  it("bounds how many children one lease admits", () => {
+    const now = new Date("2026-08-28T09:00:00Z");
+    const root = leasedRoot(now);
+    for (let i = 0; i < OCCUPANCY_MAX_GRANTS; i += 1) {
+      expect(grantChild(root, now, { childSessionId: `child-${i}` }).code).toBe(0);
+    }
+
+    const overflow = grantChild(root, now, { childSessionId: "one-too-many" });
+
+    expect(overflow.code).toBe(1);
+    expect(overflow.message).toContain("Revoke a finished child");
+    expect(readRecord(root).grants).toHaveLength(OCCUPANCY_MAX_GRANTS);
   });
 });
