@@ -49,38 +49,45 @@ function specPin(rawSpec: string): PinReadResult {
   return { pinVersion: null, rawSpec, isPrivate: false, nonExact: true };
 }
 
-/** What git reports: `H` for indexed paths, `?` for untracked-and-not-ignored. */
-interface GitView {
-  readonly tracked?: readonly string[];
-  readonly untracked?: readonly string[];
+/** Paths `git ls-files` lists: tracked, or untracked and not ignored. */
+type Traveling = readonly string[] | null;
+
+/** A committed manifest declaring the runtime at `spec`, or none at all. */
+function committedManifest(spec: string | null): string | null {
+  if (spec === null) return null;
+  return JSON.stringify({ devDependencies: { [PIN_DEPENDENCY_NAME]: spec } });
 }
 
-function seams(view: GitView | null, pin: PinReadResult): HookRuntimeTravelSeams {
-  const lines =
-    view === null
-      ? null
-      : [
-          ...(view.tracked ?? []).map((path) => `H ${path}`),
-          ...(view.untracked ?? []).map((path) => `? ${path}`),
-        ];
+function seams(
+  traveling: Traveling,
+  pin: PinReadResult,
+  committedSpec: string | null = null,
+): HookRuntimeTravelSeams {
   return {
-    gitLsFiles: () => (lines === null ? null : `${lines.join("\n")}\n`),
+    gitLsFiles: () => (traveling === null ? null : `${traveling.join("\n")}\n`),
+    readCommittedFile: () => committedManifest(committedSpec),
     readPin: () => pin,
   };
 }
 
 function inspect(
-  view: GitView | null,
+  traveling: Traveling,
   pin: PinReadResult,
+  committedSpec: string | null = null,
   registrations: readonly HookRegistrationRef[] = REGISTRATIONS,
   policy = DEFAULT_HOST_HOOKS_POLICY,
 ) {
-  return inspectHookRuntimeTravel("/repo", registrations, policy, seams(view, pin));
+  return inspectHookRuntimeTravel(
+    "/repo",
+    registrations,
+    policy,
+    seams(traveling, pin, committedSpec),
+  );
 }
 
 describe("inspectHookRuntimeTravel", () => {
   it("warns when a traveling registration names a runtime no clone can obtain", () => {
-    const result = inspect({ tracked: [CURSOR_REGISTRATION] }, NO_PIN);
+    const result = inspect([CURSOR_REGISTRATION], NO_PIN);
 
     expect(result.travelingRegistrations).toEqual([CURSOR_REGISTRATION]);
     expect(result.failClosedRegistrations).toEqual([CURSOR_REGISTRATION]);
@@ -91,7 +98,7 @@ describe("inspectHookRuntimeTravel", () => {
   });
 
   it("names the disable verb as the recovery and forbids the failClosed hand-edit", () => {
-    const warning = inspect({ tracked: [CURSOR_REGISTRATION] }, NO_PIN).warning ?? "";
+    const warning = inspect([CURSOR_REGISTRATION], NO_PIN).warning ?? "";
 
     expect(warning).toContain("policy:disable-host-hooks");
     expect(warning).toContain("--host cursor --confirm");
@@ -102,36 +109,41 @@ describe("inspectHookRuntimeTravel", () => {
   });
 
   it("stays silent when a committed manifest lets a clone install the runtime", () => {
-    const result = inspect({ tracked: [CURSOR_REGISTRATION, RUNTIME_ANCHOR_MANIFEST] }, EXACT_PIN);
+    const result = inspect(
+      [CURSOR_REGISTRATION, RUNTIME_ANCHOR_MANIFEST],
+      EXACT_PIN,
+      EXACT_PIN.rawSpec,
+    );
 
     expect(result.runtimeTravels).toBe(true);
     expect(result.warning).toBeNull();
   });
 
   it("accepts a range spec as reconstitution: npm install still resolves the runtime", () => {
-    const result = inspect({ tracked: [CURSOR_REGISTRATION, RUNTIME_ANCHOR_MANIFEST] }, RANGE_PIN);
+    const result = inspect(
+      [CURSOR_REGISTRATION, RUNTIME_ANCHOR_MANIFEST],
+      RANGE_PIN,
+      RANGE_PIN.rawSpec,
+    );
 
     expect(result.runtimeTravels).toBe(true);
     expect(result.warning).toBeNull();
   });
 
-  it("warns when the manifest declares the dependency but does not travel itself", () => {
-    const result = inspect({ tracked: [CURSOR_REGISTRATION] }, EXACT_PIN);
+  it("warns when the working tree declares the dependency but no commit carries it", () => {
+    const result = inspect([CURSOR_REGISTRATION], EXACT_PIN);
 
     expect(result.runtimeTravels).toBe(false);
     expect(result.warning).not.toBeNull();
   });
 
-  // Greptile P1 on PR #3890: the registration and the manifest are judged
-  // asymmetrically on purpose. A consumer can commit the generated
-  // registration and leave `package.json` uncommitted, so an uncommitted
-  // manifest is not an anchor -- crediting it would silence the warning in
-  // precisely the case that strands a clone.
-  it("does not credit an uncommitted manifest as the runtime anchor", () => {
-    const result = inspect(
-      { tracked: [CURSOR_REGISTRATION], untracked: [RUNTIME_ANCHOR_MANIFEST] },
-      EXACT_PIN,
-    );
+  // Greptile P1 on PR #3890, twice: the registration and the manifest are
+  // judged asymmetrically on purpose. A consumer can commit the generated
+  // registration and leave `package.json` merely present or staged, so the
+  // anchor is read from the commit -- an index entry is not one, and crediting
+  // it silences the warning in precisely the case that strands a clone.
+  it("does not credit a present-or-staged manifest that no commit carries", () => {
+    const result = inspect([CURSOR_REGISTRATION, RUNTIME_ANCHOR_MANIFEST], EXACT_PIN);
 
     expect(result.runtimeTravels).toBe(false);
     expect(result.warning).toContain(`${RUNTIME_ANCHOR_MANIFEST} declares`);
@@ -153,10 +165,7 @@ describe("inspectHookRuntimeTravel", () => {
     "C:/src/directive",
     "deftai/directive#main",
   ])("does not credit `%s` as the runtime anchor", (spec) => {
-    const result = inspect(
-      { tracked: [CURSOR_REGISTRATION, RUNTIME_ANCHOR_MANIFEST] },
-      specPin(spec),
-    );
+    const result = inspect([CURSOR_REGISTRATION, RUNTIME_ANCHOR_MANIFEST], specPin(spec), spec);
 
     expect(result.runtimeTravels).toBe(false);
     expect(result.warning).toContain(`pins ${PIN_DEPENDENCY_NAME} to \`${spec}\``);
@@ -172,24 +181,21 @@ describe("inspectHookRuntimeTravel", () => {
     "https://registry.example.com/directive-0.9.1.tgz",
     "git+https://github.com/deftai/directive.git#v0.9.1",
   ])("credits `%s`: a clone can fetch it", (spec) => {
-    const result = inspect(
-      { tracked: [CURSOR_REGISTRATION, RUNTIME_ANCHOR_MANIFEST] },
-      specPin(spec),
-    );
+    const result = inspect([CURSOR_REGISTRATION, RUNTIME_ANCHOR_MANIFEST], specPin(spec), spec);
 
     expect(result.runtimeTravels).toBe(true);
     expect(result.warning).toBeNull();
   });
 
   it("counts a registration that is untracked but not ignored: one `git add` sends it", () => {
-    const result = inspect({ untracked: [CURSOR_REGISTRATION] }, NO_PIN);
+    const result = inspect([CURSOR_REGISTRATION], NO_PIN);
 
     expect(result.travelingRegistrations).toEqual([CURSOR_REGISTRATION]);
     expect(result.warning).toContain("exit 127");
   });
 
   it("stays silent when no registration travels", () => {
-    const result = inspect({ tracked: [RUNTIME_ANCHOR_MANIFEST] }, NO_PIN);
+    const result = inspect([RUNTIME_ANCHOR_MANIFEST], NO_PIN);
 
     expect(result.travelingRegistrations).toEqual([]);
     expect(result.warning).toBeNull();
@@ -203,7 +209,7 @@ describe("inspectHookRuntimeTravel", () => {
   });
 
   it("excludes hosts whose deposit is disabled: a stripped registration denies nothing", () => {
-    const result = inspect({ tracked: [CURSOR_REGISTRATION] }, NO_PIN, REGISTRATIONS, {
+    const result = inspect([CURSOR_REGISTRATION], NO_PIN, null, REGISTRATIONS, {
       ...DEFAULT_HOST_HOOKS_POLICY,
       cursor: false,
     });
@@ -213,7 +219,7 @@ describe("inspectHookRuntimeTravel", () => {
   });
 
   it("warns without the lockout copy when only fail-open hosts travel", () => {
-    const result = inspect({ tracked: [CLAUDE_REGISTRATION] }, NO_PIN);
+    const result = inspect([CLAUDE_REGISTRATION], NO_PIN);
 
     expect(result.travelingRegistrations).toEqual([CLAUDE_REGISTRATION]);
     expect(result.failClosedRegistrations).toEqual([]);
@@ -248,7 +254,7 @@ describe("writeAgentHookDeposit hook-runtime travel warning", () => {
       root,
       { printf: (text) => lines.push(text) },
       DEFAULT_HOST_HOOKS_POLICY,
-      seams({ tracked: [CURSOR_REGISTRATION] }, NO_PIN),
+      seams([CURSOR_REGISTRATION], NO_PIN),
     );
 
     const output = lines.join("");
@@ -265,7 +271,7 @@ describe("writeAgentHookDeposit hook-runtime travel warning", () => {
       root,
       { printf: (text) => lines.push(text) },
       DEFAULT_HOST_HOOKS_POLICY,
-      seams({ tracked: [CURSOR_REGISTRATION, RUNTIME_ANCHOR_MANIFEST] }, EXACT_PIN),
+      seams([CURSOR_REGISTRATION, RUNTIME_ANCHOR_MANIFEST], EXACT_PIN, EXACT_PIN.rawSpec),
     );
 
     expect(lines.join("")).not.toContain("#3785");
@@ -321,6 +327,65 @@ describe("writeAgentHookDeposit hook-runtime travel warning", () => {
     writeAgentHookDeposit(nested, { printf: (text) => lines.push(text) });
 
     expect(existsSync(join(nested, ".git"))).toBe(false);
+    expect(lines.join("")).toContain("Hook registration travels without its runtime (#3785)");
+  });
+
+  function commitAll(root: string, message: string): void {
+    execFileSync("git", ["add", "-A"], { cwd: root, stdio: "ignore", windowsHide: true });
+    execFileSync(
+      "git",
+      ["-c", "user.email=t@e.st", "-c", "user.name=test", "commit", "--quiet", "-m", message],
+      { cwd: root, stdio: "ignore", windowsHide: true },
+    );
+  }
+
+  // Greptile P1 on PR #3890: `git ls-files --cached` reports staged paths, so
+  // a manifest staged and never committed read as an anchor. A clone receives
+  // commits, not indexes.
+  it("warns when the manifest is staged but never committed", () => {
+    const root = repo();
+    writeFileSync(
+      join(root, RUNTIME_ANCHOR_MANIFEST),
+      '{"devDependencies":{"@deftai/directive":"0.9.1"}}\n',
+      "utf8",
+    );
+    execFileSync("git", ["add", RUNTIME_ANCHOR_MANIFEST], {
+      cwd: root,
+      stdio: "ignore",
+      windowsHide: true,
+    });
+    const lines: string[] = [];
+
+    writeAgentHookDeposit(root, { printf: (text) => lines.push(text) });
+
+    const output = lines.join("");
+    expect(output).toContain("Hook registration travels without its runtime (#3785)");
+    expect(output).toContain("is not committed");
+  });
+
+  it("stays quiet once a commit carries the runtime dependency", () => {
+    const root = repo();
+    writeFileSync(
+      join(root, RUNTIME_ANCHOR_MANIFEST),
+      '{"devDependencies":{"@deftai/directive":"0.9.1"}}\n',
+      "utf8",
+    );
+    commitAll(root, "anchor");
+    const lines: string[] = [];
+
+    writeAgentHookDeposit(root, { printf: (text) => lines.push(text) });
+
+    expect(lines.join("")).not.toContain("#3785");
+  });
+
+  it("warns when a commit carries the manifest without the runtime dependency", () => {
+    const root = repo();
+    writeFileSync(join(root, RUNTIME_ANCHOR_MANIFEST), '{"name":"consumer"}\n', "utf8");
+    commitAll(root, "manifest without the dependency");
+    const lines: string[] = [];
+
+    writeAgentHookDeposit(root, { printf: (text) => lines.push(text) });
+
     expect(lines.join("")).toContain("Hook registration travels without its runtime (#3785)");
   });
 
