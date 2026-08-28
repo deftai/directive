@@ -1002,10 +1002,9 @@ export function revokeOccupancyMembership(
           code: 1,
         };
       }
-      const remaining = liveOccupancyGrants(live, now).filter(
-        (existing) => existing.childSessionId !== child,
-      );
-      if (remaining.length === liveOccupancyGrants(live, now).length) {
+      const before = liveOccupancyGrants(live, now);
+      const remaining = before.filter((existing) => existing.childSessionId !== child);
+      if (remaining.length === before.length) {
         return {
           action: "revoked" as const,
           sessionId: owner,
