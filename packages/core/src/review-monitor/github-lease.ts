@@ -24,7 +24,6 @@ import {
   type PassOpenMarker,
   type ReviewOwnerComment,
   renderPassOpenComment,
-  selectWinningPassComment,
 } from "./lease-comment.js";
 
 export type { IssueComment };
@@ -239,6 +238,12 @@ export interface OpenPassMarkerInput {
   readonly passKind: string;
   readonly agentId?: string | null;
   readonly ceiling?: string | null;
+  /**
+   * Comment id returned by a previous open, to refresh that same mark in place.
+   * Only the pass that created a comment ever writes it again, which is what keeps
+   * two concurrent passes from overwriting one another (#3607).
+   */
+  readonly commentId?: number | null;
   readonly startedAt?: Date;
   readonly staleMinutes?: number;
   readonly seams?: ReviewOwnerGithubSeams;
@@ -288,83 +293,41 @@ function resolvePassCreateRace(
 }
 
 /**
- * Confirm our write is still the winning mark, and stand down when it is not.
- *
- * Only the comment's own author ever PATCHes it (see `openPassMarker`), so a readback
- * cannot be raced by a second writer on the same comment. What it must still catch is
- * an older mark another owner created concurrently: oldest comment id wins, so we clear
- * our own mark and report theirs (#3607).
- */
-function verifyExclusivePassMark(
-  input: OpenPassMarkerInput,
-  commentId: number,
-  marker: PassOpenMarker,
-  now: Date,
-  seams: ReviewOwnerGithubSeams,
-): OpenPassMarkerResult | null {
-  const relisted = listPassMarkerComments(input.repo, input.issue, seams);
-  if (!Array.isArray(relisted)) {
-    return { error: relisted.error };
-  }
-  const winner = findActivePassComment(relisted, { now });
-  if (winner === null || winner.marker === null || winner.id === commentId) {
-    return null;
-  }
-  const cleared = updateReviewOwnerComment(
-    input.repo,
-    commentId,
-    renderPassOpenComment({ ...marker, ended_at: now.toISOString() }),
-    seams,
-  );
-  if ("error" in cleared) {
-    return { error: cleared.error };
-  }
-  return { status: "observed", commentId: winner.id, marker: winner.marker };
-}
-
-/**
  * Mark a pass open on an issue thread (#3607).
  *
- * `observed` means another owner's mark is already open: the caller is informed and MAY
- * still write. Nothing is held and no takeover happens. Races resolve oldest-comment-id
- * wins, matching the lease (#2814).
+ * A marker comment belongs to the one pass that created it. An open never edits a
+ * comment it did not create -- it creates its own, or reports the mark already there --
+ * so two concurrent passes can never overwrite each other's metadata, including two
+ * agents sharing one GitHub login. Refreshing an existing mark requires the `commentId`
+ * that open handed back, which makes the writer of any comment unique.
+ *
+ * `observed` means a mark is already open on the thread. The caller is informed and MAY
+ * still write; nothing is held. Concurrent creates resolve oldest-comment-id wins, and
+ * the loser removes its own duplicate.
  */
 export function openPassMarker(input: OpenPassMarkerInput): OpenPassMarkerResult {
   const seams = input.seams ?? {};
   const startedAt = input.startedAt ?? new Date();
+  const marker = buildPassMarker(input, startedAt);
+  const body = renderPassOpenComment(marker);
+
+  if (input.commentId !== undefined && input.commentId !== null) {
+    const updated = updateReviewOwnerComment(input.repo, input.commentId, body, seams);
+    if ("error" in updated) {
+      return { error: updated.error };
+    }
+    return { status: "renewed", commentId: input.commentId, marker };
+  }
+
   const listed = listPassMarkerComments(input.repo, input.issue, seams);
   if (!Array.isArray(listed)) {
     return { error: listed.error };
   }
   const active = findActivePassComment(listed, { now: startedAt });
-  if (active !== null && active.marker !== null && active.marker.owner !== input.owner) {
+  if (active !== null && active.marker !== null) {
     return { status: "observed", commentId: active.id, marker: active.marker };
   }
-  const marker = buildPassMarker(input, startedAt);
-  const body = renderPassOpenComment(marker);
-  // Recycle only a comment this owner authored. Editing another author's comment is a
-  // 403 for a non-maintainer, and two owners PATCHing one comment cannot be arbitrated
-  // after the fact -- each would read back its own write. Distinct owners therefore
-  // always land on distinct comments and resolve by oldest comment id (#3607).
-  const ownComments = listed.filter((comment) => comment.authorLogin === input.owner);
-  const target =
-    active !== null && active.authorLogin === input.owner
-      ? active
-      : selectWinningPassComment(ownComments);
-  if (target !== null) {
-    const updated = updateReviewOwnerComment(input.repo, target.id, body, seams);
-    if ("error" in updated) {
-      return { error: updated.error };
-    }
-    const contested = verifyExclusivePassMark(input, target.id, marker, startedAt, seams);
-    if (contested !== null) {
-      return contested;
-    }
-    // Two runs of the SAME owner may both land here; both marks then name that owner,
-    // so no owner's pass disappears and the observable state is identical.
-    const renewed = active !== null && target.id === active.id;
-    return { status: renewed ? "renewed" : "opened", commentId: target.id, marker };
-  }
+
   const created = createReviewOwnerComment(input.repo, input.issue, body, seams);
   if ("error" in created) {
     return { error: created.error };
@@ -376,6 +339,8 @@ export interface ClosePassMarkerInput {
   readonly repo: string;
   readonly issue: number;
   readonly owner: string;
+  /** Comment id from open. Without it, the oldest open mark this owner authored. */
+  readonly commentId?: number | null;
   readonly endedAt?: Date;
   readonly seams?: ReviewOwnerGithubSeams;
 }
@@ -387,7 +352,13 @@ export type ClosePassMarkerResult =
     }
   | { readonly error: string };
 
-/** Clear the mark at synthesis; another owner's mark is reported back, never overwritten. */
+/**
+ * Clear the mark at synthesis (#3607).
+ *
+ * `ended_at` is rendered over the marker as just read from the thread, never over the
+ * snapshot the caller opened with, so closing does not resurrect stale pass metadata.
+ * Another author's mark is reported back, never overwritten.
+ */
 export function closePassMarker(input: ClosePassMarkerInput): ClosePassMarkerResult {
   const seams = input.seams ?? {};
   const endedAt = input.endedAt ?? new Date();
@@ -395,17 +366,23 @@ export function closePassMarker(input: ClosePassMarkerInput): ClosePassMarkerRes
   if (!Array.isArray(listed)) {
     return { error: listed.error };
   }
-  const active = findActivePassComment(listed, { now: endedAt });
-  if (active === null || active.marker === null) {
+  const target =
+    input.commentId !== undefined && input.commentId !== null
+      ? (listed.find((comment) => comment.id === input.commentId) ?? null)
+      : findActivePassComment(listed, { now: endedAt });
+  if (target === null || target.marker === null || target.marker.ended_at !== null) {
     return { status: "not-open", commentId: null };
   }
-  if (active.marker.owner !== input.owner) {
-    return { status: "held-by-other", commentId: active.id };
+  if (
+    target.marker.owner !== input.owner ||
+    (target.authorLogin.length > 0 && target.authorLogin !== input.owner)
+  ) {
+    return { status: "held-by-other", commentId: target.id };
   }
-  const body = renderPassOpenComment({ ...active.marker, ended_at: endedAt.toISOString() });
-  const updated = updateReviewOwnerComment(input.repo, active.id, body, seams);
+  const body = renderPassOpenComment({ ...target.marker, ended_at: endedAt.toISOString() });
+  const updated = updateReviewOwnerComment(input.repo, target.id, body, seams);
   if ("error" in updated) {
     return { error: updated.error };
   }
-  return { status: "cleared", commentId: active.id };
+  return { status: "cleared", commentId: target.id };
 }

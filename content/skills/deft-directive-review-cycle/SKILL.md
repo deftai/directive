@@ -644,11 +644,11 @@ expires_at: 2026-08-28T20:48:24Z
 <!-- /deft:review-owner -->
 ```
 
-1. ! **Open** at pass start: `task scm:body:comment:create -- --repo <owner>/<repo> --issue <N> --body-file <file>`.
-2. ! **Read** on arrival: `gh api repos/<owner>/<repo>/issues/<N>/comments`, then take the **oldest unexpired** `kind: pass` block.
-3. ! **Clear** at synthesis: re-post the same block with `ended_at: <now>` via `task scm:body:comment:edit -- --repo <owner>/<repo> --comment <id> --body-file <file>`.
+1. ! **Open** at pass start with a **new** comment, and keep the comment id it returns: `task scm:body:comment:create -- --repo <owner>/<repo> --issue <N> --body-file <file>`.
+2. ! **Read** on arrival: `gh api repos/<owner>/<repo>/issues/<N>/comments`, then take the **oldest unexpired** `kind: pass` block. A mark already open means you were informed, not stopped.
+3. ! **Refresh or clear** only the comment id your own open returned: `task scm:body:comment:edit -- --repo <owner>/<repo> --comment <id> --body-file <file>`, adding `ended_at: <now>` at synthesis.
 
-⊗ Edit a mark you did not author. Post your own comment and let oldest-comment-id-wins settle it — editing another author's comment is a 403 for a non-maintainer and cannot be arbitrated afterwards.
+⊗ Edit a marker comment you did not open, including one carrying your own login from another pass — a comment belongs to the pass that created it. Editing another author's comment is also a 403 for a non-maintainer. Open your own and let oldest-comment-id-wins settle which mark arrivals honour.
 
 ! **Expiry is the release.** A mark self-clears on read once `expires_at` passes, and the owner clears it at synthesis (`ended_at`), so an abandoned pass never marks a thread forever and no heartbeat is needed. Concurrent marks resolve **oldest comment id wins**, matching the lease; the later mark is removed and its author is told which mark stands.
 
