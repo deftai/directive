@@ -16,23 +16,53 @@
     "items": [
       {
         "title": "xbrief:preflight's recovery names a path that succeeds from the printed state, and links #3857",
-        "status": "pending"
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/preflight/evaluate.test.ts::origin-freshness recovery (#3828) > prints a recovery the brief's own state can execute",
+          "recorded_at": "2026-08-28T18:20:00.000Z",
+          "recorded_by": "leaf-implementation/3828"
+        }
       },
       {
         "title": "scope:activate no longer appears in that recovery",
-        "status": "pending"
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/preflight/evaluate.test.ts::origin-freshness recovery (#3828) > does not offer the stamp as a cure for an unreachable origin",
+          "recorded_at": "2026-08-28T18:20:00.000Z",
+          "recorded_by": "leaf-implementation/3828"
+        }
       },
       {
         "title": "The dest-form coverage hint reflects the policy actually in force",
-        "status": "pending"
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher.test.ts::states the Shell coverage the policy in force actually provides (#3828)",
+          "recorded_at": "2026-08-28T18:20:00.000Z",
+          "recorded_by": "leaf-implementation/3828"
+        }
       },
       {
         "title": "Tests pin the recovery text against the states it is printed in",
-        "status": "pending"
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/preflight/evaluate.test.ts::origin-freshness recovery (#3828) > keeps the activate hint on rejects where activating is the right move",
+          "recorded_at": "2026-08-28T18:20:00.000Z",
+          "recorded_by": "leaf-implementation/3828"
+        }
       },
       {
         "title": "CHANGELOG `[Unreleased]` line",
-        "status": "pending"
+        "status": "pending",
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "CHANGELOG.md [Unreleased] > Fixed: \"The stale-origin refusal now names a recovery that works from the state it prints in (#3828)\"",
+          "recorded_at": "2026-08-28T18:20:00.000Z",
+          "recorded_by": "leaf-implementation/3828"
+        }
       }
     ],
     "tags": [
