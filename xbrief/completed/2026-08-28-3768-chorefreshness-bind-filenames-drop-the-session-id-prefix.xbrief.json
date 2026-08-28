@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for GitHub issue #3768",
-    "updated": "2026-08-28T19:17:37Z"
+    "updated": "2026-08-28T20:32:39Z"
   },
   "plan": {
     "title": "chore(freshness): bind filenames embed a recoverable 32-char prefix of the session id",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Name `.deft/session-binds/` records by their hash alone, so a directory listing carries no fragment of a session id, and keep lookup derivable from the id.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3768",
@@ -15,7 +15,7 @@
     "items": [
       {
         "title": "Bind record filenames no longer embed a recoverable prefix of the session id",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/freshness/bind.test.ts#bind record file names (#3768) > names records by hash only, with no fragment of the session id",
@@ -25,7 +25,7 @@
       },
       {
         "title": "Lookup remains derivable from the id in O(1) -- no index, no directory scan",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/freshness/bind.test.ts#bind record file names (#3768) > resolves a written record from the id through one derived path",
@@ -35,7 +35,7 @@
       },
       {
         "title": "Existing bind records either migrate or are tolerated; say which, and do not silently orphan freshness pins",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/freshness/bind.test.ts#bind record file names (#3768) > tolerates pre-rename records instead of orphaning their pins",
@@ -45,7 +45,7 @@
       },
       {
         "title": "A comment or doc line records the coupling warning",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "observed_behavior",
           "pointer": "packages/core/src/freshness/bind.ts > safeSessionFileName docblock, Coupling warning paragraph",
@@ -55,7 +55,7 @@
       },
       {
         "title": "CHANGELOG `[Unreleased]` entry",
-        "status": "pending",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "observed_behavior",
           "pointer": "CHANGELOG.md [Unreleased] > Changed: Bind record filenames no longer carry a session-id prefix (#3768)",
@@ -145,8 +145,32 @@
         "module_boundary": "packages/core/src/freshness (session bind record naming)",
         "cohesion_exemption": "Rename of one derived filename inside the module that owns it, plus its test and the contract doc that prints the path. No new placement."
       },
-      "capacityBucket": "defect-repair"
+      "capacityBucket": "defect-repair",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3878,
+        "prBase": null,
+        "mergeCommit": "8908a4a34f842767bee98be07d3a2f72b0769f72",
+        "deliveryBranch": "master",
+        "deliveryCommit": "8908a4a34f842767bee98be07d3a2f72b0769f72",
+        "verifiedAt": "2026-08-28T20:32:39Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "760cf3b0-3cfd-440e-a9f6-f90738e7d082"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-28T20:32:39Z"
+      },
+      "completedAt": "2026-08-28T20:32:39Z",
+      "completedSessionId": "760cf3b0-3cfd-440e-a9f6-f90738e7d082"
     },
-    "updated": "2026-08-28T19:17:37Z"
+    "updated": "2026-08-28T20:32:39Z"
   }
 }
