@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3835",
-    "updated": "2026-08-28T20:11:42Z"
+    "updated": "2026-08-28T21:11:20Z"
   },
   "plan": {
     "title": "BLOCKER: security(verify-ac): untrusted issue prose selects an in-root file to read and the needle to match, and the gate reports the answer",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "BLOCKER: security(verify-ac): untrusted issue prose selects an in-root file to read and the needle to match, and the gate reports the answer",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3835",
@@ -148,7 +148,32 @@
         "schema": "deft.scope.intended_placement.v1",
         "files": [],
         "module_boundary": ""
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3880,
+        "prBase": "master",
+        "mergeCommit": "14529b9055c51a6f46a4ea6b84ecebd45f10e06c",
+        "deliveryBranch": "master",
+        "deliveryCommit": "14529b9055c51a6f46a4ea6b84ecebd45f10e06c",
+        "verifiedAt": "2026-08-28T21:11:20Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "0d52ff93-8704-437a-bde9-82a0f18d3085"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-28T21:11:20Z"
+      },
+      "completedAt": "2026-08-28T21:11:20Z",
+      "completedSessionId": "0d52ff93-8704-437a-bde9-82a0f18d3085",
+      "capacityBucket": "new-capability"
     },
     "acceptance": {
       "commands": [],
@@ -208,6 +233,6 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-08-28T17:42:08Z"
+    "updated": "2026-08-28T21:11:20Z"
   }
 }
