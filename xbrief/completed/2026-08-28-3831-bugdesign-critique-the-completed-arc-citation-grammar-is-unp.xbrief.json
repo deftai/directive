@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3831",
-    "updated": "2026-08-28T02:47:04Z"
+    "updated": "2026-08-28T15:27:56Z"
   },
   "plan": {
     "title": "bug(design-critique): the completed-arc citation grammar is unpublished, too narrow and too wide at once, and split across two parsers",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(design-critique): the completed-arc citation grammar is unpublished, too narrow and too wide at once, and split across two parsers",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3831",
@@ -17,7 +17,7 @@
     "items": [
       {
         "title": "The contract publishes the closed set of accepted citation forms",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts :: \"publishes the closed citation grammar with a position predicate (#3831)\" locks the `## Citation grammar` section of content/contracts/design-critique.md, including all six accepted forms, the refused-position list, and the two narrowing conditions added in review batches 4-5",
@@ -27,7 +27,7 @@
       },
       {
         "title": "A synthesis citing `` successor lean `NNNNNNNN` `` parses; #3796's original synthesis parses without being rewritten",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/design-critique/citation-grammar.test.ts :: \"reads a balanced single-backtick id -- the form that blocked #3796\"; end-to-end through the ingest predicate at packages/core/src/design-critique/completed-arc-record.test.ts :: \"completes a synthesis whose ids sit in code spans\"",
@@ -37,7 +37,7 @@
       },
       {
         "title": "Blockquoted, fenced, struck-through, and negated occurrences do **not** clear",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/design-critique/citation-grammar.test.ts :: describe \"scanCitations position predicate (#3831)\" -- fenced (plain, indented one to three spaces, tilde, mismatched closer, closer carrying an info string, permalink), inline-code (single, double-backtick, opened on an earlier line, unbalanced run), blockquote (marked, lazy continuation, blockquoted fence), strikethrough (same line, across a newline), and negation (including the determiner `that`, the cleft `that`, and a denial complement whose negation follows the citation)",
@@ -47,7 +47,7 @@
       },
       {
         "title": "Citation extraction and table-claim detection share one parser; mixed-form matrices assert the typed `citedTableId`",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/design-critique/completed-arc-record.test.ts :: \"resolves the typed table id across mixed-form matrices\" and \"no longer waives the table requirement when the table id is decorated\"; both read the single scanCitations parse",
@@ -57,7 +57,7 @@
       },
       {
         "title": "Citing the superseded lean before the bound contract does not block",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/design-critique/completed-arc-record.test.ts :: \"clears on set membership, so citing the superseded lean first does not block\"",
@@ -67,7 +67,7 @@
       },
       {
         "title": "The `missing-record` detail does not assert a recut that did not occur",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/design-critique/completed-arc-record.test.ts :: \"does not assert a recut when a record cites only the superseded lean\"",
@@ -77,7 +77,7 @@
       },
       {
         "title": "Fixtures cover decorated ids, bolded keywords, and each negative position class",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/design-critique/citation-grammar.test.ts :: \"reads an emphasised keyword, which is the mandated house style\" for the bolded keyword; describe \"scanCitations closed set -- decorations outside it do not cite (#3831)\" for the thirteen decorated id shapes; describe \"scanCitations position predicate (#3831)\" for each negative position class",
@@ -87,7 +87,7 @@
       },
       {
         "title": "No regression: a genuinely uncited synthesis still blocks",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/design-critique/completed-arc-record.test.ts :: \"says so plainly when the body carries no id at all\"",
@@ -97,7 +97,7 @@
       },
       {
         "title": "CHANGELOG `[Unreleased]` entry",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "observed_behavior",
           "pointer": "CHANGELOG.md line 40, under \"## [Unreleased]\" > \"### Fixed\": the entry beginning \"A design-critique synthesis written in the house style now clears ingest, and mixed formatting no longer waives the verified-claims-table requirement (#3831).\"",
@@ -203,8 +203,33 @@
         "schema": "deft.scope.intended_placement.v1",
         "files": [],
         "module_boundary": ""
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3834,
+        "prBase": "master",
+        "mergeCommit": "348ce76498e16d37c9dd65902e1bb360c874a8fe",
+        "deliveryBranch": "master",
+        "deliveryCommit": "348ce76498e16d37c9dd65902e1bb360c874a8fe",
+        "verifiedAt": "2026-08-28T15:27:56Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "3828cd85-8b23-4b4b-8b33-d3779db4b9b2"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-28T15:27:56Z"
+      },
+      "completedAt": "2026-08-28T15:27:56Z",
+      "completedSessionId": "3828cd85-8b23-4b4b-8b33-d3779db4b9b2",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-08-28T02:47:04Z"
+    "updated": "2026-08-28T15:27:56Z"
   }
 }

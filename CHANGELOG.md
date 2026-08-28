@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Land completed-tracked artifact for #3831 (#3264 / #1358).** The #3831 xBRIEF stayed in `active/` after squash of PR 3834. Moved to `xbrief/completed/` via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land completed-tracked artifact for #3826 (#3264 / #1358).** The #3826 xBRIEF stayed in `active/` after squash of PR 3840. Moved to `xbrief/completed/` via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Consumer package-manager override and Windows shim hardening (#3610 / #3814).** `package.json#packageManager` is now authoritative over `DEFT_PACKAGE_MANAGER`; conflicting overrides fail closed. Windows npm/pnpm probes transport the resolved shim path through a cleared child-environment variable so paths containing `%` cannot be expanded or substituted by `cmd.exe`. CI runs `deft toolchain-check --consumer` against an npm-pinned consumer deposit fixture. Refs #3814.
 - **Land leftover completed-tracked artifact for #3774 (#3264 / #1358).** The #3774 xBRIEF stayed untracked after squash of PR 3808. Moved to xbrief/completed/ via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
