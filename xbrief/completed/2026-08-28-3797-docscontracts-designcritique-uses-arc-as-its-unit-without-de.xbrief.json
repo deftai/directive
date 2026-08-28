@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for GitHub issue #3797",
-    "updated": "2026-08-28T17:42:21Z"
+    "updated": "2026-08-28T22:05:21Z"
   },
   "plan": {
     "title": "docs(contracts): design-critique uses 'arc' as its unit without defining it, and the variant table cannot express two proven shapes",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Define the arc in content/contracts/design-critique.md ## Framing with boundaries derived from the existing round, ceiling, denominator and recut machinery; record set-level and against-implementation as target shapes on an axis orthogonal to charter; and mirror the stub / footnote-only non-empty refusals onto bind path 2.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3797 (round-1 set synthesis 5434313019, amended by round-2 synthesis 5445541979)",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "`## Framing` defines the arc with boundaries derived rather than asserted: the contract states \"An arc is one recorded motion over one target revision\" and \"A round takes a new ceiling. The converse does not hold\"",
-        "status": "running",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
@@ -26,7 +26,7 @@
       },
       {
         "title": "Set-level and against-implementation are recorded as target shapes on an axis orthogonal to charter, each citing its exemplars: the contract states \"Target shape is what is being critiqued.\" and \"not a row in either table above\"",
-        "status": "running",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
@@ -36,7 +36,7 @@
       },
       {
         "title": "The limited-exemplar caveat is contract text: \"Each shape has been run twice, which is not a settled pattern\"",
-        "status": "running",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
@@ -46,7 +46,7 @@
       },
       {
         "title": "Bind path 2 carries the non-empty refusals from Operator verbs: the contract states \"subject to the two non-empty refusals below\" and \"Bind path 2 on a footnote-only census.\"",
-        "status": "running",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
@@ -56,7 +56,7 @@
       },
       {
         "title": "No normative body copied into the router skill: it still reads \"Thin router into the design-critique contract.\" and carries neither heading",
-        "status": "running",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
@@ -66,7 +66,7 @@
       },
       {
         "title": "The content-contract test pins the arc definition, the target-shape axis, and the bind-path-2 refusals: it asserts \"### The arc\" and \"### Target shape\"",
-        "status": "running",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
@@ -76,7 +76,7 @@
       },
       {
         "title": "CHANGELOG [Unreleased] entry: \"The design-critique contract now defines its own unit of work.\"",
-        "status": "running",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "CHANGELOG.md",
@@ -192,8 +192,32 @@
         "module_boundary": "content/contracts + content-contract standards",
         "cohesion_exemption": "The content-contract test and CHANGELOG.md sit outside the contract module boundary; the test lives with the other content-contract standards tests. CHANGELOG.md already exceeds FILE_SIZE_REVIEW_TRIGGER_LINES and this slice adds one Unreleased entry."
       },
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3883,
+        "prBase": null,
+        "mergeCommit": "f10a340f2d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "732b0e49fa0a72427c4b56d796097805370b438a",
+        "verifiedAt": "2026-08-28T22:05:21Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "32b62dfa-1010-4965-b8ee-bef801b1b8d1"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-28T22:05:21Z"
+      },
+      "completedAt": "2026-08-28T22:05:21Z",
+      "completedSessionId": "32b62dfa-1010-4965-b8ee-bef801b1b8d1"
     },
-    "updated": "2026-08-28T17:42:21Z"
+    "updated": "2026-08-28T22:05:21Z"
   }
 }
