@@ -16,23 +16,53 @@
     "items": [
       {
         "title": "All seven bind guards in the contract read \"no unposted same-round siblings remain\" or \"same-round siblings remain unposted\", the deposit-independent wording that already existed",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-28T16:59:36.000Z",
+          "recorded_by": "leaf-implementation/3850"
+        }
       },
       {
         "title": "The contract states \"Panel completeness is behavioural.\" and that \"nothing machine-checks it\", so no reader infers a gate that is not there",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-28T16:59:36.000Z",
+          "recorded_by": "leaf-implementation/3850"
+        }
       },
       {
         "title": "The content-contract test pins \"no unposted same-round siblings remain\" and \"Panel completeness is locked as contract text only\", and introduces no new predicate",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-08-28T16:59:36.000Z",
+          "recorded_by": "leaf-implementation/3850"
+        }
       },
       {
         "title": "No gate anywhere reads panel-deposit contents",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/3856",
+          "recorded_at": "2026-08-28T16:59:36.000Z",
+          "recorded_by": "leaf-implementation/3850"
+        }
       },
       {
         "title": "CHANGELOG [Unreleased] entry: the contract now \"guards sibling completeness the same way in all seven places\"",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-08-28T16:59:36.000Z",
+          "recorded_by": "leaf-implementation/3850"
+        }
       }
     ],
     "tags": [
