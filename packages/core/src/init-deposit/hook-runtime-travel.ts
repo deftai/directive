@@ -2,11 +2,15 @@
  * Hook-runtime travel warning (#3785).
  *
  * Directive keeps the agent-hook registration files trackable by design and
- * born-ignores the deposit that implements them. When a registration is
- * git-tracked and nothing in the tree lets a clone obtain `deft-hook`, the
- * registration travels and the runtime does not. A fresh clone, CI runner, or
+ * born-ignores the deposit that implements them. When a registration travels
+ * with the tree and nothing in that tree lets a clone obtain `deft-hook`, the
+ * registration arrives and the runtime does not. A fresh clone, CI runner, or
  * container without a global install then fail-closes every mutation on an
  * opaque exit 127, and no Directive code runs to explain it.
+ *
+ * "Travels" means tracked OR trackable-and-not-ignored. A first `deft init`
+ * writes the registration unstaged, so a tracked-only probe would go quiet on
+ * exactly the run that precedes the commit carrying the fence into every clone.
  *
  * The committed `package.json` dependency on `@deftai/directive` (#2264) is the
  * existing reconstitution anchor. With it a clone can install the runtime the
@@ -55,9 +59,9 @@ export interface HookRegistrationRef {
 }
 
 export interface HookRuntimeTravelResult {
-  /** Enabled registrations git-tracked in this repository. */
-  readonly trackedRegistrations: readonly string[];
-  /** Subset of {@link trackedRegistrations} deposited fail-closed. */
+  /** Enabled registrations that travel with this repository. */
+  readonly travelingRegistrations: readonly string[];
+  /** Subset of {@link travelingRegistrations} deposited fail-closed. */
   readonly failClosedRegistrations: readonly string[];
   /** A committed manifest declares `@deftai/directive`, so a clone can install it. */
   readonly runtimeTravels: boolean;
@@ -67,25 +71,33 @@ export interface HookRuntimeTravelResult {
 
 function defaultGitLsFiles(projectDir: string, paths: readonly string[]): string | null {
   // `.git` is a directory in a clone and a file in a linked worktree. Absent
-  // means the deposit root is not a repository root, so tracked-ness has no
-  // answer worth reporting -- and the probe costs nothing.
+  // means the deposit root is not a repository root, so travel has no answer
+  // worth reporting -- and the probe costs nothing.
   if (!existsSync(join(projectDir, ".git"))) return null;
   try {
-    return execFileSync("git", ["ls-files", "--", ...paths], {
-      cwd: projectDir,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-      windowsHide: true,
-    });
+    // `--cached` catches an already-committed registration; `--others
+    // --exclude-standard` catches one a first `deft init` just wrote, which is
+    // untracked yet trackable and so lands in the consumer's next `git add`.
+    // Ignored paths are omitted: they cannot reach a clone.
+    return execFileSync(
+      "git",
+      ["ls-files", "--cached", "--others", "--exclude-standard", "--", ...paths],
+      {
+        cwd: projectDir,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+        windowsHide: true,
+      },
+    );
   } catch {
-    // git absent, or not a repository: the tracked/untracked question has no
-    // answer here, so the caller stays silent rather than guessing.
+    // git absent, or not a repository: whether these paths travel has no answer
+    // here, so the caller stays silent rather than guessing.
     return null;
   }
 }
 
-/** Tracked paths as reported by git, or null when git could not answer. */
-function trackedPaths(output: string | null): ReadonlySet<string> | null {
+/** Paths that travel, as reported by git, or null when git could not answer. */
+function travelingPaths(output: string | null): ReadonlySet<string> | null {
   if (output === null) return null;
   return new Set(
     output
@@ -107,16 +119,16 @@ function recoveryHosts(failClosed: readonly HookRegistrationRef[]): string {
 }
 
 function buildWarning(
-  tracked: readonly HookRegistrationRef[],
+  traveling: readonly HookRegistrationRef[],
   failClosed: readonly HookRegistrationRef[],
 ): string {
-  const listed = tracked
+  const listed = traveling
     .map((entry) => `${entry.path}${isFailClosed(entry.host) ? " (fail-closed)" : ""}`)
     .join(", ");
   const lines = [
     `\u26a0 Hook registration travels without its runtime (#3785): ${listed}`,
-    `  No committed ${RUNTIME_ANCHOR_MANIFEST} dependency on ${PIN_DEPENDENCY_NAME}, so a fresh clone,`,
-    "  CI runner, or container cannot obtain the `deft-hook` command these files name.",
+    `  No ${RUNTIME_ANCHOR_MANIFEST} dependency on ${PIN_DEPENDENCY_NAME} travels with this tree, so a fresh`,
+    "  clone, CI runner, or container cannot obtain the `deft-hook` command these files name.",
   ];
   if (failClosed.length > 0) {
     lines.push(
@@ -125,7 +137,7 @@ function buildWarning(
     );
   }
   lines.push(
-    `  Fix: commit a ${RUNTIME_ANCHOR_MANIFEST} dependency on ${PIN_DEPENDENCY_NAME} so the runtime travels with the tree.`,
+    `  Fix: commit a ${RUNTIME_ANCHOR_MANIFEST} dependency on ${PIN_DEPENDENCY_NAME} so the runtime travels too.`,
   );
   if (failClosed.length > 0) {
     lines.push(`  Or, accepting the capability cost: ${recoveryHosts(failClosed)}.`);
@@ -138,11 +150,12 @@ function buildWarning(
 }
 
 /**
- * Report whether any enabled agent-hook registration is git-tracked while no
- * committed manifest lets a clone install the runtime it names.
+ * Report whether any enabled agent-hook registration travels with this tree
+ * while no manifest travelling alongside it lets a clone install the runtime it
+ * names.
  *
- * Disabled hosts are excluded: their registration is stripped, so a tracked
- * leftover cannot deny anything.
+ * Disabled hosts are excluded: their registration is stripped, so a leftover
+ * copy cannot deny anything.
  */
 export function inspectHookRuntimeTravel(
   projectRoot: string,
@@ -155,10 +168,10 @@ export function inspectHookRuntimeTravel(
   );
   const probePaths = [...enabled.map((entry) => entry.path), RUNTIME_ANCHOR_MANIFEST];
   const gitLsFiles = seams.gitLsFiles ?? defaultGitLsFiles;
-  const tracked = trackedPaths(gitLsFiles(projectRoot, probePaths));
-  if (tracked === null) {
+  const traveling = travelingPaths(gitLsFiles(projectRoot, probePaths));
+  if (traveling === null) {
     return {
-      trackedRegistrations: [],
+      travelingRegistrations: [],
       failClosedRegistrations: [],
       runtimeTravels: false,
       warning: null,
@@ -167,17 +180,19 @@ export function inspectHookRuntimeTravel(
 
   const pin = (seams.readPin ?? readPin)(projectRoot);
   // A range spec reconstitutes as well as an exact pin for this purpose: either
-  // way `npm install` resolves the runtime. The manifest itself must be tracked,
-  // otherwise the declaration does not travel either.
-  const runtimeTravels = pin.rawSpec !== null && tracked.has(RUNTIME_ANCHOR_MANIFEST);
+  // way `npm install` resolves the runtime. The manifest must travel too,
+  // otherwise the declaration never reaches the clone that needs it.
+  const runtimeTravels = pin.rawSpec !== null && traveling.has(RUNTIME_ANCHOR_MANIFEST);
 
-  const trackedRegistrations = enabled.filter((entry) => tracked.has(entry.path));
-  const failClosedRegistrations = trackedRegistrations.filter((entry) => isFailClosed(entry.host));
-  const unsafe = trackedRegistrations.length > 0 && !runtimeTravels;
+  const travelingRegistrations = enabled.filter((entry) => traveling.has(entry.path));
+  const failClosedRegistrations = travelingRegistrations.filter((entry) =>
+    isFailClosed(entry.host),
+  );
+  const unsafe = travelingRegistrations.length > 0 && !runtimeTravels;
   return {
-    trackedRegistrations: trackedRegistrations.map((entry) => entry.path),
+    travelingRegistrations: travelingRegistrations.map((entry) => entry.path),
     failClosedRegistrations: failClosedRegistrations.map((entry) => entry.path),
     runtimeTravels,
-    warning: unsafe ? buildWarning(trackedRegistrations, failClosedRegistrations) : null,
+    warning: unsafe ? buildWarning(travelingRegistrations, failClosedRegistrations) : null,
   };
 }

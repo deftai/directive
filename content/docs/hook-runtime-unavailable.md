@@ -31,7 +31,7 @@ If Cursor is a host you rely on, restore the runtime rather than removing the fe
 - commit a `package.json` dependency on `@deftai/directive` and run `npm install` in the image or clone, which puts `deft-hook` in `node_modules/.bin`; or
 - add `npm i -g @deftai/directive` to the image build.
 
-`deft init` and `deft update` warn when a hook registration is git-tracked and neither anchor is present, naming the affected file and this document.
+`deft init` and `deft update` warn when a hook registration travels with the repository — already committed, or merely untracked and not ignored, so the next `git add` carries it — while neither anchor is present. The warning names the affected file and this document.
 
 ## ⊗ Do not hand-edit `failClosed` in the deposited hook file
 

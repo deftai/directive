@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -42,27 +43,27 @@ const RANGE_PIN: PinReadResult = {
   nonExact: true,
 };
 
-function seams(tracked: readonly string[] | null, pin: PinReadResult): HookRuntimeTravelSeams {
+function seams(traveling: readonly string[] | null, pin: PinReadResult): HookRuntimeTravelSeams {
   return {
-    gitLsFiles: () => (tracked === null ? null : `${tracked.join("\n")}\n`),
+    gitLsFiles: () => (traveling === null ? null : `${traveling.join("\n")}\n`),
     readPin: () => pin,
   };
 }
 
 function inspect(
-  tracked: readonly string[] | null,
+  traveling: readonly string[] | null,
   pin: PinReadResult,
   registrations: readonly HookRegistrationRef[] = REGISTRATIONS,
   policy = DEFAULT_HOST_HOOKS_POLICY,
 ) {
-  return inspectHookRuntimeTravel("/repo", registrations, policy, seams(tracked, pin));
+  return inspectHookRuntimeTravel("/repo", registrations, policy, seams(traveling, pin));
 }
 
 describe("inspectHookRuntimeTravel", () => {
-  it("warns when a tracked registration names a runtime no clone can obtain", () => {
+  it("warns when a traveling registration names a runtime no clone can obtain", () => {
     const result = inspect([CURSOR_REGISTRATION], NO_PIN);
 
-    expect(result.trackedRegistrations).toEqual([CURSOR_REGISTRATION]);
+    expect(result.travelingRegistrations).toEqual([CURSOR_REGISTRATION]);
     expect(result.failClosedRegistrations).toEqual([CURSOR_REGISTRATION]);
     expect(result.runtimeTravels).toBe(false);
     expect(result.warning).toContain("#3785");
@@ -95,24 +96,24 @@ describe("inspectHookRuntimeTravel", () => {
     expect(result.warning).toBeNull();
   });
 
-  it("warns when the manifest declares the dependency but is not itself tracked", () => {
+  it("warns when the manifest declares the dependency but does not travel itself", () => {
     const result = inspect([CURSOR_REGISTRATION], EXACT_PIN);
 
     expect(result.runtimeTravels).toBe(false);
     expect(result.warning).not.toBeNull();
   });
 
-  it("stays silent when no registration is tracked", () => {
+  it("stays silent when no registration travels", () => {
     const result = inspect([RUNTIME_ANCHOR_MANIFEST], NO_PIN);
 
-    expect(result.trackedRegistrations).toEqual([]);
+    expect(result.travelingRegistrations).toEqual([]);
     expect(result.warning).toBeNull();
   });
 
-  it("stays silent when git cannot answer the tracked-ness question", () => {
+  it("stays silent when git cannot answer whether these paths travel", () => {
     const result = inspect(null, NO_PIN);
 
-    expect(result.trackedRegistrations).toEqual([]);
+    expect(result.travelingRegistrations).toEqual([]);
     expect(result.warning).toBeNull();
   });
 
@@ -122,14 +123,14 @@ describe("inspectHookRuntimeTravel", () => {
       cursor: false,
     });
 
-    expect(result.trackedRegistrations).toEqual([]);
+    expect(result.travelingRegistrations).toEqual([]);
     expect(result.warning).toBeNull();
   });
 
-  it("warns without the lockout copy when only fail-open hosts are tracked", () => {
+  it("warns without the lockout copy when only fail-open hosts travel", () => {
     const result = inspect([CLAUDE_REGISTRATION], NO_PIN);
 
-    expect(result.trackedRegistrations).toEqual([CLAUDE_REGISTRATION]);
+    expect(result.travelingRegistrations).toEqual([CLAUDE_REGISTRATION]);
     expect(result.failClosedRegistrations).toEqual([]);
     expect(result.warning).toContain(CLAUDE_REGISTRATION);
     expect(result.warning).not.toContain("(fail-closed)");
@@ -198,6 +199,42 @@ describe("writeAgentHookDeposit hook-runtime travel warning", () => {
     for (const entry of config.hooks.preToolUse) {
       expect(entry.failClosed).toBe(true);
     }
+  });
+
+  function repo(): string {
+    const root = project();
+    execFileSync("git", ["init", "--quiet"], { cwd: root, stdio: "ignore", windowsHide: true });
+    return root;
+  }
+
+  // Greptile P1 on PR #3890: the deposit writes the registration and does not
+  // stage it, so a tracked-only probe went quiet on the first `deft init` --
+  // precisely the run before the consumer commits the fence into every clone.
+  it("warns on a first deposit, before the registration has been staged", () => {
+    const root = repo();
+    writeFileSync(join(root, RUNTIME_ANCHOR_MANIFEST), '{"name":"consumer"}\n', "utf8");
+    const lines: string[] = [];
+
+    writeAgentHookDeposit(root, { printf: (text) => lines.push(text) });
+
+    const output = lines.join("");
+    expect(execFileSync("git", ["ls-files"], { cwd: root, encoding: "utf8" }).trim()).toBe("");
+    expect(output).toContain("Hook registration travels without its runtime (#3785)");
+    expect(output).toContain(".cursor/hooks.json (fail-closed)");
+  });
+
+  it("stays quiet when the consumer ignores the registrations: nothing travels", () => {
+    const root = repo();
+    writeFileSync(
+      join(root, ".gitignore"),
+      `${AGENT_HOOK_PATHS.map((path) => `/${path}`).join("\n")}\n`,
+      "utf8",
+    );
+    const lines: string[] = [];
+
+    writeAgentHookDeposit(root, { printf: (text) => lines.push(text) });
+
+    expect(lines.join("")).not.toContain("#3785");
   });
 
   it("does not warn when the project root is not a repository (default probe)", () => {
