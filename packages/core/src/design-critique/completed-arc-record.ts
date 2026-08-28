@@ -4,8 +4,20 @@
  * Catalog chips are list-visible convenience, not clearance. Ingest waits on
  * `design-critique: synthesis accepted, because ...` citing an accepted
  * successor lean (and the verified-claims table when that comment exists).
+ *
+ * Citations are parsed once, by `scanCitations` (#3831). The accepted forms and
+ * the refused positions are published in `content/contracts/design-critique.md`
+ * `## Citation grammar`. Clearance is set membership against the latest
+ * successor lean, not position in the body, so citing the superseded lean --
+ * which `## Successor lean` requires -- cannot block.
  */
 
+import {
+  ACCEPTED_CITATION_FORMS,
+  type Citation,
+  type CitationScan,
+  scanCitations,
+} from "./citation-grammar.js";
 import { DESIGN_CRITIQUE_CATALOG_CHIPS } from "./exclusive-chip.js";
 
 export type ThreadComment = {
@@ -36,8 +48,9 @@ export type CompletedArcVerdict =
 const SYNTHESIS_SHAPE_RE = /(?:^|\n)\s*design-critique:\s*synthesis accepted,\s*because\b/i;
 const LEAN_HEADING_RE = /(?:^|\n)\s*\*{0,2}Lean:\*{0,2}/;
 const TABLE_HEADING_RE = /(?:^|\n)\s*##\s+Verified-claims table\b/;
-const CITE_RE =
-  /\b(?:successor\s+lean|lean|verified-claims table|comment)\s*:?\s+(\d{8,})\b|#issuecomment-(\d{8,})|\/issues\/comments\/(\d{8,})/gi;
+
+/** How many ids a block detail lists before it truncates. */
+const DETAIL_ID_LIMIT = 5;
 
 const CATALOG = new Set<string>(DESIGN_CRITIQUE_CATALOG_CHIPS);
 
@@ -67,17 +80,17 @@ export function isVerifiedClaimsTableBody(body: string): boolean {
   return TABLE_HEADING_RE.test(body);
 }
 
+/**
+ * Ids cited by one comment body, in document order. Thin projection of the
+ * shared parser -- the grammar itself lives in `citation-grammar.ts`.
+ */
 export function extractCitedCommentIds(body: string): number[] {
   const ids: number[] = [];
   const seen = new Set<number>();
-  const re = new RegExp(CITE_RE.source, CITE_RE.flags);
-  for (const match of body.matchAll(re)) {
-    const raw = match[1] ?? match[2] ?? match[3];
-    if (raw === undefined) continue;
-    const id = Number(raw);
-    if (!Number.isSafeInteger(id) || id <= 0 || seen.has(id)) continue;
-    seen.add(id);
-    ids.push(id);
+  for (const citation of scanCitations(body).citations) {
+    if (seen.has(citation.id)) continue;
+    seen.add(citation.id);
+    ids.push(citation.id);
   }
   return ids;
 }
@@ -127,40 +140,88 @@ function latestSuccessorLean(comments: readonly ThreadComment[]): ThreadComment 
   return latest;
 }
 
+function renderIds(ids: readonly number[]): string {
+  const shown = ids.slice(0, DETAIL_ID_LIMIT).join(", ");
+  return ids.length > DETAIL_ID_LIMIT
+    ? `${shown}, and ${ids.length - DETAIL_ID_LIMIT} more`
+    : shown;
+}
+
+/**
+ * Report what was scanned and what was found. A guess at the cause sends the
+ * operator back to re-post the same body and reproduce the block (#3831).
+ */
+function loneShapeDetail(scan: CitationScan): string {
+  const parts = [
+    "synthesis-accepted sentence shape is present but cites no accepted successor lean",
+  ];
+  if (scan.idShapedRuns.length === 0) {
+    parts.push("no 8-or-more digit id appears in the body");
+  } else {
+    parts.push(
+      `${scan.idShapedRuns.length} 8-or-more digit id(s) appear in the body: ` +
+        renderIds(scan.idShapedRuns),
+    );
+  }
+  if (scan.rejected.length > 0) {
+    const classes = [...new Set(scan.rejected.map((row) => row.reason))].sort().join(", ");
+    parts.push(
+      `${scan.rejected.length} keyword-anchored occurrence(s) refused by position (${classes})`,
+    );
+  }
+  parts.push(`accepted forms: ${ACCEPTED_CITATION_FORMS.join(" | ")}`);
+  return parts.join("; ");
+}
+
+function resolveCitedLean(
+  citations: readonly Citation[],
+  byCommentId: Map<number, ThreadComment>,
+  latestLean: ThreadComment | undefined,
+): ThreadComment | undefined {
+  if (latestLean !== undefined && citations.some((row) => row.id === latestLean.id)) {
+    return latestLean;
+  }
+  return citations
+    .map((row) => byCommentId.get(row.id))
+    .find((row) => row !== undefined && isSuccessorLeanBody(row.body));
+}
+
 function verdictForSynthesis(
   comment: ThreadComment,
   comments: readonly ThreadComment[],
 ): CompletedArcVerdict {
-  const cited = extractCitedCommentIds(comment.body);
-  if (cited.length === 0) {
+  const scan = scanCitations(comment.body);
+  const citations = scan.citations;
+  if (citations.length === 0) {
     return {
       status: "blocked",
       reason: "lone-shape",
-      detail:
-        "synthesis-accepted sentence shape is present but does not cite an accepted successor lean",
+      detail: loneShapeDetail(scan),
     };
   }
   const byCommentId = byId(comments);
-  const citedLean = cited
-    .map((id) => byCommentId.get(id))
-    .find((row) => row !== undefined && isSuccessorLeanBody(row.body));
+  const citedLean = resolveCitedLean(citations, byCommentId, latestSuccessorLean(comments));
   if (citedLean === undefined) {
     return {
       status: "blocked",
       reason: "cite-not-lean",
-      detail: "cited id is not a successor lean on this thread",
+      detail:
+        "no cited id is a successor lean on this thread; cited: " +
+        renderIds(citations.map((row) => row.id)),
     };
   }
-  const citedTable = cited
-    .map((id) => byCommentId.get(id))
+  const citedTable = citations
+    .map((row) => byCommentId.get(row.id))
     .find((row) => row !== undefined && isVerifiedClaimsTableBody(row.body));
   if (citedTable === undefined) {
-    const claimedTable = /\bverified-claims table\s+\d{8,}\b/i.test(comment.body);
-    if (claimedTable) {
+    const claimed = citations.filter((row) => row.kind === "table");
+    if (claimed.length > 0) {
       return {
         status: "blocked",
         reason: "missing-table-cite",
-        detail: "synthesis cites a verified-claims table id that is not a table on this thread",
+        detail:
+          "synthesis cites a verified-claims table id that is not a table on this thread: " +
+          renderIds(claimed.map((row) => row.id)),
       };
     }
   }
@@ -208,11 +269,15 @@ export function evaluateCompletedArcRecord(input: {
       const latest = laterSynthesis.reduce((a, b) => (a.id >= b.id ? a : b));
       return verdictForSynthesis(latest, comments);
     }
+    const citedLeanIds = completeRecords.map((record) => record.citedLeanId);
+    const latestLeanId = latestLean === undefined ? "unknown" : String(latestLean.id);
     return {
       status: "blocked",
       reason: "missing-record",
       detail:
-        "a later successor lean recut the arc; ingest waits on a completed-arc record citing that latest lean",
+        `no completed-arc record cites the latest successor lean ${latestLeanId} on this thread; ` +
+        `existing record(s) cite lean ${renderIds(citedLeanIds)}; ` +
+        `ingest waits on a record citing lean ${latestLeanId}`,
     };
   }
   if (synthesis.length > 0) {
@@ -228,7 +293,8 @@ export function evaluateCompletedArcRecord(input: {
     reason: "missing-record",
     detail:
       "design-critique is in flight but the completed-arc record is missing: " +
-      "`design-critique: synthesis accepted, because ...` citing the accepted successor lean",
+      "`design-critique: synthesis accepted, because ...` citing the accepted successor lean; " +
+      `accepted forms: ${ACCEPTED_CITATION_FORMS.join(" | ")}`,
   };
 }
 

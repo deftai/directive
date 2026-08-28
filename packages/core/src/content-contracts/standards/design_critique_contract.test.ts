@@ -103,6 +103,14 @@ const REQUIRED_CONTRACT_POINTERS = [
   "Chip apply miss",
   "Any identity may run those verbs",
   "evaluateCompletedArcRecord",
+  "## Citation grammar",
+  "### Position predicate",
+  "### Which code-span convention governs",
+  "scanCitations",
+  "#issuecomment-12345678",
+  "/issues/comments/12345678",
+  "classifyHit",
+  "set membership",
 ];
 
 const REQUIRED_TEMPLATE_POINTERS = [
@@ -732,6 +740,62 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     const labelsDoc = readText(".github/ISSUE_LABELS.md");
     expect(labelsDoc).toContain("not ingest clearance");
     expect(labelsDoc).toContain("Chip apply miss is non-blocking");
+  });
+
+  it("publishes the closed citation grammar with a position predicate (#3831)", () => {
+    const text = readText(CONTRACT);
+    const grammar = markdownSection(text, "## Citation grammar");
+    expect(grammar, "citation-grammar section missing").toContain("## Citation grammar");
+    expect(grammar).toContain("Closed set");
+    expect(grammar).toContain("scanCitations");
+    expect(grammar).toContain("Nothing else parses citations.");
+    for (const form of [
+      "successor lean 12345678",
+      "successor lean:12345678",
+      "successor lean `12345678`",
+      "**successor lean:** 12345678",
+      "#issuecomment-12345678",
+      "/issues/comments/12345678",
+    ]) {
+      expect(grammar, `accepted form missing: ${form}`).toContain(form);
+    }
+    expect(grammar).toContain("An unpublished spelling is not a citation.");
+    expect(grammar).toContain("⊗ Widen the accept set with `.*`");
+    expect(grammar).toContain("⊗ Count every 8-or-more digit run in the body as a citation.");
+
+    expect(grammar).toContain("### Position predicate");
+    expect(grammar).toContain("Accepting an id is not accepting a citation.");
+    for (const refused of [
+      "fenced code block",
+      "inline code span",
+      "blockquoted line",
+      "struck through",
+      "negated earlier in the same sentence",
+    ]) {
+      expect(grammar, `refused position missing: ${refused}`).toContain(refused);
+    }
+    expect(grammar).toContain("classifyHit");
+    expect(grammar).toContain("⊗ Strip the span instead.");
+
+    expect(grammar).toContain("### Which code-span convention governs");
+    expect(grammar).toContain("markdown-scanners.ts");
+    expect(grammar).toContain("id token only");
+    expect(grammar).toContain("which governs where");
+
+    expect(grammar).toContain("Two regexes answering one question");
+    expect(grammar).toContain("Clearance is set membership");
+    expect(grammar).toContain("⊗ Guess at a cause.");
+    expect(grammar).not.toContain("first-match");
+
+    const bind = markdownSection(text, "## Bind after accepted synthesis");
+    expect(bind).toContain("`## Citation grammar`");
+
+    const testSurface = markdownSection(text, "## Test surface");
+    expect(testSurface).toContain("citation-grammar.test.ts");
+
+    const skill = readText(SKILL_REL);
+    expect(skill).not.toContain("## Citation grammar");
+    expect(skill).not.toContain("#issuecomment-12345678");
   });
 
   it("pins Stop 1 exclusion and refutation-target tokens by content (#3672)", () => {

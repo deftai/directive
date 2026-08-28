@@ -56,8 +56,12 @@ function lineStartingAt(text: string, offset: number): string {
  * CommonMark fence stack: open and close must use the same character, and the
  * closer length must be >= opener length. Mixed ``` / ~~~ or shorter closers
  * do not pop the open fence.
+ *
+ * Exported as the shared position primitive: the design-critique citation
+ * grammar (#3831) classifies a match's position the same way rather than
+ * stripping spans, so both scanners agree on what "inside a fence" means.
  */
-function isInsideCodeFence(text: string, offset: number): boolean {
+export function isInsideCodeFence(text: string, offset: number): boolean {
   let openChar: "`" | "~" | null = null;
   let openLen = 0;
   let lineStart = 0;
