@@ -1,8 +1,16 @@
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { bindSessionGeneration, parseBoundGeneration, readBoundGeneration } from "./bind.js";
+import {
+  bindSessionGeneration,
+  legacySessionBindPath,
+  legacySessionFileName,
+  parseBoundGeneration,
+  readBoundGeneration,
+  safeSessionFileName,
+  sessionBindPath,
+} from "./bind.js";
 import { stampLiveGeneration } from "./generation.js";
 import { reportFreshness } from "./report.js";
 
@@ -110,5 +118,114 @@ describe("bindSessionGeneration (#3117)", () => {
     expect(reportFreshness(root).state).toBe("unbound");
     expect(readBoundGeneration(root, { sessionId: "session-a" })?.boundGeneration).toBe(1);
     expect(readBoundGeneration(root, { sessionId: "session-b" })?.boundGeneration).toBe(2);
+  });
+});
+
+describe("bind record file names (#3768)", () => {
+  const sessionId = "760cf3b0-3cfd-440e-a9f6-f90738e7d082";
+
+  function writeLegacyRecord(root: string, bound: Record<string, unknown>): string {
+    const path = legacySessionBindPath(root, sessionId);
+    mkdirSync(join(root, ".deft", "session-binds"), { recursive: true });
+    writeFileSync(path, `${JSON.stringify(bound, null, 2)}\n`);
+    return path;
+  }
+
+  it("names records by hash only, with no fragment of the session id", () => {
+    const name = safeSessionFileName(sessionId);
+    expect(name).toMatch(/^[0-9a-f]{24}\.json$/);
+    expect(safeSessionFileName(`  ${sessionId}  `)).toBe(name);
+    expect(name).not.toContain(sessionId.slice(0, 8));
+    expect(name).not.toBe(legacySessionFileName(sessionId));
+    expect(legacySessionFileName(sessionId)).toContain(sessionId.slice(0, 8));
+  });
+
+  it("keeps the character sanitizer on the legacy name only", () => {
+    expect(legacySessionFileName("urn:uuid:ab cd")).toMatch(/^urn_uuid_ab_cd-[0-9a-f]{24}\.json$/);
+    expect(legacySessionFileName("::sid::")).toMatch(/^sid-[0-9a-f]{24}\.json$/);
+    expect(legacySessionFileName(":::")).toMatch(/^[0-9a-f]{24}\.json$/);
+  });
+
+  it("resolves a written record from the id through one derived path", () => {
+    const root = tempProject();
+    stampLiveGeneration(root, {
+      contentVersion: "1.0.0",
+      stampedBy: "directive-init",
+      increment: true,
+    });
+    const { path } = bindSessionGeneration(root, { sessionId, payloadLoaded: true });
+    expect(path).toBe(sessionBindPath(root, sessionId));
+    expect(basename(path)).toBe(safeSessionFileName(sessionId));
+    expect(existsSync(legacySessionBindPath(root, sessionId))).toBe(false);
+    expect(readBoundGeneration(root, { sessionId })?.boundGeneration).toBe(1);
+    expect(reportFreshness(root, { sessionId }).state).toBe("current");
+  });
+
+  it("tolerates pre-rename records instead of orphaning their pins", () => {
+    const root = tempProject();
+    const live = stampLiveGeneration(root, {
+      contentVersion: "1.0.0",
+      stampedBy: "directive-init",
+      increment: true,
+    });
+    writeLegacyRecord(root, {
+      boundGeneration: live.generation,
+      boundAt: "2026-08-05T00:00:00Z",
+      contentVersion: live.contentVersion,
+      surfaces: live.surfaces,
+      sessionId,
+      payloadLoaded: true,
+    });
+    expect(existsSync(sessionBindPath(root, sessionId))).toBe(false);
+    expect(readBoundGeneration(root, { sessionId })?.boundGeneration).toBe(live.generation);
+    expect(reportFreshness(root, { sessionId }).state).toBe("current");
+  });
+
+  it("supersedes a legacy record once the session rebinds", () => {
+    const root = tempProject();
+    const first = stampLiveGeneration(root, {
+      contentVersion: "1.0.0",
+      stampedBy: "directive-init",
+      increment: true,
+    });
+    writeLegacyRecord(root, {
+      boundGeneration: first.generation,
+      boundAt: "2026-08-05T00:00:00Z",
+      contentVersion: first.contentVersion,
+      surfaces: first.surfaces,
+      sessionId,
+      payloadLoaded: true,
+    });
+    stampLiveGeneration(root, {
+      contentVersion: "2.0.0",
+      stampedBy: "directive-update",
+      increment: true,
+    });
+    bindSessionGeneration(root, { sessionId, payloadLoaded: true });
+    expect(readBoundGeneration(root, { sessionId })?.boundGeneration).toBe(2);
+    expect(reportFreshness(root, { sessionId }).state).toBe("current");
+  });
+
+  it("refuses a legacy record bound to another session", () => {
+    const root = tempProject();
+    const live = stampLiveGeneration(root, {
+      contentVersion: "1.0.0",
+      stampedBy: "directive-init",
+      increment: true,
+    });
+    writeLegacyRecord(root, {
+      boundGeneration: live.generation,
+      boundAt: "2026-08-05T00:00:00Z",
+      contentVersion: live.contentVersion,
+      surfaces: live.surfaces,
+      sessionId: "another-session",
+      payloadLoaded: true,
+    });
+    expect(readBoundGeneration(root, { sessionId })).toBeNull();
+  });
+
+  it("never falls back for the default bind path", () => {
+    const root = tempProject();
+    expect(readBoundGeneration(root)).toBeNull();
   });
 });

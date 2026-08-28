@@ -3,7 +3,7 @@
  *
  * Host-agnostic storage:
  * - Default (no sessionId): `.deft/session-bind.json` — single-operator convenience.
- * - With sessionId: `.deft/session-binds/<safeId>.json` — isolated multi-session binds.
+ * - With sessionId: `.deft/session-binds/<sha256-slice>.json` — isolated multi-session binds.
  *
  * Multi-agent hosts MUST pass a stable host session identity when binding and
  * reporting so one session cannot certify another as current.
@@ -36,14 +36,46 @@ export function sessionBindPath(projectRoot: string, sessionId?: string | null):
   return join(root, SESSION_BINDS_DIR_REL, safeSessionFileName(id));
 }
 
+function sessionIdHash(sessionId: string): string {
+  return createHash("sha256").update(sessionId.trim(), "utf8").digest("hex").slice(0, 24);
+}
+
 /**
  * Stable filesystem-safe file name for a host session id.
- * Keeps a short prefix for debug, hashes the rest to avoid path injection.
- * Character filter is O(n) (no regex) — CodeQL poly-redos on uncontrolled ids.
+ *
+ * Hash only (#3768): a 24-hex SHA-256 slice of the id. Hex cannot carry a path
+ * separator, so path injection is structurally impossible, and the name stays
+ * derivable from the id — lookup is one computed path, never a directory scan.
+ *
+ * Records written before #3768 also carried the first 32 characters of the id
+ * (`legacySessionFileName`). Dropping that prefix is hygiene, not a security
+ * fix: the same id is already published in `.deft/occupancy.json`,
+ * `.deft/ritual-state.json` and the bind record body (#3611 / #3754).
+ *
+ * Coupling warning: if `.deft/` JSON bodies are ever tightened (say to `0600`)
+ * while names still carry the prefix, the prefix becomes independently
+ * load-bearing — directory read permission alone would recover an id that the
+ * file mode was meant to protect. Anyone tightening those modes must keep bind
+ * names prefix-free.
  */
 export function safeSessionFileName(sessionId: string): string {
+  return `${sessionIdHash(sessionId)}.json`;
+}
+
+/**
+ * Pre-#3768 record name: sanitized 32-character id prefix plus the same hash.
+ *
+ * Existing records are **tolerated, not migrated**. `readBoundGeneration` falls
+ * back to this name when the hash-only record is absent, so freshness pins
+ * written before the rename are not orphaned; writes always use the hash-only
+ * name, so the next bind supersedes the legacy record. Both names derive from
+ * the id, so the fallback stays O(1) and adds no directory scan.
+ *
+ * Character filter is O(n) (no regex) — CodeQL poly-redos on uncontrolled ids.
+ */
+export function legacySessionFileName(sessionId: string): string {
   const trimmed = sessionId.trim();
-  const hash = createHash("sha256").update(trimmed, "utf8").digest("hex").slice(0, 24);
+  const hash = sessionIdHash(trimmed);
   let prefix = "";
   for (let i = 0; i < trimmed.length && prefix.length < 32; i++) {
     const ch = trimmed[i] ?? "";
@@ -69,6 +101,13 @@ export function safeSessionFileName(sessionId: string): string {
   }
   const base = prefix.length > 0 ? `${prefix}-${hash}` : hash;
   return `${base}.json`;
+}
+
+/**
+ * Derived path of a pre-#3768 record. Read fallback only — never a write target.
+ */
+export function legacySessionBindPath(projectRoot: string, sessionId: string): string {
+  return join(resolve(projectRoot), SESSION_BINDS_DIR_REL, legacySessionFileName(sessionId));
 }
 
 export interface BindSessionOptions {
@@ -154,15 +193,7 @@ export function parseBoundGeneration(raw: unknown): BoundGeneration | null {
   };
 }
 
-/** Read the session bind record (null when absent/unreadable). */
-export function readBoundGeneration(
-  projectRoot: string,
-  options: ReadBoundOptions = {},
-): BoundGeneration | null {
-  const path = sessionBindPath(projectRoot, options.sessionId);
-  if (!existsSync(path)) {
-    return null;
-  }
+function readBoundAt(path: string, wantSessionId: string): BoundGeneration | null {
   try {
     const text = readFileSync(path, "utf8");
     const bound = parseBoundGeneration(JSON.parse(text) as unknown);
@@ -171,14 +202,33 @@ export function readBoundGeneration(
     }
     // When reading a session-scoped bind, refuse a record whose embedded
     // sessionId disagrees (tamper / wrong file).
-    const want = typeof options.sessionId === "string" ? options.sessionId.trim() : "";
-    if (want.length > 0 && bound.sessionId && bound.sessionId !== want) {
+    if (wantSessionId.length > 0 && bound.sessionId && bound.sessionId !== wantSessionId) {
       return null;
     }
     return bound;
   } catch {
     return null;
   }
+}
+
+/** Read the session bind record (null when absent/unreadable). */
+export function readBoundGeneration(
+  projectRoot: string,
+  options: ReadBoundOptions = {},
+): BoundGeneration | null {
+  const want = typeof options.sessionId === "string" ? options.sessionId.trim() : "";
+  const path = sessionBindPath(projectRoot, options.sessionId);
+  if (existsSync(path)) {
+    return readBoundAt(path, want);
+  }
+  if (want.length === 0) {
+    return null;
+  }
+  // Pre-#3768 records are tolerated, not migrated: one extra derived path and
+  // still no directory scan, so pins written under the old name resolve until
+  // the next bind supersedes them.
+  const legacy = legacySessionBindPath(projectRoot, want);
+  return existsSync(legacy) ? readBoundAt(legacy, want) : null;
 }
 
 function writeBoundAt(
