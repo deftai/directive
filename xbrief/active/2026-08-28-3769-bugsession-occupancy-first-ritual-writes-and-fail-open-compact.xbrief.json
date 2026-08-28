@@ -1,0 +1,158 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Occupancy-first ritual writes plus fail-open compact stale-mark. Issue #3769 with its accepted design-critique synthesis is SoT.",
+    "updated": "2026-08-28T17:17:11Z"
+  },
+  "plan": {
+    "id": "issue-3769-occupancy-first-ritual",
+    "title": "occupancy-first ritual writes, and a fail-open compact stale-mark",
+    "status": "running",
+    "narratives": {
+      "Description": "Close two paths by which a session that does not own a worktree lease can rewrite the owner ritual state. Path 1: a denied foreign write must leave the owner ritual bytes untouched. Path 2: a compact stays always-allow, and when the acting identity cannot be bound the stale-mark is written anyway (fail-open).",
+      "Origin": "GitHub issue #3769, child of tracker #3613. Round-1 panel of three: 5441671854, 5441678318, 5441679066. First lean 5441712084. Successor lean 5455499276 resolved the one residual by operator amend. Verified-claims table 5455502197. Bind line 5455503730. Chip design-critique:triage-ready.",
+      "Overview": "Measured at 52a5fddc: packages/core/src/hooks/dispatcher.ts calls verifySessionRitual at :1110 and evaluateOccupancyWriteGate at :1143 and :1254, so the ritual persist happens before the occupancy verdict. The compact stale-mark has one seam-injectable call site at dispatcher.ts:1726. Reordering so occupancy or a no-write inspect completes first closes Path 1; the fail-open policy at that single call site settles Path 2.",
+      "UserStory": "As the session that owns a worktree lease, I want a foreign or unidentified session to be unable to rewrite my ritual state, so that I am never locked out of my own worktree by another agent write.",
+      "When": "When a foreign session write is denied by occupancy, the owner ritual-state bytes are unchanged on a fresh record; when a compact cannot bind its actor, the owner re-arm flag is still set; when occupancy would deny, no ritual persist has already happened.",
+      "LockedDecisions": "Operator amend 2026-08-28 selects FAIL-OPEN for the compact unavailable-identity case: markRitualStaleAfterCompact writes even when the actor cannot be bound. Accepted cost, stated: an unidentified compact will re-arm the owner. Rationale on the record: the compact path has no issue context and runs inside a hook budget (#3739), so a skipped write has no surface where a human reliably sees it. DROPPED as filed: the AC2 disjunct routing compact through the mutation gates (compact must NOT enter inspectMutationGates, which would re-run Path 1 writes or occupancy-deny an owner compact, #2113); and the AC1 limb scoping the write to the resolved actor (do not retitle session_id on a denied path). Ritual-state locking remains a decision item and is NOT in scope. Path 1 is the denied-write mutation; Path 2 is the owner lockout; do not design one as the other.",
+      "ImplementationPlan": "1) Reorder the dispatcher so occupancy, or a no-write inspect, completes before any ritual persist, including the forward-HEAD rebind. 2) Make the compact stale-mark fail open at its single seam call site. 3) Tests: byte-identical owner ritual state after a denied foreign write on a fresh record; unidentified compact sets the owner re-arm flag; stop stubbing the ritual verify in occupancy tests so Path 1 is visible. 4) CHANGELOG. Closes #3769.",
+      "OriginDivergence": "The refutation target as filed does not hold: both measured paths exist, and each filed acceptance criterion was an OR-pair with one unsafe limb. The unsafe limbs are dropped above rather than implemented. Field note 2026-08-28: an unbound or foreign-rooted actor is routine rather than exotic. Two live instances this session are recorded on #3861 and #3794 comment 5455387406."
+    },
+    "items": [
+      {
+        "title": "Occupancy or no-write inspect completes before any ritual persist",
+        "status": "proposed",
+        "effort": "M",
+        "narrative": {
+          "When": "When a foreign session write is denied by occupancy on a fresh record, the owner ritual-state file is byte-identical afterwards, and no session_id retitle has occurred on the denied path.",
+          "Acceptance": "When a foreign session write is denied by occupancy on a fresh record, the owner ritual-state file is byte-identical afterwards, and no session_id retitle has occurred on the denied path."
+        }
+      },
+      {
+        "title": "Compact stale-mark fails open when the actor cannot be bound",
+        "status": "proposed",
+        "effort": "M",
+        "narrative": {
+          "When": "When a compact runs and the acting identity cannot be bound, the compact verdict stays allow, the stale-mark is still written so the owner re-arm flag is set, and the compact path does not enter inspectMutationGates.",
+          "Acceptance": "When a compact runs and the acting identity cannot be bound, the compact verdict stays allow, the stale-mark is still written so the owner re-arm flag is set, and the compact path does not enter inspectMutationGates."
+        }
+      },
+      {
+        "title": "Occupancy tests stop stubbing the ritual verify, plus CHANGELOG",
+        "status": "proposed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the occupancy test suite runs, it exercises the real ritual-verify path so Path 1 is observable rather than stubbed, and CHANGELOG Unreleased carries one line.",
+          "Acceptance": "When the occupancy test suite runs, it exercises the real ritual-verify path so Path 1 is observable rather than stubbed, and CHANGELOG Unreleased carries one line."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3769",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3769"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3613",
+        "type": "x-xbrief/refs",
+        "title": "Tracker #3613 occupancy model gaps"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3769#issuecomment-5455499276",
+        "type": "x-xbrief/refs",
+        "title": "Successor lean with the bound next-build contract"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3769#issuecomment-5455503730",
+        "type": "x-xbrief/refs",
+        "title": "Synthesis-accepted bind line"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3861",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3861 linked-worktree state resolution, adjacent"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/session",
+          "pnpm exec vitest run packages/core/src/hooks"
+        ],
+        "expected_outputs": [
+          "denied foreign write leaves owner ritual bytes identical",
+          "unidentified compact sets the owner re-arm flag (fail-open)",
+          "occupancy tests exercise the real ritual verify"
+        ],
+        "depends_on": [],
+        "conflict_group": "session-ritual-occupancy-3769",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "high",
+        "missing_traces_justification": [
+          "Ritual-state locking is a recorded decision item, deliberately out of scope.",
+          "file_scope is not declared on this brief: verify:scope-provenance (#3145) hard-fails a declared file_scope that has no human-approved digest on the merge base, which an agent dispatch cannot mint. intended_placement.files records the landing zone instead."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/session/ritual-sentinel.ts",
+          "packages/core/src/session/verify-session-ritual.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "packages/core/src/session/compact-ritual.test.ts",
+          "packages/core/src/session/occupancy.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/session",
+        "cohesion_exemption": "CHANGELOG.md, dispatcher.ts and the dispatcher/occupancy suites already exceed FILE_SIZE_REVIEW_TRIGGER_LINES; this change appends to existing seams rather than splitting them."
+      },
+      "capacityBucket": "defect-repair"
+    },
+    "updated": "2026-08-28T17:17:11Z",
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When a foreign session write is denied by occupancy on a fresh record, the owner ritual-state file is byte-identical afterwards, and no session_id retitle has occurred on the denied path.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When a compact runs and the acting identity cannot be bound, the compact verdict stays allow, the stale-mark is still written so the owner re-arm flag is set, and the compact path does not enter inspectMutationGates.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When the occupancy test suite runs, it exercises the real ritual-verify path so Path 1 is observable rather than stubbed, and CHANGELOG Unreleased carries one line.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    }
+  },
+  "vBRIEFInfo": {
+    "version": "0.8",
+    "updated": "2026-08-28T17:17:11Z"
+  }
+}
