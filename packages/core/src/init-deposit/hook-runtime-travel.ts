@@ -75,7 +75,6 @@ function defaultGitLsFiles(projectDir: string, paths: readonly string[]): string
       cwd: projectDir,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
-      // CREATE_NO_WINDOW on win32; harmless elsewhere (#2563).
       windowsHide: true,
     });
   } catch {
@@ -129,7 +128,7 @@ function buildWarning(
     `  Fix: commit a ${RUNTIME_ANCHOR_MANIFEST} dependency on ${PIN_DEPENDENCY_NAME} so the runtime travels with the tree.`,
   );
   if (failClosed.length > 0) {
-    lines.push(`  Unused host: ${recoveryHosts(failClosed)}.`);
+    lines.push(`  Or, accepting the capability cost: ${recoveryHosts(failClosed)}.`);
   }
   lines.push(
     "  \u2297 Do not hand-edit `failClosed` in the deposited file -- the next `deft update` restores it.",
