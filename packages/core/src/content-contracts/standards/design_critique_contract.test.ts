@@ -375,7 +375,9 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     const contract = readText(CONTRACT);
     expect(contract).toContain("```text\nmodel: <your-model-slug>\nrole: critic\n```");
     expect(contract).toContain("self-attestation");
-    expect(contract).toContain("Nothing in this repository verifies which model produced a comment");
+    expect(contract).toContain(
+      "Nothing in this repository verifies which model produced a comment",
+    );
     expect(contract).toContain("! First line of the triage write-back comment is `model: <slug>`.");
     expect(contract).toContain("! Second line of the triage write-back comment is `role: triage`.");
     expect(contract).toContain(
