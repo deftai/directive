@@ -1571,7 +1571,7 @@ describe("explicit lease membership (#3755)", () => {
     );
   });
 
-  it("does not re-stamp the owner's heartbeat on a member's write", () => {
+  it("keeps the lease alive on a member's write without moving the age cap", () => {
     const now = new Date("2026-08-28T09:00:00Z");
     const root = leasedRoot(now);
     grantChild(root, now);
@@ -1583,10 +1583,69 @@ describe("explicit lease membership (#3755)", () => {
       refresh: true,
     });
 
+    // A quiet owner must not cost an actively-writing child its worktree, and
+    // the write is recorded so a would-be stealer can see the tree is mid-work.
+    expect(member.allow).toBe(true);
+    expect(member.refreshed).toBe(true);
+    const record = readRecord(root);
+    expect(record.heartbeatAt.toISOString()).toBe(past.toISOString());
+    expect(record.lastWriteAt?.toISOString()).toBe(past.toISOString());
+    // The cap keys on the claim, so a member cannot extend it either.
+    expect(record.claimedAt.toISOString()).toBe(now.toISOString());
+    const capped = new Date(now.getTime() + OCCUPANCY_MAX_LEASE_MS + 1_000);
+    expect(occupancyLiveness(readRecord(root), capped)).toBe("age-capped");
+    expect(
+      evaluateOccupancyWriteGate(root, { sessionId: MEMBERSHIP_OWNER, now: capped }).allow,
+    ).toBe(false);
+  });
+
+  it("floors a member's re-stamp the same way the owner's is floored", () => {
+    const now = new Date("2026-08-28T09:00:00Z");
+    const root = leasedRoot(now);
+    grantChild(root, now);
+    const soon = new Date(now.getTime() + OCCUPANCY_REFRESH_AFTER_MS - 1_000);
+
+    const member = evaluateOccupancyWriteGate(root, {
+      sessionId: MEMBERSHIP_CHILD,
+      now: soon,
+      refresh: true,
+    });
+
     expect(member.allow).toBe(true);
     expect(member.refreshed).toBe(false);
-    expect(member.warning).toBeNull();
     expect(readRecord(root).heartbeatAt.toISOString()).toBe(now.toISOString());
+  });
+
+  it("refuses a member whose grant is revoked while it waits for the lock", () => {
+    const now = new Date("2026-08-28T09:00:00Z");
+    const root = leasedRoot(now);
+    grantChild(root, now);
+    const past = new Date(now.getTime() + OCCUPANCY_REFRESH_AFTER_MS + 1_000);
+    const lockPath = `${occupancyPath(root)}.lock`;
+    writeFileSync(lockPath, `${process.pid}\n${Date.now()}\n`, "utf8");
+    let revoked = false;
+
+    const member = evaluateOccupancyWriteGate(root, {
+      sessionId: MEMBERSHIP_CHILD,
+      now: past,
+      refresh: true,
+      lockDeps: {
+        sleepMs: () => {
+          if (revoked) return;
+          revoked = true;
+          rmSync(lockPath, { force: true });
+          // Written as the owner's process would: the occupancy lock is not
+          // reentrant, and the point is a revoke landing mid-attempt.
+          const record = readRecord(root);
+          writeRawOccupancy(root, { ...record.raw, grants: [] });
+        },
+      },
+    });
+
+    expect(revoked).toBe(true);
+    expect(member.allow).toBe(false);
+    expect(member.refreshed).toBe(false);
+    expect(member.admitted).toBeNull();
   });
 
   it("refuses release, heartbeat, steal and cohort close-out to a member", () => {

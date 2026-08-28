@@ -139,8 +139,9 @@ export interface OccupancyRecord {
   readonly claimedAt: Date;
   readonly heartbeatAt: Date;
   /**
-   * Last gated product write by the owner, or null when none is recorded
-   * (#3599). Distinct from `heartbeatAt`, which any lease touch advances.
+   * Last gated product write under this lease — by the owner or by a granted
+   * member (#3599 / #3755) — or null when none is recorded. Distinct from
+   * `heartbeatAt`, which any lease touch advances.
    * Coarse to `OCCUPANCY_REFRESH_AFTER_MS`: a write inside that floor does not
    * re-stamp, so the recorded time can trail the true last write by up to the
    * refresh interval.
@@ -1136,19 +1137,47 @@ export function evaluateOccupancyWriteGate(
     };
   }
   if (admission === "member") {
-    // A member writes on the owner's lease but does not carry it (#3755). The
-    // heartbeat answers "is the owner still there", and a child's write is no
-    // evidence for that, so this path never re-stamps: an owner that dispatches
-    // children keeps its own lease alive. Nor does it inherit the owner's stale
-    // warning, which names a remediation only the owner can run.
+    // A member's write keeps the lease alive (#3755). The lease answers "who may
+    // mutate this tree right now", and a tree a granted child is actively
+    // writing is in use — letting it lapse would hand the worktree to a peer
+    // mid-edit, which is the loss the TTL exists to prevent, not the abandonment
+    // it exists to detect. Two bounds still hold: `claimedAt` is untouched, so
+    // the absolute age cap is unmoved, and the grant expires on its own clock.
+    const memberAgeMs = now.getTime() - live.heartbeatAt.getTime();
+    const memberWarning =
+      memberAgeMs >= OCCUPANCY_STALE_WARN_MS ? formatOccupancyStaleWarning(live, now) : null;
+    if (input.refresh !== true || memberAgeMs < OCCUPANCY_REFRESH_AFTER_MS) {
+      return {
+        allow: true,
+        message: null,
+        occupant: live,
+        refreshed: false,
+        warning: memberWarning,
+        admitted: "member",
+        grant: occupancyGrantFor(live, incoming, now),
+      };
+    }
+    const memberOutcome = restampOccupancyHeartbeat(
+      projectRoot,
+      live.sessionId,
+      now,
+      true,
+      input.lockDeps,
+      incoming,
+    );
+    if (memberOutcome.status !== "refreshed") {
+      // Same re-decide as the owner path: contention says nothing about who
+      // holds the lease now, so ask the file rather than the pre-lock snapshot.
+      return evaluateOccupancyWriteGate(projectRoot, { ...input, now, refresh: false });
+    }
     return {
       allow: true,
       message: null,
-      occupant: live,
-      refreshed: false,
+      occupant: memberOutcome.record,
+      refreshed: true,
       warning: null,
       admitted: "member",
-      grant: occupancyGrantFor(live, incoming, now),
+      grant: occupancyGrantFor(memberOutcome.record, incoming, now),
     };
   }
 
@@ -1218,6 +1247,8 @@ function restampOccupancyHeartbeat(
   now: Date,
   markWrite: boolean,
   lockDeps?: LockDeps,
+  /** Refresh on behalf of this granted member rather than the owner (#3755). */
+  memberSessionId?: string,
 ): RestampOutcome {
   try {
     return withOccupancyLock<RestampOutcome>(
@@ -1226,6 +1257,14 @@ function restampOccupancyHeartbeat(
         const current = readOccupancy(projectRoot);
         if (current === null || current.sessionId !== sessionId) return { status: "lost" };
         if (isOccupancyExpired(current, now)) return { status: "lost" };
+        // Re-check membership under the lock: the grant read before the wait may
+        // have been revoked or expired while it ran (#3755).
+        if (
+          memberSessionId !== undefined &&
+          occupancyGrantFor(current, memberSessionId, now) === null
+        ) {
+          return { status: "lost" };
+        }
         const record = writeOccupancyRecord(
           projectRoot,
           {
