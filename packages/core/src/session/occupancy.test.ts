@@ -26,11 +26,11 @@ import {
   OCCUPANCY_REFRESH_AFTER_MS,
   OCCUPANCY_STALE_WARN_MS,
   OCCUPANCY_TTL_MS,
+  type OccupancyRecord,
   occupancyAdmission,
   occupancyGrantFor,
   occupancyLiveness,
   occupancyPath,
-  type OccupancyRecord,
   readOccupancy,
   releaseOccupancy,
   releaseSwarmOccupancy,
@@ -1566,7 +1566,9 @@ describe("explicit lease membership (#3755)", () => {
     });
 
     expect(readRecord(root).grants).toHaveLength(0);
-    expect(evaluateOccupancyWriteGate(root, { sessionId: MEMBERSHIP_CHILD, now }).allow).toBe(false);
+    expect(evaluateOccupancyWriteGate(root, { sessionId: MEMBERSHIP_CHILD, now }).allow).toBe(
+      false,
+    );
   });
 
   it("does not re-stamp the owner's heartbeat on a member's write", () => {

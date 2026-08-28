@@ -104,6 +104,7 @@ tasks:
             " occupancy:steal "|" occupancy-steal "|\
             " occupancy:release "|" occupancy-release "|\
             " occupancy:heartbeat "|" occupancy-heartbeat "|\
+            " occupancy:grant "|" occupancy-grant "|\
             " session:end "|" session-end "|\
             " lifecycle:event "|" lifecycle-event "|\
             " verify:session-ritual "|" verify-session-ritual "|\

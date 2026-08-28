@@ -37,3 +37,14 @@ tasks:
       - task: :engine:invoke
         vars:
           ENGINE_CMD: 'occupancy:heartbeat --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
+  grant:
+    desc: "Admit a dispatched child to your lease for writes (#3755). Owner-only: --session-id <id> or DEFT_SESSION_ID, plus --child-session-id <id> --role <worker-role> [--ttl-minutes N] [--revoke]. Grants admit writes, never administration."
+    dir: '{{.USER_WORKING_DIR}}'
+    # Runtime/session dispatch: no engine:_ts-build / pnpm build (#2181).
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'occupancy:grant --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'

@@ -123,6 +123,7 @@ export const CLI_MODULE_VERBS = [
   "occupancy-steal",
   "occupancy-release",
   "occupancy-heartbeat",
+  "occupancy-grant",
   "plan-sequence",
   "slice",
   "subagent-monitor",
@@ -449,6 +450,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "occupancy:steal": "occupancy-steal",
   "occupancy:release": "occupancy-release",
   "occupancy:heartbeat": "occupancy-heartbeat",
+  "occupancy:grant": "occupancy-grant",
   "session:end": "occupancy-release",
   ...FRESHNESS_COLON_ALIASES,
   "lifecycle:event": "lifecycle-event",
@@ -3056,6 +3058,10 @@ const CURATED_HELP_GROUPS: readonly HelpGroup[] = [
       {
         name: "occupancy:heartbeat",
         summary: "Refresh your own live lease during long quiet stretches (never claims)",
+      },
+      {
+        name: "occupancy:grant",
+        summary: "Admit a dispatched child to your lease for writes (--revoke withdraws)",
       },
       {
         name: "session:end",
