@@ -20,7 +20,7 @@
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/vbrief-build/project-definition-lock-protocol.test.ts :: \"preserves a legacy file at the public lock pathname and fails closed\" + \"preserves the legacy file even when its recorded owner is dead\" + \"does not quarantine or move the legacy sidecar\" + \"names constant-label manual recovery steps in the diagnostic\"",
-          "recorded_at": "2026-08-28T03:10:00Z",
+          "recorded_at": "2026-08-28T03:07:00Z",
           "recorded_by": "agent:deft-directive-build"
         }
       },
@@ -30,7 +30,7 @@
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/vbrief-build/project-definition-lock-protocol.test.ts :: \"a delayed rmdir cannot remove a published replacement generation\" + \"publishes a non-empty directory holding one unique owner entry\"; Windows CI: .github/workflows/ci.yml step \"Windows PROJECT-DEFINITION lock protocol regression (#3796)\"",
-          "recorded_at": "2026-08-28T03:10:00Z",
+          "recorded_at": "2026-08-28T03:07:00Z",
           "recorded_by": "agent:deft-directive-build"
         }
       },
@@ -40,7 +40,7 @@
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/vbrief-build/project-definition-lock-protocol.test.ts :: \"fails closed while the recorded owner probes alive\" + \"fails closed when liveness is unknown\" + \"never recovers a malformed lock directory, however old\" + \"reaps a directory whose owner is unambiguously dead\"",
-          "recorded_at": "2026-08-28T03:10:00Z",
+          "recorded_at": "2026-08-28T03:07:00Z",
           "recorded_by": "agent:deft-directive-build"
         }
       },
@@ -50,7 +50,7 @@
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/verify-source/project-definition-mutation-boundary.test.ts :: \"passes the fail-closed boundary and census gate\" + \"matches the recorded per-file mutation inventory\"; capability identity: packages/core/src/vbrief-build/project-definition-mutation.test.ts :: \"keeps one artifact identity when the configured path is retargeted mid-section\"",
-          "recorded_at": "2026-08-28T03:10:00Z",
+          "recorded_at": "2026-08-28T03:07:00Z",
           "recorded_by": "agent:deft-directive-build"
         }
       },
@@ -60,7 +60,7 @@
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/policy/plan-extensions.test.ts :: \"keeps the complete raw sub-key inventory, bounding only the display (#3796)\"; constant artifact label: packages/core/src/vbrief-build/project-definition-lock-protocol.test.ts :: \"never interpolates a configured path into a lock timeout diagnostic\"",
-          "recorded_at": "2026-08-28T03:10:00Z",
+          "recorded_at": "2026-08-28T03:07:00Z",
           "recorded_by": "agent:deft-directive-build"
         }
       },
@@ -70,7 +70,7 @@
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/vbrief-build/project-definition-lock-protocol.test.ts :: \"shares one budget across retry and recovery branches\" + \"reads the acquisition deadline only from the injected monotonic clock\" + \"runs the critical section outside the acquisition budget\"",
-          "recorded_at": "2026-08-28T03:10:00Z",
+          "recorded_at": "2026-08-28T03:07:00Z",
           "recorded_by": "agent:deft-directive-build"
         }
       },
@@ -80,7 +80,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "https://github.com/deftai/directive/pull/3832 squash-merged as 98bd3509a706b83090215993d56f1eff177a06b9 from fresh branch fix/3796-pd-mutation-identity cut from origin/master eacd7435; PR #3793 was neither reopened nor landed",
-          "recorded_at": "2026-08-28T03:10:00Z",
+          "recorded_at": "2026-08-28T03:07:00Z",
           "recorded_by": "agent:deft-directive-build"
         }
       },
@@ -90,7 +90,7 @@
         "x-directive/evidence": {
           "kind": "review",
           "pointer": "CHANGELOG.md [Unreleased] > Fixed > \"A stale PROJECT-DEFINITION lock is no longer cleared by guesswork (#3796)\", landed in 98bd3509a706b83090215993d56f1eff177a06b9",
-          "recorded_at": "2026-08-28T03:10:00Z",
+          "recorded_at": "2026-08-28T03:07:00Z",
           "recorded_by": "agent:deft-directive-build"
         }
       }
