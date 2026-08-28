@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for GitHub issue #3850",
-    "updated": "2026-08-28T16:25:23Z"
+    "updated": "2026-08-28T17:07:51Z"
   },
   "plan": {
     "title": "bug(design-critique): the panel-deposit guards are inconsistent prose, and panel completeness has no executable consumer",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Reconcile the seven bind-guard loci in content/contracts/design-critique.md onto the deposit-independent sibling-completeness phrasing that already exists, and state plainly that panel completeness is behavioural.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3850 (body recut 2026-08-28 to the bound contract; synthesis comment 5454966234, successor lean 5454472108)",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "All seven bind guards in the contract read \"no unposted same-round siblings remain\" or \"same-round siblings remain unposted\", the deposit-independent wording that already existed",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
@@ -26,7 +26,7 @@
       },
       {
         "title": "The contract states \"Panel completeness is behavioural.\" and that \"nothing machine-checks it\", so no reader infers a gate that is not there",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
@@ -36,7 +36,7 @@
       },
       {
         "title": "The content-contract test pins \"no unposted same-round siblings remain\" and \"Panel completeness is locked as contract text only\", and introduces no new predicate",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
@@ -46,7 +46,7 @@
       },
       {
         "title": "No gate anywhere reads panel-deposit contents",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "review",
           "pointer": "https://github.com/deftai/directive/pull/3856",
@@ -56,7 +56,7 @@
       },
       {
         "title": "CHANGELOG [Unreleased] entry: the contract now \"guards sibling completeness the same way in all seven places\"",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "CHANGELOG.md",
@@ -135,8 +135,33 @@
         "schema": "deft.scope.intended_placement.v1",
         "files": [],
         "module_boundary": ""
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3856,
+        "prBase": null,
+        "mergeCommit": "52a5fddc99092cd52727c0be6deb4f84a72b370c",
+        "deliveryBranch": "master",
+        "deliveryCommit": "52a5fddc99092cd52727c0be6deb4f84a72b370c",
+        "verifiedAt": "2026-08-28T17:07:51Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "0d640257-5e7f-4f80-8965-b9c2f41c5cf8"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-28T17:07:51Z"
+      },
+      "completedAt": "2026-08-28T17:07:51Z",
+      "completedSessionId": "0d640257-5e7f-4f80-8965-b9c2f41c5cf8",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-08-28T16:25:17Z"
+    "updated": "2026-08-28T17:07:51Z"
   }
 }
