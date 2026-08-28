@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3824",
-    "updated": "2026-08-28T04:45:00Z"
+    "updated": "2026-08-28T04:52:19Z"
   },
   "plan": {
     "title": "fix(design-critique): the model slug has no verifier, so the contract must stop offering a real one to copy",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "fix(design-critique): the model slug has no verifier, so the contract must stop offering a real one to copy",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3824",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "No fenced example in the contract contains a real model slug",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts :: locks the comment lead as model then role, not an issue label expects model: <your-model-slug>; content/contracts/design-critique.md has no grok-4.6",
@@ -26,7 +26,7 @@
       },
       {
         "title": "The contract states that `model:` is self-attested and unverified where the field is defined",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts :: locks self-attestation ceiling; content/contracts/design-critique.md Comment lead section",
@@ -36,7 +36,7 @@
       },
       {
         "title": "Contract tests no longer assert a real slug as the canonical example",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts :: REQUIRED_CONTRACT_POINTERS includes model: <your-model-slug>",
@@ -46,7 +46,7 @@
       },
       {
         "title": "The `:150` line cite is corrected",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts :: expects disambiguated Omit the model line and Omit the role line rules",
@@ -56,7 +56,7 @@
       },
       {
         "title": "No envelope-authoritative or fail-closed slug mechanism is introduced",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "review",
           "pointer": "PR #3838 diff excludes packages/core/src/swarm/routing-verify.ts and verify:routing changes",
@@ -66,7 +66,7 @@
       },
       {
         "title": "CHANGELOG `[Unreleased]` entry",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "review",
           "pointer": "CHANGELOG.md [Unreleased] > Fixed > Design-critique comment-lead examples no longer copy a real model slug (#3824)",
@@ -156,8 +156,33 @@
           "CHANGELOG.md"
         ],
         "module_boundary": ""
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3838,
+        "prBase": null,
+        "mergeCommit": "d486f66b673afda36d84b8277a8d30358d283df7",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d486f66b673afda36d84b8277a8d30358d283df7",
+        "verifiedAt": "2026-08-28T04:52:19Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "4ef5abbe-070e-42a4-9be2-5df15f7d7f72"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-28T04:52:19Z"
+      },
+      "completedAt": "2026-08-28T04:52:19Z",
+      "completedSessionId": "4ef5abbe-070e-42a4-9be2-5df15f7d7f72",
+      "capacityBucket": "technical-debt"
     },
-    "updated": "2026-08-28T04:45:00Z"
+    "updated": "2026-08-28T04:52:19Z"
   }
 }
