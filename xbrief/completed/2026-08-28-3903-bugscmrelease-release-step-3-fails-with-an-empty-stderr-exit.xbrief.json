@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3903",
-    "updated": "2026-08-28T23:49:57Z"
+    "updated": "2026-08-29T00:40:35Z"
   },
   "plan": {
     "title": "bug(scm,release): release Step 3 fails with an empty-stderr exit 1 once the open-issue inventory exceeds 1 MB (ENOBUFS in scm call)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(scm,release): release Step 3 fails with an empty-stderr exit 1 once the open-issue inventory exceeds 1 MB (ENOBUFS in scm call)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3903",
@@ -17,23 +17,53 @@
     "items": [
       {
         "title": "`call()` passes `SUBPROCESS_MAX_BUFFER` to `spawnSync`.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scm/call-branches.test.ts#passes the shared subprocess ceiling to spawnSync (#3903)",
+          "recorded_at": "2026-08-29T00:45:00Z",
+          "recorded_by": "leaf-worker/3903"
+        }
       },
       {
         "title": "`call()` surfaces `result.error.message` when `status === null` and stderr is empty, so ENOBUFS and timeout kills never report as a bare exit 1 with no reason.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/subprocess/max-buffer.test.ts#resolveCaptureFailureStderr (#3903); packages/core/src/scm/call-branches.test.ts#surfaces the spawn error message on an ENOBUFS overflow (#3903)",
+          "recorded_at": "2026-08-29T00:45:00Z",
+          "recorded_by": "leaf-worker/3903"
+        }
       },
       {
         "title": "Regression test: a `call()` capture whose stdout exceeds 1 MB succeeds, and a forced spawn-level failure reports a non-empty reason.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scm/call.test.ts#captures stdout larger than Node's 1 MB default (#3903); #reports a non-empty reason when the spawn itself fails (#3903)",
+          "recorded_at": "2026-08-29T00:45:00Z",
+          "recorded_by": "leaf-worker/3903"
+        }
       },
       {
         "title": "`task release -- <version> --dry-run` Step 3 completes against this repo (open-issue inventory over 1 MB).",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "Live run on deftai/directive: checkVbriefLifecycleSyncNative returned [true, 0, 'no mismatches'] over 1185 anchored issues and a 603-issue (4.1 MB) inventory; task release -- 0.108.0 --dry-run completed all 13 steps",
+          "recorded_at": "2026-08-29T00:45:00Z",
+          "recorded_by": "leaf-worker/3903"
+        }
       },
       {
         "title": "Remaining `spawnSync` / `execFileSync` capture sites that can return large payloads are audited; each either passes the ceiling or records why it cannot.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "plan.narratives.Audit (every spawnSync / execFileSync site under packages/, each with ceiling or recorded bound); PR https://github.com/deftai/directive/pull/3904",
+          "recorded_at": "2026-08-29T00:45:00Z",
+          "recorded_by": "leaf-worker/3903"
+        }
       }
     ],
     "tags": [
@@ -86,7 +116,32 @@
         "schema": "deft.scope.intended_placement.v1",
         "files": [],
         "module_boundary": ""
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3904,
+        "prBase": null,
+        "mergeCommit": "12fac99d2f10ea95bad82caa47e67dce95221451",
+        "deliveryBranch": "master",
+        "deliveryCommit": "12fac99d2f10ea95bad82caa47e67dce95221451",
+        "verifiedAt": "2026-08-29T00:40:35Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "ae8e29eb-f35b-4d4e-880a-0d03e5f7cd0d"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-29T00:40:35Z"
+      },
+      "completedAt": "2026-08-29T00:40:35Z",
+      "completedSessionId": "ae8e29eb-f35b-4d4e-880a-0d03e5f7cd0d",
+      "capacityBucket": "technical-debt"
     },
     "acceptance": {
       "commands": [],
@@ -132,6 +187,6 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-08-28T23:49:57Z"
+    "updated": "2026-08-29T00:40:35Z"
   }
 }
