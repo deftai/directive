@@ -15,3 +15,23 @@
  * so an overflow is never silent again.
  */
 export const SUBPROCESS_MAX_BUFFER = 64 * 1024 * 1024;
+
+/**
+ * Reason text for a failed capture, so an overflow is never blank (#1867 / #3903).
+ *
+ * A spawn-level failure (ENOBUFS past the ceiling, timeout kill, missing
+ * binary) reports no exit status and empty stderr, whether it arrives as a
+ * `spawnSync` result or as a thrown `execFileSync` error. Only then does the
+ * error message stand in for stderr: a process that exited with a status and
+ * chose to say nothing keeps its empty stderr.
+ */
+export function resolveCaptureFailureStderr(capture: {
+  readonly captured: string;
+  readonly status: number | null | undefined;
+  readonly message: string | undefined;
+}): string {
+  if (capture.captured.trim().length > 0 || typeof capture.status === "number") {
+    return capture.captured;
+  }
+  return capture.message ?? capture.captured;
+}

@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
+import { resolveCaptureFailureStderr, SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import { resolveBinary } from "./binary.js";
 import { SUPPORTED_CALL_SOURCES } from "./constants.js";
 import { pyRepr } from "./py-format.js";
@@ -62,13 +62,14 @@ export function call(
     stdio: captureOutput ? ["pipe", "pipe", "pipe"] : "inherit",
   });
 
-  let stderr = typeof result.stderr === "string" ? result.stderr : "";
   // A spawn-level failure (ENOBUFS past maxBuffer, timeout kill) yields a null
   // status and empty stderr; surface error.message so callers never report a
   // bare exit 1 with no reason (#1867 / #3903).
-  if (result.status === null && result.error && stderr.trim().length === 0) {
-    stderr = result.error.message;
-  }
+  const stderr = resolveCaptureFailureStderr({
+    captured: typeof result.stderr === "string" ? result.stderr : "",
+    status: result.status,
+    message: result.error?.message,
+  });
 
   if (options.check && result.status !== 0) {
     const error = new Error(stderr || `Process exited with code ${result.status}`);

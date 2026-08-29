@@ -1,7 +1,7 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, statSync } from "node:fs";
 import { dirname, isAbsolute, resolve } from "node:path";
-import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
+import { resolveCaptureFailureStderr, SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 
 export interface GitRunResult {
   readonly code: number;
@@ -47,7 +47,13 @@ export const defaultGitRunner: GitRunner = (projectRoot, args) => {
     return {
       code: typeof e.status === "number" ? e.status : 2,
       stdout: gitStdoutString(coerceGitBytes(e.stdout), args),
-      stderr: coerceGitBytes(e.stderr).toString("utf8").trimEnd(),
+      // A spawn-level failure (ENOBUFS on an oversized blob, timeout kill)
+      // throws with no status and empty stderr (#3903).
+      stderr: resolveCaptureFailureStderr({
+        captured: coerceGitBytes(e.stderr).toString("utf8").trimEnd(),
+        status: e.status,
+        message: e.message,
+      }),
     };
   }
 };
