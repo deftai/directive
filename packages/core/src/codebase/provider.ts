@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { contentRoot } from "../content-root.js";
 import { resolveProjectDefinitionPath } from "../layout/resolve.js";
 import { readPlanPolicy } from "../policy/plan-extensions.js";
+import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import { loadJsonFile } from "../verify-source/code-structure-validate.js";
 import { CODEBASE_MAP_SCHEMA_PATH } from "./constants.js";
 import {
@@ -665,6 +666,7 @@ function runProviderCommand(
       cwd,
       encoding: "utf8",
       timeout: 60_000,
+      maxBuffer: SUBPROCESS_MAX_BUFFER,
       stdio: ["ignore", "pipe", "pipe"],
     });
     return { returncode: 0, stdout, stderr: "" };

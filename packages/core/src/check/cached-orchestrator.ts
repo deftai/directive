@@ -24,6 +24,7 @@ import {
   SKIP_ALL_GATES,
   type ToolchainPreflightResult,
 } from "../session/toolchain-preflight.js";
+import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import {
   checkGateCliArgv,
   cliSpawnPlan,
@@ -77,6 +78,7 @@ function captureSpawn(
     cwd: opts.cwd,
     encoding: "utf8",
     env: opts.env ?? process.env,
+    maxBuffer: SUBPROCESS_MAX_BUFFER,
   });
   if (result.error !== undefined) {
     return {

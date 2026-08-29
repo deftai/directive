@@ -1,6 +1,7 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, statSync } from "node:fs";
 import { dirname, isAbsolute, resolve } from "node:path";
+import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 
 export interface GitRunResult {
   readonly code: number;
@@ -29,6 +30,9 @@ export const defaultGitRunner: GitRunner = (projectRoot, args) => {
     const stdout = execFileSync("git", [...args], {
       cwd: projectRoot,
       stdio: ["ignore", "pipe", "pipe"],
+      // `git show <tip>:<path>` streams whole blobs; SPECIFICATION.md alone is
+      // past Node's 1 MB default (#3903).
+      maxBuffer: SUBPROCESS_MAX_BUFFER,
     });
     return { code: 0, stdout: gitStdoutString(coerceGitBytes(stdout), args), stderr: "" };
   } catch (err: unknown) {

@@ -17,6 +17,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { basename, extname, join, resolve } from "node:path";
 import { hasArtifactSuffix, LIFECYCLE_DIR_NAMES } from "../layout/resolve.js";
+import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 
 // ---------------------------------------------------------------------------
 // Classification constants
@@ -903,6 +904,7 @@ function gitDiff(projectRoot: string, baseRef: string): [string | null, GateResu
     cwd: resolve(projectRoot),
     encoding: "utf8",
     timeout: 30_000,
+    maxBuffer: SUBPROCESS_MAX_BUFFER,
   });
   if (result.error) {
     return [
