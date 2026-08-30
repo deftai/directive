@@ -1311,6 +1311,34 @@ describe("direct-write hook policy", () => {
         code: "runtime-policy-deny-path",
       });
     });
+
+    it("denies a scratch-declared ApplyPatch whose body writes a product path", () => {
+      const body = "*** Begin Patch\n*** Update File: src/index.ts\n+x\n*** End Patch";
+      const decision = decideHook(
+        {
+          host: "cursor",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "ApplyPatch",
+            posture: "assist",
+            tool_input: {
+              path: ".deft-scratch/notes.md",
+              patch: body,
+            },
+          },
+        },
+        noScope(),
+      );
+      expect(decision.verdict).toBe("deny");
+      expect(decision.code).not.toBe("write-assist-scratch-ready");
+    });
+
+    it("denies an outside-root declared ApplyPatch whose body writes a product path", () => {
+      const body = "*** Begin Patch\n*** Update File: src/index.ts\n+x\n*** End Patch";
+      const decision = decideHook(applyPatch("/tmp/outside.md", body), noScope());
+      expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    });
   });
 
   it("allows Write of legacy vbrief/proposed/*.vbrief.json with no active scope (#2625)", () => {
