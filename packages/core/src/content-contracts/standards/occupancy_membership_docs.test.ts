@@ -36,11 +36,15 @@ describe("occupancy boundary naming (#3755)", () => {
     expect(text).not.toContain("Join (`occupancy:request`) is named in remediation only");
   });
 
-  it("carries one Unreleased changelog line for the membership change", () => {
+  // Searched over the whole file, not the Unreleased section: a release cut
+  // moves the entry into the cut section, so a section-bounded search is a
+  // scheduled failure. The changelog is append-only, so exactly-one holds
+  // wherever the entry lives (#3930).
+  it("carries exactly one changelog entry for the membership change", () => {
     const changelog = readText("CHANGELOG.md");
-    const unreleased = changelog.split("## [Unreleased]")[1]?.split("\n## ")[0] ?? "";
-    const mentions = unreleased.split("\n").filter((line) => line.includes("Closes #3755"));
-    expect(mentions).toHaveLength(1);
-    expect(mentions[0]).toContain("occupancy:grant");
+    const entries = changelog
+      .split("\n")
+      .filter((line) => line.includes("Closes #3755") && line.includes("occupancy:grant"));
+    expect(entries).toHaveLength(1);
   });
 });
