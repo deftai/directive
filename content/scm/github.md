@@ -39,7 +39,7 @@ Rules that apply to every `gh` invocation, regardless of context.
 
 ## Safe Markdown Body Posting (#1555)
 
-Use `scripts/github_body.py` through the task surface whenever an agent needs to post or edit Markdown-rich GitHub text. The helper accepts `--body-file <path>` or `--body-file -`, wraps the body as JSON inside Python, calls `gh api --input -` through the UTF-8-safe subprocess helper, and prints the live read-back object returned by `gh`.
+Use `task scm:body:*` (`scm:body:comment:create`, `scm:body:issue:edit`, `scm:body:pr:edit`) whenever an agent needs to post or edit Markdown-rich GitHub text. The helper accepts `--body-file <path>`, wraps the body as JSON, calls `gh api --input -` with explicit UTF-8 encoding, and prints the live read-back object returned by `gh`.
 
 Safe issue creation:
 

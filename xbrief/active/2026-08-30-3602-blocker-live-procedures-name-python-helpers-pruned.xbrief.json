@@ -1,0 +1,141 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story: retarget live procedures off pruned Python helpers and land C3 live-procedure target validation (#3602)",
+    "updated": "2026-08-30T15:50:39Z"
+  },
+  "plan": {
+    "id": "issue-3602-live-procedure-python-helpers",
+    "title": "BLOCKER: live procedures name Python helpers pruned from consumer deposits",
+    "status": "running",
+    "narratives": {
+      "Description": "Shipped live procedures still name scripts/*.py helpers that the npm content deposit prunes. Retarget those procedures to live task/CLI/reference surfaces and add control C3 so a live procedure cannot name a helper absent from the deposit. History, examples, and prohibitions are excluded by declaration, not by pattern.",
+      "Origin": "GitHub issue #3602. Parent #3899. Bound by #3899 synthesis 5466693576 citing successor lean 5466189787. Operator decision 4: #3602 is migration residue in prose, independent of the REFERENCES.md classification. Do not re-open or re-cut #3899. Do not close #3899.",
+      "Overview": "Child of #3899 AC 5/6/7. Zero live-invalid helper targets after declaration-based exclusions. C3 must fail on a deliberately mutated staged tree. Any reference-count metric used in a test states whether it counts occurrences, matching lines, or unique targets — prefer unique live-invalid targets, never freeze 28/103/118 as an oracle. Compose python-free.ts, validate-links walk, and consumer-check gate-integrity test shape. First-ship retarget uses the already-shipped references/ip-risk.md procedure; no new ip-risk CLI. Precutover retargets to task migrate:preflight, not a missing verify:pre-cutover verb. Strategy-output recovery is task verify-strategy-output only. Atomic pack+test for both ip_risk_skill.test.ts copies. Avoid content/templates/agents-entry.md (sibling #3601).",
+      "UserStory": "As a consumer agent following a shipped skill, I want every named helper to exist in the deposit or be a live task/CLI, so I do not 404 on pruned Python scripts.",
+      "When": "When a consumer deposit is packed, no live procedure names a helper the deposit does not contain, C3 fails on a mutated staged tree, and tests that mention counts state the metric.",
+      "LockedDecisions": "Exclusions by declaration (history | example | prohibition), not regex. github.md prohibition of deleted Python paths must not fail C3. Do not freeze raw reference counts as a test oracle. Do not add a parallel link parser; compose existing walks. Do not ship an ip-risk CLI. Do not preserve task verify:pre-cutover. Do not close #3899. Do not re-cut the #3899 design-critique arc. Do not edit content/templates/agents-entry.md. Do not reverse the prepack Python-free filter.",
+      "ImplementationPlan": "Declare C3 exclusions. Evaluator walks staged markdown, extracts scripts/*.py helper targets, skips declared files, asserts zero unique live-invalid targets. Mutation fixture plants a live MUST naming a missing .py. Retarget live skills/references/strategies/main.md off deleted helpers via pack SoT + packs:render. Move both ip_risk_skill.test.ts copies onto reference-doc + helper concepts. CHANGELOG Unreleased. Closes #3602."
+    },
+    "items": [
+      {
+        "title": "C3 live-procedure target validation with declared exclusions",
+        "status": "proposed",
+        "effort": "M",
+        "narrative": {
+          "When": "When C3 evaluates a staged deposit tree, history, examples, and prohibitions listed in the typed exclusion declaration are skipped, and every remaining live helper target must exist in the deposit or the check fails. Metric: unique live-invalid helper targets (not occurrences, not matching lines).",
+          "Acceptance": "When C3 evaluates a staged deposit tree, history, examples, and prohibitions listed in the typed exclusion declaration are skipped, and every remaining live helper target must exist in the deposit or the check fails. Metric: unique live-invalid helper targets (not occurrences, not matching lines)."
+        }
+      },
+      {
+        "title": "C3 fails on a deliberately mutated staged tree",
+        "status": "proposed",
+        "effort": "S",
+        "narrative": {
+          "When": "When a test copies a staged tree and plants a non-excluded live procedure that names scripts/missing.py, C3 fails closed, proving the control is not vacuous. A tree whose only Python helper mentions sit on a declared prohibition file stays clean.",
+          "Acceptance": "When a test copies a staged tree and plants a non-excluded live procedure that names scripts/missing.py, C3 fails closed, proving the control is not vacuous. A tree whose only Python helper mentions sit on a declared prohibition file stays clean."
+        }
+      },
+      {
+        "title": "Retarget live procedures off pruned Python helpers",
+        "status": "proposed",
+        "effort": "M",
+        "narrative": {
+          "When": "When interview, ip-risk.md, research, build, sync, pre-pr, and main.md (and any other non-excluded live markdown C3 still flags) are read, they name live task/CLI/reference surfaces instead of deleted scripts/*.py. Pack SoT is edited and packs:render is run. Both ip_risk_skill.test.ts copies assert the reference-doc procedure, not Python symbol tokens.",
+          "Acceptance": "When interview, ip-risk.md, research, build, sync, pre-pr, and main.md (and any other non-excluded live markdown C3 still flags) are read, they name live task/CLI/reference surfaces instead of deleted scripts/*.py. Pack SoT is edited and packs:render is run. Both ip_risk_skill.test.ts copies assert the reference-doc procedure, not Python symbol tokens."
+        }
+      },
+      {
+        "title": "CHANGELOG Unreleased entry",
+        "status": "proposed",
+        "effort": "S",
+        "narrative": {
+          "When": "When CHANGELOG [Unreleased] is read, it records the live-procedure retarget and C3 control, closes #3602, and refs #3899 without closing it.",
+          "Acceptance": "When CHANGELOG [Unreleased] is read, it records the live-procedure retarget and C3 control, closes #3602, and refs #3899 without closing it."
+        }
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/deposit/live-procedure-targets.test.ts packages/core/src/content-contracts/standards/ip_risk_skill.test.ts packages/core/src/content-contracts/skills/ip_risk_skill.test.ts"
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When C3 evaluates a staged deposit tree, history, examples, and prohibitions listed in the typed exclusion declaration are skipped, and every remaining live helper target must exist in the deposit or the check fails. Metric: unique live-invalid helper targets (not occurrences, not matching lines).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When a test copies a staged tree and plants a non-excluded live procedure that names scripts/missing.py, C3 fails closed, proving the control is not vacuous. A tree whose only Python helper mentions sit on a declared prohibition file stays clean.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When interview, ip-risk.md, research, build, sync, pre-pr, and main.md (and any other non-excluded live markdown C3 still flags) are read, they name live task/CLI/reference surfaces instead of deleted scripts/*.py. Pack SoT is edited and packs:render is run. Both ip_risk_skill.test.ts copies assert the reference-doc procedure, not Python symbol tokens.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "When CHANGELOG [Unreleased] is read, it records the live-procedure retarget and C3 control, closes #3602, and refs #3899 without closing it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "tags": [
+      "bug",
+      "vendored-deposit"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3602",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3602: BLOCKER: live procedures name Python helpers pruned from consumer deposits"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3899",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3899"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "literal_acceptance_commands": [
+        "pnpm exec vitest run packages/core/src/deposit/live-procedure-targets.test.ts packages/core/src/content-contracts/standards/ip_risk_skill.test.ts packages/core/src/content-contracts/skills/ip_risk_skill.test.ts"
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/deposit/live-procedure-targets.test.ts packages/core/src/content-contracts/standards/ip_risk_skill.test.ts packages/core/src/content-contracts/skills/ip_risk_skill.test.ts"
+        ],
+        "expected_outputs": [
+          "zero unique live-invalid helper targets after declared exclusions",
+          "C3 fails on mutated staged tree"
+        ],
+        "depends_on": [],
+        "conflict_group": "deposit-python-live-procedures-3602",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Solo drive-to:merge-ready worker. Empty file_scope avoids verify:scope-provenance fail-closed on undeclared approval. Intended placement is C3 evaluator plus live procedure retargets; agents-entry.md is out of scope for sibling #3601."
+        ]
+      }
+    },
+    "updated": "2026-08-30T15:50:39Z"
+  }
+}

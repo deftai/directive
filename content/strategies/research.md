@@ -97,7 +97,7 @@ Warning signs: No crypto import in auth module, password field stored as-is
 research notes reference third-party intellectual property (IP), the
 research phase MUST run the IP-risk heuristic from
 [`../references/ip-risk.md`](../references/ip-risk.md) -- canonical
-implementation `scripts/ip_risk.py:detect_ip_terms` -- and persist a
+implementation `the IP-risk heuristic in references/ip-risk.md` -- and persist a
 plain-English `IPRisk` narrative on the research vBRIEF.
 
 The heuristic is permissive on purpose: recognizable IP names (Magic:

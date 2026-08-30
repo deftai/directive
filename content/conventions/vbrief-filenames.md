@@ -19,13 +19,13 @@ YYYY-MM-DD-<slug>.vbrief.json
 - ! The leading date is the **creation date** in `YYYY-MM-DD` form. It is immutable — it MUST NOT change as the scope moves through the lifecycle.
 - ! The `<slug>` is a lowercase hyphen-separated descriptor derived from the scope title (or origin issue title for ingested vBRIEFs).
 - ! The filename MUST end in `.vbrief.json`.
-- ! The filename MUST match `scripts/vbrief_validate.py`'s `FILENAME_PATTERN`: `^\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*\.vbrief\.json$`.
+- ! The filename MUST match `task xbrief:validate`'s `FILENAME_PATTERN`: `^\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*\.vbrief\.json$`.
 
 speckit Phase 4 scope vBRIEFs use the extended pattern `YYYY-MM-DD-ip<NNN>-<slug>.vbrief.json` where `<NNN>` is the implementation-phase index zero-padded to exactly three digits (e.g. `ip001`, `ip042`, `ip128`). See [`../vbrief/vbrief.md`](../vbrief/vbrief.md#speckit-phase-4-scope-vbriefs) for detail.
 
 ## Slug Normalization Rules
 
-`scripts/slug_normalize.py` exposes the canonical `normalize_slug(title, issue_number=None)` function. Every tool or skill that coins a scope vBRIEF filename MUST either call that function or apply the same rules documented below so that two different producers always agree on the slug for the same title.
+`conventions/vbrief-filenames.md` exposes the canonical `normalize_slug(title, issue_number=None)` function. Every tool or skill that coins a scope vBRIEF filename MUST either call that function or apply the same rules documented below so that two different producers always agree on the slug for the same title.
 
 The rules, applied in order:
 
@@ -67,4 +67,4 @@ Scope vBRIEF filenames are part of the file's identity. Renames MUST preserve th
 - ⊗ Use uppercase letters, underscores, or camelCase in the slug
 - ⊗ Put the origin issue number in the date segment (`2026-04-22-#541-...`) — the issue number belongs in the suffix (`...-issue-541`) or in `references`
 - ⊗ Change the date prefix when a scope moves between lifecycle folders — the date is the creation date, not the current-status date
-- ⊗ Coin slugs by hand inside skills; call `scripts/slug_normalize.py` (`normalize_slug`) instead
+- ⊗ Coin slugs by hand inside skills; call `conventions/vbrief-filenames.md` (`normalize_slug`) instead

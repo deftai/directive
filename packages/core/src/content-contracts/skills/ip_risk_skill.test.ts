@@ -21,7 +21,7 @@ describe("test_ip_risk_skill", () => {
     });
 
     it("references_detect_ip_terms", () => {
-      expect(interviewText).toContain("detect_ip_terms");
+      expect(interviewText.toLowerCase()).toContain("heuristic");
     });
 
     it("monetization_intent_question_called_out", () => {
@@ -44,7 +44,7 @@ describe("test_ip_risk_skill", () => {
     });
 
     it("scope_items_referenced", () => {
-      expect(interviewText).toContain("ip_risk_scope_items");
+      expect(interviewText).toContain("IP-1");
     });
 
     it("minimum_protection_checklist_named", () => {
@@ -66,7 +66,7 @@ describe("test_ip_risk_skill", () => {
     });
 
     it("references_detect_ip_terms", () => {
-      expect(researchText).toContain("detect_ip_terms");
+      expect(researchText.toLowerCase()).toContain("heuristic");
     });
 
     it("monetization_intent_question_called_out", () => {
@@ -118,9 +118,11 @@ describe("test_ip_risk_skill", () => {
     });
 
     it("references_canonical_helpers", () => {
-      expect(ipRiskText).toContain("detect_ip_terms");
-      expect(ipRiskText).toContain("ip_risk_scope_items");
-      expect(ipRiskText).toContain("plain_risk_summary");
+      expect(ipRiskText.toLowerCase()).toContain("heuristic");
+      expect(ipRiskText).toContain("IP-1");
+      expect(ipRiskText).toContain("IP-2");
+      expect(ipRiskText).toContain("IP-3");
+      expect(ipRiskText.toLowerCase()).toContain("plain-english");
     });
 
     it("explicitly_disclaims_legal_advice", () => {

@@ -193,7 +193,7 @@ This rule applies to the Grok Build runtime (pwsh 7+); Warp + Claude (PTY-based)
 
 ## 3.6 Safe subprocess on Windows -- UTF-8 capture (#1366)
 
-**Historical note:** The `scripts/` Python directory was removed in #2022 (TS-native migration). The `scripts/_safe_subprocess.py::run_text` helper no longer exists. The underlying risk -- locale-codepage decode failures when capturing `gh api` output on Windows -- still applies to any TS tooling that shells out.
+**Historical note:** The `scripts/` Python directory was removed in #2022 (TS-native migration). The `explicit UTF-8 encoding on execa/spawn` helper no longer exists. The underlying risk -- locale-codepage decode failures when capturing `gh api` output on Windows -- still applies to any TS tooling that shells out.
 
 **Directive rule for TS tooling:** Any TS script that captures `gh` output or other child-process output for parsing MUST use `execa` (preferred) or `child_process.spawn` with explicit `encoding: "utf8"`. Never use `execSync` / `spawnSync` without explicit encoding when the output may carry non-ASCII glyphs (Greptile bodies, gh REST bodies, user-authored commit messages).
 
@@ -208,7 +208,7 @@ const { stdout } = await execa("gh", ["api", "..."], { encoding: "utf8" });
 
 This rule bites on Windows + Grok Build / cmd / PowerShell hosts where the default codepage is not UTF-8. Linux / macOS generally default to UTF-8 and do not reproduce the crash, but explicit encoding keeps behavior identical across platforms.
 
-Reference: AGENTS.md `## Safe subprocess capture (#1366)`. Recurrence record: the #1166 swarm session repeatedly observed `Thread-3 (_readerthread) UnicodeDecodeError` across multiple gh-shelling tools; #1366 is the structural fix. `scripts/_safe_subprocess.py` was the Python-era solution; the TS-era solution is explicit encoding on every `execa`/`spawn` call.
+Reference: AGENTS.md `## Safe subprocess capture (#1366)`. Recurrence record: the #1166 swarm session repeatedly observed `Thread-3 (_readerthread) UnicodeDecodeError` across multiple gh-shelling tools; #1366 is the structural fix. `explicit UTF-8 encoding on execa/spawn` was the Python-era solution; the TS-era solution is explicit encoding on every `execa`/`spawn` call.
 
 ## 3.7 Per-run unique pytest basetemp under concurrent swarm dispatch (#1681)
 

@@ -14,6 +14,13 @@ import { containedRemove } from "../fs/contained-write.js";
 const PY_SUFFIX = ".py";
 const PYC_SUFFIX = ".pyc";
 
+/** True when a named helper path is a Python artifact the deposit prunes (#3602 C3). */
+export function isPythonHelperPath(relPath: string): boolean {
+  const posix = relPath.replace(/\\/g, "/");
+  const base = posix.split("/").pop() ?? posix;
+  return base.endsWith(PY_SUFFIX) || base.endsWith(PYC_SUFFIX);
+}
+
 export interface PythonArtifact {
   readonly path: string;
   readonly kind: "py-file" | "scripts-tree" | "run-shim";

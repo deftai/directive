@@ -68,7 +68,7 @@ Priority ordering: Case G (byte-different content) always wins over Case K (inst
 ### 1c. Are there pre-v0.20 artifacts at the user's project root?
 
 Check both of these files at `../` (the user's project root), using the same
-rule implemented by `scripts/_precutover.py`:
+rule implemented by `task migrate:preflight`:
 
 - `../SPECIFICATION.md` — exists and is neither a deprecation redirect nor a current generated spec export. A current generated spec export contains `<!-- Purpose: rendered specification -->` and `<!-- Source of truth: xbrief/specification.xbrief.json -->`, and `../xbrief/specification.xbrief.json` plus all five lifecycle folders exist.
 - `../PROJECT.md` — exists and is not a deprecation redirect (`<!-- deft:deprecated-redirect -->` or `<!-- Purpose: deprecation redirect -->`).

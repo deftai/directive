@@ -124,7 +124,7 @@ At release time, `[Unreleased]` is renamed to the new version (see Release Proce
 - Export data to CSV format
 ```
 
-The blockquote captures the operator's one-sentence release narrative (recommended 80-160 chars). It is authored once during the release flow (`task release -- <version> --summary "<text>"`; see `skills/deft-directive-release/SKILL.md` Phase 1) and propagates verbatim into the GitHub release body (auto-pickup via `scripts/release.py::_section_for_version`) AND the Phase 8 Slack `*Summary*:` slot. The blockquote is inline Markdown -- `**bold**`, `[link](url)`, etc. are preserved verbatim. Omit the blockquote (no `--summary` flag) to keep the pre-existing Keep-a-Changelog shape.
+The blockquote captures the operator's one-sentence release narrative (recommended 80-160 chars). It is authored once during the release flow (`task release -- <version> --summary "<text>"`; see `skills/deft-directive-release/SKILL.md` Phase 1) and propagates verbatim into the GitHub release body (auto-pickup via `task release --summary`) AND the Phase 8 Slack `*Summary*:` slot. The blockquote is inline Markdown -- `**bold**`, `[link](url)`, etc. are preserved verbatim. Omit the blockquote (no `--summary` flag) to keep the pre-existing Keep-a-Changelog shape.
 
 ⊗ Hand-write a different one-line narrative for each downstream surface (CHANGELOG / GitHub release / Slack) -- author once via `--summary` and let the pipeline propagate.
 

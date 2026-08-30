@@ -192,7 +192,7 @@ into the worker's env:
 
 ```pwsh path=null start=null
 # Option A (GitHub App): mint installation token at dispatch time.
-$jwt = uv run python scripts/swarm_mint_jwt.py --app-id $env:DEFT_SWARM_APP_ID --pem secrets/swarm-app.pem
+$jwt = uv run python the worker credential injection helper --app-id $env:DEFT_SWARM_APP_ID --pem secrets/swarm-app.pem
 $inst_token = (gh api -X POST "/app/installations/$env:DEFT_SWARM_INSTALLATION_ID/access_tokens" -H "Authorization: Bearer $jwt" --jq .token)
 start_agent ... -e GH_TOKEN=$inst_token
 
@@ -201,7 +201,7 @@ $bot_token = (Get-Content secrets/swarm-bot.env | Where-Object { $_ -like 'SWARM
 start_agent ... -e GH_TOKEN=$bot_token
 ```
 
-Token-mint plumbing (`scripts/swarm_mint_jwt.py`) is intentionally not
+Token-mint plumbing (`the worker credential injection helper`) is intentionally not
 shipped in v1 -- the runbook above is operator-facing guidance, not
 deft-supplied automation. v1 is documentation-only per #983 non-goals.
 Operators MAY automate token minting in their own dispatcher; the
@@ -241,7 +241,7 @@ the blast-radius problem this pattern solves.
 
 ## Cross-references
 
-- #976 -- remaining GraphQL drain in `scripts/scm.py` + smoke (the
+- #976 -- remaining GraphQL drain in `task scm:body` + smoke (the
   REST-migration track this pattern complements; this pattern was
   carved out of #976's "Complementary mitigation" section)
 - #588 -- agent identity pattern (distinct attestable identity per

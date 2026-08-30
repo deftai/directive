@@ -10,7 +10,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 not provide legal advice and ⊗ MUST NOT be used as a substitute for lawyer
 consultation when the project is commercial and IP-adjacent.
 
-**⚠️ See also**: [skills/deft-directive-interview/SKILL.md](../skills/deft-directive-interview/SKILL.md) | [strategies/research.md](../strategies/research.md) | [scripts/ip_risk.py](../../scripts/ip_risk.py)
+**⚠️ See also**: [skills/deft-directive-interview/SKILL.md](../skills/deft-directive-interview/SKILL.md) | [strategies/research.md](../strategies/research.md)
 
 ---
 
@@ -38,10 +38,9 @@ cost of one extra "is this Magic: The Gathering related?" question is
 trivial; the cost of letting a commercial IP-adjacent project ship without
 the question is potentially substantial.
 
-The canonical implementation lives at
-[`scripts/ip_risk.py`](../../scripts/ip_risk.py) and exposes
-`detect_ip_terms(text)`, `is_ip_adjacent(text)`, `ip_risk_scope_items(monetization_intent)`,
-and `plain_risk_summary(hits, monetization_intent)` for callers.
+This document is the canonical procedure. Apply the heuristic below,
+then the question script, then the minimum-protection checklist. There
+is no separate helper binary on the consumer deposit.
 
 ### Categories Scanned
 
@@ -76,17 +75,14 @@ research-phase notes) for terms in these categories:
 ### Updating the Term Lists
 
 ! When you add a recurring miss (a real IP-adjacent project that slipped
-through), append the term to the matching category in
-`scripts/ip_risk.py` AND mention it here in the relevant category. The
-two surfaces MUST stay in sync. The unit tests in
-`tests/scripts/test_ip_risk.py` verify the helpers; add a positive
-detection test for any new term you introduce.
+through), append the term here in the relevant category. This document
+is the single consumer-facing list.
 
 ---
 
 ## Question Script (Monetization Intent)
 
-When `detect_ip_terms` returns at least one hit, the interview MUST ask the
+When the heuristic returns at least one hit, the interview MUST ask the
 user the monetization-intent question before generating the SPECIFICATION.
 
 ### Canonical Question
@@ -143,8 +139,8 @@ risk summary in the interview output. The summary:
 - ⊗ Use legalese ("hereby", "tortious", "in perpetuity", "without
   prejudice"). The audience is the project owner, not a court.
 
-The canonical builder is `plain_risk_summary(hits, monetization_intent)`
-in `scripts/ip_risk.py`.
+The canonical builder is the plain-English risk summary in this
+document's Question Script.
 
 ---
 
@@ -155,9 +151,8 @@ following three protection scope items into the
 `specification.vbrief.json` `plan.items` array (and therefore into the
 rendered SPECIFICATION.md).
 
-The canonical generator is `ip_risk_scope_items(monetization_intent)`
-in `scripts/ip_risk.py` -- it returns the three items shaped for vBRIEF
-v0.6 PlanItem (`title`, `status`, `narrative`). All three items are
+The canonical generator is the three protection items below (`IP-1`,
+`IP-2`, `IP-3`), shaped for a PlanItem (`title`, `status`, `narrative`). All three items are
 emitted regardless of monetization intent because even personal
 IP-adjacent projects can leak into commercial use over time. The
 `Acceptance` narrative is tightened to the commercial-level checklist
@@ -233,13 +228,13 @@ The heuristic exists to **surface the question**, not to answer it.
 
 ```
 1. Capture project description (and research notes if research strategy ran).
-2. Run scripts/ip_risk.py:detect_ip_terms(text).
+2. Apply this document's permissive heuristic to the text.
 3. If empty -> proceed normally.
 4. If non-empty:
    a. Ask the monetization-intent question (Personal / Commercial / Other).
    b. Loop on the freeform follow-up if "Other" is chosen until intent is captured.
-   c. Emit plain_risk_summary(hits, intent) into the interview output.
-   d. Inject ip_risk_scope_items(intent) into the spec vBRIEF.
+   c. Emit the plain-English risk summary into the interview output.
+   d. Inject the IP-1 / IP-2 / IP-3 protection items into the spec xBRIEF.
    e. On commercial intent, surface the non-optional lawyer-consultation
       recommendation in the interview output AND in the IPRisk narrative.
 5. Continue to the rest of the interview flow.

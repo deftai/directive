@@ -59,11 +59,11 @@ npm i -g @deftai/directive@latest
 
 ## Framework Events Emitted Here
 
-! When this skill responds to a context-window shift or an explicit "are you using Deft?" probe (per AGENTS.md Deft Alignment Confirmation), emit the paired `session:interrupted` -> `session:resumed` framework events via `scripts/_events.py` so observability of agent-runtime state transitions is structural, not prose-only:
+! When this skill responds to a context-window shift or an explicit "are you using Deft?" probe (per AGENTS.md Deft Alignment Confirmation), emit the paired `session:interrupted` -> `session:resumed` framework events via `the TypeScript event recorder` so observability of agent-runtime state transitions is structural, not prose-only:
 
-- ! Before re-confirming alignment: `python -m scripts._events emit session:interrupted --session-id <id> --reason context-window-shift`
-- ! Immediately after the alignment confirmation line: `python -m scripts._events emit session:resumed --session-id <id> --interrupted-id <id-from-prior-emit>`
-- ⊗ Emit a `session:resumed` whose `interrupted_id` does not reference a prior `session:interrupted` -- such records are orphan and rejected by `scripts._events.validate_pairing` (#635 events behavioral wiring)
+- ! Before re-confirming alignment: `record session:interrupted via the TS event surface (no Python helper)`
+- ! Immediately after the alignment confirmation line: `record session:resumed via the TS event surface (no Python helper)`
+- ⊗ Emit a `session:resumed` whose `interrupted_id` does not reference a prior `session:interrupted` -- such records are orphan and rejected by `the event pairing validator` (#635 events behavioral wiring)
 
 ## Pre-Cutover Detection Guard
 
@@ -71,7 +71,7 @@ npm i -g @deftai/directive@latest
 
 ### Detection Criteria
 
-A project is **pre-cutover** if ANY of the following are true. This prose mirrors the executable helper in `scripts/_precutover.py`; when in doubt, the helper is canonical.
+A project is **pre-cutover** if ANY of the following are true. This prose mirrors the executable helper in `task migrate:preflight`; when in doubt, the helper is canonical.
 
 1. `SPECIFICATION.md` exists and is neither a deprecation redirect nor a current generated spec export. A current generated spec export contains `<!-- Purpose: rendered specification -->` and `<!-- Source of truth: xbrief/specification.xbrief.json -->`, and `xbrief/specification.xbrief.json` plus all five lifecycle folders exist.
 2. `PROJECT.md` exists and contains neither the legacy `<!-- deft:deprecated-redirect -->` sentinel NOR the current `Purpose: deprecation redirect` canonical-banner marker (real content, not a deprecation redirect)

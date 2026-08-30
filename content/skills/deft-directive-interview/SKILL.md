@@ -357,7 +357,7 @@ Enter confirm / b back / 0 discuss
 ! When the interview captures the project description (and any
 research-phase notes), the agent MUST run the IP-risk heuristic from
 [`references/ip-risk.md`](../../references/ip-risk.md) -- canonical
-implementation `scripts/ip_risk.py:detect_ip_terms` -- before generating
+implementation `the IP-risk heuristic in references/ip-risk.md` -- before generating
 the SPECIFICATION.
 
 The heuristic is permissive on purpose: recognizable IP names (Magic:
@@ -373,18 +373,18 @@ Tatooine), branded characters (Mickey Mouse, Spider-Man), sports leagues
    `commercial` when intent is unclear, because the stricter checklist is
    the wrong-side-of-safe choice.
 2. ! Emit the plain-English risk summary from
-   `scripts/ip_risk.py:plain_risk_summary(hits, intent)` into the
+   `the plain-English risk summary in references/ip-risk.md(hits, intent)` into the
    interview output AND into an `IPRisk` narrative on the
    authoritative interview output selected by the calling skill. The summary opens with `not legal
    advice`, names the detected categories, and (for commercial intent)
    states explicitly that lawyer consultation is **not optional output**
    from this interview.
 3. ! Inject the three protection scope items from
-   `scripts/ip_risk.py:ip_risk_scope_items(intent)` into the spec
+   `the IP-1 / IP-2 / IP-3 items in references/ip-risk.md(intent)` into the spec
    xBRIEF's `plan.items` array (disclaimer stub `IP-1`, API-only-asset
    policy `IP-2`, hosting policy `IP-3`). The items flow naturally into
    the rendered SPECIFICATION.md via the existing
-   `scripts/spec_render.py` pipeline -- no spec_render.py modification
+   `task spec:render` pipeline -- no spec_render.py modification
    is required.
 4. ! For commercial intent, the lawyer-consultation recommendation is
    non-optional output -- the interview MUST surface it before the
@@ -395,7 +395,7 @@ Tatooine), branded characters (Mickey Mouse, Spider-Man), sports leagues
   whether or not the agent thinks the project is "obviously fine".
 - ⊗ Treat the absence of detected terms as proof that the project is
   IP-free -- the heuristic only knows about the curated lists in
-  `scripts/ip_risk.py`. When the description is vague, the agent SHOULD
+  `references/ip-risk.md`. When the description is vague, the agent SHOULD
   ask directly "is this based on a game / film / sports league /
   brand?".
 - ⊗ Provide legal advice. Deft is not a law firm -- the only

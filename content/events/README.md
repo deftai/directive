@@ -27,11 +27,11 @@ data-file-convention check ([#710](https://github.com/deftai/directive/issues/71
 
 - **`detection-bound`** — detectable from filesystem state alone (e.g. dirty
   tree, vBRIEF schema invalidity, version drift). Emitted via
-  `scripts/_event_detect.py`. Detector lives at the call site documented in
+  `the TypeScript event detector`. Detector lives at the call site documented in
   the entry's `trigger` field.
 - **`behavioral`** — requires runtime instrumentation (paired
   `session:interrupted` / `session:resumed`, `plan:approved`,
-  `legacy:detected`). Emitted via `scripts/_events.py`, which manages 1:1
+  `legacy:detected`). Emitted via `the TypeScript event recorder`, which manages 1:1
   session-pair invariants and a JSONL append-only log at
   `<project_root>/.deft-cache/events.jsonl`.
 
@@ -48,12 +48,12 @@ conforming to `event-record.schema.json`:
 }
 ```
 
-`scripts/_event_detect.py::emit(name, payload)` validates against the full
+`the TypeScript event detector::emit(name, payload)` validates against the full
 registry (any registered name is accepted) and is silent by default; when the
 `DEFT_EVENT_LOG` environment variable points to a writable path, each
 emission is appended as a single JSON line.
 
-`scripts/_events.py::emit(name, payload)` validates against the
+`the TypeScript event recorder::emit(name, payload)` validates against the
 `category="behavioral"` subset of the registry, generates a sortable event id
 for pairing semantics, enforces required-payload contracts, and persists to
 `<project_root>/.deft-cache/events.jsonl` (or a path injected via `log_path` /
@@ -69,8 +69,8 @@ skills (`python -m scripts._events emit ...`).
    payload contract, trigger pointer, and consumer pointers (validate via
    `tests/cli/test_events.py` and `tests/cli/test_behavioral_events.py`).
 2. Add the detection / emission call site in `scripts/` or the relevant
-   surface (use `scripts/_event_detect.py` for detection-bound,
-   `scripts/_events.py` for behavioral).
+   surface (use `the TypeScript event detector` for detection-bound,
+   `the TypeScript event recorder` for behavioral).
 3. Reference the event by name from at least one consumer (skill, task,
    script) so the surface stays usable -- the schema requires `consumers`
    to be a non-empty array.

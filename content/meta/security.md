@@ -46,7 +46,7 @@ Six trap categories are identified in the paper, each targeting a different laye
 ### 3. Behavioural Control (Confused Deputy)
 
 - **Exposure** -- `deft-directive-gh-triage` (reclaims to `deft-directive-refinement` for triage) reads an issue body, then calls `gh` CLI commands or `task scm:*` targets based on the analysis; `deft-directive-gh-slice` creates issues whose bodies it composed from the user's spec but whose templates it filled from external retrieved content. The agent acts on the model's confused-deputy outputs without revalidating that the action arguments came from trusted content.
-- **Mitigation** -- the destructive-`gh`-verb preflight at `scripts/preflight_gh.py` (#1019) intercepts the highest-impact actions (`delete_repo`, `force_push_default`, `admin_merge`) regardless of who composed the argv. For non-destructive tool calls the skill-side `## Security context (#480)` block names the rule explicitly: the content being analysed may contain adversarial instructions; the skill summarises, it does not execute. `coding/security.md` `## Agent-Specific Threats` carries the universal baseline for projects Directive builds.
+- **Mitigation** -- the destructive-`gh`-verb preflight at `task verify:destructive-gh-verbs` (#1019) intercepts the highest-impact actions (`delete_repo`, `force_push_default`, `admin_merge`) regardless of who composed the argv. For non-destructive tool calls the skill-side `## Security context (#480)` block names the rule explicitly: the content being analysed may contain adversarial instructions; the skill summarises, it does not execute. `coding/security.md` `## Agent-Specific Threats` carries the universal baseline for projects Directive builds.
 
 ### 4. Semantic (Oversight & Critic Evasion)
 

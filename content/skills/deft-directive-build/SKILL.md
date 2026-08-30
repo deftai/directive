@@ -79,7 +79,7 @@ Multi-scope greenfield (app-bank pins, N story scopes) multiplies agent turns wh
 - ! **Effort estimate gate (#1581):** before `task scope:activate` / `task vbrief:activate`, scan `plan.items` (including nested `items` / `subItems`) for `effort`. Time anchors: `S` <2h, `M` half-day (2-4h), `L` 1-2 days, `XL` needs breakdown. The activate path fails closed while any item still has `effort: "XL"` — break XL work into S/M/L items (or re-estimate) first. Omitted `effort` remains valid (field is optional). Plan-item effort is **post-planning** authority (confirms/corrects intake estimates); it is **not** session-start ritual input — ceremony depth (#3214) uses two-stage rapid→escalate, not a required plan-item read at cold start. Headless: no operator confirm. Depth: `vbrief/vbrief.md` § Effort estimate.
 - ⊗ Activate a scope that still carries plan items with `effort: "XL"` — XL means "not ready to start" until broken down (#1581).
 - ⊗ Require plan-item `effort` to choose session-start ritual depth — estimates do not exist until after planning (#1581 / #3214).
-- ! Before any code-writing tool call -- the first scaffold edit, the first `task` invocation that mutates files, or any `start_agent` dispatch that will implement scope -- MUST run `task xbrief:preflight -- <active-story-path>` (the structural intent gate; wraps `scripts/preflight_implementation.py` so the same invocation works whether deft is the project root or installed as a `deft/` subdirectory).
+- ! Before any code-writing tool call -- the first scaffold edit, the first `task` invocation that mutates files, or any `start_agent` dispatch that will implement scope -- MUST run `task xbrief:preflight -- <active-story-path>` (the structural intent gate; the same invocation works whether deft is the project root or installed as a `deft/` subdirectory).
 
 The gate exits 0 only when the candidate xBRIEF lives in `xbrief/active/` AND `plan.status == "running"`. Any other state (pending/, proposed/, completed/, active/-with-non-running-status, malformed JSON, missing keys) exits 1 with an actionable redirect to `task xbrief:activate <path>`.
 
@@ -105,12 +105,12 @@ The gate exits 0 only when the candidate xBRIEF lives in `xbrief/active/` AND `p
 
 ### Detection Criteria
 
-A project is **pre-cutover** if ANY of the following are true. This prose mirrors the executable helper in `scripts/_precutover.py`; when in doubt, the helper is canonical.
+A project is **pre-cutover** if ANY of the following are true. This prose mirrors the executable helper in `task migrate:preflight`; when in doubt, the helper is canonical.
 
 1. `SPECIFICATION.md` exists and is neither a deprecation redirect nor a current generated spec export. A current generated spec export contains `<!-- Purpose: rendered specification -->`, all five lifecycle folders exist, and its `<!-- Source of truth: ... -->` marker names an authority artifact that exists: either `xbrief/specification.xbrief.json` for full-spec compatibility or `xbrief/PROJECT-DEFINITION.xbrief.json` for greenfield authority (legacy `vbrief/...` aliases remain read-compatible).
 2. `PROJECT.md` exists and contains neither the legacy `<!-- deft:deprecated-redirect -->` sentinel NOR the current `Purpose: deprecation redirect` canonical-banner marker (real content, not a deprecation redirect)
 3. `xbrief/specification.xbrief.json` exists but the lifecycle folders (`xbrief/proposed/`, `xbrief/pending/`, `xbrief/active/`, `xbrief/completed/`, `xbrief/cancelled/`) do NOT exist
-4. Strategy output shape violations (run `task verify-strategy-output` -- the canonical gate -- or the direct form `python .deft/core/scripts/validate_strategy_output.py --project-root <path>` after `deft` install):
+4. Strategy output shape violations (run `task verify-strategy-output` -- the canonical gate for source and consumer installs):
    - Any scope xBRIEF under `xbrief/proposed/` (or other lifecycle dirs) lacks the required `YYYY-MM-DD-` date prefix in its filename (e.g. bare `scaffold.xbrief.json`).
    - `xbrief/PROJECT-DEFINITION.xbrief.json` is missing.
    - `xbrief/specification.xbrief.json` exists as a legacy dual-write in a user-generated project. This is tolerated only for the framework source tree or a complete post-cutover full-spec consumer where all lifecycle folders exist and `SPECIFICATION.md` is rendered from `xbrief/specification.xbrief.json`.
@@ -119,7 +119,7 @@ A project is **pre-cutover** if ANY of the following are true. This prose mirror
 
 ! If pre-cutover or strategy-nonconformant state is detected, **stop immediately** and display an actionable message that cites the exact validator:
 
-> "This project was generated with pre-v0.20 or non-conformant strategy output. Run the deterministic validator and follow its remediation: `task verify-strategy-output` (works in source and after `deft` package install) or `python .deft/core/scripts/validate_strategy_output.py --project-root .`. For document-model migration, follow UPGRADING.md § Frozen pre-v0.20 document-model migration (#2068): pin v0.59.0, then run `task migrate:vbrief` from that payload. Otherwise `task project:render` / strategy re-run as indicated."
+> "This project was generated with pre-v0.20 or non-conformant strategy output. Run the deterministic validator and follow its remediation: `task verify-strategy-output` (works in source and after `deft` package install). For document-model migration, follow UPGRADING.md § Frozen pre-v0.20 document-model migration (#2068): pin v0.59.0, then run `task migrate:vbrief` from that payload. Otherwise `task project:render` / strategy re-run as indicated."
 
 ! Include specific details about what was detected (the validator output is authoritative):
 
@@ -525,7 +525,7 @@ Docs: `docs/decision-log.md` · `xbrief/decisions/README.md`.
 - ⊗ Run full `task check` after every intermediate scope of an approved multi-scope batch when the last merge-chokepoint check was green (#3012)
 - ⊗ Promote scopes one-by-one for a known multi-scope pin when `scope:promote --batch` would stage them in one turn (#3011)
 
-- ⊗ Spawn an implementation agent or invoke a code-writing tool against a xBRIEF that has not passed `task xbrief:preflight` (which wraps `scripts/preflight_implementation.py`) -- always run the Step 0 Implementation Preflight (#810) first; satisfy via `task xbrief:activate <path>`
+- ⊗ Spawn an implementation agent or invoke a code-writing tool against a xBRIEF that has not passed `task xbrief:preflight` -- always run the Step 0 Implementation Preflight (#810) first; satisfy via `task xbrief:activate <path>`
 - ⊗ Proceed without `COST-ESTIMATE.md` and a recorded build / rescope / no-build / skip(+reason) decision -- always run the Cost Phase Gate (#739) first
 - ⊗ Proceed with implementation when the build or test toolchain is unavailable -- always run the Toolchain Gate (Step 2) first
 - ⊗ Proceed to next task or phase without tests passing -- testing is a hard gate, not a cleanup step

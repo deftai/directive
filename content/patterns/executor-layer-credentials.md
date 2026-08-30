@@ -169,7 +169,7 @@ must invoke a privileged CLI through it, the same rules apply:
 
 - ! MUST set the credential in the subprocess `env=` mapping at spawn time, NOT in the agent's shell session env
 - ⊗ MUST NOT let the agent emit commands that read `$TOKEN`, `printenv`, `Get-ChildItem env:`, `env | grep`, or equivalent without a safety gate (the credential is in the subprocess env precisely so it is not in the agent shell env; an agent that can enumerate its own env defeats the partitioning)
-- ~ SHOULD pair this pattern with a destructive-verb preflight gate (see `coding/security.md` Agent-Specific Threats and the `scripts/preflight_gh.py` reference pattern from #1019) so an agent that gets a credential through the binding layer still cannot use it to delete the repo
+- ~ SHOULD pair this pattern with a destructive-verb preflight gate (see `coding/security.md` Agent-Specific Threats and `task verify:destructive-gh-verbs` from #1019) so an agent that gets a credential through the binding layer still cannot use it to delete the repo
 
 ## Operator runbook
 

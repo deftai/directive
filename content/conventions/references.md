@@ -63,7 +63,7 @@ Consumer projects ? MAY extend the registry with additional `x-vbrief/*` values.
 ## Origin Provenance (D11)
 
 Scope vBRIEFs in `vbrief/pending/` and `vbrief/active/` SHOULD carry at least
-one reference whose `type` matches `^x-vbrief/`. `scripts/vbrief_validate.py`
+one reference whose `type` matches `^x-vbrief/`. `task xbrief:validate`
 treats any `x-vbrief/*`-typed reference as an origin for the D11 check by
 default (schema-trusting behavior).
 
@@ -78,7 +78,7 @@ enforce the allow-list in CI can opt in via the same flag.
 
 For scope vBRIEFs ingested from a GitHub issue, the canonical provenance
 signal is the `plan.narratives.Origin` text emitted by
-`scripts/issue_ingest.py::_build_issue_vbrief`:
+`task issue:ingest::_build_issue_vbrief`:
 
 - ! `Origin` MUST take one of these two forms:
   - `Ingested from https://github.com/{owner}/{repo}/issues/{N}` (browser URL resolves)
