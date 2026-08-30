@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
@@ -64,6 +64,24 @@ describe("normalizeScopePath (#3893)", () => {
     const b = normalizeScopePath(`${root}/xbrief/active/s.xbrief.json`);
     expect(a).toBe(b);
     expect(resolve(a)).toBe(a);
+  });
+
+  it("does not throw for a path whose directory does not exist", () => {
+    // Deletions in the candidate diff no longer exist on disk.
+    const root = makeRoot();
+    const gone = join(root, "absent-dir", "story.xbrief.json");
+    expect(normalizeScopePath(gone)).toBe(normalizeScopePath(gone));
+    expect(normalizeScopePath(gone).endsWith("story.xbrief.json")).toBe(true);
+  });
+
+  it("resolves an equivalent spelling of the same real directory", () => {
+    // Same directory reached through a . / .. detour: the canonicalized form
+    // is what makes a symlinked checkout root compare equal to git's.
+    const root = makeRoot();
+    const direct = join(root, "story.xbrief.json");
+    const detour = join(root, "sub", "..", "story.xbrief.json");
+    mkdirSync(join(root, "sub"), { recursive: true });
+    expect(normalizeScopePath(detour)).toBe(normalizeScopePath(direct));
   });
 
   it("folds decomposed and precomposed Unicode to one form", () => {

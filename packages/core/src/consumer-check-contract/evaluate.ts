@@ -710,14 +710,42 @@ export function extractCheckDeps(taskfileText: string, taskName: string): string
   return extractCheckDepEntries(taskfileText, taskName).map((entry) => entry.name);
 }
 
-/** Drop a YAML trailing comment and surrounding quotes from a scalar value. */
+/**
+ * Drop a YAML trailing comment and surrounding quotes from a scalar value.
+ * Honours double-quoted `\\"` escapes and single-quoted `''` doubling, so a
+ * value carrying a quote is not truncated before the argument that follows.
+ */
 export function parseYamlScalar(raw: string): string {
   const text = raw.trim();
-  for (const quote of ['"', "'"]) {
-    if (text.startsWith(quote)) {
-      const end = text.indexOf(quote, 1);
-      return end === -1 ? text.slice(1) : text.slice(1, end);
+  if (text.startsWith('"')) {
+    let out = "";
+    for (let i = 1; i < text.length; i += 1) {
+      const ch = text[i];
+      if (ch === "\\" && i + 1 < text.length) {
+        out += text[i + 1];
+        i += 1;
+        continue;
+      }
+      if (ch === '"') return out;
+      out += ch;
     }
+    return out;
+  }
+  if (text.startsWith("'")) {
+    let out = "";
+    for (let i = 1; i < text.length; i += 1) {
+      const ch = text[i];
+      if (ch === "'") {
+        if (text[i + 1] === "'") {
+          out += "'";
+          i += 1;
+          continue;
+        }
+        return out;
+      }
+      out += ch;
+    }
+    return out;
   }
   const comment = text.indexOf(" #");
   return (comment === -1 ? text : text.slice(0, comment)).trim();
@@ -769,13 +797,19 @@ export function depEntryCliArgs(body: string): string | null {
   return value;
 }
 
-/** True when the effective `CLI_ARGS` token list carries `requiredArg`. */
+/**
+ * True when the effective `CLI_ARGS` token list carries `requiredArg`.
+ *
+ * Exact token only: the guarded verbs accept the bare flag, so an equals form
+ * like `--changed-only=0` would exit 2 on an unrecognized argument while the
+ * contract reported the composition healthy.
+ */
 export function cliArgsCarry(cliArgs: string | null, requiredArg: string): boolean {
   if (cliArgs === null) return false;
   return cliArgs
     .split(/\s+/)
     .filter((token) => token.length > 0)
-    .some((token) => token === requiredArg || token.startsWith(`${requiredArg}=`));
+    .some((token) => token === requiredArg);
 }
 
 function remediationForMissing(gateId: string, surface: string): string {

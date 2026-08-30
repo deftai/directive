@@ -142,10 +142,17 @@ describe("depEntryCliArgs (#3893)", () => {
     expect(parseYamlScalar('"unterminated')).toBe("unterminated");
   });
 
-  it("matches on token boundaries, not substrings", () => {
+  it("keeps a quoted value that carries an escaped quote", () => {
+    expect(parseYamlScalar('"--label \\"x\\" --changed-only"')).toBe('--label "x" --changed-only');
+    expect(parseYamlScalar("'--label ''x'' --changed-only'")).toBe("--label 'x' --changed-only");
+  });
+
+  it("matches the exact token only", () => {
     expect(cliArgsCarry("--changed-only", "--changed-only")).toBe(true);
     expect(cliArgsCarry("--skip-gh --changed-only", "--changed-only")).toBe(true);
-    expect(cliArgsCarry("--changed-only=1", "--changed-only")).toBe(true);
+    // The verb accepts the bare flag only: an equals form exits 2, so the
+    // contract must not report that composition healthy.
+    expect(cliArgsCarry("--changed-only=0", "--changed-only")).toBe(false);
     expect(cliArgsCarry("--changed-only-later", "--changed-only")).toBe(false);
     expect(cliArgsCarry(null, "--changed-only")).toBe(false);
   });

@@ -354,18 +354,23 @@ function basisLines(tally: BasisTally, basis: OrphanActiveBasis): string[] {
   return lines;
 }
 
+/** Keep an operator-supplied ref (or a reason quoting one) on a single line. */
+function oneLine(text: string): string {
+  return text.replace(/\r?\n/g, " ");
+}
+
 /** One operator-visible line naming what this run was allowed to look at (#3893). */
 function scopeLines(scope: CandidateScope | null, skipped: number): string[] {
   if (scope === null) {
     return [];
   }
   if (scope.kind === "sweep") {
-    return [`  Scope: repo-wide sweep -- ${scope.reason} (#3893).`];
+    return [`  Scope: repo-wide sweep -- ${oneLine(scope.reason)} (#3893).`];
   }
   const noun = skipped === 1 ? "brief" : "briefs";
   const verb = skipped === 1 ? "was" : "were";
   return [
-    `  Scope: candidate diff against ${scope.baseRef}; ${skipped} running ${noun} outside ` +
+    `  Scope: candidate diff against ${oneLine(scope.baseRef)}; ${skipped} running ${noun} outside ` +
       `this branch's diff ${verb} not evaluated (#3893).`,
   ];
 }

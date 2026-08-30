@@ -14,7 +14,8 @@
  * after merge (`--issue N`, #3429).
  */
 
-import { relative, resolve } from "node:path";
+import { realpathSync } from "node:fs";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { defaultGitRunner, type GitRunner } from "../session/git.js";
 
@@ -38,22 +39,39 @@ export interface CandidateScopeOptions {
   readonly runGit?: GitRunner;
 }
 
-/**
- * Precomposed absolute path. Git precomposes Unicode
- * (`core.precomposeunicode`) while some filesystems hand `readdir` the
- * decomposed form, so every path comparison here folds to NFC first.
- */
-function nfcPath(path: string): string {
-  return resolve(path).normalize("NFC");
+/** Symlink-resolved path, or the input when it cannot be resolved. */
+function realpathOrSelf(path: string): string {
+  try {
+    return realpathSync.native(path);
+  } catch {
+    try {
+      return realpathSync(path);
+    } catch {
+      return path;
+    }
+  }
 }
 
 /**
- * One comparable form for a git path and a readdir path: NFC, case-folded on
- * win32.
+ * Canonical directory: symlinks resolved, then precomposed. Git reports the
+ * canonical worktree root while the lifecycle root keeps the caller's
+ * spelling, and git precomposes Unicode (`core.precomposeunicode`) while some
+ * filesystems hand `readdir` the decomposed form.
+ */
+function canonicalDir(path: string): string {
+  return realpathOrSelf(resolve(path)).normalize("NFC");
+}
+
+/**
+ * One comparable form for a git path and a readdir path.
+ *
+ * Only the directory is canonicalized: the file itself may be a deletion in
+ * the candidate diff and no longer exist on disk.
  */
 export function normalizeScopePath(path: string): string {
-  const abs = nfcPath(path);
-  return process.platform === "win32" ? abs.toLowerCase() : abs;
+  const abs = resolve(path);
+  const full = join(canonicalDir(dirname(abs)), basename(abs)).normalize("NFC");
+  return process.platform === "win32" ? full.toLowerCase() : full;
 }
 
 function sweep(reason: string): CandidateScope {
@@ -148,9 +166,10 @@ export function resolveCandidateScope(
     return sweep(`merge base with ${baseRef} is empty`);
   }
 
-  // Fold both sides before the relative: an unequal Unicode spelling of the
-  // same root would otherwise read as `..` and restore the repo-wide sweep.
-  const activeRel = relative(nfcPath(gitRoot), nfcPath(activeDir)).replace(/\\/g, "/");
+  // Canonicalize both sides before the relative: a symlinked checkout or an
+  // unequal Unicode spelling of the same root would otherwise read as `..`
+  // and restore the repo-wide sweep.
+  const activeRel = relative(canonicalDir(gitRoot), canonicalDir(activeDir)).replace(/\\/g, "/");
   if (activeRel.length === 0 || activeRel.startsWith("..")) {
     return sweep("active/ is outside the git worktree");
   }
