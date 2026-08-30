@@ -1,0 +1,183 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #3901",
+    "updated": "2026-08-30T01:48:14Z"
+  },
+  "plan": {
+    "title": "bug(test,windows): the --with-network session:start case makes a real npm registry request under a 20s budget and is load-flaky",
+    "status": "running",
+    "narratives": {
+      "Description": "Make `session:start --with-network probes only the disclosed public npm registry` deterministic by replacing its pass-through `spawnSync` spy with a command-selective stub and by injecting the deep SCM probe, so the case performs no outbound request while the #2182 argv assertion stays exact. Remove the local `timeout: 20_000` override that contradicts the recorded win32 policy in `vitest.config.ts:210-225`, and add two mutation checks plus a control that make the hermetic claim falsifiable.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3901",
+      "Overview": "Two independent causes, both addressed.\n\nCause 1 -- the mock is a pass-through spy. `vi.mock(\"node:child_process\")` returns `spawnSync: vi.fn(actual.spawnSync)`, which records AND executes, so the case really runs `npm view @deftai/directive version --registry=https://registry.npmjs.org/ --ignore-scripts`. The production path is `probeSessionReleaseAvailability` -> `packages/core/src/session/release-availability.ts:47-59` (`defaultNpmView`, `timeout: 5_000`), NOT `doctor/payload-staleness.ts` (15 s). The file header's attribution is wrong.\n\nCause 2 -- the case overrides the win32 timeout policy. `vitest.config.ts:210-225` sets `testTimeout: 120_000` on win32 and records that a git-fixture test issuing 10-30 sequential spawns takes 25-80 s. This case overrides that to `timeout: 20_000` while `initPrivateScopeRepo` runs six sequential git subprocesses. That cause survives any network fix.\n\nImplementation shape is bound by the design critique: use the low-level command-selective stub pattern from `packages/core/src/doctor/npm-view.test.ts` -- stub npm/pnpm command execution, return a well-shaped deterministic process result, keep the exact singleton argv assertion. A high-level `probeReleaseAvailability` injection is forbidden here because it bypasses construction of the security-relevant argv and weakens #2182.\n\nScope decision on criterion 1: take the STRONGER claim. `probeScm` is already a first-class injectable seam on `SessionStartOptions` (`session-start.ts:307`), and `allowOptionalNetwork: true` selects `depth: \"deep\"`, whose runner spawns live `gh` on a 30-second subprocess timeout (`scm/readiness.ts:285-315`). Leaving it live would satisfy the narrow npm/pnpm form of criterion 1 while preserving both an outbound request and a second wall-clock hazard that criteria 3 and 4 exist to remove. The control test therefore asserts that no network-capable command is executed at all."
+    },
+    "items": [
+      {
+        "title": "The --with-network case issues no npm or pnpm network request, and the stronger no-outbound-request claim is taken: the SCM probe is injected and a control test establishes it",
+        "status": "proposed"
+      },
+      {
+        "title": "The assertion still fails when a flow contacts the private-scope registry and still fails when the public-registry probe is dropped, as two explicit mutation checks",
+        "status": "proposed"
+      },
+      {
+        "title": "The local timeout: 20_000 override is removed so the case inherits the vitest.config.ts win32 policy",
+        "status": "proposed"
+      },
+      {
+        "title": "A deterministic no-registry control is the gate-worthy evidence, and the repeated-run smoke check names an exact command with an explicit concurrency and load shape",
+        "status": "proposed"
+      },
+      {
+        "title": "The file header names the session release-availability seam and no longer claims a stub where a pass-through spy was used",
+        "status": "proposed"
+      },
+      {
+        "title": "No real-network test remains in this suite; the executed-passthrough allowlist is the marker that keeps it that way",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG [Unreleased] entry",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3901",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3901: bug(test,windows): the --with-network session:start case makes a real npm registry request under a 20s budget and is load-flaky"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2182",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2182: the package-manager network-scope assertion this test protects"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3616",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3616: the win32 testTimeout policy the local override contradicts"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3480",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3480: parallel test files, the change that invalidated the 20s calibration"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3286",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3286: orientation stubbing in this suite"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3214",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3214: ceremony dial forcing the optional release probe"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3755",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3755: the delivery run during which the flake was found"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/session/package-manager-network.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "The --with-network case issues no npm or pnpm network request; the stronger no-outbound-request claim is taken by injecting the SCM probe, and a control test establishes that no network-capable command executes",
+          "artifact_path": "packages/core/src/session/package-manager-network.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The assertion still fails when a flow contacts the private-scope registry, and still fails when the public-registry probe is dropped, both as explicit mutation checks",
+          "artifact_path": "packages/core/src/session/package-manager-network.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The local timeout: 20_000 override is removed",
+          "artifact_path": "packages/core/src/session/package-manager-network.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "A deterministic no-registry control is the gate-worthy evidence, and any repeated-run smoke check names an exact command and an explicit concurrency and load shape",
+          "artifact_path": "packages/core/src/session/package-manager-network.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "The file header no longer claims a stub where a pass-through spy is used, and no longer implies the doctor payload-staleness seam",
+          "artifact_path": "packages/core/src/session/package-manager-network.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Any remaining real-network test in this suite is marked so it can be excluded from gate runs",
+          "artifact_path": "packages/core/src/session/package-manager-network.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "CHANGELOG \"[Unreleased]\" entry for #3901",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/session/package-manager-network.test.ts"
+        ],
+        "expected_outputs": [
+          "command-selective npm/pnpm stub with an executed-passthrough allowlist",
+          "injected deep SCM probe plus a no-outbound-command control test",
+          "two mutation checks against the exact singleton argv assertion",
+          "local timeout override removed"
+        ],
+        "depends_on": [],
+        "conflict_group": "session-package-manager-network-3901",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "high",
+        "missing_traces_justification": [
+          "file_scope deliberately undeclared: verify:scope-provenance fails closed on a declared file_scope without an operator-minted base-approved digest that a worker cannot obtain (#3874).",
+          "Partitioning spawn-heavy suites into their own vitest project is the next step named in vitest.config.ts:222-224 and is out of scope here.",
+          "Hook-runtime travel (#3785) and the orphan-active work on #3893 are owned by other sessions and are not touched."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/session/package-manager-network.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/session (session:start package-manager network scope test)",
+        "cohesion_exemption": "Test-only change inside the suite that owns the assertion, plus the release-notes entry. No production source moves."
+      },
+      "capacityBucket": "defect-repair"
+    },
+    "updated": "2026-08-30T01:48:14Z"
+  },
+  "vBRIEFInfo": {
+    "updated": "2026-08-30T01:48:22Z"
+  }
+}
