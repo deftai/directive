@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for #3737 bound remedy: call-shape ghx selection, spawn-failure fallback, named binary+status diagnostics. No --version health probe.",
-    "updated": "2026-08-30T19:31:14Z"
+    "updated": "2026-08-30T19:50:00Z"
   },
   "plan": {
     "title": "BLOCKER: bug(scm): resolveBinary prefers ghx on presence alone, so a broken ghx silently kills triage, ingest, cache and pr:watch",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Bind call-shape selection so ghx serves only single-path GET; flag-rich GET and writes go to live gh. Fallback on real spawn failure of the invoked argv. Name the binary and status class. Do not add a --version probe.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3737",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "Call-shape selection: ghx only for single-path GET",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "When both ghx and gh are on PATH, a mutation or a flag-rich GET never routes to ghx; a single positional path GET may still take ghx."
         },
@@ -29,7 +29,7 @@
       },
       {
         "title": "Fallback on real spawn failure of the invoked argv",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Fallback triggers on real spawn failure of the invoked command, proven by a test that simulates a spawn failure rather than an unhealthy probe. No --version-style health probe is introduced."
         },
@@ -42,7 +42,7 @@
       },
       {
         "title": "Failures name the binary and the status class",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "A failure names the binary that was invoked and reports the status class including 0xC0000142 STATUS_DLL_INIT_FAILED; a test asserts the diagnostic content without reproducing the loader fault."
         },
@@ -55,7 +55,7 @@
       },
       {
         "title": "CHANGELOG [Unreleased] line",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "CHANGELOG [Unreleased] records the call-shape routing and named diagnostics and names #3737."
         },
@@ -111,7 +111,30 @@
         ],
         "module_boundary": "packages/core/src/scm",
         "cohesion_exemption": "CHANGELOG.md is a chronological append-only release log. content/scm/github.md is the user-facing ghx surface rule that must match the runtime selection. Remaining files are existing resolveBinary spawn sites switched onto call-shape resolution."
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3973,
+        "prBase": null,
+        "mergeCommit": "aca0f5b75967680d82e32c0d085be922b964ff39",
+        "deliveryBranch": "master",
+        "deliveryCommit": "aca0f5b75967680d82e32c0d085be922b964ff39",
+        "verifiedAt": "2026-08-30T19:50:00Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-30T19:50:00Z"
+      },
+      "completedAt": "2026-08-30T19:50:00Z",
+      "capacityBucket": "new-capability"
     },
     "acceptance": {
       "commands": [],
@@ -150,6 +173,6 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-08-30T19:31:14Z"
+    "updated": "2026-08-30T19:50:00Z"
   }
 }
