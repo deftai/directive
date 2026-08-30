@@ -752,6 +752,8 @@ export async function runRefreshDeposit(
     }
   } else {
     // Full-tree replace (or injected seam). Additive copy is no longer the default.
+    // C3 the incoming package BEFORE replace so a reject cannot leave a broken deposit.
+    assertLiveProcedureDepositClean(contentRoot);
     await copyContent(contentRoot, deftDir);
     await prunePythonArtifactsFromDeposit(deftDir, projectDir, io);
     assertLiveProcedureDepositClean(deftDir);

@@ -323,6 +323,10 @@ describe("runRefreshDeposit", () => {
       "tag: 'v0.61.0'\nsha: old\ninstall_root: '.deft/core'\n",
       "utf8",
     );
+    writeFileSync(join(deftDir, "main.md"), "prior working deposit\n", "utf8");
+    const copyContent = vi.fn(async () => {
+      throw new Error("copyContent must not run when incoming C3 fails");
+    });
     await expect(
       runRefreshDeposit(
         { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
@@ -332,14 +336,13 @@ describe("runRefreshDeposit", () => {
           readEngineVersion: () => "0.62.0",
           nowIso: () => "2026-08-30T12:00:00Z",
           gitPorcelain: () => "",
+          copyContent,
         },
       ),
     ).rejects.toThrow(/unique live-invalid helper target/);
-    // replaceTree already swapped the payload; C3 refuses before the new VERSION stamp.
-    const stamped = existsSync(join(deftDir, "VERSION"))
-      ? readFileSync(join(deftDir, "VERSION"), "utf8")
-      : "";
-    expect(stamped).not.toContain("0.62.0");
+    expect(copyContent).not.toHaveBeenCalled();
+    expect(readFileSync(join(deftDir, "VERSION"), "utf8")).toContain("v0.61.0");
+    expect(readFileSync(join(deftDir, "main.md"), "utf8")).toBe("prior working deposit\n");
   });
 
   it("is idempotent on a second run (no AGENTS.md rewrite)", async () => {

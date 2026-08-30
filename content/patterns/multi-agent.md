@@ -81,7 +81,7 @@ blast radius. Those require partitioning the identity itself.
 | Maintainer GraphQL   | Maintainer PAT       | Human review, PR open/merge/ready, manual triage   |
 | Maintainer core REST | Maintainer PAT       | `gh api` reads outside swarm context               |
 | Worker GraphQL       | Bot account / App    | `markPullRequestReadyForReview`, `addPullRequestReview` (the only GraphQL surfaces a worker should hit; see #976 + #961) |
-| Worker core REST     | Bot account / App    | All other reads / mutations via `gh_rest.py` REST helpers |
+| Worker core REST     | Bot account / App    | All other reads / mutations via `gh api` REST helpers |
 
 Each bucket is 5,000 req/hr (REST `core` and GraphQL each). With
 identity separation the maintainer's two buckets are untouched by

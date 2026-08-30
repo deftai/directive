@@ -99,6 +99,7 @@ describe("C3 live-procedure target validation (#3602)", () => {
       "packages/core/legacy.pyc",
     );
     expect(normalizePythonHelperTarget("app.py")).toBeNull();
+    expect(normalizePythonHelperTarget("gh_rest.py")).toBeNull();
     const root = staged("c3-nonscripts-");
     mkdirSync(join(root, "skills", "demo"), { recursive: true });
     writeFileSync(
@@ -182,6 +183,7 @@ describe("C3 live-procedure target validation (#3602)", () => {
     expect(result.hits.length).toBe(45);
     expect(formatLiveProcedureFailure(result)).toContain("more occurrence(s)");
   });
+
 
   it("source checkout has zero unique live-invalid helper targets after exclusions", () => {
     const repoRoot = resolve(fileURLToPath(new URL("../../../../", import.meta.url)));

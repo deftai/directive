@@ -252,6 +252,7 @@ export async function runInitDeposit(
   const copyContent = seams.copyContent ?? copyTree;
 
   const contentRoot = await resolveContent();
+  assertLiveProcedureDepositClean(contentRoot);
   await reconstituteDepositFromContent(contentRoot, deftDir, copyContent);
   await prunePythonArtifactsFromDeposit(deftDir, projectDir, io);
   assertLiveProcedureDepositClean(deftDir);
