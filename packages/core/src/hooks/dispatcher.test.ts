@@ -1,4 +1,12 @@
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -4139,5 +4147,69 @@ describe("provider input normalization", () => {
     );
     expect(decision).toMatchObject({ verdict: "allow", code: "session-start-degraded" });
     expect(decision.message).toContain("stdout-only detail");
+  });
+});
+
+describe("git-destructive fence (#3917)", () => {
+  it("denies reset --hard at the project root even when shellDestForms is off", () => {
+    const dir = mkdtempSync(join(tmpdir(), "gdf-"));
+    hookTemps.push(dir);
+    const logPath = join(dir, "git-destructive.jsonl");
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "Bash", tool_input: { command: "git reset --hard origin/master" } },
+        environ: { DEFT_GIT_DESTRUCTIVE_LOG: logPath, DEFT_SESSION_ID: "actor-1" },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "git-destructive-deny" });
+    expect(decision.message).toMatch(/fail-closed/);
+    expect(decision.message).toMatch(/git -C \/abs\/fixture reset --hard/);
+    const logged = readFileSync(logPath, "utf8");
+    expect(logged).toContain("git-reset-hard");
+    expect(logged).toContain("actor-1");
+    expect(logged).toContain('"disposition":"deny"');
+  });
+
+  it("allows reset --hard aimed at an absolute out-of-root fixture and still records it", () => {
+    const dir = mkdtempSync(join(tmpdir(), "gdf-"));
+    hookTemps.push(dir);
+    const logPath = join(dir, "git-destructive.jsonl");
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          tool_input: { command: "git -C /tmp/fixture reset --hard" },
+        },
+        environ: { DEFT_GIT_DESTRUCTIVE_LOG: logPath, GROK_SESSION_ID: "fixture-actor" },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "git-destructive-fixture" });
+    const logged = readFileSync(logPath, "utf8");
+    expect(logged).toContain("allow-fixture");
+    expect(logged).toContain("fixture-actor");
+  });
+
+  it("denies a relative -C relocator instead of treating it as a fixture", () => {
+    const dir = mkdtempSync(join(tmpdir(), "gdf-"));
+    hookTemps.push(dir);
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { tool_name: "Shell", tool_input: { command: "git -C packages reset --hard" } },
+        environ: { DEFT_GIT_DESTRUCTIVE_LOG: join(dir, "git-destructive.jsonl") },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "git-destructive-deny" });
   });
 });

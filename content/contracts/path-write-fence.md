@@ -101,10 +101,24 @@ output of running a program, so gating them by parsing the command string means 
 a program will do without running it. Recognition of *destructive spellings* is decidable;
 prediction of *mutation* is not.
 
-What that means concretely — all of these are **fail-open today**:
+Tree-wide destructive git is **recognized and fail-closed**, always-on, independent of
+`shellDestForms` (#3917). The forms are `git reset --hard`, `git clean -f` (including
+combined `-fd` / `-fdx`), `git checkout -f` / `git switch --force` / `-B`, and
+`git stash drop` / `git stash clear`. A simple command whose relocators (`-C`,
+`--git-dir`, `--work-tree`, `GIT_DIR=`, `GIT_WORK_TREE=`) are all absolute paths
+outside the project root is allowed as a throwaway fixture. Relative, in-project,
+opaque (`GIT_CONFIG*`, `-c core.workTree`), and compound forms stay denied.
 
-- Unrecognized mutators: `git reset --hard`, `git clean -fd`, `git stash drop`, `git checkout`
-  without `--`, `mv`, `cp`, `sed -i`, `truncate`, `find -delete`, and `>` / `>>` redirection
+That close is a **guard**, not a root-cause claim. Every recognized form, deny or
+fixture-allow, appends one JSONL line under the platform user-config dir
+(`%APPDATA%\deft\logs\git-destructive.jsonl` / `~/.config/deft/logs/git-destructive.jsonl`,
+overridable with `DEFT_GIT_DESTRUCTIVE_LOG`) so a later occurrence names host, actor,
+command, project root, and disposition even if reflogs are gone.
+
+What remains **fail-open today**:
+
+- Unrecognized mutators: `git checkout` without `--` or `-f` (branch switch / ambiguous
+  path checkout), `mv`, `cp`, `sed -i`, `truncate`, `find -delete`, and `>` / `>>` redirection
 - Interpreters: `bash -c 'rm x'`, `python -c`, `node -e`, `cmd /c`
 - Non-literal verbs: `\rm x`, `rm${IFS}x` — the tokenizer cannot see the verb, so even the
   fail-closed branch does not fire
@@ -113,7 +127,8 @@ What that means concretely — all of these are **fail-open today**:
   cannot tell which shell will run the command (#3624)
 - Mutations by allowed programs: `npm run build`, `node scripts/clean.js`, `make` — inherent
   to any string recognizer, since writing files is what those commands are *for*
-- **Nothing on the allow path is audited**, so a bypass currently leaves no trace
+- **Nothing on the dest-form allow path is audited** except the tree-wide destructive-git
+  log above. A dest-form bypass still leaves no dest-form trace.
 
 Do not describe this gate as closing the Bash bypass. It raises the floor on the four
 recognized verbs in simple commands. The bypass class remains open.

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { listShellOps } from "../policy/runtime-authority.js";
 import {
+  classifyGitDestructive,
   classifyProductDestForms,
   payloadWithInjectedWriteTarget,
   SHELL_DEST_EXPANSION_SENTINEL,
@@ -313,5 +314,53 @@ describe("classifyProductDestForms (#3438)", () => {
     expect(payloadWithInjectedWriteTarget(null, "src/a.ts").tool_input).toMatchObject({
       file_path: "src/a.ts",
     });
+  });
+});
+
+describe("classifyGitDestructive (#3917)", () => {
+  it("recognizes tree-wide destructors dest-forms still leave unclassifiable", () => {
+    expect(classifyProductDestForms("git reset --hard origin/master")).toEqual([]);
+    expect(classifyGitDestructive("git reset --hard origin/master")).toEqual([
+      { kind: "git-reset-hard", relocators: [], unprovable: false },
+    ]);
+    expect(classifyGitDestructive("git clean -fd")).toEqual([
+      { kind: "git-clean", relocators: [], unprovable: false },
+    ]);
+    expect(classifyGitDestructive("git checkout -f master")).toEqual([
+      { kind: "git-checkout-force", relocators: [], unprovable: false },
+    ]);
+    expect(classifyGitDestructive("git switch --force main")).toEqual([
+      { kind: "git-checkout-force", relocators: [], unprovable: false },
+    ]);
+    expect(classifyGitDestructive("git stash drop")).toEqual([
+      { kind: "git-stash-drop", relocators: [], unprovable: false },
+    ]);
+    expect(classifyGitDestructive("git stash clear")).toEqual([
+      { kind: "git-stash-drop", relocators: [], unprovable: false },
+    ]);
+  });
+
+  it("does not treat a branch create or path checkout as tree-wide destruction", () => {
+    expect(classifyGitDestructive("git checkout -b topic")).toEqual([]);
+    expect(classifyGitDestructive("git checkout master")).toEqual([]);
+    expect(classifyGitDestructive("git checkout -- src/a.ts")).toEqual([]);
+    expect(classifyGitDestructive("git reset HEAD")).toEqual([]);
+    expect(classifyGitDestructive("git clean -n")).toEqual([]);
+    expect(classifyGitDestructive("git stash push")).toEqual([]);
+  });
+
+  it("collects absolute relocators and marks opaque git config unprovable", () => {
+    expect(classifyGitDestructive("git -C /tmp/fixture reset --hard")).toEqual([
+      { kind: "git-reset-hard", relocators: ["/tmp/fixture"], unprovable: false },
+    ]);
+    expect(classifyGitDestructive("GIT_DIR=/tmp/g.git git reset --hard")).toEqual([
+      { kind: "git-reset-hard", relocators: ["/tmp/g.git"], unprovable: false },
+    ]);
+    expect(classifyGitDestructive("git -c core.workTree=/tmp/t reset --hard")).toEqual([
+      { kind: "git-reset-hard", relocators: [], unprovable: true },
+    ]);
+    expect(classifyGitDestructive("cd /tmp && git reset --hard")).toEqual([
+      { kind: "git-reset-hard", relocators: [], unprovable: true },
+    ]);
   });
 });

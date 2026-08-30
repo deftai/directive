@@ -1,5 +1,5 @@
-import { existsSync, mkdirSync, rmSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 import {
   type GitRunner as SwarmGitRunner,
   defaultGitRunner as swarmGitRunner,
@@ -44,6 +44,56 @@ function forceDeleteWorktreeDir(worktreePath: string): void {
   rmSync(worktreePath, { recursive: true, force: true });
 }
 
+function normalizeWorktreePath(path: string): string {
+  return resolve(path).replace(/\\/g, "/").toLowerCase();
+}
+
+/**
+ * Unregister one missing worktree by deleting only its `$GIT_DIR/worktrees/<id>`
+ * admin directory. `git worktree prune` has no path argument and operates on
+ * every registration, including concurrent agents' reflogs.
+ */
+function pruneEvaluatorWorktreeAdmin(
+  git: SwarmGitRunner,
+  projectRoot: string,
+  worktreePath: string,
+): void {
+  const common = git(["rev-parse", "--git-common-dir"], projectRoot);
+  const trimmed = common.stdout.trim();
+  if (common.returncode !== 0 || trimmed.length === 0) {
+    return;
+  }
+  const commonDir = isAbsolute(trimmed) ? resolve(trimmed) : resolve(projectRoot, trimmed);
+  const worktreesDir = join(commonDir, "worktrees");
+  if (!existsSync(worktreesDir)) {
+    return;
+  }
+  const needle = normalizeWorktreePath(worktreePath);
+  let names: string[] = [];
+  try {
+    names = readdirSync(worktreesDir);
+  } catch {
+    return;
+  }
+  for (const name of names) {
+    const gitdirFile = join(worktreesDir, name, "gitdir");
+    if (!existsSync(gitdirFile)) {
+      continue;
+    }
+    let recorded = "";
+    try {
+      recorded = readFileSync(gitdirFile, "utf8").trim().replace(/\\/g, "/").toLowerCase();
+    } catch {
+      continue;
+    }
+    const recordedWorktree = recorded.replace(/\/\.git$/u, "");
+    if (recordedWorktree === needle) {
+      rmSync(join(worktreesDir, name), { recursive: true, force: true });
+      return;
+    }
+  }
+}
+
 function worktreeStillRegistered(
   git: SwarmGitRunner,
   projectRoot: string,
@@ -53,7 +103,7 @@ function worktreeStillRegistered(
   if (listed.returncode !== 0) {
     return true;
   }
-  const needle = resolve(worktreePath).replace(/\\/g, "/").toLowerCase();
+  const needle = normalizeWorktreePath(worktreePath);
   for (const line of listed.stdout.split(/\r?\n/u)) {
     if (!line.startsWith("worktree ")) {
       continue;
@@ -79,13 +129,13 @@ export function removeEvaluatorWorktree(
   }
   const firstError = proc.stderr.trim() || "<no stderr>";
   forceDeleteWorktreeDir(worktreePath);
-  runner(["worktree", "prune"], projectRoot);
+  pruneEvaluatorWorktreeAdmin(runner, projectRoot, worktreePath);
   const retry = runner(["worktree", "remove", "--force", worktreePath], projectRoot);
   if (retry.returncode === 0) {
     return;
   }
   forceDeleteWorktreeDir(worktreePath);
-  runner(["worktree", "prune"], projectRoot);
+  pruneEvaluatorWorktreeAdmin(runner, projectRoot, worktreePath);
   if (!worktreeStillRegistered(runner, projectRoot, worktreePath) && !existsSync(worktreePath)) {
     return;
   }

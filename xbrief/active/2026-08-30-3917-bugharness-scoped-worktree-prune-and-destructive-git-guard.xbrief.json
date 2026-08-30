@@ -1,0 +1,127 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Recut scope for GitHub issue #3917 after the bound design-critique arc. Ships a scoped worktree-prune fix, a fail-closed destructive-git guard at the write fence, and durable attribution. Does not identify a root cause.",
+    "updated": "2026-08-30T16:18:36Z"
+  },
+  "plan": {
+    "title": "bug(harness): scope evaluator worktree prune and fail-close destructive git at the write fence",
+    "status": "running",
+    "narratives": {
+      "Description": "Recut of #3917. The original body asked for the mechanism that resets the main checkout to origin/master. The bound arc established that identifying that actor is not achievable on the available evidence. This story ships the two buildable items the synthesis named: stop the unscoped `git worktree prune` on the evaluator-remove failure path, and close the documented fail-open at the write fence for destructive git, with a durable record that survives reflog prune.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3917 after design-critique:triage-ready. Bound by critic 5469710782, successor lean 5469770266, verified-claims table 5469776494, synthesis 5469777726.",
+      "Overview": "Do not build the original issue body. Original AC1 (identify the mechanism) and original AC4 (a gate run against a dirty tree leaves it byte-identical) are dropped: AC1 is unclosable, AC4 already holds and banking a test for it would prove nothing. Do not claim a root cause in the PR, CHANGELOG, or this brief.\n\nEstablished by the arc (do not re-investigate): no non-test product code issues a checkout, reset, clean, restore, stash or pull; no post-checkout hook exists; the host kept no argv record for the incident window; the original lead (legacy-detect.ts:422) is dead.\n\nItem 1: `removeEvaluatorWorktree` currently calls `git worktree prune` with no path, twice on the failure path. That operates on every registration and deletes pruned worktrees' administrative directories, including reflogs. Scope the cleanup to the worktree being removed, or drop the unscoped prune. Prove with a test that a second registered worktree survives a failed removal of the first.\n\nItem 2: `content/contracts/path-write-fence.md` lists `git reset --hard` and `git checkout` as unrecognized mutators on a fail-open path, and states that nothing on the allow path is audited. Make tree-wide destructive git (`reset --hard`, `clean -f`, `checkout -f`/`switch -f`, `stash drop`/`clear`) recognized with a fail-closed disposition and a remediation line, always-on (not behind `shellDestForms: enforce`). Distinguish a command aimed at the project root from one aimed at a throwaway fixture via absolute out-of-root relocators only. Do not break Node-spawned `reset --hard` against temp fixtures.\n\nItem 3: At that same boundary, append a durable JSONL record outside the repository (platform user-config dir) so the next occurrence names its actor even if reflogs are pruned.\n\nOut of scope: restating original AC4 as new work; claiming a root cause; hunting the resetting process.",
+      "Labels": "bug, dogfood, blocks-release-tag",
+      "Traces": "Bound design-critique arc on #3917: critic 5469710782, successor lean 5469770266, verified-claims table 5469776494, synthesis 5469777726.",
+      "Decisions": "This story claims no root cause. It ships detection and a guard. Original AC1 and AC4 are dropped by the arc, not reopened here."
+    },
+    "items": [
+      {
+        "title": "removeEvaluatorWorktree never runs unscoped `git worktree prune`; a second registered worktree survives a failed removal of the first",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "title": "Tree-wide destructive git (`reset --hard`, `clean -f`, `checkout -f`/`switch -f`, `stash drop`/`clear`) is recognized at the Shell write fence and fail-closed when aimed at the project, with a remediation line",
+        "status": "proposed",
+        "effort": "M"
+      },
+      {
+        "title": "The same fence records a durable JSONL event outside the repository so a later occurrence names host, actor, command, project root, and disposition even if reflogs are gone",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "title": "Absolute out-of-root git relocators (`-C` / `--git-dir` / `--work-tree` / `GIT_DIR` / `GIT_WORK_TREE`) classify as fixtures and are allowed; relative or in-project relocators stay denied",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "title": "Contract, fixtures README decision-code row, and CHANGELOG [Unreleased] record the recut: detection and a guard, no root cause",
+        "status": "proposed",
+        "effort": "S"
+      }
+    ],
+    "tags": [
+      "bug",
+      "hooks",
+      "worktrees",
+      "dogfood"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3917",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3917: bug(harness): the main checkout is reset to origin/master mid-run"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/triage/evaluate/worktrees.test.ts packages/core/src/hooks/dest-form.test.ts packages/core/src/hooks/git-destructive-log.test.ts packages/core/src/hooks/dispatcher.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "The recut envelope states a surviving-second-worktree test and fence recognition as the proof; no other shell commands were given as AC.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "A test in which a second registered worktree survives a failed removal of the first, and removeEvaluatorWorktree never invokes unscoped git worktree prune",
+          "artifact_path": "packages/core/src/triage/evaluate/worktrees.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Destructive git aimed at the project root is recognized and denied fail-closed with a remediation line; an absolute out-of-root fixture relocator is allowed",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "A durable record of the command, actor, host, project root and disposition is written outside the repository so it survives reflog prune",
+          "artifact_path": "packages/core/src/hooks/git-destructive-log.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "PR, CHANGELOG and brief claim detection and a guard, not a root cause; original AC1 and AC4 are not restated as new work",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "M",
+        "missing_traces_justification": "Source of truth is the bound design-critique arc on issue #3917 (critic 5469710782, successor lean 5469770266, verified-claims table 5469776494, synthesis 5469777726), recorded under narratives.Traces. file_scope is omitted per #3874: declaring it without base approval fails verify:scope-provenance closed."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/triage/evaluate/worktrees.ts",
+          "packages/core/src/triage/evaluate/worktrees.test.ts",
+          "packages/core/src/hooks/dest-form.ts",
+          "packages/core/src/hooks/dest-form.test.ts",
+          "packages/core/src/hooks/git-destructive-log.ts",
+          "packages/core/src/hooks/git-destructive-log.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "packages/core/src/hooks/fixtures/README.md",
+          "content/contracts/path-write-fence.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "evaluator worktree remove + Shell write-fence destructive-git guard",
+        "cohesion_exemption": "packages/core/src/hooks/dispatcher.ts and dispatcher.test.ts already exceed the review trigger; this slice adds one always-on destructive-git branch and matching tests without splitting the dispatcher. CHANGELOG.md is an append-only release log; this slice appends one [Unreleased] entry."
+      }
+    },
+    "updated": "2026-08-30T16:18:36Z"
+  }
+}

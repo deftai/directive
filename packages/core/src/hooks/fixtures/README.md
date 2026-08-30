@@ -109,6 +109,8 @@ Agents, host adapters, and tests **must** key permission outcomes off `HookDecis
 | `authz-grant-revoked` | deny | Grant revoked |
 | `authz-grant-single-use-spent` | deny | Single-use grant already spent |
 | `intent-ceiling-deny` | deny | Slash-command intent ceiling (#1193) |
+| `git-destructive-deny` | deny | Tree-wide destructive git aimed at this checkout (`reset --hard`, `clean -f`, `checkout -f` / `switch -f`, `stash drop`/`clear`) (#3917) |
+| `git-destructive-fixture` | allow | Same forms aimed at an absolute out-of-root fixture; still recorded in the durable JSONL log (#3917) |
 
 **Stability rule:** new host edge bugs that change allow/deny class should introduce or assert a code above (or extend the typed union intentionally). Do not teach agents to parse free-form English denial prose.
 

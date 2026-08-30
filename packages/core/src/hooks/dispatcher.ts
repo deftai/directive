@@ -85,7 +85,13 @@ import {
   rewriteExactLifecycleCommand,
   toolInputRecord,
 } from "./classify/index.js";
-import { classifyProductDestForms, payloadWithInjectedWriteTarget } from "./dest-form.js";
+import {
+  classifyGitDestructive,
+  classifyProductDestForms,
+  type GitDestructiveForm,
+  payloadWithInjectedWriteTarget,
+} from "./dest-form.js";
+import { appendGitDestructiveRecord, GIT_DESTRUCTIVE_LOG_ENV } from "./git-destructive-log.js";
 import {
   isAssistPosture,
   isEphemeralSpawn,
@@ -186,7 +192,11 @@ export type HookDecisionCode =
   | "authz-grant-revoked"
   | "authz-grant-single-use-spent"
   /** Slash-command intent ceiling denial (#1193). */
-  | "intent-ceiling-deny";
+  | "intent-ceiling-deny"
+  /** Tree-wide destructive git aimed at this checkout (#3917). */
+  | "git-destructive-deny"
+  /** Tree-wide destructive git aimed at an absolute out-of-root fixture (#3917). */
+  | "git-destructive-fixture";
 
 export interface HookDecision {
   readonly verdict: HookVerdict;
@@ -1567,6 +1577,76 @@ function inspectMutationGates(
   };
 }
 
+function gitDestructiveIsFixture(form: GitDestructiveForm, projectRoot: string): boolean {
+  if (form.unprovable || form.relocators.length === 0) return false;
+  return form.relocators.every((raw) => {
+    const path = raw.trim();
+    if (path.length === 0 || !isAbsolute(path)) return false;
+    return isOutsideProjectRootWrite(projectRoot, path);
+  });
+}
+
+const GIT_DESTRUCTIVE_REMEDIATION =
+  "Tree-wide destructive git (reset --hard, clean -f, checkout -f / switch -f, " +
+  "stash drop/clear) is fail-closed when aimed at this checkout. Rewrite as a " +
+  "non-destructive command, or run it against an absolute out-of-root fixture " +
+  "(`git -C /abs/fixture reset --hard`). This is a guard, not a root-cause claim.";
+
+/**
+ * Always-on recognition for tree-wide destructive git (#3917). Independent of
+ * `shellDestForms`. Records a durable JSONL line outside the repository so the
+ * next occurrence names its actor even if reflogs are gone.
+ */
+function decideGitDestructive(input: HookDispatchInput, toolName: string): HookDecision | null {
+  const command = hookShellCommand(input.payload);
+  if (command === null) return null;
+  const forms = classifyGitDestructive(command);
+  if (forms.length === 0) return null;
+  const projectRoot = resolve(input.projectRoot);
+  const env = input.environ ?? process.env;
+  const actor = env.DEFT_SESSION_ID?.trim() || env.GROK_SESSION_ID?.trim() || "";
+  const logPath = env[GIT_DESTRUCTIVE_LOG_ENV]?.trim() || undefined;
+  let anyProjectAimed = false;
+  for (const form of forms) {
+    const fixture = gitDestructiveIsFixture(form, projectRoot);
+    if (!fixture) anyProjectAimed = true;
+    appendGitDestructiveRecord(
+      {
+        ts: new Date().toISOString(),
+        kind: form.kind,
+        disposition: fixture ? "allow-fixture" : "deny",
+        command,
+        projectRoot,
+        host: input.host,
+        toolName,
+        actor,
+        pid: process.pid,
+        relocators: form.relocators,
+        unprovable: form.unprovable,
+      },
+      { env, logPath },
+    );
+  }
+  if (!anyProjectAimed) {
+    return {
+      verdict: "allow",
+      code: "git-destructive-fixture",
+      event: input.event,
+      host: input.host,
+      toolName,
+      projectRoot,
+      message: `Directive allowed ${toolName}: destructive git is aimed at an out-of-root fixture.`,
+      scopePath: null,
+    };
+  }
+  return deny(
+    input,
+    "git-destructive-deny",
+    toolName,
+    `Directive denied ${toolName}: ${GIT_DESTRUCTIVE_REMEDIATION}`,
+  );
+}
+
 /**
  * Route recognized Shell dest-forms through inspectMutationGates, then push/merge.
  * Dest-form allow is kept when runtime authority has nothing classifiable.
@@ -2065,10 +2145,15 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
     return inspectMutationGates(input, toolName, seams, { proposedLifecycleExempt: false });
   }
 
-  // Shell dest-forms (#3438): recognized product mutations share inspectMutationGates
+  // Tree-wide destructive git (#3917): always-on, independent of shellDestForms.
+  // Dest-forms (#3438): recognized product mutations share inspectMutationGates
   // with Edit/Write (assist/scratch, proposed lifecycle, file_scope). Push/merge stay
   // on runtimeAuthority (#2711). Non-dest unclassifiable shell (git status) fail-open.
   if (isShellTool(toolName)) {
+    const destructive = decideGitDestructive(input, toolName);
+    if (destructive !== null) {
+      return attachLifecycleIdentityRewrite(input, toolName, destructive, seams);
+    }
     const decision = decideShellDestFormsThenRuntimeAuthority(input, toolName, seams);
     return attachLifecycleIdentityRewrite(input, toolName, decision, seams);
   }

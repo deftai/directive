@@ -12,7 +12,10 @@
  * *forms* instead, and see `content/contracts/path-write-fence.md`.
  *
  * Residual known-open (recognition, not resolution): `python -c`,
- * `cmd /c copy`, obfuscated `bash -c`.
+ * `cmd /c copy`, obfuscated `bash -c`. Tree-wide destructive git
+ * (`reset --hard`, `clean -f`, `checkout -f`/`switch -f`, `stash drop`/`clear`)
+ * is classified separately by {@link classifyGitDestructive} and is always
+ * fail-closed at the dispatcher, independent of `shellDestForms`.
  *
  * Commit-time active-scope is out of this slice (#3438), and ⊗ do not weaken
  * Edit to match Shell. Keep this sentence on ONE line: acceptance clause 4 is
@@ -22,6 +25,23 @@
 import { record, toolInputRecord } from "./classify/payload.js";
 
 export type ProductDestFormKind = "git-checkout" | "git-restore" | "rm" | "rmdir";
+
+export type GitDestructiveKind =
+  | "git-reset-hard"
+  | "git-clean"
+  | "git-checkout-force"
+  | "git-stash-drop";
+
+export interface GitDestructiveForm {
+  readonly kind: GitDestructiveKind;
+  /** Relocating context paths from `-C` / `--git-dir` / `--work-tree` / `GIT_DIR` / `GIT_WORK_TREE`. */
+  readonly relocators: readonly string[];
+  /**
+   * True when the command is compound or the relocator is opaque (`GIT_CONFIG*`,
+   * `-c core.workTree`). The dispatcher denies these; it cannot prove a fixture.
+   */
+  readonly unprovable: boolean;
+}
 
 export interface ProductDestForm {
   readonly kind: ProductDestFormKind;
@@ -141,13 +161,14 @@ export function classifyProductDestForms(command: string): ProductDestForm[] {
   // bypass.
   //
   // ⊗ Recognition is NOT total either, and this is not a security boundary.
-  // Only four verbs are recognized, and a non-literal verb (`\rm`, `rm${IFS}x`)
-  // defeats the tokenizer, so the fail-closed branch below only fires when the
-  // verb is still legible. Unrecognized mutators (`git reset --hard`,
-  // `git clean`, `git checkout` without `--`, `mv`, `sed -i`, `>` redirection)
-  // and interpreters (`bash -c`, `python -c`) are fail-OPEN. See the threat
-  // model in content/contracts/path-write-fence.md: this is a guardrail for
-  // careless agents, not a boundary against adversarial ones.
+  // Only four dest-form verbs are recognized, and a non-literal verb (`\rm`,
+  // `rm${IFS}x`) defeats the tokenizer, so the fail-closed branch below only
+  // fires when the verb is still legible. Tree-wide destructive git is handled
+  // by classifyGitDestructive (always-on). Remaining fail-OPEN mutators:
+  // `git checkout` without `--` or `-f`, `mv`, `sed -i`, `>` redirection, and
+  // interpreters (`bash -c`, `python -c`). See the threat model in
+  // content/contracts/path-write-fence.md: this is a guardrail for careless
+  // agents, not a boundary against adversarial ones.
   if (segments.length === 1 && !hasUnsupportedSyntax(cmd)) {
     return classifySimpleDestForms(segments[0] ?? "");
   }
@@ -162,6 +183,27 @@ export function classifyProductDestForms(command: string): ProductDestForm[] {
     path: SHELL_DEST_EXPANSION_SENTINEL,
     expansion: true as const,
   }));
+}
+
+/**
+ * Tree-wide destructive git — always-on at the dispatcher, not behind
+ * `shellDestForms`. Empty when the command is not one of those forms.
+ */
+export function classifyGitDestructive(command: string): GitDestructiveForm[] {
+  const cmd = command.trim();
+  if (cmd.length === 0) return [];
+  const segments = splitCommandSegments(cmd);
+  const compound = segments.length > 1 || hasUnsupportedSyntax(cmd);
+  const found: GitDestructiveForm[] = [];
+  const seen = new Set<GitDestructiveKind>();
+  for (const seg of segments) {
+    const form = classifyGitDestructiveSegment(seg);
+    if (form === null) continue;
+    if (seen.has(form.kind)) continue;
+    seen.add(form.kind);
+    found.push(compound ? { ...form, unprovable: true } : form);
+  }
+  return found;
 }
 
 /** Classify one command with no operators, no grouping, and no substitution. */
@@ -356,9 +398,37 @@ function isGitWorkTreeAssign(token: string): boolean {
   return key === "GIT_CONFIG" || key === "GIT_CONFIG_GLOBAL" || key === "GIT_CONFIG_SYSTEM";
 }
 
-function skipPrefix(tokens: string[]): { i: number; gitContext: boolean } {
+function gitDirOrWorkTreeValue(token: string): string | null {
+  const eq = token.indexOf("=");
+  if (eq <= 0) return null;
+  const key = token.slice(0, eq);
+  const value = token.slice(eq + 1);
+  if ((key === "GIT_WORK_TREE" || key === "GIT_DIR") && value.length > 0) return value;
+  return null;
+}
+
+function skipPrefix(tokens: string[]): {
+  i: number;
+  gitContext: boolean;
+  relocators: string[];
+  opaqueContext: boolean;
+} {
   let i = 0;
   let gitContext = false;
+  let opaqueContext = false;
+  const relocators: string[] = [];
+  const noteAssign = (tok: string): void => {
+    const reloc = gitDirOrWorkTreeValue(tok);
+    if (reloc !== null) {
+      gitContext = true;
+      relocators.push(reloc);
+      return;
+    }
+    if (isGitWorkTreeAssign(tok)) {
+      gitContext = true;
+      opaqueContext = true;
+    }
+  };
   const consumeAssigns = (): void => {
     while (i < tokens.length) {
       const tok = tokens[i];
@@ -371,7 +441,7 @@ function skipPrefix(tokens: string[]): { i: number; gitContext: boolean } {
         continue;
       }
       if (!isEnvAssign(tok)) break;
-      if (isGitWorkTreeAssign(tok)) gitContext = true;
+      noteAssign(tok);
       i++;
     }
   };
@@ -397,14 +467,14 @@ function skipPrefix(tokens: string[]): { i: number; gitContext: boolean } {
         continue;
       }
       if (isEnvAssign(tok)) {
-        if (isGitWorkTreeAssign(tok)) gitContext = true;
+        noteAssign(tok);
         i++;
         continue;
       }
       break;
     }
   }
-  return { i, gitContext };
+  return { i, gitContext, relocators, opaqueContext };
 }
 
 /**
@@ -414,33 +484,55 @@ function skipPrefix(tokens: string[]): { i: number; gitContext: boolean } {
  * core.workTree` depends on the git dir. Each of those resolution rules grew
  * its own fence bypass (#3438), so a relocating command fails closed instead.
  */
-function skipGitGlobals(tokens: string[], start: number): { i: number; gitContext: boolean } {
+function skipGitGlobals(
+  tokens: string[],
+  start: number,
+): { i: number; gitContext: boolean; relocators: string[]; opaqueContext: boolean } {
   let i = start;
   let gitContext = false;
+  let opaqueContext = false;
+  const relocators: string[] = [];
   while (i < tokens.length) {
     const t = tokens[i];
-    if (t === undefined || !t.startsWith("-")) return { i, gitContext };
+    if (t === undefined || !t.startsWith("-")) return { i, gitContext, relocators, opaqueContext };
     if (t === "-c" || t === "--config-env") {
-      if (isCoreWorkTreeConfig(tokens[i + 1])) gitContext = true;
+      if (isCoreWorkTreeConfig(tokens[i + 1])) {
+        gitContext = true;
+        opaqueContext = true;
+      }
       i += 2;
       continue;
     }
     if (t.startsWith("--config-env=")) {
-      if (isCoreWorkTreeConfig(t.slice("--config-env=".length))) gitContext = true;
+      if (isCoreWorkTreeConfig(t.slice("--config-env=".length))) {
+        gitContext = true;
+        opaqueContext = true;
+      }
       i++;
       continue;
     }
     if (t === "-C" || t === "--work-tree" || t === "--git-dir") {
       gitContext = true;
+      const val = tokens[i + 1];
+      if (val !== undefined) relocators.push(val);
       i += 2;
       continue;
     }
-    if (
-      t.startsWith("--work-tree=") ||
-      t.startsWith("--git-dir=") ||
-      (t.startsWith("-C") && t.length > 2)
-    ) {
+    if (t.startsWith("--work-tree=")) {
       gitContext = true;
+      relocators.push(t.slice("--work-tree=".length));
+      i++;
+      continue;
+    }
+    if (t.startsWith("--git-dir=")) {
+      gitContext = true;
+      relocators.push(t.slice("--git-dir=".length));
+      i++;
+      continue;
+    }
+    if (t.startsWith("-C") && t.length > 2) {
+      gitContext = true;
+      relocators.push(t.slice(2));
       i++;
       continue;
     }
@@ -453,13 +545,16 @@ function skipGitGlobals(tokens: string[], start: number): { i: number; gitContex
       continue;
     }
     if (t.startsWith("-c")) {
-      if (isCoreWorkTreeConfig(t.slice(2))) gitContext = true;
+      if (isCoreWorkTreeConfig(t.slice(2))) {
+        gitContext = true;
+        opaqueContext = true;
+      }
       i++;
       continue;
     }
     i++;
   }
-  return { i, gitContext };
+  return { i, gitContext, relocators, opaqueContext };
 }
 
 function pathsAfterDashDash(tokens: string[], start: number): string[] {
@@ -485,6 +580,69 @@ function dests(
   return paths
     .filter((path) => path.length > 0)
     .map((path) => (unsafe ? { kind, path, expansion: true as const } : { kind, path }));
+}
+
+function tokensHaveFlag(
+  tokens: readonly string[],
+  start: number,
+  names: ReadonlySet<string>,
+): boolean {
+  for (let i = start; i < tokens.length; i++) {
+    const t = tokens[i];
+    if (t === undefined) break;
+    if (names.has(t)) return true;
+    for (const name of names) {
+      if (name.startsWith("--") && t.startsWith(`${name}=`)) return true;
+    }
+  }
+  return false;
+}
+
+function tokensHaveShortForce(tokens: readonly string[], start: number): boolean {
+  for (let i = start; i < tokens.length; i++) {
+    const t = tokens[i];
+    if (t === undefined || t === "--") break;
+    if (t === "-f" || t === "-B") return true;
+    if (t.startsWith("-") && !t.startsWith("--") && t.includes("f")) return true;
+  }
+  return false;
+}
+
+function classifyGitDestructiveSegment(segment: string): GitDestructiveForm | null {
+  const tokens = tokenizeSegment(segment.trim());
+  const prefixSkip = skipPrefix(tokens);
+  let i = prefixSkip.i;
+  const binRaw = tokens[i];
+  if (binRaw === undefined) return null;
+  const bin = binRaw.replace(/^[({!]+/, "").toLowerCase();
+  if (bin !== "git" && bin !== "git.exe") return null;
+  const skipped = skipGitGlobals(tokens, i + 1);
+  i = skipped.i;
+  const sub = tokens[i]?.toLowerCase();
+  if (sub === undefined) return null;
+  let kind: GitDestructiveKind | null = null;
+  if (sub === "reset" && tokensHaveFlag(tokens, i + 1, new Set(["--hard"]))) {
+    kind = "git-reset-hard";
+  } else if (
+    sub === "clean" &&
+    (tokensHaveFlag(tokens, i + 1, new Set(["--force", "-f"])) ||
+      tokensHaveShortForce(tokens, i + 1))
+  ) {
+    kind = "git-clean";
+  } else if (
+    (sub === "checkout" || sub === "switch") &&
+    (tokensHaveFlag(tokens, i + 1, new Set(["--force", "-f", "-B"])) ||
+      tokensHaveShortForce(tokens, i + 1))
+  ) {
+    kind = "git-checkout-force";
+  } else if (sub === "stash") {
+    const action = tokens[i + 1]?.toLowerCase();
+    if (action === "drop" || action === "clear") kind = "git-stash-drop";
+  }
+  if (kind === null) return null;
+  const relocators = [...prefixSkip.relocators, ...skipped.relocators];
+  const opaque = prefixSkip.opaqueContext || skipped.opaqueContext;
+  return { kind, relocators, unprovable: opaque };
 }
 
 /**
