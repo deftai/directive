@@ -612,3 +612,144 @@ describe("assertCompletedArcAllowsIngest", () => {
     expect(verdict.status).toBe("complete");
   });
 });
+
+describe("verified-claims table resolution precedence (#3932)", () => {
+  const GHOST_TABLE_ID = 5499999999;
+  const SECOND_TABLE_ID = 5443106999;
+  const TABLE_SHAPED_CRITIC_ID = 5442700000;
+
+  /** A critic comment that quotes the table heading while arguing about it. */
+  const tableShapedCritic: ThreadComment = {
+    id: TABLE_SHAPED_CRITIC_ID,
+    body:
+      "model: gpt-5.6-sol\nrole: critic\n\n" +
+      "## Verified-claims table\n\nThe parent's table under-reports its methods.\n",
+  };
+
+  const secondTable: ThreadComment = {
+    id: SECOND_TABLE_ID,
+    body: "## Verified-claims table\n\n| Verified claim | Result |\n",
+  };
+
+  const record = (cite: string): ThreadComment => ({
+    id: SYNTHESIS_ID,
+    body: `design-critique: synthesis accepted, because agents agreed\n\n${cite}\n`,
+  });
+
+  it("refuses a typed table claim that is not a table, even when another cited body is table-shaped", () => {
+    const verdict = evaluateCompletedArcRecord({
+      comments: [
+        lean,
+        tableShapedCritic,
+        record(
+          `successor lean ${LEAN_ID}, verified-claims table ${GHOST_TABLE_ID}, ` +
+            `comment ${TABLE_SHAPED_CRITIC_ID}`,
+        ),
+      ],
+    });
+    expect(verdict).toMatchObject({ status: "blocked", reason: "missing-table-cite" });
+    if (verdict.status === "blocked") {
+      expect(verdict.detail).toContain(String(GHOST_TABLE_ID));
+    }
+  });
+
+  it("refuses a ghost typed claim beside a valid one, in both orders", () => {
+    const orders: ReadonlyArray<readonly [string, string]> = [
+      [
+        "ghost first",
+        `successor lean ${LEAN_ID}, verified-claims table ${GHOST_TABLE_ID}, ` +
+          `verified-claims table ${TABLE_ID}`,
+      ],
+      [
+        "valid first",
+        `successor lean ${LEAN_ID}, verified-claims table ${TABLE_ID}, ` +
+          `verified-claims table ${GHOST_TABLE_ID}`,
+      ],
+    ];
+    for (const [label, cite] of orders) {
+      const verdict = evaluateCompletedArcRecord({ comments: [lean, table, record(cite)] });
+      expect(verdict, label).toMatchObject({ status: "blocked", reason: "missing-table-cite" });
+      expect(verdict, label).not.toHaveProperty("citedTableId");
+      if (verdict.status === "blocked") {
+        expect(verdict.detail, label).toContain(String(GHOST_TABLE_ID));
+      }
+    }
+  });
+
+  it("refuses two typed claims that name different tables", () => {
+    const verdict = evaluateCompletedArcRecord({
+      comments: [
+        lean,
+        table,
+        secondTable,
+        record(
+          `successor lean ${LEAN_ID}, verified-claims table ${TABLE_ID}, ` +
+            `verified-claims table ${SECOND_TABLE_ID}`,
+        ),
+      ],
+    });
+    expect(verdict).toMatchObject({ status: "blocked", reason: "ambiguous-table-cite" });
+    if (verdict.status === "blocked") {
+      expect(verdict.detail).toContain(String(TABLE_ID));
+      expect(verdict.detail).toContain(String(SECOND_TABLE_ID));
+    }
+  });
+
+  it("resolves the typed claim, not the generic citation that precedes it", () => {
+    const verdict = evaluateCompletedArcRecord({
+      comments: [
+        lean,
+        table,
+        tableShapedCritic,
+        record(
+          `comment ${TABLE_SHAPED_CRITIC_ID} argues about it; the record is ` +
+            `successor lean ${LEAN_ID}, verified-claims table ${TABLE_ID}`,
+        ),
+      ],
+    });
+    expect(verdict).toEqual({
+      status: "complete",
+      synthesisCommentId: SYNTHESIS_ID,
+      citedLeanId: LEAN_ID,
+      citedTableId: TABLE_ID,
+    });
+  });
+
+  it("reads a repeated citation of one table id as a single claim", () => {
+    const verdict = evaluateCompletedArcRecord({
+      comments: [
+        lean,
+        table,
+        record(
+          `successor lean ${LEAN_ID}, verified-claims table ${TABLE_ID}. ` +
+            `Rows are in verified-claims table ${TABLE_ID}`,
+        ),
+      ],
+    });
+    expect(verdict).toEqual({
+      status: "complete",
+      synthesisCommentId: SYNTHESIS_ID,
+      citedLeanId: LEAN_ID,
+      citedTableId: TABLE_ID,
+    });
+  });
+
+  it("keeps generic resolution unchanged when the record carries no typed claim", () => {
+    const generic: ReadonlyArray<readonly [string, string]> = [
+      ["comment keyword", `comment ${LEAN_ID}, comment ${TABLE_ID}`],
+      ["issuecomment anchor", `#issuecomment-${LEAN_ID} and #issuecomment-${TABLE_ID}`],
+      ["comments permalink", `/issues/comments/${LEAN_ID} and /issues/comments/${TABLE_ID}`],
+    ];
+    for (const [label, cite] of generic) {
+      expect(
+        evaluateCompletedArcRecord({ comments: [lean, table, record(cite)] }),
+        label,
+      ).toEqual({
+        status: "complete",
+        synthesisCommentId: SYNTHESIS_ID,
+        citedLeanId: LEAN_ID,
+        citedTableId: TABLE_ID,
+      });
+    }
+  });
+});

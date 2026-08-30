@@ -29,7 +29,8 @@ export type CompletedArcBlockReason =
   | "missing-record"
   | "lone-shape"
   | "cite-not-lean"
-  | "missing-table-cite";
+  | "missing-table-cite"
+  | "ambiguous-table-cite";
 
 export type CompletedArcVerdict =
   | { readonly status: "not-in-arc" }
@@ -186,6 +187,73 @@ function resolveCitedLean(
     .find((row) => row !== undefined && isSuccessorLeanBody(row.body));
 }
 
+type TableResolution =
+  | { readonly ok: true; readonly table: ThreadComment | undefined }
+  | { readonly ok: false; readonly reason: CompletedArcBlockReason; readonly detail: string };
+
+/**
+ * Table resolution precedence (#3932).
+ *
+ * A typed `verified-claims table <id>` citation is the synthesis naming its own
+ * table, so it decides resolution: a generic citation neither satisfies it nor
+ * masks it. Scanning every citation for the first table-shaped body -- what
+ * this did before -- let an unrelated table-shaped comment clear a record whose
+ * claimed table is not a table, because the `missing-table-cite` refusal ran
+ * only after that untyped search failed.
+ *
+ * Cardinality rule: every table-kind claim must resolve to the same
+ * verified-claims table artifact. One valid typed claim must not launder an
+ * invalid one -- filtering to typed citations and then taking the first
+ * table-shaped body finds the real table in a valid-plus-ghost pair and never
+ * examines the ghost. `scanCitations` deduplicates on `(id, kind)`, so naming
+ * one table id twice is a single claim, while two distinct typed ids are two
+ * claims and cannot both be this record's table.
+ *
+ * With no typed claim the generic scan stands unchanged: permalink and bare
+ * `comment` citations scan as kind `comment`, and that is the published form
+ * these records use. Narrowing the citation contract so a table must be named
+ * by keyword is a separate decision needing its own migration criteria.
+ */
+function resolveCitedTable(
+  citations: readonly Citation[],
+  byCommentId: Map<number, ThreadComment>,
+): TableResolution {
+  const claimed = citations.filter((row) => row.kind === "table");
+  if (claimed.length === 0) {
+    return {
+      ok: true,
+      table: citations
+        .map((row) => byCommentId.get(row.id))
+        .find((row) => row !== undefined && isVerifiedClaimsTableBody(row.body)),
+    };
+  }
+  const resolved = claimed.map((row) => ({ id: row.id, cited: byCommentId.get(row.id) }));
+  const unresolved = resolved.filter(
+    (row) => row.cited === undefined || !isVerifiedClaimsTableBody(row.cited.body),
+  );
+  if (unresolved.length > 0) {
+    return {
+      ok: false,
+      reason: "missing-table-cite",
+      detail:
+        "synthesis cites a verified-claims table id that is not a table on this thread: " +
+        renderIds(unresolved.map((row) => row.id)),
+    };
+  }
+  const distinct = [...new Set(claimed.map((row) => row.id))];
+  if (distinct.length > 1) {
+    return {
+      ok: false,
+      reason: "ambiguous-table-cite",
+      detail:
+        "synthesis claims more than one verified-claims table; every table citation must name " +
+        "the same table: " +
+        renderIds(distinct),
+    };
+  }
+  return { ok: true, table: resolved.find((row) => row.cited !== undefined)?.cited };
+}
+
 function verdictForSynthesis(
   comment: ThreadComment,
   comments: readonly ThreadComment[],
@@ -210,26 +278,15 @@ function verdictForSynthesis(
         renderIds(citations.map((row) => row.id)),
     };
   }
-  const citedTable = citations
-    .map((row) => byCommentId.get(row.id))
-    .find((row) => row !== undefined && isVerifiedClaimsTableBody(row.body));
-  if (citedTable === undefined) {
-    const claimed = citations.filter((row) => row.kind === "table");
-    if (claimed.length > 0) {
-      return {
-        status: "blocked",
-        reason: "missing-table-cite",
-        detail:
-          "synthesis cites a verified-claims table id that is not a table on this thread: " +
-          renderIds(claimed.map((row) => row.id)),
-      };
-    }
+  const citedTable = resolveCitedTable(citations, byCommentId);
+  if (!citedTable.ok) {
+    return { status: "blocked", reason: citedTable.reason, detail: citedTable.detail };
   }
   return {
     status: "complete",
     synthesisCommentId: comment.id,
     citedLeanId: citedLean.id,
-    citedTableId: citedTable?.id ?? null,
+    citedTableId: citedTable.table?.id ?? null,
   };
 }
 
