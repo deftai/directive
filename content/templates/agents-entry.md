@@ -66,7 +66,7 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ## Skills
 
-! **Skills Index** (Level-0) in `.deft/core/REFERENCES.md` — scan before improvising; read `SKILL.md` only on index match. `welcome` / `onboard triage` → `deft triage:welcome --onboard` (N3 / #1143); lessons → packs:slice.
+! **Skills Index** (Level-0): `npx deft packs:slice skills list` (text, not `--json`; local also `.\node_modules\.bin\deft`) — scan before improvising; read `SKILL.md` on match. `welcome` / `onboard triage` → `deft triage:welcome --onboard`.
 ## Skill pin policy (#2508)
 
 ! Process-critical skills with false-negative risk MUST be named in AGENTS.md (always-pin tier) — tier definitions: `.deft/core/docs/skill-pin-policy.md` (#2508).

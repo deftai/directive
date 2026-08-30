@@ -6,6 +6,10 @@ import { resolveContentPackageRoot } from "@deftai/directive-core/dist/content-r
 import { parseDoctorFlags } from "@deftai/directive-core/dist/doctor/flags.js";
 import { cmdDoctor } from "@deftai/directive-core/dist/doctor/main.js";
 import { findPackageAbsentDepositPathsSync } from "@deftai/directive-core/dist/init-deposit/hygiene.js";
+import {
+  evaluateInstalledDepositClosure,
+  renderDeclaredDepositClosureLine,
+} from "@deftai/directive-core/dist/validate-content/deposit-required.js";
 import { renderPrecutoverLine } from "@deftai/directive-core/dist/vbrief-validate/precutover.js";
 import {
   renderStaleHeaderLine,
@@ -82,7 +86,12 @@ export function run(argv: string[]): number {
     process.stdout.write(`${renderXbriefMigrationLine(projectRoot)}\n`);
     process.stdout.write(`${renderStaleHeaderLine(projectRoot)}\n`);
     process.stdout.write(`${renderDepositFileSetHygieneLine(projectRoot, depositResult)}\n`);
+    const closure = evaluateInstalledDepositClosure(projectRoot);
+    process.stdout.write(`${renderDeclaredDepositClosureLine(closure)}\n`);
     if (flags.full && !depositResult.skipped && depositResult.absent.length > 0) {
+      depositHygieneExit = 1;
+    }
+    if (flags.full && !closure.skipped && closure.missing.length > 0) {
       depositHygieneExit = 1;
     }
   }

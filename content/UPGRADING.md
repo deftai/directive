@@ -336,7 +336,7 @@ The npm engine (`npm i -g @deftai/directive`) remains the canonical runtime hand
 
 **Default install tier:** **daily-core** (setup, sync, build, pre-pr, review-cycle, triage) — the sync script and `deft-tiers.json` `defaultInstallTier` select this unless you override with `--tier all`, `--tier standard`, or `--tier advanced`. **Standard** covers operational workflows; **advanced** (release, swarm, debug, article-review) stays deferred. Full lists: `packaging/openpackage/deft-tiers.json`. Detail: [`packaging/openpackage/deft-directive-skills/README.md`](../packaging/openpackage/deft-directive-skills/README.md).
 
-Consumer AGENTS.md stays pointer-thin — scan `.deft/core/REFERENCES.md` Skills Index; do not enumerate skills in the managed section.
+Consumer AGENTS.md stays pointer-thin — scan `npx deft packs:slice skills list` Skills Index; do not enumerate skills in the managed section.
 
 ### Always-on bootstrap budget (DD-3, #2463)
 

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "record-packs-slice-cli-bundled-content-version-skew-residual",
+  "decision": "Record as residual that packs:slice reads the CLI bundled content pack, not the consumer deposit",
+  "governingRule": {
+    "description": "Significant hard-to-reverse process choices leave a revisit trigger (#1396). Probe 5466727900 measured the slice output unchanged after renaming .deft/core/packs away.",
+    "path": "content/docs/decision-log.md",
+    "rfc2119": "SHOULD"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Generate a deposit-local Skills Index artifact so the index cannot cite missing deposit paths",
+      "whyNot": "Not measured as needed; the pack slice already covers 25/25 resolving paths on a matched install and adding a projection is the dominated option from the bound lean"
+    },
+    {
+      "option": "Make packs:slice read .deft/core/packs instead of the CLI bundle",
+      "whyNot": "Out of this story; would change runtime for every consumer and was not the bound remedy"
+    }
+  ],
+  "whyWinner": "The mismatch is real and unmeasured on a skewed pair. Recording it is the bound requirement. A generated artifact stays rejected unless this residual is later measured to bite.",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-08-30-3601-consumer-skills-index-via-pack-slice.xbrief.json"
+  ],
+  "timestamp": "2026-08-30T11:10:00Z",
+  "revisitTrigger": "If a consumer with a version-skewed CLI versus deposit reports packs:slice listing skills whose SKILL.md is missing from .deft/core, reopen whether the index should be deposit-local",
+  "tags": [
+    "packaging",
+    "process"
+  ],
+  "relatedIssues": [
+    3601,
+    3899
+  ]
+}

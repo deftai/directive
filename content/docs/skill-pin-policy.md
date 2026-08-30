@@ -13,7 +13,7 @@ Pins are for **false-negative-sensitive process gates**, not for copying entire 
 | Tier | Meaning | How the agent discovers it |
 |---|---|---|
 | **always-pin** | Named in AGENTS.md (managed or consumer unmanaged header) as a required `SKILL.md` load when a matching work type starts | Always-loaded AGENTS.md |
-| **on-demand** | Routed via Skills Index triggers in `REFERENCES.md` — scan Level-0, read Level-1 on match | Skills Index → `SKILL.md` |
+| **on-demand** | Routed via Skills Index triggers (consumer: `npx deft packs:slice skills list`; maintainer: `REFERENCES.md`) — scan Level-0, read Level-1 on match | Skills Index → `SKILL.md` |
 | **reference-only** | External, rare, or maintainer-only corpora; no standing trigger routing | Explicit doc pointer only |
 
 ### Criteria for always-pin

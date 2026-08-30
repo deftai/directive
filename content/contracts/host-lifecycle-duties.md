@@ -26,7 +26,7 @@ session routing in AGENTS.md (#2176), cold-start algorithm orientation (#609).
 
 | Moment | Duty |
 |--------|------|
-| **Session start** | Resolve **project root** (WSL / dual-path SoT when applicable). Know how to reach the **Skills Index** (consumer: `.deft/core/REFERENCES.md`; framework: `content/REFERENCES.md` or root `REFERENCES.md`). Optional session ritual when mutation intent applies (`session:start` / `#1149`). Confirm Deft alignment when USER.md is present (#2176). |
+| **Session start** | Resolve **project root** (WSL / dual-path SoT when applicable). Know how to reach the **Skills Index** (consumer: `npx deft packs:slice skills list` text form, not `--json`; framework: root `REFERENCES.md`). Optional session ritual when mutation intent applies (`session:start` / `#1149`). Confirm Deft alignment when USER.md is present (#2176). |
 | **Deft-shaped user intent** | Route via **Skills Index / skill trigger path before freestyle host tools**. Prefer **pinned Directive skills** over same-named host skills (e.g. Cursor `/review` or host “review” ≠ `deft-directive-article-review` / `deft-directive-review-cycle`). |
 | **Tool boundary** (optional) | Classifier hook / write-intent path when installed (#2967 A2 class). Graph append when installed (#2966 A1 class). Not required for this first cut. |
 | **Turn / session end** (optional) | Evidence flush / MEMORY note of which skill path ran, for APE continuity. |

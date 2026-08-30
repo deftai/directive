@@ -199,7 +199,7 @@ const PROPAGATION_ACTION_VERBS = [
   "start agent",
 ] as const;
 
-const SKILLS_POINTER_MARKERS = ["## Skills", "Skills Index", "REFERENCES.md"] as const;
+const SKILLS_POINTER_MARKERS = ["## Skills", "Skills Index", "packs:slice skills list"] as const;
 
 const INDEXED_SKILL_IDS = [
   "deft-directive-setup",
@@ -577,9 +577,9 @@ const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
     id: "skills-index-2501",
     shape: "doc",
     header: "Skills",
-    canonicalHome: "REFERENCES.md",
-    pointerHints: ["Skills Index", "REFERENCES.md", "SKILL.md", "Level-0"],
-    canonicalBodyMarkers: ["Skills Index", "Level 0", "SKILL.md"],
+    canonicalHome: "packs/skills/skills-pack-0.1.json",
+    pointerHints: ["Skills Index", "packs:slice skills list", "SKILL.md", "Level-0"],
+    canonicalBodyMarkers: ["skills-pack-0.1", "deft-directive-build", "triggers"],
     retiredFullTextMarkers: [
       "Skill routing (which skill answers which trigger) is not a table",
       "unified with the framework doc routing so you consult one place",
@@ -741,7 +741,7 @@ function validatePointerRule(section: string, spec: PointerRuleSpec): string[] {
   }
   if (
     spec.shape === "doc" &&
-    !/commands\.md|scm\/|contracts\/[\w.-]+\.md|docs\/[\w.-]+\.md|\.deft\/core\/contracts\/|\.deft\/core\/docs\/|REFERENCES\.md|templates\/agent-prompt-preamble\.md/.test(
+    !/commands\.md|scm\/|contracts\/[\w.-]+\.md|docs\/[\w.-]+\.md|\.deft\/core\/contracts\/|\.deft\/core\/docs\/|REFERENCES\.md|templates\/agent-prompt-preamble\.md|packs:slice/.test(
       section,
     )
   ) {

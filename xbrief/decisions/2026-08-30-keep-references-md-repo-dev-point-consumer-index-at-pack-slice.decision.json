@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "keep-references-md-repo-dev-point-consumer-index-at-pack-slice",
+  "decision": "Keep root REFERENCES.md as bucket repo-dev and point the consumer Skills Index at npx deft packs:slice skills list (text form) instead of shipping that file",
+  "governingRule": {
+    "description": "content-manifest buckets classify by who a file is for; repo-dev means maintainer-only. Bound #3899 synthesis 5466693576 rejected reclassifying REFERENCES.md as content.",
+    "path": "content/conventions/content-manifest.json",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Reclassify REFERENCES.md as content with harnessEntry true and ship it (branch 1)",
+      "whyNot": "repo-dev is an audience boundary, not a size cap; the file cites maintainer paths and ./content/skills links no deposit contains"
+    },
+    {
+      "option": "Generate a new consumer Skills Index artifact",
+      "whyNot": "Dominated by the existing pack slice; adds a projection five surfaces must agree on"
+    },
+    {
+      "option": "Delete the mandate with no replacement",
+      "whyNot": "Removes the only promised route to 19 on-demand skills"
+    }
+  ],
+  "whyWinner": "Installed-deposit probe 5466727900 measured npx deft packs:slice skills list working from two greenfield 0.108.0 installs (exit 0, 25 records, all paths resolving, no session:start). Naming the text form avoids the 545 KB --json body inline. Local spelling npx deft / .\\node_modules\\.bin\\deft avoids the host global shim.",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-08-30-3601-consumer-skills-index-via-pack-slice.xbrief.json"
+  ],
+  "timestamp": "2026-08-30T11:10:00Z",
+  "revisitTrigger": "If a version-skewed CLI and deposit pair is measured to emit an index citing paths absent from that deposit, revisit generating a deposit-local index",
+  "tags": [
+    "packaging",
+    "process"
+  ],
+  "relatedIssues": [
+    3601,
+    3899
+  ]
+}

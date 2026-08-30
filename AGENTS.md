@@ -160,7 +160,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=a30278786c69 refreshed=2026-08-28T20:45:11Z session=e1673d5b25f8 -->
+<!-- deft:managed-section v3 sha=795181f9abba refreshed=2026-08-30T16:02:08Z session=311ea6792b8f -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -228,7 +228,7 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ## Skills
 
-! **Skills Index** (Level-0) in `.deft/core/REFERENCES.md` — scan before improvising; read `SKILL.md` only on index match. `welcome` / `onboard triage` → `deft triage:welcome --onboard` (N3 / #1143); lessons → packs:slice.
+! **Skills Index** (Level-0): `npx deft packs:slice skills list` (text, not `--json`; local also `.\node_modules\.bin\deft`) — scan before improvising; read `SKILL.md` on match. `welcome` / `onboard triage` → `deft triage:welcome --onboard`.
 ## Skill pin policy (#2508)
 
 ! Process-critical skills with false-negative risk MUST be named in AGENTS.md (always-pin tier) — tier definitions: `.deft/core/docs/skill-pin-policy.md` (#2508).

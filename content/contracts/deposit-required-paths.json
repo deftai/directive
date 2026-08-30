@@ -1,0 +1,26 @@
+{
+  "schema": "deft.deposit-required-paths.v1",
+  "description": "Closed typed declaration of deposit paths a consumer agent is mandated to read (#3601 / #3899 C1). Not extracted from AGENTS.md prose.",
+  "paths": [
+    ".deft/core/main.md",
+    ".deft/core/commands.md",
+    ".deft/core/docs/deft-directive-disable.md",
+    ".deft/core/docs/hook-runtime-unavailable.md",
+    ".deft/core/docs/skill-pin-policy.md",
+    ".deft/core/docs/writing-ste100.md",
+    ".deft/core/docs/decision-log.md",
+    ".deft/core/docs/gate-integrity.md",
+    ".deft/core/contracts/deterministic-questions.md",
+    ".deft/core/contracts/intent-ceiling.md",
+    ".deft/core/contracts/deposit-required-paths.json",
+    ".deft/core/templates/agent-prompt-preamble.md",
+    ".deft/core/scm/github.md",
+    ".deft/core/swarm/swarm.md",
+    ".deft/core/meta/security.md",
+    ".deft/core/.agents/skills/deft-directive-build/SKILL.md",
+    ".deft/core/.agents/skills/deft-directive-pre-pr/SKILL.md",
+    ".deft/core/.agents/skills/deft-directive-review-cycle/SKILL.md",
+    ".deft/core/.agents/skills/deft-directive-swarm/SKILL.md",
+    ".deft/core/.agents/skills/deft-directive-feedback/SKILL.md"
+  ]
+}

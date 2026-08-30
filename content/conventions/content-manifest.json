@@ -363,7 +363,7 @@
     {
       "path": "REFERENCES.md",
       "bucket": "repo-dev",
-      "note": "Repo-level references index for maintainers (harness-entry-adjacent; stays at root)."
+      "note": "Maintainer-only Skills Index and lazy-load guide. Audience boundary (bucket repo-dev). Consumers use npx deft packs:slice skills list (#3601 / #3899). Do not reclassify as content."
     },
     {
       "path": "ROADMAP.md",

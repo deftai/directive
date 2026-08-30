@@ -124,11 +124,13 @@ describe("test_agents_md_session_start", () => {
   // via the propagation command markers in agents_entry_contract.test.ts.
   it("skill_routing_table_replaced_with_pointer", () => {
     expect(agentsMdText).not.toContain("## Skill Routing");
-    const skills = extractSection(agentsMdText, "Skills");
-    expect(skills).toBeTruthy();
-    expect(skills).toContain("Skills Index");
-    expect(skills).toContain("REFERENCES.md");
-    expect(skills).toContain("task triage:welcome --onboard");
+    const maintainerSkills = extractSection(agentsMdText, "Skills");
+    expect(maintainerSkills).toBeTruthy();
+    expect(maintainerSkills).toContain("Skills Index");
+    expect(maintainerSkills).toContain("REFERENCES.md");
+    expect(maintainerSkills).toContain("task triage:welcome --onboard");
+    const consumerSkills = extractSection(extractManagedSection(agentsMdText), "Skills");
+    expect(consumerSkills).toContain("packs:slice skills list");
   });
 
   it("pre_start_agent_gate_stack_in_commands_canonical_home", () => {
