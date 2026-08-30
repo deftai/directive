@@ -128,6 +128,27 @@ function windowIsLegacyBound(line: string, index: number, length: number): boole
   return LEGACY_BOUND_RE.test(line.slice(start, end));
 }
 
+/** MUST use/emit/target/write with no open paren between the verb and the version. */
+function isDirectMustVersion(line: string, index: number): boolean {
+  return /MUST[ \t]+(?:use|emit|target|write)\b[^(]*$/i.test(line.slice(0, index));
+}
+
+function isInsideLegacyParen(line: string, index: number): boolean {
+  const before = line.slice(0, index);
+  const lastOpen = before.lastIndexOf("(");
+  const lastClose = before.lastIndexOf(")");
+  if (lastOpen <= lastClose) return false;
+  const closeRel = line.slice(index).indexOf(")");
+  const clause = line.slice(lastOpen, closeRel >= 0 ? index + closeRel : line.length);
+  return LEGACY_BOUND_RE.test(clause);
+}
+
+function isLegacyBoundedOccurrence(line: string, index: number, length: number): boolean {
+  if (isDirectMustVersion(line, index)) return false;
+  if (isInsideLegacyParen(line, index)) return true;
+  return windowIsLegacyBound(line, index, length);
+}
+
 function versionsOnMandate(line: string): { current: string[]; boundedLegacy: string[] } {
   const current: string[] = [];
   const boundedLegacy: string[] = [];
@@ -154,7 +175,7 @@ function versionsOnMandate(line: string): { current: string[]; boundedLegacy: st
       const start = match.index ?? 0;
       if (v === undefined) continue;
       if (envelopeSpans.some((s) => start >= s.start && start < s.end)) continue;
-      if (windowIsLegacyBound(line, start, match[0].length)) {
+      if (isLegacyBoundedOccurrence(line, start, match[0].length)) {
         boundedLegacy.push(v);
       } else {
         current.push(v);

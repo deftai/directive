@@ -119,6 +119,18 @@ describe("C2 semantic single-source (#3600 / #3899)", () => {
     );
   });
 
+  it("exits 1 when a mixed line uses a bare quoted 0.6 write mandate", () => {
+    root = seedCleanPack();
+    writeFile(
+      root,
+      "skills/deft-directive-build/SKILL.md",
+      `# Build\n- ! New xBRIEFs MUST use "0.6" (legacy 0.6 remains read-accepted until \`deft migrate:xbrief\`)\n`,
+    );
+    const result = evaluateSemanticSingleSource(root);
+    expect(result.code).toBe(1);
+    expect(result.violations.some((v) => v.version === "0.6")).toBe(true);
+  });
+
   it("exits 2 when a resolved authoring surface cannot be read", () => {
     root = seedCleanPack();
     const mainPath = join(root, "main.md");
