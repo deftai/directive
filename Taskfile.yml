@@ -447,7 +447,11 @@ tasks:
       - verify:cache-fresh
       - verify:pack-drift
       - verify-wip-cap-framework-self-check
-      - verify:orphan-active
+      # #3893: candidate-scoped on the merge chokepoint; bare verify:orphan-active
+      # stays repo-wide for doctor, manual runs, and the after-merge --issue N run.
+      - task: verify:orphan-active
+        vars:
+          CLI_ARGS: "--changed-only"
       - verify:completed-write-guard
       - verify:agents-md-budget
       - verify-eval-health-relocation-framework-check
@@ -479,7 +483,11 @@ tasks:
       - verify:branch
       - verify:cache-fresh
       - verify:wip-cap
-      - verify:orphan-active
+      # #3893: candidate-scoped on the merge chokepoint; bare verify:orphan-active
+      # stays repo-wide for doctor, manual runs, and the after-merge --issue N run.
+      - task: verify:orphan-active
+        vars:
+          CLI_ARGS: "--changed-only"
       - verify:completed-write-guard
       - verify:test-boundary
       - verify:scope-provenance

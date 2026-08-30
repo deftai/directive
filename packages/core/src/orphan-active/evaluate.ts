@@ -3,7 +3,13 @@ import { join, relative, resolve } from "node:path";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import { ScmStubError } from "../scm/errors.js";
+import type { GitRunner } from "../session/git.js";
 import { resolveRepo } from "../triage/queue/repo.js";
+import {
+  type CandidateScope,
+  normalizeScopePath,
+  resolveCandidateScope,
+} from "./candidate-scope.js";
 import {
   AGGREGATE_LATENCY_BUDGET_MS,
   formatAge,
@@ -46,12 +52,25 @@ export interface OrphanActiveBasis {
   readonly budgetMs: number;
 }
 
+/** What merge-chokepoint scoping decided for this run (#3893). */
+export interface OrphanActiveScopeSummary {
+  readonly kind: "diff" | "sweep";
+  /** Ref the candidate diff was taken against; null on a sweep. */
+  readonly baseRef: string | null;
+  /** Why the run stayed repo-wide; null on a candidate diff. */
+  readonly reason: string | null;
+  /** Running briefs left unevaluated because this candidate does not own them. */
+  readonly skipped: number;
+}
+
 export interface EvaluateResult {
   readonly code: 0 | 1 | 2;
   readonly message: string;
   readonly stream: OutputStream;
   readonly orphans: readonly OrphanActiveBrief[];
   readonly basis: OrphanActiveBasis;
+  /** Null unless `changedOnly` was requested. */
+  readonly scope: OrphanActiveScopeSummary | null;
 }
 
 export interface EvaluateOptions {
@@ -63,6 +82,15 @@ export interface EvaluateOptions {
   readonly issue?: number | null;
   /** Monotonic clock seam so basis ages and budget checks are testable. */
   readonly nowMs?: () => number;
+  /**
+   * Merge-chokepoint scoping (#3893): evaluate only active/running briefs the
+   * candidate's own diff touches. Ignored with `issue`, which is already one
+   * origin. Falls back to the repo-wide sweep when the base ref is unresolvable.
+   */
+  readonly changedOnly?: boolean;
+  /** Base ref for `changedOnly`; defaults to `origin/<deliveryBranch>`. */
+  readonly baseRef?: string | null;
+  readonly runGit?: GitRunner;
 }
 
 interface ActiveBrief {
@@ -326,12 +354,41 @@ function basisLines(tally: BasisTally, basis: OrphanActiveBasis): string[] {
   return lines;
 }
 
+/** One operator-visible line naming what this run was allowed to look at (#3893). */
+function scopeLines(scope: CandidateScope | null, skipped: number): string[] {
+  if (scope === null) {
+    return [];
+  }
+  if (scope.kind === "sweep") {
+    return [`  Scope: repo-wide sweep -- ${scope.reason} (#3893).`];
+  }
+  const noun = skipped === 1 ? "brief" : "briefs";
+  return [
+    `  Scope: candidate diff against ${scope.baseRef}; ${skipped} running ${noun} outside ` +
+      "this branch's diff were not evaluated (#3893).",
+  ];
+}
+
+function summarizeScope(
+  scope: CandidateScope | null,
+  skipped: number,
+): OrphanActiveScopeSummary | null {
+  if (scope === null) {
+    return null;
+  }
+  return scope.kind === "sweep"
+    ? { kind: "sweep", baseRef: null, reason: scope.reason, skipped }
+    : { kind: "diff", baseRef: scope.baseRef, reason: null, skipped };
+}
+
 function formatRefusal(
   orphans: readonly OrphanActiveBrief[],
   projectRoot: string,
   issueFilter: number | null,
   tally: BasisTally,
   basis: OrphanActiveBasis,
+  scope: CandidateScope | null,
+  skipped: number,
 ): string {
   const shippedOrphans = orphans.filter((orphan) => orphan.kind === "shipped");
   const unresolvedOrphans = orphans.filter((orphan) => orphan.kind === "unresolved");
@@ -378,7 +435,7 @@ function formatRefusal(
   for (const orphan of orphans) {
     lines.push(`    - ${orphan.path} (${orphan.reason})`);
   }
-  lines.push(...basisLines(tally, basis));
+  lines.push(...basisLines(tally, basis), ...scopeLines(scope, skipped));
   return lines.join("\n");
 }
 
@@ -407,6 +464,11 @@ function emptyBasis(budgetMs: number): OrphanActiveBasis {
  * one complete, fail-closed open-issue inventory and stays fail-open on
  * unknown so offline work is not network-authorized. A cache hit is honoured
  * only inside `ISSUE_CACHE_MAX_AGE_MS`, and every verdict reports its basis.
+ *
+ * `changedOnly` is the merge-chokepoint form (#3893): only briefs the
+ * candidate's own diff touches are evaluated, so a brief stranded by another
+ * merge cannot fail this candidate. It falls back to the repo-wide sweep at
+ * the delivery tip and whenever the base ref is unresolvable.
  */
 export function evaluate(projectRoot: string, options: EvaluateOptions = {}): EvaluateResult {
   const root = resolve(projectRoot);
@@ -424,6 +486,7 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
       stream: "stderr",
       orphans: [],
       basis: emptyBasis(budgetMs),
+      scope: null,
     };
   }
 
@@ -441,6 +504,7 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
         stream: quiet ? "none" : "stdout",
         orphans: [],
         basis: emptyBasis(budgetMs),
+        scope: null,
       };
     }
     return {
@@ -449,6 +513,7 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
       stream: "stderr",
       orphans: [],
       basis: emptyBasis(budgetMs),
+      scope: null,
     };
   }
 
@@ -459,6 +524,7 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
       stream: quiet ? "none" : "stdout",
       orphans: [],
       basis: emptyBasis(budgetMs),
+      scope: null,
     };
   }
 
@@ -480,11 +546,25 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
     inventory: new OpenIssueInventory(runGh),
   };
 
+  // Merge-chokepoint scoping (#3893). `--issue N` is already one origin.
+  const scope =
+    options.changedOnly === true && issueFilter === null
+      ? resolveCandidateScope(root, join(lifecycleRoot, "active"), {
+          baseRef: options.baseRef,
+          runGit: options.runGit,
+        })
+      : null;
+
   try {
     // #3774: missing gh/ghx is config (code 2), not an uncaught throw.
     const orphans: OrphanActiveBrief[] = [];
     let scanned = 0;
+    let skipped = 0;
     for (const brief of listActiveRunningBriefs(root)) {
+      if (scope?.kind === "diff" && !scope.paths.has(normalizeScopePath(brief.path))) {
+        skipped += 1;
+        continue;
+      }
       scanned += 1;
       const { issues, prs } = collectGithubRefs(brief.plan, defaultRepo);
       // --issue N is one origin: briefs that name that issue. PR-only briefs stay on the unscoped scan (#3429).
@@ -515,18 +595,21 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
       budgetMs,
     };
 
+    const scopeSummary = summarizeScope(scope, skipped);
+
     if (orphans.length > 0) {
       return {
         code: 1,
-        message: formatRefusal(orphans, root, issueFilter, tally, basis),
+        message: formatRefusal(orphans, root, issueFilter, tally, basis, scope, skipped),
         stream: "stderr",
         orphans,
         basis,
+        scope: scopeSummary,
       };
     }
 
     if (quiet) {
-      return { code: 0, message: "", stream: "none", orphans: [], basis };
+      return { code: 0, message: "", stream: "none", orphans: [], basis, scope: scopeSummary };
     }
 
     const issueNote = issueFilter === null ? "" : ` for issue #${issueFilter}`;
@@ -535,10 +618,11 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
       `(scanned ${scanned} running brief${scanned === 1 ? "" : "s"} in active/).`;
     return {
       code: 0,
-      message: [headline, ...basisLines(tally, basis)].join("\n"),
+      message: [headline, ...basisLines(tally, basis), ...scopeLines(scope, skipped)].join("\n"),
       stream: "stdout",
       orphans: [],
       basis,
+      scope: scopeSummary,
     };
   } catch (err: unknown) {
     if (err instanceof ScmStubError) {
@@ -548,6 +632,7 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
         stream: "stderr",
         orphans: [],
         basis: emptyBasis(budgetMs),
+        scope: null,
       };
     }
     throw err;

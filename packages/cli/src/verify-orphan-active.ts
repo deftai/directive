@@ -9,6 +9,8 @@ interface ParsedArgs {
   issue: number | null;
   quiet: boolean;
   skipGh: boolean;
+  changedOnly: boolean;
+  baseRef: string | null;
   error?: string;
 }
 
@@ -29,6 +31,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
     issue: null,
     quiet: false,
     skipGh: false,
+    changedOnly: false,
+    baseRef: null,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -36,6 +40,17 @@ export function parseArgs(argv: string[]): ParsedArgs {
       parsed.quiet = true;
     } else if (arg === "--skip-gh") {
       parsed.skipGh = true;
+    } else if (arg === "--changed-only") {
+      parsed.changedOnly = true;
+    } else if (arg === "--base-ref") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ...parsed, error: "argument --base-ref: expected one argument" };
+      }
+      parsed.baseRef = value;
+      i += 1;
+    } else if (arg?.startsWith("--base-ref=")) {
+      parsed.baseRef = arg.slice("--base-ref=".length);
     } else if (arg === "--project-root") {
       const value = argv[i + 1];
       if (value === undefined) {
@@ -76,6 +91,19 @@ export function parseArgs(argv: string[]): ParsedArgs {
       return { ...parsed, error: `unrecognized argument: ${arg}` };
     }
   }
+  // The two scopes answer different questions; silently preferring one would
+  // hide which residue the run actually covered (#3893).
+  if (parsed.changedOnly && parsed.issue !== null) {
+    return {
+      ...parsed,
+      error:
+        "--changed-only and --issue are mutually exclusive: --issue is the after-merge " +
+        "one-origin scan, --changed-only is the merge-gate candidate scan",
+    };
+  }
+  if (parsed.baseRef !== null && !parsed.changedOnly) {
+    return { ...parsed, error: "--base-ref requires --changed-only" };
+  }
   return parsed;
 }
 
@@ -93,6 +121,8 @@ export function run(argv: string[]): number {
     repo: args.repo,
     skipGh: args.skipGh,
     issue: args.issue,
+    changedOnly: args.changedOnly,
+    baseRef: args.baseRef,
   });
 
   if (result.message.length > 0) {
