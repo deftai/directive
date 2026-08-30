@@ -99,7 +99,7 @@ describe("C3 live-procedure target validation (#3602)", () => {
       "packages/core/legacy.pyc",
     );
     expect(normalizePythonHelperTarget("app.py")).toBeNull();
-    expect(normalizePythonHelperTarget("gh_rest.py")).toBeNull();
+    expect(normalizePythonHelperTarget("gh_rest.py")).toBe("gh_rest.py");
     const root = staged("c3-nonscripts-");
     mkdirSync(join(root, "skills", "demo"), { recursive: true });
     writeFileSync(
@@ -109,6 +109,18 @@ describe("C3 live-procedure target validation (#3602)", () => {
     );
     const result = evaluateLiveProcedureTargets({ stagedRoot: root });
     expect(result.uniqueTargets).toEqual(["packages/core/legacy.pyc", "tools/missing.py"]);
+  });
+
+  it("detects a known pruned helper named without a directory", () => {
+    const root = staged("c3-bare-known-");
+    mkdirSync(join(root, "skills", "demo"), { recursive: true });
+    writeFileSync(
+      join(root, "skills", "demo", "SKILL.md"),
+      "! Agents MUST use `gh_rest.py` REST helpers.\n",
+      "utf8",
+    );
+    const result = evaluateLiveProcedureTargets({ stagedRoot: root });
+    expect(result.uniqueTargets).toEqual(["gh_rest.py"]);
   });
 
   it("detects pruned Python run-shim paths (compose python-free)", () => {

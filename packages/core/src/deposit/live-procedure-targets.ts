@@ -84,6 +84,19 @@ function collectMarkdownFiles(root: string): string[] {
 const PATH_CHAR = /[A-Za-z0-9_.-]/;
 const PY_HELPER_TOKEN = /^(?:[A-Za-z0-9_.-]+\/)+[A-Za-z0-9_.-]+\.py[c]?$/;
 const RUN_SHIM_TOKEN = /^(?:\.deft\/core\/run|deft\/run|run)$/;
+/** Known pruned deposit helpers named without a directory. Not consumer app.py. */
+const PRUNED_BARE_HELPER_BASENAMES = new Set([
+  "gh_rest.py",
+  "ip_risk.py",
+  "preflight_implementation.py",
+  "preflight_gh.py",
+  "migrate_vbrief.py",
+  "slug_normalize.py",
+  "slice_record.py",
+  "validate_strategy_output.py",
+  "_precutover.py",
+  "swarm_mint_jwt.py",
+]);
 
 function stripRelativePrefix(posix: string): string {
   let out = posix;
@@ -106,6 +119,9 @@ export function normalizePythonHelperTarget(raw: string): string | null {
     }
     if (stripped === "deft/run" || stripped.endsWith("/deft/run")) return "deft/run";
     if (token === "run" || stripped === "run") return "run";
+  }
+  if (!token.includes("/") && PRUNED_BARE_HELPER_BASENAMES.has(token)) {
+    return token;
   }
   if (!PY_HELPER_TOKEN.test(token)) return null;
   return token;
