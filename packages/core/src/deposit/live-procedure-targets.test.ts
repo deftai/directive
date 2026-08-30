@@ -184,7 +184,6 @@ describe("C3 live-procedure target validation (#3602)", () => {
     expect(formatLiveProcedureFailure(result)).toContain("more occurrence(s)");
   });
 
-
   it("source checkout has zero unique live-invalid helper targets after exclusions", () => {
     const repoRoot = resolve(fileURLToPath(new URL("../../../../", import.meta.url)));
     const result = evaluateLiveProcedureTargets({

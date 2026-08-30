@@ -725,9 +725,12 @@ export async function runRefreshDeposit(
 
   if (alreadyCurrent) {
     io.printf("[deft update] Framework payload already current; skipping payload copy.\n");
+    // C3 even when VERSION matches: skip-copy is not skip-validation (#3602).
+    assertLiveProcedureDepositClean(contentRoot);
     // #2913: still fail-closed reconcile so dst-only leftovers cannot linger when
     // VERSION already matches (e.g. pre-#2804 additive deposits). Does not re-stamp.
     await reconcileDepositToContentPackage(deftDir, contentRoot, io);
+    assertLiveProcedureDepositClean(deftDir);
     migrateLegacyInstallManifest(projectDir, join(deftDir, "VERSION"));
     // #3117: ensure a readable live generation token exists without advancing
     // when the payload did not swap (already-current). stampLiveGeneration is a
