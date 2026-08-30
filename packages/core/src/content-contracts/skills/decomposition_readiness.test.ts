@@ -97,7 +97,7 @@ describe("test_decomposition_readiness", () => {
   });
   it("make_spec_no_longer_teaches_stale_planitem_patterns", () => {
     const text = readRepoFile("templates/make-spec.md");
-    expect(text).toContain('vBRIEFInfo": { "version": "0.6" }');
+    expect(text).toContain('xBRIEFInfo": { "version": "0.8" }');
     expect(text).toContain("Nested children within a PlanItem MUST use `items`");
     expect(text).toContain("Use deprecated `subItems` for new content");
     expect(text).not.toContain('"subItems"');

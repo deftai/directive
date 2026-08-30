@@ -22,13 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
-<<<<<<< HEAD
+- **Shipped canon names xBRIEF 0.8 as the only new-write default (#3600).** main.md, the build/refinement/sync skills, conventions/references.md, commands.md, and `templates/make-spec.md` no longer MUST-mandate 0.6. The decomposition-readiness content contract now pins the make-spec example to `xBRIEFInfo` 0.8 instead of stale `vBRIEFInfo` 0.6. Legacy 0.6 stays read-accepted until `deft migrate:xbrief`. Enforced by C2 rather than by review. Closes #3600.
+
 - **Consumer Skills Index no longer points at a file npm never deposits (#3601).** The managed AGENTS.md card now names `npx deft packs:slice skills list` (text form, not `--json`; local also `.\node_modules\.bin\deft`) instead of `.deft/core/REFERENCES.md`. Root `REFERENCES.md` stays bucket `repo-dev`. C1 declared deposit closure checks required paths against staged pack output and fails on a mutated tree. `plan.policy.agentsMdBudget.absoluteMaxBytes` 16530→16547 for the pointer. Closes #3601. Refs #3899, #2501.
 - **Land completed-tracked artifact for #3601 (#3264 / #1358).** The #3601 xBRIEF stayed in `active/` after squash of PR 3958 (`74485177`). Moved to `xbrief/completed/` via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
-=======
-- **Shipped canon names xBRIEF 0.8 as the only new-write default (#3600).** main.md, the build/refinement/sync skills, conventions/references.md, commands.md, and `templates/make-spec.md` no longer MUST-mandate 0.6. Legacy 0.6 stays read-accepted until `deft migrate:xbrief`. Enforced by C2 rather than by review. Closes #3600.
-
->>>>>>> ad8c8205 (fix(canon): name xBRIEF 0.8 as the only new-write default)
 - **Land completed-tracked artifact for #3873 (#3264 / #1358).** The #3873 xBRIEF stayed in `active/` after squash of PR 3948 (`41331dea`). Moved to `xbrief/completed/` via scope:complete. #3873 stays open for measured residue; this does not close or recut it. Refs #2321, #3476.
 - **Land completed-tracked artifact for #3932 (#3264 / #1358).** The #3932 xBRIEF stayed in `active/` after squash of PR 3950 (`ba3d6a8f`). Moved to `xbrief/completed/` via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land completed-tracked artifact for #3934 (#3264 / #1358).** The #3934 xBRIEF rode into master under `active/` with PR 3941, so completing it needs a second landing. Moved to `xbrief/completed/` via scope:complete. #3934 stays open for the operator's label and title decisions; this does not close or recut it. Refs #2321, #3476.
