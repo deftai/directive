@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for GitHub issue #3615. Bound contract: successor lean 5470524307, verified-claims table 5470530200, synthesis 5470534744. Critic 5470430386.",
-    "updated": "2026-08-30T18:49:54Z"
+    "updated": "2026-08-30T19:42:07Z"
   },
   "plan": {
     "title": "bug(verify-ac): safety-refused commands must not enter product-oracle history",
-    "status": "running",
+    "status": "completed",
     "id": "3615-verify-ac-refusal-oracle",
     "narratives": {
       "Description": "Safety-refused acceptance commands fail the gate, but they must not be recorded as a product-oracle measurement.",
@@ -177,6 +177,31 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-08-30T18:49:54Z"
+    "updated": "2026-08-30T19:42:07Z",
+    "metadata": {
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3977,
+        "prBase": null,
+        "mergeCommit": "d3e5097b03a490e061f8c1ee8d439f3a636713e2",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d3e5097b03a490e061f8c1ee8d439f3a636713e2",
+        "verifiedAt": "2026-08-30T19:42:07Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-30T19:42:07Z"
+      },
+      "completedAt": "2026-08-30T19:42:07Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }
