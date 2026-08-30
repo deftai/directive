@@ -24,7 +24,7 @@
   "whyWinner": "The local parity patch fixes criteria 1-4 and 6 with no assertion change outside the criterion-5 authorization, and the small shared module packages/core/src/lifecycle/brief-envelope.ts removes the three-way split the critic named: scope/transition.ts, vbrief-activate/activate.ts and both intake/reconcile-issues.ts sweeps now call one stampExistingEnvelopes / missingEnvelopeMessage policy. Delegation is not rejected on principle -- it is deferred because it converts a handled filesystem error into an unhandled throw on a published API and rewrites the alias message contract, which #3933 puts out of scope for this change. The vbrief-activate surface is hereby recorded as legacy-frozen: it keeps its #1782 argv and message contract, gains no new lifecycle behaviour, and its envelope policy is owned by the shared module rather than by a second local implementation.",
   "confidence": "high",
   "activeScopeRefs": [
-    "xbrief/active/2026-08-29-3933-buglifecycle-xbriefactivate-vbriefactivate-manufacture-a-ve.xbrief.json"
+    "xbrief/completed/2026-08-29-3933-buglifecycle-xbriefactivate-vbriefactivate-manufacture-a-ve.xbrief.json"
   ],
   "timestamp": "2026-08-30T03:49:18Z",
   "revisitTrigger": "Revisit delegation when the alias message contract is allowed to change -- e.g. when the #1782 Python-parity contract is formally retired, or when runTransition grows a non-throwing filesystem-error path. Delegation would then also need argv/message compatibility tests as #3933 describes.",
