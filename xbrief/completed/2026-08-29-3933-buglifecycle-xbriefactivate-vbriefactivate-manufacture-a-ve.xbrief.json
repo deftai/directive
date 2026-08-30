@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3933",
-    "updated": "2026-08-30T03:34:22Z"
+    "updated": "2026-08-30T04:34:53Z"
   },
   "plan": {
     "title": "bug(lifecycle): xbrief:activate / vbrief:activate manufacture a version-less vBRIEFInfo on a v0.8 brief, which then fails validation",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(lifecycle): xbrief:activate / vbrief:activate manufacture a version-less vBRIEFInfo on a v0.8 brief, which then fails validation",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3933",
@@ -21,50 +21,98 @@
       {
         "id": "3933-ac1-xbrief-activate-v08",
         "title": "Activating a v0.8 brief that carries only xBRIEFInfo through xbrief:activate leaves exactly one envelope, and schema validation passes on the result.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/lifecycle-cli/dispatch-vbrief.test.ts#xbrief:activate leaves exactly one envelope on a v0.8 brief and the result validates (#3933)",
+          "recorded_at": "2026-08-30T05:05:00Z",
+          "recorded_by": "leaf-worker/3933"
+        }
       },
       {
         "id": "3933-ac2-vbrief-activate-v08",
         "title": "The same holds for vbrief:activate.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/lifecycle-cli/dispatch-vbrief.test.ts#vbrief:activate leaves exactly one envelope on a v0.8 brief and the result validates (#3933)",
+          "recorded_at": "2026-08-30T05:05:00Z",
+          "recorded_by": "leaf-worker/3933"
+        }
       },
       {
         "id": "3933-ac3-legacy-v06-in-place",
         "title": "Activating a legacy v0.6 brief that carries only vBRIEFInfo still stamps updated in place.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/vbrief-activate/activate.test.ts#stamps an existing vBRIEFInfo@0.6 in place (#3933)",
+          "recorded_at": "2026-08-30T05:05:00Z",
+          "recorded_by": "leaf-worker/3933"
+        }
       },
       {
         "id": "3933-ac4-neither-envelope-refused",
         "title": "A brief carrying neither envelope is refused by name before the file is moved.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/vbrief-activate/activate.test.ts#refuses a brief carrying neither envelope, before the move (#3933); packages/cli/src/lifecycle-cli/dispatch-vbrief.test.ts#xbrief:activate refuses a brief carrying neither envelope before the move; #vbrief:activate refuses a brief carrying neither envelope before the move",
+          "recorded_at": "2026-08-30T05:05:00Z",
+          "recorded_by": "leaf-worker/3933"
+        }
       },
       {
         "id": "3933-ac5-test-replacement",
         "title": "The activate.test.ts create-on-absent expectation is replaced by three explicit assertions and the #1782 parity claim is updated to state that the create-on-absent behaviour of the Python oracle is not preserved.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/vbrief-activate/activate.test.ts#stamps an existing xBRIEFInfo@0.8 without adding a legacy key (#3933) replaces the create-on-absent expectation; parity claim updated in packages/core/src/vbrief-activate/activate.ts activate() docstring and tasks/vbrief.yml activate comment",
+          "recorded_at": "2026-08-30T05:05:00Z",
+          "recorded_by": "leaf-worker/3933"
+        }
       },
       {
         "id": "3933-ac6-reconcile-second-target",
         "title": "The create-on-absent path in intake/reconcile-issues.ts is brought under the same policy, or an explicit recorded reason is given for why it differs.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/intake/reconcile-issues.test.ts#applyLifecycleFixes refuses an envelope-less brief by name and leaves it in place; #repairCompletedStatusDrift refuses an envelope-less brief by name",
+          "recorded_at": "2026-08-30T05:05:00Z",
+          "recorded_by": "leaf-worker/3933"
+        }
       },
       {
         "id": "3933-ac7-scope-activate-unchanged",
         "title": "Canonical scope:activate behaviour is unchanged, pinned by a test.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/transition.test.ts#runTransition activate envelope policy (#3933 criterion 7): stamps an existing xBRIEFInfo@0.8 and adds no legacy key; stamps an existing vBRIEFInfo@0.6 in place; refuses a brief carrying neither envelope by name, before the move",
+          "recorded_at": "2026-08-30T05:05:00Z",
+          "recorded_by": "leaf-worker/3933"
+        }
       },
       {
         "id": "3933-ac8-remedy-recorded",
         "title": "The remedy choice (delegate versus local parity patch) is recorded with the evidence that selected it.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "xbrief/decisions/2026-08-30-take-the-recorded-fallback-for-3933-a-local-envelope-parity-patc.decision.json (both delegation spikes measured on branch fix/3933-activate-envelope: pure delegation 28/57 targeted tests failing, partial delegation 8 failures with an unhandled mkdir throw); PR https://github.com/deftai/directive/pull/3936",
+          "recorded_at": "2026-08-30T05:05:00Z",
+          "recorded_by": "leaf-worker/3933"
+        }
       }
     ],
     "tags": [
@@ -144,6 +192,33 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-08-30T03:34:22Z"
+    "updated": "2026-08-30T04:34:53Z",
+    "metadata": {
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3936,
+        "prBase": null,
+        "mergeCommit": "d7391aa36b6793867488b5427bb56178798e4855",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d7391aa36b6793867488b5427bb56178798e4855",
+        "verifiedAt": "2026-08-30T04:34:53Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "effc2f98-01e4-4e99-893a-ee0c136e0a5d"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-30T04:34:53Z"
+      },
+      "completedAt": "2026-08-30T04:34:53Z",
+      "completedSessionId": "effc2f98-01e4-4e99-893a-ee0c136e0a5d",
+      "capacityBucket": "technical-debt"
+    }
   }
 }
