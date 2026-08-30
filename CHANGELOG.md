@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **Land completed-tracked artifact for #3930 (#3264 / #1358).** The #3930 xBRIEF was held out of PR 3935 so that closing the issue could not strand a running brief under `active/` and re-red the merge gate on `verify:orphan-active`. Landed in `xbrief/completed/` via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
 - **A content contract no longer pins its changelog line to the `[Unreleased]` section (#3930).** A release cut moves an entry into the section it cut, so the v0.108.0 cut emptied the bounded slice and left `task check` red on master for every branch, independent of what that branch changed. The occupancy membership case now requires exactly one entry anywhere in the changelog carrying both of its tokens. The changelog is append-only across cuts, so that holds for every future release with no section parsing and no new release machinery. Closes #3930. Refs #3755, #3156.
 
 ### Removed
