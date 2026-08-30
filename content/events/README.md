@@ -27,11 +27,11 @@ data-file-convention check ([#710](https://github.com/deftai/directive/issues/71
 
 - **`detection-bound`** — detectable from filesystem state alone (e.g. dirty
   tree, vBRIEF schema invalidity, version drift). Emitted via
-  `the TypeScript event detector`. Detector lives at the call site documented in
+  `task lifecycle:event`. Detector lives at the call site documented in
   the entry's `trigger` field.
 - **`behavioral`** — requires runtime instrumentation (paired
   `session:interrupted` / `session:resumed`, `plan:approved`,
-  `legacy:detected`). Emitted via `the TypeScript event recorder`, which manages 1:1
+  `legacy:detected`). Emitted via `task lifecycle:event`, which manages 1:1
   session-pair invariants and a JSONL append-only log at
   `<project_root>/.deft-cache/events.jsonl`.
 
@@ -48,29 +48,28 @@ conforming to `event-record.schema.json`:
 }
 ```
 
-`the TypeScript event detector::emit(name, payload)` validates against the full
+`task lifecycle:event -- emit <name> ...` validates against the full
 registry (any registered name is accepted) and is silent by default; when the
 `DEFT_EVENT_LOG` environment variable points to a writable path, each
 emission is appended as a single JSON line.
 
-`the TypeScript event recorder::emit(name, payload)` validates against the
-`category="behavioral"` subset of the registry, generates a sortable event id
-for pairing semantics, enforces required-payload contracts, and persists to
-`<project_root>/.deft-cache/events.jsonl` (or a path injected via `log_path` /
+Behavioral emits validate against the `category="behavioral"` subset of the
+registry, generate a sortable event id for pairing semantics, enforce
+required-payload contracts, and persist to
+`<project_root>/.deft-cache/events.jsonl` (or a path injected via `--log` /
 `DEFT_EVENT_LOG`). The log lives under the already-gitignored `.deft-cache/`
 rather than `.deft/`, because `.deft/` is not blanket-gitignored on hybrid
 installs (`.deft/core/` is gitignored and reconstituted by `directive init`,
-per #1942 / #1465). Use this helper when emitting behavioral events from
-skills (`python -m scripts._events emit ...`).
+per #1942 / #1465). Skills emit behavioral events with
+`task lifecycle:event -- emit <name> ...`.
 
 ## Adding an event
 
 1. Append the entry to `registry.json` with the appropriate `category`,
    payload contract, trigger pointer, and consumer pointers (validate via
-   `tests/cli/test_events.py` and `tests/cli/test_behavioral_events.py`).
-2. Add the detection / emission call site in `scripts/` or the relevant
-   surface (use `the TypeScript event detector` for detection-bound,
-   `the TypeScript event recorder` for behavioral).
+   `packages/core/src/lifecycle/events.ts` tests).
+2. Add the detection / emission call site in the TypeScript lifecycle surface
+   (use `task lifecycle:event` for both detection-bound and behavioral events).
 3. Reference the event by name from at least one consumer (skill, task,
    script) so the surface stays usable -- the schema requires `consumers`
    to be a non-empty array.

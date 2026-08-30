@@ -10,7 +10,7 @@ Canonical contract for the artifacts that every spec-generating strategy MUST pr
 
 **Legend (from RFC2119):** !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [vbrief/vbrief.md](../vbrief/vbrief.md) | [strategies/README.md](./README.md) | [strategies/artifact-guards.md](./artifact-guards.md) | [skills/deft-directive-build/SKILL.md](../skills/deft-directive-build/SKILL.md) (Pre-Cutover Detection Guard) | [the frozen v0.59.0 migrator (UPGRADING.md)](../../the frozen v0.59.0 migrator (UPGRADING.md)) | [conventions/machine-generated-banner.md](../conventions/machine-generated-banner.md)
+**⚠️ See also**: [vbrief/vbrief.md](../vbrief/vbrief.md) | [strategies/README.md](./README.md) | [strategies/artifact-guards.md](./artifact-guards.md) | [skills/deft-directive-build/SKILL.md](../skills/deft-directive-build/SKILL.md) (Pre-Cutover Detection Guard) | [the frozen v0.59.0 migrator](../../UPGRADING.md) | [conventions/machine-generated-banner.md](../conventions/machine-generated-banner.md)
 
 ---
 
@@ -127,7 +127,7 @@ Use this contract when:
 - Authoring a new spec-generating strategy (interview, yolo, speckit, rapid, enterprise, etc.).
 - Migrating an existing strategy to v0.20 (the s3/s4/s5 work).
 - Implementing or updating the deterministic validation gate (s2) or build pre-cutover guards.
-- Writing migration tooling (`migrate_vbrief.py`, reconcile scripts, etc.).
+- Writing migration tooling (the frozen v0.59.0 migrator in UPGRADING.md, reconcile scripts, etc.).
 - Auditing a generated project for v0.20 conformance.
 
 ## Workflow

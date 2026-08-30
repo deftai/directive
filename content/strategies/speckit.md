@@ -214,7 +214,7 @@ For each implementation phase IP-N, write a scope vBRIEF with:
 
 - ~ Projects that already emitted a speckit-shaped `plan.vbrief.json` (project-wide IP list) can convert to the new model with:
   ```
-  the frozen v0.59.0 migrator in UPGRADING.md
+  Pin framework v0.59.0, then: task migrate:vbrief -- --speckit-plan vbrief/plan.vbrief.json
   ```
   The translator emits one scope vBRIEF per IP into `vbrief/proposed/` (3-digit padded filenames, bilingual `edges` reader so both `from/to` and legacy `source/target` translate correctly) and writes the remaining session-level scaffold back to `plan.vbrief.json`.
 

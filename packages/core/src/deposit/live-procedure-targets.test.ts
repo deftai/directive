@@ -91,6 +91,23 @@ describe("C3 live-procedure target validation (#3602)", () => {
     expect(isPythonHelperPath("tasks/verify.yml")).toBe(false);
   });
 
+  it("detects pruned .py helpers outside scripts/ (compose python-free)", () => {
+    expect(normalizePythonHelperTarget("tools/missing.py")).toBe("tools/missing.py");
+    expect(normalizePythonHelperTarget("../../packages/core/legacy.pyc")).toBe(
+      "packages/core/legacy.pyc",
+    );
+    expect(normalizePythonHelperTarget("app.py")).toBeNull();
+    const root = staged("c3-nonscripts-");
+    mkdirSync(join(root, "skills", "demo"), { recursive: true });
+    writeFileSync(
+      join(root, "skills", "demo", "SKILL.md"),
+      "! run `tools/missing.py` then `packages/core/legacy.pyc`\n",
+      "utf8",
+    );
+    const result = evaluateLiveProcedureTargets({ stagedRoot: root });
+    expect(result.uniqueTargets).toEqual(["packages/core/legacy.pyc", "tools/missing.py"]);
+  });
+
   it("skips planning, history/archive, missing roots, and excluded extra files", () => {
     const root = staged("c3-skip-");
     mkdirSync(join(root, ".planning"), { recursive: true });

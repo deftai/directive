@@ -192,7 +192,7 @@ into the worker's env:
 
 ```pwsh path=null start=null
 # Option A (GitHub App): mint installation token at dispatch time.
-$jwt = uv run python the worker credential injection helper --app-id $env:DEFT_SWARM_APP_ID --pem secrets/swarm-app.pem
+$jwt = <operator-supplied GitHub App JWT>  # Directive does not ship a mint helper in v1 (#983)
 $inst_token = (gh api -X POST "/app/installations/$env:DEFT_SWARM_INSTALLATION_ID/access_tokens" -H "Authorization: Bearer $jwt" --jq .token)
 start_agent ... -e GH_TOKEN=$inst_token
 
@@ -201,7 +201,7 @@ $bot_token = (Get-Content secrets/swarm-bot.env | Where-Object { $_ -like 'SWARM
 start_agent ... -e GH_TOKEN=$bot_token
 ```
 
-Token-mint plumbing (`the worker credential injection helper`) is intentionally not
+Token-mint plumbing is intentionally not
 shipped in v1 -- the runbook above is operator-facing guidance, not
 deft-supplied automation. v1 is documentation-only per #983 non-goals.
 Operators MAY automate token minting in their own dispatcher; the

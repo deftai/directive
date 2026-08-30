@@ -59,11 +59,11 @@ npm i -g @deftai/directive@latest
 
 ## Framework Events Emitted Here
 
-! When this skill responds to a context-window shift or an explicit "are you using Deft?" probe (per AGENTS.md Deft Alignment Confirmation), emit the paired `session:interrupted` -> `session:resumed` framework events via `the TypeScript event recorder` so observability of agent-runtime state transitions is structural, not prose-only:
+! When this skill responds to a context-window shift or an explicit "are you using Deft?" probe (per AGENTS.md Deft Alignment Confirmation), emit the paired `session:interrupted` -> `session:resumed` framework events via `task lifecycle:event` so observability of agent-runtime state transitions is structural, not prose-only:
 
-- ! Before re-confirming alignment: `record session:interrupted via the TS event surface (no Python helper)`
-- ! Immediately after the alignment confirmation line: `record session:resumed via the TS event surface (no Python helper)`
-- ⊗ Emit a `session:resumed` whose `interrupted_id` does not reference a prior `session:interrupted` -- such records are orphan and rejected by `the event pairing validator` (#635 events behavioral wiring)
+- ! Before re-confirming alignment: `task lifecycle:event -- emit session:interrupted --session-id <id> --reason <enum>`
+- ! Immediately after the alignment confirmation line: `task lifecycle:event -- emit session:resumed --session-id <id> --interrupted-id <id-from-prior-emit>`
+- ⊗ Emit a `session:resumed` whose `interrupted_id` does not reference a prior `session:interrupted` -- such records are orphan and rejected by `task lifecycle:event -- validate-pairing` (#635 events behavioral wiring)
 
 ## Pre-Cutover Detection Guard
 

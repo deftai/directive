@@ -81,48 +81,53 @@ function collectMarkdownFiles(root: string): string[] {
   return out.sort();
 }
 
-const HELPER_TOKEN = /^scripts\/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*\.py$/;
+const PATH_CHAR = /[A-Za-z0-9_.-]/;
+const PY_HELPER_TOKEN = /^(?:[A-Za-z0-9_.-]+\/)+[A-Za-z0-9_.-]+\.py[c]?$/;
+
+function stripRelativePrefix(posix: string): string {
+  let out = posix;
+  while (out.startsWith("./")) out = out.slice(2);
+  while (out.startsWith("../")) out = out.slice(3);
+  return out;
+}
 
 export function normalizePythonHelperTarget(raw: string): string | null {
   const clean = (raw.split("#")[0] ?? "").split("?")[0] ?? "";
   const posix = clean.replace(/\\/g, "/");
   if (posix.includes("://")) return null;
-  const idx = posix.lastIndexOf("scripts/");
-  if (idx < 0) return null;
-  const token = posix.slice(idx);
-  if (token.includes("..")) return null;
-  if (!HELPER_TOKEN.test(token)) return null;
+  const stripped = stripRelativePrefix(posix);
+  if (stripped.includes("..")) return null;
+  const scriptsIdx = stripped.lastIndexOf("scripts/");
+  const token = scriptsIdx >= 0 ? stripped.slice(scriptsIdx) : stripped;
+  if (!PY_HELPER_TOKEN.test(token)) return null;
   return token;
+}
+
+function isPathChar(ch: string | undefined): boolean {
+  if (ch === undefined) return false;
+  return PATH_CHAR.test(ch) || ch === "/" || ch === "\\";
 }
 
 function extractBacktickPythonHelpers(line: string): string[] {
   const out: string[] = [];
-  let from = 0;
-  while (from < line.length) {
-    const idx = line.indexOf("scripts/", from);
-    if (idx < 0) break;
-    let end = idx + "scripts/".length;
-    while (end < line.length) {
-      const ch = line[end];
-      if (ch === undefined) break;
-      if (
-        (ch >= "A" && ch <= "Z") ||
-        (ch >= "a" && ch <= "z") ||
-        (ch >= "0" && ch <= "9") ||
-        ch === "_" ||
-        ch === "." ||
-        ch === "/" ||
-        ch === "-"
-      ) {
-        end += 1;
+  const suffixes = [".pyc", ".py"] as const;
+  for (const suffix of suffixes) {
+    let from = 0;
+    while (from < line.length) {
+      const idx = line.indexOf(suffix, from);
+      if (idx < 0) break;
+      const after = line[idx + suffix.length];
+      if (isPathChar(after)) {
+        from = idx + suffix.length;
         continue;
       }
-      break;
+      let start = idx;
+      while (start > 0 && isPathChar(line[start - 1])) start -= 1;
+      const token = line.slice(start, idx + suffix.length);
+      from = idx + suffix.length;
+      const normalized = normalizePythonHelperTarget(token);
+      if (normalized) out.push(normalized);
     }
-    const token = line.slice(idx, end);
-    from = end > idx ? end : idx + 1;
-    const normalized = normalizePythonHelperTarget(token);
-    if (normalized) out.push(normalized);
   }
   return out;
 }

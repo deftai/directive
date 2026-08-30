@@ -132,7 +132,7 @@ Text-level safety alignment does not transfer to the tool-call boundary. An agen
 - ⊗ Rely on model-level safety training as the only barrier between an agent and a destructive tool call -- text alignment provides no guarantee at the tool boundary
 - ⊗ Ship a tool registry where any tool is missing a constraint-tier declaration -- the default-to-`destructive` fallback exists for staging, not production
 
-Cross-references: `Agent-Specific Threats` section above | the in-flight `patterns/executor-layer-credentials.md` tool-call gateway pattern (Wave 2, tracked at [#806](https://github.com/deftai/directive/issues/806); not yet on master) | [`task verify:destructive-gh-verbs`](../../task verify:destructive-gh-verbs) (#1019 reference implementation of a per-tool deterministic safety classifier) | Cartagena & Teixeira 2026 <https://arxiv.org/abs/2602.22302>.
+Cross-references: `Agent-Specific Threats` section above | the in-flight `patterns/executor-layer-credentials.md` tool-call gateway pattern (Wave 2, tracked at [#806](https://github.com/deftai/directive/issues/806); not yet on master) | `task verify:destructive-gh-verbs` (#1019 reference implementation of a per-tool deterministic safety classifier) | Cartagena & Teixeira 2026 <https://arxiv.org/abs/2602.22302>.
 
 ## Destructive-Op Guardrails -- Environment Isolation + Irreversibility (#708)
 
@@ -155,7 +155,7 @@ The April 2026 PocketOS / Railway incident -- a Cursor/Claude agent deleted a pr
 - ⊗ Execute a destructive operation in a verified prod environment without an in-session human ack token -- "the user authorised the project" is not session-scoped consent
 - ⊗ Treat a backup as out-of-scope for the irreversibility gate -- the PocketOS incident is the recurrence record; backups were destroyed in the same nine-second window as the live database
 
-Cross-references: [`incidents/README.md`](../incidents/README.md) (incidents library format) | [`incidents/2026-04-pocketos-railway-prod-db-wipe.md`](../../incidents/2026-04-pocketos-railway-prod-db-wipe.md) (seed entry) | `Agent-Specific Threats` section above (this section extends it) | [`task verify:destructive-gh-verbs`](../../task verify:destructive-gh-verbs) (#1019 deterministic-classifier reference) | #1095 closed-verb scope-expansion gate (consumes the irreversibility-tier classification).
+Cross-references: [`incidents/README.md`](../incidents/README.md) (incidents library format) | [`incidents/2026-04-pocketos-railway-prod-db-wipe.md`](../../incidents/2026-04-pocketos-railway-prod-db-wipe.md) (seed entry) | `Agent-Specific Threats` section above (this section extends it) | `task verify:destructive-gh-verbs` (#1019 deterministic-classifier reference) | #1095 closed-verb scope-expansion gate (consumes the irreversibility-tier classification).
 
 ## Install Trust — no naked curl|sh as primary path (#2969)
 
