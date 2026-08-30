@@ -1,9 +1,9 @@
 {
   "schemaVersion": "deft.decision.v1",
   "id": "do-not-route-gpt-5-3-codex-subagents",
-  "decision": "Do not route gpt-5.3-codex as a subagent model on this host. Its definition was removed from the local Grok Build model catalog (~/.grok/config.toml) on 2026-08-30.",
+  "decision": "Do not route gpt-5.3-codex as a subagent model on this host, and do not re-add it except under the revisit conditions recorded here. Its definition was removed from the local Grok Build model catalog on 2026-08-30.",
   "governingRule": {
-    "description": "Make a deliberate per-worker model routing decision before any sub-agent dispatch; never silently inherit, and do not re-add a model that returned completion claims for work it did not do.",
+    "description": "Make a deliberate per-worker model routing decision before any sub-agent dispatch, and never silently inherit the parent orchestrator's model.",
     "path": "content/templates/agent-prompt-preamble.md",
     "rfc2119": "MUST"
   },
