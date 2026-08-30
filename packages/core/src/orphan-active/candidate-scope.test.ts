@@ -226,6 +226,27 @@ describe("resolveCandidateScope (#3893)", () => {
     expect(scope.reason).toContain("untracked");
   });
 
+  it("keeps the candidate diff when the worktree root spelling differs by Unicode form", () => {
+    // git reports the precomposed root; the checkout path arrives decomposed.
+    const precomposed = resolve(tmpdir(), "deft-caf\u00e9-root");
+    const decomposed = resolve(tmpdir(), "deft-cafe\u0301-root");
+    expect(precomposed).not.toBe(decomposed);
+    const scope = resolveCandidateScope(decomposed, join(decomposed, "xbrief", "active"), {
+      baseRef: "origin/master",
+      runGit: gitStub({
+        ...baseRoutes(precomposed),
+        "diff --name-only -z basesha": nulPaths("xbrief/active/story.xbrief.json"),
+      }),
+    });
+    expect(scope.kind).toBe("diff");
+    if (scope.kind !== "diff") throw new Error("expected diff");
+    expect(
+      scope.paths.has(
+        normalizeScopePath(join(precomposed, "xbrief", "active", "story.xbrief.json")),
+      ),
+    ).toBe(true);
+  });
+
   it("sweeps repo-wide when active/ is outside the worktree", () => {
     const root = makeRoot();
     const outside = resolve(root, "..", "elsewhere", "active");

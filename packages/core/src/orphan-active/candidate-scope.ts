@@ -39,13 +39,20 @@ export interface CandidateScopeOptions {
 }
 
 /**
- * One comparable form for a git path and a readdir path.
- *
- * NFC because git precomposes Unicode (`core.precomposeunicode`) while some
- * filesystems hand `readdir` the decomposed form; case-folded on win32.
+ * Precomposed absolute path. Git precomposes Unicode
+ * (`core.precomposeunicode`) while some filesystems hand `readdir` the
+ * decomposed form, so every path comparison here folds to NFC first.
+ */
+function nfcPath(path: string): string {
+  return resolve(path).normalize("NFC");
+}
+
+/**
+ * One comparable form for a git path and a readdir path: NFC, case-folded on
+ * win32.
  */
 export function normalizeScopePath(path: string): string {
-  const abs = resolve(path).normalize("NFC");
+  const abs = nfcPath(path);
   return process.platform === "win32" ? abs.toLowerCase() : abs;
 }
 
@@ -141,7 +148,9 @@ export function resolveCandidateScope(
     return sweep(`merge base with ${baseRef} is empty`);
   }
 
-  const activeRel = relative(gitRoot, resolve(activeDir)).replace(/\\/g, "/");
+  // Fold both sides before the relative: an unequal Unicode spelling of the
+  // same root would otherwise read as `..` and restore the repo-wide sweep.
+  const activeRel = relative(nfcPath(gitRoot), nfcPath(activeDir)).replace(/\\/g, "/");
   if (activeRel.length === 0 || activeRel.startsWith("..")) {
     return sweep("active/ is outside the git worktree");
   }
