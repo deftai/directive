@@ -115,6 +115,53 @@ describe("evaluator worktrees", () => {
     expect(existsSync(wtA)).toBe(false);
   });
 
+  it("cleans a failed removal from a linked worktree without unregistering a sibling", () => {
+    const root = mkdtempSync(join(tmpdir(), "wt-link-"));
+    temps.push(root);
+    execFileSync("git", ["init", "-q"], { cwd: root });
+    execFileSync("git", ["config", "user.email", "t@t.local"], { cwd: root });
+    execFileSync("git", ["config", "user.name", "T"], { cwd: root });
+    execFileSync("git", ["commit", "-q", "--allow-empty", "-m", "init"], {
+      cwd: root,
+      env: {
+        ...process.env,
+        GIT_AUTHOR_NAME: "T",
+        GIT_AUTHOR_EMAIL: "t@t.local",
+        GIT_COMMITTER_NAME: "T",
+        GIT_COMMITTER_EMAIL: "t@t.local",
+      },
+    });
+    const linked = join(root, "linked");
+    execFileSync("git", ["worktree", "add", "--detach", linked], { cwd: root });
+    const wtA = join(root, "wt-a");
+    const wtB = join(root, "wt-b");
+    execFileSync("git", ["worktree", "add", "--detach", wtA], { cwd: linked });
+    execFileSync("git", ["worktree", "add", "--detach", wtB], { cwd: linked });
+    rmSync(wtB, { recursive: true, force: true });
+    let removes = 0;
+    const git: GitRunner = (args, cwd) => {
+      if (args[0] === "worktree" && args[1] === "prune") {
+        throw new Error("unscoped git worktree prune must not run");
+      }
+      if (args[0] === "worktree" && args[1] === "remove") {
+        removes += 1;
+        if (removes === 1) {
+          return { returncode: 1, stdout: "", stderr: "locked" };
+        }
+      }
+      return swarmGitRunner(args, cwd);
+    };
+    removeEvaluatorWorktree(linked, wtA, git);
+    const listed = execFileSync("git", ["worktree", "list", "--porcelain"], {
+      cwd: linked,
+      encoding: "utf8",
+    });
+    const listedNeedle = resolve(wtB).replace(/\\/g, "/").toLowerCase();
+    const listedNorm = listed.replace(/\\/g, "/").toLowerCase();
+    expect(listedNorm).toContain(listedNeedle);
+    expect(existsSync(wtA)).toBe(false);
+  });
+
   it("raises when fallback prune still leaves a registered worktree", () => {
     const root = mkdtempSync(join(tmpdir(), "wt-"));
     temps.push(root);

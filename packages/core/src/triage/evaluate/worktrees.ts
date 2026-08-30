@@ -52,8 +52,10 @@ function normalizeWorktreePath(path: string): string {
 
 /**
  * Unregister one missing worktree by deleting only its `$GIT_DIR/worktrees/<id>`
- * admin directory. `git worktree prune` has no path argument and operates on
- * every registration, including concurrent agents' reflogs.
+ * admin directory. Containment root is that worktrees dir (the git common dir
+ * may sit outside a linked-worktree projectRoot). `git worktree prune` has no
+ * path argument and operates on every registration, including concurrent
+ * agents' reflogs.
  */
 function pruneEvaluatorWorktreeAdmin(
   git: SwarmGitRunner,
@@ -78,6 +80,9 @@ function pruneEvaluatorWorktreeAdmin(
     return;
   }
   for (const name of names) {
+    if (name === "." || name === ".." || name.includes("/") || name.includes("\\")) {
+      continue;
+    }
     const gitdirFile = join(worktreesDir, name, "gitdir");
     if (!existsSync(gitdirFile)) {
       continue;
@@ -91,7 +96,7 @@ function pruneEvaluatorWorktreeAdmin(
     const recordedWorktree = recorded.replace(/\\/g, "/").replace(/\/\.git$/u, "");
     if (normalizeWorktreePath(recordedWorktree) === needle) {
       containedRemove({
-        root: resolve(projectRoot),
+        root: resolve(worktreesDir),
         target: join(worktreesDir, name),
         recursive: true,
         mutation: false,
