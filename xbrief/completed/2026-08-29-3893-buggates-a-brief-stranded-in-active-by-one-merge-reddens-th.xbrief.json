@@ -1,0 +1,201 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #3893",
+    "updated": "2026-08-30T05:44:46Z"
+  },
+  "plan": {
+    "title": "bug(gates): a brief stranded in active/ by one merge reddens the merge gate on every other open PR",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(gates): a brief stranded in active/ by one merge reddens the merge gate on every other open PR",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3893",
+      "Overview": "## The defect\n\n`verify:orphan-active` sits in both `FRAMEWORK_CHECK_GATES` and `CONSUMER_CHECK_GATES`, and `evaluate.ts` enumerates every running brief under `xbrief/active/` with no diff ownership. One brief stranded by any merge therefore fails the merge gate on every other open PR, naming a file those PRs never touched.\n\nMeasured 2026-08-28: PRs #3879, #3883, #3887 and #3889 failed the same two lanes at 21:14 on this verifier. #3879 then passed a re-run with its head unchanged once the strandings landed. Two single-brief lifecycle PRs each removed one stranded brief and neither could pass alone, because each still evaluated the other's; a third PR had to carry both. Six occurrences in one day across two independent agents (comment 5458453552).\n\nThe deadlock is structural: a repo-wide predicate evaluated per PR means k open PRs go red for one stranded file, and n strandings mutually block their own n cleanups.\n\n## The sharper finding, from the critic\n\n`orphan-active` decides a linked PR shipped by reading REST `merged_at`. During a candidate's own merge gate the candidate is not merged, so its `merged_at` is null. The gate cannot detect the residue the candidate is about to create. It detects debt already in the base, or an issue closed earlier. So the repo-wide scan has no unique preventive value for the PR under test: it fails to stop the merge that creates the debt and then blocks unrelated PRs after the debt exists.\n\n## Two refuted arguments, recorded so they are not retried\n\n1. The `verify:completed-tracked` merge-gate exclusion is NOT precedent. That exclusion exists to avoid deadlocking in-flight lifecycle PRs, and the two checks key on different state: `orphan-active` keys on issue closure AND linked-PR `merged_at`; `completed-tracked` treats an open issue as nonterminal and asks whether a tracked terminal artifact exists on the delivery tip.\n2. \"Master state is truthful\" does not justify giving an unrelated PR merge authority over another agent's residue.\n\n## Design\n\nScope the merge-chokepoint run to diff ownership; keep the detector semantics untouched.\n\n- New `verify:orphan-active --changed-only [--base-ref <ref>]`. The active/running scan is restricted to briefs the candidate's own diff touches, computed as `git diff --name-only <merge-base>..HEAD` limited to the lifecycle `active/` prefix.\n- When HEAD is an ancestor of the base ref there is no candidate diff, so the full repo-wide sweep runs. That is the delivery-tip enforcement: master's own `check:merge` and every push-to-master run keep repo-wide truth.\n- Base ref resolution: explicit `--base-ref`, else `origin/<plan.policy.deliveryBranch>`, else the local delivery branch. An unresolvable base ref falls back to the repo-wide sweep and says so, so the flag can never silently narrow the scan.\n- `assessOrphanSignature` is unchanged, so the linked-PR/open-issue signature is preserved on every path. No #3156 retirement is required.\n- Bare `verify:orphan-active` stays repo-wide: `deft doctor`, manual runs, swarm finalize, and the post-merge `--issue N` DONE gate (#3429) are unaffected.\n\n## Named check-composition change (#3156 / #3145)\n\nThe merge chokepoint moves from the unscoped form to `verify:orphan-active --changed-only` on `FRAMEWORK_CHECK_GATES`, `CONSUMER_CHECK_GATES`, `check:framework-source` and `check:consumer`. The gate id is unchanged, so it stays on both lists and every gate-integrity test still resolves it.\n\n`verify:consumer-check-contract` is updated in the same change to know about the scoped form: a new `MERGE_CHOKEPOINT_SCOPED_GATE_ARGS` record names each gate that must carry a scoping argument on a check aggregate, and the contract reports an aggregate that composes the unscoped form. Framework source fails closed on it; consumer deposits warn while `deft update` re-deposits the Taskfile. This is strictly additive: no gate definition, verifier, required check, coverage floor, or policy flag is weakened.\n\nNo repo-wide scan is added to any merge chokepoint. The existing pre-merge preventive signal for closeout residue remains `verify:pr-closeout-attestable` (#3781), which keys on the PR's structured closing references rather than the branch diff and runs as the last gate before the merge call.\n\n## Unresolved, deliberately (carried from the issue)\n\nWhether the pre-merge run has ever uniquely caught residue a delivery-tip check would have missed is unresolved. The design is safe under both answers: the signature is preserved rather than retired, and the repo-wide sweep still runs at the delivery tip and after merge.",
+      "Labels": "bug, agent-experience, process, design-critique:triage-ready",
+      "Decisions": "- xbrief/decisions/2026-08-30-merge-chokepoint-runs-of-verify-orphan-active-are-scoped-to-the.decision.json — Merge-chokepoint runs of verify:orphan-active are scoped to the candidate's own diff; repo-wide residue truth stays on the delivery tip, the bare verb, and the after-merge --issue N run."
+    },
+    "items": [
+      {
+        "title": "A PR is not failed by `check:merge` for residue it did not create",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/orphan-active/evaluate-changed-only.test.ts#lets two single-brief lifecycle candidates pass independently (#3893); #still fails a candidate for residue inside its own diff; PR https://github.com/deftai/directive/pull/3927",
+          "recorded_at": "2026-08-30T05:41:33Z",
+          "recorded_by": "leaf-worker/3893"
+        }
+      },
+      {
+        "title": "The linked-PR/open-issue signature is preserved, or its retirement is recorded under named #3156 review",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/orphan-active/evaluate-changed-only.test.ts#preserves the merged-PR / open-issue signature inside the candidate diff; assessOrphanSignature unchanged in packages/core/src/orphan-active/evaluate.ts; PR https://github.com/deftai/directive/pull/3927",
+          "recorded_at": "2026-08-30T05:41:33Z",
+          "recorded_by": "leaf-worker/3893"
+        }
+      },
+      {
+        "title": "Repo-wide residue truth is still enforced somewhere deterministic and after merge",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/orphan-active/evaluate-changed-only.test.ts#keeps repo-wide truth when HEAD is on the delivery line; #falls back to the repo-wide sweep when the base ref is unresolvable; after-merge surface is verify:orphan-active -- --issue N (#3429); PR https://github.com/deftai/directive/pull/3927",
+          "recorded_at": "2026-08-30T05:41:33Z",
+          "recorded_by": "leaf-worker/3893"
+        }
+      },
+      {
+        "title": "`verify:consumer-check-contract` is updated in the same change",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/consumer-check-contract/merge-gate-scoping.test.ts (18 tests: MERGE_CHOKEPOINT_SCOPED_GATE_ARGS, effective CLI_ARGS parsing, every-occurrence validation, framework fail-closed vs consumer warn); PR https://github.com/deftai/directive/pull/3927",
+          "recorded_at": "2026-08-30T05:41:33Z",
+          "recorded_by": "leaf-worker/3893"
+        }
+      },
+      {
+        "title": "A test covers the two-stranded-brief case and shows independent cleanups no longer deadlock",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/orphan-active/evaluate-changed-only.test.ts#lets two single-brief lifecycle candidates pass independently (#3893) -- both candidates exit 1 unscoped and 0 scoped; PR https://github.com/deftai/directive/pull/3927",
+          "recorded_at": "2026-08-30T05:41:33Z",
+          "recorded_by": "leaf-worker/3893"
+        }
+      },
+      {
+        "title": "CHANGELOG `[Unreleased]` entry",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "artifact",
+          "pointer": "CHANGELOG.md [Unreleased] -> ### Fixed entry for #3893; PR https://github.com/deftai/directive/pull/3927",
+          "recorded_at": "2026-08-30T05:41:33Z",
+          "recorded_by": "leaf-worker/3893"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3893",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3893: bug(gates): a brief stranded in active/ by one merge reddens the merge gate on every other open PR"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2321",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2321"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3156",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3156"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3264",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3264"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3145",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3145"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [],
+      "swarm": {
+        "missing_traces_justification": "Bug fix ingested from GitHub issue #3893; no spec-section requirement trace applies. plan.metadata.swarm.file_scope is omitted per #3874 (a declared file_scope without base approval fails verify:scope-provenance closed), so verify:ac reports clauses unverifiable by trace."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "capacityBucket": "technical-debt",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3927,
+        "prBase": null,
+        "mergeCommit": "0adec0e8f6de72cea0070abae4efd6524d169cf6",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0adec0e8f6de72cea0070abae4efd6524d169cf6",
+        "verifiedAt": "2026-08-30T05:44:46Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "068fd94a-b2da-498b-b16a-ae8a453b5552"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-30T05:44:46Z"
+      },
+      "completedAt": "2026-08-30T05:44:46Z",
+      "completedSessionId": "068fd94a-b2da-498b-b16a-ae8a453b5552"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "stated",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "A PR is not failed by `check:merge` for residue it did not create",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The linked-PR/open-issue signature is preserved, or its retirement is recorded under named #3156 review",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Repo-wide residue truth is still enforced somewhere deterministic and after merge",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "`verify:consumer-check-contract` is updated in the same change",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "A test covers the two-stranded-brief case and shows independent cleanups no longer deadlock",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "CHANGELOG `[Unreleased]` entry",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "derived_reason": "Issue #3893 states six acceptance criteria as prose clauses and no acceptance commands; none_stated marks the absent command set (#3284)."
+    },
+    "updated": "2026-08-30T05:44:46Z"
+  }
+}
