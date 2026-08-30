@@ -1,0 +1,155 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #3601 under bound #3899 design",
+    "updated": "2026-08-30T16:38:09Z"
+  },
+  "plan": {
+    "title": "Consumer Skills Index points at packs:slice; C1 declared deposit closure",
+    "status": "running",
+    "narratives": {
+      "Description": "Point the managed consumer Skills Index at the existing pack slice instead of shipping REFERENCES.md, and add C1 declared deposit closure.",
+      "Origin": "https://github.com/deftai/directive/issues/3601",
+      "Overview": "Bound by #3899 synthesis 5466693576 (citing lean 5466189787) and installed-deposit probe 5466727900. Do not re-open that arc.\\n\\nBranch 1 (reclassify root REFERENCES.md as content and ship it) is rejected: repo-dev is an audience boundary. Branch 2 lands by pointing the managed AGENTS.md card at npx deft packs:slice skills list (text form, not --json; local spelling npx deft or .\\\\node_modules\\\\.bin\\\\deft). Do not generate a new index artifact.\\n\\nC1: every path the deposit mandates an agent to read must resolve in staged pack output. Required paths are a closed typed declaration, not a regex over agents-entry prose. Extraction is tested against positive and negative fixtures (consumer-owned, conditional, historical, prohibited). C1 fails on a deliberately mutated staged tree.\\n\\nRecord the REFERENCES.md classification decision and the version-skew residual via decision:write.\\n\\nDo not close #3899. Closes #3601.",
+      "Labels": "bug, vendored-deposit, area:installer"
+    },
+    "items": [
+      {
+        "title": "Managed consumer Skills Index points at npx deft packs:slice skills list (text form, not --json; local spelling)",
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts + packages/core/src/content-contracts/skills/agents_md_session_start.test.ts",
+          "recorded_at": "2026-08-30T16:38:09Z",
+          "recorded_by": "leaf-worker/3601"
+        }
+      },
+      {
+        "title": "REFERENCES.md stays bucket repo-dev; consumer template no longer mandates reading it",
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/deposit_required_closure.test.ts#consumer template no longer mandates .deft/core/REFERENCES.md",
+          "recorded_at": "2026-08-30T16:38:09Z",
+          "recorded_by": "leaf-worker/3601"
+        }
+      },
+      {
+        "title": "Closed typed declaration of required deposit paths; extraction fixtures cover consumer-owned, conditional, historical, and prohibited references with no misclassification",
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/validate-content/deposit-required.test.ts",
+          "recorded_at": "2026-08-30T16:38:09Z",
+          "recorded_by": "leaf-worker/3601"
+        }
+      },
+      {
+        "title": "C1 checks declared paths against staged pack output and fails on a mutated staged tree",
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/deposit_required_closure.test.ts#fails when a declared file is deleted from the staged pack output",
+          "recorded_at": "2026-08-30T16:38:09Z",
+          "recorded_by": "leaf-worker/3601"
+        }
+      },
+      {
+        "title": "Decision log records the classification choice and the version-skew residual",
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "xbrief/decisions/2026-08-30-keep-references-md-repo-dev-point-consumer-index-at-pack-slice.decision.json + xbrief/decisions/2026-08-30-record-packs-slice-cli-bundled-content-version-skew-residual.decision.json",
+          "recorded_at": "2026-08-30T16:38:09Z",
+          "recorded_by": "leaf-worker/3601"
+        }
+      },
+      {
+        "title": "CHANGELOG [Unreleased] entry; Closes #3601; does not close #3899",
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "CHANGELOG.md [Unreleased] #3601; https://github.com/deftai/directive/pull/3958 body Closes #3601 and does not close #3899",
+          "recorded_at": "2026-08-30T16:38:09Z",
+          "recorded_by": "leaf-worker/3601"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "packaging",
+      "agents"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3601",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3601: consumer AGENTS points to REFERENCES.md that npm never deposits"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3899",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3899: post-release remediation sequencing"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Issue AC is outcome-shaped; no verbatim shell commands were stated as the pass bar.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Manifest classification of REFERENCES.md and the consumer template mandatory read agree",
+          "artifact_path": "content/templates/agents-entry.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Packed consumer deposit contains every path declared required, checked against staged pack output",
+          "artifact_path": "content/contracts/deposit-required-paths.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Required-path set is declared in a closed typed form; extraction tested against prose fixtures with no misclassification",
+          "artifact_path": "packages/core/src/validate-content/deposit-required.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "C1 fails on a deliberately mutated staged tree",
+          "artifact_path": "packages/core/src/validate-content/deposit-required.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Decision log records classification and version-skew residual",
+          "artifact_path": "xbrief/decisions/",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "CHANGELOG [Unreleased] entry; PR closes #3601 and does not close #3899",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      }
+    },
+    "updated": "2026-08-30T16:38:09Z"
+  }
+}
