@@ -115,6 +115,40 @@ function extractAfterVerb(
   const extracted = extractQuoted(command, j);
   pushUnique(out, kind, extracted.value);
 }
+function pathlibWriteFollows(command: string, afterPathArgs: number): boolean {
+  let i = skipWs(command, afterPathArgs);
+  if (command[i] === ")") i = skipWs(command, i + 1);
+  while (i < command.length) {
+    if (command[i] === ";") return false;
+    i = skipWs(command, i);
+    if (command[i] !== ".") return false;
+    i += 1;
+    const start = i;
+    while (i < command.length) {
+      const c = command.charCodeAt(i);
+      if ((c >= 65 && c <= 90) || (c >= 97 && c <= 122) || c === 95) {
+        i += 1;
+        continue;
+      }
+      break;
+    }
+    const name = command.slice(start, i);
+    i = skipWs(command, i);
+    if (command[i] !== "(") return false;
+    if (name === "write_text") return true;
+    if (name === "write_bytes") return true;
+    i += 1;
+    let depth = 1;
+    while (i < command.length && depth > 0) {
+      const ch = command[i];
+      if (ch === "(") depth += 1;
+      else if (ch === ")") depth -= 1;
+      i += 1;
+    }
+  }
+  return false;
+}
+
 function extractPythonPathlib(command: string, out: ShellWriteTarget[]): void {
   const i = skipWs(command, 0);
   const head = command.slice(i, i + 10).toLowerCase();
@@ -128,14 +162,7 @@ function extractPythonPathlib(command: string, out: ShellWriteTarget[]): void {
     const ch = command[j];
     if (ch === "r" || ch === "R") j = skipWs(command, j + 1);
     const extracted = extractQuoted(command, j);
-    let k = skipWs(command, extracted.next);
-    if (command[k] === ")") k = skipWs(command, k + 1);
-    if (command[k] !== ".") {
-      from = at + needle.length;
-      continue;
-    }
-    const rest = command.slice(k + 1, k + 13);
-    if (rest.startsWith("write_text(") || rest.startsWith("write_bytes(")) {
+    if (pathlibWriteFollows(command, extracted.next)) {
       pushUnique(out, "python-pathlib", extracted.value);
     }
     from = at + needle.length;

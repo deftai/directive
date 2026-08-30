@@ -75,4 +75,25 @@ describe("classifyShellWriteTargets", () => {
       { kind: "python-pathlib", path: "src/app.ts" },
     ]);
   });
+
+  it("extracts pathlib write_text after resolve()", () => {
+    const DQ = String.fromCharCode(34);
+    const AQ = String.fromCharCode(39);
+    const cmd =
+      "python -c " +
+      DQ +
+      "Path(" +
+      AQ +
+      "src/app.ts" +
+      AQ +
+      ").resolve().write_text(" +
+      AQ +
+      "x" +
+      AQ +
+      ")" +
+      DQ;
+    expect(classifyShellWriteTargets(cmd)).toEqual([
+      { kind: "python-pathlib", path: "src/app.ts" },
+    ]);
+  });
 });
