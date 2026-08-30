@@ -14,7 +14,8 @@ export type RunGitFn = (args: readonly string[]) => {
 export type RangeResolution =
   | { readonly kind: "pr"; readonly pr: string }
   | { readonly kind: "range"; readonly range: string }
-  | { readonly kind: "missing-base"; readonly reason: string };
+  | { readonly kind: "missing-base"; readonly reason: string }
+  | { readonly kind: "stale-base"; readonly reason: string };
 
 export function defaultRunGit(args: readonly string[]): {
   returncode: number;
@@ -42,6 +43,48 @@ function firstLine(text: string): string {
   return text.trim().split(/\r?\n/)[0] ?? "";
 }
 
+function shaOf(result: { returncode: number; stdout: string }): string | null {
+  if (result.returncode !== 0) return null;
+  const sha = firstLine(result.stdout);
+  return /^[0-9a-f]{7,40}$/i.test(sha) ? sha : null;
+}
+
+function localDefaultFor(originRef: string): string | null {
+  if (originRef.endsWith("/master") || originRef === "master") return "master";
+  if (originRef.endsWith("/main") || originRef === "main") return "main";
+  const slash = originRef.lastIndexOf("/");
+  return slash >= 0 ? originRef.slice(slash + 1) : null;
+}
+
+/**
+ * Detect the locally observable stale-range enlargement without fetching:
+ * origin/<default> lags a descendant local default, and HEAD's merge-base
+ * against that local default is not the origin merge-base. Then
+ * origin/master..HEAD would include already-merged local-default commits.
+ */
+function staleRelativeToLocalDefault(
+  originRef: string,
+  originMergeBase: string,
+  runGit: RunGitFn,
+): RangeResolution | null {
+  const localDefault = localDefaultFor(originRef);
+  if (localDefault === null) return null;
+  const ahead = runGit(["merge-base", "--is-ancestor", originRef, localDefault]);
+  if (ahead.returncode !== 0) return null;
+  const localMb = shaOf(runGit(["merge-base", localDefault, "HEAD"]));
+  if (localMb === null || localMb === originMergeBase) return null;
+  return {
+    kind: "stale-base",
+    reason:
+      originRef +
+      " lags local " +
+      localDefault +
+      " relative to HEAD, so the scan range would include already-merged commits. Recovery: git fetch origin " +
+      localDefault +
+      ".",
+  };
+}
+
 /**
  * Resolve the candidate commit range against a merge-base, not a hardcoded
  * origin/master two-dot range (#3969 Greptile leftover).
@@ -63,11 +106,11 @@ export function resolveClosingKeywordsSource(
   for (const base of bases) {
     if (seen.has(base)) continue;
     seen.add(base);
-    const merged = runGit(["merge-base", base, "HEAD"]);
-    const sha = firstLine(merged.stdout);
-    if (merged.returncode === 0 && /^[0-9a-f]{7,40}$/i.test(sha)) {
-      return { kind: "range", range: `${sha}..HEAD` };
-    }
+    const sha = shaOf(runGit(["merge-base", base, "HEAD"]));
+    if (sha === null) continue;
+    const stale = staleRelativeToLocalDefault(base, sha, runGit);
+    if (stale !== null) return stale;
+    return { kind: "range", range: `${sha}..HEAD` };
   }
   return {
     kind: "missing-base",
@@ -85,7 +128,7 @@ export function buildClosingKeywordsCheckArgv(
   if (source.kind === "pr") {
     return { argv: ["--mode", "fp", "--pr", source.pr, ...extra] };
   }
-  if (source.kind === "missing-base") {
+  if (source.kind === "missing-base" || source.kind === "stale-base") {
     return { argv: [], error: source.reason };
   }
   return { argv: ["--mode", "fp", "--from-git-range", source.range, ...extra] };

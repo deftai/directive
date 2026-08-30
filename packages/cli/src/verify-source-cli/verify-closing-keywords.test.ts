@@ -33,6 +33,45 @@ describe("resolveClosingKeywordsSource (#3969)", () => {
     const result = resolveClosingKeywordsSource({}, none);
     expect(result.kind).toBe("missing-base");
   });
+
+  it("reports stale-base when origin/master lags local master relative to HEAD", () => {
+    const git: RunGitFn = (args) => {
+      if (args[0] === "merge-base" && args[1] === "--is-ancestor") {
+        return args[2] === "origin/master" && args[3] === "master"
+          ? { returncode: 0, stdout: "", stderr: "" }
+          : { returncode: 1, stdout: "", stderr: "" };
+      }
+      if (args[0] === "merge-base" && args[1] === "origin/master" && args[2] === "HEAD") {
+        return { returncode: 0, stdout: "aaa1111\n", stderr: "" };
+      }
+      if (args[0] === "merge-base" && args[1] === "master" && args[2] === "HEAD") {
+        return { returncode: 0, stdout: "bbb2222\n", stderr: "" };
+      }
+      return { returncode: 128, stdout: "", stderr: "unknown" };
+    };
+    const result = resolveClosingKeywordsSource({}, git);
+    expect(result.kind).toBe("stale-base");
+    if (result.kind === "stale-base") {
+      expect(result.reason).toContain("lags local master");
+      expect(result.reason).toContain("git fetch origin master");
+    }
+  });
+
+  it("still uses origin/master when local master is ahead but HEAD merge-bases match", () => {
+    const git: RunGitFn = (args) => {
+      if (args[0] === "merge-base" && args[1] === "--is-ancestor") {
+        return { returncode: 0, stdout: "", stderr: "" };
+      }
+      if (args[0] === "merge-base" && args[2] === "HEAD") {
+        return { returncode: 0, stdout: "abc1234def\n", stderr: "" };
+      }
+      return { returncode: 128, stdout: "", stderr: "unknown" };
+    };
+    expect(resolveClosingKeywordsSource({}, git)).toEqual({
+      kind: "range",
+      range: "abc1234def..HEAD",
+    });
+  });
 });
 
 describe("buildClosingKeywordsCheckArgv (#3969)", () => {
