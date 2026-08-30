@@ -1,5 +1,5 @@
 /** Recognized in-repo Shell file-write dests (#3983 / #3987). */
-import { isAbsolute, normalize, relative, resolve, sep } from "node:path";
+import { isAbsolute, relative, resolve } from "node:path";
 export const SHELL_WRITE_KINDS = [
   "set-content",
   "out-file",
@@ -120,15 +120,25 @@ function extractPythonPathlib(command: string, out: ShellWriteTarget[]): void {
   const head = command.slice(i, i + 10).toLowerCase();
   if (!head.startsWith("python") && !head.startsWith("py ") && !head.startsWith("py.exe")) return;
   const needle = "Path(";
-  const at = command.indexOf(needle, i);
-  if (at < 0) return;
-  let j = skipWs(command, at + needle.length);
-  const ch = command[j];
-  if (ch === "r" || ch === "R") j = skipWs(command, j + 1);
-  const extracted = extractQuoted(command, j);
-  const window = command.slice(extracted.next, extracted.next + 48);
-  if (window.includes("write_text(") || window.includes("write_bytes(")) {
-    pushUnique(out, "python-pathlib", extracted.value);
+  let from = i;
+  while (from < command.length) {
+    const at = command.indexOf(needle, from);
+    if (at < 0) return;
+    let j = skipWs(command, at + needle.length);
+    const ch = command[j];
+    if (ch === "r" || ch === "R") j = skipWs(command, j + 1);
+    const extracted = extractQuoted(command, j);
+    let k = skipWs(command, extracted.next);
+    if (command[k] === ")") k = skipWs(command, k + 1);
+    if (command[k] !== ".") {
+      from = at + needle.length;
+      continue;
+    }
+    const rest = command.slice(k + 1, k + 13);
+    if (rest.startsWith("write_text(") || rest.startsWith("write_bytes(")) {
+      pushUnique(out, "python-pathlib", extracted.value);
+    }
+    from = at + needle.length;
   }
 }
 function extractIoWrite(command: string, out: ShellWriteTarget[]): void {
@@ -168,14 +178,9 @@ export function isInRepoShellWritePath(projectRoot: string, dest: string): boole
   if (path.length === 0) return false;
   if (path.includes("*") || path.includes("?") || path.includes("$")) return false;
   const root = resolve(projectRoot);
-  if (isAbsolute(path)) {
-    const abs = resolve(path);
-    const rel = relative(root, abs);
-    if (rel.length === 0) return false;
-    if (rel.startsWith("..") || isAbsolute(rel)) return false;
-    return true;
-  }
-  const normalized = normalize(path);
-  if (normalized.split(sep).includes("..") || normalized.split("/").includes("..")) return false;
+  const abs = isAbsolute(path) ? resolve(path) : resolve(root, path);
+  const rel = relative(root, abs);
+  if (rel.length === 0) return false;
+  if (rel.startsWith("..") || isAbsolute(rel)) return false;
   return true;
 }

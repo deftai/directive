@@ -35,6 +35,7 @@ describe("classifyShellWriteTargets", () => {
     expect(isInRepoShellWritePath("/repo", "src/app.ts")).toBe(true);
     expect(isInRepoShellWritePath("/repo", "/tmp/body.md")).toBe(false);
     expect(isInRepoShellWritePath("/repo", "/tmp/../repo/src/app.ts")).toBe(true);
+    expect(isInRepoShellWritePath("/x/repo", "../repo/src/app.ts")).toBe(true);
   });
   it("does not classify echo of a Set-Content spelling", () => {
     expect(classifyShellWriteTargets("echo Set-Content -Path src/app.ts")).toEqual([]);
@@ -49,5 +50,29 @@ describe("classifyShellWriteTargets", () => {
     const AQ = String.fromCharCode(39);
     const cmd = "python -c " + DQ + "print(Path(" + AQ + "src/app.ts" + AQ + ").write_text)" + DQ;
     expect(classifyShellWriteTargets(cmd)).toEqual([]);
+  });
+  it("extracts a later pathlib write after a harmless Path()", () => {
+    const DQ = String.fromCharCode(34);
+    const AQ = String.fromCharCode(39);
+    const cmd =
+      "python -c " +
+      DQ +
+      "Path(" +
+      AQ +
+      "other" +
+      AQ +
+      "); Path(" +
+      AQ +
+      "src/app.ts" +
+      AQ +
+      ").write_text(" +
+      AQ +
+      "x" +
+      AQ +
+      ")" +
+      DQ;
+    expect(classifyShellWriteTargets(cmd)).toEqual([
+      { kind: "python-pathlib", path: "src/app.ts" },
+    ]);
   });
 });
