@@ -70,7 +70,7 @@ const completeArc = [lean, table, synthesis];
 function summaryWithLine(base: ThreadComment, line: string, id?: number): ThreadComment {
   return {
     id: id ?? base.id,
-    body: base.body.replace("## In plain English\n\n", `## In plain English\n\n${line}\n\n`),
+    body: base.body.replace("## In plain English\n\n", () => `## In plain English\n\n${line}\n\n`),
   };
 }
 
@@ -142,10 +142,46 @@ describe("family 2 -- verified-claims-table heading (#3929)", () => {
     expect(isVerifiedClaimsTableBody(shaped.body)).toBe(true);
   });
 
+  it("passes ingest silently from a lean rather than blocking it", () => {
+    const shaped = summaryWithLine(lean, "## Verified-claims table");
+    // Silent pass is the whole finding: the arc still clears, so nothing tells
+    // the author the lean is now standing in as an artifact kind it is not.
+    // Which id the resolver picks for the table is #3932's surface, repaired
+    // separately, so this case pins the verdict and the lean, not that id.
+    expect(evaluateCompletedArcRecord({ comments: [shaped, table, synthesis] })).toMatchObject({
+      status: "complete",
+      synthesisCommentId: SYNTHESIS_ID,
+      citedLeanId: LEAN_ID,
+    });
+  });
+
   it("makes a synthesis read as its own table", () => {
     const shaped = summaryWithLine(synthesis, "## Verified-claims table");
     expect(isSynthesisAcceptedShape(shaped.body)).toBe(true);
     expect(isVerifiedClaimsTableBody(shaped.body)).toBe(true);
+  });
+
+  it("leaves the synthesis verdict intact while the misclassification stays latent", () => {
+    const shaped = summaryWithLine(synthesis, "## Verified-claims table");
+    expect(evaluateCompletedArcRecord({ comments: [lean, table, shaped] })).toEqual({
+      status: "complete",
+      synthesisCommentId: SYNTHESIS_ID,
+      citedLeanId: LEAN_ID,
+      citedTableId: TABLE_ID,
+    });
+  });
+
+  it("still blocks a ghost table id when no comment carries the heading", () => {
+    const ghost: ThreadComment = {
+      id: SYNTHESIS_ID + 40,
+      body:
+        `${ACCEPTED_SENTENCE}\n\n` +
+        `Citing accepted successor lean ${LEAN_ID} and verified-claims table 5439999999.\n`,
+    };
+    expect(evaluateCompletedArcRecord({ comments: [lean, ghost] })).toMatchObject({
+      status: "blocked",
+      reason: "missing-table-cite",
+    });
   });
 });
 

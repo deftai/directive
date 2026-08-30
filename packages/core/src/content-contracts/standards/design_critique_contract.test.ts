@@ -970,10 +970,16 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(summary).toContain("Nothing observes this section.");
     expect(summary).toContain("do not add a prose-quality parser");
 
+    // Both artifact-local MUSTs name the token, not the section heading.
     const lean = markdownSection(text, "## Successor lean");
-    expect(lean).toContain("- ! Lead that lean with the plain-language summary");
+    expect(lean).toContain(
+      "- ! Lead that lean with the plain-language summary under the `## In plain English` token.",
+    );
     const stop5 = markdownSection(text, "## Stop 5 \u2014 Verified synthesis");
-    expect(stop5).toContain("- ! Lead the synthesis with the plain-language summary");
+    expect(stop5).toContain(
+      "- ! Lead the synthesis with the plain-language summary under the `## In plain English` token,",
+    );
+    expect(summary).toContain("The ghost-table half of the middle cell is the #3932 defect");
     expect(stop5).toContain(
       "The #3640 auto-posted synthesis-accepted comment carries that summary too.",
     );

@@ -228,7 +228,7 @@ Keep the arc in this contract until a verified synthesis is accepted.
 After each critic EXIT, parent posts a successor `**Lean:**` comment with proposed per-heading takes. That posted lean is the first operator surface. Later successor leans follow accept-X or walk-end, or land before synthesis.
 
 - ! After critic EXIT, post the successor lean before printing `accept` / `retry differences` / `walk` / `walk all`.
-- ! Lead that lean with the plain-language summary (`## Plain-language summary`).
+- ! Lead that lean with the plain-language summary under the `## In plain English` token. The obligations are in `## Plain-language summary` below.
 - ! Operator confirm or amend is what makes those takes bindable. An all-accept draft still goes through this offer. Confirming or amending an all-accept first lean binds those takes. It does not auto-stamp synthesis or `design-critique:triage-ready` while same-round siblings remain unposted.
 - ! Cite accepted critic ids/headings, the still-open residual, and the write-back or prior lean it supersedes.
 - ! Carry a per-heading take on the successor lean: `accept-into-contract` | `disagree` | `defer`. Defer is not accepted.
@@ -293,6 +293,8 @@ The prohibition is per-artifact, and the asymmetry is the point. Measured at `c6
 | successor-lean token, all nine spellings | inert -- the comment already is the lean, so 0 of 9 changed a verdict | ⊗ -- the synthesis reclassifies as the newest lean; 9 of 9 flip a complete arc to blocked, and the operator can satisfy that error only by citing the comment against itself |
 | `## Verified-claims table` | ⊗ -- the lean then satisfies the synthesis own table citation: a synthesis citing a table id that is not a table on the thread returns complete with the resolved table id equal to the lean id, where the control blocks on `missing-table-cite`. A silent pass rather than a visible block, and a second instance of the #3932 family | ⊗ -- the synthesis reads as its own table |
 | the fixed accepted sentence | ⊗ -- the lean reclassifies as a synthesis and a complete arc flips to blocked. A fence does not help. A blockquote is undetected by this predicate but refused by `### Position predicate`, so no one quoting convention is safe for both parsers | required -- it is the record |
+
+The ghost-table half of the middle cell is the #3932 defect and is repaired separately. What this prohibition covers is the classification collision underneath it: the comment reads as an artifact kind it is not, whatever the resolver later does with that.
 
 - ! Keep those line-starts out of a summary, per that matrix.
 - ! Read the same matrix for every other comment on the thread. The lean and table predicates scan every comment, not only the two meant to carry them, so a walk comment or an aside that opens a line with the lean token blocks ingest for the whole issue.
@@ -397,7 +399,7 @@ Presence, shape, and authority only. Do not score the because-clause.
 On the #3640 all-accept path, parent auto-posts the verified-claims table as its own comment (`role: parent`). On a non-empty disagree set, parent does not auto-post the table. Each quantitative row names its method.
 
 - ! Synthesis comments start with the same first-two-lines (`model: <slug>` then `role: parent`).
-- ! Lead the synthesis with the plain-language summary (`## Plain-language summary`), above the verified-claims table and the citations.
+- ! Lead the synthesis with the plain-language summary under the `## In plain English` token, above the verified-claims table and the citations. The obligations are in `## Plain-language summary`.
 - ! The #3640 auto-posted synthesis-accepted comment carries that summary too. The fixed accepted sentence is identical on every arc by construction and is not a substitute for it.
 - ! #3640 auto-posted verified-claims table and synthesis-accepted comments use `role: parent`.
 - ! Put a method column in every verified-claims table.
