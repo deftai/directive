@@ -68,7 +68,8 @@ function directoryIgnoresCase(dir: string): boolean {
   const tag = randomBytes(6).toString("hex");
   const lower = join(existing, `.deft-cs-${tag}a`);
   const upper = join(existing, `.deft-cs-${tag}A`);
-  let ignores = process.platform === "win32";
+  let ignores = false;
+  let probed = false;
   try {
     containedWrite({
       root: existing,
@@ -79,8 +80,9 @@ function directoryIgnoresCase(dir: string): boolean {
       mutation: false,
     });
     ignores = existsSync(upper);
+    probed = true;
   } catch {
-    // Keep the platform default when the probe cannot be written.
+    // Fail closed: do not fold unless the probe proved case-insensitivity.
   } finally {
     try {
       containedRemove({ root: existing, target: lower, mutation: false });
@@ -93,7 +95,9 @@ function directoryIgnoresCase(dir: string): boolean {
       // ignore
     }
   }
-  caseInsensitiveDirCache.set(existing, ignores);
+  if (probed) {
+    caseInsensitiveDirCache.set(existing, ignores);
+  }
   return ignores;
 }
 
