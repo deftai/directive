@@ -23,16 +23,22 @@ New host edge bugs should land as a fixture first, then the classifier (or polic
 
 ## Cooperative host-session identity (#3611)
 
-Occupancy identity is cooperative routing, not authentication. Hook stdin and local owner IDs are forgeable by another same-user process. Supported host payloads are authoritative for normal hook events and resolve to `host:<provider>:v1:<base64url(raw-id)>`:
+Occupancy identity is cooperative routing, not authentication. Hook stdin and local owner IDs are forgeable by another same-user process. A resolved host owner is authoritative for normal hook events and resolves to `host:<provider>:v1:<base64url(raw-id)>`:
 
-| Host | Payload owner | Granularity |
-|------|---------------|-------------|
-| Codex | `session_id` | Parent session and its subagents share one owner. |
-| Claude Code | `session_id` | Session-family owner; `agent_id` is not substituted. |
-| Cursor | `conversation_id` | Conversation owner; simultaneous `session_id` must agree. Subagent granularity is not asserted without host verification. |
-| Grok | None assumed | Existing explicit `--session-id` / `DEFT_SESSION_ID` flow only. |
+| Host | Source | Owner | Granularity |
+|------|--------|-------|-------------|
+| Codex | payload | `session_id` | Parent session and its subagents share one owner. |
+| Claude Code | payload | `session_id` | Session-family owner; `agent_id` is not substituted. |
+| Cursor | payload | `conversation_id` | Conversation owner; simultaneous `session_id` must agree. Subagent granularity is not asserted without host verification. |
+| Grok | host env | `GROK_SESSION_ID` | Host session owner (#3873). The payload `session_id` is unverified and is never read. |
 
-No host-to-lease map or credential file is persisted; supported hooks re-derive the canonical owner from every payload.
+`host-env` sources exist because the hook is a sibling process the host spawns, not a descendant of the agent's shell: an agent's `export` cannot reach it, so a variable found there was put there by the host. That is the same trust class as a payload field, and it is the only identity a host without a verified payload contract publishes.
+
+Absence of a `host-env` variable is the pre-#3873 state, not a broken contract: the host keeps the explicit `--session-id` / `DEFT_SESSION_ID` flow and, with no explicit owner, the write gate still denies. A **malformed** variable fails closed as `occupancy-identity-unavailable`, and an ambient `DEFT_SESSION_ID` that contradicts a resolved host owner fails closed as `occupancy-identity-conflict`.
+
+`CANONICAL_OWNER_PATTERN` is derived from the provider list, so a provider added to the identity surface is added to the lifecycle-rewrite surface in the same edit. Drift between the two is what left a host able to resolve an owner it could never bind a claim under (#3873).
+
+No host-to-lease map or credential file is persisted; supported hooks re-derive the canonical owner from every payload or host environment.
 
 PreToolUse may add the canonical owner to exact, simple lifecycle commands only. Direct `deft` / `directive` spellings are `session:start`, `session:ready`, `session:end`, `occupancy:steal`, `occupancy:release`, and `swarm-launch`; source-repo Task uses `task <verb> [-- ...]`, with `swarm:launch` as the Task spelling. Path-bearing/destination flags, consumer-repo Task indirection, and compound, redirected, quoted, aliased, wrapped, or ambiguous shell commands are not auto-rewritten. Recognized forms outside that narrow surface must carry the explicit matching owner before normal host permission handling continues. Fixtures for this surface must cover identity resolution, conflicting fields, exact-command rewrite, ambiguous-command rewrite refusal, and the host-rendered updated-input field.
 

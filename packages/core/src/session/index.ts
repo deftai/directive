@@ -6,6 +6,7 @@ export * from "./compact-ritual.js";
 export * from "./deposit-sha.js";
 export * from "./effort-budget.js";
 export * from "./git.js";
+export * from "./host-session-owner.js";
 export * from "./json.js";
 export * from "./occupancy.js";
 export * from "./openclaw-soft-rebind-deposit.js";

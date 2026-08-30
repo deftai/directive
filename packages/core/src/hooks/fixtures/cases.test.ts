@@ -51,11 +51,20 @@ describe("HOOK_FIXTURE_CASES corpus (#2950 Phase B)", () => {
     expect(cases.some((c) => c.expected.lifecycle?.verb === null)).toBe(true);
   });
 
+  it("covers #3873 host-env identity in both resolved and absent states", () => {
+    const cases = HOOK_FIXTURE_CASES.filter((c) => c.regression.includes("#3873"));
+    expect(
+      [...new Set(cases.map((c) => c.expected.hostIdentity?.status).filter(Boolean))].sort(),
+    ).toEqual(["missing", "ok"]);
+  });
+
   it("matches #3611 host identity and lifecycle rewrite expectations", () => {
     for (const c of HOOK_FIXTURE_CASES) {
       const identityExpected = c.expected.hostIdentity;
       if (identityExpected !== undefined) {
-        const identity = resolveHookHostIdentity(c.host, c.payload);
+        // #3873: resolve against the case's own environment, never the ambient
+        // one, so a host-env provider case is reproducible off its host.
+        const identity = resolveHookHostIdentity(c.host, c.payload, c.environ ?? {});
         expect(identity.status, c.id).toBe(identityExpected.status);
         expect(identity.sessionId, c.id).toBe(identityExpected.sessionId);
       }

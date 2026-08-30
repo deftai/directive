@@ -820,6 +820,7 @@ describe("worktree occupancy lease (#3433)", () => {
     const first = runSessionStart(root, {
       writeHistory: false,
       now,
+      env: {},
       newSessionId: () => "first-sess",
       runGit: () => ({ code: 0, stdout: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", stderr: "" }),
       verifyTools: () => ({ exitCode: 0 }),
@@ -830,6 +831,7 @@ describe("worktree occupancy lease (#3433)", () => {
     const second = runSessionStart(root, {
       writeHistory: false,
       now: new Date("2026-08-17T12:01:00Z"),
+      env: {},
       newSessionId: () => "second-sess",
       runGit: () => ({ code: 0, stdout: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", stderr: "" }),
       verifyTools: () => ({ exitCode: 0 }),

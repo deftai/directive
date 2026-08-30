@@ -41,6 +41,7 @@ import { containedRemove, containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { assertAppendLockOwned, type LockDeps, withAppendLock } from "../slice/lock.js";
 import { SWARM_WORKER_ROLES, type SwarmWorkerRole } from "../swarm/routing.js";
+import { ambientHostSessionOwner } from "./host-session-owner.js";
 import { stableJson } from "./json.js";
 import { parseTimestamp, timestampIso } from "./time.js";
 
@@ -347,19 +348,53 @@ export function formatOccupancyAgeCapRemediation(
   );
 }
 
+/**
+ * Tell a refused caller who holds the lease and what it can actually run.
+ *
+ * `presented` is the id the refused caller offered (#3873). Without it the
+ * message can only print `<your-session-id>` placeholders, which is fine for a
+ * CLI caller that passed its own `--session-id` and useless to a hook process,
+ * which does not know what identity it presented. Passing it also keeps the
+ * message honest when there is none: a grant cannot name an empty child --
+ * `occupancy:grant --child-session-id=` is refused at parse and at membership --
+ * so that remediation is not printed to a caller who could never run it.
+ */
 export function formatOccupancyRemediation(
   record: OccupancyRecord,
   now: Date = new Date(),
+  presented?: string,
 ): string {
   const age = heartbeatAgeSeconds(record, now);
-  return (
+  const header =
     `Worktree occupied by session ${record.sessionId} (intent=${record.intent}, heartbeat ${age}s ago, ` +
-    `${formatLastWritePhrase(record, now)}, ${occupancyClockLine(record)}).\n` +
+    `${formatLastWritePhrase(record, now)}, ${occupancyClockLine(record)}).\n`;
+  const tail = "\nThe occupant may release (`occupancy:release` / `session:end`).";
+
+  if (presented === undefined) {
+    return (
+      `${header}Stay read-only (\`session:start --read-only\`), use another worktree,\n` +
+      "ask the occupant for a write grant (`occupancy:grant --child-session-id=<your-session-id> " +
+      "--role <worker-role>`, run by the occupant), or run a confirmed owner transition " +
+      `(\`session:start --steal --confirm --occupant <reported-session-id> --session-id=<your-session-id>\`).${tail}`
+    );
+  }
+
+  const actor = presented.trim();
+  if (actor.length === 0) {
+    return (
+      `${header}This process presented no session identity, so a write grant cannot name it ` +
+      "and an owner transition would not be recognised on its next write.\n" +
+      "Stay read-only (`session:start --read-only`), use another worktree, or ask the occupant " +
+      `to release the lease (\`occupancy:release --session-id=${record.sessionId}\` / \`session:end\`).${tail}`
+    );
+  }
+  return (
+    `${header}This process presented session ${actor}, which neither holds that lease nor has a ` +
+    "write grant on it.\n" +
     "Stay read-only (`session:start --read-only`), use another worktree,\n" +
-    "ask the occupant for a write grant (`occupancy:grant --child-session-id=<your-session-id> " +
+    `ask the occupant for a write grant (\`occupancy:grant --child-session-id=${actor} ` +
     "--role <worker-role>`, run by the occupant), or run a confirmed owner transition " +
-    "(`session:start --steal --confirm --occupant <reported-session-id> --session-id=<your-session-id>`).\n" +
-    "The occupant may release (`occupancy:release` / `session:end`)."
+    `(\`session:start --steal --confirm --occupant ${record.sessionId} --session-id=${actor}\`).${tail}`
   );
 }
 
@@ -382,11 +417,23 @@ export function formatOccupancyMemberAdministrationRefusal(
   );
 }
 
+/**
+ * The owner a claim is made under: explicit, then ambient, then the host's own
+ * session id, then a mint.
+ *
+ * The host step is what makes an identified host's claim reachable (#3873).
+ * Minting instead binds the lease to an id no later hook process can present,
+ * so the session that claimed the worktree is refused by its own lease. The
+ * mint stays as the last resort for hosts that publish nothing.
+ */
 export function resolveOccupancySessionId(input: ApplyOccupancyInput = {}): string {
   const explicit = input.sessionId?.trim();
   if (explicit) return explicit;
-  const envId = (input.env ?? process.env).DEFT_SESSION_ID?.trim();
+  const env = input.env ?? process.env;
+  const envId = env.DEFT_SESSION_ID?.trim();
   if (envId) return envId;
+  const hostOwner = ambientHostSessionOwner(env);
+  if (hostOwner !== null) return hostOwner;
   return (input.newSessionId ?? randomUUID)();
 }
 
@@ -1128,7 +1175,10 @@ export function evaluateOccupancyWriteGate(
   if (admission === "stranger") {
     return {
       allow: false,
-      message: formatOccupancyRemediation(live, now),
+      // The refused caller is told what identity it actually presented (#3873).
+      // A hook process cannot otherwise know, and the grant this message offers
+      // is only runnable when the occupant can name a non-empty child.
+      message: formatOccupancyRemediation(live, now, incoming),
       occupant: live,
       refreshed: false,
       warning: null,

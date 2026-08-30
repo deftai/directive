@@ -77,6 +77,7 @@ import {
   hookShellCommand,
   hookToolName,
   hookWriteTargetPath,
+  hostIdentityFallsBackToExplicitOwner,
   inspectExactLifecycleCommand,
   missingToolNameMessage,
   record,
@@ -656,27 +657,30 @@ interface MutationActorResolution {
   readonly sessionId: string | undefined;
   readonly issue: "unavailable" | "conflict" | null;
   readonly message: string | null;
-  readonly payloadAuthoritative: boolean;
+  readonly hostAuthoritative: boolean;
 }
 
 /**
  * Resolve the cooperative actor presented to the occupancy gate.
- * Supported payload hosts are payload-authoritative; ambient identity may only
- * corroborate. Grok retains the pre-#3611 environment path until its payload
- * contract is verified.
+ * A resolved host identity is authoritative; ambient identity may only
+ * corroborate. Hosts whose identity source is the hook environment fall back to
+ * the explicit owner flow when that variable is absent (#3873).
  */
 function resolveMutationActor(
   input: HookDispatchInput,
   environ: NodeJS.ProcessEnv,
 ): MutationActorResolution {
-  const hostIdentity = resolveHookHostIdentity(input.host, input.payload);
+  const hostIdentity = resolveHookHostIdentity(input.host, input.payload, environ);
   const environmentId = environ.DEFT_SESSION_ID?.trim() || undefined;
-  if (hostIdentity.status === "unsupported") {
+  if (
+    hostIdentity.status === "unsupported" ||
+    hostIdentityFallsBackToExplicitOwner(input.host, hostIdentity)
+  ) {
     return {
       sessionId: environmentId,
       issue: null,
       message: null,
-      payloadAuthoritative: false,
+      hostAuthoritative: false,
     };
   }
   if (hostIdentity.status === "ok" && hostIdentity.sessionId !== null) {
@@ -685,23 +689,23 @@ function resolveMutationActor(
         sessionId: hostIdentity.sessionId,
         issue: "conflict",
         message:
-          `Host payload owner ${hostIdentity.sessionId} conflicts with ` +
+          `Host owner ${hostIdentity.sessionId} conflicts with ` +
           `DEFT_SESSION_ID ${environmentId}.`,
-        payloadAuthoritative: true,
+        hostAuthoritative: true,
       };
     }
     return {
       sessionId: hostIdentity.sessionId,
       issue: null,
       message: null,
-      payloadAuthoritative: true,
+      hostAuthoritative: true,
     };
   }
   return {
     sessionId: undefined,
     issue: hostIdentity.status === "conflict" ? "conflict" : "unavailable",
     message: hostIdentity.message,
-    payloadAuthoritative: true,
+    hostAuthoritative: true,
   };
 }
 
@@ -1150,8 +1154,8 @@ function inspectMutationGates(
       }
     : evaluateOccupancyWriteGate(effectiveRoot, {
         sessionId: actor?.sessionId,
-        // Payload-supported hosts must not fall back to a stale ambient owner.
-        env: actor?.payloadAuthoritative === true ? {} : environ,
+        // Hosts with a resolved owner must not fall back to a stale ambient one.
+        env: actor?.hostAuthoritative === true ? {} : environ,
       });
 
   // #3769: occupancy decides before any ritual persist. The gated verifier
@@ -1344,7 +1348,7 @@ function inspectMutationGates(
     if (actor === null) return null;
     const finalOccupancy = evaluateOccupancyWriteGate(effectiveRoot, {
       sessionId: actor.sessionId,
-      env: actor.payloadAuthoritative ? {} : environ,
+      env: actor.hostAuthoritative ? {} : environ,
       refresh: true,
     });
     occupancyWarning = finalOccupancy.warning;
@@ -1699,6 +1703,20 @@ function lifecycleExecutionRootCheck(
 }
 
 /**
+ * Hosts whose PreToolUse wire format can carry a rewritten tool input.
+ *
+ * `renderHostDecision` reads the same list, so the bridge cannot offer -- or
+ * deny on behalf of -- a delivery channel a host does not have (#3873). A host
+ * outside it binds its claim in the CLI instead: `resolveOccupancySessionId`
+ * resolves the same ambient host owner the write gate will present.
+ */
+const UPDATED_INPUT_WIRE_HOSTS = ["codex", "claude", "cursor"] as const;
+
+function hostAcceptsUpdatedInput(host: HookHost): boolean {
+  return (UPDATED_INPUT_WIRE_HOSTS as readonly string[]).includes(host);
+}
+
+/**
  * Add the claim-time owner only after the existing shell decision allowed the
  * command. The host wire format must emit `allow` with updated input, so this
  * path is intentionally restricted by rewriteExactLifecycleCommand.
@@ -1710,6 +1728,7 @@ function attachLifecycleIdentityRewrite(
   seams: HookPolicySeams,
 ): HookDecision {
   if (decision.verdict !== "allow") return decision;
+  if (!hostAcceptsUpdatedInput(input.host)) return decision;
   const lifecycle = inspectExactLifecycleCommand(input.payload);
   if (lifecycle === null) return decision;
   if (!lifecycle.requiresOwner) return decision;
@@ -1722,8 +1741,20 @@ function attachLifecycleIdentityRewrite(
         "--session-id is empty, duplicated, or otherwise ambiguous.",
     );
   }
-  const identity = resolveHookHostIdentity(input.host, input.payload);
-  if (identity.status === "unsupported") return decision;
+  const identity = resolveHookHostIdentity(
+    input.host,
+    input.payload,
+    input.environ ?? process.env,
+  );
+  // #3873: an absent host-env variable is the pre-#3873 explicit-owner flow, not
+  // a broken contract. Claim binding is skipped, the command keeps ordinary host
+  // permission handling, and any owner it carries is still its own.
+  if (
+    identity.status === "unsupported" ||
+    hostIdentityFallsBackToExplicitOwner(input.host, identity)
+  ) {
+    return decision;
+  }
   if (identity.status !== "ok" || identity.sessionId === null) {
     const code: HookDecisionCode =
       identity.status === "conflict"
@@ -1734,7 +1765,7 @@ function attachLifecycleIdentityRewrite(
       code,
       toolName,
       `Directive denied exact lifecycle command ${lifecycle.verb}: ` +
-        `${identity.message ?? "host payload identity is unavailable"}. ` +
+        `${identity.message ?? "host session identity is unavailable"}. ` +
         "Directive cannot bind the occupancy claim without a stable host owner; " +
         "manual callers must pass --session-id explicitly outside the host rewrite path.",
     );
@@ -1749,7 +1780,7 @@ function attachLifecycleIdentityRewrite(
       input,
       "occupancy-identity-conflict",
       toolName,
-      `Directive denied ${toolName}: host payload owner ${identity.sessionId} conflicts with ` +
+      `Directive denied ${toolName}: host owner ${identity.sessionId} conflicts with ` +
         `DEFT_SESSION_ID ${environmentId}; refusing an auto-approved lifecycle rewrite.`,
     );
   }
@@ -1759,7 +1790,7 @@ function attachLifecycleIdentityRewrite(
       "occupancy-identity-conflict",
       toolName,
       `Directive denied ${toolName}: lifecycle command ${lifecycle.verb} names ` +
-        `${lifecycle.sessionId ?? "<missing>"}, but the host payload owner is ` +
+        `${lifecycle.sessionId ?? "<missing>"}, but the host owner is ` +
         `${identity.sessionId}.`,
     );
   }
@@ -2103,7 +2134,11 @@ function softAgentsRebindWireText(decision: HookDecision): string | null {
  */
 export function renderHostDecision(host: HookHost, decision: HookDecision): string {
   if (decision.verdict === "allow") {
-    if (decision.event === "tool.before" && decision.updatedInput !== undefined) {
+    if (
+      decision.event === "tool.before" &&
+      decision.updatedInput !== undefined &&
+      hostAcceptsUpdatedInput(host)
+    ) {
       if (host === "cursor") {
         return JSON.stringify({
           permission: "allow",
@@ -2111,15 +2146,13 @@ export function renderHostDecision(host: HookHost, decision: HookDecision): stri
           updated_input: decision.updatedInput,
         });
       }
-      if (host === "claude" || host === "codex") {
-        return JSON.stringify({
-          hookSpecificOutput: {
-            hookEventName: "PreToolUse",
-            permissionDecision: "allow",
-            updatedInput: decision.updatedInput,
-          },
-        });
-      }
+      return JSON.stringify({
+        hookSpecificOutput: {
+          hookEventName: "PreToolUse",
+          permissionDecision: "allow",
+          updatedInput: decision.updatedInput,
+        },
+      });
     }
     const soft = softAgentsRebindWireText(decision);
     if (host === "cursor") {

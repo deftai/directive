@@ -26,6 +26,12 @@ export interface HookFixtureCase {
   readonly payload?: unknown;
   /** Raw stdin when testing BOM / free-form ApplyPatch parse. */
   readonly raw?: string;
+  /**
+   * Hook process environment for `host-env` identity providers (#3873).
+   * Identity assertions resolve against this instead of the ambient
+   * environment, so a corpus case cannot pass or fail by where it runs.
+   */
+  readonly environ?: Readonly<Record<string, string>>;
   readonly expected: {
     readonly toolName: string | null;
     readonly writeIntent: HookWriteIntent;
@@ -758,6 +764,60 @@ export const HOOK_FIXTURE_CASES: readonly HookFixtureCase[] = [
       writeTargetPath: null,
       hostIdentity: { status: "invalid", sessionId: null },
     },
+  },
+
+  // --- Host-env session identity (#3873) ---
+  {
+    // The claim side of the loop: without this rewrite the lease is claimed
+    // under a minted UUID that the later write gate can never present.
+    id: "grok-posix-shell-host-env-lifecycle-rewrite",
+    host: "grok",
+    os: "posix",
+    tool: "Shell",
+    regression: ["#3873", "#3611"],
+    payload: {
+      tool_name: "Bash",
+      tool_input: { command: "deft session:start" },
+    },
+    environ: { GROK_SESSION_ID: "grok-session-a" },
+    expected: {
+      toolName: "Bash",
+      writeIntent: "shell",
+      writeTargetPath: null,
+      hostIdentity: {
+        status: "ok",
+        sessionId: "host:grok:v1:Z3Jvay1zZXNzaW9uLWE",
+      },
+      lifecycle: {
+        verb: "session:start",
+        requestedSessionId: "host:grok:v1:Z3Jvay1zZXNzaW9uLWE",
+        resultKind: "rewrite",
+        rewrittenCommand: "deft session:start --session-id=host:grok:v1:Z3Jvay1zZXNzaW9uLWE",
+        updatedInput: {
+          command: "deft session:start --session-id=host:grok:v1:Z3Jvay1zZXNzaW9uLWE",
+        },
+      },
+    },
+  },
+  {
+    id: "grok-posix-write-payload-session-id-untrusted",
+    host: "grok",
+    os: "posix",
+    tool: "Write",
+    regression: ["#3873"],
+    payload: {
+      tool_name: "Write",
+      session_id: "payload-owner",
+      tool_input: { content: "x", file_path: "src/app.ts" },
+    },
+    environ: {},
+    expected: {
+      toolName: "Write",
+      writeIntent: "direct-write",
+      writeTargetPath: "src/app.ts",
+      hostIdentity: { status: "missing", sessionId: null },
+    },
+    notes: "Grok's payload session_id contract is unverified; only the host variable is read",
   },
 
   // --- Regression: empty / missing tool name ---

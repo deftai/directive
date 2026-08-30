@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   exactLifecycleCommandVerb,
+  hookHostIdentitySource,
+  hostIdentityFallsBackToExplicitOwner,
   inspectExactLifecycleCommand,
   MAX_HOOK_HOST_IDENTITY_UTF8_BYTES,
   resolveHookHostIdentity,
@@ -8,6 +10,8 @@ import {
 } from "./host-session-identity.js";
 
 const CODEX_SESSION_ID = "host:codex:v1:c2Vzc2lvbi1B";
+const GROK_RAW_SESSION_ID = "grok-session-a";
+const GROK_SESSION_ID = "host:grok:v1:Z3Jvay1zZXNzaW9uLWE";
 
 describe("resolveHookHostIdentity (#3611)", () => {
   it("canonicalizes Codex and keeps parent/subagent events in one session family", () => {
@@ -76,9 +80,12 @@ describe("resolveHookHostIdentity (#3611)", () => {
     ["claude", { session_id: "   " }, "invalid"],
     ["cursor", { conversation_id: 42 }, "invalid"],
     ["cursor", { session_id: "conv-only" }, "missing"],
-    ["grok", { session_id: "unverified" }, "unsupported"],
-  ] as const)("reports %s payload identity as %s", (host, payload, status) => {
-    expect(resolveHookHostIdentity(host, payload)).toMatchObject({ status, sessionId: null });
+    // Grok's payload session_id stays unverified and is never read: with no
+    // host variable in the environment the resolution is missing, not ok.
+    ["grok", { session_id: "unverified" }, "missing"],
+    ["openclaw", { session_id: "unknown-host" }, "unsupported"],
+  ] as const)("reports %s identity as %s", (host, payload, status) => {
+    expect(resolveHookHostIdentity(host, payload, {})).toMatchObject({ status, sessionId: null });
   });
 
   it("bounds raw IDs by UTF-8 bytes rather than UTF-16 code units", () => {
@@ -131,6 +138,98 @@ describe("resolveHookHostIdentity (#3611)", () => {
       rawSessionId: "session-😀",
       sessionId: "host:codex:v1:c2Vzc2lvbi3wn5iA",
     });
+  });
+});
+
+describe("host-env session identity (#3873)", () => {
+  it("canonicalizes the id the host publishes in the hook process environment", () => {
+    expect(
+      resolveHookHostIdentity(
+        "grok",
+        { tool_name: "Write" },
+        { GROK_SESSION_ID: GROK_RAW_SESSION_ID },
+      ),
+    ).toEqual({
+      status: "ok",
+      provider: "grok",
+      rawSessionId: GROK_RAW_SESSION_ID,
+      sessionId: GROK_SESSION_ID,
+      message: null,
+    });
+  });
+
+  it("never reads the unverified Grok payload session_id, even as a fallback", () => {
+    expect(
+      resolveHookHostIdentity("grok", { session_id: "payload-owner" }, {}),
+    ).toMatchObject({ status: "missing", sessionId: null });
+    // A host variable present alongside a different payload id resolves to the
+    // variable: the payload field is not consulted, so it cannot conflict.
+    expect(
+      resolveHookHostIdentity(
+        "grok",
+        { session_id: "payload-owner" },
+        { GROK_SESSION_ID: GROK_RAW_SESSION_ID },
+      ),
+    ).toMatchObject({ status: "ok", sessionId: GROK_SESSION_ID });
+  });
+
+  it.each([
+    [{ GROK_SESSION_ID: "" }, "missing"],
+    [{ GROK_SESSION_ID: " padded " }, "invalid"],
+    [{ GROK_SESSION_ID: "control\u0000id" }, "invalid"],
+    [{ GROK_SESSION_ID: "a".repeat(MAX_HOOK_HOST_IDENTITY_UTF8_BYTES + 1) }, "invalid"],
+  ] as const)("bounds the host variable the same way as a payload id (%#)", (environ, status) => {
+    expect(resolveHookHostIdentity("grok", {}, environ)).toMatchObject({
+      status,
+      sessionId: null,
+    });
+  });
+
+  it("falls back to the explicit owner flow only when the variable is absent", () => {
+    const absent = resolveHookHostIdentity("grok", {}, {});
+    const malformed = resolveHookHostIdentity("grok", {}, { GROK_SESSION_ID: " padded " });
+    const unknownHost = resolveHookHostIdentity("openclaw", {}, {});
+    expect(hostIdentityFallsBackToExplicitOwner("grok", absent)).toBe(true);
+    expect(hostIdentityFallsBackToExplicitOwner("grok", malformed)).toBe(false);
+    expect(hostIdentityFallsBackToExplicitOwner("openclaw", unknownHost)).toBe(false);
+    // A payload provider that omits its field is a broken contract, not a
+    // legacy host: it must never route back to the ambient owner.
+    expect(hostIdentityFallsBackToExplicitOwner("codex", resolveHookHostIdentity("codex", {}))).toBe(
+      false,
+    );
+  });
+
+  it("names each provider's identity source", () => {
+    expect(hookHostIdentitySource("grok")).toEqual({
+      kind: "host-env",
+      variable: "GROK_SESSION_ID",
+    });
+    expect(hookHostIdentitySource("cursor")).toEqual({
+      kind: "payload",
+      field: "conversation_id",
+    });
+    expect(hookHostIdentitySource("openclaw")).toBeNull();
+  });
+
+  it("keeps the canonical owner pattern coupled to the provider list", () => {
+    // A provider whose ids the rewrite bridge rejects can never bind its own
+    // claim, which is the drift that left Grok denied by its own lease.
+    expect(
+      rewriteExactLifecycleCommand(
+        { tool_name: "Bash", tool_input: { command: "deft session:start" } },
+        GROK_SESSION_ID,
+      ),
+    ).toMatchObject({
+      kind: "rewrite",
+      verb: "session:start",
+      rewrittenCommand: `deft session:start --session-id=${GROK_SESSION_ID}`,
+    });
+    expect(
+      rewriteExactLifecycleCommand(
+        { tool_name: "Bash", tool_input: { command: "deft session:start" } },
+        "host:openclaw:v1:Z3Jvay1vd25lcg",
+      ),
+    ).toBeNull();
   });
 });
 

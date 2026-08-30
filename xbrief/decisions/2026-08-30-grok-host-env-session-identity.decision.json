@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "grok-host-env-session-identity",
+  "decision": "Directive trusts the hook process environment variable GROK_SESSION_ID as the cooperative host-session identity for the grok host, canonicalised to host:grok:v1:<base64url(raw)> on the same validation rules as a payload id. Grok's hook payload session_id stays untrusted. Absence of the variable keeps the documented explicit --session-id / DEFT_SESSION_ID flow and never admits; a malformed variable denies occupancy-identity-unavailable; a conflicting DEFT_SESSION_ID in the same process denies occupancy-identity-conflict.",
+  "governingRule": {
+    "description": "Occupancy identity is cooperative routing, not authentication: hook stdin and local owner ids are already forgeable by another same-user process. The bar an identity source must clear is therefore stable-and-same-session, not unforgeable. GROK_SESSION_ID clears it: it is set by the host in the processes the host spawns, is identical across them, and is not reachable from the agent's own shell, because the hook is a sibling of that shell rather than a descendant (measured on #3873). It is no weaker than the payload ids #3611 already trusts, and trusting it never widens admission -- with no identity the gate still denies.",
+    "path": "packages/core/src/hooks/fixtures/README.md",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Add grok to HOST_IDENTITY_PROVIDERS and read the payload session_id",
+      "whyNot": "The Grok payload identity contract is unverified and host-session-identity.test.ts locks it unsupported even when a session_id is present. The Stop 4 retry critic (5466134250) measured that a bare list add flips the verdict from occupancy-occupied to occupancy-identity-unavailable and still denies the lease holder: it passes acceptance criterion 3 while failing criterion 1."
+    },
+    {
+      "option": "Shape B -- leave the actor empty and make the denial honest",
+      "whyNot": "The operator decided Shape A at 5466267504. Shape B converts a misleading denial into a truthful one but does not unblock tool-call writes, so every file edit stays routed through the shell for the duration of a worker's run. That tax is the thing being removed."
+    },
+    {
+      "option": "Fail open on an unresolvable actor",
+      "whyNot": "Refuted in both design-critique rounds against the #3611 decision record, content/commands.md and #3156. With a live lease an unidentified process would be admitted because it omitted identity, losing the routing interlock. Cooperative ids are already treated as forgeable, which argues for keeping the interlock rather than dropping it."
+    },
+    {
+      "option": "Read GROK_SESSION_ID in resolveOccupancySessionId (the CLI claim path) instead of in the hook",
+      "whyNot": "The CLI path was never the broken one -- shell-invoked verbs already read DEFT_SESSION_ID and heartbeat correctly. The host-spawned hook is the process with no identity, and claim-time binding already has a home: the #3611 lifecycle-command rewrite. Resolving once, in the hook, keeps the claimed lease and the presented write actor derived from one function."
+    },
+    {
+      "option": "Make the host variable authoritative and deny when it is absent",
+      "whyNot": "Absence is the pre-#3873 state, not a broken contract: hosts and CI shells that never set it still use the documented explicit --session-id / DEFT_SESSION_ID flow, and hard-failing would break that flow for every such caller. Absence therefore falls back to the explicit owner and, when there is none, keeps denying -- it is never an admission. A present-but-malformed variable is a real contract violation and does fail closed."
+    }
+  ],
+  "whyWinner": "It is the only option that satisfies acceptance criteria 1 and 5 together. The same resolution feeds both ends of the loop: the lifecycle rewrite binds session:start to host:grok:v1:..., so the lease is claimed under the canonical owner, and the later write gate presents that same owner and is admitted. CANONICAL_OWNER_PATTERN is derived from the provider list so the rewrite surface cannot drift from the identity surface again -- the drift the retry critic named as the reason a list add alone is not a close. Nothing about the gate becomes more permissive: the four fail-closed outcomes above are all denials, and the probe matrix pins them at the occupancy verdict rather than at end-to-end write success.",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-08-29-3873-bughooks-grok-identity-transport-so-the-write-gate-admits-the-l.xbrief.json"
+  ],
+  "timestamp": "2026-08-30T02:46:57Z",
+  "revisitTrigger": "Revisit if the Grok host publishes a verified payload identity field -- the source should then move from host-env to payload and the locked unsupported test re-cut. Revisit also if any host is found to spawn hooks whose environment is attacker-controlled rather than host-controlled: this record's trust statement rests on the hook being a host-spawned sibling whose environment the agent's own shell cannot reach, and that premise, not the variable's name, is what is being trusted.",
+  "tags": [
+    "hooks",
+    "occupancy",
+    "identity"
+  ],
+  "relatedIssues": [
+    3873,
+    3611,
+    3755
+  ]
+}

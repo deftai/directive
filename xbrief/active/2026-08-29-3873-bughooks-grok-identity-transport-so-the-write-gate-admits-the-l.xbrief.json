@@ -1,0 +1,160 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #3873 (Shape A: transport a real host identity on Grok)",
+    "updated": "2026-08-30T02:45:59Z"
+  },
+  "plan": {
+    "title": "bug(hooks): transport a real Grok host identity so the occupancy write gate admits the lease holder",
+    "status": "running",
+    "narratives": {
+      "Description": "On a host with no session derivation the occupancy write gate resolves the acting session to the empty string, classifies it as a stranger to a live lease, and prints a denial that names the lease holder's own session id back at it. This scope implements the operator-decided remedy (Shape A): give the hook a real identity for this host so the owner is recognised as the owner, without making the gate permissive when identity is missing.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3873",
+      "Overview": "## Measured defect\n\nThe host sets `GROK_SESSION_ID`. Directive reads `DEFT_SESSION_ID`. Grok is absent from `HOST_IDENTITY_PROVIDERS`, so `resolveHookHostIdentity` returns `unsupported` and there is no payload identity either. With both sources empty, `evaluateOccupancyWriteGate` resolves the acting id through its own `|| \"\"` tail to the empty string, `occupancyAdmission` classifies that as `stranger`, and `formatOccupancyRemediation` interpolates `record.sessionId` -- so the lease holder is denied and told its own id.\n\nMeasurement 5466070287, retry critic 5466134250 (all 13 audit markers cleared), verified-claims table 5466142398.\n\n## Bound remedy: Shape A, decided by the operator at 5466267504\n\nTransport a real identity. Two boundaries are already refuted and are not re-proposed:\n\n1. **No fail-open.** An unresolvable actor must not be admitted to a worktree with a live lease. Refuted in both rounds against the #3611 decision record, `content/commands.md` and #3156.\n2. **A bare `HOST_IDENTITY_PROVIDERS` list add is not the fix.** It flips the verdict from `occupancy-occupied` to `occupancy-identity-unavailable` and still denies the holder. The payload list, `CANONICAL_OWNER_PATTERN`, the locked unsupported-host test and the env flow are one coupled change.\n\n## What is transported\n\nGrok becomes a host identity provider whose identity **source is the hook process environment variable `GROK_SESSION_ID`**, not a payload field. The Grok payload `session_id` stays untrusted -- its contract is unverified and the locked test keeps it so. The env value is validated on the same rules as a payload id (non-empty, trimmed, no control characters, no unpaired surrogates, at most 512 UTF-8 bytes) and canonicalised to `host:grok:v1:<base64url(raw)>`.\n\nThe loop closes because the same resolution feeds both ends: `attachLifecycleIdentityRewrite` binds `deft session:start` on this host to `--session-id=host:grok:v1:...`, so the lease is claimed under the canonical owner, and the later write gate presents that same owner. `CANONICAL_OWNER_PATTERN` is derived from the provider list so the rewrite surface cannot drift from the identity surface again.\n\n## What stays fail-closed\n\n- No host variable **and** no explicit owner: the actor stays empty, the gate keeps denying, and no path admits an unidentified caller to a leased worktree.\n- Host variable present but malformed: `occupancy-identity-unavailable`, a stated deny, never a fallback.\n- Host variable absent: the documented pre-existing explicit `--session-id` / `DEFT_SESSION_ID` flow still resolves, because absence is the pre-#3873 state rather than a broken contract. Absence is not an admission.\n- Host variable present and a *different* `DEFT_SESSION_ID` in the same process: `occupancy-identity-conflict`, the same rule the three payload providers already carry.\n\n## Honest remediation\n\nThe occupied message tells the occupant to run `occupancy:grant --child-session-id=<id>`, while the hook presents an empty id that both CLI `parseArgs` and `grantOccupancyMembership` refuse. The write gate now passes the presented id into the remediation: when it is non-empty the printed grant and steal commands carry real ids and are runnable, and when it is empty the message says so and offers binding an identity instead of a grant that cannot be issued.\n\n## Acceptance evidence separates occupancy from later gates\n\nThe probe matrix asserts the **occupancy verdict**, not end-to-end write success. An occupancy admission in a worktree with no ritual state still denies `ritual-not-ready`; that is expected and is not a failure of this fix.\n\nRefs #3873, #3611, #3794, #3156, #3599, #3755, #3433.",
+      "Labels": "bug, hooks, agent-experience",
+      "Traces": "Bound design-critique arc on #3873: runtime measurement 5466070287, Stop 4 retry critic 5466134250, accepted lean 5466139968, verified-claims table 5466142398, operator decision 5466267504.",
+      "Decisions": "- xbrief/decisions/2026-08-30-grok-host-env-session-identity.decision.json — Directive trusts the hook process environment variable GROK_SESSION_ID as the cooperative host-session identity for the grok host, canonicalised to host:grok:v1:<base64url(raw)> on the same validation rules as a payload id. Grok's hook payload session_id stays untrusted. Absence of the variable keeps the documented explicit --session-id / DEFT_SESSION_ID flow and never admits; a malformed variable denies occupancy-identity-unavailable; a conflicting DEFT_SESSION_ID in the same process denies occupancy-identity-conflict."
+    },
+    "items": [
+      {
+        "title": "Grok resolves a canonical host owner from the hook process `GROK_SESSION_ID`, validated on the payload id rules and canonicalised to `host:grok:v1:<base64url>`",
+        "status": "proposed"
+      },
+      {
+        "title": "`HOST_IDENTITY_PROVIDERS`, the per-provider identity source, `CANONICAL_OWNER_PATTERN` and the locked unsupported-host test move as one coupled change",
+        "status": "proposed"
+      },
+      {
+        "title": "The lifecycle-command rewrite binds `session:start` on this host to the same canonical owner, so the claimed lease and the presented write actor are one identity",
+        "status": "proposed"
+      },
+      {
+        "title": "Fail-closed is preserved: an absent host variable keeps the explicit owner flow and never admits, a malformed one denies `occupancy-identity-unavailable`, and a conflicting `DEFT_SESSION_ID` denies `occupancy-identity-conflict`",
+        "status": "proposed"
+      },
+      {
+        "title": "The occupancy denial names the identity the caller presented and prints only remediations that party can run -- no `occupancy:grant --child-session-id=` to an empty id",
+        "status": "proposed"
+      },
+      {
+        "title": "Probe matrix test at the occupancy verdict: lease live + identity absent denies, identity resolving to the owner admits, a different session denies, released lease is no longer an occupancy verdict",
+        "status": "proposed"
+      },
+      {
+        "title": "Decision record names what is now trusted as identity on a host with no verified payload field and why it is acceptable under cooperative routing",
+        "status": "proposed"
+      },
+      {
+        "title": "Hook fixtures README identity table and CHANGELOG `[Unreleased]` record the new Grok row",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "hooks",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3873",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3873: bug(hooks): on hosts with no session derivation the write gate denies the lease holder, naming that holder's own session id"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3611",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3611: cooperative host-session identity"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3755",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3755: occupancy grant membership"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/hooks/classify/host-session-identity.test.ts packages/core/src/hooks/dispatcher-grok-identity.test.ts packages/core/src/hooks/fixtures/cases.test.ts packages/core/src/session/occupancy.test.ts"
+        },
+        {
+          "command": "pnpm exec vitest run packages/core/src/hooks/dispatcher.test.ts packages/cli/src/hook-dispatch.test.ts packages/cli/src/occupancy-grant.test.ts"
+        },
+        {
+          "command": "task check"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "The denial a lease holder receives never names that holder's own session id as the reason it is being refused",
+          "artifact_path": "packages/core/src/hooks/dispatcher-grok-identity.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Every remediation the message prints is runnable by the party it addresses, with a test proving it -- including that a non-empty presented id makes `occupancy:grant --child-session-id=<id>` reachable",
+          "artifact_path": "packages/core/src/session/occupancy.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "No path admits an unidentified caller to a worktree with a live lease",
+          "artifact_path": "packages/core/src/hooks/dispatcher-grok-identity.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Acceptance evidence separates the occupancy verdict from later gates",
+          "artifact_path": "packages/core/src/hooks/dispatcher-grok-identity.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "A tool-call write by the lease holder is admitted at occupancy, proven by the claim / deny / fix / allow inversion rather than by inspection",
+          "artifact_path": "packages/core/src/hooks/dispatcher-grok-identity.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "The identity source, the payload list, `CANONICAL_OWNER_PATTERN` and the unsupported-host test are updated as one coupled change, with a decision record naming what is now trusted and why",
+          "artifact_path": "packages/core/src/hooks/classify/host-session-identity.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "M",
+        "missing_traces_justification": "Source of truth is the bound design-critique arc on issue #3873 (measurement 5466070287, retry critic 5466134250, accepted lean 5466139968, verified-claims table 5466142398, operator decision 5466267504), recorded under narratives.Traces. There is no FR/spec section to trace; the acceptance criteria are carried verbatim from the bound issue body. `file_scope` is omitted per #3874: declaring it without base approval fails `verify:scope-provenance` closed."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/hooks/classify/host-session-identity.ts",
+          "packages/core/src/hooks/classify/host-session-identity.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher-grok-identity.test.ts",
+          "packages/core/src/hooks/fixtures/cases.ts",
+          "packages/core/src/hooks/fixtures/README.md",
+          "packages/core/src/session/occupancy.ts",
+          "packages/core/src/session/occupancy.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/hooks",
+        "cohesion_exemption": "packages/core/src/session/occupancy.ts is the second boundary this slice touches: the write gate lives there and the remediation text it prints is the surface acceptance criteria 1 and 2 govern. CHANGELOG.md is an append-only release log; this slice appends one [Unreleased] entry."
+      }
+    },
+    "updated": "2026-08-30T02:45:59Z"
+  }
+}

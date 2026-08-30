@@ -1,17 +1,36 @@
 /**
  * Cooperative host-session identity and exact lifecycle-command rewriting (#3611).
  *
- * This is payload classification, not authentication. Host hook JSON is locally
- * forgeable under the occupancy model's cooperating-process assumption.
+ * This is payload/environment classification, not authentication. Host hook JSON
+ * is locally forgeable under the occupancy model's cooperating-process
+ * assumption. The provider table and the canonical owner form live in
+ * `session/host-session-owner.ts` because the CLI claim path resolves the same
+ * owner from the same host (#3873).
  */
 
+import {
+  ambientHostSessionOwner,
+  canonicalHostSessionId,
+  HOST_IDENTITY_PROVIDERS,
+  type HookHostIdentityProvider,
+  type HookHostIdentitySource,
+  hookHostIdentitySource,
+  isUsableHostSessionId,
+  MAX_HOOK_HOST_IDENTITY_UTF8_BYTES,
+  readHostEnvIdentity,
+} from "../../session/host-session-owner.js";
 import { isShellTool } from "../tools.js";
 import { record, toolInputRecord } from "./payload.js";
 import { hookToolName } from "./tool-name.js";
 
-export const HOST_IDENTITY_PROVIDERS = ["codex", "claude", "cursor"] as const;
-export type HookHostIdentityProvider = (typeof HOST_IDENTITY_PROVIDERS)[number];
-export const MAX_HOOK_HOST_IDENTITY_UTF8_BYTES = 512;
+export {
+  ambientHostSessionOwner,
+  HOST_IDENTITY_PROVIDERS,
+  type HookHostIdentityProvider,
+  type HookHostIdentitySource,
+  hookHostIdentitySource,
+  MAX_HOOK_HOST_IDENTITY_UTF8_BYTES,
+};
 
 export type HookHostIdentityStatus = "ok" | "missing" | "invalid" | "conflict" | "unsupported";
 
@@ -35,39 +54,10 @@ type IdentityFieldResolution =
   | { readonly status: "ok"; readonly value: string }
   | { readonly status: "missing" | "invalid"; readonly value: null };
 
-function hasControlCharacter(value: string): boolean {
-  for (let index = 0; index < value.length; index += 1) {
-    const unit = value.charCodeAt(index);
-    if (unit <= 0x1f || (unit >= 0x7f && unit <= 0x9f)) return true;
-  }
-  return false;
-}
-
-function hasUnpairedUtf16Surrogate(value: string): boolean {
-  for (let index = 0; index < value.length; index += 1) {
-    const unit = value.charCodeAt(index);
-    if (unit >= 0xd800 && unit <= 0xdbff) {
-      const next = value.charCodeAt(index + 1);
-      if (!(next >= 0xdc00 && next <= 0xdfff)) return true;
-      index += 1;
-      continue;
-    }
-    if (unit >= 0xdc00 && unit <= 0xdfff) return true;
-  }
-  return false;
-}
-
 function identityField(input: Record<string, unknown>, fieldName: string): IdentityFieldResolution {
   if (!(fieldName in input)) return { status: "missing", value: null };
   const raw = input[fieldName];
-  if (
-    typeof raw !== "string" ||
-    raw.length === 0 ||
-    raw !== raw.trim() ||
-    hasControlCharacter(raw) ||
-    hasUnpairedUtf16Surrogate(raw) ||
-    Buffer.byteLength(raw, "utf8") > MAX_HOOK_HOST_IDENTITY_UTF8_BYTES
-  ) {
+  if (typeof raw !== "string" || !isUsableHostSessionId(raw)) {
     return { status: "invalid", value: null };
   }
   return { status: "ok", value: raw };
@@ -79,11 +69,6 @@ function unresolvedHostIdentity(
   message: string,
 ): HookHostIdentityResolution {
   return { status, provider, rawSessionId: null, sessionId: null, message };
-}
-
-function canonicalHostSessionId(provider: HookHostIdentityProvider, rawSessionId: string): string {
-  const encoded = Buffer.from(rawSessionId, "utf8").toString("base64url");
-  return `host:${provider}:v1:${encoded}`;
 }
 
 function resolvedHostIdentity(
@@ -102,23 +87,41 @@ function resolvedHostIdentity(
 /**
  * Resolve the stable conversation/session-family key documented by each host.
  *
- * - Codex: `session_id` (parent and subagents share it).
- * - Claude Code: `session_id` (`agent_id` is deliberately not the owner key).
- * - Cursor: `conversation_id`; simultaneous `session_id` must agree.
- * - Grok/unknown: no guessed payload identity; callers keep explicit/env flow.
+ * - Codex: payload `session_id` (parent and subagents share it).
+ * - Claude Code: payload `session_id` (`agent_id` is not the owner key).
+ * - Cursor: payload `conversation_id`; simultaneous `session_id` must agree.
+ * - Grok: hook process `GROK_SESSION_ID` (#3873). The payload `session_id` is
+ *   deliberately not read -- that contract is unverified.
+ * - Unknown hosts: no guessed identity; callers keep the explicit/env flow.
  */
 export function resolveHookHostIdentity(
   host: string,
   payload: unknown,
+  environ: NodeJS.ProcessEnv = process.env,
 ): HookHostIdentityResolution {
-  if (!(HOST_IDENTITY_PROVIDERS as readonly string[]).includes(host)) {
+  const source = hookHostIdentitySource(host);
+  if (source === null) {
     return unresolvedHostIdentity(
       "unsupported",
       host,
-      `Host ${host || "<empty>"} has no verified payload identity contract.`,
+      `Host ${host || "<empty>"} has no verified session identity contract.`,
     );
   }
   const provider = host as HookHostIdentityProvider;
+
+  if (source.kind === "host-env") {
+    const value = readHostEnvIdentity(environ, source.variable);
+    if (value.status !== "ok" || value.rawSessionId === null) {
+      return unresolvedHostIdentity(
+        value.status === "ok" ? "invalid" : value.status,
+        provider,
+        `${provider} hook process environment ` +
+          `${value.status === "missing" ? "omits" : "has invalid"} ${source.variable}.`,
+      );
+    }
+    return resolvedHostIdentity(provider, value.rawSessionId);
+  }
+
   const input = record(payload);
   if (input === null) {
     return unresolvedHostIdentity(
@@ -128,19 +131,19 @@ export function resolveHookHostIdentity(
     );
   }
 
-  if (provider === "codex" || provider === "claude") {
-    const session = identityField(input, "session_id");
+  if (provider !== "cursor") {
+    const session = identityField(input, source.field);
     if (session.status !== "ok") {
       return unresolvedHostIdentity(
         session.status,
         provider,
-        `${provider} hook payload ${session.status === "missing" ? "omits" : "has invalid"} session_id.`,
+        `${provider} hook payload ${session.status === "missing" ? "omits" : "has invalid"} ${source.field}.`,
       );
     }
     return resolvedHostIdentity(provider, session.value);
   }
 
-  const conversation = identityField(input, "conversation_id");
+  const conversation = identityField(input, source.field);
   if (conversation.status !== "ok") {
     return unresolvedHostIdentity(
       conversation.status,
@@ -164,6 +167,22 @@ export function resolveHookHostIdentity(
     );
   }
   return resolvedHostIdentity(provider, conversation.value);
+}
+
+/**
+ * True when a `host-env` provider simply did not publish its variable (#3873).
+ *
+ * Absence is the pre-#3873 state rather than a broken contract, so callers keep
+ * the documented explicit `--session-id` / `DEFT_SESSION_ID` flow instead of
+ * failing a host that never had a hook identity to begin with. It is never an
+ * admission: with no explicit owner the actor stays unset and the write gate
+ * still denies. A present-but-malformed variable is `invalid` and fails closed.
+ */
+export function hostIdentityFallsBackToExplicitOwner(
+  host: string,
+  resolution: HookHostIdentityResolution,
+): boolean {
+  return resolution.status === "missing" && hookHostIdentitySource(host)?.kind === "host-env";
 }
 
 export const EXACT_LIFECYCLE_VERBS = [
@@ -208,7 +227,12 @@ export type ExactLifecycleCommandResult =
   | ExactLifecycleCommandConflict
   | null;
 
-const CANONICAL_OWNER_PATTERN = /^host:(?:codex|claude|cursor):v1:[A-Za-z0-9_-]+$/;
+// Derived from the provider list so the rewrite surface cannot drift from the
+// identity surface: a provider added to one is added to both (#3873). Provider
+// ids are lowercase ASCII words, so the alternation needs no escaping.
+const CANONICAL_OWNER_PATTERN = new RegExp(
+  `^host:(?:${HOST_IDENTITY_PROVIDERS.join("|")}):v1:[A-Za-z0-9_-]+$`,
+);
 // Shell expansion markers are deliberately absent: `$`/backticks for POSIX,
 // `@` splatting for PowerShell, and `%NAME%` expansion for command shells.
 // Backslashes are inspectable so Windows path-bearing lifecycle commands fail

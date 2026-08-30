@@ -142,6 +142,9 @@ describe("session re-arm vs cold ceremony tiers (#2992)", () => {
       compact: false,
       now: rearmAt,
       writeHistory: false,
+      // Pin the environment so the minted owner below is what resolves; a host
+      // that publishes its own session id would otherwise win (#3873).
+      env: {},
       runGit: fakeGit(root, { head }),
       verifyTools: () => {
         toolsCalls += 1;
