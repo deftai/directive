@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for GitHub issue #3601 under bound #3899 design",
-    "updated": "2026-08-30T16:38:09Z"
+    "updated": "2026-08-30T16:48:24Z"
   },
   "plan": {
     "title": "Consumer Skills Index points at packs:slice; C1 declared deposit closure",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Point the managed consumer Skills Index at the existing pack slice instead of shipping REFERENCES.md, and add C1 declared deposit closure.",
       "Origin": "https://github.com/deftai/directive/issues/3601",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "Managed consumer Skills Index points at npx deft packs:slice skills list (text form, not --json; local spelling)",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts + packages/core/src/content-contracts/skills/agents_md_session_start.test.ts",
@@ -26,7 +26,7 @@
       },
       {
         "title": "REFERENCES.md stays bucket repo-dev; consumer template no longer mandates reading it",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/content-contracts/standards/deposit_required_closure.test.ts#consumer template no longer mandates .deft/core/REFERENCES.md",
@@ -36,7 +36,7 @@
       },
       {
         "title": "Closed typed declaration of required deposit paths; extraction fixtures cover consumer-owned, conditional, historical, and prohibited references with no misclassification",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/validate-content/deposit-required.test.ts",
@@ -46,7 +46,7 @@
       },
       {
         "title": "C1 checks declared paths against staged pack output and fails on a mutated staged tree",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/content-contracts/standards/deposit_required_closure.test.ts#fails when a declared file is deleted from the staged pack output",
@@ -56,7 +56,7 @@
       },
       {
         "title": "Decision log records the classification choice and the version-skew residual",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "observed_behavior",
           "pointer": "xbrief/decisions/2026-08-30-keep-references-md-repo-dev-point-consumer-index-at-pack-slice.decision.json + xbrief/decisions/2026-08-30-record-packs-slice-cli-bundled-content-version-skew-residual.decision.json",
@@ -66,7 +66,7 @@
       },
       {
         "title": "CHANGELOG [Unreleased] entry; Closes #3601; does not close #3899",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "observed_behavior",
           "pointer": "CHANGELOG.md [Unreleased] #3601; https://github.com/deftai/directive/pull/3958 body Closes #3601 and does not close #3899",
@@ -148,8 +148,31 @@
         "schema": "deft.scope.intended_placement.v1",
         "files": [],
         "module_boundary": ""
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3958,
+        "prBase": null,
+        "mergeCommit": "74485177512c7d7bd4bd81dcca27180ae4ac7f2e",
+        "deliveryBranch": "master",
+        "deliveryCommit": "74485177512c7d7bd4bd81dcca27180ae4ac7f2e",
+        "verifiedAt": "2026-08-30T16:48:24Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-30T16:48:24Z"
+      },
+      "completedAt": "2026-08-30T16:48:24Z",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-08-30T16:38:09Z"
+    "updated": "2026-08-30T16:48:24Z"
   }
 }
