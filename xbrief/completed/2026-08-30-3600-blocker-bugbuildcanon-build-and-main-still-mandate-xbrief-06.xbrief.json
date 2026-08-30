@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3600",
-    "updated": "2026-08-30T17:04:36Z"
+    "updated": "2026-08-30T17:18:17Z"
   },
   "plan": {
     "title": "BLOCKER: bug(build,canon): build and main still mandate xBRIEF 0.6 after #2971",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "BLOCKER: bug(build,canon): build and main still mandate xBRIEF 0.6 after #2971",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3600",
@@ -15,7 +15,7 @@
     "items": [
       {
         "title": "Build accepts and emits `xBRIEFInfo.version: \"0.8\"` for current projects.",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "x-directive/evidence": {
           "kind": "test",
@@ -26,7 +26,7 @@
       },
       {
         "title": "Root `main.md` describes xBRIEF 0.8 as the current write authority; 0.6 appears only in clearly bounded legacy/read/migration guidance.",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "x-directive/evidence": {
           "kind": "review",
@@ -37,7 +37,7 @@
       },
       {
         "title": "No MUST-level live authoring instruction says new xBRIEFs use 0.6 or that 0.8 is rejected.",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "x-directive/evidence": {
           "kind": "review",
@@ -48,7 +48,7 @@
       },
       {
         "title": "A content-contract test scans current authoring surfaces (`main.md`, setup, build, interview/templates) for conflicting write-version mandates.",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "x-directive/evidence": {
           "kind": "test",
@@ -59,7 +59,7 @@
       },
       {
         "title": "A packed-consumer fixture covers `setup -> proposed 0.8 scope -> build preflight` without version disagreement.",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "x-directive/evidence": {
           "kind": "test",
@@ -70,7 +70,7 @@
       },
       {
         "title": "Existing 0.6 read compatibility remains covered without weakening the 0.8 write default.",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "x-directive/evidence": {
           "kind": "test",
@@ -81,7 +81,7 @@
       },
       {
         "title": "C2 semantic single-source conformance: shipped canon names exactly one xBRIEF schema version, and it is the version setup writes, enforced by C2 rather than by review (#3899 AC4).",
-        "status": "proposed",
+        "status": "completed",
         "effort": "M",
         "x-directive/evidence": {
           "kind": "test",
@@ -92,7 +92,7 @@
       },
       {
         "title": "C2 fails on a deliberately mutated staged tree (shipped file reverted to stale 0.6), proving it is not vacuous (#3899 AC6).",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "x-directive/evidence": {
           "kind": "test",
@@ -204,8 +204,31 @@
         "schema": "deft.scope.intended_placement.v1",
         "files": [],
         "module_boundary": ""
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3956,
+        "prBase": null,
+        "mergeCommit": "f94f4cbfa0a5bfde48603a573ae5183f9c5f546f",
+        "deliveryBranch": "master",
+        "deliveryCommit": "f94f4cbfa0a5bfde48603a573ae5183f9c5f546f",
+        "verifiedAt": "2026-08-30T17:18:17Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-30T17:18:17Z"
+      },
+      "completedAt": "2026-08-30T17:18:17Z",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-08-30T15:50:04Z"
+    "updated": "2026-08-30T17:18:17Z"
   }
 }

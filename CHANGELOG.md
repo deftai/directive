@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **Land completed-tracked artifact for #3600 (#3264 / #1358).** The #3600 xBRIEF stayed in `active/` after squash of PR 3956 (`f94f4cbf`). Moved to `xbrief/completed/` via scope:complete. Does not reopen or recut that issue. Refs #2321, #3476.
+
 - **Shipped canon names xBRIEF 0.8 as the only new-write default (#3600).** main.md, the build/refinement/sync skills, conventions/references.md, commands.md, and `templates/make-spec.md` no longer MUST-mandate 0.6. The decomposition-readiness content contract now pins the make-spec example to `xBRIEFInfo` 0.8 instead of stale `vBRIEFInfo` 0.6. Legacy 0.6 stays read-accepted until `deft migrate:xbrief`. Enforced by C2 rather than by review. Closes #3600.
 
 - **Consumer Skills Index no longer points at a file npm never deposits (#3601).** The managed AGENTS.md card now names `npx deft packs:slice skills list` (text form, not `--json`; local also `.\node_modules\.bin\deft`) instead of `.deft/core/REFERENCES.md`. Root `REFERENCES.md` stays bucket `repo-dev`. C1 declared deposit closure checks required paths against staged pack output and fails on a mutated tree. `plan.policy.agentsMdBudget.absoluteMaxBytes` 16530→16547 for the pointer. Closes #3601. Refs #3899, #2501.
