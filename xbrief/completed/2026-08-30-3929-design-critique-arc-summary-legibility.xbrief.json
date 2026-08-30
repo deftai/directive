@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for GitHub issue #3929 (design-critique bound over two arcs; builds the bound design, not the body original proposal)",
-    "updated": "2026-08-30T04:24:21Z"
+    "updated": "2026-08-30T05:25:47Z"
   },
   "plan": {
     "title": "docs(design-critique): plain-language summary on both operator-facing artifacts, with a per-artifact reserved line-start matrix",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Two artifacts in the design-critique motion are operator-facing and neither states its own conclusion in plain language. The synthesis terminates in a sentence that is identical on every arc by construction. The successor lean is the consent gate and carries a per-heading take map that never says what confirming would assert. This scope lands the plain-language summary on both, under a fixed placement-only heading token, with a per-artifact prohibition over three reserved line-start families and an express statement that nothing observes any of it at runtime.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3929",
@@ -245,8 +245,33 @@
         ],
         "module_boundary": "content/contracts",
         "cohesion_exemption": "CHANGELOG.md is a chronological append-only release log; this slice appends one [Unreleased] entry and edits nothing else in the file. The two test files are the locking surfaces the contract change names."
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3943,
+        "prBase": null,
+        "mergeCommit": "02c2c9733ea6fe8fe33a696618ab29d6ff882757",
+        "deliveryBranch": "master",
+        "deliveryCommit": "02c2c9733ea6fe8fe33a696618ab29d6ff882757",
+        "verifiedAt": "2026-08-30T05:25:47Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "72cb74d6-2178-48e5-b3be-2d3c601dde20"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-30T05:25:47Z"
+      },
+      "completedAt": "2026-08-30T05:25:47Z",
+      "completedSessionId": "72cb74d6-2178-48e5-b3be-2d3c601dde20",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-08-30T04:24:21Z"
+    "updated": "2026-08-30T05:25:47Z"
   }
 }
