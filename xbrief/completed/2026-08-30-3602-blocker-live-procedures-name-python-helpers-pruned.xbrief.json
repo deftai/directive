@@ -2,12 +2,12 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Story: retarget live procedures off pruned Python helpers and land C3 live-procedure target validation (#3602)",
-    "updated": "2026-08-30T15:50:39Z"
+    "updated": "2026-08-30T18:23:44Z"
   },
   "plan": {
     "id": "issue-3602-live-procedure-python-helpers",
     "title": "BLOCKER: live procedures name Python helpers pruned from consumer deposits",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Shipped live procedures still name scripts/*.py helpers that the npm content deposit prunes. Retarget those procedures to live task/CLI/reference surfaces and add control C3 so a live procedure cannot name a helper absent from the deposit. History, examples, and prohibitions are excluded by declaration, not by pattern.",
       "Origin": "GitHub issue #3602. Parent #3899. Bound by #3899 synthesis 5466693576 citing successor lean 5466189787. Operator decision 4: #3602 is migration residue in prose, independent of the REFERENCES.md classification. Do not re-open or re-cut #3899. Do not close #3899.",
@@ -20,47 +20,77 @@
     "items": [
       {
         "title": "C3 live-procedure target validation with declared exclusions",
-        "status": "proposed",
+        "status": "completed",
         "effort": "M",
         "narrative": {
           "When": "When C3 evaluates a staged deposit tree, history, examples, and prohibitions listed in the typed exclusion declaration are skipped, and every remaining live helper target must exist in the deposit or the check fails. Metric: unique live-invalid helper targets (not occurrences, not matching lines).",
           "Acceptance": "When C3 evaluates a staged deposit tree, history, examples, and prohibitions listed in the typed exclusion declaration are skipped, and every remaining live helper target must exist in the deposit or the check fails. Metric: unique live-invalid helper targets (not occurrences, not matching lines)."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/deposit/live-procedure-targets.test.ts",
+          "recorded_at": "2026-08-30T18:23:35Z",
+          "recorded_by": "leaf-worker/3602"
         }
       },
       {
         "title": "C3 fails on a deliberately mutated staged tree",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "When": "When a test copies a staged tree and plants a non-excluded live procedure that names scripts/missing.py, C3 fails closed, proving the control is not vacuous. A tree whose only Python helper mentions sit on a declared prohibition file stays clean.",
           "Acceptance": "When a test copies a staged tree and plants a non-excluded live procedure that names scripts/missing.py, C3 fails closed, proving the control is not vacuous. A tree whose only Python helper mentions sit on a declared prohibition file stays clean."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/deposit/live-procedure-targets.test.ts",
+          "recorded_at": "2026-08-30T18:23:35Z",
+          "recorded_by": "leaf-worker/3602"
         }
       },
       {
         "title": "Retarget live procedures off pruned Python helpers",
-        "status": "proposed",
+        "status": "completed",
         "effort": "M",
         "narrative": {
           "When": "When interview, ip-risk.md, research, build, sync, pre-pr, and main.md (and any other non-excluded live markdown C3 still flags) are read, they name live task/CLI/reference surfaces instead of deleted scripts/*.py. Pack SoT is edited and packs:render is run. Both ip_risk_skill.test.ts copies assert the reference-doc procedure, not Python symbol tokens.",
           "Acceptance": "When interview, ip-risk.md, research, build, sync, pre-pr, and main.md (and any other non-excluded live markdown C3 still flags) are read, they name live task/CLI/reference surfaces instead of deleted scripts/*.py. Pack SoT is edited and packs:render is run. Both ip_risk_skill.test.ts copies assert the reference-doc procedure, not Python symbol tokens."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/deposit/live-procedure-targets.test.ts#source-checkout",
+          "recorded_at": "2026-08-30T18:23:35Z",
+          "recorded_by": "leaf-worker/3602"
         }
       },
       {
         "title": "CHANGELOG Unreleased entry",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "When": "When CHANGELOG [Unreleased] is read, it records the live-procedure retarget and C3 control, closes #3602, and refs #3899 without closing it.",
           "Acceptance": "When CHANGELOG [Unreleased] is read, it records the live-procedure retarget and C3 control, closes #3602, and refs #3899 without closing it."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/3957",
+          "recorded_at": "2026-08-30T18:23:35Z",
+          "recorded_by": "leaf-worker/3602"
         }
       },
       {
         "title": "C3 runs on init and refresh deposit paths",
-        "status": "proposed",
+        "status": "completed",
         "effort": "M",
         "narrative": {
           "When": "When directive init or a file-swap refresh copies a deposit whose live procedures name a pruned Python helper, C3 fails closed before VERSION stamp. A mutation fixture plants scripts/missing.py (init) or a run shim (refresh) and both refuse.",
           "Acceptance": "When directive init or a file-swap refresh copies a deposit whose live procedures name a pruned Python helper, C3 fails closed before VERSION stamp. A mutation fixture plants scripts/missing.py (init) or a run shim (refresh) and both refuse."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/refresh.test.ts#c3",
+          "recorded_at": "2026-08-30T18:23:35Z",
+          "recorded_by": "leaf-worker/3602"
         }
       }
     ],
@@ -150,8 +180,33 @@
         "missing_traces_justification": [
           "Solo drive-to:merge-ready worker. Empty file_scope avoids verify:scope-provenance fail-closed on undeclared approval. Intended placement is C3 evaluator plus live procedure retargets; agents-entry.md is out of scope for sibling #3601."
         ]
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3957,
+        "prBase": null,
+        "mergeCommit": "886ca596a61fe1780002effd06d67232c69f1657",
+        "deliveryBranch": "master",
+        "deliveryCommit": "886ca596a61fe1780002effd06d67232c69f1657",
+        "verifiedAt": "2026-08-30T18:23:44Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "01a05355-5e53-7de2-9451-e860ac3116b9"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-30T18:23:44Z"
+      },
+      "completedAt": "2026-08-30T18:23:44Z",
+      "completedSessionId": "01a05355-5e53-7de2-9451-e860ac3116b9",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-08-30T15:50:39Z"
+    "updated": "2026-08-30T18:23:44Z"
   }
 }
