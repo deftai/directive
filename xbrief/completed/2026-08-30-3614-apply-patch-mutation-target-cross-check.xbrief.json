@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for GitHub issue #3614 bound remedy: authorize every ApplyPatch mutation path, not only the declared write target",
-    "updated": "2026-08-30T18:46:49Z"
+    "updated": "2026-08-30T19:35:31Z"
   },
   "plan": {
     "title": "BLOCKER: authorize every apply_patch mutation path, not only the declared write target",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The write gate authorizes the path a caller declares. It does not authorize the paths the patch body mutates. Close that bypass first; then restore the Codex proposal-write convenience by wiring the existing extractor, not a second parser.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3614. Bound by design-critique synthesis 5470534026, successor lean 5470524226, verified-claims table 5470530094, critic 5470424065.",
@@ -203,8 +203,31 @@
         ],
         "module_boundary": "packages/core/src/hooks",
         "cohesion_exemption": "dispatcher.ts, dispatcher.test.ts, and CHANGELOG.md already exceed the review-trigger line count. This slice wires existing mutation-path enumeration into authorization and does not split those files."
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3975,
+        "prBase": null,
+        "mergeCommit": "4c0a746fb0b4b7ac5d70bba0137b4422de7ddf16",
+        "deliveryBranch": "master",
+        "deliveryCommit": "4c0a746fb0b4b7ac5d70bba0137b4422de7ddf16",
+        "verifiedAt": "2026-08-30T19:35:31Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-30T19:35:31Z"
+      },
+      "completedAt": "2026-08-30T19:35:31Z",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-08-30T18:46:49Z"
+    "updated": "2026-08-30T19:35:31Z"
   }
 }
