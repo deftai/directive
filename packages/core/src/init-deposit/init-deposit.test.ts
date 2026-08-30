@@ -398,6 +398,28 @@ describe("runInitDeposit", () => {
     expect(readFileSync(join(project, ".deft/core", "VERSION"), "utf8")).toContain("0.99.0");
   });
 
+  it("refuses init when a live procedure names a pruned Python helper (#3602 C3)", async () => {
+    const project = freshRoot("init-c3-mut-");
+    const contentRoot = installFakeContentPackage(project);
+    mkdirSync(join(contentRoot, "skills", "demo"), { recursive: true });
+    writeFileSync(
+      join(contentRoot, "skills", "demo", "SKILL.md"),
+      "! Agents MUST run `scripts/missing.py` before preflight.\n",
+      "utf8",
+    );
+    await expect(
+      runInitDeposit(
+        { projectDir: project, jsonOut: false, nonInteractive: true },
+        { printf: () => {} },
+        {
+          resolveContentRoot: async () => contentRoot,
+          gitHooks: { getHooksPath: () => "", setHooksPath: () => true },
+        },
+      ),
+    ).rejects.toThrow(/unique live-invalid helper target/);
+    expect(existsSync(join(project, ".deft/core", "VERSION"))).toBe(false);
+  });
+
   it("returns exit code 1 when deposit fails", async () => {
     const out: string[] = [];
     const err: string[] = [];

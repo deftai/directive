@@ -307,6 +307,41 @@ describe("runRefreshDeposit", () => {
     expect(readFileSync(join(project, ".codex", "config.toml"), "utf8")).toBe('model = "gpt-5"\n');
   });
 
+  it("refuses refresh file-swap when a live procedure names a pruned Python helper (#3602 C3)", async () => {
+    const project = freshRoot("refresh-c3-mut-");
+    const contentRoot = installFakeContentPackage(project, "0.62.0");
+    mkdirSync(join(contentRoot, "skills", "demo"), { recursive: true });
+    writeFileSync(
+      join(contentRoot, "skills", "demo", "SKILL.md"),
+      "! Agents MUST run `.deft/core/run bootstrap`.\n",
+      "utf8",
+    );
+    const deftDir = join(project, ".deft", "core");
+    mkdirSync(deftDir, { recursive: true });
+    writeFileSync(
+      join(deftDir, "VERSION"),
+      "tag: 'v0.61.0'\nsha: old\ninstall_root: '.deft/core'\n",
+      "utf8",
+    );
+    await expect(
+      runRefreshDeposit(
+        { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
+        { printf: () => {} },
+        {
+          resolveContentRoot: async () => contentRoot,
+          readEngineVersion: () => "0.62.0",
+          nowIso: () => "2026-08-30T12:00:00Z",
+          gitPorcelain: () => "",
+        },
+      ),
+    ).rejects.toThrow(/unique live-invalid helper target/);
+    // replaceTree already swapped the payload; C3 refuses before the new VERSION stamp.
+    const stamped = existsSync(join(deftDir, "VERSION"))
+      ? readFileSync(join(deftDir, "VERSION"), "utf8")
+      : "";
+    expect(stamped).not.toContain("0.62.0");
+  });
+
   it("is idempotent on a second run (no AGENTS.md rewrite)", async () => {
     const project = freshRoot("refresh-idem-");
     const contentRoot = installFakeContentPackage(project);

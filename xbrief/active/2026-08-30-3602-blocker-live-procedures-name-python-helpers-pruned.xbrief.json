@@ -11,7 +11,7 @@
     "narratives": {
       "Description": "Shipped live procedures still name scripts/*.py helpers that the npm content deposit prunes. Retarget those procedures to live task/CLI/reference surfaces and add control C3 so a live procedure cannot name a helper absent from the deposit. History, examples, and prohibitions are excluded by declaration, not by pattern.",
       "Origin": "GitHub issue #3602. Parent #3899. Bound by #3899 synthesis 5466693576 citing successor lean 5466189787. Operator decision 4: #3602 is migration residue in prose, independent of the REFERENCES.md classification. Do not re-open or re-cut #3899. Do not close #3899.",
-      "Overview": "Child of #3899 AC 5/6/7. Zero live-invalid helper targets after declaration-based exclusions. C3 must fail on a deliberately mutated staged tree. Any reference-count metric used in a test states whether it counts occurrences, matching lines, or unique targets — prefer unique live-invalid targets, never freeze 28/103/118 as an oracle. Compose python-free.ts, validate-links walk, and consumer-check gate-integrity test shape. First-ship retarget uses the already-shipped references/ip-risk.md procedure; no new ip-risk CLI. Precutover retargets to task migrate:preflight, not a missing verify:pre-cutover verb. Strategy-output recovery is task verify-strategy-output only. Atomic pack+test for both ip_risk_skill.test.ts copies. Avoid content/templates/agents-entry.md (sibling #3601).",
+      "Overview": "Child of #3899 AC 5/6/7. Zero live-invalid helper targets after declaration-based exclusions. C3 must fail on a deliberately mutated staged tree. Any reference-count metric used in a test states whether it counts occurrences, matching lines, or unique targets — prefer unique live-invalid targets, never freeze 28/103/118 as an oracle. Compose python-free.ts, validate-links walk, and consumer-check gate-integrity test shape. First-ship retarget uses the already-shipped references/ip-risk.md procedure; no new ip-risk CLI. Precutover retargets to task migrate:preflight, not a missing verify:pre-cutover verb. Strategy-output recovery is task verify-strategy-output only. Atomic pack+test for both ip_risk_skill.test.ts copies. Avoid content/templates/agents-entry.md (sibling #3601). Operator follow-up (#3273 pursue residual): C3 also runs on init-deposit and refresh file-swap after prune, before VERSION stamp, with mutation fixtures on those call sites.",
       "UserStory": "As a consumer agent following a shipped skill, I want every named helper to exist in the deposit or be a live task/CLI, so I do not 404 on pruned Python scripts.",
       "When": "When a consumer deposit is packed, no live procedure names a helper the deposit does not contain, C3 fails on a mutated staged tree, and tests that mention counts state the metric.",
       "LockedDecisions": "Exclusions by declaration (history | example | prohibition), not regex. github.md prohibition of deleted Python paths must not fail C3. Do not freeze raw reference counts as a test oracle. Do not add a parallel link parser; compose existing walks. Do not ship an ip-risk CLI. Do not preserve task verify:pre-cutover. Do not close #3899. Do not re-cut the #3899 design-critique arc. Do not edit content/templates/agents-entry.md. Do not reverse the prepack Python-free filter.",
@@ -53,6 +53,15 @@
           "When": "When CHANGELOG [Unreleased] is read, it records the live-procedure retarget and C3 control, closes #3602, and refs #3899 without closing it.",
           "Acceptance": "When CHANGELOG [Unreleased] is read, it records the live-procedure retarget and C3 control, closes #3602, and refs #3899 without closing it."
         }
+      },
+      {
+        "title": "C3 runs on init and refresh deposit paths",
+        "status": "proposed",
+        "effort": "M",
+        "narrative": {
+          "When": "When directive init or a file-swap refresh copies a deposit whose live procedures name a pruned Python helper, C3 fails closed before VERSION stamp. A mutation fixture plants scripts/missing.py (init) or a run shim (refresh) and both refuse.",
+          "Acceptance": "When directive init or a file-swap refresh copies a deposit whose live procedures name a pruned Python helper, C3 fails closed before VERSION stamp. A mutation fixture plants scripts/missing.py (init) or a run shim (refresh) and both refuse."
+        }
       }
     ],
     "acceptance": {
@@ -90,6 +99,13 @@
           "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "When directive init or a file-swap refresh copies a deposit whose live procedures name a pruned Python helper, C3 fails closed before VERSION stamp. A mutation fixture plants scripts/missing.py (init) or a run shim (refresh) and both refuse.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "operator-widen"
         }
       ],
       "ambiguity_attestation": "none_found"

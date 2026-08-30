@@ -204,6 +204,38 @@ export function evaluateLiveProcedureTargets(
   return { metric: LIVE_PROCEDURE_METRIC, hits, uniqueTargets: unique };
 }
 
+export function extraDepositMarkdownFiles(root: string): ExtraMarkdownFile[] {
+  const extras: ExtraMarkdownFile[] = [];
+  for (const name of ["main.md", "SKILL.md"] as const) {
+    const absolutePath = join(root, name);
+    if (existsSync(absolutePath)) {
+      extras.push({ relativePath: name, absolutePath });
+    }
+  }
+  return extras;
+}
+
+export class LiveProcedureTargetsError extends Error {
+  readonly evaluation: LiveProcedureEvaluation;
+
+  constructor(evaluation: LiveProcedureEvaluation) {
+    super(formatLiveProcedureFailure(evaluation));
+    this.name = "LiveProcedureTargetsError";
+    this.evaluation = evaluation;
+  }
+}
+
+/** Fail closed when a deposit's live procedures name pruned Python helpers (#3602 C3). */
+export function assertLiveProcedureDepositClean(depositDir: string): void {
+  const result = evaluateLiveProcedureTargets({
+    stagedRoot: depositDir,
+    extraFiles: extraDepositMarkdownFiles(depositDir),
+  });
+  if (result.uniqueTargets.length > 0) {
+    throw new LiveProcedureTargetsError(result);
+  }
+}
+
 export function formatLiveProcedureFailure(result: LiveProcedureEvaluation): string {
   const lines = [
     `C3 live-procedure target validation failed: ${result.uniqueTargets.length} unique live-invalid helper target(s) (metric=${result.metric}).`,

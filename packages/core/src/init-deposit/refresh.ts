@@ -15,6 +15,7 @@ import { join, resolve } from "node:path";
 import type { ResolutionFacts, ResolutionPlan } from "@deftai/directive-types";
 import { assertDepositContained } from "../deposit/contain.js";
 import { replaceTree } from "../deposit/copy-tree.js";
+import { assertLiveProcedureDepositClean } from "../deposit/live-procedure-targets.js";
 import { prunePythonArtifactsFromDeposit } from "../deposit/python-free.js";
 import { resolveInstalledContentRoot } from "../deposit/resolve-content.js";
 import { manifestTagToVersion, parseInstallManifest } from "../doctor/manifest.js";
@@ -753,6 +754,7 @@ export async function runRefreshDeposit(
     // Full-tree replace (or injected seam). Additive copy is no longer the default.
     await copyContent(contentRoot, deftDir);
     await prunePythonArtifactsFromDeposit(deftDir, projectDir, io);
+    assertLiveProcedureDepositClean(deftDir);
     // #2913 / #2804 / #2347: fail-closed delete-not-in-source BEFORE VERSION stamp.
     // replaceTree already drops dst-only paths; reconcile verifies and covers
     // additive seams. Throws => no VERSION rewrite (refuse stamp until clean).

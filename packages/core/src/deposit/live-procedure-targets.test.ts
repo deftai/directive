@@ -5,9 +5,11 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { isDeclaredLiveProcedureExclusion } from "./live-procedure-exclusions.js";
 import {
+  assertLiveProcedureDepositClean,
   evaluateLiveProcedureTargets,
   formatLiveProcedureFailure,
   LIVE_PROCEDURE_METRIC,
+  LiveProcedureTargetsError,
   normalizePythonHelperTarget,
 } from "./live-procedure-targets.js";
 import { isPythonHelperPath } from "./python-free.js";
@@ -179,5 +181,13 @@ describe("C3 live-procedure target validation (#3602)", () => {
     });
     expect(result.metric).toBe("unique-targets");
     expect(result.uniqueTargets, formatLiveProcedureFailure(result)).toEqual([]);
+  });
+
+  it("assertLiveProcedureDepositClean fails closed on a mutated deposit (non-vacuous)", () => {
+    const root = staged("c3-assert-");
+    mkdirSync(join(root, "skills", "demo"), { recursive: true });
+    writeFileSync(join(root, "skills", "demo", "SKILL.md"), "! run `scripts/missing.py`\n", "utf8");
+    expect(() => assertLiveProcedureDepositClean(root)).toThrow(LiveProcedureTargetsError);
+    expect(() => assertLiveProcedureDepositClean(root)).toThrow(/scripts\/missing\.py/);
   });
 });
