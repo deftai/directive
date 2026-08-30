@@ -8,6 +8,7 @@
 ## Active
 
 - **#3785** -- bug(hooks): warn when a fail-closed hook registration travels without a hostable runtime -- `[running]`
+- **#3933** -- bug(lifecycle): xbrief:activate / vbrief:activate manufacture a version-less vBRIEFInfo on a v0.8 brief, which then fails validation -- `[running]`
 
 ## Proposed
 
