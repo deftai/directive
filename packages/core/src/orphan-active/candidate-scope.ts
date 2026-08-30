@@ -48,11 +48,17 @@ function sweep(reason: string): CandidateScope {
   return { kind: "sweep", reason };
 }
 
-function splitPaths(stdout: string): string[] {
+/**
+ * Split `-z` git output. NUL-delimited paths are never C-quoted, so a brief
+ * whose name git would quote (non-ASCII, quotes, backslashes) still compares
+ * equal to the readdir path instead of silently falling outside the candidate
+ * scope. `GitRunner` returns `-z` output as latin1 bytes, so decode to UTF-8.
+ */
+function splitNulPaths(stdout: string): string[] {
   return stdout
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
+    .split("\0")
+    .map((entry) => Buffer.from(entry, "latin1").toString("utf8"))
+    .filter((entry) => entry.length > 0);
 }
 
 function refExists(cwd: string, ref: string, runGit: GitRunner): boolean {
@@ -137,7 +143,7 @@ export function resolveCandidateScope(
 
   // Diff against the working tree, not HEAD: a locally activated brief is a
   // pre-commit `task check` candidate too.
-  const changed = runGit(gitRoot, ["diff", "--name-only", base, "--", activeRel]);
+  const changed = runGit(gitRoot, ["diff", "--name-only", "-z", base, "--", activeRel]);
   if (changed.code !== 0) {
     return sweep(`could not diff active/ against ${baseRef}`);
   }
@@ -145,6 +151,7 @@ export function resolveCandidateScope(
     "ls-files",
     "--others",
     "--exclude-standard",
+    "-z",
     "--",
     activeRel,
   ]);
@@ -153,7 +160,7 @@ export function resolveCandidateScope(
   }
 
   const paths = new Set<string>();
-  for (const rel of [...splitPaths(changed.stdout), ...splitPaths(untracked.stdout)]) {
+  for (const rel of [...splitNulPaths(changed.stdout), ...splitNulPaths(untracked.stdout)]) {
     paths.add(normalizeScopePath(resolve(gitRoot, rel)));
   }
   return { kind: "diff", baseRef, paths };

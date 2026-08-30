@@ -694,7 +694,9 @@ export function extractCheckDepEntries(taskfileText: string, taskName: string): 
         entries.push(current);
       }
     } else if (current !== null) {
-      current.lines.push(stripped);
+      // Keep indentation: the scoping check below needs to tell an immediate
+      // `vars:` property from deeper YAML (#3893).
+      current.lines.push(raw);
     }
   }
   return entries.map((entry) => ({ name: entry.name, body: entry.lines.join("\n") }));
@@ -706,6 +708,74 @@ export function extractCheckDepEntries(taskfileText: string, taskName: string): 
  */
 export function extractCheckDeps(taskfileText: string, taskName: string): string[] {
   return extractCheckDepEntries(taskfileText, taskName).map((entry) => entry.name);
+}
+
+/** Drop a YAML trailing comment and surrounding quotes from a scalar value. */
+export function parseYamlScalar(raw: string): string {
+  const text = raw.trim();
+  for (const quote of ['"', "'"]) {
+    if (text.startsWith(quote)) {
+      const end = text.indexOf(quote, 1);
+      return end === -1 ? text.slice(1) : text.slice(1, end);
+    }
+  }
+  const comment = text.indexOf(" #");
+  return (comment === -1 ? text : text.slice(0, comment)).trim();
+}
+
+/**
+ * Effective `CLI_ARGS` value for a `deps:` entry, or null when it sets none.
+ *
+ * Reads the key itself rather than the entry text, so the required argument
+ * appearing in a comment, a sibling variable, or a descriptive value cannot
+ * stand in for the argument the gate actually receives (#3893).
+ */
+export function depEntryCliArgs(body: string): string | null {
+  let varsIndent: number | null = null;
+  let propIndent: number | null = null;
+  let value: string | null = null;
+
+  for (const rawLine of body.split("\n")) {
+    const line = rawLine.trim();
+    if (line.length === 0 || line.startsWith("#")) continue;
+    const indent = rawLine.length - rawLine.trimStart().length;
+
+    if (varsIndent !== null && indent <= varsIndent) {
+      varsIndent = null;
+      propIndent = null;
+    }
+
+    const varsBlock = /^vars\s*:\s*(.*)$/.exec(line);
+    if (varsBlock !== null) {
+      varsIndent = indent;
+      propIndent = null;
+      // Inline flow form: vars: { CLI_ARGS: "--changed-only" }
+      const inline = /CLI_ARGS\s*:\s*("[^"]*"|'[^']*'|[^,}]*)/.exec(varsBlock[1] ?? "");
+      if (inline !== null) {
+        value = parseYamlScalar(inline[1] ?? "");
+      }
+      continue;
+    }
+
+    if (varsIndent === null) continue;
+    propIndent ??= indent;
+    if (indent !== propIndent) continue;
+
+    const cliArgs = /^CLI_ARGS\s*:\s*(.*)$/.exec(line);
+    if (cliArgs !== null) {
+      value = parseYamlScalar(cliArgs[1] ?? "");
+    }
+  }
+  return value;
+}
+
+/** True when the effective `CLI_ARGS` token list carries `requiredArg`. */
+export function cliArgsCarry(cliArgs: string | null, requiredArg: string): boolean {
+  if (cliArgs === null) return false;
+  return cliArgs
+    .split(/\s+/)
+    .filter((token) => token.length > 0)
+    .some((token) => token === requiredArg || token.startsWith(`${requiredArg}=`));
 }
 
 function remediationForMissing(gateId: string, surface: string): string {
@@ -829,7 +899,7 @@ export function evaluateConsumerCheckContract(
     // unscoped on a merge chokepoint is the #3893 defect.
     for (const [gateId, requiredArg] of MERGE_CHOKEPOINT_SCOPED_GATE_ARGS) {
       const entry = entries.find((row) => row.name === gateId);
-      if (entry === undefined || entry.body.includes(requiredArg)) continue;
+      if (entry === undefined || cliArgsCarry(depEntryCliArgs(entry.body), requiredArg)) continue;
       const finding: ConsumerCheckContractFinding = {
         gateId,
         surface: "check-task",

@@ -41,14 +41,19 @@ function gitStub(routes: Record<string, GitRunResult>): GitRunner {
   };
 }
 
+/** `-z` output as `GitRunner` hands it back: NUL-delimited, latin1-decoded. */
+function nulPaths(...paths: readonly string[]): GitRunResult {
+  return ok(Buffer.from(paths.map((p) => `${p}\0`).join(""), "utf8").toString("latin1"));
+}
+
 function baseRoutes(root: string): Record<string, GitRunResult> {
   return {
     "rev-parse --show-toplevel": ok(root),
     "rev-parse --verify -q origin/master": ok("sha"),
     "merge-base --is-ancestor HEAD origin/master": fail(),
     "merge-base HEAD origin/master": ok("basesha"),
-    "diff --name-only basesha": ok(""),
-    "ls-files --others --exclude-standard": ok(""),
+    "diff --name-only -z basesha": ok(""),
+    "ls-files --others --exclude-standard -z": ok(""),
   };
 }
 
@@ -136,8 +141,8 @@ describe("resolveCandidateScope (#3893)", () => {
       baseRef: "origin/master",
       runGit: gitStub({
         ...baseRoutes(root),
-        "diff --name-only basesha": ok("xbrief/active/tracked.xbrief.json\n"),
-        "ls-files --others --exclude-standard": ok("xbrief/active/new.xbrief.json"),
+        "diff --name-only -z basesha": nulPaths("xbrief/active/tracked.xbrief.json"),
+        "ls-files --others --exclude-standard -z": nulPaths("xbrief/active/new.xbrief.json"),
       }),
     });
     expect(scope.kind).toBe("diff");
@@ -149,6 +154,23 @@ describe("resolveCandidateScope (#3893)", () => {
         normalizeScopePath(join(root, "xbrief", "active", "tracked.xbrief.json")),
       ].sort(),
     );
+  });
+
+  it("keeps a brief whose name git would C-quote inside the candidate scope", () => {
+    // A newline-delimited read returns the quoted display form, which would drop
+    // this brief out of scope and let an orphan the PR touched evade the gate.
+    const root = makeRoot();
+    const name = "2026-08-29-caf\u00e9-brief.xbrief.json";
+    const scope = resolveCandidateScope(root, join(root, "xbrief", "active"), {
+      baseRef: "origin/master",
+      runGit: gitStub({
+        ...baseRoutes(root),
+        "diff --name-only -z basesha": nulPaths(`xbrief/active/${name}`),
+      }),
+    });
+    expect(scope.kind).toBe("diff");
+    if (scope.kind !== "diff") throw new Error("expected diff");
+    expect(scope.paths.has(normalizeScopePath(join(root, "xbrief", "active", name)))).toBe(true);
   });
 
   it("sweeps repo-wide when the merge base cannot be computed", () => {
@@ -177,7 +199,7 @@ describe("resolveCandidateScope (#3893)", () => {
     const root = makeRoot();
     const scope = resolveCandidateScope(root, join(root, "xbrief", "active"), {
       baseRef: "origin/master",
-      runGit: gitStub({ ...baseRoutes(root), "diff --name-only basesha": fail() }),
+      runGit: gitStub({ ...baseRoutes(root), "diff --name-only -z basesha": fail() }),
     });
     expect(scope.kind).toBe("sweep");
     if (scope.kind !== "sweep") throw new Error("expected sweep");
@@ -188,7 +210,7 @@ describe("resolveCandidateScope (#3893)", () => {
     const root = makeRoot();
     const scope = resolveCandidateScope(root, join(root, "xbrief", "active"), {
       baseRef: "origin/master",
-      runGit: gitStub({ ...baseRoutes(root), "ls-files --others --exclude-standard": fail() }),
+      runGit: gitStub({ ...baseRoutes(root), "ls-files --others --exclude-standard -z": fail() }),
     });
     expect(scope.kind).toBe("sweep");
     if (scope.kind !== "sweep") throw new Error("expected sweep");

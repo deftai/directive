@@ -8,10 +8,13 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  cliArgsCarry,
+  depEntryCliArgs,
   evaluateConsumerCheckContract,
   extractCheckDepEntries,
   extractCheckDeps,
   MERGE_CHOKEPOINT_SCOPED_GATE_ARGS,
+  parseYamlScalar,
 } from "./evaluate.js";
 
 const VERIFY_YML = `
@@ -37,6 +40,27 @@ const SCOPED_ENTRY = `      - task: verify:orphan-active
 `;
 
 const UNSCOPED_ENTRY = `      - verify:orphan-active
+`;
+
+/** Flag present as text only -- the gate still receives the unscoped form. */
+const DECOY_COMMENT_ENTRY = `      - task: verify:orphan-active
+        # someday pass --changed-only here
+        vars:
+          CLI_ARGS: "--skip-gh"
+`;
+
+const DECOY_SIBLING_VAR_ENTRY = `      - task: verify:orphan-active
+        vars:
+          NOTE: "--changed-only"
+`;
+
+const INLINE_SCOPED_ENTRY = `      - task: verify:orphan-active
+        vars: { CLI_ARGS: "--changed-only" }
+`;
+
+const TRAILING_COMMENT_ENTRY = `      - task: verify:orphan-active
+        vars:
+          CLI_ARGS: "--changed-only" # merge chokepoint
 `;
 
 function rootTaskfile(orphanEntry: string): string {
@@ -83,6 +107,50 @@ describe("extractCheckDepEntries (#3893)", () => {
   });
 });
 
+describe("depEntryCliArgs (#3893)", () => {
+  function argsFor(entry: string): string | null {
+    const entries = extractCheckDepEntries(rootTaskfile(entry), "check:consumer");
+    const orphan = entries.find((row) => row.name === "verify:orphan-active");
+    return orphan === undefined ? null : depEntryCliArgs(orphan.body);
+  }
+
+  it("reads the block form", () => {
+    expect(argsFor(SCOPED_ENTRY)).toBe("--changed-only");
+  });
+
+  it("reads the inline flow form", () => {
+    expect(argsFor(INLINE_SCOPED_ENTRY)).toBe("--changed-only");
+  });
+
+  it("drops a trailing YAML comment", () => {
+    expect(argsFor(TRAILING_COMMENT_ENTRY)).toBe("--changed-only");
+  });
+
+  it("returns null for a bare dep", () => {
+    expect(argsFor(UNSCOPED_ENTRY)).toBeNull();
+  });
+
+  it("ignores the flag in a comment or a sibling variable", () => {
+    expect(argsFor(DECOY_COMMENT_ENTRY)).toBe("--skip-gh");
+    expect(argsFor(DECOY_SIBLING_VAR_ENTRY)).toBeNull();
+  });
+
+  it("unquotes scalars and strips trailing comments", () => {
+    expect(parseYamlScalar('"--changed-only"')).toBe("--changed-only");
+    expect(parseYamlScalar("'--changed-only'")).toBe("--changed-only");
+    expect(parseYamlScalar("--changed-only # note")).toBe("--changed-only");
+    expect(parseYamlScalar('"unterminated')).toBe("unterminated");
+  });
+
+  it("matches on token boundaries, not substrings", () => {
+    expect(cliArgsCarry("--changed-only", "--changed-only")).toBe(true);
+    expect(cliArgsCarry("--skip-gh --changed-only", "--changed-only")).toBe(true);
+    expect(cliArgsCarry("--changed-only=1", "--changed-only")).toBe(true);
+    expect(cliArgsCarry("--changed-only-later", "--changed-only")).toBe(false);
+    expect(cliArgsCarry(null, "--changed-only")).toBe(false);
+  });
+});
+
 describe("merge-chokepoint gate scoping (#3893)", () => {
   it("names verify:orphan-active --changed-only as the scoped composition", () => {
     expect(MERGE_CHOKEPOINT_SCOPED_GATE_ARGS.get("verify:orphan-active")).toBe("--changed-only");
@@ -101,6 +169,18 @@ describe("merge-chokepoint gate scoping (#3893)", () => {
     expect(finding?.surface).toBe("check-task");
     expect(finding?.detail).toContain("without --changed-only");
     expect(finding?.remediation).toContain("CLI_ARGS");
+  });
+
+  it("fails closed when the flag is only a comment or a sibling variable", () => {
+    for (const entry of [DECOY_COMMENT_ENTRY, DECOY_SIBLING_VAR_ENTRY]) {
+      const result = evaluateRoot(entry, true);
+      expect(result.exitCode).toBe(1);
+      expect(result.findings.some((row) => row.gateId === "verify:orphan-active")).toBe(true);
+    }
+  });
+
+  it("accepts the inline flow form", () => {
+    expect(evaluateRoot(INLINE_SCOPED_ENTRY, true).exitCode).toBe(0);
   });
 
   it("warns rather than fails for a consumer deposit still on the unscoped form", () => {

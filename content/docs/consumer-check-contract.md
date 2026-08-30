@@ -58,6 +58,10 @@ the gate without it:
           CLI_ARGS: "--changed-only"
 ```
 
+The check reads the dependency's effective `CLI_ARGS` value, not the raw entry
+text, so the flag appearing in a comment, a sibling variable, or a descriptive
+value does not satisfy it.
+
 - **`--framework-source`: fail closed.** This repo owns its own composition, so
   a regression to the unscoped form is a hard failure here.
 - **Consumer deposits: warn.** `deft update` re-deposits the Taskfile; the

@@ -80,7 +80,11 @@ function scopeGit(
       return options.onDeliveryLine === true ? ok("") : { code: 1, stdout: "", stderr: "" };
     }
     if (key === "merge-base HEAD origin/master") return ok("basesha");
-    if (key.startsWith("diff --name-only")) return ok((options.changed ?? []).join("\n"));
+    // `-z` output: NUL-delimited, handed back latin1-decoded by GitRunner.
+    if (key.startsWith("diff --name-only")) {
+      const raw = (options.changed ?? []).map((path) => `${path}\0`).join("");
+      return ok(Buffer.from(raw, "utf8").toString("latin1"));
+    }
     if (key.startsWith("ls-files --others")) return ok("");
     return { code: 1, stdout: "", stderr: `unstubbed: ${key}` };
   };
