@@ -41,9 +41,10 @@ export function classifyScmArgv(verb: string, args: readonly string[] = []): Scm
  * Resolve a binary for a classified role.
  *
  * cached-get uses the PATH ladder (`resolveBinary`, ghx then gh).
- * live-gh pins `gh` when present — the same preference as `resolveLiveGh`,
- * `resolveAuthProbeBinary`, and `GH_ONLY_WHICH`. If `gh` is absent, fall
- * through to the PATH ladder so a ghx-only host still has a binary.
+ * live-gh pins `gh` — the same preference as `resolveLiveGh`,
+ * `resolveAuthProbeBinary`, and `GH_ONLY_WHICH`. If `gh` is absent, throw
+ * rather than fall through to ghx (a mutation or flag-rich GET is not a
+ * cache-proxy shape).
  */
 export function resolveBinaryForRole(role: ScmBinaryRole, whichFn: WhichFn = defaultWhich): string {
   if (role === "live-gh") {

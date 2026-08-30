@@ -290,7 +290,7 @@ describe("run", () => {
         }
       }
       expect(text).toMatch(/^verify:orphan-active:/);
-      expect(text).toMatch(/neither 'ghx' nor 'gh'/);
+      expect(text).toMatch(/gh not found on PATH|neither 'ghx' nor 'gh'/);
       expect(text).not.toContain("directive:");
       expect(text).not.toContain("task scope:complete");
     }

@@ -841,14 +841,14 @@ describe("evaluate", () => {
       expect(unscoped.code).toBe(2);
       expect(unscoped.stream).toBe("stderr");
       expect(unscoped.message).toMatch(/^verify:orphan-active:/);
-      expect(unscoped.message).toMatch(/neither 'ghx' nor 'gh'/);
+      expect(unscoped.message).toMatch(/gh not found on PATH|neither 'ghx' nor 'gh'/);
       expect(unscoped.message).not.toContain("task scope:complete");
       expect(unscoped.orphans).toEqual([]);
 
       const scoped = evaluate(root, { repo: "deftai/directive", issue: 3774 });
       expect(scoped.code).toBe(2);
       expect(scoped.message).toMatch(/^verify:orphan-active:/);
-      expect(scoped.message).toMatch(/neither 'ghx' nor 'gh'/);
+      expect(scoped.message).toMatch(/gh not found on PATH|neither 'ghx' nor 'gh'/);
       expect(scoped.message).not.toContain("task scope:complete");
     } finally {
       restore();
