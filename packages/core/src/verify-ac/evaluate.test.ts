@@ -895,6 +895,52 @@ describe("safety-refusal is not a product-oracle measurement (#3615)", () => {
     const events = verificationLines(path).filter((row) => row.event === "verification");
     expect(events).toHaveLength(1);
     expect(events[0]?.payload.outcome).toBe("fail");
+    expect(events[0]?.payload.method_fingerprint).toBe(
+      methodFingerprintForWalk(["task test"], root),
+    );
+    expect(events[0]?.payload.method_fingerprint).not.toContain("curl https://example.com");
+  });
+
+  it("mixed fail then same executed-command pass is same-method product-fix recovery", () => {
+    const root = mkdtempSync(join(tmpdir(), "oracle-3615-mixed-pair-"));
+    const path = join(root, "summary.jsonl");
+    const env = { [ENV_RUN_SUMMARY_PATH]: path, DEFT_SESSION_ID: "sess-3615-mixed-pair" };
+    emitVerifyAcAttempts({
+      projectRoot: root,
+      sessionId: "sess-3615-mixed-pair",
+      env,
+      runs: [
+        refusedRun("curl https://example.com", root),
+        {
+          command: "task test",
+          cwd: root,
+          exitCode: 1,
+          stdout: "",
+          stderr: "failed",
+          ok: false,
+          detail: "fail",
+        },
+      ],
+    });
+    emitVerifyAcAttempts({
+      projectRoot: root,
+      sessionId: "sess-3615-mixed-pair",
+      env,
+      runs: [
+        {
+          command: "task test",
+          cwd: root,
+          exitCode: 0,
+          stdout: "",
+          stderr: "",
+          ok: true,
+          detail: "ok",
+        },
+      ],
+    });
+    const verdict = evaluateProductOracleIntegrity({ projectRoot: root, env });
+    expect(verdict.ok).toBe(true);
+    expect(verdict.unresolved).toEqual([]);
   });
 
   it("all-refused then corrected-safe pass in one session does not poison oracle history", () => {

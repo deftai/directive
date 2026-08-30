@@ -170,15 +170,15 @@ export function emitVerifyAcAttempts(options: {
       component: "verify-ac",
       writeStdout: options.writeStdout,
     });
-    // One walk-level event: the method is the command set, not each command.
-    // Per-command emit was blind to a shrinking list that kept the first command (#3397).
-    const commands = options.runs.map((run) => run.command);
-    const firstCwd = options.runs[0]?.cwd ?? "";
-    // Hash the cwd key (joined only when cwds differ) so cwd paths never enter
-    // the fingerprint; commandCountFromFingerprint can still count commands.
-    const cwdKey = options.runs.every((run) => run.cwd === firstCwd)
+    // Method identity is the executed command set. Refused rows are not
+    // measurements; including them would make a later same-command product
+    // fix look like a method change (#3615 Greptile P1).
+    const executed = options.runs.filter((run) => !isSafetyRefusalRun(run));
+    const commands = executed.map((run) => run.command);
+    const firstCwd = executed[0]?.cwd ?? "";
+    const cwdKey = executed.every((run) => run.cwd === firstCwd)
       ? firstCwd
-      : options.runs.map((run) => run.cwd).join("\0");
+      : executed.map((run) => run.cwd).join("\0");
     const emitted = emitter.emitVerification({
       check_id: checkId,
       method_fingerprint: methodFingerprintForWalk(commands, cwdKey),
