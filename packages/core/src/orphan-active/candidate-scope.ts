@@ -38,9 +38,14 @@ export interface CandidateScopeOptions {
   readonly runGit?: GitRunner;
 }
 
-/** Case-fold on win32 so a git path and a readdir path compare equal. */
+/**
+ * One comparable form for a git path and a readdir path.
+ *
+ * NFC because git precomposes Unicode (`core.precomposeunicode`) while some
+ * filesystems hand `readdir` the decomposed form; case-folded on win32.
+ */
 export function normalizeScopePath(path: string): string {
-  const abs = resolve(path);
+  const abs = resolve(path).normalize("NFC");
   return process.platform === "win32" ? abs.toLowerCase() : abs;
 }
 

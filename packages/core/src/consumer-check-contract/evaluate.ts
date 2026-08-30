@@ -898,8 +898,11 @@ export function evaluateConsumerCheckContract(
     // Checked even on a trusted orchestrator body: a listed dep still runs, and
     // unscoped on a merge chokepoint is the #3893 defect.
     for (const [gateId, requiredArg] of MERGE_CHOKEPOINT_SCOPED_GATE_ARGS) {
-      const entry = entries.find((row) => row.name === gateId);
-      if (entry === undefined || cliArgsCarry(depEntryCliArgs(entry.body), requiredArg)) continue;
+      // Every occurrence must carry the argument: a scoped entry followed by a
+      // bare duplicate still runs the repo-wide scan (#3893).
+      const listed = entries.filter((row) => row.name === gateId);
+      if (listed.length === 0) continue;
+      if (listed.every((row) => cliArgsCarry(depEntryCliArgs(row.body), requiredArg))) continue;
       const finding: ConsumerCheckContractFinding = {
         gateId,
         surface: "check-task",

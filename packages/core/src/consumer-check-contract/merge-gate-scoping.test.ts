@@ -183,6 +183,12 @@ describe("merge-chokepoint gate scoping (#3893)", () => {
     expect(evaluateRoot(INLINE_SCOPED_ENTRY, true).exitCode).toBe(0);
   });
 
+  it("fails closed when a bare duplicate follows a scoped entry", () => {
+    const result = evaluateRoot(`${SCOPED_ENTRY}${UNSCOPED_ENTRY}`, true);
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((row) => row.gateId === "verify:orphan-active")).toBe(true);
+  });
+
   it("warns rather than fails for a consumer deposit still on the unscoped form", () => {
     const result = evaluateRoot(UNSCOPED_ENTRY, false);
     expect(result.exitCode).toBe(0);

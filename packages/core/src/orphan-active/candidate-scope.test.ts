@@ -65,6 +65,15 @@ describe("normalizeScopePath (#3893)", () => {
     expect(a).toBe(b);
     expect(resolve(a)).toBe(a);
   });
+
+  it("folds decomposed and precomposed Unicode to one form", () => {
+    // git precomposes; some filesystems hand readdir the decomposed name.
+    const root = makeRoot();
+    const precomposed = join(root, "xbrief", "active", "caf\u00e9.xbrief.json");
+    const decomposed = join(root, "xbrief", "active", "cafe\u0301.xbrief.json");
+    expect(precomposed).not.toBe(decomposed);
+    expect(normalizeScopePath(decomposed)).toBe(normalizeScopePath(precomposed));
+  });
 });
 
 describe("resolveCandidateBaseRef (#3893)", () => {
