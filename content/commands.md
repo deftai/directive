@@ -656,19 +656,16 @@ Deft uses two command surfaces, but they are no longer equal in architectural we
 
 Taskfile targets are the stable surface for validation, rendering, lifecycle movement, triage/cache workflows, release operations, PR readiness, packs, and codebase contracts. Maintainers, hooks, CI, and agents should prefer `task` when a task target exists.
 
-### `run` commands -- Compatibility and selected interactive flows
+### `run` commands -- retired Python launcher (#2022 / #3602)
 
-`run`, `run.py`, and `run.bat` remain for compatibility and selected interactive commands:
+The Python `run` launcher is not in the npm deposit. Use `directive` / `deft` / `task` instead:
 
-- `.deft/core/run bootstrap` -- interactive setup for USER and project definition flows.
-- `.deft/core/run spec` -- interactive scope/spec interview flow.
-- `.deft/core/run validate` -- configuration validation compatibility surface.
-- `.deft/core/run doctor` -- compatibility entry to doctor checks.
+- Setup / bootstrap / spec interview: `skills/deft-directive-setup/SKILL.md` or `directive init`
+- Validate / doctor: `directive doctor` / `deft doctor` / `task doctor`
 - **`DEFT_SESSION_CODA` (interactive doctor success, #2712):** after the final human success footer only (exit 0; TTY stdout; not CI; not `--json`): **unset** prints `Session coda: off (set DEFT_SESSION_CODA=1 to enable)`; **`=1`** prints one deterministic `✦ <line>` from the content pack; **`=0`** is silent. Never on hard fail, never in JSON. See `deft doctor --help`.
-- `.deft/core/run reset` -- reset helper.
-- `.deft/core/run upgrade` -- legacy metadata acknowledgment; it does not replace the framework payload.
+- Upgrade: `directive update` / `deft update` (legacy metadata-only acknowledgment does not replace the payload)
 
-Canonical install/upgrade is handled by the published `deft-install` binary, and deterministic framework operations should be expressed as `task` targets.
+Canonical install/upgrade is the published `@deftai/directive` CLI, and deterministic framework operations should be expressed as `task` targets.
 
 ---
 

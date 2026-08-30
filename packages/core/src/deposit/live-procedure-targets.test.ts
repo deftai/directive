@@ -108,6 +108,21 @@ describe("C3 live-procedure target validation (#3602)", () => {
     expect(result.uniqueTargets).toEqual(["packages/core/legacy.pyc", "tools/missing.py"]);
   });
 
+  it("detects pruned Python run-shim paths (compose python-free)", () => {
+    expect(normalizePythonHelperTarget(".deft/core/run")).toBe(".deft/core/run");
+    expect(normalizePythonHelperTarget("../../deft/run")).toBe("deft/run");
+    expect(normalizePythonHelperTarget("run")).toBe("run");
+    const root = staged("c3-runshim-");
+    mkdirSync(join(root, "skills", "demo"), { recursive: true });
+    writeFileSync(
+      join(root, "skills", "demo", "SKILL.md"),
+      "! Agents MUST run `.deft/core/run bootstrap` then `deft/run spec`.\n",
+      "utf8",
+    );
+    const result = evaluateLiveProcedureTargets({ stagedRoot: root });
+    expect(result.uniqueTargets).toEqual([".deft/core/run", "deft/run"]);
+  });
+
   it("skips planning, history/archive, missing roots, and excluded extra files", () => {
     const root = staged("c3-skip-");
     mkdirSync(join(root, ".planning"), { recursive: true });

@@ -14,7 +14,7 @@ description: >-
 
 # Deft Directive Setup
 
-Agent-driven alternative to `.deft/core/run bootstrap && .deft/core/run project && .deft/core/run spec`.
+Agent-driven alternative to `directive init` plus setup Phases 1-3 (`task project:render` / spec interview).
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 

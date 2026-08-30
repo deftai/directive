@@ -15,7 +15,7 @@ import { join, relative, resolve, sep } from "node:path";
 import { NON_PRODUCT_DIRS } from "../fs/non-product-dirs.js";
 import { extractLinkTargets, shouldSkipLinkTarget } from "../validate-content/link-parser.js";
 import { isDeclaredLiveProcedureExclusion } from "./live-procedure-exclusions.js";
-import { isPythonHelperPath } from "./python-free.js";
+import { isPrunedPythonArtifactPath } from "./python-free.js";
 
 const SKIP_DIRS = new Set([...NON_PRODUCT_DIRS, ".planning", "specs"]);
 
@@ -83,6 +83,7 @@ function collectMarkdownFiles(root: string): string[] {
 
 const PATH_CHAR = /[A-Za-z0-9_.-]/;
 const PY_HELPER_TOKEN = /^(?:[A-Za-z0-9_.-]+\/)+[A-Za-z0-9_.-]+\.py[c]?$/;
+const RUN_SHIM_TOKEN = /^(?:\.deft\/core\/run|deft\/run|run)$/;
 
 function stripRelativePrefix(posix: string): string {
   let out = posix;
@@ -99,6 +100,13 @@ export function normalizePythonHelperTarget(raw: string): string | null {
   if (stripped.includes("..")) return null;
   const scriptsIdx = stripped.lastIndexOf("scripts/");
   const token = scriptsIdx >= 0 ? stripped.slice(scriptsIdx) : stripped;
+  if (RUN_SHIM_TOKEN.test(token) || RUN_SHIM_TOKEN.test(stripped)) {
+    if (stripped === ".deft/core/run" || stripped.endsWith("/.deft/core/run")) {
+      return ".deft/core/run";
+    }
+    if (stripped === "deft/run" || stripped.endsWith("/deft/run")) return "deft/run";
+    if (token === "run" || stripped === "run") return "run";
+  }
   if (!PY_HELPER_TOKEN.test(token)) return null;
   return token;
 }
@@ -126,6 +134,12 @@ function extractBacktickPythonHelpers(line: string): string[] {
       const token = line.slice(start, idx + suffix.length);
       from = idx + suffix.length;
       const normalized = normalizePythonHelperTarget(token);
+      if (normalized) out.push(normalized);
+    }
+  }
+  for (const spelling of [".deft/core/run", "deft/run"] as const) {
+    if (line.includes(spelling)) {
+      const normalized = normalizePythonHelperTarget(spelling);
       if (normalized) out.push(normalized);
     }
   }
@@ -164,7 +178,7 @@ function scanMarkdownFile(absolutePath: string, relativePath: string): LiveProce
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i] ?? "";
     for (const target of extractLineTargets(line)) {
-      if (!isPythonHelperPath(target)) continue;
+      if (!isPrunedPythonArtifactPath(target)) continue;
       hits.push({ file: relativePath, line: i + 1, target });
     }
   }

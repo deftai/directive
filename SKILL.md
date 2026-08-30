@@ -127,7 +127,7 @@ See `.deft/core/tools/taskfile.md` for complete task standards and common comman
 3. Implementation is INCOMPLETE until tests pass
 
 **Spec-Driven Development (SDD)** for new features/projects:
-1. Run `.deft/core/run spec` — sizing gate selects Light or Full path
+1. Run `skills/deft-directive-setup/SKILL.md` Phase 3 — sizing gate selects Light or Full path
 2. Light: Interview → scope vBRIEFs in `vbrief/proposed/` (embedded requirements) → Implement
 3. Full: Interview → rich narratives in `specification.vbrief.json` (approval gate) → scope vBRIEFs → Implement
 
@@ -158,14 +158,13 @@ All languages require ≥85% test coverage. See language-specific files:
 
 **Initialize new project**:
 ```bash
-.deft/core/run init       # Create deft structure
-.deft/core/run bootstrap  # User config (first time only)
-.deft/core/run project    # Project config → vbrief/PROJECT-DEFINITION.vbrief.json
-.deft/core/run spec       # Sizing gate → Light (scope vBRIEFs) or Full (specification.vbrief.json → scope vBRIEFs)
+directive init            # Create deft structure
+# Then skills/deft-directive-setup/SKILL.md Phases 1-3
+task project:render       # Project config → xbrief/PROJECT-DEFINITION.xbrief.json
 ```
 
 **Work with existing deft project**:
-1. **First time?** If `~/.config/deft/USER.md` doesn't exist, run `.deft/core/run bootstrap`
+1. **First time?** If USER.md doesn't exist, run `skills/deft-directive-setup/SKILL.md` Phase 1
 2. Read `.deft/core/main.md` (general guidelines)
 3. Read `~/.config/deft/USER.md` (personal preferences - highest precedence)
 4. Read `./vbrief/PROJECT-DEFINITION.vbrief.json` (project rules)
@@ -199,10 +198,10 @@ See `.deft/core/docs/claude-code-integration.md` for integration details.
 | Check coverage | `task test:coverage` |
 | Format code | `task fmt` |
 | Lint code | `task lint` |
-| Initialize deft | `.deft/core/run init` |
-| Configure user | `.deft/core/run bootstrap` |
-| Configure project | `.deft/core/run project` |
-| Generate spec | `.deft/core/run spec` |
+| Initialize deft | `directive init` |
+| Configure user | `skills/deft-directive-setup/SKILL.md` Phase 1 |
+| Configure project | `task project:render` |
+| Generate spec | `skills/deft-directive-setup/SKILL.md` Phase 3 |
 
 ## Remember
 

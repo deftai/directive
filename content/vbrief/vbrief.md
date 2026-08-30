@@ -24,7 +24,7 @@ Key `task` commands for working with vBRIEF files:
 - `task scope:decompose -- <parent.vbrief.json> --draft vbrief/.triage-cache/decompositions/<parent-slug>.json` — Apply an approved phase/epic to story decomposition
 - `task swarm:readiness -- vbrief/active/*.vbrief.json` — Report whether candidate stories are safe for concurrent swarm allocation
 
-For interactive creation workflows, use `run` commands (`.deft/core/run bootstrap`, `.deft/core/run spec`). See [commands.md](../commands.md) for the full command lifecycle.
+For interactive creation workflows, use `skills/deft-directive-setup/SKILL.md` (`directive init` / setup Phases 1-3). See [commands.md](../commands.md) for the full command lifecycle.
 
 ---
 

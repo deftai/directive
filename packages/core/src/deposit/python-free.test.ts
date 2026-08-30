@@ -5,7 +5,9 @@ import { afterEach, describe, expect, it } from "vitest";
 import { runWithMutationLedger, snapshotMutationSummary } from "../fs/mutation-ledger.js";
 import {
   collectPythonArtifacts,
+  isPrunedPythonArtifactPath,
   isPythonHelperPath,
+  isPythonRunShimPath,
   isRepoRootPythonRunShim,
   prunePythonArtifactsFromDeposit,
 } from "./python-free.js";
@@ -44,6 +46,16 @@ describe("python-free deposit hygiene (#2022 Phase 3)", () => {
     expect(isPythonHelperPath("scripts/ip_risk.py")).toBe(true);
     expect(isPythonHelperPath("legacy.pyc")).toBe(true);
     expect(isPythonHelperPath("tasks/verify.yml")).toBe(false);
+  });
+
+  it("isPythonRunShimPath identifies pruned run launchers (#3602 C3)", () => {
+    expect(isPythonRunShimPath("run")).toBe(true);
+    expect(isPythonRunShimPath(".deft/core/run")).toBe(true);
+    expect(isPythonRunShimPath("deft/run")).toBe(true);
+    expect(isPythonRunShimPath("tasks/run.yml")).toBe(false);
+    expect(isPrunedPythonArtifactPath(".deft/core/run")).toBe(true);
+    expect(isPrunedPythonArtifactPath("scripts/ip_risk.py")).toBe(true);
+    expect(isPrunedPythonArtifactPath("tasks/verify.yml")).toBe(false);
   });
 
   it("collectPythonArtifacts ignores non-python run shims and absent trees", () => {

@@ -21,6 +21,17 @@ export function isPythonHelperPath(relPath: string): boolean {
   return base.endsWith(PY_SUFFIX) || base.endsWith(PYC_SUFFIX);
 }
 
+/** Path spellings of the Python `run` launcher python-free removes (#3602 C3). */
+export function isPythonRunShimPath(relPath: string): boolean {
+  const posix = relPath.replace(/\\/g, "/").replace(/^\.\//, "");
+  return posix === "run" || posix === ".deft/core/run" || posix === "deft/run";
+}
+
+/** True when C3 should treat a named path as a pruned Python deposit helper. */
+export function isPrunedPythonArtifactPath(relPath: string): boolean {
+  return isPythonHelperPath(relPath) || isPythonRunShimPath(relPath);
+}
+
 export interface PythonArtifact {
   readonly path: string;
   readonly kind: "py-file" | "scripts-tree" | "run-shim";
