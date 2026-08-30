@@ -1,0 +1,168 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #3614 bound remedy: authorize every ApplyPatch mutation path, not only the declared write target",
+    "updated": "2026-08-30T18:46:49Z"
+  },
+  "plan": {
+    "title": "BLOCKER: authorize every apply_patch mutation path, not only the declared write target",
+    "status": "running",
+    "narratives": {
+      "Description": "The write gate authorizes the path a caller declares. It does not authorize the paths the patch body mutates. Close that bypass first; then restore the Codex proposal-write convenience by wiring the existing extractor, not a second parser.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3614. Bound by design-critique synthesis 5470534026, successor lean 5470524226, verified-claims table 5470530094, critic 5470424065.",
+      "Overview": "Bound contract: issue #3614 reported a Codex proposal write denied because hookWriteTargetPath does not read Add File from a raw apply_patch body. The design-critique arc found a larger live defect: the same path is bypassable on master today. A payload may declare path: xbrief/proposed/ while the patch body writes .github/workflows/release.yml or src/index.ts, and the gate returns allow / write-propose-ready. With the path-write fence enabled and those paths in denyPaths, a direct Write denies while the ApplyPatch form still allows.\n\nPriority 1: every path hookMutationTargetPaths returns must be authorized. Mixed patches deny unless every target is allowed. Empty enumeration on an ApplyPatch-shaped payload fails closed. Shapes: single-file mismatch, 3-file mixed, Delete File, fence denyPaths vs direct Write.\n\nPriority 2: Move to is two targets. Authorize source and destination, or deny.\n\nPriority 3: dispatcher.test.ts currently asserts allow on a payload whose declared path and patch target disagree. Flip to deny. Record as a deliberate #3156 product fix of a test that pinned a defect, not a gate weakened to go green.\n\nPriority 4: trySynthesizeFreeFormApplyPatch already implements the issue body recommended items 1-4. Reach it for valid-JSON hosts. Do not add a second parser. Synthesis refuses when applyPatchMutationPaths reports more than one unique path.\n\nPriority 5: file a durable CLI-verb-keyed proposal-exemption follow-up. deft xbrief:create already works via fail-open (shell-op-unclassifiable). Do not expand text parsing in this scope.\n\nResidual: vendor apply_patch grammar is not in this repository. If the matched operation set is incomplete, retire the text-parsed exemption rather than extend the parser by guesswork.\n\nOut of scope: expanding the grammar matcher; implementing the verb-keyed exemption (file only); occupancy / #3611.",
+      "UserStory": "As a consumer who opted into the path-write fence, I need ApplyPatch to be refused on every path the patch actually mutates, so declaring a planning file cannot smuggle a write into .github/ or src/.",
+      "ImplementationPlan": "1. Route the proposed-lifecycle exemption and the write-fence / authz checks through hookMutationTargetPaths. 2. Keep Move to destinations in that enumeration. 3. Flip the mismatched-path regression to deny and record #3156. 4. After JSON.parse, call existing trySynthesizeFreeFormApplyPatch on the patch body when no declared path is present; refuse synthesis when mutation paths are not exactly one. 5. File a follow-up issue for verb-keyed proposal exemption.",
+      "Labels": "bug, security, blocker"
+    },
+    "items": [
+      {
+        "title": "Every mutated path is authorized; mixed / Delete File / undeclared body paths deny",
+        "status": "proposed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "A payload declaring a permitted planning path while the patch body writes an unauthorized path is denied. Tests cover single-file mismatch, 3-file mixed, and Delete File."
+        }
+      },
+      {
+        "title": "Move to authorizes source and destination",
+        "status": "proposed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "A rename whose destination is unauthorized is denied even when the source or declared path is a proposed xBRIEF."
+        }
+      },
+      {
+        "title": "Fence denyPaths applies to ApplyPatch the same as direct Write",
+        "status": "proposed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "With runtimeAuthority enabled and denyPaths for .github/** and src/**, ApplyPatch to those paths denies exactly where a direct Write denies."
+        }
+      },
+      {
+        "title": "Flip the mismatched-path test to deny and record it as a #3156 product fix",
+        "status": "proposed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "The former allow assertion on declared-path vs patch-target disagreement asserts deny. PR body and CHANGELOG say this is a deliberate product fix of a test that locked in a bypass, not a gate weakened to go green."
+        }
+      },
+      {
+        "title": "Reach trySynthesizeFreeFormApplyPatch for valid-JSON hosts; no second parser",
+        "status": "proposed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "A Codex-shaped JSON payload with tool_input.patch and no path, containing one proposed xBRIEF Add File, reaches write-propose-ready. Synthesis refuses Move-to dual targets. No new apply_patch grammar parser is added."
+        }
+      },
+      {
+        "title": "File the durable CLI-verb-keyed proposal-exemption follow-up",
+        "status": "proposed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "A GitHub issue enumerates what a verb-keyed exemption needs. This scope does not expand text parsing for convenience."
+        }
+      },
+      {
+        "title": "CHANGELOG Unreleased entry",
+        "status": "proposed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Unreleased Fixed entry names the bypass close, the flipped test as a #3156 product fix, and the residual that the vendor grammar is not in this repository."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security",
+      "blocker"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3614",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3614: BLOCKER: bug(codex): proposed-scope exemption cannot extract target from raw apply_patch payload"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3156",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3156: gate integrity"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2738",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2738: Cursor free-form ApplyPatch"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2625",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2625: proposal-write planning exemption"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3974",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3974: verb-keyed proposed-lifecycle exemption follow-up"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/hooks/dispatcher.test.ts packages/core/src/hooks/classify/stdin.test.ts packages/core/src/hooks/classify/paths.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "envelope stated product deny-shape acceptance, not a shell command; derived the colocated vitest invocation that proves those shapes",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "A patch whose body writes an unauthorized path is denied even when the declared path is permitted, with tests for the single-file, multi-file mixed, Delete File, and Move to shapes.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "With denyPaths configured, the ApplyPatch form denies exactly where a direct Write denies.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The mismatched declared-path / patch-target test asserts deny, recorded as a deliberate #3156 product fix.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "No second parser of the patch grammar is introduced.",
+          "artifact_path": "packages/core/src/hooks/classify/stdin.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "kind": "story",
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "packages/core/src/hooks/classify/stdin.ts",
+          "packages/core/src/hooks/classify/stdin.test.ts",
+          "packages/core/src/hooks/classify/paths.ts",
+          "packages/core/src/hooks/classify/paths.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/hooks",
+        "cohesion_exemption": "dispatcher.ts, dispatcher.test.ts, and CHANGELOG.md already exceed the review-trigger line count. This slice wires existing mutation-path enumeration into authorization and does not split those files."
+      }
+    },
+    "updated": "2026-08-30T18:46:49Z"
+  }
+}

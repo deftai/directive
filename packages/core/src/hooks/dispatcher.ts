@@ -72,6 +72,8 @@ import {
 } from "../session/verify-session-ritual.js";
 import {
   type HookPayloadContext,
+  hookApplyPatchBodyPaths,
+  hookApplyPatchBodyText,
   hookMcpArgsText,
   hookMutationTargetPaths,
   hookShellCommand,
@@ -347,6 +349,55 @@ export function isProposedLifecycleWrite(projectRoot: string, targetPath: string
   const base = posix.includes("/") ? posix.slice(posix.lastIndexOf("/") + 1) : posix;
   if (!hasArtifactSuffix(base)) return false;
   return posix.startsWith("xbrief/proposed/") || posix.startsWith("vbrief/proposed/");
+}
+
+/**
+ * ApplyPatch body present but no mutation header could be classified.
+ * Fail closed rather than authorizing the declared path alone (#3614).
+ */
+function applyPatchBodyUnclassified(payload: unknown): boolean {
+  const text = hookApplyPatchBodyText(payload);
+  return text !== null && hookApplyPatchBodyPaths(payload).length === 0;
+}
+
+/**
+ * Proposed-lifecycle exemption is universally quantified over every mutated
+ * path, not the declared write target alone (#3614).
+ */
+function allMutationTargetsAreProposedLifecycleWrites(
+  projectRoot: string,
+  payload: unknown,
+): boolean {
+  if (applyPatchBodyUnclassified(payload)) return false;
+  const targets = hookMutationTargetPaths(payload);
+  if (targets.length === 0) return false;
+  return targets.every((target) => isProposedLifecycleWrite(projectRoot, target));
+}
+
+function authzForMutationTargets(
+  input: HookDispatchInput,
+  toolName: string,
+  seams: HookPolicySeams,
+  options: {
+    isDirectWrite: boolean;
+    scopePath: string | null;
+    runGit?: GitRunner;
+    projectRoot: string;
+  },
+): HookDecision | null {
+  const targets = hookMutationTargetPaths(input.payload);
+  const paths: readonly (string | null)[] = targets.length > 0 ? targets : [null];
+  for (const target of paths) {
+    const relPath = target !== null ? toProjectRelativePosix(options.projectRoot, target) : null;
+    const denied = authzForMutation(input, toolName, seams, {
+      isDirectWrite: options.isDirectWrite,
+      relPath,
+      scopePath: options.scopePath,
+      runGit: options.runGit,
+    });
+    if (denied !== null) return denied;
+  }
+  return null;
 }
 
 /**
@@ -758,26 +809,41 @@ function runtimeAuthorityForDirectWrite(
   });
   // Neither layer active → allow (same as disabled runtimeAuthority historically).
   if (!fence.fenceActive) return null;
-  const writeTarget = hookWriteTargetPath(input.payload);
-  const relPath = writeTarget !== null ? toProjectRelativePosix(fenceRoot, writeTarget) : null;
-  const verdict = evaluateRuntimeAuthorityDirectWrite({
-    policy: fence.policy,
-    relPathPosix: relPath,
-  });
-  if (verdict.allowed) return null;
   // #3794: relPath is now measured from the tree the write lands in. When that
   // differs from the payload root, a bare "outside file_scope" reason does not
   // say which tree the fence was relativised against.
   const fenceRootNote =
     fenceRoot === projectRoot ? "" : ` ${formatHookRootNote(projectRoot, fenceRoot)}`;
-  return deny(
-    input,
-    verdict.code ?? "runtime-policy-deny-path",
-    toolName,
-    (verdict.reason ?? "Directive denied this direct write under write fence policy.") +
-      fenceRootNote,
-    scopePath,
-  );
+  if (applyPatchBodyUnclassified(input.payload)) {
+    return deny(
+      input,
+      "runtime-policy-deny-path",
+      toolName,
+      "Directive denied this direct write: apply_patch body named no classifiable mutation target, so the write fence cannot authorize it." +
+        fenceRootNote,
+      scopePath,
+    );
+  }
+  const targets = hookMutationTargetPaths(input.payload);
+  const toCheck: readonly (string | null)[] = targets.length > 0 ? targets : [null];
+  for (const target of toCheck) {
+    const relPath = target !== null ? toProjectRelativePosix(fenceRoot, target) : null;
+    const verdict = evaluateRuntimeAuthorityDirectWrite({
+      policy: fence.policy,
+      relPathPosix: relPath,
+    });
+    if (!verdict.allowed) {
+      return deny(
+        input,
+        verdict.code ?? "runtime-policy-deny-path",
+        toolName,
+        (verdict.reason ?? "Directive denied this direct write under write fence policy.") +
+          fenceRootNote,
+        scopePath,
+      );
+    }
+  }
+  return null;
 }
 
 function loadAuthzContext(
@@ -1412,16 +1478,15 @@ function inspectMutationGates(
     occupancyWarning === null ? message : `${message} ${occupancyWarning}`;
 
   if (options.proposedLifecycleExempt) {
-    const writeTarget = hookWriteTargetPath(input.payload);
-    if (isProposedLifecycleWrite(effectiveRoot, writeTarget)) {
-      const relPath =
-        writeTarget !== null ? toProjectRelativePosix(projectRoot, writeTarget) : null;
+    if (allMutationTargetsAreProposedLifecycleWrites(effectiveRoot, input.payload)) {
       // UAT still allows xbrief/proposed/** as evidence/defect capture (#2944).
-      const authzDeny = authzForMutation(input, toolName, seams, {
+      // Authz and the write fence run on every mutated path, not the declared
+      // one (#3614).
+      const authzDeny = authzForMutationTargets(input, toolName, seams, {
         isDirectWrite: true,
-        relPath,
         scopePath: null,
         runGit: dispatchGit,
+        projectRoot,
       });
       if (authzDeny !== null) return authzDeny;
       const runtimeDeny = runtimeAuthorityForDirectWrite(
@@ -1542,14 +1607,12 @@ function inspectMutationGates(
     }
   }
   if (!isSpawnTool(toolName)) {
-    const writeTarget = hookWriteTargetPath(input.payload);
-    const relPath = writeTarget !== null ? toProjectRelativePosix(projectRoot, writeTarget) : null;
     // Wave 1 authz (UAT lease + human-origin grant) before runtimeAuthority (#2944 / #2948 L1–L2).
-    const authzDeny = authzForMutation(input, toolName, seams, {
+    const authzDeny = authzForMutationTargets(input, toolName, seams, {
       isDirectWrite: true,
-      relPath,
       scopePath: scope.path,
       runGit: dispatchGit,
+      projectRoot,
     });
     if (authzDeny !== null) return authzDeny;
     const runtimeDeny = runtimeAuthorityForDirectWrite(

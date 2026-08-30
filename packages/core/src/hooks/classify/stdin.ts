@@ -3,6 +3,7 @@
  * No process I/O — operates on an already-read string.
  */
 
+import { firstString, record, toolInputRecord } from "./payload.js";
 import type { ParsedHookPayload } from "./types.js";
 
 const UTF8_BOM = "\uFEFF";
@@ -13,8 +14,9 @@ const APPLY_PATCH_MUTATION_LINE_RE =
 /**
  * Canonical apply_patch spells a rename as `*** Update File:` followed by
  * `*** Move to:`. The destination is a mutation target in its own right, so it
- * must reach root admission; kept separate from the header regex above so the
- * single-mutation #2738 synthesis contract is unchanged (#3794).
+ * must reach root admission. Synthesis refuses when applyPatchMutationPaths
+ * reports more than one unique path, so a Move-to destination is not dropped
+ * from the single-target contract (#3614 / #3794).
  */
 const APPLY_PATCH_MOVE_DESTINATION_RE = /^\*\*\* Move to: (.+)$/gm;
 
@@ -50,6 +52,9 @@ function trySynthesizeFreeFormApplyPatch(normalized: string): ParsedHookPayload 
     mutations.push({ op, path });
   }
   if (mutations.length !== 1) return null;
+  // Count headers plus Move-to destinations so a rename cannot collapse to one
+  // checked path (#3614 / #3794). Reuses applyPatchMutationPaths; no second parser.
+  if (applyPatchMutationPaths(normalized).length !== 1) return null;
   const sole = mutations[0];
   if (sole === undefined || (sole.op !== "Add File" && sole.op !== "Update File")) return null;
   return {
@@ -62,6 +67,62 @@ function trySynthesizeFreeFormApplyPatch(normalized: string): ParsedHookPayload 
     },
     context: {},
   };
+}
+
+function declaredWritePathFromParsed(payload: unknown): string | null {
+  const input = record(payload);
+  if (input === null) return null;
+  const toolInput = toolInputRecord(input);
+  return firstString([
+    toolInput?.file_path,
+    toolInput?.filePath,
+    toolInput?.path,
+    input.file_path,
+    input.filePath,
+    input.path,
+  ]);
+}
+
+function applyPatchBodyTextFromParsed(payload: unknown): string | null {
+  const input = record(payload);
+  if (input === null) return null;
+  const toolInput = toolInputRecord(input);
+  return firstString([
+    toolInput?.patch,
+    toolInput?.unified_diff,
+    toolInput?.diff,
+    input.patch,
+    input.unified_diff,
+    input.diff,
+  ]);
+}
+
+function withToolInputPath(parsed: unknown, path: string): unknown {
+  const input = record(parsed);
+  if (input === null) return parsed;
+  for (const key of ["tool_input", "toolInput", "input", "arguments"] as const) {
+    const nested = record(input[key]);
+    if (nested !== null) {
+      return { ...input, [key]: { ...nested, path } };
+    }
+  }
+  return { ...input, tool_input: { path } };
+}
+
+/**
+ * Valid-JSON hosts (Codex) never hit the JSON.parse catch arm, so the free-form
+ * extractor was unreached. Call it on the patch body when no path was declared.
+ * Does not replace the parsed payload; only fills tool_input.path.
+ */
+function attachSynthesizedApplyPatchPath(parsed: unknown): unknown {
+  if (declaredWritePathFromParsed(parsed) !== null) return parsed;
+  const patch = applyPatchBodyTextFromParsed(parsed);
+  if (patch === null) return parsed;
+  const synthesized = trySynthesizeFreeFormApplyPatch(patch);
+  if (synthesized === null) return parsed;
+  const synthesizedPath = declaredWritePathFromParsed(synthesized.payload);
+  if (synthesizedPath === null) return parsed;
+  return withToolInputPath(parsed, synthesizedPath);
 }
 
 /**
@@ -77,7 +138,8 @@ export function parseHookStdin(raw: string): ParsedHookPayload {
     return { payload: {}, context: { stdinEmpty: true } };
   }
   try {
-    return { payload: JSON.parse(normalized) as unknown, context: {} };
+    const parsed = JSON.parse(normalized) as unknown;
+    return { payload: attachSynthesizedApplyPatchPath(parsed), context: {} };
   } catch {
     const synthesized = trySynthesizeFreeFormApplyPatch(normalized);
     if (synthesized !== null) return synthesized;

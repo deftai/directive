@@ -24,12 +24,12 @@ export function hookWriteTargetPath(payload: unknown): string | null {
   ]);
 }
 
-/** ApplyPatch body paths from patch / unified_diff / diff fields. */
-export function hookApplyPatchBodyPaths(payload: unknown): string[] {
+/** Raw ApplyPatch body text from patch / unified_diff / diff fields. */
+export function hookApplyPatchBodyText(payload: unknown): string | null {
   const input = record(payload);
-  if (input === null) return [];
+  if (input === null) return null;
   const toolInput = toolInputRecord(input);
-  const patch = firstString([
+  return firstString([
     toolInput?.patch,
     toolInput?.unified_diff,
     toolInput?.diff,
@@ -37,6 +37,11 @@ export function hookApplyPatchBodyPaths(payload: unknown): string[] {
     input.unified_diff,
     input.diff,
   ]);
+}
+
+/** ApplyPatch body paths from patch / unified_diff / diff fields. */
+export function hookApplyPatchBodyPaths(payload: unknown): string[] {
+  const patch = hookApplyPatchBodyText(payload);
   return patch === null ? [] : applyPatchMutationPaths(patch);
 }
 

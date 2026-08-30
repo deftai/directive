@@ -1128,7 +1128,10 @@ describe("direct-write hook policy", () => {
     expect(inspectScope).not.toHaveBeenCalled();
   });
 
-  it("allows ApplyPatch of xbrief/proposed/*.xbrief.json with no active scope (#2738)", () => {
+  it("denies ApplyPatch when declared proposed path disagrees with the patch body (#3614 / #3156)", () => {
+    // Deliberate product fix: this case previously asserted allow and locked in
+    // an authorization bypass. The patch body is what lands on disk. Changing
+    // the assertion from allow to deny is not weakening a gate to go green.
     const inspectScope = vi.fn(() => ({
       ready: false,
       path: null,
@@ -1150,8 +1153,164 @@ describe("direct-write hook policy", () => {
       readySeams({ inspectScope }),
     );
 
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+  });
+
+  it("allows ApplyPatch of xbrief/proposed/*.xbrief.json when every mutation target matches (#2738 / #3614)", () => {
+    const inspectScope = vi.fn(() => ({
+      ready: false,
+      path: null,
+      message: "No active xBRIEF artifact was found under xbrief/active/",
+    }));
+    const proposed = "xbrief/proposed/2026-07-17-story.xbrief.json";
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "ApplyPatch",
+          tool_input: {
+            path: proposed,
+            patch: `*** Begin Patch\n*** Add File: ${proposed}\n+probe\n*** End Patch`,
+          },
+        },
+      },
+      readySeams({ inspectScope }),
+    );
+
     expect(decision).toMatchObject({ verdict: "allow", code: "write-propose-ready" });
     expect(inspectScope).not.toHaveBeenCalled();
+  });
+
+  describe("ApplyPatch mutation-target cross-check (#3614)", () => {
+    const proposed = "xbrief/proposed/2026-08-21-story.xbrief.json";
+    const noScope = () =>
+      readySeams({
+        inspectScope: () => ({
+          ready: false,
+          path: null,
+          message: "No active xBRIEF artifact was found under xbrief/active/",
+        }),
+      });
+    const fencePolicy = {
+      enabled: true,
+      allowPaths: ["xbrief/**"],
+      denyPaths: [".github/**", "src/**"],
+      scopes: { edits: true, push: false, merge: false },
+    };
+    const fenceSeams = () =>
+      readySeams({
+        loadRuntimeAuthority: () => fencePolicy,
+      });
+
+    function applyPatch(path: string | undefined, body: string) {
+      return {
+        host: "cursor" as const,
+        event: "tool.before" as const,
+        projectRoot: "/project",
+        payload: {
+          tool_name: "ApplyPatch",
+          tool_input: path === undefined ? { patch: body } : { path, patch: body },
+        },
+      };
+    }
+
+    it("denies a single-file body writing src/index.ts under a declared proposed path", () => {
+      const body = "*** Begin Patch\n*** Update File: src/index.ts\n+pwned\n*** End Patch";
+      const decision = decideHook(applyPatch(proposed, body), noScope());
+      expect(decision.verdict).toBe("deny");
+    });
+
+    it("denies a mixed 3-file patch that includes an unauthorized path", () => {
+      const body = [
+        "*** Begin Patch",
+        `*** Add File: ${proposed}`,
+        "+{}",
+        "*** Add File: .github/workflows/release.yml",
+        "+name: pwn",
+        "*** Update File: src/index.ts",
+        "+x",
+        "*** End Patch",
+      ].join("\n");
+      const decision = decideHook(applyPatch(proposed, body), noScope());
+      expect(decision.verdict).toBe("deny");
+    });
+
+    it("denies Delete File of an unauthorized path under a declared proposed path", () => {
+      const body = "*** Begin Patch\n*** Delete File: src/index.ts\n*** End Patch";
+      const decision = decideHook(applyPatch(proposed, body), noScope());
+      expect(decision.verdict).toBe("deny");
+    });
+
+    it("denies Move to an unauthorized destination under a proposed source", () => {
+      const body = [
+        "*** Begin Patch",
+        `*** Update File: ${proposed}`,
+        "*** Move to: src/index.ts",
+        "+pwned",
+        "*** End Patch",
+      ].join("\n");
+      const decision = decideHook(applyPatch(proposed, body), noScope());
+      expect(decision.verdict).toBe("deny");
+    });
+
+    it("allows a Codex-shaped payload with no path and one proposed Add File", () => {
+      const body = `*** Begin Patch\n*** Add File: ${proposed}\n+{}\n*** End Patch`;
+      const decision = decideHook(applyPatch(undefined, body), noScope());
+      expect(decision).toMatchObject({ verdict: "allow", code: "write-propose-ready" });
+    });
+
+    it("denies ApplyPatch to fence denyPaths exactly where a direct Write denies", () => {
+      const writeDecision = decideHook(
+        {
+          host: "cursor",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "Write",
+            tool_input: { file_path: "/project/.github/workflows/release.yml" },
+          },
+        },
+        fenceSeams(),
+      );
+      const patchBody =
+        "*** Begin Patch\n*** Add File: .github/workflows/release.yml\n+name: pwn\n*** End Patch";
+      const patchDecision = decideHook(applyPatch(proposed, patchBody), fenceSeams());
+      expect(writeDecision).toMatchObject({
+        verdict: "deny",
+        code: "runtime-policy-deny-path",
+      });
+      expect(patchDecision).toMatchObject({
+        verdict: "deny",
+        code: "runtime-policy-deny-path",
+      });
+    });
+
+    it("denies ApplyPatch to src/** under the same fence as a direct Write", () => {
+      const writeDecision = decideHook(
+        {
+          host: "cursor",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: {
+            tool_name: "Write",
+            tool_input: { file_path: "/project/src/index.ts" },
+          },
+        },
+        fenceSeams(),
+      );
+      const patchBody = "*** Begin Patch\n*** Update File: src/index.ts\n+x\n*** End Patch";
+      const patchDecision = decideHook(applyPatch(proposed, patchBody), fenceSeams());
+      expect(writeDecision).toMatchObject({
+        verdict: "deny",
+        code: "runtime-policy-deny-path",
+      });
+      expect(patchDecision).toMatchObject({
+        verdict: "deny",
+        code: "runtime-policy-deny-path",
+      });
+    });
   });
 
   it("allows Write of legacy vbrief/proposed/*.vbrief.json with no active scope (#2625)", () => {

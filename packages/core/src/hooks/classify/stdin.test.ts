@@ -53,9 +53,9 @@ describe("applyPatchMutationPaths (#3794)", () => {
     expect(applyPatchMutationPaths(patch)).toEqual(["same.ts"]);
   });
 
-  it("leaves the #2738 single-mutation synthesis contract unchanged", () => {
-    // `Move to` is not a mutation header, so a canonical rename still presents
-    // exactly one mutation and still synthesizes.
+  it("does not synthesize a Move-to dual-target patch (#3614)", () => {
+    // A rename is one header and two targets. Synthesis must refuse rather
+    // than authorize the source while the write lands at the destination.
     const freeForm = [
       "*** Begin Patch",
       "*** Update File: from.txt",
@@ -63,12 +63,41 @@ describe("applyPatchMutationPaths (#3794)", () => {
       "+x",
       "*** End Patch",
     ].join("\n");
-    expect(parseHookStdin(freeForm)).toEqual({
-      payload: {
-        tool_name: "ApplyPatch",
-        tool_input: { path: "from.txt", patch: freeForm },
-      },
-      context: {},
+    expect(parseHookStdin(freeForm)).toEqual({ payload: {}, context: { parseFailed: true } });
+  });
+
+  it("fills tool_input.path on valid JSON ApplyPatch with no declared path (#3614)", () => {
+    const patch = [
+      "*** Begin Patch",
+      "*** Add File: xbrief/proposed/2026-08-21-story.xbrief.json",
+      "+{}",
+      "*** End Patch",
+    ].join("\n");
+    const stdin = JSON.stringify({
+      tool_name: "apply_patch",
+      tool_input: { patch },
     });
+    const parsed = parseHookStdin(stdin);
+    const payload = parsed.payload as { tool_input?: { path?: string; patch?: string } };
+    expect(payload.tool_input?.path).toBe("xbrief/proposed/2026-08-21-story.xbrief.json");
+    expect(payload.tool_input?.patch).toBe(patch);
+    expect(parsed.context).toEqual({});
+  });
+
+  it("does not fill path on valid JSON Move-to dual-target ApplyPatch (#3614)", () => {
+    const patch = [
+      "*** Begin Patch",
+      "*** Update File: xbrief/proposed/2026-08-21-story.xbrief.json",
+      "*** Move to: src/index.ts",
+      "+x",
+      "*** End Patch",
+    ].join("\n");
+    const stdin = JSON.stringify({
+      tool_name: "apply_patch",
+      tool_input: { patch },
+    });
+    const parsed = parseHookStdin(stdin);
+    const payload = parsed.payload as { tool_input?: { path?: string } };
+    expect(payload.tool_input?.path).toBeUndefined();
   });
 });

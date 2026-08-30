@@ -30,6 +30,13 @@ schema with its own matcher.
 When a fence is active, PreToolUse direct writes (Write / Edit / StrReplace / …) **fail closed**
 for out-of-fence paths after ritual / scope / read-only / human-origin authz gates.
 
+ApplyPatch is a direct write. Every path `hookMutationTargetPaths` returns — the declared
+path plus every `*** Add/Update/Delete/Move/Rename File:` header and every `*** Move to:`
+destination — must pass the same fence as Write (#3614). A mixed patch is denied if any
+target is denied. An ApplyPatch body that names no classifiable mutation target fails closed
+while the fence is active. ⊗ Authorize only the declared path when the patch body names
+other targets.
+
 Deny reasons are stable and name the fence source:
 
 - `write fence project allowPaths (source: project)` or `project+story`

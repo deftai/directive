@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  hookApplyPatchBodyText,
   hookMcpArgsText,
   hookMutationTargetPaths,
   hookPathSet,
@@ -12,6 +13,12 @@ describe("path/shell extractors (#2950)", () => {
     expect(hookWriteTargetPath({ tool_input: { file_path: "a.ts" } })).toBe("a.ts");
     expect(hookWriteTargetPath({ path: "b.ts" })).toBe("b.ts");
     expect(hookWriteTargetPath({})).toBeNull();
+  });
+
+  it("hookApplyPatchBodyText reads nested patch spellings", () => {
+    expect(hookApplyPatchBodyText({ tool_input: { patch: "p" } })).toBe("p");
+    expect(hookApplyPatchBodyText({ unified_diff: "d" })).toBe("d");
+    expect(hookApplyPatchBodyText({})).toBeNull();
   });
 
   it("hookMutationTargetPaths includes ApplyPatch body members", () => {

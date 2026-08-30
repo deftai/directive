@@ -28,6 +28,7 @@ export {
 } from "./host-session-identity.js";
 export {
   hookApplyPatchBodyPaths,
+  hookApplyPatchBodyText,
   hookMcpArgsText,
   hookMutationTargetPaths,
   hookPathSet,
