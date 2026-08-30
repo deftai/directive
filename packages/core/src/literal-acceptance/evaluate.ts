@@ -261,15 +261,23 @@ export function evaluateLiteralAcceptanceFromPlan(
   // Rejected stated commands are fail-closed for completion (#3267 Greptile conf residual).
   // A safety-rejected shell-shaped acceptance line is not "optional diagnostic" — operators
   // must promote a safe alternative or remove the stated command from the task statement.
+  const mergedRejected: RejectedLiteralCommand[] = [];
+  const seenRejected = new Set<string>();
+  for (const row of [...(result.rejected ?? []), ...resolved.rejected]) {
+    const key = `${row.command}\0${row.reason}`;
+    if (seenRejected.has(key)) continue;
+    seenRejected.add(key);
+    mergedRejected.push(row);
+  }
   let ok = result.ok;
   let code = result.code;
-  let message = appendRejectedNote(result.message, resolved.rejected);
-  if (resolved.rejected.length > 0) {
+  let message = appendRejectedNote(result.message, mergedRejected);
+  if (mergedRejected.length > 0) {
     ok = false;
     if (code === 0) code = 1;
-    const ledger = formatRejectedLedger(resolved.rejected);
+    const ledger = formatRejectedLedger(mergedRejected);
     message =
-      `Literal acceptance-command gate FAILED (#3267): ${resolved.rejected.length} ` +
+      `Literal acceptance-command gate FAILED (#3267): ${mergedRejected.length} ` +
       `safety-rejected stated command(s) block completion until resolved ` +
       `(promote a safe alternative or remove from the task statement).\n` +
       ledger +
@@ -283,7 +291,7 @@ export function evaluateLiteralAcceptanceFromPlan(
     ...result,
     ok,
     code,
-    rejected: resolved.rejected,
+    rejected: mergedRejected,
     advisoryRejected: resolved.advisoryRejected,
     transcriptPromptSkipped: resolved.transcriptPromptSkipped,
     message,

@@ -12,7 +12,7 @@ import { sanitizeScopeIdForFilename } from "./ac-pass-banking.js";
 
 export const VERIFY_AC_SESSION_CACHE_DIR = ".deft/cache/verify-ac-session-cache";
 
-export const AC_SERVED_FROM = ["bank", "cache", "executed"] as const;
+export const AC_SERVED_FROM = ["bank", "cache", "executed", "refused"] as const;
 
 export type AcServedFrom = (typeof AC_SERVED_FROM)[number];
 

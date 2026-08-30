@@ -95,7 +95,7 @@ export interface AcceptanceEvidenceGateResult {
   readonly message: string;
   readonly reports: readonly CriterionAcceptanceReport[];
   /** How the #3357 walk obtained AC (#3387). */
-  readonly servedFrom?: "bank" | "cache" | "executed";
+  readonly servedFrom?: "bank" | "cache" | "executed" | "refused";
   /** Which acceptance check decided the walk (#3497). Undefined when no walk ran. */
   readonly predicate?: AcceptancePredicate;
 }

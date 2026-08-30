@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -788,5 +788,221 @@ describe("verify:ac evaluation applies oracle integrity (#3322)", () => {
       ]),
     });
     expect(skipped.ok).toBe(true);
+  });
+});
+
+function verificationLines(path: string): {
+  event: string;
+  payload: { outcome?: string; method_fingerprint?: string };
+}[] {
+  if (!existsSync(path)) {
+    return [];
+  }
+  const text = readFileSync(path, "utf8").trim();
+  if (text.length === 0) {
+    return [];
+  }
+  return text.split(/\r?\n/).map(
+    (row) =>
+      JSON.parse(row) as {
+        event: string;
+        payload: { outcome?: string; method_fingerprint?: string };
+      },
+  );
+}
+
+function refusedRun(
+  command: string,
+  cwd: string,
+): {
+  command: string;
+  cwd: string;
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+  ok: boolean;
+  detail: string;
+} {
+  return {
+    command,
+    cwd,
+    exitCode: 2,
+    stdout: "",
+    stderr: "unsafe command",
+    ok: false,
+    detail: "refused: first token is not in the literal-AC allowlist",
+  };
+}
+
+describe("safety-refusal is not a product-oracle measurement (#3615)", () => {
+  it("does not emit a verification event for an all-refused walk", () => {
+    const root = mkdtempSync(join(tmpdir(), "oracle-3615-all-refused-"));
+    const path = join(root, "summary.jsonl");
+    emitVerifyAcAttempts({
+      projectRoot: root,
+      sessionId: "sess-3615-all",
+      env: { [ENV_RUN_SUMMARY_PATH]: path },
+      runs: [refusedRun("curl https://example.com", root)],
+    });
+    expect(verificationLines(path).filter((row) => row.event === "verification")).toEqual([]);
+  });
+
+  it("does not emit a product-oracle pass for a mixed refused+pass walk", () => {
+    const root = mkdtempSync(join(tmpdir(), "oracle-3615-mixed-pass-"));
+    const path = join(root, "summary.jsonl");
+    emitVerifyAcAttempts({
+      projectRoot: root,
+      sessionId: "sess-3615-mixed-pass",
+      env: { [ENV_RUN_SUMMARY_PATH]: path },
+      runs: [
+        refusedRun("curl https://example.com", root),
+        {
+          command: "task test",
+          cwd: root,
+          exitCode: 0,
+          stdout: "",
+          stderr: "",
+          ok: true,
+          detail: "ok",
+        },
+      ],
+    });
+    const events = verificationLines(path).filter((row) => row.event === "verification");
+    expect(events).toEqual([]);
+    expect(events.some((row) => row.payload.outcome === "pass")).toBe(false);
+  });
+
+  it("still emits a product-oracle fail when an executed command failed beside a refusal", () => {
+    const root = mkdtempSync(join(tmpdir(), "oracle-3615-mixed-fail-"));
+    const path = join(root, "summary.jsonl");
+    emitVerifyAcAttempts({
+      projectRoot: root,
+      sessionId: "sess-3615-mixed-fail",
+      env: { [ENV_RUN_SUMMARY_PATH]: path },
+      runs: [
+        refusedRun("curl https://example.com", root),
+        {
+          command: "task test",
+          cwd: root,
+          exitCode: 1,
+          stdout: "",
+          stderr: "failed",
+          ok: false,
+          detail: "fail",
+        },
+      ],
+    });
+    const events = verificationLines(path).filter((row) => row.event === "verification");
+    expect(events).toHaveLength(1);
+    expect(events[0]?.payload.outcome).toBe("fail");
+  });
+
+  it("all-refused then corrected-safe pass in one session does not poison oracle history", () => {
+    const root = mkdtempSync(join(tmpdir(), "oracle-3615-poison-"));
+    const path = join(root, "summary.jsonl");
+    const env = { [ENV_RUN_SUMMARY_PATH]: path, DEFT_SESSION_ID: "sess-3615-poison" };
+    let runnerCalls = 0;
+    const runner = () => {
+      runnerCalls += 1;
+      return { exitCode: 0, stdout: "", stderr: "" };
+    };
+    const options = {
+      projectRoot: root,
+      runner,
+      captureFromNarratives: false as const,
+      bankOnPass: false as const,
+      reuseMode: "never" as const,
+      env,
+      sessionId: "sess-3615-poison",
+      hasSuiteFloor: true,
+    };
+    const first = evaluateVerifyAcFromPlan(
+      {
+        id: "3615-scope",
+        title: "refused then safe",
+        acceptance: {
+          commands: [{ command: "curl https://example.com" }],
+          none_stated: false,
+          source_rung: "derived",
+        },
+        items: [],
+      },
+      options,
+    );
+    expect(first.ok).toBe(false);
+    expect(runnerCalls).toBe(0);
+    expect((first.rejected ?? []).length).toBeGreaterThan(0);
+    expect(
+      verificationLines(path).filter(
+        (row) => row.event === "verification" && row.payload.outcome === "fail",
+      ),
+    ).toEqual([]);
+
+    const second = evaluateVerifyAcFromPlan(
+      {
+        id: "3615-scope",
+        title: "refused then safe",
+        acceptance: {
+          commands: [{ command: "task test" }],
+          none_stated: false,
+          source_rung: "derived",
+        },
+        items: [],
+      },
+      options,
+    );
+    expect(second.ok).toBe(true);
+    expect(runnerCalls).toBe(1);
+    const verdict = evaluateProductOracleIntegrity({ projectRoot: root, env });
+    expect(verdict.ok).toBe(true);
+    expect(verdict.unresolved).toEqual([]);
+  });
+
+  it("mixed refused+pass walk through evaluateVerifyAcFromPlan stays red and does not emit pass", () => {
+    const root = mkdtempSync(join(tmpdir(), "oracle-3615-eval-mixed-"));
+    const path = join(root, "summary.jsonl");
+    const env = { [ENV_RUN_SUMMARY_PATH]: path, DEFT_SESSION_ID: "sess-3615-eval-mixed" };
+    let runnerCalls = 0;
+    const result = evaluateVerifyAcFromPlan(
+      {
+        id: "3615-mixed",
+        title: "mixed walk",
+        acceptance: {
+          commands: [{ command: "curl https://example.com" }, { command: "task test" }],
+          none_stated: false,
+          source_rung: "derived",
+        },
+        items: [],
+      },
+      {
+        projectRoot: root,
+        runner: () => {
+          runnerCalls += 1;
+          return { exitCode: 0, stdout: "", stderr: "" };
+        },
+        captureFromNarratives: false,
+        bankOnPass: false,
+        reuseMode: "never",
+        env,
+        sessionId: "sess-3615-eval-mixed",
+        hasSuiteFloor: true,
+      },
+    );
+    expect(result.ok).toBe(false);
+    expect(runnerCalls).toBe(1);
+    expect(
+      verificationLines(path).some(
+        (row) => row.event === "verification" && row.payload.outcome === "pass",
+      ),
+    ).toBe(false);
+  });
+
+  it("names poisoned-history recovery that is not independent re-derivation", () => {
+    const text = readFileSync(join(process.cwd(), "content/docs/gate-integrity.md"), "utf8");
+    expect(text).toMatch(/#3615/);
+    expect(text).toMatch(/DEFT_SESSION_ID/);
+    expect(text).toMatch(/\.deft-run-summary\.json/);
+    expect(text).toMatch(/independent_rederivation=true/);
+    expect(text).toMatch(/refused side never executed/i);
   });
 });

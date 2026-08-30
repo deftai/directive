@@ -1,0 +1,140 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #3615. Bound contract: successor lean 5470524307, verified-claims table 5470530200, synthesis 5470534744. Critic 5470430386.",
+    "updated": "2026-08-30T18:49:54Z"
+  },
+  "plan": {
+    "title": "bug(verify-ac): safety-refused commands must not enter product-oracle history",
+    "status": "running",
+    "id": "3615-verify-ac-refusal-oracle",
+    "narratives": {
+      "Description": "Safety-refused acceptance commands fail the gate, but they must not be recorded as a product-oracle measurement.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3615",
+      "Overview": "Bound by design-critique synthesis 5470534744 (successor lean 5470524307).\n\nThere are two separate writes. `ok: false` on the run row is the fail-closed gate and stays. The product-oracle record is a later verification event. A refusal is not a measurement and must not enter oracle history as one.\n\n## Bound remedy\n\n1. Bind the existing rejected ledger. An all-refused acceptance walk produces no `verification.outcome=fail` product-oracle event, while the gate stays red. Capture already places refusal strings on that ledger.\n2. Do not teach the classifier to skip failures. Do not modify flag.ts (or the integrity layer) to tolerate a fail then pass. That check exists to catch a genuine one (#3156).\n3. Read the reason already on the row. Rejected rows carry `exitCode: 2` and `detail: \"refused: ...\"`. `emitVerifyAcAttempts` currently reads only `run.ok`. Teach the emitter to distinguish rather than adding a parallel state.\n4. Mixed-walk rule. A walk with some refused and some passing commands MUST NOT emit a product-oracle pass. Filtering refused rows and classifying the remainder is the false-green this rule exists to stop. Any executed fail in the walk remains a product-oracle fail.\n5. Operator-visible class. A run-time allowlist refusal surfaces as `safety-rejected`, not `commands-failed` / \"fix the product\" / `served_from: executed` when the runner was never selected.\n6. Recovery for already-poisoned history. A new Deft session id or a truncated run-summary JSONL is an operator workaround, not a product-oracle re-derivation. Do not set `independent_rederivation=true`.\n\n## Mixed-walk rule (explicit)\n\n- All-refused: no product-oracle verification event; gate stays red via the rejected ledger / `safety-rejected`.\n- Any executed fail in the walk remains a product-oracle fail (integrity still applies).\n- Mixed executed-pass plus refusal does not become a product-oracle pass.\n\nRefs #3615, #3322, #3156, #3267, #3284, #3396.",
+      "Labels": "design-critique:triage-ready",
+      "ImplementationPlan": "Keep refused rows on the run list so the emitter can read `exitCode` and `detail`. Also copy those rows onto the existing rejected ledger so the operator verdict is `safety-rejected`. Teach `emitVerifyAcAttempts` the mixed-walk rule. Leave `flag.ts` unchanged. Document poisoned-history recovery as a new session or truncated JSONL, not independent re-derivation."
+    },
+    "items": [
+      {
+        "title": "An all-refused walk keeps the acceptance gate red and records no product-oracle failure event",
+        "status": "proposed",
+        "effort": "M"
+      },
+      {
+        "title": "A mixed walk with a refusal and a passing command does not emit a product-oracle pass while the walk is red",
+        "status": "proposed",
+        "effort": "M"
+      },
+      {
+        "title": "The emitter distinguishes refusal from failure using exitCode 2 and detail prefix refused: already on the row",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "title": "The integrity layer still catches a genuine executed fail then different-method pass",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "title": "Operator-facing text names refusal as the cause when nothing ran (`safety-rejected`, not `commands-failed`)",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "title": "Document recovery for already-poisoned history: new session id or truncated run-summary, not independent_rederivation=true",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "title": "CHANGELOG `[Unreleased]` entry",
+        "status": "proposed",
+        "effort": "S"
+      }
+    ],
+    "tags": [
+      "bug",
+      "verify-ac",
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3615",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3615: BLOCKER: bug(verify-ac): safety-refused commands poison product-oracle history"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3322",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3322"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3156",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3156"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/verify-ac/evaluate.test.ts packages/core/src/literal-acceptance/literal-acceptance.test.ts packages/core/src/product-first-done-gate/acceptance-resolver.test.ts packages/core/src/product-first-done-gate/product-first-done-gate.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "An all-refused walk keeps the acceptance gate red and records no product-oracle failure event",
+          "artifact_path": "packages/core/src/verify-ac/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "A mixed walk with a refusal and a passing command does not emit a product-oracle pass while the walk is red",
+          "artifact_path": "packages/core/src/verify-ac/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The emitter distinguishes refusal from failure using exitCode 2 and detail prefix refused: already on the row",
+          "artifact_path": "packages/core/src/literal-acceptance/run.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "The integrity layer still catches a genuine executed fail then different-method pass",
+          "artifact_path": "packages/core/src/verify-ac/flag.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Operator-facing text names refusal as the cause when nothing ran (safety-rejected, not commands-failed)",
+          "artifact_path": "packages/core/src/product-first-done-gate/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Document recovery for already-poisoned history: new session id or truncated run-summary, not independent_rederivation=true",
+          "artifact_path": "content/docs/gate-integrity.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "CHANGELOG [Unreleased] entry",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-08-30T18:49:54Z"
+  }
+}

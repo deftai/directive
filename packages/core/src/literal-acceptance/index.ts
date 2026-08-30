@@ -35,6 +35,7 @@ export {
 } from "./evaluate.js";
 export {
   defaultLiteralAcceptanceRunner,
+  isSafetyRefusalRun,
   runLiteralAcceptanceCommand,
   runLiteralAcceptanceCommands,
 } from "./run.js";

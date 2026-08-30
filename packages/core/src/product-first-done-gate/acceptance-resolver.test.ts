@@ -268,3 +268,32 @@ describe("verify:ac message agrees with its verdict (#3497)", () => {
     expect(verify.message).toContain("clause-walk-failed");
   });
 });
+
+describe("run-time allowlist refusal is safety-rejected (#3615)", () => {
+  it("names safety-rejected when the runner was never selected", () => {
+    const verify = evaluateVerifyAcFromPlan(
+      {
+        id: "3615-verdict",
+        title: "refused walk",
+        acceptance: {
+          commands: [{ command: "curl https://example.com" }],
+          none_stated: false,
+          source_rung: "derived",
+        },
+        items: [],
+      },
+      {
+        ...baseOptions,
+        runner: () => {
+          throw new Error("runner must not be selected");
+        },
+      },
+    );
+    expect(verify.ok).toBe(false);
+    const verdict = resolveAcceptanceVerdict(verify);
+    expect(verdict.predicate).toBe("safety-rejected");
+    expect(verdict.remedy).not.toMatch(/fix the product/);
+    expect(verify.message).toContain("safety-rejected");
+    expect(verify.servedFrom).not.toBe("executed");
+  });
+});

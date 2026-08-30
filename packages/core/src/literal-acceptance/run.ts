@@ -15,7 +15,19 @@ import type {
   LiteralAcceptanceGateResult,
   LiteralAcceptanceRunner,
   LiteralAcceptanceRunResult,
+  RejectedLiteralCommand,
 } from "./types.js";
+
+/** True when the row is a pre-execution safety refusal, not a product measurement (#3615). */
+export function isSafetyRefusalRun(
+  run: Pick<LiteralAcceptanceRunResult, "exitCode" | "detail">,
+): boolean {
+  return run.exitCode === 2 && /^refused:\s*/i.test(run.detail);
+}
+
+function safetyRefusalReason(run: Pick<LiteralAcceptanceRunResult, "detail">): string {
+  return run.detail.replace(/^refused:\s*/i, "").trim();
+}
 
 /** Default shell runner: exact command string via platform shell. */
 export function defaultLiteralAcceptanceRunner(input: {
@@ -219,6 +231,7 @@ export function runLiteralAcceptanceCommands(
   }
 
   const runs: LiteralAcceptanceRunResult[] = [];
+  const rejected: RejectedLiteralCommand[] = [];
   for (const cmd of executable) {
     if (typeof cmd.command !== "string" || cmd.command.trim().length === 0) {
       return {
@@ -227,9 +240,18 @@ export function runLiteralAcceptanceCommands(
         message: "Literal acceptance-command gate config error: empty command entry (#3267)",
         commands,
         runs,
+        rejected: rejected.length > 0 ? rejected : undefined,
       };
     }
-    runs.push(runLiteralAcceptanceCommand(cmd, options));
+    const run = runLiteralAcceptanceCommand(cmd, options);
+    runs.push(run);
+    if (isSafetyRefusalRun(run)) {
+      rejected.push({
+        command: run.command,
+        reason: safetyRefusalReason(run),
+        sourceSpan: cmd.sourceSpan ?? null,
+      });
+    }
   }
 
   const failed = runs.filter((r) => !r.ok);
@@ -263,6 +285,7 @@ export function runLiteralAcceptanceCommands(
       lines.join("\n"),
     commands,
     runs,
+    rejected: rejected.length > 0 ? rejected : undefined,
   };
 }
 

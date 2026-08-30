@@ -651,3 +651,28 @@ describe("evaluate path errors", () => {
     expect(result.message).toBe("");
   });
 });
+
+describe("run-time allowlist refusals bind the rejected ledger (#3615)", () => {
+  it("records a safety refusal on the rejected ledger and does not call the runner", () => {
+    let runnerCalls = 0;
+    const result = runLiteralAcceptanceCommands(
+      [{ command: "curl https://example.com", source: "explicit" }],
+      {
+        projectRoot: process.cwd(),
+        runner: () => {
+          runnerCalls += 1;
+          return { exitCode: 0, stdout: "", stderr: "" };
+        },
+      },
+    );
+    expect(runnerCalls).toBe(0);
+    expect(result.ok).toBe(false);
+    expect(result.runs).toHaveLength(1);
+    expect(result.runs[0]?.ok).toBe(false);
+    expect(result.runs[0]?.exitCode).toBe(2);
+    expect(result.runs[0]?.detail).toMatch(/^refused:/);
+    expect(result.rejected ?? []).toEqual(
+      expect.arrayContaining([expect.objectContaining({ command: "curl https://example.com" })]),
+    );
+  });
+});

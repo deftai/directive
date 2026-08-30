@@ -101,6 +101,20 @@ Full CI automation that blocks “diff touches a gate that just failed” withou
 | Scope self-authorization | [#3145](https://github.com/deftai/directive/issues/3145), [scope-provenance.md](./scope-provenance.md) |
 | Host self-mutate honesty | [#3162](https://github.com/deftai/directive/issues/3162), [host-surface-assumptions.md](./host-surface-assumptions.md) |
 | Safety via formal gates | [#1200](https://github.com/deftai/directive/issues/1200) |
+| Poisoned product-oracle history from a safety refusal | [#3615](https://github.com/deftai/directive/issues/3615), this page § Product-oracle history poisoned by a safety refusal |
+
+---
+
+## Product-oracle history poisoned by a safety refusal (#3615)
+
+A safety-refused acceptance command is not a product measurement. `verify:ac` keeps the acceptance gate red, and it does not write `verification.outcome=fail` for an all-refused walk. A mixed walk that still has a refusal does not write a product-oracle pass.
+
+Records already written still pair on `session_id` + `check_id`. A correct classifier going forward does not unwrite a `fail` already on disk. Recovery is an operator workaround, not independent re-derivation:
+
+1. Start a new Deft session (new `DEFT_SESSION_ID`) so the integrity layer does not pair against the poisoned fail, or
+2. Truncate or delete the run-summary JSONL (default `.deft-run-summary.json`, typically gitignored).
+
+⊗ Set `independent_rederivation=true` to clear this class. That flag asserts both sides were rebuilt from scratch. The refused side never executed.
 
 ---
 

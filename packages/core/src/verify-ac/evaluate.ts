@@ -11,6 +11,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { isSafetyRefusalRun } from "../literal-acceptance/run.js";
 import type { LiteralAcceptanceRunResult } from "../literal-acceptance/types.js";
 import {
   parseRunSummaryJsonl,
@@ -101,6 +102,28 @@ function inProcessVerificationText(): string | null {
 }
 
 /**
+ * Product-oracle outcome for one acceptance walk (#3615).
+ *
+ * A safety refusal is not a measurement. All-refused walks emit nothing.
+ * Mixed refused + executed-pass walks emit nothing (filtering refusals then
+ * classifying the remainder would be a false green). Any executed fail still
+ * emits fail. flag.ts is unchanged.
+ */
+export function productOracleOutcomeForWalk(
+  runs: readonly LiteralAcceptanceRunResult[],
+): "pass" | "fail" | null {
+  const refused = runs.filter(isSafetyRefusalRun);
+  const executed = runs.filter((run) => !isSafetyRefusalRun(run));
+  if (executed.length === 0) {
+    return null;
+  }
+  if (refused.length > 0 && executed.every((run) => run.ok)) {
+    return null;
+  }
+  return executed.every((run) => run.ok) ? "pass" : "fail";
+}
+
+/**
  * Record one walk-level verification event for the executed command set (#3322 / #3397).
  * Fail and pass use the same method_fingerprint shape (command list + cwd hash).
  * Fail-open: missing dest / write errors never change the AC result.
@@ -124,6 +147,10 @@ export function emitVerifyAcAttempts(options: {
   readonly writeStdout?: (line: string) => void;
 }): void {
   if (options.runs.length === 0) {
+    return;
+  }
+  const outcome = productOracleOutcomeForWalk(options.runs);
+  if (outcome === null) {
     return;
   }
   try {
@@ -152,7 +179,6 @@ export function emitVerifyAcAttempts(options: {
     const cwdKey = options.runs.every((run) => run.cwd === firstCwd)
       ? firstCwd
       : options.runs.map((run) => run.cwd).join("\0");
-    const outcome = options.runs.every((run) => run.ok) ? "pass" : "fail";
     const emitted = emitter.emitVerification({
       check_id: checkId,
       method_fingerprint: methodFingerprintForWalk(commands, cwdKey),

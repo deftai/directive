@@ -22,6 +22,7 @@ import {
   isExecutableLiteralSource,
   isInlineProseMention,
   isNoopRefusalReason,
+  isSafetyRefusalRun,
   type LiteralAcceptanceGateResult,
   type LiteralAcceptanceRunner,
   type RejectedLiteralCommand,
@@ -883,6 +884,11 @@ function annotate(
     message = "";
   }
   const commandCount = Math.max(result.commands.length, acceptance.commands.length);
+  const executedRuns = result.runs.filter((run) => !isSafetyRefusalRun(run));
+  const refusedRuns = result.runs.filter(isSafetyRefusalRun);
+  const hasRefusal = refusedRuns.length > 0 || (result.rejected?.length ?? 0) > 0;
+  const servedFrom: AcServedFrom =
+    executedRuns.length > 0 ? "executed" : hasRefusal ? "refused" : "executed";
   return {
     ...result,
     message,
@@ -897,7 +903,7 @@ function annotate(
       rejectedCount: result.rejected?.length ?? 0,
     }),
     resolvedCommandCount: result.runs.length > 0 ? result.runs.length : commandCount,
-    servedFrom: "executed",
+    servedFrom,
   };
 }
 
