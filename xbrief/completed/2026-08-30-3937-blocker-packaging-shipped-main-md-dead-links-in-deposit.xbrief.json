@@ -2,52 +2,82 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for #3937: flatten-aware deposit link rewrite so shipped markdown resolves in a consumer deposit and a source checkout.",
-    "updated": "2026-08-30T16:51:17Z"
+    "updated": "2026-08-30T17:53:33Z"
   },
   "plan": {
     "title": "BLOCKER: bug(packaging,content): shipped main.md has 49 of 51 link targets dead in a consumer deposit",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Root main.md is harness-entry content; C1 flatten makes every ./content/ link dead in a deposit. Bound design-critique replaced the naive strip. Census first, then a flatten-aware deposit-time rewrite with an attested marker, tested against a packed fixture via the existing validate-links detector.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3937",
       "Overview": "## Problem\n\nRoot main.md (bucket content, harnessEntry: true) is the first substantive file a consumer agent is mandated to read. Measured at c6761881 and re-measured on this branch: 51 unique non-URL targets, 47 under ./content/, 49 dead in a replayed deposit. The content package prepack flattens every child of content/ to the payload root, so ./content/languages/python.md does not exist after install.\n\n## Bound contract (read the lean, not the pass-1 body)\n\nIssue body is pass-1. design-critique:triage-ready. Synthesis 5466789356 + lean 5466787287 + critic 5466779496: the naive ./content/ -> ./ strip is not the fix. It addresses 46 of ~200 dead links across 82 shipped files and cannot express ../../main.md (the larger reverse instance of the same flatten).\n\n## Pre-fix census (this worker, before any product edit)\n\nReplayed prepack out of tree. 297 shipped markdown files. 231 broken occurrences / 195 unique-per-file / 81 files. ./content/ spelling: exactly 1 shipped file (main.md, 59 occurrences). Buckets: other parent-escape 101, ./content/ 59, ../main.md family 54, python 12, REFERENCES.md 2, other 3. Naive strip leaves 149 unique. Flatten-aware rewrite (source path -> pack path) leaves only unshipped targets as residuals.\n\n## Design choice\n\nFlatten-aware deposit-time rewrite, not relocating main.md into content/, and not a naive prefix strip. Source checkout keeps source spellings (maintainer). Packed copy rewrites relative links to the deposit layout (consumer) and stamps <!-- deft:deposit-link-rewrite v=1 source=... -->. Relocation of main.md would change the harness-entry rule and ~216 tracked references under a blocks-release-tag deadline; a generalized rewrite covers both directions of the flatten with no new reader-visible source blast radius. Recorded with task decision:write.\n\n## Coordination\n\n- #3958 / PR 3958: REFERENCES.md stays repo-dev and does not ship. Do not retarget main.md's ./REFERENCES.md by assuming that file ships. Point lazy-loading at packs:slice.\n- #3957 / PR 3957: live-procedure Python helpers. Does not edit main.md. Leave the three backtick python paths; the one markdown link ./scripts/_precutover.py is a named residual (dead in both trees).\n- #3956 / PR 3956: xBRIEF 0.8 canon edits main.md. Do not fight schema-canon; rebase onto origin/master.\n\n## Acceptance (supersedes pass-1 AC1/AC3/AC4 per synthesis)\n\n1. Pack-mapped non-URL link targets in shipped main.md resolve in a staged pack (C1 flatten). #3601 REFERENCES.md is not assumed to ship.\n2. Source-checkout main.md still resolves its ./content/ links, or the deposit-time transform is explicit (marker) and tested.\n3. Census of every shipped markdown file precedes the fix (done). The rewrite covers pack-mapped targets in every shipped markdown file, not only main.md.\n4. Existing validate-links detector runs against a packed fixture and fails closed on unexpected broken links. Named residuals (unshipped targets) are enumerated, not an unnamed remainder.\n5. CHANGELOG [Unreleased] line.\n",
       "Labels": "bug, blocks-release-tag, design-critique:triage-ready",
-      "Decisions": "- xbrief/decisions/2026-08-30-fix-deposit-dead-markdown-links-with-a-flatten-aware-pack-time-r.decision.json \u2014 Fix deposit-dead markdown links with a flatten-aware pack-time rewrite of relative hrefs, not by relocating root main.md into content/ and not by a naive ./content/ prefix strip."
+      "Decisions": "- xbrief/decisions/2026-08-30-fix-deposit-dead-markdown-links-with-a-flatten-aware-pack-time-r.decision.json — Fix deposit-dead markdown links with a flatten-aware pack-time rewrite of relative hrefs, not by relocating root main.md into content/ and not by a naive ./content/ prefix strip."
     },
     "items": [
       {
         "title": "Census every shipped markdown file for deposit-dead links before rewriting",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "A recorded census of the replayed pack exists before the rewrite lands; ./content/ is confirmed as main.md-only; ../../main.md and other parent-escapes are counted."
+        },
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "xbrief/active/2026-08-30-3937-blocker-packaging-shipped-main-md-dead-links-in-deposit.xbrief.json plan.narratives.Overview Pre-fix census (297 shipped md, 231 broken occ / 195 unique / 81 files; ./content/ only in main.md)",
+          "recorded_at": "2026-08-30T17:52:43Z",
+          "recorded_by": "leaf-worker/3937"
         }
       },
       {
         "title": "Flatten-aware deposit-time rewrite with attested marker, covering all shipped markdown",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "prepack stages a pack whose pack-mapped relative links resolve; rewritten files carry <!-- deft:deposit-link-rewrite v=1 source=... -->; source tree files are not rewritten in place."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/deposit/stage-content-pack.test.ts + packages/core/src/deposit/rewrite-deposit-links.test.ts",
+          "recorded_at": "2026-08-30T17:52:43Z",
+          "recorded_by": "leaf-worker/3937"
         }
       },
       {
         "title": "validate-links against a packed fixture fails closed except named unshipped residuals",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "A test stages a pack out of tree and runs the existing validate-links collector; unexpected broken links fail; named residuals (REFERENCES.md, repo-root docs/decisions, scripts/*.py, PROJECT.md, and other unshipped targets) are enumerated in the test."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/deposit/stage-content-pack.test.ts#validate-links on a packed fixture fails closed except unmapped unshipped residuals",
+          "recorded_at": "2026-08-30T17:52:43Z",
+          "recorded_by": "leaf-worker/3937"
         }
       },
       {
         "title": "main.md ./REFERENCES.md does not assume the file ships; coordinate with #3958",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Shipped main.md no longer uses a markdown link to ./REFERENCES.md as if it deposited."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/deposit/stage-content-pack.test.ts packedMain not.toContain ](./REFERENCES.md); main.md packs:slice skills list",
+          "recorded_at": "2026-08-30T17:52:43Z",
+          "recorded_by": "leaf-worker/3937"
         }
       },
       {
         "title": "CHANGELOG [Unreleased] line",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "CHANGELOG [Unreleased] records the deposit link rewrite and names #3937."
+        },
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "CHANGELOG.md [Unreleased] #3937; https://github.com/deftai/directive/pull/3963 body Closes #3937",
+          "recorded_at": "2026-08-30T17:52:43Z",
+          "recorded_by": "leaf-worker/3937"
         }
       }
     ],
@@ -97,7 +127,32 @@
         ],
         "module_boundary": "packages/core/src/deposit",
         "cohesion_exemption": "CHANGELOG.md is a chronological append-only release log; its length is the record, not a cohesion defect. This slice appends one [Unreleased] entry and edits nothing else in the file."
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3963,
+        "prBase": null,
+        "mergeCommit": "67f8257f6b9d92440838a9eb3b2fbf7b78e82d81",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e2da21fe453fb2af52589df8c4d40f2fde90949b",
+        "verifiedAt": "2026-08-30T17:53:33Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "e682cf11-77fd-450f-bb5e-7b08a6553ebc"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-30T17:53:33Z"
+      },
+      "completedAt": "2026-08-30T17:53:33Z",
+      "completedSessionId": "e682cf11-77fd-450f-bb5e-7b08a6553ebc",
+      "capacityBucket": "new-capability"
     },
     "acceptance": {
       "commands": [],
@@ -107,26 +162,42 @@
       "clauses": [
         {
           "id": "census-before-rewrite",
-          "text": "Census every shipped markdown file for deposit-dead links before rewriting"
+          "text": "Census every shipped markdown file for deposit-dead links before rewriting",
+          "artifact_path": "xbrief/active/2026-08-30-3937-blocker-packaging-shipped-main-md-dead-links-in-deposit.xbrief.json",
+          "ambiguous": false,
+          "provenance": "statement"
         },
         {
           "id": "flatten-aware-rewrite",
-          "text": "Flatten-aware deposit-time rewrite with attested marker, covering all shipped markdown"
+          "text": "Flatten-aware deposit-time rewrite with attested marker, covering all shipped markdown",
+          "artifact_path": "packages/core/src/deposit/stage-content-pack.ts",
+          "ambiguous": false,
+          "provenance": "statement"
         },
         {
           "id": "packed-fixture-validate-links",
-          "text": "validate-links against a packed fixture fails closed except named unshipped residuals"
+          "text": "validate-links against a packed fixture fails closed except named unshipped residuals",
+          "artifact_path": "packages/core/src/deposit/stage-content-pack.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
         },
         {
           "id": "references-coord-3958",
-          "text": "main.md ./REFERENCES.md does not assume the file ships; coordinate with #3958"
+          "text": "main.md ./REFERENCES.md does not assume the file ships; coordinate with #3958",
+          "artifact_path": "main.md",
+          "ambiguous": false,
+          "provenance": "statement"
         },
         {
           "id": "changelog",
-          "text": "CHANGELOG [Unreleased] line"
+          "text": "CHANGELOG [Unreleased] line",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
         }
-      ]
+      ],
+      "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-08-30T16:51:17Z"
+    "updated": "2026-08-30T17:53:33Z"
   }
 }
