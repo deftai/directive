@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { evaluateAndPrepareBlock, evaluatePreDispatch } from "./evaluate.js";
+import { evaluateAndPrepareBlock, evaluateInFlight, evaluatePreDispatch } from "./evaluate.js";
 import { buildFailureInfo } from "./fingerprint.js";
 import {
   beginAttempt,
@@ -559,5 +559,45 @@ describe("evaluatePreDispatch regression suite (#3143)", () => {
     expect(r.event.decision).toBe("allow");
     expect(r.event.reasonCode).toBe("ALLOW_FIRST_ATTEMPT");
     expect(r.event.scopeId).toBe(unit.scopeId);
+  });
+});
+
+describe("evaluateInFlight (#3983)", () => {
+  it("allows a running attempt under maxElapsedSeconds", () => {
+    let ledger = emptyUnitLedger(unit);
+    ({ ledger } = beginAttempt(ledger, {
+      sourceRevision: "rev-1",
+      trigger: "automatic",
+      attemptId: "live-1",
+      now: "2026-08-30T00:00:00.000Z",
+    }));
+    const r = evaluateInFlight(ledger, {
+      now: "2026-08-30T00:10:00.000Z",
+      policy: { maxElapsedSeconds: 3600 },
+    });
+    expect(r.allowed).toBe(true);
+    expect(r.decision).toBe("ALLOW_RESUME");
+  });
+  it("blocks a running attempt that has exhausted maxElapsedSeconds", () => {
+    let ledger = emptyUnitLedger(unit);
+    ({ ledger } = beginAttempt(ledger, {
+      sourceRevision: "rev-1",
+      trigger: "automatic",
+      attemptId: "live-2",
+      now: "2026-08-30T00:00:00.000Z",
+    }));
+    const r = evaluateInFlight(ledger, {
+      now: "2026-08-30T02:00:00.000Z",
+      policy: { maxElapsedSeconds: 3600 },
+    });
+    expect(r.allowed).toBe(false);
+    expect(r.decision).toBe("BLOCK_ELAPSED_BUDGET");
+    expect(r.handoff).not.toBeNull();
+  });
+  it("allows when no attempt is in flight", () => {
+    const ledger = emptyUnitLedger(unit);
+    const r = evaluateInFlight(ledger, { now: "2026-08-30T00:00:00.000Z" });
+    expect(r.allowed).toBe(true);
+    expect(r.decision).toBe("ALLOW_FIRST_ATTEMPT");
   });
 });

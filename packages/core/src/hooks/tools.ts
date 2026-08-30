@@ -12,6 +12,8 @@ export const DIRECT_WRITE_TOOL_NAMES = [
   "DeleteFile",
   "ApplyPatch",
   "apply_patch",
+  "write",
+  "search_replace",
 ] as const;
 
 /** PreToolUse spawn / sub-agent dispatch tools (#1185 / #2437). */
@@ -27,7 +29,14 @@ export const SPAWN_TOOL_NAMES = [
  * Host spellings for Shell/Bash execution tools (#2711).
  * Used for runtimeAuthority scopes.push / scopes.merge classification.
  */
-export const SHELL_TOOL_NAMES = ["Shell", "Bash", "BashTool", "shell", "bash"] as const;
+export const SHELL_TOOL_NAMES = [
+  "Shell",
+  "Bash",
+  "BashTool",
+  "shell",
+  "bash",
+  "run_terminal_command",
+] as const;
 
 /** Env override forcing hook-level read-only write denial (#1185). */
 export const READ_ONLY_HOOK_ENV = "DEFT_HOOK_READ_ONLY";
@@ -96,6 +105,30 @@ export const MCP_PUSH_MERGE_BARE_NAMES = [
 export const DIRECT_WRITE_HOOK_MATCHER = DIRECT_WRITE_TOOL_NAMES.join("|");
 export const SPAWN_HOOK_MATCHER = SPAWN_TOOL_NAMES.join("|");
 export const SHELL_HOOK_MATCHER = SHELL_TOOL_NAMES.join("|");
+
+/** Known mutation tool names per host. Deposited matchers must cover each name (#3987). */
+export const GROK_MUTATION_TOOL_CATALOG = {
+  directWrite: ["write", "search_replace"] as const,
+  shell: ["run_terminal_command"] as const,
+  spawn: ["spawn_subagent"] as const,
+} as const;
+
+/** Tools on this host that are intentionally not mutation-gated. */
+export const GROK_NON_MUTATION_TOOLS = {
+  read_file: "read",
+  grep: "read",
+  list_dir: "read",
+  todo_write: "session-local non-product scratch",
+  get_command_or_subagent_output: "poll, not a mutation; elapsed bound is evaluateInFlight",
+  kill_command_or_subagent: "process control",
+  search_tool: "read",
+  web_search: "read",
+} as const;
+
+export function matcherHasLiteralToken(matcher: string, toolName: string): boolean {
+  return matcher.split("|").includes(toolName);
+}
+
 /**
  * PreToolUse matcher for MCP-class push/merge tools (#2711).
  * Regex-friendly for Claude/nested hosts. Prefer broad install match +

@@ -101,6 +101,7 @@ import {
   isReadOnlyHookContext,
 } from "./readonly.js";
 import { type ActiveScopeInspection, inspectActiveScope } from "./scope.js";
+import { classifyShellWriteTargets, isInRepoShellWritePath } from "./shell-write-targets.js";
 import { isDirectWriteTool, isMcpTool, isShellTool, isSpawnTool } from "./tools.js";
 
 // Pure parse/classify helpers are defined in ./classify/ and re-exported from
@@ -117,12 +118,15 @@ export {
 export {
   DIRECT_WRITE_HOOK_MATCHER,
   DIRECT_WRITE_TOOL_NAMES,
+  GROK_MUTATION_TOOL_CATALOG,
+  GROK_NON_MUTATION_TOOLS,
   isDirectWriteTool,
   isMcpTool,
   isShellTool,
   isSpawnTool,
   MCP_HOOK_MATCHER,
   MCP_PUSH_MERGE_BARE_NAMES,
+  matcherHasLiteralToken,
   READ_ONLY_HOOK_ENV,
   SHELL_HOOK_MATCHER,
   SHELL_TOOL_NAMES,
@@ -1743,6 +1747,32 @@ function decideGitDestructive(input: HookDispatchInput, toolName: string): HookD
 }
 
 /**
+ * Authorize recognized in-repo Shell file-write dests through inspectMutationGates (#3983 / #3987).
+ * Deny is returned; allow falls through so dest-forms and push/merge still run.
+ */
+function decideShellWriteReissue(
+  input: HookDispatchInput,
+  toolName: string,
+  seams: HookPolicySeams,
+): HookDecision | null {
+  const command = hookShellCommand(input.payload);
+  if (command === null) return null;
+  const projectRoot = resolve(input.projectRoot);
+  for (const dest of classifyShellWriteTargets(command)) {
+    if (!isInRepoShellWritePath(projectRoot, dest.path)) continue;
+    const destInput: HookDispatchInput = {
+      ...input,
+      payload: payloadWithInjectedWriteTarget(input.payload, dest.path),
+    };
+    const destDecision = inspectMutationGates(destInput, toolName, seams, {
+      proposedLifecycleExempt: true,
+    });
+    if (destDecision.verdict === "deny") return destDecision;
+  }
+  return null;
+}
+
+/**
  * Route recognized Shell dest-forms through inspectMutationGates, then push/merge.
  * Dest-form allow is kept when runtime authority has nothing classifiable.
  */
@@ -2248,6 +2278,10 @@ export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}
     const destructive = decideGitDestructive(input, toolName);
     if (destructive !== null) {
       return attachLifecycleIdentityRewrite(input, toolName, destructive, seams);
+    }
+    const writeReissue = decideShellWriteReissue(input, toolName, seams);
+    if (writeReissue !== null) {
+      return attachLifecycleIdentityRewrite(input, toolName, writeReissue, seams);
     }
     const decision = decideShellDestFormsThenRuntimeAuthority(input, toolName, seams);
     return attachLifecycleIdentityRewrite(input, toolName, decision, seams);

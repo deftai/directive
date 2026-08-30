@@ -16,6 +16,7 @@ export {
 } from "./disk-begin.js";
 export {
   evaluateAndPrepareBlock,
+  evaluateInFlight,
   evaluatePreDispatch,
 } from "./evaluate.js";
 export {

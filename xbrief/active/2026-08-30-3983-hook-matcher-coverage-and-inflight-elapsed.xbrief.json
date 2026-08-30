@@ -1,0 +1,108 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Bound remedy from the #3983/#3984 set-level design-critique arc: matcher coverage so a denied Write cannot be reissued through the host shell, plus in-flight elapsed evaluation on the existing delivery-attempt ledger. Not the #3983 issue body.",
+    "updated": "2026-08-30T20:32:05Z"
+  },
+  "plan": {
+    "title": "Close the PreToolUse shell reissue hole and evaluate elapsed on an in-flight delivery attempt",
+    "status": "running",
+    "narratives": {
+      "Description": "One item, two parts. Part 1 (security, leads): the PreToolUse write gate matcher list is literal tool names and misses Grok Build run_terminal_command, so a Write denied by occupancy/ritual/scope can be reissued through the shell. Authorize every recognized in-repo mutation target the way #3614 did for ApplyPatch; do not occupancy-deny git status, occupancy:release, or OS-temp body-file writes. Part 2: the delivery-attempt ledger already evaluates elapsed before dispatch; extend it to a run already in flight. Turn duration was the only measured separator. Do not build a chokepoint that reads host memory logs, and do not build a parent-is-implementing detector.",
+      "Origin": "Bound by #3983 arc: critics 5470935977, 5470940506, 5470981553; lean 5470992415; claims 5470996824; synthesis 5470998520. Defect record for part 1 is #3987.",
+      "Overview": "Build the bound remedy, not the #3983 body. The body proposed a pre-tool chokepoint reading a non-forgeable memory source; the arc refuted that. The chokepoint already exists and already deposits; its matchers do not observe this host shell tool. A live session reproduced the hole: Write denied, identical write through run_terminal_command allowed, every commit and push ungated. #3614 analog: extract mutation targets from the payload and authorize each through inspectMutationGates, rather than widening a name list so every shell command inherits occupancy. Matching too broadly would deny occupancy:release (pinned in dispatcher.test.ts) and the Windows #2646 temp-file posting path. Out of scope: #3984 detector, host memory retention, amending #3961, closing #3984 or #3961.",
+      "Labels": "security, harness, agent-safety, design-critique:triage-ready"
+    },
+    "items": [
+      {
+        "title": "Part 1: matcher coverage and reissue-path deny",
+        "status": "proposed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "A Write denied by occupancy is also denied when the same in-repo path is written through run_terminal_command (python pathlib or Set-Content). git status, occupancy:release, and an OS-temp pathlib write stay allowed. Deposited grok matchers include run_terminal_command, write, and search_replace. A host-catalog test fails closed when a known mutation tool is absent from the matcher set. The reissue-path test fails before the product change."
+        }
+      },
+      {
+        "title": "Part 2: in-flight elapsed on the existing ledger",
+        "status": "proposed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "evaluateInFlight blocks a running attempt whose wall-clock since startedAt meets maxElapsedSeconds with BLOCK_ELAPSED_BUDGET. A running attempt under budget is allowed. Pre-dispatch behavior is unchanged. No second budget store."
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3983",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3983: bound matcher coverage + in-flight elapsed (not the filed chokepoint RFC)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3987",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3987: PreToolUse write gate does not match Grok Build shell tool"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/hooks/tools.test.ts packages/core/src/hooks/shell-write-targets.test.ts packages/core/src/hooks/dispatcher-write-reissue.test.ts packages/core/src/delivery-attempt/evaluate.test.ts --coverage"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "operator envelope required a reissue-path test that fails before the change, plus in-flight elapsed on the existing ledger",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "A write denied through the edit tool cannot succeed by being reissued through the shell; proven by a test that fails before the change and exercises the reissue path.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-write-reissue.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Recognized in-repo shell write dests are authorized the same way Write is (occupancy/ritual/scope/fence). git status, occupancy:release, and OS-temp body-file writes are not occupancy-denied.",
+          "artifact_path": "packages/core/src/hooks/shell-write-targets.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Deposited matchers and the runtime classifier cover Grok Build mutation spellings; a catalog test fails closed when a known mutation name is missing.",
+          "artifact_path": "packages/core/src/hooks/tools.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "evaluateInFlight blocks a running attempt that has exhausted maxElapsedSeconds and allows one that has not.",
+          "artifact_path": "packages/core/src/delivery-attempt/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/hooks/tools.ts",
+          "packages/core/src/hooks/tools.test.ts",
+          "packages/core/src/hooks/shell-write-targets.ts",
+          "packages/core/src/hooks/shell-write-targets.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher-write-reissue.test.ts",
+          "packages/core/src/delivery-attempt/evaluate.ts",
+          "packages/core/src/delivery-attempt/evaluate.test.ts",
+          "packages/core/src/delivery-attempt/index.ts",
+          "content/contracts/path-write-fence.md",
+          "content/docs/delivery-attempt.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/hooks and packages/core/src/delivery-attempt",
+        "cohesion_exemption": "CHANGELOG.md is an append-only release log; this slice adds one Unreleased entry. dispatcher.ts already exceeds the review trigger; this slice adds one routing call for recognized shell write dests and keeps the classifier in a new shell-write-targets.ts file rather than growing the dispatcher."
+      }
+    },
+    "updated": "2026-08-30T20:32:05Z"
+  }
+}

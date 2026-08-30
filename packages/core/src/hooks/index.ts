@@ -5,3 +5,4 @@ export * from "./dispatcher.js";
 export * from "./fixtures/index.js";
 export * from "./git-destructive-log.js";
 export * from "./scope.js";
+export * from "./shell-write-targets.js";

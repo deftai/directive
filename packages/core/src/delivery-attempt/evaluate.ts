@@ -536,6 +536,87 @@ function evaluatePreDispatchNatural(
 }
 
 /**
+ * Elapsed budget for a run already queued or running (#3983).
+ * Pre-dispatch cannot see this case: an active attempt is DENY_DUPLICATE_ACTIVE.
+ */
+export function evaluateInFlight(
+  ledger: DeliveryUnitLedger,
+  input: { readonly now?: string; readonly policy?: Partial<DeliveryBudgetPolicy> } = {},
+): PreDispatchResult {
+  const nowIso = utcIso(input.now);
+  const synthetic: PreDispatchInput = {
+    scopeId: ledger.scopeId,
+    targetId: ledger.targetId,
+    workflowId: ledger.workflowId,
+    sourceRevision: ledger.lastSourceRevision ?? "in-flight",
+    trigger: "resume",
+    now: nowIso,
+    policy: input.policy,
+  };
+  const policy = mergePolicy(input.policy);
+  const active = activeAttempts(ledger);
+  if (active.length === 0) {
+    return result(synthetic, ledger, "ALLOW_FIRST_ATTEMPT", "no in-flight attempt", {
+      retryability: null,
+      fingerprint: null,
+      sameFailureCount: 0,
+      materialClass: "none",
+      resume: null,
+    });
+  }
+  const current = active[0];
+  if (current === undefined) {
+    return result(synthetic, ledger, "ALLOW_FIRST_ATTEMPT", "no in-flight attempt", {
+      retryability: null,
+      fingerprint: null,
+      sameFailureCount: 0,
+      materialClass: "none",
+      resume: null,
+    });
+  }
+  const startedMs = Date.parse(current.startedAt);
+  const nowMs = Date.parse(nowIso);
+  const liveSeconds =
+    Number.isFinite(startedMs) && Number.isFinite(nowMs)
+      ? Math.max(0, (nowMs - startedMs) / 1000)
+      : 0;
+  const elapsed = ledger.totalElapsedSeconds + liveSeconds;
+  if (elapsed >= policy.maxElapsedSeconds) {
+    const resume: ResumeCondition = {
+      kind: "operator-override",
+      description:
+        "elapsed budget exhausted on in-flight attempt; override or phase reset required",
+      satisfied: false,
+    };
+    return result(
+      synthetic,
+      ledger,
+      "BLOCK_ELAPSED_BUDGET",
+      "in-flight elapsed-time budget exhausted",
+      {
+        retryability: ledger.lastFailure?.retryability ?? null,
+        fingerprint: ledger.lastFailure?.fingerprint ?? null,
+        sameFailureCount: 0,
+        materialClass: "none",
+        resume,
+        handoffLedger: {
+          ...ledger,
+          resumeCondition: resume,
+          blockedDecision: "BLOCK_ELAPSED_BUDGET",
+        },
+      },
+    );
+  }
+  return result(synthetic, ledger, "ALLOW_RESUME", "in-flight elapsed under budget", {
+    retryability: null,
+    fingerprint: null,
+    sameFailureCount: 0,
+    materialClass: "none",
+    resume: ledger.resumeCondition,
+  });
+}
+
+/**
  * Convenience: evaluate against ledger, and if blocked, return handoff suitable
  * for persistence via markBlocked + saveUnitLedger.
  */

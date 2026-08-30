@@ -137,6 +137,12 @@ What remains **fail-open today**:
 - **Nothing on the dest-form allow path is audited** except the tree-wide destructive-git
   log above. A dest-form bypass still leaves no dest-form trace.
 
+### Shell file-write reissue (#3983 / #3987)
+
+Grok Build shell is run_terminal_command. That name is in SHELL_TOOL_NAMES so PreToolUse fires. Recognized in-repo file-write dests (Set-Content, Out-File, Add-Content, python pathlib write_text/write_bytes, IO.File WriteAllText/WriteAllBytes) are injected as Write targets and authorized through inspectMutationGates -- occupancy, ritual, scope, and the path fence -- the same way ApplyPatch authorizes every mutation target (#3614). This is always-on, independent of shellDestForms.
+
+OS-temp dests and commands with no recognized dest (git status, occupancy:release, git commit -F of a temp body) stay fail-open. This is still not a security boundary against obfuscated interpreters; it closes the cooperative reissue path that bypassed occupancy.
+
 Do not describe this gate as closing the Bash bypass. It raises the floor on the four
 recognized verbs in simple commands. The bypass class remains open.
 

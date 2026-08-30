@@ -34,6 +34,8 @@ MUST evaluate this gate before automatic retry or re-dispatch.
 | `BLOCK_ELAPSED_BUDGET` | Wall-clock budget exhausted |
 | `BLOCK_TOOL_OR_TOKEN_BUDGET` | Tool-call (or host-token when telemetried) budget exhausted |
 
+valuateInFlight(ledger, input) applies the same elapsed budget to a run that is already queued or running. Pre-dispatch never sees that case: an active attempt is DENY_DUPLICATE_ACTIVE. In-flight elapsed is 	otalElapsedSeconds plus wall-clock since startedAt. Under budget returns ALLOW_RESUME. Exhausted returns BLOCK_ELAPSED_BUDGET. No second budget store.
+
 Once a **block** decision is emitted, automatic re-dispatch MUST stop until a
 declared resume condition is satisfied or an audited operator override is
 recorded. Persist the terminal handoff (`buildTerminalHandoff` /
