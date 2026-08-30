@@ -17,9 +17,6 @@ import { APPROVED_SCOPE_DIR } from "../scope-provenance/digest.js";
 import { AC_PASS_BANK_DIR } from "../session/ac-pass-banking.js";
 import { VERIFY_AC_SESSION_CACHE_DIR } from "../session/verify-ac-session-cache.js";
 
-/** Deliberate miss used to prove ignoreSetCoversPath is not vacuous. */
-export const UNCOVERED_WRITER_PROBE_PATH = ".deft/uncovered-writer-probe";
-
 /**
  * Imported writer path constants. Order is the lockstep contract with
  * runtime-writer-paths.json (Go reads that file).

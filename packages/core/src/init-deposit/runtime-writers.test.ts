@@ -11,7 +11,7 @@ import {
 import { AC_PASS_BANK_DIR } from "../session/ac-pass-banking.js";
 import { VERIFY_AC_SESSION_CACHE_DIR } from "../session/verify-ac-session-cache.js";
 import { CANONICAL_GITIGNORE_BASELINE, ignoreSetCoversPath } from "./gitignore.js";
-import { RUNTIME_WRITER_PATHS, UNCOVERED_WRITER_PROBE_PATH } from "./runtime-writers.js";
+import { RUNTIME_WRITER_PATHS } from "./runtime-writers.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -55,7 +55,7 @@ describe("runtime writer ignore containment (#3612)", () => {
   it("locksteps imported writer constants to the Go-readable JSON manifest", () => {
     const manifest = loadWriterManifest();
     expect([...RUNTIME_WRITER_PATHS]).toEqual(manifest.writerPaths);
-    expect(UNCOVERED_WRITER_PROBE_PATH).toBe(manifest.uncoveredProbe);
+    expect(manifest.uncoveredProbe).toBe(".deft/uncovered-writer-probe");
   });
 
   it("covers every runtime writer path with the TypeScript baseline", () => {
@@ -72,12 +72,12 @@ describe("runtime writer ignore containment (#3612)", () => {
   });
 
   it("fails closed on a deliberately uncovered writer path", () => {
-    expect(ignoreSetCoversPath(CANONICAL_GITIGNORE_BASELINE, UNCOVERED_WRITER_PROBE_PATH)).toBe(
-      false,
-    );
-    expect(ignoreSetCoversPath(parseGoCanonicalGitignoreLines(), UNCOVERED_WRITER_PROBE_PATH)).toBe(
-      false,
-    );
+    expect(
+      ignoreSetCoversPath(CANONICAL_GITIGNORE_BASELINE, loadWriterManifest().uncoveredProbe),
+    ).toBe(false);
+    expect(
+      ignoreSetCoversPath(parseGoCanonicalGitignoreLines(), loadWriterManifest().uncoveredProbe),
+    ).toBe(false);
   });
 
   it("does not cover .deft/core managed deposit via writer rules", () => {
