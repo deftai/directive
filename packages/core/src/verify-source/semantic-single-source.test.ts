@@ -105,6 +105,30 @@ describe("C2 semantic single-source (#3600 / #3899)", () => {
     expect(result.code, result.message).toBe(0);
   });
 
+  it("exits 1 when a mixed line mutates the envelope to 0.6 beside a legacy qualifier", () => {
+    root = seedCleanPack();
+    writeFile(
+      root,
+      "skills/deft-directive-build/SKILL.md",
+      `# Build\n- ! New xBRIEFs MUST use \`"xBRIEFInfo": { "version": "0.6" }\` (legacy 0.6 remains read-accepted until \`deft migrate:xbrief\`)\n`,
+    );
+    const result = evaluateSemanticSingleSource(root);
+    expect(result.code).toBe(1);
+    expect(result.violations.some((v) => v.path.includes("build") && v.version === "0.6")).toBe(
+      true,
+    );
+  });
+
+  it("exits 2 when a resolved authoring surface cannot be read", () => {
+    root = seedCleanPack();
+    const mainPath = join(root, "main.md");
+    rmSync(mainPath);
+    mkdirSync(mainPath);
+    const result = evaluateSemanticSingleSource(root);
+    expect(result.code).toBe(2);
+    expect(result.message).toMatch(/failed to read main\.md/i);
+  });
+
   it("exits 2 when required surfaces are missing from the pack root", () => {
     root = mkdtempSync(join(tmpdir(), "c2-empty-"));
     const result = evaluateSemanticSingleSource(root);

@@ -118,21 +118,51 @@ function isWriteMandateLine(line: string): boolean {
   return ENVELOPE_CONTEXT_RE.test(line) || CANONICAL_HEADING_RE.test(line);
 }
 
+const ENVELOPE_VERSION_RE =
+  /(?:xBRIEFInfo|vBRIEFInfo)["']?\s*:\s*\{\s*["']version["']\s*:\s*["'](0\.\d+)["']/gi;
+
+/** A version is legacy-bounded only from nearby clause text, not the whole line. */
+function windowIsLegacyBound(line: string, index: number, length: number): boolean {
+  const start = Math.max(0, index - 28);
+  const end = Math.min(line.length, index + length + 72);
+  return LEGACY_BOUND_RE.test(line.slice(start, end));
+}
+
 function versionsOnMandate(line: string): { current: string[]; boundedLegacy: string[] } {
-  const versions = extractQuotedVersions(line);
-  if (versions.length === 0) {
-    return { current: [], boundedLegacy: [] };
-  }
-  const bounded = LEGACY_BOUND_RE.test(line);
   const current: string[] = [];
   const boundedLegacy: string[] = [];
-  for (const v of versions) {
-    if (bounded) {
-      boundedLegacy.push(v);
-    } else {
-      current.push(v);
-    }
+  const envelopeSpans: Array<{ start: number; end: number }> = [];
+
+  ENVELOPE_VERSION_RE.lastIndex = 0;
+  for (const match of line.matchAll(ENVELOPE_VERSION_RE)) {
+    const v = match[1];
+    const start = match.index ?? 0;
+    if (v === undefined) continue;
+    envelopeSpans.push({ start, end: start + match[0].length });
+    current.push(v);
   }
+
+  const heading = CANONICAL_HEADING_RE.exec(line);
+  if (heading?.[1] !== undefined) {
+    current.push(heading[1]);
+  }
+
+  const collect = (re: RegExp): void => {
+    re.lastIndex = 0;
+    for (const match of line.matchAll(re)) {
+      const v = match[1];
+      const start = match.index ?? 0;
+      if (v === undefined) continue;
+      if (envelopeSpans.some((s) => start >= s.start && start < s.end)) continue;
+      if (windowIsLegacyBound(line, start, match[0].length)) {
+        boundedLegacy.push(v);
+      } else {
+        current.push(v);
+      }
+    }
+  };
+  collect(QUOTED_VERSION_RE);
+  collect(BARE_XBRIEF_VERSION_RE);
   return { current, boundedLegacy };
 }
 
@@ -285,8 +315,16 @@ export function evaluateSemanticSingleSource(packRoot: string): SemanticSingleSo
     let text: string;
     try {
       text = readFileSync(full, "utf8");
-    } catch {
-      continue;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return {
+        code: EXIT_CONFIG,
+        message: `verify_semantic_single_source: failed to read ${rel}: ${msg}`,
+        stream: "stderr",
+        setupWriteVersion,
+        violations: [],
+        currentWriteVersions: [],
+      };
     }
     violations.push(...scanSurface(rel, text, setupWriteVersion));
     currentWriteVersions.push(...collectCurrentWriteVersions(text));
@@ -330,8 +368,8 @@ export function evaluateSemanticSingleSource(packRoot: string): SemanticSingleSo
   return {
     code: EXIT_OK,
     message:
-      `OK: C2 semantic single-source -- one xBRIEF write version ${setupWriteVersion} ` +
-      `(setup writes ${setupWriteVersion}; ${resolved.size} authoring surface(s) scanned).`,
+      `OK: C2 semantic single-source -- one xBRIEF write version ${setupWriteVersion.replace(/\r?\n/g, " ")} ` +
+      `(setup writes ${setupWriteVersion.replace(/\r?\n/g, " ")}; ${resolved.size} authoring surface(s) scanned).`,
     stream: "stdout",
     setupWriteVersion,
     violations: [],
