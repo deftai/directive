@@ -311,7 +311,10 @@ export function occupancyAdmission(
 // into a printed command; anything else keeps its placeholder, because the right
 // quoting differs per shell and a mis-parsed copyable command is worse than one
 // the reader has to fill in. The id itself is still named in the prose above.
-const SHELL_SAFE_SESSION_ID = /^[A-Za-z0-9_.:+=,/-]+$/;
+// A leading dash is excluded as well: every CLI parser here reads such a value
+// as another option, so `--occupant --weird-id` fails argument parsing even
+// though the shell itself would have passed the token through intact.
+const SHELL_SAFE_SESSION_ID = /^(?!-)[A-Za-z0-9_.:+=,/-]+$/;
 
 function commandSessionId(sessionId: string, placeholder: string): string {
   return SHELL_SAFE_SESSION_ID.test(sessionId) ? sessionId : placeholder;

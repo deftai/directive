@@ -93,6 +93,21 @@ describe("remediation commands stay parseable (#3873)", () => {
     expect(message).not.toContain("--occupant owner; rm -rf /");
   });
 
+  it("keeps the placeholder for an option-shaped id the CLI would reject", () => {
+    // The shell would pass `--weird-owner` through intact; the CLI parser reads
+    // it as another option, so the printed command still has to be fillable.
+    const message = formatOccupancyRemediation(
+      leased("--weird-owner"),
+      new Date(),
+      "--weird-actor",
+    );
+
+    expect(message).toContain("occupancy:grant --child-session-id=<your-session-id>");
+    expect(message).toContain("--occupant <reported-session-id> --session-id=<your-session-id>");
+    expect(message).not.toContain("--child-session-id=--weird-actor");
+    expect(message).not.toContain("--occupant --weird-owner");
+  });
+
   it("keeps the placeholder in the empty-actor release remediation", () => {
     const message = formatOccupancyRemediation(leased("owner; rm -rf /"), new Date(), "");
 
