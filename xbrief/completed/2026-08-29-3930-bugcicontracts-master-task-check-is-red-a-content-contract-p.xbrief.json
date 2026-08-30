@@ -1,0 +1,201 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #3930",
+    "updated": "2026-08-30T04:29:35Z"
+  },
+  "plan": {
+    "title": "bug(ci,contracts): master task check is red -- a content contract pins `Closes #3755` to `[Unreleased]` and the v0.108.0 cut moved it",
+    "status": "completed",
+    "narratives": {
+      "Description": "Repair the one content-contract assertion that binds a changelog line to the `## [Unreleased]` section, so master stops going red at every release cut.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3930",
+      "Overview": "## Summary\n\n`task check` is red on `origin/master` (`c6761881914d3eb02f44f379f9e1e02a94ff708f`) and has been since the v0.108.0 cut. One content-contract case fails:\n\n```\nFAIL packages/core/src/content-contracts/standards/occupancy_membership_docs.test.ts\n  > occupancy boundary naming (#3755) > carries one Unreleased changelog line for the membership change\nAssertionError: expected [] to have a length of 1 but got +0\n```\n\nThis blocks the `Merge gate (task check)` required check on every PR branched from master, independent of what the branch changes.\n\n## Mechanism\n\nThe assertion bounds its search to the `## [Unreleased]` section, then filters that slice for `Closes #3755` and expects exactly one line carrying `occupancy:grant`. The v0.108.0 cut moved that entry into `## [0.108.0] - 2026-08-29`, which is what a cut is supposed to do, so the bounded slice is empty. The assertion encodes a false invariant: the entry location is transient, the entry itself is not.\n\n## Bound remedy (design-critique arc)\n\nThe arc is bound at accepted lean 5466430201, critic 5466425900, verified-claims table 5466430284. The class premise in the issue body was refuted by measurement: of 15 candidate test files containing both `CHANGELOG.md` and `Unreleased`, 13 use literals, mocked seams, or temp-root changelogs; 2 read the repository CHANGELOG; and only this one bounds its assertion to the Unreleased section. Denominator: 1. `standing_residual_floor_3448.test.ts` is the other repository reader, but its regex never stops at the next `##` heading, so it is not section-bounded and passes today.\n\nThe bound remedy is the critic fourth option, which the issue body did not name: assert exactly one matching entry across the whole CHANGELOG, carrying both `Closes #3755` and `occupancy:grant`. The repository CHANGELOG is append-only across cuts, so this preserves the release-note guarantee indefinitely with no section parsing and no new release machinery.\n\nAll three options in the issue body are rejected. Option 1 (Unreleased or the most recent released section) is a one-cut grace period and needs latest-section logic that is not exposed today. Option 2 (drop the case) weakens the gate: the two sibling cases pin occupancy behaviour and operator documentation, while this third case independently pins release-note discoverability. Option 3 (post-cut release obligation) is prose, not a control, and an executable rerun of the unchanged assertion would fail every cut by design.\n\n## Scope boundary\n\nRepair this one assertion. No cross-test mechanism, no release hook, no changelog parser. The release pipeline unoccupied insertion point between Step 6 promotion and Step 9 commit is accepted as scope discipline, not as work, and needs its own evidence. `standing_residual_floor_3448.test.ts` is not failing and is not in scope.\n\n## Gate integrity (#3156)\n\nEditing a currently-failing gate is normally forbidden. It is authorized here only because the arc bound this specific repair and the assertion encodes a false invariant. The repair must not relax the assertion beyond exactly one entry anywhere in the changelog carrying both tokens.\n\nRefs #3755, #3156, #3448.",
+      "Labels": "bug, blocks-merge, ci-cd, test-debt, process, urgent, design-critique:triage-ready"
+    },
+    "items": [
+      {
+        "title": "The case passes on current master CHANGELOG content.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/occupancy_membership_docs.test.ts#occupancy boundary naming (#3755) > carries exactly one changelog entry for the membership change -- 3 of 3 cases pass against the repository CHANGELOG at master c6761881 (the content that made the old assertion fail)",
+          "recorded_at": "2026-08-30T04:24:25Z",
+          "recorded_by": "leaf-worker/3930"
+        }
+      },
+      {
+        "title": "The case requires exactly one CHANGELOG entry containing both `Closes #3755` and `occupancy:grant` -- not at-least-one, not one token.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "Token-necessity mutation proofs against the repository CHANGELOG: dropping `occupancy:grant` from the entry gives 0 matches (fail); dropping the `Closes` token gives 0 matches (fail). Neither token alone satisfies the case, and the count is exactly-one, not at-least-one",
+          "recorded_at": "2026-08-30T04:24:25Z",
+          "recorded_by": "leaf-worker/3930"
+        }
+      },
+      {
+        "title": "The case fails when that entry is removed, and fails when a duplicate is added; both proven.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "Mutation proofs against the repository CHANGELOG: entry line removed -> AssertionError expected [] to have a length of 1 but got +0; entry line duplicated -> AssertionError expected [ ...(2) ] to have a length of 1 but got 2. CHANGELOG restored byte-identical after each",
+          "recorded_at": "2026-08-30T04:24:25Z",
+          "recorded_by": "leaf-worker/3930"
+        }
+      },
+      {
+        "title": "The case does not reference `## [Unreleased]` or any section heading.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "packages/core/src/content-contracts/standards/occupancy_membership_docs.test.ts:43-49 -- the case reads the whole file and filters lines by two content tokens; no `## [Unreleased]` literal and no section-heading split remain (PR 3935 diff)",
+          "recorded_at": "2026-08-30T04:24:25Z",
+          "recorded_by": "leaf-worker/3930"
+        }
+      },
+      {
+        "title": "The case still passes after a future release cut moves the entry to another section, demonstrated against a synthetic changelog rather than by assertion.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "Synthetic-changelog proofs, not assertions: entry relocated under `[Unreleased]` -> pass; two later release sections inserted above the entry so it is two cuts old and no longer the most recent release -> pass. The case is section-agnostic across future cuts",
+          "recorded_at": "2026-08-30T04:24:25Z",
+          "recorded_by": "leaf-worker/3930"
+        }
+      },
+      {
+        "title": "`task check` is green on the branch, and the three previously failing required checks pass.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "Full `task check` exit 0 on 26ea3e84 (1073 test files passed / 6 skipped; 15483 tests passed / 152 skipped; 0 failed). On PR 3935 HEAD 26ea3e84 the three checks that were failing on master are success: `Merge gate (task check)`, `TypeScript (build + lint + test)`, `Merge gate (Blacksmith primary)` (25 check-runs passed / 0 failed)",
+          "recorded_at": "2026-08-30T04:24:25Z",
+          "recorded_by": "leaf-worker/3930"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "blocks-merge",
+      "ci-cd",
+      "test-debt",
+      "process",
+      "urgent"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3930",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3930: bug(ci,contracts): master task check is red -- a content contract pins Closes #3755 to [Unreleased] and the v0.108.0 cut moved it"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3755",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3755"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3156",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3156"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "capacityBucket": "technical-debt",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3935,
+        "prBase": null,
+        "mergeCommit": "e00b5ad6ecdac4818b09a97c5e62b9b93bd9cdbf",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e00b5ad6ecdac4818b09a97c5e62b9b93bd9cdbf",
+        "verifiedAt": "2026-08-30T04:29:35Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "3ca22e52-f915-4da9-8561-1f5d36d84f4a"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-30T04:29:35Z"
+      },
+      "completedAt": "2026-08-30T04:29:35Z",
+      "completedSessionId": "3ca22e52-f915-4da9-8561-1f5d36d84f4a"
+    },
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/content-contracts/standards/occupancy_membership_docs.test.ts"
+        },
+        {
+          "command": "pnpm exec vitest run packages/core/src/content-contracts/skills/standing_residual_floor_3448.test.ts"
+        },
+        {
+          "command": "task verify:encoding"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the design-critique bound remedy before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "The case passes on current master CHANGELOG content.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The case requires exactly one CHANGELOG entry containing both `Closes #3755` and `occupancy:grant` -- not at-least-one, not one token.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The case fails when that entry is removed, and fails when a duplicate is added; both proven.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "The case does not reference `## [Unreleased]` or any section heading.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "The case still passes after a future release cut moves the entry to another section, demonstrated against a synthetic changelog rather than by assertion.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "`task check` is green on the branch, and the three previously failing required checks pass.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-08-30T04:29:35Z"
+  }
+}
