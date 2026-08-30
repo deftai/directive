@@ -1,14 +1,12 @@
-import { spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { stageContentPack } from "../../deposit/stage-content-pack.js";
 import {
   evaluateDepositClosure,
   loadDepositRequiredDeclaration,
-  packRelativeFromDepositPath,
   resolveDeclarationFile,
-  sourcePathForPackRelative,
 } from "../../validate-content/deposit-required.js";
 import { readText, repoRoot } from "./_helpers.js";
 
@@ -21,50 +19,14 @@ afterEach(() => {
   }
 });
 
-function readPrepackScript(root: string): string {
-  const manifest = JSON.parse(
-    readFileSync(join(root, "packages", "content", "package.json"), "utf8"),
-  ) as { scripts?: { prepack?: string } };
-  const prepack = manifest.scripts?.prepack;
-  if (typeof prepack !== "string" || prepack.length === 0) {
-    throw new Error("packages/content/package.json has no prepack script");
-  }
-  const first = prepack.indexOf('"');
-  const last = prepack.lastIndexOf('"');
-  if (first === -1 || last <= first) {
-    throw new Error("could not parse prepack script body");
-  }
-  return prepack.slice(first + 1, last);
-}
-
 function stageDeclaredPack(root: string): string {
   const declarationPath = resolveDeclarationFile(root);
   expect(declarationPath, "C1 declaration must exist in the source tree").toBeTruthy();
-  const declaration = loadDepositRequiredDeclaration(declarationPath as string);
   const tmp = mkdtempSync(join(tmpdir(), "deft-c1-prepack-"));
   staged.push(tmp);
-  const pkgDir = join(tmp, "packages", "content");
+  const pkgDir = join(tmp, "pack");
   mkdirSync(pkgDir, { recursive: true });
-  writeFileSync(
-    join(pkgDir, "package.json"),
-    JSON.stringify({ name: "@deftai/directive-content", version: "0.0.0" }),
-    "utf8",
-  );
-  mkdirSync(join(tmp, "content"), { recursive: true });
-  for (const declared of declaration.paths) {
-    const rel = packRelativeFromDepositPath(declared);
-    const from = sourcePathForPackRelative(root, rel);
-    const destRel =
-      rel === "main.md" || rel === "SKILL.md" ? rel : join("content", ...rel.split("/"));
-    const to = join(tmp, destRel);
-    mkdirSync(dirname(to), { recursive: true });
-    cpSync(from, to);
-  }
-  const ran = spawnSync("node", ["--input-type=module", "-e", readPrepackScript(root)], {
-    cwd: pkgDir,
-    encoding: "utf8",
-  });
-  expect(ran.status, ran.stderr || ran.stdout || "").toBe(0);
+  stageContentPack({ repoRoot: root, destDir: pkgDir });
   return pkgDir;
 }
 

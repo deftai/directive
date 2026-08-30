@@ -50,6 +50,14 @@ describe("consumer check-gate integrity (#3070)", () => {
     const pkg = readFileSync(join(repoRoot(), "packages", "content", "package.json"), "utf8");
     expect(pkg).toContain("Taskfile.yml");
     expect(pkg).toContain("tasks");
-    expect(pkg).toMatch(/'\.githooks',\s*'Taskfile\.yml',\s*'tasks'/);
+    const manifest = JSON.parse(pkg) as { scripts?: { prepack?: string } };
+    expect(manifest.scripts?.prepack).toBe("node ./stage-pack.mjs");
+    const stager = readFileSync(
+      join(repoRoot(), "packages", "core", "src", "deposit", "stage-content-pack.ts"),
+      "utf8",
+    );
+    expect(stager).toMatch(
+      /ENGINE_ENTRIES\s*=\s*\[\s*"\.githooks",\s*"Taskfile\.yml",\s*"tasks"\s*\]/,
+    );
   });
 });
