@@ -62,6 +62,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: pr:check-closing-keywords FP (#737 / #3969)
-        run: task pr:check-closing-keywords -- --pr ${{ github.event.pull_request.number }} --mode fp
         env:
           GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: task pr:check-closing-keywords -- --pr "$PR_NUMBER" --mode fp

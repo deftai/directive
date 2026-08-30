@@ -98,7 +98,7 @@ tasks:
           ENGINE_CMD: 'verify-consumer-hard-stops --project-root "{{.DEFT_ROOT}}" {{.CLI_ARGS}}'
 
   closing-keywords:
-    desc: "Wire task pr:check-closing-keywords into the check graph (#737 / #3969). FP mode on origin/master..HEAD, or --pr when GITHUB_PR_NUMBER is set."
+    desc: "Wire task pr:check-closing-keywords into the check graph (#737 / #3969). FP mode against the merge-base, or --pr when GITHUB_PR_NUMBER is set."
     deps:
       - task: :engine:_ts-build
     dir: '{{.USER_WORKING_DIR}}'

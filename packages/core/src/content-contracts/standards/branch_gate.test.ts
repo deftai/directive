@@ -85,6 +85,7 @@ describe("test_branch_gate.py", () => {
     const text = readText(".github/workflows/branch-gate.yml");
     expect(text).toContain("pr:check-closing-keywords");
     expect(text).toContain("--mode fp");
+    expect(text).toContain("PR_NUMBER");
   });
   it("test_agents_md_disclosure_block_present", () => {
     const text = readText("AGENTS.md");
