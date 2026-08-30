@@ -418,8 +418,8 @@ export function formatOccupancyMemberAdministrationRefusal(
 }
 
 /**
- * The owner a claim is made under: explicit, then ambient, then the host's own
- * session id, then a mint.
+ * The owner a claim is made under: an explicit id, then `DEFT_SESSION_ID`, then
+ * the id the running host published, then a mint.
  *
  * The host step is what makes an identified host's claim reachable (#3873).
  * Minting instead binds the lease to an id no later hook process can present,

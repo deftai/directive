@@ -84,8 +84,8 @@ Agents, host adapters, and tests **must** key permission outcomes off `HookDecis
 | `stdin-empty` | deny | Host closed stdin with zero bytes (#2864) |
 | `ritual-not-ready` | deny | Gated session ritual not fresh |
 | `occupancy-occupied` | deny | Product-path write while another live session occupies the worktree (#3433) |
-| `occupancy-identity-unavailable` | deny | A payload-supported host omitted/malformed its owner, or a recognized owner-requiring lifecycle form cannot be safely rewritten and lacks an explicit owner (#3611) |
-| `occupancy-identity-conflict` | deny | Payload owner, lifecycle owner syntax/duplicates, environment, or execution root conflict (#3611) |
+| `occupancy-identity-unavailable` | deny | A supported host malformed its owner (payload field, or `host-env` variable per #3873), or a recognized owner-requiring lifecycle form cannot be safely rewritten and lacks an explicit owner (#3611) |
+| `occupancy-identity-conflict` | deny | Host owner, lifecycle owner syntax/duplicates, environment, or execution root conflict (#3611) |
 | `occupancy-ritual-mismatch` | deny | Live lease and exact verified ritual state name different owners (#3611) |
 | `foreign-repository-deny` | deny | Write target resolved to a Git repository that does not share git-common-dir with payloadRoot (#3794) |
 | `scope-not-ready` | deny | No active running scope for in-root write |

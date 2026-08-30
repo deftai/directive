@@ -111,9 +111,9 @@ export function resolveHookHostIdentity(
 
   if (source.kind === "host-env") {
     const value = readHostEnvIdentity(environ, source.variable);
-    if (value.status !== "ok" || value.rawSessionId === null) {
+    if (value.status !== "ok") {
       return unresolvedHostIdentity(
-        value.status === "ok" ? "invalid" : value.status,
+        value.status,
         provider,
         `${provider} hook process environment ` +
           `${value.status === "missing" ? "omits" : "has invalid"} ${source.variable}.`,

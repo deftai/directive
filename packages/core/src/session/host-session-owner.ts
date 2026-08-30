@@ -81,10 +81,9 @@ export function canonicalHostSessionId(
 
 export type HostEnvIdentityStatus = "ok" | "missing" | "invalid";
 
-export interface HostEnvIdentityResolution {
-  readonly status: HostEnvIdentityStatus;
-  readonly rawSessionId: string | null;
-}
+export type HostEnvIdentityResolution =
+  | { readonly status: "ok"; readonly rawSessionId: string }
+  | { readonly status: "missing" | "invalid"; readonly rawSessionId: null };
 
 /** Read one `host-env` provider's variable out of a process environment. */
 export function readHostEnvIdentity(
@@ -115,9 +114,7 @@ export function ambientHostSessionOwner(
     const source = HOST_IDENTITY_SOURCES[provider];
     if (source.kind !== "host-env") continue;
     const value = readHostEnvIdentity(environ, source.variable);
-    if (value.status === "ok" && value.rawSessionId !== null) {
-      resolved.push(canonicalHostSessionId(provider, value.rawSessionId));
-    }
+    if (value.status === "ok") resolved.push(canonicalHostSessionId(provider, value.rawSessionId));
   }
   return resolved.length === 1 ? (resolved[0] as string) : null;
 }
