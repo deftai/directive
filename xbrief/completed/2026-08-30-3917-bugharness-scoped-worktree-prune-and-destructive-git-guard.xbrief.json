@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Recut scope for GitHub issue #3917 after the bound design-critique arc. Ships a scoped worktree-prune fix, a fail-closed destructive-git guard at the write fence, and durable attribution. Does not identify a root cause.",
-    "updated": "2026-08-30T16:18:36Z"
+    "updated": "2026-08-30T18:04:41Z"
   },
   "plan": {
     "title": "bug(harness): scope evaluator worktree prune and fail-close destructive git at the write fence",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Recut of #3917. The original body asked for the mechanism that resets the main checkout to origin/master. The bound arc established that identifying that actor is not achievable on the available evidence. This story ships the two buildable items the synthesis named: stop the unscoped `git worktree prune` on the evaluator-remove failure path, and close the documented fail-open at the write fence for destructive git, with a durable record that survives reflog prune.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3917 after design-critique:triage-ready. Bound by critic 5469710782, successor lean 5469770266, verified-claims table 5469776494, synthesis 5469777726.",
@@ -18,28 +18,58 @@
     "items": [
       {
         "title": "removeEvaluatorWorktree never runs unscoped `git worktree prune`; a second registered worktree survives a failed removal of the first",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/triage/evaluate/worktrees.test.ts",
+          "recorded_at": "2026-08-30T18:04:33Z",
+          "recorded_by": "leaf-worker/3917"
+        }
       },
       {
         "title": "Tree-wide destructive git (`reset --hard`, `clean -f`, `checkout -f`/`switch -f`, `stash drop`/`clear`) is recognized at the Shell write fence and fail-closed when aimed at the project, with a remediation line",
-        "status": "proposed",
-        "effort": "M"
+        "status": "completed",
+        "effort": "M",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher.test.ts",
+          "recorded_at": "2026-08-30T18:04:33Z",
+          "recorded_by": "leaf-worker/3917"
+        }
       },
       {
         "title": "The same fence records a durable JSONL event outside the repository so a later occurrence names host, actor, command, project root, and disposition even if reflogs are gone",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/git-destructive-log.test.ts",
+          "recorded_at": "2026-08-30T18:04:33Z",
+          "recorded_by": "leaf-worker/3917"
+        }
       },
       {
         "title": "Absolute out-of-root git relocators (`-C` / `--git-dir` / `--work-tree` / `GIT_DIR` / `GIT_WORK_TREE`) classify as fixtures and are allowed; relative or in-project relocators stay denied",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dest-form.test.ts",
+          "recorded_at": "2026-08-30T18:04:33Z",
+          "recorded_by": "leaf-worker/3917"
+        }
       },
       {
         "title": "Contract, fixtures README decision-code row, and CHANGELOG [Unreleased] record the recut: detection and a guard, no root cause",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "CHANGELOG.md#Unreleased",
+          "recorded_at": "2026-08-30T18:04:33Z",
+          "recorded_by": "leaf-worker/3917"
+        }
       }
     ],
     "tags": [
@@ -120,9 +150,34 @@
         ],
         "module_boundary": "evaluator worktree remove + Shell write-fence destructive-git guard",
         "cohesion_exemption": "packages/core/src/hooks/dispatcher.ts and dispatcher.test.ts already exceed the review trigger; this slice adds one always-on destructive-git branch and matching tests without splitting the dispatcher. CHANGELOG.md is an append-only release log; this slice appends one [Unreleased] entry."
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3959,
+        "prBase": null,
+        "mergeCommit": "d7479ed8308247803e18f80daf58780791288775",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d7479ed8308247803e18f80daf58780791288775",
+        "verifiedAt": "2026-08-30T18:04:41Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDUzNmQtZDhiNy03MTQxLTg1NzMtODM1MDI5MTkyNGY3"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-30T18:04:41Z"
+      },
+      "completedAt": "2026-08-30T18:04:41Z",
+      "completedSessionId": "host:grok:v1:MDFhMDUzNmQtZDhiNy03MTQxLTg1NzMtODM1MDI5MTkyNGY3",
+      "capacityBucket": "technical-debt"
     },
-    "updated": "2026-08-30T16:50:00Z",
+    "updated": "2026-08-30T18:04:41Z",
     "architecture": {
       "systemOfRecord": {
         "stateSurfaces": [
@@ -131,7 +186,10 @@
             "classification": "cache",
             "owner": "hook write fence",
             "approvedStorage": "json_file",
-            "forbiddenStorage": ["browser_storage", "in_memory"],
+            "forbiddenStorage": [
+              "browser_storage",
+              "in_memory"
+            ],
             "authoritative": false,
             "invalidationRules": "Append-only attribution, never product authority. Not auto-invalidated. Operators may delete. Lives under the platform user-config directory so it remains after reflog prune."
           }
