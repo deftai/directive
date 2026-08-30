@@ -43,13 +43,18 @@ export function extractDepositRequiredComments(source: string): string[] {
 }
 
 export function parseDepositRequiredDeclaration(jsonText: string): DepositRequiredDeclaration {
-  let data: { schema?: unknown; paths?: unknown };
+  let _data: { schema?: unknown; paths?: unknown };
+  let parsed: unknown;
   try {
-    data = JSON.parse(jsonText) as { schema?: unknown; paths?: unknown };
+    parsed = JSON.parse(jsonText) as unknown;
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
     throw new Error(`deposit-required: invalid JSON (${reason})`);
   }
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("deposit-required: expected an object");
+  }
+  const data = parsed as { schema?: unknown; paths?: unknown };
   if (data.schema !== DEPOSIT_REQUIRED_SCHEMA) {
     throw new Error(
       "deposit-required: expected schema " +
@@ -133,18 +138,24 @@ export function evaluateInstalledDepositClosure(projectRoot: string): {
   readonly skipped: boolean;
   readonly missing: readonly string[];
   readonly declarationPath: string | null;
+  readonly error: string | null;
 } {
   const deftDir = join(projectRoot, ".deft", "core");
   const declarationPath = resolveDeclarationFile(deftDir) ?? resolveDeclarationFile(projectRoot);
   if (declarationPath === null) {
-    return { skipped: true, missing: [], declarationPath: null };
+    return { skipped: true, missing: [], declarationPath: null, error: null };
   }
   if (!existsSync(deftDir)) {
-    return { skipped: true, missing: [], declarationPath };
+    return { skipped: true, missing: [], declarationPath, error: null };
   }
-  const declaration = loadDepositRequiredDeclaration(declarationPath);
-  const result = evaluateDepositClosure({ packRoot: deftDir, paths: declaration.paths });
-  return { skipped: false, missing: result.missing, declarationPath };
+  try {
+    const declaration = loadDepositRequiredDeclaration(declarationPath);
+    const result = evaluateDepositClosure({ packRoot: deftDir, paths: declaration.paths });
+    return { skipped: false, missing: result.missing, declarationPath, error: null };
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    return { skipped: false, missing: [], declarationPath, error: reason };
+  }
 }
 
 export function renderDeclaredDepositClosureLine(
@@ -152,6 +163,13 @@ export function renderDeclaredDepositClosureLine(
 ): string {
   if (result.skipped) {
     return "Deposit required-paths: skip -- no C1 declaration in this tree.";
+  }
+  if (result.error) {
+    return (
+      "Deposit required-paths: fail -- could not read C1 declaration (" +
+      result.error +
+      "). Run directive update to refresh the deposit (#3601 C1)."
+    );
   }
   if (result.missing.length === 0) {
     return "Deposit required-paths: ok -- declared C1 paths exist in .deft/core.";

@@ -1,6 +1,6 @@
-import { cpSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, sep } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   evaluateDepositClosure,
@@ -66,5 +66,22 @@ describe("declared deposit closure against staged pack (#3601 C1)", () => {
     expect(skills).toContain("npx deft");
     expect(skills).toContain("--json");
     expect(skills).toContain("node_modules");
+  });
+
+  it("declared paths follow the content-package prepack mapping", () => {
+    const root = repoRoot();
+    const pkg = readFileSync(join(root, "packages", "content", "package.json"), "utf8");
+    expect(pkg).toContain("content");
+    expect(pkg).toContain("main.md");
+    const declaration = loadDepositRequiredDeclaration(resolveDeclarationFile(root) as string);
+    const contentNeedle = join("content", "x").slice(0, -1);
+    for (const declared of declaration.paths) {
+      const rel = packRelativeFromDepositPath(declared);
+      if (rel === "main.md" || rel === "SKILL.md") {
+        continue;
+      }
+      expect(sourcePathForPackRelative(root, rel)).toContain(contentNeedle);
+    }
+    expect(sep).toBeTruthy();
   });
 });

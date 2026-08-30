@@ -91,7 +91,7 @@ export function run(argv: string[]): number {
     if (flags.full && !depositResult.skipped && depositResult.absent.length > 0) {
       depositHygieneExit = 1;
     }
-    if (flags.full && !closure.skipped && closure.missing.length > 0) {
+    if (flags.full && !closure.skipped && (closure.missing.length > 0 || closure.error !== null)) {
       depositHygieneExit = 1;
     }
   }

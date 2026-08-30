@@ -155,7 +155,12 @@ describe("prepack mapping", () => {
 describe("renderDeclaredDepositClosureLine", () => {
   it("skips when no declaration is present", () => {
     expect(
-      renderDeclaredDepositClosureLine({ skipped: true, missing: [], declarationPath: null }),
+      renderDeclaredDepositClosureLine({
+        skipped: true,
+        missing: [],
+        declarationPath: null,
+        error: null,
+      }),
     ).toContain("skip");
   });
 
@@ -165,6 +170,7 @@ describe("renderDeclaredDepositClosureLine", () => {
         skipped: false,
         missing: [],
         declarationPath: "contracts/deposit-required-paths.json",
+        error: null,
       }),
     ).toContain("ok");
     expect(
@@ -172,6 +178,7 @@ describe("renderDeclaredDepositClosureLine", () => {
         skipped: false,
         missing: [".deft/core/main.md"],
         declarationPath: "contracts/deposit-required-paths.json",
+        error: null,
       }),
     ).toContain("fail");
   });
@@ -201,5 +208,17 @@ describe("evaluateInstalledDepositClosure", () => {
     const result = evaluateInstalledDepositClosure(root);
     expect(result.skipped).toBe(false);
     expect(result.missing).toEqual([".deft/core/commands.md"]);
+  });
+
+  it("rejects null JSON and does not throw from evaluateInstalledDepositClosure", () => {
+    expect(() => parseDepositRequiredDeclaration("null")).toThrow(/expected an object/);
+    const root = tempRoot();
+    const deft = join(root, ".deft", "core");
+    mkdirSync(join(deft, "contracts"), { recursive: true });
+    writeFileSync(join(deft, "contracts", "deposit-required-paths.json"), "null\n", "utf8");
+    const result = evaluateInstalledDepositClosure(root);
+    expect(result.skipped).toBe(false);
+    expect(result.error).toMatch(/expected an object/);
+    expect(renderDeclaredDepositClosureLine(result)).toContain("fail");
   });
 });
