@@ -17,43 +17,103 @@
     "items": [
       {
         "title": "Successor lean leads with a plain-language summary stating what confirming would assert, with the forward verdict and disposition expressly permitted",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/contracts/design-critique.md#On the successor lean -- MUST to lead the lean with the summary, plus the token bullet in `## Successor lean`; locked by packages/core/src/content-contracts/standards/design_critique_contract.test.ts#locks the plain-language summary, its token, and the line-start matrix (#3929)",
+          "recorded_at": "2026-08-30T05:20:00Z",
+          "recorded_by": "leaf-worker/3929"
+        }
       },
       {
         "title": "Synthesis leads with the same summary on both bind paths, including the #3640 auto-posted comment",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/contracts/design-critique.md#Synthesis format -- MUST to lead the synthesis with the summary and to carry it on the #3640 auto-posted comment; locked by packages/core/src/content-contracts/standards/design_critique_contract.test.ts#locks the plain-language summary, its token, and the line-start matrix (#3929)",
+          "recorded_at": "2026-08-30T05:20:00Z",
+          "recorded_by": "leaf-worker/3929"
+        }
       },
       {
         "title": "Contract states expressly that the forward verdict introduces no ADR-006 premise, and names where that exemption stops",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/contracts/design-critique.md#On the successor lean -- the ADR-006 exemption and its stated limit; locked by packages/core/src/content-contracts/standards/design_critique_contract.test.ts#locks the plain-language summary, its token, and the line-start matrix (#3929)",
+          "recorded_at": "2026-08-30T05:20:00Z",
+          "recorded_by": "leaf-worker/3929"
+        }
       },
       {
         "title": "Fixed heading token on both artifacts, justified as placement only, with the reason the current-shape precedent cannot be ported",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/contracts/design-critique.md#Heading token -- placement-only reading and the current-shape non-portability record; locked by packages/core/src/content-contracts/standards/design_critique_contract.test.ts#locks the plain-language summary, its token, and the line-start matrix (#3929)",
+          "recorded_at": "2026-08-30T05:20:00Z",
+          "recorded_by": "leaf-worker/3929"
+        }
       },
       {
         "title": "Per-artifact prohibition matrix over three reserved line-start families",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/reserved-line-starts.test.ts#family 1/2/3 describes -- three reserved line-start families on both artifact kinds, 13 cases",
+          "recorded_at": "2026-08-30T05:20:00Z",
+          "recorded_by": "leaf-worker/3929"
+        }
       },
       {
         "title": "Both summaries marked non-normative for downstream agents; no forward-instruction field mandated",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/contracts/design-critique.md#Non-normative for downstream agents -- both summaries non-normative, no mandated next-step field; decision record xbrief/decisions/2026-08-30-mark-the-design-critique-plain-language-summary-non-normative-fo.decision.json",
+          "recorded_at": "2026-08-30T05:20:00Z",
+          "recorded_by": "leaf-worker/3929"
+        }
       },
       {
         "title": "MUST versus SHOULD decided at MUST, with the structural reasoning recorded",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/contracts/design-critique.md#Why MUST and not SHOULD -- structural reasoning recorded; locked by packages/core/src/content-contracts/standards/design_critique_contract.test.ts#locks the plain-language summary, its token, and the line-start matrix (#3929)",
+          "recorded_at": "2026-08-30T05:20:00Z",
+          "recorded_by": "leaf-worker/3929"
+        }
       },
       {
         "title": "Contract-token locking plus behavioural regressions for each family on each artifact kind",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts#locks the plain-language summary, its token, and the line-start matrix (#3929) plus packages/core/src/design-critique/reserved-line-starts.test.ts -- 26 + 13 cases green on this branch",
+          "recorded_at": "2026-08-30T05:20:00Z",
+          "recorded_by": "leaf-worker/3929"
+        }
       },
       {
         "title": "Contract states plainly that nothing enforces the summary at runtime",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/contracts/design-critique.md#Plain-language summary -- 'Nothing observes this section.' with the #3850-class statement; locked by packages/core/src/content-contracts/standards/design_critique_contract.test.ts#locks the plain-language summary, its token, and the line-start matrix (#3929)",
+          "recorded_at": "2026-08-30T05:20:00Z",
+          "recorded_by": "leaf-worker/3929"
+        }
       },
       {
         "title": "CHANGELOG [Unreleased] entry",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "CHANGELOG.md#[Unreleased] -- one Added entry for #3929",
+          "recorded_at": "2026-08-30T05:20:00Z",
+          "recorded_by": "leaf-worker/3929"
+        }
       }
     ],
     "tags": [
