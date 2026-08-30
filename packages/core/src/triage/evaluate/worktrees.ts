@@ -84,12 +84,12 @@ function pruneEvaluatorWorktreeAdmin(
     }
     let recorded = "";
     try {
-      recorded = readFileSync(gitdirFile, "utf8").trim().replace(/\\/g, "/").toLowerCase();
+      recorded = readFileSync(gitdirFile, "utf8").trim();
     } catch {
       continue;
     }
-    const recordedWorktree = recorded.replace(/\/\.git$/u, "");
-    if (recordedWorktree === needle) {
+    const recordedWorktree = recorded.replace(/\\/g, "/").replace(/\/\.git$/u, "");
+    if (normalizeWorktreePath(recordedWorktree) === needle) {
       containedRemove({
         root: resolve(projectRoot),
         target: join(worktreesDir, name),
@@ -115,7 +115,7 @@ function worktreeStillRegistered(
     if (!line.startsWith("worktree ")) {
       continue;
     }
-    const listedPath = line.slice("worktree ".length).replace(/\\/g, "/").toLowerCase();
+    const listedPath = normalizeWorktreePath(line.slice("worktree ".length));
     if (listedPath === needle) {
       return true;
     }
