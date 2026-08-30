@@ -1,6 +1,7 @@
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, sep } from "node:path";
+import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   evaluateDepositClosure,
@@ -20,35 +21,64 @@ afterEach(() => {
   }
 });
 
+function readPrepackScript(root: string): string {
+  const manifest = JSON.parse(
+    readFileSync(join(root, "packages", "content", "package.json"), "utf8"),
+  ) as { scripts?: { prepack?: string } };
+  const prepack = manifest.scripts?.prepack;
+  if (typeof prepack !== "string" || prepack.length === 0) {
+    throw new Error("packages/content/package.json has no prepack script");
+  }
+  const first = prepack.indexOf('"');
+  const last = prepack.lastIndexOf('"');
+  if (first === -1 || last <= first) {
+    throw new Error("could not parse prepack script body");
+  }
+  return prepack.slice(first + 1, last);
+}
+
 function stageDeclaredPack(root: string): string {
   const declarationPath = resolveDeclarationFile(root);
   expect(declarationPath, "C1 declaration must exist in the source tree").toBeTruthy();
   const declaration = loadDepositRequiredDeclaration(declarationPath as string);
-  const pack = mkdtempSync(join(tmpdir(), "deft-c1-stage-"));
-  staged.push(pack);
+  const tmp = mkdtempSync(join(tmpdir(), "deft-c1-prepack-"));
+  staged.push(tmp);
+  const pkgDir = join(tmp, "packages", "content");
+  mkdirSync(pkgDir, { recursive: true });
+  writeFileSync(
+    join(pkgDir, "package.json"),
+    JSON.stringify({ name: "@deftai/directive-content", version: "0.0.0" }),
+    "utf8",
+  );
+  mkdirSync(join(tmp, "content"), { recursive: true });
   for (const declared of declaration.paths) {
     const rel = packRelativeFromDepositPath(declared);
     const from = sourcePathForPackRelative(root, rel);
-    const to = join(pack, ...rel.split("/"));
+    const destRel =
+      rel === "main.md" || rel === "SKILL.md" ? rel : join("content", ...rel.split("/"));
+    const to = join(tmp, destRel);
     mkdirSync(dirname(to), { recursive: true });
     cpSync(from, to);
   }
-  return pack;
+  const ran = spawnSync("node", ["--input-type=module", "-e", readPrepackScript(root)], {
+    cwd: pkgDir,
+    encoding: "utf8",
+  });
+  expect(ran.status, ran.stderr || ran.stdout || "").toBe(0);
+  return pkgDir;
 }
 
 describe("declared deposit closure against staged pack (#3601 C1)", () => {
-  it("every declared required path exists in the prepack-mapped staged tree", () => {
+  it("every declared required path exists after running content-package prepack", () => {
     const root = repoRoot();
-    const declarationPath = resolveDeclarationFile(root);
-    expect(declarationPath).toBeTruthy();
-    const declaration = loadDepositRequiredDeclaration(declarationPath as string);
+    const declaration = loadDepositRequiredDeclaration(resolveDeclarationFile(root) as string);
     expect(declaration.paths.length).toBeGreaterThan(0);
     const pack = stageDeclaredPack(root);
     const result = evaluateDepositClosure({ packRoot: pack, paths: declaration.paths });
     expect(result.ok, result.missing.join(", ")).toBe(true);
   });
 
-  it("fails when a declared file is deleted from the staged tree", () => {
+  it("fails when a declared file is deleted from the staged pack output", () => {
     const root = repoRoot();
     const declaration = loadDepositRequiredDeclaration(resolveDeclarationFile(root) as string);
     const pack = stageDeclaredPack(root);
@@ -66,22 +96,5 @@ describe("declared deposit closure against staged pack (#3601 C1)", () => {
     expect(skills).toContain("npx deft");
     expect(skills).toContain("--json");
     expect(skills).toContain("node_modules");
-  });
-
-  it("declared paths follow the content-package prepack mapping", () => {
-    const root = repoRoot();
-    const pkg = readFileSync(join(root, "packages", "content", "package.json"), "utf8");
-    expect(pkg).toContain("content");
-    expect(pkg).toContain("main.md");
-    const declaration = loadDepositRequiredDeclaration(resolveDeclarationFile(root) as string);
-    const contentNeedle = join("content", "x").slice(0, -1);
-    for (const declared of declaration.paths) {
-      const rel = packRelativeFromDepositPath(declared);
-      if (rel === "main.md" || rel === "SKILL.md") {
-        continue;
-      }
-      expect(sourcePathForPackRelative(root, rel)).toContain(contentNeedle);
-    }
-    expect(sep).toBeTruthy();
   });
 });
