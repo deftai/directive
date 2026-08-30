@@ -1,0 +1,14 @@
+{
+  "writerPaths": [
+    ".deft/cache/ac-pass-banks",
+    ".deft/cache/verify-ac-session-cache",
+    ".deft/cache/last-completed.json",
+    ".deft/authz",
+    ".deft/delivery-attempts",
+    ".deft/metrics",
+    ".deft/escalations",
+    ".deft/approved-scope",
+    ".deft/cache/task"
+  ],
+  "uncoveredProbe": ".deft/uncovered-writer-probe"
+}

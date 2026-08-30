@@ -143,8 +143,8 @@ describe("resolveSessionCompletedVerifyAcTarget (#3357)", () => {
       completedAt: "2026-08-14T10:00:00Z",
       completedSessionId: "sess-other",
     });
-    mkdirSync(join(root, ".deft"), { recursive: true });
-    writeFileSync(join(root, ".deft", "last-completed.json"), "{not-json", "utf8");
+    mkdirSync(join(root, ".deft", "cache"), { recursive: true });
+    writeFileSync(join(root, ".deft", "cache", "last-completed.json"), "{not-json", "utf8");
     expect(
       resolveSessionCompletedVerifyAcTarget({
         projectRoot: root,

@@ -17,7 +17,7 @@ export const SESSION_COMPLETED_AC_REMEDIATION =
   "Run task verify:ac -- xbrief/completed/<just-completed>.xbrief.json (a story completed this session; check must not soft-skip) (#3357)";
 
 /** Project-relative marker written by scope:complete for this session (#3357). */
-export const SESSION_COMPLETED_MARKER_REL = [".deft", "last-completed.json"] as const;
+export const SESSION_COMPLETED_MARKER_REL = [".deft", "cache", "last-completed.json"] as const;
 
 export interface SessionCompletedMarker {
   readonly path: string;

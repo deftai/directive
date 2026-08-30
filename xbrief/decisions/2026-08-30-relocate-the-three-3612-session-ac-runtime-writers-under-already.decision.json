@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "relocate-the-three-3612-session-ac-runtime-writers-under-already",
+  "decision": "Relocate the three #3612 session/AC runtime writers under already-ignored .deft/cache/; keep authz, delivery-attempts, metrics, escalations, and approved-scope at their historical names; couple both shipped ignore lists to imported writer path constants with a fail-closed containment test.",
+  "governingRule": {
+    "description": "Couple the ignore set to the writers (derive or fail-closed containment). Prefer relocation or folding over growing the list. Cover TypeScript and Go surfaces. Occupancy is the shared-worktree fence; do not invent a second one. Bound #3612 synthesis 5470462960.",
+    "path": "packages/core/src/init-deposit/runtime-writers.ts",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Add the three paths to CANONICAL_GITIGNORE_BASELINE and close",
+      "whyNot": "Refuted. The list and the writers stay two hand-kept facts, so the next writer repeats the bug. A list-add is only an acceptable vehicle with the containment test."
+    },
+    {
+      "option": "Fold last-completed.json into ritual-state.json",
+      "whyNot": "ritual-state is rewritten on session start. Mixing would drop the completed marker unless a merge protocol is added. Occupancy already fences singleton .deft writes."
+    },
+    {
+      "option": "Relocate authz, metrics, escalations, approved-scope, and delivery-attempts under .deft/cache/",
+      "whyNot": "Those names are on-disk contracts and UAT/authz paths. Moving them would break existing consumer state without a migrator. Cover them with ignore lines plus the same registry."
+    }
+  ],
+  "whyWinner": "Relocation under .deft/cache/ stops new writes from dirtying any consumer that already has that baseline line, including skip-update clones that already ignore .deft/cache/. The containment test, not the three strings, is the mechanism. Historical writer roots stay put and join the registry so the class cannot silently grow.",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-08-30-3612-runtime-writer-ignore-containment.xbrief.json"
+  ],
+  "timestamp": "2026-08-30T18:42:59Z",
+  "revisitTrigger": "Revisit if a new exported .deft writer path is added without joining RUNTIME_WRITER_PATHS, or if authz/metrics/escalations/approved-scope/delivery-attempts gain a migrator that can move them under cache.",
+  "tags": [
+    "gitignore",
+    "init",
+    "runtime-state"
+  ],
+  "relatedIssues": [
+    3612
+  ]
+}

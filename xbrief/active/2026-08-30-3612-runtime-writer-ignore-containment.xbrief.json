@@ -1,0 +1,131 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #3612: couple runtime writer paths to both shipped gitignore baselines, relocate the three filed .deft writers under .deft/cache/, and fail-closed prove containment.",
+    "updated": "2026-08-30T18:35:34Z"
+  },
+  "plan": {
+    "title": "BLOCKER: bug(init): acceptance lifecycle writes unignored .deft runtime state",
+    "status": "running",
+    "narratives": {
+      "Description": "Bound design-critique for #3612. The defect is real: verify:ac and scope:complete write .deft/ac-pass-banks/, .deft/verify-ac-session-cache/, and .deft/last-completed.json, which are absent from both ignore baselines, so a freshly initialised consumer dirties. The one-line list-add is refuted. Authority is critic 5470426194, successor lean 5470455968, verified-claims 5470459185, synthesis 5470462960.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3612",
+      "Overview": "Bound contract: couple ignore set to writers on both shipped surfaces; prefer relocate under .deft/cache/; name skip-update and already-tracked holes; occupancy remains the shared-worktree fence.",
+      "Labels": "bug, blocks-release-tag, design-critique:triage-ready",
+      "Decisions": "- xbrief/decisions/2026-08-30-relocate-the-three-3612-session-ac-runtime-writers-under-already.decision.json \u2014 Relocate the three #3612 session/AC runtime writers under already-ignored .deft/cache/; keep authz, delivery-attempts, metrics, escalations, and approved-scope at their historical names; couple both shipped ignore lists to imported writer path constants with a fail-closed containment test."
+    },
+    "items": [
+      {
+        "title": "Relocate the three filed runtime writers under .deft/cache/",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "AC_PASS_BANK_DIR, VERIFY_AC_SESSION_CACHE_DIR, and SESSION_COMPLETED_MARKER_REL write under .deft/cache/, which is already in the TypeScript baseline; occupancy remains the shared-worktree fence."
+        }
+      },
+      {
+        "title": "Fail-closed containment of every runtime writer path on both shipped ignore surfaces",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "A registry built from imported writer path constants is covered by CANONICAL_GITIGNORE_BASELINE and by canonicalGitignoreLines; the check fails closed on either surface."
+        }
+      },
+      {
+        "title": "Containment helper is not vacuous",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "A deliberately added writer path that is not in the ignore set fails the containment check on both surfaces."
+        }
+      },
+      {
+        "title": "Throwaway consumer seeded with the baseline stays clean after the three writers run",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "In an OS-temp git repo whose .gitignore is the shipped baseline, writing the three relocated paths yields no git status --short hit and git check-ignore -v matches .deft/cache/. Not verified against this clone."
+        }
+      },
+      {
+        "title": "Cover remaining exported runtime writer roots and restore TS/Go ignore parity",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "AUTHZ_DIR, DELIVERY_ATTEMPT_DIR, PROJECT_LOCAL_METRICS_DIR, ESCALATION_DIR, and APPROVED_SCOPE_DIR are in the registry and covered on both surfaces. Every TypeScript baseline line is present in the Go list."
+        }
+      },
+      {
+        "title": "CHANGELOG names the two unreachable cases and the update-append heal",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "CHANGELOG [Unreleased] states: consumers who never run update are not reached; a path already tracked in a consumer index is unaffected by an ignore rule; directive update / Go install already append missing baseline lines."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "init",
+      "gitignore",
+      "blocks-release-tag"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3612",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3612: BLOCKER acceptance lifecycle writes unignored .deft runtime state"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/init-deposit/gitignore.ts",
+          "packages/core/src/init-deposit/gitignore.test.ts",
+          "packages/core/src/init-deposit/runtime-writers.ts",
+          "packages/core/src/init-deposit/runtime-writers.test.ts",
+          "packages/core/src/init-deposit/runtime-writer-paths.json",
+          "packages/core/src/session/ac-pass-banking.ts",
+          "packages/core/src/session/verify-ac-session-cache.ts",
+          "packages/core/src/check/session-completed-ac.ts",
+          "packages/core/src/check/session-completed-ac.test.ts",
+          "cmd/deft-install/setup.go",
+          "cmd/deft-install/gitignore_runtime_writers_test.go",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/init-deposit",
+        "cohesion_exemption": "CHANGELOG.md is a chronological append-only release log. Go installer baseline lives in cmd/deft-install/setup.go, the second shipped surface."
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the bound synthesis; verification is vitest/go test plus a seeded throwaway consumer, not a named task verb (#3323)",
+      "clauses": [
+        {
+          "id": "relocate-under-cache",
+          "text": "Relocate the three filed runtime writers under .deft/cache/"
+        },
+        {
+          "id": "containment-both-surfaces",
+          "text": "Fail-closed containment of every runtime writer path on both shipped ignore surfaces"
+        },
+        {
+          "id": "non-vacuous",
+          "text": "Containment helper is not vacuous"
+        },
+        {
+          "id": "throwaway-consumer",
+          "text": "Throwaway consumer seeded with the baseline stays clean after the three writers run"
+        },
+        {
+          "id": "remaining-writers-and-parity",
+          "text": "Cover remaining exported runtime writer roots and restore TS/Go ignore parity"
+        },
+        {
+          "id": "changelog-holes",
+          "text": "CHANGELOG names the two unreachable cases and the update-append heal"
+        }
+      ]
+    },
+    "updated": "2026-08-30T18:35:34Z"
+  }
+}

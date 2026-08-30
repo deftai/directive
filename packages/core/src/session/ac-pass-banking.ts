@@ -29,8 +29,8 @@ import {
 } from "./effort-budget.js";
 import { gitHead } from "./git.js";
 
-/** Durable bank ledger directory (gitignored under `.deft/`). */
-export const AC_PASS_BANK_DIR = ".deft/ac-pass-banks";
+/** Durable bank ledger directory (under already-ignored `.deft/cache/`). */
+export const AC_PASS_BANK_DIR = ".deft/cache/ac-pass-banks";
 
 export const AC_PASS_BANK_SCHEMA_VERSION = 1 as const;
 

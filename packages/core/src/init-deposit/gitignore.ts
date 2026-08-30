@@ -39,6 +39,13 @@ export const CANONICAL_GITIGNORE_BASELINE: readonly string[] = [
   ".deft/last-session.json",
   ".deft/occupancy.json",
   ".deft/routing.local.json",
+  // #3612: remaining runtime writer roots kept at historical names (on-disk
+  // contracts). Relocating them would break existing consumer state.
+  ".deft/authz/",
+  ".deft/delivery-attempts/",
+  ".deft/metrics/",
+  ".deft/escalations/",
+  ".deft/approved-scope/",
   // Agent-host working state (#3502). Selective, NEVER blanket `.claude/`:
   // `.claude/settings.json`, `.claude/skills/` and `.claude/commands/` are
   // MANAGED DEPOSITS (agent-hooks.ts / skill-discovery-hosts.ts) and must stay
@@ -128,6 +135,25 @@ function gitignoreCoversLine(present: ReadonlySet<string>, line: string): boolea
     return [...DEFT_CORE_COVERING_LINES].some((candidate) => present.has(candidate));
   }
   return false;
+}
+
+/**
+ * Strip leading/trailing slashes so `.deft/cache/` and `.deft/cache` match.
+ * Globs are not expanded: a writer covered only by a glob fails closed (#3612).
+ */
+export function normalizeGitignorePath(p: string): string {
+  return p.replaceAll("\\", "/").replace(/^\/+/, "").replace(/\/+$/, "");
+}
+
+export function gitignoreRuleCoversPath(rule: string, relPath: string): boolean {
+  const r = normalizeGitignorePath(stripGitignoreInlineComment(rule));
+  const p = normalizeGitignorePath(relPath);
+  if (!r || r.startsWith("#")) return false;
+  return r === p || p.startsWith(`${r}/`);
+}
+
+export function ignoreSetCoversPath(rules: readonly string[], relPath: string): boolean {
+  return rules.some((rule) => gitignoreRuleCoversPath(rule, relPath));
 }
 
 function collectPresentGitignoreLines(existing: string): Set<string> {

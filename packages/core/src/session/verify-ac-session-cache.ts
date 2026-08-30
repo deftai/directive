@@ -10,7 +10,7 @@ import { join, resolve } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
 import { sanitizeScopeIdForFilename } from "./ac-pass-banking.js";
 
-export const VERIFY_AC_SESSION_CACHE_DIR = ".deft/verify-ac-session-cache";
+export const VERIFY_AC_SESSION_CACHE_DIR = ".deft/cache/verify-ac-session-cache";
 
 export const AC_SERVED_FROM = ["bank", "cache", "executed"] as const;
 

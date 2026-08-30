@@ -352,46 +352,87 @@ var agentsMDManagedOpenPattern = regexp.MustCompile(`<!-- deft:managed-section v
 // per #11 .deft/core/ ships read-only packaged framework assets that consumers
 // commit for reproducibility; the .bak globs above never match .deft/core
 // itself, only the timestamped backup siblings.
+
+// ignoreSetCoversPath reports whether any rule covers relPath by exact match
+// or parent-directory prefix. Globs are not expanded (#3612 fail-closed).
+func normalizeGitignorePath(p string) string {
+	p = strings.ReplaceAll(p, "\\", "/")
+	for strings.HasPrefix(p, "/") {
+		p = strings.TrimPrefix(p, "/")
+	}
+	for strings.HasSuffix(p, "/") {
+		p = strings.TrimSuffix(p, "/")
+	}
+	return p
+}
+
+func gitignoreRuleCoversPath(rule, relPath string) bool {
+	r := normalizeGitignorePath(stripGitignoreInlineComment(rule))
+	p := normalizeGitignorePath(relPath)
+	if r == "" || strings.HasPrefix(r, "#") {
+		return false
+	}
+	if r == p {
+		return true
+	}
+	return strings.HasPrefix(p, r+"/")
+}
+
+func ignoreSetCoversPath(rules []string, relPath string) bool {
+	for _, rule := range rules {
+		if gitignoreRuleCoversPath(rule, relPath) {
+			return true
+		}
+	}
+	return false
+}
+
 var canonicalGitignoreLines = []string{
 	".deft-cache/",
-	// Selective .deft runtime sentinels -- MUST equal
-	// GITIGNORE_DEFT_RUNTIME_SENTINELS in scripts/_triage_bootstrap_gitignore.py.
+	".deft/cache/",
+	".deft/.cli/",
 	".deft/ritual-state.json",
 	".deft/last-session.json",
 	".deft/occupancy.json",
-	// Operator coding sub-agent model routing (#1739): per-machine,
-	// per-project, never committed. MUST stay file-specific so the
-	// trackable .deft/core/ framework payload is unaffected.
 	".deft/routing.local.json",
-	// Agent-host working state (#3502) -- MUST equal the `.claude/` entries in
-	// CANONICAL_GITIGNORE_BASELINE (packages/core/src/init-deposit/gitignore.ts).
-	// Selective only: `.claude/settings.json`, `.claude/skills/` and
-	// `.claude/commands/` are managed deposits and must stay trackable.
 	".claude/worktrees/",
 	".claude/settings.local.json",
-	// #3282: default run-summary JSONL at repo root (collectible harness path).
 	".deft-run-summary.json",
-	// Selective vbrief/.eval/* entries -- legacy layout path still deposited for
-	// back-compat with pre-#2344 consumers. Prefer .triage-cache/ entries below
-	// for the active post-migration layout (#3146 session state).
-	"vbrief/.eval/candidates.jsonl",
-	"vbrief/.eval/summary-history.jsonl",
-	"vbrief/.eval/scope-lifecycle.jsonl",
-	"vbrief/.eval/decompositions/",
-	"vbrief/.eval/doctor-state.json",
-	// Per-clone session state (#3146) — selective ignore only (hybrid #1144).
-	"vbrief/.eval/staleness-tickler-state.json",
-	"vbrief/.eval/release-availability-state.json",
-	// Symmetric .triage-cache paths matching packages/core init-deposit baseline
-	// (#2348 / #3146). Runtime writes state under .triage-cache/, not .eval/.
+	".deft-directive-disable",
+	".deft/authz/",
+	".deft/delivery-attempts/",
+	".deft/metrics/",
+	".deft/escalations/",
+	".deft/approved-scope/",
+	"vbrief/.triage-cache/candidates.jsonl",
+	"vbrief/.triage-cache/summary-history.jsonl",
+	"vbrief/.triage-cache/scope-lifecycle.jsonl",
+	"vbrief/.triage-cache/decompositions/",
+	"vbrief/.triage-cache/doctor-state.json",
 	"vbrief/.triage-cache/staleness-tickler-state.json",
 	"vbrief/.triage-cache/release-availability-state.json",
+	"xbrief/.triage-cache/candidates.jsonl",
+	"xbrief/.triage-cache/summary-history.jsonl",
+	"xbrief/.triage-cache/scope-lifecycle.jsonl",
+	"xbrief/.triage-cache/decompositions/",
+	"xbrief/.triage-cache/doctor-state.json",
 	"xbrief/.triage-cache/staleness-tickler-state.json",
 	"xbrief/.triage-cache/release-availability-state.json",
 	"vbrief/*.lock",
 	".deft/core.bak-*/",
 	".deft/*.bak-*",
+	".deft/xbrief-migrate-backup-*/",
 	"*.premigrate.*",
+	"vbrief/.eval/results/",
+	"xbrief/.eval/results/",
+	// Legacy pre-#2348 layout still deposited for back-compat.
+	"vbrief/.eval/candidates.jsonl",
+	"vbrief/.eval/summary-history.jsonl",
+	"vbrief/.eval/scope-lifecycle.jsonl",
+	"vbrief/.eval/decompositions/",
+	"vbrief/.eval/doctor-state.json",
+	"vbrief/.eval/staleness-tickler-state.json",
+	"vbrief/.eval/release-availability-state.json",
 }
 
 // forbiddenBlanketEvalLines mirrors FORBIDDEN_BLANKET_EVAL_LINES in

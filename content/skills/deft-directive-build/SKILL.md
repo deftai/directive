@@ -308,7 +308,7 @@ Core helper: `packages/core/src/session/effort-budget.ts` (`detectHardEffortBudg
 
 Sharpens #3266: the **first** moment stated/official acceptance criteria pass is a **banking checkpoint**, not a license to keep spending the turn budget on self-imposed depth.
 
-- ! When stated acceptance criteria first pass (`task verify:ac` / product-first done-gate #3284 / official checker), the **next** action is **FINALIZE**: checkpoint-commit the green state and record the bank (durable under `.deft/ac-pass-banks/`; optional run-summary line when `DEFT_RUN_SUMMARY_PATH` is set).
+- ! When stated acceptance criteria first pass (`task verify:ac` / product-first done-gate #3284 / official checker), the **next** action is **FINALIZE**: checkpoint-commit the green state and record the bank (durable under `.deft/cache/ac-pass-banks/`; optional run-summary line when `DEFT_RUN_SUMMARY_PATH` is set).
 - ! **Deepening after the bank requires surplus budget.** Self-imposed extra verification, refactors, or polish are permitted only when remaining budget meets `plan.policy.acPassBanking.surplusThreshold` (default **0.2** = 20% of max turns/cost still remaining) **and** the absolute reserve from #3266. Env override: `DEFT_AC_PASS_SURPLUS_THRESHOLD`.
 - ! Deepening, when allowed, happens **on top of** the committed checkpoint so a failed experiment can revert to banked green.
 - ! **Post-bank discoveries are reported, not chased** when surplus is insufficient: file a note/issue in the deliverable for out-of-scope defects unless they **regress stated AC** (then fix-regression). Finding beyond the bar is a win; thrashing a dying budget into a zero is the failure mode this rule closes.
