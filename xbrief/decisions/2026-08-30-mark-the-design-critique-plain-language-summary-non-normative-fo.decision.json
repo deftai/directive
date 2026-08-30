@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "mark-the-design-critique-plain-language-summary-non-normative-fo",
+  "decision": "Mark the design-critique plain-language summary non-normative for downstream agents instead of bounding a next-step field to a closed form",
+  "governingRule": {
+    "description": "Arc 2 bind required the next-step bounding to reach the lean summary, or that summary to be marked non-normative; pick one and say which",
+    "path": "content/contracts/design-critique.md",
+    "rfc2119": null
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Bound a mandated next-step field to a closed form (a verb and an issue)"
+    },
+    {
+      "option": "Drop the requirement and leave the summary unbounded"
+    }
+  ],
+  "whyWinner": "A plain-language summary cannot itself be closed-form, and a bounded instruction is still an instruction in the parent authoritative voice inside the comment ingest clearance always cites; marking both summaries non-normative and mandating no forward-instruction field removes the injection surface without removing the legibility the issue exists for",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-08-30-3929-design-critique-arc-summary-legibility.xbrief.json"
+  ],
+  "timestamp": "2026-08-30T04:44:01Z",
+  "revisitTrigger": "If ingest gains a real quarantine for composed comment text, or a downstream consumer needs a machine-readable next step, revisit and consider a typed field",
+  "tags": [
+    "process"
+  ],
+  "relatedIssues": [
+    3929
+  ]
+}
