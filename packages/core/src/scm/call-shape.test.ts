@@ -56,8 +56,9 @@ describe("resolveBinaryForRole", () => {
     expect(resolveBinaryForRole("cached-get", ghOnly)).toBe("gh");
   });
 
-  it("uses ghx for live-gh only when gh is absent", () => {
-    expect(resolveBinaryForRole("live-gh", ghxOnly)).toBe("ghx");
+  it("refuses live-gh when gh is absent even if ghx is present", () => {
+    expect(() => resolveBinaryForRole("live-gh", ghxOnly)).toThrow(ScmStubError);
+    expect(() => resolveBinaryForRole("live-gh", ghxOnly)).toThrow(/requires live gh/);
   });
 
   it("raises when neither binary is present", () => {

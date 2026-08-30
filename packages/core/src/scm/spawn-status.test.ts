@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   classifySpawnStatus,
   formatScmSpawnDiagnostic,
+  ghxSpawnFallbackBinary,
   isAvailabilitySpawnFailure,
   STATUS_DLL_INIT_FAILED,
 } from "./spawn-status.js";
@@ -84,5 +85,36 @@ describe("no --version health probe (#3737)", () => {
       const text = readFileSync(join(here, name), "utf8");
       expect(text, name).not.toMatch(/--version/);
     }
+  });
+});
+
+describe("ghxSpawnFallbackBinary", () => {
+  const both = (name: string) => `/usr/bin/${name}`;
+  it("retries gh on a cached-get ghx spawn failure", () => {
+    expect(
+      ghxSpawnFallbackBinary("cached-get", "ghx", both, {
+        status: null,
+        error: { code: "ENOENT", message: "spawn ghx ENOENT" },
+        stdout: "",
+        stderr: "",
+      }),
+    ).toBe("gh");
+  });
+  it("does not retry live-gh or HTTP errors", () => {
+    expect(
+      ghxSpawnFallbackBinary("live-gh", "ghx", both, {
+        status: null,
+        error: { code: "ENOENT" },
+        stdout: "",
+        stderr: "",
+      }),
+    ).toBeNull();
+    expect(
+      ghxSpawnFallbackBinary("cached-get", "ghx", both, {
+        status: 1,
+        stdout: "",
+        stderr: "HTTP 422",
+      }),
+    ).toBeNull();
   });
 });

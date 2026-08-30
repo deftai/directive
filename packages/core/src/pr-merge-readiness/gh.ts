@@ -1,5 +1,7 @@
 import { execFileSync } from "node:child_process";
-import { resolveBinaryForArgv } from "../scm/call-shape.js";
+import { defaultWhich } from "../scm/binary.js";
+import { classifyScmArgv, resolveBinaryForArgv } from "../scm/call-shape.js";
+import { ghxSpawnFallbackBinary } from "../scm/spawn-status.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import { GH_TIMEOUT_S, GREPTILE_LOGIN } from "./constants.js";
 import type { RunGhFn, RunGhResult } from "./types.js";
@@ -88,15 +90,47 @@ export function defaultRunGh(cmd: readonly string[]): RunGhResult {
   }
   const args = cmd.slice(1);
   const binary = resolveBinaryForArgv(args[0] ?? "", args.slice(1));
+  const execOpts = {
+    encoding: "utf8" as const,
+    timeout: GH_TIMEOUT_S * 1000,
+    stdio: ["ignore", "pipe", "pipe"] as ["ignore", "pipe", "pipe"],
+    maxBuffer: SUBPROCESS_MAX_BUFFER,
+  };
+  const runOnce = (bin: string) => execFileSync(bin, args, execOpts);
   try {
-    const stdout = execFileSync(binary, args, {
-      encoding: "utf8",
-      timeout: GH_TIMEOUT_S * 1000,
-      stdio: ["ignore", "pipe", "pipe"],
-      maxBuffer: SUBPROCESS_MAX_BUFFER,
-    });
+    const stdout = runOnce(binary);
     return { returncode: 0, stdout: typeof stdout === "string" ? stdout : "", stderr: "" };
-  } catch (err: unknown) {
+  } catch (caught: unknown) {
+    let err: unknown = caught;
+    const first = err as {
+      status?: number;
+      stdout?: string;
+      stderr?: string;
+      code?: string;
+      message?: string;
+    };
+    const retry = ghxSpawnFallbackBinary(
+      classifyScmArgv(args[0] ?? "", args.slice(1)),
+      binary,
+      defaultWhich,
+      {
+        status: typeof first.status === "number" ? first.status : null,
+        error:
+          first.code === "ENOENT" || first.code === "ETIMEDOUT" || typeof first.status !== "number"
+            ? { code: first.code, message: first.message }
+            : undefined,
+        stdout: typeof first.stdout === "string" ? first.stdout : "",
+        stderr: typeof first.stderr === "string" ? first.stderr : "",
+      },
+    );
+    if (retry !== null) {
+      try {
+        const stdout = runOnce(retry);
+        return { returncode: 0, stdout: typeof stdout === "string" ? stdout : "", stderr: "" };
+      } catch (retryErr: unknown) {
+        err = retryErr;
+      }
+    }
     const e = err as {
       status?: number;
       stdout?: string;

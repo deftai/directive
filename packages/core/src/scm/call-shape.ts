@@ -1,4 +1,5 @@
 import { defaultWhich, resolveBinary, type WhichFn } from "./binary.js";
+import { ScmStubError } from "./errors.js";
 
 /** Surfaces ghx may serve versus surfaces that must use live gh (#3737). */
 export type ScmBinaryRole = "cached-get" | "live-gh";
@@ -45,8 +46,15 @@ export function classifyScmArgv(verb: string, args: readonly string[] = []): Scm
  * through to the PATH ladder so a ghx-only host still has a binary.
  */
 export function resolveBinaryForRole(role: ScmBinaryRole, whichFn: WhichFn = defaultWhich): string {
-  if (role === "live-gh" && whichFn("gh") !== null) {
-    return "gh";
+  if (role === "live-gh") {
+    if (whichFn("gh") !== null) {
+      return "gh";
+    }
+    throw new ScmStubError(
+      "gh not found on PATH; this call shape requires live gh, not the ghx cache proxy. " +
+        "install GitHub CLI (https://cli.github.com/) or pass GH_TOKEN into a matched env and re-run. " +
+        "Refs #3737 / #2275.",
+    );
   }
   return resolveBinary(whichFn);
 }

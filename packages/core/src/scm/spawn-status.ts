@@ -1,3 +1,6 @@
+import type { WhichFn } from "./binary.js";
+import type { ScmBinaryRole } from "./call-shape.js";
+
 /** Windows NTSTATUS STATUS_DLL_INIT_FAILED (#3737). Unsigned and signed 32-bit. */
 export const STATUS_DLL_INIT_FAILED = 0xc0000142;
 const STATUS_DLL_INIT_FAILED_SIGNED = -1073741502;
@@ -62,4 +65,22 @@ export function formatScmSpawnDiagnostic(
     return `${binary} failed (${cls}): ${err}`;
   }
   return `${binary} failed (${cls}); stderr empty`;
+}
+
+/** Return `gh` when a cached-get ghx spawn failed and live gh is on PATH. */
+export function ghxSpawnFallbackBinary(
+  role: ScmBinaryRole,
+  invoked: string,
+  whichFn: WhichFn,
+  failure: {
+    readonly status: number | null | undefined;
+    readonly error?: { readonly message?: string; readonly code?: string };
+    readonly stdout?: string;
+    readonly stderr?: string;
+  },
+): string | null {
+  if (role !== "cached-get" || invoked !== "ghx" || whichFn("gh") === null) {
+    return null;
+  }
+  return isAvailabilitySpawnFailure(failure) ? "gh" : null;
 }
