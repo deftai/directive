@@ -96,6 +96,17 @@ tasks:
         vars:
           ENGINE_CMD: 'verify-skill-external-fetch-gate --project-root "{{.DEFT_ROOT}}"'
 
+  semantic-single-source:
+    desc: "C2 semantic single-source conformance (#3600 / #3899): shipped authoring MUST lines name exactly one xBRIEF write version, the version setup writes. Fails on a mutated staged pack. Three-state (0 clean / 1 drift / 2 config). -- task verify:semantic-single-source [-- --project-root <pack-or-source>]"
+    deps:
+      - task: :engine:_ts-build
+    # Framework-source-only gate: scans shipped authoring surfaces in THIS repo
+    # (or a staged pack root via --project-root / --pack-root).
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify-semantic-single-source --project-root "{{.DEFT_ROOT}}" {{.CLI_ARGS}}'
+
   contract-drift:
     desc: "Drift gate for the public contract layer (#1799). Asserts packages/types/schemas/vbrief-core-0.6.schema.json matches content/vbrief/schemas/vbrief-core.schema.json and that @deftai/directive-types Status/version constants align with the schema. Three-state exit (0 clean / 1 drift / 2 config error)."
     deps:

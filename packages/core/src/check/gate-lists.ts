@@ -112,6 +112,7 @@ export const FRAMEWORK_CHECK_GATES: readonly CheckGateSpec[] = [
   "verify:biome-config",
   "verify:content-manifest",
   "verify:skill-external-fetch-gate",
+  "verify:semantic-single-source",
   "verify:cursor-tier1",
   "verify:openclaw-tier1",
   "verify:go-freeze",

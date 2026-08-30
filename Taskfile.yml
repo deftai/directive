@@ -427,6 +427,7 @@ tasks:
       - verify:content-manifest
       - verify:license-sync
       - verify:skill-external-fetch-gate
+      - verify:semantic-single-source
       - verify:contract-drift
       - verify:cursor-tier1
       - verify:openclaw-tier1

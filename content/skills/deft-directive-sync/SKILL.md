@@ -222,7 +222,7 @@ directive doctor
    - If missing: "WARNING: PROJECT-DEFINITION.xbrief.json not found -- run `task project:render` to create"
 2. ! If the file exists, validate it is well-formed:
    - Valid JSON (`python3 -m json.tool` or equivalent)
-   - Top-level `xBRIEFInfo` envelope with `version` field equal to `"0.6"`
+   - Top-level `xBRIEFInfo` envelope with `version` field equal to `"0.8"` (legacy `"0.6"` is read-accepted until `deft migrate:xbrief`)
    - `plan` object with `title`, `status`, and `items` fields present
    - `plan.narratives` values are plain strings (not objects or arrays)
 3. ! **Freshness check**: Compare `xBRIEFInfo.updated` (or `xBRIEFInfo.created` if no `updated`) against recent scope completions:

@@ -4519,7 +4519,7 @@
       "id": "main-071",
       "tier": "MUST",
       "domain": "main",
-      "text": "Every vBRIEF MUST emit `\"vBRIEFInfo\": { \"version\": \"0.6\" }`",
+      "text": "Every new xBRIEF MUST emit `\"xBRIEFInfo\": { \"version\": \"0.8\" }`",
       "path": "main.md",
       "body": null
     },

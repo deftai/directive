@@ -89,6 +89,7 @@ export const HYGIENE_GATE_ID_PREFIXES: readonly string[] = [
   "verify:biome-config",
   "verify:content-manifest",
   "verify:skill-external-fetch-gate",
+  "verify:semantic-single-source",
   "verify:cursor-tier1",
   "verify:openclaw-tier1",
   "verify:go-freeze",

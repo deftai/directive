@@ -185,7 +185,7 @@ The task emits xBRIEFs conforming to the canonical v0.6 schema (`xbrief/schemas/
 ]
 ```
 
-- ! New scope xBRIEFs MUST target `"xBRIEFInfo": { "version": "0.6" }` (the task handles this automatically)
+- ! New scope xBRIEFs MUST target `"xBRIEFInfo": { "version": "0.8" }` (the task handles this automatically)
 - ! `plan.status` starts at `"proposed"`; the task sets this
 - ! Conform to `xbrief/schemas/xbrief-core.schema.json` (v0.6) -- the task validates before writing
 - ~ After ingest, review the generated xBRIEFs with the user before promoting any of them to `pending/`

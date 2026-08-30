@@ -1,0 +1,163 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3600",
+    "updated": "2026-08-30T15:50:04Z"
+  },
+  "plan": {
+    "title": "BLOCKER: bug(build,canon): build and main still mandate xBRIEF 0.6 after #2971",
+    "status": "running",
+    "narratives": {
+      "Description": "BLOCKER: bug(build,canon): build and main still mandate xBRIEF 0.6 after #2971",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3600",
+      "Overview": "## Summary\n\nCurrent `master` has a live authoring-contract split after #2971: setup writes xBRIEF 0.8, while the build skill and root `main.md` still issue MUST-level instructions that 0.6 is canonical and every xBRIEF must use 0.6.\n\nThis was found in a real greenfield consumer onboarding on Directive 0.105.0 and reproduced against `master` at `522643763423b57d4ca7e9ddb551785d3a2bfb84`.\n\n## Reproduction\n\n1. Complete `deft-directive-setup` for a greenfield project.\n2. Setup emits:\n\n   ```json\n   { \"xBRIEFInfo\": { \"version\": \"0.8\" } }\n   ```\n\n3. Continue to `deft-directive-build` and read its mandatory xBRIEF contract.\n\n## Observed contradiction\n\nSetup correctly says:\n\n- output MUST conform to xBRIEF v0.8 and use strict `const: \"0.8\"`: [setup skill lines 563-568](https://github.com/deftai/directive/blob/522643763423b57d4ca7e9ddb551785d3a2bfb84/content/skills/deft-directive-setup/SKILL.md#L563-L568)\n- emitting 0.6 on a new write path is forbidden: [setup skill lines 741-746](https://github.com/deftai/directive/blob/522643763423b57d4ca7e9ddb551785d3a2bfb84/content/skills/deft-directive-setup/SKILL.md#L741-L746)\n\nBuild then says the opposite:\n\n> All xBRIEFs ... MUST use `\"xBRIEFInfo\": { \"version\": \"0.6\" }`. The validator rejects any other version.\n\n[Build skill line 237](https://github.com/deftai/directive/blob/522643763423b57d4ca7e9ddb551785d3a2bfb84/content/skills/deft-directive-build/SKILL.md#L237)\n\nThe root framework constitution repeats the obsolete contract:\n\n- `### Schema version: v0.6 (canonical)`\n- every vBRIEF MUST emit `vBRIEFInfo.version: 0.6`\n- the removed Python validator/migrator is described as canonical\n\n[main.md lines 210-217](https://github.com/deftai/directive/blob/522643763423b57d4ca7e9ddb551785d3a2bfb84/main.md#L210-L217)\n\nThe consumer project definition and proposed story validate as 0.8, but the next required skill tells the agent to reject or rewrite them to 0.6.\n\n## Impact\n\n- A conformant greenfield setup cannot enter build with one coherent schema authority.\n- Agents can generate obsolete 0.6 artifacts from a current 0.8 project.\n- The strongest loaded prose (`main.md` plus the build skill) contradicts the current writer and schema.\n- A consumer can oscillate between \"write 0.8\" and \"0.8 is rejected\" depending on which required skill is active.\n\nThis is separate from #3598, which covers greenfield specification/export authority and the setup-to-cost loop. It is also outside closed #3555, which fixed render validation. Closed #2971 explicitly required interview/setup/templates/examples to emit 0.8; the build and root constitution residues remain live.\n\n## Expected\n\nCurrent write paths and live agent instructions should have one rule:\n\n- xBRIEF 0.8 is the only new-write default.\n- 0.6 is read/migration compatibility only and must never be taught as the current authoring format.\n\n## Acceptance criteria\n\n- [ ] Build accepts and emits `xBRIEFInfo.version: \"0.8\"` for current projects.\n- [ ] Root `main.md` describes xBRIEF 0.8 as the current write authority; 0.6 appears only in clearly bounded legacy/read/migration guidance.\n- [ ] No MUST-level live authoring instruction says new xBRIEFs use 0.6 or that 0.8 is rejected.\n- [ ] A content-contract test scans current authoring surfaces (`main.md`, setup, build, interview/templates) for conflicting write-version mandates.\n- [ ] A packed-consumer fixture covers `setup -> proposed 0.8 scope -> build preflight` without version disagreement.\n- [ ] Existing 0.6 read compatibility remains covered without weakening the 0.8 write default.\n\n## Related\n\n- #2971 — closed write-default repair whose build/main residue remains\n- #3555 — closed render-validation repair; not this live authoring contradiction\n- #3598 — separate greenfield export/cost authority blocker discovered in the same onboarding\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-08-30T04:28:20Z)\n\n**Unsequenced from #3899 by operator decision, 2026-08-29.** This issue no longer waits on the `REFERENCES.md` classification decision and can proceed now.\n\n#3899 round 1 grouped this with #3601 and #3602 as one class — *\"the shipped consumer deposit instructs an agent to read files and run helpers the package does not contain\"* — and sequenced all three behind a single decision.\n\nRound 2's panel established that the grouping is **by symptom, not by cause**. The three have different mechanisms and therefore different fixes:\n\n| Issue | Mechanism |\n|---|---|\n| #3601 | a manifest **classification** conflict — `REFERENCES.md` is bucket `repo-dev`, deliberately maintainer-only, while the managed card mandates reading it |\n| #3600 | **stale canon** in a file that ships correctly |\n| #3602 | **migration residue** in prose after a language port |\n\nOnly #3601 turns on the bucket decision. Holding the other two behind it bought nothing and delayed both.\n\nRound 1's sequencing was reasonable on the evidence it had — it ran N=1 and the symptom really is common to all three. Round 2's causal read supersedes it. Full reasoning: critic B `5466142629`, synthesis `5466693576`.\n\n**No change to this issue's own diagnosis or scope.** #3899 explicitly does not re-open or re-cut it; it remains the unit of work. This removes a dependency, nothing else.\n\nOne piece of context: **v0.108.0 has shipped**, so this defect is in the released artifact. That makes it post-release remediation rather than a pre-cut blocker — and `blocks-release-tag`, where applied, has no deterministic reader anyway (its only wired consumer is triage-queue ranking, measured by critic A).\n\nRefs #3601, #3602, #3899, #3937."
+    },
+    "items": [
+      {
+        "title": "Build accepts and emits `xBRIEFInfo.version: \"0.8\"` for current projects.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "title": "Root `main.md` describes xBRIEF 0.8 as the current write authority; 0.6 appears only in clearly bounded legacy/read/migration guidance.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "title": "No MUST-level live authoring instruction says new xBRIEFs use 0.6 or that 0.8 is rejected.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "title": "A content-contract test scans current authoring surfaces (`main.md`, setup, build, interview/templates) for conflicting write-version mandates.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "title": "A packed-consumer fixture covers `setup -> proposed 0.8 scope -> build preflight` without version disagreement.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "title": "Existing 0.6 read compatibility remains covered without weakening the 0.8 write default.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "title": "C2 semantic single-source conformance: shipped canon names exactly one xBRIEF schema version, and it is the version setup writes, enforced by C2 rather than by review (#3899 AC4).",
+        "status": "proposed",
+        "effort": "M"
+      },
+      {
+        "title": "C2 fails on a deliberately mutated staged tree (shipped file reverted to stale 0.6), proving it is not vacuous (#3899 AC6).",
+        "status": "proposed",
+        "effort": "S"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3600",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3600: BLOCKER: bug(build,canon): build and main still mandate xBRIEF 0.6 after #2971"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3555",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3555 (closed render-validation repair; not this authoring contradiction)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2971",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2971 (closed write-default repair whose build/main residue remains)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3601",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3601"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3602",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3602"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3899",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3899 (parent sequencing; do not close)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Build accepts and emits `xBRIEFInfo.version: \"0.8\"` for current projects.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Root `main.md` describes xBRIEF 0.8 as the current write authority; 0.6 appears only in clearly bounded legacy/read/migration guidance.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "No MUST-level live authoring instruction says new xBRIEFs use 0.6 or that 0.8 is rejected.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "A content-contract test scans current authoring surfaces (`main.md`, setup, build, interview/templates) for conflicting write-version mandates.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "A packed-consumer fixture covers `setup -> proposed 0.8 scope -> build preflight` without version disagreement.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Existing 0.6 read compatibility remains covered without weakening the 0.8 write default.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Shipped canon names exactly one xBRIEF schema version, and it is the version setup writes, enforced by C2 rather than by review.",
+          "artifact_path": "packages/core/src/verify-source/semantic-single-source.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "C2 fails on a deliberately mutated staged tree.",
+          "artifact_path": "packages/core/src/verify-source/semantic-single-source.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      }
+    },
+    "updated": "2026-08-30T15:50:04Z"
+  }
+}

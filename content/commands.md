@@ -676,7 +676,7 @@ Canonical install/upgrade is handled by the published `deft-install` binary, and
 
 Older guidance used `history/changes/<name>/` folders with `proposal.xbrief.json`, `tasks.xbrief.json`, and optional spec deltas. Invoke via `/deft:directive:change <name>` (alias: `/deft:change <name>`, deprecated). That pattern remains useful as historical context and may still appear in archived work, but the active repository workflow is scope-xBRIEF lifecycle under `xbrief/`.
 
-If a future change uses `history/changes/`, files MUST use xBRIEF `0.6`, not the obsolete `0.5` examples.
+If a future change uses `history/changes/`, files MUST use xBRIEF `0.8`, not the obsolete `0.5`/`0.6` examples. Legacy 0.6 remains read-accepted until `deft migrate:xbrief`.
 
 ### Artifacts
 

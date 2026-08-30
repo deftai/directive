@@ -104,12 +104,13 @@ from *informational* references using this narrative:
 - ⊗ Mutate a `completed/` vBRIEF to remove a companion / sibling reference solely because `task issue:ingest` false-positives on it (rewriting completed history is an anti-pattern per `skills/deft-directive-refinement/SKILL.md`)
 - ~ When adding a companion / sibling / related-plan reference to an ingested vBRIEF, keep `Origin` pointing at the original ingest source so the dedup pass continues to recognise the vBRIEF as the canonical owner of that issue
 
-## Schema Version: v0.6 (Canonical, Strict)
+## Schema Version: v0.8 (canonical write)
 
-- ! All vBRIEFs MUST emit `"vBRIEFInfo": { "version": "0.6" }`
-- ! `scripts/vbrief_validate.py` accepts ONLY `"0.6"`; any other version (including legacy `"0.5"`) is a hard validation error
-- ! The vendored schema at `../vbrief/schemas/vbrief-core.schema.json` is the canonical v0.6 copy from [`deftai/vBRIEF`](https://github.com/deftai/vBRIEF/blob/master/schemas/vbrief-core-0.6.schema.json) and pins `vBRIEFInfo.version` to `const: "0.6"`
-- ! `scripts/migrate_vbrief.py` emits `"0.6"`; pre-existing v0.5 vBRIEFs are swept to `"0.6"` as part of the migrator flip PR
+- ! All new xBRIEFs MUST emit `"xBRIEFInfo": { "version": "0.8" }`
+- ! `task vbrief:validate` / `task xbrief:validate` accepts `"0.8"` (current write) and `"0.6"` (legacy read)
+- ! The current write schema at `../vbrief/schemas/xbrief-core-0.8.schema.json` pins `xBRIEFInfo.version` to `const: "0.8"`. The vendored v0.6 copy at `../vbrief/schemas/vbrief-core.schema.json` remains for read/migration.
+- ! `deft migrate:xbrief` rewrites 0.6 envelopes to `xBRIEFInfo@0.8`
+- ⊗ Emit `"version": "0.6"` on any new write path -- 0.6 is migration/read compatibility only
 
 ## Anti-Patterns
 

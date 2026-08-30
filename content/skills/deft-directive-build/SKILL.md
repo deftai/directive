@@ -234,7 +234,7 @@ Scope xBRIEFs                     <- LOWEST
 
 ## Build Process
 
-All xBRIEFs (including those read from `xbrief/active/` and any new xBRIEFs this skill emits) MUST use `"xBRIEFInfo": { "version": "0.6" }`. The validator rejects any other version (see [`../../conventions/references.md`](../../conventions/references.md)).
+All xBRIEFs (including those read from `xbrief/active/` and any new xBRIEFs this skill emits) MUST use `"xBRIEFInfo": { "version": "0.8" }`. Legacy 0.6 is read-accepted until `deft migrate:xbrief`. The validator accepts both; new writes are 0.8 only (see [`../../conventions/references.md`](../../conventions/references.md)).
 
 ### Step 1: Understand the Scope
 

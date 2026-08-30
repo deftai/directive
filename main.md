@@ -207,15 +207,17 @@ Propagation: the canonical orchestrator preamble at [templates/agent-prompt-prea
 - ⊗ Move scope vBRIEFs between lifecycle folders without updating `plan.status`
 - ⊗ Treat a completed xBRIEF as the next-build contract, or let it override the active story or the live human instruction
 
-### Schema version: v0.6 (canonical)
+### Schema version: v0.8 (canonical write)
 
-The vendored schema at [`vbrief/schemas/vbrief-core.schema.json`](./content/vbrief/schemas/vbrief-core.schema.json) is the canonical v0.6 copy from [`deftai/vBRIEF`](https://github.com/deftai/vBRIEF) (`const: "0.6"`). All vBRIEFs MUST use `"vBRIEFInfo": { "version": "0.6" }`:
+Current write-path xBRIEFs MUST use `"xBRIEFInfo": { "version": "0.8" }`. That is the version setup writes (#2971 / #3600). Legacy `"0.6"` remains read-accepted until `deft migrate:xbrief`.
 
-- ! Every vBRIEF MUST emit `"vBRIEFInfo": { "version": "0.6" }`
-- ! `scripts/vbrief_validate.py` accepts ONLY `"0.6"`; any other version (including `"0.5"`) is a hard validation error
-- ! `scripts/migrate_vbrief.py` emits `"0.6"`. On every forward run the migrator auto-bumps the `vBRIEFInfo.version` header on any pre-existing `vbrief/specification.vbrief.json` and `vbrief/plan.vbrief.json` it reads (#571) -- bumping is part of `task deft:migrate:vbrief` in consumer projects (or `task migrate:vbrief` inside the directive repo), NOT a separate sweep command. Scope vBRIEFs the migrator creates are written at `"0.6"` at construction time.
-- ~ v0.6 adds `failed` to the Status enum and promotes `PlanItem.items` as the preferred nested field (`subItems` remains a deprecated legacy alias)
-- ~ See [`conventions/references.md`](./content/conventions/references.md) for the `x-vbrief/*` reference type registry and the canonical `{uri, type, title}` shape that all `references` entries must use
+- ! Every new xBRIEF MUST emit `"xBRIEFInfo": { "version": "0.8" }`
+- ! `task vbrief:validate` / `task xbrief:validate` accepts `"0.8"` (current write) and `"0.6"` (legacy read)
+- ! `deft migrate:xbrief` rewrites 0.6 envelopes (classic `vBRIEFInfo@0.6` or hybrid `xBRIEFInfo@0.6`) to `xBRIEFInfo@0.8`
+- ⊗ Emit `"version": "0.6"` on any new write path
+- ⊗ Teach 0.6 as the current authoring format -- it is migration/read compatibility only
+- ~ The vendored v0.6 schema at [`vbrief/schemas/vbrief-core.schema.json`](./content/vbrief/schemas/vbrief-core.schema.json) remains for read/migration. Current write schema: [`vbrief/schemas/xbrief-core-0.8.schema.json`](./content/vbrief/schemas/xbrief-core-0.8.schema.json) (`const: "0.8"`).
+- ~ See [`conventions/references.md`](./content/conventions/references.md) for the reference type registry and the canonical `{uri, type, title}` shape
 
 **See [vbrief/vbrief.md](./content/vbrief/vbrief.md) for the full taxonomy, lifecycle rules, and tool mappings; [`conventions/references.md`](./content/conventions/references.md) for the reference type registry; [`conventions/vbrief-filenames.md`](./content/conventions/vbrief-filenames.md) for filename slug rules.**
 

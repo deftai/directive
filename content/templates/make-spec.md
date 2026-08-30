@@ -113,7 +113,7 @@ Any remaining decisions deferred to implementation.
 
 ```json
 {
-  "vBRIEFInfo": { "version": "0.6" },
+  "xBRIEFInfo": { "version": "0.8" },
   "plan": {
     "title": "Project Name SPECIFICATION",
     "status": "proposed",
