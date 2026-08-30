@@ -1,3 +1,4 @@
+export * from "./brief-envelope.js";
 export * from "./completed-consistency.js";
 export * from "./completed-tracked-on-delivery.js";
 export * from "./completed-write-guard.js";

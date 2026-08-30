@@ -1,7 +1,8 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, describe, expect, it } from "vitest";
+import { validateVbriefSchema } from "@deftai/directive-core/vbrief-validate";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import { resolveCanonicalVerb } from "../dispatch.js";
 import { runDispatch } from "./helpers.js";
 
@@ -100,4 +101,71 @@ describe("deft-ts vbrief lifecycle verbs (#1838 s3)", () => {
     const result = await runDispatch(["vbrief-reconcile"]);
     expect(result.exitCode).toBe(2);
   });
+});
+
+/**
+ * #3933 criteria 1, 2 and 4 at the alias surface. `xbrief:activate` and
+ * `vbrief:activate` are the only verbs that reach vbrief-activate/activate.ts;
+ * canonical `scope:activate` routes through scope-lifecycle -> runTransition
+ * and is covered in packages/core/src/scope/transition.test.ts.
+ */
+describe("activate aliases preserve the document envelope (#3933)", () => {
+  function writeBrief(root: string, payload: Record<string, unknown>): string {
+    const dir = join(root, "xbrief", "pending");
+    mkdirSync(dir, { recursive: true });
+    const path = join(dir, "2026-08-29-story.xbrief.json");
+    writeFileSync(path, JSON.stringify(payload), "utf8");
+    return path;
+  }
+
+  function tempRoot(prefix: string): string {
+    const root = mkdtempSync(join(tmpdir(), prefix));
+    temps.push(root);
+    return root;
+  }
+
+  for (const verb of ["xbrief:activate", "vbrief:activate"] as const) {
+    it(`${verb} leaves exactly one envelope on a v0.8 brief and the result validates`, async () => {
+      const root = tempRoot("deft-3933-v08-");
+      const src = writeBrief(root, {
+        xBRIEFInfo: { version: "0.8", updated: "2026-06-01T00:00:00Z" },
+        plan: { title: "Story", status: "pending", items: [] },
+      });
+
+      const result = await runDispatch([verb, src]);
+      expect(result.exitCode).toBe(0);
+
+      const dest = join(root, "xbrief", "active", "2026-08-29-story.xbrief.json");
+      const payload = JSON.parse(readFileSync(dest, "utf8")) as Record<string, unknown>;
+      expect(Object.keys(payload)).toEqual(["xBRIEFInfo", "plan"]);
+      expect(validateVbriefSchema(payload, dest)).toEqual([]);
+    });
+
+    it(`${verb} refuses a brief carrying neither envelope before the move`, async () => {
+      const root = tempRoot("deft-3933-none-");
+      const src = writeBrief(root, { plan: { title: "Story", status: "pending", items: [] } });
+
+      // The activator writes its refusal straight to process.stderr (#1782 argv
+      // parity), not through the dispatcher io seam.
+      const written: string[] = [];
+      const stderr = vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+        written.push(String(chunk));
+        return true;
+      });
+      let result: Awaited<ReturnType<typeof runDispatch>>;
+      try {
+        result = await runDispatch([verb, src]);
+      } finally {
+        stderr.mockRestore();
+      }
+      expect(result.exitCode).toBe(1);
+      expect(written.join("")).toContain(
+        "carries neither `xBRIEFInfo` (v0.8) nor `vBRIEFInfo` (v0.6)",
+      );
+      expect(existsSync(src)).toBe(true);
+      expect(existsSync(join(root, "xbrief", "active", "2026-08-29-story.xbrief.json"))).toBe(
+        false,
+      );
+    });
+  }
 });

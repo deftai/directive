@@ -7,12 +7,12 @@ import {
   ProjectionContainmentError,
 } from "../fs/projection-containment.js";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
+import { missingEnvelopeMessage, stampExistingEnvelopes } from "../lifecycle/brief-envelope.js";
 import { type CallOptions, type CompletedProcess, call } from "../scm/call.js";
 import { updateDecomposedChildBackReferences } from "../scope/decomposed-refs.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
 import { resolveProjectRepo } from "../slice/project-context.js";
 import { FOLDER_ALLOWED_STATUSES } from "../vbrief-validate/constants.js";
-import { LEGACY_INFO_ROOT_KEY, MIGRATED_INFO_ROOT_KEY } from "../xbrief-migrate/constants.js";
 
 export const LIFECYCLE_FOLDERS = [
   "proposed",
@@ -877,14 +877,13 @@ export function applyLifecycleFixes(
     plan.status = terminalStatus;
     const stamp = utcNowIso();
     // Stamp `updated` into whichever info envelope the file already uses (#2346).
-    // Canonical v0.8 briefs use `xBRIEFInfo`; stamping `vBRIEFInfo` unconditionally
-    // appended a stray, version-less `vBRIEFInfo` block that then failed
-    // `vbrief:validate` ('vBRIEFInfo.version' must be one of ..., got 'undefined').
-    // Legacy briefs (or files without either envelope) keep the `vBRIEFInfo` key.
-    const infoKey = MIGRATED_INFO_ROOT_KEY in data ? MIGRATED_INFO_ROOT_KEY : LEGACY_INFO_ROOT_KEY;
-    const info = (data[infoKey] ?? {}) as Record<string, unknown>;
-    data[infoKey] = info;
-    info.updated = stamp;
+    // A file carrying neither envelope is already invalid; creating one here hid
+    // that cause behind a manufactured version-less `vBRIEFInfo` (#3933), so the
+    // sweep now refuses it by name and leaves the artifact in place.
+    if (stampExistingEnvelopes(data, stamp).length === 0) {
+      failures.push(missingEnvelopeMessage(relPath));
+      continue;
+    }
     plan.updated = stamp;
     propagateItemStatus(plan.items, terminalStatus, stamp);
 
@@ -954,12 +953,13 @@ export function repairCompletedStatusDrift(
     }
 
     const stamp = utcNowIso();
+    // Same envelope policy as the closed-issue sweep above (#3933).
+    if (stampExistingEnvelopes(data, stamp).length === 0) {
+      failures.push(missingEnvelopeMessage(entry.rel_path));
+      continue;
+    }
     plan.status = "completed";
     plan.updated = stamp;
-    const infoKey = MIGRATED_INFO_ROOT_KEY in data ? MIGRATED_INFO_ROOT_KEY : LEGACY_INFO_ROOT_KEY;
-    const info = (data[infoKey] ?? {}) as Record<string, unknown>;
-    data[infoKey] = info;
-    info.updated = stamp;
     propagateItemStatus(plan.items, "completed", stamp);
 
     try {

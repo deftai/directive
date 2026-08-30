@@ -1,0 +1,149 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3933",
+    "updated": "2026-08-30T03:34:22Z"
+  },
+  "plan": {
+    "title": "bug(lifecycle): xbrief:activate / vbrief:activate manufacture a version-less vBRIEFInfo on a v0.8 brief, which then fails validation",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(lifecycle): xbrief:activate / vbrief:activate manufacture a version-less vBRIEFInfo on a v0.8 brief, which then fails validation",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3933",
+      "Overview": "packages/core/src/vbrief-activate/activate.ts creates an envelope when one is absent, then stamps it. On a canonical v0.8 brief payload.vBRIEFInfo is correctly undefined because the envelope is xBRIEFInfo, so the branch manufactures a version-less vBRIEFInfo beside a valid xBRIEFInfo. VALID_INFO_ROOT_KEYS iterates vBRIEFInfo before xBRIEFInfo, so the manufactured block wins resolution and validation fails. Affected surfaces are xbrief:activate and vbrief:activate only; canonical scope:activate routes through scope/transition.ts runTransition and is not affected. A second create-on-absent path exists at packages/core/src/intake/reconcile-issues.ts. Envelope resolution is split three ways: validateVbriefSchema.resolveInfoBlock is exported, the stampEnvelopeUpdated helper in transition is private, and reconcile is bespoke.",
+      "Constraint": "Do not change canonical scope:activate behaviour. Do not sweep every lifecycle mutator. Do not retire or delete the vbrief-activate surface. Replacing the activate.test.ts create-on-absent expectation is authorized by acceptance criterion 5 under #3156 as repair of a false invariant; no other assertion may be changed to go green.",
+      "Risk": "Low. The change removes a create-on-absent branch and adds a named refusal. The remedy choice between delegating the companion aliases through runTransition and a local parity patch is recorded with evidence.",
+      "Test": "Vitest at the module level in packages/core/src/vbrief-activate/activate.test.ts covers v0.8-only stamped with no legacy key added, v0.6-only stamped in place, and neither-envelope refused before the move. Dispatcher-level tests in packages/cli/src/lifecycle-cli cover xbrief:activate and vbrief:activate end to end plus schema validation of the activated artifact. packages/core/src/scope/transition.test.ts pins that canonical scope:activate envelope behaviour is unchanged. The intake reconcile path gets its own regression test.",
+      "Outcome": "Activating a v0.8 brief through either companion alias leaves exactly one envelope and passes schema validation; a legacy v0.6 brief is stamped in place; an envelope-less brief is refused by name before the file moves; the second create-on-absent path in reconcile is brought under the same policy; canonical scope:activate is unchanged and pinned.",
+      "Decisions": "- xbrief/decisions/2026-08-30-take-the-recorded-fallback-for-3933-a-local-envelope-parity-patc.decision.json — Take the recorded fallback for #3933: a local envelope-parity patch in vbrief-activate plus a shared lifecycle envelope policy, not delegation of the companion aliases through runTransition"
+    },
+    "items": [
+      {
+        "id": "3933-ac1-xbrief-activate-v08",
+        "title": "Activating a v0.8 brief that carries only xBRIEFInfo through xbrief:activate leaves exactly one envelope, and schema validation passes on the result.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "id": "3933-ac2-vbrief-activate-v08",
+        "title": "The same holds for vbrief:activate.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "id": "3933-ac3-legacy-v06-in-place",
+        "title": "Activating a legacy v0.6 brief that carries only vBRIEFInfo still stamps updated in place.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "id": "3933-ac4-neither-envelope-refused",
+        "title": "A brief carrying neither envelope is refused by name before the file is moved.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "id": "3933-ac5-test-replacement",
+        "title": "The activate.test.ts create-on-absent expectation is replaced by three explicit assertions and the #1782 parity claim is updated to state that the create-on-absent behaviour of the Python oracle is not preserved.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "id": "3933-ac6-reconcile-second-target",
+        "title": "The create-on-absent path in intake/reconcile-issues.ts is brought under the same policy, or an explicit recorded reason is given for why it differs.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "id": "3933-ac7-scope-activate-unchanged",
+        "title": "Canonical scope:activate behaviour is unchanged, pinned by a test.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "id": "3933-ac8-remedy-recorded",
+        "title": "The remedy choice (delegate versus local parity patch) is recorded with the evidence that selected it.",
+        "status": "proposed",
+        "effort": "S"
+      }
+    ],
+    "tags": [
+      "bug",
+      "area:vbrief",
+      "process"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3933",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3933: xbrief:activate / vbrief:activate manufacture a version-less vBRIEFInfo on a v0.8 brief"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 8 independently testable clauses from the issue acceptance criteria before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Activating a v0.8 brief that carries only xBRIEFInfo through xbrief:activate leaves exactly one envelope, and schema validation passes on the result.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The same holds for vbrief:activate.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Activating a legacy v0.6 brief that carries only vBRIEFInfo still stamps updated in place.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "A brief carrying neither envelope is refused by name before the file is moved.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "The activate.test.ts create-on-absent expectation is replaced by three explicit assertions and the #1782 parity claim is updated to state that the create-on-absent behaviour of the Python oracle is not preserved.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "The create-on-absent path in intake/reconcile-issues.ts is brought under the same policy, or an explicit recorded reason is given for why it differs.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Canonical scope:activate behaviour is unchanged, pinned by a test.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "The remedy choice (delegate versus local parity patch) is recorded with the evidence that selected it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-08-30T03:34:22Z"
+  }
+}

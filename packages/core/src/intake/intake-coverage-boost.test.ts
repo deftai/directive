@@ -392,6 +392,8 @@ describe("intake coverage boost", () => {
           folder: "active",
           name: "child.xbrief.json",
           data: {
+            // #3933: lifecycle mutators refuse an envelope-less artifact.
+            xBRIEFInfo: { version: "0.8" },
             plan: {
               planRef: "#55",
               status: "running",
@@ -501,12 +503,13 @@ describe("intake coverage boost", () => {
         {
           folder: "completed",
           name: "drift.xbrief.json",
-          data: { plan: { status: "running" } },
+          // #3933: lifecycle mutators refuse an envelope-less artifact.
+          data: { xBRIEFInfo: { version: "0.8" }, plan: { status: "running" } },
         },
         {
           folder: "completed",
           name: "ok.xbrief.json",
-          data: { plan: { status: "completed" } },
+          data: { xBRIEFInfo: { version: "0.8" }, plan: { status: "completed" } },
         },
       ]);
       writeFileSync(join(root, "xbrief", "completed", "bad-json.xbrief.json"), "{", "utf8");

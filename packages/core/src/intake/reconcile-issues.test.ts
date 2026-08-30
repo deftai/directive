@@ -1,4 +1,12 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -550,5 +558,86 @@ describe("reconcile lifecycle apply symlink containment (#2632)", () => {
       xBRIEFInfo: { version: "0.8" },
       plan: { status: "running", items: [] },
     });
+  });
+});
+
+/**
+ * Criterion 6 of #3933: the two create-on-absent stamps in this module now
+ * follow the shared lifecycle envelope policy -- stamp what exists, refuse an
+ * envelope-less artifact by name instead of manufacturing a version-less
+ * `vBRIEFInfo` that hides the real cause.
+ */
+describe("reconcile envelope policy (#3933)", () => {
+  let root = "";
+
+  afterEach(() => {
+    if (root.length > 0) {
+      rmSync(root, { recursive: true, force: true });
+      root = "";
+    }
+  });
+
+  it("applyLifecycleFixes refuses an envelope-less brief by name and leaves it in place", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-3933-move-"));
+    const xbrief = join(root, "xbrief");
+    mkdirSync(join(xbrief, "active"), { recursive: true });
+    const name = "2026-08-29-no-envelope.xbrief.json";
+    const src = join(xbrief, "active", name);
+    writeFileSync(
+      src,
+      `${JSON.stringify(
+        {
+          plan: {
+            title: "No envelope",
+            status: "running",
+            items: [],
+            references: [
+              { type: "x-vbrief/github-issue", uri: "https://github.com/o/r/issues/77" },
+            ],
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const report = buildLifecycleReport(
+      scanLifecycleAnchors(xbrief),
+      new Map([[77, new IssueState("CLOSED", "COMPLETED")]]),
+      false,
+    );
+    const [moved, , failures] = applyLifecycleFixes(xbrief, report, root);
+
+    expect(moved).toBe(0);
+    expect(failures.some((entry) => entry.includes("carries neither"))).toBe(true);
+    const unchanged = JSON.parse(readFileSync(src, "utf8")) as Record<string, unknown>;
+    expect(Object.keys(unchanged)).toEqual(["plan"]);
+    expect(existsSync(join(xbrief, "completed", name))).toBe(false);
+  });
+
+  it("repairCompletedStatusDrift refuses an envelope-less brief by name", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-3933-drift-"));
+    const xbrief = join(root, "xbrief");
+    mkdirSync(join(xbrief, "completed"), { recursive: true });
+    const name = "no-envelope.xbrief.json";
+    writeFileSync(
+      join(xbrief, "completed", name),
+      `${JSON.stringify({ plan: { title: "No envelope", status: "running", items: [] } }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const [repaired, , failures] = repairCompletedStatusDrift(
+      xbrief,
+      scanCompletedStatusDrift(xbrief),
+    );
+
+    expect(repaired).toBe(0);
+    expect(failures.some((entry) => entry.includes("carries neither"))).toBe(true);
+    const unchanged = JSON.parse(readFileSync(join(xbrief, "completed", name), "utf8")) as {
+      plan: { status: string };
+    };
+    expect(Object.keys(unchanged)).toEqual(["plan"]);
+    expect(unchanged.plan.status).toBe("running");
   });
 });

@@ -12,6 +12,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as clauseDerivation from "../intake/clause-derivation.js";
 import { ENV_RUN_SUMMARY_PATH } from "../run-summary/index.js";
+import { validateVbriefSchema } from "../vbrief-validate/schema.js";
 import { atomicWriteBrief, readBriefForMutation } from "./brief-io.js";
 import { detectLifecycleFolder, runTransition } from "./transition.js";
 import { formatBriefJson } from "./vbrief-json.js";
@@ -803,4 +804,73 @@ describe("scope lifecycle projection containment (#2447)", () => {
       expect(unchanged.plan.status).toBe("running");
     },
   );
+});
+
+/**
+ * Criterion 7 of #3933: canonical scope:activate envelope behaviour is
+ * unchanged by the companion-alias fix. runTransition is the executable
+ * scope:activate reaches (tasks/scope.yml -> scope-lifecycle -> scope/main.ts);
+ * it never loads vbrief-activate/activate.ts.
+ */
+describe("runTransition activate envelope policy (#3933 criterion 7)", () => {
+  const roots: string[] = [];
+
+  afterEach(() => {
+    for (const dir of roots.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  function repo(): string {
+    const dir = makeRepo();
+    roots.push(dir);
+    return dir;
+  }
+
+  it("stamps an existing xBRIEFInfo@0.8 and adds no legacy key", () => {
+    const root = repo();
+    const src = join(root, "xbrief", "pending", "story.xbrief.json");
+    writeFile(src, {
+      xBRIEFInfo: { version: "0.8", updated: "2026-04-30T00:00:00Z" },
+      plan: { title: "T", status: "pending", items: [] },
+    });
+
+    const result = runTransition("activate", src, new Date("2026-06-19T12:00:00.000Z"));
+    expect(result.ok).toBe(true);
+
+    const dest = join(root, "xbrief", "active", "story.xbrief.json");
+    const payload = JSON.parse(readFileSync(dest, "utf8")) as Record<string, unknown>;
+    expect(Object.keys(payload)).toEqual(["xBRIEFInfo", "plan"]);
+    expect((payload.xBRIEFInfo as { updated: string }).updated).toBe("2026-06-19T12:00:00Z");
+    expect(validateVbriefSchema(payload, dest)).toEqual([]);
+  });
+
+  it("stamps an existing vBRIEFInfo@0.6 in place", () => {
+    const root = repo();
+    const src = join(root, "xbrief", "pending", "story.xbrief.json");
+    writeFile(src, {
+      vBRIEFInfo: { version: "0.6", updated: "2026-04-30T00:00:00Z" },
+      plan: { title: "T", status: "pending", items: [] },
+    });
+
+    const result = runTransition("activate", src, new Date("2026-06-19T12:00:00.000Z"));
+    expect(result.ok).toBe(true);
+
+    const dest = join(root, "xbrief", "active", "story.xbrief.json");
+    const payload = JSON.parse(readFileSync(dest, "utf8")) as Record<string, unknown>;
+    expect(Object.keys(payload)).toEqual(["vBRIEFInfo", "plan"]);
+    expect(payload.vBRIEFInfo).toEqual({ version: "0.6", updated: "2026-06-19T12:00:00Z" });
+  });
+
+  it("refuses a brief carrying neither envelope by name, before the move", () => {
+    const root = repo();
+    const src = join(root, "xbrief", "pending", "story.xbrief.json");
+    writeFile(src, { plan: { title: "T", status: "pending", items: [] } });
+
+    const result = runTransition("activate", src, new Date("2026-06-19T12:00:00.000Z"));
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("missing required top-level key 'vBRIEFInfo' or 'xBRIEFInfo'");
+    expect(existsSync(src)).toBe(true);
+    expect(existsSync(join(root, "xbrief", "active", "story.xbrief.json"))).toBe(false);
+  });
 });

@@ -10,6 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { validateVbriefSchema } from "../vbrief-validate/schema.js";
 import { activate } from "./activate.js";
 
 const FIXTURE_NAME = "2026-05-01-test.xbrief.json";
@@ -76,10 +77,12 @@ describe("activate", () => {
 
     const payload = JSON.parse(readFileSync(dest, "utf8")) as {
       plan: { status: string };
-      vBRIEFInfo: { updated: string };
+      xBRIEFInfo: { version: string; updated: string };
     };
     expect(payload.plan.status).toBe("running");
-    expect(payload.vBRIEFInfo.updated).toBe("2026-06-19T12:00:00Z");
+    // #3933: the v0.8 envelope is stamped in place; no legacy key is added.
+    expect(payload.xBRIEFInfo.updated).toBe("2026-06-19T12:00:00Z");
+    expect(Object.keys(payload)).not.toContain("vBRIEFInfo");
   });
 
   it("refuses activate when a plan item has effort XL (#1581)", () => {
@@ -200,16 +203,58 @@ describe("activate", () => {
     expect(existsSync(src)).toBe(true);
   });
 
-  it("creates vBRIEFInfo when absent", () => {
+  // #3933 / #3156: replaces the former "creates vBRIEFInfo when absent"
+  // expectation. That expectation encoded byte-identical parity with the
+  // scripts/vbrief_activate.py oracle (#1782), not a v0.6 requirement -- a
+  // valid legacy v0.6 brief already carries vBRIEFInfo.version. The oracle's
+  // create-on-absent behaviour is deliberately not preserved.
+  it("stamps an existing xBRIEFInfo@0.8 without adding a legacy key (#3933)", () => {
+    const root = tempRoot();
+    const src = writeVbrief(root, "pending", {
+      payloadOverride: {
+        xBRIEFInfo: { version: "0.8", updated: "2026-04-30T00:00:00Z" },
+        plan: { title: "T", status: "pending", items: [] },
+      },
+    });
+    const result = activate(src, { now: FIXED_NOW });
+    expect(result.exitCode).toBe(0);
+    const dest = join(root, "xbrief", "active", FIXTURE_NAME);
+    const payload = JSON.parse(readFileSync(dest, "utf8")) as Record<string, unknown>;
+    expect(Object.keys(payload)).toEqual(["xBRIEFInfo", "plan"]);
+    expect((payload.xBRIEFInfo as { updated: string }).updated).toBe("2026-06-19T12:00:00Z");
+    expect(validateVbriefSchema(payload, dest)).toEqual([]);
+  });
+
+  it("stamps an existing vBRIEFInfo@0.6 in place (#3933)", () => {
+    const root = tempRoot();
+    const src = writeVbrief(root, "pending", {
+      payloadOverride: {
+        vBRIEFInfo: { version: "0.6", updated: "2026-04-30T00:00:00Z" },
+        plan: { title: "T", status: "pending", items: [] },
+      },
+    });
+    const result = activate(src, { now: FIXED_NOW });
+    expect(result.exitCode).toBe(0);
+    const dest = join(root, "xbrief", "active", FIXTURE_NAME);
+    const payload = JSON.parse(readFileSync(dest, "utf8")) as Record<string, unknown>;
+    expect(Object.keys(payload)).toEqual(["vBRIEFInfo", "plan"]);
+    expect(payload.vBRIEFInfo).toEqual({ version: "0.6", updated: "2026-06-19T12:00:00Z" });
+    expect(validateVbriefSchema(payload, dest)).toEqual([]);
+  });
+
+  it("refuses a brief carrying neither envelope, before the move (#3933)", () => {
     const root = tempRoot();
     const src = writeVbrief(root, "pending", {
       payloadOverride: { plan: { title: "T", status: "pending", items: [] } },
     });
     const result = activate(src, { now: FIXED_NOW });
-    expect(result.exitCode).toBe(0);
-    const dest = join(root, "xbrief", "active", FIXTURE_NAME);
-    const payload = JSON.parse(readFileSync(dest, "utf8")) as { vBRIEFInfo: { updated: string } };
-    expect(payload.vBRIEFInfo.updated).toBe("2026-06-19T12:00:00Z");
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toContain("carries neither `xBRIEFInfo` (v0.8) nor `vBRIEFInfo` (v0.6)");
+    // Refused before the move: pending source intact, nothing written to active/.
+    expect(existsSync(src)).toBe(true);
+    expect(existsSync(join(root, "xbrief", "active", FIXTURE_NAME))).toBe(false);
+    const unchanged = JSON.parse(readFileSync(src, "utf8")) as Record<string, unknown>;
+    expect(unchanged).toEqual({ plan: { title: "T", status: "pending", items: [] } });
   });
 
   it("rejects non-object vBRIEFInfo", () => {

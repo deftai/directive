@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "take-the-recorded-fallback-for-3933-a-local-envelope-parity-patc",
+  "decision": "Take the recorded fallback for #3933: a local envelope-parity patch in vbrief-activate plus a shared lifecycle envelope policy, not delegation of the companion aliases through runTransition",
+  "governingRule": {
+    "description": "Issue #3933 prefers delegating xbrief:activate / vbrief:activate through the canonical scope transition; the local parity patch is admissible only when delegation is demonstrated to break a supported behaviour, and the duplicate surface is recorded as legacy-frozen",
+    "path": "https://github.com/deftai/directive/issues/3933",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Pure delegation: activate() calls runTransition(\"activate\", path, now) and maps the result",
+      "whyNot": "Measured on branch fix/3933-activate-envelope: 28 of 57 targeted tests fail. The alias loses its whole argv/message contract (Python-parity JSON decode messages, 'not a regular file', 'lacks a `plan` object', 'lacks `plan.status`', 'only pending/ vBRIEFs can be activated', 'task scope:unblock', \"only ['approved', 'pending']\", 'Refusing to overwrite', 'No-op: <path> already active'), and a brief with an empty plan.status is silently activated instead of refused as malformed."
+    },
+    {
+      "option": "Partial delegation: keep the alias front-door precondition checks, delegate mutation, persist and move to runTransition",
+      "whyNot": "Measured on the same branch: 8 failures, 7 of them outside the criterion-5 authorization. activate.mock.test.ts 'reports mkdir failures on active dir (#3147)' fails with an unhandled `Error: mkdir denied` -- runTransition calls mkdirSync unguarded, so a filesystem error escapes the documented `{ exitCode, message }` contract of a published API (@deftai/directive-core/vbrief-activate). The #3147 refusal messages also change ('Could not write' -> 'Failed to write', 'could not remove source' -> 'Failed to remove source after move'), and the containedWrite sink the module owns is replaced by cache/io atomicWriteText."
+    },
+    {
+      "option": "Copy the two-key loop into activate.ts only",
+      "whyNot": "Removes the symptom but leaves envelope resolution split three ways (exported resolveInfoBlock, a private stamper in transition, bespoke reconcile logic), which is the split the critic inventoried."
+    }
+  ],
+  "whyWinner": "The local parity patch fixes criteria 1-4 and 6 with no assertion change outside the criterion-5 authorization, and the small shared module packages/core/src/lifecycle/brief-envelope.ts removes the three-way split the critic named: scope/transition.ts, vbrief-activate/activate.ts and both intake/reconcile-issues.ts sweeps now call one stampExistingEnvelopes / missingEnvelopeMessage policy. Delegation is not rejected on principle -- it is deferred because it converts a handled filesystem error into an unhandled throw on a published API and rewrites the alias message contract, which #3933 puts out of scope for this change. The vbrief-activate surface is hereby recorded as legacy-frozen: it keeps its #1782 argv and message contract, gains no new lifecycle behaviour, and its envelope policy is owned by the shared module rather than by a second local implementation.",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-08-29-3933-buglifecycle-xbriefactivate-vbriefactivate-manufacture-a-ve.xbrief.json"
+  ],
+  "timestamp": "2026-08-30T03:49:18Z",
+  "revisitTrigger": "Revisit delegation when the alias message contract is allowed to change -- e.g. when the #1782 Python-parity contract is formally retired, or when runTransition grows a non-throwing filesystem-error path. Delegation would then also need argv/message compatibility tests as #3933 describes.",
+  "tags": [
+    "lifecycle",
+    "process",
+    "area:vbrief"
+  ],
+  "relatedIssues": [
+    3933,
+    2346,
+    2862,
+    1782,
+    3156
+  ]
+}

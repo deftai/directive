@@ -182,8 +182,10 @@ tasks:
   activate:
     # Implementation-intent activation gate companion (#810). Idempotent:
     # already-active vBRIEFs print a no-op message and exit 0; pending/
-    # vBRIEFs flip plan.status pending|approved -> running, stamp
-    # vBRIEFInfo.updated to current ISO8601 UTC, and atomically move to
+    # vBRIEFs flip plan.status pending|approved -> running, stamp the
+    # document envelope the brief already carries -- xBRIEFInfo (v0.8) or
+    # vBRIEFInfo (v0.6), never a manufactured one (#3933) -- to current
+    # ISO8601 UTC, and atomically move to
     # vbrief/active/. Any other source folder is rejected with an
     # actionable message. Pairs with `scripts/preflight_implementation.py`
     # (also reachable via `task vbrief:preflight`): this task is the ONLY
@@ -211,6 +213,8 @@ tasks:
       - task: :engine:_ts-build
     cmds:
       # Oracle/fallback (parity): scripts/vbrief_activate.py (#1828 Wave 8).
+      # #1782 byte-identical parity holds except for the oracle's
+      # create-on-absent envelope branch, dropped in #3933.
       - task: :engine:invoke
         vars:
           ENGINE_CMD: 'vbrief:activate {{.CLI_ARGS}}'

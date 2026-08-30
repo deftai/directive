@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **`xbrief:activate` / `vbrief:activate` no longer manufacture a second document envelope (#3933).** Activating a canonical v0.8 brief through either companion alias appended a version-less `vBRIEFInfo` beside the valid `xBRIEFInfo`. The validator resolves `vBRIEFInfo` first, so the brief the verb had just moved failed validation with `'vBRIEFInfo.version' must be one of '0.6', '0.8' ... got 'undefined'`. Both aliases now stamp whichever envelope the brief already carries and refuse an envelope-less brief by name before the move. The policy is shared with `scope/transition.ts` and the two `intake/reconcile-issues.ts` sweeps, which had the same create-on-absent branch. Canonical `scope:activate` never loaded the affected module and is unchanged, now pinned by test. #1782 byte-identical parity with `scripts/vbrief_activate.py` no longer covers the oracle's create-on-absent branch. Closes #3933. Refs #2346, #2862, #1782, #3156.
 
 ### Removed
 

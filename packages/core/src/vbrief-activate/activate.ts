@@ -13,6 +13,11 @@ import {
   assertProjectionContained,
   ProjectionContainmentError,
 } from "../fs/projection-containment.js";
+import {
+  BRIEF_ENVELOPE_KEYS,
+  missingEnvelopeMessage,
+  stampExistingEnvelopes,
+} from "../lifecycle/brief-envelope.js";
 import { evaluateEffortActivateGate } from "../scope/effort-activate-gate.js";
 import { utcNowIso } from "../scope/vbrief-json.js";
 import { pythonJsonPretty } from "../vbrief-build/json.js";
@@ -94,8 +99,13 @@ export interface ActivateOptions {
 }
 
 /**
- * Pure activator — returns ``{ exitCode, message }``. Faithful to
- * ``scripts/vbrief_activate.py::activate``.
+ * Pure activator -- returns ``{ exitCode, message }``. Ported from
+ * ``scripts/vbrief_activate.py::activate`` under the #1782 byte-identical
+ * parity contract, with one deliberate divergence: the Python oracle created a
+ * ``vBRIEFInfo`` when the artifact carried no envelope, and that behaviour is
+ * NOT preserved (#3933). Envelope handling now follows the shared lifecycle
+ * policy -- stamp whichever envelope exists, refuse an envelope-less artifact
+ * by name.
  */
 export function activate(vbriefPath: string, options: ActivateOptions = {}): ActivateResult {
   const now = options.now ?? new Date();
@@ -195,20 +205,28 @@ export function activate(vbriefPath: string, options: ActivateOptions = {}): Act
     throw err;
   }
 
-  planObj.status = TARGET_STATUS;
+  for (const key of BRIEF_ENVELOPE_KEYS) {
+    if (!(key in payload)) {
+      continue;
+    }
+    const env = payload[key];
+    if (env === null || typeof env !== "object" || Array.isArray(env)) {
+      return {
+        exitCode: 1,
+        message: `vBRIEF at ${vbriefPath} has a non-object \`${key}\` -- malformed.`,
+      };
+    }
+  }
 
-  let info = payload.vBRIEFInfo;
-  if (info === undefined) {
-    info = {};
-    payload.vBRIEFInfo = info;
+  // #3933: stamp the envelope the brief already carries; never create one. A
+  // manufactured version-less `vBRIEFInfo` wins schema resolution over a valid
+  // `xBRIEFInfo`, so the brief this verb just moved would fail validation.
+  const stampedEnvelopes = stampExistingEnvelopes(payload, utcNowIso(now));
+  if (stampedEnvelopes.length === 0) {
+    return { exitCode: 1, message: missingEnvelopeMessage(`vBRIEF at ${vbriefPath}`) };
   }
-  if (info === null || typeof info !== "object" || Array.isArray(info)) {
-    return {
-      exitCode: 1,
-      message: `vBRIEF at ${vbriefPath} has a non-object \`vBRIEFInfo\` -- malformed.`,
-    };
-  }
-  (info as Record<string, unknown>).updated = utcNowIso(now);
+
+  planObj.status = TARGET_STATUS;
 
   try {
     mkdirSync(activeDir, { recursive: true });

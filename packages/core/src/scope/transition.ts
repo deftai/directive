@@ -14,6 +14,7 @@ import {
   maybeEmitAcceptanceStampFromChange,
 } from "../intake/clause-derivation.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
+import { stampExistingEnvelopes } from "../lifecycle/brief-envelope.js";
 import { evaluateCompletedPlanConsistency } from "../lifecycle/completed-consistency.js";
 import { evaluateLiteralAcceptanceFromPlan } from "../literal-acceptance/index.js";
 import type { GitRunner } from "../session/git.js";
@@ -101,19 +102,6 @@ function advanceNonTerminalOwnItems(items: unknown, targetStatus: string): void 
     }
     advanceNonTerminalOwnItems(obj.subItems, targetStatus);
     advanceNonTerminalOwnItems(obj.items, targetStatus);
-  }
-}
-
-/**
- * Refresh the document envelope `updated` stamp to match `plan.updated`.
- * Stamps whichever of xBRIEFInfo (v0.8) / vBRIEFInfo (v0.6) is present — never creates one (#2862 / #2346).
- */
-function stampEnvelopeUpdated(data: Record<string, unknown>, nowIso: string): void {
-  for (const key of ["xBRIEFInfo", "vBRIEFInfo"] as const) {
-    const env = data[key];
-    if (typeof env === "object" && env !== null && !Array.isArray(env)) {
-      (env as Record<string, unknown>).updated = nowIso;
-    }
   }
 }
 
@@ -344,7 +332,8 @@ export function runTransition(
   planObj.status = targetStatus;
   planObj.updated = nowIso;
   // Keep the envelope clock aligned with plan.updated on every mutating transition (#2862).
-  stampEnvelopeUpdated(data, nowIso);
+  // Stamps whichever envelope is present, never creates one (#3933 / #2346).
+  stampExistingEnvelopes(data, nowIso);
 
   // Reconcile the completing brief's own plan.items (mirrors #1527 / #2566 registry sync) (#2862).
   // On complete, items only reach here when #3240 evidence/disposition gate passed.
@@ -534,7 +523,7 @@ function restampCompletedBrief(args: RestampArgs): TransitionResult {
 
   planObj.status = "completed";
   planObj.updated = nowIso;
-  stampEnvelopeUpdated(data, nowIso);
+  stampExistingEnvelopes(data, nowIso);
   stampCompletionMetadata(planObj, projectRoot, nowIso, {
     completedSessionId: resolveCompletionSessionId(projectRoot),
   });

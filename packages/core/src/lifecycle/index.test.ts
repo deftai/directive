@@ -11,6 +11,7 @@ describe("lifecycle index exports", () => {
     expect(typeof lifecycle.scanCompletedLifecycleConsistency).toBe("function");
     expect(typeof lifecycle.evaluateCompletedPlanConsistency).toBe("function");
     expect(typeof lifecycle.evaluateCompletedWriteGuard).toBe("function");
+    expect(typeof lifecycle.stampExistingEnvelopes).toBe("function");
     expect(typeof lifecycle.scanCompletedWriteCorpus).toBe("function");
   });
 });
