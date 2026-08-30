@@ -11,6 +11,7 @@ export {
   PUBLISHED_SCHEMA_REL,
 } from "./contract-drift.js";
 export * from "./cursor-tier1.js";
+export * from "./deposit-closure.js";
 export * from "./openclaw-tier1.js";
 export * from "./python-call-scan.js";
 export * from "./rule-ownership-lint.js";

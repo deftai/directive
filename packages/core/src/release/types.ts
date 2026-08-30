@@ -63,6 +63,12 @@ export interface ReleaseSeams {
   readonly writeFile?: (path: string, content: string) => void;
   readonly readFile?: (path: string) => string;
   readonly fileExists?: (path: string) => boolean;
+  /**
+   * #3900 check 4 -- consumer hard-stop census. When omitted, production lists
+   * open issues via REST. Tests inject a [ok, message] tuple so they do not
+   * hit GitHub.
+   */
+  readonly consumerHardStops?: (repo: string, projectRoot: string) => [boolean, string];
   readonly runCi?: (
     projectRoot: string,
     allowCoverageDebtIssue: number | null,

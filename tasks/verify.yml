@@ -79,6 +79,24 @@ tasks:
         vars:
           ENGINE_CMD: 'verify-content-manifest --project-root "{{.DEFT_ROOT}}"'
 
+  deposit-closure:
+    desc: "C1 declared deposit closure against a staged pack root (#3900 / #3601). Resolves contracts/deposit-required-paths.json; does not infer paths from AGENTS.md. Three-state (0 clean / 1 missing / 2 config)."
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: "verify-deposit-closure --project-root \"{{.DEFT_ROOT}}\" {{.CLI_ARGS}}"
+
+  consumer-hard-stops:
+    desc: "Enumerate open consumer hard-stops by BLOCKER title and adoption-blocker label only (#3900 / #3713). Does not read issue bodies. Fail-closed at release."
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: "verify-consumer-hard-stops --project-root \"{{.DEFT_ROOT}}\" {{.CLI_ARGS}}"
+
   license-sync:
     desc: "Drift guard for root LICENSE ↔ content/LICENSE.md and published package.json license fields (#2902). Three-state exit (0 clean / 1 drift / 2 config). Framework-source only."
     # Framework-source-only gate: reads THIS repo's LICENSE + package manifests.

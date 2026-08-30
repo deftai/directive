@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { assertProjectionContained } from "../fs/projection-containment.js";
+import { restIssueListOpenInventory } from "../scm/gh-rest.js";
 import { readCoverageTotalsFromReport } from "../vitest-runner/coverage-debt.js";
 import {
   buildCoverageDebtIssueDraft,
@@ -27,6 +28,7 @@ import {
   VERIFY_DRAFT_INTERVAL_SECONDS,
   VERIFY_DRAFT_MAX_ATTEMPTS,
 } from "./constants.js";
+import { formatConsumerReadinessDisclosure } from "./consumer-readiness-disclosure.js";
 import { createCoverageDebtIssue, probeOpenCoverageDebtLedger } from "./coverage-debt-ledger.js";
 import { checkTagAvailable, createGithubRelease, readTextFile, verifyReleaseDraft } from "./gh.js";
 import {
@@ -45,6 +47,7 @@ import {
 } from "./native-steps.js";
 import { todayIso } from "./paths.js";
 import { runReleaseCheck } from "./preflight.js";
+import { evaluateReleaseConsumerReadiness, issuesFromInventory } from "./run-consumer-readiness.js";
 import { formatSkipCiIncidentWarning } from "./skip-ci-incident.js";
 import { evaluateSuiteStamp, writeSuiteStamp } from "./suite-stamp.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
@@ -379,6 +382,62 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
           );
           return EXIT_VIOLATION;
         }
+      }
+    }
+  }
+
+  // #3900: check 4 fail-closed (title/label census); checks 5-6 disclosure never block.
+  {
+    const crLabel = "Consumer-readiness census";
+    let changelogText = "";
+    try {
+      changelogText = readFile(changelogPath);
+    } catch {
+      changelogText = "";
+    }
+    const disclosure = formatConsumerReadinessDisclosure(changelogText);
+    if (config.dryRun) {
+      emit(
+        5,
+        crLabel,
+        "DRYRUN (would enumerate open BLOCKER titles and adoption-blocker labels; disclosure does not block)",
+      );
+      process.stderr.write(disclosure.text + "\n");
+    } else if (seams.consumerHardStops) {
+      const [ok, msg] = seams.consumerHardStops(config.repo, projectRoot);
+      if (!ok) {
+        emit(5, crLabel, "FAIL (" + msg + ")");
+        process.stderr.write(disclosure.text + "\n");
+        return EXIT_VIOLATION;
+      }
+      emit(5, crLabel, "OK (" + msg + ")");
+      process.stderr.write(disclosure.text + "\n");
+    } else if (seams.runCi !== undefined || seams.spawnText !== undefined) {
+      emit(5, crLabel, "SKIP (injected seam; run task verify:consumer-hard-stops at a real cut)");
+      process.stderr.write(disclosure.text + "\n");
+    } else {
+      try {
+        const rows = restIssueListOpenInventory(config.repo);
+        const result = evaluateReleaseConsumerReadiness({
+          changelogText,
+          issues: issuesFromInventory(rows),
+        });
+        process.stderr.write(result.disclosure.text + "\n");
+        if (result.hardStops.code !== 0) {
+          emit(5, crLabel, "FAIL (" + result.hardStops.message + ")");
+          return result.hardStops.code === 2 ? EXIT_CONFIG_ERROR : EXIT_VIOLATION;
+        }
+        emit(5, crLabel, "OK (" + result.hardStops.message + ")");
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : String(err);
+        emit(
+          5,
+          crLabel,
+          "FAIL (could not list open issues. Recovery: check gh auth and REST quota. " +
+            reason +
+            ")",
+        );
+        return EXIT_CONFIG_ERROR;
       }
     }
   }

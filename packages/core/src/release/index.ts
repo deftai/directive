@@ -5,6 +5,8 @@ export * from "./build-dist.js";
 export * from "./cli-drift-report.js";
 export * from "./closed-verb-gate.js";
 export * from "./constants.js";
+export * from "./consumer-hard-stops.js";
+export * from "./consumer-readiness-disclosure.js";
 export * from "./coverage-debt-ledger.js";
 export * from "./flags.js";
 export * from "./gh.js";

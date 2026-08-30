@@ -1,0 +1,118 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Recut of #3900: pack-versus-guidance fail-closed verifiers, not a critic-confirmed skill.",
+    "updated": "2026-08-30T17:05:15Z"
+  },
+  "plan": {
+    "title": "feat(release): consumer-readiness pack verifiers (#3900 recut)",
+    "status": "running",
+    "id": "issue-3900",
+    "updated": "2026-08-30T17:05:15Z",
+    "tags": [
+      "area:release",
+      "process",
+      "blocks-release-tag"
+    ],
+    "narratives": {
+      "Overview": "The #3900 design-critique arc refuted a standalone critic-confirmed skill. Checks 1-3 become fail-closed task verifiers over a staged pack root. Check 1 consumes the C1 declaration. Checks 2 and 3 compose C3 and C2 rather than rebuilding them. Check 4 enumerates open consumer hard-stops by title classification and label only. Checks 5 and 6 are operator disclosure at the release decision point and do not auto-block.",
+      "UserStory": "As a maintainer cutting a tag, I want pack-versus-guidance defects to fail closed without an agent electing to run a skill.",
+      "Acceptance": "Checks 1-3 are fail-closed verifiers over a staged pack root in task check and release pre-flight. Check 1 reuses the C1 resolver. Check 4 is title-and-label only. Checks 5-6 are disclosure and do not auto-block. Each verifier fails a mutated staged tree. 0.107.0-shaped packs fail; fixed deposits are clear."
+    },
+    "items": [
+      {
+        "id": "3900-check1-c1-staged",
+        "title": "Check 1 is a fail-closed task verifier that resolves the C1 declaration against staged pack output and reuses evaluateDepositClosure.",
+        "status": "pending",
+        "effort": "M"
+      },
+      {
+        "id": "3900-check2-compose-c3",
+        "title": "Check 2 composes C3 live-procedure target validation; do not rebuild the oracle.",
+        "status": "pending",
+        "effort": "S"
+      },
+      {
+        "id": "3900-check3-compose-c2",
+        "title": "Check 3 composes C2 semantic-single-source; do not rebuild the oracle.",
+        "status": "pending",
+        "effort": "S"
+      },
+      {
+        "id": "3900-check4-title-label",
+        "title": "Check 4 enumerates open consumer hard-stops by BLOCKER title classification and the adoption-blocker label only; never ingest issue bodies.",
+        "status": "pending",
+        "effort": "M"
+      },
+      {
+        "id": "3900-check56-disclosure",
+        "title": "Checks 5 and 6 print operator-facing new-refusal and net-posture disclosure at the release decision point and do not auto-block a tag.",
+        "status": "pending",
+        "effort": "S"
+      },
+      {
+        "id": "3900-non-vacuity",
+        "title": "Each verifier fails against a deliberately mutated staged tree, and a 0.107.0-shaped pack reproduces the escaped class while a fixed deposit is clear.",
+        "status": "pending",
+        "effort": "M"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3900",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3900 recut: consumer-readiness pack verifiers"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "Issue #3900 recut acceptance is independently testable clauses, not shell commands.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Checks 1-3 exist as fail-closed verifiers over a staged pack root, composed into task check and the release pre-flight, each with a remediation line.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Check 1 resolves the C1 declaration against staged pack output, reusing the landed resolver.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The deterministic half of check 4 enumerates open consumer hard-stops by title classification and label only, consistent with #3713.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Checks 5 and 6 are produced as operator-facing disclosure at the release decision point, and do not auto-block.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Each verifier fails against a deliberately mutated staged tree, proving it is not vacuous.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Running the check set against published 0.107.0 reproduces the escaped defects; running it against a deposit with them fixed reports clear.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ]
+    }
+  }
+}

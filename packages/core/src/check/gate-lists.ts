@@ -111,6 +111,8 @@ export const FRAMEWORK_CHECK_GATES: readonly CheckGateSpec[] = [
   "verify:rule-ownership",
   "verify:biome-config",
   "verify:content-manifest",
+  // #3900 check 1: C1 declaration vs staged pack. Checks 2/3 compose C3/C2.
+  "verify:deposit-closure",
   "verify:skill-external-fetch-gate",
   "verify:semantic-single-source",
   "verify:cursor-tier1",
