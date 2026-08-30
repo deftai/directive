@@ -18,38 +18,80 @@
     "items": [
       {
         "title": "An all-refused walk keeps the acceptance gate red and records no product-oracle failure event",
-        "status": "proposed",
-        "effort": "M"
+        "status": "completed",
+        "effort": "M",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-ac/evaluate.test.ts :: safety-refusal is not a product-oracle measurement (#3615) > does not emit a verification event for an all-refused walk; all-refused then corrected-safe pass in one session does not poison oracle history",
+          "recorded_at": "2026-08-30T19:32:24Z",
+          "recorded_by": "agent:grok-build leaf-implementation #3615"
+        }
       },
       {
         "title": "A mixed walk with a refusal and a passing command does not emit a product-oracle pass while the walk is red",
-        "status": "proposed",
-        "effort": "M"
+        "status": "completed",
+        "effort": "M",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-ac/evaluate.test.ts :: safety-refusal is not a product-oracle measurement (#3615) > does not emit a product-oracle pass for a mixed refused+pass walk",
+          "recorded_at": "2026-08-30T19:32:24Z",
+          "recorded_by": "agent:grok-build leaf-implementation #3615"
+        }
       },
       {
         "title": "The emitter distinguishes refusal from failure using exitCode 2 and detail prefix refused: already on the row",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/literal-acceptance/literal-acceptance.test.ts :: run-time allowlist refusals bind the rejected ledger (#3615); packages/core/src/verify-ac/evaluate.ts productOracleOutcomeForWalk",
+          "recorded_at": "2026-08-30T19:32:24Z",
+          "recorded_by": "agent:grok-build leaf-implementation #3615"
+        }
       },
       {
         "title": "The integrity layer still catches a genuine executed fail then different-method pass",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-ac/flag.test.ts; packages/core/src/verify-ac/evaluate.test.ts genuine fail then different-method pass still unresolved",
+          "recorded_at": "2026-08-30T19:32:24Z",
+          "recorded_by": "agent:grok-build leaf-implementation #3615"
+        }
       },
       {
         "title": "Operator-facing text names refusal as the cause when nothing ran (`safety-rejected`, not `commands-failed`)",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/acceptance-resolver.test.ts :: run-time allowlist refusal is safety-rejected (#3615)",
+          "recorded_at": "2026-08-30T19:32:24Z",
+          "recorded_by": "agent:grok-build leaf-implementation #3615"
+        }
       },
       {
         "title": "Document recovery for already-poisoned history: new session id or truncated run-summary, not independent_rederivation=true",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/docs/gate-integrity.md :: Product-oracle history poisoned by a safety refusal (#3615); packages/core/src/verify-ac/evaluate.test.ts names poisoned-history recovery",
+          "recorded_at": "2026-08-30T19:32:24Z",
+          "recorded_by": "agent:grok-build leaf-implementation #3615"
+        }
       },
       {
         "title": "CHANGELOG `[Unreleased]` entry",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "CHANGELOG.md [Unreleased] Fixed: Safety-refused acceptance commands no longer poison product-oracle history (#3615)",
+          "recorded_at": "2026-08-30T19:32:24Z",
+          "recorded_by": "agent:grok-build leaf-implementation #3615"
+        }
       }
     ],
     "tags": [
