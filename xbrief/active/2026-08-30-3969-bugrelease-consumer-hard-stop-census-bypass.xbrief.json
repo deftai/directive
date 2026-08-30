@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Story xBRIEF for #3969 re-scoped bound remedy; successor lean 5470479357.",
-    "updated": "2026-08-30T18:41:04Z"
+    "updated": "2026-08-30T20:17:51Z"
   },
   "plan": {
     "title": "bug(release): close the unrecorded Closes bypass, fix census input, wire the existing closing-keyword detector",
@@ -21,56 +21,86 @@
       {
         "id": "p1",
         "title": "parseClosesSet composes classifyPosition so refused markdown positions do not clear the census",
-        "status": "proposed",
+        "status": "completed",
         "effort": "M",
         "narrative": {
           "When": "When Unreleased contains Closes #N inside a fence, inline code span, blockquote, strikethrough, or explicit negation",
           "Acceptance": "parseClosesSet does not add that issue; a plain Closes #N control still clears; a test fails before the change for each of the five bypass forms.",
           "Traces": "FR-3969-p1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/release/consumer-hard-stops.test.ts",
+          "recorded_at": "2026-08-30T20:17:51Z",
+          "recorded_by": "leaf-worker/3969"
         }
       },
       {
         "id": "p2",
         "title": "Census blocking classification requires a privileged label, not a title",
-        "status": "proposed",
+        "status": "completed",
         "effort": "M",
         "narrative": {
           "When": "When an open issue has a BLOCKER title and no privileged label, and when an open issue has blocks-release-tag or adoption-blocker",
           "Acceptance": "Title-only BLOCKER does not enter the census. adoption-blocker and blocks-release-tag do. A privileged deadlined entry like #3899 becomes visible. Issue bodies are not read. BLOCKER remains the sole permitted title classification as a flare (#3713).",
           "Traces": "FR-3969-p2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/release/consumer-hard-stops.test.ts",
+          "recorded_at": "2026-08-30T20:17:51Z",
+          "recorded_by": "leaf-worker/3969"
         }
       },
       {
         "id": "p3",
         "title": "Do not ship a ships-past disposition this cut",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "When": "When priorities 1 and 2 are sound",
           "Acceptance": "No CHANGELOG trailer, body trailer, or identity-based waiver is added. The critic steelman for refusing the hatch is the recorded outcome. Whether the tag waits stays an operator decision.",
           "Traces": "FR-3969-p3"
+        },
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/3972",
+          "recorded_at": "2026-08-30T20:17:51Z",
+          "recorded_by": "leaf-worker/3969"
         }
       },
       {
         "id": "p4",
         "title": "Wire the existing pr:check-closing-keywords detector into a workflow and the check gate-list",
-        "status": "proposed",
+        "status": "completed",
         "effort": "M",
         "narrative": {
           "When": "When a PR body or branch commits contain a closing keyword in a refused position",
           "Acceptance": "task pr:check-closing-keywords is invoked by a GitHub workflow and by the framework check gate-list. The wire uses the existing detector (FP mode catches the #3960 negation case). An unwired detector is no longer the bar.",
           "Traces": "FR-3969-p4"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/verify-source-cli/verify-closing-keywords.test.ts",
+          "recorded_at": "2026-08-30T20:17:51Z",
+          "recorded_by": "leaf-worker/3969"
         }
       },
       {
         "id": "p5",
         "title": "CHANGELOG [Unreleased] entry",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "When": "When the PR lands",
           "Acceptance": "CHANGELOG [Unreleased] records the position classification, the privileged-label census, and the detector wiring, and names #3969. It does not claim to unblock the pending tag and does not use a false Closes for #3463 or #3899.",
           "Traces": "FR-3969-p5"
+        },
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-08-30T20:17:51Z",
+          "recorded_by": "leaf-worker/3969"
         }
       }
     ],
@@ -168,6 +198,6 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-08-30T18:41:04Z"
+    "updated": "2026-08-30T20:17:51Z"
   }
 }
