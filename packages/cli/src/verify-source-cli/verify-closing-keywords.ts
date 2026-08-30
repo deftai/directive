@@ -125,6 +125,9 @@ export function resolveClosingKeywordsSource(
     if (!fetched) {
       const stale = staleRelativeToLocalDefault(base, sha, runGit);
       if (stale !== null) return stale;
+      // Fetch failed and local evidence cannot prove freshness: do not
+      // scan a possibly stale origin merge-base.
+      continue;
     }
     return { kind: "range", range: `${sha}..HEAD` };
   }

@@ -7,6 +7,9 @@ import {
 } from "./verify-closing-keywords.js";
 
 const mergeBaseGit: RunGitFn = (args) => {
+  if (args[0] === "fetch") {
+    return { returncode: 0, stdout: "", stderr: "" };
+  }
   if (args[0] === "merge-base" && args[1] === "origin/master") {
     return { returncode: 0, stdout: "abc1234def\n", stderr: "" };
   }
@@ -57,11 +60,14 @@ describe("resolveClosingKeywordsSource (#3969)", () => {
     }
   });
 
-  it("uses origin/master when local master is missing and fetch fails", () => {
-    expect(resolveClosingKeywordsSource({}, mergeBaseGit)).toEqual({
-      kind: "range",
-      range: "abc1234def..HEAD",
-    });
+  it("fails closed when fetch fails and local master cannot prove origin freshness", () => {
+    const git: RunGitFn = (args) => {
+      if (args[0] === "merge-base" && args[1] === "origin/master") {
+        return { returncode: 0, stdout: "abc1234def\n", stderr: "" };
+      }
+      return { returncode: 128, stdout: "", stderr: "unknown" };
+    };
+    expect(resolveClosingKeywordsSource({}, git).kind).toBe("missing-base");
   });
 
   it("does not fetch when resolving via --pr", () => {
@@ -120,6 +126,9 @@ describe("resolveClosingKeywordsSource (#3969)", () => {
 
   it("still uses origin/master when local master is ahead but HEAD merge-bases match", () => {
     const git: RunGitFn = (args) => {
+      if (args[0] === "fetch") {
+        return { returncode: 0, stdout: "", stderr: "" };
+      }
       if (args[0] === "merge-base" && args[1] === "--is-ancestor") {
         return { returncode: 0, stdout: "", stderr: "" };
       }
