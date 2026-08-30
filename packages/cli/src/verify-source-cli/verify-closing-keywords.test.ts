@@ -66,6 +66,16 @@ describe("run", () => {
     ]);
   });
 
+  it("does not fall back to a stale local master", () => {
+    const git: RunGitFn = (args) => {
+      if (args[0] === "merge-base" && args[1] === "master") {
+        return { returncode: 0, stdout: "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef\n", stderr: "" };
+      }
+      return { returncode: 128, stdout: "", stderr: "unknown" };
+    };
+    expect(resolveClosingKeywordsSource({}, git).kind).toBe("missing-base");
+  });
+
   it("fails closed with exit 2 when no merge-base exists", () => {
     const invoke = vi.fn().mockReturnValue(1);
     const none: RunGitFn = () => ({ returncode: 128, stdout: "", stderr: "unknown" });

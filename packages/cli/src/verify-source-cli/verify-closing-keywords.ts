@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { cmdPrCheckClosingKeywords } from "@deftai/directive-core/dist/pr-closing-keywords/main.js";
 
-const BASE_CANDIDATES = ["origin/master", "origin/main", "master"] as const;
+const BASE_CANDIDATES = ["origin/master", "origin/main"] as const;
 
 export type RunGitFn = (args: readonly string[]) => {
   readonly returncode: number;
@@ -72,7 +72,7 @@ export function resolveClosingKeywordsSource(
   return {
     kind: "missing-base",
     reason:
-      "no merge-base against origin/master, origin/main, or master. Recovery: git fetch origin master.",
+      "no merge-base against origin/master or origin/main. Recovery: git fetch origin master.",
   };
 }
 
