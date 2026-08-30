@@ -59,6 +59,20 @@ describe("validate-links", () => {
     expect(result.message).toContain("All internal markdown links valid");
   });
 
+  it("fails closed when C3 finds a pruned helper on a live procedure (non-vacuous)", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, "skills", "demo"), { recursive: true });
+    writeFileSync(
+      join(root, "skills", "demo", "SKILL.md"),
+      "! run `scripts/missing.py` and `.deft/core/run bootstrap`\n",
+      "utf8",
+    );
+    const result = evaluateLinks({ cwd: root });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("unique live-invalid helper target");
+    expect(result.message).toContain("scripts/missing.py");
+  });
+
   it("warns on broken links by default", () => {
     const root = tempRoot();
     writeFileSync(join(root, "README.md"), "See [missing](nope.md)\n");

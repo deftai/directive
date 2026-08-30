@@ -1,5 +1,9 @@
 import { type Dirent, existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
+import {
+  evaluateLiveProcedureTargets,
+  formatLiveProcedureFailure,
+} from "../deposit/live-procedure-targets.js";
 import { NON_PRODUCT_DIRS } from "../fs/non-product-dirs.js";
 import { extractLinkTargets, shouldSkipLinkTarget } from "./link-parser.js";
 import type { EvaluateResult } from "./types.js";
@@ -98,6 +102,22 @@ export function collectBrokenLinks(cwd: string): BrokenLink[] {
 /**
  * Validate internal markdown links. Faithful to `scripts/validate-links.py`.
  */
+function contentRootForC3(cwd: string): string {
+  const underContent = join(cwd, "content");
+  return existsSync(underContent) ? underContent : cwd;
+}
+
+function extraMarkdownForC3(cwd: string): { relativePath: string; absolutePath: string }[] {
+  const extras: { relativePath: string; absolutePath: string }[] = [];
+  for (const name of ["main.md", "SKILL.md"] as const) {
+    const absolutePath = join(cwd, name);
+    if (existsSync(absolutePath)) {
+      extras.push({ relativePath: name, absolutePath });
+    }
+  }
+  return extras;
+}
+
 export function evaluate(options: ValidateLinksOptions = {}): EvaluateResult {
   const cwd = resolve(options.cwd ?? ".");
   const strict =
@@ -105,6 +125,18 @@ export function evaluate(options: ValidateLinksOptions = {}): EvaluateResult {
     options.linkCheckStrict === true ||
     (options.argv ?? []).includes("--strict") ||
     process.env.LINK_CHECK_STRICT === "1";
+
+  const c3 = evaluateLiveProcedureTargets({
+    stagedRoot: contentRootForC3(cwd),
+    extraFiles: extraMarkdownForC3(cwd),
+  });
+  if (c3.uniqueTargets.length > 0) {
+    return {
+      code: 1,
+      message: formatLiveProcedureFailure(c3),
+      stream: "stdout",
+    };
+  }
 
   const broken = collectBrokenLinks(cwd);
   if (broken.length === 0) {
