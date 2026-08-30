@@ -125,6 +125,19 @@ describe("C3 live-procedure target validation (#3602)", () => {
     expect(result.uniqueTargets).toEqual([".deft/core/run", "deft/run"]);
   });
 
+  it("detects a backtick-bounded bare run shim without flagging English run", () => {
+    expect(normalizePythonHelperTarget("run")).toBe("run");
+    const root = staged("c3-barerun-");
+    mkdirSync(join(root, "skills", "demo"), { recursive: true });
+    writeFileSync(
+      join(root, "skills", "demo", "SKILL.md"),
+      "! run the tests, then `run bootstrap`. Do not treat `task check` as a shim.\n",
+      "utf8",
+    );
+    const result = evaluateLiveProcedureTargets({ stagedRoot: root });
+    expect(result.uniqueTargets).toEqual(["run"]);
+  });
+
   it("skips planning, history/archive, missing roots, and excluded extra files", () => {
     const root = staged("c3-skip-");
     mkdirSync(join(root, ".planning"), { recursive: true });

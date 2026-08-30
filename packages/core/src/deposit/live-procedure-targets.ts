@@ -143,6 +143,32 @@ function extractBacktickPythonHelpers(line: string): string[] {
       if (normalized) out.push(normalized);
     }
   }
+  let tick = 0;
+  while (tick < line.length) {
+    const open = line.indexOf("`", tick);
+    if (open < 0) break;
+    const close = line.indexOf("`", open + 1);
+    if (close < 0) break;
+    const inner = line.slice(open + 1, close).trim();
+    const parts = inner.split(/\s+/).filter((p) => p.length > 0);
+    const first = (parts[0] ?? "").replace(/^\.\//, "");
+    const arg = parts[1];
+    const launcherArgs = new Set([
+      "bootstrap",
+      "spec",
+      "init",
+      "project",
+      "upgrade",
+      "doctor",
+      "validate",
+      "reset",
+    ]);
+    if (first === "run" && (arg === undefined || launcherArgs.has(arg))) {
+      const normalized = normalizePythonHelperTarget("run");
+      if (normalized) out.push(normalized);
+    }
+    tick = close + 1;
+  }
   return out;
 }
 

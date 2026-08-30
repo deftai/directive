@@ -50,6 +50,11 @@ export const LIVE_PROCEDURE_EXCLUSIONS: readonly LiveProcedureExclusion[] = [
     reason: "Python language pack names consumer application files, not deposit helpers.",
   },
   {
+    path: "languages/kotlin.md",
+    kind: "example",
+    reason: "Kotlin stdlib `run` scoping function is not the deposit Python launcher.",
+  },
+  {
     path: "deployments/aws/via-lambda.md",
     kind: "example",
     reason: "AWS Lambda sample `src/app.py` is a consumer application, not a deposit helper.",
