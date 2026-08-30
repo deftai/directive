@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
-import { dirname, isAbsolute, join, resolve } from "node:path";
-import { containedRemove } from "../../fs/contained-write.js";
+import { randomBytes } from "node:crypto";
+import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync } from "node:fs";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
+import { containedRemove, containedWrite } from "../../fs/contained-write.js";
 import {
   type GitRunner as SwarmGitRunner,
   defaultGitRunner as swarmGitRunner,
@@ -45,9 +46,84 @@ function forceDeleteWorktreeDir(worktreePath: string): void {
   rmSync(worktreePath, { recursive: true, force: true });
 }
 
-function normalizeWorktreePath(path: string): string {
-  const normalized = resolve(path).replace(/\\/g, "/");
-  return process.platform === "win32" ? normalized.toLowerCase() : normalized;
+const caseInsensitiveDirCache = new Map<string, boolean>();
+
+function slashResolve(path: string): string {
+  return resolve(path).replace(/\\/g, "/");
+}
+
+function directoryIgnoresCase(dir: string): boolean {
+  let existing = resolve(dir);
+  while (!existsSync(existing)) {
+    const parent = dirname(existing);
+    if (parent === existing) {
+      return process.platform === "win32";
+    }
+    existing = parent;
+  }
+  const cached = caseInsensitiveDirCache.get(existing);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const tag = randomBytes(6).toString("hex");
+  const lower = join(existing, `.deft-cs-${tag}a`);
+  const upper = join(existing, `.deft-cs-${tag}A`);
+  let ignores = process.platform === "win32";
+  try {
+    containedWrite({
+      root: existing,
+      target: lower,
+      data: "",
+      mode: "create",
+      mkdir: false,
+      mutation: false,
+    });
+    ignores = existsSync(upper);
+  } catch {
+    // Keep the platform default when the probe cannot be written.
+  } finally {
+    try {
+      containedRemove({ root: existing, target: lower, mutation: false });
+    } catch {
+      // ignore
+    }
+    try {
+      containedRemove({ root: existing, target: upper, mutation: false });
+    } catch {
+      // ignore
+    }
+  }
+  caseInsensitiveDirCache.set(existing, ignores);
+  return ignores;
+}
+
+function canonicalizeWorktreePath(path: string): string {
+  const resolved = slashResolve(path);
+  let existing = "";
+  if (existsSync(path)) {
+    existing = path;
+  } else if (existsSync(resolved)) {
+    existing = resolved;
+  }
+  if (existing.length > 0) {
+    try {
+      return realpathSync.native(existing).replace(/\\/g, "/");
+    } catch {
+      // Path vanished between exists and realpath.
+    }
+  }
+  const parent = dirname(resolved);
+  const base = basename(resolved);
+  let parentCanon = slashResolve(parent);
+  try {
+    if (existsSync(parent)) {
+      parentCanon = realpathSync.native(parent).replace(/\\/g, "/");
+    }
+  } catch {
+    // Keep slash-resolved parent.
+  }
+  const leaf = directoryIgnoresCase(parent) ? base.toLowerCase() : base;
+  return `${parentCanon}/${leaf}`;
 }
 
 /**
@@ -56,6 +132,11 @@ function normalizeWorktreePath(path: string): string {
  * may sit outside a linked-worktree projectRoot). `git worktree prune` has no
  * path argument and operates on every registration, including concurrent
  * agents' reflogs.
+ *
+ * Path identity uses on-disk realpath when the worktree exists, and otherwise
+ * folds case only when the parent directory is case-insensitive. A case-sensitive
+ * Windows directory can host two worktrees that differ only by case; those
+ * must not share an admin entry.
  */
 function pruneEvaluatorWorktreeAdmin(
   git: SwarmGitRunner,
@@ -72,7 +153,7 @@ function pruneEvaluatorWorktreeAdmin(
   if (!existsSync(worktreesDir)) {
     return;
   }
-  const needle = normalizeWorktreePath(worktreePath);
+  const needle = canonicalizeWorktreePath(worktreePath);
   let names: string[] = [];
   try {
     names = readdirSync(worktreesDir);
@@ -94,7 +175,7 @@ function pruneEvaluatorWorktreeAdmin(
       continue;
     }
     const recordedWorktree = recorded.replace(/\\/g, "/").replace(/\/\.git$/u, "");
-    if (normalizeWorktreePath(recordedWorktree) === needle) {
+    if (canonicalizeWorktreePath(recordedWorktree) === needle) {
       containedRemove({
         root: resolve(worktreesDir),
         target: join(worktreesDir, name),
@@ -115,12 +196,12 @@ function worktreeStillRegistered(
   if (listed.returncode !== 0) {
     return true;
   }
-  const needle = normalizeWorktreePath(worktreePath);
+  const needle = canonicalizeWorktreePath(worktreePath);
   for (const line of listed.stdout.split(/\r?\n/u)) {
     if (!line.startsWith("worktree ")) {
       continue;
     }
-    const listedPath = normalizeWorktreePath(line.slice("worktree ".length));
+    const listedPath = canonicalizeWorktreePath(line.slice("worktree ".length));
     if (listedPath === needle) {
       return true;
     }
