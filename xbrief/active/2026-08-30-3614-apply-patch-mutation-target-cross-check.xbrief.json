@@ -18,58 +18,100 @@
     "items": [
       {
         "title": "Every mutated path is authorized; mixed / Delete File / undeclared body paths deny",
-        "status": "proposed",
+        "status": "completed",
         "effort": "M",
         "narrative": {
           "Acceptance": "A payload declaring a permitted planning path while the patch body writes an unauthorized path is denied. Tests cover single-file mismatch, 3-file mixed, and Delete File."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher.test.ts::ApplyPatch mutation-target cross-check (#3614) > denies a single-file body writing src/index.ts under a declared proposed path; mixed 3-file; Delete File",
+          "recorded_at": "2026-08-30T19:03:22Z",
+          "recorded_by": "grok-build leaf worker (deftai/directive#3614)"
         }
       },
       {
         "title": "Move to authorizes source and destination",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "Acceptance": "A rename whose destination is unauthorized is denied even when the source or declared path is a proposed xBRIEF."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher.test.ts::ApplyPatch mutation-target cross-check (#3614) > denies Move to an unauthorized destination under a proposed source",
+          "recorded_at": "2026-08-30T19:03:22Z",
+          "recorded_by": "grok-build leaf worker (deftai/directive#3614)"
         }
       },
       {
         "title": "Fence denyPaths applies to ApplyPatch the same as direct Write",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "Acceptance": "With runtimeAuthority enabled and denyPaths for .github/** and src/**, ApplyPatch to those paths denies exactly where a direct Write denies."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher.test.ts::ApplyPatch mutation-target cross-check (#3614) > denies ApplyPatch to fence denyPaths exactly where a direct Write denies",
+          "recorded_at": "2026-08-30T19:03:22Z",
+          "recorded_by": "grok-build leaf worker (deftai/directive#3614)"
         }
       },
       {
         "title": "Flip the mismatched-path test to deny and record it as a #3156 product fix",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "Acceptance": "The former allow assertion on declared-path vs patch-target disagreement asserts deny. PR body and CHANGELOG say this is a deliberate product fix of a test that locked in a bypass, not a gate weakened to go green."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher.test.ts::denies ApplyPatch when declared proposed path disagrees with the patch body (#3614 / #3156)",
+          "recorded_at": "2026-08-30T19:03:22Z",
+          "recorded_by": "grok-build leaf worker (deftai/directive#3614)"
         }
       },
       {
         "title": "Reach trySynthesizeFreeFormApplyPatch for valid-JSON hosts; no second parser",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "Acceptance": "A Codex-shaped JSON payload with tool_input.patch and no path, containing one proposed xBRIEF Add File, reaches write-propose-ready. Synthesis refuses Move-to dual targets. No new apply_patch grammar parser is added."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/classify/stdin.test.ts::fills tool_input.path on valid JSON ApplyPatch with no declared path (#3614)",
+          "recorded_at": "2026-08-30T19:03:22Z",
+          "recorded_by": "grok-build leaf worker (deftai/directive#3614)"
         }
       },
       {
         "title": "File the durable CLI-verb-keyed proposal-exemption follow-up",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "Acceptance": "A GitHub issue enumerates what a verb-keyed exemption needs. This scope does not expand text parsing for convenience."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/issues/3974 and CHANGELOG.md [Unreleased] Fixed #3614 follow-up line",
+          "recorded_at": "2026-08-30T19:03:22Z",
+          "recorded_by": "grok-build leaf worker (deftai/directive#3614)"
         }
       },
       {
         "title": "CHANGELOG Unreleased entry",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "Acceptance": "Unreleased Fixed entry names the bypass close, the flipped test as a #3156 product fix, and the residual that the vendor grammar is not in this repository."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md [Unreleased] Fixed: ApplyPatch can no longer smuggle a write behind a declared planning path (#3614)",
+          "recorded_at": "2026-08-30T19:03:22Z",
+          "recorded_by": "grok-build leaf worker (deftai/directive#3614)"
         }
       }
     ],
