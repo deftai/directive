@@ -58,7 +58,8 @@ function collectMarkdownFiles(root: string): string[] {
   return out.sort();
 }
 
-function findBrokenLinks(cwd: string): BrokenLink[] {
+/** Collect broken internal markdown links under cwd. Used by packed-fixture tests (#3937). */
+export function collectBrokenLinks(cwd: string): BrokenLink[] {
   const broken: BrokenLink[] = [];
   const root = resolve(cwd);
   for (const md of collectMarkdownFiles(root)) {
@@ -105,7 +106,7 @@ export function evaluate(options: ValidateLinksOptions = {}): EvaluateResult {
     (options.argv ?? []).includes("--strict") ||
     process.env.LINK_CHECK_STRICT === "1";
 
-  const broken = findBrokenLinks(cwd);
+  const broken = collectBrokenLinks(cwd);
   if (broken.length === 0) {
     return {
       code: 0,

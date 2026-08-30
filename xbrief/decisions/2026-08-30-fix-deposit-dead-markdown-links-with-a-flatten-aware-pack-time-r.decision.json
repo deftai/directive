@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "fix-deposit-dead-markdown-links-with-a-flatten-aware-pack-time-r",
+  "decision": "Fix deposit-dead markdown links with a flatten-aware pack-time rewrite of relative hrefs, not by relocating root main.md into content/ and not by a naive ./content/ prefix strip.",
+  "governingRule": {
+    "description": "main.md is read from both a source checkout (where ./content/... resolves) and a consumer deposit (where C1 flatten removes content/). The transform that makes those trees differ must be explicit and tested. Bound #3937 synthesis 5466789356.",
+    "path": "packages/core/src/deposit/rewrite-deposit-links.ts",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Naive ./content/ -> ./ strip on main.md (and maybe REFERENCES.md)",
+      "whyNot": "Bound critic measured it covers 46 of ~200 deposit-dead links and cannot express ../../main.md, the larger reverse instance of the same flatten."
+    },
+    {
+      "option": "Relocate main.md to content/main.md so one spelling resolves in both trees",
+      "whyNot": "Covers about half the defect with no new packaging machinery, but changes the harnessEntry root rule and ~216 tracked references under a blocks-release-tag deadline. A generalized rewrite covers both flatten directions without that blast radius."
+    },
+    {
+      "option": "Ship REFERENCES.md so AC1 can demand every main.md link resolves",
+      "whyNot": "PR #3958 / #3601 keeps REFERENCES.md as repo-dev. Coordinate by dropping the markdown link, not by assuming the file ships."
+    }
+  ],
+  "whyWinner": "A flatten-aware rewrite maps each relative target through its source path onto the packed layout, stamps an attested marker, and is asserted by the existing validate-links collector against an out-of-tree packed fixture. Source checkout spellings stay correct. Unshipped targets are named residuals rather than an unnamed remainder.",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-08-30-3937-blocker-packaging-shipped-main-md-dead-links-in-deposit.xbrief.json"
+  ],
+  "timestamp": "2026-08-30T17:02:48Z",
+  "revisitTrigger": "Revisit if main.md is relocated under content/ and the harnessEntry rule changes, or if a later pack starts shipping REFERENCES.md / repo-root docs/decisions / PROJECT.md so the residual snapshot should shrink.",
+  "tags": [
+    "packaging",
+    "content",
+    "deposit"
+  ],
+  "relatedIssues": [
+    3937,
+    3601,
+    3602
+  ]
+}

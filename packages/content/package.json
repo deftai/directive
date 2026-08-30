@@ -19,7 +19,7 @@
     "provenance": true
   },
   "scripts": {
-    "prepack": "node --input-type=module -e \"import{cpSync,existsSync,readdirSync,rmSync}from'node:fs';import{dirname,join}from'node:path';import{fileURLToPath}from'node:url';const pkg=dirname(fileURLToPath(import.meta.url));const root=join(pkg,'..','..');const keep=(s)=>!s.includes('__pycache__')&&!s.endsWith('.pyc')&&!s.endsWith('.py');const src=join(root,'content');for(const name of readdirSync(src)){const from=join(src,name);const to=join(pkg,name);if(existsSync(to))rmSync(to,{recursive:true,force:true});cpSync(from,to,{recursive:true,filter:keep});}for(const name of ['.githooks','Taskfile.yml','tasks']){const from=join(root,name);if(!existsSync(from))continue;const to=join(pkg,name);if(existsSync(to))rmSync(to,{recursive:true,force:true});cpSync(from,to,{recursive:true,filter:keep});}for(const name of ['main.md','SKILL.md']){const from=join(root,name);if(!existsSync(from))continue;cpSync(from,join(pkg,name));}\"",
-    "postpack": "node --input-type=module -e \"import{readdirSync,rmSync}from'node:fs';import{dirname,join}from'node:path';import{fileURLToPath}from'node:url';const pkg=dirname(fileURLToPath(import.meta.url));for(const name of readdirSync(pkg)){if(name==='package.json')continue;rmSync(join(pkg,name),{recursive:true,force:true});}\""
+    "prepack": "node ./stage-pack.mjs",
+    "postpack": "node --input-type=module -e \"import{readdirSync,rmSync}from'node:fs';import{dirname,join}from'node:path';import{fileURLToPath}from'node:url';const pkg=dirname(fileURLToPath(import.meta.url));const keep=new Set(['package.json','stage-pack.mjs']);for(const name of readdirSync(pkg)){if(keep.has(name))continue;rmSync(join(pkg,name),{recursive:true,force:true});}\""
   }
 }

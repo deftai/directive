@@ -11,7 +11,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 **⚠️ Rule Precedence**: USER.md has two sections: `Personal` (always wins — name, custom rules) and `Defaults` (fallback — strategy, coverage, languages; PROJECT-DEFINITION.vbrief.json overrides these). (Override path via `DEFT_USER_PATH` env var; )
 
-**📋 Lazy Loading**: See [REFERENCES.md](./REFERENCES.md) for guidance on when to load which files.
+**📋 Lazy Loading**: See `npx deft packs:slice skills list` (Skills Index; `REFERENCES.md` is maintainer-only and does not ship) for guidance on when to load which files.
 
 ## Overview
 
@@ -38,7 +38,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - Contracts: [contracts/hierarchy.md](./content/contracts/hierarchy.md), [contracts/boundary-maps.md](./content/contracts/boundary-maps.md)
 - Multi-agent: [swarm/swarm.md](./content/swarm/swarm.md)
 - Templates: [templates/](./content/templates)
-- Meta: [meta/](./meta/)
+- Meta: [meta/](./content/meta/)
 
 ## Agent Behavior
 

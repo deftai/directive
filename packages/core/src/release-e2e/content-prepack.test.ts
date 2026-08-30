@@ -1,9 +1,9 @@
-import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { collectPythonArtifacts } from "../deposit/python-free.js";
+import { stageContentPack } from "../deposit/stage-content-pack.js";
 
 /**
  * Packaging contract for @deftai/directive-content (#1967, #2022 Phase 3).
@@ -22,17 +22,12 @@ const FORBIDDEN_ENGINE_ENTRIES = ["scripts"] as const;
 function readPrepackScript(): string {
   const manifest = JSON.parse(
     readFileSync(join(process.cwd(), "packages/content/package.json"), "utf8"),
-  ) as { scripts?: { prepack?: string } } | null;
+  ) as { scripts?: { prepack?: string; postpack?: string } } | null;
   const prepack = manifest?.scripts?.prepack;
   if (typeof prepack !== "string" || prepack.length === 0) {
     throw new Error("packages/content/package.json has no prepack script");
   }
-  const first = prepack.indexOf('"');
-  const last = prepack.lastIndexOf('"');
-  if (first === -1 || last <= first) {
-    throw new Error(`could not parse prepack script body from: ${prepack}`);
-  }
-  return prepack.slice(first + 1, last);
+  return prepack;
 }
 
 function buildFakeRepo(options: { withScripts?: boolean } = {}): { root: string; pkgDir: string } {
@@ -77,12 +72,8 @@ function buildFakeRepo(options: { withScripts?: boolean } = {}): { root: string;
   return { root, pkgDir };
 }
 
-function runPrepack(pkgDir: string): void {
-  const result = spawnSync("node", ["--input-type=module", "-e", readPrepackScript()], {
-    cwd: pkgDir,
-    encoding: "utf8",
-  });
-  expect(result.status, result.stderr || result.stdout || "").toBe(0);
+function runPrepack(pkgDir: string, root: string): void {
+  stageContentPack({ repoRoot: root, destDir: pkgDir });
 }
 
 describe("@deftai/directive-content prepack (#1967 / #2022 Phase 3)", () => {
@@ -95,21 +86,26 @@ describe("@deftai/directive-content prepack (#1967 / #2022 Phase 3)", () => {
   });
 
   it("names each engine entry it must bundle alongside content/", () => {
-    const script = readPrepackScript();
+    expect(readPrepackScript()).toBe("node ./stage-pack.mjs");
+    expect(existsSync(join(process.cwd(), "packages/content/stage-pack.mjs"))).toBe(true);
+    const stager = readFileSync(
+      join(process.cwd(), "packages/core/src/deposit/stage-content-pack.ts"),
+      "utf8",
+    );
     for (const entry of REQUIRED_ENGINE_ENTRIES) {
-      expect(script).toContain(entry);
+      expect(stager).toContain(entry);
     }
     for (const entry of FORBIDDEN_ENGINE_ENTRIES) {
-      expect(script).not.toContain(`'${entry}'`);
+      expect(stager).not.toContain(`"${entry}"`);
     }
-    expect(script).toContain("main.md");
-    expect(script).toContain("SKILL.md");
+    expect(stager).toContain("main.md");
+    expect(stager).toContain("SKILL.md");
   });
 
   it("copies the content/ tree and root harness entries into the package", () => {
     const { root, pkgDir } = buildFakeRepo();
     created.push(root);
-    runPrepack(pkgDir);
+    runPrepack(pkgDir, root);
     expect(existsSync(join(pkgDir, "main.md"))).toBe(true);
     expect(readFileSync(join(pkgDir, "main.md"), "utf8")).toContain("# Deft guidelines");
     expect(existsSync(join(pkgDir, "SKILL.md"))).toBe(true);
@@ -119,7 +115,7 @@ describe("@deftai/directive-content prepack (#1967 / #2022 Phase 3)", () => {
   it("bundles .githooks/, Taskfile.yml, and tasks/ from the repo root", () => {
     const { root, pkgDir } = buildFakeRepo();
     created.push(root);
-    runPrepack(pkgDir);
+    runPrepack(pkgDir, root);
     expect(existsSync(join(pkgDir, ".githooks", "pre-commit"))).toBe(true);
     expect(existsSync(join(pkgDir, ".githooks", "pre-push"))).toBe(true);
     expect(existsSync(join(pkgDir, ".githooks", "_deft-run.sh"))).toBe(true);
@@ -134,14 +130,14 @@ describe("@deftai/directive-content prepack (#1967 / #2022 Phase 3)", () => {
     const { root, pkgDir } = buildFakeRepo();
     created.push(root);
     writeFileSync(join(root, "Taskfile.yml"), sourceTaskfile, "utf8");
-    runPrepack(pkgDir);
+    runPrepack(pkgDir, root);
     expect(readFileSync(join(pkgDir, "Taskfile.yml"), "utf8").match(/[ \t]+$/gm)).toBeNull();
   });
 
   it("does not bundle scripts/ or .py files even when present upstream (#2022 Phase 3)", () => {
     const { root, pkgDir } = buildFakeRepo();
     created.push(root);
-    runPrepack(pkgDir);
+    runPrepack(pkgDir, root);
     expect(existsSync(join(pkgDir, "scripts"))).toBe(false);
     expect(collectPythonArtifacts(pkgDir)).toEqual([]);
   });
@@ -149,7 +145,7 @@ describe("@deftai/directive-content prepack (#1967 / #2022 Phase 3)", () => {
   it("skips an engine entry that is absent from the repo root", () => {
     const { root, pkgDir } = buildFakeRepo({ withScripts: false });
     created.push(root);
-    runPrepack(pkgDir);
+    runPrepack(pkgDir, root);
     expect(existsSync(join(pkgDir, "scripts"))).toBe(false);
     expect(existsSync(join(pkgDir, ".githooks", "pre-commit"))).toBe(true);
     expect(existsSync(join(pkgDir, ".githooks", "_deft-run.sh"))).toBe(true);
