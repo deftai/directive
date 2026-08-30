@@ -1760,6 +1760,7 @@ function decideShellWriteReissue(
   const projectRoot = resolve(input.projectRoot);
   for (const dest of classifyShellWriteTargets(command)) {
     if (dest.unprovable === true) {
+      if (!isInRepoShellWritePath(projectRoot, dest.path)) continue;
       return deny(
         input,
         "scope-not-ready",

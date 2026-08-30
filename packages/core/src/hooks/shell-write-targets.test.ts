@@ -43,4 +43,10 @@ describe("classifyShellWriteTargets", () => {
     expect(dests.length).toBeGreaterThan(0);
     expect(dests.every((d) => d.unprovable === true)).toBe(true);
   });
+  it("does not classify a write_text method reference", () => {
+    const DQ = String.fromCharCode(34);
+    const AQ = String.fromCharCode(39);
+    const cmd = "python -c " + DQ + "print(Path(" + AQ + "src/app.ts" + AQ + ").write_text)" + DQ;
+    expect(classifyShellWriteTargets(cmd)).toEqual([]);
+  });
 });

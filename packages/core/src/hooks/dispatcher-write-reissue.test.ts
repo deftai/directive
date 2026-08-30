@@ -200,4 +200,52 @@ describe("shell write reissue (#3983 / #3987)", () => {
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
   });
+  it("allows compound OS-temp WriteAllText on an occupied tree", () => {
+    const root = occupiedRoot();
+    const AQ = String.fromCharCode(39);
+    const tmp = join(tmpdir(), "body.md");
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "run_terminal_command",
+          tool_input: {
+            command:
+              "echo x; [System.IO.File]::WriteAllText(" +
+              AQ +
+              tmp +
+              AQ +
+              ", " +
+              AQ +
+              "x" +
+              AQ +
+              ")",
+          },
+        },
+        environ: { DEFT_SESSION_ID: "other" },
+      },
+      readySeams(),
+    );
+    expect(decision.verdict).toBe("allow");
+  });
+  it("allows a python write_text method reference on an occupied tree", () => {
+    const root = occupiedRoot();
+    const DQ2 = String.fromCharCode(34);
+    const AQ2 = String.fromCharCode(39);
+    const py =
+      "python -c " + DQ2 + "print(Path(" + AQ2 + "src/app.ts" + AQ2 + ").write_text)" + DQ2;
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: { tool_name: "run_terminal_command", tool_input: { command: py } },
+        environ: { DEFT_SESSION_ID: "other" },
+      },
+      readySeams(),
+    );
+    expect(decision.verdict).toBe("allow");
+  });
 });

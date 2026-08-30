@@ -127,7 +127,7 @@ function extractPythonPathlib(command: string, out: ShellWriteTarget[]): void {
   if (ch === "r" || ch === "R") j = skipWs(command, j + 1);
   const extracted = extractQuoted(command, j);
   const window = command.slice(extracted.next, extracted.next + 48);
-  if (window.includes("write_text") || window.includes("write_bytes")) {
+  if (window.includes("write_text(") || window.includes("write_bytes(")) {
     pushUnique(out, "python-pathlib", extracted.value);
   }
 }
