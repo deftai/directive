@@ -23,7 +23,7 @@
         },
         "x-directive/evidence": {
           "kind": "observed_behavior",
-          "pointer": "xbrief/active/2026-08-30-3937-blocker-packaging-shipped-main-md-dead-links-in-deposit.xbrief.json plan.narratives.Overview Pre-fix census (297 shipped md, 231 broken occ / 195 unique / 81 files; ./content/ only in main.md)",
+          "pointer": "xbrief/completed/2026-08-30-3937-blocker-packaging-shipped-main-md-dead-links-in-deposit.xbrief.json plan.narratives.Overview Pre-fix census (297 shipped md, 231 broken occ / 195 unique / 81 files; ./content/ only in main.md)",
           "recorded_at": "2026-08-30T17:52:43Z",
           "recorded_by": "leaf-worker/3937"
         }
@@ -163,7 +163,7 @@
         {
           "id": "census-before-rewrite",
           "text": "Census every shipped markdown file for deposit-dead links before rewriting",
-          "artifact_path": "xbrief/active/2026-08-30-3937-blocker-packaging-shipped-main-md-dead-links-in-deposit.xbrief.json",
+          "artifact_path": "xbrief/completed/2026-08-30-3937-blocker-packaging-shipped-main-md-dead-links-in-deposit.xbrief.json",
           "ambiguous": false,
           "provenance": "statement"
         },
