@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3600",
-    "updated": "2026-08-30T15:50:04Z"
+    "updated": "2026-08-30T17:04:36Z"
   },
   "plan": {
     "title": "BLOCKER: bug(build,canon): build and main still mandate xBRIEF 0.6 after #2971",
@@ -16,42 +16,90 @@
       {
         "title": "Build accepts and emits `xBRIEFInfo.version: \"0.8\"` for current projects.",
         "status": "proposed",
-        "effort": "S"
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-source/semantic-single-source.test.ts#live-source-0.8",
+          "recorded_at": "2026-08-30T17:04:36Z",
+          "recorded_by": "grok-build-worker/3600"
+        }
       },
       {
         "title": "Root `main.md` describes xBRIEF 0.8 as the current write authority; 0.6 appears only in clearly bounded legacy/read/migration guidance.",
         "status": "proposed",
-        "effort": "S"
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "main.md#schema-version-v0.8-canonical-write",
+          "recorded_at": "2026-08-30T17:04:36Z",
+          "recorded_by": "grok-build-worker/3600"
+        }
       },
       {
         "title": "No MUST-level live authoring instruction says new xBRIEFs use 0.6 or that 0.8 is rejected.",
         "status": "proposed",
-        "effort": "S"
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "packages/core/src/verify-source/semantic-single-source.ts#C2-authoring-surfaces",
+          "recorded_at": "2026-08-30T17:04:36Z",
+          "recorded_by": "grok-build-worker/3600"
+        }
       },
       {
         "title": "A content-contract test scans current authoring surfaces (`main.md`, setup, build, interview/templates) for conflicting write-version mandates.",
         "status": "proposed",
-        "effort": "S"
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/decomposition_readiness.test.ts#make_spec_0.8",
+          "recorded_at": "2026-08-30T17:04:36Z",
+          "recorded_by": "grok-build-worker/3600"
+        }
       },
       {
         "title": "A packed-consumer fixture covers `setup -> proposed 0.8 scope -> build preflight` without version disagreement.",
         "status": "proposed",
-        "effort": "S"
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-source/semantic-single-source.test.ts#live-framework-source",
+          "recorded_at": "2026-08-30T17:04:36Z",
+          "recorded_by": "grok-build-worker/3600"
+        }
       },
       {
         "title": "Existing 0.6 read compatibility remains covered without weakening the 0.8 write default.",
         "status": "proposed",
-        "effort": "S"
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-source/semantic-single-source.test.ts#mixed-line-legacy-0.6",
+          "recorded_at": "2026-08-30T17:04:36Z",
+          "recorded_by": "grok-build-worker/3600"
+        }
       },
       {
         "title": "C2 semantic single-source conformance: shipped canon names exactly one xBRIEF schema version, and it is the version setup writes, enforced by C2 rather than by review (#3899 AC4).",
         "status": "proposed",
-        "effort": "M"
+        "effort": "M",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-source/semantic-single-source.test.ts#setup-write-version-0.8",
+          "recorded_at": "2026-08-30T17:04:36Z",
+          "recorded_by": "grok-build-worker/3600"
+        }
       },
       {
         "title": "C2 fails on a deliberately mutated staged tree (shipped file reverted to stale 0.6), proving it is not vacuous (#3899 AC6).",
         "status": "proposed",
-        "effort": "S"
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-source/semantic-single-source.test.ts#mutated-staged-tree-0.6",
+          "recorded_at": "2026-08-30T17:04:36Z",
+          "recorded_by": "grok-build-worker/3600"
+        }
       }
     ],
     "references": [
