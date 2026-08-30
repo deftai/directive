@@ -110,6 +110,11 @@ export function resolveClosingKeywordsSource(
     if (sha === null) continue;
     const stale = staleRelativeToLocalDefault(base, sha, runGit);
     if (stale !== null) return stale;
+    // GitHub-unknown origin HEAD is locally undecidable: a current origin
+    // and an origin that is equally stale with local default are the same
+    // graph. Fetching here would still put the network on every `task check`
+    // because this wrapper is in the framework check graph. Missing origin
+    // and locally observable lag already fail closed. CI uses --pr.
     return { kind: "range", range: `${sha}..HEAD` };
   }
   return {

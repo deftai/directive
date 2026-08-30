@@ -57,6 +57,13 @@ describe("resolveClosingKeywordsSource (#3969)", () => {
     }
   });
 
+  it("uses origin/master when local master is missing (GitHub-unknown origin HEAD is undecidable without fetch)", () => {
+    expect(resolveClosingKeywordsSource({}, mergeBaseGit)).toEqual({
+      kind: "range",
+      range: "abc1234def..HEAD",
+    });
+  });
+
   it("still uses origin/master when local master is ahead but HEAD merge-bases match", () => {
     const git: RunGitFn = (args) => {
       if (args[0] === "merge-base" && args[1] === "--is-ancestor") {
