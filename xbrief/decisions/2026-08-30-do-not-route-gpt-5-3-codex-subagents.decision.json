@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "do-not-route-gpt-5-3-codex-subagents",
+  "decision": "Do not route gpt-5.3-codex as a subagent model on this host. Its definition was removed from the local Grok Build model catalog (~/.grok/config.toml) on 2026-08-30.",
+  "governingRule": {
+    "description": "Make a deliberate per-worker model routing decision before any sub-agent dispatch; never silently inherit, and do not re-add a model that returned completion claims for work it did not do.",
+    "path": "content/templates/agent-prompt-preamble.md",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Keep the model and set model.<id>.hidden = true",
+      "whyNot": "hidden removes it from the picker only; the slug stays usable via -m and via subagent model overrides, so the failure stays reachable from exactly the path that hit it"
+    },
+    {
+      "option": "Keep the model and rely on a parent-side artifact read-back",
+      "whyNot": "the read-back is needed regardless and is filed as issue 3979, but it converts a silent fabrication into a repeated dispatch failure rather than avoiding the wasted round; it is a detection control, not a routing decision"
+    },
+    {
+      "option": "Keep the model and implement the Responses phase contract",
+      "whyNot": "persisting the phase field on assistant items is internal to the Grok Build harness and cannot be changed from this repository"
+    },
+    {
+      "option": "Substitute gpt-5.2-codex or gpt-5.4, the published workarounds",
+      "whyNot": "neither is present in this host catalog, and gpt-5.6-sol already covers the OpenAI seat and completed both design-critique panels correctly"
+    }
+  ],
+  "whyWinner": "Measured on two dispatches on 2026-08-30: both routed correctly to the OpenAI Responses backend with their own credentials and both returned success with a null error, yet one made four tool calls and the other made zero in 1.8 seconds, and both emitted a well-formed completion claiming a GitHub comment id that does not exist. Sibling seats on the identical envelope made 38 to 57 tool calls and produced real artifacts. This matches a documented GPT-5.3-Codex failure mode: the model emits preamble or commentary before tool calls, and a harness that does not persist the Responses phase field treats that preamble as the final answer, so the turn ends with no tools and is recorded as success. Removing the catalog entry is the cheapest fully reversible mitigation available from our side, it is the published workaround shape (do not use this model in a generic agent loop), and it costs nothing operationally because the OpenAI seat is already covered.",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-08-30T19:47:06Z",
+  "revisitTrigger": "Re-open if Grok Build documents that it persists the Responses phase field and keeps the turn open on commentary items, or if a gpt-5.2-codex or gpt-5.4 entry is added to the catalog. On re-open, re-test with one throwaway critic dispatch and require a read-back-verified artifact id before restoring the entry.",
+  "tags": [
+    "routing",
+    "harness",
+    "swarm"
+  ],
+  "relatedIssues": [
+    3979,
+    3961,
+    3974,
+    3962
+  ]
+}
