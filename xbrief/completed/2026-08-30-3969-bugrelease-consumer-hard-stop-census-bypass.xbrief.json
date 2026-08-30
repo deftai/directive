@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Story xBRIEF for #3969 re-scoped bound remedy; successor lean 5470479357.",
-    "updated": "2026-08-30T20:17:51Z"
+    "updated": "2026-08-30T20:34:56Z"
   },
   "plan": {
     "title": "bug(release): close the unrecorded Closes bypass, fix census input, wire the existing closing-keyword detector",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Bound SoT is successor lean 5470479357 after the issue-body premise was refuted. Priority 1 is position classification of parseClosesSet. Priority 2 is privileged-label census. Priority 4 wires pr:check-closing-keywords. No ships-past hatch.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3969",
@@ -152,7 +152,30 @@
         ],
         "module_boundary": "packages/core/src/release",
         "cohesion_exemption": "CHANGELOG.md is a chronological append-only release log."
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3972,
+        "prBase": null,
+        "mergeCommit": "b504df2abad8bc575f8958c82e037ac887f25bc6",
+        "deliveryBranch": "master",
+        "deliveryCommit": "b504df2abad8bc575f8958c82e037ac887f25bc6",
+        "verifiedAt": "2026-08-30T20:34:56Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-30T20:34:56Z"
+      },
+      "completedAt": "2026-08-30T20:34:56Z",
+      "capacityBucket": "technical-debt"
     },
     "acceptance": {
       "commands": [],
@@ -198,6 +221,6 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-08-30T20:17:51Z"
+    "updated": "2026-08-30T20:34:56Z"
   }
 }
