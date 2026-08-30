@@ -28,10 +28,10 @@ describe("resolveClosingKeywordsSource (#3969)", () => {
     });
   });
 
-  it("skips when no base ref can be merged", () => {
+  it("reports missing-base when no base ref can be merged", () => {
     const none: RunGitFn = () => ({ returncode: 128, stdout: "", stderr: "unknown" });
     const result = resolveClosingKeywordsSource({}, none);
-    expect(result.kind).toBe("skip");
+    expect(result.kind).toBe("missing-base");
   });
 });
 
@@ -66,13 +66,14 @@ describe("run", () => {
     ]);
   });
 
-  it("skips with exit 0 when no merge-base exists", () => {
+  it("fails closed with exit 2 when no merge-base exists", () => {
     const invoke = vi.fn().mockReturnValue(1);
     const none: RunGitFn = () => ({ returncode: 128, stdout: "", stderr: "unknown" });
     const stderr = vi.spyOn(process.stderr, "write").mockReturnValue(true);
-    expect(run([], {}, invoke, none)).toBe(0);
+    expect(run([], {}, invoke, none)).toBe(2);
     expect(invoke).not.toHaveBeenCalled();
-    expect(stderr.mock.calls.join("")).toContain("skip");
+    expect(stderr.mock.calls.join("")).toContain("fail --");
+    expect(stderr.mock.calls.join("")).toContain("git fetch origin master");
     stderr.mockRestore();
   });
 });

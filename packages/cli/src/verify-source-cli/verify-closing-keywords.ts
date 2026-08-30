@@ -14,7 +14,7 @@ export type RunGitFn = (args: readonly string[]) => {
 export type RangeResolution =
   | { readonly kind: "pr"; readonly pr: string }
   | { readonly kind: "range"; readonly range: string }
-  | { readonly kind: "skip"; readonly reason: string };
+  | { readonly kind: "missing-base"; readonly reason: string };
 
 export function defaultRunGit(args: readonly string[]): {
   returncode: number;
@@ -70,7 +70,7 @@ export function resolveClosingKeywordsSource(
     }
   }
   return {
-    kind: "skip",
+    kind: "missing-base",
     reason:
       "no merge-base against origin/master, origin/main, or master. Recovery: git fetch origin master.",
   };
@@ -80,13 +80,13 @@ export function buildClosingKeywordsCheckArgv(
   env: NodeJS.ProcessEnv,
   extra: readonly string[] = [],
   runGit: RunGitFn = defaultRunGit,
-): { argv: string[]; skip?: string } {
+): { argv: string[]; error?: string } {
   const source = resolveClosingKeywordsSource(env, runGit);
   if (source.kind === "pr") {
     return { argv: ["--mode", "fp", "--pr", source.pr, ...extra] };
   }
-  if (source.kind === "skip") {
-    return { argv: [], skip: source.reason };
+  if (source.kind === "missing-base") {
+    return { argv: [], error: source.reason };
   }
   return { argv: ["--mode", "fp", "--from-git-range", source.range, ...extra] };
 }
@@ -98,9 +98,9 @@ export function run(
   runGit: RunGitFn = defaultRunGit,
 ): number {
   const built = buildClosingKeywordsCheckArgv(env, argv, runGit);
-  if (built.skip !== undefined) {
-    process.stderr.write("verify:closing-keywords: skip -- " + built.skip + "\n");
-    return 0;
+  if (built.error !== undefined) {
+    process.stderr.write("verify:closing-keywords: fail -- " + built.error + "\n");
+    return 2;
   }
   return invoke(built.argv);
 }
