@@ -741,10 +741,7 @@ describe("verified-claims table resolution precedence (#3932)", () => {
       ["comments permalink", `/issues/comments/${LEAN_ID} and /issues/comments/${TABLE_ID}`],
     ];
     for (const [label, cite] of generic) {
-      expect(
-        evaluateCompletedArcRecord({ comments: [lean, table, record(cite)] }),
-        label,
-      ).toEqual({
+      expect(evaluateCompletedArcRecord({ comments: [lean, table, record(cite)] }), label).toEqual({
         status: "complete",
         synthesisCommentId: SYNTHESIS_ID,
         citedLeanId: LEAN_ID,
