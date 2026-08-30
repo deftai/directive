@@ -248,4 +248,22 @@ describe("shell write reissue (#3983 / #3987)", () => {
     );
     expect(decision.verdict).toBe("allow");
   });
+  it("denies occupancy for a dest that lexically looks like temp but canonicalizes in-repo", () => {
+    const root = occupiedRoot();
+    const sneak = root.replace(/\\/g, "/") + "/tmp/../src/app.ts";
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "run_terminal_command",
+          tool_input: { command: "Set-Content -Path " + sneak + " -Value x" },
+        },
+        environ: { DEFT_SESSION_ID: "other" },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-occupied" });
+  });
 });

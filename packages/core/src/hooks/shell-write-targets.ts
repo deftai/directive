@@ -163,19 +163,10 @@ export function classifyShellWriteTargets(command: string): ShellWriteTarget[] {
   return found.map((d) => ({ ...d, unprovable: true as const }));
 }
 
-function looksLikeTempPath(path: string): boolean {
-  const lower = path.toLowerCase().replace(/\\/g, "/");
-  if (lower.includes("/temp/")) return true;
-  if (lower.includes("/tmp/")) return true;
-  if (lower.includes("/tmpdir/")) return true;
-  return false;
-}
-
 export function isInRepoShellWritePath(projectRoot: string, dest: string): boolean {
   const path = dest.trim();
   if (path.length === 0) return false;
   if (path.includes("*") || path.includes("?") || path.includes("$")) return false;
-  if (looksLikeTempPath(path)) return false;
   const root = resolve(projectRoot);
   if (isAbsolute(path)) {
     const abs = resolve(path);

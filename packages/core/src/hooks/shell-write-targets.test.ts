@@ -34,6 +34,7 @@ describe("classifyShellWriteTargets", () => {
   it("treats OS-temp dests as not in-repo", () => {
     expect(isInRepoShellWritePath("/repo", "src/app.ts")).toBe(true);
     expect(isInRepoShellWritePath("/repo", "/tmp/body.md")).toBe(false);
+    expect(isInRepoShellWritePath("/repo", "/tmp/../repo/src/app.ts")).toBe(true);
   });
   it("does not classify echo of a Set-Content spelling", () => {
     expect(classifyShellWriteTargets("echo Set-Content -Path src/app.ts")).toEqual([]);
