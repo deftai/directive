@@ -59,7 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- **Known issue: on Grok Build, shell-issued writes bypass the write gate and do not refresh the occupancy lease (#3987).** Directive's PreToolUse hooks gate this host's edit and spawn tools, but its shell tool is named `run_terminal_command` and is absent from the matcher set, so a write refused through the edit tool succeeds when reissued through the shell. Because that same gate is also the only thing that refreshes a worktree occupancy lease, a session whose writes all go through the shell can appear abandoned within the staleness window and have its worktree legitimately claimed by a concurrent agent. This release carries the Grok host-identity transport (#3948) that lease refresh depends on; matcher coverage is in flight separately (#3990), and the remaining lease-liveness work is tracked on #3987. Claude Code, Cursor, and Codex deposits carry the shell matcher and are not affected. Refs #3599, #3742, #3785.
+- **Known issue: Grok Build shell writes bypass the write gate and occupancy-lease refresh (#3987).** Its unmatched `run_terminal_command` tool can write after an edit-tool denial and can let an active worktree appear abandoned. Matcher coverage is tracked in #3990; Claude Code, Cursor, and Codex are unaffected.
 ## [0.108.0] - 2026-08-29
 
 > Worktree leases admit named child sessions, a missing hook runtime is now recoverable instead of an opaque lockout, and lifecycle gates stop trusting stale issue state.
