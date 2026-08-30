@@ -16,7 +16,9 @@ import { type CompletedProcess, call } from "../scm/call.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
 import { resolveProjectRepo } from "../slice/project-context.js";
 import {
+  type CurrentShapeNullReason,
   countMaintainerCurrentShapeComments,
+  describeCurrentShapeNull,
   mapIssueCommentEntry,
   RAW_ISSUE_COMMENTS_KEY,
   type IssueComment as ShapeIssueComment,
@@ -122,6 +124,16 @@ export function selectIngestCurrentShape(
   comments: readonly IssueComment[],
 ): (ShapeIssueComment & { pass: number }) | null {
   return selectCurrentShapeComment(mapIngestCommentsToShapeComments(comments));
+}
+
+/**
+ * Classify why `selectIngestCurrentShape` returned null so ingest can report a
+ * reason instead of silently omitting the CurrentShape narrative (#3934).
+ */
+export function describeIngestCurrentShapeNull(
+  comments: readonly IssueComment[],
+): CurrentShapeNullReason {
+  return describeCurrentShapeNull(mapIngestCommentsToShapeComments(comments));
 }
 
 /** Count maintainer current-shape comments (lint surface for !=1). */
@@ -532,6 +544,16 @@ export function buildIssueVbrief(
   if (currentShape !== null) {
     // Scan shape body under the same fail-closed contract as Overview (#2306).
     narratives.CurrentShape = scanUntrustedIngestText(number, currentShape.body);
+  } else {
+    // #3934: a thread whose only shape comments failed the #2307 authorship
+    // filter is otherwise indistinguishable from a thread that never had one,
+    // so a cache-reading agent falls back to the stale body. The note is
+    // framework-authored and carries comment ids plus normalized author
+    // associations only -- no comment text -- so it needs no quarantine scan.
+    const shapeNullReason = describeIngestCurrentShapeNull(commentThread);
+    if (shapeNullReason.kind === "non-maintainer-shape") {
+      narratives.CurrentShapeUnavailable = shapeNullReason.message;
+    }
   }
   if (labelNames.length > 0) {
     narratives.Labels = labelNames.join(", ");

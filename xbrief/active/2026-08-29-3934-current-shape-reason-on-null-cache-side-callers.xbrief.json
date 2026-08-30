@@ -1,0 +1,144 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #3934, scoped to the accepted design-critique lean 5466514662 (not the filed body)",
+    "updated": "2026-08-30T04:22:14Z"
+  },
+  "plan": {
+    "title": "fix(umbrella-current-shape): report a reason on the selected-null path at the three silent cache-side callers",
+    "status": "running",
+    "narratives": {
+      "Description": "On a contributor-only thread the sidecar builder, appendCurrentShapeSection, and ingest's CurrentShape omission return a bare null, so a cache-reading agent that never invokes the CLI falls back to the stale issue body. Add an advisory reason on that null path only.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3934",
+      "Overview": "## What the design-critique arc bound, and what it struck\n\nThe issue as filed did not survive its arc. The accepted lean is comment 5466514662; the verified-claims table is 5466514758; the synthesis is 5466516467. An implementer reads those, not the body.\n\n**Struck, and deliberately not built here:**\n\n- \"Nothing reports the discard\" is false. `NON_MAINTAINER_CURRENT_SHAPE_MESSAGE` already ships at `packages/core/src/umbrella-current-shape/index.ts:478`, and `fetchCurrentShape` branches on `hadNonMaintainerShape` at 499-506. On a contributor-only thread `deft umbrella:current-shape` already exits 1 naming that exact situation. No new CLI diagnostic is built.\n- Two filed acceptance criteria are a forge-to-fail vector. Anyone who can comment can post a `## Current shape (as of pass-N)` line. Making the `!= 1` count include discarded candidates, or making `--strict` exit non-zero when one exists, would let any commenter fail the health gates on every tracker that already has a valid maintainer shape. That inverts #2307 from \"ignore forgeries\" to \"forgeries break the gate\". Both criteria are struck.\n- The filed consumer inventory was wrong: `selectIngestCurrentShapeComment` does not exist (the wrapper is `selectIngestCurrentShape`), `countIngestCurrentShapeComments` has no call sites, and ingest Overview concatenates the whole thread rather than taking a silent null branch.\n\n**Trust filter stays.** `MAINTAINER_ASSOCIATIONS` remains `{OWNER, MEMBER, COLLABORATOR}`.\n\n## What is built\n\nOne shared, advisory `describeCurrentShapeNull` primitive in `umbrella-current-shape`, classifying the selected-null path as `no-shape-comment` or `non-maintainer-shape` and naming discarded candidates by comment id plus a normalized `author_association`. Wired at the three silent cache-side callers:\n\n1. the sidecar builder returns `{ sidecar, reason }` instead of a bare null;\n2. `appendCurrentShapeSection` appends a short `## Canonical current shape: not selected` note to cache `content.md`;\n3. `buildIssueVbrief` sets `narratives.CurrentShapeUnavailable`.\n\n## Constraints held\n\n- Advisory only. Nothing new fails closed; no exit code, gate, or required check changes (#3156).\n- Selected-null path only. When a maintainer shape is selected, the emitted artifacts are byte-identical to today, including on a mixed thread that also carries a discarded contributor draft.\n- Callers stay silent on the plain `no-shape-comment` case so ordinary non-umbrella issues gain no new noise.\n- Diagnostics never reproduce a comment body. They carry the numeric comment id and an author association normalized to `[A-Z_]` or `UNKNOWN`.\n- `--strict` and the maintainer count are untouched.\n\n## Left to the operator, deliberately not acted on\n\nThe arc found `blocks-release-tag` disproportionate to the measured blast radius; the label is the operator's to change and stays. The title's \"no reader-visible shape\" claim is scoped down to the contributor-only case on the thread; the issue is not re-cut.\n\nRefs #3934, #2307, #1152, #1870, #2143, #3156.",
+      "Labels": "bug, determinism, agent-safety"
+    },
+    "items": [
+      {
+        "title": "Shared advisory `describeCurrentShapeNull` classifies the selected-null path and names discarded candidates by id and normalized association, never by body",
+        "status": "proposed"
+      },
+      {
+        "title": "Sidecar builder returns a reason alongside the null instead of a bare null",
+        "status": "proposed"
+      },
+      {
+        "title": "`appendCurrentShapeSection` appends a not-selected note to cache content.md on a contributor-only thread",
+        "status": "proposed"
+      },
+      {
+        "title": "Ingest sets `narratives.CurrentShapeUnavailable` when the CurrentShape narrative is omitted because every candidate was discarded",
+        "status": "proposed"
+      },
+      {
+        "title": "Regression coverage pins the maintainer-selected path byte-identical, `--strict` unchanged, and the maintainer count excluding discarded candidates",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG `[Unreleased]` entry",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "determinism",
+      "agent-safety"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3934",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3934: umbrella current-shape: a CONTRIBUTOR-authored shape comment is discarded silently"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3934#issuecomment-5466514662",
+        "type": "x-xbrief/refs",
+        "title": "Accepted lean for #3934 (supersedes the filed body)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3934#issuecomment-5466516467",
+        "type": "x-xbrief/refs",
+        "title": "Accepted synthesis for #3934"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2307",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2307: maintainer-authored trust rule for current-shape comments"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/umbrella-current-shape packages/core/src/intake/issue-ingest.test.ts packages/core/src/cache/operations.test.ts"
+        },
+        {
+          "command": "task verify:encoding"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "On a contributor-only thread, each of the three cache-side callers reports a reason for the null rather than returning a bare null",
+          "artifact_path": "packages/core/src/umbrella-current-shape/index.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "On a thread where a maintainer shape is selected, behaviour is byte-identical to today, pinned by test",
+          "artifact_path": "packages/core/src/umbrella-current-shape/index.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "`--strict` behaviour is unchanged, pinned by test",
+          "artifact_path": "packages/core/src/umbrella-current-shape/index.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "The maintainer count / `!= 1` lint does not count discarded candidates, pinned by test",
+          "artifact_path": "packages/core/src/umbrella-current-shape/index.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "No reported diagnostic contains any part of a comment body",
+          "artifact_path": "packages/core/src/umbrella-current-shape/index.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "`MAINTAINER_ASSOCIATIONS` is unchanged",
+          "artifact_path": "packages/core/src/umbrella-current-shape/index.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/umbrella-current-shape/index.ts",
+          "packages/core/src/umbrella-current-shape/index.test.ts",
+          "packages/core/src/intake/issue-ingest.ts",
+          "packages/core/src/intake/issue-ingest.test.ts",
+          "packages/core/src/cache/operations.ts",
+          "packages/core/src/cache/operations.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/umbrella-current-shape",
+        "cohesion_exemption": "cache/operations.ts carries a single mechanical call-site update for the sidecar builder's new return shape, and its test file pins the note at the real cachePut boundary; CHANGELOG.md is a chronological append-only release log and this slice appends one [Unreleased] entry."
+      }
+    },
+    "updated": "2026-08-30T04:22:14Z"
+  }
+}

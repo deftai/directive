@@ -188,6 +188,30 @@ export interface CurrentShapeSidecar {
   readonly body: string;
 }
 
+/** A shape-shaped comment dropped by the #2307 authorship filter (#3934). */
+export interface DiscardedShapeCandidate {
+  readonly commentId: number;
+  /** Normalized `author_association` -- never comment text. */
+  readonly authorAssociation: string;
+}
+
+/**
+ * Why `selectCurrentShapeComment` returned null (#3934). Advisory: it is not
+ * consumed by any gate, exit code, or count.
+ */
+export interface CurrentShapeNullReason {
+  readonly kind: "no-shape-comment" | "non-maintainer-shape";
+  readonly discarded: readonly DiscardedShapeCandidate[];
+  readonly message: string;
+}
+
+/** Sidecar payload, or the reason none was selectable (#3934). */
+export interface CurrentShapeSidecarOutcome {
+  readonly sidecar: CurrentShapeSidecar | null;
+  /** Non-null exactly when `sidecar` is null. */
+  readonly reason: CurrentShapeNullReason | null;
+}
+
 /** True when labels or sub-issue summary mark the issue as umbrella/tracker-like. */
 export function isUmbrellaLikeIssue(raw: Record<string, unknown>): boolean {
   const labelsRaw = raw.labels;
@@ -267,34 +291,69 @@ export function formatCurrentShapeSection(selected: CurrentShapeComment): string
   ].join("\n");
 }
 
+/** Advisory cache note for a selected-null thread that had discarded candidates (#3934). */
+export function formatCurrentShapeNotSelectedSection(reason: CurrentShapeNullReason): string {
+  return [
+    "",
+    "---",
+    "",
+    "## Canonical current shape: not selected (#1152 / #2307)",
+    "",
+    `_${reason.message} Deterministic read path: \`task umbrella:current-shape <N>\`._`,
+    "",
+  ].join("\n");
+}
+
 /**
  * Append the canonical current-shape comment (if any) to a rendered cache body.
- * Returns the input unchanged when no maintainer-authored current-shape exists.
+ *
+ * When nothing is selectable but the thread carried shape-shaped comments that
+ * the #2307 authorship filter dropped, append the advisory not-selected note
+ * instead of returning the body unchanged (#3934): an agent reading content.md
+ * without invoking `umbrella:current-shape` would otherwise see only the stale
+ * body the #1152 rule tells it to distrust. A thread with no shape comment at
+ * all is still returned unchanged, so ordinary issues gain no note.
  */
 export function appendCurrentShapeSection(
   baseContent: string,
   raw: Record<string, unknown>,
 ): string {
-  const selected = selectCurrentShapeComment(commentsFromRawPayload(raw));
+  const comments = commentsFromRawPayload(raw);
+  const selected = selectCurrentShapeComment(comments);
   if (selected === null) {
-    return baseContent;
+    const reason = describeCurrentShapeNull(comments);
+    if (reason.kind !== "non-maintainer-shape") {
+      return baseContent;
+    }
+    return `${baseContent.trimEnd()}\n${formatCurrentShapeNotSelectedSection(reason)}`;
   }
   return `${baseContent.trimEnd()}\n${formatCurrentShapeSection(selected)}`;
 }
 
-/** Build the current-shape.json sidecar payload, or null when none is selectable. */
-export function buildCurrentShapeSidecar(raw: Record<string, unknown>): CurrentShapeSidecar | null {
-  const selected = selectCurrentShapeComment(commentsFromRawPayload(raw));
+/**
+ * Build the current-shape.json sidecar payload.
+ *
+ * Reports why nothing was selectable rather than returning a bare null (#3934),
+ * so a caller can tell "no shape comment on this thread" from "a shape comment
+ * exists but its author is outside MAINTAINER_ASSOCIATIONS". Advisory only --
+ * no sidecar is written on either null kind, exactly as before.
+ */
+export function buildCurrentShapeSidecar(raw: Record<string, unknown>): CurrentShapeSidecarOutcome {
+  const comments = commentsFromRawPayload(raw);
+  const selected = selectCurrentShapeComment(comments);
   if (selected === null) {
-    return null;
+    return { sidecar: null, reason: describeCurrentShapeNull(comments) };
   }
   return {
-    commentId: selected.id,
-    htmlUrl: selected.htmlUrl,
-    pass: selected.pass,
-    authorLogin: selected.authorLogin,
-    authorAssociation: selected.authorAssociation,
-    body: selected.body,
+    sidecar: {
+      commentId: selected.id,
+      htmlUrl: selected.htmlUrl,
+      pass: selected.pass,
+      authorLogin: selected.authorLogin,
+      authorAssociation: selected.authorAssociation,
+      body: selected.body,
+    },
+    reason: null,
   };
 }
 
@@ -481,6 +540,66 @@ export const NON_MAINTAINER_CURRENT_SHAPE_MESSAGE =
   "ignored per AGENTS.md ## Umbrella current-shape convention (#1152 / #2307). " +
   "A maintainer must (re-)post the current-shape comment for it to be authoritative.";
 
+/** Bound the diagnostic so one forged thread cannot flood a cache note (#3934). */
+export const MAX_REPORTED_DISCARDED_CANDIDATES = 5;
+
+const SAFE_ASSOCIATION_RE = /^[A-Z_]{1,32}$/;
+
+/**
+ * GitHub sets `author_association` from a fixed enum, but a replayed or
+ * hand-built payload can carry anything. Normalizing keeps the diagnostic from
+ * smuggling arbitrary payload text into an agent-facing surface (#3934).
+ */
+function normalizeAssociation(raw: string): string {
+  const upper = raw.trim().toUpperCase();
+  return SAFE_ASSOCIATION_RE.test(upper) ? upper : "UNKNOWN";
+}
+
+function formatDiscardedCandidates(discarded: readonly DiscardedShapeCandidate[]): string {
+  const shown = discarded
+    .slice(0, MAX_REPORTED_DISCARDED_CANDIDATES)
+    .map((candidate) => `comment ${candidate.commentId} (${candidate.authorAssociation})`);
+  const hidden = discarded.length - shown.length;
+  return hidden > 0 ? `${shown.join(", ")}, and ${hidden} more` : shown.join(", ");
+}
+
+/**
+ * Classify a null return from `selectCurrentShapeComment` (#3934).
+ *
+ * Advisory only: it changes no selection, no maintainer count, and no exit code.
+ * Discarded candidates are named by comment id and normalized author
+ * association; a comment body is never reproduced, because forwarding untrusted
+ * text into a cache or xBRIEF narrative is the injection this filter exists to
+ * refuse (#2307).
+ */
+export function describeCurrentShapeNull(
+  comments: readonly IssueComment[],
+): CurrentShapeNullReason {
+  const discarded: DiscardedShapeCandidate[] = [];
+  for (const comment of comments) {
+    if (isMaintainerAuthored(comment.authorAssociation)) {
+      continue;
+    }
+    if (extractPassFromBody(comment.body) === null) {
+      continue;
+    }
+    discarded.push({
+      commentId: comment.id,
+      authorAssociation: normalizeAssociation(comment.authorAssociation),
+    });
+  }
+  if (discarded.length === 0) {
+    return { kind: "no-shape-comment", discarded: [], message: NO_CURRENT_SHAPE_MESSAGE };
+  }
+  return {
+    kind: "non-maintainer-shape",
+    discarded,
+    message:
+      `${NON_MAINTAINER_CURRENT_SHAPE_MESSAGE} ` +
+      `Discarded candidate(s): ${formatDiscardedCandidates(discarded)}.`,
+  };
+}
+
 export function fetchCurrentShape(options: {
   repo: string;
   issueNumber: number;
@@ -495,15 +614,15 @@ export function fetchCurrentShape(options: {
   }
   const selected = selectCurrentShapeComment(fetched);
   if (selected === null) {
-    // Distinguish provenance-filtered absence from genuine absence (#2307).
-    const hadNonMaintainerShape = fetched.some(
-      (c) => extractPassFromBody(c.body) !== null && !isMaintainerAuthored(c.authorAssociation),
-    );
+    // Distinguish provenance-filtered absence from genuine absence (#2307), via
+    // the same classifier the cache-side callers use (#3934). The CLI keeps its
+    // two existing messages verbatim -- discarded ids stay off this surface.
     return {
       ok: false,
-      error: hadNonMaintainerShape
-        ? NON_MAINTAINER_CURRENT_SHAPE_MESSAGE
-        : NO_CURRENT_SHAPE_MESSAGE,
+      error:
+        describeCurrentShapeNull(fetched).kind === "non-maintainer-shape"
+          ? NON_MAINTAINER_CURRENT_SHAPE_MESSAGE
+          : NO_CURRENT_SHAPE_MESSAGE,
       kind: "not-found",
     };
   }

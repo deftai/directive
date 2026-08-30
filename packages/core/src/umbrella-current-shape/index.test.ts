@@ -5,12 +5,15 @@ import {
   CURRENT_SHAPE_HEADER_RE,
   commentsFromRawPayload,
   countMaintainerCurrentShapeComments,
+  describeCurrentShapeNull,
   detectSections,
   extractPassFromBody,
   fetchCurrentShape,
   formatCurrentShapeSection,
   type IssueComment,
   isUmbrellaLikeIssue,
+  MAINTAINER_ASSOCIATIONS,
+  MAX_REPORTED_DISCARDED_CANDIDATES,
   mapIssueCommentEntry,
   NO_CURRENT_SHAPE_MESSAGE,
   NON_MAINTAINER_CURRENT_SHAPE_MESSAGE,
@@ -130,8 +133,9 @@ describe("current-shape cache/ingest helpers (#1870)", () => {
     expect(withShape).toContain("pass-2");
     expect(withShape).toContain("stale charter body");
     expect(withShape).toContain(selected.htmlUrl);
-    const sidecar = buildCurrentShapeSidecar(raw);
-    expect(sidecar).toMatchObject({ commentId: 42, pass: 2, htmlUrl: selected.htmlUrl });
+    const outcome = buildCurrentShapeSidecar(raw);
+    expect(outcome.reason).toBeNull();
+    expect(outcome.sidecar).toMatchObject({ commentId: 42, pass: 2, htmlUrl: selected.htmlUrl });
     expect(formatCurrentShapeSection(selected)).toContain("task umbrella:current-shape");
     expect(appendCurrentShapeSection(base, { number: 1 })).toBe(base);
   });
@@ -459,6 +463,192 @@ describe("runCurrentShape", () => {
     });
     expect(code).toBe(2);
     expect(errLines.join("")).toContain("could not resolve owner/repo");
+  });
+});
+
+describe("reason on the selected-null path at the cache-side callers (#3934)", () => {
+  // A body marker that MUST never reach a diagnostic: the discard report names
+  // ids and associations, never comment text.
+  const DRAFT_MARKER = "DRAFT-MARKER-MUST-NOT-BE-ECHOED";
+
+  const contributorShape = comment(5460037833, `${SAMPLE_BODY}\n\n${DRAFT_MARKER}\n`, {
+    pass: 1,
+    authorLogin: "dbcall2",
+    authorAssociation: "CONTRIBUTOR",
+  });
+  const maintainerShape = comment(5466380241, SAMPLE_BODY, {
+    pass: 2,
+    authorLogin: "maintainer",
+    authorAssociation: "MEMBER",
+  });
+  const amendmentOnly = comment(1, "Amendment note only");
+
+  function rawWith(comments: readonly IssueComment[]): Record<string, unknown> {
+    return {
+      number: 3934,
+      [RAW_ISSUE_COMMENTS_KEY]: comments.map((c) => ({
+        id: c.id,
+        body: c.body,
+        html_url: c.htmlUrl,
+        author_association: c.authorAssociation,
+        user: { login: c.authorLogin },
+      })),
+    };
+  }
+
+  function runCapture(comments: readonly IssueComment[], strict = false) {
+    const out: string[] = [];
+    const err: string[] = [];
+    const code = runCurrentShape({
+      issueNumber: 3934,
+      projectRoot: "/tmp",
+      repo: "deftai/directive",
+      strict,
+      fetchComments: () => [...comments],
+      writeOut: (t) => out.push(t),
+      writeErr: (t) => err.push(t),
+    });
+    return { code, out: out.join(""), err: err.join("") };
+  }
+
+  it("classifies the two null kinds and names discarded candidates by id", () => {
+    const absent = describeCurrentShapeNull([amendmentOnly]);
+    expect(absent.kind).toBe("no-shape-comment");
+    expect(absent.discarded).toEqual([]);
+    expect(absent.message).toBe(NO_CURRENT_SHAPE_MESSAGE);
+
+    const dropped = describeCurrentShapeNull([contributorShape]);
+    expect(dropped.kind).toBe("non-maintainer-shape");
+    expect(dropped.discarded).toEqual([
+      { commentId: 5460037833, authorAssociation: "CONTRIBUTOR" },
+    ]);
+    expect(dropped.message).toContain(NON_MAINTAINER_CURRENT_SHAPE_MESSAGE);
+    expect(dropped.message).toContain("comment 5460037833 (CONTRIBUTOR)");
+  });
+
+  it("normalizes an unexpected author_association rather than echoing payload text", () => {
+    const reason = describeCurrentShapeNull([
+      comment(7, SAMPLE_BODY, { authorAssociation: "<img src=x onerror=alert(1)>" }),
+    ]);
+    expect(reason.discarded[0]?.authorAssociation).toBe("UNKNOWN");
+    expect(reason.message).toContain("comment 7 (UNKNOWN)");
+    expect(reason.message).not.toContain("onerror");
+  });
+
+  it("bounds how many discarded candidates the message names", () => {
+    const flood = Array.from({ length: MAX_REPORTED_DISCARDED_CANDIDATES + 3 }, (_, i) =>
+      comment(900 + i, SAMPLE_BODY, { pass: 99, authorAssociation: "NONE" }),
+    );
+    const reason = describeCurrentShapeNull(flood);
+    expect(reason.discarded).toHaveLength(MAX_REPORTED_DISCARDED_CANDIDATES + 3);
+    expect(reason.message).toContain("and 3 more");
+  });
+
+  it("caller 1: the sidecar builder returns a reason instead of a bare null", () => {
+    const dropped = buildCurrentShapeSidecar(rawWith([contributorShape]));
+    expect(dropped.sidecar).toBeNull();
+    expect(dropped.reason?.kind).toBe("non-maintainer-shape");
+    expect(dropped.reason?.message).toContain("comment 5460037833 (CONTRIBUTOR)");
+
+    const absent = buildCurrentShapeSidecar(rawWith([amendmentOnly]));
+    expect(absent.sidecar).toBeNull();
+    expect(absent.reason?.kind).toBe("no-shape-comment");
+  });
+
+  it("caller 2: appendCurrentShapeSection appends a not-selected note", () => {
+    const base = "# #3934: umbrella\n\nstale charter body";
+    const noted = appendCurrentShapeSection(base, rawWith([contributorShape]));
+    expect(noted).toContain("## Canonical current shape: not selected (#1152 / #2307)");
+    expect(noted).toContain("comment 5460037833 (CONTRIBUTOR)");
+    expect(noted).toContain("stale charter body");
+    // The note itself must never be re-selectable as a shape comment.
+    expect(extractPassFromBody(noted)).toBeNull();
+    // A thread with no shape comment at all still gains nothing.
+    expect(appendCurrentShapeSection(base, rawWith([amendmentOnly]))).toBe(base);
+  });
+
+  it("criterion 2: a selected maintainer shape is byte-identical with a discarded draft present", () => {
+    const base = "# #3934: umbrella\n\nstale charter body";
+    const mixed = rawWith([contributorShape, maintainerShape]);
+    const maintainerOnly = rawWith([maintainerShape]);
+
+    expect(appendCurrentShapeSection(base, mixed)).toBe(
+      appendCurrentShapeSection(base, maintainerOnly),
+    );
+    expect(buildCurrentShapeSidecar(mixed)).toEqual(buildCurrentShapeSidecar(maintainerOnly));
+    expect(buildCurrentShapeSidecar(mixed).reason).toBeNull();
+    expect(buildCurrentShapeSidecar(mixed).sidecar?.commentId).toBe(5466380241);
+
+    const mixedRun = runCapture([contributorShape, maintainerShape]);
+    const maintainerRun = runCapture([maintainerShape]);
+    expect(mixedRun.code).toBe(maintainerRun.code);
+    expect(mixedRun.out).toBe(maintainerRun.out);
+    expect(mixedRun.err).toBe(maintainerRun.err);
+    expect(mixedRun.code).toBe(0);
+  });
+
+  it("criterion 3: --strict is unchanged", () => {
+    // A discarded draft alongside a complete maintainer shape stays exit 0.
+    expect(runCapture([contributorShape, maintainerShape], true)).toEqual(
+      runCapture([maintainerShape], true),
+    );
+    expect(runCapture([maintainerShape], true).code).toBe(0);
+
+    // Contributor-only keeps the pre-#3934 exit 1 and the message verbatim --
+    // discarded ids stay off the CLI surface.
+    const contributorOnly = runCapture([contributorShape], true);
+    expect(contributorOnly.code).toBe(1);
+    expect(contributorOnly.out).toBe("");
+    expect(contributorOnly.err).toBe(
+      `umbrella:current-shape: ${NON_MAINTAINER_CURRENT_SHAPE_MESSAGE}\n`,
+    );
+
+    // A maintainer shape with missing sections still fails --strict.
+    const incomplete = comment(9, "## Current shape (as of pass-1)\n\nLast updated: now\n");
+    const missing = runCapture([incomplete], true);
+    expect(missing.code).toBe(1);
+    expect(missing.err).toContain("--strict: missing required section(s)");
+  });
+
+  it("criterion 4: the maintainer count does not count discarded candidates", () => {
+    const mixed = commentsFromRawPayload(rawWith([contributorShape, maintainerShape]));
+    expect(mixed).toHaveLength(2);
+    expect(countMaintainerCurrentShapeComments(mixed)).toBe(1);
+
+    expect(
+      countMaintainerCurrentShapeComments(commentsFromRawPayload(rawWith([contributorShape]))),
+    ).toBe(0);
+
+    // Forge-to-fail vector: any commenter can post a shape header, so no number
+    // of discarded drafts may move a healthy tracker off a count of 1.
+    const flooded = commentsFromRawPayload(
+      rawWith([
+        maintainerShape,
+        ...Array.from({ length: 20 }, (_, i) =>
+          comment(900 + i, SAMPLE_BODY, { pass: 99, authorAssociation: "NONE" }),
+        ),
+      ]),
+    );
+    expect(countMaintainerCurrentShapeComments(flooded)).toBe(1);
+  });
+
+  it("criterion 5: no diagnostic reproduces any part of a comment body", () => {
+    const base = "# #3934: umbrella\n\nstale charter body";
+    const raw = rawWith([contributorShape]);
+    const surfaces = [
+      describeCurrentShapeNull([contributorShape]).message,
+      buildCurrentShapeSidecar(raw).reason?.message ?? "",
+      appendCurrentShapeSection(base, raw),
+      runCapture([contributorShape]).err,
+    ];
+    for (const surface of surfaces) {
+      expect(surface).not.toContain(DRAFT_MARKER);
+      expect(surface).not.toContain("### Open children");
+    }
+  });
+
+  it("criterion 6: MAINTAINER_ASSOCIATIONS is unchanged", () => {
+    expect([...MAINTAINER_ASSOCIATIONS].sort()).toEqual(["COLLABORATOR", "MEMBER", "OWNER"]);
   });
 });
 

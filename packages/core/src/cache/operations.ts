@@ -154,7 +154,7 @@ export function cachePut(
   const rawSize = Buffer.byteLength(rawText, "utf8");
   // #1870 Greptile P2: account for current-shape sidecar bytes in cap + meta
   // so usage does not underreport by the cumulative sidecar size.
-  const plannedSidecar = buildCurrentShapeSidecar(raw);
+  const plannedSidecar = buildCurrentShapeSidecar(raw).sidecar;
   const plannedSidecarText =
     plannedSidecar !== null
       ? `${pythonJsonDump({

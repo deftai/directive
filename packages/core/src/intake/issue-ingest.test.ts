@@ -295,6 +295,99 @@ describe("buildIssueVbrief", () => {
     >;
     expect(narratives.CurrentShape).toBeUndefined();
   });
+
+  it("reports why CurrentShape is absent when every candidate was discarded (#3934)", () => {
+    const draftMarker = "DRAFT-MARKER-MUST-NOT-BE-ECHOED";
+    const [vbrief] = buildIssueVbrief(
+      {
+        number: 3915,
+        title: "Epic",
+        url: "https://github.com/o/r/issues/3915",
+        body: "superseded charter body",
+        labels: ["epic"],
+        issueCommentThread: [
+          {
+            id: 5460037833,
+            body: `## Current shape (as of pass-1)\n\n${draftMarker}`,
+            author_association: "CONTRIBUTOR",
+            user: { login: "dbcall2" },
+          },
+        ],
+      },
+      "proposed",
+      "https://github.com/o/r",
+    );
+    const plan = vbrief.plan as Record<string, unknown>;
+    const narratives = plan.narratives as Record<string, string>;
+    expect(narratives.CurrentShape).toBeUndefined();
+    expect(narratives.CurrentShapeUnavailable).toContain("authored by a non-maintainer");
+    expect(narratives.CurrentShapeUnavailable).toContain("comment 5460037833 (CONTRIBUTOR)");
+    expect(narratives.CurrentShapeUnavailable).not.toContain(draftMarker);
+    const refs = plan.references as Array<Record<string, string>>;
+    expect(refs.some((r) => r.type === "x-xbrief/current-shape")).toBe(false);
+  });
+
+  it("adds no CurrentShapeUnavailable narrative when a maintainer shape is selected (#3934)", () => {
+    const [vbrief] = buildIssueVbrief(
+      {
+        number: 3915,
+        title: "Epic",
+        url: "https://github.com/o/r/issues/3915",
+        body: "superseded charter body",
+        labels: ["epic"],
+        issueCommentThread: [
+          {
+            id: 5460037833,
+            body: "## Current shape (as of pass-1)\n\ncontributor draft",
+            author_association: "CONTRIBUTOR",
+            user: { login: "dbcall2" },
+          },
+          {
+            id: 5466380241,
+            body: "## Current shape (as of pass-2)\n\nmaintainer shape",
+            author_association: "MEMBER",
+            user: { login: "maintainer" },
+          },
+        ],
+      },
+      "proposed",
+      "https://github.com/o/r",
+    );
+    const narratives = (vbrief.plan as Record<string, unknown>).narratives as Record<
+      string,
+      string
+    >;
+    expect(narratives.CurrentShape).toContain("Current shape (as of pass-2)");
+    expect(narratives.CurrentShapeUnavailable).toBeUndefined();
+  });
+
+  it("adds no CurrentShapeUnavailable narrative when the thread has no shape at all (#3934)", () => {
+    const [vbrief] = buildIssueVbrief(
+      {
+        number: 3915,
+        title: "Epic",
+        url: "https://github.com/o/r/issues/3915",
+        body: "body",
+        labels: ["epic"],
+        issueCommentThread: [
+          {
+            id: 1,
+            body: "Amendment note only",
+            author_association: "CONTRIBUTOR",
+            user: { login: "dbcall2" },
+          },
+        ],
+      },
+      "proposed",
+      "https://github.com/o/r",
+    );
+    const narratives = (vbrief.plan as Record<string, unknown>).narratives as Record<
+      string,
+      string
+    >;
+    expect(narratives.CurrentShape).toBeUndefined();
+    expect(narratives.CurrentShapeUnavailable).toBeUndefined();
+  });
 });
 
 describe("issue-ingest layout-aware emission parity", () => {

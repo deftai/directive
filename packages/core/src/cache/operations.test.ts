@@ -13,6 +13,7 @@ import {
   renderContent,
 } from "./operations.js";
 import { FixedClock } from "./test-helpers.js";
+import type { PutResult } from "./types.js";
 
 const itSymlink = it.skipIf(process.platform === "win32");
 
@@ -188,6 +189,85 @@ describe("current-shape cache visibility (#1870)", () => {
       expect(String(sidecar.body)).toContain("Current shape (as of pass-2)");
     } finally {
       rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  const contributorDraft = {
+    id: 5460037833,
+    body: "## Current shape (as of pass-1)\n\nDRAFT-MARKER-MUST-NOT-BE-ECHOED",
+    html_url: "https://github.com/deftai/directive/issues/3915#issuecomment-5460037833",
+    author_association: "CONTRIBUTOR",
+    user: { login: "dbcall2" },
+  };
+
+  it("cachePut records why no shape was selected on a contributor-only thread (#3934)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-cache-shape-null-"));
+    try {
+      const result = cachePut(
+        "github-issue",
+        "deftai/directive/3915",
+        goodRaw({
+          number: 3915,
+          title: "Umbrella tracker",
+          body: "superseded charter body",
+          labels: [{ name: "epic" }],
+          [RAW_ISSUE_COMMENTS_KEY]: [contributorDraft],
+        }),
+        { cacheRoot: root },
+      );
+      expect(result.contentWritten).toBe(true);
+      const content = readFileSync(join(result.entryDir, "content.md"), "utf8");
+      expect(content).toContain("## Canonical current shape: not selected (#1152 / #2307)");
+      expect(content).toContain("comment 5460037833 (CONTRIBUTOR)");
+      expect(content).toContain("superseded charter body");
+      // The note reports the discard; it never reproduces the discarded body.
+      expect(content).not.toContain("DRAFT-MARKER-MUST-NOT-BE-ECHOED");
+      // Advisory only: still no sidecar, exactly as before #3934.
+      expect(existsSync(join(result.entryDir, CURRENT_SHAPE_SIDECAR))).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("cachePut output is byte-identical when a selected shape coexists with a draft (#3934)", () => {
+    const maintainerShape = {
+      id: 5466380241,
+      body: shapeBody,
+      html_url: "https://github.com/deftai/directive/issues/3915#issuecomment-5466380241",
+      author_association: "MEMBER",
+      user: { login: "maint" },
+    };
+    const roots = [
+      mkdtempSync(join(tmpdir(), "deft-cache-shape-mixed-")),
+      mkdtempSync(join(tmpdir(), "deft-cache-shape-clean-")),
+    ];
+    try {
+      const [mixed, clean] = [[contributorDraft, maintainerShape], [maintainerShape]].map(
+        (comments, i) =>
+          cachePut(
+            "github-issue",
+            "deftai/directive/3915",
+            goodRaw({
+              number: 3915,
+              title: "Umbrella tracker",
+              body: "superseded charter body",
+              labels: [{ name: "epic" }],
+              [RAW_ISSUE_COMMENTS_KEY]: comments,
+            }),
+            { cacheRoot: roots[i] as string },
+          ),
+      );
+      const read = (dir: string, name: string) => readFileSync(join(dir, name), "utf8");
+      expect(read((mixed as PutResult).entryDir, "content.md")).toBe(
+        read((clean as PutResult).entryDir, "content.md"),
+      );
+      expect(read((mixed as PutResult).entryDir, CURRENT_SHAPE_SIDECAR)).toBe(
+        read((clean as PutResult).entryDir, CURRENT_SHAPE_SIDECAR),
+      );
+    } finally {
+      for (const root of roots) {
+        rmSync(root, { recursive: true, force: true });
+      }
     }
   });
 });
