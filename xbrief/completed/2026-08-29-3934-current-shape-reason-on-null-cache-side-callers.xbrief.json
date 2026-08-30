@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for GitHub issue #3934, scoped to the accepted design-critique lean 5466514662 (not the filed body)",
-    "updated": "2026-08-30T04:22:14Z"
+    "updated": "2026-08-30T05:17:54Z"
   },
   "plan": {
     "title": "fix(umbrella-current-shape): report a reason on the selected-null path at the three silent cache-side callers",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "On a contributor-only thread the sidecar builder, appendCurrentShapeSection, and ingest's CurrentShape omission return a bare null, so a cache-reading agent that never invokes the CLI falls back to the stale issue body. Add an advisory reason on that null path only.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3934",
@@ -16,27 +16,63 @@
     "items": [
       {
         "title": "Shared advisory `describeCurrentShapeNull` classifies the selected-null path and names discarded candidates by id and normalized association, never by body",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/umbrella-current-shape/index.test.ts#reason on the selected-null path at the cache-side callers (#3934) > classifies the two null kinds and names discarded candidates by id; > normalizes an unexpected author_association rather than echoing payload text; > bounds how many discarded candidates the message names",
+          "recorded_at": "2026-08-30T05:17:52.521Z",
+          "recorded_by": "leaf-implementation/3934"
+        }
       },
       {
         "title": "Sidecar builder returns a reason alongside the null instead of a bare null",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/umbrella-current-shape/index.test.ts#reason on the selected-null path at the cache-side callers (#3934) > caller 1: the sidecar builder returns a reason instead of a bare null",
+          "recorded_at": "2026-08-30T05:17:52.521Z",
+          "recorded_by": "leaf-implementation/3934"
+        }
       },
       {
         "title": "`appendCurrentShapeSection` appends a not-selected note to cache content.md on a contributor-only thread",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/umbrella-current-shape/index.test.ts#reason on the selected-null path at the cache-side callers (#3934) > caller 2: appendCurrentShapeSection appends a not-selected note; packages/core/src/cache/operations.test.ts#cachePut records why no shape was selected on a contributor-only thread (#3934)",
+          "recorded_at": "2026-08-30T05:17:52.521Z",
+          "recorded_by": "leaf-implementation/3934"
+        }
       },
       {
         "title": "Ingest sets `narratives.CurrentShapeUnavailable` when the CurrentShape narrative is omitted because every candidate was discarded",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/intake/issue-ingest.test.ts#reports why CurrentShape is absent when every candidate was discarded (#3934); > adds no CurrentShapeUnavailable narrative when a maintainer shape is selected (#3934); > adds no CurrentShapeUnavailable narrative when the thread has no shape at all (#3934)",
+          "recorded_at": "2026-08-30T05:17:52.521Z",
+          "recorded_by": "leaf-implementation/3934"
+        }
       },
       {
         "title": "Regression coverage pins the maintainer-selected path byte-identical, `--strict` unchanged, and the maintainer count excluding discarded candidates",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/umbrella-current-shape/index.test.ts#reason on the selected-null path at the cache-side callers (#3934) > criterion 2: a selected maintainer shape is byte-identical with a discarded draft present; > criterion 3: --strict is unchanged; > criterion 4: the maintainer count does not count discarded candidates; > criterion 5: no diagnostic reproduces any part of a comment body; > criterion 6: MAINTAINER_ASSOCIATIONS is unchanged; packages/core/src/cache/operations.test.ts#cachePut output is byte-identical when a selected shape coexists with a draft (#3934)",
+          "recorded_at": "2026-08-30T05:17:52.521Z",
+          "recorded_by": "leaf-implementation/3934"
+        }
       },
       {
         "title": "CHANGELOG `[Unreleased]` entry",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "artifact",
+          "pointer": "CHANGELOG.md#[Unreleased] > Fixed > Cache-side current-shape reads now say why no shape was selected (#3934)",
+          "recorded_at": "2026-08-30T05:17:52.521Z",
+          "recorded_by": "leaf-implementation/3934"
+        }
       }
     ],
     "tags": [
@@ -137,8 +173,33 @@
         ],
         "module_boundary": "packages/core/src/umbrella-current-shape",
         "cohesion_exemption": "cache/operations.ts carries a single mechanical call-site update for the sidecar builder's new return shape, and its test file pins the note at the real cachePut boundary; CHANGELOG.md is a chronological append-only release log and this slice appends one [Unreleased] entry."
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3941,
+        "prBase": null,
+        "mergeCommit": "13a0fc06a646eeada6de2faabdcdfd98a0485a9f",
+        "deliveryBranch": "master",
+        "deliveryCommit": "13a0fc06a646eeada6de2faabdcdfd98a0485a9f",
+        "verifiedAt": "2026-08-30T05:17:54Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "edb414ff-fd4e-431f-9ad4-50a9acfe7393"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-30T05:17:54Z"
+      },
+      "completedAt": "2026-08-30T05:17:54Z",
+      "completedSessionId": "edb414ff-fd4e-431f-9ad4-50a9acfe7393",
+      "capacityBucket": "technical-debt"
     },
-    "updated": "2026-08-30T04:22:14Z"
+    "updated": "2026-08-30T05:17:54Z"
   }
 }
