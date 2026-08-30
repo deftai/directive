@@ -159,9 +159,10 @@ describe("host-env session identity (#3873)", () => {
   });
 
   it("never reads the unverified Grok payload session_id, even as a fallback", () => {
-    expect(
-      resolveHookHostIdentity("grok", { session_id: "payload-owner" }, {}),
-    ).toMatchObject({ status: "missing", sessionId: null });
+    expect(resolveHookHostIdentity("grok", { session_id: "payload-owner" }, {})).toMatchObject({
+      status: "missing",
+      sessionId: null,
+    });
     // A host variable present alongside a different payload id resolves to the
     // variable: the payload field is not consulted, so it cannot conflict.
     expect(
@@ -194,9 +195,9 @@ describe("host-env session identity (#3873)", () => {
     expect(hostIdentityFallsBackToExplicitOwner("openclaw", unknownHost)).toBe(false);
     // A payload provider that omits its field is a broken contract, not a
     // legacy host: it must never route back to the ambient owner.
-    expect(hostIdentityFallsBackToExplicitOwner("codex", resolveHookHostIdentity("codex", {}))).toBe(
-      false,
-    );
+    expect(
+      hostIdentityFallsBackToExplicitOwner("codex", resolveHookHostIdentity("codex", {})),
+    ).toBe(false);
   });
 
   it("names each provider's identity source", () => {

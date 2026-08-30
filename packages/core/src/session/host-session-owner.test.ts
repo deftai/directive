@@ -18,12 +18,14 @@ describe("ambientHostSessionOwner (#3873)", () => {
     expect(canonicalHostSessionId("grok", "grok-session-a")).toBe(GROK_OWNER);
   });
 
-  it.each([{}, { GROK_SESSION_ID: "" }, { GROK_SESSION_ID: " padded " }, { DEFT_SESSION_ID: "x" }])(
-    "resolves null when no usable host id is published (%#)",
-    (environ) => {
-      expect(ambientHostSessionOwner(environ)).toBeNull();
-    },
-  );
+  it.each([
+    {},
+    { GROK_SESSION_ID: "" },
+    { GROK_SESSION_ID: " padded " },
+    { DEFT_SESSION_ID: "x" },
+  ])("resolves null when no usable host id is published (%#)", (environ) => {
+    expect(ambientHostSessionOwner(environ)).toBeNull();
+  });
 });
 
 describe("resolveOccupancySessionId owner precedence (#3873)", () => {

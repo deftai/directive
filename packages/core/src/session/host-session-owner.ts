@@ -35,7 +35,9 @@ const HOST_IDENTITY_SOURCES: Readonly<Record<HookHostIdentityProvider, HookHostI
 
 /** The identity source for a host, or null when the host has no contract. */
 export function hookHostIdentitySource(host: string): HookHostIdentitySource | null {
-  return (HOST_IDENTITY_SOURCES as Record<string, HookHostIdentitySource | undefined>)[host] ?? null;
+  return (
+    (HOST_IDENTITY_SOURCES as Record<string, HookHostIdentitySource | undefined>)[host] ?? null
+  );
 }
 
 function hasControlCharacter(value: string): boolean {
@@ -106,9 +108,7 @@ export function readHostEnvIdentity(
  * the write hook will present. Two live host variables are ambiguous and
  * resolve to null: picking one would bind a claim to a guess.
  */
-export function ambientHostSessionOwner(
-  environ: NodeJS.ProcessEnv = process.env,
-): string | null {
+export function ambientHostSessionOwner(environ: NodeJS.ProcessEnv = process.env): string | null {
   const resolved: string[] = [];
   for (const provider of HOST_IDENTITY_PROVIDERS) {
     const source = HOST_IDENTITY_SOURCES[provider];

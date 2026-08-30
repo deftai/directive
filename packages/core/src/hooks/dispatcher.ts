@@ -1741,11 +1741,7 @@ function attachLifecycleIdentityRewrite(
         "--session-id is empty, duplicated, or otherwise ambiguous.",
     );
   }
-  const identity = resolveHookHostIdentity(
-    input.host,
-    input.payload,
-    input.environ ?? process.env,
-  );
+  const identity = resolveHookHostIdentity(input.host, input.payload, input.environ ?? process.env);
   // #3873: an absent host-env variable is the pre-#3873 explicit-owner flow, not
   // a broken contract. Claim binding is skipped, the command keeps ordinary host
   // permission handling, and any owner it carries is still its own.
