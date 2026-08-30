@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "merge-chokepoint-runs-of-verify-orphan-active-are-scoped-to-the-",
+  "decision": "Merge-chokepoint runs of verify:orphan-active are scoped to the candidate's own diff; repo-wide residue truth stays on the delivery tip, the bare verb, and the after-merge --issue N run.",
+  "governingRule": {
+    "description": "Gate integrity (#3156): a gate may be scoped or strengthened deliberately under issue/PR review, but never weakened to clear a red.",
+    "path": "content/docs/orphan-active-verdict-basis.md",
+    "rfc2119": null
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Keep the unscoped repo-wide predicate on check:merge -- refuted by measurement: four unrelated PRs failed on one stranded brief and N stranded briefs make N single-brief lifecycle PRs mutually unmergeable."
+    },
+    {
+      "option": "Relocate verify:orphan-active off the merge gate by analogy to verify:completed-tracked -- refuted by the design critique: the two checks key on different state, so relocation on that analogy would silently drop the merged-PR/open-issue class."
+    },
+    {
+      "option": "Process-only: make scope:complete atomic with its merge -- refuted: #2321 assigns completion after merge, so an immutable product merge cannot carry its own transition, and two stranded briefs still deadlock independent cleanups."
+    },
+    {
+      "option": "Whole-set recovery transaction that clears every stranded brief at once -- larger surface and still leaves an unrelated PR holding merge authority over another agent's residue."
+    }
+  ],
+  "whyWinner": "Diff ownership removes merge authority over residue the candidate did not create without touching the detector: assessOrphanSignature is unchanged, so the linked-PR/open-issue signature is preserved rather than retired under #3156. The pre-merge run had no unique preventive value for its own candidate anyway, because that candidate's linked PR still reads merged_at null while the gate runs.",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-08-29-3893-buggates-a-brief-stranded-in-active-by-one-merge-reddens-th.xbrief.json"
+  ],
+  "timestamp": "2026-08-30T02:08:14Z",
+  "revisitTrigger": "A stranded brief survives to a release cut undetected, or evidence appears that the pre-merge repo-wide run uniquely caught residue a delivery-tip or after-merge run would have missed.",
+  "tags": [
+    "gates",
+    "lifecycle"
+  ],
+  "relatedIssues": [
+    3893
+  ]
+}

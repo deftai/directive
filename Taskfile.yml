@@ -437,7 +437,11 @@ tasks:
       - verify:forward-coverage
       - verify:test-boundary
       - verify:scope-provenance
-      - verify:consumer-check-contract
+      # #3893: this repo owns its own check composition, so the contract runs
+      # fail-closed here on the merge-chokepoint scoping rule.
+      - task: verify:consumer-check-contract
+        vars:
+          CLI_ARGS: "--framework-source"
       - verify:telemetry-coverage
       - verify:vbrief-conformance
       - verify:destructive-gh-verbs

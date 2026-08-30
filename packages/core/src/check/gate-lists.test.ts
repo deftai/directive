@@ -7,6 +7,7 @@ import {
   gatesForCheckTarget,
   isFastBeforeSlowOrder,
   isSuiteCheckGate,
+  ORPHAN_ACTIVE_MERGE_GATE,
   SUITE_CHECK_GATE_IDS,
 } from "./gate-lists.js";
 
@@ -68,6 +69,32 @@ describe("gate-lists (#2791)", () => {
     expect(ids).toContain("verify:orphan-active");
     expect(gatesForCheckTarget("check:consumer").map(checkGateId)).toContain(
       "verify:orphan-active",
+    );
+  });
+
+  it("composes verify:orphan-active candidate-scoped on both merge lists (#3893)", () => {
+    expect(checkGateId(ORPHAN_ACTIVE_MERGE_GATE)).toBe("verify:orphan-active");
+    for (const gates of [FRAMEWORK_CHECK_GATES, CONSUMER_CHECK_GATES]) {
+      const spec = gates.find((gate) => checkGateId(gate) === "verify:orphan-active");
+      expect(spec).toBeDefined();
+      if (spec === undefined) {
+        throw new Error("expected verify:orphan-active gate");
+      }
+      expect(checkGateSpawnArgs(spec, "/repo/Taskfile.yml")).toContain("--changed-only");
+    }
+  });
+
+  it("runs the check contract fail-closed on the framework list (#3893)", () => {
+    const spec = FRAMEWORK_CHECK_GATES.find(
+      (gate) => checkGateId(gate) === "verify:consumer-check-contract",
+    );
+    expect(spec).toBeDefined();
+    if (spec === undefined) {
+      throw new Error("expected verify:consumer-check-contract gate");
+    }
+    expect(checkGateSpawnArgs(spec, "/repo/Taskfile.yml")).toContain("--framework-source");
+    expect(CONSUMER_CHECK_GATES.find((gate) => gate === "verify:consumer-check-contract")).toBe(
+      "verify:consumer-check-contract",
     );
   });
 

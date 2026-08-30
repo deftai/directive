@@ -363,9 +363,10 @@ function scopeLines(scope: CandidateScope | null, skipped: number): string[] {
     return [`  Scope: repo-wide sweep -- ${scope.reason} (#3893).`];
   }
   const noun = skipped === 1 ? "brief" : "briefs";
+  const verb = skipped === 1 ? "was" : "were";
   return [
     `  Scope: candidate diff against ${scope.baseRef}; ${skipped} running ${noun} outside ` +
-      "this branch's diff were not evaluated (#3893).",
+      `this branch's diff ${verb} not evaluated (#3893).`,
   ];
 }
 
@@ -421,6 +422,8 @@ function formatRefusal(
     );
   }
   if (unresolvedOrphans.length > 0) {
+    // Only the scoped `--issue N` arm can report unresolved, so the retry never
+    // needs a --changed-only form (the sweep arm fails open on unknown).
     const retry =
       issueFilter === null
         ? "task verify:orphan-active"
@@ -546,21 +549,22 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
     inventory: new OpenIssueInventory(runGh),
   };
 
-  // Merge-chokepoint scoping (#3893). `--issue N` is already one origin.
-  const scope =
-    options.changedOnly === true && issueFilter === null
-      ? resolveCandidateScope(root, join(lifecycleRoot, "active"), {
-          baseRef: options.baseRef,
-          runGit: options.runGit,
-        })
-      : null;
-
   try {
     // #3774: missing gh/ghx is config (code 2), not an uncaught throw.
+    const briefs = listActiveRunningBriefs(root);
+    // Merge-chokepoint scoping (#3893). `--issue N` is already one origin, and
+    // an empty active/ has nothing to scope, so neither pays for the git reads.
+    const scope =
+      options.changedOnly === true && issueFilter === null && briefs.length > 0
+        ? resolveCandidateScope(root, join(lifecycleRoot, "active"), {
+            baseRef: options.baseRef,
+            runGit: options.runGit,
+          })
+        : null;
     const orphans: OrphanActiveBrief[] = [];
     let scanned = 0;
     let skipped = 0;
-    for (const brief of listActiveRunningBriefs(root)) {
+    for (const brief of briefs) {
       if (scope?.kind === "diff" && !scope.paths.has(normalizeScopePath(brief.path))) {
         skipped += 1;
         continue;

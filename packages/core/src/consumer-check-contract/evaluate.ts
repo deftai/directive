@@ -20,6 +20,23 @@ export const REQUIRED_CONSUMER_ENFORCEMENT_GATES: readonly string[] = [
   "verify:consumer-check-contract",
 ];
 
+/**
+ * Gates whose composition on a check aggregate must carry a scoping argument
+ * (#3893).
+ *
+ * `verify:orphan-active` is repo-wide by default. Composed unscoped on a merge
+ * chokepoint it fails a candidate for residue another merge stranded, and N
+ * stranded briefs make N single-brief lifecycle PRs mutually unmergeable. It is
+ * not preventive for the candidate either: that candidate's linked PR still
+ * reads `merged_at: null` while its own gate runs.
+ *
+ * Fail-closed under `--framework-source`, where this repo owns the composition;
+ * a warning elsewhere while `deft update` re-deposits the Taskfile.
+ */
+export const MERGE_CHOKEPOINT_SCOPED_GATE_ARGS: ReadonlyMap<string, string> = new Map([
+  ["verify:orphan-active", "--changed-only"],
+]);
+
 export interface ConsumerCheckContractFinding {
   readonly gateId: string;
   readonly surface: "check-task" | "ci-workflow" | "verify-taskfile";
@@ -617,17 +634,25 @@ export function taskfileInvokesCheckOrchestrator(text: string): boolean {
   return false;
 }
 
+/** One `deps:` entry plus the YAML nested under it (`vars:` and friends). */
+export interface CheckDepEntry {
+  readonly name: string;
+  readonly body: string;
+}
+
 /**
- * Extract dependency task names from a go-task task definition body snippet.
- * Best-effort line parser for `deps:` list entries.
+ * Extract `deps:` entries from a go-task task definition, keeping each entry's
+ * nested body so an argument-carrying dep (#3893) is distinguishable from a
+ * bare one. Best-effort line parser.
  */
-export function extractCheckDeps(taskfileText: string, taskName: string): string[] {
+export function extractCheckDepEntries(taskfileText: string, taskName: string): CheckDepEntry[] {
   const lines = taskfileText.replace(/\r\n/g, "\n").split("\n");
-  const deps: string[] = [];
+  const entries: { name: string; lines: string[] }[] = [];
   let inTask = false;
   let taskIndent = 0;
   let inDeps = false;
   let depsIndent = 0;
+  let current: { name: string; lines: string[] } | null = null;
   const taskRe = new RegExp(`^${escapeRegExp(taskName)}\\s*:`);
 
   for (const raw of lines) {
@@ -650,24 +675,37 @@ export function extractCheckDeps(taskfileText: string, taskName: string): string
     if (/^deps\s*:/.test(stripped)) {
       inDeps = true;
       depsIndent = indent;
+      current = null;
       continue;
     }
 
-    if (inDeps) {
-      if (indent <= depsIndent && !stripped.startsWith("-")) {
-        inDeps = false;
-      } else if (stripped.startsWith("-")) {
-        // - verify:branch  OR  - task: verify:branch
-        const m =
-          stripped.match(/^-\s+task:\s*["']?([^"'#]+?)["']?\s*(?:#.*)?$/) ??
-          stripped.match(/^-\s+["']?([^"'#]+?)["']?\s*(?:#.*)?$/);
-        if (m?.[1]) {
-          deps.push(m[1].trim());
-        }
+    if (!inDeps) continue;
+
+    if (indent <= depsIndent && !stripped.startsWith("-")) {
+      inDeps = false;
+      current = null;
+    } else if (stripped.startsWith("-")) {
+      // - verify:branch  OR  - task: verify:branch
+      const m =
+        stripped.match(/^-\s+task:\s*["']?([^"'#]+?)["']?\s*(?:#.*)?$/) ??
+        stripped.match(/^-\s+["']?([^"'#]+?)["']?\s*(?:#.*)?$/);
+      current = m?.[1] === undefined ? null : { name: m[1].trim(), lines: [] };
+      if (current !== null) {
+        entries.push(current);
       }
+    } else if (current !== null) {
+      current.lines.push(stripped);
     }
   }
-  return deps;
+  return entries.map((entry) => ({ name: entry.name, body: entry.lines.join("\n") }));
+}
+
+/**
+ * Extract dependency task names from a go-task task definition body snippet.
+ * Best-effort line parser for `deps:` list entries.
+ */
+export function extractCheckDeps(taskfileText: string, taskName: string): string[] {
+  return extractCheckDepEntries(taskfileText, taskName).map((entry) => entry.name);
 }
 
 function remediationForMissing(gateId: string, surface: string): string {
@@ -780,11 +818,37 @@ export function evaluateConsumerCheckContract(
 
   let anyAggregateDefined = false;
   for (const target of checkTargets) {
-    const deps = extractCheckDeps(rootTaskfile, target);
+    const entries = extractCheckDepEntries(rootTaskfile, target);
+    const deps = entries.map((entry) => entry.name);
     const body = extractTaskBody(rootTaskfile, target);
     const defined = deps.length > 0 || body.trim().length > 0;
     if (!defined) continue;
     anyAggregateDefined = true;
+
+    // Checked even on a trusted orchestrator body: a listed dep still runs, and
+    // unscoped on a merge chokepoint is the #3893 defect.
+    for (const [gateId, requiredArg] of MERGE_CHOKEPOINT_SCOPED_GATE_ARGS) {
+      const entry = entries.find((row) => row.name === gateId);
+      if (entry === undefined || entry.body.includes(requiredArg)) continue;
+      const finding: ConsumerCheckContractFinding = {
+        gateId,
+        surface: "check-task",
+        detail:
+          `aggregate '${target}' composes ${gateId} without ${requiredArg}: an unscoped ` +
+          "repo-wide lifecycle scan on a merge chokepoint fails a candidate for residue " +
+          "another merge stranded (#3893)",
+        remediation:
+          `Pass ${requiredArg} to ${gateId} in the '${target}' deps (go-task object form, ` +
+          `vars: CLI_ARGS: "${requiredArg}"). Bare ${gateId} stays repo-wide for doctor, ` +
+          "manual runs, and the after-merge --issue N run. " +
+          "See content/docs/consumer-check-contract.md (#3893).",
+      };
+      if (options.frameworkSource === true) {
+        findings.push(finding);
+      } else {
+        soft.push(finding);
+      }
+    }
 
     const trustThis = taskInvokesOrchestrator(target) && verifyDefinesRequired;
     if (trustThis) continue;

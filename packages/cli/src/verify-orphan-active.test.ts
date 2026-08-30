@@ -65,6 +65,30 @@ describe("parseArgs", () => {
     expect(parseArgs(["--issue", "0"]).error).toContain("positive integer");
     expect(parseArgs(["--issue"]).error).toContain("expected one argument");
   });
+
+  it("leaves the bare verb repo-wide (#3893)", () => {
+    expect(parseArgs([])).toMatchObject({ changedOnly: false, baseRef: null });
+  });
+
+  it("parses the merge-chokepoint scoping flags (#3893)", () => {
+    expect(parseArgs(["--changed-only", "--base-ref", "origin/main"])).toMatchObject({
+      changedOnly: true,
+      baseRef: "origin/main",
+    });
+    expect(parseArgs(["--changed-only", "--base-ref=origin/main"])).toMatchObject({
+      changedOnly: true,
+      baseRef: "origin/main",
+    });
+  });
+
+  it("refuses --changed-only together with --issue (#3893)", () => {
+    expect(parseArgs(["--changed-only", "--issue", "3893"]).error).toContain("mutually exclusive");
+  });
+
+  it("refuses --base-ref without --changed-only (#3893)", () => {
+    expect(parseArgs(["--base-ref", "origin/master"]).error).toContain("requires --changed-only");
+    expect(parseArgs(["--changed-only", "--base-ref"]).error).toContain("expected one argument");
+  });
 });
 
 describe("run", () => {
@@ -213,6 +237,10 @@ describe("run", () => {
 
   it("returns 2 for bad args", () => {
     expect(silentRun(["--bogus"])).toBe(2);
+  });
+
+  it("returns 2 when both scopes are requested at once (#3893)", () => {
+    expect(silentRun(["--changed-only", "--issue", "3893"])).toBe(2);
   });
 
   it("returns 2 when gh and ghx are absent from PATH and the cache misses (#3774)", () => {

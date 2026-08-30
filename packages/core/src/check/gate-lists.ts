@@ -120,7 +120,9 @@ export const FRAMEWORK_CHECK_GATES: readonly CheckGateSpec[] = [
   // #3145: test/source boundary + approved-scope provenance + consumer gate composition
   "verify:test-boundary",
   "verify:scope-provenance",
-  "verify:consumer-check-contract",
+  // #3893: fail-closed on merge-chokepoint gate scoping for the composition
+  // this repo owns; consumer deposits stay warn-only until `deft update`.
+  { task: "verify:consumer-check-contract", args: ["--framework-source"] },
   // #3362: dead-surface detector (warn-only this release; no --enforce)
   "verify:telemetry-coverage",
   "verify:vbrief-conformance",

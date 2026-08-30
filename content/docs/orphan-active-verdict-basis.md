@@ -35,6 +35,37 @@ aggregate unknown would break `--skip-gh`, offline runs, and fresh clones.
 
 ---
 
+## What each run is allowed to look at (#3893)
+
+Mode decides *how* a verdict is reached. Scope decides *which briefs* are in
+the question at all.
+
+| | Bare / `--issue N` | `--changed-only` |
+|---|---|---|
+| Caller | doctor, manual runs, swarm finalize, after-merge DONE proof | `check:framework-source` / `check:consumer` merge chokepoint |
+| Briefs evaluated | every running brief under `active/` | only briefs in the candidate's own diff against `origin/<deliveryBranch>` |
+| On the delivery line | n/a | falls back to the full sweep -- this run *is* the delivery-tip check |
+| Unresolvable git or base ref | n/a | falls back to the full sweep, never to a narrower scan |
+
+The merge chokepoint was unscoped until #3893. Measured 2026-08-28: four
+unrelated PRs failed the same two lanes on one stranded brief, one of them
+passed an unchanged re-run once the strandings landed, and two single-brief
+lifecycle PRs could not pass alone because each left the other orphan.
+
+The pre-merge run was never preventive for its own candidate either: the gate
+reads REST `merged_at`, and the candidate's linked PR still reads null while
+that candidate's gate runs. The pre-merge signal for closeout residue is
+`verify:pr-closeout-attestable` (#3781), which keys on the PR's structured
+closing references rather than the branch diff.
+
+The detector is unchanged. The linked-PR/open-issue signature still fails a
+candidate whose own diff carries it.
+
+⊗ Do not read a `--changed-only` pass as repo-wide truth. Every run prints its
+scope; `EvaluateResult.scope` carries the same thing structurally.
+
+---
+
 ## The freshness choice
 
 **Age bound plus re-validation, applied per mode.** Both options offered by
@@ -164,3 +195,5 @@ mode for callers.
 - [#3476](https://github.com/deftai/directive/issues/3476) — `verify:completed-tracked`
 - [#3752](https://github.com/deftai/directive/issues/3752) — the open-inventory mechanism reused here
 - [#3156](https://github.com/deftai/directive/issues/3156) — gate integrity; this was a deliberate gate-definition change
+- [#3893](https://github.com/deftai/directive/issues/3893) — merge-chokepoint scoping; the named check-composition change
+- [#3781](https://github.com/deftai/directive/issues/3781) — `verify:pr-closeout-attestable`, the pre-merge closeout signal

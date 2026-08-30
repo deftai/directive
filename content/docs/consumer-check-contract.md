@@ -39,6 +39,37 @@ A **partial local** root check aggregate still fails closed — the include must
 
 Root cause of red `greenfield-python-free-smoke` after #3145: the gate only inspected the root Taskfile, treated include-only greenfield as “no check composition,” and hard-failed (`exit 201` via #3188). That was a **gate false positive** for the intentional deposit shape, not a missing deposit wiring bug.
 
+## Merge-chokepoint gate scoping (#3893)
+
+Some gates are repo-wide by default and must be **narrowed** when composed on a
+merge chokepoint. `verify:orphan-active` is the first: composed unscoped it
+fails a candidate for lifecycle residue another merge stranded, and N stranded
+briefs make N single-brief lifecycle PRs mutually unmergeable.
+
+The contract therefore records a required argument per gate
+(`MERGE_CHOKEPOINT_SCOPED_GATE_ARGS`) and reports a check aggregate that lists
+the gate without it:
+
+```yaml
+  check:consumer:
+    deps:
+      - task: verify:orphan-active
+        vars:
+          CLI_ARGS: "--changed-only"
+```
+
+- **`--framework-source`: fail closed.** This repo owns its own composition, so
+  a regression to the unscoped form is a hard failure here.
+- **Consumer deposits: warn.** `deft update` re-deposits the Taskfile; the
+  warning names the exact one-line repair in the meantime.
+- **Aggregates that do not list the gate are silent.** Include-only greenfield
+  roots and orchestrator-body `check` tasks are unaffected.
+
+This is a strengthening, not a relaxation: nothing about the detector, the
+required-gate set, or any exit code is weakened. Repo-wide residue truth still
+runs on the bare verb, at the delivery tip, and on the after-merge
+`verify:orphan-active -- --issue N` DONE gate (#3429).
+
 ## Repair path
 
 1. Restore deposit Taskfiles: `deft update` (includes `tasks/verify.yml` under `.deft/core/`)
