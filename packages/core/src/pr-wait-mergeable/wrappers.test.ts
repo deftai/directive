@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
-import * as binary from "../scm/binary.js";
+import * as callShape from "../scm/call-shape.js";
 import * as wrappers from "./wrappers.js";
 
 describe("captureExec", () => {
@@ -67,7 +67,7 @@ describe("captureExec", () => {
 
 describe("runGhMerge", () => {
   it("returns -1 when gh missing", () => {
-    vi.spyOn(binary, "resolveBinary").mockImplementation(() => {
+    vi.spyOn(callShape, "resolveBinaryForArgv").mockImplementation(() => {
       throw new Error("missing");
     });
     const [rc, , stderr] = wrappers.runGhMerge(1370, "deftai/directive");
@@ -77,14 +77,14 @@ describe("runGhMerge", () => {
   });
 
   it("maps merge failure exit code", () => {
-    vi.spyOn(binary, "resolveBinary").mockReturnValue(process.execPath);
+    vi.spyOn(callShape, "resolveBinaryForArgv").mockReturnValue(process.execPath);
     const [rc] = wrappers.runGhMerge(1370, "deftai/directive");
     expect(rc).not.toBe(0);
     vi.restoreAllMocks();
   });
 
   it("maps gh merge timeout via captureExec", () => {
-    vi.spyOn(binary, "resolveBinary").mockReturnValue(process.execPath);
+    vi.spyOn(callShape, "resolveBinaryForArgv").mockReturnValue(process.execPath);
     const [rc, , stderr] = wrappers.runGhMerge(1370, null, { timeout: 0.001 });
     expect(rc).toBe(-1);
     expect(stderr).toContain("gh pr merge timed out after 0.001s");
@@ -92,7 +92,7 @@ describe("runGhMerge", () => {
   });
 
   it("omits repo flag when null", () => {
-    vi.spyOn(binary, "resolveBinary").mockReturnValue(process.execPath);
+    vi.spyOn(callShape, "resolveBinaryForArgv").mockReturnValue(process.execPath);
     const [rc] = wrappers.runGhMerge(1370, null);
     expect(typeof rc).toBe("number");
     vi.restoreAllMocks();

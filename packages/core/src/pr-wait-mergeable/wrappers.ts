@@ -4,7 +4,7 @@ import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { evaluate as evaluateCloseoutAttestable } from "../pr-closeout-attestable/evaluate.js";
-import { resolveBinary } from "../scm/binary.js";
+import { resolveBinaryForArgv } from "../scm/call-shape.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import type { SubprocessTriple } from "./types.js";
 
@@ -216,13 +216,13 @@ export function runGhMerge(
   options: RunGhMergeOptions = {},
 ): SubprocessTriple {
   const timeoutSec = options.timeout ?? 120;
+  const args = ["pr", "merge", String(prNumber), "--squash", "--delete-branch", "--admin"];
   let binary: string;
   try {
-    binary = resolveBinary();
+    binary = resolveBinaryForArgv("pr", args.slice(1));
   } catch {
     return [-1, "", "gh CLI not found. Install GitHub CLI."];
   }
-  const args = ["pr", "merge", String(prNumber), "--squash", "--delete-branch", "--admin"];
   if (repo) {
     args.push("--repo", repo);
   }

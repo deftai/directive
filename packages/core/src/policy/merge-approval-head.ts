@@ -14,7 +14,7 @@
 import { join } from "node:path";
 import { type BehavioralEventRecord, DEFAULT_EVENT_LOG, readEvents } from "../lifecycle/events.js";
 import { captureExec } from "../pr-wait-mergeable/wrappers.js";
-import { resolveBinary } from "../scm/binary.js";
+import { resolveBinaryForArgv } from "../scm/call-shape.js";
 import { resolveHumanMergePolicy } from "./require-human-merge.js";
 
 /** Event name recorded at Phase 5 → 6 approval. */
@@ -480,13 +480,13 @@ export function disablePullRequestAutoMerge(
   repo: string | null,
   options: { readonly timeoutSec?: number } = {},
 ): { readonly ok: boolean; readonly stderr: string } {
+  const args = ["pr", "merge", String(prNumber), "--disable-auto"];
   let binary: string;
   try {
-    binary = resolveBinary();
+    binary = resolveBinaryForArgv("pr", args.slice(1));
   } catch {
     return { ok: false, stderr: "gh CLI not found" };
   }
-  const args = ["pr", "merge", String(prNumber), "--disable-auto"];
   if (repo !== null && repo.length > 0) {
     args.push("--repo", repo);
   }
@@ -515,18 +515,15 @@ export function fetchPrHeadShaRest(
   options: { readonly timeoutSec?: number } = {},
 ): string | null {
   if (repo === null || repo.length === 0) return null;
+  const endpoint = `repos/${repo}/pulls/${prNumber}`;
+  const apiArgs = ["api", endpoint, "--jq", ".head.sha"];
   let binary: string;
   try {
-    binary = resolveBinary();
+    binary = resolveBinaryForArgv(apiArgs[0] ?? "api", apiArgs.slice(1));
   } catch {
     return null;
   }
-  const endpoint = `repos/${repo}/pulls/${prNumber}`;
-  const result = captureExec(
-    binary,
-    ["api", endpoint, "--jq", ".head.sha"],
-    (options.timeoutSec ?? 60) * 1000,
-  );
+  const result = captureExec(binary, apiArgs, (options.timeoutSec ?? 60) * 1000);
   if (result.returncode !== 0) return null;
   return normalizeSha(result.stdout.trim());
 }

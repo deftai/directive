@@ -1,0 +1,131 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #3737 bound remedy: call-shape ghx selection, spawn-failure fallback, named binary+status diagnostics. No --version health probe.",
+    "updated": "2026-08-30T18:33:53Z"
+  },
+  "plan": {
+    "title": "BLOCKER: bug(scm): resolveBinary prefers ghx on presence alone, so a broken ghx silently kills triage, ingest, cache and pr:watch",
+    "status": "running",
+    "narratives": {
+      "Description": "Bind call-shape selection so ghx serves only single-path GET; flag-rich GET and writes go to live gh. Fallback on real spawn failure of the invoked argv. Name the binary and status class. Do not add a --version probe.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3737",
+      "Overview": "Bound contract from critic 5470431912, successor lean 5470455877, verified-claims 5470459107, synthesis 5470462173. Do not build a health probe. Call-shape selection, spawn-failure fallback, named binary+status diagnostics.",
+      "Labels": "bug, blocks-release-tag, design-critique:triage-ready"
+    },
+    "items": [
+      {
+        "title": "Call-shape selection: ghx only for single-path GET",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When both ghx and gh are on PATH, a mutation or a flag-rich GET never routes to ghx; a single positional path GET may still take ghx."
+        }
+      },
+      {
+        "title": "Fallback on real spawn failure of the invoked argv",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Fallback triggers on real spawn failure of the invoked command, proven by a test that simulates a spawn failure rather than an unhealthy probe. No --version-style health probe is introduced."
+        }
+      },
+      {
+        "title": "Failures name the binary and the status class",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "A failure names the binary that was invoked and reports the status class including 0xC0000142 STATUS_DLL_INIT_FAILED; a test asserts the diagnostic content without reproducing the loader fault."
+        }
+      },
+      {
+        "title": "CHANGELOG [Unreleased] line",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "CHANGELOG [Unreleased] records the call-shape routing and named diagnostics and names #3737."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "scm",
+      "blocks-release-tag"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3737",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3737: resolveBinary prefers ghx on presence alone"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/scm/call-shape.ts",
+          "packages/core/src/scm/call-shape.test.ts",
+          "packages/core/src/scm/spawn-status.ts",
+          "packages/core/src/scm/spawn-status.test.ts",
+          "packages/core/src/scm/binary.ts",
+          "packages/core/src/scm/binary.test.ts",
+          "packages/core/src/scm/gh-rest.ts",
+          "packages/core/src/scm/gh-rest.test.ts",
+          "packages/core/src/scm/call.ts",
+          "packages/core/src/scm/call.test.ts",
+          "packages/core/src/scm/call-branches.test.ts",
+          "packages/core/src/scm/build-command.ts",
+          "packages/core/src/scm/index.ts",
+          "packages/core/src/intake/issue-ingest.ts",
+          "packages/core/src/pr-protected-issues/gh.ts",
+          "packages/core/src/pr-merge-readiness/gh.ts",
+          "packages/core/src/pr-closing-keywords/gh.ts",
+          "packages/core/src/pr-wait-mergeable/wrappers.ts",
+          "packages/core/src/policy/merge-approval-head.ts",
+          "packages/core/src/review-monitor/github-lease.ts",
+          "packages/core/src/umbrella-current-shape/index.ts",
+          "content/scm/github.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/scm",
+        "cohesion_exemption": "CHANGELOG.md is a chronological append-only release log. content/scm/github.md is the user-facing ghx surface rule that must match the runtime selection. Remaining files are existing resolveBinary spawn sites switched onto call-shape resolution."
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the bound synthesis before product edit (#3323)",
+      "clauses": [
+        {
+          "id": "call-shape",
+          "text": "ghx is selected per call shape; a mutation or a flag-rich GET never routes to it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": "spawn-fallback",
+          "text": "Fallback triggers on real spawn failure of the invoked command, proven by a test that simulates a spawn failure rather than an unhealthy probe.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": "named-diagnostic",
+          "text": "A failure names the binary and the status class; a test asserts the diagnostic content.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": "no-version-probe",
+          "text": "No --version-style health probe is introduced.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-08-30T18:33:53Z"
+  }
+}

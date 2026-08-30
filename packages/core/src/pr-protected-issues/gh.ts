@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { resolveBinary } from "../scm/binary.js";
+import { resolveBinaryForArgv } from "../scm/call-shape.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import { GH_TIMEOUT_S } from "./constants.js";
 import type { RunGhFn, RunGhResult } from "./types.js";
@@ -13,8 +13,8 @@ export function defaultRunGh(cmd: readonly string[], binaryOverride?: string): R
   if (cmd.length === 0 || cmd[0] !== "gh") {
     return { returncode: -1, stdout: "", stderr: "expected gh as first argv element" };
   }
-  const binary = binaryOverride ?? resolveBinary();
   const args = cmd.slice(1);
+  const binary = binaryOverride ?? resolveBinaryForArgv(args[0] ?? "", args.slice(1));
   try {
     const stdout = execFileSync(binary, args, {
       encoding: "utf8",

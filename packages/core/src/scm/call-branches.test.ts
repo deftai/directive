@@ -99,12 +99,34 @@ describe("call option branches", () => {
     ).toThrow(/ETIMEDOUT/);
   });
 
-  it("defaults null status to returncode 1 and empty captured strings", () => {
+  it("defaults null status to returncode 1 and names the binary when stderr is empty", () => {
     spawnSyncMock.mockReturnValue({ status: null, stdout: undefined, stderr: undefined });
     const result = call("github-issue", "auth", [], { binary: "/usr/bin/gh", text: false });
     expect(result.returncode).toBe(1);
     expect(result.stdout).toBe("");
-    expect(result.stderr).toBe("");
+    expect(result.stderr).toContain("/usr/bin/gh");
+    expect(result.stderr).toMatch(/spawn-failed|failed/);
     expect(result.args).toEqual(["/usr/bin/gh", "auth"]);
+  });
+
+  it("falls back from ghx to gh on a simulated spawn failure (#3737)", () => {
+    spawnSyncMock.mockImplementation((command: string) => {
+      if (command === "ghx") {
+        return {
+          status: null,
+          stdout: "",
+          stderr: "",
+          error: Object.assign(new Error("spawn ghx ENOENT"), { code: "ENOENT" }),
+        };
+      }
+      return { status: 0, stdout: "{}", stderr: "" };
+    });
+    const result = call("github-issue", "api", ["repos/o/r/issues/1"], {
+      whichFn: (name) => `/usr/bin/${name}`,
+    });
+    expect(spawnSyncMock.mock.calls.map((c) => c[0])).toEqual(["ghx", "gh"]);
+    expect(result.args[0]).toBe("gh");
+    expect(result.returncode).toBe(0);
+    expect(result.stdout).toBe("{}");
   });
 });

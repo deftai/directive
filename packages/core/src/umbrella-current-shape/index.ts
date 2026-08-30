@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { scan } from "../cache/scanner.js";
-import { resolveBinary } from "../scm/binary.js";
+import { resolveBinaryForArgv } from "../scm/call-shape.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import { resolveRepo } from "../triage/queue/repo.js";
 
@@ -421,9 +421,10 @@ function defaultFetchComments(
   repo: string,
   issueNumber: number,
 ): IssueComment[] | { error: string } {
-  const binary = resolveBinary();
   const path = `repos/${repo}/issues/${issueNumber}/comments?per_page=100`;
-  const proc = spawnSync(binary, ["api", "--paginate", path], {
+  const apiArgs = ["--paginate", path];
+  const binary = resolveBinaryForArgv("api", apiArgs);
+  const proc = spawnSync(binary, ["api", ...apiArgs], {
     encoding: "utf8",
     maxBuffer: SUBPROCESS_MAX_BUFFER,
   });

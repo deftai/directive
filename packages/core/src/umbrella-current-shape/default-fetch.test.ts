@@ -3,7 +3,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../scm/binary.js", () => ({
   resolveBinary: () => "gh",
+  defaultWhich: (name: string) => (name === "gh" ? "gh" : null),
 }));
+
+vi.mock("../scm/call-shape.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../scm/call-shape.js")>();
+  return {
+    ...actual,
+    resolveBinaryForArgv: () => "gh",
+  };
+});
 
 vi.mock("node:child_process", () => ({
   spawnSync: vi.fn(),

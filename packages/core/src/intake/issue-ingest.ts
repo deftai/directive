@@ -844,7 +844,8 @@ export function fetchSingleIssue(
   }
 
   if (result.returncode !== 0) {
-    process.stderr.write(`Error: gh CLI failed fetching #${number}: ${result.stderr.trim()}\n`);
+    const invoked = result.args[0] ?? "gh";
+    process.stderr.write(`Error: ${invoked} failed fetching #${number}: ${result.stderr.trim()}\n`);
     return null;
   }
   try {

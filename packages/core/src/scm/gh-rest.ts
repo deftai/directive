@@ -1,10 +1,16 @@
-import { spawnSync } from "node:child_process";
+import { type SpawnSyncOptions, spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
-import { resolveBinary } from "./binary.js";
+import { defaultWhich, type WhichFn } from "./binary.js";
+import { classifyScmArgv, resolveBinaryForRole } from "./call-shape.js";
 import { pyRepr } from "./py-format.js";
+import {
+  classifySpawnStatus,
+  formatScmSpawnDiagnostic,
+  isAvailabilitySpawnFailure,
+} from "./spawn-status.js";
 
 export const DEFAULT_TIMEOUT_S = 60;
 
@@ -27,6 +33,7 @@ export class GhRestError extends Error {
   readonly endpoint: string;
   readonly payload: Record<string, unknown> | null;
   readonly hint: string;
+  readonly binary: string;
 
   constructor(options: {
     stderr: string;
@@ -34,11 +41,17 @@ export class GhRestError extends Error {
     endpoint: string;
     payload: Record<string, unknown> | null;
     hint?: string;
+    binary?: string;
   }) {
     const hint = options.hint ?? "";
+    const binary = options.binary ?? "gh";
+    const statusClass = classifySpawnStatus(options.exitCode);
     let msg =
-      `gh api failed: endpoint=${pyRepr(options.endpoint)} ` +
-      `exit=${options.exitCode} stderr=${pyRepr(options.stderr)}`;
+      `${binary} api failed: endpoint=${pyRepr(options.endpoint)} ` + `exit=${options.exitCode}`;
+    if (statusClass !== `exit ${options.exitCode}`) {
+      msg += ` (${statusClass})`;
+    }
+    msg += ` stderr=${pyRepr(options.stderr)}`;
     if (hint.length > 0) {
       msg += `; hint: ${hint}`;
     }
@@ -49,40 +62,118 @@ export class GhRestError extends Error {
     this.endpoint = options.endpoint;
     this.payload = options.payload;
     this.hint = hint;
+    this.binary = binary;
   }
 }
 
+export type GhSpawnResult = {
+  readonly status: number | null;
+  readonly stdout?: string | Buffer | null;
+  readonly stderr?: string | Buffer | null;
+  readonly error?: { readonly message?: string; readonly code?: string };
+};
+
+export type GhSpawnFn = (
+  command: string,
+  args: readonly string[],
+  options: SpawnSyncOptions,
+) => GhSpawnResult;
+
+export type GhApiProcess = {
+  returncode: number;
+  stdout: string;
+  stderr: string;
+  binary?: string;
+};
+
 export type RunGhApiFn = (
   args: readonly string[],
-  options?: { timeout?: number; whichFn?: Parameters<typeof resolveBinary>[0] },
-) => { returncode: number; stdout: string; stderr: string };
+  options?: { timeout?: number; whichFn?: WhichFn; spawnFn?: GhSpawnFn },
+) => GhApiProcess;
 
-/** Single subprocess seam invoked by every helper. */
-export function runGhApi(
+function defaultGhSpawn(
+  command: string,
   args: readonly string[],
-  options: { timeout?: number; whichFn?: Parameters<typeof resolveBinary>[0] } = {},
-): { returncode: number; stdout: string; stderr: string } {
-  const binary = resolveBinary(options.whichFn);
-  const timeoutMs =
-    options.timeout !== undefined ? Math.round(options.timeout * 1000) : DEFAULT_TIMEOUT_S * 1000;
-  const result = spawnSync(binary, ["api", ...args], {
-    encoding: "utf8",
-    timeout: timeoutMs,
-    env: process.env,
-    maxBuffer: SUBPROCESS_MAX_BUFFER,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  let stderr = typeof result.stderr === "string" ? result.stderr : "";
-  // A spawn-level failure (e.g. ENOBUFS when stdout exceeds maxBuffer) yields a
-  // null status and empty stderr; surface error.message so the GhRestError that
-  // wraps this never reports a blank reason (#1867).
+  options: SpawnSyncOptions,
+): GhSpawnResult {
+  return spawnSync(command, [...args], options);
+}
+
+function finalizeGhApiResult(
+  binary: string,
+  result: GhSpawnResult,
+): GhApiProcess & {
+  readonly rawStderr: string;
+  readonly rawStatus: number | null;
+  readonly error?: { readonly message?: string; readonly code?: string };
+} {
+  const rawStderr = typeof result.stderr === "string" ? result.stderr : "";
+  let stderr = rawStderr;
   if (result.status === null && result.error && stderr.trim().length === 0) {
-    stderr = result.error.message;
+    stderr = result.error.message ?? "";
+  }
+  if (
+    isAvailabilitySpawnFailure({
+      status: result.status,
+      error: result.error,
+      stdout: typeof result.stdout === "string" ? result.stdout : "",
+      stderr: rawStderr,
+    }) &&
+    stderr.trim().length === 0
+  ) {
+    stderr = formatScmSpawnDiagnostic(binary, result.status, stderr, result.error);
   }
   return {
     returncode: result.status ?? 1,
     stdout: typeof result.stdout === "string" ? result.stdout : "",
     stderr,
+    binary,
+    rawStderr,
+    rawStatus: result.status,
+    error: result.error,
+  };
+}
+
+/** Single subprocess seam invoked by every helper. */
+export function runGhApi(
+  args: readonly string[],
+  options: { timeout?: number; whichFn?: WhichFn; spawnFn?: GhSpawnFn } = {},
+): GhApiProcess {
+  const whichFn = options.whichFn ?? defaultWhich;
+  const spawnFn = options.spawnFn ?? defaultGhSpawn;
+  const role = classifyScmArgv("api", args);
+  let binary = resolveBinaryForRole(role, whichFn);
+  const timeoutMs =
+    options.timeout !== undefined ? Math.round(options.timeout * 1000) : DEFAULT_TIMEOUT_S * 1000;
+  const spawnOpts: SpawnSyncOptions = {
+    encoding: "utf8",
+    timeout: timeoutMs,
+    env: process.env,
+    maxBuffer: SUBPROCESS_MAX_BUFFER,
+    stdio: ["ignore", "pipe", "pipe"],
+  };
+  const spawnOnce = (bin: string) =>
+    finalizeGhApiResult(bin, spawnFn(bin, ["api", ...args], spawnOpts));
+  let first = spawnOnce(binary);
+  if (
+    role === "cached-get" &&
+    binary === "ghx" &&
+    isAvailabilitySpawnFailure({
+      status: first.rawStatus,
+      error: first.error,
+      stdout: first.stdout,
+      stderr: first.rawStderr,
+    }) &&
+    whichFn("gh") !== null
+  ) {
+    binary = "gh";
+    first = spawnOnce(binary);
+  }
+  return {
+    returncode: first.returncode,
+    stdout: first.stdout,
+    stderr: first.stderr,
+    binary,
   };
 }
 
@@ -105,7 +196,7 @@ function execApi(
     hint?: string;
     expectList?: boolean;
     runGhApiFn?: RunGhApiFn;
-    whichFn?: Parameters<typeof resolveBinary>[0];
+    whichFn?: WhichFn;
   },
 ): unknown {
   const runner = options.runGhApiFn ?? runGhApi;
@@ -117,6 +208,7 @@ function execApi(
       endpoint: options.endpoint,
       payload: options.payload,
       hint: options.hint ?? "",
+      binary: result.binary ?? "gh",
     });
   }
   const stdout = result.stdout.trim();
@@ -163,7 +255,7 @@ function execApi(
 
 export interface GhRestSeams {
   readonly runGhApiFn?: RunGhApiFn;
-  readonly whichFn?: Parameters<typeof resolveBinary>[0];
+  readonly whichFn?: WhichFn;
 }
 
 /** `GET /repos/{owner}/{repo}/issues/{n}` -- read a single issue. */
@@ -258,7 +350,7 @@ function execMutation(
     payload: Record<string, unknown>;
     hint?: string;
     runGhApiFn?: RunGhApiFn;
-    whichFn?: Parameters<typeof resolveBinary>[0];
+    whichFn?: WhichFn;
   },
 ): Record<string, unknown> {
   const written = writeJsonPayload(options.payload);
@@ -542,6 +634,7 @@ export function restIssueListOpenInventory(
       endpoint,
       payload: null,
       hint: "verify gh auth and core REST quota; open-issue inventory must be complete",
+      binary: result.binary ?? "gh",
     });
   }
   const stdout = result.stdout.trim();

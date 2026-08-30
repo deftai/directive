@@ -1,11 +1,11 @@
-import { resolveBinary } from "./binary.js";
+import { resolveBinaryForArgv } from "./call-shape.js";
 import { ALLOWED_ISSUE_VERBS, ALLOWED_NAMESPACES } from "./constants.js";
 import { ScmStubError } from "./errors.js";
 import { pyRepr, pyTuple } from "./py-format.js";
 
 export interface BuildCommandOptions {
   readonly binary?: string;
-  readonly whichFn?: Parameters<typeof resolveBinary>[0];
+  readonly whichFn?: Parameters<typeof resolveBinaryForArgv>[2];
 }
 
 /**
@@ -34,6 +34,7 @@ export function buildCommand(
         "additional scm:issue:* commands belong on #881.",
     );
   }
-  const resolved = options.binary ?? resolveBinary(options.whichFn ?? undefined);
+  const resolved =
+    options.binary ?? resolveBinaryForArgv(namespace, [verb, ...extra], options.whichFn);
   return [resolved, namespace, verb, ...extra];
 }

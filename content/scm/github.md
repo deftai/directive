@@ -540,7 +540,7 @@ task scm:sync-default -- --max-files 100
 
 ## ghx cache proxy (#884)
 
-[ghx](https://github.com/brunoborges/ghx) is a **supported, recommended** read-only cache proxy for the GitHub CLI. Deft's SCM layer (`resolveBinary` in `@deftai/directive-core/scm`) prefers `ghx` over `gh` when both are on PATH, so consumers benefit automatically once ghx is installed. ghx is optional for consumer projects — only `gh` is required — but strongly recommended for maintainers and multi-agent swarms that issue many read-only `gh api` / `gh issue view` calls.
+[ghx](https://github.com/brunoborges/ghx) is a **supported, recommended** read-only cache proxy for the GitHub CLI. Deft's SCM layer (`resolveBinaryForArgv` in `@deftai/directive-core/scm`) selects `ghx` only for a single-path GET (`gh api PATH`). Flag-rich GETs and every write use live `gh`. ghx is optional for consumer projects — only `gh` is required — but strongly recommended for maintainers and multi-agent swarms that issue many read-only single-path `gh api` calls. Availability fallback is on spawn failure of the invoked argv, not a `--version` probe (#3737).
 
 **Install (consent-gated, default deny):**
 
@@ -554,9 +554,10 @@ task setup:ghx -- --yes      # non-interactive CI / scripted approval
 
 **Surface rules:**
 
-- ! Prefer `ghx` over `gh` for read-only GET operations when ghx is on PATH
-- ! Use live `gh` for mutations (POST/PATCH/PUT/DELETE) and for immediate read-back after a mutation — ghx is a cached GET proxy only
-- ⊗ Use `ghx api` for multi-arg write invocations — ghx accepts a single positional path arg; writes fall through to `gh`
+- ! Prefer `ghx` over `gh` for a single positional path GET when ghx is on PATH
+- ! Use live `gh` for mutations (POST/PATCH/PUT/DELETE), flag-rich GETs (`--method`, `--paginate`, `--jq`, `--raw-field`, extra positionals), and immediate read-back after a mutation — ghx is a cached GET proxy only
+- ! On spawn failure of an invoked `ghx` (including a numeric NTSTATUS with empty stderr), retry once on live `gh`. Do not probe `ghx --version` — that prints gh's version
+- ⊗ Use `ghx api` for multi-arg write invocations or flag-rich GETs — ghx accepts a single positional path arg; those shapes fall through to `gh`
 
 ## Branch policy (#746 / #747)
 

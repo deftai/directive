@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { resolveBinary } from "../scm/binary.js";
+import { resolveBinaryForArgv } from "../scm/call-shape.js";
 import {
   DEFAULT_TIMEOUT_S,
   type GhRestSeams,
@@ -49,9 +49,10 @@ function defaultFetchComments(
   pr: number,
   seams: ReviewOwnerGithubSeams,
 ): IssueComment[] | { error: string } {
-  const binary = resolveBinary(seams.whichFn);
   const path = `repos/${repo}/issues/${pr}/comments?per_page=100`;
-  const proc = spawnSync(binary, ["api", "--paginate", path], {
+  const apiArgs = ["--paginate", path];
+  const binary = resolveBinaryForArgv("api", apiArgs, seams.whichFn);
+  const proc = spawnSync(binary, ["api", ...apiArgs], {
     encoding: "utf8",
     maxBuffer: SUBPROCESS_MAX_BUFFER,
     timeout: DEFAULT_TIMEOUT_S * 1000,
