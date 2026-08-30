@@ -305,6 +305,18 @@ export function occupancyAdmission(
   return occupancyGrantFor(record, presented, now) === null ? "stranger" : "member";
 }
 
+// Session ids reach remediation text from operator flags, host environments and
+// whatever a peer wrote into the lease, so a value can carry whitespace or shell
+// metacharacters. Only a value a shell would take as one bare token is inlined
+// into a printed command; anything else keeps its placeholder, because the right
+// quoting differs per shell and a mis-parsed copyable command is worse than one
+// the reader has to fill in. The id itself is still named in the prose above.
+const SHELL_SAFE_SESSION_ID = /^[A-Za-z0-9_.:+=,/-]+$/;
+
+function commandSessionId(sessionId: string, placeholder: string): string {
+  return SHELL_SAFE_SESSION_ID.test(sessionId) ? sessionId : placeholder;
+}
+
 function occupancyClockLine(record: OccupancyRecord): string {
   const lastWrite =
     record.lastWriteAt === null ? "" : ` last_write_at=${timestampIso(record.lastWriteAt)}`;
@@ -324,7 +336,7 @@ export function formatOccupancyStaleWarning(
   return (
     `Occupancy lease for session ${record.sessionId} has not beaten for ${age}s of its ` +
     `${Math.round(ttlMs / 1000)}s window; another session may read it as abandoned. ` +
-    `Refresh it with \`deft occupancy:heartbeat --session-id=${record.sessionId}\`.`
+    `Refresh it with \`deft occupancy:heartbeat --session-id=${commandSessionId(record.sessionId, "<your-session-id>")}\`.`
   );
 }
 
@@ -344,7 +356,7 @@ export function formatOccupancyAgeCapRemediation(
     `(claimed ${leaseAgeSeconds(record, now)}s ago, ${occupancyClockLine(record)}), so this ` +
     "worktree is no longer held and a peer may claim it at any moment. Heartbeats cannot " +
     "extend a capped lease — re-claim the worktree with " +
-    `\`deft session:start --session-id=${record.sessionId}\` before writing again.`
+    `\`deft session:start --session-id=${commandSessionId(record.sessionId, "<your-session-id>")}\` before writing again.`
   );
 }
 
@@ -380,21 +392,23 @@ export function formatOccupancyRemediation(
   }
 
   const actor = presented.trim();
+  const occupantArg = commandSessionId(record.sessionId, "<reported-session-id>");
   if (actor.length === 0) {
     return (
       `${header}This process presented no session identity, so a write grant cannot name it ` +
       "and an owner transition would not be recognised on its next write.\n" +
       "Stay read-only (`session:start --read-only`), use another worktree, or ask the occupant " +
-      `to release the lease (\`occupancy:release --session-id=${record.sessionId}\` / \`session:end\`).${tail}`
+      `to release the lease (\`occupancy:release --session-id=${occupantArg}\` / \`session:end\`).${tail}`
     );
   }
+  const actorArg = commandSessionId(actor, "<your-session-id>");
   return (
     `${header}This process presented session ${actor}, which neither holds that lease nor has a ` +
     "write grant on it.\n" +
     "Stay read-only (`session:start --read-only`), use another worktree,\n" +
-    `ask the occupant for a write grant (\`occupancy:grant --child-session-id=${actor} ` +
+    `ask the occupant for a write grant (\`occupancy:grant --child-session-id=${actorArg} ` +
     "--role <worker-role>`, run by the occupant), or run a confirmed owner transition " +
-    `(\`session:start --steal --confirm --occupant ${record.sessionId} --session-id=${actor}\`).${tail}`
+    `(\`session:start --steal --confirm --occupant ${occupantArg} --session-id=${actorArg}\`).${tail}`
   );
 }
 
@@ -904,7 +918,7 @@ export function grantOccupancyMembership(
             capped && current !== null
               ? formatOccupancyAgeCapRemediation(current, now)
               : "occupancy:grant found no live lease to grant on. A grant is derived authority, " +
-                `so claim the worktree first with \`deft session:start --session-id=${owner}\`.`,
+                `so claim the worktree first with \`deft session:start --session-id=${commandSessionId(owner, "<your-session-id>")}\`.`,
           code: 1,
         };
       }
@@ -1386,7 +1400,7 @@ export function heartbeatOccupancy(
         capped && existing !== null
           ? formatOccupancyAgeCapRemediation(existing, now)
           : "occupancy:heartbeat found no live lease to refresh. Claim one with " +
-            `\`deft session:start --session-id=${caller}\`.`,
+            `\`deft session:start --session-id=${commandSessionId(caller, "<your-session-id>")}\`.`,
       code: 1,
     };
   }
