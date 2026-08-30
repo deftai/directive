@@ -1759,6 +1759,16 @@ function decideShellWriteReissue(
   if (command === null) return null;
   const projectRoot = resolve(input.projectRoot);
   for (const dest of classifyShellWriteTargets(command)) {
+    if (dest.unprovable === true) {
+      return deny(
+        input,
+        "scope-not-ready",
+        toolName,
+        "Directive denied " +
+          toolName +
+          ": Shell write dest is not reconstructable (compound command). Use one simple command or Edit/Write.",
+      );
+    }
     if (!isInRepoShellWritePath(projectRoot, dest.path)) continue;
     const destInput: HookDispatchInput = {
       ...input,

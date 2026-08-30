@@ -35,4 +35,12 @@ describe("classifyShellWriteTargets", () => {
     expect(isInRepoShellWritePath("/repo", "src/app.ts")).toBe(true);
     expect(isInRepoShellWritePath("/repo", "/tmp/body.md")).toBe(false);
   });
+  it("does not classify echo of a Set-Content spelling", () => {
+    expect(classifyShellWriteTargets("echo Set-Content -Path src/app.ts")).toEqual([]);
+  });
+  it("marks compound cd plus Set-Content unprovable", () => {
+    const dests = classifyShellWriteTargets("cd src && Set-Content -Path app.ts -Value x");
+    expect(dests.length).toBeGreaterThan(0);
+    expect(dests.every((d) => d.unprovable === true)).toBe(true);
+  });
 });

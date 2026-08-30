@@ -166,4 +166,38 @@ describe("shell write reissue (#3983 / #3987)", () => {
     );
     expect(tempWrite.verdict).toBe("allow");
   });
+  it("allows echo of a Set-Content spelling on an occupied tree", () => {
+    const root = occupiedRoot();
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "run_terminal_command",
+          tool_input: { command: "echo Set-Content -Path src/app.ts" },
+        },
+        environ: { DEFT_SESSION_ID: "other" },
+      },
+      readySeams(),
+    );
+    expect(decision.verdict).toBe("allow");
+  });
+  it("denies compound cd plus Set-Content as unprovable", () => {
+    const root = occupiedRoot();
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "run_terminal_command",
+          tool_input: { command: "cd src && Set-Content -Path app.ts -Value x" },
+        },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+  });
 });
