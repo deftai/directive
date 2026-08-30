@@ -45,9 +45,10 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1362 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1363 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
 - **#3933** -- bug(lifecycle): xbrief:activate / vbrief:activate manufacture a version-less vBRIEFInfo on a v0.8 brief, which then fails validation -- `[completed]`
+- **#3930** -- bug(ci,contracts): master task check is red -- a content contract pins `Closes #3755` to `[Unreleased]` and the v0.108.0 cut moved it -- `[completed]`
 - **#3903** -- bug(scm,release): release Step 3 fails with an empty-stderr exit 1 once the open-issue inventory exceeds 1 MB (ENOBUFS in scm call) -- `[completed]`
 - **#3797** -- docs(contracts): design-critique uses 'arc' as its unit without defining it, and the variant table cannot express two proven shapes -- `[completed]`
 - **#3794** -- bug(hooks,session): linked-worktree writes are gated against the parent checkout lease -- `[completed]`
@@ -71,5 +72,4 @@ _Showing 25 of 1362 completed scopes (newest first). Full history: lifecycle `co
 - **#3781** -- bug(lifecycle): a PR can merge while closing an issue whose brief is left running and unattested -- `[completed]`
 - **#3599** -- fix(session): occupancy lease never heartbeats during active work, so a working session gets stolen (#3433) -- `[completed]`
 - **#3767** -- bug(lifecycle): verify:orphan-active prefers a stale cached issue state over the live read that would correct it -- `[completed]`
-- **#3609** -- BLOCKER: bug(setup): Phase 2 emits bare plan.policy that vBRIEF conformance rejects -- `[completed]`
 
