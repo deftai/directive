@@ -81,6 +81,11 @@ describe("test_branch_gate.py", () => {
     expect(text).toContain("exit 1");
     expect(text).toContain("pull_request:");
   });
+  it("wires pr:check-closing-keywords in FP mode (#3969)", () => {
+    const text = readText(".github/workflows/branch-gate.yml");
+    expect(text).toContain("pr:check-closing-keywords");
+    expect(text).toContain("--mode fp");
+  });
   it("test_agents_md_disclosure_block_present", () => {
     const text = readText("AGENTS.md");
     expect(text).toContain("Branch Policy Disclosure");

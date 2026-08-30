@@ -100,6 +100,7 @@ export const FRAMEWORK_CHECK_GATES: readonly CheckGateSpec[] = [
   // --- Fast preflight (seconds–few min) — #3188 ---
   "verify:branch",
   "verify:encoding",
+  "verify:closing-keywords",
   "verify:cache-fresh",
   ORPHAN_ACTIVE_MERGE_GATE,
   "verify:completed-write-guard",

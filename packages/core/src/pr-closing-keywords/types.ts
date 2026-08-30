@@ -22,6 +22,8 @@ export interface ParsedArgs {
   readonly pr: number | null;
   readonly bodyFile: string | null;
   readonly commitsFile: string | null;
+  /** Offline git range (e.g. origin/master..HEAD) for check-graph wiring (#3969). */
+  readonly fromGitRange: string | null;
   readonly repo: string | null;
   readonly allowKnownFalsePositives: readonly string[];
   /** Intent-mode allowlist of issue numbers permitted to use real closing keywords (#3015). */

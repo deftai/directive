@@ -1,17 +1,32 @@
 /**
- * Check 4 -- consumer hard-stop census (#3900 / #3713).
+ * Check 4 -- consumer hard-stop census (#3900 / #3713 / #3969).
  *
- * Enumerates open issues by title classification and label only.
- * BLOCKER is the sole permitted consumer title classification.
+ * Enumerates open issues by privileged label only.
+ * BLOCKER is the sole permitted consumer title classification (inbound flare).
  * The adoption-blocker label is never derived from a title.
  * Issue bodies are not read into the verdict.
+ *
+ * parseClosesSet composes citation-grammar classifyPosition; do not add a
+ * third position classifier (#3969).
  */
+
+import { classifyPosition } from "../design-critique/citation-grammar.js";
 
 export const CONSUMER_HARD_STOP_TITLE_RE = /^BLOCKER\b/i;
 export const ADOPTION_BLOCKER_LABEL = "adoption-blocker";
+export const BLOCKS_RELEASE_TAG_LABEL = "blocks-release-tag";
+
+/** Maintainer-applied labels that can block a cut. Titles cannot. */
+export const PRIVILEGED_HARD_STOP_LABELS: readonly string[] = [
+  ADOPTION_BLOCKER_LABEL,
+  BLOCKS_RELEASE_TAG_LABEL,
+];
 
 const REMEDIATION =
-  "Recovery: close those issues in this cut (or list them in the Unreleased Closes set). Title classification is BLOCKER only; do not derive adoption-blocker from a title (#3713 / #3900).";
+  "Recovery: close those issues in this cut (or list them in the Unreleased Closes set). " +
+  "Census blocking classification is privileged labels (" +
+  PRIVILEGED_HARD_STOP_LABELS.join(", ") +
+  ") only; BLOCKER in a title is an inbound flare and does not by itself block a cut (#3713 / #3969).";
 
 export interface HardStopIssue {
   readonly number: number;
@@ -38,11 +53,15 @@ function labelsOf(issue: HardStopIssue): string[] {
   return issue.labels.map((label) => label.trim()).filter((label) => label.length > 0);
 }
 
-/** Title and labels only. Never inspect a body field. */
+function hasPrivilegedLabel(labels: readonly string[]): boolean {
+  return labels.some((label) => (PRIVILEGED_HARD_STOP_LABELS as readonly string[]).includes(label));
+}
+
+/** Privileged labels only. Title is recorded as a flare, never as a match. Never inspect a body field. */
 export function classifyHardStop(issue: HardStopIssue): HardStopCensusEntry | null {
   const viaTitle = CONSUMER_HARD_STOP_TITLE_RE.test(issue.title.trim());
-  const viaLabel = labelsOf(issue).some((label) => label === ADOPTION_BLOCKER_LABEL);
-  if (!viaTitle && !viaLabel) {
+  const viaLabel = hasPrivilegedLabel(labelsOf(issue));
+  if (!viaLabel) {
     return null;
   }
   return { number: issue.number, title: issue.title, viaTitle, viaLabel };
@@ -61,7 +80,10 @@ export function enumerateConsumerHardStops(
   return out.sort((a, b) => a.number - b.number);
 }
 
-/** Extract Closes/Fixes/Resolves #N from changelog Unreleased text. Never from issue bodies. */
+/**
+ * Extract Closes/Fixes/Resolves #N from changelog Unreleased text.
+ * Never from issue bodies. Hits in refused markdown positions are not claims.
+ */
 export function parseClosesSet(changelogText: string): Set<number> {
   const after = changelogText.split(/^## \[Unreleased\]\s*$/m)[1] ?? "";
   const unreleased = after.split(/^## \[/m)[0] ?? after;
@@ -69,9 +91,12 @@ export function parseClosesSet(changelogText: string): Set<number> {
   const re = /\b(?:Closes|Fixes|Resolves)\s+#(\d+)/gi;
   let match: RegExpExecArray | null = re.exec(unreleased);
   while (match !== null) {
-    const n = Number(match[1]);
-    if (Number.isInteger(n) && n > 0) {
-      found.add(n);
+    const reason = classifyPosition(unreleased, match.index ?? 0);
+    if (reason === null) {
+      const n = Number(match[1]);
+      if (Number.isInteger(n) && n > 0) {
+        found.add(n);
+      }
     }
     match = re.exec(unreleased);
   }
@@ -87,7 +112,10 @@ export function evaluateConsumerHardStopCensus(options: {
   if (matches.length === 0) {
     return {
       code: 0,
-      message: "Consumer hard-stops: ok -- no open BLOCKER titles or adoption-blocker labels.",
+      message:
+        "Consumer hard-stops: ok -- no open privileged hard-stop labels (" +
+        PRIVILEGED_HARD_STOP_LABELS.join(", ") +
+        ").",
       stream: "stdout",
       matches,
       shipsPast,

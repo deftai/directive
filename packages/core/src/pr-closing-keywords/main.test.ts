@@ -57,9 +57,50 @@ describe("parseArgs", () => {
     expect(stderr.mock.calls.join("")).toContain("must specify --pr OR");
     stderr.mockRestore();
   });
+
+  it("parses --from-git-range (#3969)", () => {
+    expect(parseArgs(["--from-git-range", "origin/master..HEAD"]).fromGitRange).toBe(
+      "origin/master..HEAD",
+    );
+  });
 });
 
 describe("run CLI offline", () => {
+  it("FP mode flags a negated Closes from --from-git-range (#3969)", () => {
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const code = run(["--mode", "fp", "--from-git-range", "origin/master..HEAD"], {
+      runGit: () => ({
+        returncode: 0,
+        stdout: "Does not close #3899\n--END--\n",
+        stderr: "",
+      }),
+    });
+    expect(code).toBe(EXIT_HITS_FOUND);
+    expect(stderr.mock.calls.join("")).toContain("negation");
+    stderr.mockRestore();
+  });
+
+  it("fails closed when git log for --from-git-range fails", () => {
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    expect(
+      run(["--mode", "fp", "--from-git-range", "origin/master..HEAD"], {
+        runGit: () => ({ returncode: 128, stdout: "", stderr: "unknown revision" }),
+      }),
+    ).toBe(EXIT_CONFIG_ERROR);
+    expect(stderr.mock.calls.join("")).toContain("git fetch origin master");
+    stderr.mockRestore();
+  });
+
+  it("FP mode is clean when --from-git-range has no commits", () => {
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    expect(
+      run(["--mode", "fp", "--from-git-range", "origin/master..HEAD"], {
+        runGit: () => ({ returncode: 0, stdout: "", stderr: "" }),
+      }),
+    ).toBe(EXIT_OK);
+    stderr.mockRestore();
+  });
+
   it("exits zero for clean body with only Refs (both modes)", () => {
     const dir = mkdtempSync(join(tmpdir(), "deft-closing-keywords-"));
     try {

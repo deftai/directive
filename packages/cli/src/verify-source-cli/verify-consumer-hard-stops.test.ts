@@ -39,13 +39,22 @@ describe("run", () => {
     ).toBe(0);
   });
 
-  it("returns 1 when a BLOCKER title is not in the Closes set", () => {
+  it("returns 1 when a privileged label is not in the Closes set", () => {
+    expect(
+      silentRun([], {
+        inventory: [{ number: 3899, title: "chore: remediation", labels: ["blocks-release-tag"] }],
+        changelogText: "## [Unreleased]\n\n### Added\n",
+      }),
+    ).toBe(1);
+  });
+
+  it("returns 0 when only a BLOCKER title is present", () => {
     expect(
       silentRun([], {
         inventory: [{ number: 3600, title: "BLOCKER: schema", labels: [] }],
         changelogText: "## [Unreleased]\n\n### Added\n",
       }),
-    ).toBe(1);
+    ).toBe(0);
   });
 
   it("does not ingest a body field from the inventory row", () => {

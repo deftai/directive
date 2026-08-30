@@ -1,3 +1,5 @@
+import { execFileSync } from "node:child_process";
+import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import { EXIT_CONFIG_ERROR, EXIT_HITS_FOUND, EXIT_OK } from "./constants.js";
 import { findAllClosingKeywordHits, findHits, renderHit } from "./detect.js";
 import { defaultRunGh, fetchPrBody, fetchPrCommitMessages } from "./gh.js";
@@ -28,6 +30,7 @@ function emptyParsed(error: string): ParsedArgs {
     pr: null,
     bodyFile: null,
     commitsFile: null,
+    fromGitRange: null,
     repo: null,
     allowKnownFalsePositives: [],
     allowClose: [],
@@ -40,6 +43,7 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
   let pr: number | null = null;
   let bodyFile: string | null = null;
   let commitsFile: string | null = null;
+  let fromGitRange: string | null = null;
   let repo: string | null = null;
   let mode: ClosingKeywordMode = "both";
   const allowKnownFalsePositives: string[] = [];
@@ -83,6 +87,15 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
       i += 1;
     } else if (arg?.startsWith("--commits-file=")) {
       commitsFile = arg.slice("--commits-file=".length);
+    } else if (arg === "--from-git-range") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return emptyParsed("argument --from-git-range: expected one argument");
+      }
+      fromGitRange = value;
+      i += 1;
+    } else if (arg?.startsWith("--from-git-range=")) {
+      fromGitRange = arg.slice("--from-git-range=".length);
     } else if (arg === "--repo") {
       const value = argv[i + 1];
       if (value === undefined) {
@@ -133,11 +146,62 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
     }
   }
 
-  return { pr, bodyFile, commitsFile, repo, allowKnownFalsePositives, allowClose, mode };
+  return {
+    pr,
+    bodyFile,
+    commitsFile,
+    fromGitRange,
+    repo,
+    allowKnownFalsePositives,
+    allowClose,
+    mode,
+  };
 }
 
 export interface RunOptions {
   readonly runGh?: RunGhFn;
+  readonly runGit?: RunGhFn;
+}
+
+function defaultRunGit(cmd: readonly string[]): {
+  returncode: number;
+  stdout: string;
+  stderr: string;
+} {
+  try {
+    const stdout = execFileSync("git", [...cmd], {
+      encoding: "utf8",
+      timeout: 30_000,
+      stdio: ["ignore", "pipe", "pipe"],
+      maxBuffer: SUBPROCESS_MAX_BUFFER,
+    });
+    return { returncode: 0, stdout: typeof stdout === "string" ? stdout : "", stderr: "" };
+  } catch (err: unknown) {
+    const e = err as { status?: number; stdout?: string; stderr?: string; message?: string };
+    return {
+      returncode: typeof e.status === "number" ? e.status : 1,
+      stdout: typeof e.stdout === "string" ? e.stdout : "",
+      stderr: typeof e.stderr === "string" ? e.stderr : String(e.message ?? ""),
+    };
+  }
+}
+
+function readGitRange(range: string, runGit: RunGhFn): string[] | null {
+  const result = runGit(["log", range, "--format=%B%n--END--"]);
+  if (result.returncode !== 0) {
+    process.stderr.write(
+      "Error: git log " +
+        range +
+        " failed: " +
+        result.stderr.trim() +
+        ". Recovery: git fetch origin master.\n",
+    );
+    return null;
+  }
+  return result.stdout
+    .split("\n--END--\n")
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
 }
 
 function filterHits(hits: readonly Hit[], allowList: Set<number>): Hit[] {
@@ -233,8 +297,10 @@ export function run(argv: readonly string[], options: RunOptions = {}): number {
     }
     commitMessages = msgs;
   } else {
-    if (args.bodyFile === null && args.commitsFile === null) {
-      process.stderr.write("Error: must specify --pr OR --body-file / --commits-file.\n");
+    if (args.bodyFile === null && args.commitsFile === null && args.fromGitRange === null) {
+      process.stderr.write(
+        "Error: must specify --pr OR --body-file / --commits-file / --from-git-range.\n",
+      );
       return EXIT_CONFIG_ERROR;
     }
     if (args.bodyFile !== null) {
@@ -250,6 +316,13 @@ export function run(argv: readonly string[], options: RunOptions = {}): number {
         return EXIT_CONFIG_ERROR;
       }
       commitMessages = msgs;
+    }
+    if (args.fromGitRange !== null) {
+      const msgs = readGitRange(args.fromGitRange, options.runGit ?? defaultRunGit);
+      if (msgs === null) {
+        return EXIT_CONFIG_ERROR;
+      }
+      commitMessages = [...commitMessages, ...msgs];
     }
   }
 

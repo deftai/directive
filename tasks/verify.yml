@@ -89,13 +89,23 @@ tasks:
           ENGINE_CMD: 'verify-deposit-closure --project-root "{{.DEFT_ROOT}}" {{.CLI_ARGS}}'
 
   consumer-hard-stops:
-    desc: "Enumerate open consumer hard-stops by BLOCKER title and adoption-blocker label only (#3900 / #3713). Does not read issue bodies. Fail-closed at release."
+    desc: "Enumerate open consumer hard-stops by privileged labels (adoption-blocker, blocks-release-tag) only (#3900 / #3713 / #3969). Does not read issue bodies. Fail-closed at release."
     deps:
       - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
           ENGINE_CMD: 'verify-consumer-hard-stops --project-root "{{.DEFT_ROOT}}" {{.CLI_ARGS}}'
+
+  closing-keywords:
+    desc: "Wire task pr:check-closing-keywords into the check graph (#737 / #3969). FP mode on origin/master..HEAD, or --pr when GITHUB_PR_NUMBER is set."
+    deps:
+      - task: :engine:_ts-build
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify-closing-keywords {{.CLI_ARGS}}'
 
   license-sync:
     desc: "Drift guard for root LICENSE ↔ content/LICENSE.md and published package.json license fields (#2902). Three-state exit (0 clean / 1 drift / 2 config). Framework-source only."

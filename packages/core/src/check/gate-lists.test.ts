@@ -117,6 +117,11 @@ describe("gate-lists (#2791)", () => {
     expect(CONSUMER_CHECK_GATES.map(checkGateId)).not.toContain("verify:deposit-closure");
   });
 
+  it("includes verify:closing-keywords on the framework list only (#3969)", () => {
+    expect(FRAMEWORK_CHECK_GATES.map(checkGateId)).toContain("verify:closing-keywords");
+    expect(CONSUMER_CHECK_GATES.map(checkGateId)).not.toContain("verify:closing-keywords");
+  });
+
   it("includes #3145 enforcement gates on framework and consumer lists", () => {
     const framework = FRAMEWORK_CHECK_GATES.map(checkGateId);
     const consumer = CONSUMER_CHECK_GATES.map(checkGateId);

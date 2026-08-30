@@ -182,6 +182,7 @@ jobs:
         run: task check:merge
         env:
           GH_TOKEN: ${{ github.token }}
+          GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
           # #3499 / #747: merge-gate CI is a read-only verification checkout,
           # not authoring. Documented exemption only. Local `task check` /
           # hooks stay fail-closed on master.
@@ -469,6 +470,7 @@ jobs:
         run: task check:merge
         env:
           GH_TOKEN: ${{ github.token }}
+          GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
           # #3499 / #747: merge-gate CI is a read-only verification checkout,
           # not authoring. Documented exemption only. Local `task check` /
           # hooks stay fail-closed on master.

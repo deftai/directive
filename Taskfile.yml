@@ -436,6 +436,7 @@ tasks:
       - verify:bridge-drift
       - verify:branch
       - verify:encoding
+      - verify:closing-keywords
       - verify:forward-coverage
       - verify:test-boundary
       - verify:scope-provenance

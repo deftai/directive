@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 # CI sanity check (#747 acceptance criterion E): refuse PRs whose head_ref
 # equals the base_ref. master->master PRs slip past every other layer (the
@@ -35,3 +36,32 @@ jobs:
             exit 1
           fi
           echo "✓ head_ref ($HEAD_REF) != base_ref ($BASE_REF)"
+
+  # Layer 0 closing-keyword FP lint (#737 / #3969). Fires on body edits too
+  # (types include `edited`), which merge-gate does not. Mode fp is the
+  # detector that flagged PR #3960 (reason negation).
+  closing-keywords:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Enable corepack (pnpm)
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Task
+        uses: arduino/setup-task@c0bc642852239c2689f73f4ea6459c29405f3c52 # v3.0.0
+        with:
+          version: 3.52.0
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: pr:check-closing-keywords FP (#737 / #3969)
+        run: task pr:check-closing-keywords -- --pr ${{ github.event.pull_request.number }} --mode fp
+        env:
+          GH_TOKEN: ${{ github.token }}

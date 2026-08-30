@@ -400,7 +400,7 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
       emit(
         5,
         crLabel,
-        "DRYRUN (would enumerate open BLOCKER titles and adoption-blocker labels; disclosure does not block)",
+        "DRYRUN (would enumerate open privileged hard-stop labels; disclosure does not block)",
       );
       process.stderr.write(disclosure.text + "\n");
     } else if (seams.consumerHardStops) {

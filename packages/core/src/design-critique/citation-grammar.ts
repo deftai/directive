@@ -301,7 +301,7 @@ function blockPosition(body: string, offset: number): BlockPosition {
  * indent is also ordinary list-continuation content, so refusing it would block
  * valid records more often than it would catch example text.
  */
-function classifyPosition(body: string, offset: number): CitationRejectionClass | null {
+export function classifyPosition(body: string, offset: number): CitationRejectionClass | null {
   const block = blockPosition(body, offset);
   if (block.insideFence) return "code-fence";
   const { start, end } = lineBounds(body, offset);

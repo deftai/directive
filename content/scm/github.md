@@ -417,6 +417,8 @@ This is the canonical ranking label for **a Directive consumer cannot complete a
 
 **Title classification (the one sanctioned exception, #3713):** `BLOCKER` in the title is permitted for this class, and is the **only** classification allowed in an issue title. Every other classification stays label-only. Reason: the filing population cannot apply labels -- GitHub requires push access to set them at issue creation. The token is an inbound flare; it never writes `adoption-blocker`. A privileged actor applies the label after the body-evidence test below. Absence of the token does not mean "not a blocker." `task feedback:file --blocker` is the consumer filing path that carries the token and this evidence.
 
+**Release census (#3969):** `task verify:consumer-hard-stops` enumerates open issues by privileged labels (`adoption-blocker`, `blocks-release-tag`) only. The BLOCKER title flare does not by itself block a cut -- anyone can file a title in a public repository. A privileged actor applies the label after the body-evidence test below (or, for `blocks-release-tag`, when naming a tag deadline). Issue bodies are not read into the verdict.
+
 **Classification test** (all must hold, and a second person must be able to check them from the body):
 
 1. An intended consumer flow at a named version does not complete.

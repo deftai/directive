@@ -1,0 +1,173 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Story xBRIEF for #3969 re-scoped bound remedy; successor lean 5470479357.",
+    "updated": "2026-08-30T18:41:04Z"
+  },
+  "plan": {
+    "title": "bug(release): close the unrecorded Closes bypass, fix census input, wire the existing closing-keyword detector",
+    "status": "running",
+    "narratives": {
+      "Description": "Bound SoT is successor lean 5470479357 after the issue-body premise was refuted. Priority 1 is position classification of parseClosesSet. Priority 2 is privileged-label census. Priority 4 wires pr:check-closing-keywords. No ships-past hatch.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3969",
+      "Overview": "Bound SoT is successor lean 5470479357; verified-claims table 5470483856; synthesis 5470486202; critic 5470461404. The issue body claimed the consumer hard-stop gate only escapes via a false Closes claim. That premise is measurably false: parseClosesSet has no position classification, so Closes #N inside a fence, inline code, blockquote, strikethrough, or negation clears the census. Five of six current census entries qualify on title alone in a public repo; #3899 (blocks-release-tag, this-cut deadline) is invisible. Build the bound remedy in priority order, not the body.",
+      "Labels": "bug, process, design-critique:triage-ready",
+      "UserStory": "As a maintainer cutting a release, I want the consumer hard-stop census to refuse unrecorded markdown-context bypasses and to qualify only on privileged labels, so an unauthenticated title cannot block a tag and a fenced example cannot clear one.",
+      "ImplementationPlan": "1. Compose citation-grammar classifyPosition into parseClosesSet; do not write a third classifier. 2. Census matches privileged labels adoption-blocker and blocks-release-tag; BLOCKER title is an inbound flare only. 3. Do not ship a ships-past hatch. 4. Wire task pr:check-closing-keywords into a workflow and the check gate-list in FP mode. 5. CHANGELOG [Unreleased]. Do not close #3463 or #3899. Do not claim this unblocks the pending tag.",
+      "LockedDecisions": "Successor lean 5470479357 is bound SoT. Compose classifyPosition from packages/core/src/design-critique/citation-grammar.ts; do not write a third position classifier and do not expand classifyHit instead. Census blocking classification is privileged labels (adoption-blocker, blocks-release-tag), never title-alone; BLOCKER remains the sole permitted title classification as an inbound flare (#3713). Refuse a ships-past disposition this cut; authority would have to be a flag carrying an issue citation, not a CHANGELOG trailer. Do not close #3463, #3899, or any other hard-stop entry. Do not weaken any gate to go green (#3156). Whether the tag waits is the operator decision.",
+      "AcceptanceJustification": "Clauses taken from the bound remedy after the panel refuted the filed premise. P1 tests fail before the change on each of the five bypass forms with the plain control still clearing. P2 makes #3899-shaped privileged entries visible and title-only BLOCKER entries not blocking."
+    },
+    "items": [
+      {
+        "id": "p1",
+        "title": "parseClosesSet composes classifyPosition so refused markdown positions do not clear the census",
+        "status": "proposed",
+        "effort": "M",
+        "narrative": {
+          "When": "When Unreleased contains Closes #N inside a fence, inline code span, blockquote, strikethrough, or explicit negation",
+          "Acceptance": "parseClosesSet does not add that issue; a plain Closes #N control still clears; a test fails before the change for each of the five bypass forms.",
+          "Traces": "FR-3969-p1"
+        }
+      },
+      {
+        "id": "p2",
+        "title": "Census blocking classification requires a privileged label, not a title",
+        "status": "proposed",
+        "effort": "M",
+        "narrative": {
+          "When": "When an open issue has a BLOCKER title and no privileged label, and when an open issue has blocks-release-tag or adoption-blocker",
+          "Acceptance": "Title-only BLOCKER does not enter the census. adoption-blocker and blocks-release-tag do. A privileged deadlined entry like #3899 becomes visible. Issue bodies are not read. BLOCKER remains the sole permitted title classification as a flare (#3713).",
+          "Traces": "FR-3969-p2"
+        }
+      },
+      {
+        "id": "p3",
+        "title": "Do not ship a ships-past disposition this cut",
+        "status": "proposed",
+        "effort": "S",
+        "narrative": {
+          "When": "When priorities 1 and 2 are sound",
+          "Acceptance": "No CHANGELOG trailer, body trailer, or identity-based waiver is added. The critic steelman for refusing the hatch is the recorded outcome. Whether the tag waits stays an operator decision.",
+          "Traces": "FR-3969-p3"
+        }
+      },
+      {
+        "id": "p4",
+        "title": "Wire the existing pr:check-closing-keywords detector into a workflow and the check gate-list",
+        "status": "proposed",
+        "effort": "M",
+        "narrative": {
+          "When": "When a PR body or branch commits contain a closing keyword in a refused position",
+          "Acceptance": "task pr:check-closing-keywords is invoked by a GitHub workflow and by the framework check gate-list. The wire uses the existing detector (FP mode catches the #3960 negation case). An unwired detector is no longer the bar.",
+          "Traces": "FR-3969-p4"
+        }
+      },
+      {
+        "id": "p5",
+        "title": "CHANGELOG [Unreleased] entry",
+        "status": "proposed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the PR lands",
+          "Acceptance": "CHANGELOG [Unreleased] records the position classification, the privileged-label census, and the detector wiring, and names #3969. It does not claim to unblock the pending tag and does not use a false Closes for #3463 or #3899.",
+          "Traces": "FR-3969-p5"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "release",
+      "process",
+      "design-critique"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3969",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3969: consumer hard-stop census bypass and label inversion"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3969#issuecomment-5470479357",
+        "type": "x-xbrief/refs",
+        "title": "Successor lean 5470479357"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3713",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3713 BLOCKER title vs privileged adoption-blocker"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/release/consumer-hard-stops.ts",
+          "packages/core/src/release/consumer-hard-stops.test.ts",
+          "packages/core/src/design-critique/citation-grammar.ts",
+          "packages/core/src/pr-closing-keywords/main.ts",
+          "packages/core/src/pr-closing-keywords/types.ts",
+          "packages/core/src/pr-closing-keywords/main.test.ts",
+          "packages/cli/src/verify-source-cli/verify-closing-keywords.ts",
+          "packages/cli/src/verify-source-cli/verify-closing-keywords.test.ts",
+          "packages/cli/src/dispatch.ts",
+          "packages/core/src/check/gate-lists.ts",
+          "Taskfile.yml",
+          "tasks/verify.yml",
+          ".github/workflows/branch-gate.yml",
+          ".github/workflows/ci.yml",
+          "content/scm/github.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/release",
+        "cohesion_exemption": "CHANGELOG.md is a chronological append-only release log."
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "parseClosesSet does not add that issue; a plain Closes #N control still clears; a test fails before the change for each of the five bypass forms.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Title-only BLOCKER does not enter the census. adoption-blocker and blocks-release-tag do. A privileged deadlined entry like #3899 becomes visible. Issue bodies are not read. BLOCKER remains the sole permitted title classification as a flare (#3713).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "No CHANGELOG trailer, body trailer, or identity-based waiver is added. The critic steelman for refusing the hatch is the recorded outcome. Whether the tag waits stays an operator decision.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "task pr:check-closing-keywords is invoked by a GitHub workflow and by the framework check gate-list. The wire uses the existing detector (FP mode catches the #3960 negation case). An unwired detector is no longer the bar.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "CHANGELOG [Unreleased] records the position classification, the privileged-label census, and the detector wiring, and names #3969. It does not claim to unblock the pending tag and does not use a false Closes for #3463 or #3899.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-08-30T18:41:04Z"
+  }
+}

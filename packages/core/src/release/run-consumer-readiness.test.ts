@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { evaluateReleaseConsumerReadiness, issuesFromInventory } from "./run-consumer-readiness.js";
 
 describe("evaluateReleaseConsumerReadiness (#3900)", () => {
-  it("blocks on an open BLOCKER not in Closes and still returns non-blocking disclosure", () => {
+  it("blocks on an open privileged hard-stop not in Closes and still returns non-blocking disclosure", () => {
     const result = evaluateReleaseConsumerReadiness({
       changelogText: "## [Unreleased]\n\n### Added\n- fail-closed verifier.\n",
-      issues: [{ number: 3600, title: "BLOCKER: schema", labels: [] }],
+      issues: [{ number: 3899, title: "chore: remediation", labels: ["blocks-release-tag"] }],
     });
     expect(result.hardStops.code).toBe(1);
     expect(result.disclosure.blocking).toBe(false);
