@@ -2,13 +2,13 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Recut of #3900: pack-versus-guidance fail-closed verifiers, not a critic-confirmed skill.",
-    "updated": "2026-08-30T18:10:00Z"
+    "updated": "2026-08-30T17:48:52Z"
   },
   "plan": {
     "title": "feat(release): consumer-readiness pack verifiers (#3900 recut)",
-    "status": "running",
+    "status": "completed",
     "id": "issue-3900",
-    "updated": "2026-08-30T18:10:00Z",
+    "updated": "2026-08-30T17:48:52Z",
     "tags": [
       "area:release",
       "process",
@@ -23,7 +23,7 @@
       {
         "id": "3900-check1-c1-staged",
         "title": "Check 1 is a fail-closed task verifier that resolves the C1 declaration against staged pack output and reuses evaluateDepositClosure.",
-        "status": "pending",
+        "status": "completed",
         "effort": "M",
         "x-directive/evidence": {
           "kind": "test",
@@ -35,7 +35,7 @@
       {
         "id": "3900-check2-compose-c3",
         "title": "Check 2 composes C3 live-procedure target validation; do not rebuild the oracle.",
-        "status": "pending",
+        "status": "completed",
         "effort": "S",
         "x-directive/evidence": {
           "kind": "review",
@@ -47,7 +47,7 @@
       {
         "id": "3900-check3-compose-c2",
         "title": "Check 3 composes C2 semantic-single-source; do not rebuild the oracle.",
-        "status": "pending",
+        "status": "completed",
         "effort": "S",
         "x-directive/evidence": {
           "kind": "test",
@@ -59,7 +59,7 @@
       {
         "id": "3900-check4-title-label",
         "title": "Check 4 enumerates open consumer hard-stops by BLOCKER title classification and the adoption-blocker label only; never ingest issue bodies.",
-        "status": "pending",
+        "status": "completed",
         "effort": "M",
         "x-directive/evidence": {
           "kind": "test",
@@ -71,7 +71,7 @@
       {
         "id": "3900-check56-disclosure",
         "title": "Checks 5 and 6 print operator-facing new-refusal and net-posture disclosure at the release decision point and do not auto-block a tag.",
-        "status": "pending",
+        "status": "completed",
         "effort": "S",
         "x-directive/evidence": {
           "kind": "test",
@@ -83,7 +83,7 @@
       {
         "id": "3900-non-vacuity",
         "title": "Each verifier fails against a deliberately mutated staged tree, and a 0.107.0-shaped pack reproduces the escaped class while a fixed deposit is clear.",
-        "status": "pending",
+        "status": "completed",
         "effort": "M",
         "x-directive/evidence": {
           "kind": "test",
@@ -148,7 +148,38 @@
           "ambiguous": false,
           "provenance": "statement"
         }
-      ]
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3965,
+        "prBase": null,
+        "mergeCommit": "a4f700404be6576ebd5ade7ad9831e19024163c3",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a4f700404be6576ebd5ade7ad9831e19024163c3",
+        "verifiedAt": "2026-08-30T17:48:52Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-30T17:48:52Z"
+      },
+      "completedAt": "2026-08-30T17:48:52Z",
+      "capacityBucket": "new-capability"
     }
   }
 }
