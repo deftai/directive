@@ -5,9 +5,10 @@
  * erase it. This is detection, not a root-cause claim.
  */
 
-import { appendFileSync, mkdirSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { platformUserConfigDir } from "../user-config/resolve-user-md.js";
 import type { GitDestructiveKind } from "./dest-form.js";
 
@@ -42,8 +43,17 @@ export function resolveGitDestructiveLogPath(
 }
 
 function defaultAppend(path: string, line: string): void {
-  mkdirSync(dirname(path), { recursive: true });
-  appendFileSync(path, line, { encoding: "utf8" });
+  const targetAbs = resolve(path);
+  const parent = dirname(targetAbs);
+  mkdirSync(parent, { recursive: true });
+  containedWrite({
+    root: parent,
+    target: targetAbs,
+    data: line,
+    mode: "append",
+    mkdir: false,
+    mutation: false,
+  });
 }
 
 /**

@@ -122,6 +122,22 @@
         "cohesion_exemption": "packages/core/src/hooks/dispatcher.ts and dispatcher.test.ts already exceed the review trigger; this slice adds one always-on destructive-git branch and matching tests without splitting the dispatcher. CHANGELOG.md is an append-only release log; this slice appends one [Unreleased] entry."
       }
     },
-    "updated": "2026-08-30T16:18:36Z"
+    "updated": "2026-08-30T16:50:00Z",
+    "architecture": {
+      "systemOfRecord": {
+        "stateSurfaces": [
+          {
+            "name": "git-destructive attribution log",
+            "classification": "cache",
+            "owner": "hook write fence",
+            "approvedStorage": "json_file",
+            "forbiddenStorage": ["browser_storage", "in_memory"],
+            "authoritative": false,
+            "invalidationRules": "Append-only attribution, never product authority. Not auto-invalidated. Operators may delete. Lives under the platform user-config directory so it remains after reflog prune."
+          }
+        ],
+        "referenceApplications": []
+      }
+    }
   }
 }

@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
+import { containedRemove } from "../../fs/contained-write.js";
 import {
   type GitRunner as SwarmGitRunner,
   defaultGitRunner as swarmGitRunner,
@@ -45,7 +46,8 @@ function forceDeleteWorktreeDir(worktreePath: string): void {
 }
 
 function normalizeWorktreePath(path: string): string {
-  return resolve(path).replace(/\\/g, "/").toLowerCase();
+  const normalized = resolve(path).replace(/\\/g, "/");
+  return process.platform === "win32" ? normalized.toLowerCase() : normalized;
 }
 
 /**
@@ -88,7 +90,12 @@ function pruneEvaluatorWorktreeAdmin(
     }
     const recordedWorktree = recorded.replace(/\/\.git$/u, "");
     if (recordedWorktree === needle) {
-      rmSync(join(worktreesDir, name), { recursive: true, force: true });
+      containedRemove({
+        root: resolve(projectRoot),
+        target: join(worktreesDir, name),
+        recursive: true,
+        mutation: false,
+      });
       return;
     }
   }
