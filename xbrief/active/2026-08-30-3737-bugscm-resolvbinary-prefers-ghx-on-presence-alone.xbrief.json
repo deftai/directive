@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for #3737 bound remedy: call-shape ghx selection, spawn-failure fallback, named binary+status diagnostics. No --version health probe.",
-    "updated": "2026-08-30T18:33:53Z"
+    "updated": "2026-08-30T19:31:14Z"
   },
   "plan": {
     "title": "BLOCKER: bug(scm): resolveBinary prefers ghx on presence alone, so a broken ghx silently kills triage, ingest, cache and pr:watch",
@@ -19,6 +19,12 @@
         "status": "proposed",
         "narrative": {
           "Acceptance": "When both ghx and gh are on PATH, a mutation or a flag-rich GET never routes to ghx; a single positional path GET may still take ghx."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scm/call-shape.test.ts",
+          "recorded_at": "2026-08-30T19:31:14Z",
+          "recorded_by": "leaf-worker/3737"
         }
       },
       {
@@ -26,6 +32,12 @@
         "status": "proposed",
         "narrative": {
           "Acceptance": "Fallback triggers on real spawn failure of the invoked command, proven by a test that simulates a spawn failure rather than an unhealthy probe. No --version-style health probe is introduced."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scm/spawn-status.test.ts",
+          "recorded_at": "2026-08-30T19:31:14Z",
+          "recorded_by": "leaf-worker/3737"
         }
       },
       {
@@ -33,6 +45,12 @@
         "status": "proposed",
         "narrative": {
           "Acceptance": "A failure names the binary that was invoked and reports the status class including 0xC0000142 STATUS_DLL_INIT_FAILED; a test asserts the diagnostic content without reproducing the loader fault."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scm/spawn-status.test.ts",
+          "recorded_at": "2026-08-30T19:31:14Z",
+          "recorded_by": "leaf-worker/3737"
         }
       },
       {
@@ -40,6 +58,12 @@
         "status": "proposed",
         "narrative": {
           "Acceptance": "CHANGELOG [Unreleased] records the call-shape routing and named diagnostics and names #3737."
+        },
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/3973",
+          "recorded_at": "2026-08-30T19:31:14Z",
+          "recorded_by": "leaf-worker/3737"
         }
       }
     ],
@@ -126,6 +150,6 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-08-30T18:33:53Z"
+    "updated": "2026-08-30T19:31:14Z"
   }
 }
