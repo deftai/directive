@@ -57,10 +57,64 @@ describe("resolveClosingKeywordsSource (#3969)", () => {
     }
   });
 
-  it("uses origin/master when local master is missing (GitHub-unknown origin HEAD is undecidable without fetch)", () => {
+  it("uses origin/master when local master is missing and fetch fails", () => {
     expect(resolveClosingKeywordsSource({}, mergeBaseGit)).toEqual({
       kind: "range",
       range: "abc1234def..HEAD",
+    });
+  });
+
+  it("does not fetch when resolving via --pr", () => {
+    const calls: string[][] = [];
+    const git: RunGitFn = (args) => {
+      calls.push([...args]);
+      return { returncode: 128, stdout: "", stderr: "unused" };
+    };
+    expect(resolveClosingKeywordsSource({ GITHUB_PR_NUMBER: "3972" }, git)).toEqual({
+      kind: "pr",
+      pr: "3972",
+    });
+    expect(calls).toEqual([]);
+  });
+
+  it("fetches origin/master on the local path before using the merge-base", () => {
+    const calls: string[][] = [];
+    const git: RunGitFn = (args) => {
+      calls.push([...args]);
+      if (args[0] === "fetch" && args[1] === "origin" && args[2] === "master") {
+        return { returncode: 0, stdout: "", stderr: "" };
+      }
+      if (args[0] === "merge-base" && args[1] === "origin/master") {
+        return { returncode: 0, stdout: "abc1234def\n", stderr: "" };
+      }
+      return { returncode: 128, stdout: "", stderr: "unknown" };
+    };
+    expect(resolveClosingKeywordsSource({}, git)).toEqual({
+      kind: "range",
+      range: "abc1234def..HEAD",
+    });
+    expect(calls[0]).toEqual(["fetch", "origin", "master", "--"]);
+  });
+
+  it("skips stale-base after a successful fetch even when local merge-bases differ", () => {
+    const git: RunGitFn = (args) => {
+      if (args[0] === "fetch") {
+        return { returncode: 0, stdout: "", stderr: "" };
+      }
+      if (args[0] === "merge-base" && args[1] === "--is-ancestor") {
+        return { returncode: 0, stdout: "", stderr: "" };
+      }
+      if (args[0] === "merge-base" && args[1] === "origin/master" && args[2] === "HEAD") {
+        return { returncode: 0, stdout: "aaa1111\n", stderr: "" };
+      }
+      if (args[0] === "merge-base" && args[1] === "master" && args[2] === "HEAD") {
+        return { returncode: 0, stdout: "bbb2222\n", stderr: "" };
+      }
+      return { returncode: 128, stdout: "", stderr: "unknown" };
+    };
+    expect(resolveClosingKeywordsSource({}, git)).toEqual({
+      kind: "range",
+      range: "aaa1111..HEAD",
     });
   });
 

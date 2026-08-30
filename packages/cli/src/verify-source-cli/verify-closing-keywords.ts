@@ -56,6 +56,13 @@ function localDefaultFor(originRef: string): string | null {
   return slash >= 0 ? originRef.slice(slash + 1) : null;
 }
 
+/** Remote-tracking ref name for `git fetch origin <name> --`. */
+function originFetchArg(originRef: string): string | null {
+  if (!originRef.startsWith("origin/")) return null;
+  const name = originRef.slice("origin/".length);
+  return name.length > 0 ? name : null;
+}
+
 /**
  * Detect the locally observable stale-range enlargement without fetching:
  * origin/<default> lags a descendant local default, and HEAD's merge-base
@@ -106,15 +113,19 @@ export function resolveClosingKeywordsSource(
   for (const base of bases) {
     if (seen.has(base)) continue;
     seen.add(base);
+    const fetchArg = originFetchArg(base);
+    let fetched = false;
+    if (fetchArg !== null) {
+      // Scoped to this wrapper, not the whole check graph. CI uses --pr
+      // and never reaches this path.
+      fetched = runGit(["fetch", "origin", fetchArg, "--"]).returncode === 0;
+    }
     const sha = shaOf(runGit(["merge-base", base, "HEAD"]));
     if (sha === null) continue;
-    const stale = staleRelativeToLocalDefault(base, sha, runGit);
-    if (stale !== null) return stale;
-    // GitHub-unknown origin HEAD is locally undecidable: a current origin
-    // and an origin that is equally stale with local default are the same
-    // graph. Fetching here would still put the network on every `task check`
-    // because this wrapper is in the framework check graph. Missing origin
-    // and locally observable lag already fail closed. CI uses --pr.
+    if (!fetched) {
+      const stale = staleRelativeToLocalDefault(base, sha, runGit);
+      if (stale !== null) return stale;
+    }
     return { kind: "range", range: `${sha}..HEAD` };
   }
   return {
