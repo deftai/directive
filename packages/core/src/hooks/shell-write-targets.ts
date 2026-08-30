@@ -188,3 +188,33 @@ export function isInRepoShellWritePath(projectRoot: string, dest: string): boole
   if (normalized.split(sep).includes("..") || normalized.split("/").includes("..")) return false;
   return true;
 }
+
+export function compoundLastCdLooksLikeTemp(command: string): boolean {
+  const segs = splitWriteSegments(command);
+  let last: string | null = null;
+  for (const seg of segs) {
+    const t = extractCdTarget(seg);
+    if (t !== null) last = t;
+  }
+  if (last === null) return false;
+  return looksLikeTempCdTarget(last);
+}
+function extractCdTarget(segment: string): string | null {
+  const verbs = ["Set-Location", "Push-Location", "cd"];
+  for (const verb of verbs) {
+    if (!startsWithVerb(segment, verb)) continue;
+    let j = skipWs(segment, skipWs(segment, 0) + verb.length);
+    const head = segment.slice(j, j + 12).toLowerCase();
+    if (head.startsWith("-path")) j = skipWs(segment, j + 5);
+    const extracted = extractQuoted(segment, j);
+    const value = extracted.value.trim();
+    return value.length > 0 ? value : null;
+  }
+  return null;
+}
+function looksLikeTempCdTarget(path: string): boolean {
+  const lower = path.toLowerCase().replace(/\\/g, "/");
+  if (lower.includes("$env:temp") || lower.includes("$env:tmp")) return true;
+  if (lower.includes("%temp%") || lower.includes("%tmp%")) return true;
+  return looksLikeTempPath(path);
+}

@@ -248,4 +248,21 @@ describe("shell write reissue (#3983 / #3987)", () => {
     );
     expect(decision.verdict).toBe("allow");
   });
+  it("allows relative WriteAllText after cd to env TEMP", () => {
+    const root = occupiedRoot();
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "run_terminal_command",
+          tool_input: { command: "cd $env:TEMP; [System.IO.File]::WriteAllText('body.md', 'x')" },
+        },
+        environ: { DEFT_SESSION_ID: "other" },
+      },
+      readySeams(),
+    );
+    expect(decision.verdict).toBe("allow");
+  });
 });
