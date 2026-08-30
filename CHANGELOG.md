@@ -1122,8 +1122,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **The `--with-network` session:start case no longer makes a real npm registry request (#3901).** Its `node:child_process` mock was a pass-through spy that recorded and executed, so a gate run reached `registry.npmjs.org` for a response the test never inspects. npm and pnpm now return a deterministic process result, the deep SCM probe is injected so no live `gh` runs either, and the local `timeout: 20_000` override is removed so the case inherits the recorded win32 policy in `vitest.config.ts`. Two mutation checks keep the #2182 argv assertion non-vacuous, and the suite now fails closed on any outbound command. Refs #2182, #3616, #3480, #3755.
-
 ### Removed
 
 ## [0.79.4] - 2026-07-20
@@ -1496,8 +1494,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **The `--with-network` session:start case no longer makes a real npm registry request (#3901).** Its `node:child_process` mock was a pass-through spy that recorded and executed, so a gate run reached `registry.npmjs.org` for a response the test never inspects. npm and pnpm now return a deterministic process result, the deep SCM probe is injected so no live `gh` runs either, and the local `timeout: 20_000` override is removed so the case inherits the recorded win32 policy in `vitest.config.ts`. Two mutation checks keep the #2182 argv assertion non-vacuous, and the suite now fails closed on any outbound command. Refs #2182, #3616, #3480, #3755.
-
 ### Removed
 
 ## [0.71.1] - 2026-07-06
@@ -1556,8 +1552,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **chore(triage): move triage working-set cache off `.eval` to `.triage-cache/` (#1703)** — Triage append-only logs and decomposition scratch now resolve under a dedicated `.triage-cache/` namespace with an idempotent migration from legacy `.eval/` paths, reclaiming `.eval/` for the version-eval results store. Refs #1703.
 
 ### Fixed
-
-- **The `--with-network` session:start case no longer makes a real npm registry request (#3901).** Its `node:child_process` mock was a pass-through spy that recorded and executed, so a gate run reached `registry.npmjs.org` for a response the test never inspects. npm and pnpm now return a deterministic process result, the deep SCM probe is injected so no live `gh` runs either, and the local `timeout: 20_000` override is removed so the case inherits the recorded win32 policy in `vitest.config.ts`. Two mutation checks keep the #2182 argv assertion non-vacuous, and the suite now fails closed on any outbound command. Refs #2182, #3616, #3480, #3755.
 
 ### Removed
 
@@ -1800,8 +1794,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **The `--with-network` session:start case no longer makes a real npm registry request (#3901).** Its `node:child_process` mock was a pass-through spy that recorded and executed, so a gate run reached `registry.npmjs.org` for a response the test never inspects. npm and pnpm now return a deterministic process result, the deep SCM probe is injected so no live `gh` runs either, and the local `timeout: 20_000` override is removed so the case inherits the recorded win32 policy in `vitest.config.ts`. Two mutation checks keep the #2182 argv assertion non-vacuous, and the suite now fails closed on any outbound command. Refs #2182, #3616, #3480, #3755.
-
 ### Removed
 
 ## [0.65.0] - 2026-06-30
@@ -1868,8 +1860,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Test branch-coverage gate restored to 85% (#2083 follow-up)** — adds targeted branch tests for the content-pack slice helpers and CLI paths, lifting measured branch coverage back over 85%, and restores the vitest `branches` threshold to 85 after the temporary relief from the #1860 Python removal and #2083 parity-harness teardown. Refs #2083, #1860.
 
 ### Fixed
-
-- **The `--with-network` session:start case no longer makes a real npm registry request (#3901).** Its `node:child_process` mock was a pass-through spy that recorded and executed, so a gate run reached `registry.npmjs.org` for a response the test never inspects. npm and pnpm now return a deterministic process result, the deep SCM probe is injected so no live `gh` runs either, and the local `timeout: 20_000` override is removed so the case inherits the recorded win32 policy in `vitest.config.ts`. Two mutation checks keep the #2182 argv assertion non-vacuous, and the suite now fails closed on any outbound command. Refs #2182, #3616, #3480, #3755.
 
 ### Removed
 
@@ -2149,8 +2139,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **The `--with-network` session:start case no longer makes a real npm registry request (#3901).** Its `node:child_process` mock was a pass-through spy that recorded and executed, so a gate run reached `registry.npmjs.org` for a response the test never inspects. npm and pnpm now return a deterministic process result, the deep SCM probe is injected so no live `gh` runs either, and the local `timeout: 20_000` override is removed so the case inherits the recorded win32 policy in `vitest.config.ts`. Two mutation checks keep the #2182 argv assertion non-vacuous, and the suite now fails closed on any outbound command. Refs #2182, #3616, #3480, #3755.
-
 ### Removed
 
 ## [0.54.0] - 2026-06-23
@@ -2310,8 +2298,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **The `--with-network` session:start case no longer makes a real npm registry request (#3901).** Its `node:child_process` mock was a pass-through spy that recorded and executed, so a gate run reached `registry.npmjs.org` for a response the test never inspects. npm and pnpm now return a deterministic process result, the deep SCM probe is injected so no live `gh` runs either, and the local `timeout: 20_000` override is removed so the case inherits the recorded win32 policy in `vitest.config.ts`. Two mutation checks keep the #2182 argv assertion non-vacuous, and the suite now fails closed on any outbound command. Refs #2182, #3616, #3480, #3755.
-
 ### Removed
 
 ## [0.51.0] - 2026-06-17
@@ -2377,8 +2363,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Bug-labelled issues now rank ahead of feature and RFC work in the triage queue (#1657)** -- `bug` is now a triage ranking label, appended after the existing escalation labels (`blocks-merge`, `blocks-release-tag`, `adoption-blocker`, `breaking-change`, `urgent`). Explicit release-blockers still win, but an open bug now surfaces above the large mass of unlabelled / feature / RFC items instead of sorting purely by recency. The change is also reflected in the consumer-example default so downstream projects inherit bug-prioritisation as the recommended baseline. Closes #1657. Refs #1128 #1186.
 
 ### Fixed
-
-- **The `--with-network` session:start case no longer makes a real npm registry request (#3901).** Its `node:child_process` mock was a pass-through spy that recorded and executed, so a gate run reached `registry.npmjs.org` for a response the test never inspects. npm and pnpm now return a deterministic process result, the deep SCM probe is injected so no live `gh` runs either, and the local `timeout: 20_000` override is removed so the case inherits the recorded win32 policy in `vitest.config.ts`. Two mutation checks keep the #2182 argv assertion non-vacuous, and the suite now fails closed on any outbound command. Refs #2182, #3616, #3480, #3755.
 
 ### Removed
 
@@ -2550,8 +2534,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
-
-- **The `--with-network` session:start case no longer makes a real npm registry request (#3901).** Its `node:child_process` mock was a pass-through spy that recorded and executed, so a gate run reached `registry.npmjs.org` for a response the test never inspects. npm and pnpm now return a deterministic process result, the deep SCM probe is injected so no live `gh` runs either, and the local `timeout: 20_000` override is removed so the case inherits the recorded win32 policy in `vitest.config.ts`. Two mutation checks keep the #2182 argv assertion non-vacuous, and the suite now fails closed on any outbound command. Refs #2182, #3616, #3480, #3755.
 
 ### Removed
 
@@ -2791,8 +2773,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **The `--with-network` session:start case no longer makes a real npm registry request (#3901).** Its `node:child_process` mock was a pass-through spy that recorded and executed, so a gate run reached `registry.npmjs.org` for a response the test never inspects. npm and pnpm now return a deterministic process result, the deep SCM probe is injected so no live `gh` runs either, and the local `timeout: 20_000` override is removed so the case inherits the recorded win32 policy in `vitest.config.ts`. Two mutation checks keep the #2182 argv assertion non-vacuous, and the suite now fails closed on any outbound command. Refs #2182, #3616, #3480, #3755.
-
 ### Removed
 
 ## [0.35.0] - 2026-05-26
@@ -2808,8 +2788,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
-
-- **The `--with-network` session:start case no longer makes a real npm registry request (#3901).** Its `node:child_process` mock was a pass-through spy that recorded and executed, so a gate run reached `registry.npmjs.org` for a response the test never inspects. npm and pnpm now return a deterministic process result, the deep SCM probe is injected so no live `gh` runs either, and the local `timeout: 20_000` override is removed so the case inherits the recorded win32 policy in `vitest.config.ts`. Two mutation checks keep the #2182 argv assertion non-vacuous, and the suite now fails closed on any outbound command. Refs #2182, #3616, #3480, #3755.
 
 ### Removed
 
@@ -2926,8 +2904,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **The `--with-network` session:start case no longer makes a real npm registry request (#3901).** Its `node:child_process` mock was a pass-through spy that recorded and executed, so a gate run reached `registry.npmjs.org` for a response the test never inspects. npm and pnpm now return a deterministic process result, the deep SCM probe is injected so no live `gh` runs either, and the local `timeout: 20_000` override is removed so the case inherits the recorded win32 policy in `vitest.config.ts`. Two mutation checks keep the #2182 argv assertion non-vacuous, and the suite now fails closed on any outbound command. Refs #2182, #3616, #3480, #3755.
-
 ### Removed
 
 ## [0.31.0] - 2026-05-17
@@ -2942,8 +2918,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
-
-- **The `--with-network` session:start case no longer makes a real npm registry request (#3901).** Its `node:child_process` mock was a pass-through spy that recorded and executed, so a gate run reached `registry.npmjs.org` for a response the test never inspects. npm and pnpm now return a deterministic process result, the deep SCM probe is injected so no live `gh` runs either, and the local `timeout: 20_000` override is removed so the case inherits the recorded win32 policy in `vitest.config.ts`. Two mutation checks keep the #2182 argv assertion non-vacuous, and the suite now fails closed on any outbound command. Refs #2182, #3616, #3480, #3755.
 
 ### Removed
 
@@ -2995,8 +2969,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **fix(security): pin GitHub Actions to SHAs + least-privilege `permissions:` blocks (#1072, parent #1069)** -- closes the AFK GitHub-Actions slice of the 2026-05-12 supply-chain hardening cohort. Every remote `uses:` line in `.github/workflows/**` is now pinned to a 40-character commit SHA with a trailing `# vX.Y.Z` comment naming the upstream semver tag for Dependabot tracking + human readability: `actions/checkout@v4` -> `34e1148...` (v4.3.1, 3 sites), `actions/setup-python@v5` -> `a26af69...` (v5.6.0, 3 sites), `astral-sh/setup-uv@v5` -> `d4b2f3b...` (v5.4.2, 2 sites), `actions/setup-go@v5` -> `40f1582...` (v5.6.0, 2 sites), `arduino/setup-task@v2` -> `24c5e13...` (v2.0.0, 1 site), `actions/upload-artifact@v4` -> `ea165f8...` (v4.6.2, 2 sites), `actions/download-artifact@v4` -> `d3f86a1...` (v4.3.0, 3 sites), `softprops/action-gh-release@v2` -> `3bb1273...` (v2.6.2, 1 site). The pin per-site selects the highest semver tag matching the current major; all eight upstream `vN` aliases were cross-validated to point at the chosen SHA so Dependabot's existing major-version pin contract holds without churn (the one exception is `astral-sh/setup-uv`, whose `@v5` alias is ahead of the latest published `vN.M.P` tag -- pinning to `v5.4.2` is the safer single-version anchor). `release.yml` top-level `permissions:` flipped from `contents: write` (workflow-wide elevated scope) to default-deny `contents: read`; the `release` job (the only consumer of `softprops/action-gh-release`, which uploads binaries to the draft GitHub Release) gains an explicit per-job `permissions: contents: write` override with a `# #1072` comment naming the rationale so a future audit reads the scope contract without spelunking job history. `ci.yml` and `branch-gate.yml` already carry `permissions: contents: read` at the top level and have no job that requires elevated scope -- they pass through unchanged on the permissions axis. No workflow now relies on the default broad-scope `GITHUB_TOKEN` for any job (acceptance criterion #1072.4). Coordinates with sibling slice #1073 (docs/security.md baseline note, agent2-owned, disjoint file scope: `docs/security.md` + README security section). PyPI OIDC trusted-publishing carved out to follow-up #1084 (blocked-by #11; deft is not yet on PyPI so the OIDC scaffolding is meaningless until then). Refs #1069 (parent cohort umbrella), Refs #1073, Refs #1084. Closes #1072.
 
 ### Fixed
-
-- **The `--with-network` session:start case no longer makes a real npm registry request (#3901).** Its `node:child_process` mock was a pass-through spy that recorded and executed, so a gate run reached `registry.npmjs.org` for a response the test never inspects. npm and pnpm now return a deterministic process result, the deep SCM probe is injected so no live `gh` runs either, and the local `timeout: 20_000` override is removed so the case inherits the recorded win32 policy in `vitest.config.ts`. Two mutation checks keep the #2182 argv assertion non-vacuous, and the suite now fails closed on any outbound command. Refs #2182, #3616, #3480, #3755.
 
 ### Removed
 

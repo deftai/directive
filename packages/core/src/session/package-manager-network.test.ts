@@ -27,23 +27,40 @@ import type { SessionStartOptions } from "./session-start.js";
  * result; every other command still executes, because the git fixture needs
  * it. The SCM probe is injected for the same reason -- the shallow path spawns
  * `gh auth status` on a 15s timeout and `allowOptionalNetwork` selects the deep
- * path, which spawns live `gh` on a 30s timeout. `afterEach` fails closed on
- * any outbound command that actually reached the OS, so a case that needs real
- * network has to be marked and excluded from gate runs before it lands here.
+ * path, which spawns live `gh` on a 30s timeout.
+ *
+ * The no-network claim is enforced rather than asserted by inspection. Both
+ * `spawnSync` and `execFileSync` are wrapped, and `afterEach` fails closed on
+ * any execution that could leave the machine: a network-capable binary, or a
+ * `git` invocation naming a remote-contacting subcommand. Local git is exempt
+ * because it is the fixture's own cost, not an outbound request. A case that
+ * needs real network has to be marked and excluded from gate runs before it
+ * lands here.
  */
 
 const spawnHarness = vi.hoisted(() => {
-  /** Commands whose execution leaves the machine. */
+  /** Binaries whose execution leaves the machine outright. */
   const OUTBOUND_COMMANDS = new Set(["npm", "pnpm", "gh", "ghx", "curl", "wget"]);
+  /** git subcommands that contact a remote; every other git call is local. */
+  const REMOTE_GIT_SUBCOMMANDS = new Set(["fetch", "pull", "push", "clone", "ls-remote"]);
   /** Matches the fixture's installed tag, so the release advisory stays quiet. */
   const PUBLISHED_VERSION = "0.1.0";
-  /** Resolved names of the commands that were passed through to the real spawnSync. */
-  const executed: string[] = [];
+  /** Every invocation passed through to the real child_process, in order. */
+  const executed: { command: string; args: readonly unknown[] }[] = [];
 
   function commandName(command: unknown): string {
     const raw = String(command ?? "");
     const leaf = raw.split(/[\\/]/u).pop() ?? raw;
     return leaf.toLowerCase().replace(/\.(?:exe|cmd|bat|ps1)$/u, "");
+  }
+
+  function isOutbound(command: string, args: readonly unknown[]): boolean {
+    if (OUTBOUND_COMMANDS.has(command)) return true;
+    if (command !== "git") return false;
+    const sub = String(args[0] ?? "");
+    return (
+      REMOTE_GIT_SUBCOMMANDS.has(sub) || (sub === "remote" && String(args[1] ?? "") === "update")
+    );
   }
 
   function packageManagerStdout(args: readonly unknown[]): string {
@@ -75,21 +92,43 @@ const spawnHarness = vi.hoisted(() => {
     };
   }
 
-  return { OUTBOUND_COMMANDS, executed, commandName, packageManagerResult };
+  return { executed, commandName, isOutbound, packageManagerResult };
 });
 
 vi.mock("node:child_process", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:child_process")>();
   const realSpawnSync = actual.spawnSync as unknown as (...args: unknown[]) => unknown;
-  const stub = vi.fn((command: unknown, ...rest: unknown[]) => {
+  const realExecFileSync = actual.execFileSync as unknown as (...args: unknown[]) => unknown;
+
+  function record(command: unknown, rest: unknown[]): void {
+    spawnHarness.executed.push({
+      command: spawnHarness.commandName(command),
+      args: Array.isArray(rest[0]) ? (rest[0] as unknown[]) : [],
+    });
+  }
+
+  const spawnSyncStub = vi.fn((command: unknown, ...rest: unknown[]) => {
     const name = spawnHarness.commandName(command);
     if (name === "npm" || name === "pnpm") {
       return spawnHarness.packageManagerResult(Array.isArray(rest[0]) ? rest[0] : []);
     }
-    spawnHarness.executed.push(name);
+    record(command, rest);
     return realSpawnSync(command, ...rest);
   });
-  return { ...actual, spawnSync: stub as unknown as typeof actual.spawnSync };
+
+  // execFileSync is passed through, never stubbed: the git fixture depends on
+  // it. It is recorded so the afterEach guard can see a package manager or a
+  // remote git call that arrives on this seam instead of spawnSync.
+  const execFileSyncStub = vi.fn((command: unknown, ...rest: unknown[]) => {
+    record(command, rest);
+    return realExecFileSync(command, ...rest);
+  });
+
+  return {
+    ...actual,
+    spawnSync: spawnSyncStub as unknown as typeof actual.spawnSync,
+    execFileSync: execFileSyncStub as unknown as typeof actual.execFileSync,
+  };
 });
 
 import { spawnSync } from "node:child_process";
@@ -104,9 +143,11 @@ function packageManagerCalls(mock: ReturnType<typeof vi.mocked<typeof spawnSync>
   });
 }
 
-/** Outbound commands that actually reached the OS during the current test. */
+/** Executions that reached the OS and could have left the machine, as `cmd sub`. */
 function outboundExecutions(): string[] {
-  return spawnHarness.executed.filter((name) => spawnHarness.OUTBOUND_COMMANDS.has(name));
+  return spawnHarness.executed
+    .filter((call) => spawnHarness.isOutbound(call.command, call.args))
+    .map((call) => `${call.command} ${String(call.args[0] ?? "")}`.trim());
 }
 
 const PUBLIC_REGISTRY_VIEW_ARGS = [
@@ -346,6 +387,26 @@ describe("package-manager network scope (#2182)", () => {
     expect(outboundExecutions()).toEqual([]);
   });
 
+  it("the outbound guard sees a remote git call on either child_process seam (#3901)", () => {
+    // Non-vacuity for the guard itself: local git is exempt, remote git is not,
+    // and both wrapped entrypoints feed the same record.
+    expect(spawnHarness.isOutbound("git", ["rev-parse", "HEAD"])).toBe(false);
+    expect(spawnHarness.isOutbound("git", ["status"])).toBe(false);
+    expect(spawnHarness.isOutbound("git", ["remote", "get-url", "origin"])).toBe(false);
+    expect(spawnHarness.isOutbound("git", ["ls-remote", "origin"])).toBe(true);
+    expect(spawnHarness.isOutbound("git", ["fetch", "origin"])).toBe(true);
+    expect(spawnHarness.isOutbound("git", ["remote", "update"])).toBe(true);
+    expect(spawnHarness.isOutbound("gh", ["auth", "status"])).toBe(true);
+    expect(spawnHarness.isOutbound("npm", ["view"])).toBe(true);
+
+    const { root } = initPrivateScopeRepo();
+    temps.push(root);
+    // The fixture's six git subprocesses ran through the wrapped execFileSync
+    // and are all local, so the guard stays empty on a real recorded run.
+    expect(spawnHarness.executed.some((call) => call.command === "git")).toBe(true);
+    expect(outboundExecutions()).toEqual([]);
+  });
+
   it("mutation: an added private-scope registry call fails the assertion (#2182 non-vacuity)", () => {
     const { root } = initPrivateScopeRepo();
     temps.push(root);
@@ -353,8 +414,14 @@ describe("package-manager network scope (#2182)", () => {
     runSessionStart(root, withNetworkOptions());
     expectOnlyDisclosedPublicRegistryProbe(packageManagerCalls(spawnSyncMock));
 
-    // A second flow reaches the fixture's internal registry through the same seam.
-    spawnSync("npm", PRIVATE_SCOPE_VIEW_ARGS, { encoding: "utf8", timeout: 5_000 });
+    // A second flow reaches the fixture's internal registry through the same
+    // seam. The stub answers it, so the mutation adds a recorded call without
+    // any traffic -- assert that rather than discarding the result.
+    const injected = spawnSync("npm", PRIVATE_SCOPE_VIEW_ARGS, {
+      encoding: "utf8",
+      timeout: 5_000,
+    });
+    expect(injected.status).toBe(0);
 
     expect(() =>
       expectOnlyDisclosedPublicRegistryProbe(packageManagerCalls(spawnSyncMock)),
