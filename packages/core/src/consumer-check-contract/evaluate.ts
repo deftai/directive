@@ -752,6 +752,12 @@ export function parseYamlScalar(raw: string): string {
 }
 
 /**
+ * Inline-flow `vars: { CLI_ARGS: ... }` scalar. Quote escapes are honoured so a
+ * value carrying a quote is not truncated before the argument that follows.
+ */
+const INLINE_CLI_ARGS_RE = /CLI_ARGS\s*:\s*("(?:\\.|[^"\\])*"|'(?:''|[^'])*'|[^,}]*)/;
+
+/**
  * Effective `CLI_ARGS` value for a `deps:` entry, or null when it sets none.
  *
  * Reads the key itself rather than the entry text, so the required argument
@@ -778,7 +784,7 @@ export function depEntryCliArgs(body: string): string | null {
       varsIndent = indent;
       propIndent = null;
       // Inline flow form: vars: { CLI_ARGS: "--changed-only" }
-      const inline = /CLI_ARGS\s*:\s*("[^"]*"|'[^']*'|[^,}]*)/.exec(varsBlock[1] ?? "");
+      const inline = INLINE_CLI_ARGS_RE.exec(varsBlock[1] ?? "");
       if (inline !== null) {
         value = parseYamlScalar(inline[1] ?? "");
       }

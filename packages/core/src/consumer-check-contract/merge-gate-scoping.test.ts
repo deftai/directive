@@ -58,6 +58,10 @@ const INLINE_SCOPED_ENTRY = `      - task: verify:orphan-active
         vars: { CLI_ARGS: "--changed-only" }
 `;
 
+const INLINE_ESCAPED_ENTRY = `      - task: verify:orphan-active
+        vars: { CLI_ARGS: "--label \\"x\\" --changed-only" }
+`;
+
 const TRAILING_COMMENT_ENTRY = `      - task: verify:orphan-active
         vars:
           CLI_ARGS: "--changed-only" # merge chokepoint
@@ -126,6 +130,10 @@ describe("depEntryCliArgs (#3893)", () => {
     expect(argsFor(TRAILING_COMMENT_ENTRY)).toBe("--changed-only");
   });
 
+  it("reads an inline-flow value carrying an escaped quote", () => {
+    expect(argsFor(INLINE_ESCAPED_ENTRY)).toBe('--label "x" --changed-only');
+  });
+
   it("returns null for a bare dep", () => {
     expect(argsFor(UNSCOPED_ENTRY)).toBeNull();
   });
@@ -188,6 +196,10 @@ describe("merge-chokepoint gate scoping (#3893)", () => {
 
   it("accepts the inline flow form", () => {
     expect(evaluateRoot(INLINE_SCOPED_ENTRY, true).exitCode).toBe(0);
+  });
+
+  it("accepts an inline-flow value with an escaped quote", () => {
+    expect(evaluateRoot(INLINE_ESCAPED_ENTRY, true).exitCode).toBe(0);
   });
 
   it("fails closed when a bare duplicate follows a scoped entry", () => {
