@@ -53,6 +53,7 @@ const PROPAGATION_COMMAND_MARKERS: ReadonlyArray<readonly [string, string]> = [
   ["deft eval:report", "task eval:report"],
   ["deft feedback:file", "task feedback:file"],
   ["deft migrate:xbrief", "deft migrate:xbrief"],
+  ['"version": "0.8"', '"version": "0.8"'],
   ["xbrief/PROJECT-DEFINITION.xbrief.json", "xbrief/PROJECT-DEFINITION.xbrief.json"],
   ["xbrief/active/", "xbrief/active/"],
 ];
