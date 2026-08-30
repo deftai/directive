@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  classifyShellWriteTargets,
-  compoundLastCdLooksLikeTemp,
-  isInRepoShellWritePath,
-} from "./shell-write-targets.js";
+import { classifyShellWriteTargets, isInRepoShellWritePath } from "./shell-write-targets.js";
 
 describe("classifyShellWriteTargets", () => {
   it("extracts Set-Content dests", () => {
@@ -52,9 +48,5 @@ describe("classifyShellWriteTargets", () => {
     const AQ = String.fromCharCode(39);
     const cmd = "python -c " + DQ + "print(Path(" + AQ + "src/app.ts" + AQ + ").write_text)" + DQ;
     expect(classifyShellWriteTargets(cmd)).toEqual([]);
-  });
-  it("detects last cd to env TEMP", () => {
-    expect(compoundLastCdLooksLikeTemp("cd $env:TEMP; WriteAllText(")).toBe(true);
-    expect(compoundLastCdLooksLikeTemp("cd src && Set-Content -Path app.ts")).toBe(false);
   });
 });

@@ -101,11 +101,7 @@ import {
   isReadOnlyHookContext,
 } from "./readonly.js";
 import { type ActiveScopeInspection, inspectActiveScope } from "./scope.js";
-import {
-  classifyShellWriteTargets,
-  compoundLastCdLooksLikeTemp,
-  isInRepoShellWritePath,
-} from "./shell-write-targets.js";
+import { classifyShellWriteTargets, isInRepoShellWritePath } from "./shell-write-targets.js";
 import { isDirectWriteTool, isMcpTool, isShellTool, isSpawnTool } from "./tools.js";
 
 // Pure parse/classify helpers are defined in ./classify/ and re-exported from
@@ -1765,7 +1761,6 @@ function decideShellWriteReissue(
   for (const dest of classifyShellWriteTargets(command)) {
     if (dest.unprovable === true) {
       if (!isInRepoShellWritePath(projectRoot, dest.path)) continue;
-      if (compoundLastCdLooksLikeTemp(command) && !isAbsolute(dest.path)) continue;
       return deny(
         input,
         "scope-not-ready",
