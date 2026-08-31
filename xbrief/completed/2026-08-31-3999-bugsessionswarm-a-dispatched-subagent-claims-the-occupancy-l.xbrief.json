@@ -1,0 +1,292 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3999, restated from the accepted set-level arc over #3954 + #3999 (lean 5480338725, table 5480351309, record 5480360433, disposition 5480366554). The issue body's candidate ranking does not bind.",
+    "updated": "2026-08-31T22:39:46Z"
+  },
+  "plan": {
+    "title": "bug(session,swarm): a dispatched subagent claims the occupancy lease and exits without releasing it, stranding the parent's worktree",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(session,swarm): a dispatched subagent claims the occupancy lease and exits without releasing it, stranding the parent's worktree",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3999",
+      "Overview": "## Problem\n\nA subagent dispatched with `spawn_subagent` claims the worktree occupancy lease and exits without releasing it. Nothing runs on that worker's exit, so the lease is stranded until its TTL expires.\n\nThis is a recurrence of the class #3604 closed on 2026-08-26 (\"a finished session's lease is never released, so dead locks accumulate\"). That fix covers close-out paths that exist for swarm cohorts and for `session:end`. An ad-hoc dispatched worker has neither, so nothing releases on its behalf.\n\n## Measured, 2026-08-30\n\nA parent dispatched a babysit worker to shepherd a documentation PR. The worker did its job correctly -- opened a PR, took a Greptile review to CLEAN 5/5, merged, deleted its branch and removed its worktree -- and exited. It left this behind in the repository root `.deft/occupancy.json`:\n\n```\nsession_id:   host:grok:v1:MDFhMDU0YjktNDA0Mi03MmUxLTkyOWMtYjZhMTA3NGIzMWUz\nclaimed_at:   2026-08-30T22:10:39Z\nheartbeat_at: 2026-08-30T22:18:13Z\nintent:       mutation\n```\n\nThat session id decodes to `01a054b9-4042-72e1-929c-b6a1074b31e3` -- the dispatched worker, not the parent (`01a05398-…`). The lease was still present at `2026-08-31T01:37Z`, roughly three hours after the worker exited, and was only cleared because the parent ran a deliberate lease sweep at the operator's request.\n\nWorth noting for whoever picks this up: the worker's heartbeat **did** advance (22:10:39 -> 22:18:13), unlike the frozen-heartbeat case in #3987. Different context, different result; that contrast may be useful evidence there.\n\n## What is not wrong here\n\nTwo things I checked before filing, so nobody re-investigates them:\n\n1. **The cross-session release is correct behaviour, not a second defect.** `releaseOccupancy` denies a non-owner only when the lease is live: it computes `expired` and `owns`, and refuses solely on `!expired && !owns`. The stranded lease was hours past the 20-minute TTL, so a different session could clear it legitimately. Within the TTL the parent would have been **denied** its own worktree by its own dead child.\n2. **The worker did not misbehave.** It followed its envelope, cleaned up its worktree and branches, and reported accurately. No instruction it was given told it to release the lease, and no verb ran on its exit.\n\n## Why this matters more than one stale file\n\n- **Self-lockout.** For up to the TTL, a parent that dispatches a worker into its own tree can be refused writes on that tree by the worker it just dispatched, with a message naming a session that no longer exists.\n- **Accumulation.** #3604's evidence was 12 of 13 worktrees holding leases whose sessions were gone. Ad-hoc dispatch is now a routine pattern, so the same accumulation returns by a different route.\n- **Diagnosis noise.** A stranded lease looks exactly like a live one to any agent that reads the record, which is the confusion #3926 and #3954 are already chasing.\n\n## Ask\n\nMake lease release a property of worker lifecycle rather than of a close-out path that only some dispatch shapes have. Candidate shapes, in rough order of preference:\n\n1. **Dispatcher-side release.** The parent releases any lease its child holds when that child completes, the same way swarm close-out does for cohorts. The parent knows the child's session id -- it minted the dispatch.\n2. **Worker-side duty in the envelope contract.** The canonical preamble requires a dispatched worker to release before exit. Weaker: it depends on the worker remembering, and today's evidence is that a correct worker still did not.\n3. **Scope the claim.** A dispatched worker that works in its own worktree arguably should not be claiming the parent tree's lease at all. Note the limit on this observation: the record sat at the repository root, but the parent released it without first capturing `worktree_path`, so which tree it named is not established here.\n\n## Acceptance\n\n- A dispatched worker that claims a lease and exits leaves no lease behind, by whichever mechanism is chosen.\n- A test reconstructs it: dispatch-claim-exit, then assert the lease is absent without waiting for TTL expiry.\n- The parent is never denied its own worktree by a session that has exited.\n- Do not close by documenting \"workers should release\" without a mechanism that fires when they do not -- the measured case is a compliant worker that still stranded one.\n\n## Non-goals\n\n- The heartbeat-starvation coupling on #3987. Related, separately tracked.\n- Changing the 20-minute TTL, which is doing its job here.\n- The actor-resolution divergence in #3954, though a fix here should not make that worse.\n\nRefs #3604, #3613, #3954, #3926, #3433, #3599, #3755, #3987\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-08-31T15:13:16Z)\n\nmodel: grok-4.6\nrole: parent\n\n**Set-level arc disposition for this issue.** A set-level design-critique arc over #3954 + #3999 is bound on the #3954 thread: accepted successor lean https://github.com/deftai/directive/issues/3954#issuecomment-5480338725, verified-claims table 5480351309, completed-arc record 5480360433. Three seats on three model families, 24 classified findings, all accepted. This issue is not gate-matched and carries no catalog chip; the pointer is here so its thread records the outcome.\n\n**Kept, not dominated.** All three seats looked for domination and rejected it: a compliant worker still strands an owner lease even with perfectly coherent identity, so this is a missing lifecycle event rather than an identity bug.\n\n**Two premises in the body above are false as measured, and the remedy ranking cannot bind as written.**\n\n- Cohort close-out is not the precedent it is described as. The launch record stores the **launcher's own** `occupancy_session_id`, and close-out resolves that id and releases that lease. No per-child or per-worktree sweep exists anywhere, so \"the same way swarm close-out does for cohorts\" has no referent to copy.\n- The parent does not know the child's session id. On the host that produced the evidence the owner comes from a per-agent host variable the parent never sees, so remedy 1 as ranked has no input. The one field naming a reporting channel is documented as parked and has no implementation.\n\n10→**Ordering.** Every release shape that relies on ambient identity is unreachable here until #3954's actor split lands: released bare, the verb is denied as a stranger. An explicit-id dispatcher path could technically precede it, at the cost of two identity policies and duplicated tests. So #3954 lands first, and this issue is restated before it builds.\n\n**The restatement the arc accepted.** Build on the terminal transition the orchestration layer already detects, which carries `agent_id`, `parent_id` and phase, and is created at dispatch on every shape. Add the one missing datum -- the child's occupancy owner -- plus the exact worktree root, both recorded **at dispatch by the parent** in a lease-gated store. `.deft-scratch/**` is an allowlisted assist-scratch path whose writes skip occupancy, so a status record any agent can author is not a safe transport: it would let ingested text induce a parent into releasing a live peer's lease inside its TTL. Release only when the recorded child is still the current owner, under the lock, against the recorded tree. Do not add a second close-out authority beside the existing owner release and the TTL.\n\n**Severity, recorded rather than assumed.** A stranded lease denies only inside the twenty-minute TTL: a stranger release at plus 60 seconds is denied, at plus twenty minutes and one second it succeeds. The measured accumulation harm is diagnosis noise, not lockout. That is why the actor split outranks this issue, which inverts the filing order.\n\n**Also recorded on the arc, and not in either body:** where parent and child share one identity, a parent can release a **live** child lease mid-flight with no denial; and a granted child is admitted for writes while still being refused at claim and heartbeat.\n\nA build of this issue will read the accepted lean and the record above, not this body's candidate list.",
+      "Labels": "bug, swarm, determinism, agent-experience, harness",
+      "Build contract": "The next-build contract is the accepted lean, not the issue body. Binding comments: successor lean https://github.com/deftai/directive/issues/3954#issuecomment-5480338725, verified-claims table 5480351309, completed-arc record 5480360433, #3999 disposition 5480366554. Corrections a builder must also read: 5481308131 (the .deft-scratch exemption is posture-conditioned, not path-conditioned; finding 7 still requires a lease-gated store under .deft/), and 5482415424 / 5482789562 (presenter/claimer split is inferred from a presenter matrix, not observed inside the hook process). #3954 already landed and answered open question 1 against anonymous recorded-occupant release, so this issue must build the dispatch-recorded transport rather than release-what-is-recorded with no caller.",
+      "ImplementationPlan": "Record the child's occupancy owner and the exact worktree root at dispatch in a lease-gated store under .deft/ (not .deft-scratch/**). On the orchestration terminal transition already detected (agent_id, parent_id, phase including terminal), release under the lock only when that recorded child is still the current owner of that recorded tree. Extend the existing owner-release / TTL pattern; do not add a third close-out authority, and do not copy swarm close-out as if it released child leases. State the remedy per identity-source kind. Assert against the lease file and evaluateOccupancyWriteGate, not an observed hook deny.",
+      "UserStory": "As a parent that dispatches an ad-hoc worker, I want a stranded child owner lease cleared when that worker's terminal transition fires, keyed only on ids and roots I recorded at dispatch, so I am not denied my own tree by a session that has exited, without being inducible into releasing a live peer.",
+      "Design-critique arc": "Bound by the set-level arc over #3954 + #3999: successor lean 5480338725, verified-claims table 5480351309, completed-arc record 5480360433, disposition on this thread 5480366554. Two body premises are false: cohort close-out releases the launcher's occupancy_session_id, never a child's; the parent does not know the child's session id on a per-agent host. Q1 on #3954 is already answered against anonymous recorded-occupant release. The .deft-scratch exemption is posture-conditioned (5481308131). Neither issue is dominated; #3954 landed first."
+    },
+    "items": [
+      {
+        "title": "At dispatch, the parent records the child's occupancy owner and the exact worktree root in a lease-gated store under .deft/. Workers cannot write that store. Do not use .deft-scratch/** as the transport: it is allowlisted assist-scratch, and although the occupancy exemption is posture-conditioned (assist or ephemeral spawn, 5481308131) rather than universal, finding 7 still requires a store workers cannot author. A parent releases only ids it recorded, scoped to the tree it recorded.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "A dispatch-time record exists under .deft/ (not .deft-scratch) naming child occupancy owner + worktree root; a worker-authored subagent-status file is not sufficient input for release."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/child-occupancy.test.ts#recordChildOccupancyLease",
+          "recorded_at": "2026-08-31T22:48:00Z",
+          "recorded_by": "leaf-worker/3999"
+        }
+      },
+      {
+        "title": "Build release on the terminal transition the orchestration layer already detects (packages/core/src/orchestration/subagent-monitor.ts; agent_id, parent_id, phase including terminal; directory created at dispatch via swarm/subagent-status-dir.ts). Add the occupancy owner as the missing datum. Do not invent a second completion boundary or a new close-out verb.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Release fires from the existing terminal observation, not from a new reap/steal path and not from envelope prose asking the worker to remember."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/orchestration/subagent-monitor.ts#releaseRecordedChildOccupancyOnTerminal",
+          "recorded_at": "2026-08-31T22:48:00Z",
+          "recorded_by": "leaf-worker/3999"
+        }
+      },
+      {
+        "title": "Release under the occupancy lock only when the recorded child is still the current owner of the recorded tree. If the owner changed, no-op or fail closed. Do not release a live successor. Do not add a third close-out authority beside existing owner occupancy:release / session:end and the TTL. Swarm close-out (releaseSwarmOccupancy of the launcher's occupancy_session_id) is not the precedent to copy for child leases.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Compare-and-release under the lock against the recorded owner+root; a changed owner is not cleared; no new reap verb."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/child-occupancy.test.ts#successor-no-op",
+          "recorded_at": "2026-08-31T22:48:00Z",
+          "recorded_by": "leaf-worker/3999"
+        }
+      },
+      {
+        "title": "State the remedy per identity-source kind. On per-agent (host-env) hosts the child is a stranger and strands -- that is this defect. On shared-payload hosts the parent can already release a live child mid-flight with no denial; do not make that worse. Do not assume the parent minted the child's session id.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Tests and docs distinguish host-env stranding from shared-identity mid-flight release; no host-invariant rule that is wrong on one arm."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/child-occupancy.test.ts#identity-source-kind",
+          "recorded_at": "2026-08-31T22:48:00Z",
+          "recorded_by": "leaf-worker/3999"
+        }
+      },
+      {
+        "title": "A test reconstructs dispatch-claim-exit and asserts the lease is absent without waiting for TTL expiry. Capture the exact worktree root. Assert against the lease file and evaluateOccupancyWriteGate (and/or releaseOccupancy with the recorded id), not an observed PreToolUse deny -- the shell tool is only a fraction of writes on this host. The parent is never denied the recorded tree by a session that has exited. Do not close by documenting that workers should release.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "dispatch-claim-exit test is green without a TTL sleep; a compliant worker that never calls occupancy:release still leaves no lease on the recorded tree."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/child-occupancy.test.ts#dispatch-claim-exit",
+          "recorded_at": "2026-08-31T22:48:00Z",
+          "recorded_by": "leaf-worker/3999"
+        }
+      },
+      {
+        "title": "Recorded as out of scope: the 20-minute TTL; #3987's bound remedy; #3873 (hook-process GROK_SESSION_ID observation, still open); actor-resolution (#3954, landed, including Q1 against anonymous recorded-occupant release); payload-root fallback (#4013). Conditional closing keywords: close only #3999. Do not close #3873, #3954, #3987, or #4013.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "PR body and CHANGELOG name the out-of-scope list; GitHub closing references name only #3999."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4031#f4fae0988df00f4671cca3e494417187bbe715b3",
+          "recorded_at": "2026-08-31T22:48:00Z",
+          "recorded_by": "leaf-worker/3999"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "determinism",
+      "agent-experience",
+      "harness"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3999",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3999: bug(session,swarm): a dispatched subagent claims the occupancy lease and exits without releasing it, stranding the parent's worktree"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3999",
+        "type": "x-xbrief/closes",
+        "title": "Issue #3999"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3954#issuecomment-5480338725",
+        "type": "x-xbrief/refs",
+        "title": "Accepted successor lean 5480338725 -- the next-build contract"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3954#issuecomment-5480351309",
+        "type": "x-xbrief/refs",
+        "title": "Verified-claims table 5480351309"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3954#issuecomment-5480360433",
+        "type": "x-xbrief/refs",
+        "title": "Completed-arc record 5480360433"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3999#issuecomment-5480366554",
+        "type": "x-xbrief/refs",
+        "title": "Set-level arc disposition for #3999"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3954#issuecomment-5481308131",
+        "type": "x-xbrief/refs",
+        "title": "Correction: .deft-scratch exemption is posture-conditioned"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3954",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3954 -- actor split, already landed; Q1 answered against anonymous release"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3604",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3604"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "session_id:   host:grok:v1:MDFhMDU0YjktNDA0Mi03MmUxLTkyOWMtYjZhMTA3NGIzMWUz",
+          "reason": "path-like first token is not allowlisted",
+          "sourceSpan": "fence@L13"
+        },
+        {
+          "command": "claimed_at:   2026-08-30T22:10:39Z",
+          "reason": "path-like first token is not allowlisted",
+          "sourceSpan": "fence@L13"
+        },
+        {
+          "command": "heartbeat_at: 2026-08-30T22:18:13Z",
+          "reason": "path-like first token is not allowlisted",
+          "sourceSpan": "fence@L13"
+        },
+        {
+          "command": "intent:       mutation",
+          "reason": "path-like first token is not allowlisted",
+          "sourceSpan": "fence@L13"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/core/src/orchestration/subagent-monitor.ts",
+          "packages/core/src/swarm/subagent-status-dir.ts",
+          "packages/core/src/swarm/launch.ts",
+          "packages/core/src/swarm/complete-cohort.ts",
+          "packages/core/src/session/occupancy.ts",
+          "packages/core/src/session/occupancy.test.ts",
+          "content/commands.md",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "medium",
+        "missing_traces_justification": "Restated from a bound design-critique arc (lean 5480338725); no spec-section trace because the contract lives in GitHub comments, not specification.xbrief.json."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/orchestration/subagent-monitor.ts",
+          "packages/core/src/swarm/subagent-status-dir.ts",
+          "packages/core/src/swarm/launch.ts",
+          "packages/core/src/swarm/complete-cohort.ts",
+          "packages/core/src/session/occupancy.ts",
+          "packages/core/src/session/occupancy.test.ts",
+          "content/commands.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine + framework-content",
+        "cohesion_exemption": "These files already exceed FILE_SIZE_REVIEW_TRIGGER_LINES; this slice adds a dispatch-time occupancy record plus compare-and-release on the existing terminal observation, not a file split."
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4031,
+        "prBase": null,
+        "mergeCommit": "f4fae0988df00f4671cca3e494417187bbe715b3",
+        "deliveryBranch": "master",
+        "deliveryCommit": "f4fae0988df00f4671cca3e494417187bbe715b3",
+        "verifiedAt": "2026-08-31T22:39:46Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDU5YjUtN2YyZC03Y2MxLTkyNDQtZTA2ZTViMDEwYTQ3"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-31T22:39:46Z"
+      },
+      "completedAt": "2026-08-31T22:39:46Z",
+      "completedSessionId": "host:claude:v1:MDFhMDU5YjUtN2YyZC03Y2MxLTkyNDQtZTA2ZTViMDEwYTQ3",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/session/occupancy.test.ts packages/core/src/orchestration --reporter=dot"
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "acceptance set transcribed from accepted successor lean 5480338725, completed-arc record 5480360433, and #3999 disposition 5480366554, which supersede the issue body's candidate ranking and its four body clauses",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "At dispatch, the parent records the child's occupancy owner and the exact worktree root in a lease-gated store under .deft/. Workers cannot write that store. Do not use .deft-scratch/** as the transport: it is allowlisted assist-scratch, and although the occupancy exemption is posture-conditioned (assist or ephemeral spawn, 5481308131) rather than universal, finding 7 still requires a store workers cannot author. A parent releases only ids it recorded, scoped to the tree it recorded.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Build release on the terminal transition the orchestration layer already detects (packages/core/src/orchestration/subagent-monitor.ts; agent_id, parent_id, phase including terminal; directory created at dispatch via swarm/subagent-status-dir.ts). Add the occupancy owner as the missing datum. Do not invent a second completion boundary or a new close-out verb.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Release under the occupancy lock only when the recorded child is still the current owner of the recorded tree. If the owner changed, no-op or fail closed. Do not release a live successor. Do not add a third close-out authority beside existing owner occupancy:release / session:end and the TTL. Swarm close-out (releaseSwarmOccupancy of the launcher's occupancy_session_id) is not the precedent to copy for child leases.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "State the remedy per identity-source kind. On per-agent (host-env) hosts the child is a stranger and strands -- that is this defect. On shared-payload hosts the parent can already release a live child mid-flight with no denial; do not make that worse. Do not assume the parent minted the child's session id.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "A test reconstructs dispatch-claim-exit and asserts the lease is absent without waiting for TTL expiry. Capture the exact worktree root. Assert against the lease file and evaluateOccupancyWriteGate (and/or releaseOccupancy with the recorded id), not an observed PreToolUse deny -- the shell tool is only a fraction of writes on this host. The parent is never denied the recorded tree by a session that has exited. Do not close by documenting that workers should release.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Recorded as out of scope: the 20-minute TTL; #3987's bound remedy; #3873 (hook-process GROK_SESSION_ID observation, still open); actor-resolution (#3954, landed, including Q1 against anonymous recorded-occupant release); payload-root fallback (#4013). Conditional closing keywords: close only #3999. Do not close #3873, #3954, #3987, or #4013.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "issue-3999-child-lease-on-terminal",
+    "updated": "2026-08-31T22:39:46Z"
+  }
+}
