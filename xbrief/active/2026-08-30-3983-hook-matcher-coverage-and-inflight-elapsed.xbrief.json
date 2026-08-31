@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Bound remedy from the #3983/#3984 set-level design-critique arc: matcher coverage so a denied Write cannot be reissued through the host shell, plus in-flight elapsed evaluation on the existing delivery-attempt ledger. Not the #3983 issue body.",
-    "updated": "2026-08-30T20:32:05Z"
+    "updated": "2026-08-31T00:03:04Z"
   },
   "plan": {
     "title": "Close the PreToolUse shell reissue hole and evaluate elapsed on an in-flight delivery attempt",
@@ -45,11 +45,11 @@
     ],
     "acceptance": {
       "commands": [
-        "pnpm exec vitest run packages/core/src/hooks/tools.test.ts packages/core/src/hooks/shell-write-targets.test.ts packages/core/src/hooks/dispatcher-write-reissue.test.ts packages/core/src/delivery-attempt/evaluate.test.ts --coverage"
+        "pnpm exec vitest run packages/core/src/hooks/tools.test.ts packages/core/src/hooks/shell-write-targets.test.ts packages/core/src/hooks/dispatcher-write-reissue.test.ts packages/core/src/delivery-attempt/evaluate.test.ts"
       ],
       "none_stated": false,
       "source_rung": "derived",
-      "derived_reason": "operator envelope required a reissue-path test that fails before the change, plus in-flight elapsed on the existing ledger",
+      "derived_reason": "operator envelope required a reissue-path test that fails before the change, plus in-flight elapsed on the existing ledger. independent_rederivation: the subset command cannot meet the global 75% coverage include of packages/*/src; the tests pass 48/48 without --coverage, and full task check still enforces the project coverage floor.",
       "clauses": [
         {
           "id": 1,
@@ -103,6 +103,6 @@
         "cohesion_exemption": "CHANGELOG.md is an append-only release log; this slice adds one Unreleased entry. dispatcher.ts already exceeds the review trigger; this slice adds one routing call for recognized shell write dests and keeps the classifier in a new shell-write-targets.ts file rather than growing the dispatcher."
       }
     },
-    "updated": "2026-08-30T20:32:05Z"
+    "updated": "2026-08-31T00:03:04Z"
   }
 }

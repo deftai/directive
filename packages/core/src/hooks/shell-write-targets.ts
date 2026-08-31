@@ -99,6 +99,22 @@ function splitWriteSegments(command: string): string[] {
   return segs.map((seg) => seg.trim()).filter((seg) => seg.length > 0);
 }
 
+const PATH_PARAM_NAMES = ["path", "literalpath", "filepath"] as const;
+
+function uniqueNamedParam(flag: string, names: readonly string[]): string | null {
+  const f = flag.replace(/^-+/, "").toLowerCase();
+  if (f.length === 0) return null;
+  const hits = names.filter((n) => n.startsWith(f));
+  return hits.length === 1 ? (hits[0] ?? null) : null;
+}
+
+function parseFlag(token: string): { flag: string; attached: string | null } | null {
+  if (!token.startsWith("-")) return null;
+  const colon = token.indexOf(":");
+  if (colon <= 0) return { flag: token, attached: null };
+  return { flag: token.slice(0, colon), attached: token.slice(colon + 1) };
+}
+
 function extractAfterVerb(
   command: string,
   verb: string,
@@ -108,12 +124,33 @@ function extractAfterVerb(
   if (!startsWithVerb(command, verb)) return;
   const i = skipWs(command, 0);
   let j = skipWs(command, i + verb.length);
-  const head = command.slice(j, j + 12).toLowerCase();
-  if (head.startsWith("-path")) j = skipWs(command, j + 5);
-  else if (head.startsWith("-literalpath")) j = skipWs(command, j + 12);
-  else if (head.startsWith("-filepath")) j = skipWs(command, j + 9);
-  const extracted = extractQuoted(command, j);
-  pushUnique(out, kind, extracted.value);
+  let named: string | null = null;
+  let positional: string | null = null;
+  while (j < command.length) {
+    const extracted = extractQuoted(command, j);
+    if (extracted.value.length === 0) break;
+    j = skipWs(command, extracted.next);
+    const parsed = parseFlag(extracted.value);
+    if (parsed === null) {
+      if (positional === null) positional = extracted.value;
+      continue;
+    }
+    let arg = parsed.attached;
+    if (arg === null || arg.length === 0) {
+      const next = extractQuoted(command, j);
+      if (next.value.length > 0 && !next.value.startsWith("-")) {
+        arg = next.value;
+        j = skipWs(command, next.next);
+      } else {
+        arg = null;
+      }
+    }
+    if (uniqueNamedParam(parsed.flag, PATH_PARAM_NAMES) !== null) {
+      if (arg !== null && arg.length > 0 && !arg.startsWith("-")) named = arg;
+    }
+  }
+  const dest = named ?? positional;
+  if (dest !== null && !dest.startsWith("-")) pushUnique(out, kind, dest);
 }
 function pathlibWriteFollows(command: string, afterPathArgs: number): boolean {
   let i = skipWs(command, afterPathArgs);

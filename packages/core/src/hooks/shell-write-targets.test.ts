@@ -7,6 +7,25 @@ describe("classifyShellWriteTargets", () => {
       { kind: "set-content", path: "src/app.ts" },
     ]);
   });
+  it("extracts Set-Content dest when -Value precedes -Path", () => {
+    expect(classifyShellWriteTargets("Set-Content -Value x -Path src/app.ts")).toEqual([
+      { kind: "set-content", path: "src/app.ts" },
+    ]);
+  });
+  it("yields no dest for Set-Content -Value with no -Path", () => {
+    expect(classifyShellWriteTargets("Set-Content -Value x")).toEqual([]);
+  });
+  it("does not treat a non-path named parameter as the dest", () => {
+    expect(classifyShellWriteTargets("Set-Content -Value x -Path src/app.ts")[0]?.path).not.toBe(
+      "-Value",
+    );
+    expect(classifyShellWriteTargets("Add-Content -Value x -LiteralPath src/app.ts")).toEqual([
+      { kind: "add-content", path: "src/app.ts" },
+    ]);
+    expect(classifyShellWriteTargets("Out-File -Encoding utf8 -FilePath src/app.ts")).toEqual([
+      { kind: "out-file", path: "src/app.ts" },
+    ]);
+  });
   it("extracts python pathlib dests", () => {
     const DQ = String.fromCharCode(34);
     const AQ = String.fromCharCode(39);

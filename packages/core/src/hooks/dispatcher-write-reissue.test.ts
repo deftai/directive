@@ -4,6 +4,7 @@ import { basename, join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { applyWorktreeOccupancy } from "../session/occupancy.js";
 import { decideHook, type HookPolicySeams } from "./index.js";
+import { classifyShellWriteTargets } from "./shell-write-targets.js";
 import {
   DIRECT_WRITE_HOOK_MATCHER,
   GROK_MUTATION_TOOL_CATALOG,
@@ -283,5 +284,42 @@ describe("shell write reissue (#3983 / #3987)", () => {
       readySeams(),
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-occupied" });
+  });
+  it("denies occupancy when -Value precedes -Path on an in-repo dest", () => {
+    const root = occupiedRoot();
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "run_terminal_command",
+          tool_input: { command: "Set-Content -Value x -Path src/app.ts" },
+        },
+        environ: { DEFT_SESSION_ID: "other" },
+      },
+      readySeams(),
+    );
+    expect(classifyShellWriteTargets("Set-Content -Value x -Path src/app.ts")).toEqual([
+      { kind: "set-content", path: "src/app.ts" },
+    ]);
+    expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-occupied" });
+  });
+  it("does not fabricate a dest from Set-Content -Value with no -Path", () => {
+    const root = occupiedRoot();
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "run_terminal_command",
+          tool_input: { command: "Set-Content -Value x" },
+        },
+        environ: { DEFT_SESSION_ID: "other" },
+      },
+      readySeams(),
+    );
+    expect(decision.verdict).toBe("allow");
   });
 });
