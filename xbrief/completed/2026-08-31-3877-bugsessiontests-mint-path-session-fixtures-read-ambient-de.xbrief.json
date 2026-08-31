@@ -1,0 +1,224 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #3877 restated from accepted successor lean 5457450968, verified-claims table 5457549558, synthesis 5457549697. Body recut already matches; ingest refused cite-not-lean because the recut body cites the synthesis/disposition map rather than successor lean 5457450968.",
+    "updated": "2026-08-31T23:33:02Z"
+  },
+  "plan": {
+    "id": "issue-3877-mint-path-fixture-isolation",
+    "title": "bug(session,tests): mint-path session fixtures read ambient DEFT_SESSION_ID, reddening the suites and scope:complete",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(session,tests): mint-path session fixtures read ambient DEFT_SESSION_ID, reddening the suites and scope:complete",
+      "Origin": "Hand-authored in worktree from bound design-critique arc on https://github.com/deftai/directive/issues/3877 because issue:ingest refused cite-not-lean (recut body cites 5457549697 / 5457450968, ingest wants a successor-lean citation). Duplicate #3836 folded at 5457372427.",
+      "Overview": "Bound contract: successor lean 5457450968, table 5457549558, synthesis 5457549697. Env-over-mint is shipped product law. Defect is two mint-path fixtures omitting an env bag. Do not sanitise the literal-acceptance runner. Guidance: hook env or --session-id, never a worker-shell export. Strengthens #3873 premise; does not close it.",
+      "ImplementationPlan": "Pass env: {} or empty stubEnv on the two mint-path tests. Keep env-over-mint locking tests. Update occupancy identity guidance. CHANGELOG. Do not edit the literal-acceptance runner or resolveOccupancySessionId order.",
+      "UserStory": "As a worker with DEFT_SESSION_ID in the shell, I want mint-path occupancy/session tests to stay green so scope:complete and task check do not fail on an ambient variable those tests did not intend to read.",
+      "Build contract": "Read lean 5457450968 and synthesis 5457549697, not the original filing presumption that fixture ids must not be overridable.",
+      "Design-critique arc": "Refutation N=1. Critic 5457436628. Successor lean 5457450968. Table 5457549558. Synthesis 5457549697. Chip design-critique:triage-ready."
+    },
+    "items": [
+      {
+        "title": "Isolation only: the two mint-path fixtures (occupancy.test.ts mutation session:start claims and a second session is denied; session-start-rearm.test.ts re-arm refreshes ritual without tools/triage/release/tickler) pass env: {} or empty stubEnv so they no longer read ambient process.env. Do not pin an explicit sessionId on those cases; that would silence the mint proof they exist for.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Both mint-path tests pass with DEFT_SESSION_ID set to an arbitrary value, without an explicit sessionId argument on those two cases."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts#mutation-session-start-claims + packages/core/src/session/session-start-rearm.test.ts#re-arm-refreshes-ritual",
+          "recorded_at": "2026-08-31T23:32:51Z",
+          "recorded_by": "3877-leaf-implementation"
+        }
+      },
+      {
+        "title": "Env-over-mint stays product law. Do not build the original filing criterion that fixture ids must not be overridable by the environment. The two locking tests (prefers DEFT_SESSION_ID over a mint; re-arm with DEFT_SESSION_ID keeps the occupant id and does not mint) still pass.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "resolveOccupancySessionId order unchanged: explicit id, then DEFT_SESSION_ID, then mint. Locking tests green."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/occupancy.test.ts#prefers-DEFT_SESSION_ID-over-a-mint + re-arm-with-DEFT_SESSION_ID-keeps-occupant",
+          "recorded_at": "2026-08-31T23:32:51Z",
+          "recorded_by": "3877-leaf-implementation"
+        }
+      },
+      {
+        "title": "Do not touch the literal-acceptance runner. It inherits process.env because #3267 is verbatim. Sanitising it would green scope:complete while the same command stayed red in a worker shell.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "defaultLiteralAcceptanceRunner still spawnSync with env: process.env. No edit to that runner."
+        },
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "packages/core/src/literal-acceptance/run.ts#env-process.env",
+          "recorded_at": "2026-08-31T23:32:51Z",
+          "recorded_by": "3877-leaf-implementation"
+        }
+      },
+      {
+        "title": "Guidance half: occupancy identity on a host with no session derivation comes from the hook process environment or an explicit --session-id, never a worker-shell export. Nothing in content/templates or content/skills mentions DEFT_SESSION_ID (measured zero hits). Correct any prose that instructs a shell export. Do not invent an envelope mandate that does not exist.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Written guidance in commands.md or the freshness/occupancy docs states hook-or-explicit-id, not a shell export."
+        },
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "content/commands.md#occupancy-identity-no-session-derivation",
+          "recorded_at": "2026-08-31T23:32:51Z",
+          "recorded_by": "3877-leaf-implementation"
+        }
+      },
+      {
+        "title": "CHANGELOG [Unreleased] brief release-notes. Conditional close only #3877 (and already-folded #3836 if still open). Do not close #3873. Do not change resolveOccupancySessionId product order.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "CHANGELOG [Unreleased] names the fixture isolation; GitHub closing references name only #3877."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4033 merge 2c0aabad CHANGELOG Unreleased",
+          "recorded_at": "2026-08-31T23:32:51Z",
+          "recorded_by": "3877-leaf-implementation"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "test-debt",
+      "agent-experience",
+      "process"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3877",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3877"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3877",
+        "type": "x-xbrief/closes",
+        "title": "Issue #3877"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3877#issuecomment-5457450968",
+        "type": "x-xbrief/refs",
+        "title": "Successor lean 5457450968"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3877#issuecomment-5457549558",
+        "type": "x-xbrief/refs",
+        "title": "Verified-claims table 5457549558"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3877#issuecomment-5457549697",
+        "type": "x-xbrief/refs",
+        "title": "Synthesis 5457549697"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3873",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3873 -- identity half, stays open"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/core/src/session/occupancy.test.ts",
+          "packages/core/src/session/session-start-rearm.test.ts",
+          "content/commands.md",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high",
+        "missing_traces_justification": "Bound by GitHub design-critique comments, not specification.xbrief.json."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/session/occupancy.test.ts",
+          "packages/core/src/session/session-start-rearm.test.ts",
+          "content/commands.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine + framework-content",
+        "cohesion_exemption": "occupancy.test.ts and CHANGELOG.md already exceed FILE_SIZE_REVIEW_TRIGGER_LINES; this slice only isolates two mint-path fixtures and appends Unreleased notes."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4033,
+        "prBase": null,
+        "mergeCommit": "2c0aabad0a454b867f0cb8ed952b2a796c21d4ef",
+        "deliveryBranch": "master",
+        "deliveryCommit": "2c0aabad0a454b867f0cb8ed952b2a796c21d4ef",
+        "verifiedAt": "2026-08-31T23:33:02Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDVhMDQtOGJkYi03OTkyLTgxYTMtOTM2MjhmNmZmZjIw"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-31T23:33:02Z"
+      },
+      "completedAt": "2026-08-31T23:33:02Z",
+      "completedSessionId": "host:claude:v1:MDFhMDVhMDQtOGJkYi03OTkyLTgxYTMtOTM2MjhmNmZmZjIw",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/session/occupancy.test.ts packages/core/src/session/session-start-rearm.test.ts --reporter=dot"
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "acceptance set from successor lean 5457450968 and synthesis 5457549697",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Isolation only: the two mint-path fixtures (occupancy.test.ts mutation session:start claims and a second session is denied; session-start-rearm.test.ts re-arm refreshes ritual without tools/triage/release/tickler) pass env: {} or empty stubEnv so they no longer read ambient process.env. Do not pin an explicit sessionId on those cases; that would silence the mint proof they exist for.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Env-over-mint stays product law. Do not build the original filing criterion that fixture ids must not be overridable by the environment. The two locking tests (prefers DEFT_SESSION_ID over a mint; re-arm with DEFT_SESSION_ID keeps the occupant id and does not mint) still pass.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Do not touch the literal-acceptance runner. It inherits process.env because #3267 is verbatim. Sanitising it would green scope:complete while the same command stayed red in a worker shell.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Guidance half: occupancy identity on a host with no session derivation comes from the hook process environment or an explicit --session-id, never a worker-shell export. Nothing in content/templates or content/skills mentions DEFT_SESSION_ID (measured zero hits). Correct any prose that instructs a shell export. Do not invent an envelope mandate that does not exist.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "CHANGELOG [Unreleased] brief release-notes. Conditional close only #3877 (and already-folded #3836 if still open). Do not close #3873. Do not change resolveOccupancySessionId product order.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-08-31T23:33:02Z"
+  }
+}
