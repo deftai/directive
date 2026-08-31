@@ -17,31 +17,73 @@
     "items": [
       {
         "title": "Do not implement the issue body's remedies 1 or 2. The arc refused both as filed: the payload-root fallback for a target with no Git toplevel is deliberate behaviour #3794 preserved, so narrowing it is an authority-contract change rather than a defect fix.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4025 — the diff changes no admission logic: `admitEffectiveHookRoot` and `admitMutationTargetSet` gain doc comment only (packages/core/src/hooks/dispatcher.ts), and the `foreign-repository`, `unproven-identity` and `worktree-span` refusals keep their existing tests unmodified",
+          "recorded_at": "2026-08-31T18:30:00Z",
+          "recorded_by": "leaf-implementation/4013 (PR #4025)"
+        }
       },
       {
         "title": "Publish the no-toplevel case as deliberate on a durable operator-facing surface, with the reason stated. The current source comment explains the unproven-identity split but not the no-toplevel branch specifically; name the publication surface in the PR body rather than citing #3794 issue history as sufficient.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/docs/hook-root-admission.md (new, deposited to .deft/core/docs/) — named as the publication surface in the PR #4025 body, with discovery pointers from content/commands.md § Session routing, content/contracts/path-write-fence.md and content/docs/host-surface-assumptions.md; the `admitEffectiveHookRoot` comment now explains the `candidateRaw === null` branch it sits on",
+          "recorded_at": "2026-08-31T18:30:00Z",
+          "recorded_by": "leaf-implementation/4013 (PR #4025)"
+        }
       },
       {
         "title": "Name the surviving gates gate by gate for a no-toplevel target: occupancy and ritual resolve through the payload root; authz and UAT grant scoping, the authz audit trail, the kill-switch and `deny().projectRoot` stay payload-root authoritative; the mutation intent ceiling runs independently; active scope is inspected but its deny is skipped by #2885. State each disposition rather than describing the case as a lease question.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/docs/hook-root-admission.md § 'What still runs for a no-toplevel target, gate by gate' — one row per gate (occupancy, ritual, authz/UAT, authz audit, kill-switch, deny().projectRoot, intent ceiling, read-only, runtime authority/write fence, active scope, assist-scratch) naming the root it reads and its disposition; restated in the PR #4025 body",
+          "recorded_at": "2026-08-31T18:30:00Z",
+          "recorded_by": "leaf-implementation/4013 (PR #4025)"
+        }
       },
       {
         "title": "Record the three-surface matrix instead of the body's claim that the fallback fires on the direct-write and MCP surfaces: a bare direct-write name consults root admission, a generic server-prefixed MCP name does not reach it, and recognized shell writes to outside destinations are excluded by the landed #3987 classifier.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/docs/hook-root-admission.md § 'Three surfaces, three behaviours' — bare direct write consults admission, generic server-prefixed MCP never reaches it, recognized out-of-repo Shell writes are excluded by isInRepoShellWritePath; the issue body's direct-write-and-MCP claim is explicitly corrected",
+          "recorded_at": "2026-08-31T18:30:00Z",
+          "recorded_by": "leaf-implementation/4013 (PR #4025)"
+        }
       },
       {
         "title": "Lock the published behaviour with characterization tests: a no-toplevel direct-write target under a foreign payload-root lease, the same target with a matching presenter, the generic-MCP non-consultation, and the shell exclusion. Keep the existing effective-root suite green (27 tests at `fb9ece05`) and preserve the `foreign-repository`, `unproven-identity` and `worktree-span` refusals unchanged.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-effective-root.test.ts — 27 -> 34 tests, all green (pnpm exec vitest run packages/core/src/hooks/dispatcher-effective-root.test.ts, plan.acceptance command 1, and task check exit 0 on PR #4025). Seven added tests: no-toplevel admission shape, foreign payload-root lease deny, matching-owner allow with the #2885 scope skip, generic-MCP non-consultation vs the bare direct-write spelling, out-of-repo shell-write exclusion vs its in-repo twin, and both mixed-set outcomes",
+          "recorded_at": "2026-08-31T18:30:00Z",
+          "recorded_by": "leaf-implementation/4013 (PR #4025)"
+        }
       },
       {
         "title": "Record, do not fix here, that `existingAncestorDir` resolves a relative target against the dispatcher process working directory rather than the payload root, so the same lexical path can classify as foreign, linked or no-toplevel depending on where the hook runs. Canonicalization belongs to the successor recut; note it in the publication as a known limitation and open a follow-up issue for it.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/docs/hook-root-admission.md § 'Known limitation — relative targets have no declared base (#4023)' plus https://github.com/deftai/directive/issues/4023 (filed 2026-08-31, mechanism-shaped: true, refs #4013 / #3794). packages/core/src/session/git.ts is unchanged in PR #4025",
+          "recorded_at": "2026-08-31T18:30:00Z",
+          "recorded_by": "leaf-implementation/4013 (PR #4025)"
+        }
       },
       {
         "title": "Recorded as out of scope: any change to admission behaviour, the target-class lattice and mixed-set combining rule a narrowing would need, the #3954 actor work, #3999's release lifecycle, and #3987's bound remedy.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4025 § 'Out of scope, recorded' — admission behaviour, the target-class lattice and mixed-set combining rule, #3954, #3999 and #3987; the doc's § 'What a narrowing would have to define' carries the lattice requirement forward",
+          "recorded_at": "2026-08-31T18:30:00Z",
+          "recorded_by": "leaf-implementation/4013 (PR #4025)"
+        }
       }
     ],
     "tags": [
