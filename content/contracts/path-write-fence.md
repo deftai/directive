@@ -139,12 +139,44 @@ What remains **fail-open today**:
 
 ### Shell file-write reissue (#3983 / #3987)
 
-Grok Build shell is run_terminal_command. That name is in SHELL_TOOL_NAMES so PreToolUse fires. Recognized in-repo file-write dests (Set-Content, Out-File, Add-Content, python pathlib write_text/write_bytes, IO.File WriteAllText/WriteAllBytes) are injected as Write targets and authorized through inspectMutationGates -- occupancy, ritual, scope, and the path fence -- the same way ApplyPatch authorizes every mutation target (#3614). This is always-on, independent of shellDestForms.
+This gate is a **cooperative guardrail**. It raises the cost of an accidental or
+careless reissue -- a Write that occupancy, ritual, or scope already denied,
+sent again through the host shell. It is **not** a boundary against a determined
+caller. An agent that wants out of the fence has unbounded exits, and parsing
+the command string cannot close them.
 
-OS-temp dests and commands with no recognized dest (git status, occupancy:release, git commit -F of a temp body) stay fail-open. This is still not a security boundary against obfuscated interpreters; it closes the cooperative reissue path that bypassed occupancy.
+Grok Build shell is `run_terminal_command`. That name is in `SHELL_TOOL_NAMES`,
+so PreToolUse fires. Recognized in-repo dests (`Set-Content`, `Out-File`,
+`Add-Content`, python pathlib `write_text`/`write_bytes`, IO.File WriteAllText /
+WriteAllBytes) are injected as Write targets and authorized through
+`inspectMutationGates` -- occupancy, ritual, scope, and the path fence -- the
+same way ApplyPatch authorizes every mutation target (#3614). Always-on,
+independent of `shellDestForms`. Named PowerShell parameters are honoured in
+any order: `-Value` before `-Path` is not taken as the dest.
 
-Do not describe this gate as closing the Bash bypass. It raises the floor on the four
-recognized verbs in simple commands. The bypass class remains open.
+OS-temp dests and commands with no recognized dest (`git status`,
+`occupancy:release`, `git commit -F` of a temp body) stay fail-open.
+
+**Measured limits** (bound #3997 arc: synthesis 5472062522, table 5472059705):
+
+- Recogniser recall is about **47%**: 2,843 of 5,372 real file-writing commands
+  were invisible to the classifier, and 17 of 29 probed in-repo write shapes
+  yielded zero targets. Recall work stays on #3987.
+- Destinations that are shell **variables** are not recovered. That is most
+  logged shell: 1,089 of 1,131 calls were dynamic, compound, or emitted no
+  target.
+- A **directory junction** created without elevation defeats `provablyExternal`:
+  the path is lexically outside the root and its realpath is inside. That is
+  **re-entry** polarity. `#3186` `assertProjectionContained` is **escape**
+  polarity (in-tree dest whose realpath leaves the tree) and does not close it.
+
+Fail-open at this predicate is the bound posture (#3997). Inverting it to
+fail-closed on dests the parser cannot prove external is that issue's refuted
+proposal, not this gate's next patch.
+
+Do not cite this merge as "the shell write path is gated." It narrows the
+cooperative reissue hole. The residual class is every command whose dest is
+not statically recoverable.
 
 ### Dest-form target recognition (#3438)
 
