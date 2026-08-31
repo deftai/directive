@@ -645,6 +645,8 @@ export function completeCohort(args: {
       }
     }
     if (result.ok && sessionId.length > 0) {
+      // Launcher occupancy only. Child owner leases release on the
+      // orchestration terminal transition (#3999), not here.
       const released = releaseSwarmOccupancy(projectRoot, {
         env,
         sessionId,

@@ -8,8 +8,12 @@
  */
 
 import { existsSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { defaultScratchDir } from "../orchestration/subagent-monitor.js";
+import {
+  type ChildOccupancyDispatchInput,
+  recordChildOccupancyLease,
+} from "../session/child-occupancy.js";
 
 /**
  * True when a resolved path is an on-disk git worktree, i.e. it carries a `.git`
@@ -33,10 +37,19 @@ export function looksLikeWorktreeDir(resolvedPath: string): boolean {
  * Returns the directory path, or null when the worktree is not on disk yet
  * (do not mkdir a stray tree for a branch-name target).
  */
-export function ensureSubagentStatusDir(worktreeRoot: string): string | null {
+export function ensureSubagentStatusDir(
+  worktreeRoot: string,
+  childLease?: Omit<ChildOccupancyDispatchInput, "worktreePath">,
+): string | null {
   const trimmed = worktreeRoot.trim();
   if (trimmed.length === 0 || !existsSync(trimmed)) return null;
   const dir = defaultScratchDir(trimmed);
   mkdirSync(dir, { recursive: true });
+  if (childLease !== undefined) {
+    recordChildOccupancyLease(trimmed, {
+      ...childLease,
+      worktreePath: resolve(trimmed),
+    });
+  }
   return dir;
 }

@@ -1,8 +1,9 @@
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { defaultScratchDir } from "../orchestration/subagent-monitor.js";
+import { readChildOccupancyLease } from "../session/child-occupancy.js";
 import { ensureSubagentStatusDir, looksLikeWorktreeDir } from "./subagent-status-dir.js";
 
 const temps: string[] = [];
@@ -40,6 +41,23 @@ describe("ensureSubagentStatusDir (#3730)", () => {
     mkdirSync(join(root, "wt"), { recursive: true });
     const wt = join(root, "wt");
     expect(ensureSubagentStatusDir(wt)).toBe(ensureSubagentStatusDir(wt));
+  });
+
+  it("records child occupancy at dispatch when the parent supplies the owner (#3999)", () => {
+    const root = mkdtempSync(join(tmpdir(), "hb-child-"));
+    temps.push(root);
+    mkdirSync(join(root, "wt"), { recursive: true });
+    const wt = join(root, "wt");
+    ensureSubagentStatusDir(wt, {
+      agentId: "child-agent",
+      parentId: "parent-agent",
+      occupancyOwner: "host:grok:v1:child-owner",
+      identitySourceKind: "host-env",
+    });
+    const recorded = readChildOccupancyLease(wt, "child-agent");
+    expect(recorded?.occupancyOwner).toBe("host:grok:v1:child-owner");
+    expect(recorded?.worktreePath).toBe(resolve(wt));
+    expect(recorded?.identitySourceKind).toBe("host-env");
   });
 });
 

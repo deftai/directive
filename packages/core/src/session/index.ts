@@ -2,6 +2,7 @@ export * from "./ac-pass-banking.js";
 export * from "./ac-pass-reuse.js";
 export * from "./active-cli.js";
 export * from "./ceremony-dial-evidence.js";
+export * from "./child-occupancy.js";
 export * from "./compact-ritual.js";
 export * from "./deposit-sha.js";
 export * from "./effort-budget.js";

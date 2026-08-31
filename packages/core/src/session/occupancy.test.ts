@@ -10,6 +10,13 @@ import {
   resolveLaunchOccupancySessionId,
   swarmLaunch,
 } from "../swarm/launch.js";
+import {
+  childOccupancyIdentitySourceKind,
+  childOccupancyPath,
+  readChildOccupancyLease,
+  recordChildOccupancyLease,
+  releaseChildOccupancyOnTerminal,
+} from "./child-occupancy.js";
 import { canonicalHostSessionId } from "./host-session-owner.js";
 import {
   applyWorktreeOccupancy,
@@ -2233,5 +2240,113 @@ describe("explicit lease membership (#3755)", () => {
     );
 
     expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-occupied" });
+  });
+});
+
+describe("child occupancy terminal release (#3999)", () => {
+  const now = new Date("2026-08-31T12:00:00Z");
+  const agentId = "child-agent";
+  const parentId = "parent-agent";
+  const childOwner = "host:grok:v1:child-owner";
+
+  it("dispatch-claim-exit clears the child owner lease without waiting for TTL", () => {
+    const root = tempRoot();
+    recordChildOccupancyLease(root, {
+      agentId,
+      parentId,
+      occupancyOwner: childOwner,
+      worktreePath: root,
+      identitySourceKind: "host-env",
+    });
+    expect(existsSync(childOccupancyPath(root, agentId))).toBe(true);
+    applyWorktreeOccupancy(root, { sessionId: childOwner, now, env: {} });
+    expect(readOccupancy(root)?.sessionId).toBe(childOwner);
+
+    const released = releaseChildOccupancyOnTerminal(root, { agentId, now });
+
+    expect(released.reason).toBe("released");
+    expect(readOccupancy(root)).toBeNull();
+    expect(existsSync(childOccupancyPath(root, agentId))).toBe(false);
+    const parentGate = evaluateOccupancyWriteGate(root, { sessionId: "parent", now, env: {} });
+    expect(parentGate.allow).toBe(true);
+    expect(parentGate.occupant).toBeNull();
+  });
+
+  it("leaves a successor owner in place", () => {
+    const root = tempRoot();
+    recordChildOccupancyLease(root, {
+      agentId,
+      parentId,
+      occupancyOwner: childOwner,
+      worktreePath: root,
+      identitySourceKind: "host-env",
+    });
+    applyWorktreeOccupancy(root, { sessionId: childOwner, now, env: {} });
+    applyWorktreeOccupancy(root, {
+      sessionId: "successor",
+      now: new Date(now.getTime() + OCCUPANCY_TTL_MS + 1),
+      env: {},
+    });
+
+    const released = releaseChildOccupancyOnTerminal(root, {
+      agentId,
+      now: new Date(now.getTime() + OCCUPANCY_TTL_MS + 1),
+    });
+
+    expect(released.reason).toBe("owner-changed");
+    expect(readOccupancy(root)?.sessionId).toBe("successor");
+  });
+
+  it("does not auto-release a shared payload identity mid-flight", () => {
+    const root = tempRoot();
+    const shared = "host:claude:v1:shared";
+    recordChildOccupancyLease(root, {
+      agentId,
+      parentId,
+      occupancyOwner: shared,
+      worktreePath: root,
+      identitySourceKind: "payload",
+    });
+    applyWorktreeOccupancy(root, { sessionId: shared, now, env: {} });
+
+    const released = releaseChildOccupancyOnTerminal(root, { agentId, now });
+
+    expect(released.reason).toBe("payload-skip");
+    expect(readOccupancy(root)?.sessionId).toBe(shared);
+    expect(readChildOccupancyLease(root, agentId)?.occupancyOwner).toBe(shared);
+  });
+
+  it("ignores a worker-authored heartbeat occupancy_owner and needs a dispatch record", () => {
+    const root = tempRoot();
+    const peer = "live-peer";
+    applyWorktreeOccupancy(root, { sessionId: peer, now, env: {} });
+    const scratch = join(root, ".deft-scratch", "subagent-status");
+    mkdirSync(scratch, { recursive: true });
+    writeFileSync(
+      join(scratch, `${agentId}.json`),
+      JSON.stringify({
+        agent_id: agentId,
+        parent_id: parentId,
+        last_heartbeat_at: "2026-08-31T12:00:00Z",
+        last_message: "done",
+        phase: "terminal",
+        terminal_state: "CLEAN",
+        occupancy_owner: peer,
+      }),
+      "utf8",
+    );
+
+    const released = releaseChildOccupancyOnTerminal(root, { agentId, now });
+
+    expect(released.reason).toBe("missing-record");
+    expect(readOccupancy(root)?.sessionId).toBe(peer);
+  });
+
+  it("names identity-source kind from the host contract", () => {
+    expect(childOccupancyIdentitySourceKind("grok")).toBe("host-env");
+    expect(childOccupancyIdentitySourceKind("claude")).toBe("payload");
+    expect(childOccupancyIdentitySourceKind("codex")).toBe("payload");
+    expect(childOccupancyIdentitySourceKind("cursor")).toBe("payload");
+    expect(childOccupancyIdentitySourceKind("unknown")).toBeNull();
   });
 });

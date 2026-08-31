@@ -2,6 +2,12 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { recordChildOccupancyLease } from "../session/child-occupancy.js";
+import {
+  applyWorktreeOccupancy,
+  evaluateOccupancyWriteGate,
+  readOccupancy,
+} from "../session/occupancy.js";
 import {
   resolveJudgmentGates,
   validateJudgmentGates,
@@ -198,6 +204,41 @@ describe("subagent-monitor", () => {
     );
     expect(cmdSubagentMonitor(["--unknown-flag"], root)).toBe(EXIT_EXTERNAL_ERROR);
     expect(parseSubagentMonitorArgs(["--help"]).scratchDirs).toEqual([]);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("releases a dispatch-recorded host-env child lease on terminal (#3999)", () => {
+    const root = mkdtempSync(join(tmpdir(), "sam-child-"));
+    const scratch = join(root, ".deft-scratch", "subagent-status");
+    mkdirSync(scratch, { recursive: true });
+    const now = new Date("2026-08-31T12:00:00Z");
+    const childOwner = "host:grok:v1:child-owner";
+    recordChildOccupancyLease(root, {
+      agentId: "child-agent",
+      parentId: "parent-agent",
+      occupancyOwner: childOwner,
+      worktreePath: root,
+      identitySourceKind: "host-env",
+    });
+    applyWorktreeOccupancy(root, { sessionId: childOwner, now, env: {} });
+    writeFileSync(
+      join(scratch, "child-agent.json"),
+      JSON.stringify({
+        agent_id: "child-agent",
+        parent_id: "parent-agent",
+        last_heartbeat_at: "2026-08-31T12:00:00Z",
+        last_message: "done",
+        phase: "terminal",
+        terminal_state: "CLEAN",
+      }),
+      "utf8",
+    );
+
+    expect(cmdSubagentMonitor(["--scratch-dir", scratch], root)).toBe(EXIT_OK);
+    expect(readOccupancy(root)).toBeNull();
+    expect(evaluateOccupancyWriteGate(root, { sessionId: "parent", now, env: {} }).allow).toBe(
+      true,
+    );
     rmSync(root, { recursive: true, force: true });
   });
 });

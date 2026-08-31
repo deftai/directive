@@ -3,6 +3,10 @@
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
+import {
+  releaseChildOccupancyOnTerminal,
+  worktreeCandidatesForHeartbeat,
+} from "../session/child-occupancy.js";
 
 export const EXIT_OK = 0;
 export const EXIT_STALE = 1;
@@ -441,6 +445,25 @@ export function parseSubagentMonitorArgs(argv: string[]): SubagentMonitorArgs {
   return parsed;
 }
 
+/**
+ * On a terminal heartbeat, compare-and-release a dispatch-recorded child
+ * occupancy lease (#3999). Missing records and payload-kind skips are no-ops;
+ * liveness exit codes are unchanged.
+ */
+export function releaseTerminalChildOccupancy(
+  records: readonly HeartbeatRecord[],
+  cwd: string,
+  now: Date = new Date(),
+): void {
+  for (const rec of records) {
+    if (!rec.is_terminal || rec.agent_id === null) continue;
+    for (const root of worktreeCandidatesForHeartbeat(rec.path, cwd)) {
+      const released = releaseChildOccupancyOnTerminal(root, { agentId: rec.agent_id, now });
+      if (released.reason !== "missing-record") break;
+    }
+  }
+}
+
 /** Run subagent monitor; returns exit code. */
 export function cmdSubagentMonitor(argv: string[], cwd: string = process.cwd()): number {
   const args = parseSubagentMonitorArgs(argv);
@@ -461,7 +484,12 @@ export function cmdSubagentMonitor(argv: string[], cwd: string = process.cwd()):
       ? args.scratchDirs.map((p) => ({ readPath: resolve(cwd, p), label: p }))
       : [{ readPath: defaultScratchDir(cwd), label: defaultScratchDir(cwd) }];
 
-  const result = sweepScratchDirs(scratchEntries, { thresholdMinutes: args.thresholdMinutes });
+  const now = new Date();
+  const result = sweepScratchDirs(scratchEntries, {
+    thresholdMinutes: args.thresholdMinutes,
+    now,
+  });
+  releaseTerminalChildOccupancy(result.records, cwd, now);
   const configError = result.sweep_errors.length > 0 && result.records.length === 0;
 
   if (args.emitJson) {

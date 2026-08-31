@@ -30,7 +30,7 @@
  * a twenty-minute lease means granting on every dispatch exhausts a busy
  * parent's lease inside a day. The revocation trigger is therefore the owner's
  * own `occupancy:grant --revoke`, or expiry; releasing a child's lease on its
- * terminal event is dispatcher lifecycle and belongs to #3999, not here.
+ * terminal event is dispatcher lifecycle in `child-occupancy.ts` (#3999).
  * On a `payload` host parent and subagents share one id, so there is no foreign
  * child lease to admit and nothing to grant -- and the live consequence is the
  * inverse one: `owns` is true for both, so a parent's `occupancy:release`
