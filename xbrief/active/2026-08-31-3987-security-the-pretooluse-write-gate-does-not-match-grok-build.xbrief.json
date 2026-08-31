@@ -17,27 +17,63 @@
     "items": [
       {
         "title": "Do not close this issue on matcher coverage. PR #3990 (merged 2026-08-31T00:56Z) delivered the shell-write-reissue closure and refs this issue rather than closing it; the scope here is the residual the accepted lean names.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4014 \u2014 body uses `Closes #3987` only because items 1-4 landed; PR #3990 is untouched and still refs this issue",
+          "recorded_at": "2026-08-31T17:05:00Z",
+          "recorded_by": "leaf-implementation/3987 (PR #4014)"
+        }
       },
       {
         "title": "Land a bounded liveness auto-trigger over machinery that already exists (`heartbeatOccupancy` and the `occupancy:heartbeat` verb). It must not widen bearer authority: the Grok owner id stays a hook-sibling variable an agent shell cannot reach (#3873), so the trigger fires where the actor already resolves rather than by exporting that id to descendants.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/owner-liveness.test.ts (10) + packages/core/src/hooks/dispatcher-owner-liveness.test.ts (11); run verbatim by plan.acceptance command 1 and by task check on https://github.com/deftai/directive/pull/4014",
+          "recorded_at": "2026-08-31T17:05:00Z",
+          "recorded_by": "leaf-implementation/3987 (PR #4014)"
+        }
       },
       {
         "title": "Record the host tool-surface audit (issue acceptance item 2): for every tool name Grok Build exposes, either the deposited matcher set covers it or the repository records a written reason it is out of scope. The deposited matcher is a literal alternation while the runtime classifier normalizes case and punctuation, so the two layers can disagree even when a name is listed.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/docs/host-tool-surface-audit.md + HOST_TOOL_SURFACE_AUDIT in packages/core/src/hooks/tools.ts \u2014 every Grok tool name carries coverage or a written reason; claude/codex/cursor carry a written unobserved reason",
+          "recorded_at": "2026-08-31T17:05:00Z",
+          "recorded_by": "leaf-implementation/3987 (PR #4014)"
+        }
       },
       {
         "title": "Add the deterministic check (issue acceptance item 3) that fails closed when a supported host's known mutation tool names are absent from the deposited matcher set, so a new host or a renamed tool cannot silently drop coverage.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/host-tool-coverage.test.ts (7) + packages/core/src/verify-env/agent-hooks.test.ts (11); run verbatim by plan.acceptance command 2 and by task check on https://github.com/deftai/directive/pull/4014",
+          "recorded_at": "2026-08-31T17:05:00Z",
+          "recorded_by": "leaf-implementation/3987 (PR #4014)"
+        }
       },
       {
         "title": "Regression tests for the check and for the trigger, and evidence that the eligibility bounds the arc recorded still hold: five recognized write verbs, rejection of shell expansion, temp and out-of-root targets, and compound commands never allow.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/shell-write-targets.test.ts \"shell write eligibility bounds (#3987)\" (4) + dispatcher-write-reissue.test.ts; run verbatim by plan.acceptance command 3 and by task check on https://github.com/deftai/directive/pull/4014",
+          "recorded_at": "2026-08-31T17:05:00Z",
+          "recorded_by": "leaf-implementation/3987 (PR #4014)"
+        }
       },
       {
         "title": "Recorded as out of scope: the release verdict (the operator's, panel split 2-1 with the lean recorded), PR #3990 itself, and the #3961 host-budget question.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4014 \u2014 the `Explicitly out of scope` section records the release verdict as the operator's (panel split 2-1), PR #3990 as untouched, and #3961 as a separate arc",
+          "recorded_at": "2026-08-31T17:05:00Z",
+          "recorded_by": "leaf-implementation/3987 (PR #4014)"
+        }
       }
     ],
     "tags": [
