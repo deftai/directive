@@ -632,6 +632,19 @@ function admitPayload(payload: string, candidate: string | null): EffectiveHookR
  * target that resolved to some other toplevel whose identity cannot be read, is
  * a question asked and left unanswered — that fails closed rather than
  * inheriting payloadRoot's occupancy and ritual state (#3794).
+ *
+ * The `candidateRaw === null` fallback below — a target whose nearest existing
+ * ancestor has no Git toplevel at all (OS temp, a home file, anything outside
+ * every checkout) — is the third case and is deliberate, not a gap (#4013).
+ * `effectiveRoot` selects occupancy, ritual, active scope, the write fence and
+ * assist-scratch, so returning no root would drop all of them for an
+ * out-of-tree write, not just the lease; occupancy and ritual are cross-checked
+ * and the allow path re-stamps the lease, so exempting the lease alone is not a
+ * complete state transition; and `admitMutationTargetSet` demands one unique
+ * root, so a member contributing none has no defined combining rule and an
+ * untrusted patch path would become an authority-selection input. Gate-by-gate
+ * disposition, the three-surface matrix and the relative-target
+ * canonicalization limitation (#4023): content/docs/hook-root-admission.md.
  */
 export function admitEffectiveHookRoot(
   payloadRoot: string,

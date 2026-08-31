@@ -11,6 +11,7 @@ import {
   formatHookRootNote,
   type HookPolicySeams,
 } from "./index.js";
+import { isInRepoShellWritePath } from "./shell-write-targets.js";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -676,5 +677,209 @@ describe("story file_scope relativises against the write target worktree (#3794 
     );
     expect(decision.verdict).toBe("deny");
     expect(decision.message).not.toContain("payloadRoot=");
+  });
+});
+
+/** A directory inside no Git working tree, for the no-toplevel fallback (#4013). */
+function outsideDir(): string {
+  const dir = mkdtempSync(join(tmpdir(), "hook-4013-outside-"));
+  temps.push(dir);
+  return dir;
+}
+
+/**
+ * Characterization of the published no-toplevel case (#4013). The fallback is
+ * deliberate (#3794), so these lock current behaviour rather than propose a
+ * narrowing: content/docs/hook-root-admission.md.
+ */
+describe("no-toplevel targets keep payloadRoot gating (#4013)", () => {
+  it("admits a target with no Git toplevel against payloadRoot and names no candidate", () => {
+    const { primary } = linkedFixture();
+    const admission = admitEffectiveHookRoot(
+      primary,
+      join(outsideDir(), "nested", "note.md"),
+      defaultGitRunner,
+    );
+    expect(resolve(admission.root)).toBe(resolve(primary));
+    expect(admission.foreign).toBe(false);
+    expect(admission.candidate).toBeNull();
+    expect(admission.refusal).toBeNull();
+  });
+
+  it("denies a no-toplevel direct write under a foreign payload-root lease", () => {
+    const { primary } = linkedFixture();
+    applyWorktreeOccupancy(primary, { sessionId: "payload-owner", intent: "mutation" });
+    const { ritualRoots, scopeRoots, seams } = recordingSeams("other");
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: { toolName: "Write", file_path: join(outsideDir(), "note.md") },
+        environ: { DEFT_SESSION_ID: "other" },
+      },
+      seams,
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-occupied" });
+    expect(decision.message).toContain("Worktree occupied by session payload-owner");
+    // Both roots are the payload root: admission contributed no candidate.
+    expect(decision.message).toContain(formatHookRootNote(resolve(primary), resolve(primary)));
+    // Ritual resolves through the payload root; scope is not reached on a lease deny.
+    expect(ritualRoots).toEqual([resolve(primary)]);
+    expect(scopeRoots).toEqual([]);
+  });
+
+  it("allows the same target for the payload root's own owner and skips the scope deny", () => {
+    const { primary } = linkedFixture();
+    applyWorktreeOccupancy(primary, { sessionId: "owner", intent: "mutation" });
+    const { scopeRoots, seams } = scopeSeams(null);
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: { toolName: "Write", file_path: join(outsideDir(), "note.md") },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      seams,
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
+    // Active scope is inspected against the payload root, and its not-ready deny
+    // is skipped by the #2885 outside-root carve-out rather than never asked.
+    expect(scopeRoots).toEqual([resolve(primary)]);
+    expect(decision.scopePath).toBeNull();
+  });
+
+  it("never reaches root admission for a generic server-prefixed MCP name", () => {
+    const { primary } = linkedFixture();
+    applyWorktreeOccupancy(primary, { sessionId: "payload-owner", intent: "mutation" });
+    const target = join(outsideDir(), "note.md");
+    const { ritualRoots, scopeRoots, seams } = recordingSeams("other");
+    const mcp = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: { toolName: "tasks__search_replace", file_path: target },
+        environ: { DEFT_SESSION_ID: "other" },
+      },
+      seams,
+    );
+    expect(mcp).toMatchObject({ verdict: "allow", code: "shell-op-unclassifiable" });
+    expect(ritualRoots).toEqual([]);
+    expect(scopeRoots).toEqual([]);
+
+    // The bare direct-write spelling of the same tool does consult admission.
+    const bare = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: { toolName: "search_replace", file_path: target },
+        environ: { DEFT_SESSION_ID: "other" },
+      },
+      seams,
+    );
+    expect(bare).toMatchObject({ verdict: "deny", code: "occupancy-occupied" });
+    expect(ritualRoots).toEqual([resolve(primary)]);
+  });
+
+  it("excludes an out-of-repo shell write dest from the reissue path", () => {
+    const { primary } = linkedFixture();
+    applyWorktreeOccupancy(primary, { sessionId: "payload-owner", intent: "mutation" });
+    const outsideDest = join(outsideDir(), "note.md");
+    expect(isInRepoShellWritePath(resolve(primary), outsideDest)).toBe(false);
+    const { ritualRoots, scopeRoots, seams } = recordingSeams("other");
+    const outsideWrite = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: {
+          tool_name: "run_terminal_command",
+          tool_input: { command: "Set-Content -Path " + outsideDest + " -Value x" },
+        },
+        environ: { DEFT_SESSION_ID: "other" },
+      },
+      seams,
+    );
+    expect(outsideWrite.verdict).toBe("allow");
+    expect(ritualRoots).toEqual([]);
+    expect(scopeRoots).toEqual([]);
+
+    // Same command, in-repo dest: reissued into the mutation gates and denied.
+    // The dest is absolute because a relative one would resolve against the test
+    // process cwd, not the payload root — the #4023 canonicalization limitation.
+    const inRepoWrite = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: {
+          tool_name: "run_terminal_command",
+          tool_input: {
+            command: "Set-Content -Path " + join(primary, "src", "app.ts") + " -Value x",
+          },
+        },
+        environ: { DEFT_SESSION_ID: "other" },
+      },
+      seams,
+    );
+    expect(inRepoWrite).toMatchObject({ verdict: "deny", code: "occupancy-occupied" });
+    expect(ritualRoots).toEqual([resolve(primary)]);
+  });
+
+  it("keeps worktree-span when a no-toplevel member joins a linked-worktree member", () => {
+    const { primary, wtA } = linkedFixture();
+    const { ritualRoots, seams } = recordingSeams("owner");
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: {
+          tool_name: "ApplyPatch",
+          tool_input: {
+            path: join(wtA, "src", "a.ts"),
+            patch:
+              "*** Begin Patch\n*** Update File: " +
+              join(outsideDir(), "note.md") +
+              "\n+x\n*** End Patch",
+          },
+        },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      seams,
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "foreign-repository-deny" });
+    expect(decision.message).toContain("span more than one Git worktree");
+    expect(ritualRoots).toEqual([]);
+  });
+
+  it("collapses a no-toplevel member onto the payload root it already contributes", () => {
+    const { primary } = linkedFixture();
+    applyWorktreeOccupancy(primary, { sessionId: "owner", intent: "mutation" });
+    const { ritualRoots, seams } = recordingSeams("owner");
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: {
+          tool_name: "ApplyPatch",
+          tool_input: {
+            path: join(primary, "src", "a.ts"),
+            patch:
+              "*** Begin Patch\n*** Update File: " +
+              join(outsideDir(), "note.md") +
+              "\n+x\n*** End Patch",
+          },
+        },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      seams,
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
+    expect(ritualRoots).toEqual([resolve(primary)]);
   });
 });

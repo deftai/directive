@@ -37,6 +37,11 @@ target is denied. An ApplyPatch body that names no classifiable mutation target 
 while the fence is active. ⊗ Authorize only the declared path when the patch body names
 other targets.
 
+Which tree the fence, occupancy, ritual and active scope are read from is decided before any of
+them run, by root admission on the write target — including the deliberate payload-root fallback
+for a target with no Git toplevel. Contract:
+[`docs/hook-root-admission.md`](../docs/hook-root-admission.md) (#3794 / #4013).
+
 Deny reasons are stable and name the fence source:
 
 - `write fence project allowPaths (source: project)` or `project+story`
