@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { DEFAULT_RUNTIME_AUTHORITY_POLICY } from "../policy/runtime-authority.js";
 import { canonicalHostSessionId } from "../session/host-session-owner.js";
 import {
   applyWorktreeOccupancy,
@@ -58,6 +59,38 @@ function leasedRoot(sessionId: string): { root: string; claimedAt: Date; heartbe
   const persisted = readOccupancy(root);
   if (persisted === null) throw new Error("occupancy claim did not persist");
   return { root, claimedAt: persisted.claimedAt, heartbeatAt: persisted.heartbeatAt };
+}
+
+/** Shell commands carry forward slashes on every platform this gate reads. */
+function posixPath(path: string): string {
+  return path.split("\\").join("/");
+}
+
+function gitRepo(): string {
+  const base = mkdtempSync(join(tmpdir(), "hook-liveness-repo-"));
+  temps.push(base);
+  const primary = join(base, "primary");
+  mkdirSync(primary, { recursive: true });
+  for (const args of [
+    ["init", "-q"],
+    ["config", "user.email", "t@t.dev"],
+    ["config", "user.name", "t"],
+    ["commit", "--allow-empty", "-q", "-m", "base"],
+  ]) {
+    execFileSync("git", args, { cwd: primary, encoding: "utf8" });
+  }
+  return primary;
+}
+
+/** Linked worktree in the swarm layout: inside the primary, own git tree. */
+function addWorktree(primary: string, name: string): string {
+  const path = join(primary, ".deft-scratch", "worktrees", name);
+  mkdirSync(join(primary, ".deft-scratch", "worktrees"), { recursive: true });
+  execFileSync("git", ["worktree", "add", "--detach", "-q", path], {
+    cwd: primary,
+    encoding: "utf8",
+  });
+  return path;
 }
 
 function recordingSeams(): {
@@ -281,6 +314,43 @@ describe("hook-event owner liveness (#3987)", () => {
     expect(readOccupancy(sibling.root)?.heartbeatAt.toISOString()).toBe(
       sibling.heartbeatAt.toISOString(),
     );
+  });
+
+  it("renews every tree the gates admitted, not just the last one", () => {
+    // A multi-destination command is admitted once per destination, so an owner
+    // working in two worktrees produces two authorized trees. Renewing only the
+    // last would let the other expire under a session demonstrably using it.
+    const primary = gitRepo();
+    const wtA = addWorktree(primary, "wt-a");
+    const wtB = addWorktree(primary, "wt-b");
+    mkdirSync(join(wtA, "src"), { recursive: true });
+    mkdirSync(join(wtB, "src"), { recursive: true });
+
+    const { seams, calls } = recordingSeams();
+    decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: {
+          tool_name: "run_terminal_command",
+          tool_input: {
+            command: `rm ${posixPath(join(wtA, "src", "a.ts"))} ${posixPath(join(wtB, "src", "b.ts"))}`,
+          },
+        },
+        environ: { GROK_SESSION_ID: RAW_GROK_ID },
+      },
+      {
+        ...seams,
+        loadRuntimeAuthority: () => ({
+          ...DEFAULT_RUNTIME_AUTHORITY_POLICY,
+          shellDestForms: "enforce",
+        }),
+      },
+    );
+    const renewed = new Set(calls.map((call) => call.projectRoot));
+    expect(renewed.has(resolve(wtA))).toBe(true);
+    expect(renewed.has(resolve(wtB))).toBe(true);
   });
 
   it("cannot change a verdict by failing", () => {

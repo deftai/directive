@@ -1205,8 +1205,10 @@ function inspectMutationGates(
     : admitMutationTargetSet(payloadRoot, mutationTargets, dispatchGit);
   const effectiveRoot = admission.root;
   if (options.observation !== undefined) {
-    options.observation.effectiveRoot = effectiveRoot;
-    options.observation.foreignTarget = admission.foreign;
+    if (!options.observation.effectiveRoots.includes(effectiveRoot)) {
+      options.observation.effectiveRoots.push(effectiveRoot);
+    }
+    if (admission.foreign) options.observation.foreignTarget = true;
   }
   const rootsNote = ` ${formatHookRootNote(payloadRoot, effectiveRoot)}`;
   if (admission.foreign) {
@@ -2078,14 +2080,20 @@ function attachLifecycleIdentityRewrite(
  * What the mutation gates observed while deciding, for the post-decision
  * liveness re-stamp (#3987).
  *
- * `effectiveRoot` is recorded rather than re-derived. The gates already resolve
- * the tree a write lands in — a linked worktree under `.deft-scratch/` is not
- * the payload root — and occupancy is authorized against that tree. Recomputing
- * it beside them would be a second resolver free to drift, and the drift would
- * renew the wrong lease while the tree actually in use expires.
+ * Roots are recorded rather than re-derived. The gates already resolve the tree
+ * a write lands in — a linked worktree under `.deft-scratch/` is not the payload
+ * root — and occupancy is authorized against that tree. Recomputing it beside
+ * them would be a second resolver free to drift, and the drift would renew the
+ * wrong lease while the tree actually in use expires.
+ *
+ * A list, not one slot: a multi-destination shell command is admitted once per
+ * destination, so two destinations in two worktrees produce two authorized
+ * trees. Keeping only the last would renew one lease and let the other expire
+ * under an owner that is demonstrably working in both.
  */
 interface DispatchObservation {
-  effectiveRoot: string | null;
+  /** Trees the gates authorized against, in observation order, deduplicated. */
+  readonly effectiveRoots: string[];
   /** Target admission refused: no tree is proven, so renew nothing. */
   foreignTarget: boolean;
 }
@@ -2111,12 +2119,20 @@ function restampOwnerLiveness(
   if (observation.foreignTarget) return;
   try {
     const actor = resolveMutationActor(input, input.environ ?? process.env);
-    (seams.restampOwnerLiveness ?? restampOwnerLivenessOnHookEvent)({
-      // The tree occupancy was authorized against, not the payload root.
-      projectRoot: observation.effectiveRoot ?? resolve(input.projectRoot),
-      ownerSessionId: actor.sessionId,
-      hostAuthoritative: actor.hostAuthoritative && actor.issue === null,
-    });
+    const restamp = seams.restampOwnerLiveness ?? restampOwnerLivenessOnHookEvent;
+    // The trees occupancy was authorized against, not the payload root. Each
+    // was admitted on its own, so each is renewed on its own.
+    const roots =
+      observation.effectiveRoots.length > 0
+        ? observation.effectiveRoots
+        : [resolve(input.projectRoot)];
+    for (const projectRoot of roots) {
+      restamp({
+        projectRoot,
+        ownerSessionId: actor.sessionId,
+        hostAuthoritative: actor.hostAuthoritative && actor.issue === null,
+      });
+    }
   } catch {
     /* liveness is best-effort bookkeeping; never let it affect a verdict */
   }
@@ -2124,7 +2140,7 @@ function restampOwnerLiveness(
 
 /** Decide a normalized event using only the P0 direct-write policy. */
 export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}): HookDecision {
-  const observation: DispatchObservation = { effectiveRoot: null, foreignTarget: false };
+  const observation: DispatchObservation = { effectiveRoots: [], foreignTarget: false };
   const decision = routeHookDecision(input, seams, observation);
   // Skipped for the #3039 kill-switch and #2926 opt-out, which short-circuit
   // before any Directive enforcement runs — including this bookkeeping.
