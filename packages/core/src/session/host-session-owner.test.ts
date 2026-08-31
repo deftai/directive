@@ -105,8 +105,10 @@ describe("shared actor-resolution chain (#3954 item 1)", () => {
 
   it("reports no split when the sources agree or only one resolves", () => {
     expect(
-      resolvePresentedIdentity({ sessionId: GROK_OWNER, env: { GROK_SESSION_ID: "grok-session-a" } })
-        .disagreeingHostOwner,
+      resolvePresentedIdentity({
+        sessionId: GROK_OWNER,
+        env: { GROK_SESSION_ID: "grok-session-a" },
+      }).disagreeingHostOwner,
     ).toBeNull();
     expect(
       resolvePresentedIdentity({ env: { DEFT_SESSION_ID: "ambient" } }).disagreeingHostOwner,

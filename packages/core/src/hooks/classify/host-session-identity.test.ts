@@ -387,7 +387,10 @@ describe("rewriteExactLifecycleCommand (#3611)", () => {
     const command = "deft occupancy:grant --revoke --child-session-id=child";
 
     expect(
-      rewriteExactLifecycleCommand({ tool_name: "Shell", tool_input: { command } }, CODEX_SESSION_ID),
+      rewriteExactLifecycleCommand(
+        { tool_name: "Shell", tool_input: { command } },
+        CODEX_SESSION_ID,
+      ),
     ).toMatchObject({
       kind: "rewrite",
       verb: "occupancy:grant",
@@ -401,7 +404,9 @@ describe("rewriteExactLifecycleCommand (#3611)", () => {
     expect(
       inspectExactLifecycleCommand({
         tool_name: "Shell",
-        tool_input: { command: "deft occupancy:grant --child-session-id=child --worktree /elsewhere" },
+        tool_input: {
+          command: "deft occupancy:grant --child-session-id=child --worktree /elsewhere",
+        },
       }),
     ).toMatchObject({ verb: "occupancy:grant", requiresOwner: true, rewriteSafe: false });
   });

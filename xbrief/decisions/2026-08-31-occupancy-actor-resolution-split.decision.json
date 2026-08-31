@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "occupancy-actor-resolution-split",
+  "decision": "Claim, release, heartbeat and grant/revoke share one occupancy actor lookup order (explicit --session-id, then DEFT_SESSION_ID, then the host-published owner) and keep four terminals: claim mints, the three prove-surfaces resolve to the empty string. Anonymous release of the occupant recorded in the lease file is refused. Parent-versus-child is answered as identity on host-env hosts and as a non-question on payload hosts; membership stays explicit, owner-issued and expiring, with revocation by --revoke or expiry.",
+  "governingRule": {
+    "description": "When a quality gate fails, fix the product/process/test under test. Do not clear red by editing the gate, verifier, required check, coverage floor, or policy flag solely to go green.",
+    "path": "content/docs/gate-integrity.md",
+    "rfc2119": "MUST NOT"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Adopt resolveOccupancySessionId wholesale on all four surfaces",
+      "whyNot": "It terminates in randomUUID. Release, heartbeat and grant prove an identity rather than establish one, so a shared mint would replace the 'this process presented no session identity' diagnosis with a plausible id no later hook process will present, on every host that publishes no owner of its own."
+    },
+    {
+      "option": "Let release accept the occupant recorded in the lease when the caller presents nothing",
+      "whyNot": "It closes the unreachable-recovery symptom in one line, and it converts possession of the lease file path into authority to delete a live lease. The cooperative bearer model has no second check behind that refusal, and a delayed child-completion event could erase a successor's lease. The ambient step fixes the same symptom without moving any authority."
+    },
+    {
+      "option": "Reorder the chain so the host-published owner beats an ambient DEFT_SESSION_ID",
+      "whyNot": "The order is what lets a dispatcher or the lifecycle rewrite inject an id at all. The measured harm from disagreement is that a refused caller cannot see it, so the disagreement is reported on refusals instead of resolved silently."
+    },
+    {
+      "option": "Make nuclear-family membership automatic within a cohort",
+      "whyNot": "Membership is half-built: a granted child is admitted for writes and refused at claim and heartbeat. Grants also cap at 32 with a four-hour expiry against a twenty-minute lease, so granting on every dispatch exhausts a busy parent's lease inside a day, and there is no automatic revocation trigger to pair with it."
+    },
+    {
+      "option": "Require every grant child id to match the canonical owner pattern",
+      "whyNot": "A child on a host with no identity contract presents whatever DEFT_SESSION_ID holds, so a strict rule would refuse grants nothing has measured wrong. The check binds on the reserved host: prefix instead, plus a cross-prefix self-grant refusal."
+    }
+  ],
+  "whyWinner": "The measured defect is that a session's claiming identity and its presenting identity are resolved by different rules, so an owner is denied by its own lease and the printed recovery is unreachable. Sharing the lookup order removes the divergence wherever this tree controls both ends; keeping the terminals apart preserves the one diagnosis that tells an operator to supply an id. Everything that would have widened authority - anonymous release, automatic membership - was refused, so no refusal in the module is weaker than before.",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-08-31-3954-bugsessionhooks-claim-release-and-grant-resolve-the-occupanc.xbrief.json"
+  ],
+  "timestamp": "2026-08-31T19:35:00Z",
+  "revisitTrigger": "Revisit if a host publishes GROK_SESSION_ID (or an equivalent) into the deft-hook sibling process, which would remove the remaining #3873 divergence; or if #3999 lands a dispatcher-side release that needs a release authority this decision refuses; or if a payload-host parent releasing a live child's lease mid-flight is measured as a real loss rather than a property of shared host identity.",
+  "tags": [
+    "occupancy",
+    "identity",
+    "gate-integrity",
+    "membership"
+  ],
+  "relatedIssues": [
+    3954,
+    3873,
+    3999,
+    3926,
+    3755,
+    3611,
+    3433,
+    3155,
+    3156,
+    4013
+  ]
+}

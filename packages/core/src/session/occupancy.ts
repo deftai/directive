@@ -526,7 +526,8 @@ export function resolvePresentedIdentity(
 export function formatPresentedIdentityDisagreement(identity: PresentedIdentity): string {
   const other = identity.disagreeingHostOwner;
   if (other === null) return "";
-  const named = identity.source === "explicit" ? "The id passed on the command line" : "DEFT_SESSION_ID";
+  const named =
+    identity.source === "explicit" ? "The id passed on the command line" : "DEFT_SESSION_ID";
   return (
     `\n${named} names session ${identity.sessionId}, but this host published ` +
     `${other}. Those are different sessions: re-run with ` +

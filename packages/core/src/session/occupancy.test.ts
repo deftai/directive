@@ -1780,8 +1780,9 @@ describe("explicit lease membership (#3755)", () => {
       const denied = grantChild(root, now, { childSessionId: child });
       expect(denied.code).toBe(2);
       expect(denied.action).toBe("denied");
-      expect(evaluateOccupancyWriteGate(root, { sessionId: child, now: at, env: {} }).admitted)
-        .toBeNull();
+      expect(
+        evaluateOccupancyWriteGate(root, { sessionId: child, now: at, env: {} }).admitted,
+      ).toBeNull();
     }
     expect(readRecord(root).grants).toHaveLength(0);
   });
