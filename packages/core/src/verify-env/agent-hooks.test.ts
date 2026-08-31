@@ -115,4 +115,44 @@ describe("evaluateAgentHooks", () => {
     expect(result.message).not.toContain("hostHooks.<host> = false");
     expect(result.message).not.toContain("disable-host-hooks -- --host");
   });
+
+  it("fails closed on a tool-surface gap the registration check cannot see (#3987)", () => {
+    const root = project();
+    writeAgentHookDeposit(root);
+    expect(evaluateAgentHooks(root).coverage).toEqual([]);
+
+    const result = evaluateAgentHooks(root, DEFAULT_HOST_HOOKS_POLICY, () => [
+      {
+        host: "grok",
+        path: ".grok/hooks/deft.json",
+        kind: "uncovered-tool",
+        toolName: "run_terminal_command",
+        detail: "shell tool is absent from every deposited PreToolUse matcher.",
+      },
+    ]);
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("tool-surface coverage INCOMPLETE");
+    expect(result.message).toContain("run_terminal_command");
+    expect(result.stream).toBe("stderr");
+    expect(result.coverage).toHaveLength(1);
+  });
+
+  it("keeps the stale-deposit remedy ahead of the coverage one", () => {
+    const root = project();
+    writeAgentHookDeposit(root);
+    const hookPath = join(root, ".grok", "hooks", "deft.json");
+    writeFileSync(
+      hookPath,
+      readFileSync(hookPath, "utf8").replace("|run_terminal_command", ""),
+      "utf8",
+    );
+
+    const result = evaluateAgentHooks(root);
+    expect(result.code).toBe(1);
+    // A hand-edited deposit is stale first; `deft update` restores both.
+    expect(result.message).toContain("registration INCOMPLETE");
+    expect(result.coverage).toContainEqual(
+      expect.objectContaining({ host: "grok", kind: "uncovered-tool" }),
+    );
+  });
 });

@@ -115,6 +115,7 @@ Where the host supports hooks, **deny writes to directive-managed paths** withou
 | **Tier-1 host hooks** | PreToolUse / equivalent intercept Write/Edit/Shell that target managed paths (AGENTS managed section, deposit, pin skill paths the host exposes) |
 | **Path write fence** | Project + story `file_scope` evaluation — [`path-write-fence.md`](../contracts/path-write-fence.md) |
 | **Agent hook readiness** | `deft verify:hooks-installed --scope=agent --live` — [`agent-hook-readiness.md`](../contracts/agent-hook-readiness.md) |
+| **Host tool-surface coverage** | Which tool names each host's matcher actually selects, and which are recorded out of scope — [`host-tool-surface-audit.md`](./host-tool-surface-audit.md) (#3987) |
 | **Policy** | `plan.policy.hostHooks.<host>` — inspect with `deft policy:show --field=hostHooks` |
 
 ! When hooks are available, treat managed-path deny as the enforcement home for constitution bytes — not agent good behavior alone.

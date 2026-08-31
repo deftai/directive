@@ -56,6 +56,15 @@ export const CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS = 30;
 export const NESTED_HOOK_TIMEOUT_SECONDS = 5;
 
 export type AgentHookPath = (typeof AGENT_HOOK_PATHS)[number];
+
+/** Deposit file each supported host reads its PreToolUse registration from. */
+export const AGENT_HOOK_PATH_BY_HOST: Readonly<Record<HookHost, AgentHookPath>> = {
+  claude: AGENT_HOOK_PATHS[0],
+  grok: AGENT_HOOK_PATHS[1],
+  cursor: AGENT_HOOK_PATHS[2],
+  codex: AGENT_HOOK_PATHS[3],
+};
+
 export type AgentHookRegistrationStatus = "healthy" | "disabled" | "missing" | "drifted";
 
 /** Whether the host receives a compact/resume hook deposit (#2113). */
@@ -537,6 +546,39 @@ function hasCursorRegistration(config: Record<string, unknown>): boolean {
     preTool.some((entry) => isCursorToolBeforeEntry(entry, MCP_HOOK_MATCHER)) &&
     preCompact.some((entry) => object(entry)?.command === command("cursor", "session.compact"))
   );
+}
+
+/**
+ * PreToolUse matchers a host would actually match against, read from the
+ * deposited file rather than regenerated from the constants (#3987).
+ *
+ * Null means the deposit is absent or unreadable — a different failure with a
+ * different remediation, already reported by `inspectAgentHookDeposit`.
+ */
+export function depositedPreToolUseMatchers(
+  projectRoot: string,
+  host: HookHost,
+): readonly string[] | null {
+  const path = join(resolve(projectRoot), AGENT_HOOK_PATH_BY_HOST[host]);
+  if (!existsSync(path)) return null;
+  let config: Record<string, unknown>;
+  try {
+    config = readConfig(path);
+  } catch {
+    return null;
+  }
+  const hooks = object(config.hooks);
+  if (hooks === null) return [];
+  const matcherOf = (entry: unknown): string[] => {
+    const matcher = object(entry)?.matcher;
+    return typeof matcher === "string" ? [matcher] : [];
+  };
+  if (host === "cursor") {
+    const entries = Array.isArray(hooks.preToolUse) ? hooks.preToolUse : [];
+    return entries.filter(isManagedCursorEntry).flatMap(matcherOf);
+  }
+  const entries = Array.isArray(hooks.PreToolUse) ? hooks.PreToolUse : [];
+  return entries.filter((entry) => isManagedNestedGroupForHost(entry, host)).flatMap(matcherOf);
 }
 
 /** Read-only registration probe shared by verify and doctor. */

@@ -1,5 +1,6 @@
 export * from "./agent-hooks.js";
 export * from "./headless-manifest.js";
+export * from "./host-tool-coverage.js";
 export * from "./init-deposit.js";
 export * from "./init-dispatch.js";
 export * from "./legacy-detect.js";

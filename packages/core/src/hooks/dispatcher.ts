@@ -95,6 +95,11 @@ import {
 } from "./dest-form.js";
 import { appendGitDestructiveRecord, GIT_DESTRUCTIVE_LOG_ENV } from "./git-destructive-log.js";
 import {
+  type OwnerLivenessInput,
+  type OwnerLivenessOutcome,
+  restampOwnerLivenessOnHookEvent,
+} from "./owner-liveness.js";
+import {
   isAssistPosture,
   isEphemeralSpawn,
   isExploreSpawn,
@@ -120,6 +125,9 @@ export {
   DIRECT_WRITE_TOOL_NAMES,
   GROK_MUTATION_TOOL_CATALOG,
   GROK_NON_MUTATION_TOOLS,
+  HOST_TOOL_SURFACE_AUDIT,
+  type HostMutationToolCatalog,
+  type HostToolSurfaceAudit,
   isDirectWriteTool,
   isMcpTool,
   isShellTool,
@@ -282,6 +290,8 @@ export interface HookPolicySeams {
   readonly realpathLifecycleExecutionRoot?: (path: string) => string;
   /** Test seam for Windows drive-only execution-root payloads (#2787). */
   readonly lifecycleExecutionPlatform?: NodeJS.Platform;
+  /** Test seam for the #3987 post-decision owner-liveness re-stamp. */
+  readonly restampOwnerLiveness?: (input: OwnerLivenessInput) => OwnerLivenessOutcome;
 }
 
 /** POSIX-ish project-relative path for lifecycle matching. */
@@ -2056,8 +2066,43 @@ function attachLifecycleIdentityRewrite(
   return { ...decision, updatedInput: rewrite.updatedInput };
 }
 
+/**
+ * Renew the owner's occupancy lease from a hook event that already proved the
+ * owner is present (#3987).
+ *
+ * Deliberately runs AFTER the decision and never feeds it. Two reasons: a
+ * liveness re-stamp must not be able to change a verdict, and re-stamping first
+ * would reset the shared age floor and so suppress the mutation gate's own
+ * `markWrite = true` refresh — leaving an actively-writing owner recorded as
+ * having no recorded write. Failure is swallowed: liveness is bookkeeping, and
+ * a lease that cannot be renewed simply ages out as it did before.
+ */
+function restampOwnerLiveness(input: HookDispatchInput, seams: HookPolicySeams): void {
+  if (input.event !== "tool.before") return;
+  try {
+    const actor = resolveMutationActor(input, input.environ ?? process.env);
+    (seams.restampOwnerLiveness ?? restampOwnerLivenessOnHookEvent)({
+      projectRoot: resolve(input.projectRoot),
+      ownerSessionId: actor.sessionId,
+      hostAuthoritative: actor.hostAuthoritative && actor.issue === null,
+    });
+  } catch {
+    /* liveness is best-effort bookkeeping; never let it affect a verdict */
+  }
+}
+
 /** Decide a normalized event using only the P0 direct-write policy. */
 export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}): HookDecision {
+  const decision = routeHookDecision(input, seams);
+  // Skipped for the #3039 kill-switch and #2926 opt-out, which short-circuit
+  // before any Directive enforcement runs — including this bookkeeping.
+  if (decision.code !== "directive-disabled" && decision.code !== "session-start-disabled") {
+    restampOwnerLiveness(input, seams);
+  }
+  return decision;
+}
+
+function routeHookDecision(input: HookDispatchInput, seams: HookPolicySeams): HookDecision {
   const projectRoot = resolve(input.projectRoot);
 
   // #3039: local (untracked) `.deft-directive-disable` wins for enforcement
