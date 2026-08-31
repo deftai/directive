@@ -36,6 +36,7 @@ const environment: EnvironmentContext = {
 };
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   for (const t of temps) rmSync(t, { recursive: true, force: true });
   temps.length = 0;
 });
@@ -127,6 +128,9 @@ describe("session re-arm vs cold ceremony tiers (#2992)", () => {
   });
 
   it("re-arm refreshes ritual without tools/triage/release/tickler", () => {
+    // Mint-path: empty env bag so ambient DEFT_SESSION_ID cannot override the
+    // minted id (#3877). Do not pin sessionId -- that would silence the mint.
+    vi.stubEnv("DEFT_SESSION_ID", "ambient-worker-id");
     const root = tempRoot();
     const head = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     const started = new Date("2026-07-20T12:00:00Z");
@@ -142,8 +146,8 @@ describe("session re-arm vs cold ceremony tiers (#2992)", () => {
       compact: false,
       now: rearmAt,
       writeHistory: false,
-      // Pin the environment so the minted owner below is what resolves; a host
-      // that publishes its own session id would otherwise win (#3873).
+      // Empty env bag: mint-path proof must not read ambient DEFT_SESSION_ID
+      // (#3877) or a host-published session id (#3873). Do not pin sessionId.
       env: {},
       runGit: fakeGit(root, { head }),
       verifyTools: () => {

@@ -874,30 +874,37 @@ describe("worktree occupancy lease (#3433)", () => {
   });
 
   it("mutation session:start claims and a second session is denied", () => {
-    const root = tempRoot();
-    const now = new Date("2026-08-17T12:00:00Z");
-    const first = runSessionStart(root, {
-      writeHistory: false,
-      now,
-      env: {},
-      newSessionId: () => "first-sess",
-      runGit: () => ({ code: 0, stdout: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", stderr: "" }),
-      verifyTools: () => ({ exitCode: 0 }),
-      runTriageWelcome: () => ({ exitCode: 0 }),
-    });
-    expect(first.code).toBe(0);
-    expect(readOccupancy(root)?.sessionId).toBe("first-sess");
-    const second = runSessionStart(root, {
-      writeHistory: false,
-      now: new Date("2026-08-17T12:01:00Z"),
-      env: {},
-      newSessionId: () => "second-sess",
-      runGit: () => ({ code: 0, stdout: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", stderr: "" }),
-      verifyTools: () => ({ exitCode: 0 }),
-    });
-    expect(second.code).toBe(1);
-    expect(second.lines.join("\n")).toContain("Worktree occupied by session first-sess");
-    expect(readOccupancy(root)?.sessionId).toBe("first-sess");
+    // Mint-path: empty env bag so ambient DEFT_SESSION_ID cannot override the
+    // minted id (#3877). Do not pin sessionId -- that would silence the mint.
+    vi.stubEnv("DEFT_SESSION_ID", "ambient-worker-id");
+    try {
+      const root = tempRoot();
+      const now = new Date("2026-08-17T12:00:00Z");
+      const first = runSessionStart(root, {
+        writeHistory: false,
+        now,
+        env: {},
+        newSessionId: () => "first-sess",
+        runGit: () => ({ code: 0, stdout: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", stderr: "" }),
+        verifyTools: () => ({ exitCode: 0 }),
+        runTriageWelcome: () => ({ exitCode: 0 }),
+      });
+      expect(first.code).toBe(0);
+      expect(readOccupancy(root)?.sessionId).toBe("first-sess");
+      const second = runSessionStart(root, {
+        writeHistory: false,
+        now: new Date("2026-08-17T12:01:00Z"),
+        env: {},
+        newSessionId: () => "second-sess",
+        runGit: () => ({ code: 0, stdout: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", stderr: "" }),
+        verifyTools: () => ({ exitCode: 0 }),
+      });
+      expect(second.code).toBe(1);
+      expect(second.lines.join("\n")).toContain("Worktree occupied by session first-sess");
+      expect(readOccupancy(root)?.sessionId).toBe("first-sess");
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("read-only session:start does not claim occupancy", () => {
