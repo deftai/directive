@@ -32,7 +32,7 @@
   "whyWinner": "The measured defect is that a session's claiming identity and its presenting identity are resolved by different rules, so an owner is denied by its own lease and the printed recovery is unreachable. Sharing the lookup order removes the divergence wherever this tree controls both ends; keeping the terminals apart preserves the one diagnosis that tells an operator to supply an id. Everything that would have widened authority - anonymous release, automatic membership - was refused, so no refusal in the module is weaker than before.",
   "confidence": "high",
   "activeScopeRefs": [
-    "xbrief/active/2026-08-31-3954-bugsessionhooks-claim-release-and-grant-resolve-the-occupanc.xbrief.json"
+    "xbrief/completed/2026-08-31-3954-bugsessionhooks-claim-release-and-grant-resolve-the-occupanc.xbrief.json"
   ],
   "timestamp": "2026-08-31T19:35:00Z",
   "revisitTrigger": "Revisit if a host publishes GROK_SESSION_ID (or an equivalent) into the deft-hook sibling process, which would remove the remaining #3873 divergence; or if #3999 lands a dispatcher-side release that needs a release authority this decision refuses; or if a payload-host parent releasing a live child's lease mid-flight is measured as a real loss rather than a property of shared host identity.",
