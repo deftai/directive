@@ -10,6 +10,7 @@ import {
   resolveLaunchOccupancySessionId,
   swarmLaunch,
 } from "../swarm/launch.js";
+import { canonicalHostSessionId } from "./host-session-owner.js";
 import {
   applyWorktreeOccupancy,
   evaluateOccupancyWriteGate,
@@ -778,6 +779,57 @@ describe("worktree occupancy lease (#3433)", () => {
     expect(released.code).toBe(0);
     expect(released.action).toBe("released");
     expect(readOccupancy(root)).toBeNull();
+  });
+
+  it("releases under the owner the running host published (#3954)", () => {
+    const root = tempRoot();
+    const now = new Date("2026-08-17T12:00:00Z");
+    const env = { GROK_SESSION_ID: "grok-session-a" };
+    applyWorktreeOccupancy(root, { now, env });
+    expect(readOccupancy(root)?.sessionId).toBe(canonicalHostSessionId("grok", "grok-session-a"));
+
+    // Claim and release resolve one actor, so the printed "the occupant may
+    // release" is a command the occupant can run without lifting an id out of
+    // the deny text.
+    const released = releaseOccupancy(root, { now, env });
+
+    expect(released.code).toBe(0);
+    expect(released.action).toBe("released");
+    expect(readOccupancy(root)).toBeNull();
+  });
+
+  it("refuses an anonymous caller the occupant recorded in the lease (#3954)", () => {
+    // Open question 1, answered against: reading the occupant out of the file
+    // and releasing it would make possession of the path into authority to
+    // delete a live lease.
+    const root = tempRoot();
+    const now = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "owner", now, env: {} });
+
+    const denied = releaseOccupancy(root, { now, env: {} });
+
+    expect(denied.code).toBe(1);
+    expect(denied.action).toBe("denied");
+    expect(denied.sessionId).toBe("");
+    expect(denied.message).toContain("presented no session identity");
+    expect(readOccupancy(root)?.sessionId).toBe("owner");
+  });
+
+  it("names the host owner when DEFT_SESSION_ID disagrees with it (#3954)", () => {
+    const root = tempRoot();
+    const now = new Date("2026-08-17T12:00:00Z");
+    const hostOwner = canonicalHostSessionId("grok", "grok-session-a");
+    applyWorktreeOccupancy(root, { sessionId: hostOwner, now, env: {} });
+
+    const denied = releaseOccupancy(root, {
+      now,
+      env: { DEFT_SESSION_ID: "host:claude:v1:c2Vzc2lvbi1h", GROK_SESSION_ID: "grok-session-a" },
+    });
+
+    expect(denied.code).toBe(1);
+    expect(denied.message).toContain("This process presented session host:claude:v1:c2Vzc2lvbi1h");
+    expect(denied.message).toContain(`this host published ${hostOwner}`);
+    expect(readOccupancy(root)?.sessionId).toBe(hostOwner);
   });
 
   it("clears expired residue without ownership (#3604)", () => {
@@ -1679,6 +1731,138 @@ describe("explicit lease membership (#3755)", () => {
     }
     expect(readRecord(root).sessionId).toBe(MEMBERSHIP_OWNER);
     expect(readRecord(root).grants).toHaveLength(1);
+  });
+
+  it("tells a member that claim is owner-only instead of offering it a grant", () => {
+    // The fourth actor asymmetry the arc measured (#3954 item 5): a granted
+    // child is admitted for writes and refused at claim and heartbeat. The
+    // refusal stands -- membership admits writes -- but a message offering the
+    // child the write grant it already holds is not a remedy it can act on.
+    const now = new Date("2026-08-28T09:00:00Z");
+    const root = leasedRoot(now);
+    grantChild(root, now);
+    const at = new Date(now.getTime() + 60_000);
+
+    const claim = applyWorktreeOccupancy(root, { sessionId: MEMBERSHIP_CHILD, now: at, env: {} });
+
+    expect(claim.code).toBe(1);
+    expect(claim.action).toBe("denied");
+    expect(claim.message).toContain("session:start is owner-only");
+    expect(claim.message).toContain("not the lease itself");
+    expect(claim.message).not.toContain("ask the occupant for a write grant");
+    expect(readRecord(root).sessionId).toBe(MEMBERSHIP_OWNER);
+  });
+
+  it("names the identity a refused claim actually presented", () => {
+    const now = new Date("2026-08-28T09:00:00Z");
+    const root = leasedRoot(now);
+    const at = new Date(now.getTime() + 60_000);
+
+    const claim = applyWorktreeOccupancy(root, { sessionId: "drifter", now: at, env: {} });
+
+    expect(claim.code).toBe(1);
+    expect(claim.message).toContain("This process presented session drifter");
+  });
+
+  it("refuses a child id that claims the host shape without being one", () => {
+    // Measured before the fix: each of these was granted and then admitted as
+    // `member` by the write gate, so the lease read as membership while
+    // admitting nobody (#3954 item 3).
+    const now = new Date("2026-08-28T09:00:00Z");
+    const root = leasedRoot(now);
+    const at = new Date(now.getTime() + 60_000);
+
+    for (const child of [
+      "host:nosuchhost:v9:zzzz",
+      "host:grok:v1:!!!not-base64url!!!",
+      "host:grok:v1:",
+    ]) {
+      const denied = grantChild(root, now, { childSessionId: child });
+      expect(denied.code).toBe(2);
+      expect(denied.action).toBe("denied");
+      expect(evaluateOccupancyWriteGate(root, { sessionId: child, now: at, env: {} }).admitted)
+        .toBeNull();
+    }
+    expect(readRecord(root).grants).toHaveLength(0);
+  });
+
+  it("refuses a child that re-prefixes the owner's own host payload", () => {
+    // The cross-prefix laundering: it passes the shape check, reads as a
+    // healthy grant, and names a child no session on that provider can present.
+    const now = new Date("2026-08-28T09:00:00Z");
+    const owner = canonicalHostSessionId("claude", "01a055e2-b503-7b72-a054-b9dff5bc5e32");
+    const launderedChild = canonicalHostSessionId("grok", "01a055e2-b503-7b72-a054-b9dff5bc5e32");
+    const root = tempRoot();
+    applyWorktreeOccupancy(root, { sessionId: owner, now, env: {} });
+
+    const denied = grantOccupancyMembership(root, {
+      sessionId: owner,
+      childSessionId: launderedChild,
+      role: "leaf-implementation",
+      now,
+      env: {},
+    });
+
+    expect(denied.code).toBe(2);
+    expect(denied.message).toContain("self-grant across a provider prefix");
+    expect(readRecord(root).grants).toHaveLength(0);
+    // A genuinely different session on the same provider is still admitted.
+    const other = canonicalHostSessionId("grok", "01a057fb-915b-7cb3-a11d-b1562f0dc869");
+    expect(
+      grantOccupancyMembership(root, {
+        sessionId: owner,
+        childSessionId: other,
+        role: "leaf-implementation",
+        now,
+        env: {},
+      }).code,
+    ).toBe(0);
+  });
+
+  it("keeps an opaque child id admissible", () => {
+    // A child on a host with no identity contract presents whatever
+    // DEFT_SESSION_ID holds, so refusing every non-canonical id would deny a
+    // grant nothing has measured wrong (#3954 item 3).
+    const now = new Date("2026-08-28T09:00:00Z");
+    const root = leasedRoot(now);
+    const at = new Date(now.getTime() + 60_000);
+
+    expect(grantChild(root, now, { childSessionId: "not-a-host-id-at-all" }).code).toBe(0);
+    expect(
+      evaluateOccupancyWriteGate(root, { sessionId: "not-a-host-id-at-all", now: at, env: {} })
+        .admitted,
+    ).toBe("member");
+  });
+
+  it("withdraws a malformed grant written before the child check existed", () => {
+    const now = new Date("2026-08-28T09:00:00Z");
+    const root = leasedRoot(now);
+    const record = readRecord(root);
+    writeRawOccupancy(root, {
+      ...record.raw,
+      grants: [
+        {
+          owner_session_id: MEMBERSHIP_OWNER,
+          child_session_id: "host:nosuchhost:v9:zzzz",
+          worktree_path: record.worktreePath,
+          role: "leaf-implementation",
+          expires_at: new Date(now.getTime() + OCCUPANCY_GRANT_TTL_MS).toISOString(),
+          host: "none",
+          address: "none",
+          join_protocol: "none",
+        },
+      ],
+    });
+
+    const revoked = revokeOccupancyMembership(root, {
+      sessionId: MEMBERSHIP_OWNER,
+      childSessionId: "host:nosuchhost:v9:zzzz",
+      now,
+      env: {},
+    });
+
+    expect(revoked.code).toBe(0);
+    expect(readRecord(root).grants).toHaveLength(0);
   });
 
   it("still lets a stranger run a confirmed owner transition", () => {

@@ -1,12 +1,21 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { applyWorktreeOccupancy, readOccupancy } from "@deftai/directive-core/session";
+import {
+  applyWorktreeOccupancy,
+  canonicalHostSessionId,
+  HOST_ENV_IDENTITY_VARIABLES,
+  readOccupancy,
+} from "@deftai/directive-core/session";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { parseArgs, run } from "./occupancy-heartbeat.js";
 
 const temps: string[] = [];
 let previousSession: string | undefined;
+// This CLI reads `process.env`, and the actor chain now ends at the ambient host
+// owner, so the whole ambient surface is scrubbed per test (#3954 item 6). Left
+// in place, a developer host's own variable makes these outcomes machine-local.
+const previousHostEnv = new Map<string, string | undefined>();
 
 function tempRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "occ-heartbeat-cli-"));
@@ -16,6 +25,10 @@ function tempRoot(): string {
 
 beforeEach(() => {
   previousSession = process.env.DEFT_SESSION_ID;
+  for (const variable of HOST_ENV_IDENTITY_VARIABLES) {
+    previousHostEnv.set(variable, process.env[variable]);
+    delete process.env[variable];
+  }
 });
 
 afterEach(() => {
@@ -26,6 +39,11 @@ afterEach(() => {
   } else {
     process.env.DEFT_SESSION_ID = previousSession;
   }
+  for (const [variable, value] of previousHostEnv) {
+    if (value === undefined) delete process.env[variable];
+    else process.env[variable] = value;
+  }
+  previousHostEnv.clear();
 });
 
 describe("occupancy-heartbeat CLI (#3599)", () => {
@@ -75,6 +93,20 @@ describe("occupancy-heartbeat CLI (#3599)", () => {
     delete process.env.DEFT_SESSION_ID;
     expect(run(["--project-root", root])).toBe(2);
     expect(readOccupancy(root)?.sessionId).toBe("owner");
+  });
+
+  it("refreshes under the owner the running host published (#3954)", () => {
+    const root = tempRoot();
+    process.env.GROK_SESSION_ID = "grok-session-a";
+    const owner = canonicalHostSessionId("grok", "grok-session-a");
+    const claimedAt = new Date(Math.floor(Date.now() / 1000) * 1000 - 10 * 60 * 1000);
+    applyWorktreeOccupancy(root, { sessionId: owner, now: claimedAt });
+    delete process.env.DEFT_SESSION_ID;
+
+    // No `--session-id`: the claim and the refresh resolve the same host owner,
+    // so the occupant can run the command the deny text names.
+    expect(run(["--project-root", root])).toBe(0);
+    expect(readOccupancy(root)?.heartbeatAt.getTime()).toBeGreaterThan(claimedAt.getTime());
   });
 
   it("rejects malformed arguments", () => {

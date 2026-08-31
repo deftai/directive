@@ -19,6 +19,25 @@
  * composite hook write gate measures the tree's verified ritual owner against
  * the occupant that issued the grant, not against the writer.
  *
+ * Parent and child, answered per identity-source kind (#3954, and it does not
+ * have one answer). On a `host-env` host the parent and its dispatched children
+ * are different actors, because the host publishes a different id into each
+ * agent session. The answer there is identity, not automatic membership: each
+ * side resolves its own owner through the shared lookup chain below and claims
+ * its own worktree, which is where the dispatch envelope already puts it.
+ * Membership stays explicit and owner-issued for the deliberate same-tree case,
+ * and it stays affordable only that way -- 32 grants at a four-hour TTL against
+ * a twenty-minute lease means granting on every dispatch exhausts a busy
+ * parent's lease inside a day. The revocation trigger is therefore the owner's
+ * own `occupancy:grant --revoke`, or expiry; releasing a child's lease on its
+ * terminal event is dispatcher lifecycle and belongs to #3999, not here.
+ * On a `payload` host parent and subagents share one id, so there is no foreign
+ * child lease to admit and nothing to grant -- and the live consequence is the
+ * inverse one: `owns` is true for both, so a parent's `occupancy:release`
+ * removes a working child's lease mid-flight with no denial. That is a property
+ * of shared host identity, not of this module; a bearer boundary cannot
+ * distinguish two processes presenting one string.
+ *
  * Concurrency model:
  * - Assumptions: local filesystem; cooperating processes on one machine.
  * - Guarantees: mutual exclusion under crash-free operation; detect-and-abort
@@ -41,7 +60,11 @@ import { containedRemove, containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { assertAppendLockOwned, type LockDeps, withAppendLock } from "../slice/lock.js";
 import { SWARM_WORKER_ROLES, type SwarmWorkerRole } from "../swarm/routing.js";
-import { ambientHostSessionOwner } from "./host-session-owner.js";
+import {
+  ambientHostSessionOwner,
+  claimsHostSessionIdShape,
+  parseCanonicalHostSessionId,
+} from "./host-session-owner.js";
 import { stableJson } from "./json.js";
 import { parseTimestamp, timestampIso } from "./time.js";
 
@@ -434,23 +457,95 @@ export function formatOccupancyMemberAdministrationRefusal(
   );
 }
 
+/** Which step of the shared lookup chain produced the actor (#3954). */
+export type PresentedIdentitySource = "explicit" | "environment" | "host" | "none";
+
+export interface PresentedIdentity {
+  /** The id this surface acts under; empty when nothing was presented. */
+  readonly sessionId: string;
+  readonly source: PresentedIdentitySource;
+  /**
+   * The owner the running host published, when it names a different session
+   * than `sessionId` does; otherwise null. This is the claimer-versus-presenter
+   * split itself: the id a session claims under and the id its hook process
+   * presents are two different sessions (#3954).
+   */
+  readonly disagreeingHostOwner: string | null;
+}
+
 /**
- * The owner a claim is made under: an explicit id, then `DEFT_SESSION_ID`, then
- * the id the running host published, then a mint.
+ * The one lookup order every occupancy surface shares (#3954): an explicit
+ * `--session-id`, then `DEFT_SESSION_ID`, then the owner the running host
+ * published.
+ *
+ * The terminal is the caller's, not this function's. Claim mints, because
+ * claiming establishes an identity where none exists. Release, heartbeat and
+ * grant/revoke are proving one, so they take the empty string and keep the
+ * diagnosis written for it -- a shared mint would replace "you presented
+ * nothing" with a plausible id no later hook will ever present, on every host
+ * that publishes no owner of its own.
+ *
+ * Disagreement is reported, not resolved. The order stands, so an explicit id
+ * beats the environment and the environment beats the host; what changes is
+ * that a refused caller is told the host names someone else, which is the state
+ * a stale inherited `DEFT_SESSION_ID` produces and the one an operator cannot
+ * otherwise see.
+ */
+export function resolvePresentedIdentity(
+  input: { readonly sessionId?: string; readonly env?: NodeJS.ProcessEnv } = {},
+): PresentedIdentity {
+  const env = input.env ?? process.env;
+  const hostOwner = ambientHostSessionOwner(env);
+  const disagreement = (chosen: string): string | null =>
+    hostOwner !== null && hostOwner !== chosen ? hostOwner : null;
+  const explicit = input.sessionId?.trim();
+  if (explicit) {
+    return {
+      sessionId: explicit,
+      source: "explicit",
+      disagreeingHostOwner: disagreement(explicit),
+    };
+  }
+  const envId = env.DEFT_SESSION_ID?.trim();
+  if (envId) {
+    return { sessionId: envId, source: "environment", disagreeingHostOwner: disagreement(envId) };
+  }
+  if (hostOwner !== null) {
+    return { sessionId: hostOwner, source: "host", disagreeingHostOwner: null };
+  }
+  return { sessionId: "", source: "none", disagreeingHostOwner: null };
+}
+
+/**
+ * Name a claimer-versus-presenter split on a refusal, or return "" (#3954).
+ *
+ * Appended only to denials: while the caller is admitted the split costs it
+ * nothing, and on a refusal it is the one fact that explains why an id the
+ * operator believes is theirs is being treated as a stranger's.
+ */
+export function formatPresentedIdentityDisagreement(identity: PresentedIdentity): string {
+  const other = identity.disagreeingHostOwner;
+  if (other === null) return "";
+  const named = identity.source === "explicit" ? "The id passed on the command line" : "DEFT_SESSION_ID";
+  return (
+    `\n${named} names session ${identity.sessionId}, but this host published ` +
+    `${other}. Those are different sessions: re-run with ` +
+    `\`--session-id=${commandSessionId(other, "<host-published-id>")}\` to act as the host owner.`
+  );
+}
+
+/**
+ * The owner a claim is made under: the shared lookup chain, then a mint.
  *
  * The host step is what makes an identified host's claim reachable (#3873).
  * Minting instead binds the lease to an id no later hook process can present,
  * so the session that claimed the worktree is refused by its own lease. The
- * mint stays as the last resort for hosts that publish nothing.
+ * mint stays as the last resort for hosts that publish nothing, and it is the
+ * one terminal the prove-surfaces deliberately do not share (#3954).
  */
 export function resolveOccupancySessionId(input: ApplyOccupancyInput = {}): string {
-  const explicit = input.sessionId?.trim();
-  if (explicit) return explicit;
-  const env = input.env ?? process.env;
-  const envId = env.DEFT_SESSION_ID?.trim();
-  if (envId) return envId;
-  const hostOwner = ambientHostSessionOwner(env);
-  if (hostOwner !== null) return hostOwner;
+  const presented = resolvePresentedIdentity(input).sessionId;
+  if (presented.length > 0) return presented;
   return (input.newSessionId ?? randomUUID)();
 }
 
@@ -501,7 +596,10 @@ export function applyWorktreeOccupancy(
       sessionId: incoming,
       record: live,
       path,
-      message: formatOccupancyRemediation(live, now),
+      // A granted child reads the member refusal rather than an offer of the
+      // write grant it already holds (#3954 item 5): membership admits writes,
+      // and claiming the lease stays owner-only.
+      message: membershipOwnerDenial(live, incoming, now, "session:start"),
       code: 1,
     };
   }
@@ -532,7 +630,7 @@ export function applyWorktreeOccupancy(
           sessionId: incoming,
           record: liveLocked,
           path,
-          message: formatOccupancyRemediation(liveLocked, now),
+          message: membershipOwnerDenial(liveLocked, incoming, now, "session:start"),
           code: 1,
         };
       }
@@ -727,6 +825,20 @@ export function stealOccupancy(
   );
 }
 
+/**
+ * Release the caller's own lease.
+ *
+ * Owner-only, deliberately (#3954 item 4, answering the open question the
+ * design-critique arc left for the builder). Letting an unidentified caller
+ * release the occupant the lease file itself records would make possession of
+ * that file path into authority to delete a live lease, which is exactly what
+ * the `!expired && !owns` refusal exists to prevent -- and the cooperative
+ * bearer model (#3755) has no second check behind it. The unreachable printed
+ * recovery is fixed by the shared lookup chain instead: on a host that
+ * publishes an owner, the occupant now resolves itself and a bare
+ * `occupancy:release` is the occupant, so the message the deny prints is one
+ * the party it addresses can actually run.
+ */
 export function releaseOccupancy(
   projectRoot: string,
   input: {
@@ -739,8 +851,9 @@ export function releaseOccupancy(
 ): OccupancyDecision {
   const now = input.now ?? new Date();
   const path = occupancyPath(projectRoot);
-  const caller =
-    input.sessionId?.trim() || (input.env ?? process.env).DEFT_SESSION_ID?.trim() || "";
+  const identity = resolvePresentedIdentity(input);
+  const caller = identity.sessionId;
+  const split = formatPresentedIdentityDisagreement(identity);
   return withOccupancyLock(
     projectRoot,
     (fence) => {
@@ -763,7 +876,7 @@ export function releaseOccupancy(
           sessionId: caller,
           record: existing,
           path,
-          message: membershipOwnerDenial(existing, caller, now, "occupancy:release"),
+          message: membershipOwnerDenial(existing, caller, now, "occupancy:release") + split,
           code: 1,
         };
       }
@@ -788,7 +901,7 @@ export function releaseOccupancy(
           sessionId: caller,
           record: still,
           path,
-          message: membershipOwnerDenial(still, caller, now, "occupancy:release"),
+          message: membershipOwnerDenial(still, caller, now, "occupancy:release") + split,
           code: 1,
         };
       }
@@ -823,6 +936,14 @@ export interface OccupancyMembershipInput {
   readonly lockDeps?: LockDeps;
 }
 
+/**
+ * Refuse an owner-only verb, saying which of the three the caller is.
+ *
+ * The caller is passed to `formatOccupancyRemediation` as the presented id
+ * (#3954): every one of these surfaces now resolves an actor the caller may not
+ * have chosen explicitly, so a refusal that does not name what was presented
+ * leaves it guessing which identity it was refused under.
+ */
 function membershipOwnerDenial(
   live: OccupancyRecord,
   caller: string,
@@ -831,7 +952,7 @@ function membershipOwnerDenial(
 ): string {
   const grant = occupancyGrantFor(live, caller, now);
   return grant === null
-    ? formatOccupancyRemediation(live, now)
+    ? formatOccupancyRemediation(live, now, caller)
     : formatOccupancyMemberAdministrationRefusal(live, grant, verb);
 }
 
@@ -850,7 +971,9 @@ export function grantOccupancyMembership(
 ): OccupancyDecision {
   const now = input.now ?? new Date();
   const path = occupancyPath(projectRoot);
-  const owner = input.sessionId?.trim() || (input.env ?? process.env).DEFT_SESSION_ID?.trim() || "";
+  const identity = resolvePresentedIdentity(input);
+  const owner = identity.sessionId;
+  const split = formatPresentedIdentityDisagreement(identity);
   const child = input.childSessionId?.trim() ?? "";
   const role = input.role?.trim() ?? "";
   if (owner.length === 0) {
@@ -886,6 +1009,50 @@ export function grantOccupancyMembership(
       message:
         "occupancy:grant refuses a self-grant: the lease already admits its owner, so a grant " +
         "naming the same id records nothing and would only blur who wrote what.",
+      code: 2,
+    };
+  }
+  // #3954 item 3. A child id under the reserved `host:` prefix must be a
+  // well-formed canonical owner: measured, `host:nosuchhost:v9:zzzz` and
+  // `host:grok:v1:!!!not-base64url!!!` were granted and then admitted as
+  // `member` by the write gate, so the lease read as membership while admitting
+  // nobody. An id outside that prefix is still accepted, because a child on a
+  // host with no identity contract presents whatever `DEFT_SESSION_ID` holds
+  // and refusing that would deny a grant nothing has measured wrong.
+  if (claimsHostSessionIdShape(child) && parseCanonicalHostSessionId(child) === null) {
+    return {
+      action: "denied",
+      sessionId: owner,
+      record: readOccupancy(projectRoot),
+      path,
+      message:
+        `occupancy:grant refuses the child id ${child}: the \`host:\` prefix is reserved for ` +
+        "host-published identity, and this is not a well-formed owner " +
+        "(`host:<provider>:v1:<base64url>`), so no session could ever present it. Pass the id " +
+        "the child's own host publishes, or an opaque id the child sets as DEFT_SESSION_ID.",
+      code: 2,
+    };
+  }
+  // Same defect one step subtler: re-prefixing the owner's own payload under a
+  // second provider passes the shape check and is a self-grant in disguise --
+  // no session on that other host would present it, and the owner already holds
+  // the lease outright.
+  const childParts = parseCanonicalHostSessionId(child);
+  const ownerParts = parseCanonicalHostSessionId(owner);
+  if (
+    childParts !== null &&
+    ownerParts !== null &&
+    childParts.rawSessionId === ownerParts.rawSessionId
+  ) {
+    return {
+      action: "denied",
+      sessionId: owner,
+      record: readOccupancy(projectRoot),
+      path,
+      message:
+        `occupancy:grant refuses the child id ${child}: it carries this lease owner's own host ` +
+        `session (${ownerParts.rawSessionId}) under provider ${childParts.provider}. That is a ` +
+        "self-grant across a provider prefix, and the child it names cannot exist.",
       code: 2,
     };
   }
@@ -931,7 +1098,7 @@ export function grantOccupancyMembership(
           sessionId: owner,
           record: live,
           path,
-          message: membershipOwnerDenial(live, owner, now, "occupancy:grant"),
+          message: membershipOwnerDenial(live, owner, now, "occupancy:grant") + split,
           code: 1,
         };
       }
@@ -1027,7 +1194,11 @@ export function revokeOccupancyMembership(
 ): OccupancyDecision {
   const now = input.now ?? new Date();
   const path = occupancyPath(projectRoot);
-  const owner = input.sessionId?.trim() || (input.env ?? process.env).DEFT_SESSION_ID?.trim() || "";
+  const identity = resolvePresentedIdentity(input);
+  const owner = identity.sessionId;
+  const split = formatPresentedIdentityDisagreement(identity);
+  // Revoke deliberately skips the grant-time child-id checks: a malformed grant
+  // written before those checks existed must stay withdrawable (#3954 item 3).
   const child = input.childSessionId?.trim() ?? "";
   if (owner.length === 0 || child.length === 0) {
     return {
@@ -1064,7 +1235,7 @@ export function revokeOccupancyMembership(
           sessionId: owner,
           record: live,
           path,
-          message: membershipOwnerDenial(live, owner, now, "occupancy:grant --revoke"),
+          message: membershipOwnerDenial(live, owner, now, "occupancy:grant --revoke") + split,
           code: 1,
         };
       }
@@ -1373,8 +1544,9 @@ export function heartbeatOccupancy(
 ): OccupancyDecision {
   const now = input.now ?? new Date();
   const path = occupancyPath(projectRoot);
-  const caller =
-    input.sessionId?.trim() || (input.env ?? process.env).DEFT_SESSION_ID?.trim() || "";
+  const identity = resolvePresentedIdentity(input);
+  const caller = identity.sessionId;
+  const split = formatPresentedIdentityDisagreement(identity);
   if (caller.length === 0) {
     return {
       action: "denied",
@@ -1413,7 +1585,7 @@ export function heartbeatOccupancy(
       sessionId: caller,
       record: live,
       path,
-      message: membershipOwnerDenial(live, caller, now, "occupancy:heartbeat"),
+      message: membershipOwnerDenial(live, caller, now, "occupancy:heartbeat") + split,
       code: 1,
     };
   }
@@ -1446,7 +1618,15 @@ export function heartbeatOccupancy(
   };
 }
 
-/** Close-out identity comes from the launch manifest or DEFT_SESSION_ID — never occupancy.json. */
+/**
+ * Close-out identity comes from the launch manifest, `DEFT_SESSION_ID`, or the
+ * owner the running host published — never occupancy.json (#3954).
+ *
+ * Reading the lease for identity would be the anonymous recorded-occupant
+ * release refused in `releaseOccupancy`; the host step is the same shared
+ * lookup chain every other occupancy surface uses, so a cohort launched on a
+ * host that publishes an owner can close out without an explicit id.
+ */
 export function releaseSwarmOccupancy(
   projectRoot: string,
   input: {
@@ -1457,7 +1637,7 @@ export function releaseSwarmOccupancy(
   } = {},
 ): OccupancyDecision {
   const env = input.env ?? process.env;
-  const sessionId = input.sessionId?.trim() || env.DEFT_SESSION_ID?.trim() || "";
+  const sessionId = resolvePresentedIdentity({ sessionId: input.sessionId, env }).sessionId;
   if (sessionId.length === 0) {
     const occupant = readOccupancy(projectRoot);
     return {
@@ -1466,9 +1646,9 @@ export function releaseSwarmOccupancy(
       record: occupant,
       path: occupancyPath(projectRoot),
       message:
-        "swarm close-out has no occupancy_session_id (manifest missing or predates the field) " +
-        "and DEFT_SESSION_ID is unset. Re-establish an aligned owner with " +
-        "session:start --steal --confirm --occupant <reported-session-id> " +
+        "swarm close-out has no occupancy_session_id (manifest missing or predates the field), " +
+        "DEFT_SESSION_ID is unset, and this host published no owner. Re-establish an aligned " +
+        "owner with session:start --steal --confirm --occupant <reported-session-id> " +
         "--session-id=<your-session-id>.",
       code: 1,
     };

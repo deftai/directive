@@ -353,6 +353,7 @@ describe("rewriteExactLifecycleCommand (#3611)", () => {
     "occupancy:steal",
     "occupancy:release",
     "occupancy:heartbeat",
+    "occupancy:grant",
   ])("rewrites the exact directive lifecycle verb %s", (verb) => {
     const result = rewriteExactLifecycleCommand(
       { tool_name: "Shell", tool_input: { command: `directive ${verb}` } },
@@ -363,6 +364,46 @@ describe("rewriteExactLifecycleCommand (#3611)", () => {
       verb,
       rewrittenCommand: `directive ${verb} --session-id=${CODEX_SESSION_ID}`,
     });
+  });
+
+  it("carries the owner into occupancy:grant, the verb only the occupant can run (#3954)", () => {
+    const command =
+      "task occupancy:grant -- --child-session-id=host:grok:v1:Z3Jvay1zZXNzaW9uLWE " +
+      "--role leaf-implementation --ttl-minutes 30";
+
+    const result = rewriteExactLifecycleCommand(
+      { tool_name: "Shell", tool_input: { command } },
+      CODEX_SESSION_ID,
+    );
+
+    expect(result).toMatchObject({
+      kind: "rewrite",
+      verb: "occupancy:grant",
+      rewrittenCommand: `${command} --session-id=${CODEX_SESSION_ID}`,
+    });
+  });
+
+  it("carries the owner into the revoke arm of the same verb (#3954)", () => {
+    const command = "deft occupancy:grant --revoke --child-session-id=child";
+
+    expect(
+      rewriteExactLifecycleCommand({ tool_name: "Shell", tool_input: { command } }, CODEX_SESSION_ID),
+    ).toMatchObject({
+      kind: "rewrite",
+      verb: "occupancy:grant",
+      rewrittenCommand: `${command} --session-id=${CODEX_SESSION_ID}`,
+    });
+  });
+
+  it("keeps a worktree-rebinding grant outside the auto-approved rewrite surface (#3954)", () => {
+    // `--worktree` chooses the tree the grant covers, so it joins the other
+    // path/destination flags that must carry an explicit owner instead.
+    expect(
+      inspectExactLifecycleCommand({
+        tool_name: "Shell",
+        tool_input: { command: "deft occupancy:grant --child-session-id=child --worktree /elsewhere" },
+      }),
+    ).toMatchObject({ verb: "occupancy:grant", requiresOwner: true, rewriteSafe: false });
   });
 
   it.each([

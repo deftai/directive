@@ -10,6 +10,7 @@
 
 import {
   ambientHostSessionOwner,
+  CANONICAL_OWNER_PATTERN,
   canonicalHostSessionId,
   HOST_IDENTITY_PROVIDERS,
   type HookHostIdentityProvider,
@@ -192,6 +193,10 @@ export const EXACT_LIFECYCLE_VERBS = [
   "occupancy:steal",
   "occupancy:release",
   "occupancy:heartbeat",
+  // #3954 item 2: `occupancy:grant` (and its `--revoke` arm) was the only
+  // occupancy lifecycle verb absent from this table, so the one verb that must
+  // be run by the occupant had no way to be told who the occupant is.
+  "occupancy:grant",
   "swarm:launch",
 ] as const;
 export type ExactLifecycleVerb = (typeof EXACT_LIFECYCLE_VERBS)[number];
@@ -203,6 +208,7 @@ const DIRECT_LIFECYCLE_VERBS: Readonly<Record<string, ExactLifecycleVerb>> = {
   "occupancy:steal": "occupancy:steal",
   "occupancy:release": "occupancy:release",
   "occupancy:heartbeat": "occupancy:heartbeat",
+  "occupancy:grant": "occupancy:grant",
   "swarm-launch": "swarm:launch",
 };
 
@@ -227,12 +233,6 @@ export type ExactLifecycleCommandResult =
   | ExactLifecycleCommandConflict
   | null;
 
-// Derived from the provider list so the rewrite surface cannot drift from the
-// identity surface: a provider added to one is added to both (#3873). Provider
-// ids are lowercase ASCII words, so the alternation needs no escaping.
-const CANONICAL_OWNER_PATTERN = new RegExp(
-  `^host:(?:${HOST_IDENTITY_PROVIDERS.join("|")}):v1:[A-Za-z0-9_-]+$`,
-);
 // Shell expansion markers are deliberately absent: `$`/backticks for POSIX,
 // `@` splatting for PowerShell, and `%NAME%` expansion for command shells.
 // Backslashes are inspectable so Windows path-bearing lifecycle commands fail
@@ -315,6 +315,23 @@ const LIFECYCLE_ARGUMENT_POLICIES: Readonly<Record<ExactLifecycleVerb, Lifecycle
     booleanFlags: new Set(),
     valueFlags: new Set(["--session-id", "--project-root"]),
     rewriteUnsafeFlags: new Set(["--project-root"]),
+  },
+  "occupancy:grant": {
+    booleanFlags: new Set(["--revoke"]),
+    valueFlags: new Set([
+      "--session-id",
+      "--child-session-id",
+      "--role",
+      "--worktree",
+      "--ttl-minutes",
+      "--host",
+      "--address",
+      "--join-protocol",
+      "--project-root",
+    ]),
+    // `--worktree` rebinds the tree the grant covers, so it joins the
+    // path/destination flags kept outside the auto-approved rewrite surface.
+    rewriteUnsafeFlags: new Set(["--project-root", "--worktree"]),
   },
   "swarm:launch": {
     booleanFlags: new Set([

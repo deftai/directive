@@ -33,6 +33,21 @@ const HOST_IDENTITY_SOURCES: Readonly<Record<HookHostIdentityProvider, HookHostI
   grok: { kind: "host-env", variable: "GROK_SESSION_ID" },
 };
 
+/**
+ * Every variable a `host-env` provider publishes, derived from the table above.
+ *
+ * Exported because the ambient step is now read by the CLI occupancy surfaces
+ * as well as the hook: a test process that scrubs only the one variable its
+ * author knew about is hermetic on a laptop and non-hermetic on the host class
+ * these surfaces exist for (#3954).
+ */
+export const HOST_ENV_IDENTITY_VARIABLES: readonly string[] = HOST_IDENTITY_PROVIDERS.flatMap(
+  (provider) => {
+    const source = HOST_IDENTITY_SOURCES[provider];
+    return source.kind === "host-env" ? [source.variable] : [];
+  },
+);
+
 /** The identity source for a host, or null when the host has no contract. */
 export function hookHostIdentitySource(host: string): HookHostIdentitySource | null {
   return (
@@ -79,6 +94,53 @@ export function canonicalHostSessionId(
 ): string {
   const encoded = Buffer.from(rawSessionId, "utf8").toString("base64url");
   return `host:${provider}:v1:${encoded}`;
+}
+
+/**
+ * The canonical owner form, derived from the provider list so every surface
+ * that checks it moves when a provider is added: the lifecycle-rewrite bridge
+ * and grant-time child validation both read this one pattern (#3873 / #3954).
+ * Provider ids are lowercase ASCII words, so the alternation needs no escaping.
+ */
+export const CANONICAL_OWNER_PATTERN = new RegExp(
+  `^host:(?:${HOST_IDENTITY_PROVIDERS.join("|")}):v1:[A-Za-z0-9_-]+$`,
+);
+
+/**
+ * True when a value claims the canonical owner shape, well-formed or not.
+ *
+ * The `host:` prefix is reserved for host-published identity, so a value under
+ * it that is not canonical is a malformed owner rather than an opaque id some
+ * session could present (#3954).
+ */
+export function claimsHostSessionIdShape(value: string): boolean {
+  return value.startsWith("host:");
+}
+
+export interface HostSessionIdParts {
+  readonly provider: HookHostIdentityProvider;
+  readonly rawSessionId: string;
+}
+
+/**
+ * Split a canonical owner back into the provider and the raw id the host
+ * published, or null when the value is not canonical.
+ *
+ * The round-trip check is the point: `host:grok:v1:Z3Jvay1zZXNzaW9uLWF` decodes
+ * to the same raw id as `...LWE` does, so without it one session would have two
+ * canonical strings and a grant could name the one it never presents (#3954).
+ * The raw id is held to the same bound the identity surface applies, so a
+ * payload the host could not have published is not accepted here either.
+ */
+export function parseCanonicalHostSessionId(value: string): HostSessionIdParts | null {
+  if (!CANONICAL_OWNER_PATTERN.test(value)) return null;
+  const segments = value.split(":");
+  const provider = segments[1] as HookHostIdentityProvider;
+  const encoded = segments[3] ?? "";
+  const rawSessionId = Buffer.from(encoded, "base64url").toString("utf8");
+  if (!isUsableHostSessionId(rawSessionId)) return null;
+  if (canonicalHostSessionId(provider, rawSessionId) !== value) return null;
+  return { provider, rawSessionId };
 }
 
 export type HostEnvIdentityStatus = "ok" | "missing" | "invalid";

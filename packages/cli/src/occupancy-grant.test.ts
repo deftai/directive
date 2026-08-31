@@ -3,7 +3,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   applyWorktreeOccupancy,
+  canonicalHostSessionId,
   evaluateOccupancyWriteGate,
+  HOST_ENV_IDENTITY_VARIABLES,
   readOccupancy,
 } from "@deftai/directive-core/session";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -11,6 +13,10 @@ import { parseArgs, run } from "./occupancy-grant.js";
 
 const temps: string[] = [];
 let previousSession: string | undefined;
+// This CLI reads `process.env`, and the actor chain now ends at the ambient host
+// owner, so the whole ambient surface is scrubbed per test (#3954 item 6). Left
+// in place, a developer host's own variable makes these outcomes machine-local.
+const previousHostEnv = new Map<string, string | undefined>();
 
 function tempRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "occ-grant-cli-"));
@@ -27,6 +33,10 @@ function leased(sessionId = "owner"): string {
 beforeEach(() => {
   previousSession = process.env.DEFT_SESSION_ID;
   delete process.env.DEFT_SESSION_ID;
+  for (const variable of HOST_ENV_IDENTITY_VARIABLES) {
+    previousHostEnv.set(variable, process.env[variable]);
+    delete process.env[variable];
+  }
 });
 
 afterEach(() => {
@@ -37,6 +47,11 @@ afterEach(() => {
   } else {
     process.env.DEFT_SESSION_ID = previousSession;
   }
+  for (const [variable, value] of previousHostEnv) {
+    if (value === undefined) delete process.env[variable];
+    else process.env[variable] = value;
+  }
+  previousHostEnv.clear();
 });
 
 describe("occupancy-grant CLI (#3755)", () => {
@@ -133,6 +148,30 @@ describe("occupancy-grant CLI (#3755)", () => {
     expect(
       run(["--project-root", root, "--child-session-id", "child", "--role", "leaf-implementation"]),
     ).toBe(2);
+    expect(readOccupancy(root)?.grants).toHaveLength(0);
+  });
+
+  it("grants under the owner the running host published (#3954)", () => {
+    process.env.GROK_SESSION_ID = "grok-session-a";
+    const owner = canonicalHostSessionId("grok", "grok-session-a");
+    const root = leased(owner);
+
+    // No `--session-id`: the occupant the deny text tells to run this verb can
+    // now actually run it, which was the point of adding grant to the transport.
+    expect(
+      run(["--project-root", root, "--child-session-id", "child", "--role", "leaf-implementation"]),
+    ).toBe(0);
+    expect(readOccupancy(root)?.grants[0]?.ownerSessionId).toBe(owner);
+  });
+
+  it("refuses a child id that claims the host shape without being one (#3954)", () => {
+    process.env.DEFT_SESSION_ID = "owner";
+    const root = leased();
+    for (const child of ["host:nosuchhost:v9:zzzz", "host:grok:v1:!!!not-base64url!!!"]) {
+      expect(
+        run(["--project-root", root, "--child-session-id", child, "--role", "leaf-implementation"]),
+      ).toBe(2);
+    }
     expect(readOccupancy(root)?.grants).toHaveLength(0);
   });
 });
