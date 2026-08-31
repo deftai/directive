@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -214,6 +215,45 @@ describe("hook-event owner liveness (#3987)", () => {
     );
     expect(decision.code).toBe("directive-disabled");
     expect(calls).toHaveLength(0);
+  });
+
+  it("renews the worktree's lease, not the payload root's, for a linked-worktree write", () => {
+    // The mutation gates authorize occupancy against the tree the write lands
+    // in. Renewing the payload root instead would keep the primary checkout's
+    // lease alive while the worktree actually in use expires under a peer.
+    const base = mkdtempSync(join(tmpdir(), "hook-liveness-wt-"));
+    temps.push(base);
+    const primary = join(base, "primary");
+    mkdirSync(primary, { recursive: true });
+    for (const args of [
+      ["init", "-q"],
+      ["config", "user.email", "t@t.dev"],
+      ["config", "user.name", "t"],
+      ["commit", "--allow-empty", "-q", "-m", "base"],
+    ]) {
+      execFileSync("git", args, { cwd: primary, encoding: "utf8" });
+    }
+    const nested = join(primary, ".deft-scratch", "worktrees", "story");
+    mkdirSync(join(primary, ".deft-scratch", "worktrees"), { recursive: true });
+    execFileSync("git", ["worktree", "add", "--detach", "-q", nested], {
+      cwd: primary,
+      encoding: "utf8",
+    });
+    mkdirSync(join(nested, "src"), { recursive: true });
+
+    const { seams, calls } = recordingSeams();
+    decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: { tool_name: "write", tool_input: { file_path: join(nested, "src", "app.ts") } },
+        environ: { GROK_SESSION_ID: RAW_GROK_ID },
+      },
+      seams,
+    );
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.projectRoot).toBe(resolve(nested));
   });
 
   it("cannot change a verdict by failing", () => {

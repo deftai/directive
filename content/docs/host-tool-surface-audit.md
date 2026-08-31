@@ -136,8 +136,11 @@ The renewal half is `restampOwnerLivenessOnHookEvent`
 (`packages/core/src/hooks/owner-liveness.ts`): the hook already resolves the
 owner from the host payload, so a matched tool call renews the lease even when
 it writes nothing. It is bounded to a host-authoritative owner, keeps
-`markWrite` false, keys on the lease's own worktree, and never touches
-`claimed_at`, so `OCCUPANCY_MAX_LEASE_MS` still ends the lease at 12 hours.
+`markWrite` false, and never touches `claimed_at`, so `OCCUPANCY_MAX_LEASE_MS`
+still ends the lease at 12 hours. It renews the tree the mutation gates
+authorized against — a linked worktree under `.deft-scratch/`, not the payload
+root — so a worktree write does not keep the primary checkout's lease alive
+while the tree actually in use expires.
 
 ---
 

@@ -30,7 +30,9 @@
  * - `markWrite` stays false, so `last_write_at` still means "a product write
  *   was recorded" and `no recorded write` stays honest for a would-be stealer.
  * - Keyed on the lease's own worktree path, so a record describing another tree
- *   is not renewed from this one.
+ *   is not renewed from this one. The caller supplies the tree the mutation
+ *   gates authorized against — a linked worktree, not the payload root — so a
+ *   worktree write renews the worktree's lease rather than the primary's.
  * - `claimed_at` is untouched, so `OCCUPANCY_MAX_LEASE_MS` — 12 hours — is
  *   unmoved. Liveness renewal cannot outlive the absolute cap.
  * - Runs after the decision, never as an input to it. A liveness re-stamp must

@@ -1189,7 +1189,7 @@ function inspectMutationGates(
   input: HookDispatchInput,
   toolName: string,
   seams: HookPolicySeams,
-  options: { proposedLifecycleExempt: boolean },
+  options: { proposedLifecycleExempt: boolean; observation?: DispatchObservation },
 ): HookDecision {
   // payloadRoot stays authoritative for authz grant scoping, the authz audit
   // trail, the kill-switch, the #2885 outside-root carve-out, and
@@ -1204,6 +1204,10 @@ function inspectMutationGates(
     ? { root: payloadRoot, foreign: false, candidate: null, refusal: null }
     : admitMutationTargetSet(payloadRoot, mutationTargets, dispatchGit);
   const effectiveRoot = admission.root;
+  if (options.observation !== undefined) {
+    options.observation.effectiveRoot = effectiveRoot;
+    options.observation.foreignTarget = admission.foreign;
+  }
   const rootsNote = ` ${formatHookRootNote(payloadRoot, effectiveRoot)}`;
   if (admission.foreign) {
     const candidate = admission.candidate ?? "<none>";
@@ -1764,6 +1768,7 @@ function decideShellWriteReissue(
   input: HookDispatchInput,
   toolName: string,
   seams: HookPolicySeams,
+  observation: DispatchObservation,
 ): HookDecision | null {
   const command = hookShellCommand(input.payload);
   if (command === null) return null;
@@ -1787,6 +1792,7 @@ function decideShellWriteReissue(
     };
     const destDecision = inspectMutationGates(destInput, toolName, seams, {
       proposedLifecycleExempt: true,
+      observation,
     });
     if (destDecision.verdict === "deny") return destDecision;
   }
@@ -1801,6 +1807,7 @@ function decideShellDestFormsThenRuntimeAuthority(
   input: HookDispatchInput,
   toolName: string,
   seams: HookPolicySeams,
+  observation: DispatchObservation,
 ): HookDecision {
   const command = hookShellCommand(input.payload);
   let destAllow: HookDecision | null = null;
@@ -1839,6 +1846,7 @@ function decideShellDestFormsThenRuntimeAuthority(
       };
       const destDecision = inspectMutationGates(destInput, toolName, seams, {
         proposedLifecycleExempt: true,
+        observation,
       });
       if (destDecision.verdict === "deny") return destDecision;
       destAllow = destDecision;
@@ -2067,6 +2075,22 @@ function attachLifecycleIdentityRewrite(
 }
 
 /**
+ * What the mutation gates observed while deciding, for the post-decision
+ * liveness re-stamp (#3987).
+ *
+ * `effectiveRoot` is recorded rather than re-derived. The gates already resolve
+ * the tree a write lands in — a linked worktree under `.deft-scratch/` is not
+ * the payload root — and occupancy is authorized against that tree. Recomputing
+ * it beside them would be a second resolver free to drift, and the drift would
+ * renew the wrong lease while the tree actually in use expires.
+ */
+interface DispatchObservation {
+  effectiveRoot: string | null;
+  /** Target admission refused: no tree is proven, so renew nothing. */
+  foreignTarget: boolean;
+}
+
+/**
  * Renew the owner's occupancy lease from a hook event that already proved the
  * owner is present (#3987).
  *
@@ -2077,12 +2101,19 @@ function attachLifecycleIdentityRewrite(
  * having no recorded write. Failure is swallowed: liveness is bookkeeping, and
  * a lease that cannot be renewed simply ages out as it did before.
  */
-function restampOwnerLiveness(input: HookDispatchInput, seams: HookPolicySeams): void {
+function restampOwnerLiveness(
+  input: HookDispatchInput,
+  seams: HookPolicySeams,
+  observation: DispatchObservation,
+): void {
   if (input.event !== "tool.before") return;
+  // A refused admission proves no tree at all, so there is nothing to renew.
+  if (observation.foreignTarget) return;
   try {
     const actor = resolveMutationActor(input, input.environ ?? process.env);
     (seams.restampOwnerLiveness ?? restampOwnerLivenessOnHookEvent)({
-      projectRoot: resolve(input.projectRoot),
+      // The tree occupancy was authorized against, not the payload root.
+      projectRoot: observation.effectiveRoot ?? resolve(input.projectRoot),
       ownerSessionId: actor.sessionId,
       hostAuthoritative: actor.hostAuthoritative && actor.issue === null,
     });
@@ -2093,16 +2124,21 @@ function restampOwnerLiveness(input: HookDispatchInput, seams: HookPolicySeams):
 
 /** Decide a normalized event using only the P0 direct-write policy. */
 export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}): HookDecision {
-  const decision = routeHookDecision(input, seams);
+  const observation: DispatchObservation = { effectiveRoot: null, foreignTarget: false };
+  const decision = routeHookDecision(input, seams, observation);
   // Skipped for the #3039 kill-switch and #2926 opt-out, which short-circuit
   // before any Directive enforcement runs — including this bookkeeping.
   if (decision.code !== "directive-disabled" && decision.code !== "session-start-disabled") {
-    restampOwnerLiveness(input, seams);
+    restampOwnerLiveness(input, seams, observation);
   }
   return decision;
 }
 
-function routeHookDecision(input: HookDispatchInput, seams: HookPolicySeams): HookDecision {
+function routeHookDecision(
+  input: HookDispatchInput,
+  seams: HookPolicySeams,
+  observation: DispatchObservation,
+): HookDecision {
   const projectRoot = resolve(input.projectRoot);
 
   // #3039: local (untracked) `.deft-directive-disable` wins for enforcement
@@ -2323,7 +2359,10 @@ function routeHookDecision(input: HookDispatchInput, seams: HookPolicySeams): Ho
         scopePath: null,
       };
     }
-    return inspectMutationGates(input, toolName, seams, { proposedLifecycleExempt: false });
+    return inspectMutationGates(input, toolName, seams, {
+      proposedLifecycleExempt: false,
+      observation,
+    });
   }
 
   // Tree-wide destructive git (#3917): always-on, independent of shellDestForms.
@@ -2335,11 +2374,11 @@ function routeHookDecision(input: HookDispatchInput, seams: HookPolicySeams): Ho
     if (destructive !== null) {
       return attachLifecycleIdentityRewrite(input, toolName, destructive, seams);
     }
-    const writeReissue = decideShellWriteReissue(input, toolName, seams);
+    const writeReissue = decideShellWriteReissue(input, toolName, seams, observation);
     if (writeReissue !== null) {
       return attachLifecycleIdentityRewrite(input, toolName, writeReissue, seams);
     }
-    const decision = decideShellDestFormsThenRuntimeAuthority(input, toolName, seams);
+    const decision = decideShellDestFormsThenRuntimeAuthority(input, toolName, seams, observation);
     return attachLifecycleIdentityRewrite(input, toolName, decision, seams);
   }
 
@@ -2363,7 +2402,10 @@ function routeHookDecision(input: HookDispatchInput, seams: HookPolicySeams): Ho
     };
   }
 
-  return inspectMutationGates(input, toolName, seams, { proposedLifecycleExempt: true });
+  return inspectMutationGates(input, toolName, seams, {
+    proposedLifecycleExempt: true,
+    observation,
+  });
 }
 
 /**

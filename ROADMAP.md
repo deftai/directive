@@ -8,6 +8,7 @@
 ## Active
 
 - **#3785** -- bug(hooks): warn when a fail-closed hook registration travels without a hostable runtime -- `[running]`
+- **#3987** -- SECURITY: the PreToolUse write gate does not match Grok Build's shell tool, so a denied write succeeds through run_terminal_command -- `[running]`
 
 ## Proposed
 
