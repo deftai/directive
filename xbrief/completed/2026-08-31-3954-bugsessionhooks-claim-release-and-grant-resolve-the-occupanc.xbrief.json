@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #3954",
-    "updated": "2026-08-31T19:40:00Z"
+    "updated": "2026-08-31T20:27:58Z"
   },
   "plan": {
     "title": "bug(session,hooks): claim, release and grant resolve the occupancy actor by three different rules, so the printed recovery is unreachable and a parent locks out its own children",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(session,hooks): claim, release and grant resolve the occupancy actor by three different rules, so the printed recovery is unreachable and a parent locks out its own children",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3954",
@@ -17,7 +17,7 @@
     "items": [
       {
         "title": "Split the actor-resolution chain: claim, release, heartbeat and grant/revoke share the lookup order (explicit `--session-id`, then `DEFT_SESSION_ID`, then the ambient host owner), and each keeps its own terminal -- claim mints, the prove-surfaces resolve to empty and keep their existing no-identity diagnosis. Do not adopt `resolveOccupancySessionId` wholesale: it terminates in `randomUUID`, which would replace the \"you presented nothing\" message with a plausible-looking id on three of four hosts.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/session/host-session-owner.test.ts :: \"shared actor-resolution chain (#3954 item 1)\" -- order shared, terminal split, disagreement reported; plus packages/core/src/session/occupancy.test.ts :: \"releases under the owner the running host published (#3954)\"",
@@ -27,7 +27,7 @@
       },
       {
         "title": "Give `occupancy:grant` identity transport: add it (with revoke) to `EXACT_LIFECYCLE_VERBS` with an argument policy for `--child-session-id`. It is today the only occupancy lifecycle verb with zero transport on every host -- absent from the verb table, and its owner resolution has no ambient step.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/hooks/classify/host-session-identity.test.ts :: \"carries the owner into occupancy:grant, the verb only the occupant can run (#3954)\", \"carries the owner into the revoke arm of the same verb (#3954)\", \"keeps a worktree-rebinding grant outside the auto-approved rewrite surface (#3954)\"; ambient step at packages/cli/src/occupancy-grant.test.ts :: \"grants under the owner the running host published (#3954)\"",
@@ -37,7 +37,7 @@
       },
       {
         "title": "Validate the child id at grant time against the existing canonical-owner pattern. Measured: four malformed child ids are granted and then admitted as `member` by the write gate, including a cross-prefix laundering of the owner's own payload and `host:grok:v1:!!!not-base64url!!!`; only an exact self-string grant is refused.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/session/occupancy.test.ts :: \"refuses a child id that claims the host shape without being one\", \"refuses a child that re-prefixes the owner's own host payload\", \"keeps an opaque child id admissible\", \"withdraws a malformed grant written before the child check existed\"",
@@ -47,7 +47,7 @@
       },
       {
         "title": "Answer open question 1 explicitly and record the answer: anonymous recorded-occupant release is refused, because it converts possession of the lease file path into live-lease deletion authority. The remedy for the unreachable printed recovery is the ambient step in item 1, not relaxing ownership.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/session/occupancy.test.ts :: \"refuses an anonymous caller the occupant recorded in the lease (#3954)\"; answer recorded at xbrief/decisions/2026-08-31-occupancy-actor-resolution-split.decision.json and content/commands.md (One actor-resolution chain, four terminals)",
@@ -57,7 +57,7 @@
       },
       {
         "title": "Answer open question 2 per identity-source kind rather than once. On per-agent (`host-env`) hosts parent and child are different actors; on shared-payload hosts they are the same actor, which lets a parent release a live child lease mid-flight with no denial. If the answer is membership, make claim and heartbeat member-aware in the same change -- a granted child is currently admitted for writes and denied at both -- and state the revocation trigger; grants cap at 32 with a 4-hour expiry against a 20-minute lease.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "review",
           "pointer": "Answered as identity on host-env hosts and as a non-question on payload hosts, so claim and heartbeat stay owner-only by decision rather than by omission: xbrief/decisions/2026-08-31-occupancy-actor-resolution-split.decision.json, content/commands.md (Parent and child, per identity-source kind), packages/core/src/session/occupancy.ts module header. Revocation trigger recorded as --revoke or expiry. Member diagnosis fixed and tested at packages/core/src/session/occupancy.test.ts :: \"tells a member that claim is owner-only instead of offering it a grant\"",
@@ -67,7 +67,7 @@
       },
       {
         "title": "Strike question 4's \"locked unsupported-host tests\" blocker: it does not exist as stated. The one test whose title claims the property never sets a host variable and never asserts a denial. Replace it with the real condition -- prove-surface call sites pass `env` explicitly so the suite stays hermetic on the host class this fix targets (heartbeat call sites already do; release and grant mostly do not).",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/cli/src/occupancy-release.test.ts :: \"parses and uses an explicit host session id ahead of every ambient source (#3611)\" now sets a host variable and asserts the explicit id still wins; the three occupancy CLI harnesses scrub HOST_ENV_IDENTITY_VARIABLES (packages/core/src/session/host-session-owner.ts) and core prove-surface call sites pass env explicitly. Both non-hermetic tests were observed red on a host publishing GROK_SESSION_ID before the scrub landed.",
@@ -77,7 +77,7 @@
       },
       {
         "title": "Tests: bare release under an ambient host environment resolves the occupant (or is refused with a remedy the occupant can run); grant refuses a non-canonical child; member behaviour at claim and heartbeat is asserted per the answer chosen in item 5; the existing baseline across the occupancy, Grok-identity, host-identity-lifetime and release-CLI suites stays green.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "npx vitest run packages/core/src/session packages/core/src/hooks packages/cli/src/occupancy-*.test.ts packages/cli/src/hook-host-identity-lifetime.test.ts -- 84 files, 1127 passed, 3 skipped; plus task check on the branch",
@@ -87,7 +87,7 @@
       },
       {
         "title": "Recorded as out of scope: section 3 of the issue body, split to #4013; #3999's lease-release lifecycle, which lands after this; and the release verdict.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "review",
           "pointer": "Recorded in the PR body and in CHANGELOG.md [Unreleased]: no change to admitEffectiveHookRoot or the payload-root fallback (#4013), no dispatcher-side lease-release lifecycle (#3999, Refs only), and no release verdict. #3873 stays open with the hook-process observation clause named in content/commands.md (Where the transport still does not reach).",
@@ -154,7 +154,32 @@
         "schema": "deft.scope.intended_placement.v1",
         "files": [],
         "module_boundary": ""
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4029,
+        "prBase": null,
+        "mergeCommit": "d5da1cae7a71e1a33008c8ecc279701b6519b7b4",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d5da1cae7a71e1a33008c8ecc279701b6519b7b4",
+        "verifiedAt": "2026-08-31T20:27:58Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDU5MzMtMjIzMS03ZDQyLWEzN2QtMTNiODdiN2U0OGZj"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-31T20:27:58Z"
+      },
+      "completedAt": "2026-08-31T20:27:58Z",
+      "completedSessionId": "host:grok:v1:MDFhMDU5MzMtMjIzMS03ZDQyLWEzN2QtMTNiODdiN2U0OGZj",
+      "capacityBucket": "technical-debt"
     },
     "acceptance": {
       "commands": [
@@ -225,6 +250,6 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-08-31T15:15:53Z"
+    "updated": "2026-08-31T20:27:58Z"
   }
 }
