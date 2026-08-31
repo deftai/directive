@@ -750,3 +750,151 @@ describe("verified-claims table resolution precedence (#3932)", () => {
     }
   });
 });
+
+describe("typed table refusal partition (#3942)", () => {
+  const GHOST_TABLE_ID = 5499999999;
+
+  /** Table ids from the seven live arc threads, the recorded AC5 baseline. */
+  const LIVE_TABLE_IDS = [
+    5458204775, 5458431222, 5466045455, 5466061856, 5466142398, 5466430284, 5466455972,
+  ] as const;
+
+  /** A real table by every published obligation: method column, claim rows, no heading. */
+  const headinglessTable: ThreadComment = {
+    id: TABLE_ID,
+    body:
+      "model: grok-4.6\nrole: parent\n\n" +
+      "| # | Claim | Method | Result | Verdict |\n| --- | --- | --- | --- | --- |\n" +
+      "| 1 | the refusal names the citation | parent re-ran the resolver | " +
+      "the detail asserts a cause that is false in this state | verified |\n",
+  };
+
+  const typedRecord = (tableId: number): ThreadComment => ({
+    id: SYNTHESIS_ID,
+    body:
+      "design-critique: synthesis accepted, because agents agreed\n\n" +
+      `successor lean ${LEAN_ID}, verified-claims table ${tableId}\n`,
+  });
+
+  it("refuses a cited thread comment that carries no heading with its own reason", () => {
+    const verdict = evaluateCompletedArcRecord({
+      comments: [lean, headinglessTable, typedRecord(TABLE_ID)],
+    });
+    expect(verdict).toMatchObject({ status: "blocked", reason: "unshaped-table-cite" });
+    if (verdict.status === "blocked") {
+      expect(verdict.detail).toContain(String(TABLE_ID));
+      expect(verdict.detail).toContain("## Verified-claims table");
+      expect(verdict.detail).toContain("add that heading to the cited comment");
+      // The state this is not: the cited id is on the thread.
+      expect(verdict.detail).not.toContain("not a comment on this thread");
+    }
+  });
+
+  it("keeps the existing reason for a typed id that is not on the thread", () => {
+    const verdict = evaluateCompletedArcRecord({
+      comments: [lean, headinglessTable, typedRecord(GHOST_TABLE_ID)],
+    });
+    expect(verdict).toMatchObject({ status: "blocked", reason: "missing-table-cite" });
+    if (verdict.status === "blocked") {
+      expect(verdict.detail).toContain(String(GHOST_TABLE_ID));
+      expect(verdict.detail).not.toContain("add that heading to the cited comment");
+    }
+  });
+
+  it("gives the two states different reasons and details that differ by more than the id", () => {
+    const onThread = evaluateCompletedArcRecord({
+      comments: [lean, headinglessTable, typedRecord(TABLE_ID)],
+    });
+    const offThread = evaluateCompletedArcRecord({
+      comments: [lean, headinglessTable, typedRecord(GHOST_TABLE_ID)],
+    });
+    expect(onThread).toMatchObject({ status: "blocked" });
+    expect(offThread).toMatchObject({ status: "blocked" });
+    if (onThread.status === "blocked" && offThread.status === "blocked") {
+      expect(onThread.reason).not.toBe(offThread.reason);
+      // Before this partition the two details were identical modulo the id.
+      expect(onThread.detail.replace(String(TABLE_ID), "<id>")).not.toBe(
+        offThread.detail.replace(String(GHOST_TABLE_ID), "<id>"),
+      );
+    }
+  });
+
+  it("reports both classes when one typed claim is absent and another carries no heading", () => {
+    const verdict = evaluateCompletedArcRecord({
+      comments: [
+        lean,
+        headinglessTable,
+        {
+          id: SYNTHESIS_ID,
+          body:
+            "design-critique: synthesis accepted, because agents agreed\n\n" +
+            `successor lean ${LEAN_ID}, verified-claims table ${GHOST_TABLE_ID}, ` +
+            `verified-claims table ${TABLE_ID}\n`,
+        },
+      ],
+    });
+    // An absent id ranks first: a body that is not there cannot be given a heading.
+    expect(verdict).toMatchObject({ status: "blocked", reason: "missing-table-cite" });
+    if (verdict.status === "blocked") {
+      expect(verdict.detail).toContain(String(GHOST_TABLE_ID));
+      expect(verdict.detail).toContain(String(TABLE_ID));
+    }
+  });
+
+  it("leaves the untyped path completing with a null table id", () => {
+    const untyped: ReadonlyArray<readonly [string, string]> = [
+      ["comment keyword", `successor lean ${LEAN_ID}, comment ${TABLE_ID}`],
+      ["permalink path", `successor lean ${LEAN_ID}, /issues/comments/${TABLE_ID}`],
+      ["table not named", `successor lean ${LEAN_ID}`],
+    ];
+    for (const [label, cite] of untyped) {
+      const record: ThreadComment = {
+        id: SYNTHESIS_ID,
+        body: `design-critique: synthesis accepted, because agents agreed\n\n${cite}\n`,
+      };
+      expect(
+        evaluateCompletedArcRecord({ comments: [lean, headinglessTable, record] }),
+        label,
+      ).toEqual({
+        status: "complete",
+        synthesisCommentId: SYNTHESIS_ID,
+        citedLeanId: LEAN_ID,
+        citedTableId: null,
+      });
+    }
+  });
+
+  it("carries the new reason through the ingest assertion", () => {
+    let thrown: unknown;
+    try {
+      assertCompletedArcAllowsIngest({
+        issueNumber: 3942,
+        comments: [lean, headinglessTable, typedRecord(TABLE_ID)],
+      });
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).toBeInstanceOf(DesignCritiqueIngestBlockedError);
+    expect((thrown as DesignCritiqueIngestBlockedError).reason).toBe("unshaped-table-cite");
+  });
+
+  it("resolves a detected table unchanged for every recorded live arc id", () => {
+    for (const id of LIVE_TABLE_IDS) {
+      const live: ThreadComment = {
+        id,
+        body:
+          "## Verified-claims table\n\n| # | Claim | Method | Verdict |\n" +
+          "| --- | --- | --- | --- |\n",
+      };
+      expect(
+        evaluateCompletedArcRecord({ comments: [lean, live, typedRecord(id)] }),
+        String(id),
+      ).toEqual({
+        status: "complete",
+        synthesisCommentId: SYNTHESIS_ID,
+        citedLeanId: LEAN_ID,
+        citedTableId: id,
+      });
+    }
+  });
+});

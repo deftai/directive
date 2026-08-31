@@ -30,6 +30,7 @@ export type CompletedArcBlockReason =
   | "lone-shape"
   | "cite-not-lean"
   | "missing-table-cite"
+  | "unshaped-table-cite"
   | "ambiguous-table-cite";
 
 export type CompletedArcVerdict =
@@ -213,6 +214,14 @@ type TableResolution =
  * `comment` citations scan as kind `comment`, and that is the published form
  * these records use. Narrowing the citation contract so a table must be named
  * by keyword is a separate decision needing its own migration criteria.
+ *
+ * Refusal partition (#3942). A typed claim fails in two states, and only one of
+ * them is fixed by adding the heading: the id is not a comment on this thread,
+ * or it is a comment whose body fails `isVerifiedClaimsTableBody`. One reason
+ * and one detail for both asserted the first in either case, so an author whose
+ * table is on the thread read a true citation being called false and had no
+ * path to the missing heading. Absent ids rank first because a body that is not
+ * there cannot be given a heading.
  */
 function resolveCitedTable(
   citations: readonly Citation[],
@@ -228,16 +237,32 @@ function resolveCitedTable(
     };
   }
   const resolved = claimed.map((row) => ({ id: row.id, cited: byCommentId.get(row.id) }));
-  const unresolved = resolved.filter(
-    (row) => row.cited === undefined || !isVerifiedClaimsTableBody(row.cited.body),
-  );
-  if (unresolved.length > 0) {
+  const absent = resolved.filter((row) => row.cited === undefined).map((row) => row.id);
+  const unshaped = resolved
+    .filter((row) => row.cited !== undefined && !isVerifiedClaimsTableBody(row.cited.body))
+    .map((row) => row.id);
+  if (absent.length > 0) {
     return {
       ok: false,
       reason: "missing-table-cite",
       detail:
-        "synthesis cites a verified-claims table id that is not a table on this thread: " +
-        renderIds(unresolved.map((row) => row.id)),
+        "synthesis cites a verified-claims table id that is not a comment on this thread: " +
+        renderIds(absent) +
+        (unshaped.length > 0
+          ? "; also cited, on this thread and carrying no verified-claims-table heading: " +
+            renderIds(unshaped)
+          : ""),
+    };
+  }
+  if (unshaped.length > 0) {
+    return {
+      ok: false,
+      reason: "unshaped-table-cite",
+      detail:
+        "synthesis cites a verified-claims table id that is a comment on this thread but " +
+        "opens no line with the `## Verified-claims table` heading: " +
+        renderIds(unshaped) +
+        "; add that heading to the cited comment",
     };
   }
   const distinct = [...new Set(claimed.map((row) => row.id))];
