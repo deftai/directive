@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Bound remedy from the #3983/#3984 set-level design-critique arc: matcher coverage so a denied Write cannot be reissued through the host shell, plus in-flight elapsed evaluation on the existing delivery-attempt ledger. Not the #3983 issue body.",
-    "updated": "2026-08-31T00:03:04Z"
+    "updated": "2026-08-31T00:51:33Z"
   },
   "plan": {
     "title": "Close the PreToolUse shell reissue hole and evaluate elapsed on an in-flight delivery attempt",
@@ -20,6 +20,12 @@
         "effort": "M",
         "narrative": {
           "Acceptance": "A Write denied by occupancy is also denied when the same in-repo path is written through run_terminal_command (python pathlib or Set-Content). git status, occupancy:release, and an OS-temp pathlib write stay allowed. Deposited grok matchers include run_terminal_command, write, and search_replace. A host-catalog test fails closed when a known mutation tool is absent from the matcher set. The reissue-path test fails before the product change."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-write-reissue.test.ts",
+          "recorded_at": "2026-08-31T00:51:33Z",
+          "recorded_by": "leaf-worker/3983"
         }
       },
       {
@@ -28,6 +34,12 @@
         "effort": "S",
         "narrative": {
           "Acceptance": "evaluateInFlight blocks a running attempt whose wall-clock since startedAt meets maxElapsedSeconds with BLOCK_ELAPSED_BUDGET. A running attempt under budget is allowed. Pre-dispatch behavior is unchanged. No second budget store."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/delivery-attempt/evaluate.test.ts",
+          "recorded_at": "2026-08-31T00:51:33Z",
+          "recorded_by": "leaf-worker/3983"
         }
       }
     ],
@@ -103,6 +115,6 @@
         "cohesion_exemption": "CHANGELOG.md is an append-only release log; this slice adds one Unreleased entry. dispatcher.ts already exceeds the review trigger; this slice adds one routing call for recognized shell write dests and keeps the classifier in a new shell-write-targets.ts file rather than growing the dispatcher."
       }
     },
-    "updated": "2026-08-31T00:03:04Z"
+    "updated": "2026-08-31T00:51:33Z"
   }
 }
