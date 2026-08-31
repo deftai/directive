@@ -8,7 +8,6 @@
 ## Active
 
 - **#3785** -- bug(hooks): warn when a fail-closed hook registration travels without a hostable runtime -- `[running]`
-- **#3942** -- bug(design-critique): the verified-claims table shape token is unpublished, and the refusal blames the citation instead of the missing heading -- `[running]`
 
 ## Proposed
 
@@ -45,8 +44,9 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1382 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1383 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#3942** -- bug(design-critique): the verified-claims table shape token is unpublished, and the refusal blames the citation instead of the missing heading -- `[completed]`
 - **#3915** -- chore(triage): close 25 implemented, superseded, or obsolete issues from the >30-day audit -- `[completed]`
 - **#3983** -- Close the PreToolUse shell reissue hole and evaluate elapsed on an in-flight delivery attempt -- `[completed]`
 - **#3969** -- bug(release): close the unrecorded Closes bypass, fix census input, wire the existing closing-keyword detector -- `[completed]`
@@ -71,5 +71,4 @@ _Showing 25 of 1382 completed scopes (newest first). Full history: lifecycle `co
 - **#3903** -- bug(scm,release): release Step 3 fails with an empty-stderr exit 1 once the open-issue inventory exceeds 1 MB (ENOBUFS in scm call) -- `[completed]`
 - **#3797** -- docs(contracts): design-critique uses 'arc' as its unit without defining it, and the variant table cannot express two proven shapes -- `[completed]`
 - **#3794** -- bug(hooks,session): linked-worktree writes are gated against the parent checkout lease -- `[completed]`
-- **#3755** -- explicit lease membership replaces bearer-string possession -- `[completed]`
 
