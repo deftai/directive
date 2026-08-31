@@ -17,27 +17,63 @@
     "items": [
       {
         "title": "Publish the verified-claims table heading requirement in `content/contracts/design-critique.md` together with the citation form under which it binds: the heading decides a verdict only when the synthesis names its table with a typed `verified-claims table <id>` citation.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "pnpm exec vitest run packages/core/src/design-critique packages/core/src/content-contracts/standards/design_critique_contract.test.ts -- 6 files, 176 tests passed at 81099bc9; design_critique_contract.test.ts 'locks the verified-claims table heading and the citation form it binds on (#3942)' pins `### Verified-claims table heading` plus the typed-citation condition in content/contracts/design-critique.md",
+          "recorded_at": "2026-08-31T14:08:10Z",
+          "recorded_by": "agent:grok-build/leaf-implementation (PR #4004)"
+        }
       },
       {
         "title": "State in the contract that on the untyped citation path (`comment <id>`, permalink, or no table citation) the shape predicate has no verdict effect and the record completes with a null table id, so the published rule does not overstate the evaluator.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "pnpm exec vitest run packages/core/src/design-critique packages/core/src/content-contracts/standards/design_critique_contract.test.ts -- 6 files, 176 tests passed at 81099bc9; the same #3942 contract pin asserts '**The untyped path has no verdict effect.**' and the null `citedTableId` sentence, and completed-arc-record.test.ts 'leaves the untyped path completing with a null table id' asserts the behaviour it describes for all three untyped forms",
+          "recorded_at": "2026-08-31T14:08:10Z",
+          "recorded_by": "agent:grok-build/leaf-implementation (PR #4004)"
+        }
       },
       {
         "title": "Land the requirement consistently with `### Reserved line-starts`, where the same token appears only as a prohibition, without breaking the existing pin at `design_critique_contract.test.ts:964`, and re-measure that matrix cell at the implementation SHA (its current measurement predates #3932).",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "pnpm exec vitest run packages/core/src/content-contracts/standards/design_critique_contract.test.ts -- 27 tests passed at 81099bc9 (was 26): the pre-existing pin on '`## Verified-claims table`' inside `## Plain-language summary` is unedited and still green, and the new #3942 pin adds the 'Read this matrix with `### Verified-claims table heading`' cross-reference, the 'Re-measured at `764f63a6`' stamp, and a not.toContain guard on the stale 'Measured at `c6761881`' text",
+          "recorded_at": "2026-08-31T14:08:10Z",
+          "recorded_by": "agent:grok-build/leaf-implementation (PR #4004)"
+        }
       },
       {
         "title": "Partition the existing `unresolved` filter in `resolveCitedTable` so a typed table citation resolving to a thread comment that fails the shape predicate is refused distinguishably from an id absent from the thread, and name the missing heading as the remediation. Satisfy the published diagnostics MUST in `### One parser, set membership, observed diagnostics` rather than duplicating it; if a new reason code is introduced, publish the reason vocabulary in the same change.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "pnpm exec vitest run packages/core/src/design-critique -- 149 tests passed at 81099bc9; completed-arc-record.test.ts 'typed table refusal partition (#3942)' asserts `unshaped-table-cite` for an on-thread comment with no heading, `missing-table-cite` for an absent id, and that the two details differ by more than the id. The reason vocabulary is published in `### One parser, set membership, observed diagnostics` and the contract pin iterates COMPLETED_ARC_BLOCK_REASONS, so an unpublished member fails closed",
+          "recorded_at": "2026-08-31T14:08:10Z",
+          "recorded_by": "agent:grok-build/leaf-implementation (PR #4004)"
+        }
       },
       {
         "title": "Regression tests: a table comment with a method column and claim rows but no heading under a typed citation asserts the new distinguishable reason; an id absent from the thread keeps its existing reason; the untyped path still completes with a null table id.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "pnpm exec vitest run packages/core/src/design-critique/completed-arc-record.test.ts -- 51 tests passed at 81099bc9 (was 44): seven new cases under 'typed table refusal partition (#3942)' cover the headingless method-column table under a typed citation, the absent id, detail distinguishability, the mixed absent-plus-unshaped report, the three untyped forms resolving null, the reason reaching callers via assertCompletedArcAllowsIngest, and the seven live arc table ids",
+          "recorded_at": "2026-08-31T14:08:10Z",
+          "recorded_by": "agent:grok-build/leaf-implementation (PR #4004)"
+        }
       },
       {
         "title": "Existing detected tables continue to resolve unchanged, with the AC5 baseline recorded from the seven live arc threads (table ids 5458204775, 5458431222, 5466045455, 5466061856, 5466142398, 5466430284, 5466455972), all of which carry the heading today.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "https://github.com/deftai/directive/pull/4004 -- section 'Existing detected tables unchanged': evaluateCompletedArcRecord was run over all seven live arc threads (#3893, #3899, #3901, #3923, #3873, #3930, #3933) with comments and labels fetched over REST, before and after the partition. All seven returned status complete with citedTableId equal to their own table id and all seven carry the heading today; the two runs were byte-identical. The seven ids are also pinned as a fixture set in completed-arc-record.test.ts",
+          "recorded_at": "2026-08-31T14:08:10Z",
+          "recorded_by": "agent:grok-build/leaf-implementation (PR #4004)"
+        }
       }
     ],
     "tags": [
