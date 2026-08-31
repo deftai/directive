@@ -8,7 +8,7 @@
 ## Active
 
 - **#3785** -- bug(hooks): warn when a fail-closed hook registration travels without a hostable runtime -- `[running]`
-- **#3819** -- bug(lifecycle): the completed-artifact guard checks that a transition stamp exists, not that its disposition is valid -- `[running]`
+- **#3942** -- bug(design-critique): the verified-claims table shape token is unpublished, and the refusal blames the citation instead of the missing heading -- `[running]`
 
 ## Proposed
 
@@ -19,7 +19,6 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 - **#95** -- Compliance-aligned constitution templates + readiness scanners (SOC 2, ISO 27001, HIPAA, HiTrust); sub-issues #96–#100 cover config schema, control mapping registry, scoring, evidence gap analysis, and automation hooks -- `[proposed]`
 - **#96** -- [Compliance] Config schema + compliance-aware constitution templates -- `[proposed]`
 - **#759** -- Low-end LLM compatibility testing -- `[proposed]`
-- **#760** -- Upgrade GitHub Actions to Node.js 24 -- `[proposed]`
 - **#758** -- **#84 Phase 3** -- Deft as teacher: teach strategy, lessons evolution -- `[proposed]`
 - **#757** -- Update `strategies/interview.md` to probe language/tool choices through the contract lens -- when user picks a language, prompt to consider habit vs. suitability (#84 Phase 2) -- `[proposed]`
 - **#624** -- feat(swarm): encode writes-single-threaded principle and named manager-child anti-patterns in deft-swarm -- `[proposed]`
@@ -27,7 +26,7 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 - **#627** -- feat(strategies): add strategies/delegate.md -- controlled delegation framework for agent-driven implementation -- `[proposed]`
 - **#628** -- chore(sync): complete Phase 6c LegacyArtifacts review for v0.20.0 self-migration (120 sections deferred) -- `[proposed]`
 - **#629** -- chore(conventions): document migration-artifact exclusion pattern for consumer content-linting tests -- `[proposed]`
-- **#630** -- migrator: auto-invoke render tasks at end of task migrate:vbrief -- `[proposed]`
+- **#630** -- migrator: auto-invoke render tasks at end of task migrate:xbrief -- `[proposed]`
 - **#635** -- Events: behavioral wiring (3 items: session interrupt/resume pair, plan:approved, legacy:detected) -- `[proposed]`
 - **#635** -- Events: detection-bound wiring (5 events with existing detectors) -- `[proposed]`
 - **#635** -- RFC: Phase 0 spec scaffolding -- generated per-phase task gates (needs-discussion) -- `[proposed]`
@@ -46,8 +45,9 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1381 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1382 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#3915** -- chore(triage): close 25 implemented, superseded, or obsolete issues from the >30-day audit -- `[completed]`
 - **#3983** -- Close the PreToolUse shell reissue hole and evaluate elapsed on an in-flight delivery attempt -- `[completed]`
 - **#3969** -- bug(release): close the unrecorded Closes bypass, fix census input, wire the existing closing-keyword detector -- `[completed]`
 - **#3737** -- BLOCKER: bug(scm): resolveBinary prefers ghx on presence alone, so a broken ghx silently kills triage, ingest, cache and pr:watch -- `[completed]`
@@ -72,5 +72,4 @@ _Showing 25 of 1381 completed scopes (newest first). Full history: lifecycle `co
 - **#3797** -- docs(contracts): design-critique uses 'arc' as its unit without defining it, and the variant table cannot express two proven shapes -- `[completed]`
 - **#3794** -- bug(hooks,session): linked-worktree writes are gated against the parent checkout lease -- `[completed]`
 - **#3755** -- explicit lease membership replaces bearer-string possession -- `[completed]`
-- **#3835** -- BLOCKER: security(verify-ac): untrusted issue prose selects an in-root file to read and the needle to match, and the gate reports the answer -- `[completed]`
 
