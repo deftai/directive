@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Bound remedy from the #3983/#3984 set-level design-critique arc: matcher coverage so a denied Write cannot be reissued through the host shell, plus in-flight elapsed evaluation on the existing delivery-attempt ledger. Not the #3983 issue body.",
-    "updated": "2026-08-31T00:51:33Z"
+    "updated": "2026-08-31T00:57:31Z"
   },
   "plan": {
     "title": "Close the PreToolUse shell reissue hole and evaluate elapsed on an in-flight delivery attempt",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "One item, two parts. Part 1 (security, leads): the PreToolUse write gate matcher list is literal tool names and misses Grok Build run_terminal_command, so a Write denied by occupancy/ritual/scope can be reissued through the shell. Authorize every recognized in-repo mutation target the way #3614 did for ApplyPatch; do not occupancy-deny git status, occupancy:release, or OS-temp body-file writes. Part 2: the delivery-attempt ledger already evaluates elapsed before dispatch; extend it to a run already in flight. Turn duration was the only measured separator. Do not build a chokepoint that reads host memory logs, and do not build a parent-is-implementing detector.",
       "Origin": "Bound by #3983 arc: critics 5470935977, 5470940506, 5470981553; lean 5470992415; claims 5470996824; synthesis 5470998520. Defect record for part 1 is #3987.",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "Part 1: matcher coverage and reissue-path deny",
-        "status": "proposed",
+        "status": "completed",
         "effort": "M",
         "narrative": {
           "Acceptance": "A Write denied by occupancy is also denied when the same in-repo path is written through run_terminal_command (python pathlib or Set-Content). git status, occupancy:release, and an OS-temp pathlib write stay allowed. Deposited grok matchers include run_terminal_command, write, and search_replace. A host-catalog test fails closed when a known mutation tool is absent from the matcher set. The reissue-path test fails before the product change."
@@ -30,7 +30,7 @@
       },
       {
         "title": "Part 2: in-flight elapsed on the existing ledger",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "Acceptance": "evaluateInFlight blocks a running attempt whose wall-clock since startedAt meets maxElapsedSeconds with BLOCK_ELAPSED_BUDGET. A running attempt under budget is allowed. Pre-dispatch behavior is unchanged. No second budget store."
@@ -113,8 +113,31 @@
         ],
         "module_boundary": "packages/core/src/hooks and packages/core/src/delivery-attempt",
         "cohesion_exemption": "CHANGELOG.md is an append-only release log; this slice adds one Unreleased entry. dispatcher.ts already exceeds the review trigger; this slice adds one routing call for recognized shell write dests and keeps the classifier in a new shell-write-targets.ts file rather than growing the dispatcher."
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3990,
+        "prBase": null,
+        "mergeCommit": "a34131ce3f18d6a8e1afc0470bbacf73b9c4c140",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a34131ce3f18d6a8e1afc0470bbacf73b9c4c140",
+        "verifiedAt": "2026-08-31T00:57:31Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-08-31T00:57:31Z"
+      },
+      "completedAt": "2026-08-31T00:57:31Z",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-08-31T00:51:33Z"
+    "updated": "2026-08-31T00:57:31Z"
   }
 }
