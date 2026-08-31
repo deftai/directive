@@ -25,13 +25,22 @@ export type ThreadComment = {
   readonly body: string;
 };
 
-export type CompletedArcBlockReason =
-  | "missing-record"
-  | "lone-shape"
-  | "cite-not-lean"
-  | "missing-table-cite"
-  | "unshaped-table-cite"
-  | "ambiguous-table-cite";
+/**
+ * Closed reason set, published in `content/contracts/design-critique.md`
+ * `### One parser, set membership, observed diagnostics`. The union is derived
+ * from this array so a member added here without a contract row fails the
+ * content-contract suite (#3942).
+ */
+export const COMPLETED_ARC_BLOCK_REASONS = [
+  "missing-record",
+  "lone-shape",
+  "cite-not-lean",
+  "missing-table-cite",
+  "unshaped-table-cite",
+  "ambiguous-table-cite",
+] as const;
+
+export type CompletedArcBlockReason = (typeof COMPLETED_ARC_BLOCK_REASONS)[number];
 
 export type CompletedArcVerdict =
   | { readonly status: "not-in-arc" }

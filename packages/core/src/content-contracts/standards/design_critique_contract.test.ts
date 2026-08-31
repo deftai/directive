@@ -2,6 +2,7 @@
 import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { COMPLETED_ARC_BLOCK_REASONS } from "../../design-critique/completed-arc-record.js";
 import { remainingSetAfterDesignCritiqueChip } from "../../design-critique/exclusive-chip.js";
 import { evaluateParentAudit } from "../../design-critique/parent-audit.js";
 import { isFile, readText, repoRoot, resolveContentPath } from "./_helpers.js";
@@ -1024,6 +1025,60 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(template).not.toContain("unresolved-marker state");
     expect(template).not.toContain("before any critic exists");
     expect(template).not.toContain("highest-leverage asserted premise");
+  });
+
+  it("locks the verified-claims table heading and the citation form it binds on (#3942)", () => {
+    const text = readText(CONTRACT);
+    const stop5 = markdownSection(text, "## Stop 5 \u2014 Verified synthesis");
+    expect(stop5, "verified-claims table heading section missing").toContain(
+      "### Verified-claims table heading",
+    );
+    expect(stop5).toContain("isVerifiedClaimsTableBody");
+    expect(stop5).toContain("only artifact-identity signal the resolver has");
+    expect(stop5).toContain(
+      "- ! Open the verified-claims table with the `## Verified-claims table` heading whenever " +
+        "the synthesis names that table with a typed `verified-claims table <id>` citation.",
+    );
+    expect(stop5).toContain("blocks on `unshaped-table-cite`");
+    expect(stop5).toContain(
+      "- ! State the requirement together with the citation form that makes it operative.",
+    );
+    expect(stop5).toContain(
+      "⊗ Publish the heading as a requirement binding on every citation form.",
+    );
+    expect(stop5).toContain("**The untyped path has no verdict effect.**");
+    expect(stop5).toContain("records a null `citedTableId`");
+    expect(stop5).toContain("The resolved id has no consumer today");
+    expect(stop5).toContain("`### Reserved line-starts`");
+
+    // The re-measured matrix cell, and the cross-reference that keeps one token
+    // from reading as a hazard in one section and an obligation in another.
+    const summary = markdownSection(text, "## Plain-language summary");
+    expect(summary).toContain("Re-measured at `764f63a6`");
+    expect(summary).not.toContain("Measured at `c6761881`");
+    expect(summary).toContain("the lean stands in as the table on the untyped path");
+    expect(summary).toContain(
+      "A typed claim now blocks whether or not the lean carries the heading",
+    );
+    expect(summary).toContain("- ! Read this matrix with `### Verified-claims table heading`.");
+
+    const grammar = markdownSection(text, "## Citation grammar");
+    expect(grammar).toContain("`CompletedArcBlockReason` is closed.");
+    for (const reason of COMPLETED_ARC_BLOCK_REASONS) {
+      expect(grammar, `reason ${reason} is unpublished`).toContain(`| \`${reason}\` |`);
+    }
+    expect(grammar).toContain(
+      "- ! Publish a reason in that table before the evaluator returns it.",
+    );
+    expect(grammar).toContain("⊗ Merge two states under one reason when their remedies differ.");
+    expect(grammar).toContain("That is conformance to it, not a second rule.");
+
+    const testSurface = markdownSection(text, "## Test surface");
+    expect(testSurface).toContain("### Verified-claims table heading");
+    expect(testSurface).toContain("#3942");
+
+    const skill = readText(SKILL_REL);
+    expect(skill).not.toContain("unshaped-table-cite");
   });
 
   it("indexes the skill on-demand and does not always-pin it", () => {
