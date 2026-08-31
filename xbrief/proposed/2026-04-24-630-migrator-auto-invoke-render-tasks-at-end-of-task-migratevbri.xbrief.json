@@ -4,10 +4,10 @@
     "description": "Scope vBRIEF ingested from GitHub issue #630"
   },
   "plan": {
-    "title": "migrator: auto-invoke render tasks at end of task migrate:vbrief",
+    "title": "migrator: auto-invoke render tasks at end of task migrate:xbrief",
     "status": "proposed",
     "narratives": {
-      "Description": "migrator: auto-invoke render tasks at end of task migrate:vbrief",
+      "Description": "migrator: auto-invoke render tasks at end of task migrate:xbrief (re-targeted from migrate:vbrief; the migrator still ships, the render auto-invoke does not). Refs #630 / #3915.",
       "Origin": "Ingested from https://api.github.com/repos/deftai/directive/issues/630",
       "Labels": "enhancement"
     },
@@ -25,6 +25,6 @@
         "url": "https://api.github.com/repos/deftai/directive/issues/630"
       }
     ],
-    "updated": "2026-05-20T12:38:34Z"
+    "updated": "2026-08-31T04:23:00Z"
   }
 }

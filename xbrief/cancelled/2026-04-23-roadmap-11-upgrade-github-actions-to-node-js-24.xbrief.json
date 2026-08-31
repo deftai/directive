@@ -1,13 +1,15 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF for Upgrade GitHub Actions to Node.js 24"
+    "description": "Scope vBRIEF for Upgrade GitHub Actions to Node.js 24",
+    "updated": "2026-08-31T04:22:53Z"
   },
   "plan": {
     "title": "Upgrade GitHub Actions to Node.js 24",
-    "status": "proposed",
+    "status": "cancelled",
     "narratives": {
-      "SourceSection": "ROADMAP active phase"
+      "SourceSection": "ROADMAP active phase",
+      "CancelledNote": "Superseded-by-delivery from #3915: Actions majors are current (checkout v7.0.1, upload-artifact v7.0.1, download-artifact v8.0.1). GitHub issue #760 closed. Proposed brief cancelled so it does not orphan."
     },
     "items": [],
     "metadata": {
@@ -26,6 +28,6 @@
         "title": "Issue #760: ci: upgrade GitHub Actions to Node.js 24-compatible majors (checkout/upload-artifact/download-artifact)"
       }
     ],
-    "updated": "2026-05-20T12:38:34Z"
+    "updated": "2026-08-31T04:22:53Z"
   }
 }

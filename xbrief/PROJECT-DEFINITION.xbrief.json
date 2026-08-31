@@ -302,10 +302,10 @@
       {
         "id": "2026-04-23-roadmap-11-upgrade-github-actions-to-node-js-24",
         "title": "Upgrade GitHub Actions to Node.js 24",
-        "status": "proposed",
+        "status": "cancelled",
         "metadata": {
-          "source_path": "proposed/2026-04-23-roadmap-11-upgrade-github-actions-to-node-js-24.xbrief.json",
-          "lifecycle_folder": "proposed",
+          "source_path": "cancelled/2026-04-23-roadmap-11-upgrade-github-actions-to-node-js-24.xbrief.json",
+          "lifecycle_folder": "cancelled",
           "references": [
             {
               "uri": "https://github.com/deftai/directive/issues/760",

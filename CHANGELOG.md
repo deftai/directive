@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- **Closed 23 of 25 stale-issue audit candidates from #3915.** Evidence comments cite this tree, not pass-1 cites. Full verification for #973, #1283, #1422, and #2518. #513 closed as descoped (stub scanner is not a required master check and does not scan `.ts`). #602 and #630 stay open: no latent-vs-deterministic principle in `content/`, and `migrate:xbrief` still does not auto-render. #630's proposed brief is re-targeted; #760's proposed brief is cancelled as delivered. #2769 pass-4 retracts "product not yet shipped". Refs #3915.
 
 ### Fixed
 
