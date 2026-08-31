@@ -60,6 +60,7 @@ import { containedRemove, containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { assertAppendLockOwned, type LockDeps, withAppendLock } from "../slice/lock.js";
 import { SWARM_WORKER_ROLES, type SwarmWorkerRole } from "../swarm/routing.js";
+import { recordChildOccupancyLease } from "./child-occupancy.js";
 import {
   ambientHostSessionOwner,
   claimsHostSessionIdShape,
@@ -656,6 +657,9 @@ export function applyWorktreeOccupancy(
         fence,
       );
       const action: OccupancyAction = liveLocked !== null ? "heartbeat" : "claimed";
+      if (action === "claimed") {
+        maybeRecordChildOccupancyOnClaim(projectRoot, incoming, input.env);
+      }
       return {
         action,
         sessionId: record.sessionId,
@@ -670,6 +674,35 @@ export function applyWorktreeOccupancy(
     },
     input.lockDeps,
   );
+}
+
+/**
+ * Stamp the dispatch-recorded child occupancy store at claim time (#3999).
+ * Pre-dispatch / worktree mkdir cannot know a host-env child's occupancy
+ * owner; the claiming process does. Heartbeat `agent_id` on this host is the
+ * raw GROK_SESSION_ID, so that is the store key the terminal monitor looks up.
+ */
+function maybeRecordChildOccupancyOnClaim(
+  projectRoot: string,
+  occupancyOwner: string,
+  env: NodeJS.ProcessEnv | undefined,
+): void {
+  const resolved = env ?? process.env;
+  const grokRaw = resolved.GROK_SESSION_ID?.trim() ?? "";
+  const agentId = grokRaw.length > 0 ? grokRaw : occupancyHost(env);
+  if (agentId.length === 0 || agentId === "none") return;
+  const parentId = occupancyAddress(env);
+  try {
+    recordChildOccupancyLease(projectRoot, {
+      agentId,
+      parentId,
+      occupancyOwner,
+      worktreePath: resolve(projectRoot),
+      identitySourceKind: grokRaw.length > 0 ? "host-env" : "payload",
+    });
+  } catch {
+    // Claim already succeeded; a missing dispatch record is a no-op on terminal.
+  }
 }
 
 export function stealOccupancy(

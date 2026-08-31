@@ -280,6 +280,7 @@ export function resolveWorktreeMap(
             `this is a snapshot check at resolution time, not a pin on the worker's start revision`,
         );
       }
+      // Heartbeat dir only. Child occupancy owner is recorded at claim (#3999).
       ensureSubagentStatusDir(entry._abs);
       continue;
     }
@@ -289,6 +290,7 @@ export function resolveWorktreeMap(
       );
     }
     createWorktree(root, entry._abs, trimmedBase, git);
+    // Heartbeat dir only. Child occupancy owner is recorded at claim (#3999).
     ensureSubagentStatusDir(entry._abs);
   }
 

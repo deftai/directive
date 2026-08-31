@@ -36,6 +36,23 @@ describe("child occupancy dispatch record (#3999)", () => {
   const parentId = "parent-agent";
   const childOwner = "host:grok:v1:child-owner";
 
+  it("claim under a host-env id records the child so terminal can release without a parent write", () => {
+    const root = tempRoot();
+    const grokRaw = "01a054b9-4042-72e1-929c-b6a1074b31e3";
+    const env = { GROK_SESSION_ID: grokRaw };
+    applyWorktreeOccupancy(root, { now, env });
+    const owner = readOccupancy(root)?.sessionId;
+    expect(owner).toBeTruthy();
+    expect(readChildOccupancyLease(root, grokRaw)?.occupancyOwner).toBe(owner);
+
+    const released = releaseChildOccupancyOnTerminal(root, { agentId: grokRaw, now });
+    expect(released.reason).toBe("released");
+    expect(readOccupancy(root)).toBeNull();
+    expect(evaluateOccupancyWriteGate(root, { sessionId: "parent", now, env: {} }).allow).toBe(
+      true,
+    );
+  });
+
   it("dispatch-claim-exit clears the child owner lease without waiting for TTL", () => {
     const root = tempRoot();
     recordChildOccupancyLease(root, {

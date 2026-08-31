@@ -255,6 +255,8 @@ function runBegin(input: SwarmPreDispatchInput): SwarmPreDispatchResult {
   // heuristic, so accept an on-disk worktree as the second arming signal.
   const armTarget = resolve(input.projectRoot, input.targetId.trim());
   if (looksLikeFilesystemTarget(input.targetId) || looksLikeWorktreeDir(armTarget)) {
+    // Heartbeat dir only. Child occupancy owner is recorded at claim time
+    // (#3999): this parent process does not know a host-env child's id.
     ensureSubagentStatusDir(armTarget);
   }
 

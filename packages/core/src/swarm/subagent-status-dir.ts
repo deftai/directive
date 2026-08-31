@@ -45,6 +45,8 @@ export function ensureSubagentStatusDir(
   if (trimmed.length === 0 || !existsSync(trimmed)) return null;
   const dir = defaultScratchDir(trimmed);
   mkdirSync(dir, { recursive: true });
+  // Optional: parent already knows the child's occupancy owner (spawn return).
+  // Host-env production claims also record via applyWorktreeOccupancy (#3999).
   if (childLease !== undefined) {
     recordChildOccupancyLease(trimmed, {
       ...childLease,
