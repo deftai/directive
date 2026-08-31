@@ -142,6 +142,15 @@ authorized against — a linked worktree under `.deft-scratch/`, not the payload
 root — so a worktree write does not keep the primary checkout's lease alive
 while the tree actually in use expires.
 
+! A call with **no write target** proves only the tree the host named.
+`projectRootFromHookPayload` takes that from the payload's own `cwd`-class
+fields, so a session working inside a worktree names the worktree and renews
+it. When the host reports a root that is not the tree the work is in, and no
+write target says otherwise, nothing is renewed. That is deliberate: renewing a
+guessed tree would keep a lease alive for a tree nobody occupies, and reclaiming
+an unused tree is what the TTL is for. `deft occupancy:heartbeat --session-id
+<owner>` remains the explicit path for a long, quiet session.
+
 ---
 
 ## Cross-links

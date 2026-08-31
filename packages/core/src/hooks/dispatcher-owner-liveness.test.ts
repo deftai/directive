@@ -256,6 +256,33 @@ describe("hook-event owner liveness (#3987)", () => {
     expect(calls[0]?.projectRoot).toBe(resolve(nested));
   });
 
+  it("renews only the tree the payload names when nothing proves another", () => {
+    // A call with no write target proves one tree: the one the host reported.
+    // Renewing a sibling on a guess would keep a lease alive for a tree nobody
+    // occupies, which is the reclaim the TTL exists to perform.
+    const named = leasedRoot(GROK_OWNER);
+    const sibling = leasedRoot(GROK_OWNER);
+    decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: named.root,
+        payload: {
+          tool_name: "run_terminal_command",
+          tool_input: { command: "git status --short" },
+        },
+        environ: { GROK_SESSION_ID: RAW_GROK_ID },
+      },
+      readySeams(),
+    );
+    expect(readOccupancy(named.root)?.heartbeatAt.getTime()).toBeGreaterThan(
+      named.heartbeatAt.getTime(),
+    );
+    expect(readOccupancy(sibling.root)?.heartbeatAt.toISOString()).toBe(
+      sibling.heartbeatAt.toISOString(),
+    );
+  });
+
   it("cannot change a verdict by failing", () => {
     const { root } = leasedRoot(GROK_OWNER);
     const decision = decideHook(

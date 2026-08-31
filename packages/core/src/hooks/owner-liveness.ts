@@ -38,6 +38,17 @@
  * - Runs after the decision, never as an input to it. A liveness re-stamp must
  *   not change any verdict, and re-stamping before the mutation gates would
  *   suppress their own `markWrite = true` refresh by resetting the age floor.
+ *
+ * Bound this deliberately does not cross: a call with no write target proves
+ * only the tree the host named. `projectRootFromHookPayload` takes that from
+ * the payload's own `cwd`-class fields, so a session working inside a linked
+ * worktree names the worktree and renews it; a session whose host reports the
+ * primary checkout renews the primary. When those differ and nothing in the
+ * payload says which tree the work is in, this renews neither by guessing —
+ * keeping a lease alive for a tree nobody occupies is a widening, not a fix,
+ * and the TTL reclaiming an unused tree is the behaviour the lease exists for.
+ * `deft occupancy:heartbeat --session-id <owner>` stays the explicit path for
+ * a session whose tree the host does not report.
  */
 
 import { resolve } from "node:path";
