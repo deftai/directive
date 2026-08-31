@@ -118,8 +118,14 @@ describe("shared actor-resolution chain (#3954 item 1)", () => {
 });
 
 describe("canonical owner shape (#3954 item 3)", () => {
-  it("names the host-published variables so a test can scrub all of them", () => {
+  it("projects the same host-env entries the ambient scan reads", () => {
     expect(HOST_ENV_IDENTITY_VARIABLES).toEqual(["GROK_SESSION_ID"]);
+    // The list and the production scan share one derivation, so a variable
+    // named here is a variable `ambientHostSessionOwner` actually resolves.
+    for (const variable of HOST_ENV_IDENTITY_VARIABLES) {
+      expect(ambientHostSessionOwner({ [variable]: "raw-id" })).not.toBeNull();
+    }
+    expect(ambientHostSessionOwner({})).toBeNull();
   });
 
   it("parses a well-formed owner back to its provider and raw id", () => {
