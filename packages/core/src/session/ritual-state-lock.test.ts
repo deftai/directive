@@ -186,6 +186,24 @@ describe("ritual-state lock (#3872)", () => {
     expect(gated.agent_hooks.message).toBe("a");
     expect(gated.cache_fresh.message).toBe("b");
   });
+
+  it("omitting drift_probe from incoming drops the disk field (#3507)", () => {
+    const merged = mergeSameOwnerRitualPayload(
+      {
+        session_id: "owner",
+        drift_probe: "skipped-no-work-selection",
+        gated_steps: { agent_hooks: { ok: true, ts: "2026-09-01T00:00:00Z", message: "a" } },
+      },
+      {
+        session_id: "owner",
+        gated_steps: { cache_fresh: { ok: true, ts: "2026-09-01T00:00:01Z", message: "b" } },
+      },
+    );
+    expect(merged.drift_probe).toBeUndefined();
+    const gated = merged.gated_steps as Record<string, { message: string }>;
+    expect(gated.agent_hooks.message).toBe("a");
+    expect(gated.cache_fresh.message).toBe("b");
+  });
 });
 
 describe("withAppendLock budget (#3872)", () => {

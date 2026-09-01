@@ -277,13 +277,16 @@ function asStepMap(value: unknown): Record<string, Record<string, unknown>> {
   return out;
 }
 
-/** Overlay incoming keys onto disk; merge step maps so co-members do not clobber (#3872). */
+/**
+ * Co-member persist (#3872): incoming owns top-level fields (so an omitted
+ * `drift_probe` stays deleted) while step maps union so a stale snapshot
+ * cannot drop another member's gated/quick step.
+ */
 export function mergeSameOwnerRitualPayload(
   disk: Record<string, unknown>,
   incoming: Record<string, unknown>,
 ): Record<string, unknown> {
   return {
-    ...disk,
     ...incoming,
     quick_steps: { ...asStepMap(disk.quick_steps), ...asStepMap(incoming.quick_steps) },
     gated_steps: { ...asStepMap(disk.gated_steps), ...asStepMap(incoming.gated_steps) },
