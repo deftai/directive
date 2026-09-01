@@ -13,6 +13,10 @@ The following tools must be installed before working on Deft:
 - **uv** — Python package manager and task runner ([docs.astral.sh/uv](https://docs.astral.sh/uv))
 - **task** — Taskfile runner ([taskfile.dev](https://taskfile.dev))
 
+## Grok Build as parent (#4035)
+
+If Grok Build is the parent agent and Claude Code / Codex run as subscription CLIs, follow [Grok Build subscription-only setup](./content/docs/grok-build-subscription-setup.md). That playbook is host auth, not Directive `session:start`.
+
 Verify your toolchain:
 
 ```bash

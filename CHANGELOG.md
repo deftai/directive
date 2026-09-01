@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Grok Build subscription-only setup playbook for maintainer agents (#4035).** `content/docs/grok-build-subscription-setup.md` is the in-repo host-auth playbook: SuperGrok parent (`grok login` / grok.com), Claude Code via `claude.ai` team CLI, Codex via ChatGPT CLI. User-scope console keys may remain; Grok must not inherit them (`[shell_environment_policy]` exclude). No BYOK `[model.*]` Console blocks. Five verification probes and hard stops (do not unset User/Machine keys, do not logout, do not print secrets). Pointer from `CONTRIBUTING.md`. Closes #4035.
 
 ### Changed
 
