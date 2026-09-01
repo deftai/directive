@@ -224,6 +224,41 @@ export function occupancyPath(projectRoot: string): string {
   return join(resolve(projectRoot), ...OCCUPANCY_RELPATH);
 }
 
+/**
+ * Whether a stored lease names this worktree (#3926).
+ *
+ * Occupancy is per working tree. A copied `.deft/occupancy.json` from another
+ * checkout, image, or deposit still reads as a live foreign occupant if we
+ * ignore `worktree_path`, so a fresh single-session container reports occupied
+ * before anyone has claimed *this* tree. Path mismatch is residue, not a
+ * holder. Same-tree two-session conflict still fails closed.
+ */
+export function occupancyWorktreeMatches(recordedPath: string, projectRoot: string): boolean {
+  const recorded = resolve(recordedPath);
+  const tree = resolve(projectRoot);
+  if (recorded === tree) return true;
+  if (process.platform === "win32") return recorded.toLowerCase() === tree.toLowerCase();
+  return false;
+}
+
+/**
+ * Live occupant of *this* tree, or null (#3926). Expired, age-capped, and
+ * other-tree records are all residue: claim-over-expired already frees those
+ * without a steal.
+ */
+export function liveOccupancyOnTree(
+  projectRoot: string,
+  record: OccupancyRecord | null,
+  now: Date = new Date(),
+  ttlMs: number = OCCUPANCY_TTL_MS,
+  maxLeaseMs: number = OCCUPANCY_MAX_LEASE_MS,
+): OccupancyRecord | null {
+  if (record === null) return null;
+  if (!occupancyWorktreeMatches(record.worktreePath, projectRoot)) return null;
+  if (isOccupancyExpired(record, now, ttlMs, maxLeaseMs)) return null;
+  return record;
+}
+
 export function heartbeatAgeSeconds(record: OccupancyRecord, now: Date = new Date()): number {
   return Math.max(0, Math.round((now.getTime() - record.heartbeatAt.getTime()) / 1000));
 }
@@ -573,9 +608,7 @@ export function liveOccupant(
   ttlMs: number = OCCUPANCY_TTL_MS,
   maxLeaseMs: number = OCCUPANCY_MAX_LEASE_MS,
 ): OccupancyRecord | null {
-  const record = readOccupancy(projectRoot);
-  if (record === null || isOccupancyExpired(record, now, ttlMs, maxLeaseMs)) return null;
-  return record;
+  return liveOccupancyOnTree(projectRoot, readOccupancy(projectRoot), now, ttlMs, maxLeaseMs);
 }
 
 export function applyWorktreeOccupancy(
@@ -586,7 +619,7 @@ export function applyWorktreeOccupancy(
   const path = occupancyPath(projectRoot);
   const incoming = resolveOccupancySessionId(input);
   const existing = readOccupancy(projectRoot);
-  const live = existing !== null && !isOccupancyExpired(existing, now) ? existing : null;
+  const live = liveOccupancyOnTree(projectRoot, existing, now);
 
   if (input.steal === true) {
     return stealOccupancy(projectRoot, { ...input, sessionId: incoming, now });
@@ -624,8 +657,7 @@ export function applyWorktreeOccupancy(
     projectRoot,
     (fence) => {
       const existingLocked = readOccupancy(projectRoot);
-      const liveLocked =
-        existingLocked !== null && !isOccupancyExpired(existingLocked, now) ? existingLocked : null;
+      const liveLocked = liveOccupancyOnTree(projectRoot, existingLocked, now);
       if (liveLocked !== null && liveLocked.sessionId !== incoming) {
         return {
           action: "denied" as const,
@@ -717,7 +749,7 @@ export function stealOccupancy(
     // Show the occupant's write recency before the steal, not only after it
     // (#3599): heartbeat age alone hides an occupant that is mid-edit.
     const occupantDetail =
-      current !== null && !isOccupancyExpired(current, now)
+      liveOccupancyOnTree(projectRoot, current, now) !== null
         ? `\n${formatOccupancyRemediation(current, now)}`
         : "";
     return {
@@ -741,7 +773,7 @@ export function stealOccupancy(
     };
   }
   const existing = readOccupancy(projectRoot);
-  const live = existing !== null && !isOccupancyExpired(existing, now) ? existing : null;
+  const live = liveOccupancyOnTree(projectRoot, existing, now);
   // A grant admits writes, never the lease itself (#3755). Letting a child steal
   // from the owner that admitted it would turn delegated write access into a
   // path to replace the delegator — the escalation explicit membership exists to
@@ -787,8 +819,7 @@ export function stealOccupancy(
     projectRoot,
     (fence) => {
       const existingLocked = readOccupancy(projectRoot);
-      const liveLocked =
-        existingLocked !== null && !isOccupancyExpired(existingLocked, now) ? existingLocked : null;
+      const liveLocked = liveOccupancyOnTree(projectRoot, existingLocked, now);
       const lockedStealerGrant =
         liveLocked === null ? null : occupancyGrantFor(liveLocked, incoming, now);
       if (liveLocked !== null && lockedStealerGrant !== null) {
@@ -902,7 +933,7 @@ export function releaseOccupancy(
           code: 0,
         };
       }
-      const expired = isOccupancyExpired(existing, now);
+      const expired = liveOccupancyOnTree(projectRoot, existing, now) === null;
       const owns = caller.length > 0 && caller === existing.sessionId;
       if (!expired && !owns) {
         return {
@@ -1107,10 +1138,11 @@ export function grantOccupancyMembership(
     projectRoot,
     (fence) => {
       const current = readOccupancy(projectRoot);
-      const live = current !== null && !isOccupancyExpired(current, now) ? current : null;
+      const live = liveOccupancyOnTree(projectRoot, current, now);
       if (live === null) {
         const capped =
           current !== null &&
+          occupancyWorktreeMatches(current.worktreePath, projectRoot) &&
           current.sessionId === owner &&
           occupancyLiveness(current, now) === "age-capped";
         return {
@@ -1250,7 +1282,7 @@ export function revokeOccupancyMembership(
     projectRoot,
     (fence) => {
       const current = readOccupancy(projectRoot);
-      const live = current !== null && !isOccupancyExpired(current, now) ? current : null;
+      const live = liveOccupancyOnTree(projectRoot, current, now);
       if (live === null) {
         return {
           action: "revoked" as const,
@@ -1358,7 +1390,9 @@ export function evaluateOccupancyWriteGate(
   const now = input.now ?? new Date();
   const incoming =
     input.sessionId?.trim() || (input.env ?? process.env).DEFT_SESSION_ID?.trim() || "";
-  const record = readOccupancy(projectRoot);
+  const stored = readOccupancy(projectRoot);
+  const record =
+    stored !== null && occupancyWorktreeMatches(stored.worktreePath, projectRoot) ? stored : null;
   const liveness = record === null ? null : occupancyLiveness(record, now);
   const admission = record === null ? "stranger" : occupancyAdmission(record, incoming, now);
   if (record !== null && liveness === "age-capped" && admission !== "stranger") {
@@ -1528,7 +1562,7 @@ function restampOccupancyHeartbeat(
       (fence) => {
         const current = readOccupancy(projectRoot);
         if (current === null || current.sessionId !== sessionId) return { status: "lost" };
-        if (isOccupancyExpired(current, now)) return { status: "lost" };
+        if (liveOccupancyOnTree(projectRoot, current, now) === null) return { status: "lost" };
         // Re-check membership under the lock: the grant read before the wait may
         // have been revoked or expired while it ran (#3755).
         if (
@@ -1594,10 +1628,11 @@ export function heartbeatOccupancy(
     };
   }
   const existing = readOccupancy(projectRoot);
-  const live = existing !== null && !isOccupancyExpired(existing, now) ? existing : null;
+  const live = liveOccupancyOnTree(projectRoot, existing, now);
   if (live === null) {
     const capped =
       existing !== null &&
+      occupancyWorktreeMatches(existing.worktreePath, projectRoot) &&
       existing.sessionId === caller &&
       occupancyLiveness(existing, now) === "age-capped";
     return {

@@ -799,6 +799,18 @@ function runOccupancy(
   return apply(projectRoot, occupancyInput(options, sessionId, now, write));
 }
 
+function occupancyReport(occupancy: OccupancyDecision): {
+  action: OccupancyDecision["action"];
+  session_id: string;
+  occupant_id: string | null;
+} {
+  return {
+    action: occupancy.action,
+    session_id: occupancy.sessionId,
+    occupant_id: occupancy.record?.sessionId ?? occupancy.sessionId,
+  };
+}
+
 function occupancyDeniedResult(
   occupancy: OccupancyDecision,
   environment: EnvironmentContext,
@@ -1050,6 +1062,7 @@ function runSessionRearm(
   }
   // #3433: keep DEFT_SESSION_ID / occupant id. Do not mint a new UUID on re-arm.
   const rearmSessionId = persistedOccupancy.sessionId;
+  lines.push(persistedOccupancy.message);
   // Fresh payload (no rearm_needed / compact_resume_at) clears compact markers (#2992).
   const writePayload: Record<string, unknown> = {
     ...newRitualStatePayload({
@@ -1173,10 +1186,7 @@ function runSessionRearm(
       scm: scmReadinessToDict(scm),
       host_content_surface: hostContentSurfaceToDict(hostSurface.report),
       effort_budget: effortBudgetToDict(effortBudget.budget),
-      occupancy: {
-        action: persistedOccupancy.action,
-        session_id: rearmSessionId,
-      },
+      occupancy: occupancyReport(persistedOccupancy),
       message: code === 0 ? "session ritual re-armed" : "session ritual re-arm failed",
     },
     lines,
@@ -1749,6 +1759,7 @@ export function runSessionStart(
     return persistedOccupancy;
   }
   const coldSessionId = persistedOccupancy.sessionId;
+  lines.push(persistedOccupancy.message);
   const dialDict = {
     ...ceremonyDialToDict(ceremonyDialSelection),
     start_tier: ceremonyDialSelection.depth,
@@ -1930,10 +1941,7 @@ export function runSessionStart(
     scm: scmReadinessToDict(scm),
     host_content_surface: hostContentSurfaceToDict(hostSurface.report),
     effort_budget: effortBudgetToDict(effortBudget.budget),
-    occupancy: {
-      action: persistedOccupancy.action,
-      session_id: coldSessionId,
-    },
+    occupancy: occupancyReport(persistedOccupancy),
     message: code === 0 ? "session ritual recorded" : "session ritual failed",
   };
   // #2994: local process-cost event (best-effort; never blocks ceremony).

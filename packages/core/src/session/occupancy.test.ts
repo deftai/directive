@@ -27,6 +27,7 @@ import {
   heartbeatOccupancy,
   isOccupancyExpired,
   liveOccupancyGrants,
+  liveOccupancyOnTree,
   liveOccupant,
   OCCUPANCY_GRANT_TTL_MS,
   OCCUPANCY_MAX_GRANTS,
@@ -39,6 +40,7 @@ import {
   occupancyGrantFor,
   occupancyLiveness,
   occupancyPath,
+  occupancyWorktreeMatches,
   readOccupancy,
   releaseOccupancy,
   releaseSwarmOccupancy,
@@ -902,6 +904,128 @@ describe("worktree occupancy lease (#3433)", () => {
       expect(second.code).toBe(1);
       expect(second.lines.join("\n")).toContain("Worktree occupied by session first-sess");
       expect(readOccupancy(root)?.sessionId).toBe("first-sess");
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("treats a deposited occupancy.json for another worktree as residue (#3926)", () => {
+    const root = tempRoot();
+    const now = new Date("2026-08-17T12:00:00Z");
+    const foreignTree = join(tmpdir(), "occupancy-foreign-deposit");
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(
+      occupancyPath(root),
+      `${JSON.stringify({
+        schemaVersion: 1,
+        session_id: "image-owner",
+        worktree_path: foreignTree,
+        intent: "mutation",
+        claimed_at: "2026-08-17T12:00:00Z",
+        heartbeat_at: "2026-08-17T12:00:00Z",
+      })}\n`,
+      "utf8",
+    );
+
+    expect(occupancyWorktreeMatches(foreignTree, root)).toBe(false);
+    expect(liveOccupancyOnTree(root, readOccupancy(root), now)).toBeNull();
+    expect(liveOccupant(root, now)).toBeNull();
+    expect(evaluateOccupancyWriteGate(root, { sessionId: "fresh", now }).allow).toBe(true);
+
+    const claimed = applyWorktreeOccupancy(root, { sessionId: "fresh", now });
+    expect(claimed.code).toBe(0);
+    expect(claimed.action).toBe("claimed");
+    expect(readOccupancy(root)?.sessionId).toBe("fresh");
+    expect(occupancyWorktreeMatches(readOccupancy(root)?.worktreePath ?? "", root)).toBe(true);
+  });
+
+  it("first session:start on a copied other-tree lease reports claimed, not occupied (#3926)", () => {
+    vi.stubEnv("DEFT_SESSION_ID", "ambient-worker-id");
+    try {
+      const root = tempRoot();
+      const now = new Date("2026-08-17T12:00:00Z");
+      mkdirSync(join(root, ".deft"), { recursive: true });
+      writeFileSync(
+        occupancyPath(root),
+        `${JSON.stringify({
+          schemaVersion: 1,
+          session_id: "container-image-owner",
+          worktree_path: join(tmpdir(), "occupancy-image-root"),
+          intent: "mutation",
+          claimed_at: "2026-08-17T12:00:00Z",
+          heartbeat_at: "2026-08-17T12:00:00Z",
+        })}\n`,
+        "utf8",
+      );
+      const first = runSessionStart(root, {
+        writeHistory: false,
+        now,
+        env: {},
+        newSessionId: () => "fresh-sess",
+        runGit: () => ({
+          code: 0,
+          stdout: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          stderr: "",
+        }),
+        verifyTools: () => ({ exitCode: 0 }),
+        runTriageWelcome: () => ({ exitCode: 0 }),
+      });
+      expect(first.code).toBe(0);
+      expect(first.lines.join("\n")).not.toContain("Worktree occupied");
+      expect(first.lines.join("\n")).toContain("occupancy claimed session fresh-sess");
+      expect(first.payload.occupancy).toEqual(
+        expect.objectContaining({
+          action: "claimed",
+          session_id: "fresh-sess",
+          occupant_id: "fresh-sess",
+        }),
+      );
+      expect(readOccupancy(root)?.sessionId).toBe("fresh-sess");
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("successful steal then session:start as the stealer reports occupant, not occupied (#3926)", () => {
+    vi.stubEnv("DEFT_SESSION_ID", "ambient-worker-id");
+    try {
+      const root = tempRoot();
+      const claimedAt = new Date("2026-08-17T12:00:00Z");
+      applyWorktreeOccupancy(root, { sessionId: "old-owner", now: claimedAt });
+      const stolenAt = new Date("2026-08-17T12:01:00Z");
+      const stolen = stealOccupancy(root, {
+        sessionId: "stealer",
+        occupant: "old-owner",
+        confirm: true,
+        now: stolenAt,
+      });
+      expect(stolen.code).toBe(0);
+      expect(stolen.action).toBe("stolen");
+      expect(readOccupancy(root)?.sessionId).toBe("stealer");
+
+      const next = runSessionStart(root, {
+        writeHistory: false,
+        now: new Date("2026-08-17T12:02:00Z"),
+        env: { DEFT_SESSION_ID: "stealer" },
+        newSessionId: () => "must-not-mint",
+        runGit: () => ({
+          code: 0,
+          stdout: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          stderr: "",
+        }),
+        verifyTools: () => ({ exitCode: 0 }),
+        runTriageWelcome: () => ({ exitCode: 0 }),
+      });
+      expect(next.code).toBe(0);
+      expect(next.lines.join("\n")).not.toContain("Worktree occupied");
+      expect(next.payload.occupancy).toEqual(
+        expect.objectContaining({
+          action: "heartbeat",
+          session_id: "stealer",
+          occupant_id: "stealer",
+        }),
+      );
+      expect(readOccupancy(root)?.sessionId).toBe("stealer");
     } finally {
       vi.unstubAllEnvs();
     }

@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **A copied occupancy lease from another worktree no longer occupies a fresh tree (#3926).** `.deft/occupancy.json` whose `worktree_path` is not this checkout is residue, not a live occupant: first `session:start` claims, and the steal-then-start path reports the stealer as occupant when identity is consistent. Same-tree two-session conflict still fails closed. Identity minting and the TTL/cap stay on #3954 / #3599. Closes #3926. Refs #3433, #3954.
+
 - **Land completed-tracked artifact for #4035 (#3264 / #1358).** The #4035 xBRIEF stayed untracked after squash of PR 4036 (`11b4c407`). Moved to `xbrief/completed/` via scope:complete. Does not recut that issue. Refs #2321, #3476.
 
 - **Design-critique parent silence now waits on this round's siblings, not each critic EXIT (#4027).** Bind was already withheld while same-round siblings remained unposted; the lean and verb menu still talked at 1 of 3. Silence is the existing unqualified same-round-unposted conjunct. Spend stays permission. The critic brief gets no `parent-silence-until` field. Line 218 keeps the empty-lean verb-menu ban and waits on this round's lean. A lean that closes a round of two or more names the dispatched sibling count and those comment ids. Closes #4027. Refs #3850, #3741, #3962.
