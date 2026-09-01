@@ -1,0 +1,108 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4009",
+    "updated": "2026-09-01T20:54:29Z"
+  },
+  "plan": {
+    "title": "[framework-gap] verify:forward-coverage ignores configured testRoots and matches on a bare filename stem",
+    "status": "completed",
+    "narratives": {
+      "Description": "[framework-gap] verify:forward-coverage ignores configured testRoots and matches on a bare filename stem",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4009",
+      "Overview": "## Summary\n\nverify:forward-coverage ignores configured testRoots and matches on a bare filename stem\n\n## Context\n\nDirective engine 0.107.0, content 0.107.0. Consumer project with a modular architecture in which every module directory exposes an `index.ts` barrel — encouraged by the architecture guidance and enforced by a dependency-cruiser boundary rule — and with tests configured under a project test root.\n\n`verify:forward-coverage` (#1310 / #3514) refuses a commit when a new source file arrives without a corresponding test. The rule is right. Two things about how it matches are not.\n\n## Expected behavior\n\nThe check resolves the expected test path using the project's configured `testRoots`, and matches on the source file's path relative to its module or test root — so a correctly-placed test registers, and a same-named file in an unrelated directory does not.\n\n## Actual behavior / gap\n\n**It ignores configured `testRoots`.** A project that centralises tests under a configured root still has its files reported as uncovered, because the check does not consult that configuration when looking for the matching test.\n\n**It matches on a bare filename stem.** The expectation is expressed as:\n\n```\nverify_forward_coverage: 2 new source file(s) added without a corresponding test in the same diff (#1310).\n  src/ui/ledger-table/index.ts    expected one of: index.test.ts, index.spec.ts\n  src/ui/ledger-table/types.ts    expected one of: types.test.ts, types.spec.ts\n```\n\nMatching on the stem alone means `index.ts` anywhere in the tree is satisfied by `index.test.ts` anywhere else in the tree. Where every module directory exposes a barrel, stems like `index` and `types` repeat in every module. The check is therefore both too loose — a stem match in an unrelated directory counts — and too strict — a correctly-placed test under a configured root does not.\n\n## Session notes\n\n### Why it matters\n\nThe interaction with the write fence is where it bites. A story that creates a component directory ships an `index.ts`; forward-coverage demands a test for it; if the story's `file_scope` does not include that test path, the worker cannot write it and the fence refuses every candidate placement. The story is then complete, green and uncommittable. Two independent stories hit that combination.\n\nThe correct fix on the consumer side is to widen the story's declared scope to include a test per new source file, which is worth doing on its own merits. But because a correctly-placed test can fail to register, the consumer cannot tell which of the two problems they have.\n\n### What was deliberately not done\n\nNo allowlist entry exempting barrels was added. That relaxes a gate to fit the decomposition rather than fixing the decomposition, and a barrel with no test is a public surface nothing asserts (#3156).\n\n### Suggested fix\n\n1. Consult the project's configured `testRoots` when resolving the expected test path.\n2. Match on the source file's path relative to its module or test root, not on the bare stem.\n3. Report which candidate paths were searched, so a consumer can tell \"no test exists\" from \"the test exists somewhere the check did not look\".\n\n(3) is the cheap half and would have removed most of the diagnosis cost here on its own.\n\n### Not classified as a blocker\n\nThere is a reasonable workaround: declare the test path in the story's `file_scope` and place it where the stem match happens to find it.\n\n### Dedup performed\n\nSearched open issues in this repo on 2026-08-31 for `forward-coverage testRoots`, `forward-coverage`, `verify:forward-coverage stem`. No existing report of either matching behaviour. #3512 concerns the coverage threshold and the vitest 4 instrument, not path resolution.\n\n---\n_Filed via `task feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-08-31T16:02:54Z)\n\nmodel: grok-4.6\nrole: triage\n\nmechanism-shaped: true\n\ndesign-critique: warranted, because this issue is one of four whose reported mechanisms all sit in a path-or-pattern resolution step, and whether those four compose into one remedy or stay four independent ones cannot be answered from this thread alone.\n\nrefutation-target: that this issue is an independent defect whose own named local fix is the whole remedy.\n\nSet-level arc, anchored on #4007. Charter: open critique. Spend: N=3. Target shape: set-level over #4007 / #4008 / #4009 / #4010.\n\nThe round-1 ceiling, the critic posts, the successor lean and the record all live on #4007. Disposition stays per-issue, so this issue keeps its own verdict. Read #4007 for the arc.\n\n### Comment by @MScottAdams (2026-09-01T13:58:26Z)\n\nmodel: grok-4.6\nrole: parent\n\nLean:\n\n#4009 stays open, re-scoped. There is no test-root input to verify:forward-coverage at all; correspondence is by basename and the coverage set is built only from tests added in the same diff, so a pre-existing test never counts wherever it sits. Reuse the existing test-boundary policy rather than adding a second test-root config. Report searched candidate paths.\n\nThis comment is the successor lean on this thread so ingest can cite a lean that lives here. The operator-accepted synthesis for the four-issue arc is https://github.com/deftai/directive/issues/4007#issuecomment-5481547506 citing successor lean 5481295574 and verified-claims table 5481540218.\n\n### Comment by @MScottAdams (2026-09-01T13:59:05Z)\n\nmodel: grok-4.6\nrole: parent\n\ndesign-critique: synthesis accepted, because the operator confirmed the map after an independent Stop 4 audit on the #4007 arc, citing successor lean 5495101243 and the four-issue verified-claims table 5481540218.\n\nBind trail: operator verb accept synth recorded on https://github.com/deftai/directive/issues/4007#issuecomment-5481547506. This thread now carries its own successor lean so ingest clearance is per-issue.\n\n### Comment by @MScottAdams (2026-09-01T13:59:48Z)\n\nmodel: grok-4.6\nrole: parent\n\ndesign-critique: synthesis accepted, because the operator confirmed the map after an independent Stop 4 audit on the #4007 arc, citing successor lean 5495101243.\n\nThe verified-claims table for the four-issue arc lives on #4007 comment 5481540218 and is not re-hosted here.",
+      "Labels": "bug, determinism, design-critique:triage-ready"
+    },
+    "items": [],
+    "tags": [
+      "bug",
+      "determinism",
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4009",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4009: [framework-gap] verify:forward-coverage ignores configured testRoots and matches on a bare filename stem"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "verify_forward_coverage: 2 new source file(s) added without a corresponding test in the same diff (#1310)",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L23"
+        },
+        {
+          "command": "src/ui/ledger-table/index.ts    expected one of: index.test.ts, index.spec.ts",
+          "reason": "path-like first token is not allowlisted",
+          "sourceSpan": "fence@L23"
+        },
+        {
+          "command": "src/ui/ledger-table/types.ts    expected one of: types.test.ts, types.spec.ts",
+          "reason": "path-like first token is not allowlisted",
+          "sourceSpan": "fence@L23"
+        },
+        {
+          "command": "forward-coverage ignores configured testRoots and matches on a bare filename stem",
+          "reason": "first token \"forward-coverage\" is not in the literal-AC allowlist",
+          "sourceSpan": "labeled@L5"
+        },
+        {
+          "command": "forward-coverage testRoots",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L57"
+        },
+        {
+          "command": "verify:forward-coverage stem",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L57"
+        }
+      ],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4047,
+        "prBase": null,
+        "mergeCommit": "2f4e2305adb516164dec34ea87ad94097d1419fd",
+        "deliveryBranch": "master",
+        "deliveryCommit": "2f4e2305adb516164dec34ea87ad94097d1419fd",
+        "verifiedAt": "2026-09-01T20:54:29Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDVkMmQtNTA2OS03ZjMwLThlYzMtZTg2OGMwMTgyNDNl"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-01T20:54:29Z"
+      },
+      "completedAt": "2026-09-01T20:54:29Z",
+      "completedSessionId": "host:claude:v1:MDFhMDVkMmQtNTA2OS03ZjMwLThlYzMtZTg2OGMwMTgyNDNl",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "project_floor",
+      "derived_reason": "no shell acceptance commands stated in task text; floor until agent derives AC (#3284 ladder)"
+    },
+    "updated": "2026-09-01T20:54:29Z"
+  }
+}
