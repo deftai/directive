@@ -153,11 +153,20 @@ function itemTitles(items: unknown): string {
   return titles.join("\0");
 }
 
+function narrativesIdentity(plan: Record<string, unknown>): string {
+  const narratives = plan.narratives;
+  if (typeof narratives !== "object" || narratives === null || Array.isArray(narratives)) {
+    return "";
+  }
+  return JSON.stringify(narratives);
+}
+
 function planIdentity(plan: Record<string, unknown>): string {
   const title = String(plan.title ?? "").trim();
   const origin = originIssueKey(plan);
   const items = itemTitles(plan.items);
-  return [title, origin, items].filter((part) => part.length > 0).join("\n");
+  const narratives = narrativesIdentity(plan);
+  return [title, origin, items, narratives].filter((part) => part.length > 0).join("\n");
 }
 
 function pairingKey(relPath: string): string | null {
