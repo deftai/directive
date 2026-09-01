@@ -59,7 +59,6 @@ export const COMPLETED_WRITE_GUARD_MAX_BYTES = 1_048_576;
 
 const COMPLETED_REL_RE = /^(?:xbrief|vbrief)\/completed\/[^/]+$/;
 const ACTIVE_REL_RE = /^(?:xbrief|vbrief)\/active\/[^/]+$/;
-const CANCELLED_REL_RE = /^(?:xbrief|vbrief)\/cancelled\/[^/]+$/;
 
 /** Halt copy for unpaired active/ D or rename-from (#3766). */
 export const UNPAIRED_ACTIVE_DELETE_REMEDIATION =
@@ -76,13 +75,22 @@ function normalizeRepoRelPath(raw: string): string {
   return raw.replace(/\\/g, "/").replace(/^\.\//, "");
 }
 
+function lastPathSegment(relPath: string): string {
+  const n = normalizeRepoRelPath(relPath);
+  const i = n.lastIndexOf("/");
+  return i === -1 ? n : n.slice(i + 1);
+}
+
+function sanitizeDetail(text: string): string {
+  return text.replace(/\r?\n/g, " ");
+}
+
 function isCompletedArtifactRel(relPath: string): boolean {
   const n = normalizeRepoRelPath(relPath);
   if (!COMPLETED_REL_RE.test(n)) {
     return false;
   }
-  const base = n.split("/").pop() ?? "";
-  return hasArtifactSuffix(base);
+  return hasArtifactSuffix(lastPathSegment(n));
 }
 
 function isActiveArtifactRel(relPath: string): boolean {
@@ -90,27 +98,13 @@ function isActiveArtifactRel(relPath: string): boolean {
   if (!ACTIVE_REL_RE.test(n)) {
     return false;
   }
-  const base = n.split("/").pop() ?? "";
-  return hasArtifactSuffix(base);
-}
-
-function artifactBasename(relPath: string): string {
-  return normalizeRepoRelPath(relPath).split("/").pop() ?? "";
-}
-
-function isCancelledArtifactRel(relPath: string): boolean {
-  const n = normalizeRepoRelPath(relPath);
-  if (!CANCELLED_REL_RE.test(n)) {
-    return false;
-  }
-  const base = n.split("/").pop() ?? "";
-  return hasArtifactSuffix(base);
+  return hasArtifactSuffix(lastPathSegment(n));
 }
 
 function pairingKey(relPath: string): string | null {
   const n = normalizeRepoRelPath(relPath);
   const family = n.startsWith("xbrief/") ? "xbrief" : n.startsWith("vbrief/") ? "vbrief" : null;
-  const base = artifactBasename(n);
+  const base = lastPathSegment(n);
   if (family === null || base.length === 0) {
     return null;
   }
@@ -404,22 +398,12 @@ export function evaluateCompletedWriteGuard(
   ];
 
   const findings: CompletedWriteGuardFinding[] = [];
+  // Pairing authorization is a stamped completed/ dest only (#3766).
+  // scope:cancel does not stamp lifecycleWrite (complete|fail only). A
+  // cancelled/ dest with plan.status=cancelled is not a stamp and must
+  // not authorize deleting another worker's active brief.
   const pairedTerminalKeys = new Set<string>();
   for (const rel of added) {
-    if (isCancelledArtifactRel(rel)) {
-      const payload = readPayload(root, rel, options.payloads);
-      if (payload.kind !== "ok") {
-        continue;
-      }
-      const plan = parsePlan(payload.raw);
-      if (plan !== null && String(plan.status ?? "") === "cancelled") {
-        const key = pairingKey(rel);
-        if (key !== null) {
-          pairedTerminalKeys.add(key);
-        }
-      }
-      continue;
-    }
     if (!isCompletedArtifactRel(rel)) {
       continue;
     }
@@ -427,14 +411,14 @@ export function evaluateCompletedWriteGuard(
     if (payload.kind === "missing") {
       findings.push({
         relPath: rel,
-        detail: `${rel}: added under completed/ but unreadable`,
+        detail: sanitizeDetail(`${rel}: added under completed/ but unreadable`),
       });
       continue;
     }
     if (payload.kind === "unsafe") {
       findings.push({
         relPath: rel,
-        detail: payload.detail,
+        detail: sanitizeDetail(payload.detail),
       });
       continue;
     }
@@ -442,14 +426,14 @@ export function evaluateCompletedWriteGuard(
     if (plan === null) {
       findings.push({
         relPath: rel,
-        detail: `${rel}: added under completed/ with unreadable plan`,
+        detail: sanitizeDetail(`${rel}: added under completed/ with unreadable plan`),
       });
       continue;
     }
     if (!hasTransitionWrite(plan)) {
       findings.push({
         relPath: rel,
-        detail: `${rel}: added under completed/ without a runTransition write`,
+        detail: sanitizeDetail(`${rel}: added under completed/ without a runTransition write`),
       });
       continue;
     }
@@ -478,7 +462,7 @@ export function evaluateCompletedWriteGuard(
     const verb = rec.status === "R" ? "renamed away from" : "deleted from";
     findings.push({
       relPath: rec.src,
-      detail: `${rec.src}: ${verb} active/ with no paired stamped destination`,
+      detail: sanitizeDetail(`${rec.src}: ${verb} active/ with no paired stamped destination`),
     });
   }
 
