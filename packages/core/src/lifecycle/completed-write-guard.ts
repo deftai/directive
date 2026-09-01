@@ -59,7 +59,6 @@ export const COMPLETED_WRITE_GUARD_MAX_BYTES = 1_048_576;
 
 const COMPLETED_REL_RE = /^(?:xbrief|vbrief)\/completed\/[^/]+$/;
 const ACTIVE_REL_RE = /^(?:xbrief|vbrief)\/active\/[^/]+$/;
-const TERMINAL_REL_RE = /^(?:xbrief|vbrief)\/(?:completed|cancelled)\/[^/]+$/;
 
 /** Halt copy for unpaired active/ D or rename-from (#3766). */
 export const UNPAIRED_ACTIVE_DELETE_REMEDIATION =
@@ -88,15 +87,6 @@ function isCompletedArtifactRel(relPath: string): boolean {
 function isActiveArtifactRel(relPath: string): boolean {
   const n = normalizeRepoRelPath(relPath);
   if (!ACTIVE_REL_RE.test(n)) {
-    return false;
-  }
-  const base = n.split("/").pop() ?? "";
-  return hasArtifactSuffix(base);
-}
-
-function isTerminalArtifactRel(relPath: string): boolean {
-  const n = normalizeRepoRelPath(relPath);
-  if (!TERMINAL_REL_RE.test(n)) {
     return false;
   }
   const base = n.split("/").pop() ?? "";
@@ -396,9 +386,6 @@ export function evaluateCompletedWriteGuard(
   const findings: CompletedWriteGuardFinding[] = [];
   const stampedTerminalBasenames = new Set<string>();
   for (const rel of added) {
-    if (isTerminalArtifactRel(rel) && rel.includes("/cancelled/")) {
-      stampedTerminalBasenames.add(artifactBasename(rel));
-    }
     if (!isCompletedArtifactRel(rel)) {
       continue;
     }

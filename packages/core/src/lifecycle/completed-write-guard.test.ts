@@ -324,6 +324,17 @@ describe("evaluateCompletedWriteGuard (#3766 active deletion)", () => {
     expect(result.findings).toHaveLength(0);
   });
 
+  it("rejects an unstamped cancelled dest as authorization for an active delete", () => {
+    const cancelled = "xbrief/cancelled/2026-08-25-story.xbrief.json";
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `D\t${active}\nA\t${cancelled}`,
+      payloads: new Map([[cancelled, husk("cancelled")]]),
+    });
+    expect(result.code).toBe(1);
+    expect(result.findings.some((f) => f.relPath === active)).toBe(true);
+    expect(result.message).toMatch(/no paired stamped destination/);
+  });
+
   it("halts lone-D cleanup naming scope:complete or leave untracked", () => {
     const result = evaluateCompletedWriteGuard("/tmp/proj", {
       nameStatus: `D\t${active}`,
