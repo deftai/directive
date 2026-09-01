@@ -149,6 +149,7 @@ export interface SourceRootStrip {
 /**
  * Match posixPath against a source-root glob such as src/** or packages star-src/**.
  * Returns the remainder after the prefix, plus `*` captures, or null.
+ * Mid-path double-star backtracks; it does not commit to the first later-segment match.
  */
 export function stripSourceRoot(posixPath: string, sourceRoot: string): SourceRootStrip | null {
   const pathParts = posix(posixPath)
@@ -159,55 +160,59 @@ export function stripSourceRoot(posixPath: string, sourceRoot: string): SourceRo
     return { remainder: posix(posixPath), captures: [], consumed: 0 };
   }
   const globParts = prefix.split("/").filter((part) => part.length > 0);
-  const captures: string[] = [];
-  let i = 0;
-  for (let gi = 0; gi < globParts.length; gi += 1) {
-    const g = globParts[gi] ?? "";
-    if (g === "**") {
-      const next = globParts[gi + 1];
-      if (next === undefined) {
-        captures.push(pathParts.slice(i).join("/"));
-        i = pathParts.length;
-        continue;
-      }
-      let found = -1;
-      for (let j = i; j < pathParts.length; j += 1) {
-        const cand = pathParts[j] ?? "";
-        if (next === "*" || next === "**" || cand === next || matchPolicyGlob(cand, next)) {
-          found = j;
-          break;
-        }
-      }
-      if (found === -1) {
-        return null;
-      }
-      captures.push(pathParts.slice(i, found).join("/"));
-      i = found;
-      continue;
-    }
-    if (i >= pathParts.length) {
+  return matchStrip(globParts, 0, pathParts, 0, []);
+}
+
+function matchStrip(
+  globParts: readonly string[],
+  gi: number,
+  pathParts: readonly string[],
+  i: number,
+  captures: readonly string[],
+): SourceRootStrip | null {
+  if (gi >= globParts.length) {
+    const remainderParts = pathParts.slice(i);
+    if (remainderParts.length === 0) {
       return null;
     }
-    if (g === "*") {
-      captures.push(pathParts[i] ?? "");
-      i += 1;
-      continue;
-    }
-    const seg = pathParts[i] ?? "";
-    if (seg !== g && !matchPolicyGlob(seg, g)) {
-      return null;
-    }
-    i += 1;
+    return {
+      remainder: remainderParts.join("/"),
+      captures,
+      consumed: i,
+    };
   }
-  const remainderParts = pathParts.slice(i);
-  if (remainderParts.length === 0) {
+  const g = globParts[gi] ?? "";
+  if (g === "**") {
+    const next = globParts[gi + 1];
+    if (next === undefined) {
+      return matchStrip(globParts, gi + 1, pathParts, pathParts.length, [
+        ...captures,
+        pathParts.slice(i).join("/"),
+      ]);
+    }
+    let best: SourceRootStrip | null = null;
+    for (let j = i; j <= pathParts.length; j += 1) {
+      const result = matchStrip(globParts, gi + 1, pathParts, j, [
+        ...captures,
+        pathParts.slice(i, j).join("/"),
+      ]);
+      if (result !== null && (best === null || result.consumed > best.consumed)) {
+        best = result;
+      }
+    }
+    return best;
+  }
+  if (i >= pathParts.length) {
     return null;
   }
-  return {
-    remainder: remainderParts.join("/"),
-    captures,
-    consumed: i,
-  };
+  if (g === "*") {
+    return matchStrip(globParts, gi + 1, pathParts, i + 1, [...captures, pathParts[i] ?? ""]);
+  }
+  const seg = pathParts[i] ?? "";
+  if (seg !== g && !matchPolicyGlob(seg, g)) {
+    return null;
+  }
+  return matchStrip(globParts, gi + 1, pathParts, i + 1, captures);
 }
 
 function longestSourceStrip(
