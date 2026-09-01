@@ -62,6 +62,14 @@ describe("stripSourceRoot", () => {
       consumed: 3,
     });
   });
+
+  it("captures consecutive double-stars as non-empty segments", () => {
+    expect(stripSourceRoot("packages/foo/bar/src/file.ts", "packages/**/**/src/**")).toEqual({
+      remainder: "file.ts",
+      captures: ["foo", "bar"],
+      consumed: 4,
+    });
+  });
 });
 
 describe("fillRootTemplate", () => {
@@ -83,6 +91,10 @@ describe("fillRootTemplate", () => {
 
   it("fills a question-mark test root from the captured segment", () => {
     expect(fillRootTemplate("pkg/c?re/test/**", ["core"])).toBe("pkg/core/test");
+  });
+
+  it("fills two single-star test slots from consecutive double-star captures", () => {
+    expect(fillRootTemplate("packages/*/*/test/**", ["foo", "bar"])).toBe("packages/foo/bar/test");
   });
 });
 
@@ -152,6 +164,17 @@ describe("expectedTestPaths", () => {
     const paths = expectedTestPaths("packages/pkg/src/sub/src/file.ts", custom);
     expect(paths).toContain("packages/pkg/test/sub/src/file.test.ts");
     expect(paths).not.toContain("packages/pkg/src/sub/test/file.test.ts");
+  });
+
+  it("maps consecutive double-star source roots onto two single-star test slots", () => {
+    const custom = {
+      ...policy,
+      sourceRoots: ["packages/**/**/src/**"],
+      testRoots: ["packages/*/*/test/**"],
+    };
+    const paths = expectedTestPaths("packages/foo/bar/src/file.ts", custom);
+    expect(paths).toContain("packages/foo/bar/test/file.test.ts");
+    expect(paths).not.toContain("packages//foo/bar/test/file.test.ts");
   });
 
   it("mirrors the full path under tests/ when no source root matches", () => {

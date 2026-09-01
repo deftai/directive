@@ -190,14 +190,22 @@ function matchStrip(
         pathParts.slice(i).join("/"),
       ]);
     }
-    // Earliest full match wins. Later src segments still run if this split fails.
-    for (let j = i; j <= pathParts.length; j += 1) {
+    // Prefer a non-empty split when the next slot is also ** so
+    // packages/**/**/src pairs with packages/*/*/test instead of ["", "foo/bar"].
+    const firstJ = next === "**" ? i + 1 : i;
+    for (let j = firstJ; j <= pathParts.length; j += 1) {
       const result = matchStrip(globParts, gi + 1, pathParts, j, [
         ...captures,
         pathParts.slice(i, j).join("/"),
       ]);
       if (result !== null) {
         return result;
+      }
+    }
+    if (next === "**" && firstJ > i) {
+      const empty = matchStrip(globParts, gi + 1, pathParts, i, [...captures, ""]);
+      if (empty !== null) {
+        return empty;
       }
     }
     return null;
