@@ -689,7 +689,9 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(loop).toContain("Spend is permission, not the wait rule");
     expect(loop).toContain("Parent dispatch bookkeeping is the trigger");
     expect(loop).toContain("thread posts corroborate");
-    expect(loop).toContain("The halt line remains postable while same-round siblings remain unposted");
+    expect(loop).toContain(
+      "The halt line remains postable while same-round siblings remain unposted",
+    );
     expect(loop).toContain(
       "**before** printing `accept` / `retry differences` / `walk` / `walk all`",
     );
@@ -703,7 +705,9 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(lean).toContain("ADR-006 arbitration surface");
     expect(lean).toContain("same party authored the triage");
     expect(loop).toContain("Binding takes is not synthesis bind");
-    expect(loop).toContain("The first lean after this round's siblings are posted is the take-offer, not the bind");
+    expect(loop).toContain(
+      "The first lean after this round's siblings are posted is the take-offer, not the bind",
+    );
     expect(loop).toContain(
       "⊗ Bind synthesis or stamp `design-critique:triage-ready` while same-round siblings remain unposted.",
     );
@@ -752,7 +756,9 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(bind).toContain("or while same-round siblings remain unposted.");
     expect(lean).toContain("After this round's same-round siblings are posted");
     expect(lean).not.toContain("After each critic EXIT");
-    expect(lean).toContain("A lean that closes a round of two or more names that round's dispatched sibling count");
+    expect(lean).toContain(
+      "A lean that closes a round of two or more names that round's dispatched sibling count",
+    );
     expect(verbs).toContain("after a successor lean is posted for this round");
     expect(verbs).not.toContain("for this critic EXIT");
     expect(text).not.toContain("parent-silence-until");
@@ -762,7 +768,9 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(loop).toContain("Count self-attested `role: critic` lines as panel-complete");
     const skill = readText(SKILL_REL);
     expect(skill).toContain("After this round's siblings are posted: successor lean, then verbs");
-    expect(skill).toContain("After same-round siblings are posted, the parent posts the successor lean");
+    expect(skill).toContain(
+      "After same-round siblings are posted, the parent posts the successor lean",
+    );
     expect(skill).not.toContain("After each critic EXIT");
     expect(skill).not.toContain("After critic post: posted successor lean, then verbs");
     expect(skill).toContain(
