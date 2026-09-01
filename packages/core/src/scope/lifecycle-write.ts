@@ -102,7 +102,7 @@ export function transitionWriteFitsFolder(
   folder: "completed" | "cancelled",
 ): boolean {
   if (folder === "cancelled") {
-    return stampAction(plan) === "cancel";
+    return hasLifecycleWriteStamp(plan) && stampAction(plan) === "cancel";
   }
   if (stampAction(plan) === "cancel") {
     return false;

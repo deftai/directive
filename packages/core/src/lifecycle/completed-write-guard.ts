@@ -515,15 +515,28 @@ export function evaluateCompletedWriteGuard(
       const plan = parsePlan(payload.raw);
       return plan === null ? "" : planIdentity(plan);
     }
-    if (options.nameStatus !== undefined || pairingBaseRef.length === 0) {
+    if (options.nameStatus !== undefined) {
       return "";
     }
-    const shown = git(["show", `${pairingBaseRef}:${src}`], root);
-    if (shown.status !== 0) {
-      return "";
+    const specs = [`HEAD:${src}`, `HEAD^:${src}`];
+    if (pairingBaseRef.length > 0) {
+      specs.push(`${pairingBaseRef}:${src}`);
     }
-    const plan = parsePlan(shown.stdout);
-    return plan === null ? "" : planIdentity(plan);
+    for (const spec of specs) {
+      const shown = git(["show", spec], root);
+      if (shown.status !== 0) {
+        continue;
+      }
+      const plan = parsePlan(shown.stdout);
+      if (plan === null) {
+        continue;
+      }
+      const identity = planIdentity(plan);
+      if (identity.length > 0) {
+        return identity;
+      }
+    }
+    return "";
   };
 
   const seenActive = new Set<string>();

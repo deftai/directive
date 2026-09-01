@@ -52,6 +52,15 @@ describe("lifecycle-write (#3679)", () => {
     expect(transitionWriteFitsFolder(completed, "cancelled")).toBe(false);
   });
 
+  it("rejects a cancel action with no writtenAt", () => {
+    expect(
+      transitionWriteFitsFolder(
+        { status: "cancelled", metadata: { lifecycleWrite: { action: "cancel" } } },
+        "cancelled",
+      ),
+    ).toBe(false);
+  });
+
   it("rejects a completed husk with no stamp", () => {
     expect(
       hasTransitionWrite({
