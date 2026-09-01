@@ -65,6 +65,9 @@ story's `file_scope` and over-permit the others (#4007). Bind the dispatched sto
 
 - `DEFT_ACTIVE_SCOPE` (absolute, project-relative, or unique basename) must name
   one eligible running brief; that path's `file_scope` is the story fence
+- On win32, pin matching is case-insensitive (the filesystem is). POSIX pins stay
+  case-sensitive, and a backslash in a POSIX pin is a filename character, not a
+  separator
 - Missing pin + multiple eligible → fail closed (`scope-not-ready`). Recovery: set
   the pin, or keep one running brief in `xbrief/active/`
 - A pin that does not name an eligible brief → fail closed

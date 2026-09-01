@@ -34,6 +34,13 @@ function toPosix(path: string): string {
   return process.platform === "win32" ? path.replace(/\\/g, "/") : path;
 }
 
+/** Win32 filesystems are case-insensitive; POSIX filenames are not (#4007 Greptile). */
+function samePathToken(left: string, right: string): boolean {
+  return process.platform === "win32"
+    ? left.toLowerCase() === right.toLowerCase()
+    : left === right;
+}
+
 function containedResolved(projectRoot: string, target: string): string | null {
   const root = resolve(projectRoot);
   const abs = resolve(root, target);
@@ -65,8 +72,10 @@ export function matchPinnedActiveScope(
   const wantPosix =
     contained !== null ? toPosix(relative(resolve(projectRoot), contained)) : toPosix(trimmed);
   for (const candidate of scanned) {
-    if (contained !== null && resolve(candidate) === contained) return candidate;
-    if (toPosix(relative(resolve(projectRoot), candidate)) === wantPosix) return candidate;
+    if (contained !== null && samePathToken(resolve(candidate), contained)) return candidate;
+    if (samePathToken(toPosix(relative(resolve(projectRoot), candidate)), wantPosix)) {
+      return candidate;
+    }
   }
   // Path-shaped pins (absolute or project-relative) fail closed on exact miss.
   // Basename fallback is only for a bare filename; otherwise a stale/wrong-dir
@@ -75,10 +84,14 @@ export function matchPinnedActiveScope(
   if (pinPosix.includes("/")) return null;
   const base = basename(pinPosix);
   if (base.length === 0) return null;
-  const eligibleHits = eligible.filter((candidate) => basename(candidate) === base);
+  const eligibleHits = eligible.filter((candidate) =>
+    samePathToken(basename(candidate), base),
+  );
   const eligibleHit = eligibleHits[0];
   if (eligibleHits.length === 1 && eligibleHit !== undefined) return eligibleHit;
-  const scannedHits = scanned.filter((candidate) => basename(candidate) === base);
+  const scannedHits = scanned.filter((candidate) =>
+    samePathToken(basename(candidate), base),
+  );
   const scannedHit = scannedHits[0];
   if (scannedHits.length === 1 && scannedHit !== undefined) return scannedHit;
   return null;

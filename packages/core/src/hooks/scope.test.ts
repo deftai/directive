@@ -168,6 +168,21 @@ describe("shared-active write-fence bind (#4007)", () => {
     }
   });
 
+  it("binds a win32 pin that differs only by letter case", () => {
+    const project = root();
+    writeRunning(project, "a-story.xbrief.json", ["packages/a/**"]);
+    const storyB = writeRunning(project, "b-story.xbrief.json", ["packages/b/**"]);
+    const pin = "Xbrief/Active/B-Story.xbrief.json";
+    const result = inspectActiveScope(project, { env: { [ACTIVE_SCOPE_PIN_ENV]: pin } });
+    if (process.platform === "win32") {
+      expect(result).toMatchObject({ ready: true, path: storyB });
+    } else {
+      expect(result.ready).toBe(false);
+      expect(result.path).toBeNull();
+      expect(result.message).toContain(pin);
+    }
+  });
+
   it("does not degrade a path-shaped miss to a same-named basename", () => {
     const project = root();
     writeRunning(project, "a-story.xbrief.json", ["packages/a/**"]);
