@@ -8,6 +8,7 @@
  */
 
 import { basename } from "node:path";
+import { matchPolicyGlob } from "../test-boundary/evaluate.js";
 import type { TestBoundaryPolicy } from "../test-boundary/policy.js";
 
 /** Source-file extensions in scope for v1. */
@@ -171,7 +172,8 @@ export function stripSourceRoot(posixPath: string, sourceRoot: string): SourceRo
       }
       let found = -1;
       for (let j = i; j < pathParts.length; j += 1) {
-        if (next === "*" || pathParts[j] === next) {
+        const cand = pathParts[j] ?? "";
+        if (next === "*" || next === "**" || cand === next || matchPolicyGlob(cand, next)) {
           found = j;
           break;
         }
@@ -191,7 +193,8 @@ export function stripSourceRoot(posixPath: string, sourceRoot: string): SourceRo
       i += 1;
       continue;
     }
-    if (pathParts[i] !== g) {
+    const seg = pathParts[i] ?? "";
+    if (seg !== g && !matchPolicyGlob(seg, g)) {
       return null;
     }
     i += 1;

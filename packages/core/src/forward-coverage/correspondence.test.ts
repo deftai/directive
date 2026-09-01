@@ -31,6 +31,14 @@ describe("stripSourceRoot", () => {
     expect(stripSourceRoot("scripts/thing.py", "src/**")).toBeNull();
   });
 
+  it("matches a question-mark glob segment via the shared policy matcher", () => {
+    expect(stripSourceRoot("pkg/core/src/foo.ts", "pkg/c?re/src/**")).toEqual({
+      remainder: "foo.ts",
+      captures: [],
+      consumed: 3,
+    });
+  });
+
   it("strips a mid-path double-star source root", () => {
     expect(stripSourceRoot("packages/foo/src/bar.ts", "packages/**/src/**")).toEqual({
       remainder: "bar.ts",
