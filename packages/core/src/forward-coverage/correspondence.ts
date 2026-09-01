@@ -140,7 +140,7 @@ export function isDirectoryShapedRoot(glob: string): boolean {
 export interface SourceRootStrip {
   /** Path after the matched source-root prefix, including the filename. */
   readonly remainder: string;
-  /** Values captured by single-star segments in the source-root glob. */
+  /** Values captured by star, double-star, and partial-segment wildcard slots. */
   readonly captures: readonly string[];
   /** Path segments consumed from the source path (for longest-match). */
   readonly consumed: number;
@@ -212,7 +212,8 @@ function matchStrip(
   if (seg !== g && !matchPolicyGlob(seg, g)) {
     return null;
   }
-  return matchStrip(globParts, gi + 1, pathParts, i + 1, captures);
+  const nextCaptures = isPartialWildcardSlot(g) ? [...captures, seg] : captures;
+  return matchStrip(globParts, gi + 1, pathParts, i + 1, nextCaptures);
 }
 
 function longestSourceStrip(
@@ -232,8 +233,21 @@ function longestSourceStrip(
   return best;
 }
 
+/** True when a glob segment is a capture slot (star, double-star, question-mark, or class). */
+function isWildcardSlot(part: string): boolean {
+  return part === "*" || part === "**" || isPartialWildcardSlot(part);
+}
+
+/** True when a segment is a partial-segment wildcard (c?re, character class, c*e). */
+function isPartialWildcardSlot(part: string): boolean {
+  if (part === "*" || part === "**") {
+    return false;
+  }
+  return part.includes("?") || part.includes("*") || part.includes("[");
+}
+
 function wildcardCount(template: string): number {
-  return template.split("/").filter((part) => part === "*" || part === "**").length;
+  return template.split("/").filter((part) => isWildcardSlot(part)).length;
 }
 
 /** Fill a packages star-test root from packages star-src captures. Null if star counts differ. */
@@ -246,12 +260,12 @@ export function fillRootTemplate(testRoot: string, captures: readonly string[]):
   const out: string[] = [];
   let cap = 0;
   for (const g of parts) {
-    if (g === "*" || g === "**") {
+    if (isWildcardSlot(g)) {
       const value = captures[cap];
       if (value === undefined) {
         return null;
       }
-      if (g === "*" && (value.length === 0 || value.includes("/"))) {
+      if (g !== "**" && (value.length === 0 || value.includes("/"))) {
         return null;
       }
       if (value.length > 0) {

@@ -34,7 +34,7 @@ describe("stripSourceRoot", () => {
   it("matches a question-mark glob segment via the shared policy matcher", () => {
     expect(stripSourceRoot("pkg/core/src/foo.ts", "pkg/c?re/src/**")).toEqual({
       remainder: "foo.ts",
-      captures: [],
+      captures: ["core"],
       consumed: 3,
     });
   });
@@ -71,6 +71,10 @@ describe("fillRootTemplate", () => {
 
   it("fills a mid-path double-star test root", () => {
     expect(fillRootTemplate("packages/**/test/**", ["foo"])).toBe("packages/foo/test");
+  });
+
+  it("fills a question-mark test root from the captured segment", () => {
+    expect(fillRootTemplate("pkg/c?re/test/**", ["core"])).toBe("pkg/core/test");
   });
 });
 
@@ -117,6 +121,18 @@ describe("expectedTestPaths", () => {
     const paths = expectedTestPaths("packages/src/other/src/foo/bar.ts", custom);
     expect(paths).toContain("packages/src/other/src/foo/bar.test.ts");
     expect(paths).toContain("packages/src/other/test/foo/bar.test.ts");
+  });
+
+  it("maps a question-mark source root onto the matching test root", () => {
+    const custom = {
+      ...policy,
+      sourceRoots: ["pkg/c?re/src/**"],
+      testRoots: ["pkg/c?re/test/**"],
+    };
+    const paths = expectedTestPaths("pkg/core/src/foo.ts", custom);
+    expect(paths).toContain("pkg/core/src/foo.test.ts");
+    expect(paths).toContain("pkg/core/test/foo.test.ts");
+    expect(paths).not.toContain("pkg/c?re/test/foo.test.ts");
   });
 
   it("mirrors the full path under tests/ when no source root matches", () => {
