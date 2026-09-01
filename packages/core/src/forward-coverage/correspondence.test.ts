@@ -19,6 +19,14 @@ describe("stripSourceRoot", () => {
     });
   });
 
+  it("strips consecutive trailing globstars to a usable remainder", () => {
+    expect(stripSourceRoot("packages/foo/bar.ts", "packages/**/**")).toEqual({
+      remainder: "foo/bar.ts",
+      captures: [],
+      consumed: 1,
+    });
+  });
+
   it("captures packages/*/src stars", () => {
     expect(stripSourceRoot("packages/core/src/foo.ts", "packages/*/src/**")).toEqual({
       remainder: "foo.ts",
@@ -99,6 +107,10 @@ describe("fillRootTemplate", () => {
 
   it("fills a question-mark test root from the captured segment", () => {
     expect(fillRootTemplate("pkg/c?re/test/**", ["core"])).toBe("pkg/core/test");
+  });
+
+  it("rejects a capture that does not match a constrained test-root glob", () => {
+    expect(fillRootTemplate("pkg/c?re/test/**", ["foo"])).toBeNull();
   });
 
   it("fills a character-class test root from the captured segment", () => {
@@ -209,6 +221,16 @@ describe("expectedTestPaths", () => {
     const paths = expectedTestPaths("packages/core/src/foo.ts", custom);
     expect(paths).toContain("tests/foo.test.ts");
     expect(paths).toContain("packages/core/test/foo.test.ts");
+  });
+
+  it("still searches a starless test root when the source root captured a star", () => {
+    const custom = {
+      ...policy,
+      sourceRoots: ["packages/*/src/**"],
+      testRoots: ["tests/**"],
+    };
+    const paths = expectedTestPaths("packages/core/src/foo.ts", custom);
+    expect(paths).toContain("tests/foo.test.ts");
   });
 
   it("mirrors the full path under tests/ when no source root matches", () => {

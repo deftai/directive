@@ -113,14 +113,17 @@ export function expectedTestBasenames(sourcePath: string): string[] {
   }
 }
 
-/** Strip a trailing `/**` (or bare `**`) so a root glob becomes a prefix template. */
+/** Strip trailing globstars so a root glob becomes a prefix template. */
 function rootPrefixTemplate(glob: string): string {
-  const g = posix(glob);
-  if (g.endsWith("/**")) {
-    return g.slice(0, -3);
+  let g = posix(glob);
+  while (g.endsWith("/**")) {
+    g = g.slice(0, -3);
   }
-  if (g.endsWith("**")) {
-    return g.slice(0, -2).replace(/\/$/, "");
+  while (g.endsWith("**")) {
+    g = g.slice(0, -2);
+    if (g.endsWith("/")) {
+      g = g.slice(0, -1);
+    }
   }
   return g;
 }
@@ -259,6 +262,9 @@ export function fillRootTemplate(testRoot: string, captures: readonly string[]):
       if (g !== "**" && (value.length === 0 || value.includes("/"))) {
         return null;
       }
+      if (isPartialWildcardSlot(g) && !matchPolicyGlob(value, g)) {
+        return null;
+      }
       if (value.length > 0) {
         for (const seg of value.split("/")) {
           if (seg.length > 0) {
@@ -320,6 +326,10 @@ export function expectedTestPaths(sourcePath: string, policy: TestBoundaryPolicy
       const template = rootPrefixTemplate(testRoot);
       if (template === "**/__tests__" || template.endsWith("**/__tests__")) {
         addNamed(out, joinPosix("__tests__", remainderDir), names);
+        continue;
+      }
+      if (wildcardCount(template) === 0) {
+        addNamed(out, joinPosix(template, remainderDir), names);
         continue;
       }
       const filled = fillRootTemplate(testRoot, stripped.captures);
