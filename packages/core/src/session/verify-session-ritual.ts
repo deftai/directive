@@ -25,7 +25,7 @@ import {
   ritualStateMarksRearmNeeded,
   ritualStatePath,
   ritualStep,
-  writeRitualState,
+  writeRitualStateIfStillOwned,
 } from "./ritual-sentinel.js";
 import {
   formatSessionStartRecoveryCommand,
@@ -238,44 +238,6 @@ function shouldRearmDriftProbe(
 ): boolean {
   if (payload.drift_probe !== DRIFT_PROBE_SKIPPED_NO_WORK_SELECTION) return false;
   return detect(projectRoot).inPlay;
-}
-
-/**
- * Persist a payload derived from `expected` only while the record on disk is
- * still the one this verification read (#3769).
- *
- * A lease transfer mid-verification can re-arm the tree under a new owner. The
- * losing session is denied by the occupancy recheck, but without this
- * compare-and-swap its in-flight write would already have replaced the new
- * owner record. Serializing ritual writes outright is the separate
- * ritual-state locking item, deliberately out of scope.
- *
- * Returns null on success, or the reason the write was refused.
- */
-function writeRitualStateIfStillOwned(
-  projectRoot: string,
-  payload: Record<string, unknown>,
-  expected: { sessionId?: string; startedAt: Date },
-): string | null {
-  const [current] = readRitualState(projectRoot);
-  if (current === null) {
-    return "session ritual state was removed while this verification was running";
-  }
-  if (
-    current.sessionId !== expected.sessionId ||
-    current.startedAt.getTime() !== expected.startedAt.getTime()
-  ) {
-    return (
-      `session ritual state was re-armed by ${current.sessionId ?? "<unbound>"} while this ` +
-      "verification was running; refusing to overwrite the current owner record"
-    );
-  }
-  try {
-    writeRitualState(projectRoot, payload);
-  } catch (exc) {
-    return String(exc);
-  }
-  return null;
 }
 
 function runGatedStep(

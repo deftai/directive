@@ -237,9 +237,7 @@ describe("session branches", () => {
         },
       }),
     );
-    vi.spyOn(ritualSentinel, "writeRitualState").mockImplementation(() => {
-      throw new Error("disk full");
-    });
+    vi.spyOn(ritualSentinel, "writeRitualStateIfStillOwned").mockImplementation(() => "disk full");
     const gated = verifySessionRitual(root, {
       bypass: false,
       tier: "gated",
@@ -287,9 +285,7 @@ describe("session branches", () => {
         GIT_COMMITTER_EMAIL: "t@t.local",
       },
     });
-    vi.spyOn(ritualSentinel, "writeRitualState").mockImplementation(() => {
-      throw new Error("disk full");
-    });
+    vi.spyOn(ritualSentinel, "writeRitualStateIfStillOwned").mockImplementation(() => "disk full");
     const result = verifySessionRitual(root, {
       bypass: false,
       posture: "mutation",

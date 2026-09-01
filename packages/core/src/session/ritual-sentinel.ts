@@ -7,6 +7,7 @@ import {
   LEGACY_ARTIFACT_DIR,
   MIGRATED_ARTIFACT_DIR,
 } from "../layout/resolve.js";
+import { assertAppendLockOwned, type LockDeps, withAppendLock } from "../slice/lock.js";
 import { stableJson } from "./json.js";
 import { RITUAL_STATE_CONTRACT } from "./posture.js";
 import { parseTimestamp, timestampIso } from "./time.js";
@@ -16,6 +17,12 @@ export const RITUAL_STATE_SCHEMA_VERSION = 1;
 export { RITUAL_STATE_CONTRACT } from "./posture.js";
 export const SENTINEL_RELPATH = [".deft", "last-session.json"] as const;
 export const RITUAL_STATE_RELPATH = [".deft", "ritual-state.json"] as const;
+/**
+ * Ritual lock wait must finish inside the nested-hook budget (#3872).
+ * Occupancy restamp still needs the remaining seconds, so this is 2s of the 5s host cap.
+ */
+export const RITUAL_LOCK_BUDGET_MS = 2_000;
+
 export const MIN_RESUME_AGE_MS = 2 * 60 * 60 * 1000;
 export const ACTIVE_VBRIEF_PREFIX = `${MIGRATED_ARTIFACT_DIR}/active/`;
 
@@ -257,10 +264,114 @@ export function readRitualState(projectRoot: string): [RitualState | null, strin
   ];
 }
 
-export function writeRitualState(projectRoot: string, payload: Record<string, unknown>): string {
+function asStepMap(value: unknown): Record<string, Record<string, unknown>> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return {};
+  }
+  const out: Record<string, Record<string, unknown>> = {};
+  for (const [name, step] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof step === "object" && step !== null && !Array.isArray(step)) {
+      out[name] = step as Record<string, Record<string, unknown>>[string];
+    }
+  }
+  return out;
+}
+
+/** Overlay incoming keys onto disk; merge step maps so co-members do not clobber (#3872). */
+export function mergeSameOwnerRitualPayload(
+  disk: Record<string, unknown>,
+  incoming: Record<string, unknown>,
+): Record<string, unknown> {
+  return {
+    ...disk,
+    ...incoming,
+    quick_steps: { ...asStepMap(disk.quick_steps), ...asStepMap(incoming.quick_steps) },
+    gated_steps: { ...asStepMap(disk.gated_steps), ...asStepMap(incoming.gated_steps) },
+  };
+}
+
+/**
+ * Occupancy sidecar lock + fence, keyed on ritual-state.json (#3872).
+ * Must not run inside withOccupancyLock: withAppendLock is process-global non-reentrant.
+ */
+export function withRitualStateLock<T>(
+  projectRoot: string,
+  fn: (fence: () => void) => T,
+  deps: LockDeps = {},
+): T {
+  const root = resolve(projectRoot);
+  const stateFile = ritualStatePath(root);
+  return withAppendLock(
+    stateFile,
+    (held) => {
+      const fence = (): void => {
+        assertAppendLockOwned(held);
+      };
+      return fn(fence);
+    },
+    {
+      acquisitionBudgetMs: RITUAL_LOCK_BUDGET_MS,
+      containmentRoot: root,
+      ...deps,
+    },
+  );
+}
+
+function publishRitualState(
+  projectRoot: string,
+  payload: Record<string, unknown>,
+  fence: () => void,
+): string {
   const stateFile = ritualStatePath(projectRoot);
+  fence();
   atomicWriteJson(projectRoot, stateFile, payload, ".ritual-state.");
   return stateFile;
+}
+
+/** Claiming write (session:start / re-arm). Serialised; no owner compare. */
+export function writeRitualState(projectRoot: string, payload: Record<string, unknown>): string {
+  return withRitualStateLock(projectRoot, (fence) =>
+    publishRitualState(projectRoot, payload, fence),
+  );
+}
+
+/**
+ * Persist a payload only while the on-disk owner still matches `expected` (#3769 / #3872).
+ * Same-owner writes merge gated_steps/quick_steps rather than republishing a stale snapshot.
+ * Returns null on success, or the reason the write was refused.
+ */
+export function writeRitualStateIfStillOwned(
+  projectRoot: string,
+  payload: Record<string, unknown>,
+  expected: { sessionId?: string; startedAt: Date },
+  deps: LockDeps = {},
+): string | null {
+  return withRitualStateLock(
+    projectRoot,
+    (fence) => {
+      const [current] = readRitualState(projectRoot);
+      if (current === null) {
+        return "session ritual state was removed while this verification was running";
+      }
+      if (
+        current.sessionId !== expected.sessionId ||
+        current.startedAt.getTime() !== expected.startedAt.getTime()
+      ) {
+        return (
+          `session ritual state was re-armed by ${current.sessionId ?? "<unbound>"} while this ` +
+          "verification was running; refusing to overwrite the current owner record"
+        );
+      }
+      const merged = mergeSameOwnerRitualPayload(current.raw, payload);
+      try {
+        publishRitualState(projectRoot, merged, fence);
+      } catch (exc) {
+        return String(exc);
+      }
+      return null;
+    },
+    deps,
+  );
 }
 
 /** Instant guaranteed to fail `evaluateLoadedState` age checks on any policy horizon. */
@@ -301,7 +412,11 @@ export function markRitualStaleAfterCompact(
   payload.compact_resume_at = timestampIso(now);
   // #2992: compact invalidates the ritual clock only — prefer re-arm recovery when worktree/HEAD allow.
   payload.rearm_needed = true;
-  writeRitualState(projectRoot, payload);
+  // Compact is the recorded fail-open exception: no owner compare (#3769 item 2).
+  // Still serialised so it cannot interleave with a compare+publish (#3872).
+  withRitualStateLock(projectRoot, (fence) => {
+    publishRitualState(projectRoot, payload, fence);
+  });
   return {
     changed: true,
     statePath,
@@ -321,19 +436,30 @@ export function recordRitualStep(
   projectRoot: string,
   input: { tier: "quick" | "gated"; stepName: string; step: Record<string, unknown> },
 ): string {
-  const [state, err] = readRitualState(projectRoot);
-  if (state === null) {
-    throw new Error(err ?? "ritual state missing");
-  }
-  if (input.tier !== "quick" && input.tier !== "gated") {
-    throw new Error(`tier must be 'quick' or 'gated', got ${JSON.stringify(input.tier)}`);
-  }
-  const payload = { ...state.raw };
-  const key = input.tier === "quick" ? "quick_steps" : "gated_steps";
-  const steps = { ...(payload[key] as Record<string, Record<string, unknown>>) };
-  steps[input.stepName] = input.step;
-  payload[key] = steps;
-  return writeRitualState(projectRoot, payload);
+  return withRitualStateLock(projectRoot, (fence) => {
+    const [state, err] = readRitualState(projectRoot);
+    if (state === null) {
+      throw new Error(err ?? "ritual state missing");
+    }
+    if (input.tier !== "quick" && input.tier !== "gated") {
+      throw new Error(`tier must be 'quick' or 'gated', got ${JSON.stringify(input.tier)}`);
+    }
+    const owner = { sessionId: state.sessionId, startedAt: state.startedAt };
+    const [fresh] = readRitualState(projectRoot);
+    if (
+      fresh === null ||
+      fresh.sessionId !== owner.sessionId ||
+      fresh.startedAt.getTime() !== owner.startedAt.getTime()
+    ) {
+      throw new Error("session ritual state owner changed while recording a step");
+    }
+    const payload = { ...fresh.raw };
+    const key = input.tier === "quick" ? "quick_steps" : "gated_steps";
+    const steps = { ...asStepMap(payload[key]) };
+    steps[input.stepName] = input.step;
+    payload[key] = steps;
+    return publishRitualState(projectRoot, payload, fence);
+  });
 }
 
 export function readSentinel(projectRoot: string): Sentinel | null {

@@ -11,15 +11,27 @@ import {
   writeSync,
 } from "node:fs";
 import { dirname } from "node:path";
+import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 
 const threadLocked = { held: false };
+const sleepCell = new Int32Array(new SharedArrayBuffer(4));
 
 /** 10× occupancy heartbeat TTL. Off-Linux PID reuse / stalled holder reclaim. */
 export const STALE_LOCK_HARD_CAP_MS = 20 * 60 * 1000 * 10;
 
+/** Default wait before timed out acquiring lock. Overridable per call (#3872). */
+export const DEFAULT_ACQUISITION_BUDGET_MS = 30_000;
+
 export interface LockDeps {
   readonly sleepMs?: (ms: number) => void;
   readonly now?: () => number;
+  /** Total acquisition budget in milliseconds. Default {@link DEFAULT_ACQUISITION_BUDGET_MS}. */
+  readonly acquisitionBudgetMs?: number;
+  /**
+   * When set, lock and reclaim paths must stay inside this project root
+   * (same containment assertion as the JSON record they serialize).
+   */
+  readonly containmentRoot?: string;
 }
 
 export interface HeldLock {
@@ -36,10 +48,7 @@ export interface LockRecord {
 }
 
 function defaultSleep(ms: number): void {
-  const end = Date.now() + ms;
-  while (Date.now() < end) {
-    /* spin */
-  }
+  Atomics.wait(sleepCell, 0, 0, ms);
 }
 
 export function parseLockRecord(lockPath: string): LockRecord {
@@ -122,10 +131,18 @@ function recordsMatch(a: LockRecord, b: LockRecord): boolean {
 }
 
 /** Atomic rename reclaim: one waiter wins; losers see ENOENT. */
-function tryReclaimAbandonedOwner(lockPath: string, now: number): boolean {
+function tryReclaimAbandonedOwner(
+  lockPath: string,
+  now: number,
+  containmentRoot?: string,
+): boolean {
   const observed = parseLockRecord(lockPath);
   if (!isAbandoned(observed, now, lockPath)) return false;
   const quarantine = `${lockPath}.reclaim.${process.pid}.${randomUUID()}`;
+  if (containmentRoot !== undefined) {
+    assertWriteTargetSafe(containmentRoot, lockPath);
+    assertWriteTargetSafe(containmentRoot, quarantine);
+  }
   try {
     renameSync(lockPath, quarantine);
   } catch {
@@ -156,7 +173,11 @@ export function withAppendLock<T>(
 ): T {
   const sleepMs = deps.sleepMs ?? defaultSleep;
   const now = deps.now ?? Date.now;
+  const budgetMs = deps.acquisitionBudgetMs ?? DEFAULT_ACQUISITION_BUDGET_MS;
   const lockPath = `${logPath}.lock`;
+  if (deps.containmentRoot !== undefined) {
+    assertWriteTargetSafe(deps.containmentRoot, lockPath);
+  }
   mkdirSync(dirname(lockPath), { recursive: true });
 
   if (threadLocked.held) {
@@ -165,9 +186,8 @@ export function withAppendLock<T>(
   threadLocked.held = true;
   let fd: number | undefined;
   let held: HeldLock | undefined;
-  let reclaimedStale = false;
   try {
-    const deadline = now() + 30_000;
+    const deadline = now() + budgetMs;
     while (true) {
       try {
         fd = openSync(lockPath, "wx");
@@ -181,11 +201,12 @@ export function withAppendLock<T>(
         if (code !== "EEXIST") {
           throw err;
         }
+        // Reclaim a dead holder before sleeping so a crashed writer cannot
+        // burn the caller's acquisition budget (#3872 / occupancy AC4).
+        if (tryReclaimAbandonedOwner(lockPath, now(), deps.containmentRoot)) {
+          continue;
+        }
         if (now() > deadline) {
-          if (!reclaimedStale && tryReclaimAbandonedOwner(lockPath, now())) {
-            reclaimedStale = true;
-            continue;
-          }
           throw new Error(`timed out acquiring lock for ${logPath}`);
         }
         sleepMs(20);
