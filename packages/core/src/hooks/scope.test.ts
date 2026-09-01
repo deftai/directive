@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { inspectActiveScope } from "./index.js";
+import { ACTIVE_SCOPE_PIN_ENV, inspectActiveScope, matchPinnedActiveScope } from "./index.js";
 
 const originFreshness = vi.hoisted(() => ({
   evaluate: vi.fn((_payload: unknown, _options?: { readonly skip?: boolean }) => ({
@@ -94,5 +94,85 @@ describe("scope denial", () => {
     writeFileSync(passing, JSON.stringify({ plan: runningPlacement }), "utf8");
 
     expect(inspectActiveScope(project)).toMatchObject({ ready: true, path: passing });
+  });
+});
+
+describe("shared-active write-fence bind (#4007)", () => {
+  function writeRunning(project: string, name: string, fileScope: readonly string[]): string {
+    const active = join(project, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+    const path = join(active, name);
+    writeFileSync(
+      path,
+      JSON.stringify({
+        plan: {
+          ...runningPlacement,
+          metadata: {
+            ...runningPlacement.metadata,
+            swarm: { file_scope: [...fileScope] },
+          },
+        },
+      }),
+      "utf8",
+    );
+    return path;
+  }
+
+  it("fails closed when two eligible briefs share active/ and no pin is set", () => {
+    const project = root();
+    writeRunning(project, "a-story.xbrief.json", ["packages/a/**"]);
+    writeRunning(project, "b-story.xbrief.json", ["packages/b/**"]);
+
+    const result = inspectActiveScope(project, { env: {} });
+    expect(result.ready).toBe(false);
+    expect(result.path).toBeNull();
+    expect(result.message).toContain("Multiple active xBRIEF artifacts");
+    expect(result.message).toContain(ACTIVE_SCOPE_PIN_ENV);
+    expect(result.message).toContain("#4007");
+  });
+
+  it("binds the dispatched story when DEFT_ACTIVE_SCOPE names it", () => {
+    const project = root();
+    writeRunning(project, "a-story.xbrief.json", ["packages/a/**"]);
+    const storyB = writeRunning(project, "b-story.xbrief.json", [
+      "packages/b/**",
+      "src/ui/__tests__/fonts.test.ts",
+    ]);
+
+    const byRelative = inspectActiveScope(project, {
+      env: { [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/b-story.xbrief.json" },
+    });
+    expect(byRelative).toMatchObject({ ready: true, path: storyB });
+
+    const byBasename = inspectActiveScope(project, {
+      env: { [ACTIVE_SCOPE_PIN_ENV]: "b-story.xbrief.json" },
+    });
+    expect(byBasename).toMatchObject({ ready: true, path: storyB });
+
+    const byBoundPath = inspectActiveScope(project, { boundPath: storyB, env: {} });
+    expect(byBoundPath).toMatchObject({ ready: true, path: storyB });
+  });
+
+  it("fails closed when the pin does not name an eligible brief", () => {
+    const project = root();
+    writeRunning(project, "a-story.xbrief.json", ["packages/a/**"]);
+    writeRunning(project, "b-story.xbrief.json", ["packages/b/**"]);
+
+    const result = inspectActiveScope(project, {
+      env: { [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/missing.xbrief.json" },
+    });
+    expect(result.ready).toBe(false);
+    expect(result.message).toContain(ACTIVE_SCOPE_PIN_ENV);
+    expect(result.message).toContain("missing.xbrief.json");
+  });
+
+  it("does not treat a __tests__ segment as a special matcher token", () => {
+    const project = root();
+    const story = writeRunning(project, "ui-story.xbrief.json", [
+      "src/ui/fonts.css",
+      "src/ui/__tests__/fonts.test.ts",
+    ]);
+    expect(inspectActiveScope(project, { env: {} })).toMatchObject({ ready: true, path: story });
+    expect(matchPinnedActiveScope(project, "ui-story.xbrief.json", [story])).toBe(story);
   });
 });

@@ -57,10 +57,26 @@ deft policy:show --field=runtimeAuthority
 ### Active-story seam
 
 The hook dispatcher loads `file_scope` from the implementation-eligible active xBRIEF
-path when `inspectActiveScope` reports one. Residual gaps (document, not silent):
+path when `inspectActiveScope` reports one.
+
+When more than one preflight-eligible artifact is in `xbrief/active/` (a cohort
+sharing one tree), first-wins is **not** used: that would fence every worker to one
+story's `file_scope` and over-permit the others (#4007). Bind the dispatched story:
+
+- `DEFT_ACTIVE_SCOPE` (absolute, project-relative, or unique basename) must name
+  one eligible running brief; that path's `file_scope` is the story fence
+- Missing pin + multiple eligible → fail closed (`scope-not-ready`). Recovery: set
+  the pin, or keep one running brief in `xbrief/active/`
+- A pin that does not name an eligible brief → fail closed
+
+The filed `__tests__` matcher diagnosis is refuted: `matchAny` already admits that
+exact path and `_` is literal. Do not invent a `__`-segment exception. Pre-`c99f6159`
+worktree relativisation is a separate discriminator (the raw unedited deny string)
+and is not closed here.
+
+Residual gaps (document, not silent):
 
 - Host / worktree cannot identify the active story → story layer omitted; project fence still applies
-- Multiple active artifacts → first preflight-eligible path wins (same as scope gate)
 - Story JSON unreadable → story layer fail-open; project fence still applies
 
 Shell/MCP push/merge scopes remain project-only (`runtimeAuthority.scopes`); they are not

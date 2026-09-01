@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Land completed-tracked artifact for #4035 (#3264 / #1358).** The #4035 xBRIEF stayed untracked after squash of PR 4036 (`11b4c407`). Moved to `xbrief/completed/` via scope:complete. Does not recut that issue. Refs #2321, #3476.
 
 - **Design-critique parent silence now waits on this round's siblings, not each critic EXIT (#4027).** Bind was already withheld while same-round siblings remained unposted; the lean and verb menu still talked at 1 of 3. Silence is the existing unqualified same-round-unposted conjunct. Spend stays permission. The critic brief gets no `parent-silence-until` field. Line 218 keeps the empty-lean verb-menu ban and waits on this round's lean. A lean that closes a round of two or more names the dispatched sibling count and those comment ids. Closes #4027. Refs #3850, #3741, #3962.
+- **The write fence no longer loads the first-sorted active story for every worker (#4007).** Multiple preflight-eligible briefs in `xbrief/active/` fail closed unless `DEFT_ACTIVE_SCOPE` names the dispatched story, so a cohort no longer shares one `file_scope` (under-permit the worker and over-permit siblings). The filed `__tests__` matcher cause is unchanged: `_` is literal. Closes #4007.
 
 ### Removed
 

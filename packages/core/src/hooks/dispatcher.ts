@@ -105,7 +105,11 @@ import {
   isExploreSpawn,
   isReadOnlyHookContext,
 } from "./readonly.js";
-import { type ActiveScopeInspection, inspectActiveScope } from "./scope.js";
+import {
+  type ActiveScopeInspection,
+  type InspectActiveScopeOptions,
+  inspectActiveScope,
+} from "./scope.js";
 import { classifyShellWriteTargets, isInRepoShellWritePath } from "./shell-write-targets.js";
 import { isDirectWriteTool, isMcpTool, isShellTool, isSpawnTool } from "./tools.js";
 
@@ -255,7 +259,10 @@ export interface HookPolicySeams {
    * Ignored when `verifyRitual` / `inspectRitual` is supplied.
    */
   readonly ritualRunGit?: GitRunner;
-  readonly inspectScope?: (projectRoot: string) => ActiveScopeInspection;
+  readonly inspectScope?: (
+    projectRoot: string,
+    options?: InspectActiveScopeOptions,
+  ) => ActiveScopeInspection;
   readonly sessionStart?: (projectRoot: string) => { code: number; stdout: string; stderr: string };
   /** Test seam for #2926 root opt-out on SessionStart. */
   readonly detectNoDeftDirective?: typeof detectNoDeftDirective;
@@ -1582,7 +1589,7 @@ function inspectMutationGates(
     // #3794 commit 2: a write is governed by the active scope of the worktree it
     // lands in, not the primary checkout's. Admission has already proved
     // effectiveRoot shares --git-common-dir with payloadRoot.
-    scope = (seams.inspectScope ?? inspectActiveScope)(effectiveRoot);
+    scope = (seams.inspectScope ?? inspectActiveScope)(effectiveRoot, { env: environ });
   } catch (cause) {
     scope = { ready: false, path: null, message: String(cause) };
   }
