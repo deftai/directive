@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **Land completed-tracked artifact for #4035 (#3264 / #1358).** The #4035 xBRIEF stayed untracked after squash of PR 4036 (`11b4c407`). Moved to `xbrief/completed/` via scope:complete. Does not recut that issue. Refs #2321, #3476.
 
 ### Removed
 

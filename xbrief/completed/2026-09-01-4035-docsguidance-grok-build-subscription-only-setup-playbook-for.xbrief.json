@@ -1,0 +1,224 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4035",
+    "updated": "2026-09-01T03:50:46Z"
+  },
+  "plan": {
+    "title": "docs(guidance): Grok Build subscription-only setup playbook for a new maintainer agent",
+    "status": "completed",
+    "narratives": {
+      "Description": "docs(guidance): Grok Build subscription-only setup playbook for a new maintainer agent",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4035",
+      "Overview": "A new maintainer pastes this issue to their agent and says: follow this playbook. The human completes browser logins when the agent stops.\n\nThis is **host auth**, not Directive `session:start` and not product work in `deftai/directive`.\n\n## Goal\n\nGrok Build is the parent on SuperGrok (`grok login` / grok.com). Claude Code and Codex run only through their CLIs on subscriptions. Console API keys may still exist at User scope for other tools. Grok must not use those keys.\n\n## Target shape\n\nVerified 2026-08-31 on win32 (Grok 4.6 parent). Org names differ per maintainer; the auth *methods* must match.\n\n| Surface | Required auth | Must not use |\n|---|---|---|\n| Grok Build parent | grok.com / `auth.x.ai` OIDC session (`grok login`) | `XAI_API_KEY`, `GROK_CODE_XAI_API_KEY`, Console BYOK `[model.*]` |\n| Claude Code CLI | `claude.ai` team subscription (`claude auth login --claudeai`) | `ANTHROPIC_API_KEY` / `apiKeySource=ANTHROPIC_API_KEY` |\n| Codex CLI | ChatGPT (`codex login status` → ChatGPT) | `OPENAI_API_KEY` |\n\nGrok catalog (`grok models`) is only `grok-4.6` / `grok-4.5`. Default is `grok-4.6`.\n\nUser-scope `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` may remain for non-Grok tools. Leave them set.\n\n## Hard stops\n\nThe agent MUST NOT:\n\n- implement product code while running this playbook\n- unset User-scope or Machine-scope `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `XAI_API_KEY`\n- run `claude logout`, `codex logout`, or `grok logout`\n- add or restore BYOK `[model.*]` blocks in `~/.grok/config.toml` (opus / sonnet / fable / gpt-5.6 Console ids)\n- print secret values (print only `set=$true` / `set=$false`)\n- invent `~/.config/deft` on Windows (#2544)\n\nConfig is read at Grok session start. After any `config.toml` edit, start a **new** Grok session. Mid-session children will not pick up `shell_environment_policy`.\n\nClose stdin on CLI spawns: Windows `cmd /c \"… <nul\"`; Unix `… </dev/null`.\n\n## Playbook\n\n### 1. Grok Build\n\nInstall the Grok CLI. Put it on PATH.\n\nHuman (browser): `grok login` (grok.com / SpaceXAI OAuth at `auth.x.ai`).\n\nConfirm: `grok models` prints `You are logged in with grok.com.` and lists only `grok-4.6` / `grok-4.5`.\n\n### 2. `~/.grok/config.toml`\n\nPath: `~/.grok/config.toml` (Windows: `%USERPROFILE%\\.grok\\config.toml`).\n\nSet:\n\n```toml\n[models]\ndefault = \"grok-4.6\"\ndefault_reasoning_effort = \"high\"\nweb_search = \"grok-4.6\"\n\n# Grok Build must not meter Anthropic/OpenAI/xAI Console API.\n# Claude/Codex go through their CLIs (subscription).\n# User/Machine env keys stay for other tools; Grok shells do not inherit them.\n[shell_environment_policy]\nexclude = [\n  \"ANTHROPIC_API_KEY\",\n  \"OPENAI_API_KEY\",\n  \"XAI_API_KEY\",\n  \"GROK_CODE_XAI_API_KEY\",\n]\n```\n\nRemove every `[model.<id>]` table that points at Anthropic or OpenAI Console (typical leftovers: `opus-5-high-fast`, `sonnet-5`, `fable-5`, `gpt-5.6-*`). Do not add new ones.\n\nDo not copy unrelated `[ui]` personal settings from another maintainer.\n\nThen start a **new** Grok session before the probes.\n\n### 3. Claude Code CLI\n\nInstall current Claude Code. On Windows a working layout is `~\\.local\\bin\\claude.exe` plus shims (`~\\.local\\bin` and `%AppData%\\npm` on PATH).\n\nHuman (browser): `claude auth login --claudeai`. Use the team org the operator names.\n\nConfirm: `claude auth status` shows `loggedIn=true`, `authMethod=claude.ai`, `subscriptionType=team`, and **no** `apiKeySource=ANTHROPIC_API_KEY`.\n\n### 4. Codex CLI\n\nInstall Codex. On Windows the hashed binary may live under `%LOCALAPPDATA%\\OpenAI\\Codex\\bin\\`; keep a `codex` shim on PATH.\n\nHuman (browser): `codex login` (ChatGPT).\n\nConfirm: `codex login status` prints `Logged in using ChatGPT`.\n\n### 5. PATH\n\nUser PATH includes `~/.local/bin` (Windows: `%USERPROFILE%\\.local\\bin`) so Grok children find `claude` and `codex` without extra env surgery.\n\n## Verification (report pass/fail with evidence)\n\nRun from a **Grok** `run_terminal_command` child after the new session. Close stdin. Never print key values.\n\n1. **Catalog.** `grok models` → only `grok-4.6` / `grok-4.5`. Fail if opus / sonnet / fable / gpt-5.6 appear in *this* catalog (Codex may still say `gpt-5.6-*` as *its* ChatGPT model; that is not Grok BYOK).\n\n2. **Env policy.** This process may still have User keys. Print only `set=$true/$false` for User / Machine / Process scope of `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `XAI_API_KEY`, `GROK_CODE_XAI_API_KEY`. The Grok child Process-scope for `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` MUST be `$false`. Fail if the child still has them — policy did not apply (old session, or config not loaded). Do not delete User keys.\n\n3. **Claude from Grok, no extra unset.** `claude auth status` as above. Then:\n\n   `claude -p \"Do not use tools. Reply with the single word: pong\" --output-format text`\n\n   Fail on an API-key warning or not-logged-in.\n\n4. **Codex from Grok.** `codex login status` → ChatGPT. Then:\n\n   `codex exec --ephemeral --skip-git-repo-check --sandbox read-only \"Do not use tools. Reply with the single word: pong\"`\n\n   Fail if it demands `OPENAI_API_KEY`.\n\n5. **Grok itself.** The session model is `grok-4.6` (or `grok-4.5`), not a Claude id. `XAI_API_KEY` unset. Auth is grok.com session (`grok models` / `~/.grok/auth.json` `auth_mode=oidc` at `auth.x.ai`). Do not dump tokens from `auth.json`.\n\n**Pass.** All five true. Grok Build is subscription-only: xAI login + Claude team + Codex ChatGPT. Keys may remain in User env for non-Grok tools.\n\n**Fail.** Child shells still inherit `ANTHROPIC_API_KEY` (old session / policy not loaded) or Claude reports `apiKeySource=ANTHROPIC_API_KEY`. Do not delete User keys. Report and stop.\n\n## Durable landing (closes this issue)\n\nThis issue is the playbook until the text lands in-repo.\n\nProposed path (absent on `origin/master` at filing; #1102): `content/docs/grok-build-subscription-setup.md`\n\nAlso add a short pointer from maintainer onboarding (`CONTRIBUTING.md` or the existing getting-started maintainer path). Do not hide this only as a GitHub issue.\n\n## Out of scope\n\n- [#4027](https://github.com/deftai/directive/issues/4027) — N≥3 design-critique lean-timing. This playbook is host auth. Do not launch a 3-panel unless the operator asks.\n- [#2520](https://github.com/deftai/directive/issues/2520) — multi-engine least-privilege *pattern*. Related theme, different artifact.\n- Unsetting User keys that other tools still need.\n- Product code in `deftai/directive`.\n\n## Related Grok docs (local, after install)\n\n- `~/.grok/docs/user-guide/02-authentication.md` — grok.com session vs `XAI_API_KEY` fallback\n- `~/.grok/docs/user-guide/05-configuration.md` — `config.toml` precedence\n- `~/.grok/docs/user-guide/11-custom-models.md` — BYOK `[model.*]` (do not add these)\n- `~/.grok/docs/user-guide/18-sandbox.md` — `[shell_environment_policy]`\n\n",
+      "Labels": "documentation, agent-experience, area:guidance"
+    },
+    "items": [
+      {
+        "title": "Land agent-facing playbook at content/docs/grok-build-subscription-setup.md",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "The playbook from issue #4035 is in content/docs/grok-build-subscription-setup.md: SuperGrok parent auth, Claude Code via claude.ai, Codex via ChatGPT, shell_environment_policy excludes, no BYOK [model.*] Console blocks, five verification probes, and hard stops."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "content/docs/grok-build-subscription-setup.md",
+          "recorded_at": "2026-09-01T03:49:02Z",
+          "recorded_by": "leaf-implementation/4035"
+        }
+      },
+      {
+        "title": "Pointer from maintainer onboarding",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "CONTRIBUTING.md has a short pointer to content/docs/grok-build-subscription-setup.md. Do not scatter extra indexes."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "CONTRIBUTING.md",
+          "recorded_at": "2026-09-01T03:49:02Z",
+          "recorded_by": "leaf-implementation/4035"
+        }
+      },
+      {
+        "title": "CHANGELOG Unreleased",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "CHANGELOG [Unreleased] Added names the playbook and closes #4035."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-09-01T03:49:02Z",
+          "recorded_by": "leaf-implementation/4035"
+        }
+      }
+    ],
+    "tags": [
+      "documentation",
+      "agent-experience",
+      "area:guidance"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4035",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4035: docs(guidance): Grok Build subscription-only setup playbook for a new maintainer agent"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "grok login",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L9"
+        },
+        {
+          "command": "claude logout",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L31"
+        },
+        {
+          "command": "codex logout",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L31"
+        },
+        {
+          "command": "grok logout",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L31"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/docs/grok-build-subscription-setup.md",
+          "CONTRIBUTING.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [],
+        "expected_outputs": [
+          "content/docs/grok-build-subscription-setup.md exists with the #4035 playbook",
+          "CONTRIBUTING.md points at that playbook",
+          "CHANGELOG [Unreleased] Added records the landing"
+        ],
+        "depends_on": [],
+        "conflict_group": "4035-grok-subscription-setup",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": [
+          "Docs-only landing of the issue-body playbook; FR traces live in GitHub #4035."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4036,
+        "prBase": "master",
+        "mergeCommit": "11b4c40758022905c800c55d4e39bf4607dba56a",
+        "deliveryBranch": "master",
+        "deliveryCommit": "11b4c40758022905c800c55d4e39bf4607dba56a",
+        "verifiedAt": "2026-09-01T03:50:46Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDVhZGUtMGIzYi03NTgwLTliNjctMTgzNDEwYTY3YjAx"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-01T03:50:46Z"
+      },
+      "completedAt": "2026-09-01T03:50:46Z",
+      "completedSessionId": "host:claude:v1:MDFhMDVhZGUtMGIzYi03NTgwLTliNjctMTgzNDEwYTY3YjAx",
+      "capacityBucket": "agentic-debt"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 9 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "add or restore BYOK `[model.*]` blocks in `~/.grok/config.toml` (opus / sonnet / fable / gpt-5.6 Console ids)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "invent `~/.config/deft` on Windows (#2544)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Env policy. This process may still have User keys. Print only `set=$true/$false` for User / Machine / Process scope of `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `XAI_API_KEY`, `GROK_CODE_XAI_API_KEY`. The Grok child Process-scope for `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` MUST be `$false`. Fail if the child still has them — policy did not apply (old session, or config not loaded). Do not delete User keys.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Grok itself. The session model is `grok-4.6` (or `grok-4.5`), not a Claude id. `XAI_API_KEY` unset. Auth is grok.com session (`grok models` / `~/.grok/auth.json` `auth_mode=oidc` at `auth.x.ai`). Do not dump tokens from `auth.json`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Product code in `deftai/directive`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "`~/.grok/docs/user-guide/02-authentication.md` — grok.com session vs `XAI_API_KEY` fallback",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "`~/.grok/docs/user-guide/05-configuration.md` — `config.toml` precedence",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "`~/.grok/docs/user-guide/11-custom-models.md` — BYOK `[model.*]` (do not add these)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "`~/.grok/docs/user-guide/18-sandbox.md` — `[shell_environment_policy]`",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-09-01T03:50:46Z"
+  }
+}
