@@ -136,10 +136,28 @@ function originIssueKey(plan: Record<string, unknown>): string {
   return issues.sort().join("|");
 }
 
+function itemTitles(items: unknown): string {
+  if (!Array.isArray(items)) {
+    return "";
+  }
+  const titles: string[] = [];
+  for (const item of items) {
+    if (typeof item !== "object" || item === null || Array.isArray(item)) {
+      continue;
+    }
+    const title = String((item as Record<string, unknown>).title ?? "").trim();
+    if (title.length > 0) {
+      titles.push(title);
+    }
+  }
+  return titles.join("\0");
+}
+
 function planIdentity(plan: Record<string, unknown>): string {
   const title = String(plan.title ?? "").trim();
   const origin = originIssueKey(plan);
-  return origin.length > 0 ? `${title}\n${origin}` : title;
+  const items = itemTitles(plan.items);
+  return [title, origin, items].filter((part) => part.length > 0).join("\n");
 }
 
 function pairingKey(relPath: string): string | null {
@@ -518,7 +536,13 @@ export function evaluateCompletedWriteGuard(
     if (options.nameStatus !== undefined) {
       return "";
     }
-    const specs = [`HEAD:${src}`, `HEAD^:${src}`];
+    const specs: string[] = [`HEAD:${src}`];
+    const deletedAt = git(["log", "-1", "--diff-filter=D", "--format=%H", "--", src], root);
+    const deletedSha = deletedAt.stdout.trim();
+    if (deletedAt.status === 0 && deletedSha.length > 0) {
+      specs.push(`${deletedSha}^:${src}`);
+    }
+    specs.push(`HEAD^:${src}`);
     if (pairingBaseRef.length > 0) {
       specs.push(`${pairingBaseRef}:${src}`);
     }

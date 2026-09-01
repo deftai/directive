@@ -350,6 +350,26 @@ describe("evaluateCompletedWriteGuard (#3766 active deletion)", () => {
     expect(result.findings).toHaveLength(0);
   });
 
+  it("rejects a same-title dest whose plan.items titles differ", () => {
+    const dest = JSON.parse(stamped()) as {
+      plan: { items?: Array<{ title: string; status: string }> };
+    };
+    dest.plan.items = [{ title: "other-item", status: "pending" }];
+    const src = JSON.parse(runningSource()) as {
+      plan: { items?: Array<{ title: string; status: string }> };
+    };
+    src.plan.items = [{ title: "story-item", status: "pending" }];
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `D\t${active}\nA\t${completed}`,
+      payloads: new Map([
+        [completed, JSON.stringify(dest)],
+        [active, JSON.stringify(src)],
+      ]),
+    });
+    expect(result.code).toBe(1);
+    expect(result.findings.some((f) => f.relPath === active)).toBe(true);
+  });
+
   it("rejects a copied stamp under the same basename with a different title", () => {
     const result = evaluateCompletedWriteGuard("/tmp/proj", {
       nameStatus: `D\t${active}\nA\t${completed}`,
