@@ -86,13 +86,7 @@
       }
     ],
     "metadata": {
-      "literal_acceptance_commands": [
-        {
-          "command": "deft verify:scope-provenance \\",
-          "source": "task_statement",
-          "sourceSpan": "fence@L28:bash"
-        }
-      ],
+      "literal_acceptance_commands": [],
       "literal_acceptance_rejected": [
         {
           "command": "--project-root . \\",
@@ -130,14 +124,10 @@
       }
     },
     "acceptance": {
-      "commands": [
-        {
-          "command": "deft verify:scope-provenance \\"
-        }
-      ],
-      "none_stated": false,
-      "source_rung": "stated",
-      "derived_reason": "derived 9 independently testable clauses from the task statement before product edit (#3323)",
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "ingested bash fence line-continuation is not a stated acceptance command; bound AC is the #4059 tests (#3267 none_stated)",
       "clauses": [
         {
           "id": 1,
