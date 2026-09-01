@@ -19,9 +19,10 @@ const HELP_TEXT =
   "Usage: verify-forward-coverage [--project-root <path>] [--staged|--head] [--allow-list <path>]\n" +
   "                               [--coverage-dir <path>] [--coverage-report <path>]\n" +
   "                               [--enforce] [--quiet]\n" +
-  "  Fail-closed new-source-file existence (#1310) plus warn-first diff coverage of\n" +
-  "  added/modified branches (#3514). The 90% per-diff threshold is not the 75\n" +
-  "  global floor. Missing coverage reports skip the diff half.\n" +
+  "  Fail-closed new-source-file existence (#1310 / #4009) plus warn-first diff coverage of\n" +
+  "  added/modified branches (#3514). Existence correspondence is path-relative and\n" +
+  "  uses the test-boundary policy (#3145); pre-existing tests count. The 90% per-diff\n" +
+  "  threshold is not the 75 global floor. Missing coverage reports skip the diff half.\n" +
   "  --enforce: fail closed when uncovered changed branches are below 90%.\n";
 
 function takeValue(

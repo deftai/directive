@@ -1,6 +1,8 @@
 # Test / source boundary (`verify:test-boundary`)
 
-Refs: #3145 · Related: #1310 forward-coverage, testing layout guidance
+Refs: #3145 · Related: #1310 / #4009 forward-coverage, testing layout guidance
+
+`verify:forward-coverage` reuses this policy for source-to-test correspondence. It does not add a second testRoots config.
 
 ## Problem
 

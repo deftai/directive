@@ -5,7 +5,7 @@
  * Two halves:
  *  1. Fail-closed new-file existence (#1310): each NEW source file
  *     (`*.py` / `*.go` / `*.ts` / `*.tsx`, excluding tests and `*.d.ts`)
- *     must ship a corresponding test file in the same diff.
+ *     must have a corresponding test at a searched path (pre-existing tests count).
  *  2. Warn-first diff coverage (#3514): intersect `coverage-final.json`
  *     with added/modified lines and report uncovered changed branches.
  *     Default threshold is 90% of those branches. That 90% is per-change
@@ -20,10 +20,12 @@
 
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { basename, join } from "node:path";
+import { join } from "node:path";
 import { GitCommandError, GitNotFoundError } from "../encoding/git.js";
 import { fnmatchCase } from "../encoding/text.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
+import { loadTestBoundaryPolicy, type TestBoundaryPolicy } from "../test-boundary/policy.js";
+import { expectedTestPaths, isSourceFile, isTestFile } from "./correspondence.js";
 import {
   type DiffCoverageReport,
   evaluateDiffCoverage,
@@ -45,11 +47,11 @@ export {
 /** Diff scope: `staged` = index vs HEAD; `head` = working tree + index vs HEAD. */
 export type ForwardCoverageMode = "head" | "staged";
 
-/** A new source file that has no corresponding test file in the same diff. */
+/** A new source file that has no corresponding test file. */
 export interface MissingCoverage {
   /** POSIX-form repo-relative path of the uncovered new source file. */
   readonly path: string;
-  /** Candidate test-file basenames the gate searched the diff for. */
+  /** Candidate test paths the gate searched (colocated, __tests__, test roots). */
   readonly expectedTests: string[];
 }
 
@@ -70,81 +72,21 @@ export interface ForwardCoverageOptions {
   readonly coverageReportPath?: string | null;
   /** Per-diff branch threshold. Default 90 -- not the 75 global floor. */
   readonly diffThreshold?: number;
+  /** Inject test-boundary policy (skips disk load). Not a second testRoots config. */
+  readonly policy?: TestBoundaryPolicy;
+  /** Load test-boundary policy from this path (same surface as verify:test-boundary). */
+  readonly policyPath?: string | null;
 }
 
-/** Source-file extensions in scope for v1. */
-const SOURCE_EXTENSIONS: ReadonlySet<string> = new Set([".py", ".go", ".ts", ".tsx"]);
+export {
+  expectedTestBasenames,
+  expectedTestPaths,
+  isSourceFile,
+  isTestFile,
+} from "./correspondence.js";
 
 /** Raised by `loadAllowList` when the path does not exist. */
 class AllowListNotFoundError extends Error {}
-
-/** Return the final `.ext` (lowercased) of a path, or "" when none. */
-function extOf(pathStr: string): string {
-  const b = basename(pathStr);
-  const dot = b.lastIndexOf(".");
-  return dot > 0 ? b.slice(dot).toLowerCase() : "";
-}
-
-/**
- * True when `relPath` is a test file (excluded from the "needs coverage" set
- * AND counted as available coverage). Covers the co-located TS/TSX
- * `.test` / `.spec` convention, Go `*_test.go`, and Python `test_*.py` /
- * `*_test.py`.
- */
-export function isTestFile(relPath: string): boolean {
-  const b = basename(relPath).toLowerCase();
-  if (
-    b.endsWith(".test.ts") ||
-    b.endsWith(".test.tsx") ||
-    b.endsWith(".spec.ts") ||
-    b.endsWith(".spec.tsx")
-  ) {
-    return true;
-  }
-  if (b.endsWith("_test.go")) {
-    return true;
-  }
-  if (b.endsWith(".py") && (b.startsWith("test_") || b.endsWith("_test.py"))) {
-    return true;
-  }
-  return false;
-}
-
-/** True when `relPath` is an in-scope, non-test, non-`.d.ts` source file. */
-export function isSourceFile(relPath: string): boolean {
-  const b = basename(relPath).toLowerCase();
-  if (b.endsWith(".d.ts")) {
-    return false;
-  }
-  if (!SOURCE_EXTENSIONS.has(extOf(b))) {
-    return false;
-  }
-  return !isTestFile(relPath);
-}
-
-/**
- * Candidate test-file basenames that would satisfy forward coverage for a
- * given source file, keyed on its extension + stem. Matched by basename
- * (directory-agnostic) so co-located, `tests/`, and `__tests__/` layouts all
- * count -- keeping the false-positive rate near zero for v1.
- */
-export function expectedTestBasenames(sourcePath: string): string[] {
-  const b = basename(sourcePath);
-  const ext = extOf(b);
-  const stem = b.slice(0, b.length - ext.length);
-  switch (ext) {
-    case ".ts":
-      return [`${stem}.test.ts`, `${stem}.spec.ts`];
-    case ".tsx":
-      return [`${stem}.test.tsx`, `${stem}.spec.tsx`, `${stem}.test.ts`, `${stem}.spec.ts`];
-    case ".py":
-      return [`test_${stem}.py`, `${stem}_test.py`];
-    case ".go":
-      return [`${stem}_test.go`];
-    default:
-      return [];
-  }
-}
 
 function loadAllowList(path: string | null | undefined): string[] {
   if (path === null || path === undefined) {
@@ -336,6 +278,39 @@ function formatDiffCoverage(report: DiffCoverageReport, enforce: boolean): strin
 }
 
 /**
+ * Tests that can satisfy forward coverage: tracked files, plus untracked files
+ * in head mode, plus anything in the current added set. Pre-existing tests
+ * count; basename-only matches in unrelated directories do not (#4009).
+ */
+function listedTestFiles(
+  projectRoot: string,
+  mode: ForwardCoverageMode,
+  added: readonly string[],
+): Set<string> {
+  const files = new Set<string>();
+  for (const f of toLines(gitOrThrow(["ls-files"], projectRoot))) {
+    files.add(f.replace(/\\/g, "/"));
+  }
+  if (mode === "head") {
+    for (const f of toLines(
+      gitOrThrow(["ls-files", "--others", "--exclude-standard"], projectRoot),
+    )) {
+      files.add(f.replace(/\\/g, "/"));
+    }
+  }
+  for (const f of added) {
+    files.add(f.replace(/\\/g, "/"));
+  }
+  const tests = new Set<string>();
+  for (const f of files) {
+    if (isTestFile(f)) {
+      tests.add(f);
+    }
+  }
+  return tests;
+}
+
+/**
  * Pure evaluation returning `{ exitCode, missing, message }`. Three-state exit
  * (0 clean / 1 missing forward coverage / 2 config error). Mirrors the shape of
  * `encoding.evaluate` (#798) so both gates read the same way.
@@ -367,11 +342,27 @@ export function evaluateForwardCoverage(
     );
   }
 
+  let policy: TestBoundaryPolicy;
+  if (options.policy !== undefined) {
+    policy = options.policy;
+  } else {
+    try {
+      policy = loadTestBoundaryPolicy(projectRoot, { policyPath: options.policyPath });
+    } catch (err: unknown) {
+      return configError(
+        `verify_forward_coverage: test-boundary policy unreadable: ${String((err as Error).message)}\n` +
+          "  Recovery: omit policyPath to use defaults, or pass a valid test-boundary policy file.",
+      );
+    }
+  }
+
   let added: string[];
   let changedLines: ChangedLineMap;
+  let existingTests: Set<string>;
   try {
     added = addedFiles(projectRoot, mode);
     changedLines = changedLinesByFile(projectRoot, mode);
+    existingTests = listedTestFiles(projectRoot, mode, added);
   } catch (err: unknown) {
     if (err instanceof GitNotFoundError) {
       return configError(
@@ -389,9 +380,6 @@ export function evaluateForwardCoverage(
   }
 
   const posixAdded = added.map((p) => p.replace(/\\/g, "/"));
-  const testBasenames = new Set<string>(
-    posixAdded.filter((p) => isTestFile(p)).map((p) => basename(p)),
-  );
 
   const missing: MissingCoverage[] = [];
   let checked = 0;
@@ -403,8 +391,8 @@ export function evaluateForwardCoverage(
       continue;
     }
     checked += 1;
-    const expected = expectedTestBasenames(rel);
-    const covered = expected.some((name) => testBasenames.has(name));
+    const expected = expectedTestPaths(rel, policy);
+    const covered = expected.some((candidate) => existingTests.has(candidate));
     if (!covered) {
       missing.push({ path: rel, expectedTests: expected });
     }
@@ -432,12 +420,14 @@ export function evaluateForwardCoverage(
   if (missing.length > 0) {
     const header =
       `verify_forward_coverage: ${missing.length} new source file(s) added without a ` +
-      "corresponding test in the same diff (#1310).\n" +
-      "  Rule: a new source file MUST ship with a test in the SAME diff -- running existing\n" +
-      "  tests alone does not satisfy forward coverage. Add a co-located test (e.g. <name>.test.ts,\n" +
-      "  <name>_test.go, test_<name>.py) or allow-list a documented exception via --allow-list <path>.";
+      "corresponding test (#1310 / #4009).\n" +
+      "  Rule: a new source file MUST have a corresponding test at a searched path.\n" +
+      "  Pre-existing tests count; a same-stem file in an unrelated directory does not.\n" +
+      "  Correspondence uses the test-boundary policy (#3145), not a second testRoots config.\n" +
+      "  Add a colocated test, a sibling __tests__/ file, or a path under a declared test root,\n" +
+      "  or allow-list a documented exception via --allow-list <path>.";
     const body = missing
-      .map((m) => `  ${m.path}\n    expected one of: ${m.expectedTests.join(", ")}`)
+      .map((m) => `  ${m.path}\n    searched: ${m.expectedTests.join(", ")}`)
       .join("\n");
     const message =
       diffSection === "" ? `${header}\n${body}` : `${header}\n${body}\n${diffSection}`;
@@ -446,7 +436,7 @@ export function evaluateForwardCoverage(
 
   const existence =
     `verify_forward_coverage: ${checked} new source file(s) checked -- ` +
-    "all have forward coverage in the diff (#1310).";
+    "all have forward coverage (#1310 / #4009).";
   const findings = hasDiffCoverageFindings(diffCoverage);
   const exitCode: 0 | 1 = enforce && findings ? 1 : 0;
   const message = diffSection === "" ? existence : `${existence}\n${diffSection}`;

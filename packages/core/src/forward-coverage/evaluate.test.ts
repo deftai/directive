@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
+import { defaultTestBoundaryPolicy } from "../test-boundary/policy.js";
 import {
   evaluateForwardCoverage,
   expectedTestBasenames,
@@ -24,6 +25,8 @@ function buildRepo(files: Record<string, string>, commit = true): string {
   execFileSync("git", ["init", "-q"], { cwd: root });
   execFileSync("git", ["config", "user.email", "t@t.dev"], { cwd: root });
   execFileSync("git", ["config", "user.name", "t"], { cwd: root });
+  execFileSync("git", ["config", "core.hooksPath", "/dev/null"], { cwd: root });
+  execFileSync("git", ["config", "commit.gpgsign", "false"], { cwd: root });
   // Seed an initial commit so HEAD exists (base for the head-relative diff).
   writeFileSync(join(root, "README.md"), "# base\n");
   execFileSync("git", ["add", "README.md"], { cwd: root });
@@ -92,13 +95,66 @@ describe("evaluateForwardCoverage", () => {
     expect(result.message).toContain("src/foo.ts");
   });
 
-  it("matches a Python test under tests/ by basename (near-zero false positives)", () => {
+  it("matches a Python test under tests/ by path relative to the source", () => {
     const root = buildRepo({
       "scripts/thing.py": "x = 1\n",
-      "tests/test_thing.py": "def test_x():\n    assert True\n",
+      "tests/scripts/test_thing.py": "def test_x():\n    assert True\n",
     });
     stage(root);
     expect(evaluateForwardCoverage(root, { mode: "staged" }).exitCode).toBe(0);
+  });
+
+  it("does not treat an unrelated same-stem test as coverage", () => {
+    const root = buildRepo({
+      "src/ui/ledger-table/index.ts": "export const n = 1;\n",
+      "src/other/index.test.ts": "export {};\n",
+    });
+    stage(root);
+    const result = evaluateForwardCoverage(root, { mode: "staged" });
+    expect(result.exitCode).toBe(1);
+    expect(result.missing.map((m) => m.path)).toEqual(["src/ui/ledger-table/index.ts"]);
+    expect(result.message).toContain("searched:");
+    expect(result.message).toContain("src/ui/ledger-table/index.test.ts");
+    expect(result.missing[0]?.expectedTests).toContain("src/ui/ledger-table/index.test.ts");
+    expect(result.missing[0]?.expectedTests).not.toContain("index.test.ts");
+  });
+
+  it("counts a pre-existing colocated test that is not in the current diff", () => {
+    const root = buildRepo({ "src/foo.test.ts": 'import { foo } from "./foo";\n' });
+    stage(root);
+    execFileSync("git", ["commit", "-q", "-m", "seed-test"], { cwd: root });
+    writeFileSync(join(root, "src/foo.ts"), "export const foo = 1;\n");
+    stage(root);
+    const result = evaluateForwardCoverage(root, { mode: "staged" });
+    expect(result.exitCode).toBe(0);
+    expect(result.missing).toEqual([]);
+  });
+
+  it("uses an injected test-boundary policy rather than a second testRoots field", () => {
+    const root = buildRepo({
+      "app/mod/x.ts": "export const x = 1;\n",
+      "spec/mod/x.test.ts": "export {};\n",
+    });
+    stage(root);
+    const policy = {
+      ...defaultTestBoundaryPolicy("warn"),
+      sourceRoots: ["app/**"],
+      testRoots: ["spec/**"],
+    };
+    expect(evaluateForwardCoverage(root, { mode: "staged", policy }).exitCode).toBe(0);
+  });
+
+  it("counts a pre-existing tests/ path-relative test", () => {
+    const root = buildRepo({
+      "tests/ui/ledger-table/index.test.ts": "export {};\n",
+    });
+    stage(root);
+    execFileSync("git", ["commit", "-q", "-m", "seed-test"], { cwd: root });
+    mkdirSync(join(root, "src/ui/ledger-table"), { recursive: true });
+    writeFileSync(join(root, "src/ui/ledger-table/index.ts"), "export const n = 1;\n");
+    stage(root);
+    const result = evaluateForwardCoverage(root, { mode: "staged" });
+    expect(result.exitCode).toBe(0);
   });
 
   it("detects new files in head mode (untracked working tree)", () => {
