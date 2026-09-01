@@ -489,6 +489,210 @@ export function isDeclaredArtifactPath(
   });
 }
 
+export type ClauseBindFailureKind = "unbound-path" | "ambiguous-scope" | "undeclared-binding";
+
+export interface ClauseBindFailure {
+  readonly id: number;
+  readonly text: string;
+  readonly kind: ClauseBindFailureKind;
+  readonly detail: string;
+}
+
+export interface ClauseFileScopeBindResult {
+  readonly ok: boolean;
+  readonly changed: boolean;
+  readonly clauses: readonly AcceptanceClause[];
+  readonly failures: readonly ClauseBindFailure[];
+  readonly message: string;
+}
+
+type BoundPathResult =
+  | { readonly ok: true; readonly path: string | null }
+  | { readonly ok: false; readonly kind: ClauseBindFailureKind; readonly detail: string };
+
+function uniqueExactDeclaredHits(tokens: readonly string[], declared: readonly string[]): string[] {
+  const hits = new Set<string>();
+  const members = new Set(declared);
+  for (const token of tokens) {
+    const normalized = normalizeScopePath(token);
+    if (members.has(normalized)) {
+      hits.add(normalized);
+    }
+  }
+  return [...hits];
+}
+
+function bindStoredOrTokens(
+  storedPath: string | null,
+  text: string,
+  declared: readonly string[],
+): BoundPathResult {
+  if (storedPath !== null && storedPath.trim().length > 0) {
+    const normalized = normalizeScopePath(storedPath);
+    if (declared.includes(normalized)) {
+      return { ok: true, path: normalized };
+    }
+    return {
+      ok: false,
+      kind: "undeclared-binding",
+      detail: `${storedPath} is not an exact plan.metadata.swarm.file_scope member`,
+    };
+  }
+  const tokens = extractPathTokens(text);
+  const hits = uniqueExactDeclaredHits(tokens, declared);
+  if (hits.length === 1) {
+    return { ok: true, path: hits[0] ?? null };
+  }
+  if (hits.length > 1) {
+    return {
+      ok: false,
+      kind: "ambiguous-scope",
+      detail: `names more than one file_scope member: ${hits.join(", ")}`,
+    };
+  }
+  if (tokens.length > 0) {
+    return {
+      ok: false,
+      kind: "unbound-path",
+      detail: `names ${tokens.join(", ")} which is not an exact file_scope member`,
+    };
+  }
+  return { ok: true, path: null };
+}
+
+function bindOneClause(
+  clause: AcceptanceClause,
+  declared: readonly string[],
+):
+  | { readonly ok: true; readonly clause: AcceptanceClause; readonly changed: boolean }
+  | { readonly ok: false; readonly failure: ClauseBindFailure } {
+  const readings = clause.readings;
+  if (readings !== undefined && readings.length > 0) {
+    const boundReadings: AcceptanceClauseReading[] = [];
+    let changed = false;
+    for (const reading of readings) {
+      const result = bindStoredOrTokens(reading.artifact_path, reading.text, declared);
+      if (result.ok === false) {
+        return {
+          ok: false,
+          failure: {
+            id: clause.id,
+            text: clause.text,
+            kind: result.kind,
+            detail: result.detail,
+          },
+        };
+      }
+      if (result.path !== reading.artifact_path) {
+        changed = true;
+      }
+      boundReadings.push({ text: reading.text, artifact_path: result.path });
+    }
+    const chosen = clause.chosen_reading ?? 0;
+    const chosenPath =
+      boundReadings[chosen]?.artifact_path ?? boundReadings[0]?.artifact_path ?? null;
+    if (chosenPath !== clause.artifact_path) {
+      changed = true;
+    }
+    return {
+      ok: true,
+      changed,
+      clause: {
+        ...clause,
+        artifact_path: chosenPath,
+        readings: boundReadings,
+      },
+    };
+  }
+  const result = bindStoredOrTokens(clause.artifact_path, clause.text, declared);
+  if (result.ok === false) {
+    return {
+      ok: false,
+      failure: {
+        id: clause.id,
+        text: clause.text,
+        kind: result.kind,
+        detail: result.detail,
+      },
+    };
+  }
+  return {
+    ok: true,
+    changed: result.path !== clause.artifact_path,
+    clause: { ...clause, artifact_path: result.path },
+  };
+}
+
+function formatBindFailures(failures: readonly ClauseBindFailure[]): string {
+  const lines = [
+    "Refusing promote: a derived clause is not bound to a declared file_scope path (#4008).",
+  ];
+  for (const failure of failures) {
+    lines.push(`  clause ${failure.id}: ${failure.detail}`);
+  }
+  lines.push(
+    "  remedy: set artifact_path to a plan.metadata.swarm.file_scope entry, or name that exact path in the clause. Basename matching is refused.",
+  );
+  return lines.join("\n");
+}
+
+/**
+ * Bind derived clauses to exact `plan.metadata.swarm.file_scope` members (#4008).
+ *
+ * Empty declared scope is a no-op: there is no approved member to bind to.
+ * Path tokens match only as exact normalized members — never by basename,
+ * including stored `readings[]`. Derivation still stores no prose path; this
+ * step copies the declared member onto the clause.
+ */
+export function bindClausesToDeclaredScope(
+  clauses: readonly AcceptanceClause[],
+  declaredScope: readonly string[],
+): ClauseFileScopeBindResult {
+  const declared = declaredScope
+    .map((entry) => normalizeScopePath(entry))
+    .filter((entry) => entry.length > 0);
+  if (declared.length === 0 || clauses.length === 0) {
+    return { ok: true, changed: false, clauses, failures: [], message: "" };
+  }
+  const next: AcceptanceClause[] = [];
+  const failures: ClauseBindFailure[] = [];
+  let changed = false;
+  let boundCount = 0;
+  for (const clause of clauses) {
+    const bound = bindOneClause(clause, declared);
+    if (bound.ok === false) {
+      failures.push(bound.failure);
+      next.push(clause);
+      continue;
+    }
+    if (bound.changed) {
+      changed = true;
+    }
+    if (bound.clause.artifact_path !== null) {
+      boundCount += 1;
+    }
+    next.push(bound.clause);
+  }
+  if (failures.length > 0) {
+    return {
+      ok: false,
+      changed: false,
+      clauses,
+      failures,
+      message: formatBindFailures(failures),
+    };
+  }
+  return {
+    ok: true,
+    changed,
+    clauses: next,
+    failures: [],
+    message: changed
+      ? `bound ${boundCount} clause(s) to plan.metadata.swarm.file_scope (#4008)`
+      : "",
+  };
+}
+
 function isContained(root: string, child: string): boolean {
   const rel = relative(resolve(root), resolve(child));
   return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));

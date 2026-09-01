@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **`scope:promote` now binds a derived acceptance clause to an exact `file_scope` member, or refuses the promote (#4008).** After #3835, derivation stores no prose path, so a story that already declared `plan.metadata.swarm.file_scope` still walked as unverifiable. Promote copies the matching declared member onto the clause (and stored `readings[]`); a path-bearing clause that names no unique exact member fails closed. Basename matching stays refused. Does not walk `ImplementationPlan` as acceptance or move the literal-AC allowlist. Closes #4008. Refs #3835, #3323.
 - **A copied occupancy lease from another worktree no longer occupies a fresh tree (#3926).** `.deft/occupancy.json` whose `worktree_path` is not this checkout is residue, not a live occupant: first `session:start` claims, and the steal-then-start path reports the stealer as occupant when identity is consistent. Same-tree two-session conflict still fails closed. Identity minting and the TTL/cap stay on #3954 / #3599. Closes #3926. Refs #3433, #3954.
 
 - **Land completed-tracked artifact for #4035 (#3264 / #1358).** The #4035 xBRIEF stayed untracked after squash of PR 4036 (`11b4c407`). Moved to `xbrief/completed/` via scope:complete. Does not recut that issue. Refs #2321, #3476.

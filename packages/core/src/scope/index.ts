@@ -2,6 +2,7 @@ export * from "./acceptance-activate-gate.js";
 export * from "./acceptance-evidence.js";
 export * from "./audit-log.js";
 export * from "./batch-promote.js";
+export * from "./clause-file-scope-bind.js";
 export * from "./constants.js";
 export * from "./coverage-map.js";
 export * from "./decomposed-refs.js";

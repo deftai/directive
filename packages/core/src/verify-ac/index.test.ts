@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  bindClausesToDeclaredScope,
   commandCountFromFingerprint,
   deriveAcceptanceClauses,
   emitVerifyAcAttempts,
@@ -22,6 +23,7 @@ describe("verify-ac public exports (#3322 / #3323 / #3337)", () => {
     expect(typeof methodFingerprintForWalk).toBe("function");
     expect(typeof commandCountFromFingerprint).toBe("function");
     expect(typeof deriveAcceptanceClauses).toBe("function");
+    expect(typeof bindClausesToDeclaredScope).toBe("function");
     expect(typeof walkAcceptanceClauses).toBe("function");
     expect(typeof stampDerivedClausesOnAcceptance).toBe("function");
     expect(typeof verifyAcCheckId).toBe("function");

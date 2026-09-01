@@ -28,6 +28,7 @@ import {
 import { append, canonicalLogPath, newDecisionId } from "./audit-log.js";
 import { atomicWriteBrief, formatBriefJson, readBriefForMutation } from "./brief-io.js";
 import { stampCompletionMetadata } from "./capacity-stamp.js";
+import { applyPromoteClauseFileScopeBind } from "./clause-file-scope-bind.js";
 import {
   LIFECYCLE_FOLDERS,
   MOVE_LABELS,
@@ -235,6 +236,14 @@ export function runTransition(
     });
     if (derivation.notice.length > 0) {
       derivationNotice = derivation.notice;
+    }
+    const bind = applyPromoteClauseFileScopeBind(planObj);
+    if (!bind.ok) {
+      return { ok: false, message: bind.message };
+    }
+    if (bind.message.length > 0) {
+      derivationNotice =
+        derivationNotice.length > 0 ? `${derivationNotice}\n${bind.message}` : bind.message;
     }
   }
 
