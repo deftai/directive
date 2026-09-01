@@ -59,10 +59,11 @@ export const COMPLETED_WRITE_GUARD_MAX_BYTES = 1_048_576;
 
 const COMPLETED_REL_RE = /^(?:xbrief|vbrief)\/completed\/[^/]+$/;
 const ACTIVE_REL_RE = /^(?:xbrief|vbrief)\/active\/[^/]+$/;
+const CANCELLED_REL_RE = /^(?:xbrief|vbrief)\/cancelled\/[^/]+$/;
 
 /** Halt copy for unpaired active/ D or rename-from (#3766). */
 export const UNPAIRED_ACTIVE_DELETE_REMEDIATION =
-  "Halt: run `task scope:complete` so the destination is stamped, or leave the brief untracked. " +
+  "Halt: run `task scope:complete` or `task scope:cancel` so the destination is stamped, or leave the brief untracked. " +
   "Lone-D untracking cleanup is not an authorization token (#3766).";
 
 interface NameStatusRecord {
@@ -99,6 +100,18 @@ function isActiveArtifactRel(relPath: string): boolean {
     return false;
   }
   return hasArtifactSuffix(lastPathSegment(n));
+}
+
+function isCancelledArtifactRel(relPath: string): boolean {
+  const n = normalizeRepoRelPath(relPath);
+  if (!CANCELLED_REL_RE.test(n)) {
+    return false;
+  }
+  return hasArtifactSuffix(lastPathSegment(n));
+}
+
+function planIdentity(plan: Record<string, unknown>): string {
+  return String(plan.title ?? "").trim();
 }
 
 function pairingKey(relPath: string): string | null {
@@ -326,6 +339,7 @@ export function evaluateCompletedWriteGuard(
 ): CompletedWriteGuardResult {
   const root = resolve(projectRoot);
   let records: readonly NameStatusRecord[];
+  let pairingBaseRef = options.baseRef ?? "";
   try {
     if (options.nameStatus !== undefined) {
       records = parseNameStatusRecords(options.nameStatus);
@@ -358,6 +372,7 @@ export function evaluateCompletedWriteGuard(
         baseRef = resolved;
       }
       records = discoverNameStatusRecords(root, baseRef);
+      pairingBaseRef = baseRef;
     }
   } catch (err: unknown) {
     if (err instanceof GitNotFoundError) {
@@ -398,12 +413,40 @@ export function evaluateCompletedWriteGuard(
   ];
 
   const findings: CompletedWriteGuardFinding[] = [];
-  // Pairing authorization is a stamped completed/ dest only (#3766).
-  // scope:cancel does not stamp lifecycleWrite (complete|fail only). A
-  // cancelled/ dest with plan.status=cancelled is not a stamp and must
-  // not authorize deleting another worker's active brief.
-  const pairedTerminalKeys = new Set<string>();
+  // Pairing: stamped completed/ or cancelled/ dest (#3766). Cancel stamps
+  // lifecycleWrite action=cancel. Status-only cancelled dests do not pair.
+  // R dests are git-bound to src. D+A also requires dest plan.title to match
+  // the deleted source so a copied stamp under the same basename cannot
+  // authorize an unrelated deletion.
+  interface AuthDest {
+    readonly rel: string;
+    readonly key: string;
+    readonly identity: string;
+  }
+  const authorizedDests: AuthDest[] = [];
+  const authorizedDestPaths = new Set<string>();
+
+  const rememberDest = (rel: string, plan: Record<string, unknown>): void => {
+    const key = pairingKey(rel);
+    const identity = planIdentity(plan);
+    if (key !== null && identity.length > 0) {
+      authorizedDests.push({ rel, key, identity });
+      authorizedDestPaths.add(rel);
+    }
+  };
+
   for (const rel of added) {
+    if (isCancelledArtifactRel(rel)) {
+      const payload = readPayload(root, rel, options.payloads);
+      if (payload.kind !== "ok") {
+        continue;
+      }
+      const plan = parsePlan(payload.raw);
+      if (plan !== null && hasTransitionWrite(plan)) {
+        rememberDest(rel, plan);
+      }
+      continue;
+    }
     if (!isCompletedArtifactRel(rel)) {
       continue;
     }
@@ -437,11 +480,25 @@ export function evaluateCompletedWriteGuard(
       });
       continue;
     }
-    const key = pairingKey(rel);
-    if (key !== null) {
-      pairedTerminalKeys.add(key);
-    }
+    rememberDest(rel, plan);
   }
+
+  const sourceIdentity = (src: string): string => {
+    const payload = readPayload(root, src, options.payloads);
+    if (payload.kind === "ok") {
+      const plan = parsePlan(payload.raw);
+      return plan === null ? "" : planIdentity(plan);
+    }
+    if (options.nameStatus !== undefined || pairingBaseRef.length === 0) {
+      return "";
+    }
+    const shown = git(["show", `${pairingBaseRef}:${src}`], root);
+    if (shown.status !== 0) {
+      return "";
+    }
+    const plan = parsePlan(shown.stdout);
+    return plan === null ? "" : planIdentity(plan);
+  };
 
   const seenActive = new Set<string>();
   for (const rec of records) {
@@ -451,8 +508,17 @@ export function evaluateCompletedWriteGuard(
     if (!isActiveArtifactRel(rec.src)) {
       continue;
     }
-    const srcKey = pairingKey(rec.src);
-    if (srcKey !== null && pairedTerminalKeys.has(srcKey)) {
+    let paired = false;
+    if (rec.status === "R" && authorizedDestPaths.has(rec.dest)) {
+      paired = true;
+    } else if (rec.status === "D") {
+      const srcKey = pairingKey(rec.src);
+      const srcId = sourceIdentity(rec.src);
+      if (srcKey !== null && srcId.length > 0) {
+        paired = authorizedDests.some((d) => d.key === srcKey && d.identity === srcId);
+      }
+    }
+    if (paired) {
       continue;
     }
     if (seenActive.has(rec.src)) {

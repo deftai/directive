@@ -45,6 +45,7 @@ function husk(status = "completed"): string {
 }
 
 function stamped(status = "completed"): string {
+  const action = status === "failed" ? "fail" : status === "cancelled" ? "cancel" : "complete";
   return JSON.stringify({
     xBRIEFInfo: { version: "0.8" },
     plan: {
@@ -52,11 +53,18 @@ function stamped(status = "completed"): string {
       status,
       metadata: {
         lifecycleWrite: {
-          action: status === "failed" ? "fail" : "complete",
+          action,
           writtenAt: "2026-08-25T00:00:00Z",
         },
       },
     },
+  });
+}
+
+function runningSource(title = "stamped"): string {
+  return JSON.stringify({
+    xBRIEFInfo: { version: "0.8" },
+    plan: { title, status: "running" },
   });
 }
 
@@ -318,10 +326,25 @@ describe("evaluateCompletedWriteGuard (#3766 active deletion)", () => {
   it("accepts a delete of active/ paired with a stamped completed/ add", () => {
     const result = evaluateCompletedWriteGuard("/tmp/proj", {
       nameStatus: `D\t${active}\nA\t${completed}`,
-      payloads: new Map([[completed, stamped()]]),
+      payloads: new Map([
+        [completed, stamped()],
+        [active, runningSource()],
+      ]),
     });
     expect(result.code).toBe(0);
     expect(result.findings).toHaveLength(0);
+  });
+
+  it("rejects a copied stamp under the same basename with a different title", () => {
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `D\t${active}\nA\t${completed}`,
+      payloads: new Map([
+        [completed, stamped()],
+        [active, runningSource("victim")],
+      ]),
+    });
+    expect(result.code).toBe(1);
+    expect(result.findings.some((f) => f.relPath === active)).toBe(true);
   });
 
   it("rejects an unstamped cancelled dest as authorization for an active delete", () => {
@@ -346,7 +369,7 @@ describe("evaluateCompletedWriteGuard (#3766 active deletion)", () => {
     expect(result.message).toMatch(/no paired stamped destination/);
   });
 
-  it("rejects a rename from active/ to cancelled/", () => {
+  it("rejects a rename from active/ to an unstamped cancelled dest", () => {
     const cancelled = "xbrief/cancelled/2026-08-25-story.xbrief.json";
     const result = evaluateCompletedWriteGuard("/tmp/proj", {
       nameStatus: `R100\t${active}\t${cancelled}`,
@@ -354,6 +377,29 @@ describe("evaluateCompletedWriteGuard (#3766 active deletion)", () => {
     });
     expect(result.code).toBe(1);
     expect(result.findings.some((f) => f.relPath === active)).toBe(true);
+  });
+
+  it("accepts a rename from active/ to a cancel-stamped cancelled dest", () => {
+    const cancelled = "xbrief/cancelled/2026-08-25-story.xbrief.json";
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `R100\t${active}\t${cancelled}`,
+      payloads: new Map([[cancelled, stamped("cancelled")]]),
+    });
+    expect(result.code).toBe(0);
+    expect(result.findings).toHaveLength(0);
+  });
+
+  it("accepts a delete of active/ paired with a cancel-stamped cancelled dest of the same title", () => {
+    const cancelled = "xbrief/cancelled/2026-08-25-story.xbrief.json";
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `D\t${active}\nA\t${cancelled}`,
+      payloads: new Map([
+        [cancelled, stamped("cancelled")],
+        [active, runningSource()],
+      ]),
+    });
+    expect(result.code).toBe(0);
+    expect(result.findings).toHaveLength(0);
   });
 
   it("rejects a stamped dest in the other lifecycle root as pairing", () => {
@@ -372,6 +418,7 @@ describe("evaluateCompletedWriteGuard (#3766 active deletion)", () => {
     });
     expect(result.code).toBe(1);
     expect(result.message).toContain("scope:complete");
+    expect(result.message).toContain("scope:cancel");
     expect(result.message).toMatch(/untracked/);
     expect(result.message).toContain(UNPAIRED_ACTIVE_DELETE_REMEDIATION);
   });

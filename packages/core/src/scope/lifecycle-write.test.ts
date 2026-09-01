@@ -28,6 +28,18 @@ describe("lifecycle-write (#3679)", () => {
     expect(hasTransitionWrite({ status: "failed" })).toBe(true);
   });
 
+  it("stamps a cancel write that hasTransitionWrite accepts", () => {
+    const plan: Record<string, unknown> = { status: "cancelled" };
+    stampLifecycleWrite(plan, "cancel", "2026-08-25T00:00:00Z");
+    expect(hasTransitionWrite(plan)).toBe(true);
+    const meta = plan.metadata as { lifecycleWrite: { action: string } };
+    expect(meta.lifecycleWrite.action).toBe("cancel");
+  });
+
+  it("does not treat cancelled status alone as verb evidence", () => {
+    expect(hasTransitionWrite({ status: "cancelled" })).toBe(false);
+  });
+
   it("rejects a completed husk with no stamp", () => {
     expect(
       hasTransitionWrite({

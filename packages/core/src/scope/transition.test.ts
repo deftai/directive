@@ -662,10 +662,17 @@ describe("runTransition", () => {
     expect(runTransition("cancel", cancelPath).ok).toBe(true);
     const cancelled = JSON.parse(
       readFileSync(join(root, "xbrief", "cancelled", "cancel-items.xbrief.json"), "utf8"),
-    ) as { plan: { status: string; items: Array<{ status: string }> } };
+    ) as {
+      plan: {
+        status: string;
+        items: Array<{ status: string }>;
+        metadata?: { lifecycleWrite?: { action: string } };
+      };
+    };
     expect(cancelled.plan.status).toBe("cancelled");
     expect(cancelled.plan.items[0].status).toBe("cancelled");
     expect(cancelled.plan.items[1].status).toBe("failed");
+    expect(cancelled.plan.metadata?.lifecycleWrite?.action).toBe("cancel");
   });
 
   it("handles empty/nested items and skip-invalid item entries on complete (#2862)", () => {

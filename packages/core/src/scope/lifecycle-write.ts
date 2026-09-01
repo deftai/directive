@@ -8,7 +8,7 @@
 
 export const LIFECYCLE_WRITE_KEY = "lifecycleWrite" as const;
 
-export type LifecycleWriteAction = "complete" | "fail";
+export type LifecycleWriteAction = "complete" | "fail" | "cancel";
 
 export interface LifecycleWriteStamp {
   readonly action: LifecycleWriteAction;
@@ -39,7 +39,7 @@ function metadataRecord(plan: Record<string, unknown>): Record<string, unknown> 
   return created;
 }
 
-/** Stamp that runTransition wrote this plan into completed/. */
+/** Stamp that runTransition wrote this plan into completed/ or cancelled/. */
 export function stampLifecycleWrite(
   plan: Record<string, unknown>,
   action: LifecycleWriteAction,
@@ -61,7 +61,7 @@ function hasLifecycleWriteStamp(plan: Record<string, unknown>): boolean {
   const action = stamp.action;
   const writtenAt = stamp.writtenAt;
   return (
-    (action === "complete" || action === "fail") &&
+    (action === "complete" || action === "fail" || action === "cancel") &&
     typeof writtenAt === "string" &&
     writtenAt.trim().length > 0
   );

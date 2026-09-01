@@ -377,6 +377,9 @@ export function runTransition(
   if (act === "fail") {
     stampLifecycleWrite(planObj, "fail", nowIso);
   }
+  if (act === "cancel") {
+    stampLifecycleWrite(planObj, "cancel", nowIso);
+  }
 
   const formatted = formatBriefJson(data);
   const crud = new InstrumentedVbriefCrud({ now: () => now });
