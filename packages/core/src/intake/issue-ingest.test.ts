@@ -1207,7 +1207,7 @@ describe("ingestOne set-level recut-then-ingest (#4057)", () => {
             [ISSUE_COMMENT_THREAD_KEY]: [
               {
                 id: 5495812914,
-                body: "target shape: set-level (#3953, #3918)\n",
+                body: "model: grok-4.6\nrole: triage\n\ntarget shape: set-level (#3953, #3918)\n",
               },
               lean,
               table,

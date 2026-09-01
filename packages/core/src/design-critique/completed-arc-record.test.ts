@@ -1024,6 +1024,46 @@ describe("set-level recut-then-ingest refuse (#4057)", () => {
     });
   });
 
+  it("ignores a fenced target-shape example on a parent comment", () => {
+    const fenced: ThreadComment = {
+      id: SYNTHESIS_ID + 1,
+      body: "model: grok-4.6\nrole: parent\n\n```\ntarget shape: single issue premise\n```\n",
+    };
+    expect(
+      evaluateCompletedArcRecord({
+        labels: ["design-critique:triage-ready"],
+        comments: [setLevelCharter, lean, table, synthesis, fenced],
+      }),
+    ).toMatchObject({ status: "blocked", reason: "unrecut-body" });
+  });
+
+  it("ignores a critic quoting target shape", () => {
+    const criticQuote: ThreadComment = {
+      id: SYNTHESIS_ID + 2,
+      body: "model: grok-4.5\nrole: critic\n\ntarget shape: single issue premise\n",
+    };
+    expect(
+      evaluateCompletedArcRecord({
+        labels: ["design-critique:triage-ready"],
+        comments: [setLevelCharter, lean, table, synthesis, criticQuote],
+      }),
+    ).toMatchObject({ status: "blocked", reason: "unrecut-body" });
+  });
+
+  it("does not complete a post-cancel synthesis that cites the superseded lean", () => {
+    const staleSynthesis: ThreadComment = {
+      id: 5499000400,
+      body:
+        "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+        `successor lean ${LEAN_ID}\n`,
+    };
+    expect(
+      evaluateCompletedArcRecord({
+        comments: [lean, table, synthesis, leftoverCritic, cancel, recutLean, staleSynthesis],
+      }),
+    ).toMatchObject({ status: "blocked" });
+  });
+
   it("throws cancelled through the ingest assertion", () => {
     expect(() =>
       assertCompletedArcAllowsIngest({

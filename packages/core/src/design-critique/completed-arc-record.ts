@@ -20,6 +20,7 @@ import {
   ACCEPTED_CITATION_FORMS,
   type Citation,
   type CitationScan,
+  classifyPosition,
   scanCitations,
 } from "./citation-grammar.js";
 import { DESIGN_CRITIQUE_CATALOG_CHIPS } from "./exclusive-chip.js";
@@ -123,6 +124,7 @@ export function hasDesignCritiqueCatalogChip(labels: readonly string[]): boolean
 }
 
 const CRITIC_ROLE_RE = /(?:^|\n)\s*role:\s*critic\b/i;
+const TRIAGE_ROLE_RE = /(?:^|\n)\s*role:\s*triage\b/i;
 const MECHANISM_SHAPED_FIELD_RE = /(?:^|\n)\s*mechanism-shaped:\s*true\b/i;
 const PANEL_DEPOSIT_RE = /(?:^|\n)\s*panel-deposit\b/i;
 const PARENT_ROLE_RE = /(?:^|\n)\s*role:\s*parent\b/i;
@@ -172,11 +174,18 @@ function latestCancelled(comments: readonly ThreadComment[]): ThreadComment | un
   return latest;
 }
 
+function isTargetShapeAuthority(body: string): boolean {
+  return PARENT_ROLE_RE.test(body) || TRIAGE_ROLE_RE.test(body);
+}
+
 function latestTargetShapeIsSetLevel(comments: readonly ThreadComment[]): boolean {
   let latest: { readonly id: number; readonly setLevel: boolean } | undefined;
   for (const comment of comments) {
+    if (!isTargetShapeAuthority(comment.body)) continue;
     TARGET_SHAPE_FIELD_RE.lastIndex = 0;
     for (const match of comment.body.matchAll(TARGET_SHAPE_FIELD_RE)) {
+      const offset = match.index ?? 0;
+      if (classifyPosition(comment.body, offset) !== null) continue;
       const value = (match[1] ?? "").trim().toLowerCase();
       const setLevel = value.startsWith("set-level");
       if (latest === undefined || comment.id >= latest.id) {
@@ -406,21 +415,23 @@ export function evaluateCompletedArcRecord(input: {
         "A later successor lean after this cancel starts a new arc",
     };
   }
-  const synthesis = comments.filter((c) => isSynthesisAcceptedShape(c.body));
+  const recutComments =
+    cancel === undefined ? comments : comments.filter((comment) => comment.id > cancel.id);
+  const synthesis = recutComments.filter((c) => isSynthesisAcceptedShape(c.body));
   const completeRecords = synthesis
-    .map((comment) => verdictForSynthesis(comment, comments))
+    .map((comment) => verdictForSynthesis(comment, recutComments))
     .filter((verdict): verdict is Extract<CompletedArcVerdict, { status: "complete" }> => {
       return verdict.status === "complete";
     });
   if (completeRecords.length > 0) {
-    const latestLean = latestSuccessorLean(comments);
+    const latestLean = latestSuccessorLean(recutComments);
     const matching =
       latestLean === undefined
         ? completeRecords
         : completeRecords.filter((record) => record.citedLeanId === latestLean.id);
     if (matching.length > 0) {
       return refuseUnrecutSetLevel(
-        comments,
+        recutComments,
         matching.reduce((a, b) => (a.synthesisCommentId >= b.synthesisCommentId ? a : b)),
       );
     }
@@ -431,7 +442,7 @@ export function evaluateCompletedArcRecord(input: {
     const laterSynthesis = synthesis.filter((comment) => comment.id > latestCompleteId);
     if (laterSynthesis.length > 0) {
       const latest = laterSynthesis.reduce((a, b) => (a.id >= b.id ? a : b));
-      return refuseUnrecutSetLevel(comments, verdictForSynthesis(latest, comments));
+      return refuseUnrecutSetLevel(recutComments, verdictForSynthesis(latest, recutComments));
     }
     const citedLeanIds = completeRecords.map((record) => record.citedLeanId);
     const latestLeanId = latestLean === undefined ? "unknown" : String(latestLean.id);
@@ -446,9 +457,9 @@ export function evaluateCompletedArcRecord(input: {
   }
   if (synthesis.length > 0) {
     const latest = synthesis.reduce((a, b) => (a.id >= b.id ? a : b));
-    return refuseUnrecutSetLevel(comments, verdictForSynthesis(latest, comments));
+    return refuseUnrecutSetLevel(recutComments, verdictForSynthesis(latest, recutComments));
   }
-  const inArc = hasDesignCritiqueCatalogChip(labels) || isInFlightCritiqueThread(comments);
+  const inArc = hasDesignCritiqueCatalogChip(labels) || isInFlightCritiqueThread(recutComments);
   if (!inArc) {
     return { status: "not-in-arc" };
   }
