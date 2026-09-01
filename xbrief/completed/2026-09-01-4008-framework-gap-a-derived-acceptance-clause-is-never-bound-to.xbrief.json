@@ -1,0 +1,98 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4008",
+    "updated": "2026-09-01T15:10:07Z"
+  },
+  "plan": {
+    "title": "[framework-gap] a derived acceptance clause is never bound to a declared file_scope path at promote, so the clause walk has no adjudicable oracle",
+    "status": "completed",
+    "narratives": {
+      "Description": "[framework-gap] a derived acceptance clause is never bound to a declared file_scope path at promote, so the clause walk has no adjudicable oracle",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4008",
+      "Overview": "## Summary\n\nderived acceptance clauses record a bare filename as artifact_path, so shipped and merged stories fail the clause walk at scope:complete\n\n## Context\n\nDirective engine 0.107.0, content 0.107.0. Consumer project running `scope:promote` → build → merge → `scope:complete` over a six-story cohort.\n\n`scope:promote` derives acceptance clauses (#3323) from the story's narrative fields and stamps each clause with an `artifact_path`.\n\n## Expected behavior\n\nA derived clause resolves against the path the story already declares for that artifact. The story states where its files land, twice, in the same document — `touches[]` and `plan.metadata.swarm.file_scope[]`. A clause derived from that document should be bindable to those paths without hand editing.\n\nFailing that, a clause whose `artifact_path` matches no declared scope entry should be rejected at `scope:promote`, when the brief is being authored and the fix costs nothing.\n\n## Actual behavior / gap\n\nThe derived `artifact_path` is recorded as a bare filename, not repo-relative:\n\n```json\n\"clauses\": [\n  {\n    \"id\": 1,\n    \"text\": \"Add useDensity.ts exposing mode, setMode and the resolved row height...\",\n    \"artifact_path\": \"useDensity.ts\",\n    \"ambiguous\": false\n  }\n]\n```\n\nThe file lands at `src/ui/ledger-table/useDensity.ts`, exactly as the story's `touches[]` and `swarm.file_scope[]` both declare. At `scope:complete` the clause walk cannot find it:\n\n```\nacceptance verdict (#3497): clause-walk-failed — clause walk read 0 verified,\n0 unverifiable, 1 failed against 2 stamped command(s) and 2 run(s)\n  remedy: ship the artifact each failed clause names, or bind the clause to the\n  path it actually landed at (#3323)\n```\n\nAll six stories in the cohort hit this. The work had shipped, merged and passed its literal acceptance commands; completion was blocked purely on path shape.\n\n**The second half, easy to miss.** For a clause flagged `ambiguous: true`, the bare path also appears inside `readings[]`, and the walk resolves through the chosen reading — so binding only the top-level `artifact_path` is not enough:\n\n```json\n\"artifact_path\": \"src/ui/ledger-table/useTableKeyboard.ts\",   <- bound by hand\n\"ambiguous\": true,\n\"readings\": [\n  { \"artifact_path\": \"useTableKeyboard.ts\" },                 <- still bare\n  { \"artifact_path\": \"useRowExpansion.ts\" }\n],\n\"chosen_reading\": 0\n```\n\nTwo of the six stories passed only after their `readings[*]` entries were bound as well.\n\n## Session notes\n\n### Suggested fix for the reported mechanism\n\nAny of:\n\n1. Resolve the bare filename against `file_scope[]` at derivation time — the story already declares exactly where its files go, in the same document.\n2. Resolve at walk time by matching on basename against the story's declared scope, rather than requiring an exact stored string.\n3. Fail at `scope:promote` with a clear message when a derived `artifact_path` matches no entry in `file_scope[]`.\n\n(3) would have saved the most time here, because it moves discovery to the moment the brief is authored rather than the moment the cohort is trying to close. Whichever route is taken, `readings[*].artifact_path` needs the same treatment as the top-level field.\n\n### Two adjacent mechanisms in the same machinery — split candidates\n\nReported here rather than as separate issues because they were observed in the same cohort and share the derivation path. Happy to see them split.\n\n**Clauses derived per narrative field, with `ImplementationPlan` walked as acceptance.** Clause derivation reads narrative fields individually, and `ImplementationPlan` is walked as though it were acceptance criteria. An implementation plan describes intended work; it is not a testable assertion. Deriving clauses from it produces clauses no artifact can satisfy and inflates the clause count with items that were never acceptance. Suggested: exclude `ImplementationPlan`, or require an explicit opt-in for which narrative fields are acceptance-bearing.\n\n**The literal-AC allowlist rejects commands only at `scope:complete`.** A story's acceptance commands are validated against a literal allowlist, but the validation runs at `scope:complete` — after the work has shipped. A command that will never be accepted is accepted at authoring time, accepted at dispatch, run by the worker, and rejected only when the story tries to close. The same \"validate at promote, not at complete\" principle in (3) above applies directly.\n\n### Why the timing compounds\n\nAn uncompleted brief stays in `xbrief/active/`, where it governs the write fence for every worker branching off that base. One unbindable clause therefore serialises an entire cohort until a human hand-edits JSON. The remedy line in the error is accurate and helpful; the problem is that nothing surfaces any of this at promote time.\n\n### Dedup performed\n\nSearched open issues in this repo on 2026-08-31 for `acceptance clause artifact_path`, `clause-walk-failed`, `clause derivation ImplementationPlan`, `literal acceptance allowlist scope:complete`. No match for bare `artifact_path`, per-narrative-field clause derivation, or late literal-AC rejection. Nearest neighbours, cited rather than duplicated: #3993 (AC-pass bank loses green-run evidence and reintroduces #3497), #3819 (completed-artifact guard checks that a stamp exists, not that its disposition is valid), #3584 (cover unquoted behavioural clauses with `observed_behavior` evidence).\n\n## Adoption impact\n\nThis report is a consumer hard-stop: the consumer cannot complete an intended Directive flow and has no reasonable workaround.\n\nTitle token: `BLOCKER`. This token does not apply the `adoption-blocker` ranking label. A privileged actor applies that label after the body-evidence test.\n\n### Affected consumer flow and version\n\n`scope:promote` → build → merge → `scope:complete`, Directive engine 0.107.0 / content 0.107.0. The flow does not complete: correct, merged, gate-green work cannot be marked complete.\n\n### Documented alternatives attempted\n\n- **The error's own remedy — \"ship the artifact each failed clause names\"** — not applicable. The artifact was shipped, at the path the brief declared.\n- **Re-running the acceptance commands** — they already passed; the failure is in clause-to-path resolution, not in the commands.\n- **Hand-editing each clause's `artifact_path`, and every `readings[*].artifact_path`, to the matching `swarm.file_scope[]` entry after `scope:activate`** — the only thing that worked. Not a reasonable workaround: it is manual JSON surgery per clause per story, it must be repeated for every story in every future cohort, and it is exactly the hand-authored lifecycle state the derivation feature exists to remove.\n\n### Observed recovery cost\n\nSix stories in one cohort blocked at completion after merging. Two needed a second pass once the `readings[]` half was discovered. The blocked briefs held the write fence for the cohort while unresolved, so the stall was not confined to the stories that hit it.\n\n### Triage owner and date\n\n_(to be filled by a privileged actor when applying `adoption-blocker`)_\n\n---\n_Filed via `task feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-08-31T16:02:50Z)\n\nmodel: grok-4.6\nrole: triage\n\nmechanism-shaped: true\n\ndesign-critique: warranted, because this issue is one of four whose reported mechanisms all sit in a path-or-pattern resolution step, and whether those four compose into one remedy or stay four independent ones cannot be answered from this thread alone.\n\nrefutation-target: that this issue is an independent defect whose own named local fix is the whole remedy.\n\nSet-level arc, anchored on #4007. Charter: open critique. Spend: N=3. Target shape: set-level over #4007 / #4008 / #4009 / #4010.\n\nThe round-1 ceiling, the critic posts, the successor lean and the record all live on #4007. Disposition stays per-issue, so this issue keeps its own verdict. Read #4007 for the arc.\n\n### Comment by @MScottAdams (2026-08-31T16:58:33Z)\n\n## Title history\n\nRetitled 2026-08-31, after the design-critique arc anchored on #4007. Arc record: #4007 comment 5481547506. Evidence table: #4007 comment 5481540218, rows 3 and 4.\n\n- **Originally filed:** `[framework-gap] BLOCKER derived acceptance clauses record a bare filename as artifact_path, so shipped and merged stories fail the clause walk at scope:complete`\n- **Then:** the `BLOCKER` token was withdrawn from the title.\n- **Now:** `[framework-gap] a derived acceptance clause is never bound to a declared file_scope path at promote, so the clause walk has no adjudicable oracle`\n\nTwo changes, two reasons.\n\n**The BLOCKER token.** It was accurate at the version filed against. The reported derivation defect was real at v0.107.0, where `buildClause` stored `extractPathTokens(text)[0]` plus per-path `readings[]`, and it is repaired at `14529b90` (#3835 / PR #3880), first released in v0.108.0. Three independent probes on the current tree return `artifact_path: null` for the same acceptance sentence. Upgrading past 0.107.0 therefore lets the reported flow complete, so the token no longer describes any current version and `adoption-blocker` was not applied. Positive-only semantics still hold: the label's absence is not a finding that a workaround exists.\n\n**The mechanism named in the title.** The arc measured a live remainder that survives that repair, and it is not the one the old title named: nothing binds a derived clause to its approved `plan.metadata.swarm.file_scope` member, or fails it, at `scope:promote`. The walk returns `unverifiable` with `adjudicable: false`, so a cohort can still be held behind clauses that have no adjudicable oracle. Stored legacy `readings[]` remain read-supported, so briefs promoted under 0.107.0 carry the old shape forward as a migration residual.\n\nBasename matching at walk time, option 2 in the report, is refused: untrusted clause prose would be selecting among approved same-stem files, which is the boundary #3835 closed.\n\nThe report body above is kept unedited as the original filing. Nothing in it was wrong at the version it was filed against; the arc record supersedes its cause for current versions. The two adjacent mechanisms the filer offered to split -- `ImplementationPlan` walked as acceptance, and the literal-acceptance allowlist validating only at `scope:complete` -- are still unsplit and still open.\n\n### Comment by @MScottAdams (2026-09-01T13:58:24Z)\n\nmodel: grok-4.6\nrole: parent\n\nLean:\n\n#4008 stays open, recut. The reported bare-filename derivation was real at v0.107.0 and is repaired at 14529b90 (v0.108.0). Live remainder: nothing binds a derived clause to its approved file_scope member, or fails it, at promote. Basename matching at walk time is refused: untrusted clause prose would be selecting among approved same-stem files. Split ImplementationPlan-as-acceptance and late literal-AC allowlist out of this story.\n\nThis comment is the successor lean on this thread so ingest can cite a lean that lives here. The operator-accepted synthesis for the four-issue arc is https://github.com/deftai/directive/issues/4007#issuecomment-5481547506 citing successor lean 5481295574 and verified-claims table 5481540218.\n\n### Comment by @MScottAdams (2026-09-01T13:59:04Z)\n\nmodel: grok-4.6\nrole: parent\n\ndesign-critique: synthesis accepted, because the operator confirmed the map after an independent Stop 4 audit on the #4007 arc, citing successor lean 5495100942 and the four-issue verified-claims table 5481540218.\n\nBind trail: operator verb accept synth recorded on https://github.com/deftai/directive/issues/4007#issuecomment-5481547506. This thread now carries its own successor lean so ingest clearance is per-issue.\n\n### Comment by @MScottAdams (2026-09-01T13:59:47Z)\n\nmodel: grok-4.6\nrole: parent\n\ndesign-critique: synthesis accepted, because the operator confirmed the map after an independent Stop 4 audit on the #4007 arc, citing successor lean 5495100942.\n\nThe verified-claims table for the four-issue arc lives on #4007 comment 5481540218 and is not re-hosted here.",
+      "Labels": "bug, area:vbrief, design-critique:triage-ready"
+    },
+    "items": [],
+    "tags": [
+      "bug",
+      "area:vbrief",
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4008",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4008: [framework-gap] a derived acceptance clause is never bound to a declared file_scope path at promote, so the clause walk has no adjudicable oracle"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "path it actually landed at (#3323)",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L36"
+        },
+        {
+          "command": "acceptance clause artifact_path",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L85"
+        },
+        {
+          "command": "clause derivation ImplementationPlan",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L85"
+        },
+        {
+          "command": "literal acceptance allowlist scope:complete",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L85"
+        }
+      ],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4044,
+        "prBase": null,
+        "mergeCommit": "c172e30bf74e9ae8b8b71d38c34847fb1eb8d33c",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c172e30bf74e9ae8b8b71d38c34847fb1eb8d33c",
+        "verifiedAt": "2026-09-01T15:10:07Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDVkNDctZDdhOC03OTQzLTg3ZWEtNzM0YzNiYTUyMmFj"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-01T15:10:07Z"
+      },
+      "completedAt": "2026-09-01T15:10:07Z",
+      "completedSessionId": "host:claude:v1:MDFhMDVkNDctZDdhOC03OTQzLTg3ZWEtNzM0YzNiYTUyMmFj",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "project_floor",
+      "derived_reason": "no shell acceptance commands stated in task text; floor until agent derives AC (#3284 ladder)"
+    },
+    "updated": "2026-09-01T15:10:07Z"
+  }
+}
