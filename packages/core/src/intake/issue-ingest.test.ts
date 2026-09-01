@@ -1172,7 +1172,9 @@ describe("ingestOne set-level recut-then-ingest (#4057)", () => {
             [ISSUE_COMMENT_THREAD_KEY]: [
               {
                 id: 5499000001,
-                body: "design-critique: cancelled, because dominated into the set-level bind\n",
+                body:
+                  "model: grok-4.6\nrole: parent\n\n" +
+                  "design-critique: cancelled, because dominated into the set-level bind\n",
               },
             ],
           },

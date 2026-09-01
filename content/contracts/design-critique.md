@@ -452,7 +452,7 @@ Closed catalog (last chip wins): `design-critique:mechanism-shaped` (in-flight, 
 - ⊗ General-purpose labels CLI.
 - ! After the completed-arc record is present, `triage:accept` / `scope:promote` / `issue:ingest` / build may proceed unless `evaluateCompletedArcRecord` returns `cancelled` or `unrecut-body` (#4057). Any identity may run those verbs. Same-session parent continuation is not required. GitHub Triage on the implementer is not required. They read the accepted verified synthesis (latest successor lean plus the verified-claims table).
 - ! Per-thread body ingest stays the mapper after a set-level bind. Stories the bind wants are recut bodies or newly filed issues. Derived AC stays on that body.
-- ! Un-recut portfolio members fail closed on `cancelled`. Parent posts `design-critique: cancelled, because ...` on that number. Parent `role: parent` dominate prose is not that record. Leftover `mechanism-shaped` without cancel stays `missing-record` and is not this control.
+- ! Un-recut portfolio members fail closed on `cancelled`. Parent posts `design-critique: cancelled, because ...` on that number. Parent `role: parent` dominate prose is not that record. Critic, quoted, or fenced cancel-shaped prose is not that record. Leftover `mechanism-shaped` without cancel stays `missing-record` and is not this control.
 - ! A later successor lean after cancel starts a recut arc. Completing a superseded thread without recut would mint the harvest.
 - ! A complete record whose latest `target shape:` field is `set-level` is `unrecut-body`. Recut the body (and record a non-set-level shape) or file a new issue. Ingest the anchor only is not supported while that field remains set-level.
 - ⊗ Select an author-blind latest successor lean as CurrentShape.

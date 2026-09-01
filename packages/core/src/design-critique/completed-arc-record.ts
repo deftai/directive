@@ -165,23 +165,35 @@ function latestSuccessorLean(comments: readonly ThreadComment[]): ThreadComment 
   return latest;
 }
 
+function isParentOrTriageAuthority(body: string): boolean {
+  return PARENT_ROLE_RE.test(body) || TRIAGE_ROLE_RE.test(body);
+}
+
+function hasOperativeCancelledShape(body: string): boolean {
+  const re = new RegExp(CANCELLED_SHAPE_RE.source, "gi");
+  for (const match of body.matchAll(re)) {
+    const matchOffset = match.index ?? 0;
+    const inner = match[0].search(/design-critique:/i);
+    const offset = matchOffset + (inner >= 0 ? inner : 0);
+    if (classifyPosition(body, offset) === null) return true;
+  }
+  return false;
+}
+
 function latestCancelled(comments: readonly ThreadComment[]): ThreadComment | undefined {
   let latest: ThreadComment | undefined;
   for (const comment of comments) {
-    if (!isCancelledShape(comment.body)) continue;
+    if (!isParentOrTriageAuthority(comment.body)) continue;
+    if (!hasOperativeCancelledShape(comment.body)) continue;
     if (latest === undefined || comment.id > latest.id) latest = comment;
   }
   return latest;
 }
 
-function isTargetShapeAuthority(body: string): boolean {
-  return PARENT_ROLE_RE.test(body) || TRIAGE_ROLE_RE.test(body);
-}
-
 function latestTargetShapeIsSetLevel(comments: readonly ThreadComment[]): boolean {
   let latest: { readonly id: number; readonly setLevel: boolean } | undefined;
   for (const comment of comments) {
-    if (!isTargetShapeAuthority(comment.body)) continue;
+    if (!isParentOrTriageAuthority(comment.body)) continue;
     TARGET_SHAPE_FIELD_RE.lastIndex = 0;
     for (const match of comment.body.matchAll(TARGET_SHAPE_FIELD_RE)) {
       const offset = match.index ?? 0;

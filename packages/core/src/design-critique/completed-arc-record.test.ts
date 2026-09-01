@@ -957,6 +957,46 @@ describe("set-level recut-then-ingest refuse (#4057)", () => {
     }
   });
 
+  it("ignores a critic quoting cancelled after a complete record", () => {
+    const criticCancel: ThreadComment = {
+      id: SYNTHESIS_ID + 3,
+      body:
+        "model: grok-4.5\nrole: critic\n\n" +
+        "design-critique: cancelled, because this is an example of the refuse line\n",
+    };
+    expect(
+      evaluateCompletedArcRecord({
+        labels: ["design-critique:triage-ready"],
+        comments: [lean, table, synthesis, criticCancel],
+      }),
+    ).toEqual({
+      status: "complete",
+      synthesisCommentId: SYNTHESIS_ID,
+      citedLeanId: LEAN_ID,
+      citedTableId: TABLE_ID,
+    });
+  });
+
+  it("ignores a fenced cancelled example on a parent comment", () => {
+    const fencedCancel: ThreadComment = {
+      id: SYNTHESIS_ID + 4,
+      body:
+        "model: grok-4.6\nrole: parent\n\n" +
+        "```\ndesign-critique: cancelled, because example\n```\n",
+    };
+    expect(
+      evaluateCompletedArcRecord({
+        labels: ["design-critique:triage-ready"],
+        comments: [lean, table, synthesis, fencedCancel],
+      }),
+    ).toEqual({
+      status: "complete",
+      synthesisCommentId: SYNTHESIS_ID,
+      citedLeanId: LEAN_ID,
+      citedTableId: TABLE_ID,
+    });
+  });
+
   it("does not treat halt as cancel", () => {
     const halted: ThreadComment = {
       id: 5499000002,
