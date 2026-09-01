@@ -28,7 +28,10 @@ interface EligibleScope {
 }
 
 function toPosix(path: string): string {
-  return path.replace(/\\/g, "/");
+  // Win32 path separators only. On POSIX a backslash is a filename character;
+  // rewriting it to `/` would let a nonexistent `xbrief\active\story.json` pin
+  // match `xbrief/active/story.json` (#4007 Greptile).
+  return process.platform === "win32" ? path.replace(/\\/g, "/") : path;
 }
 
 function containedResolved(projectRoot: string, target: string): string | null {

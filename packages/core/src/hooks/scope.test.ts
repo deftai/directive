@@ -153,6 +153,21 @@ describe("shared-active write-fence bind (#4007)", () => {
     expect(byBoundPath).toMatchObject({ ready: true, path: storyB });
   });
 
+  it("does not rewrite a backslash pin into a posix path except on win32", () => {
+    const project = root();
+    writeRunning(project, "a-story.xbrief.json", ["packages/a/**"]);
+    const storyB = writeRunning(project, "b-story.xbrief.json", ["packages/b/**"]);
+    const pin = "xbrief\\active\\b-story.xbrief.json";
+    const result = inspectActiveScope(project, { env: { [ACTIVE_SCOPE_PIN_ENV]: pin } });
+    if (process.platform === "win32") {
+      expect(result).toMatchObject({ ready: true, path: storyB });
+    } else {
+      expect(result.ready).toBe(false);
+      expect(result.path).toBeNull();
+      expect(result.message).toContain(pin);
+    }
+  });
+
   it("does not degrade a path-shaped miss to a same-named basename", () => {
     const project = root();
     writeRunning(project, "a-story.xbrief.json", ["packages/a/**"]);
