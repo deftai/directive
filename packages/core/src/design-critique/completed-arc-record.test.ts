@@ -898,3 +898,130 @@ describe("typed table refusal partition (#3942)", () => {
     }
   });
 });
+
+describe("set-level recut-then-ingest refuse (#4057)", () => {
+  const cancel: ThreadComment = {
+    id: 5499000001,
+    body: "model: grok-4.6\nrole: parent\n\ndesign-critique: cancelled, because dominated into the set-level bind\n",
+  };
+  const dominatePointer: ThreadComment = {
+    id: 5496111895,
+    body: "model: grok-4.6\nrole: parent\n\nDominate into #3953.\n",
+  };
+  const leftoverCritic: ThreadComment = {
+    id: 5471786938,
+    body: "model: grok-4.5\nrole: critic\n\n## Finding 1\nleftover N=1 motion\n",
+  };
+  const setLevelCharter: ThreadComment = {
+    id: 5495812914,
+    body: "model: grok-4.6\nrole: triage\n\n" + "target shape: set-level (#3953, #3918, #3849)\n",
+  };
+  const recutShape: ThreadComment = {
+    id: 5499000100,
+    body: "model: grok-4.6\nrole: parent\n\ntarget shape: single issue premise\n",
+  };
+  const recutLean: ThreadComment = {
+    id: 5499000200,
+    body: "**Lean:** dest-based classifier story after recut.\n",
+  };
+  const recutSynthesis: ThreadComment = {
+    id: 5499000300,
+    body:
+      "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+      "successor lean 5499000200\n",
+  };
+
+  it("lets a parent dominate pointer through as not-in-arc", () => {
+    expect(evaluateCompletedArcRecord({ comments: [dominatePointer] })).toEqual({
+      status: "not-in-arc",
+    });
+  });
+
+  it("keeps leftover mechanism-shaped without cancel as missing-record", () => {
+    expect(
+      evaluateCompletedArcRecord({
+        labels: ["design-critique:mechanism-shaped"],
+        comments: [leftoverCritic],
+      }),
+    ).toMatchObject({ status: "blocked", reason: "missing-record" });
+  });
+
+  it("treats cancel as terminal refuse even with leftover critic", () => {
+    const verdict = evaluateCompletedArcRecord({
+      labels: ["design-critique:mechanism-shaped"],
+      comments: [leftoverCritic, cancel],
+    });
+    expect(verdict).toMatchObject({ status: "blocked", reason: "cancelled" });
+    if (verdict.status === "blocked") {
+      expect(verdict.detail).toContain(String(cancel.id));
+    }
+  });
+
+  it("does not treat halt as cancel", () => {
+    const halted: ThreadComment = {
+      id: 5499000002,
+      body: "model: grok-4.6\nrole: parent\n\ndesign-critique: halted, because same-fingerprint\n",
+    };
+    expect(evaluateCompletedArcRecord({ comments: [halted] })).toEqual({
+      status: "not-in-arc",
+    });
+  });
+
+  it("refuses a complete set-level anchor as unrecut-body", () => {
+    const verdict = evaluateCompletedArcRecord({
+      labels: ["design-critique:triage-ready"],
+      comments: [setLevelCharter, lean, table, synthesis],
+    });
+    expect(verdict).toMatchObject({ status: "blocked", reason: "unrecut-body" });
+  });
+
+  it("still completes a single-issue bound record", () => {
+    expect(
+      evaluateCompletedArcRecord({
+        labels: ["design-critique:triage-ready"],
+        comments: [lean, table, synthesis],
+      }),
+    ).toEqual({
+      status: "complete",
+      synthesisCommentId: SYNTHESIS_ID,
+      citedLeanId: LEAN_ID,
+      citedTableId: TABLE_ID,
+    });
+  });
+
+  it("lets a later recut lean after cancel start a new arc", () => {
+    expect(
+      evaluateCompletedArcRecord({
+        comments: [leftoverCritic, cancel, recutLean],
+      }),
+    ).toMatchObject({ status: "blocked", reason: "missing-record" });
+  });
+
+  it("completes a recut single-issue arc after cancel", () => {
+    expect(
+      evaluateCompletedArcRecord({
+        comments: [leftoverCritic, cancel, recutShape, recutLean, recutSynthesis],
+      }),
+    ).toEqual({
+      status: "complete",
+      synthesisCommentId: recutSynthesis.id,
+      citedLeanId: recutLean.id,
+      citedTableId: null,
+    });
+  });
+
+  it("throws cancelled through the ingest assertion", () => {
+    expect(() =>
+      assertCompletedArcAllowsIngest({
+        issueNumber: 3918,
+        comments: [cancel],
+      }),
+    ).toThrow(DesignCritiqueIngestBlockedError);
+    try {
+      assertCompletedArcAllowsIngest({ issueNumber: 3918, comments: [cancel] });
+    } catch (error) {
+      expect(error).toBeInstanceOf(DesignCritiqueIngestBlockedError);
+      expect((error as DesignCritiqueIngestBlockedError).reason).toBe("cancelled");
+    }
+  });
+});

@@ -1139,3 +1139,126 @@ describe("ingestOne completed-arc record (#3806)", () => {
     }
   });
 });
+
+describe("ingestOne set-level recut-then-ingest (#4057)", () => {
+  const lean = {
+    id: 5442939496,
+    body: "**Lean:** chips are convenience.\n",
+  };
+  const table = {
+    id: 5443106967,
+    body: "## Verified-claims table\n",
+  };
+  const synthesis = {
+    id: 5443114746,
+    body:
+      "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+      "Bound contract: successor lean 5442939496, verified-claims table 5443106967.\n",
+  };
+
+  it("refuses harvest ingest of a cancelled sister", () => {
+    const root = mkdtempSync(join(tmpdir(), "ingest-4057-cancel-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(xbriefDir, { recursive: true });
+    try {
+      expect(() =>
+        ingestOne(
+          {
+            number: 3918,
+            title: "appsec named-bin harvest",
+            html_url: "https://github.com/o/r/issues/3918",
+            body: "## Acceptance\n- [ ] classify llvm-ar as settings deny\n",
+            labels: [{ name: "bug" }],
+            [ISSUE_COMMENT_THREAD_KEY]: [
+              {
+                id: 5499000001,
+                body: "design-critique: cancelled, because dominated into the set-level bind\n",
+              },
+            ],
+          },
+          {
+            vbriefDir: xbriefDir,
+            status: "proposed",
+            repoUrl: "https://github.com/o/r",
+            cwd: root,
+            scmCall: () => completed("[]", "", 0),
+          },
+        ),
+      ).toThrow(DesignCritiqueIngestBlockedError);
+      expect(readdirSync(xbriefDir).filter((n) => n.endsWith(".json"))).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses complete set-level ingest while the body is still the scan", () => {
+    const root = mkdtempSync(join(tmpdir(), "ingest-4057-set-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(xbriefDir, { recursive: true });
+    try {
+      expect(() =>
+        ingestOne(
+          {
+            number: 3953,
+            title: "appsec assist-scratch harvest",
+            html_url: "https://github.com/o/r/issues/3953",
+            body: "## Acceptance\n- [ ] classify llvm-ar as settings deny\n",
+            labels: [{ name: "design-critique:triage-ready" }],
+            [ISSUE_COMMENT_THREAD_KEY]: [
+              {
+                id: 5495812914,
+                body: "target shape: set-level (#3953, #3918)\n",
+              },
+              lean,
+              table,
+              synthesis,
+            ],
+          },
+          {
+            vbriefDir: xbriefDir,
+            status: "proposed",
+            repoUrl: "https://github.com/o/r",
+            cwd: root,
+            scmCall: () => completed("[]", "", 0),
+          },
+        ),
+      ).toThrow(DesignCritiqueIngestBlockedError);
+      expect(readdirSync(xbriefDir).filter((n) => n.endsWith(".json"))).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("does not treat a parent dominate pointer as the refuse record", () => {
+    const root = mkdtempSync(join(tmpdir(), "ingest-4057-pointer-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(xbriefDir, { recursive: true });
+    try {
+      const [result] = ingestOne(
+        {
+          number: 3918,
+          title: "ordinary sister",
+          html_url: "https://github.com/o/r/issues/3918",
+          body: "body",
+          labels: [{ name: "bug" }],
+          [ISSUE_COMMENT_THREAD_KEY]: [
+            {
+              id: 5496111895,
+              body: "model: grok-4.6\nrole: parent\n\nDominate into #3953.\n",
+            },
+          ],
+        },
+        {
+          vbriefDir: xbriefDir,
+          status: "proposed",
+          repoUrl: "https://github.com/o/r",
+          cwd: root,
+          scmCall: () => completed("[]", "", 0),
+        },
+      );
+      expect(result).toBe("created");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});

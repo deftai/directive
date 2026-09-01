@@ -10,6 +10,10 @@
  * `## Citation grammar`. Clearance is set membership against the latest
  * successor lean, not position in the body, so citing the superseded lean --
  * which `## Successor lean` requires -- cannot block.
+ *
+ * Set-level bind (#4057) does not change that mapper. Un-recut members refuse
+ * on `cancelled` or `unrecut-body`. Parent dominate prose is not a record.
+ * A later successor lean after cancel starts a recut arc.
  */
 
 import {
@@ -38,6 +42,8 @@ export const COMPLETED_ARC_BLOCK_REASONS = [
   "missing-table-cite",
   "unshaped-table-cite",
   "ambiguous-table-cite",
+  "cancelled",
+  "unrecut-body",
 ] as const;
 
 export type CompletedArcBlockReason = (typeof COMPLETED_ARC_BLOCK_REASONS)[number];
@@ -57,6 +63,8 @@ export type CompletedArcVerdict =
     };
 
 const SYNTHESIS_SHAPE_RE = /(?:^|\n)\s*design-critique:\s*synthesis accepted,\s*because\b/i;
+const CANCELLED_SHAPE_RE = /(?:^|\n)\s*design-critique:\s*cancelled,\s*because\b/i;
+const TARGET_SHAPE_FIELD_RE = /(?:^|\n)\s*target shape:\s*([^\n]+)/gi;
 const LEAN_HEADING_RE = /(?:^|\n)\s*\*{0,2}Lean:\*{0,2}/;
 const TABLE_HEADING_RE = /(?:^|\n)\s*##\s+Verified-claims table\b/;
 
@@ -81,6 +89,10 @@ export class DesignCritiqueIngestBlockedError extends Error {
 
 export function isSynthesisAcceptedShape(body: string): boolean {
   return SYNTHESIS_SHAPE_RE.test(body);
+}
+
+export function isCancelledShape(body: string): boolean {
+  return CANCELLED_SHAPE_RE.test(body);
 }
 
 export function isSuccessorLeanBody(body: string): boolean {
@@ -149,6 +161,48 @@ function latestSuccessorLean(comments: readonly ThreadComment[]): ThreadComment 
     if (latest === undefined || comment.id > latest.id) latest = comment;
   }
   return latest;
+}
+
+function latestCancelled(comments: readonly ThreadComment[]): ThreadComment | undefined {
+  let latest: ThreadComment | undefined;
+  for (const comment of comments) {
+    if (!isCancelledShape(comment.body)) continue;
+    if (latest === undefined || comment.id > latest.id) latest = comment;
+  }
+  return latest;
+}
+
+function latestTargetShapeIsSetLevel(comments: readonly ThreadComment[]): boolean {
+  let latest: { readonly id: number; readonly setLevel: boolean } | undefined;
+  for (const comment of comments) {
+    TARGET_SHAPE_FIELD_RE.lastIndex = 0;
+    for (const match of comment.body.matchAll(TARGET_SHAPE_FIELD_RE)) {
+      const value = (match[1] ?? "").trim().toLowerCase();
+      const setLevel = value.startsWith("set-level");
+      if (latest === undefined || comment.id >= latest.id) {
+        latest = { id: comment.id, setLevel };
+      }
+    }
+  }
+  return latest?.setLevel === true;
+}
+
+function refuseUnrecutSetLevel(
+  comments: readonly ThreadComment[],
+  verdict: CompletedArcVerdict,
+): CompletedArcVerdict {
+  if (verdict.status !== "complete" || !latestTargetShapeIsSetLevel(comments)) {
+    return verdict;
+  }
+  return {
+    status: "blocked",
+    reason: "unrecut-body",
+    detail:
+      "completed-arc record is present but the latest target shape is set-level; " +
+      "ingest waits on a recut body or a newly filed issue (comment id " +
+      String(verdict.synthesisCommentId) +
+      ")",
+  };
 }
 
 function renderIds(ids: readonly number[]): string {
@@ -336,6 +390,22 @@ export function evaluateCompletedArcRecord(input: {
 }): CompletedArcVerdict {
   const comments = input.comments;
   const labels = input.labels ?? [];
+  const cancel = latestCancelled(comments);
+  const latestLeanForCancel = latestSuccessorLean(comments);
+  if (
+    cancel !== undefined &&
+    (latestLeanForCancel === undefined || latestLeanForCancel.id < cancel.id)
+  ) {
+    return {
+      status: "blocked",
+      reason: "cancelled",
+      detail:
+        "design-critique: cancelled, because ... on comment " +
+        String(cancel.id) +
+        "; this number is not a harvest story. Recut the body or file a new issue. " +
+        "A later successor lean after this cancel starts a new arc",
+    };
+  }
   const synthesis = comments.filter((c) => isSynthesisAcceptedShape(c.body));
   const completeRecords = synthesis
     .map((comment) => verdictForSynthesis(comment, comments))
@@ -349,7 +419,10 @@ export function evaluateCompletedArcRecord(input: {
         ? completeRecords
         : completeRecords.filter((record) => record.citedLeanId === latestLean.id);
     if (matching.length > 0) {
-      return matching.reduce((a, b) => (a.synthesisCommentId >= b.synthesisCommentId ? a : b));
+      return refuseUnrecutSetLevel(
+        comments,
+        matching.reduce((a, b) => (a.synthesisCommentId >= b.synthesisCommentId ? a : b)),
+      );
     }
     const latestCompleteId = completeRecords.reduce(
       (max, record) => Math.max(max, record.synthesisCommentId),
@@ -358,7 +431,7 @@ export function evaluateCompletedArcRecord(input: {
     const laterSynthesis = synthesis.filter((comment) => comment.id > latestCompleteId);
     if (laterSynthesis.length > 0) {
       const latest = laterSynthesis.reduce((a, b) => (a.id >= b.id ? a : b));
-      return verdictForSynthesis(latest, comments);
+      return refuseUnrecutSetLevel(comments, verdictForSynthesis(latest, comments));
     }
     const citedLeanIds = completeRecords.map((record) => record.citedLeanId);
     const latestLeanId = latestLean === undefined ? "unknown" : String(latestLean.id);
@@ -373,7 +446,7 @@ export function evaluateCompletedArcRecord(input: {
   }
   if (synthesis.length > 0) {
     const latest = synthesis.reduce((a, b) => (a.id >= b.id ? a : b));
-    return verdictForSynthesis(latest, comments);
+    return refuseUnrecutSetLevel(comments, verdictForSynthesis(latest, comments));
   }
   const inArc = hasDesignCritiqueCatalogChip(labels) || isInFlightCritiqueThread(comments);
   if (!inArc) {
