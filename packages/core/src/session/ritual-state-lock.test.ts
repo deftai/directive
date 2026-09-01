@@ -204,6 +204,50 @@ describe("ritual-state lock (#3872)", () => {
     expect(gated.agent_hooks.message).toBe("a");
     expect(gated.cache_fresh.message).toBe("b");
   });
+
+  it("does not restore skip after a live cache-fresh deleted it", () => {
+    const merged = mergeSameOwnerRitualPayload(
+      {
+        session_id: "owner",
+        gated_steps: {
+          cache_fresh: { ok: true, ts: "2026-09-01T00:00:02Z", message: "live" },
+        },
+      },
+      {
+        session_id: "owner",
+        drift_probe: "skipped-no-work-selection",
+        gated_steps: { agent_hooks: { ok: true, ts: "2026-09-01T00:00:00Z", message: "stale" } },
+      },
+    );
+    expect(merged.drift_probe).toBeUndefined();
+  });
+
+  it("returns a refusal string when the ritual lock times out", () => {
+    const { root, head } = initRepo();
+    const started = new Date("2026-09-01T00:00:00Z");
+    plant(root, head, "owner", started);
+    const lockPath = `${ritualStatePath(root)}.lock`;
+    writeFileSync(lockPath, `${process.pid}\nlive\n${Date.now()}\n`, "utf8");
+    let now = 0;
+    const refusal = writeRitualStateIfStillOwned(
+      root,
+      newRitualStatePayload({
+        sessionId: "owner",
+        gitHead: head,
+        worktreePath: resolve(root),
+        startedAt: started,
+      }),
+      { sessionId: "owner", startedAt: started },
+      {
+        now: () => now,
+        sleepMs: (ms) => {
+          now += ms;
+        },
+        acquisitionBudgetMs: 50,
+      },
+    );
+    expect(refusal).toMatch(/timed out acquiring lock/);
+  });
 });
 
 describe("withAppendLock budget (#3872)", () => {

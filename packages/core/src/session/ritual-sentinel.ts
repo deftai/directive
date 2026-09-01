@@ -277,20 +277,32 @@ function asStepMap(value: unknown): Record<string, Record<string, unknown>> {
   return out;
 }
 
+const DRIFT_PROBE_SKIP = "skipped-no-work-selection";
+
 /**
- * Co-member persist (#3872): incoming owns top-level fields (so an omitted
- * `drift_probe` stays deleted) while step maps union so a stale snapshot
- * cannot drop another member's gated/quick step.
+ * Co-member persist (#3872): step maps union. Incoming omission deletes
+ * `drift_probe`. A stale snapshot that still carries the skip token cannot
+ * restore it after a later verifier already published a live cache-fresh.
  */
 export function mergeSameOwnerRitualPayload(
   disk: Record<string, unknown>,
   incoming: Record<string, unknown>,
 ): Record<string, unknown> {
-  return {
+  const merged: Record<string, unknown> = {
+    ...disk,
     ...incoming,
     quick_steps: { ...asStepMap(disk.quick_steps), ...asStepMap(incoming.quick_steps) },
     gated_steps: { ...asStepMap(disk.gated_steps), ...asStepMap(incoming.gated_steps) },
   };
+  if (!Object.hasOwn(incoming, "drift_probe")) {
+    delete merged.drift_probe;
+  } else if (incoming.drift_probe === DRIFT_PROBE_SKIP && !Object.hasOwn(disk, "drift_probe")) {
+    const cache = asStepMap(disk.gated_steps).cache_fresh;
+    if (cache?.ok === true && cache.deferred_reason === undefined) {
+      delete merged.drift_probe;
+    }
+  }
+  return merged;
 }
 
 /**
@@ -349,32 +361,36 @@ export function writeRitualStateIfStillOwned(
   expected: { sessionId?: string; startedAt: Date },
   deps: LockDeps = {},
 ): string | null {
-  return withRitualStateLock(
-    projectRoot,
-    (fence) => {
-      const [current] = readRitualState(projectRoot);
-      if (current === null) {
-        return "session ritual state was removed while this verification was running";
-      }
-      if (
-        current.sessionId !== expected.sessionId ||
-        current.startedAt.getTime() !== expected.startedAt.getTime()
-      ) {
-        return (
-          `session ritual state was re-armed by ${current.sessionId ?? "<unbound>"} while this ` +
-          "verification was running; refusing to overwrite the current owner record"
-        );
-      }
-      const merged = mergeSameOwnerRitualPayload(current.raw, payload);
-      try {
-        publishRitualState(projectRoot, merged, fence);
-      } catch (exc) {
-        return String(exc);
-      }
-      return null;
-    },
-    deps,
-  );
+  try {
+    return withRitualStateLock(
+      projectRoot,
+      (fence) => {
+        const [current] = readRitualState(projectRoot);
+        if (current === null) {
+          return "session ritual state was removed while this verification was running";
+        }
+        if (
+          current.sessionId !== expected.sessionId ||
+          current.startedAt.getTime() !== expected.startedAt.getTime()
+        ) {
+          return (
+            `session ritual state was re-armed by ${current.sessionId ?? "<unbound>"} while this ` +
+            "verification was running; refusing to overwrite the current owner record"
+          );
+        }
+        const merged = mergeSameOwnerRitualPayload(current.raw, payload);
+        try {
+          publishRitualState(projectRoot, merged, fence);
+        } catch (exc) {
+          return String(exc);
+        }
+        return null;
+      },
+      deps,
+    );
+  } catch (exc) {
+    return String(exc);
+  }
 }
 
 /** Instant guaranteed to fail `evaluateLoadedState` age checks on any policy horizon. */
@@ -402,32 +418,32 @@ export function markRitualStaleAfterCompact(
 ): MarkRitualStaleAfterCompactResult {
   const now = input.now ?? new Date();
   const statePath = ritualStatePath(projectRoot);
-  const [state, err] = readRitualState(projectRoot);
-  if (state === null) {
-    return {
-      changed: false,
-      statePath,
-      message: err ?? "no ritual state to invalidate after compaction",
-    };
-  }
-  const payload = { ...state.raw };
-  payload.started_at = timestampIso(RITUAL_STALE_EPOCH);
-  payload.compact_resume_at = timestampIso(now);
-  // #2992: compact invalidates the ritual clock only — prefer re-arm recovery when worktree/HEAD allow.
-  payload.rearm_needed = true;
-  // Compact is the recorded fail-open exception: no owner compare (#3769 item 2).
-  // Still serialised so it cannot interleave with a compare+publish (#3872).
-  withRitualStateLock(projectRoot, (fence) => {
+  return withRitualStateLock(projectRoot, (fence) => {
+    const [state, err] = readRitualState(projectRoot);
+    if (state === null) {
+      return {
+        changed: false,
+        statePath,
+        message: err ?? "no ritual state to invalidate after compaction",
+      };
+    }
+    const payload = { ...state.raw };
+    payload.started_at = timestampIso(RITUAL_STALE_EPOCH);
+    payload.compact_resume_at = timestampIso(now);
+    // #2992: compact invalidates the ritual clock only — prefer re-arm recovery when worktree/HEAD allow.
+    payload.rearm_needed = true;
+    // Compact is the recorded fail-open exception: no owner compare (#3769 item 2).
+    // Still serialised so it cannot interleave with a compare+publish (#3872).
     publishRitualState(projectRoot, payload, fence);
+    return {
+      changed: true,
+      statePath,
+      message:
+        "Marked session ritual re-arm needed after context compaction; run " +
+        "session:start --rearm (or full session:start if worktree/HEAD changed) and " +
+        "verify:session-ritual -- --tier=gated before direct writes.",
+    };
   });
-  return {
-    changed: true,
-    statePath,
-    message:
-      "Marked session ritual re-arm needed after context compaction; run " +
-      "session:start --rearm (or full session:start if worktree/HEAD changed) and " +
-      "verify:session-ritual -- --tier=gated before direct writes.",
-  };
 }
 
 /** Whether ritual-state.json marks compact/age recovery as re-arm preferred (#2992). */
