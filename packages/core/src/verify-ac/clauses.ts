@@ -514,12 +514,28 @@ function isPathContinueChar(ch: string): boolean {
   return ch.length === 1 && /[A-Za-z0-9_./\\-]/.test(ch);
 }
 
+function memberNeedles(member: string): string[] {
+  const unix = member.split("\\").join("/");
+  const win = unix.split("/").join("\\");
+  const out = new Set<string>();
+  for (const base of [unix, win]) {
+    out.add(base);
+    out.add(`./${base}`);
+    out.add(`.\\${base}`);
+    out.add(`${base}/`);
+    out.add(`${base}\\`);
+    out.add(`./${base}/`);
+    out.add(`.\\${base}\\`);
+  }
+  return [...out];
+}
+
 /** Exact declared member in clause text, including extensionless directory paths. */
 function memberAppearsInText(text: string, member: string): boolean {
   if (member.length < 2) {
     return false;
   }
-  const needles = [member, `${member}/`, `${member}\\`];
+  const needles = memberNeedles(member);
   for (const needle of needles) {
     let from = 0;
     while (from < text.length) {

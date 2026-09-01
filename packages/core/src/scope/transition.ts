@@ -240,7 +240,7 @@ export function runTransition(
     if (derivation.notice.length > 0) {
       derivationNotice = derivation.notice;
     }
-    if (shouldApplyPromoteClauseFileScopeBind(planObj, derivation.applied)) {
+    if (shouldApplyPromoteClauseFileScopeBind(planObj)) {
       const bind = applyPromoteClauseFileScopeBind(planObj);
       if (!bind.ok) {
         return { ok: false, message: bind.message };

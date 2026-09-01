@@ -29,13 +29,7 @@ export function evaluatePromoteClauseFileScopeBind(
 }
 
 /** Derived stamps only: stated/legacy clauses are not this gate (#4008 Greptile P1). */
-export function shouldApplyPromoteClauseFileScopeBind(
-  plan: Record<string, unknown>,
-  derivationApplied: boolean,
-): boolean {
-  if (derivationApplied) {
-    return true;
-  }
+export function shouldApplyPromoteClauseFileScopeBind(plan: Record<string, unknown>): boolean {
   const acceptance = asRecord(plan.acceptance);
   return acceptance?.source_rung === "derived";
 }

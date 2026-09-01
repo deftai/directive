@@ -331,6 +331,33 @@ describe("runTransition", () => {
     expect(existsSync(join(root, "xbrief", "pending", "stated.xbrief.json"))).toBe(true);
   });
 
+  it("does not refuse command-only stated acceptance that derivation supplements (#4008)", () => {
+    root = makeRepo();
+    const path = join(root, "xbrief", "proposed", "cmd-scope.xbrief.json");
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "Command only with scope",
+        status: "proposed",
+        narratives: {
+          Overview: "## Acceptance sketch\n- Add useDensity.ts exposing mode\n",
+        },
+        metadata: {
+          swarm: { file_scope: ["src/ui/ledger-table/useDensity.ts"] },
+        },
+        acceptance: {
+          commands: [{ command: "pnpm test" }],
+          none_stated: false,
+          source_rung: "stated",
+        },
+        items: [],
+      },
+    });
+    const result = runTransition("promote", path);
+    expect(result.ok).toBe(true);
+    expect(existsSync(join(root, "xbrief", "pending", "cmd-scope.xbrief.json"))).toBe(true);
+  });
+
   it("surfaces refused-derivation remediation on activate even when applied is false (#3398)", () => {
     root = makeRepo();
     const path = join(root, "xbrief", "pending", "impl-only.xbrief.json");

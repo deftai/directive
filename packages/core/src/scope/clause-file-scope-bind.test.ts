@@ -75,22 +75,15 @@ describe("promote clause file_scope bind (#4008)", () => {
     expect(acceptance.clauses[1]?.artifact_path).toBeNull();
   });
 
-  it("does not apply the derived bind gate to stated stamps unless derivation ran", () => {
+  it("does not apply the derived bind gate to stated stamps", () => {
     expect(
-      shouldApplyPromoteClauseFileScopeBind(
-        { acceptance: { source_rung: "stated", clauses: [{ id: 1, text: "x" }] } },
-        false,
-      ),
+      shouldApplyPromoteClauseFileScopeBind({
+        acceptance: { source_rung: "stated", clauses: [{ id: 1, text: "x" }] },
+      }),
     ).toBe(false);
-    expect(
-      shouldApplyPromoteClauseFileScopeBind(
-        { acceptance: { source_rung: "stated", clauses: [{ id: 1, text: "x" }] } },
-        true,
-      ),
-    ).toBe(true);
-    expect(
-      shouldApplyPromoteClauseFileScopeBind({ acceptance: { source_rung: "derived" } }, false),
-    ).toBe(true);
+    expect(shouldApplyPromoteClauseFileScopeBind({ acceptance: { source_rung: "derived" } })).toBe(
+      true,
+    );
   });
 
   it("skips the gate when file_scope is empty", () => {
