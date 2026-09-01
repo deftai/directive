@@ -5,12 +5,7 @@
  * model slugs, and it does not observe live GitHub comments (#3850).
  */
 
-export type SeatLauncher =
-  | "spawn_subagent"
-  | "grok"
-  | "claude"
-  | "codex"
-  | "paste-ready";
+export type SeatLauncher = "spawn_subagent" | "grok" | "claude" | "codex" | "paste-ready";
 
 export type ClaimedSeat = {
   /** Parent-claimed family at dispatch. Not inferred from a model slug. */

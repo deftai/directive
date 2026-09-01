@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  type ClaimedSeat,
   evaluatePanelSeatComposition,
   PASTE_READY_FIRST_REMEDIATION,
   SAME_FAMILY_REMEDIATION,
-  type ClaimedSeat,
 } from "./panel-seat-families.js";
 
 const GROK_CLAUDE_CODEX: readonly ClaimedSeat[] = [
