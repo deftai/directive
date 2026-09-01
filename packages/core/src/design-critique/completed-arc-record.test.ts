@@ -975,6 +975,20 @@ describe("set-level recut-then-ingest refuse (#4057)", () => {
     expect(verdict).toMatchObject({ status: "blocked", reason: "unrecut-body" });
   });
 
+  it("lets a later non-set-level target shape clear unrecut-body", () => {
+    expect(
+      evaluateCompletedArcRecord({
+        labels: ["design-critique:triage-ready"],
+        comments: [setLevelCharter, lean, table, synthesis, recutShape],
+      }),
+    ).toEqual({
+      status: "complete",
+      synthesisCommentId: SYNTHESIS_ID,
+      citedLeanId: LEAN_ID,
+      citedTableId: TABLE_ID,
+    });
+  });
+
   it("still completes a single-issue bound record", () => {
     expect(
       evaluateCompletedArcRecord({
