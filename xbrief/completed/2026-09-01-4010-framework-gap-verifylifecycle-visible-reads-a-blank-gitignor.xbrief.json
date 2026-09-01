@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4010",
-    "updated": "2026-09-01T14:02:02Z"
+    "updated": "2026-09-01T15:19:06Z"
   },
   "plan": {
     "title": "[framework-gap] verify:lifecycle-visible reads a blank .gitignore line as a match-all pattern",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[framework-gap] verify:lifecycle-visible reads a blank .gitignore line as a match-all pattern",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4010",
@@ -55,7 +55,32 @@
         "schema": "deft.scope.intended_placement.v1",
         "files": [],
         "module_boundary": ""
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4048,
+        "prBase": null,
+        "mergeCommit": "0e45572643f910084b3dd3a1820a0848c1be7c2e",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0e45572643f910084b3dd3a1820a0848c1be7c2e",
+        "verifiedAt": "2026-09-01T15:19:06Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDVkNDctZDdiMC03OWUzLWE1ZGItZmJkMDhmYzQ5ZDIz"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-01T15:19:06Z"
+      },
+      "completedAt": "2026-09-01T15:19:06Z",
+      "completedSessionId": "host:claude:v1:MDFhMDVkNDctZDdiMC03OWUzLWE1ZGItZmJkMDhmYzQ5ZDIz",
+      "capacityBucket": "technical-debt"
     },
     "acceptance": {
       "commands": [],
@@ -63,6 +88,6 @@
       "source_rung": "project_floor",
       "derived_reason": "no shell acceptance commands stated in task text; floor until agent derives AC (#3284 ladder)"
     },
-    "updated": "2026-09-01T14:02:02Z"
+    "updated": "2026-09-01T15:19:06Z"
   }
 }
