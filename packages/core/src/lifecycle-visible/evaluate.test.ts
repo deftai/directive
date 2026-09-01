@@ -95,6 +95,15 @@ describe("parsers (#3505)", () => {
     expect(parseCheckIgnoreVerboseLine(":1:\tpath")).toBeNull();
   });
 
+  it("parses an empty pattern field from check-ignore -v (#4010)", () => {
+    expect(parseCheckIgnoreVerboseLine(".gitignore:51:\txbrief/active/")).toEqual({
+      source: ".gitignore",
+      line: 51,
+      pattern: "",
+      path: "xbrief/active/",
+    });
+  });
+
   it("maps info/exclude to .git/info/exclude and in-repo gitignore to a relative path", () => {
     const root = freshDir("src-map-");
     expect(displayIgnoreSource("C:/foo/.git/info/exclude", root)).toBe(".git/info/exclude");
@@ -384,6 +393,50 @@ describe("evaluateLifecycleVisible with injected git (#3505)", () => {
       }),
     });
     expect(result.findings[0]?.kind).toBe("assume-unchanged");
+  });
+
+  it("does not treat an empty check-ignore pattern as a hide rule (#4010)", () => {
+    const root = freshDir("lv-empty-pattern-");
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    const result = evaluateLifecycleVisible({
+      projectRoot: root,
+      enforce: true,
+      runGit: fakeGit((_r, args) => {
+        if (args[0] === "check-ignore") {
+          return {
+            code: 0,
+            stdout: ".gitignore:51:\txbrief/active/\n.gitignore:51:\txbrief/pending/",
+            stderr: "",
+          };
+        }
+        return { code: 0, stdout: "", stderr: "" };
+      }),
+    });
+    expect(result.findings).toEqual([]);
+    expect(result.code).toBe(0);
+  });
+
+  it("still reports a real ignore when check-ignore also emits an empty pattern (#4010)", () => {
+    const root = freshDir("lv-empty-mixed-");
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    const result = evaluateLifecycleVisible({
+      projectRoot: root,
+      enforce: true,
+      runGit: fakeGit((_r, args) => {
+        if (args[0] === "check-ignore") {
+          return {
+            code: 0,
+            stdout: ".gitignore:51:\txbrief/active/\n.gitignore:2:xbrief/active/\txbrief/active/",
+            stderr: "",
+          };
+        }
+        return { code: 0, stdout: "", stderr: "" };
+      }),
+    });
+    expect(result.findings.some((f) => f.rule === "")).toBe(false);
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0]?.rule).toBe("xbrief/active/");
+    expect(result.code).toBe(1);
   });
 
   it("does not trip on .triage-cache jsonl skip-worktree or a clean root", () => {
@@ -955,5 +1008,33 @@ describe("evaluateLifecycleVisible live git fixtures (#3505)", () => {
     expect(
       result.findings.some((f) => f.path === "xbrief/pending/" && f.rule.includes("2026-07-")),
     ).toBe(true);
+  });
+
+  it("does not treat a three-spaces gitignore line as a match-all hide (#4010)", () => {
+    const root = initLifecycleRepo();
+    writeFileSync(
+      join(root, ".gitignore"),
+      ["# section", "", "   ", "\t", "*.log", ""].join("\n"),
+      "utf8",
+    );
+    const result = evaluateLifecycleVisible({ projectRoot: root, enforce: true });
+    expect(result.findings.filter((f) => f.rule.trim() === "")).toEqual([]);
+    expect(result.findings).toEqual([]);
+    expect(result.code).toBe(0);
+  });
+
+  it("still reports a real ignore beside a three-spaces line (#4010)", () => {
+    const root = initLifecycleRepo();
+    writeFileSync(
+      join(root, ".gitignore"),
+      ["# section", "", "   ", "\t", "xbrief/active/", "*.log", ""].join("\n"),
+      "utf8",
+    );
+    const result = evaluateLifecycleVisible({ projectRoot: root, enforce: true });
+    expect(result.findings.some((f) => f.rule.trim() === "")).toBe(false);
+    expect(
+      result.findings.some((f) => f.path === "xbrief/active/" && f.rule.includes("xbrief/active")),
+    ).toBe(true);
+    expect(result.code).toBe(1);
   });
 });

@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -321,5 +321,29 @@ describe("shell write reissue (#3983 / #3987)", () => {
       readySeams(),
     );
     expect(decision.verdict).toBe("allow");
+  });
+  it("denies occupancy for Set-Content through a temp junction into the repo", () => {
+    const root = occupiedRoot();
+    const outsideDir = mkdtempSync(join(tmpdir(), "hook-reissue-junc-"));
+    temps.push(outsideDir);
+    writeFileSync(join(root, "src", "app.ts"), "x", "utf8");
+    const alias = join(outsideDir, "alias");
+    const type = process.platform === "win32" ? "junction" : "dir";
+    symlinkSync(join(root, "src"), alias, type);
+    const dest = join(alias, "app.ts");
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "run_terminal_command",
+          tool_input: { command: "Set-Content -Value x -Path " + dest },
+        },
+        environ: { DEFT_SESSION_ID: "other" },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-occupied" });
   });
 });

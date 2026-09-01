@@ -8,7 +8,10 @@
 export {
   type AcceptanceClause,
   type AcceptanceClauseReading,
+  bindClausesToDeclaredScope,
+  type ClauseBindFailure,
   type ClauseDerivationSources,
+  type ClauseFileScopeBindResult,
   type ClauseOutcome,
   type ClauseWalkOptions,
   type ClauseWalkReport,

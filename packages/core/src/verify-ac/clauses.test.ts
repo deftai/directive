@@ -3,11 +3,13 @@ import { tmpdir } from "node:os";
 import { join, parse } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  bindClausesToDeclaredScope,
   collectPlanItemAcceptanceSurface,
   countAdjudicableClauses,
   countUnverifiedAdjudicableClauses,
   deriveAcceptanceClauses,
   formatClauseWalkMessage,
+  isDeclaredArtifactPath,
   isScratchArtifactPath,
   readAcceptanceClauses,
   serializeAcceptanceClauses,
@@ -100,6 +102,188 @@ AcceptanceCriteria: Third constraint binds CHANGELOG.md
     expect(fromBare).toHaveLength(1);
     expect(fromBare[0]?.text).toBe("Write CHANGELOG.md under Unreleased");
     expect(fromBare[0]?.artifact_path).toBeNull();
+  });
+});
+
+describe("bindClausesToDeclaredScope (#4008)", () => {
+  const declared = ["src/ui/ledger-table/useDensity.ts", "src/ui/ledger-table/useTableKeyboard.ts"];
+
+  it("binds a clause to the exact file_scope member named in the text", () => {
+    const result = bindClausesToDeclaredScope(
+      [
+        {
+          id: 1,
+          text: "Add src/ui/ledger-table/useDensity.ts exposing mode",
+          artifact_path: null,
+          ambiguous: false,
+        },
+      ],
+      declared,
+    );
+    expect(result.ok).toBe(true);
+    expect(result.changed).toBe(true);
+    expect(result.clauses[0]?.artifact_path).toBe("src/ui/ledger-table/useDensity.ts");
+  });
+
+  it("does not bind a bare filename against a longer file_scope member", () => {
+    const result = bindClausesToDeclaredScope(
+      [
+        {
+          id: 1,
+          text: "Add useDensity.ts exposing mode",
+          artifact_path: null,
+          ambiguous: false,
+        },
+      ],
+      declared,
+    );
+    expect(result.ok).toBe(false);
+    expect(result.failures[0]?.kind).toBe("unbound-path");
+    expect(result.message).toContain("Basename matching is refused");
+  });
+
+  it("fails when two exact file_scope members are named", () => {
+    const result = bindClausesToDeclaredScope(
+      [
+        {
+          id: 1,
+          text: "Touch src/ui/ledger-table/useDensity.ts or src/ui/ledger-table/useTableKeyboard.ts",
+          artifact_path: null,
+          ambiguous: false,
+        },
+      ],
+      declared,
+    );
+    expect(result.ok).toBe(false);
+    expect(result.failures[0]?.kind).toBe("ambiguous-scope");
+  });
+
+  it("fails a stored bare reading instead of basename-matching it", () => {
+    const result = bindClausesToDeclaredScope(
+      [
+        {
+          id: 1,
+          text: "keyboard helper",
+          artifact_path: "src/ui/ledger-table/useTableKeyboard.ts",
+          ambiguous: true,
+          chosen_reading: 0,
+          readings: [
+            { text: "keyboard helper", artifact_path: "useTableKeyboard.ts" },
+            { text: "expansion helper", artifact_path: "useRowExpansion.ts" },
+          ],
+        },
+      ],
+      declared,
+    );
+    expect(result.ok).toBe(false);
+    expect(result.failures[0]?.kind).toBe("undeclared-binding");
+  });
+
+  it("binds stored readings that already name exact file_scope members", () => {
+    const result = bindClausesToDeclaredScope(
+      [
+        {
+          id: 1,
+          text: "keyboard helper",
+          artifact_path: null,
+          ambiguous: true,
+          chosen_reading: 0,
+          readings: [
+            {
+              text: "keyboard helper",
+              artifact_path: "src/ui/ledger-table/useTableKeyboard.ts",
+            },
+          ],
+        },
+      ],
+      declared,
+    );
+    expect(result.ok).toBe(true);
+    expect(result.clauses[0]?.artifact_path).toBe("src/ui/ledger-table/useTableKeyboard.ts");
+    expect(result.clauses[0]?.readings?.[0]?.artifact_path).toBe(
+      "src/ui/ledger-table/useTableKeyboard.ts",
+    );
+  });
+
+  it("leaves behavioral clauses unbound when file_scope is present", () => {
+    const result = bindClausesToDeclaredScope(
+      [{ id: 1, text: "No clause-count cap is introduced", artifact_path: null, ambiguous: false }],
+      declared,
+    );
+    expect(result.ok).toBe(true);
+    expect(result.changed).toBe(false);
+    expect(result.clauses[0]?.artifact_path).toBeNull();
+  });
+
+  it("binds an exact declared directory named in the clause", () => {
+    const result = bindClausesToDeclaredScope(
+      [
+        {
+          id: 1,
+          text: "Ship helpers under src/ui/ledger-table/",
+          artifact_path: null,
+          ambiguous: false,
+        },
+      ],
+      ["src/ui/ledger-table"],
+    );
+    expect(result.ok).toBe(true);
+    expect(result.clauses[0]?.artifact_path).toBe("src/ui/ledger-table");
+  });
+
+  it("binds ./ and backslash spellings of a declared directory", () => {
+    const declared = ["src/ui/ledger-table"];
+    const dotted = bindClausesToDeclaredScope(
+      [
+        {
+          id: 1,
+          text: "Ship helpers under ./src/ui/ledger-table",
+          artifact_path: null,
+          ambiguous: false,
+        },
+      ],
+      declared,
+    );
+    expect(dotted.ok).toBe(true);
+    expect(dotted.clauses[0]?.artifact_path).toBe("src/ui/ledger-table");
+    const win = bindClausesToDeclaredScope(
+      [
+        {
+          id: 1,
+          text: "Ship helpers under src\\ui\\ledger-table",
+          artifact_path: null,
+          ambiguous: false,
+        },
+      ],
+      declared,
+    );
+    expect(win.ok).toBe(true);
+    expect(win.clauses[0]?.artifact_path).toBe("src/ui/ledger-table");
+  });
+
+  it("is a no-op when file_scope is empty", () => {
+    const result = bindClausesToDeclaredScope(
+      [
+        {
+          id: 1,
+          text: "Add src/ui/ledger-table/useDensity.ts exposing mode",
+          artifact_path: null,
+          ambiguous: false,
+        },
+      ],
+      [],
+    );
+    expect(result.ok).toBe(true);
+    expect(result.changed).toBe(false);
+    expect(result.clauses[0]?.artifact_path).toBeNull();
+  });
+});
+
+describe("isDeclaredArtifactPath basename refuse (#4008)", () => {
+  it("does not treat a basename as a declared file_scope member", () => {
+    expect(isDeclaredArtifactPath("useDensity.ts", ["src/ui/ledger-table/useDensity.ts"])).toBe(
+      false,
+    );
   });
 });
 

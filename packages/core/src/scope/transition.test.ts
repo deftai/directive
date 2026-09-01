@@ -244,6 +244,120 @@ describe("runTransition", () => {
     expect(data.plan.acceptance.clauses).toHaveLength(1);
   });
 
+  it("binds a derived clause to an exact file_scope member on promote (#4008)", () => {
+    root = makeRepo();
+    const path = join(root, "xbrief", "proposed", "density.xbrief.json");
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "Density helper",
+        status: "proposed",
+        narratives: {
+          Overview: "## Acceptance sketch\n- Add src/ui/ledger-table/useDensity.ts exposing mode\n",
+        },
+        metadata: {
+          swarm: { file_scope: ["src/ui/ledger-table/useDensity.ts"] },
+        },
+        items: [],
+      },
+    });
+    const result = runTransition("promote", path);
+    expect(result.ok).toBe(true);
+    expect(result.message).toContain("#4008");
+    const dest = join(root, "xbrief", "pending", "density.xbrief.json");
+    const data = JSON.parse(readFileSync(dest, "utf8")) as {
+      plan: { acceptance: { clauses: { artifact_path: string | null }[] } };
+    };
+    expect(data.plan.acceptance.clauses).toHaveLength(1);
+    expect(data.plan.acceptance.clauses[0]?.artifact_path).toBe(
+      "src/ui/ledger-table/useDensity.ts",
+    );
+  });
+
+  it("refuses promote when a derived clause cannot bind to file_scope (#4008)", () => {
+    root = makeRepo();
+    const path = join(root, "xbrief", "proposed", "bare.xbrief.json");
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "Bare filename",
+        status: "proposed",
+        narratives: {
+          Overview: "## Acceptance sketch\n- Add useDensity.ts exposing mode\n",
+        },
+        metadata: {
+          swarm: { file_scope: ["src/ui/ledger-table/useDensity.ts"] },
+        },
+        items: [],
+      },
+    });
+    const result = runTransition("promote", path);
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("#4008");
+    expect(result.message).toContain("Basename matching is refused");
+    expect(existsSync(join(root, "xbrief", "pending", "bare.xbrief.json"))).toBe(false);
+  });
+
+  it("does not refuse a stated stamp that already has clauses (#4008)", () => {
+    root = makeRepo();
+    const path = join(root, "xbrief", "proposed", "stated.xbrief.json");
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "Stated stamp",
+        status: "proposed",
+        narratives: { Overview: "Hand-authored stated acceptance" },
+        metadata: {
+          swarm: { file_scope: ["src/ui/ledger-table/useDensity.ts"] },
+        },
+        acceptance: {
+          commands: [{ command: "pnpm test" }],
+          none_stated: false,
+          source_rung: "stated",
+          clauses: [
+            {
+              id: 1,
+              text: "Add useDensity.ts exposing mode",
+              artifact_path: null,
+              ambiguous: false,
+            },
+          ],
+        },
+        items: [],
+      },
+    });
+    const result = runTransition("promote", path);
+    expect(result.ok).toBe(true);
+    expect(existsSync(join(root, "xbrief", "pending", "stated.xbrief.json"))).toBe(true);
+  });
+
+  it("does not refuse command-only stated acceptance that derivation supplements (#4008)", () => {
+    root = makeRepo();
+    const path = join(root, "xbrief", "proposed", "cmd-scope.xbrief.json");
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "Command only with scope",
+        status: "proposed",
+        narratives: {
+          Overview: "## Acceptance sketch\n- Add useDensity.ts exposing mode\n",
+        },
+        metadata: {
+          swarm: { file_scope: ["src/ui/ledger-table/useDensity.ts"] },
+        },
+        acceptance: {
+          commands: [{ command: "pnpm test" }],
+          none_stated: false,
+          source_rung: "stated",
+        },
+        items: [],
+      },
+    });
+    const result = runTransition("promote", path);
+    expect(result.ok).toBe(true);
+    expect(existsSync(join(root, "xbrief", "pending", "cmd-scope.xbrief.json"))).toBe(true);
+  });
+
   it("surfaces refused-derivation remediation on activate even when applied is false (#3398)", () => {
     root = makeRepo();
     const path = join(root, "xbrief", "pending", "impl-only.xbrief.json");
