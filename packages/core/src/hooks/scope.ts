@@ -36,9 +36,7 @@ function toPosix(path: string): string {
 
 /** Win32 filesystems are case-insensitive; POSIX filenames are not (#4007 Greptile). */
 function samePathToken(left: string, right: string): boolean {
-  return process.platform === "win32"
-    ? left.toLowerCase() === right.toLowerCase()
-    : left === right;
+  return process.platform === "win32" ? left.toLowerCase() === right.toLowerCase() : left === right;
 }
 
 function containedResolved(projectRoot: string, target: string): string | null {
@@ -84,14 +82,10 @@ export function matchPinnedActiveScope(
   if (pinPosix.includes("/")) return null;
   const base = basename(pinPosix);
   if (base.length === 0) return null;
-  const eligibleHits = eligible.filter((candidate) =>
-    samePathToken(basename(candidate), base),
-  );
+  const eligibleHits = eligible.filter((candidate) => samePathToken(basename(candidate), base));
   const eligibleHit = eligibleHits[0];
   if (eligibleHits.length === 1 && eligibleHit !== undefined) return eligibleHit;
-  const scannedHits = scanned.filter((candidate) =>
-    samePathToken(basename(candidate), base),
-  );
+  const scannedHits = scanned.filter((candidate) => samePathToken(basename(candidate), base));
   const scannedHit = scannedHits[0];
   if (scannedHits.length === 1 && scannedHit !== undefined) return scannedHit;
   return null;
