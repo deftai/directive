@@ -9,6 +9,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { GITHUB_ISSUE_REF_TYPES } from "../intake/reconcile-issues.js";
 import { stripArtifactSuffix } from "../layout/resolve.js";
+import { ACCEPTANCE_EVIDENCE_KEY } from "../scope/acceptance-evidence.js";
 import { resolveParentPathFromRef } from "../scope/parent-lineage.js";
 import { extractPlanId } from "./digest.js";
 import { INTENT_DIGEST_ALGO } from "./intent-digest.js";
@@ -60,6 +61,23 @@ export function slugFromGithubIssueUri(uri: string): string | null {
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
   return value as Record<string, unknown>;
+}
+
+const NESTED_ITEM_ARRAY_KEYS = new Set(["items", "subItems"]);
+
+function omitCanonicalEvidenceFromNestedItem(value: unknown): unknown {
+  const rec = asRecord(value);
+  if (rec === null) return value;
+  const out: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(rec)) {
+    if (key === ACCEPTANCE_EVIDENCE_KEY) continue;
+    if (NESTED_ITEM_ARRAY_KEYS.has(key) && Array.isArray(val)) {
+      out[key] = val.map(omitCanonicalEvidenceFromNestedItem);
+      continue;
+    }
+    out[key] = val;
+  }
+  return out;
 }
 
 function itemId(item: Record<string, unknown>): string {
@@ -139,6 +157,11 @@ function extractItems(
       if ((ITEM_EXTRACT_KEYS as readonly string[]).includes(key)) continue;
       const cls = classifyItemKey(key);
       if (cls === "machine") continue;
+      if (NESTED_ITEM_ARRAY_KEYS.has(key) && Array.isArray(value)) {
+        extracted[key] = value.map(omitCanonicalEvidenceFromNestedItem);
+        unknownPaths.push(`items[].${key}`);
+        continue;
+      }
       extracted[key] = value;
       unknownPaths.push(`items[].${key}`);
     }

@@ -3,6 +3,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { GITHUB_ISSUE_REF_TYPES } from "../intake/reconcile-issues.js";
+import {
+  ACCEPTANCE_DISPOSITION_KEY,
+  ACCEPTANCE_EVIDENCE_KEY,
+} from "../scope/acceptance-evidence.js";
 import { compareExtractedIntent } from "./compare-intent.js";
 import { buildApprovedScopeRecord, computeFileScopeDigest } from "./digest.js";
 import { evaluateScopeProvenance } from "./evaluate.js";
@@ -12,7 +16,11 @@ import {
 } from "./extract-intent.js";
 import { computeIntentDigest } from "./intent-digest.js";
 import { bodyDigestIsAuthority } from "./intent-evaluate.js";
-import { allKnownMachineLeaves, KNOWN_MACHINE_WRITERS } from "./known-machine.js";
+import {
+  allKnownMachineLeaves,
+  ITEM_MACHINE_KEYS,
+  KNOWN_MACHINE_WRITERS,
+} from "./known-machine.js";
 import { mintApprovedScopeArtifacts } from "./mint-artifacts.js";
 
 const roots: string[] = [];
@@ -83,6 +91,12 @@ describe("known-machine writer discipline (#3385 F1)", () => {
     expect(leaves.length).toBeGreaterThan(10);
     for (const leaf of leaves) {
       expect(KNOWN_MACHINE_WRITERS[leaf]?.writer.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("every ITEM_MACHINE_KEYS leaf has a plan.items[] writer annotation (#4059)", () => {
+    for (const key of ITEM_MACHINE_KEYS) {
+      expect(KNOWN_MACHINE_WRITERS[`plan.items[].${key}`]?.writer.length).toBeGreaterThan(0);
     }
   });
 
@@ -481,5 +495,131 @@ describe("extract / mint error paths (#3385)", () => {
     });
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.preimage.plan.parentId).toBe("stem-only");
+  });
+});
+
+describe("canonical evidence while still active (#4059)", () => {
+  const evidence = {
+    kind: "test",
+    pointer: "packages/core/src/scope-provenance/intent.test.ts",
+    recorded_at: "2026-09-01T00:00:00Z",
+    recorded_by: "vitest",
+  };
+
+  function evalLive(payload: Record<string, unknown>, live: Record<string, unknown>) {
+    const mintRoot = tempRoot();
+    const minted = mintApprovedScopeArtifacts({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      payload,
+      rawText: `${JSON.stringify(payload)}\n`,
+      projectRoot: mintRoot,
+      humanApproval: { kind: "operator", actor: "scott", mintedAt: "2026-08-16T00:00:00Z" },
+      extract: { projectRoot: mintRoot, approvedReposSeed: ["deftai/directive"] },
+    });
+    return evaluateScopeProvenance(tempRoot(), {
+      changedFiles: ["xbrief/active/story.xbrief.json"],
+      activeXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(live)]]),
+      approvedRecords: [minted.record],
+      readAtBase: (rel) => (rel.endsWith(".intent.json") ? JSON.stringify(minted.preimage) : null),
+      enforce: true,
+    });
+  }
+
+  it("schema-valid evidence on an approved item does not intent-drift or unclassified-key", () => {
+    const payload = brief();
+    const live = brief();
+    const plan = live.plan as Record<string, unknown>;
+    const items = (plan.items as Array<Record<string, unknown>>).map((item) => ({ ...item }));
+    items[0][ACCEPTANCE_EVIDENCE_KEY] = evidence;
+    plan.items = items;
+    const result = evalLive(payload, live);
+    expect(result.exitCode).toBe(0);
+    expect(result.findings.some((f) => f.kind === "intent-drift")).toBe(false);
+    expect(result.findings.some((f) => f.kind === "unclassified-key")).toBe(false);
+  });
+
+  it("nested items and subItems evidence does not drift while the brief is still active", () => {
+    const nested = {
+      id: "child",
+      title: "child",
+      status: "proposed",
+      effort: "S",
+      narrative: { Acceptance: "nested" },
+    };
+    const payload = brief({
+      items: [
+        {
+          id: "parent",
+          title: "parent",
+          status: "proposed",
+          narrative: { Acceptance: "p" },
+          items: [nested],
+          subItems: [{ ...nested, id: "sub" }],
+        },
+      ],
+    });
+    const live = brief({
+      items: [
+        {
+          id: "parent",
+          title: "parent",
+          status: "proposed",
+          narrative: { Acceptance: "p" },
+          items: [{ ...nested, [ACCEPTANCE_EVIDENCE_KEY]: evidence }],
+          subItems: [{ ...nested, id: "sub", [ACCEPTANCE_EVIDENCE_KEY]: evidence }],
+        },
+      ],
+    });
+    const result = evalLive(payload, live);
+    expect(result.exitCode).toBe(0);
+    expect(result.findings.some((f) => f.kind === "intent-drift")).toBe(false);
+  });
+
+  it("changing title, file_scope, adding an item, or an unknown key still fails", () => {
+    const payload = brief();
+    const titled = brief({ title: "rewritten" });
+    const titleResult = evalLive(payload, titled);
+    expect(titleResult.exitCode).toBe(1);
+    expect(titleResult.findings.some((f) => f.kind === "intent-drift")).toBe(true);
+
+    const scoped = brief();
+    const scopedPlan = scoped.plan as Record<string, unknown>;
+    scopedPlan.metadata = {
+      swarm: { file_scope: ["packages/core/src/other"] },
+    };
+    const scopeResult = evalLive(payload, scoped);
+    expect(scopeResult.exitCode).toBe(1);
+
+    const added = brief({
+      items: [
+        ...(brief().plan as { items: unknown[] }).items,
+        { id: "i3", title: "new", status: "proposed" },
+      ],
+    });
+    const addResult = evalLive(payload, added);
+    expect(addResult.exitCode).toBe(1);
+    expect(addResult.findings.some((f) => f.kind === "intent-drift")).toBe(true);
+
+    const sneaky = brief({ sneaky: "nope" });
+    const unknownResult = evalLive(payload, sneaky);
+    expect(unknownResult.exitCode).toBe(1);
+    expect(unknownResult.findings.some((f) => f.kind === "unclassified-key")).toBe(true);
+  });
+
+  it("x-directive/disposition after mint still remints", () => {
+    const payload = brief();
+    const live = brief();
+    const plan = live.plan as Record<string, unknown>;
+    const items = (plan.items as Array<Record<string, unknown>>).map((item) => ({ ...item }));
+    items[0][ACCEPTANCE_DISPOSITION_KEY] = {
+      disposition: "waived",
+      reason: "operator",
+    };
+    plan.items = items;
+    const result = evalLive(payload, live);
+    expect(result.exitCode).toBe(1);
+    expect(
+      result.findings.some((f) => f.kind === "unclassified-key" || f.kind === "intent-drift"),
+    ).toBe(true);
   });
 });

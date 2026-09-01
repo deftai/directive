@@ -781,3 +781,32 @@ describe("scope:complete acceptance parity with verify:ac (#3497)", () => {
     expect(SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION).toContain("disposition is not a substitute");
   });
 });
+
+describe("evidence extra properties (#4059)", () => {
+  it("rejects extra properties on a schema-valid evidence object", () => {
+    const gate = evaluateAcceptanceEvidenceGate({
+      items: [withEvidence({ title: "t", status: "pending" }, { ...testEvidence, note: "opaque" })],
+    });
+    expect(gate.ok).toBe(false);
+    expect(gate.reports[0]?.outcome).toBe("invalid");
+    expect(gate.reports[0]?.detail).toMatch(/extra properties/);
+  });
+
+  it("still rejects malformed evidence missing pointer", () => {
+    const gate = evaluateAcceptanceEvidenceGate({
+      items: [
+        withEvidence(
+          { title: "t", status: "pending" },
+          {
+            kind: "test",
+            pointer: "",
+            recorded_at: "2026-08-10T12:00:00Z",
+            recorded_by: "vitest",
+          },
+        ),
+      ],
+    });
+    expect(gate.ok).toBe(false);
+    expect(gate.reports[0]?.detail).toMatch(/pointer/);
+  });
+});

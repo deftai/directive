@@ -208,6 +208,19 @@ function parseEvidence(raw: unknown):
   if (obj === null) {
     return { ok: false, message: "evidence must be an object" };
   }
+  const allowedEvidenceKeys = new Set(["kind", "pointer", "recorded_at", "recorded_by"]);
+  const extra = Object.keys(obj)
+    .filter((k) => !allowedEvidenceKeys.has(k))
+    .sort((a, b) => a.localeCompare(b));
+  if (extra.length > 0) {
+    return {
+      ok: false,
+      message:
+        "evidence has extra properties " +
+        extra.join(", ") +
+        "; allowed: kind|pointer|recorded_at|recorded_by",
+    };
+  }
   const kindRaw = typeof obj.kind === "string" ? obj.kind.trim().toLowerCase() : "";
   if (!isAcceptanceEvidenceKind(kindRaw)) {
     return {

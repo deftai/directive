@@ -15,4 +15,12 @@ describe("known-machine file (#3385 F1)", () => {
     expect(classifyReferenceKey("TrustLevel")).toBe("machine");
     expect(KNOWN_MACHINE_WRITERS["plan.tags"]?.writer).toContain("issue-ingest");
   });
+
+  it("classifies canonical evidence as machine and disposition as unknown (#4059)", () => {
+    expect(classifyItemKey("x-directive/evidence")).toBe("machine");
+    expect(classifyItemKey("x-directive/disposition")).toBe("unknown");
+    expect(KNOWN_MACHINE_WRITERS["plan.items[].x-directive/evidence"]?.writer).toContain(
+      "acceptance-evidence",
+    );
+  });
 });

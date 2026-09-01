@@ -1,0 +1,211 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4059",
+    "updated": "2026-09-01T21:38:04Z"
+  },
+  "plan": {
+    "title": "[framework-gap] scope:provenance rejects canonical scope:complete evidence as intent drift",
+    "status": "running",
+    "narratives": {
+      "Description": "[framework-gap] scope:provenance rejects canonical scope:complete evidence as intent drift",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4059",
+      "Overview": "## Summary\n\nscope:provenance rejects canonical scope:complete evidence as intent drift\n\n## Context\n\nDirective v0.109.1 in consumer bxc-3ci/FreshserviceAI. Issue #372 was implemented and merged in PR #376 at 2890691ce96ea5e3e650cc6806b6e5c7f194b917, with required hosted validate and all declared local checks green. Its active human-approved xBRIEF has non-empty file_scope and five non-terminal plan.items. Adding schema-valid plan.items[].x-directive/evidence records for post-merge completion makes the real verify:scope-provenance probe fail.\n\n## Expected behavior\n\nThe exact canonical x-directive/evidence field required by scope:complete should be treated as guarded completion metadata on an existing approved item identity, not as a change to approved product intent. Provenance must continue to reject changed item identity, title, narrative, acceptance meaning, file_scope, new or removed items, arbitrary unknown keys, and invalid or unauthorized dispositions.\n\n## Actual behavior / gap\n\nscope:complete requires plan.items[].x-directive/evidence, but verify:scope-provenance does not classify that field as machine/completion metadata. It includes the field in extracted item intent and records it as unknown. The consumer probe exits 1 with both intent-drift (extracted items changed) and unclassified-key (items[].x-directive/evidence absent from the approved base preimage), requiring a fresh human remint even though neither product intent nor file_scope changed.\n\n## Session notes\n\n## Minimal reproduction\n\n1. Create and human-approve an active xBRIEF with non-empty `plan.metadata.swarm.file_scope` and at least one non-terminal `plan.items` entry.\n2. Keep item identity, narrative, acceptance meaning, and file scope unchanged.\n3. Add a schema-valid `plan.items[].x-directive/evidence` object containing `kind`, `pointer`, `recorded_at`, and `recorded_by`, as required by `scope:complete`.\n4. Run:\n\n   ```bash\n   deft verify:scope-provenance \\\n     --project-root . \\\n     --base-ref origin/main \\\n     --enforce\n   ```\n\n5. Observe both `intent-drift` for the item array and `unclassified-key` for `items[].x-directive/evidence`.\n\nThe FreshserviceAI #372 closeout reproduced this with five evidence-bearing items after its product change and required CI had merged. No lifecycle move occurred.\n\n## Root cause evidence in v0.109.1\n\n- [`scope/acceptance-evidence.ts:29-33`](https://github.com/deftai/directive/blob/v0.109.1/packages/core/src/scope/acceptance-evidence.ts#L29-L33) defines the literal canonical keys, and [`:391-470`](https://github.com/deftai/directive/blob/v0.109.1/packages/core/src/scope/acceptance-evidence.ts#L391-L470) requires evidence or a valid human-origin disposition for every non-terminal criterion.\n- [`scope-provenance/known-machine.ts:54-70`](https://github.com/deftai/directive/blob/v0.109.1/packages/core/src/scope-provenance/known-machine.ts#L54-L70) omits `x-directive/evidence` from `ITEM_MACHINE_KEYS`.\n- [`scope-provenance/extract-intent.ts:122-164`](https://github.com/deftai/directive/blob/v0.109.1/packages/core/src/scope-provenance/extract-intent.ts#L122-L164) therefore copies the field into extracted item intent and records its path as unknown.\n- [`scope-provenance/compare-intent.ts:98-109`](https://github.com/deftai/directive/blob/v0.109.1/packages/core/src/scope-provenance/compare-intent.ts#L98-L109) reports item drift, while [`:234-262`](https://github.com/deftai/directive/blob/v0.109.1/packages/core/src/scope-provenance/compare-intent.ts#L234-L262) emits `unclassified-key`.\n\nThis is a missed cross-gate regression between two previously delivered contracts:\n\n- [#3305](https://github.com/deftai/directive/issues/3305) standardized the namespaced evidence/disposition keys so completion evidence could coexist with conformance.\n- [#3385](https://github.com/deftai/directive/issues/3385) introduced extracted-intent preimage authority and the known-machine/unknown-key split.\n\nEach feature is internally consistent, but their combined production path was not covered: the canonical completion field introduced by #3305 was not classified for the provenance model introduced by #3385.\n\n## Proposed fix\n\nTreat only the exact canonical `x-directive/evidence` field on an already-approved item or nested-item identity as post-approval completion metadata.\n\n- Exclude that exact field from intent comparison, or otherwise suppress only its matching unknown-path finding.\n- Continue validating its schema and semantic suitability through the acceptance-evidence gate.\n- Preserve comparison of item IDs, titles, narratives, summaries, types, acceptance meaning, and every other extracted field.\n- Continue rejecting new or removed items and arbitrary unknown keys.\n- Do not broadly exempt the `x-directive/` namespace.\n- Do not weaken the human-origin safeguards for `x-directive/disposition`.\n\n## Acceptance criteria\n\n- [ ] Adding schema-valid `x-directive/evidence` to an existing approved item does not produce `intent-drift` or `unclassified-key`.\n- [ ] The same regression covers nested items/sub-items.\n- [ ] Changing item identity, title, narrative, acceptance meaning, file scope, or an arbitrary unknown key still fails provenance.\n- [ ] Adding or removing an item still fails provenance.\n- [ ] Malformed or unsuitable evidence still fails the acceptance-evidence gate.\n- [ ] `x-directive/disposition` retains its human-origin safeguards.\n- [ ] An end-to-end `runTransition(\"complete\")` fixture proves canonical evidence passes provenance and the evidence gate together.\n- [ ] The normal aggregate quality gate exercises this cross-gate fixture.\n- [ ] No broad namespace exemption or production skip flag is introduced.\n\n## Workarounds evaluated\n\n- Same-change remint is correctly rejected as self-authorization.\n- An agent-authored human approval is prohibited by the human-presence gate.\n- Fabricating or editing approval artifacts, pre-marking items complete, manually moving the brief, or using the internal test-only skip would bypass required gates.\n- A genuine human review plus approval-only precursor can remint the exact evidence-bearing preimage, but it turns routine completion metadata into a new intent-approval cycle and does not address the bank replay defect reported separately.\n\nConsumer reproduction: [bxc-3ci/FreshserviceAI#372](https://github.com/bxc-3ci/FreshserviceAI/issues/372), delivered by [PR #376](https://github.com/bxc-3ci/FreshserviceAI/pull/376).\n\n---\n_Filed via `task feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-01T21:15:39Z)\n\nmodel: grok-4.6\nrole: triage\n\ndesign-critique: warranted, because provenance is the post-approval intent fence, and treating the field scope:complete requires as unknown intent is a remint / authorization decision, not a docs patch.\n\ncharter: refutation\nspend: N=1\ntarget shape: single issue premise\ninput-ceiling: this comment\nrefutation-target: classifying the exact canonical plan.items[].x-directive/evidence field as known-machine item metadata is the whole remedy, so provenance treats that field as post-approval completion metadata and does not remint.\naudit-targets: none\n\nSpend rationale: N=1 taken as the default motion after a mechanism-shaped stamp. The issue names a defensible presumption with a local classification fix. Panel permission is available (cross-gate blast radius on every evidence-bearing complete), and is not used. Operator said yolo; that is dispatch delegation for this N=1 refutation, not synthesis bind.\n\nmechanism-shaped: true\n\nOperator verb: arc 4059 yolo. Recorded as dispatch delegation for this N=1 refutation. Not synthesis bind. After this arc: implement 4059 when bound. #4060 stays GitHub-only.\n\nSHA at dispatch: origin/master f96963e9ce2a9bab41fdc2646e67380e8bf0dbaa.\r\n\n\n### Comment by @MScottAdams (2026-09-01T21:25:10Z)\n\nmodel: grok-4.6\nrole: critic\n\nRe-verified at SHA f96963e9ce2a9bab41fdc2646e67380e8bf0dbaa. Ceiling comment 5500539162.\n\n## Verdict\n\nThe refutation-target holds for top-level `plan.items[]` identities that `extractItems` already walks: `ITEM_MACHINE_KEYS` / `classifyItemKey` is the existing omit path, so both `intent-drift` (`compareItems`) and `unclassified-key` stop firing, and that is the right inventory choice over a new skip flag or an `x-directive/` prefix. It does not hold as the whole remedy once nested item identities or the object shape of the evidence field are in scope.\n\n## Nested extract walk (sharpens-framing)\n\nEvidence. `ITEM_MACHINE_KEYS` in `packages/core/src/scope-provenance/known-machine.ts` classifies only immediate keys of each top-level item. `extractItems` in `packages/core/src/scope-provenance/extract-intent.ts` is a single-level loop: copy `ITEM_EXTRACT_KEYS`, then copy every non-machine leftover wholesale and record `items[].${key}`. It does not recurse. The complete-time evidence gate does recurse: `walkItems` in `packages/core/src/scope/acceptance-evidence.ts` walks `subItems` and nested `items`, and `ACCEPTANCE_EVIDENCE_KEY` is required on those identities. `compareItems` in `packages/core/src/scope-provenance/compare-intent.ts` is a wholesale canonical compare of the extracted item array.\n\nFailure mode. Schema-valid nested `x-directive/evidence` lives inside the unknown wholesale `items` / `subItems` copy. After adding the key to `ITEM_MACHINE_KEYS` only, a top-level consumer probe goes green; nested evidence still changes the extracted parent item and `compareItems` still emits `intent-drift`. `unclassified-key` often does not name the nested evidence path, because the recorded unknown path is `items[].items` or `items[].subItems`, already present on the minted preimage.\n\nDisposition. Restate the remedy as classification of that exact key at every item identity the evidence gate already walks. Nested coverage cannot be a naive recursive `extractItems` that starts omitting nested `status` / `completed` / `effort`: those fields are hashed today inside the wholesale nested copy, and `known-machine.ts` forbids a classification growth that changes existing intent digests. Nested coverage, if kept, is an evidence-key omit through those nested arrays that leaves other nested fields as they are hashed today. If that restatement is refused, the nested acceptance criterion is out of this target.\n\n## Object-valued machine omit (sharpens-framing)\n\nEvidence. Every current `ITEM_MACHINE_KEYS` entry is a scalar (`status`, `completed`, `percentComplete`, `effort`, `updated`, `created`, `planRef`, `plan_ref`). `x-directive/evidence` is an object. Machine classification omits the whole key. `parseEvidence` in `acceptance-evidence.ts` requires `kind` / `pointer` / `recorded_at` / `recorded_by` and does not reject additional properties. `evaluateScopeProvenance` does not run the evidence gate; it only lists `xbrief/active/`.\n\nFailure mode. After mint, an agent can add extra properties on the evidence object, or replace a valid pointer with another schema-valid pointer, without remint. Provenance cannot see the object. Complete still accepts extra properties. That is a new post-approval write channel: current item machine keys cannot carry a nested payload.\n\nDisposition. Pair machine-omit with closing extra properties on that object in the existing evidence parser, or record expressly that extra properties on completion-evidence are ungoverned. Do not add a third provenance class.\n\nInjection / swarm. This target widens what may change after human mint without remint. The intended grant is agent-stamped completion evidence (`x-directive/disposition` stays unknown and `parseDisposition` still uses `isHumanOrigin`). The unintended grant is an opaque object on every approved item. Closing extra properties uses `parseEvidence`; it does not require a new fence.\n\n## Writer-discipline pair (footnote)\n\n`KNOWN_MACHINE_WRITERS` is the documented same-PR annotation. `allKnownMachineLeaves()` enumerates writer keys, not `ITEM_MACHINE_KEYS`, so adding the field to the set without `plan.items[].x-directive/evidence` still typechecks. The stamp helper to name as writer is `packages/core/src/scope/acceptance-evidence.ts`.\n\n## Disposition key stays unknown (footnote)\n\n`x-directive/disposition` is absent from `ITEM_MACHINE_KEYS`. Adding a waiver after mint still extracts as unknown and still remints. That matches the issue keep on human-origin safeguards.\n\n## Unknown-path suppression is not a second remedy (footnote)\n\n`compareUnknownKeys` records synthetic `items[].<key>` paths and does not walk the items array. Suppressing only that `unclassified-key` leaves the field in the extracted item, so `compareItems` still reports `intent-drift`. Classification (omit from extract) is the mechanism that kills both findings. The issue body's \"or suppress only its matching unknown-path finding\" alternative is not viable against this SHA.\n\n## Inventory\n\nUsed, not invented: `ITEM_MACHINE_KEYS` + `classifyItemKey`; `ITEM_EXTRACT_KEYS`; unknown-path `unclassified-key`; wholesale `compareItems`; `KNOWN_MACHINE_WRITERS`; metadata analog `plan.metadata.completionProvenance`; `ACCEPTANCE_EVIDENCE_KEY` / `evaluateAcceptanceEvidenceGate` / `isHumanOrigin`; `walkItems` recursion; duplicate-key tokenizer; active-only provenance scan.\n\nNot used: `x-directive/` prefix exemption; production skip flags; guarded-append on item fields; a new key class.\n\n## Road not taken\n\nGuarded absent-to-present for this field (allow first stamp, remint on later mutation) instead of machine omit.\n\nSteelman. Machine omit also hides evidence mutation after the first stamp. Guarded-append would catch a later pointer swap. That would be stronger if pointer mutation without remint were in-scope as an authorization defect.\n\nWhat would flip. A consumer of evidence other than the complete-time evidence gate, or a requirement that the minted preimage pin the first evidence object. Neither exists at this SHA: `status` / `completed` already mutate without remint, and complete re-reads the live object. Guarded-append would be a new item-field class. Rejected.\n\n## Cross-gate fixture (footnote)\n\n`runTransition(\"complete\")` moves the brief out of `xbrief/active/`. `evaluateScopeProvenance` only lists active briefs. The consumer probe is evidence added while still active. A fixture that only checks provenance after complete does not exercise the failing gate.\n\n### Comment by @MScottAdams (2026-09-01T21:26:34Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe proposed classification is the right mechanism for top-level items. It is not the whole remedy. Nested evidence still drifts, because extract does not walk the identities the complete-time evidence gate already walks. Machine-omit of an object also hides extra properties after mint. Confirming this map restates the remedy as: classify that exact key at every walked item identity without changing how other nested fields hash today, and either close extra properties on the evidence object or record that they are ungoverned. Confirming does not land code. Disposition stays unknown. Unknown-path suppression is not a second path.\n\nForward verdict: restated machine-omit, not a new skip flag or prefix exemption.\n\nDisposition: accept both classified headings into contract.\n\nNon-self-arbitration: I authored the Stop 1 write-back. I originated none of the classified findings.\n\nWhat this arc does not do: it does not implement in this comment, it does not recut #4060, it does not reopen digest-stability for nested status or effort.\n\n**Lean:** accept both classified headings from 5500643884. Supersedes Stop 1 write-back 5500539162.\n\n## Take map\n\nDenominator is the blocking and sharpening set from the in-envelope critic. Footnotes are census.\n\n| # | Sibling | Heading | Class | Take |\n|---|---|---|---|---|\n| 1 | 5500643884 | Nested extract walk | sharpens-framing | accept-into-contract |\n| 2 | 5500643884 | Object-valued machine omit | sharpens-framing | accept-into-contract |\n\nFootnotes (census): Writer-discipline pair; Disposition key stays unknown; Unknown-path suppression is not a second remedy; Cross-gate fixture.\n\nTotal over the denominator, every take accept-into-contract, empty disagreement set, zero unresolved audit markers, one critic posted against ceiling 5500539162.\n\n## Bound remedy (reading of the takes)\n\n1. Classify the exact canonical evidence key as item machine metadata at every item identity `walkItems` already walks (`plan.items[]`, nested `items`, `subItems`). That omit is the mechanism that kills both intent-drift and unclassified-key. Do not suppress only the unknown-path finding.\n2. Nested coverage is an evidence-key omit through those nested arrays. It is not a recursive extract that starts omitting nested status, completed, or effort. Those fields stay hashed as they are hashed today.\n3. Pair machine-omit with closing extra properties on that object in the existing evidence parser, or record expressly that extra properties on completion-evidence are ungoverned. Do not add a third provenance class.\n4. `x-directive/disposition` stays unknown. Writer annotation lands in the same PR as the new machine key. A provenance fixture must exercise the field while the brief is still active.\n\nThis lean does not auto-stamp by itself. Operator yolo on the dispatch turn is recorded as confirm of this all-accept map.\r\n\n\n### Comment by @MScottAdams (2026-09-01T21:26:50Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nEach row names its method. Agreement with the critic is not evidence.\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | `extractItems` is a single-level loop; nested `items` / `subItems` are copied wholesale as unknown leftover keys | Parent read `packages/core/src/scope-provenance/extract-intent.ts` `:122-164` at SHA f96963e9 | verified, parent source read |\n| 2 | `walkItems` recurses `subItems` and nested `items` and requires namespaced evidence on those identities | Parent read `packages/core/src/scope/acceptance-evidence.ts` `:474-487` | verified, parent source read |\n| 3 | `ITEM_MACHINE_KEYS` omits `x-directive/evidence`; `classifyItemKey` returns unknown for that key | Parent read `packages/core/src/scope-provenance/known-machine.ts` `:54-64` and `:151-154` | verified, parent source read |\n| 4 | `compareItems` is a wholesale canonical compare of the extracted item array | Parent read `packages/core/src/scope-provenance/compare-intent.ts` `:98-109` | verified, parent source read |\n| 5 | `parseEvidence` requires kind, pointer, recorded_at, recorded_by and does not reject additional properties | Parent read `packages/core/src/scope/acceptance-evidence.ts` `:198-237` | verified, parent source read |\n| 6 | `evaluateScopeProvenance` lists only `xbrief/active/` | Parent read `packages/core/src/scope-provenance/evaluate.ts` `listActiveXbriefPaths` `:270-275` and `:590` | verified, parent source read |\n| 7 | `KNOWN_MACHINE_WRITERS` has no `plan.items[].x-directive/evidence` leaf at this SHA | Parent read `packages/core/src/scope-provenance/known-machine.ts` `:84-122` | verified, parent source read |\n| 8 | `x-directive/disposition` is absent from `ITEM_MACHINE_KEYS` | Parent read `:54-64` | verified, parent source read |\n\nDecorrelation: every row is parent primary-source at the dispatch SHA. No row is verified because the critic stated it.\r\n\n\n### Comment by @MScottAdams (2026-09-01T21:27:05Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe proposed classification is the right mechanism for top-level items. It is not the whole remedy. Nested evidence still drifts, because extract does not walk the identities the complete-time evidence gate already walks. Machine-omit of an object also hides extra properties after mint. The bound remedy is: classify that exact key at every walked item identity without changing how other nested fields hash today, and either close extra properties on the evidence object or record that they are ungoverned. Disposition stays unknown. Unknown-path suppression is not a second path.\n\nNon-self-arbitration: I authored the Stop 1 write-back, the successor lean, and this record. I originated none of the classified findings. The eight verified claims were re-read from source at the dispatch SHA.\n\n---\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCiting successor lean 5500659360 and verified-claims table 5500662111. Round 1 complete, N=1, critic 5500643884 against ceiling 5500539162. Two classified headings, total all-accept map, zero unresolved audit markers. Operator yolo on the dispatch turn is the confirm of that map.",
+      "Labels": "design-critique:triage-ready",
+      "BoundRemedy": "Successor lean 5500659360 / verified-claims 5500662111 / synthesis 5500664594. 1. Classify the exact canonical x-directive/evidence key as item machine metadata at every item identity walkItems already walks (plan.items[], nested items, subItems). That omit kills both intent-drift and unclassified-key. Do not suppress only the unknown-path finding. Do not broadly exempt x-directive/. 2. Nested coverage is an evidence-key omit through those nested arrays. It is not a recursive extract that starts omitting nested status, completed, or effort. Those fields stay hashed as they are hashed today. 3. Pair machine-omit with closing extra properties on that object in parseEvidence. Do not add a third provenance class. Do not leave extra properties ungoverned. 4. x-directive/disposition stays unknown. Add KNOWN_MACHINE_WRITERS for plan.items[].x-directive/evidence (writer: packages/core/src/scope/acceptance-evidence.ts) in the same PR. 5. Provenance fixture must exercise the field while the brief is still in xbrief/active/. Also cover nested items. Keep fail-closed on identity/title/narrative/acceptance/file_scope/add-remove-item/unknown keys. Malformed evidence still fails the evidence gate. No production skip flag."
+    },
+    "items": [
+      {
+        "id": "ac-1",
+        "title": "Classify exact canonical x-directive/evidence as item machine metadata at every walkItems identity (plan.items[], nested items, subItems); omit kills both intent-drift and unclassified-key.",
+        "status": "proposed",
+        "effort": "M"
+      },
+      {
+        "id": "ac-2",
+        "title": "Nested coverage is an evidence-key omit through nested arrays; nested status, completed, and effort stay hashed as today.",
+        "status": "proposed",
+        "effort": "M"
+      },
+      {
+        "id": "ac-3",
+        "title": "Close extra properties on the evidence object in parseEvidence; do not add a third provenance class.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "id": "ac-4",
+        "title": "x-directive/disposition stays unknown; add KNOWN_MACHINE_WRITERS for plan.items[].x-directive/evidence written by acceptance-evidence.ts.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "id": "ac-5",
+        "title": "Provenance fixture exercises evidence while the brief is still in xbrief/active/, including nested items.",
+        "status": "proposed",
+        "effort": "M"
+      },
+      {
+        "id": "ac-6",
+        "title": "Changing item identity, title, narrative, acceptance meaning, file_scope, adding/removing an item, or an arbitrary unknown key still fails provenance.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "id": "ac-7",
+        "title": "Malformed or unsuitable evidence still fails the acceptance-evidence gate.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "id": "ac-8",
+        "title": "No broad x-directive/ namespace exemption or production skip flag is introduced.",
+        "status": "proposed",
+        "effort": "S"
+      },
+      {
+        "id": "ac-9",
+        "title": "CHANGELOG [Unreleased] brief release-notes entry.",
+        "status": "proposed",
+        "effort": "S"
+      }
+    ],
+    "tags": [
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4059",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4059: [framework-gap] scope:provenance rejects canonical scope:complete evidence as intent drift"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [
+        {
+          "command": "deft verify:scope-provenance \\",
+          "source": "task_statement",
+          "sourceSpan": "fence@L28:bash"
+        }
+      ],
+      "literal_acceptance_rejected": [
+        {
+          "command": "--project-root . \\",
+          "reason": "first token \"--project-root\" is not in the literal-AC allowlist",
+          "sourceSpan": "fence@L28:bash"
+        },
+        {
+          "command": "--base-ref origin/main \\",
+          "reason": "first token \"--base-ref\" is not in the literal-AC allowlist",
+          "sourceSpan": "fence@L28:bash"
+        },
+        {
+          "command": "--enforce",
+          "reason": "first token \"--enforce\" is not in the literal-AC allowlist",
+          "sourceSpan": "fence@L28:bash"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/scope-provenance/known-machine.ts",
+          "packages/core/src/scope-provenance/known-machine.test.ts",
+          "packages/core/src/scope-provenance/extract-intent.ts",
+          "packages/core/src/scope-provenance/extract-intent.test.ts",
+          "packages/core/src/scope-provenance/intent.test.ts",
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "packages/core/src/scope/acceptance-evidence.test.ts",
+          "CHANGELOG.md"
+        ],
+        "missing_traces_justification": "Bound by GitHub issue #4059 successor lean 5500659360 after design-critique; no spec-section traces. file_scope is declared. Operator-present mint is unavailable in this non-TTY worker shell (#3874 / #3110); do not drop the declaration."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      }
+    },
+    "acceptance": {
+      "commands": [
+        {
+          "command": "deft verify:scope-provenance \\"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "derived 9 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Adding schema-valid `x-directive/evidence` to an existing approved item does not produce `intent-drift` or `unclassified-key`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The same regression covers nested items/sub-items.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Changing item identity, title, narrative, acceptance meaning, file scope, or an arbitrary unknown key still fails provenance.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Adding or removing an item still fails provenance.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Malformed or unsuitable evidence still fails the acceptance-evidence gate.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "`x-directive/disposition` retains its human-origin safeguards.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "An end-to-end `runTransition(\"complete\")` fixture proves canonical evidence passes provenance and the evidence gate together.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "The normal aggregate quality gate exercises this cross-gate fixture.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "No broad namespace exemption or production skip flag is introduced.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-09-01T21:38:04Z",
+    "id": "issue-4059-scope-provenance-evidence-machine-omit"
+  }
+}

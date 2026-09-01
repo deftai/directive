@@ -7,6 +7,8 @@
  * and MUST NOT change existing intent digests.
  */
 
+import { ACCEPTANCE_EVIDENCE_KEY } from "../scope/acceptance-evidence.js";
+
 export type KeyClass = "extract" | "extract-partial" | "machine" | "unknown";
 
 /** Recursive walk nodes (not pinned wholesale). */
@@ -61,6 +63,7 @@ export const ITEM_MACHINE_KEYS = new Set<string>([
   "created",
   "planRef",
   "plan_ref",
+  ACCEPTANCE_EVIDENCE_KEY,
 ]);
 
 /** reference fields that are never extracted. */
@@ -117,6 +120,7 @@ export const KNOWN_MACHINE_WRITERS: Readonly<Record<string, { writer: string }>>
   "plan.items[].created": { writer: "packages/core/src/scope/transition.ts" },
   "plan.items[].planRef": { writer: "packages/core/src/scope/decomposed-refs.ts" },
   "plan.items[].plan_ref": { writer: "packages/core/src/scope/decomposed-refs.ts" },
+  "plan.items[].x-directive/evidence": { writer: "packages/core/src/scope/acceptance-evidence.ts" },
   "plan.references[].TrustLevel": { writer: "packages/core/src/intake/issue-ingest.ts" },
   "plan.references[].trustLevel": { writer: "packages/core/src/intake/issue-ingest.ts" },
 };
