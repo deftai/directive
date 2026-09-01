@@ -980,6 +980,7 @@ export function ingestOne(
     cwd: options.cwd,
     cacheRoot: options.cacheRoot,
   });
+  // #4057: clearance stays per-number. cancelled / unrecut-body refuse harvest.
   assertCompletedArcAllowsIngest({
     issueNumber: number,
     labels: issueLabelNames(enriched),

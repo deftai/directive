@@ -450,7 +450,13 @@ Closed catalog (last chip wins): `design-critique:mechanism-shaped` (in-flight, 
 - ⊗ `gh api POST .../labels` or additive `scm:issue:edit --add-label` for this facet.
 - ⊗ Intercept mixed `scm issue edit` adds/removes for this facet.
 - ⊗ General-purpose labels CLI.
-- ! After the completed-arc record is present, `triage:accept` / `scope:promote` / `issue:ingest` / build may proceed. Any identity may run those verbs. Same-session parent continuation is not required. GitHub Triage on the implementer is not required. They read the accepted verified synthesis (latest successor lean plus the verified-claims table).
+- ! After the completed-arc record is present, `triage:accept` / `scope:promote` / `issue:ingest` / build may proceed unless `evaluateCompletedArcRecord` returns `cancelled` or `unrecut-body` (#4057). Any identity may run those verbs. Same-session parent continuation is not required. GitHub Triage on the implementer is not required. They read the accepted verified synthesis (latest successor lean plus the verified-claims table).
+- ! Per-thread body ingest stays the mapper after a set-level bind. Stories the bind wants are recut bodies or newly filed issues. Derived AC stays on that body.
+- ! Un-recut portfolio members fail closed on `cancelled`. Parent posts `design-critique: cancelled, because ...` on that number. Parent `role: parent` dominate prose is not that record. Critic, quoted, or fenced cancel-shaped prose is not that record. Leftover `mechanism-shaped` without cancel stays `missing-record` and is not this control.
+- ! A later successor lean after cancel starts a recut arc. Completing a superseded thread without recut would mint the harvest.
+- ! A complete record whose latest `target shape:` field is `set-level` is `unrecut-body`. Recut the body (and record a non-set-level shape) or file a new issue. Ingest the anchor only is not supported while that field remains set-level.
+- ⊗ Select an author-blind latest successor lean as CurrentShape.
+- ⊗ Put a set-level graph (dominate / split / corpus parsed from comment English) inside ingest.
 - ! Ingest clearance cites the latest successor lean. An older completed-arc record does not clear a later recut lean. A panel-deposit is in-flight even when the catalog chip missed and no critic has posted.
 - ! The lexical form of that citation, and the requirement that the occurrence be affirmative, are published in `## Citation grammar`. Ingest reads that grammar, not prose intent.
 - ! Keep `plan.policy.judgmentGates` matching only `design-critique:mechanism-shaped`. After `triage-ready` replaces it, the issue leaves the gate match.
@@ -520,7 +526,7 @@ The intake cross-ref scanners (`packages/core/src/intake/markdown-scanners.ts`) 
 - ! Clearance is set membership: the record clears when the cited set contains the latest successor lean id. Position in the body does not select the lean, so citing the prior lean that `## Successor lean` requires cannot block.
 - ! A block detail reports what was scanned, what was found, and the accepted forms. ⊗ Guess at a cause. A guessed detail sends the operator back to re-post the same body and reproduce the refusal.
 
-`CompletedArcBlockReason` is closed. A block detail names one of these six:
+`CompletedArcBlockReason` is closed. A block detail names one of these eight:
 
 | Reason | What it reports |
 | --- | --- |
@@ -530,6 +536,8 @@ The intake cross-ref scanners (`packages/core/src/intake/markdown-scanners.ts`) 
 | `missing-table-cite` | a typed table claim names an id that is not a comment on this thread |
 | `unshaped-table-cite` | a typed table claim names a comment on this thread that opens no line with the verified-claims-table heading |
 | `ambiguous-table-cite` | two typed table claims name different tables |
+| `cancelled` | `design-critique: cancelled, because ...` is the latest terminal record; no later successor lean |
+| `unrecut-body` | completed-arc is present and the latest `target shape:` field is `set-level` |
 
 - ! Publish a reason in that table before the evaluator returns it. An unpublished reason code is the same gap as an unpublished citation form.
 - ⊗ Merge two states under one reason when their remedies differ. `missing-table-cite` and `unshaped-table-cite` were one reason and one detail until #3942, and the shared detail asserted an absent id in both, so an author whose table was on the thread read a true citation being called false and had no path to the missing heading.
