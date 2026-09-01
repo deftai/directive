@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for GitHub issue #4027 bound recut: lean-timing is round sibling completeness, not spend.",
-    "updated": "2026-09-01T03:37:48Z"
+    "updated": "2026-09-01T04:26:54Z"
   },
   "plan": {
     "title": "bug(design-critique): N>=3 lean-after-each-EXIT talks at 1 of 3",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Recut design-critique lean-timing from each critic EXIT to this round's sibling completeness. Bound contract is successor lean 5488350584 and synthesis 5488413872, not the original issue draft.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4027. Bound recut: synthesis 5488413872, successor lean 5488350584, operator confirm 5488407656.",
@@ -20,100 +20,154 @@
       {
         "id": "s1",
         "title": "Lean-timing MUST is round sibling completeness using the unqualified same-round-unposted conjunct; spend stays permission",
-        "status": "proposed",
+        "status": "completed",
         "effort": "M",
         "narrative": {
           "When": "When the design-critique contract is read, successor lean and verb menu wait while same-round siblings remain unposted; Stop 2 spend is not the wait rule.",
           "Acceptance": "When content/contracts/design-critique.md is read, Operator-gated loop, Successor lean, and Operator verbs gate the first lean and verb menu on the unqualified conjunct same-round siblings remain unposted, not on N=1 vs N>=3 spend. Spend remains an arc permission field.",
           "Traces": "FR-4027-s1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-09-01T04:26:36Z",
+          "recorded_by": "leaf-implementation/4027"
         }
       },
       {
         "id": "s2",
         "title": "Drop parent-silence-until from the critic brief; do not add a parent switch to the critic envelope",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "When": "When the critic brief template is read, it has no parent-silence-until field.",
           "Acceptance": "When content/templates/design-critique-brief.md is read, parent-silence-until is absent. The contract and skill do not add a parent timing switch to the critic envelope.",
           "Traces": "FR-4027-s2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/templates/design-critique-brief.md",
+          "recorded_at": "2026-09-01T04:26:36Z",
+          "recorded_by": "leaf-implementation/4027"
         }
       },
       {
         "id": "s3",
         "title": "Parent dispatch bookkeeping is the completeness trigger; a lean closing a round of two or more names dispatched sibling count and cites those comment ids",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "When": "When a successor lean closes a round of two or more, it names dispatched sibling count and cites those comment ids; self-attested role: critic lines are not panel-complete.",
           "Acceptance": "When the Successor lean section is read, it requires a lean closing a round of two or more to name that round's dispatched sibling count and cite each sibling comment id. The contract forbids counting self-attested role: critic lines as panel-complete. Parent dispatch bookkeeping is the trigger; thread posts corroborate.",
           "Traces": "FR-4027-s3"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/contracts/design-critique.md",
+          "recorded_at": "2026-09-01T04:26:36Z",
+          "recorded_by": "leaf-implementation/4027"
         }
       },
       {
         "id": "s4",
         "title": "Recut every each-EXIT locus (214/216/218/228/230/331 and both skill pointers) via pack source then packs:render",
-        "status": "proposed",
+        "status": "completed",
         "effort": "M",
         "narrative": {
           "When": "When the contract loop, successor lean, operator verbs, and thin skill are read, none still require a lean after each critic EXIT.",
           "Acceptance": "Contract sentences around 214/216/218/228/230/331 and both skill pointers (Stops list and Motion shape) wait on this round's sibling completeness. Pack source is content/packs/skills/skills-pack-0.1.json; rendered SKILL.md is not the SoT.",
           "Traces": "FR-4027-s4"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/packs/skills/skills-pack-0.1.json",
+          "recorded_at": "2026-09-01T04:26:36Z",
+          "recorded_by": "leaf-implementation/4027"
         }
       },
       {
         "id": "s5",
         "title": "Line 218 is a qualifier swap, not a deletion; empty-lean verb menu remains in the loop and waits on this round's successor lean",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "When": "When Operator-gated loop is read, empty-lean verb menu is still forbidden and waits on this round's successor lean.",
           "Acceptance": "The loop section still contains the pinned string empty-lean verb menu. The prohibition waits on this round's successor lean, not each critic EXIT. The sentence is not deleted.",
           "Traces": "FR-4027-s5"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/contracts/design-critique.md",
+          "recorded_at": "2026-09-01T04:26:36Z",
+          "recorded_by": "leaf-implementation/4027"
         }
       },
       {
         "id": "s6",
         "title": "Do not deposit-qualify the new silence MUST; named on the panel-deposit stays pinned out",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "When": "When the new silence MUST is read, it uses the unqualified same-round-unposted conjunct; deposit remains the Envelope and ceiling expected-count record.",
           "Acceptance": "The contract does not contain named on the panel-deposit or panel-deposit for this round. Panel-deposit stays the durable expected-count record in Envelope and ceiling.",
           "Traces": "FR-4027-s6"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/contracts/design-critique.md",
+          "recorded_at": "2026-09-01T04:26:36Z",
+          "recorded_by": "leaf-implementation/4027"
         }
       },
       {
         "id": "s7",
         "title": "Fences: no new skill, no new completeness predicate, no paste-prompts, no host PATH in AGENTS.md",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "When": "When the change lands, the skills pack, always-pin list, and AGENTS.md do not gain a new skill, completeness predicate, paste-prompt, or host PATH.",
           "Acceptance": "No new skill is added. evaluateParentAudit / evaluateCompletedArcRecord gain no sibling-counting predicate. The skill stays a thin pointer without paste-prompts. AGENTS.md has no host PATH or binaries for this change.",
           "Traces": "FR-4027-s7"
+        },
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4039",
+          "recorded_at": "2026-09-01T04:26:36Z",
+          "recorded_by": "leaf-implementation/4027"
         }
       },
       {
         "id": "s8",
         "title": "Content-contract tests recut pinned each-EXIT strings only; no new live completeness predicate",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "When": "When design_critique_contract.test.ts is run, it fails closed if the recut wording is dropped, and it does not add a live completeness predicate.",
           "Acceptance": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts pins the new round-completeness wording and no longer pins After each critic EXIT as the loop MUST. No new live completeness predicate is introduced.",
           "Traces": "FR-4027-s8"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-09-01T04:26:36Z",
+          "recorded_by": "leaf-implementation/4027"
         }
       },
       {
         "id": "s9",
         "title": "CHANGELOG [Unreleased] brief release-notes entry closing #4027",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "When": "When CHANGELOG [Unreleased] is read, it records the panel-silence recut and closes #4027.",
           "Acceptance": "CHANGELOG [Unreleased] has a brief release-notes entry for the round-sibling lean-timing recut and closes #4027.",
           "Traces": "FR-4027-s9"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4039",
+          "recorded_at": "2026-09-01T04:26:36Z",
+          "recorded_by": "leaf-implementation/4027"
         }
       }
     ],
@@ -217,6 +271,33 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-09-01T03:37:48Z"
+    "updated": "2026-09-01T04:26:54Z",
+    "metadata": {
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4039,
+        "prBase": null,
+        "mergeCommit": "10b7f3c17a11448f69b1721d4e1e0442dcce2017",
+        "deliveryBranch": "master",
+        "deliveryCommit": "10b7f3c17a11448f69b1721d4e1e0442dcce2017",
+        "verifiedAt": "2026-09-01T04:26:54Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:52750581-645a-4466-8c4b-484d22faa5cc"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-01T04:26:54Z"
+      },
+      "completedAt": "2026-09-01T04:26:54Z",
+      "completedSessionId": "host:grok:v1:52750581-645a-4466-8c4b-484d22faa5cc",
+      "capacityBucket": "new-capability"
+    }
   }
 }
