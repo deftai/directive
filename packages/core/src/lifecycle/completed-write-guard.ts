@@ -1,5 +1,7 @@
 /**
- * Refuse newly added completed/ blobs that bypass runTransition (#3679).
+ * Refuse newly added completed/ blobs that bypass runTransition (#3679),
+ * and refuse a source D or rename-from of active/ with no paired stamped
+ * destination (#3766).
  *
  * Historical corpus is advisory (doctor). New work in the change set is hard
  * (verify:completed-write-guard). Does not read completionProvenance and does
@@ -37,8 +39,13 @@ export interface CompletedWriteGuardResult {
 
 export interface CompletedWriteGuardOptions {
   readonly baseRef?: string;
-  /** Inject added repo-relative POSIX paths (skips git). */
+  /** Inject added repo-relative POSIX paths (skips git). Synthesized as A records. */
   readonly addedFiles?: readonly string[];
+  /**
+   * Inject git `--name-status` stdout (skips git). Same parser as discovery.
+   * Takes precedence over `addedFiles` when both are set.
+   */
+  readonly nameStatus?: string;
   /** Inject payloads: relPath -> raw JSON. */
   readonly payloads?: ReadonlyMap<string, string>;
 }
@@ -51,6 +58,19 @@ export interface CompletedWriteGuardOptions {
 export const COMPLETED_WRITE_GUARD_MAX_BYTES = 1_048_576;
 
 const COMPLETED_REL_RE = /^(?:xbrief|vbrief)\/completed\/[^/]+$/;
+const ACTIVE_REL_RE = /^(?:xbrief|vbrief)\/active\/[^/]+$/;
+const TERMINAL_REL_RE = /^(?:xbrief|vbrief)\/(?:completed|cancelled)\/[^/]+$/;
+
+/** Halt copy for unpaired active/ D or rename-from (#3766). */
+export const UNPAIRED_ACTIVE_DELETE_REMEDIATION =
+  "Halt: run `task scope:complete` so the destination is stamped, or leave the brief untracked. " +
+  "Lone-D untracking cleanup is not an authorization token (#3766).";
+
+interface NameStatusRecord {
+  readonly status: "A" | "D" | "R";
+  readonly src: string;
+  readonly dest: string;
+}
 
 function normalizeRepoRelPath(raw: string): string {
   return raw.replace(/\\/g, "/").replace(/^\.\//, "");
@@ -63,6 +83,28 @@ function isCompletedArtifactRel(relPath: string): boolean {
   }
   const base = n.split("/").pop() ?? "";
   return hasArtifactSuffix(base);
+}
+
+function isActiveArtifactRel(relPath: string): boolean {
+  const n = normalizeRepoRelPath(relPath);
+  if (!ACTIVE_REL_RE.test(n)) {
+    return false;
+  }
+  const base = n.split("/").pop() ?? "";
+  return hasArtifactSuffix(base);
+}
+
+function isTerminalArtifactRel(relPath: string): boolean {
+  const n = normalizeRepoRelPath(relPath);
+  if (!TERMINAL_REL_RE.test(n)) {
+    return false;
+  }
+  const base = n.split("/").pop() ?? "";
+  return hasArtifactSuffix(base);
+}
+
+function artifactBasename(relPath: string): string {
+  return normalizeRepoRelPath(relPath).split("/").pop() ?? "";
 }
 
 function parsePlan(raw: string): Record<string, unknown> | null {
@@ -114,8 +156,8 @@ function git(args: string[], projectRoot: string): { status: number; stdout: str
   return { status, stdout: result.stdout ?? "" };
 }
 
-function addedPathsFromNameStatus(stdout: string): string[] {
-  const out: string[] = [];
+function parseNameStatusRecords(stdout: string): NameStatusRecord[] {
+  const out: NameStatusRecord[] = [];
   for (const line of stdout.split("\n")) {
     const t = line.replace(/\r$/, "").trim();
     if (t.length === 0) {
@@ -126,19 +168,31 @@ function addedPathsFromNameStatus(stdout: string): string[] {
     if (status.startsWith("A")) {
       const path = parts[1];
       if (path !== undefined) {
-        out.push(unquoteGitPath(path));
+        const n = normalizeRepoRelPath(unquoteGitPath(path));
+        out.push({ status: "A", src: n, dest: n });
+      }
+    } else if (status.startsWith("D")) {
+      const path = parts[1];
+      if (path !== undefined) {
+        const n = normalizeRepoRelPath(unquoteGitPath(path));
+        out.push({ status: "D", src: n, dest: n });
       }
     } else if (status.startsWith("R")) {
-      const dest = parts[2] ?? parts[1];
-      if (dest !== undefined) {
-        out.push(unquoteGitPath(dest));
+      const srcRaw = parts[1];
+      const destRaw = parts[2] ?? parts[1];
+      if (srcRaw !== undefined && destRaw !== undefined) {
+        out.push({
+          status: "R",
+          src: normalizeRepoRelPath(unquoteGitPath(srcRaw)),
+          dest: normalizeRepoRelPath(unquoteGitPath(destRaw)),
+        });
       }
     }
   }
   return out;
 }
 
-function discoverAddedFiles(projectRoot: string, baseRef: string): string[] {
+function discoverNameStatusRecords(projectRoot: string, baseRef: string): NameStatusRecord[] {
   const inside = git(["rev-parse", "--is-inside-work-tree"], projectRoot);
   if (inside.status !== 0) {
     throw new GitCommandError("not a git working tree");
@@ -157,9 +211,9 @@ function discoverAddedFiles(projectRoot: string, baseRef: string): string[] {
   if (!hasBase) {
     throw new GitCommandError(`base ref '${resolved}' not found; pass --base-ref`);
   }
-  const out = new Set<string>();
+  const records: NameStatusRecord[] = [];
   const range = resolved.includes("...") ? resolved : `${resolved}...HEAD`;
-  const committed = git(["diff", "--name-status", "--diff-filter=AR", range], projectRoot);
+  const committed = git(["diff", "-M", "--name-status", "--diff-filter=ARD", range], projectRoot);
   if (committed.status !== 0) {
     const detail =
       committed.stdout.trim() || `git diff ${range} exited ${String(committed.status)}`;
@@ -168,29 +222,27 @@ function discoverAddedFiles(projectRoot: string, baseRef: string): string[] {
         "Pass --base-ref to a merge-base ancestor of HEAD.",
     );
   }
-  for (const p of addedPathsFromNameStatus(committed.stdout)) {
-    out.add(normalizeRepoRelPath(p));
-  }
-  const vsHead = git(["diff", "--name-status", "--diff-filter=AR", "HEAD"], projectRoot);
+  records.push(...parseNameStatusRecords(committed.stdout));
+  const vsHead = git(["diff", "-M", "--name-status", "--diff-filter=ARD", "HEAD"], projectRoot);
   if (vsHead.status !== 0) {
     const detail = vsHead.stdout.trim() || `git diff HEAD exited ${String(vsHead.status)}`;
     throw new GitCommandError(`working-tree change-set unavailable: ${detail}`);
   }
-  for (const p of addedPathsFromNameStatus(vsHead.stdout)) {
-    out.add(normalizeRepoRelPath(p));
-  }
+  records.push(...parseNameStatusRecords(vsHead.stdout));
   const untracked = git(["ls-files", "--others", "--exclude-standard"], projectRoot);
   if (untracked.status !== 0) {
     const detail = untracked.stdout.trim() || `git ls-files exited ${String(untracked.status)}`;
     throw new GitCommandError(`untracked change-set unavailable: ${detail}`);
   }
+  const untrackedAsAdds: string[] = [];
   for (const line of untracked.stdout.split("\n")) {
-    const p = normalizeRepoRelPath(unquoteGitPath(line));
-    if (p.length > 0) {
-      out.add(p);
+    const t = line.replace(/\r$/, "").trim();
+    if (t.length > 0) {
+      untrackedAsAdds.push(`A\t${t}`);
     }
   }
-  return [...out];
+  records.push(...parseNameStatusRecords(untrackedAsAdds.join("\n")));
+  return records;
 }
 
 type PayloadRead =
@@ -261,17 +313,22 @@ function readPayload(
 }
 
 /**
- * Hard check: newly added completed/ artifacts must show runTransition evidence.
+ * Hard check: newly added completed/ artifacts must show runTransition evidence,
+ * and active/ D or rename-from must pair with a stamped terminal destination.
  */
 export function evaluateCompletedWriteGuard(
   projectRoot: string,
   options: CompletedWriteGuardOptions = {},
 ): CompletedWriteGuardResult {
   const root = resolve(projectRoot);
-  let added: readonly string[];
+  let records: readonly NameStatusRecord[];
   try {
-    if (options.addedFiles !== undefined) {
-      added = options.addedFiles.map(normalizeRepoRelPath);
+    if (options.nameStatus !== undefined) {
+      records = parseNameStatusRecords(options.nameStatus);
+    } else if (options.addedFiles !== undefined) {
+      records = parseNameStatusRecords(
+        options.addedFiles.map((rel) => `A\t${normalizeRepoRelPath(rel)}`).join("\n"),
+      );
     } else {
       const inside = git(["rev-parse", "--is-inside-work-tree"], root);
       if (inside.status !== 0 || inside.stdout.trim() !== "true") {
@@ -296,7 +353,7 @@ export function evaluateCompletedWriteGuard(
         }
         baseRef = resolved;
       }
-      added = discoverAddedFiles(root, baseRef);
+      records = discoverNameStatusRecords(root, baseRef);
     }
   } catch (err: unknown) {
     if (err instanceof GitNotFoundError) {
@@ -330,8 +387,18 @@ export function evaluateCompletedWriteGuard(
     throw err;
   }
 
+  const added = [
+    ...new Set(
+      records.filter((rec) => rec.status === "A" || rec.status === "R").map((rec) => rec.dest),
+    ),
+  ];
+
   const findings: CompletedWriteGuardFinding[] = [];
+  const stampedTerminalBasenames = new Set<string>();
   for (const rel of added) {
+    if (isTerminalArtifactRel(rel) && rel.includes("/cancelled/")) {
+      stampedTerminalBasenames.add(artifactBasename(rel));
+    }
     if (!isCompletedArtifactRel(rel)) {
       continue;
     }
@@ -363,7 +430,31 @@ export function evaluateCompletedWriteGuard(
         relPath: rel,
         detail: `${rel}: added under completed/ without a runTransition write`,
       });
+      continue;
     }
+    stampedTerminalBasenames.add(artifactBasename(rel));
+  }
+
+  const seenActive = new Set<string>();
+  for (const rec of records) {
+    if (rec.status !== "D" && rec.status !== "R") {
+      continue;
+    }
+    if (!isActiveArtifactRel(rec.src)) {
+      continue;
+    }
+    if (stampedTerminalBasenames.has(artifactBasename(rec.src))) {
+      continue;
+    }
+    if (seenActive.has(rec.src)) {
+      continue;
+    }
+    seenActive.add(rec.src);
+    const verb = rec.status === "R" ? "renamed away from" : "deleted from";
+    findings.push({
+      relPath: rec.src,
+      detail: `${rec.src}: ${verb} active/ with no paired stamped destination`,
+    });
   }
 
   if (findings.length === 0) {
@@ -374,13 +465,31 @@ export function evaluateCompletedWriteGuard(
     };
   }
 
+  const destFindings = findings.filter((f) => isCompletedArtifactRel(f.relPath));
+  const deleteFindings = findings.filter((f) => isActiveArtifactRel(f.relPath));
+  if (deleteFindings.length === 0) {
+    return {
+      code: 1,
+      findings,
+      message:
+        `verify_completed_write_guard: ${findings.length} unguarded completed/ add(s) (#3679).\n` +
+        findings.map((f) => `  - ${f.detail}`).join("\n") +
+        `\n${LEFTOVER_LAND_PR_REMEDIATION}`,
+    };
+  }
+
+  const parts = [
+    `verify_completed_write_guard: ${String(findings.length)} finding(s) (#3679 / #3766).`,
+    ...findings.map((f) => `  - ${f.detail}`),
+  ];
+  if (destFindings.length > 0) {
+    parts.push(LEFTOVER_LAND_PR_REMEDIATION);
+  }
+  parts.push(UNPAIRED_ACTIVE_DELETE_REMEDIATION);
   return {
     code: 1,
     findings,
-    message:
-      `verify_completed_write_guard: ${findings.length} unguarded completed/ add(s) (#3679).\n` +
-      findings.map((f) => `  - ${f.detail}`).join("\n") +
-      `\n${LEFTOVER_LAND_PR_REMEDIATION}`,
+    message: parts.join("\n"),
   };
 }
 

@@ -7,6 +7,7 @@ import {
   COMPLETED_WRITE_GUARD_MAX_BYTES,
   evaluateCompletedWriteGuard,
   scanCompletedWriteCorpus,
+  UNPAIRED_ACTIVE_DELETE_REMEDIATION,
 } from "./completed-write-guard.js";
 
 function isolatedGitEnv(projectRoot: string): NodeJS.ProcessEnv {
@@ -285,6 +286,72 @@ describe("scanCompletedWriteCorpus (#3679)", () => {
       const result = scanCompletedWriteCorpus(root);
       expect(result.scanned).toBe(2);
       expect(result.findings).toHaveLength(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("evaluateCompletedWriteGuard (#3766 active deletion)", () => {
+  const active = "xbrief/active/2026-08-25-story.xbrief.json";
+  const completed = "xbrief/completed/2026-08-25-story.xbrief.json";
+
+  it("rejects an unaccompanied delete of an active brief", () => {
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `D\t${active}`,
+    });
+    expect(result.code).toBe(1);
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0]?.relPath).toBe(active);
+    expect(result.message).toMatch(/no paired stamped destination/);
+  });
+
+  it("accepts a rename from active/ to a stamped completed/ destination", () => {
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `R100\t${active}\t${completed}`,
+      payloads: new Map([[completed, stamped()]]),
+    });
+    expect(result.code).toBe(0);
+    expect(result.findings).toHaveLength(0);
+  });
+
+  it("accepts a delete of active/ paired with a stamped completed/ add", () => {
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `D\t${active}\nA\t${completed}`,
+      payloads: new Map([[completed, stamped()]]),
+    });
+    expect(result.code).toBe(0);
+    expect(result.findings).toHaveLength(0);
+  });
+
+  it("halts lone-D cleanup naming scope:complete or leave untracked", () => {
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `D\t${active}`,
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("scope:complete");
+    expect(result.message).toMatch(/untracked/);
+    expect(result.message).toContain(UNPAIRED_ACTIVE_DELETE_REMEDIATION);
+  });
+
+  it("rejects an unaccompanied active delete discovered from git", { timeout: 20_000 }, () => {
+    const root = mkdtempSync(join(tmpdir(), "completed-write-active-del-"));
+    try {
+      gitOk(["init", "-q", "-b", "master"], root);
+      gitOk(["-c", "commit.gpgsign=false", "commit", "--allow-empty", "-m", "base"], root);
+      const dir = join(root, "xbrief", "active");
+      mkdirSync(dir, { recursive: true });
+      const rel = "xbrief/active/2026-08-25-other.xbrief.json";
+      writeFileSync(join(root, rel), husk("running"), "utf8");
+      gitOk(["add", rel], root);
+      gitOk(["-c", "commit.gpgsign=false", "commit", "-m", "track active"], root);
+      gitOk(["rm", "-f", rel], root);
+      gitOk(["-c", "commit.gpgsign=false", "commit", "-m", "delete active"], root);
+      const result = evaluateCompletedWriteGuard(root, { baseRef: "HEAD~1" });
+      expect(result.code).toBe(1);
+      expect(result.findings.some((f) => f.relPath === rel)).toBe(true);
+      expect(result.message).toMatch(/no paired stamped destination/);
+      expect(result.message).toContain("scope:complete");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
