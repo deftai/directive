@@ -59,6 +59,7 @@ export const COMPLETED_WRITE_GUARD_MAX_BYTES = 1_048_576;
 
 const COMPLETED_REL_RE = /^(?:xbrief|vbrief)\/completed\/[^/]+$/;
 const ACTIVE_REL_RE = /^(?:xbrief|vbrief)\/active\/[^/]+$/;
+const CANCELLED_REL_RE = /^(?:xbrief|vbrief)\/cancelled\/[^/]+$/;
 
 /** Halt copy for unpaired active/ D or rename-from (#3766). */
 export const UNPAIRED_ACTIVE_DELETE_REMEDIATION =
@@ -95,6 +96,25 @@ function isActiveArtifactRel(relPath: string): boolean {
 
 function artifactBasename(relPath: string): string {
   return normalizeRepoRelPath(relPath).split("/").pop() ?? "";
+}
+
+function isCancelledArtifactRel(relPath: string): boolean {
+  const n = normalizeRepoRelPath(relPath);
+  if (!CANCELLED_REL_RE.test(n)) {
+    return false;
+  }
+  const base = n.split("/").pop() ?? "";
+  return hasArtifactSuffix(base);
+}
+
+function pairingKey(relPath: string): string | null {
+  const n = normalizeRepoRelPath(relPath);
+  const family = n.startsWith("xbrief/") ? "xbrief" : n.startsWith("vbrief/") ? "vbrief" : null;
+  const base = artifactBasename(n);
+  if (family === null || base.length === 0) {
+    return null;
+  }
+  return `${family}/${base}`;
 }
 
 function parsePlan(raw: string): Record<string, unknown> | null {
@@ -384,8 +404,22 @@ export function evaluateCompletedWriteGuard(
   ];
 
   const findings: CompletedWriteGuardFinding[] = [];
-  const stampedTerminalBasenames = new Set<string>();
+  const pairedTerminalKeys = new Set<string>();
   for (const rel of added) {
+    if (isCancelledArtifactRel(rel)) {
+      const payload = readPayload(root, rel, options.payloads);
+      if (payload.kind !== "ok") {
+        continue;
+      }
+      const plan = parsePlan(payload.raw);
+      if (plan !== null && String(plan.status ?? "") === "cancelled") {
+        const key = pairingKey(rel);
+        if (key !== null) {
+          pairedTerminalKeys.add(key);
+        }
+      }
+      continue;
+    }
     if (!isCompletedArtifactRel(rel)) {
       continue;
     }
@@ -419,7 +453,10 @@ export function evaluateCompletedWriteGuard(
       });
       continue;
     }
-    stampedTerminalBasenames.add(artifactBasename(rel));
+    const key = pairingKey(rel);
+    if (key !== null) {
+      pairedTerminalKeys.add(key);
+    }
   }
 
   const seenActive = new Set<string>();
@@ -430,7 +467,8 @@ export function evaluateCompletedWriteGuard(
     if (!isActiveArtifactRel(rec.src)) {
       continue;
     }
-    if (stampedTerminalBasenames.has(artifactBasename(rec.src))) {
+    const srcKey = pairingKey(rec.src);
+    if (srcKey !== null && pairedTerminalKeys.has(srcKey)) {
       continue;
     }
     if (seenActive.has(rec.src)) {

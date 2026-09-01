@@ -328,11 +328,31 @@ describe("evaluateCompletedWriteGuard (#3766 active deletion)", () => {
     const cancelled = "xbrief/cancelled/2026-08-25-story.xbrief.json";
     const result = evaluateCompletedWriteGuard("/tmp/proj", {
       nameStatus: `D\t${active}\nA\t${cancelled}`,
-      payloads: new Map([[cancelled, husk("cancelled")]]),
+      payloads: new Map([[cancelled, husk()]]),
     });
     expect(result.code).toBe(1);
     expect(result.findings.some((f) => f.relPath === active)).toBe(true);
     expect(result.message).toMatch(/no paired stamped destination/);
+  });
+
+  it("accepts a delete of active/ paired with a cancelled dest whose status is cancelled", () => {
+    const cancelled = "xbrief/cancelled/2026-08-25-story.xbrief.json";
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `D\t${active}\nA\t${cancelled}`,
+      payloads: new Map([[cancelled, husk("cancelled")]]),
+    });
+    expect(result.code).toBe(0);
+    expect(result.findings).toHaveLength(0);
+  });
+
+  it("rejects a stamped dest in the other lifecycle root as pairing", () => {
+    const vbriefCompleted = "vbrief/completed/2026-08-25-story.xbrief.json";
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `D\t${active}\nA\t${vbriefCompleted}`,
+      payloads: new Map([[vbriefCompleted, stamped()]]),
+    });
+    expect(result.code).toBe(1);
+    expect(result.findings.some((f) => f.relPath === active)).toBe(true);
   });
 
   it("halts lone-D cleanup naming scope:complete or leave untracked", () => {
