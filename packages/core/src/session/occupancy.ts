@@ -748,10 +748,9 @@ export function stealOccupancy(
     const current = readOccupancy(projectRoot);
     // Show the occupant's write recency before the steal, not only after it
     // (#3599): heartbeat age alone hides an occupant that is mid-edit.
+    const liveCurrent = liveOccupancyOnTree(projectRoot, current, now);
     const occupantDetail =
-      liveOccupancyOnTree(projectRoot, current, now) !== null
-        ? `\n${formatOccupancyRemediation(current, now)}`
-        : "";
+      liveCurrent !== null ? `\n${formatOccupancyRemediation(liveCurrent, now)}` : "";
     return {
       action: "denied",
       sessionId: incoming,
