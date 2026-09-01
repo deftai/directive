@@ -283,10 +283,18 @@ function remediationForExpansion(): string {
     "approval on the merge base (or a prior PR) before expanding or activating the " +
     "scoped xBRIEF in the implementation change set. Editing the active xBRIEF alone " +
     "does not authorize new paths (#3145 / #3205). See content/docs/scope-provenance.md. " +
-    "If you cannot mint a digest (human TTY required), drop active/ from this product " +
-    "change set and land the completed artifact in a leftover land PR after merge (#3476). " +
-    "Run `task scope:complete` on the brief (it can stamp a file already in completed/). " +
-    "Do not git-add a completed/ husk to skip that PR (#3679)."
+    "Do not undeclare or empty a declared file_scope to pass this gate. " +
+    "Cohort-created scopes that should stay declared are minted at allocation time " +
+    "under operator presence (real TTY, --confirm, typed phrase mint; #3110) and " +
+    "landed on the merge base before the implementation PR. #1378 allocation-context " +
+    "tokens are not provenance; swarm briefs are not exempt. Undeclared cohort briefs " +
+    "(no file_scope at authoring time) are a deliberate outcome when the operator " +
+    "does not mint -- not a post-failure workaround. This gate evaluates xbrief/active/ " +
+    "files present in the working tree (git diff vs base, git diff vs HEAD, and " +
+    "untracked via git ls-files --others --exclude-standard); committing or not " +
+    "committing the brief does not hide it. After merge, land the completed artifact " +
+    "via `task scope:complete` and a leftover land PR if needed (#3476). Do not " +
+    "git-add a completed/ husk to skip that PR (#3679)."
   );
 }
 

@@ -156,3 +156,29 @@ git add .deft/approved-scope/<plan-id>.json .deft/approved-scope/<plan-id>.inten
 ```
 
 Editing the xBRIEF alone does not authorize new implementation paths.
+
+
+## Cohort-created scope (operator mint at allocation) (#3874)
+
+If a swarm cohort brief should declare `file_scope`, the operator who approved
+the cohort mints the digest on a real TTY at allocation time and lands
+`.deft/approved-scope/<plan-id>.json` on the merge base before workers activate.
+
+- Allocation-context tokens (#1378) are **not** provenance.
+- Swarm briefs are **not** exempt from this gate.
+- `#3110` human-presence mint and merge-base layering are unchanged.
+
+If the operator does not mint, omit `file_scope` when authoring the cohort brief.
+Undeclared cohort briefs are then a deliberate outcome, not a post-failure
+workaround. Do not undeclare a declared `file_scope` to pass the gate.
+
+## Working-tree / untracked files
+
+`verify:scope-provenance` unions:
+
+1. `git diff --name-only <base>...HEAD`
+2. `git diff --name-only HEAD`
+3. `git ls-files --others --exclude-standard`
+
+and lists on-disk `xbrief/active/` files. Presence in the working tree is what
+matters. Committing or not committing the brief does not hide it from the gate.

@@ -89,6 +89,8 @@ describe("evaluateOneScopeProvenance (#3145)", () => {
     expect(finding?.expandedPaths).toContain("infra/scripts/test_release.py");
     expect(finding?.remediation).toMatch(/human approval/i);
     expect(finding?.remediation).toMatch(/--confirm/);
+    expect(finding?.remediation).not.toMatch(/drop active\//i);
+    expect(finding?.remediation).not.toMatch(/drop it/i);
   });
 
   it("non-human stamp remediations include --confirm (#3596)", () => {
@@ -231,7 +233,9 @@ describe("evaluateScopeProvenance (#3145)", () => {
     });
     expect(result.exitCode).toBe(1);
     expect(result.findings[0]?.kind).toBe("active-xbrief-modified-without-digest");
-    expect(result.message).toMatch(/leftover land PR after merge \(#3476\)/);
+    expect(result.message).toMatch(/leftover land PR if needed \(#3476\)/);
+    expect(result.message).not.toMatch(/drop active\//i);
+    expect(result.message).not.toMatch(/drop it/i);
   });
 
   it("warns without failing for body-only modified xBRIEF with empty scope (migration)", () => {
@@ -276,6 +280,57 @@ describe("evaluateScopeProvenance (#3145)", () => {
     });
     expect(result.exitCode).toBe(0);
     expect(result.message).toMatch(/clean/i);
+  });
+
+  it("declared scope with matching human digest passes (#3874)", () => {
+    const current = xbrief("story-1", ["src/app.ts"]);
+    const approved = buildApprovedScopeRecord({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      payload: current,
+      humanApproval: {
+        kind: "operator",
+        actor: "scott",
+        mintedAt: "2026-08-01T00:00:00Z",
+      },
+    });
+    const finding = evaluateOneScopeProvenance({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      currentPayload: current,
+      approved,
+      xbriefModifiedInChangeSet: true,
+      enforce: true,
+    });
+    expect(finding).toBeNull();
+
+    const active = new Map<string, string>([
+      ["xbrief/active/story.xbrief.json", JSON.stringify(current)],
+    ]);
+    const result = evaluateScopeProvenance("/tmp/proj", {
+      changedFiles: ["xbrief/active/story.xbrief.json"],
+      activeXbriefs: active,
+      approvedRecords: [approved],
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(0);
+  });
+
+  it("declared scope without digest fails without instructing drop (#3874)", () => {
+    const finding = evaluateOneScopeProvenance({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      currentPayload: xbrief("story-1", ["src/app.ts"]),
+      approved: null,
+      xbriefModifiedInChangeSet: true,
+      enforce: true,
+    });
+    expect(finding).not.toBeNull();
+    expect(finding?.kind).toBe("active-xbrief-modified-without-digest");
+    expect(finding?.remediation).not.toMatch(/drop active\//i);
+    expect(finding?.remediation).not.toMatch(/drop it/i);
+    expect(finding?.remediation).toMatch(/do not undeclare/i);
+    expect(finding?.remediation).toMatch(/minted at allocation/i);
+    expect(finding?.remediation).toMatch(/untracked/i);
+    expect(finding?.remediation).toMatch(/#1378/);
+    expect(finding?.remediation).toMatch(/#3110/);
   });
 
   it("accepts re-recorded digest matching current scope with human stamp", () => {
