@@ -224,23 +224,6 @@ function matchStrip(
   return matchStrip(globParts, gi + 1, pathParts, i + 1, nextCaptures);
 }
 
-function longestSourceStrip(
-  posixPath: string,
-  sourceRoots: readonly string[],
-): SourceRootStrip | null {
-  let best: SourceRootStrip | null = null;
-  for (const root of sourceRoots) {
-    const stripped = stripSourceRoot(posixPath, root);
-    if (stripped === null) {
-      continue;
-    }
-    if (best === null || stripped.consumed > best.consumed) {
-      best = stripped;
-    }
-  }
-  return best;
-}
-
 /** True when a glob segment is a capture slot (star, double-star, question-mark, or class). */
 function isWildcardSlot(part: string): boolean {
   return part === "*" || part === "**" || isPartialWildcardSlot(part);
@@ -317,25 +300,34 @@ export function expectedTestPaths(sourcePath: string, policy: TestBoundaryPolicy
   addNamed(out, sourceDir, names);
   addNamed(out, joinPosix(sourceDir, "__tests__"), names);
 
-  const stripped = longestSourceStrip(rel, policy.sourceRoots);
-  const remainder = stripped?.remainder ?? rel;
-  const remainderDir = dirOf(remainder);
-  const captures = stripped?.captures ?? [];
+  const strips: SourceRootStrip[] = [];
+  for (const root of policy.sourceRoots) {
+    const stripped = stripSourceRoot(rel, root);
+    if (stripped !== null) {
+      strips.push(stripped);
+    }
+  }
+  if (strips.length === 0) {
+    strips.push({ remainder: rel, captures: [], consumed: 0 });
+  }
 
-  for (const testRoot of policy.testRoots) {
-    if (!isDirectoryShapedRoot(testRoot)) {
-      continue;
+  for (const stripped of strips) {
+    const remainderDir = dirOf(stripped.remainder);
+    for (const testRoot of policy.testRoots) {
+      if (!isDirectoryShapedRoot(testRoot)) {
+        continue;
+      }
+      const template = rootPrefixTemplate(testRoot);
+      if (template === "**/__tests__" || template.endsWith("**/__tests__")) {
+        addNamed(out, joinPosix("__tests__", remainderDir), names);
+        continue;
+      }
+      const filled = fillRootTemplate(testRoot, stripped.captures);
+      if (filled === null) {
+        continue;
+      }
+      addNamed(out, joinPosix(filled, remainderDir), names);
     }
-    const template = rootPrefixTemplate(testRoot);
-    if (template === "**/__tests__" || template.endsWith("**/__tests__")) {
-      addNamed(out, joinPosix("__tests__", remainderDir), names);
-      continue;
-    }
-    const filled = fillRootTemplate(testRoot, captures);
-    if (filled === null) {
-      continue;
-    }
-    addNamed(out, joinPosix(filled, remainderDir), names);
   }
 
   return [...out].sort();

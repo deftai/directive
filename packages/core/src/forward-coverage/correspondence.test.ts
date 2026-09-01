@@ -177,6 +177,17 @@ describe("expectedTestPaths", () => {
     expect(paths).not.toContain("packages//foo/bar/test/file.test.ts");
   });
 
+  it("keeps candidates from overlapping source roots with different capture shapes", () => {
+    const custom = {
+      ...policy,
+      sourceRoots: ["packages/core/src/**", "packages/*/src/**"],
+      testRoots: ["tests/**", "packages/*/test/**"],
+    };
+    const paths = expectedTestPaths("packages/core/src/foo.ts", custom);
+    expect(paths).toContain("tests/foo.test.ts");
+    expect(paths).toContain("packages/core/test/foo.test.ts");
+  });
+
   it("mirrors the full path under tests/ when no source root matches", () => {
     const paths = expectedTestPaths("scripts/thing.py", policy);
     expect(paths).toContain("scripts/test_thing.py");
