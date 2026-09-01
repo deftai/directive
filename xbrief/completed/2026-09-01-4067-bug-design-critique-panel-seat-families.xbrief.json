@@ -2,12 +2,12 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for GitHub issue #4067: bind N>=3 panel seat families at dispatch and CLI-spawn other families on Grok Build.",
-    "updated": "2026-09-01T23:12:00Z"
+    "updated": "2026-09-01T23:19:50Z"
   },
   "plan": {
     "id": "issue-4067",
     "title": "bug(design-critique): N=3 panel dispatch does not bind cross-family seats, and a Grok parent with claude/codex CLIs still paste-readies",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Bind seat families at N>=3 dispatch, refuse same-family lean, CLI-spawn Claude/Codex on PATH from a Grok Build parent, and offer or file a prevention issue after a composition miss.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4067. Operator yolo 2026-09-01: without touching local arc yolo issue 4066; named issue 4067 through-merge in isolated worktree.",
@@ -265,8 +265,32 @@
           "packages/core/src/design-critique/panel-seat-families.test.ts"
         ],
         "module_boundary": "design-critique seat composition"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4073,
+        "prBase": null,
+        "mergeCommit": "397cdf09fdb841c029c3ad1a85ca32e0e26339e6",
+        "deliveryBranch": "master",
+        "deliveryCommit": "397cdf09fdb841c029c3ad1a85ca32e0e26339e6",
+        "verifiedAt": "2026-09-01T23:19:50Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDVlZjYtYWI4MC03MTUwLTliMTAtOWIwNDUzZjdiMTc4"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-01T23:19:50Z"
+      },
+      "completedAt": "2026-09-01T23:19:50Z",
+      "completedSessionId": "host:grok:v1:MDFhMDVlZjYtYWI4MC03MTUwLTliMTAtOWIwNDUzZjdiMTc4"
     },
-    "updated": "2026-09-01T23:12:00Z"
+    "updated": "2026-09-01T23:19:50Z"
   }
 }
