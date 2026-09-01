@@ -24,11 +24,27 @@ function posix(pathStr: string): string {
   return pathStr.replace(/\\/g, "/");
 }
 
+function trimSlashes(value: string): string {
+  let start = 0;
+  let end = value.length;
+  while (start < end && value.charAt(start) === "/") {
+    start += 1;
+  }
+  while (end > start && value.charAt(end - 1) === "/") {
+    end -= 1;
+  }
+  return value.slice(start, end);
+}
+
 function joinPosix(...parts: string[]): string {
-  return parts
-    .map((part) => part.replace(/\\/g, "/").replace(/^\/+|\/+$/g, ""))
-    .filter((part) => part.length > 0)
-    .join("/");
+  const cleaned: string[] = [];
+  for (const part of parts) {
+    const trimmed = trimSlashes(posix(part));
+    if (trimmed.length > 0) {
+      cleaned.push(trimmed);
+    }
+  }
+  return cleaned.join("/");
 }
 
 function dirOf(rel: string): string {
@@ -144,9 +160,28 @@ export function stripSourceRoot(posixPath: string, sourceRoot: string): SourceRo
   const globParts = prefix.split("/").filter((part) => part.length > 0);
   const captures: string[] = [];
   let i = 0;
-  for (const g of globParts) {
+  for (let gi = 0; gi < globParts.length; gi += 1) {
+    const g = globParts[gi] ?? "";
     if (g === "**") {
-      return null;
+      const next = globParts[gi + 1];
+      if (next === undefined) {
+        captures.push(pathParts.slice(i).join("/"));
+        i = pathParts.length;
+        continue;
+      }
+      let found = -1;
+      for (let j = i; j < pathParts.length; j += 1) {
+        if (next === "*" || pathParts[j] === next) {
+          found = j;
+          break;
+        }
+      }
+      if (found === -1) {
+        return null;
+      }
+      captures.push(pathParts.slice(i, found).join("/"));
+      i = found;
+      continue;
     }
     if (i >= pathParts.length) {
       return null;
@@ -189,29 +224,35 @@ function longestSourceStrip(
   return best;
 }
 
-function starCount(template: string): number {
-  return template.split("/").filter((part) => part === "*").length;
+function wildcardCount(template: string): number {
+  return template.split("/").filter((part) => part === "*" || part === "**").length;
 }
 
 /** Fill a packages star-test root from packages star-src captures. Null if star counts differ. */
 export function fillRootTemplate(testRoot: string, captures: readonly string[]): string | null {
   const template = rootPrefixTemplate(testRoot);
-  if (template.includes("**")) {
-    return null;
-  }
-  if (starCount(template) !== captures.length) {
+  if (wildcardCount(template) !== captures.length) {
     return null;
   }
   const parts = template.split("/").filter((part) => part.length > 0);
   const out: string[] = [];
   let cap = 0;
   for (const g of parts) {
-    if (g === "*") {
+    if (g === "*" || g === "**") {
       const value = captures[cap];
-      if (value === undefined || value.length === 0) {
+      if (value === undefined) {
         return null;
       }
-      out.push(value);
+      if (g === "*" && (value.length === 0 || value.includes("/"))) {
+        return null;
+      }
+      if (value.length > 0) {
+        for (const seg of value.split("/")) {
+          if (seg.length > 0) {
+            out.push(seg);
+          }
+        }
+      }
       cap += 1;
       continue;
     }
@@ -258,9 +299,6 @@ export function expectedTestPaths(sourcePath: string, policy: TestBoundaryPolicy
     const template = rootPrefixTemplate(testRoot);
     if (template === "**/__tests__" || template.endsWith("**/__tests__")) {
       addNamed(out, joinPosix("__tests__", remainderDir), names);
-      continue;
-    }
-    if (template.includes("**")) {
       continue;
     }
     const filled = fillRootTemplate(testRoot, captures);

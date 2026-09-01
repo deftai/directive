@@ -30,6 +30,14 @@ describe("stripSourceRoot", () => {
   it("returns null when the path is outside the root", () => {
     expect(stripSourceRoot("scripts/thing.py", "src/**")).toBeNull();
   });
+
+  it("strips a mid-path double-star source root", () => {
+    expect(stripSourceRoot("packages/foo/src/bar.ts", "packages/**/src/**")).toEqual({
+      remainder: "bar.ts",
+      captures: ["foo"],
+      consumed: 3,
+    });
+  });
 });
 
 describe("fillRootTemplate", () => {
@@ -43,6 +51,10 @@ describe("fillRootTemplate", () => {
 
   it("refuses a star-count mismatch", () => {
     expect(fillRootTemplate("packages/*/test/**", [])).toBeNull();
+  });
+
+  it("fills a mid-path double-star test root", () => {
+    expect(fillRootTemplate("packages/**/test/**", ["foo"])).toBe("packages/foo/test");
   });
 });
 
@@ -67,6 +79,17 @@ describe("expectedTestPaths", () => {
     const paths = expectedTestPaths("packages/core/src/forward-coverage/evaluate.ts", policy);
     expect(paths).toContain("packages/core/src/forward-coverage/evaluate.test.ts");
     expect(paths).toContain("packages/core/test/forward-coverage/evaluate.test.ts");
+  });
+
+  it("maps a mid-path double-star source root onto the matching test root", () => {
+    const custom = {
+      ...policy,
+      sourceRoots: ["packages/**/src/**"],
+      testRoots: ["packages/**/test/**"],
+    };
+    const paths = expectedTestPaths("packages/foo/src/bar.ts", custom);
+    expect(paths).toContain("packages/foo/src/bar.test.ts");
+    expect(paths).toContain("packages/foo/test/bar.test.ts");
   });
 
   it("mirrors the full path under tests/ when no source root matches", () => {
