@@ -1,0 +1,68 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4010",
+    "updated": "2026-09-01T14:02:02Z"
+  },
+  "plan": {
+    "title": "[framework-gap] verify:lifecycle-visible reads a blank .gitignore line as a match-all pattern",
+    "status": "running",
+    "narratives": {
+      "Description": "[framework-gap] verify:lifecycle-visible reads a blank .gitignore line as a match-all pattern",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4010",
+      "Overview": "## Summary\n\nverify:lifecycle-visible reads a blank .gitignore line as a match-all pattern\n\n## Context\n\nDirective engine 0.107.0, content 0.107.0. Consumer project with a conventional multi-section `.gitignore` — blank lines between groups, comment headers, a trailing newline.\n\nThe lifecycle-visible check parses `.gitignore` to decide whether lifecycle artifacts are tracked.\n\n## Expected behavior\n\nBlank lines in `.gitignore` are skipped. Git's own rules are explicit that a blank line matches no file and serves only as a separator, so a `.gitignore` that is entirely valid and conventional should not affect the check's verdict.\n\n## Actual behavior / gap\n\nA blank line is treated as a pattern rather than skipped, and an empty pattern matches everything — so the check concludes that every lifecycle path is ignored.\n\nObserved on `deft session:start` in a repo whose lifecycle roots are all tracked:\n\n```\n[deft lifecycle-visible] hidden xbrief/proposed/  (.gitignore:51:)\n[deft lifecycle-visible] hidden xbrief/pending/   (.gitignore:51:)\n[deft lifecycle-visible] hidden xbrief/active/    (.gitignore:51:)\n[deft lifecycle-visible] hidden xbrief/completed/ (.gitignore:51:)\n[deft lifecycle-visible] hidden xbrief/cancelled/ (.gitignore:51:)\n[deft lifecycle-visible] hidden vbrief/proposed/  (.gitignore:51:)\n...\n[deft lifecycle-visible] ADVISORY: lifecycle roots must stay visible to git\n  (warn-only; task verify:lifecycle-visible -- --enforce to fail closed).\n```\n\nLine 51 of that `.gitignore` is blank. The attribution string `(.gitignore:51:)` prints the empty pattern after the line number, which is the tell — every reported path is attributed to the same empty pattern. `git check-ignore -v xbrief/plan.xbrief.json` returns nothing and `git ls-files` lists the lifecycle artifacts, so git itself agrees they are tracked.\n\n## Session notes\n\n### Why it matters\n\nThe failure is silent and inverted: the check reports that lifecycle artifacts are invisible when they are tracked normally. Because blank lines are used for readability in essentially every non-trivial `.gitignore`, the trigger is common and unrelated to anything the consumer did wrong — which makes it hard to attribute. A consumer's first instinct is to look at their lifecycle folders, not at whitespace in an unrelated file.\n\nIt is warn-only today, so the cost is a false advisory on every mutation `session:start`. It would be a hard stop under `--enforce`, which is the mode the advisory text points at.\n\n### Suggested fix\n\nSkip blank and whitespace-only lines when parsing, and skip `#` comment lines if that is not already handled. Treat an empty pattern as a parse error rather than as match-all, so a future parsing gap fails loudly instead of silently swallowing the whole tree.\n\nA regression fixture with a `.gitignore` containing blank lines, comments, a negation and a trailing newline would cover the family.\n\n### Not classified as a blocker\n\nThe check is warn-only, so the flow completes.\n\n### Dedup performed\n\nSearched open issues in this repo on 2026-08-31 for `lifecycle-visible gitignore`, `gitignore blank line`, `verify:lifecycle-visible`. No match.\n\n---\n_Filed via `task feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-08-31T16:02:58Z)\n\nmodel: grok-4.6\nrole: triage\n\nmechanism-shaped: true\n\ndesign-critique: warranted, because this issue is one of four whose reported mechanisms all sit in a path-or-pattern resolution step, and whether those four compose into one remedy or stay four independent ones cannot be answered from this thread alone.\n\nrefutation-target: that this issue is an independent defect whose own named local fix is the whole remedy.\n\nSet-level arc, anchored on #4007. Charter: open critique. Spend: N=3. Target shape: set-level over #4007 / #4008 / #4009 / #4010.\n\nThe round-1 ceiling, the critic posts, the successor lean and the record all live on #4007. Disposition stays per-issue, so this issue keeps its own verdict. Read #4007 for the arc.\n\n### Comment by @MScottAdams (2026-09-01T13:58:27Z)\n\nmodel: grok-4.6\nrole: parent\n\nLean:\n\n#4010 stays open with a corrected cause. It reproduces from a line of three ASCII spaces, not a blank line, and the empty pattern is git check-ignore -v output. An empty line and a tab-only line do not reproduce. The filed parser fix is a no-op. Remedy is in collectIgnoredRoots: an empty pattern field from check-ignore -v must not be rendered as a rule. Fixture: three-spaces line plus empty and tab controls.\n\nThis comment is the successor lean on this thread so ingest can cite a lean that lives here. The operator-accepted synthesis for the four-issue arc is https://github.com/deftai/directive/issues/4007#issuecomment-5481547506 citing successor lean 5481295574 and verified-claims table 5481540218.\n\n### Comment by @MScottAdams (2026-09-01T13:59:06Z)\n\nmodel: grok-4.6\nrole: parent\n\ndesign-critique: synthesis accepted, because the operator confirmed the map after an independent Stop 4 audit on the #4007 arc, citing successor lean 5495101578 and the four-issue verified-claims table 5481540218.\n\nBind trail: operator verb accept synth recorded on https://github.com/deftai/directive/issues/4007#issuecomment-5481547506. This thread now carries its own successor lean so ingest clearance is per-issue.\n\n### Comment by @MScottAdams (2026-09-01T13:59:49Z)\n\nmodel: grok-4.6\nrole: parent\n\ndesign-critique: synthesis accepted, because the operator confirmed the map after an independent Stop 4 audit on the #4007 arc, citing successor lean 5495101578.\n\nThe verified-claims table for the four-issue arc lives on #4007 comment 5481540218 and is not re-hosted here.",
+      "Labels": "bug, determinism, design-critique:triage-ready"
+    },
+    "items": [],
+    "tags": [
+      "bug",
+      "determinism",
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4010",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4010: [framework-gap] verify:lifecycle-visible reads a blank .gitignore line as a match-all pattern"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "lifecycle-visible reads a blank .gitignore line as a match-all pattern",
+          "reason": "first token \"lifecycle-visible\" is not in the literal-AC allowlist",
+          "sourceSpan": "labeled@L5"
+        },
+        {
+          "command": "lifecycle-visible gitignore",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L57"
+        },
+        {
+          "command": "gitignore blank line",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L57"
+        }
+      ],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "project_floor",
+      "derived_reason": "no shell acceptance commands stated in task text; floor until agent derives AC (#3284 ladder)"
+    },
+    "updated": "2026-09-01T14:02:02Z"
+  }
+}

@@ -629,6 +629,8 @@ function collectIgnoredRoots(projectRoot: string, runGit: GitRunner): LifecycleH
     const parsed = parseCheckIgnoreVerboseLine(line);
     if (parsed === null) continue;
     if (negatedLine || parsed.pattern.startsWith("!")) continue;
+    // Empty pattern from check-ignore -v is not a rule (three-spaces line, #4010).
+    if (parsed.pattern.trim().length === 0) continue;
     if (isSelectiveLifecyclePath(parsed.path)) continue;
     const displayPath = lifecycleRootForRelPath(parsed.path);
     if (displayPath === null) continue;

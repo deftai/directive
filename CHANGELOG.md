@@ -27,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Design-critique parent silence now waits on this round's siblings, not each critic EXIT (#4027).** Bind was already withheld while same-round siblings remained unposted; the lean and verb menu still talked at 1 of 3. Silence is the existing unqualified same-round-unposted conjunct. Spend stays permission. The critic brief gets no `parent-silence-until` field. Line 218 keeps the empty-lean verb-menu ban and waits on this round's lean. A lean that closes a round of two or more names the dispatched sibling count and those comment ids. Closes #4027. Refs #3850, #3741, #3962.
 
+- **`verify:lifecycle-visible` no longer treats an empty `git check-ignore -v` pattern as a match-all rule (#4010).** A `.gitignore` line of three ASCII spaces makes git emit `<source>:<line>:` with an empty pattern field; that is not a rule. Empty and tab-only lines do not reproduce. The ignore-file reader already skips blank/whitespace/comment and never decides the verdict, so a parser skip-blank fix is a no-op. `collectIgnoredRoots` now drops an empty pattern field instead of rendering it. Fixture: three-spaces line plus empty and tab controls. Does not add a second in-process gitignore engine. Closes #4010.
+
 ### Removed
 
 ## [0.109.1] - 2026-09-01
