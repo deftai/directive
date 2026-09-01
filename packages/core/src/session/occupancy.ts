@@ -54,7 +54,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { existsSync, readFileSync, renameSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync, renameSync, rmSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { containedRemove, containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
@@ -234,11 +234,21 @@ export function occupancyPath(projectRoot: string): string {
  * holder. Same-tree two-session conflict still fails closed.
  */
 export function occupancyWorktreeMatches(recordedPath: string, projectRoot: string): boolean {
-  const recorded = resolve(recordedPath);
-  const tree = resolve(projectRoot);
+  const recorded = occupancyCanonicalPath(recordedPath);
+  const tree = occupancyCanonicalPath(projectRoot);
   if (recorded === tree) return true;
   if (process.platform === "win32") return recorded.toLowerCase() === tree.toLowerCase();
   return false;
+}
+
+/** Resolve, then follow symlinks when the path exists so aliases of one checkout match. */
+function occupancyCanonicalPath(p: string): string {
+  const absolute = resolve(p);
+  try {
+    return realpathSync(absolute);
+  } catch {
+    return absolute;
+  }
 }
 
 /**

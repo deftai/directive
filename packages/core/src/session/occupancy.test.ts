@@ -1,5 +1,13 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -937,6 +945,26 @@ describe("worktree occupancy lease (#3433)", () => {
     expect(claimed.action).toBe("claimed");
     expect(readOccupancy(root)?.sessionId).toBe("fresh");
     expect(occupancyWorktreeMatches(readOccupancy(root)?.worktreePath ?? "", root)).toBe(true);
+  });
+
+  it("treats symlink aliases of the same checkout as one live tree (#3926)", () => {
+    const root = tempRoot();
+    const alias = join(tmpdir(), `occupancy-alias-${process.pid}-${Date.now()}`);
+    try {
+      symlinkSync(root, alias, process.platform === "win32" ? "junction" : "dir");
+    } catch (err) {
+      throw new Error(
+        `symlink alias required for occupancy path canonicalization: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+    temps.push(alias);
+    const now = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "owner", now });
+    expect(occupancyWorktreeMatches(root, alias)).toBe(true);
+    const denied = applyWorktreeOccupancy(alias, { sessionId: "other", now });
+    expect(denied.code).toBe(1);
+    expect(denied.action).toBe("denied");
+    expect(readOccupancy(root)?.sessionId).toBe("owner");
   });
 
   it("first session:start on a copied other-tree lease reports claimed, not occupied (#3926)", () => {
