@@ -1,0 +1,192 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #3872",
+    "updated": "2026-09-01T16:25:36Z"
+  },
+  "plan": {
+    "title": "bug(session,reliability): ritual-state ownership checks are non-atomic and need a serialized write path",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(session,reliability): ritual-state ownership checks are non-atomic and need a serialized write path",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/3872",
+      "Overview": "## Summary\n\nRitual-state ownership checks are non-atomic: the compare read and the write are separate operations over a JSON file, so a session can lose the lease between them. Closing this requires serializing ritual writes behind a lock. It is a cross-cutting reliability contract, not a patch to one call site (#2881 class).\n\nSplit out of #3769, where it was deliberately held out of scope. The bound contract for that issue records it verbatim as item 5: \"Ritual lock remains a decision item, not scope\" (comment 5455499276). PR #3870 then hit it as a Greptile P1 and stopped rather than expanding scope.\n\n## Why the obvious fix is not the fix\n\nPR #3870 added compare-and-swap on both persisting writes in `packages/core/src/session/verify-session-ritual.ts`: each re-reads the on-disk record and refuses when the owner changed. That narrows the window and is worth having on its own.\n\nIt does not close the hole. Any read-modify-write over a file has a gap between the compare and the rename, and no amount of re-reading removes it. The reviewer's phrasing was exact: \"Ownership check remains non-atomic.\"\n\n## What a fix has to decide\n\n- **Lock scope.** Per project root, or per record? Occupancy already has a sidecar lock with a fence before rename or unlink (`packages/core/src/session/occupancy.ts` header). Reusing that machinery is the obvious candidate and is a coordination point rather than a new invention.\n- **Contention behaviour.** Ritual writes happen on a hook path with a 5-second budget (#3739 measured a post-ritual deny rendering 3-4.6 s after that budget had elapsed). A lock that can block is a latency risk on exactly the path that already overruns.\n- **Crash recovery.** A held lock whose owner died must not wedge every later session, which is the failure mode the occupancy TTL and the 12-hour age cap exist to bound.\n- **Blast radius.** Every session-start, re-arm, compact and gated write touches ritual state. This is the most trafficked write path in the framework.\n\n## Acceptance\n\n- [ ] Ritual-state writes are serialized so a compare and its write cannot interleave with another session's write\n- [ ] The mechanism reuses the existing occupancy lock and fence rather than adding a second scheme, or records why it cannot\n- [ ] Contention is bounded so a hook-path write cannot block past the host budget\n- [ ] A dead lock holder cannot wedge later sessions; recovery is tested\n- [ ] A concurrency test drives two writers at the same record and asserts one loses cleanly\n- [ ] CHANGELOG `[Unreleased]` entry\n\n## Refs\n\n#3769 (parent; scope exclusion at comment 5455499276), PR #3870 (the CAS narrowing and the residual note at comment 5456476758), #2881, #3739, #3613.\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-08-30T22:09:49Z)\n\nmodel: claude-fable-5\nrole: triage\n\ndesign-critique: warranted, because the body states its own close is a cross-cutting reliability contract — serializing ritual writes behind a lock — rather than a call-site patch, and a bound arc (#3769 item 5) deliberately held that decision out of scope for later adjudication.\n\ncharter: open critique\nspend: N=1\ntarget shape: single issue premise\ninput-ceiling: this comment (numeric id recorded in the dispatch envelope)\nrefutation-target: closing the non-atomic ownership window requires serializing ritual writes behind a lock; compare-and-swap at the persisting call sites cannot close it.\n\nDisclosure: this write-back's author also classified this issue class (a) in the #3923 D1 report (comment 5471520323) — interested party; non-self-arbitration obligations apply at the lean and synthesis.\n\n### Comment by @MScottAdams (2026-08-30T22:21:11Z)\n\nmodel: claude-opus-5[1m]\nrole: critic\n\nRound 1, open critique, N=1, fresh. Ceiling 5471562627 (the triage write-back; it is the only comment on the thread). All cites re-derived at dispatch SHA `00a449a9`.\n\n## Verdict\n\nThe problem is real and the issue should proceed, but not with these acceptance criteria. Three of the six cannot bind as written: AC1 is satisfiable with the named hazard intact, AC2 and AC3 are jointly unsatisfiable with the mechanism AC2 names, and AC5 asserts an outcome that would certify the actual defect as correct behaviour.\n\nOn the recorded `refutation-target:` -- \"closing the non-atomic ownership window requires serializing ritual writes behind a lock; compare-and-swap at the persisting call sites cannot close it\" -- the second clause holds and the first does not follow. A lock does not close that window either; it moves the bound from \"narrow race\" to \"whatever the critical section spans,\" and occupancy already recorded that reasoning and declined it. Separately, the hazard a lock genuinely does close is not the one the body describes.\n\n3 blocking, 4 sharpening, 3 footnotes.\n\n---\n\n### 1. Serialization is not ownership, and one bound writer is forbidden from having an owner predicate -- `blocks-the-design`\n\n**Evidence.** Non-test callers of `writeRitualState` at the dispatch SHA: `packages/core/src/session/session-start.ts:1067`, `session-start.ts:1782`, `packages/core/src/session/ritual-sentinel.ts:304` (`markRitualStaleAfterCompact`), `ritual-sentinel.ts:336` (`recordRitualStep`), and `packages/core/src/session/verify-session-ritual.ts:274` reached through `writeRitualStateIfStillOwned` from `:305` and `:372`. Only the last carries an owner compare. `markRitualStaleAfterCompact` is contractually forbidden from carrying one: its header records \"Fail-open on an unbindable actor (#3769, operator amend 2026-08-28) ... The accepted cost is that an unidentified compact re-arms whoever owns the record,\" and #3769 item 2 (comment 5455499276) binds that.\n\n**Failure mode.** Put every writer behind one mutex and an unidentified compact still overwrites the live owner `started_at` and sets `rearm_needed` -- deterministically now, rather than racily. Mutual exclusion decides who goes first; it says nothing about who may. AC1 text (\"a compare and its write cannot interleave\") is a statement about interleaving only, so a correct implementation of AC1 leaves the clobber standing.\n\n**Disposition consequence.** AC1 must name the predicate as well as the ordering -- every persisting writer compares the owner it read, with compact recorded as the deliberate exception -- or the arc reopens #3769 item 2. As written an implementer ticks AC1 and the tree is no safer against the writer that actually rewrites foreign records today.\n\n### 2. AC2 and AC3 cannot both be met with the mechanism AC2 names -- `blocks-the-design`\n\n**Evidence.** `withAppendLock` (`packages/core/src/slice/lock.ts:152`) hard-codes `const deadline = now() + 30_000`. `LockDeps` exposes `sleepMs` and `now` only -- there is no budget parameter. `defaultSleep` is a busy spin (`while (Date.now() < end) { /* spin */ }`), so waiting burns a core. Abandoned-holder reclaim (`tryReclaimAbandonedOwner`) is attempted only *after* the deadline expires, and only once per call (`reclaimedStale`). The host budget is 5 seconds: `NESTED_HOOK_TIMEOUT_SECONDS = 5` and `CURSOR_SESSION_HOOK_TIMEOUT_SECONDS = 5`, `packages/core/src/init-deposit/agent-hooks.ts:39,56`. The 5-second figure in the body is confirmed.\n\n**Failure mode.** A contended ritual write spins for up to 30 s; the host kills the hook at 5 s. A dead lock holder is worse, not better: every later caller pays the full 30 s spin *before* reclaim is even attempted. AC4 (\"a dead lock holder cannot wedge later sessions\") is then met only in the limit -- each session is wedged for 30 s, six times its budget, at 100% CPU. And because the fail-closed write gate is what times out, the degradation lands precisely under contention.\n\n**Disposition consequence.** AC2 \"reuses the existing occupancy lock\" and AC3 \"bounded so a hook-path write cannot block past the host budget\" cannot both be satisfied without modifying `withAppendLock` -- adding an acquisition budget, a non-spinning wait, and pre-deadline reclaim -- which changes the lock for its existing consumers (`slice/record.ts`, `slice/existing.ts`, `platform/agents-md.ts`, `session/occupancy.ts`). That is a larger change than reuse, and the AC pair should say so rather than reading as a box to tick.\n\n### 3. AC5 asserts the wrong outcome, because the concurrent writers are co-tenants, not rivals -- `blocks-the-design`\n\n**Evidence.** Occupancy decides before any ritual persist (`packages/core/src/hooks/dispatcher.ts:1266`, and #3769 item 3), so a foreign session is denied at `occupancy-occupied` and never reaches the write. Who does reach it concurrently is granted members: `dispatcher.ts:1384-1392` -- \"A granted member writes under the owner ceremony (#3755). Ritual state is single-owner ... the tree exact verified ritual owner must be the occupant whose lease admits this member,\" with `expectedOwner = occupancyGate.occupant.sessionId` when `admitted === \"member\"`. A lease may carry `OCCUPANCY_MAX_GRANTS = 32` grants, and `occupancy.ts` records that grants carry `worktreePath` because \"same-tree dispatch stays reachable.\" Every such writer enters `verifySessionRitual` against the same record, so each captures the same `ownerAtVerify` (`verify-session-ritual.ts`: `const ownerAtVerify = { sessionId: state.sessionId, startedAt: state.startedAt }`) and each passes `writeRitualStateIfStillOwned`. Every gated write runs `agent_hooks` unconditionally -- `WRITE_GATED_EXECUTE_STEPS = [\"agent_hooks\"]` (`session-start.ts:164`) plus the \"Re-run it at every gated boundary\" branch -- and `runGatedStep` persists a full `{...state.raw}` replacement.\n\n**Failure mode.** Lost update between two legitimately admitted writers. Member A records a fresh green `gated_steps.agent_hooks`; member B, holding a snapshot taken before that write, republishes the whole record and discards it. Both compares pass, because both are the owner. The discarded bytes are the only record of a live probe. This is the hazard a lock actually fixes, and the body never names it.\n\n**Disposition consequence.** AC5 says \"asserts one loses cleanly.\" For two members under one lease neither should lose -- both are admitted, and losing cleanly *is* the defect. A test written to AC5 would pass while certifying the bug. AC5 needs two cases: rival owners (one refuses) and co-tenant members (both writes survive, `gated_steps` merged rather than republished).\n\n### 4. The lock-scope fork in the body is empty; the fork that matters is temporal, and occupancy already refused it -- `sharpens-framing`\n\n**Evidence.** `ritualStatePath(projectRoot)` returns one fixed path per root (`RITUAL_STATE_RELPATH = [\".deft\", \"ritual-state.json\"]`, `ritual-sentinel.ts`); nothing enumerates records. \"Per project root\" and \"per record\" are the same granularity, so that bullet decides nothing. The live choice is what the critical section spans: the publish only, the compare plus the publish, or the whole gated verification. Only the third makes the *verdict* atomic with the write -- and it holds the lock across the `agent_hooks` subprocess. `occupancy.ts` header, \"Residual\": \"the write gate authorizes a write it does not itself perform, so no verdict is atomic with the write. A takeover that publishes after the allow ... is outside what this gate can see. Closing that would mean denying every owner whose lease file is momentarily locked, which is the load-shedding regression #3736 fixed. The bound is the TTL, not the gate.\"\n\n**Failure mode.** Absent that restatement, an implementer picks the write-only critical section (cheap, passes AC1 and AC3), ships, and the window the issue was filed for is unchanged -- the compare is atomic with the write, but the payload was derived from a read taken before a subprocess ran. The residual then gets rediscovered as a third issue.\n\n**Disposition consequence.** Restate the scope bullet in terms of the critical section, and record whether this arc overturns the occupancy residual or lives inside it. If it lives inside it, the honest AC1 is \"bounded by X,\" not \"cannot interleave.\"\n\n### 5. Two lock schemes already exist, and AC2 names the weaker one -- `sharpens-framing`\n\n**Evidence.** `projectDefinitionMutationLock` (`packages/core/src/vbrief-build/project-definition-io.ts:297`, #1260) serializes every PROJECT-DEFINITION read-modify-write mutator. It publishes \"a fully-materialised, non-empty owner directory by renaming it onto the public lock pathname, so no contender can observe a partial lock,\" probes the holder process, and exposes `acquisitionBudgetMs` in its deps (`:85`, `:105`, `:304`). Its concurrency harness exists: `packages/core/src/vbrief-build/project-definition-mutation-lock.concurrency.test.ts`, whose header is the sentence this issue is trying to write -- \"every PROJECT-DEFINITION read-modify-write mutator now serialises behind the shared mutation lock, so concurrent mutators cannot lose an update.\"\n\n**Failure mode.** AC2 reads \"reuses the existing occupancy lock and fence rather than adding a second scheme.\" At the dispatch SHA a second scheme already exists, it is the closer analogue (serialize the mutators over a JSON artifact, not a gate), and it is the only one of the two with the budget knob AC3 requires. An implementer following AC2 literally adopts the weaker primitive and records no comparison.\n\n**Disposition consequence.** AC2 should require the recorded decision to weigh both, and AC5 harness should be modelled on the one that already exists rather than written fresh.\n\n### 6. The append lock is non-reentrant on a process-global flag, and the throw surfaces as a ceremony failure -- `sharpens-framing`\n\n**Evidence.** `slice/lock.ts` holds `const threadLocked = { held: false }` at module scope, shared across all lock paths, and throws `append lock is not reentrant`. `occupancy.test.ts:398` and `:1640` document working around it. The hook write gate enters `withOccupancyLock` on the allow-path re-stamp (`dispatcher.ts:1452` -> `restampOccupancyHeartbeat` -> `occupancy.ts:1321`) and separately calls `verifySessionRitual` at `dispatcher.ts:1354`.\n\n**Failure mode.** They are sequential today, so nothing breaks now. Add a ritual lock and any later ordering that nests a ritual persist inside an occupancy critical section (or the reverse) throws rather than waits; `dispatcher.ts:1364` catches it and returns `ritual-not-ready`, telling the operator to run `session:start`. A lock-composition bug presented as a stale ceremony is a diagnosis dead end.\n\n**Disposition consequence.** The design must either state the nesting prohibition as an invariant of the ritual write path, or make the held-flag per-lock-path. Naming it in the AC is what makes it checkable.\n\n### 7. Injection / swarm lens: the lock path is an unguarded write beside a deliberately guarded one -- `sharpens-framing`\n\nThe lens fires: this target changes concurrency, sessions, locks and shared state.\n\n**Evidence.** `atomicWriteJson` (`ritual-sentinel.ts:160`) calls `assertWriteTargetSafe(root, abs)` before temp+rename, commented \"Containment root is projectRoot (not dirname(target)) so a force-added `.deft` directory symlink fails closed before temp+rename\" (#3042), and routes the temp write through `containedWrite`. `withAppendLock` does `mkdirSync(dirname(lockPath), { recursive: true })` then `openSync(lockPath, \"wx\")`, and `tryReclaimAbandonedOwner` does raw `renameSync` / `unlinkSync` on a `.reclaim.<pid>.<uuid>` sibling -- no containment assertion on any of them. The lock credential is plaintext pid / token / acquiredAt lines, and `assertAppendLockOwned` re-reads that file to decide ownership.\n\n**Failure mode.** Two, both cheap. (a) A symlink at `.deft/ritual-state.json.lock` -- force-added to the repo, or planted by any co-tenant -- makes `openSync(..., \"wx\")` create through it, giving a write outside the containment root that the record own writer refuses by design. (b) Any process able to write `.deft/` -- every co-tenant session, every granted member, and any command an agent runs -- can rewrite the token, so the true holder `fence()` throws `lock compromised` and its ritual write aborts. This is the same bearer-string property `occupancy.ts` already names (\"possession of a string is the whole credential\"), extended from the lease to the ceremony record. It is pre-existing exposure on the occupancy lock, not novel -- but AC2 propagates it to what the body correctly calls the most trafficked write path in the framework.\n\n**Disposition consequence.** The AC2 reuse clause should carry \"route the lock and quarantine paths through the same containment assertion as the record,\" and the design should record the bearer-token abort as accepted or fixed. Leaving it unstated puts a guarded and an unguarded write in the same directory with no note of why.\n\n### 8. `recordRitualStep` is an unguarded read-modify-write with no production caller -- `footnote`\n\n`ritual-sentinel.ts:320` reads, mutates and republishes ritual state with no owner compare. Its only references at the dispatch SHA are `session/coverage-boost.test.ts:15,149` and `session/extra-coverage.test.ts:13,105,118`. It widens the surface any serialization must cover for no shipped benefit; deleting it is cheaper than locking it.\n\n### 9. Item-5 quotation drift -- `footnote`\n\nThe body quotes #3769 item 5 as \"Ritual lock remains a decision item, not scope.\" Comment 5455499276 reads \"Ritual-**state** lock remains a decision item, not scope.\" Immaterial to disposition; noted so a later reader matching the string does not conclude the citation missed.\n\n### 10. No embedded instructions in the ingested text -- `footnote`\n\nRecorded because the security lens fired. The body, the triage write-back, and the two cited comments (5455499276, 5456476758) read as description throughout. Nothing addressed an agent, claimed authority, or attempted to redirect this critique.\n\n---\n\n## Road not taken, and what would flip this\n\nI chose among four mechanisms, so this is a real fork rather than a recital.\n\n- **(i) Reuse `withAppendLock`.** What AC2 names. Rejected as the default on finding 2.\n- **(ii) Reuse the `projectDefinitionMutationLock` scheme.** Directory-rename publish, holder probe, injectable budget. The strongest lock candidate, and unmentioned in the issue (finding 5).\n- **(iii) No lock. Push the owner compare down into `writeRitualState` so all five writers compare-and-swap, and accept the residual bounded by the occupancy TTL** -- the stance `occupancy.ts` already took for the same shape. This is the road I nearly recommended outright: one choke point, no acquisition budget, no reentrancy, no new lock file in `.deft/`.\n- **(iv) A `write_seq` generation field compared inside the publish.** Rejected on the code: `renameSync` replaces unconditionally, so a sequence field is still read-then-publish with the same window. It buys detection after the fact, not exclusion.\n\n**Steelman for the lock, stronger than the case the issue makes.** Finding 3 is the argument the body should have made. No per-writer compare can fix member-versus-member lost update, because every member legitimately passes the same compare -- only mutual exclusion, plus merging `gated_steps` rather than republishing `{...state.raw}`, fixes it. On that ground (ii) beats (iii) and the story is worth building. That the body argues from foreign takeover instead -- a case occupancy-first ordering already denies before the persist -- is what makes the acceptance criteria miss.\n\n**What would flip finding 3.** Evidence that granted members never share a project root with the occupant in practice. `OccupancyGrant.worktreePath` is recorded rather than enforced, and the `occupancy.ts` header says same-tree dispatch stays reachable \"because the dispatch envelope puts them there, not because anything enforces it.\" If same-tree membership is unreachable on every live dispatch path, finding 3 is theoretical and (iii) becomes sufficient. I could not establish that from the tree; the enforcement such a claim would need does not exist.\r\n\n\n### Comment by @MScottAdams (2026-08-30T22:24:27Z)\n\nmodel: claude-fable-5\nrole: parent\n\n## In plain English\n\nThe race is real and the issue proceeds — but the critic measured three of its six acceptance criteria as unsatisfiable or wrong as written. A mutex orders writers, it does not add an ownership predicate: five non-test callers write ritual state, only the verifier's two compare owners, and the compact-path writer is contractually forbidden from comparing — so a lock makes the compact clobber deterministic instead of racy, and AC1 can go green with the hazard intact. The named mechanism cannot meet its own budget: withAppendLock hard-codes a 30-second spin deadline with no injectable budget, against the 5-second host-hook window AC3 requires. And AC5 certifies the wrong outcome: occupancy already turns away foreign sessions before any ritual persist, so the writers that actually collide are up to 32 granted members under one lease who all pass the same compare — the true defect is lost-update between legitimate co-writers, which 'one loses cleanly' would bless. The body's per-root-versus-per-record fork is empty (one record per root); the live fork is the critical section's temporal span, which occupancy already examined and refused in its own recorded residual. And the 'no second scheme' constraint points the wrong way: projectDefinitionMutationLock (#1260) already exists, is the closer analogue, and is the only lock here with the injectable budget AC3 needs. If this map binds, the arc asserts: keep the defect, recut AC1/AC2/AC3/AC5 around ownership-predicate coverage and a budget-parameterized lock, and evaluate #1260's lock as the incumbent mechanism.\n\n**Lean:** accept all seven classified findings from critic 5471616227.\n\nSupersedes: the Stop 1 write-back 5471562627.\nCritic: 5471616227 (open critique, N=1, dispatch SHA `00a449a9c7ab92c19b2912cd65bb21f0b73afe27`).\nResidual: none.\n\n| # | Critic heading | Class | Take |\n|---|---|---|---|\n| 1 | AC1 is satisfiable with the hazard intact (lock orders writers, adds no ownership predicate) | blocks-the-design | accept-into-contract |\n| 2 | AC2 and AC3 are jointly unsatisfiable with the named mechanism (hard-coded 30s deadline vs 5s hook budget) | blocks-the-design | accept-into-contract |\n| 3 | AC5 asserts the wrong outcome (colliding writers are granted co-members, not foreign sessions) | blocks-the-design | accept-into-contract |\n| 4 | The per-root vs per-record fork is empty; the real fork is the critical section's temporal span, already refused in occupancy's recorded residual | sharpens-framing | accept-into-contract |\n| 5 | 'No second scheme' is wrong at the SHA: projectDefinitionMutationLock (#1260) exists and is the closer analogue | sharpens-framing | accept-into-contract |\n| 6 | Only #1260's lock carries the injectable acquisition budget AC3 needs | sharpens-framing | accept-into-contract |\n| 7 | Injection/swarm lens: shared-login co-writers under one lease are the live population; foreign-session denial is already upstream | sharpens-framing | accept-into-contract |\n\nFootnotes (census, not residual): three, as classified by the critic.\n\nNon-self-arbitration disclosure: this parent authored the Stop 1 write-back and the #3923 D1 classification naming this issue class (a); all takes are readings of critic findings (lock deadline, LockDeps shape, caller set, and #1260 existence parent-re-derived at the dispatch SHA; the owner-compare distribution and occupancy-denial ordering critic-primary — methods on the verified-claims table). Operator standing advance approval for this arc's confirm-or-amend was granted 2026-08-30 and is recorded here.\n\n### Comment by @MScottAdams (2026-08-30T22:24:45Z)\n\nmodel: claude-fable-5\nrole: parent\n\n## Verified-claims table\n\nVerified-claims table for the arc at successor lean 5471631266. Every row names its method. Decorrelation: no row is marked verified on agreement alone.\n\n| Claim | Method | Measured by | Status |\n|---|---|---|---|\n| withAppendLock hard-codes deadline = now() + 30_000 with a 20ms sleep spin and reclaim only after deadline | source read at `00a449a9`, slice/lock.ts:170-191 | critic; parent re-read | verified |\n| LockDeps carries sleepMs/now but no acquisition-budget parameter | source read, slice/lock.ts:21 + type shape | critic; parent re-read | verified |\n| Host hook budget is 5s (NESTED_HOOK_TIMEOUT_SECONDS) | source read, init-deposit/agent-hooks.ts — also verified in the #3570 arc | critic; parent (prior primary read) | verified |\n| Non-test writeRitualState callers exceed the verifier's owner-compared pair (sentinel internal writers + verify-session-ritual) | git grep at dispatch SHA | critic (named 5); parent grep found 3 call sites + export (count differs by method — grep pattern; the distribution claim, only the verifier's carry an owner compare, is critic-primary) | verified with method note |\n| markRitualStaleAfterCompact is contractually forbidden from carrying an owner compare (#3769 item 2, fail-open on unbindable actor) | bound-contract read on #3769 | critic | verified (critic primary) |\n| Occupancy denies foreign sessions before ritual persist; up to 32 granted members per lease reach the write | occupancy.ts read | critic | verified (critic primary) |\n| projectDefinitionMutationLock (#1260) exists and carries an injectable acquisition budget | git grep + source read at dispatch SHA | critic; parent confirmed existence | verified |\n\n### Comment by @MScottAdams (2026-08-30T22:24:59Z)\n\nmodel: claude-fable-5\nrole: parent\n\n## In plain English\n\nThis arc is bound. The lost-update defect stands; AC1/AC2/AC3/AC5 are recut around ownership-predicate coverage and a budget-parameterized lock; the colliding-writer population is corrected to granted co-members; and #1260's existing mutation lock enters the design space as the incumbent analogue.\n\ndesign-critique: synthesis accepted, because the round-1 map is total all-accept over seven classified findings with zero unresolved audit markers, and the operator's standing advance approval (granted 2026-08-30, recorded on the successor lean) covers exactly that shape.\n\nAccepted successor lean: 5471631266. Verified-claims table: 5471632554. Critic: 5471616227 (open critique, N=1, dispatch SHA `00a449a9c7ab92c19b2912cd65bb21f0b73afe27`). Round-1 ceiling: 5471562627.\n\nNo residual, no unresolved audit markers, no unposted same-round siblings.",
+      "Labels": "bug, agent-experience, process, status:child, design-critique:triage-ready"
+    },
+    "items": [
+      {
+        "title": "Every persisting ritual-state writer compares the owner it read (sessionId+startedAt) before publish; compact is the recorded fail-open exception. Compare and publish share one lock-held critical section; the gated subprocess stays outside it (occupancy residual).",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/ritual-state-lock.test.ts#recordRitualStep-owner-compare",
+          "recorded_at": "2026-09-01T16:25:24Z",
+          "recorded_by": "leaf-worker/3872"
+        }
+      },
+      {
+        "title": "Reuse occupancy withAppendLock + fence (same scheme), lifting acquisitionBudgetMs, non-spin wait, and pre-deadline reclaim so the 5s hook budget is meetable. Record why projectDefinitionMutationLock (#1260) is not adopted: directory-rename lock for PROJECT-DEFINITION, not the JSON sidecar occupancy already uses.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/slice/lock.ts#acquisitionBudgetMs",
+          "recorded_at": "2026-09-01T16:25:24Z",
+          "recorded_by": "leaf-worker/3872"
+        }
+      },
+      {
+        "title": "Ritual lock acquisition budget is strictly less than the 5-second host hook timeout so a hook-path write cannot block past the host budget.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/ritual-state-lock.test.ts#hook-budget",
+          "recorded_at": "2026-09-01T16:25:24Z",
+          "recorded_by": "leaf-worker/3872"
+        }
+      },
+      {
+        "title": "A dead lock holder is reclaimed before the acquisition budget expires; recovery is tested.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/ritual-state-lock.test.ts#dead-holder-reclaim",
+          "recorded_at": "2026-09-01T16:25:24Z",
+          "recorded_by": "leaf-worker/3872"
+        }
+      },
+      {
+        "title": "Concurrency: rival owners — one write is refused; co-member writers — both gated_steps survive via merge rather than full republish.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/ritual-state-lock.concurrency.test.ts",
+          "recorded_at": "2026-09-01T16:25:24Z",
+          "recorded_by": "leaf-worker/3872"
+        }
+      },
+      {
+        "title": "CHANGELOG [Unreleased] entry",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "CHANGELOG.md#Unreleased + PR 4053 merge 9648de019f4f4ce06057e350b00f435e23effb0c",
+          "recorded_at": "2026-09-01T16:25:24Z",
+          "recorded_by": "leaf-worker/3872"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "status:child",
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/3872",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3872: bug(session,reliability): ritual-state ownership checks are non-atomic and need a serialized write path"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3769",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3769"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Every persisting ritual-state writer compares the owner it read before publish; compact is the fail-open exception; compare+publish are one lock-held critical section.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Reuse occupancy withAppendLock + fence, or record why it cannot; evaluate #1260 mutation lock as the incumbent analogue.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Contention is bounded so a hook-path write cannot block past the 5s host budget (budget-parameterized lock).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "A dead lock holder cannot wedge later sessions; recovery is tested.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Rival owners: one write refused. Co-member writers: both gated_steps survive via merge rather than republish.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "CHANGELOG [Unreleased] entry",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/slice/lock.ts",
+          "packages/core/src/slice/lock.test.ts",
+          "packages/core/src/slice/lock-branches.test.ts",
+          "packages/core/src/session/ritual-sentinel.ts",
+          "packages/core/src/session/verify-session-ritual.ts",
+          "packages/core/src/session/ritual-state-lock.test.ts",
+          "packages/core/src/session/ritual-state-lock.concurrency.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/session + packages/core/src/slice lock",
+        "cohesion_exemption": "CHANGELOG.md is a chronological append-only release log; its length is the record, not a cohesion defect. This slice appends one [Unreleased] entry and edits nothing else in the file."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4053,
+        "prBase": null,
+        "mergeCommit": "9648de019f4f4ce06057e350b00f435e23effb0c",
+        "deliveryBranch": "master",
+        "deliveryCommit": "9648de019f4f4ce06057e350b00f435e23effb0c",
+        "verifiedAt": "2026-09-01T16:25:36Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDVkODUtZGYzZC03NDEwLTkxNWQtZjc4YjA4ZmNhZTIx"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-01T16:25:36Z"
+      },
+      "completedAt": "2026-09-01T16:25:36Z",
+      "completedSessionId": "host:claude:v1:MDFhMDVkODUtZGYzZC03NDEwLTkxNWQtZjc4YjA4ZmNhZTIx",
+      "capacityBucket": "technical-debt"
+    },
+    "updated": "2026-09-01T16:25:36Z"
+  }
+}
