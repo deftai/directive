@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for GitHub issue #4067: bind N>=3 panel seat families at dispatch and CLI-spawn other families on Grok Build.",
-    "updated": "2026-09-01T22:09:56Z"
+    "updated": "2026-09-01T23:12:00Z"
   },
   "plan": {
     "id": "issue-4067",
@@ -23,89 +23,137 @@
       {
         "id": "s1",
         "title": "N>=3 panel-deposit or sibling-seat record names three claimed families before spawn",
-        "status": "proposed",
+        "status": "completed",
         "effort": "M",
         "narrative": {
           "When": "When a parent posts a panel-deposit for spend N>=3, the durable record names three claimed families before the first sibling spawn.",
           "Acceptance": "content/contracts/design-critique.md requires the panel-deposit or a sibling-seat record to name three families before spawn. Canonical block still has round:, siblings:, and input-ceiling:. Families append after those fields.",
           "Traces": "FR-4067-s1"
+        },
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/contracts/design-critique.md",
+          "recorded_at": "2026-09-01T23:12:00Z",
+          "recorded_by": "parent-retained/4073"
         }
       },
       {
         "id": "s2",
         "title": "Same-family sibling set cannot be leaned; printed recovery is re-seat, not wait for Stop 5",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "When": "When claimed families on an N>=3 sibling set are not three distinct families, parent does not lean.",
           "Acceptance": "Contract forbids leaning a same-family sibling set. Printed recovery is re-seat or halt, not wait for Stop 5 Decorrelation.",
           "Traces": "FR-4067-s2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/panel-seat-families.test.ts",
+          "recorded_at": "2026-09-01T23:12:00Z",
+          "recorded_by": "parent-retained/4073"
         }
       },
       {
         "id": "s3",
         "title": "Grok Build parent with claude and codex on PATH CLI-spawns those seats; paste-ready is not the default recovery",
-        "status": "proposed",
+        "status": "completed",
         "effort": "M",
         "narrative": {
           "When": "When the parent is Grok Build and claude/codex resolve on PATH, those are the other-family launchers.",
           "Acceptance": "Contract launcher tree: Grok via spawn_subagent or grok; Claude via claude CLI; Codex via codex exec. Paste-ready only when a named family's CLI is absent. Probe before offering paste. Close stdin on CLI spawns.",
           "Traces": "FR-4067-s3"
+        },
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/contracts/design-critique.md",
+          "recorded_at": "2026-09-01T23:12:00Z",
+          "recorded_by": "parent-retained/4073"
         }
       },
       {
         "id": "s4",
         "title": "Fail-closed helper refuses same-family panels and paste-ready-first when claude/codex resolve",
-        "status": "proposed",
+        "status": "completed",
         "effort": "M",
         "narrative": {
           "When": "When claimed families plus PATH probe results are evaluated, same-family N>=3 and paste-ready-first with CLIs present fail closed.",
           "Acceptance": "evaluatePanelSeatComposition, given claimed families and PATH probe results, refuses same-family panels (remediation re-seat) and refuses paste-ready-first when claude/codex resolve. Fixture: Grok parent + PATH claude/codex is not paste-ready-first. Not a live GitHub observer.",
           "Traces": "FR-4067-s4"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/panel-seat-families.test.ts",
+          "recorded_at": "2026-09-01T23:12:00Z",
+          "recorded_by": "parent-retained/4073"
         }
       },
       {
         "id": "s5",
         "title": "Dispatch-composition miss offers or files a prevention issue (yolo files)",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "When": "After a seat-composition or launcher miss, parent does not only re-seat.",
           "Acceptance": "Contract requires offering a prevention issue, and filing it on yolo. Thin skill points; does not copy the rule body.",
           "Traces": "FR-4067-s5"
+        },
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/contracts/design-critique.md",
+          "recorded_at": "2026-09-01T23:12:00Z",
+          "recorded_by": "parent-retained/4073"
         }
       },
       {
         "id": "s6",
         "title": "Thin skill pointers via pack source then packs:render; line cap 80; required pointers remain",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "When": "When the design-critique skill is rendered, it stays a thin pointer under 80 lines.",
           "Acceptance": "Edit content/packs/skills/skills-pack-0.1.json then task packs:render. SKILL.md line count <= 80. Required skill pointers remain. No contract bodies copied.",
           "Traces": "FR-4067-s6"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-09-01T23:12:00Z",
+          "recorded_by": "parent-retained/4073"
         }
       },
       {
         "id": "s7",
         "title": "Content-contract tests lock new tokens; existing panel-deposit regex stays in sync",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "When": "When design_critique_contract.test.ts runs, new family/launcher/miss tokens are pinned and the canonical deposit block still matches.",
           "Acceptance": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts locks new contract tokens. Existing panel-deposit regex for round:/siblings:/input-ceiling: still passes.",
           "Traces": "FR-4067-s7"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-09-01T23:12:00Z",
+          "recorded_by": "parent-retained/4073"
         }
       },
       {
         "id": "s8",
         "title": "CHANGELOG [Unreleased] brief release-notes entry closing #4067",
-        "status": "proposed",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "When": "When CHANGELOG [Unreleased] is read, it records the seat-family and launcher bind.",
           "Acceptance": "CHANGELOG [Unreleased] has a brief release-notes entry that closes #4067.",
           "Traces": "FR-4067-s8"
+        },
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-09-01T23:12:00Z",
+          "recorded_by": "parent-retained/4073"
         }
       }
     ],
@@ -219,6 +267,6 @@
         "module_boundary": "design-critique seat composition"
       }
     },
-    "updated": "2026-09-01T22:09:56Z"
+    "updated": "2026-09-01T23:12:00Z"
   }
 }
