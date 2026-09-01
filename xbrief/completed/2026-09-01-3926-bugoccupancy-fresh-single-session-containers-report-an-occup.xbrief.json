@@ -32,33 +32,26 @@
       "commands": [],
       "none_stated": true,
       "source_rung": "derived",
-      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
       "clauses": [
         {
           "id": 1,
           "text": "Fixture: fresh deposit + first `session:start` in a clean container -> no occupancy conflict reported.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/session/occupancy.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
           "text": "Fixture: successful steal -> subsequent `session:start` reports the stealing session as occupant, not \"occupied\".",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/session/occupancy.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
           "text": "Regression: genuine two-session conflict still fails closed as designed.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 4,
-          "text": "--",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/session/occupancy.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         }
