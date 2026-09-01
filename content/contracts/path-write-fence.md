@@ -170,10 +170,12 @@ OS-temp dests and commands with no recognized dest (`git status`,
 - Destinations that are shell **variables** are not recovered. That is most
   logged shell: 1,089 of 1,131 calls were dynamic, compound, or emitted no
   target.
-- A **directory junction** created without elevation defeats `provablyExternal`:
-  the path is lexically outside the root and its realpath is inside. That is
-  **re-entry** polarity. `#3186` `assertProjectionContained` is **escape**
-  polarity (in-tree dest whose realpath leaves the tree) and does not close it.
+- A **directory junction** created without elevation is **re-entry** polarity.
+  `isInRepoShellWritePath` reuses `isOutsideProjectRootWrite` so a lexically-outside
+  dest whose realpath is inside the project is gated. `#3186` `assertProjectionContained`
+  remains **escape** polarity (in-tree dest whose realpath leaves the tree) and is
+  not this check. The hook still runs before the shell, so a link created between
+  check and write is TOCTOU.
 
 Fail-open at this predicate is the bound posture (#3997). Inverting it to
 fail-closed on dests the parser cannot prove external is that issue's refuted

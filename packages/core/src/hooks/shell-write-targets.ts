@@ -1,5 +1,7 @@
 /** Recognized in-repo Shell file-write dests (#3983 / #3987). */
 import { isAbsolute, relative, resolve } from "node:path";
+import { isOutsideProjectRootWrite } from "./outside-project-root.js";
+
 export const SHELL_WRITE_KINDS = [
   "set-content",
   "out-file",
@@ -237,14 +239,14 @@ export function classifyShellWriteTargets(command: string): ShellWriteTarget[] {
   return found.map((d) => ({ ...d, unprovable: true as const }));
 }
 
+/** Unrecoverable dests stay fail-open. Re-entry through a junction reuses the Write-path check (#3997). */
 export function isInRepoShellWritePath(projectRoot: string, dest: string): boolean {
   const path = dest.trim();
   if (path.length === 0) return false;
   if (path.includes("*") || path.includes("?") || path.includes("$")) return false;
   const root = resolve(projectRoot);
-  const abs = isAbsolute(path) ? resolve(path) : resolve(root, path);
+  const abs = isAbsolute(path) ? resolve(path) : resolve(root, path.replace(/\\/g, "/"));
   const rel = relative(root, abs);
   if (rel.length === 0) return false;
-  if (rel.startsWith("..") || isAbsolute(rel)) return false;
-  return true;
+  return !isOutsideProjectRootWrite(projectRoot, path);
 }

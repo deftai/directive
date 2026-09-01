@@ -1,6 +1,7 @@
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   classifyShellWriteTargets,
   isInRepoShellWritePath,
@@ -178,5 +179,28 @@ describe("shell write eligibility bounds (#3987)", () => {
         command,
       ).toBe(true);
     }
+  });
+});
+
+const temps: string[] = [];
+afterEach(() => {
+  for (const t of temps.splice(0)) rmSync(t, { recursive: true, force: true });
+});
+
+describe("isInRepoShellWritePath re-entry (#3997)", () => {
+  it("gates a temp junction or dir link that re-enters the project", () => {
+    const projectDir = mkdtempSync(join(tmpdir(), "swt-proj-"));
+    const outsideDir = mkdtempSync(join(tmpdir(), "swt-out-"));
+    temps.push(projectDir, outsideDir);
+    mkdirSync(join(projectDir, "src"), { recursive: true });
+    writeFileSync(join(projectDir, "src", "app.ts"), "x", "utf8");
+    const alias = join(outsideDir, "alias");
+    const type = process.platform === "win32" ? "junction" : "dir";
+    symlinkSync(join(projectDir, "src"), alias, type);
+    expect(isInRepoShellWritePath(projectDir, join(alias, "app.ts"))).toBe(true);
+  });
+
+  it("keeps fail-open on unrecoverable dollar dests", () => {
+    expect(isInRepoShellWritePath("/repo", "$env:TEMP/body.md")).toBe(false);
   });
 });
