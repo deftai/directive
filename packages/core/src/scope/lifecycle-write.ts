@@ -82,3 +82,30 @@ export function hasTransitionWrite(plan: Record<string, unknown>): boolean {
   }
   return String(plan.status ?? "") === "failed";
 }
+
+function stampAction(plan: Record<string, unknown>): string | null {
+  const meta = asRecord(plan.metadata);
+  if (meta === null) {
+    return null;
+  }
+  const stamp = asRecord(meta[LIFECYCLE_WRITE_KEY]);
+  if (stamp === null) {
+    return null;
+  }
+  const action = stamp.action;
+  return typeof action === "string" ? action : null;
+}
+
+/** Folder-aware stamp: cancel stamps do not authorize completed/, and vice versa. */
+export function transitionWriteFitsFolder(
+  plan: Record<string, unknown>,
+  folder: "completed" | "cancelled",
+): boolean {
+  if (folder === "cancelled") {
+    return stampAction(plan) === "cancel";
+  }
+  if (stampAction(plan) === "cancel") {
+    return false;
+  }
+  return hasTransitionWrite(plan);
+}

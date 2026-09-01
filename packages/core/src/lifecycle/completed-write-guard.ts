@@ -21,7 +21,11 @@ import {
   LEGACY_ARTIFACT_DIR,
   MIGRATED_ARTIFACT_DIR,
 } from "../layout/resolve.js";
-import { hasTransitionWrite, LEFTOVER_LAND_PR_REMEDIATION } from "../scope/lifecycle-write.js";
+import {
+  hasTransitionWrite,
+  LEFTOVER_LAND_PR_REMEDIATION,
+  transitionWriteFitsFolder,
+} from "../scope/lifecycle-write.js";
 import { resolveDefaultBaseRef, unquoteGitPath } from "../scope-provenance/evaluate.js";
 
 export type CompletedWriteGuardCode = 0 | 1 | 2;
@@ -110,8 +114,32 @@ function isCancelledArtifactRel(relPath: string): boolean {
   return hasArtifactSuffix(lastPathSegment(n));
 }
 
+function originIssueKey(plan: Record<string, unknown>): string {
+  const refs = plan.references;
+  if (!Array.isArray(refs)) {
+    return "";
+  }
+  const issues: string[] = [];
+  for (const ref of refs) {
+    if (typeof ref !== "object" || ref === null || Array.isArray(ref)) {
+      continue;
+    }
+    const rec = ref as Record<string, unknown>;
+    const type = String(rec.type ?? "");
+    const uri = String(rec.uri ?? "")
+      .trim()
+      .toLowerCase();
+    if (type.includes("github-issue") && uri.length > 0) {
+      issues.push(uri);
+    }
+  }
+  return issues.sort().join("|");
+}
+
 function planIdentity(plan: Record<string, unknown>): string {
-  return String(plan.title ?? "").trim();
+  const title = String(plan.title ?? "").trim();
+  const origin = originIssueKey(plan);
+  return origin.length > 0 ? `${title}\n${origin}` : title;
 }
 
 function pairingKey(relPath: string): string | null {
@@ -424,14 +452,12 @@ export function evaluateCompletedWriteGuard(
     readonly identity: string;
   }
   const authorizedDests: AuthDest[] = [];
-  const authorizedDestPaths = new Set<string>();
 
   const rememberDest = (rel: string, plan: Record<string, unknown>): void => {
     const key = pairingKey(rel);
     const identity = planIdentity(plan);
     if (key !== null && identity.length > 0) {
       authorizedDests.push({ rel, key, identity });
-      authorizedDestPaths.add(rel);
     }
   };
 
@@ -442,7 +468,7 @@ export function evaluateCompletedWriteGuard(
         continue;
       }
       const plan = parsePlan(payload.raw);
-      if (plan !== null && hasTransitionWrite(plan)) {
+      if (plan !== null && transitionWriteFitsFolder(plan, "cancelled")) {
         rememberDest(rel, plan);
       }
       continue;
@@ -473,7 +499,7 @@ export function evaluateCompletedWriteGuard(
       });
       continue;
     }
-    if (!hasTransitionWrite(plan)) {
+    if (!transitionWriteFitsFolder(plan, "completed")) {
       findings.push({
         relPath: rel,
         detail: sanitizeDetail(`${rel}: added under completed/ without a runTransition write`),
@@ -509,11 +535,12 @@ export function evaluateCompletedWriteGuard(
       continue;
     }
     let paired = false;
-    if (rec.status === "R" && authorizedDestPaths.has(rec.dest)) {
-      paired = true;
-    } else if (rec.status === "D") {
+    const srcId = sourceIdentity(rec.src);
+    if (rec.status === "R") {
+      const dest = authorizedDests.find((d) => d.rel === rec.dest);
+      paired = dest !== undefined && srcId.length > 0 && dest.identity === srcId;
+    } else {
       const srcKey = pairingKey(rec.src);
-      const srcId = sourceIdentity(rec.src);
       if (srcKey !== null && srcId.length > 0) {
         paired = authorizedDests.some((d) => d.key === srcKey && d.identity === srcId);
       }

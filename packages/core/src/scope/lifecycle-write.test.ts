@@ -3,6 +3,7 @@ import {
   hasTransitionWrite,
   LEFTOVER_LAND_PR_REMEDIATION,
   stampLifecycleWrite,
+  transitionWriteFitsFolder,
 } from "./lifecycle-write.js";
 
 describe("lifecycle-write (#3679)", () => {
@@ -38,6 +39,17 @@ describe("lifecycle-write (#3679)", () => {
 
   it("does not treat cancelled status alone as verb evidence", () => {
     expect(hasTransitionWrite({ status: "cancelled" })).toBe(false);
+  });
+
+  it("rejects a cancel stamp under completed/ and a complete stamp under cancelled/", () => {
+    const cancelled: Record<string, unknown> = { status: "cancelled" };
+    stampLifecycleWrite(cancelled, "cancel", "2026-08-25T00:00:00Z");
+    expect(transitionWriteFitsFolder(cancelled, "cancelled")).toBe(true);
+    expect(transitionWriteFitsFolder(cancelled, "completed")).toBe(false);
+    const completed: Record<string, unknown> = { status: "completed" };
+    stampLifecycleWrite(completed, "complete", "2026-08-25T00:00:00Z");
+    expect(transitionWriteFitsFolder(completed, "completed")).toBe(true);
+    expect(transitionWriteFitsFolder(completed, "cancelled")).toBe(false);
   });
 
   it("rejects a completed husk with no stamp", () => {

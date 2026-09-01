@@ -317,10 +317,25 @@ describe("evaluateCompletedWriteGuard (#3766 active deletion)", () => {
   it("accepts a rename from active/ to a stamped completed/ destination", () => {
     const result = evaluateCompletedWriteGuard("/tmp/proj", {
       nameStatus: `R100\t${active}\t${completed}`,
-      payloads: new Map([[completed, stamped()]]),
+      payloads: new Map([
+        [completed, stamped()],
+        [active, runningSource()],
+      ]),
     });
     expect(result.code).toBe(0);
     expect(result.findings).toHaveLength(0);
+  });
+
+  it("rejects a rename whose dest title does not match the source", () => {
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `R100\t${active}\t${completed}`,
+      payloads: new Map([
+        [completed, stamped()],
+        [active, runningSource("victim")],
+      ]),
+    });
+    expect(result.code).toBe(1);
+    expect(result.findings.some((f) => f.relPath === active)).toBe(true);
   });
 
   it("accepts a delete of active/ paired with a stamped completed/ add", () => {
@@ -383,10 +398,22 @@ describe("evaluateCompletedWriteGuard (#3766 active deletion)", () => {
     const cancelled = "xbrief/cancelled/2026-08-25-story.xbrief.json";
     const result = evaluateCompletedWriteGuard("/tmp/proj", {
       nameStatus: `R100\t${active}\t${cancelled}`,
-      payloads: new Map([[cancelled, stamped("cancelled")]]),
+      payloads: new Map([
+        [cancelled, stamped("cancelled")],
+        [active, runningSource()],
+      ]),
     });
     expect(result.code).toBe(0);
     expect(result.findings).toHaveLength(0);
+  });
+
+  it("refuses a cancel stamp added under completed/", () => {
+    const result = evaluateCompletedWriteGuard("/tmp/proj", {
+      addedFiles: ["xbrief/completed/2026-08-25-ok.xbrief.json"],
+      payloads: new Map([["xbrief/completed/2026-08-25-ok.xbrief.json", stamped("cancelled")]]),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toMatch(/unguarded completed\/ add/);
   });
 
   it("accepts a delete of active/ paired with a cancel-stamped cancelled dest of the same title", () => {
