@@ -190,19 +190,6 @@
       "swarm": {
         "readiness": "ready",
         "parallel_safe": true,
-        "file_scope": [
-          "content/contracts/design-critique.md",
-          "content/templates/design-critique-brief.md",
-          "content/packs/skills/skills-pack-0.1.json",
-          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
-          "packages/core/src/design-critique/panel-seat-families.ts",
-          "packages/core/src/design-critique/panel-seat-families.test.ts",
-          "packages/core/src/design-critique/completed-arc-record.test.ts",
-          "content/docs/grok-build-subscription-setup.md",
-          "content/skills/deft-directive-swarm/references/host-grok-build.md",
-          "content/skills/deft-directive-design-critique/SKILL.md",
-          "CHANGELOG.md"
-        ],
         "verify_commands": [
           "pnpm exec vitest run packages/core/src/design-critique/panel-seat-families.test.ts packages/core/src/content-contracts/standards/design_critique_contract.test.ts packages/core/src/design-critique/completed-arc-record.test.ts"
         ],
@@ -218,7 +205,7 @@
         "size": "M",
         "file_scope_confidence": "high",
         "model_tier": "standard",
-        "missing_traces_justification": "Issue body locks the five acceptance criteria and likely files; FR traces are FR-4067-s1 through s8."
+        "missing_traces_justification": "Issue body locks the five acceptance criteria and likely files; FR traces are FR-4067-s1 through s8. file_scope omitted: approved-scope mint needs a real TTY (#3145 / #3718); intended paths stay on intended_placement."
       },
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
