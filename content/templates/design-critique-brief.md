@@ -14,6 +14,8 @@ Dispatch envelope skeleton for one critic or synthesis pass. Fill the fields. Re
 - SHA at dispatch:
 - Target (work issue or umbrella):
 - Audit targets (marker ids, comma-separated, or `none`; ids only, no parent rationale):
+- Seat families (N≥3: three claimed families before spawn):
+- Launcher (spawn_subagent | grok | claude | codex | paste-ready):
 
 ## Forbidden inputs
 
@@ -40,6 +42,7 @@ Read, do not restate:
 | Parent-facing dispatch rules | Parent-facing dispatch rules |
 | Critic method | Critic method |
 | Envelope and ceiling | Envelope and ceiling |
+| Seat families / Grok Build launcher | Envelope and ceiling |
 | Comment lead (model then role) | Stop 3 — Critic envelope |
 | Fresh reiteration | Stop 4 — Residual reiteration |
 | Operator-gated loop | Operator-gated loop |

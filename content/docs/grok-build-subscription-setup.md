@@ -127,6 +127,10 @@ Run from a **Grok** `run_terminal_command` child after the new session. Close st
 
 **Fail.** Child shells still inherit `ANTHROPIC_API_KEY` (old session / policy not loaded) or Claude reports `apiKeySource=ANTHROPIC_API_KEY`. Do not delete User keys. Report and stop.
 
+## Design-critique dispatch
+
+When a Grok Build parent runs an N≥3 design-critique panel, this playbook's CLIs are the other-family launchers. Probe `claude` / `codex` on PATH and CLI-spawn those seats. Paste-ready is the fallback when a CLI is absent, not the default recovery. Normative stop: [`contracts/design-critique.md`](../contracts/design-critique.md) Envelope and ceiling (#4067).
+
 ## Out of scope
 
 - [#4027](https://github.com/deftai/directive/issues/4027) — N≥3 design-critique lean-timing. This playbook is host auth. Do not launch a 3-panel unless the operator asks.

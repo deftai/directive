@@ -188,6 +188,19 @@ describe("evaluateCompletedArcRecord (#3806)", () => {
     }
   });
 
+  it("still treats a panel-deposit with families as in-flight evidence (#4067)", () => {
+    const deposit: ThreadComment = {
+      id: CRITIC_ID - 1,
+      body:
+        "model: grok-4.6\nrole: parent\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5390001612\nfamilies: grok, claude, codex\n",
+    };
+    const verdict = evaluateCompletedArcRecord({ comments: [deposit] });
+    expect(verdict).toMatchObject({
+      status: "blocked",
+      reason: "missing-record",
+    });
+  });
+
   it("blocks a chipless panel-deposit before any critic posts", () => {
     const deposit: ThreadComment = {
       id: CRITIC_ID - 1,

@@ -57,6 +57,9 @@ After same-round siblings are posted, the parent posts the successor lean; the o
 ⊗ Auto-dispatch critics from this skill.
 ⊗ Copy the variant table, synthesis rules, or other contract bodies into this skill.
 
+Seat families and Grok Build launcher: Envelope and ceiling.
+Dispatch-composition miss: offer or file a prevention issue.
+
 ## EXIT
 
 deft-directive-design-critique complete -- exiting skill. Next: operator fills the brief template and dispatches the next envelope.
