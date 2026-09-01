@@ -65,7 +65,12 @@ export function matchPinnedActiveScope(
     if (contained !== null && resolve(candidate) === contained) return candidate;
     if (toPosix(relative(resolve(projectRoot), candidate)) === wantPosix) return candidate;
   }
-  const base = basename(toPosix(trimmed));
+  // Path-shaped pins (absolute or project-relative) fail closed on exact miss.
+  // Basename fallback is only for a bare filename; otherwise a stale/wrong-dir
+  // pin would bind a same-named local story (#4007 Greptile P1).
+  const pinPosix = toPosix(trimmed);
+  if (pinPosix.includes("/")) return null;
+  const base = basename(pinPosix);
   if (base.length === 0) return null;
   const eligibleHits = eligible.filter((candidate) => basename(candidate) === base);
   const eligibleHit = eligibleHits[0];

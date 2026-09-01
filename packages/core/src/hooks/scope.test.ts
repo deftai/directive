@@ -153,6 +153,19 @@ describe("shared-active write-fence bind (#4007)", () => {
     expect(byBoundPath).toMatchObject({ ready: true, path: storyB });
   });
 
+  it("does not degrade a path-shaped miss to a same-named basename", () => {
+    const project = root();
+    writeRunning(project, "a-story.xbrief.json", ["packages/a/**"]);
+    writeRunning(project, "b-story.xbrief.json", ["packages/b/**"]);
+
+    const wrongDir = inspectActiveScope(project, {
+      env: { [ACTIVE_SCOPE_PIN_ENV]: "xbrief/pending/b-story.xbrief.json" },
+    });
+    expect(wrongDir.ready).toBe(false);
+    expect(wrongDir.path).toBeNull();
+    expect(wrongDir.message).toContain("xbrief/pending/b-story.xbrief.json");
+  });
+
   it("fails closed when the pin does not name an eligible brief", () => {
     const project = root();
     writeRunning(project, "a-story.xbrief.json", ["packages/a/**"]);
