@@ -39,6 +39,14 @@ describe("stripSourceRoot", () => {
     });
   });
 
+  it("matches a character-class glob segment and captures the path value", () => {
+    expect(stripSourceRoot("pkg/core/src/foo.ts", "pkg/c[ao]re/src/**")).toEqual({
+      remainder: "foo.ts",
+      captures: ["core"],
+      consumed: 3,
+    });
+  });
+
   it("strips a mid-path double-star source root", () => {
     expect(stripSourceRoot("packages/foo/src/bar.ts", "packages/**/src/**")).toEqual({
       remainder: "bar.ts",
@@ -91,6 +99,10 @@ describe("fillRootTemplate", () => {
 
   it("fills a question-mark test root from the captured segment", () => {
     expect(fillRootTemplate("pkg/c?re/test/**", ["core"])).toBe("pkg/core/test");
+  });
+
+  it("fills a character-class test root from the captured segment", () => {
+    expect(fillRootTemplate("pkg/c[ao]re/test/**", ["core"])).toBe("pkg/core/test");
   });
 
   it("fills two single-star test slots from consecutive double-star captures", () => {
@@ -153,6 +165,17 @@ describe("expectedTestPaths", () => {
     expect(paths).toContain("pkg/core/src/foo.test.ts");
     expect(paths).toContain("pkg/core/test/foo.test.ts");
     expect(paths).not.toContain("pkg/c?re/test/foo.test.ts");
+  });
+
+  it("maps a character-class source root onto the matching test root", () => {
+    const custom = {
+      ...policy,
+      sourceRoots: ["pkg/c[ao]re/src/**"],
+      testRoots: ["pkg/c[ao]re/test/**"],
+    };
+    const paths = expectedTestPaths("pkg/core/src/foo.ts", custom);
+    expect(paths).toContain("pkg/core/test/foo.test.ts");
+    expect(paths).not.toContain("pkg/c[ao]re/test/foo.test.ts");
   });
 
   it("maps the shallow double-star source root when a later src also matches", () => {
