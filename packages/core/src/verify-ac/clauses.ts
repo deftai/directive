@@ -510,13 +510,50 @@ type BoundPathResult =
   | { readonly ok: true; readonly path: string | null }
   | { readonly ok: false; readonly kind: ClauseBindFailureKind; readonly detail: string };
 
-function uniqueExactDeclaredHits(tokens: readonly string[], declared: readonly string[]): string[] {
+function isPathContinueChar(ch: string): boolean {
+  return ch.length === 1 && /[A-Za-z0-9_./\\-]/.test(ch);
+}
+
+/** Exact declared member in clause text, including extensionless directory paths. */
+function memberAppearsInText(text: string, member: string): boolean {
+  if (member.length < 2) {
+    return false;
+  }
+  const needles = [member, `${member}/`, `${member}\\`];
+  for (const needle of needles) {
+    let from = 0;
+    while (from < text.length) {
+      const idx = text.indexOf(needle, from);
+      if (idx < 0) {
+        break;
+      }
+      const before = idx === 0 ? "" : (text[idx - 1] ?? "");
+      const after = text[idx + needle.length] ?? "";
+      if (!isPathContinueChar(before) && !isPathContinueChar(after)) {
+        return true;
+      }
+      from = idx + 1;
+    }
+  }
+  return false;
+}
+
+function uniqueExactDeclaredHits(
+  tokens: readonly string[],
+  declared: readonly string[],
+  text: string,
+): string[] {
   const hits = new Set<string>();
   const members = new Set(declared);
   for (const token of tokens) {
     const normalized = normalizeScopePath(token);
     if (members.has(normalized)) {
       hits.add(normalized);
+    }
+  }
+  for (const member of declared) {
+    if (memberAppearsInText(text, member)) {
+      hits.add(member);
     }
   }
   return [...hits];
@@ -539,7 +576,7 @@ function bindStoredOrTokens(
     };
   }
   const tokens = extractPathTokens(text);
-  const hits = uniqueExactDeclaredHits(tokens, declared);
+  const hits = uniqueExactDeclaredHits(tokens, declared, text);
   if (hits.length === 1) {
     return { ok: true, path: hits[0] ?? null };
   }

@@ -28,6 +28,18 @@ export function evaluatePromoteClauseFileScopeBind(
   );
 }
 
+/** Derived stamps only: stated/legacy clauses are not this gate (#4008 Greptile P1). */
+export function shouldApplyPromoteClauseFileScopeBind(
+  plan: Record<string, unknown>,
+  derivationApplied: boolean,
+): boolean {
+  if (derivationApplied) {
+    return true;
+  }
+  const acceptance = asRecord(plan.acceptance);
+  return acceptance?.source_rung === "derived";
+}
+
 export function applyPromoteClauseFileScopeBind(
   plan: Record<string, unknown>,
 ): ClauseFileScopeBindResult {
@@ -39,13 +51,18 @@ export function applyPromoteClauseFileScopeBind(
   if (acceptance === null || !Array.isArray(acceptance.clauses)) {
     return result;
   }
-  const byId = new Map(result.clauses.map((clause) => [clause.id, clause]));
+  let nextBound = 0;
   acceptance.clauses = acceptance.clauses.map((entry) => {
     const row = asRecord(entry);
-    if (row === null || typeof row.id !== "number") {
+    if (row === null) {
       return entry;
     }
-    const bound = byId.get(row.id);
+    const text = typeof row.text === "string" ? row.text.trim() : "";
+    if (text.length === 0) {
+      return entry;
+    }
+    const bound = result.clauses[nextBound];
+    nextBound += 1;
     if (bound === undefined) {
       return entry;
     }

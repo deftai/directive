@@ -215,6 +215,22 @@ describe("bindClausesToDeclaredScope (#4008)", () => {
     expect(result.clauses[0]?.artifact_path).toBeNull();
   });
 
+  it("binds an exact declared directory named in the clause", () => {
+    const result = bindClausesToDeclaredScope(
+      [
+        {
+          id: 1,
+          text: "Ship helpers under src/ui/ledger-table/",
+          artifact_path: null,
+          ambiguous: false,
+        },
+      ],
+      ["src/ui/ledger-table"],
+    );
+    expect(result.ok).toBe(true);
+    expect(result.clauses[0]?.artifact_path).toBe("src/ui/ledger-table");
+  });
+
   it("is a no-op when file_scope is empty", () => {
     const result = bindClausesToDeclaredScope(
       [

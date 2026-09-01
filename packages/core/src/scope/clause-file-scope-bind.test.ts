@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyPromoteClauseFileScopeBind,
   evaluatePromoteClauseFileScopeBind,
+  shouldApplyPromoteClauseFileScopeBind,
 } from "./clause-file-scope-bind.js";
 
 const DECLARED = "src/ui/ledger-table/useDensity.ts";
@@ -50,6 +51,46 @@ describe("promote clause file_scope bind (#4008)", () => {
     expect(result.ok).toBe(false);
     expect(result.message).toContain("#4008");
     expect(result.message).toContain("Basename matching is refused");
+  });
+
+  it("stamps duplicate clause ids in row order rather than last-id-wins", () => {
+    const plan = planWith([
+      {
+        id: 1,
+        text: `Add ${DECLARED} exposing mode`,
+        artifact_path: null,
+        ambiguous: false,
+      },
+      {
+        id: 1,
+        text: "No clause-count cap is introduced",
+        artifact_path: null,
+        ambiguous: false,
+      },
+    ]);
+    const result = applyPromoteClauseFileScopeBind(plan);
+    expect(result.ok).toBe(true);
+    const acceptance = plan.acceptance as { clauses: { artifact_path: string | null }[] };
+    expect(acceptance.clauses[0]?.artifact_path).toBe(DECLARED);
+    expect(acceptance.clauses[1]?.artifact_path).toBeNull();
+  });
+
+  it("does not apply the derived bind gate to stated stamps unless derivation ran", () => {
+    expect(
+      shouldApplyPromoteClauseFileScopeBind(
+        { acceptance: { source_rung: "stated", clauses: [{ id: 1, text: "x" }] } },
+        false,
+      ),
+    ).toBe(false);
+    expect(
+      shouldApplyPromoteClauseFileScopeBind(
+        { acceptance: { source_rung: "stated", clauses: [{ id: 1, text: "x" }] } },
+        true,
+      ),
+    ).toBe(true);
+    expect(
+      shouldApplyPromoteClauseFileScopeBind({ acceptance: { source_rung: "derived" } }, false),
+    ).toBe(true);
   });
 
   it("skips the gate when file_scope is empty", () => {
