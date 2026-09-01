@@ -190,17 +190,17 @@ function matchStrip(
         pathParts.slice(i).join("/"),
       ]);
     }
-    let best: SourceRootStrip | null = null;
+    // Earliest full match wins. Later src segments still run if this split fails.
     for (let j = i; j <= pathParts.length; j += 1) {
       const result = matchStrip(globParts, gi + 1, pathParts, j, [
         ...captures,
         pathParts.slice(i, j).join("/"),
       ]);
-      if (result !== null && (best === null || result.consumed > best.consumed)) {
-        best = result;
+      if (result !== null) {
+        return result;
       }
     }
-    return best;
+    return null;
   }
   if (i >= pathParts.length) {
     return null;

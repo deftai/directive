@@ -54,6 +54,14 @@ describe("stripSourceRoot", () => {
       consumed: 5,
     });
   });
+
+  it("keeps the first successful double-star alignment when several src segments match", () => {
+    expect(stripSourceRoot("packages/pkg/src/sub/src/file.ts", "packages/**/src/**")).toEqual({
+      remainder: "sub/src/file.ts",
+      captures: ["pkg"],
+      consumed: 3,
+    });
+  });
 });
 
 describe("fillRootTemplate", () => {
@@ -133,6 +141,17 @@ describe("expectedTestPaths", () => {
     expect(paths).toContain("pkg/core/src/foo.test.ts");
     expect(paths).toContain("pkg/core/test/foo.test.ts");
     expect(paths).not.toContain("pkg/c?re/test/foo.test.ts");
+  });
+
+  it("maps the shallow double-star source root when a later src also matches", () => {
+    const custom = {
+      ...policy,
+      sourceRoots: ["packages/**/src/**"],
+      testRoots: ["packages/**/test/**"],
+    };
+    const paths = expectedTestPaths("packages/pkg/src/sub/src/file.ts", custom);
+    expect(paths).toContain("packages/pkg/test/sub/src/file.test.ts");
+    expect(paths).not.toContain("packages/pkg/src/sub/test/file.test.ts");
   });
 
   it("mirrors the full path under tests/ when no source root matches", () => {
