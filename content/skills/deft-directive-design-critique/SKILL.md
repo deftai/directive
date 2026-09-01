@@ -40,7 +40,7 @@ Normative rules live in [`contracts/design-critique.md`](../../contracts/design-
 
 Comment lead (model then role): Stop 3 — Critic envelope.
 Operator-gated loop. Successor lean. Parent-side substantiation. Operator verbs. Dual stop. Halt line. Bind after accepted synthesis.
-After critic post: posted successor lean, then verbs.
+After this round's siblings are posted: successor lean, then verbs.
 Auto-stamp after operator confirm; not while same-round siblings outstanding.
 Walk / walk all. Auto-stamp when agents agree: Operator verbs.
 Parent chip write: scm:issue:design-critique-chip.
@@ -52,7 +52,7 @@ Each critic dispatch EXITs after posting.
 
 Not sequential review. Same-round critics are isolated: each reads one fixed input ceiling and cannot read other siblings' posts through the thread. More: [`references/motion-shape.md`](references/motion-shape.md).
 
-After each critic EXIT, the parent posts the successor lean; the operator confirms or amends before bind or stamp.
+After same-round siblings are posted, the parent posts the successor lean; the operator confirms or amends before bind or stamp.
 
 ⊗ Auto-dispatch critics from this skill.
 ⊗ Copy the variant table, synthesis rules, or other contract bodies into this skill.

@@ -12,7 +12,7 @@ Orientation only. Normative rules: [`contracts/design-critique.md`](../../../con
 
 | Step | Actor | Action |
 |------|-------|--------|
-| After critic EXIT | Parent | Post successor lean with proposed per-heading takes |
+| After same-round siblings are posted | Parent | Post successor lean with proposed per-heading takes |
 | Before bind/stamp | Operator | Confirm or amend that lean |
 | Next envelope | Operator (or parent after operator verb) | Fill brief template and dispatch |
 

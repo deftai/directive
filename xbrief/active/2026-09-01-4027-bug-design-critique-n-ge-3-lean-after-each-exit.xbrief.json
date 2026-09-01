@@ -1,0 +1,222 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #4027 bound recut: lean-timing is round sibling completeness, not spend.",
+    "updated": "2026-09-01T03:37:48Z"
+  },
+  "plan": {
+    "title": "bug(design-critique): N>=3 lean-after-each-EXIT talks at 1 of 3",
+    "status": "running",
+    "narratives": {
+      "Description": "Recut design-critique lean-timing from each critic EXIT to this round's sibling completeness. Bound contract is successor lean 5488350584 and synthesis 5488413872, not the original issue draft.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4027. Bound recut: synthesis 5488413872, successor lean 5488350584, operator confirm 5488407656.",
+      "Overview": "Issue #4027 was recut on 2026-09-01 after an open-critique panel plus Stop 4 retry. The original filing's N=1 vs N>=3 spend-keyed split does not bind. Silence follows this round's sibling completeness, using the same unqualified same-round-unposted conjunct the bind guards already use. Spend stays an arc permission field, not the wait rule. The critic brief does not carry a parent-silence-until switch. Empty-lean verb menus stay forbidden; that ban waits on this round's lean rather than on each critic EXIT. A lean that closes a round of two or more names the dispatched sibling count and those comment ids. Parent dispatch bookkeeping is the trigger; thread posts corroborate; do not count self-attested role: critic lines as panel-complete. Recut every each-EXIT locus (contract 214/216/218/228/230/331 and both skill pointers) via pack source then packs:render. Line 218 is a qualifier swap, not a deletion. Do not deposit-qualify the new silence MUST. Fences: no new skill, no new completeness predicate (#3850), no paste-prompts (#3962), no host PATH in AGENTS.md. Content-contract tests update pinned strings only. Halt line remains postable while siblings are unposted. Codex heading 2 half B (derive timing from recorded spend) stays disagreed.",
+      "UserStory": "As the operator of a same-round critique panel, I want the parent to stay silent until this round's siblings are posted, so the first lean and verb menu are over a complete census rather than 1 of 3.",
+      "When": "When a same-round panel is in flight, parent does not post the successor lean or print the verb menu while same-round siblings remain unposted.",
+      "LockedDecisions": "Bind to synthesis 5488413872 and successor lean 5488350584, not the issue-body spend split. Drop parent-silence-until. Do not recut #3850. Do not add a skill. Do not add a completeness predicate. Line 218 qualifier swap, not deletion. Empty-lean verb menu string stays in the loop. named on the panel-deposit stays pinned out. Codex heading 2 half B remains disagree.",
+      "ImplementationPlan": "1. Recut Operator-gated loop, Successor lean, and Operator verbs onto the unqualified same-round-unposted conjunct; qualifier-swap line 218; add dispatched-sibling-count citation on a lean that closes a round of two or more; halt line stays postable. 2. Thin skill pointers via pack source then task packs:render. 3. Recut content-contract pinned strings only. 4. CHANGELOG Unreleased. Verify with pnpm exec vitest run packages/core/src/content-contracts/standards/design_critique_contract.test.ts. Closes #4027."
+    },
+    "items": [
+      {
+        "id": "s1",
+        "title": "Lean-timing MUST is round sibling completeness using the unqualified same-round-unposted conjunct; spend stays permission",
+        "status": "proposed",
+        "effort": "M",
+        "narrative": {
+          "When": "When the design-critique contract is read, successor lean and verb menu wait while same-round siblings remain unposted; Stop 2 spend is not the wait rule.",
+          "Acceptance": "When content/contracts/design-critique.md is read, Operator-gated loop, Successor lean, and Operator verbs gate the first lean and verb menu on the unqualified conjunct same-round siblings remain unposted, not on N=1 vs N>=3 spend. Spend remains an arc permission field.",
+          "Traces": "FR-4027-s1"
+        }
+      },
+      {
+        "id": "s2",
+        "title": "Drop parent-silence-until from the critic brief; do not add a parent switch to the critic envelope",
+        "status": "proposed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the critic brief template is read, it has no parent-silence-until field.",
+          "Acceptance": "When content/templates/design-critique-brief.md is read, parent-silence-until is absent. The contract and skill do not add a parent timing switch to the critic envelope.",
+          "Traces": "FR-4027-s2"
+        }
+      },
+      {
+        "id": "s3",
+        "title": "Parent dispatch bookkeeping is the completeness trigger; a lean closing a round of two or more names dispatched sibling count and cites those comment ids",
+        "status": "proposed",
+        "effort": "S",
+        "narrative": {
+          "When": "When a successor lean closes a round of two or more, it names dispatched sibling count and cites those comment ids; self-attested role: critic lines are not panel-complete.",
+          "Acceptance": "When the Successor lean section is read, it requires a lean closing a round of two or more to name that round's dispatched sibling count and cite each sibling comment id. The contract forbids counting self-attested role: critic lines as panel-complete. Parent dispatch bookkeeping is the trigger; thread posts corroborate.",
+          "Traces": "FR-4027-s3"
+        }
+      },
+      {
+        "id": "s4",
+        "title": "Recut every each-EXIT locus (214/216/218/228/230/331 and both skill pointers) via pack source then packs:render",
+        "status": "proposed",
+        "effort": "M",
+        "narrative": {
+          "When": "When the contract loop, successor lean, operator verbs, and thin skill are read, none still require a lean after each critic EXIT.",
+          "Acceptance": "Contract sentences around 214/216/218/228/230/331 and both skill pointers (Stops list and Motion shape) wait on this round's sibling completeness. Pack source is content/packs/skills/skills-pack-0.1.json; rendered SKILL.md is not the SoT.",
+          "Traces": "FR-4027-s4"
+        }
+      },
+      {
+        "id": "s5",
+        "title": "Line 218 is a qualifier swap, not a deletion; empty-lean verb menu remains in the loop and waits on this round's successor lean",
+        "status": "proposed",
+        "effort": "S",
+        "narrative": {
+          "When": "When Operator-gated loop is read, empty-lean verb menu is still forbidden and waits on this round's successor lean.",
+          "Acceptance": "The loop section still contains the pinned string empty-lean verb menu. The prohibition waits on this round's successor lean, not each critic EXIT. The sentence is not deleted.",
+          "Traces": "FR-4027-s5"
+        }
+      },
+      {
+        "id": "s6",
+        "title": "Do not deposit-qualify the new silence MUST; named on the panel-deposit stays pinned out",
+        "status": "proposed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the new silence MUST is read, it uses the unqualified same-round-unposted conjunct; deposit remains the Envelope and ceiling expected-count record.",
+          "Acceptance": "The contract does not contain named on the panel-deposit or panel-deposit for this round. Panel-deposit stays the durable expected-count record in Envelope and ceiling.",
+          "Traces": "FR-4027-s6"
+        }
+      },
+      {
+        "id": "s7",
+        "title": "Fences: no new skill, no new completeness predicate, no paste-prompts, no host PATH in AGENTS.md",
+        "status": "proposed",
+        "effort": "S",
+        "narrative": {
+          "When": "When the change lands, the skills pack, always-pin list, and AGENTS.md do not gain a new skill, completeness predicate, paste-prompt, or host PATH.",
+          "Acceptance": "No new skill is added. evaluateParentAudit / evaluateCompletedArcRecord gain no sibling-counting predicate. The skill stays a thin pointer without paste-prompts. AGENTS.md has no host PATH or binaries for this change.",
+          "Traces": "FR-4027-s7"
+        }
+      },
+      {
+        "id": "s8",
+        "title": "Content-contract tests recut pinned each-EXIT strings only; no new live completeness predicate",
+        "status": "proposed",
+        "effort": "S",
+        "narrative": {
+          "When": "When design_critique_contract.test.ts is run, it fails closed if the recut wording is dropped, and it does not add a live completeness predicate.",
+          "Acceptance": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts pins the new round-completeness wording and no longer pins After each critic EXIT as the loop MUST. No new live completeness predicate is introduced.",
+          "Traces": "FR-4027-s8"
+        }
+      },
+      {
+        "id": "s9",
+        "title": "CHANGELOG [Unreleased] brief release-notes entry closing #4027",
+        "status": "proposed",
+        "effort": "S",
+        "narrative": {
+          "When": "When CHANGELOG [Unreleased] is read, it records the panel-silence recut and closes #4027.",
+          "Acceptance": "CHANGELOG [Unreleased] has a brief release-notes entry for the round-sibling lean-timing recut and closes #4027.",
+          "Traces": "FR-4027-s9"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design-critique"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4027",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4027: N>=3 lean-after-each-EXIT talks at 1 of 3"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4027#issuecomment-5488413872",
+        "type": "x-xbrief/refs",
+        "title": "Completed-arc synthesis (bound recut)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4027#issuecomment-5488350584",
+        "type": "x-xbrief/refs",
+        "title": "Accepted successor lean"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4027#issuecomment-5488407656",
+        "type": "x-xbrief/refs",
+        "title": "Operator confirm"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "dispatch named the vitest content-contract file as the iteration-lane command; issue body named no shell command (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Lean-timing MUST is round sibling completeness using the unqualified same-round-unposted conjunct; spend stays permission",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Drop parent-silence-until from the critic brief; do not add a parent switch to the critic envelope",
+          "artifact_path": "content/templates/design-critique-brief.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Parent dispatch bookkeeping is the completeness trigger; a lean closing a round of two or more names dispatched sibling count and cites those comment ids",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Recut every each-EXIT locus (214/216/218/228/230/331 and both skill pointers) via pack source then packs:render",
+          "artifact_path": "content/packs/skills/skills-pack-0.1.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Line 218 is a qualifier swap, not a deletion; empty-lean verb menu remains in the loop and waits on this round's successor lean",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Do not deposit-qualify the new silence MUST; named on the panel-deposit stays pinned out",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Fences: no new skill, no new completeness predicate, no paste-prompts, no host PATH in AGENTS.md",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Content-contract tests recut pinned each-EXIT strings only; no new live completeness predicate",
+          "artifact_path": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "CHANGELOG [Unreleased] brief release-notes entry closing #4027",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-09-01T03:37:48Z"
+  }
+}

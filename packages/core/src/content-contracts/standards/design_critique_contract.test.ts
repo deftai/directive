@@ -163,7 +163,7 @@ const REQUIRED_SKILL_POINTERS = [
   "Parent-side substantiation",
   "EXITs after posting",
   "scm:issue:design-critique-chip",
-  "After critic post: posted successor lean, then verbs",
+  "After this round's siblings are posted: successor lean, then verbs",
   "Auto-stamp after operator confirm; not while same-round siblings outstanding",
   "completed-arc record",
   "Chip apply miss is non-blocking",
@@ -678,13 +678,18 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(anyOf).not.toContain("critic-posted");
   });
 
-  it("locks first-lean recording obligation after critic EXIT (#3741)", () => {
+  it("locks first-lean recording obligation after this round's siblings are posted (#4027 / #3741)", () => {
     const text = readText(CONTRACT);
     const loop = markdownSection(text, "## Operator-gated loop");
     const lean = markdownSection(text, "## Successor lean");
     const verbs = markdownSection(text, "## Operator verbs");
     const testSurface = markdownSection(text, "## Test surface");
-    expect(loop).toContain("After each critic EXIT");
+    expect(loop).toContain("After this round's same-round siblings are posted");
+    expect(loop).not.toContain("After each critic EXIT");
+    expect(loop).toContain("Spend is permission, not the wait rule");
+    expect(loop).toContain("Parent dispatch bookkeeping is the trigger");
+    expect(loop).toContain("thread posts corroborate");
+    expect(loop).toContain("The halt line remains postable while same-round siblings remain unposted");
     expect(loop).toContain(
       "**before** printing `accept` / `retry differences` / `walk` / `walk all`",
     );
@@ -698,7 +703,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(lean).toContain("ADR-006 arbitration surface");
     expect(lean).toContain("same party authored the triage");
     expect(loop).toContain("Binding takes is not synthesis bind");
-    expect(loop).toContain("The first lean after one critic EXIT is the take-offer, not the bind");
+    expect(loop).toContain("The first lean after this round's siblings are posted is the take-offer, not the bind");
     expect(loop).toContain(
       "⊗ Bind synthesis or stamp `design-critique:triage-ready` while same-round siblings remain unposted.",
     );
@@ -745,8 +750,21 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
       "AND no unposted same-round siblings remain, parent posts `design-critique: synthesis accepted",
     );
     expect(bind).toContain("or while same-round siblings remain unposted.");
+    expect(lean).toContain("After this round's same-round siblings are posted");
+    expect(lean).not.toContain("After each critic EXIT");
+    expect(lean).toContain("A lean that closes a round of two or more names that round's dispatched sibling count");
+    expect(verbs).toContain("after a successor lean is posted for this round");
+    expect(verbs).not.toContain("for this critic EXIT");
+    expect(text).not.toContain("parent-silence-until");
+    const template = readText(TEMPLATE);
+    expect(template).not.toContain("parent-silence-until");
+    expect(loop).toContain("when no successor lean is posted for this round");
+    expect(loop).toContain("Count self-attested `role: critic` lines as panel-complete");
     const skill = readText(SKILL_REL);
-    expect(skill).toContain("After critic post: posted successor lean, then verbs");
+    expect(skill).toContain("After this round's siblings are posted: successor lean, then verbs");
+    expect(skill).toContain("After same-round siblings are posted, the parent posts the successor lean");
+    expect(skill).not.toContain("After each critic EXIT");
+    expect(skill).not.toContain("After critic post: posted successor lean, then verbs");
     expect(skill).toContain(
       "Auto-stamp after operator confirm; not while same-round siblings outstanding",
     );
