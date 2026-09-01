@@ -39,7 +39,7 @@ describe("stripSourceRoot", () => {
     });
   });
 
-  it("matches a character-class glob segment and captures the path value", () => {
+  it("matches a character-class glob segment via the shared policy matcher", () => {
     expect(stripSourceRoot("pkg/core/src/foo.ts", "pkg/c[ao]re/src/**")).toEqual({
       remainder: "foo.ts",
       captures: ["core"],

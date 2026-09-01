@@ -217,57 +217,11 @@ function matchStrip(
     return matchStrip(globParts, gi + 1, pathParts, i + 1, [...captures, pathParts[i] ?? ""]);
   }
   const seg = pathParts[i] ?? "";
-  if (seg !== g && !matchSegmentGlob(seg, g)) {
+  if (seg !== g && !matchPolicyGlob(seg, g)) {
     return null;
   }
   const nextCaptures = isPartialWildcardSlot(g) ? [...captures, seg] : captures;
   return matchStrip(globParts, gi + 1, pathParts, i + 1, nextCaptures);
-}
-
-/** Segment glob: policy matcher plus character-class (brackets stay unescaped). */
-function matchSegmentGlob(seg: string, glob: string): boolean {
-  if (matchPolicyGlob(seg, glob)) {
-    return true;
-  }
-  if (!glob.includes("[")) {
-    return false;
-  }
-  let reSrc = "";
-  for (let i = 0; i < glob.length; ) {
-    const c = glob.charAt(i);
-    if (c === "?") {
-      reSrc += "[^/]";
-      i += 1;
-      continue;
-    }
-    if (c === "*") {
-      reSrc += "[^/]*";
-      i += 1;
-      continue;
-    }
-    if (c === "[") {
-      const close = glob.indexOf("]", i + 1);
-      if (close === -1) {
-        reSrc += "\\[";
-        i += 1;
-        continue;
-      }
-      reSrc += glob.slice(i, close + 1);
-      i = close + 1;
-      continue;
-    }
-    if ("\\.{}()+-^$|".includes(c)) {
-      reSrc += `\\${c}`;
-    } else {
-      reSrc += c;
-    }
-    i += 1;
-  }
-  try {
-    return new RegExp(`^${reSrc}$`).test(seg);
-  } catch {
-    return false;
-  }
 }
 
 /** True when a glob segment is a capture slot (star, double-star, question-mark, or class). */
