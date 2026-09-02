@@ -3,11 +3,11 @@
     "version": "0.8",
     "description": "Scope xBRIEF for GitHub issue #4070. Bound SoT is design-critique synthesis 5501670096 citing lean 5501665011 and verified-claims table 5501668002, not the as-filed body alone.",
     "created": "2026-09-01T23:40:00Z",
-    "updated": "2026-09-02T00:00:56Z"
+    "updated": "2026-09-02T00:45:57Z"
   },
   "plan": {
     "title": "chore(triage): withdraw the classify skill and strip triaged / triage:* chips",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Withdraw the classify playbook and fail-close triage:classify --mirror (including dry-run), recut pinned work-selection, keep a withdrawn stub on the same pack triggers, emit the existing --json digest, then remaining-set-strip triaged / triage:* chips on deftai/directive. Leave ingest, queue audit log, and design-critique catalog chips.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4070. Bound by synthesis 5501670096, lean 5501665011, table 5501668002. Critics 5501581649 (grok) and 5501649095 (claude-opus-5).",
@@ -237,8 +237,33 @@
         "module_boundary": "packages/core/src/triage/classify",
         "split_plan": "Fail-close message, withdrawn-chip remaining-set strip, and digest-before-strip live in a new withdraw.ts module. label-mirror.ts only flips the hygiene default enabled:false; it does not grow the classify engine.",
         "cohesion_exemption": "CHANGELOG.md is a chronological append-only release log; this slice appends one [Unreleased] entry. label-mirror.ts already exceeds the review trigger; this slice changes only the default enabled flag."
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4076,
+        "prBase": null,
+        "mergeCommit": "f81e154dcef37671cf0898a6dc6cb1b9642ab7fb",
+        "deliveryBranch": "master",
+        "deliveryCommit": "f81e154dcef37671cf0898a6dc6cb1b9642ab7fb",
+        "verifiedAt": "2026-09-02T00:45:57Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDVlZjYtYWI4MC03MTUwLTliMTAtOWIwNDUzZjdiMTc4"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-02T00:45:57Z"
+      },
+      "completedAt": "2026-09-02T00:45:57Z",
+      "completedSessionId": "host:grok:v1:MDFhMDVlZjYtYWI4MC03MTUwLTliMTAtOWIwNDUzZjdiMTc4",
+      "capacityBucket": "technical-debt"
     },
-    "updated": "2026-09-01T23:33:42Z"
+    "updated": "2026-09-02T00:45:57Z"
   }
 }
