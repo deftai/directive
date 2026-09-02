@@ -403,7 +403,13 @@ var canonicalGitignoreLines = []string{
 	".deft/delivery-attempts/",
 	".deft/metrics/",
 	".deft/escalations/",
-	".deft/approved-scope/",
+	// #4116: approved-scope records are tracked provenance. Ignore journal /
+	// lock / next sidecars only; do not ignore the directory.
+	".deft/approved-scope/*.bak",
+	".deft/approved-scope/*.next.tmp",
+	".deft/approved-scope/.*.pair.lock.tmp",
+	".deft/approved-scope/.*.pair.lock.tmp.stale",
+	".deft/approved-scope/.*.publishing.bak",
 	"vbrief/.triage-cache/candidates.jsonl",
 	"vbrief/.triage-cache/summary-history.jsonl",
 	"vbrief/.triage-cache/scope-lifecycle.jsonl",
@@ -445,6 +451,8 @@ var canonicalGitignoreLines = []string{
 var forbiddenBlanketEvalLines = []string{
 	"vbrief/.eval/",
 	"vbrief/.eval",
+	".deft/approved-scope/",
+	".deft/approved-scope",
 }
 
 // minimalTaskfileContent is the canonical starter Taskfile.yml written (or
@@ -970,7 +978,7 @@ func EnsureGitignoreLines(w *Wizard, projectDir string) (bool, error) {
 		w.printf(".gitignore updated with canonical entries: %s\n", strings.Join(additions, ", "))
 	}
 	if blanketRemoved {
-		w.printf(".gitignore healed: removed forbidden blanket vbrief/.eval/ line (#1464).\n")
+		w.printf(".gitignore healed: removed forbidden blanket ignore line(s) (#1464 / #4116).\n")
 	}
 	return true, nil
 }

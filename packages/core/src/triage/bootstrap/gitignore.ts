@@ -74,6 +74,8 @@ export const FORBIDDEN_BLANKET_EVAL_LINES: readonly string[] = [
   "vbrief/.triage-cache",
   "vbrief/.triage-cache/",
   "vbrief/.eval",
+  ".deft/approved-scope/",
+  ".deft/approved-scope",
 ];
 
 const DEFT_CACHE_RATIONALE =
@@ -342,8 +344,9 @@ export function stepEnsureGitignoreEntry(projectRoot: string): StepOutcome {
 function formatBlanketWarning(blanketPresent: boolean): string {
   if (!blanketPresent) return "";
   return (
-    " WARNING: stale blanket vbrief/.triage-cache/ line detected in .gitignore -- " +
-    "remove it manually (it hides tracked slices.jsonl from git per #1251)"
+    " WARNING: stale blanket ignore line detected in .gitignore -- " +
+    "remove it or run directive update (it hides tracked artifacts such as " +
+    "slices.jsonl or approved-scope records; #1251 / #4116)"
   );
 }
 

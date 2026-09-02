@@ -39,13 +39,19 @@ export const CANONICAL_GITIGNORE_BASELINE: readonly string[] = [
   ".deft/last-session.json",
   ".deft/occupancy.json",
   ".deft/routing.local.json",
-  // #3612: remaining runtime writer roots kept at historical names (on-disk
-  // contracts). Relocating them would break existing consumer state.
+  // #3612: remaining local-cache writer roots kept at historical names
+  // (on-disk contracts). Relocating them would break existing consumer state.
   ".deft/authz/",
   ".deft/delivery-attempts/",
   ".deft/metrics/",
   ".deft/escalations/",
-  ".deft/approved-scope/",
+  // #4116: approved-scope records are tracked provenance. Ignore journal /
+  // lock / next sidecars only; do not ignore the directory.
+  ".deft/approved-scope/*.bak",
+  ".deft/approved-scope/*.next.tmp",
+  ".deft/approved-scope/.*.pair.lock.tmp",
+  ".deft/approved-scope/.*.pair.lock.tmp.stale",
+  ".deft/approved-scope/.*.publishing.bak",
   // Agent-host working state (#3502). Selective, NEVER blanket `.claude/`:
   // `.claude/settings.json`, `.claude/skills/` and `.claude/commands/` are
   // MANAGED DEPOSITS (agent-hooks.ts / skill-discovery-hosts.ts) and must stay
@@ -155,6 +161,16 @@ export function gitignoreRuleCoversPath(rule: string, relPath: string): boolean 
 export function ignoreSetCoversPath(rules: readonly string[], relPath: string): boolean {
   return rules.some((rule) => gitignoreRuleCoversPath(rule, relPath));
 }
+
+/** True when a gitignore rule uses glob metacharacters (not expanded by coverage). */
+export function isGlobGitignoreRule(rule: string): boolean {
+  const r = stripGitignoreInlineComment(rule);
+  return r.includes("*") || r.includes("?") || (r.includes("[") && r.includes("]"));
+}
+
+/** Per-file crash-journal / lock / next sidecars under approved-scope (#4116). */
+export const APPROVED_SCOPE_SIDECAR_GITIGNORE_LINES: readonly string[] =
+  CANONICAL_GITIGNORE_BASELINE.filter((line) => line.startsWith(".deft/approved-scope/"));
 
 function collectPresentGitignoreLines(existing: string): Set<string> {
   const present = new Set<string>();
@@ -349,7 +365,7 @@ export function ensureInitGitignoreLines(
     io.printf(`.gitignore updated with canonical entries: ${res.additions.join(", ")}\n`);
   }
   if (res.blanketRemoved) {
-    io.printf(".gitignore healed: removed forbidden blanket vbrief/.eval/ line (#1464).\n");
+    io.printf(".gitignore healed: removed forbidden blanket ignore line(s) (#1464 / #4116).\n");
   }
   if (tracked === true) {
     io.printf(
@@ -406,7 +422,7 @@ export function ensureUntrackCoreGitignoreLines(
     io.printf(`.gitignore updated with canonical entries: ${res.additions.join(", ")}\n`);
   }
   if (res.blanketRemoved) {
-    io.printf(".gitignore healed: removed forbidden blanket vbrief/.eval/ line (#1464).\n");
+    io.printf(".gitignore healed: removed forbidden blanket ignore line(s) (#1464 / #4116).\n");
   }
 
   return {

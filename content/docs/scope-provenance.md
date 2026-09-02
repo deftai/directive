@@ -90,6 +90,8 @@ Flags:
 | `--xbrief-rel-path` | no | override path binding; default maps `pending/` → `active/` |
 | `--repo` | no | `owner/name` seed for preimage `approvedRepos` (same source as `issue:emit`) |
 
+Those two record kinds are **tracked provenance**, not local cache. Canonical `deft init` / `deft update` gitignore must not ignore the `.deft/approved-scope/` directory. Crash-journal, lock, and `.next` sidecars in that directory stay ignored. `git add` of the two record files must work without `-f`. Leftover directory ignore lines (both slash spellings) are healed off on update.
+
 Commit **both** `.deft/approved-scope/<plan-id>.json` and `<plan-id>.intent.json` on the **merge base** (or a prior PR) before the implementation PR activates or expands the scoped xBRIEF. Read the preimage before you commit — that file is the approved intent.
 
 ## Three layers (do not mix)

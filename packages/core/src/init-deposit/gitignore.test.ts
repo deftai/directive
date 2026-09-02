@@ -171,6 +171,25 @@ describe("ensureInitGitignoreLines", () => {
     expect(text).toContain(GITIGNORE_DEFT_CORE_LINE);
   });
 
+  it("heals leftover approved-scope directory ignore on both slash spellings (#4116)", () => {
+    const root = freshRoot("gitignore-heal-4116-");
+    writeFileSync(
+      join(root, ".gitignore"),
+      "node_modules/\n.deft/approved-scope/\n.deft/approved-scope\n",
+      "utf8",
+    );
+    ensureInitGitignoreLines(root, { printf: () => {} });
+    const text = readGitignore(root);
+    const active = text
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0 && !l.startsWith("#"));
+    expect(active).not.toContain(".deft/approved-scope/");
+    expect(active).not.toContain(".deft/approved-scope");
+    expect(text).toContain(".deft/approved-scope/*.bak");
+    expect(text).toContain(".deft/authz/");
+  });
+
   it("does not add .deft/core to gitignore when the deposit is already tracked", () => {
     const root = freshRoot("gitignore-tracked-");
     execFileSync("git", ["init"], { cwd: root, stdio: "ignore" });
