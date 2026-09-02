@@ -4,7 +4,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { atomicWriteText } from "../cache/io.js";
 import { contentRoot } from "../content-root.js";
-import { defaultGitRunner } from "../session/git.js";
+import { timedGitRunner } from "../session/git.js";
 import { type LockDeps, withAppendLock } from "../slice/lock.js";
 import { composeGreenfieldAgentsMd } from "./agents-consumer-header.js";
 import { AGENTS_MANAGED_CLOSE, AGENTS_MANAGED_OPEN_V3_LITERAL } from "./constants.js";
@@ -71,7 +71,7 @@ function resolveFrameworkSha(seams: AgentsMdSeams = {}): string {
   if (seams.resolveSha) return seams.resolveSha();
   const root = frameworkRoot(seams);
   if (!payloadIsOwnGitRoot(root)) return "unknown";
-  const result = defaultGitRunner(root, ["rev-parse", "--short=12", "HEAD"]);
+  const result = timedGitRunner(5000)(root, ["rev-parse", "--short=12", "HEAD"]);
   if (result.code !== 0) return "unknown";
   const sha = result.stdout.trim();
   return sha || "unknown";

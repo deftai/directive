@@ -8,7 +8,7 @@ import {
   NonPublishableVersionError,
   toPep440,
 } from "../release/version.js";
-import { defaultGitRunner, type GitRunner } from "../session/git.js";
+import { type GitRunner, timedGitRunner } from "../session/git.js";
 import { DEV_FALLBACK, ENV_VAR } from "./constants.js";
 
 export { DEV_FALLBACK, ENV_VAR, isPublishable, NonPublishableVersionError, toPep440 };
@@ -85,7 +85,7 @@ function readDeftVersion(baseDir: string): string | null {
 
 export function payloadIsOwnGitRoot(
   payloadDir: string,
-  runGit: GitRunner = defaultGitRunner,
+  runGit: GitRunner = timedGitRunner(10_000),
 ): boolean {
   const { code, stdout } = runGit(payloadDir, ["rev-parse", "--show-toplevel"]);
   const toplevel = stdout.trim();

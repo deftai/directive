@@ -25,7 +25,7 @@ function gitStdoutString(raw: Buffer, args: readonly string[]): string {
   return raw.toString("latin1").trimEnd();
 }
 
-export const defaultGitRunner: GitRunner = (projectRoot, args) => {
+function execGit(projectRoot: string, args: readonly string[], timeoutMs?: number): GitRunResult {
   try {
     const stdout = execFileSync("git", [...args], {
       cwd: projectRoot,
@@ -33,6 +33,7 @@ export const defaultGitRunner: GitRunner = (projectRoot, args) => {
       // `git show <tip>:<path>` streams whole blobs; SPECIFICATION.md alone is
       // past Node's 1 MB default (#3903).
       maxBuffer: SUBPROCESS_MAX_BUFFER,
+      ...(timeoutMs === undefined ? {} : { timeout: timeoutMs }),
     });
     return { code: 0, stdout: gitStdoutString(coerceGitBytes(stdout), args), stderr: "" };
   } catch (err: unknown) {
@@ -56,7 +57,14 @@ export const defaultGitRunner: GitRunner = (projectRoot, args) => {
       }),
     };
   }
-};
+}
+
+export const defaultGitRunner: GitRunner = (projectRoot, args) => execGit(projectRoot, args);
+
+/** Same silent stdio as {@link defaultGitRunner}, with a child timeout (#3914). */
+export function timedGitRunner(timeoutMs: number): GitRunner {
+  return (projectRoot, args) => execGit(projectRoot, args, timeoutMs);
+}
 
 /**
  * One `git rev-parse` that answers the three ref reads the mutation gates
