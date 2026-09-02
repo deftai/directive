@@ -101,11 +101,6 @@
       },
       {
         "uri": "https://github.com/deftai/directive/issues/4000",
-        "type": "x-xbrief/closes",
-        "title": "Issue #4000"
-      },
-      {
-        "uri": "https://github.com/deftai/directive/issues/4000",
         "type": "x-xbrief/refs",
         "title": "Issue #4000"
       }
