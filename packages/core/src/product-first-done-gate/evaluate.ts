@@ -23,11 +23,13 @@ import {
   isInlineProseMention,
   isNoopRefusalReason,
   isSafetyRefusalRun,
+  type LiteralAcceptanceCommand,
   type LiteralAcceptanceGateResult,
   type LiteralAcceptanceRunner,
   type RejectedLiteralCommand,
   readNotAcceptanceCommands,
   readStoredLiteralAcceptanceCommands,
+  resolveLiteralAcceptanceDetailed,
   runLiteralAcceptanceCommands,
   stripLiteralAcceptanceAdvisory,
 } from "../literal-acceptance/index.js";
@@ -63,8 +65,11 @@ import {
 } from "../verify-ac/evaluate.js";
 import { readPlanAcceptance, validatePlanAcceptance } from "./acceptance.js";
 import {
+  type AcceptanceLedgerEntry,
+  acceptanceLedgersEqual,
   clauseWalkBlocks,
   formatAcceptanceVerdict,
+  readAcceptanceLedger,
   resolveAcceptanceVerdict,
 } from "./acceptance-resolver.js";
 import {
@@ -163,14 +168,107 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return null;
 }
 
+function captureFromNarrativesFlag(options: EvaluateVerifyAcOptions): boolean | undefined {
+  return options.captureFromNarratives ?? (options.checkIntegrated === true ? false : undefined);
+}
+
+function ledgerEntriesFromCommands(
+  commands: readonly { command: string; cwd?: string | null; expectedExitCode?: number }[],
+): AcceptanceLedgerEntry[] {
+  return commands.map((c) => ({
+    command: c.command,
+    cwd: c.cwd ?? null,
+    expectedExitCode: c.expectedExitCode ?? 0,
+  }));
+}
+
+function resolveExecutableAcceptanceContract(
+  plan: Record<string, unknown>,
+  acceptance: PlanAcceptance,
+  captureFromNarratives: boolean | undefined,
+): {
+  readonly commands: LiteralAcceptanceCommand[];
+  readonly rejected: readonly RejectedLiteralCommand[];
+} {
+  const detailed = resolveLiteralAcceptanceDetailed(plan, { captureFromNarratives });
+  if (detailed.commands.length > 0) {
+    return { commands: [...detailed.commands], rejected: detailed.rejected };
+  }
+  const stated = statedAcceptanceCommands(acceptance, plan);
+  return {
+    commands: stated.map((c) => ({
+      command: c.command,
+      cwd: c.cwd ?? null,
+      expectedStdout: c.expectedStdout ?? null,
+      expectedExitCode: c.expectedExitCode ?? 0,
+      source: "explicit" as const,
+      sourceSpan: "plan.acceptance.commands",
+    })),
+    rejected: detailed.rejected,
+  };
+}
+
+function resolvedContractForHash(
+  plan: Record<string, unknown>,
+  options: EvaluateVerifyAcOptions,
+): AcceptanceLedgerEntry[] {
+  return ledgerEntriesFromCommands(
+    resolveExecutableAcceptanceContract(
+      plan,
+      readPlanAcceptance(plan),
+      captureFromNarrativesFlag(options),
+    ).commands,
+  );
+}
+
+function coerceSnapshotCommands(raw: readonly unknown[]): LiteralAcceptanceCommand[] {
+  const out: LiteralAcceptanceCommand[] = [];
+  for (const item of raw) {
+    if (typeof item === "string" && item.trim().length > 0) {
+      out.push({
+        command: item.trim(),
+        cwd: null,
+        expectedStdout: null,
+        expectedExitCode: 0,
+        source: "verify_commands",
+        sourceSpan: "bank.commands",
+      });
+      continue;
+    }
+    const rec = asRecord(item);
+    if (rec === null || typeof rec.command !== "string" || rec.command.trim().length === 0) {
+      continue;
+    }
+    const sourceRaw = typeof rec.source === "string" ? rec.source : "verify_commands";
+    const source = isExecutableLiteralSource(sourceRaw)
+      ? (sourceRaw as LiteralAcceptanceCommand["source"])
+      : "verify_commands";
+    out.push({
+      command: rec.command.trim(),
+      cwd: typeof rec.cwd === "string" ? rec.cwd : null,
+      expectedStdout: typeof rec.expectedStdout === "string" ? rec.expectedStdout : null,
+      expectedExitCode: typeof rec.expectedExitCode === "number" ? rec.expectedExitCode : 0,
+      source,
+      sourceSpan: typeof rec.sourceSpan === "string" ? rec.sourceSpan : "bank.commands",
+    });
+  }
+  return out;
+}
+
 function tryReuseVerifyAc(
   plan: Record<string, unknown>,
   acceptance: PlanAcceptance,
   options: EvaluateVerifyAcOptions,
   projectRoot: string,
+  contract: {
+    readonly commands: readonly LiteralAcceptanceCommand[];
+    readonly rejected: readonly RejectedLiteralCommand[];
+  },
 ): VerifyAcResult | null {
   const mode = options.reuseMode ?? "auto";
   if (mode === "never") return null;
+  if (contract.rejected.length > 0) return null;
+  const currentLedger = ledgerEntriesFromCommands(contract.commands);
   const reuse = resolveAcReuse({
     projectRoot,
     plan,
@@ -180,6 +278,7 @@ function tryReuseVerifyAc(
     productPaths: options.productPaths,
     allowCache: mode === "auto",
     allowBank: true,
+    resolvedAcceptanceContract: currentLedger,
   });
   if (reuse.kind === "miss") return null;
 
@@ -207,6 +306,28 @@ function tryReuseVerifyAc(
   }
 
   if (!Array.isArray(reuse.bank.runs)) return null;
+  if (Array.isArray(reuse.bank.commands)) {
+    const minted = coerceSnapshotCommands(reuse.bank.commands);
+    if (!acceptanceLedgersEqual(currentLedger, readAcceptanceLedger(reuse.bank.commands))) {
+      return null;
+    }
+    return {
+      ok: true,
+      code: 0,
+      message: options.quiet
+        ? ""
+        : `verify:ac passed (#3284) served_from=bank [rung=${acceptance.source_rung}]`,
+      commands: minted,
+      runs: reuse.bank.runs as VerifyAcResult["runs"],
+      sourceRung: acceptance.source_rung,
+      noneStated: acceptance.none_stated,
+      acceptance,
+      resolution: "verified-pass",
+      resolvedCommandCount: minted.length,
+      servedFrom: "bank",
+    };
+  }
+
   const commandCount = acceptance.commands.length;
   if (commandCount === 0) return null;
   return {
@@ -247,6 +368,7 @@ function persistVerifyAcSessionCache(
     projectRoot,
     plan,
     productPaths: options.productPaths,
+    resolvedAcceptanceContract: resolvedContractForHash(plan, options),
   });
   if (!hashed.complete) return;
   try {
@@ -341,7 +463,12 @@ export function evaluateVerifyAcFromPlan(
     );
   }
 
-  const reused = tryReuseVerifyAc(plan, acceptance, optionsWithScope, projectRoot);
+  const contract = resolveExecutableAcceptanceContract(
+    plan,
+    acceptance,
+    captureFromNarrativesFlag(optionsWithScope),
+  );
+  const reused = tryReuseVerifyAc(plan, acceptance, optionsWithScope, projectRoot, contract);
   if (reused !== null) {
     return applyOracle(reused, optionsWithScope, plan);
   }
@@ -847,6 +974,7 @@ function applyOracle(
       productPaths: options.productPaths,
       allowCache: (options.reuseMode ?? "auto") === "auto",
       allowBank: true,
+      resolvedAcceptanceContract: resolvedContractForHash(plan, options),
     });
     if (reuse.kind === "miss") missReason = reuse.reason;
   }
@@ -1010,6 +1138,7 @@ function maybeAttachAcPassBank(
       projectRoot,
       plan,
       productPaths: options.productPaths,
+      resolvedAcceptanceContract: resolvedContractForHash(plan, options),
     });
     const banked = maybeBankOnAcPass({
       projectRoot,
@@ -1021,6 +1150,7 @@ function maybeAttachAcPassBank(
       environ: options.env,
       headSha: gitHead(projectRoot).head,
       runs: result.runs,
+      commands: result.commands,
     });
     if (options.quiet || banked.notes.length === 0) {
       return result;

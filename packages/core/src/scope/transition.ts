@@ -16,7 +16,7 @@ import {
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { stampExistingEnvelopes } from "../lifecycle/brief-envelope.js";
 import { evaluateCompletedPlanConsistency } from "../lifecycle/completed-consistency.js";
-import { evaluateLiteralAcceptanceFromPlan } from "../literal-acceptance/index.js";
+import type { LiteralAcceptanceRunner } from "../literal-acceptance/index.js";
 import type { GitRunner } from "../session/git.js";
 import { evaluateAcceptanceActivateGate } from "./acceptance-activate-gate.js";
 import {
@@ -79,6 +79,8 @@ export interface TransitionOptions {
    * Production callers MUST leave this false/undefined.
    */
   readonly skipAcceptanceEvidenceGate?: boolean;
+  /** Test-only runner for the complete acceptance walk (#4060). Production leaves this unset. */
+  readonly acceptanceRunner?: LiteralAcceptanceRunner;
 }
 
 /** Item statuses that still represent unfinished work and should advance on terminal transitions (#2862). */
@@ -306,30 +308,12 @@ export function runTransition(
     }
     acceptanceListing = formatAcceptanceCompletionListing(acceptanceGate.reports);
 
-    // #3267: run agent-authored literal AC before complete; re-scan narratives so
-    // narrative-only stated commands fail closed (promote required) rather than skip.
-    const literalGate = evaluateLiteralAcceptanceFromPlan(planObj, {
+    // #3357 / #4060: one bank-aware walk. Resolve-then-match-then-execute lives
+    // inside evaluateScopeCompleteAcceptanceWalk. Do not run a standalone executor first.
+    const acWalk = evaluateScopeCompleteAcceptanceWalk(planObj, {
       projectRoot,
-      captureFromNarratives: true,
+      runner: options.acceptanceRunner,
     });
-    if (!literalGate.ok) {
-      return {
-        ok: false,
-        message:
-          `Literal acceptance-command gate failed before scope:complete (#3267).\n` +
-          literalGate.message,
-        acceptanceReports: acceptanceGate.reports,
-      };
-    }
-    if (literalGate.commands.length > 0 || literalGate.message.length > 0) {
-      acceptanceListing =
-        acceptanceListing.length > 0
-          ? `${acceptanceListing}\n${literalGate.message}`
-          : literalGate.message;
-    }
-
-    // #3357: verify:ac walk is a hard precondition. Disposition does not skip it.
-    const acWalk = evaluateScopeCompleteAcceptanceWalk(planObj, { projectRoot });
     if (!acWalk.ok) {
       return {
         ok: false,

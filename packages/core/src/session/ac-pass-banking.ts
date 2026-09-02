@@ -78,6 +78,8 @@ export interface AcPassBankRecord {
    * invent a green run. Empty array is a #3558 zero-run bank, not green.
    */
   readonly runs?: readonly unknown[];
+  /** Cache-shaped commands snapshot from the writer (#4060). Absent on pre-#4060 banks. */
+  readonly commands?: readonly unknown[];
 }
 
 export interface EvaluateSurplusInput {
@@ -116,6 +118,8 @@ export interface BankAcPassInput {
   readonly environ?: Readonly<Record<string, string | undefined>>;
   /** Cache-shaped runs snapshot to persist (#3993). Omitted falls back to prior or []. */
   readonly runs?: readonly unknown[];
+  /** Cache-shaped commands snapshot to persist (#4060). Omitted leaves the field absent. */
+  readonly commands?: readonly unknown[];
 }
 
 export interface DecidePostBankFindingInput {
@@ -458,6 +462,7 @@ export function bankAcPass(input: BankAcPassInput): AcPassBankRecord {
     // Journal is append-only SoT for findings across corrupt rewrites (#3285).
     postBankFindings: mergeFindings(prior?.postBankFindings ?? [], journal),
     runs: input.runs !== undefined ? input.runs : (prior?.runs ?? []),
+    commands: input.commands !== undefined ? input.commands : prior?.commands,
   };
 
   const dir = acPassBanksDir(root);
@@ -646,12 +651,16 @@ function parseBankText(scopeId: string, text: string): AcPassBankRecord | null {
     }
     const rec = raw as AcPassBankRecord;
     const runs = Array.isArray(rec.runs) ? rec.runs : undefined;
+    const commands = Array.isArray(rec.commands) ? rec.commands : undefined;
     const findings = Array.isArray(rec.postBankFindings)
       ? rec.postBankFindings
       : recoverFindingsFromLedgerText(text);
-    return runs === undefined
-      ? { ...rec, postBankFindings: findings, runs: undefined }
-      : { ...rec, postBankFindings: findings, runs };
+    return {
+      ...rec,
+      postBankFindings: findings,
+      runs,
+      commands,
+    };
   } catch {
     const findings = recoverFindingsFromLedgerText(text);
     return findings.length > 0 ? recoveredStubRecord(scopeId, findings) : null;
@@ -864,6 +873,8 @@ export interface MaybeBankOnAcPassInput {
   readonly verifiedPass?: boolean;
   /** Cache-shaped runs from the green walk (#3993). Omitted writes []. */
   readonly runs?: readonly unknown[];
+  /** Cache-shaped commands from the green walk (#4060). Omitted leaves the field absent. */
+  readonly commands?: readonly unknown[];
 }
 
 export interface MaybeBankOnAcPassResult {
@@ -903,6 +914,7 @@ export function maybeBankOnAcPass(input: MaybeBankOnAcPassInput): MaybeBankOnAcP
     now: input.now,
     environ: input.environ,
     runs: input.runs,
+    commands: input.commands,
   });
   const notes = [
     ...decision.notes,

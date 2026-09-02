@@ -111,6 +111,76 @@ export function resolvedAcceptanceCommandCount(reading: AcceptanceReading): numb
 }
 
 /**
+ * One row of the resolved literal+swarm+narrative contract (#4060).
+ * Identity is command + cwd + expectedExitCode -- not plan.acceptance.commands.length.
+ */
+export interface AcceptanceLedgerEntry {
+  readonly command: string;
+  readonly cwd?: string | null;
+  readonly expectedExitCode?: number;
+}
+
+function asLedgerRecord(value: unknown): Record<string, unknown> | null {
+  if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return null;
+}
+
+/** Stable identity for one executable acceptance command. */
+export function acceptanceLedgerKey(entry: AcceptanceLedgerEntry): string {
+  const cwd =
+    entry.cwd !== undefined && entry.cwd !== null && String(entry.cwd).trim().length > 0
+      ? String(entry.cwd).trim()
+      : "";
+  const exit = typeof entry.expectedExitCode === "number" ? entry.expectedExitCode : 0;
+  return `${entry.command}\0${cwd}\0${String(exit)}`;
+}
+
+/** Coerce a bank/cache snapshot command list into ledger entries. */
+export function readAcceptanceLedger(
+  raw: readonly unknown[] | null | undefined,
+): AcceptanceLedgerEntry[] {
+  if (!Array.isArray(raw)) return [];
+  const out: AcceptanceLedgerEntry[] = [];
+  for (const item of raw) {
+    if (typeof item === "string" && item.trim().length > 0) {
+      out.push({ command: item.trim(), cwd: null, expectedExitCode: 0 });
+      continue;
+    }
+    const rec = asLedgerRecord(item);
+    if (rec === null || typeof rec.command !== "string" || rec.command.trim().length === 0) {
+      continue;
+    }
+    out.push({
+      command: rec.command.trim(),
+      cwd: typeof rec.cwd === "string" ? rec.cwd : null,
+      expectedExitCode: typeof rec.expectedExitCode === "number" ? rec.expectedExitCode : 0,
+    });
+  }
+  return out;
+}
+
+/**
+ * Swarm-only banks are eligible only when both ledgers are non-empty and equal.
+ * Truly empty stays refused. 0-run verified-pass is not this allow-list (#4060).
+ */
+export function acceptanceLedgersEqual(
+  current: readonly AcceptanceLedgerEntry[],
+  minted: readonly AcceptanceLedgerEntry[],
+): boolean {
+  if (current.length === 0 || minted.length === 0) return false;
+  if (current.length !== minted.length) return false;
+  for (let i = 0; i < current.length; i += 1) {
+    const left = current[i];
+    const right = minted[i];
+    if (left === undefined || right === undefined) return false;
+    if (acceptanceLedgerKey(left) !== acceptanceLedgerKey(right)) return false;
+  }
+  return true;
+}
+
+/**
  * Name the predicate that decided this verify:ac result, and the value it read.
  *
  * Order matters: the earliest fail-closed stage wins so the operator is pointed at
