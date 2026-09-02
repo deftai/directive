@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **Land completed-tracked artifact for #3993 (#3264 / #1358).** The #3993 xBRIEF stayed untracked after squash of PR 4107 (9bb09f98). Moved to xbrief/completed/. Does not recut that issue. Refs #2321, #3476.
 - **AC-pass bank reuse keeps the green-run fact so scope:complete does not reintroduce #3497 (#3993).** Matching banks persist and replay command runs the way the session cache already copies them. A v1 bank without that field miss-and-executes. A #3558 zero-run verified-pass stays a zero-run bank and is not treated as a green executable run. Complete still uses reuseMode bank. Does not collapse this issue into #3584.
 - **Land completed-tracked artifact for #4103 (#3264 / #1358).** The #4103 xBRIEF stayed untracked after squash of PR 4114 (e34d76c8). Moved to xbrief/completed/ via scope:complete. Does not recut that issue. Refs #2321, #3476.
 - **verify:ac no longer false-FAILS a clause because `'` and `"` share one delimiter class (#4103).** `extractExpectedTokens` pairs each quote type with itself and does not treat an in-word apostrophe as a quote opener. A lone possessive was already a non-event. Closes #4103.
