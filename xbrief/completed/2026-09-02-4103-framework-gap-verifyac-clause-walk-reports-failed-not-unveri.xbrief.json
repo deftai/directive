@@ -1,0 +1,197 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #4103 recut onto extractExpectedTokens quote-class pairing (lean 5512769984, synthesis 5512793220)",
+    "updated": "2026-09-02T17:44:21Z"
+  },
+  "plan": {
+    "title": "bug(verify-ac): extractExpectedTokens quote-class pairing false-FAILS clauses with two+ apostrophes",
+    "status": "completed",
+    "narratives": {
+      "Description": "Recut #4103: extractExpectedTokens treats apostrophe and double-quote as one delimiter class, so two or more quote-class characters in one clause capture a fragment that cannot exist in the artifact and the walk reports FAILED on correct work. A lone possessive does not fire. Bound SoT: lean 5512769984, synthesis 5512793220, critic 5512757280.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4103",
+      "Overview": "## Summary\n\nverify:ac clause walk reports FAILED, not unverifiable, for any acceptance clause containing an apostrophe\n\n## Context\n\nledgerd, a consumer project. Wave 7 delivery, ~20 stories closed out through deft scope:complete. Hit twice in twelve hours on separate stories (LDG-M1-005, LDG-M0-013), each time on correct work that was already merged and green.\n\n## Expected behavior\n\nA clause whose prose contains an ordinary possessive (the schedule's total, drizzle-kit's own, dispatch.mjs's role scope) is evaluated on its artifact_path like any other clause, and reports verified or unverifiable.\n\n## Actual behavior / gap\n\nThe tokeniser appears to split clause text on the apostrophe and then searches the artifact for the trailing fragment, which by construction can never match. The clause reports failed. Observed missing tokens both began with 's ': 's proposed amount across a schedule' and 's outsideRoleScope unless its stem matches a schema-owned sibling'. Isolating the variable confirms it: rewriting only the possessives and changing nothing else took the same commit from '2 failed' to '0 failed'.\n\n## Session notes\n\nImpact is that scope:complete refuses on correct merged work, and the remedy it prints points at the artifact, so the natural response is to go hunting for a defect in shipped code that is not there. A false 'failed' is worse than a false 'unverifiable' because it trains people to read a red gate as noise. Workaround exists (avoid possessives in clause prose), hence not classified as a blocker. Suggested fix: escape or ignore the apostrophe when deriving match tokens, or match only on the artifact_path the clause already carries. Tracked locally as ZaenKai/ledgerd#226.\n\n---\n_Filed via `task feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-02T16:13:55Z)\n\nmodel: grok-4.6\nrole: triage\n\ndesign-critique: warranted, because the lean would change how verify:ac classifies clause-walk outcomes (failed vs unverifiable) for ordinary possessives, which is a gate-behavior change with a mechanized consumer, not a disposition-only ticket.\n\nmechanism-shaped: true\n\nrefutation-target: the tokeniser splits clause text on the apostrophe and then searches the artifact for the trailing fragment, which by construction cannot match, so the clause reports failed.\n\ncharter: refutation\nspend: N=1\ntarget-shape: single-issue\nreason: the issue names that presumption; solution space is not genuinely open (quoted-token extraction vs unverifiable fallback). N>=3 is permitted for false-fail blast radius on scope:complete and is not used.\n\nsha: 16e995470c73c9449d6ee137162912db091e9de6 (origin/master at Stop 1)\n\n\n### Comment by @MScottAdams (2026-09-02T16:21:08Z)\n\nmodel: claude-sonnet-5\nrole: critic\n\nRe-verified against `packages/core/src/verify-ac/clauses.ts` at `16e995470c73c9449d6ee137162912db091e9de6` by running the extraction logic directly, not by reading line cites. The refutation target survives: an apostrophe in clause prose can produce a spurious FAILED verdict. But the recorded mechanism (\"the tokeniser splits clause text on the apostrophe and then searches the artifact for the trailing fragment\") names the wrong operation and the wrong trigger condition, and both corrections change what the eventual fix has to cover.\n\nInventory: no existing balanced-quote or quote-pairing helper elsewhere in the tree that `extractExpectedTokens` should have reused instead of its own regex — checked `intake/markdown-scanners.ts` and grepped for a quote-pairing utility; nothing applicable. The fix is local to this one regex.\n\n**What actually happens.** There is no clause-text tokeniser that splits on apostrophes and searches for \"the trailing fragment.\" Clause derivation stores no path or search token at all (`buildClause` binds `artifact_path: null` by design, per the #3835 comment at clauses.ts:297-311). The failure is in `extractExpectedTokens` (clauses.ts:757), which extracts literal strings a clause quotes for verbatim matching against the artifact:\n\n```\nconst quoted = /[\"']([^\"'\\n]{3,80})[\"']/g;\n```\n\nThis treats `'` and `\"` as interchangeable delimiters of one shared class, so a possessive or contraction apostrophe can open a \"quote\" that some later apostrophe or quote mark in the same clause closes, capturing everything between as an \"expected token\" that is then required verbatim in the artifact and, by construction, is not there.\n\nConfirmed by execution (`.tmpwork/repro2.mjs` against the actual regex):\n\n- `\"...the schedule's proposed amount across a schedule; it doesn't allow overrun\"` → extracted token `\"s proposed amount across a schedule; it doesn\"` — this is the same shape as the issue's reported missing tokens.\n- `\"...dispatch.mjs's outsideRoleScope unless its stem matches a schema-owned sibling; it isn't a package boundary\"` → extracted token `\"s outsideRoleScope unless its stem matches a schema-owned sibling; it isn\"`.\n\nClassification: **sharpens-framing**. The lean can still bind on \"apostrophes cause a false FAILED,\" but any fix scoped to \"the tokeniser\" or to \"escaping the apostrophe\" in the abstract is aimed at code that doesn't exist. The concrete failure mode this produces: a patch that touches clause derivation/tokenisation (there isn't one) instead of `extractExpectedTokens`'s quote regex leaves the actual defect unpatched while looking like it addressed the filed issue. Disposition consequence: the fix location and its regression test must cite `extractExpectedTokens` in `clauses.ts`, not a generic tokeniser.\n\n**Trigger condition is narrower and broader at once than stated.** The issue's title and Expected-behavior section claim this fires for \"any acceptance clause containing an apostrophe\" and frames it as a possessive problem. Neither holds exactly:\n\n- A clause with exactly one apostrophe and no other quote-class character anywhere in its text does **not** trigger the bug today. Confirmed: `\"the schedule's total\"` alone → `extractExpectedTokens` returns `[]`, and the clause correctly falls through to the existence/behavioral-claim checks, never reaching FAILED via this path. So \"any clause containing an apostrophe\" is too broad as stated.\n- The trigger needs no possessive at all. Two ordinary contractions with no possessive misfire the same way: `\"verify:ac doesn't fail when the artifact isn't scratch\"` → extracted token `\"t fail when the artifact isn\"`. So \"possessive\" is too narrow as the named cause; any clause carrying two-or-more apostrophe/quote characters is exposed, contractions included.\n- Mismatched delimiter types pair too: an apostrophe can open and a straight double-quote can close in the same clause. `\"the response returns the user's id and logs \\\"unauthorized\\\" on failure\"` → extracted token `\"s id and logs\"`, even though that clause also carries one legitimate quoted literal (`\"unauthorized\"`) that should have matched cleanly on its own.\n\nClassification: **sharpens-framing**. Failure mode if this isn't corrected: an implementer reads \"escape or ignore the apostrophe\" (the issue's own suggested fix) and a regression test built against a single-possessive fixture, which already passes today and would not catch a regression; the actual production failures need a second apostrophe/quote-class character in the same clause to reproduce, and a fix that special-cases possessives specifically (e.g. stripping `'s`) would still misfire on contraction-only and mixed-delimiter clauses. Disposition consequence: the acceptance test for the eventual fix needs at minimum (a) a lone-possessive clause as a non-regression case (already correct, must stay correct), (b) a two-apostrophe or contraction-pair clause as the actual repro, (c) a mixed `'`/`\"` clause, and (d) a genuine single-quoted-literal clause (`contains \"exact string\"`) that must keep working — the fourth case is live functionality (`extractExpectedTokens` legitimately verifies quoted literals against shipped artifacts) that a same-quote-type-pairing fix must not break.\n\n**Footnote.** The regex's word-boundary blindness (no check that an opening `'` isn't immediately preceded by a letter) is the more direct cause than \"delimiter symmetry\" per se — a lookbehind excluding `'` immediately after `[A-Za-z0-9]` would suppress `'s`/`n't` cases without touching genuine quoted-literal handling, and combined with same-character-type pairing would also close the mixed-delimiter case. Not classified as blocks-the-design or sharpens-framing since it's a solution-shaped observation offered for whoever writes the fix, not a defect in the filed premise.\n\n**Injection/swarm lens.** Applicable in a narrow sense: clause text is untrusted (the task statement is the issue body plus its full public comment thread, and `clauses.ts` already documents this at the #3835 comment). But the defect here is a plain substring-membership check (`body.includes(token)`) against a file already gated by `plan.metadata.swarm.file_scope` (`isDeclaredArtifactPath`, clauses.ts:797) — a commenter cannot use this bug to select which file gets read or to gain any new read/write surface, only to make an in-scope, already-correct file wrongly report FAILED. No authority or file-selection escalation; this is a gate-integrity/correctness defect, not a security finding.\n\n\n### Comment by @MScottAdams (2026-09-02T16:22:06Z)\n\nmodel: grok-4.6\nrole: parent\n\n**Lean:**\n\n## In plain English\n\nThe filed bug is real: an apostrophe in acceptance-clause prose can make verify:ac report FAILED on correct work. The mechanism on the issue is not. There is no clause-text tokeniser that splits on apostrophes. The walk extracts quoted literals in extractExpectedTokens with a regex that treats apostrophe and double-quote as the same delimiter class, so two or more quote-class characters in one clause capture a fragment that cannot exist in the artifact. A lone possessive does not reproduce it. Confirming this map recuts #4103 onto that regex, with tests for lone-possessive non-regression, a two-apostrophe or contraction-pair repro, mixed delimiters, and a genuine quoted-literal that must keep working.\n\nThis parent authored the Stop 1 write-back. The round-1 critic is Claude (cross-family). These takes are not a same-family confirmation.\n\n## Proposed takes\n\nCritic comment 5512757280. Round 1, spend N=1. Supersedes write-back 5512659733.\n\n1. recorded mechanism names the wrong operation (sharpens-framing) — take: accept-into-contract\n2. trigger condition is narrower and broader than stated (sharpens-framing) — take: accept-into-contract\n3. lookbehind vs delimiter symmetry as fix shape (footnote) — take: accept-into-contract (census only; not residual)\n\nResidual headings: none. No defer. No disagree.\n\nParent forward verdict: the refutation-target survives as the outcome (spurious FAILED) and does not survive as the named mechanism or the any-apostrophe trigger. The bindable recut is extractExpectedTokens quote-class pairing at clauses.ts:757 on SHA 16e995470c73c9449d6ee137162912db091e9de6.\n\n\n### Comment by @MScottAdams (2026-09-02T16:23:09Z)\n\nmodel: grok-4.6\nrole: parent\n\nYOLO operator confirm of successor lean 5512769984. Accept headings 1-3 on critic 5512757280. Empty disagreement set. Zero unresolved audit markers. No unposted same-round siblings.\n\n\n### Comment by @MScottAdams (2026-09-02T16:23:26Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n|---|---|---|\n| Apostrophes in clause prose can make verify:ac report FAILED on correct work | verified | critic executed extractExpectedTokens at SHA 16e995470c73c9449d6ee137162912db091e9de6; parent independently read clauses.ts:754-773 on the same SHA |\n| The defect is extractExpectedTokens quote-class regex at clauses.ts:757, not a clause-text tokeniser | verified | critic ran derivation path (buildClause binds artifact_path null) plus the regex; parent independently read the same function |\n| A lone possessive does not fire; two or more quote-class characters do, including contractions and mixed delimiters | verified | critic executed the live regex against lone-possessive, contraction-pair, and mixed-delimiter fixtures |\n| Genuine quoted literals must keep matching | verified | critic inventory: extractExpectedTokens exists to verify quoted literals against shipped artifacts |\n\nCited critic comment 5512757280. Cited lean 5512769984.\n\n\n### Comment by @MScottAdams (2026-09-02T16:23:54Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe filed outcome stands: verify:ac can report FAILED on correct work when clause prose contains apostrophes. The named mechanism does not. The defect is extractExpectedTokens treating apostrophe and double-quote as one delimiter class. A lone possessive is already fine. The recut is that regex plus tests for two-or-more quote-class characters, mixed delimiters, and a genuine quoted literal that must keep working.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean 5512769984\nverified-claims table 5512787255",
+      "Labels": "bug, determinism, agent-experience, design-critique:triage-ready",
+      "UserStory": "As a consumer using scope:complete, I want verify:ac not to FAIL correct work because clause prose has contractions or mixed quotes, so a red gate still means a real miss.",
+      "ImplementationPlan": "Fix extractExpectedTokens in packages/core/src/verify-ac/clauses.ts so apostrophe and double-quote are not one delimiter class. Tests in packages/core/src/verify-ac/clauses.test.ts: (a) lone possessive stays a non-event, (b) contraction-pair / two-apostrophe does not extract a spurious token, (c) mixed delimiters do not steal a genuine quoted literal, (d) a genuine same-delimiter quoted literal still extracts. CHANGELOG Unreleased. Do not invent a clause-text tokeniser. Do not special-case possessives only.",
+      "Traces": "AC-1 4103"
+    },
+    "items": [
+      {
+        "id": "ac1",
+        "title": "Two-or-more quote-class characters do not false-FAIL",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given extractExpectedTokens in packages/core/src/verify-ac/clauses.ts, when a clause contains two or more quote-class characters (contraction pair or mixed delimiters), then it does not extract a spurious fragment that would FAIL a correct artifact."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-ac/clauses.test.ts#4103-contraction-pair",
+          "recorded_at": "2026-09-02T17:44:11Z",
+          "recorded_by": "leaf-worker/4103"
+        }
+      },
+      {
+        "id": "ac2",
+        "title": "Lone possessive stays a non-event",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given a clause with a lone possessive and no other quote-class character, when extractExpectedTokens runs, then it returns no quoted token (non-regression)."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-ac/clauses.test.ts#4103-lone-possessive",
+          "recorded_at": "2026-09-02T17:44:11Z",
+          "recorded_by": "leaf-worker/4103"
+        }
+      },
+      {
+        "id": "ac3",
+        "title": "Genuine quoted literals still extract",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given a clause with a genuine same-delimiter quoted literal, when extractExpectedTokens runs, then that literal is still extracted for verbatim match."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-ac/clauses.test.ts#4103-quoted-literal",
+          "recorded_at": "2026-09-02T17:44:11Z",
+          "recorded_by": "leaf-worker/4103"
+        }
+      },
+      {
+        "id": "ac4",
+        "title": "CHANGELOG Unreleased",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given CHANGELOG.md, when the recut lands, then Unreleased names the verify:ac quote-class pairing fix for #4103."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4114#CHANGELOG",
+          "recorded_at": "2026-09-02T17:44:11Z",
+          "recorded_by": "leaf-worker/4103"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "determinism",
+      "agent-experience",
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4103",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4103: [framework-gap] verify:ac clause walk reports FAILED, not unverifiable, for any acceptance clause containing an apostrophe"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "ac clause walk reports FAILED, not unverifiable, for any acceptance clause containing an apostrophe",
+          "reason": "first token \"ac\" is not in the literal-AC allowlist",
+          "sourceSpan": "labeled@L5"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/verify-ac/clauses.ts",
+          "packages/core/src/verify-ac/clauses.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/verify-ac/clauses.test.ts"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/verify-ac/clauses.ts",
+          "packages/core/src/verify-ac/clauses.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/verify-ac",
+        "cohesion_exemption": "CHANGELOG.md already exceeds FILE_SIZE_REVIEW_TRIGGER_LINES; this slice only adds the #4103 Unreleased line. clauses.ts/clauses.test.ts stay under the trigger. Splitting CHANGELOG is out of scope."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4114,
+        "prBase": null,
+        "mergeCommit": "e34d76c8a4e0e39f79e754bf13a6c4cb06281bfc",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e34d76c8a4e0e39f79e754bf13a6c4cb06281bfc",
+        "verifiedAt": "2026-09-02T17:44:21Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDYzMDQtYWRkMC03ZjkyLTg0ZjgtODk3M2Y3YzFmMmZj"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-02T17:44:21Z"
+      },
+      "completedAt": "2026-09-02T17:44:21Z",
+      "completedSessionId": "host:claude:v1:MDFhMDYzMDQtYWRkMC03ZjkyLTg0ZjgtODk3M2Y3YzFmMmZj",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/verify-ac/clauses.test.ts"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "derived from operator-accepted synthesis 5512793220 / lean 5512769984",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Given extractExpectedTokens in packages/core/src/verify-ac/clauses.ts, when a clause contains two or more quote-class characters (contraction pair or mixed delimiters), then it does not extract a spurious fragment that would FAIL a correct artifact.",
+          "artifact_path": "packages/core/src/verify-ac/clauses.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Given a clause with a lone possessive and no other quote-class character, when extractExpectedTokens runs, then it returns no quoted token (non-regression).",
+          "artifact_path": "packages/core/src/verify-ac/clauses.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Given a clause with a genuine same-delimiter quoted literal, when extractExpectedTokens runs, then that literal is still extracted for verbatim match.",
+          "artifact_path": "packages/core/src/verify-ac/clauses.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Given CHANGELOG.md, when the recut lands, then Unreleased names the verify:ac quote-class pairing fix for #4103.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-09-02T17:44:21Z"
+  }
+}
