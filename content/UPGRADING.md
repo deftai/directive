@@ -436,6 +436,14 @@ All documentation (README, AGENTS.md, this file, `deft-directive-sync` skill) no
 
 ---
 
+## Four-focus pre-PR pass
+
+After `deft update` / deposit, `deft-directive-pre-pr` includes **Phase 6 four-focus** (A acceptance+tests, B bug hunt, C stealth/secrets/log leaks, D regression+extra scope) after the RWLDL loop. Agents MUST NOT push because `task check` / RWLDL was green if four-focus did not run. Depth: `skills/deft-directive-pre-pr/references/four-focus.md`. On Grok, copy or deposit `.grok/workflows/pre-pr-four-focus.rhai` and run `/pre-pr-four-focus`.
+
+This complements (does not replace) Greptile / `deft-directive-review-cycle` after the PR is open.
+
+---
+
 ## Coverage hotspots + pre-PR headroom (#2683)
 
 After `deft update` / deposit, consumer projects gain:

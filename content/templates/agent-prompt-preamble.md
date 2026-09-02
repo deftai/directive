@@ -240,9 +240,10 @@ Reference: issue #2563; swarm skill Platform Requirements; env scrub + stdio inh
 Before pushing any branch:
 
 - Run `skills/deft-directive-pre-pr/SKILL.md` end-to-end. The skill's RWLD loop (read, write, lint, doc) catches the easy stuff before Greptile sees it.
+- After RWLDL exits, run Phase 6 four-focus (A acceptance+tests, B bug hunt, C stealth/secrets/log leaks, D regression+extra scope) per `skills/deft-directive-pre-pr/references/four-focus.md`. On Grok prefer `.grok/workflows/pre-pr-four-focus.rhai`. RWLDL-clean is not push-ready.
 - After opening the PR, run `skills/deft-directive-review-cycle/SKILL.md` end-to-end on bot findings. Cap iterations at 3 unless the user explicitly extends.
 
-Anti-pattern: pushing without pre-pr and relying on Greptile to find issues. That burns review-cycle iterations on issues you could have caught locally; each iteration costs GraphQL budget under your shared identity.
+Anti-pattern: pushing without pre-pr (RWLDL + four-focus) and relying on Greptile to find issues. That burns review-cycle iterations on issues you could have caught locally; each iteration costs GraphQL budget under your shared identity.
 
 ## 4.5 Review-surface precedence -- deft review-cycle wins over host review tools (#2308)
 

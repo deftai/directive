@@ -39,7 +39,7 @@ These four process skills are the **default always-pin list** for directive deve
 | Skill | Load when |
 |---|---|
 | `deft-directive-build` | Code mutation / implementation against an active scope xBRIEF (#810) |
-| `deft-directive-pre-pr` | Before opening or pushing a PR |
+| `deft-directive-pre-pr` | Before opening or pushing a PR. Includes Phase 6 **four-focus** (A acceptance+tests, B bug hunt, C stealth/secrets/log leaks, D regression+extra scope) after RWLDL. Depth: `skills/deft-directive-pre-pr/references/four-focus.md`. |
 | `deft-directive-review-cycle` | Greptile/bot review response until merge-ready (#2308) |
 | `deft-directive-swarm` | Parallel agent dispatch / cohort orchestration |
 

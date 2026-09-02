@@ -88,7 +88,7 @@ Same as managed below; `task verify:story-ready`, `task scope:promote -- <path>`
 - ! If no scope xBRIEF exists for the work, create one in `./xbrief/proposed/` before implementing
 - ⊗ Begin editing files before checking scope xBRIEF coverage and creating a feature branch — even if the user says "yes" or "proceed"
 
-! Before opening a PR, run `content/skills/deft-directive-pre-pr/SKILL.md`. Before committing: `task check`; `task verify:forward-coverage` (#1310); `task coverage:hotspots` for branch headroom steering (#2683); CHANGELOG `[Unreleased]`.
+! Before opening a PR, run `content/skills/deft-directive-pre-pr/SKILL.md` including Phase 6 four-focus (A/B/C/D). Before committing: `task check`; `task verify:forward-coverage` (#1310); `task coverage:hotspots` for branch headroom steering (#2683); CHANGELOG `[Unreleased]`.
 
 ! Branching: feature branches only (`task verify:branch`, `.githooks/pre-commit` / `.githooks/pre-push`, `branch-gate` workflow). Override: `task policy:allow-direct-commits -- --confirm`; emergency `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1`. When `plan.policy.allowDirectCommitsToMaster = true`, surface via `task policy:show --field=allowDirectCommitsToMaster` (Branch Policy Disclosure).
 
@@ -220,6 +220,7 @@ Legacy `vbrief/` read-accepted; `deft migrate:xbrief` for `xbrief/` (v0.6→v0.8
 
 ! Process-critical skills with false-negative risk MUST be named in AGENTS.md (always-pin tier) — tier definitions: `.deft/core/docs/skill-pin-policy.md` (#2508).
 ! **Default always-pins:** `deft-directive-build`, `deft-directive-pre-pr`, `deft-directive-review-cycle`, `deft-directive-swarm` — read each `SKILL.md` when that work type starts.
+! Before opening or pushing a PR, `deft-directive-pre-pr` includes Phase 6 four-focus (A acceptance+tests, B bug hunt, C stealth/secrets/log leaks, D regression+extra scope). Depth: `skills/deft-directive-pre-pr/references/four-focus.md`. ⊗ Push because RWLDL/`deft check` was green if four-focus did not run.
 ⊗ Pin entire language packs, deployment docs, or framework bulk into AGENTS.md — pins are for false-negative-sensitive process gates only (#2508).
 
 ## Review-surface precedence (#2308)

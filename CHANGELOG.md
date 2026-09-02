@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Four-focus pre-PR specialist pass.** `deft-directive-pre-pr` Phase 6 runs four read-only specialists (A acceptance+tests, B bug hunt, C stealth/secrets/log leaks, D regression+extra scope) after the RWLDL loop and before push. Canonical prompts live in `skills/deft-directive-pre-pr/references/four-focus.md`; Grok hosts prefer `.grok/workflows/pre-pr-four-focus.rhai`. AGENTS pin, swarm preamble, and eval triggers updated so RWLDL-clean is not push-ready.
 - **Persistent agent-host hook opt-out (#2752).** `plan.policy.hostHooks` lets consumers disable Directive hook deposit per host (`claude`, `cursor`, `grok`, `codex`). Opted-out hosts are skipped on `deft update` / `directive init`, managed entries are stripped without deleting unrelated settings, and doctor / `verify:hooks-installed` no longer recommend repair. Inspect with `deft policy:show --field=hostHooks`.
 
 ### Changed

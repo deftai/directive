@@ -1,0 +1,44 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Add four-focus specialist pass (A/B/C/D) to deft-directive-pre-pr before push.",
+    "created": "2026-09-02T00:00:00Z",
+    "updated": "2026-09-02T00:00:00Z"
+  },
+  "plan": {
+    "id": "four-focus-pre-pr",
+    "title": "Four-focus pre-PR specialist pass",
+    "status": "proposed",
+    "narratives": {
+      "Description": "RWLDL pre-PR is a generalist self-review. Issues still leak into PRs (missing acceptance/tests, latent bugs, secret/log leaks, extra scope). Encode a four-focus specialist pass after RWLDL and before push, with one home in directive and product-repo pointers plus a Grok workflow.",
+      "UserStory": "As an agent about to push a PR, I want four specialist passes (acceptance+tests, bug hunt, stealth/secrets/log leaks, regression+extra scope) so Greptile does not become the first reviewer of those classes.",
+      "ImplementationPlan": "1) Author skills/deft-directive-pre-pr/references/four-focus.md and Phase 6. 2) Pin in agents-entry, AGENTS.md, preamble, skill-pin-policy, REFERENCES, evals. 3) Add .grok/workflows/pre-pr-four-focus.rhai. 4) Tests for the gate. 5) Product-repo PRs copy the workflow and add an unmanaged AGENTS pointer."
+    },
+    "items": [
+      {
+        "title": "AC1",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "deft-directive-pre-pr Phase 6 and references/four-focus.md define passes A/B/C/D, evidence-required findings, dual-stop, and host fallback."
+        }
+      },
+      {
+        "title": "AC2",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "AGENTS.md managed pin, agents-entry, swarm preamble, REFERENCES triggers, and eval cases require four-focus before push; RWLDL-clean is not push-ready."
+        }
+      },
+      {
+        "title": "AC3",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": ".grok/workflows/pre-pr-four-focus.rhai smoke-checks; CHANGELOG Unreleased records the gate."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story"
+    }
+  }
+}
