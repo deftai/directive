@@ -3839,7 +3839,7 @@
       "id": "agents-029",
       "tier": "MUST",
       "domain": "agents",
-      "text": "**Worker-owns-lifecycle (Gap C):** When dispatching an implementation worker, the envelope MUST declare `stop-at: pr-open` OR `drive-to: merge-ready` (default for story work). Workers scoped `drive-to: merge-ready` own PR + review cycle + fix batches through merge-ready as ONE unit of work \u2014 they spawn their own review poller per review-cycle monitoring tiers; the orchestrator MUST NOT hand back at PR-open and re-dispatch separate leaf agents for review/fixes.",
+      "text": "**Worker-owns-lifecycle (Gap C):** When dispatching an implementation worker, the envelope MUST declare `stop-at: pr-open` OR `drive-to: merge-ready` (default for story work). Workers scoped `drive-to: merge-ready` own PR + review cycle + fix batches through merge-ready as ONE unit of work \u2014 following review-cycle monitoring tiers (Grok Build / Cursor / Claude Code leaves that cannot nest block on `pr:watch` in-process and MUST NOT spawn a child poller) (#4130); the orchestrator MUST NOT hand back at PR-open and re-dispatch separate leaf agents for review/fixes.",
       "path": "AGENTS.md",
       "body": null
     },
