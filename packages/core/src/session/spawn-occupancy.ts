@@ -259,10 +259,12 @@ export function persistSpawnReservation(
   const root = resolve(storeRoot);
   if (!existsSync(root)) return { ok: true };
   const dest = resolve(reservation.worktreePath);
+  const incarnation = reservation.incarnation?.trim() ?? "";
+  if (incarnation.length === 0) return { ok: false, reason: "conflict" };
   const lockDir = join(root, ".deft", "spawn-reservations");
   mkdirSync(lockDir, { recursive: true });
   try {
-    writeFileSync(reservationLockPath(root, dest), reservation.incarnation, {
+    writeFileSync(reservationLockPath(root, dest), incarnation, {
       flag: "wx",
       encoding: "utf8",
     });
