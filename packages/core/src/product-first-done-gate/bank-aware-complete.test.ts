@@ -23,6 +23,12 @@ function writeBrief(root: string, plan: Record<string, unknown>): string {
   return path;
 }
 
+function statedLedger(
+  commands: string[],
+): { command: string; cwd: null; expectedExitCode: number }[] {
+  return commands.map((command) => ({ command, cwd: null, expectedExitCode: 0 }));
+}
+
 function parseJsonl(path: string): { event: string; payload: Record<string, unknown> }[] {
   return readFileSync(path, "utf8")
     .trim()
@@ -444,7 +450,12 @@ describe("bank-aware complete walk (#3387)", () => {
       metadata: { swarm: { file_scope: ["src"] } },
     };
     const productPaths = ["src/product.txt"];
-    const hashed = hashProductState({ projectRoot: root, plan, productPaths });
+    const hashed = hashProductState({
+      projectRoot: root,
+      plan,
+      productPaths,
+      resolvedAcceptanceContract: statedLedger(["task check"]),
+    });
     const bankPath = acPassBankPath(root, "3993-v1-bank");
     mkdirSync(dirname(bankPath), { recursive: true });
     writeFileSync(
@@ -516,7 +527,12 @@ describe("bank-aware complete walk (#3387)", () => {
       metadata: { swarm: { file_scope: ["src"] } },
     };
     const productPaths = ["src/product.txt"];
-    const hashed = hashProductState({ projectRoot: root, plan, productPaths });
+    const hashed = hashProductState({
+      projectRoot: root,
+      plan,
+      productPaths,
+      resolvedAcceptanceContract: statedLedger(["task check"]),
+    });
     const banked = maybeBankOnAcPass({
       projectRoot: root,
       scopeId: "3993-zero-run",
@@ -821,5 +837,106 @@ describe("one-path complete recut (#4060)", () => {
     });
     expect(walk.servedFrom).toBe("executed");
     expect(executions).toBe(3);
+  });
+
+  it("hashProductState changes when resolvedAcceptanceContract changes", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-4060-hash-resolved-"));
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src", "product.txt"), "a\n", "utf8");
+    const productPaths = ["src/product.txt"];
+    const plan = swarmOnlyPlan("4060-hash-resolved", ["task check"]);
+    const first = hashProductState({
+      projectRoot: root,
+      plan,
+      productPaths,
+      resolvedAcceptanceContract: statedLedger(["task check"]),
+    });
+    const second = hashProductState({
+      projectRoot: root,
+      plan,
+      productPaths,
+      resolvedAcceptanceContract: statedLedger(["task doctor"]),
+    });
+    expect(first.complete).toBe(true);
+    expect(second.digest).not.toBe(first.digest);
+  });
+
+  it("narrative-only contract change invalidates a matching-product-hash legacy bank", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-4060-narrative-legacy-"));
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src", "product.txt"), "v1\n", "utf8");
+    const clauses = [
+      {
+        id: 1,
+        text: "behavioral contract with no machine check against product.txt",
+        artifact_path: "src/product.txt",
+        ambiguous: false,
+        provenance: "statement",
+      },
+      {
+        id: 2,
+        text: "another unquoted behavioral claim against the shipped product",
+        artifact_path: "src/product.txt",
+        ambiguous: false,
+        provenance: "statement",
+      },
+    ];
+    const basePlan: Record<string, unknown> = {
+      id: "4060-narrative-legacy",
+      title: "narrative-legacy",
+      status: "running",
+      acceptance: {
+        commands: [{ command: "task check" }],
+        none_stated: true,
+        source_rung: "derived",
+        ambiguity_attestation: "none_found",
+        clauses,
+      },
+      metadata: { swarm: { file_scope: ["src"] } },
+    };
+    const mintPlan = { ...basePlan, narratives: { Overview: "verify: task check" } };
+    const reusePlan = { ...basePlan, narratives: { Overview: "verify: task doctor" } };
+    const productPaths = ["src/product.txt"];
+    const hashed = hashProductState({
+      projectRoot: root,
+      plan: mintPlan,
+      productPaths,
+      resolvedAcceptanceContract: statedLedger(["task check"]),
+    });
+    const bankPath = acPassBankPath(root, "4060-narrative-legacy");
+    mkdirSync(dirname(bankPath), { recursive: true });
+    writeFileSync(
+      bankPath,
+      JSON.stringify({
+        schemaVersion: 1,
+        scopeId: "4060-narrative-legacy",
+        bankedAt: "2026-09-02T00:00:00Z",
+        headSha: null,
+        productStateHash: hashed.digest,
+        remainingTurns: null,
+        remainingBudget: null,
+        maxTurns: null,
+        maxBudget: null,
+        surplusThreshold: 0.2,
+        hadSurplus: true,
+        nextAction: "finalize_and_ship",
+        postBankFindings: [],
+        runs: [{ command: "task check", ok: true, exitCode: 0, stdout: "ok", stderr: "" }],
+      }),
+      "utf8",
+    );
+    let executions = 0;
+    const walk = evaluateScopeCompleteAcceptanceWalk(reusePlan, {
+      projectRoot: root,
+      captureFromNarratives: true,
+      runner: () => {
+        executions += 1;
+        return { exitCode: 0, stdout: "ok", stderr: "" };
+      },
+      productPaths,
+      hasSuiteFloor: true,
+    });
+    expect(walk.servedFrom).toBe("executed");
+    expect(executions).toBeGreaterThan(0);
   });
 });

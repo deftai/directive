@@ -34,8 +34,8 @@ export interface HashProductStateInput {
   readonly runGit?: GitRunner;
   /**
    * Resolved literal+swarm+narrative command identities (#4060).
-   * When omitted, the digest still includes structured swarm.verify_commands
-   * and metadata.literal_acceptance_commands from the plan.
+   * Included in the digest (null when omitted) so narrative-only contract
+   * changes invalidate a matching structured-fields + product-files hash.
    */
   readonly resolvedAcceptanceContract?: readonly unknown[] | null;
 }
@@ -702,6 +702,7 @@ export function hashProductState(input: HashProductStateInput): ProductStateHash
     .update(
       stableJson({
         ...structuredAcceptanceContract(input.plan),
+        resolvedAcceptanceContract: input.resolvedAcceptanceContract ?? null,
         head,
         files: fileHashes,
       }),
