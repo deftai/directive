@@ -104,7 +104,9 @@ describe("test_release_workflow.py", () => {
     expect(releasingDocText).toContain("plan.policy.allowDirectCommitsToMaster");
   });
   it("test_release_skill_names_mint_cli_after_version_confirm (#4079)", () => {
-    expect(releaseSkillText).toContain("deft authz:grant -- --template release-publish --target <version> --confirm");
+    expect(releaseSkillText).toContain(
+      "deft authz:grant -- --template release-publish --target <version> --confirm",
+    );
     expect(releaseSkillText).toMatch(/⊗ `task authz:grant`/);
     expect(releaseSkillText).not.toMatch(/ask whether to debug/i);
     expect(releaseSkillText).toMatch(/ask whether to retry[\s\S]*or stop/);
