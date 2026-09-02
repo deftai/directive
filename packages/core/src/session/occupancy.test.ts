@@ -907,7 +907,11 @@ describe("worktree occupancy lease (#3433)", () => {
   it("does not offer steal when presented is the occupant's own inherited host id (#4066)", () => {
     const root = tempRoot();
     const raw = "01a055e2-b503-7b72-a054-b9dff5bc5e32";
-    applyWorktreeOccupancy(root, { sessionId: raw, now: new Date("2026-08-17T12:00:00Z"), env: {} });
+    applyWorktreeOccupancy(root, {
+      sessionId: raw,
+      now: new Date("2026-08-17T12:00:00Z"),
+      env: {},
+    });
     const record = readOccupancy(root);
     expect(record).not.toBeNull();
     const grok = canonicalHostSessionId("grok", raw);
