@@ -2,19 +2,13 @@
 import { statSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import type { ResolveAuthenticatedLogin } from "@deftai/directive-core/dist/triage/author-filter.js";
 import {
-  type ResolveAuthenticatedLogin,
-  resolveAuthorFilter,
-} from "@deftai/directive-core/dist/triage/author-filter.js";
-import {
-  type LabelMirrorOptions,
-  labelMirrorOutcomeToJson,
+  CLASSIFY_MIRROR_WITHDRAWN_EXIT_CODE,
+  CLASSIFY_MIRROR_WITHDRAWN_MESSAGE,
   listProject,
   mirrorDiscoveryStateExists,
-  mirrorLabels,
   recordMirrorDiscoveryAcked,
-  recordMirrorDiscoverySuccessfulDryRun,
-  renderLabelMirrorReport,
   validateProject,
 } from "@deftai/directive-core/dist/triage/classify/index.js";
 import type { LabelClient } from "@deftai/directive-core/dist/vbrief-reconcile/types.js";
@@ -259,7 +253,7 @@ export interface RunOptions {
 }
 
 /** Run the CLI and return the process exit code. */
-export function run(argv: string[], options: RunOptions = {}): number {
+export function run(argv: string[], _options: RunOptions = {}): number {
   const args = parseArgs(argv);
   if (args.error !== undefined) {
     process.stderr.write(`ERR: ${args.error}\n`);
@@ -324,46 +318,8 @@ export function run(argv: string[], options: RunOptions = {}): number {
   }
 
   if (args.doMirror) {
-    let authorFilter: LabelMirrorOptions["authorFilter"] = null;
-    // Flag present (including empty `--author=`) must resolve or fail closed —
-    // never silent no-op that would plan/apply the full open cache (#3129 Greptile P1).
-    if (args.author !== null) {
-      const resolved = resolveAuthorFilter(args.author, options.resolveAuthenticatedLogin);
-      if (resolved.error !== undefined || resolved.filter === undefined) {
-        process.stderr.write(
-          `ERR: ${resolved.error ?? "argument --author: expected a non-empty login (or @me)"}\n`,
-        );
-        return 2;
-      }
-      authorFilter = resolved.filter;
-    }
-    const mirrorOpts: LabelMirrorOptions = {
-      dryRun: !args.apply,
-      repo: args.repo,
-      allowCrossRepo: args.allowCrossRepo,
-      includeClosed: args.includeClosed,
-      reEnrich: args.reEnrich,
-      ...(authorFilter !== null && authorFilter !== undefined ? { authorFilter } : {}),
-      ...(args.batchSize !== null ? { batchSize: args.batchSize } : {}),
-      ...(args.delayMs !== null ? { delayMs: args.delayMs } : {}),
-      ...(args.sampleLimit !== null ? { sampleLimit: args.sampleLimit } : {}),
-      ...(options.labelClient !== undefined ? { client: options.labelClient } : {}),
-    };
-    const [code, outcome] = mirrorLabels(projectRoot, mirrorOpts);
-    if (args.json) {
-      process.stdout.write(`${JSON.stringify(labelMirrorOutcomeToJson(outcome), null, 2)}\n`);
-    } else {
-      process.stdout.write(renderLabelMirrorReport(outcome));
-    }
-    // #3124: first successful --mirror dry-run hides the operator discovery tip.
-    if (code === 0 && outcome.dry_run) {
-      try {
-        recordMirrorDiscoverySuccessfulDryRun(projectRoot);
-      } catch {
-        // Advisory tip state — never change the classify exit code.
-      }
-    }
-    return code;
+    process.stderr.write(`${CLASSIFY_MIRROR_WITHDRAWN_MESSAGE}\n`);
+    return CLASSIFY_MIRROR_WITHDRAWN_EXIT_CODE;
   }
 
   // Default / --list: print effective rules

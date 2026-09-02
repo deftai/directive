@@ -22,7 +22,7 @@ vars:
 
 tasks:
   classify:
-    desc: "Inspect / validate triageAutoClassify + triageLabelMirror; Tier-1 SCM label mirror (#1129 / #1423). -- task triage:classify -- [--list | --validate | --mirror [--apply]]"
+    desc: "Inspect / validate triageAutoClassify + triageLabelMirror. --mirror is withdrawn (#4070)."
     internal: true
     deps: [":engine:_ts-build"]
     dir: '{{.USER_WORKING_DIR}}'
@@ -30,3 +30,13 @@ tasks:
       - task: :engine:invoke
         vars:
           ENGINE_CMD: 'triage-classify --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
+  strip-withdrawn-chips:
+    desc: "Remaining-set strip of withdrawn triaged / triage:* chips (#4070). Dry-run default; --apply writes. --emit-digest prints shadowed vs faithful classify rows for #4071."
+    internal: true
+    deps: [":engine:_ts-build"]
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'triage-strip-withdrawn --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'

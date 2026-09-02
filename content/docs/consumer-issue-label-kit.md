@@ -109,10 +109,9 @@ https://github.com/deftai/directive/blob/master/content/docs/consumer-issue-labe
 - epic (rare multi-ship product root)
 - status:tracker, status:child
 
-## Mirror (if using triage:classify -- --mirror)
-- triaged
-- optional action chips: triage:deferred, triage:archived
-  (only if plan.policy.triageLabelMirror.actionLabels maps them)
+## Mirror (withdrawn #4070)
+- `triage:classify -- --mirror` is withdrawn. Do not stamp `triaged` / `triage:*` from classify.
+- Replacement sieve is #4071. Leave these names unused until the replacement recuts the catalog.
 
 ## Optional project routing (only if used)
 - security (advisory security review routing; not a merge gate)
@@ -126,16 +125,7 @@ Do not invent labels outside this file. Prefer existing names over twins.
 
 ## Optional: label mirror appendix
 
-After SCM label mirror Waves 1–2 (#1423 / #3125):
-
-| Topic | Guidance |
-|-------|----------|
-| Defaults | Mirror is available; on match it stamps **`triaged`** (idempotency). Action chips only when configured. |
-| Dry-run | `deft triage:classify -- --mirror` (open-only default). Review the digest before `--apply`. |
-| Apply | `deft triage:classify -- --mirror --apply` writes labels in batches; re-run is a no-op for already-`triaged` issues. |
-| More matches | Add rules under `plan.policy.triageAutoClassify` in `xbrief/PROJECT-DEFINITION.xbrief.json`. |
-| Richer chips | Set `plan.policy.triageLabelMirror.actionLabels` **and** create those GitHub labels first. |
-| Accept path | ⊗ Never auto-`triage:accept` / never auto-write `proposed/` from mirror. Accept stays an operator decision. |
+After #4070, SCM label mirror Waves 1–2 (#1423 / #3125) are unusable. `deft triage:classify -- --mirror` (dry-run and `--apply`) fail closed. Strip leftover chips with `deft triage:strip-withdrawn-chips`. Replacement sieve is #4071. #2611 stays open. Accept stays an operator decision (`triage:accept` / ingest unchanged).
 
 Minimal policy sketch (clone and edit; broader triage field examples live in the framework repo at [`docs/example-project-definition.md`](https://github.com/deftai/directive/blob/master/docs/example-project-definition.md) — not deposited under `.deft/core/`):
 
@@ -166,13 +156,10 @@ Minimal policy sketch (clone and edit; broader triage field examples live in the
 }
 ```
 
-If you only want the default `triaged` stamp, you can omit `actionLabels` entirely.
-
-Validate with:
+`triage:classify -- --mirror` is withdrawn (#4070). Do not add `triageLabelMirror` to stamp `triaged` / `triage:*`. Validate remaining classify rules with:
 
 ```bash
 deft triage:classify -- --validate
-deft triage:classify -- --mirror
 ```
 
 ---
@@ -221,5 +208,5 @@ Framework source / GitHub (browse when not in a deposit):
 ## Related reading
 
 - Maintainer taxonomy (do not import wholesale): [`.github/ISSUE_LABELS.md`](https://github.com/deftai/directive/blob/master/.github/ISSUE_LABELS.md) (#2609)
-- Label mirror behavior: deposit `.deft/core/commands.md` (or framework `content/commands.md`) / `deft triage:classify -- --mirror` (#1423, #3125)
+- Label mirror withdrawn: deposit `.deft/core/commands.md` (or framework `content/commands.md`) / #4070 (do not run `deft triage:classify -- --mirror`)
 - Example PROJECT-DEFINITION triage fields: [`docs/example-project-definition.md`](https://github.com/deftai/directive/blob/master/docs/example-project-definition.md) (#1186; framework repo only, not deposited)

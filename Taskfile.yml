@@ -992,9 +992,16 @@ tasks:
           CLI_ARGS: "{{.CLI_ARGS}}"
 
   triage:classify:
-    desc: "Inspect / validate auto-classification + Tier-1 SCM label mirror (#1129 / #1423). -- task triage:classify -- [--list | --validate | --mirror [--apply]]"
+    desc: "Inspect / validate auto-classification. --mirror is withdrawn (#4070). -- task triage:classify -- [--list | --validate]"
     cmds:
       - task: triage-classify:classify
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:strip-withdrawn-chips:
+    desc: "Remaining-set strip of withdrawn triaged / triage:* chips (#4070). -- task triage:strip-withdrawn-chips -- [--apply] [--emit-digest] [--json] [--repo OWNER/NAME]"
+    cmds:
+      - task: triage-classify:strip-withdrawn-chips
         vars:
           CLI_ARGS: "{{.CLI_ARGS}}"
 

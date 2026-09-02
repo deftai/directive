@@ -156,9 +156,9 @@ export const DEFAULT_TRIAGE_SCOPE_VALUE: readonly Record<string, unknown>[] = [
 export const DEFAULT_TRIAGE_SCOPE_IGNORES_VALUE: readonly unknown[] = [];
 export const DEFAULT_TRIAGE_RANKING_LABELS_VALUE: readonly string[] = [];
 export const DEFAULT_TRIAGE_AUTO_CLASSIFY_VALUE: readonly unknown[] = [];
-/** Default for #1423 Tier-1 label mirror: enabled with `triaged` idempotency marker. */
+/** Default for #1423 Tier-1 label mirror: hygiene-off after #4070 withdraw. Apply still fail-closes. */
 export const DEFAULT_TRIAGE_LABEL_MIRROR_VALUE: Readonly<Record<string, unknown>> = {
-  enabled: true,
+  enabled: false,
   idempotencyLabel: "triaged",
   alwaysLabels: ["triaged"],
   actionLabels: {},

@@ -132,6 +132,7 @@ export const CLI_MODULE_VERBS = [
   "triage-bootstrap",
   "triage-bulk",
   "triage-classify",
+  "triage-strip-withdrawn",
   "triage-evaluate",
   "triage-help",
   "triage-queue",

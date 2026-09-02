@@ -1,0 +1,244 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #4070. Bound SoT is design-critique synthesis 5501670096 citing lean 5501665011 and verified-claims table 5501668002, not the as-filed body alone.",
+    "created": "2026-09-01T23:40:00Z",
+    "updated": "2026-09-02T00:00:56Z"
+  },
+  "plan": {
+    "title": "chore(triage): withdraw the classify skill and strip triaged / triage:* chips",
+    "status": "running",
+    "narratives": {
+      "Description": "Withdraw the classify playbook and fail-close triage:classify --mirror (including dry-run), recut pinned work-selection, keep a withdrawn stub on the same pack triggers, emit the existing --json digest, then remaining-set-strip triaged / triage:* chips on deftai/directive. Leave ingest, queue audit log, and design-critique catalog chips.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4070. Bound by synthesis 5501670096, lean 5501665011, table 5501668002. Critics 5501581649 (grok) and 5501649095 (claude-opus-5).",
+      "Overview": "## Bound contract (lean 5501665011)\n\n1. Fail-close `triage:classify --mirror` itself, **including dry-run**, with a pointer at #4070. Fail-closing only `--apply` is not enough (portfolio-priority Phase 1, welcome tip, commands.md still run classify).\n2. Do not treat `skipped_disabled` as the off-switch. Apply refuses even when `enabled` is still true. Both default sites (`label-mirror.ts` and `policy/index.ts`) are hygiene, not the guarantee.\n3. Keep a withdrawn stub on the **same pack triggers**. Do not delete the pack entry. Recut always-pin work-selection (`AGENTS.md` / `agents-entry.md`, #1309) and refinement Phase 0 to: `plan-sequence:current`, then a read-only `triage:queue` listing. `packs:slice` alone is not the off-switch.\n4. Strip chips via remaining-set label apply, not through classify. Leave `candidates.jsonl` and queue grouping alone. Population is essentially `triaged` and `triage:deferred` (plus four `needs-human`); `archived` and `lifecycle-linked` have zero carriers.\n5. Restate the harm: first-match is true; regex is not. Predicates are labels / body-text / state / age-days. Universal hold-marker defer runs first and can shadow consumer escalate. **Before the strip**, emit the existing `--json` digest so #4071 can see shadowed versus faithful chips.\n6. Name #3579 as transitively withdrawn for the gap. Do **not** close #1423, #3579, #2611, or #3923. Leave design-critique catalog chips. Leave ingest / `triage:accept`.\n\n## Harm restatement\n\n`triaged` and `triage:*` chips promise the issue was triaged. They are first-match classify output over labels / body-text / state / age-days, not regex. Universal hold-marker defer (`UNIVERSAL_RULES[0]`) runs first and can shadow consumer escalate. None of the 23 issues that completed a design-critique arc also carry `triaged`.\n\n## As-filed AC still required\n\nSkill stub; packs:slice by those triggers does not load the old playbook. `triage:classify -- --mirror --apply` (and dry-run) exits non-zero with pointer to #4070. Mirror discovery tip does not fire. Zero issues on deftai/directive carry `triaged` or `triage:deferred|archived|lifecycle-linked|needs-human`. Arc chips unchanged. CHANGELOG [Unreleased] names the withdrawal and the strip. #3124 discovery and #1423 Wave 1-2 apply are unusable after this lands, without closing those issues from this PR.\n\n## Non-goals\n\nNew sieve (#4071). Deleting GitHub label definitions. Changing ingest / design-critique contract. Closing #1423, #3579, #2611, or #3923.",
+      "Labels": "agent-experience, process, design-critique:triage-ready"
+    },
+    "items": [
+      {
+        "title": "Fail-close triage:classify --mirror including dry-run, apply, and re-enrich, with a pointer at #4070; skipped_disabled is not the off-switch",
+        "status": "completed",
+        "effort": "M",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/triage-classify.test.ts",
+          "recorded_at": "2026-09-02T00:00:56Z",
+          "recorded_by": "grok-4.6"
+        }
+      },
+      {
+        "title": "Hygiene-only: default triageLabelMirror.enabled false in label-mirror.ts and policy/index.ts; apply still refuses when enabled remains true",
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/triage/classify/label-mirror.test.ts",
+          "recorded_at": "2026-09-02T00:00:56Z",
+          "recorded_by": "grok-4.6"
+        }
+      },
+      {
+        "title": "Keep withdrawn stub on the same pack triggers; packs:slice by those triggers does not load the old playbook",
+        "status": "completed",
+        "effort": "M",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/triage_skill.test.ts",
+          "recorded_at": "2026-09-02T00:00:56Z",
+          "recorded_by": "grok-4.6"
+        }
+      },
+      {
+        "title": "Recut always-pin work-selection (AGENTS.md / agents-entry.md, #1309) and refinement Phase 0 to plan-sequence:current then a read-only triage:queue listing",
+        "status": "completed",
+        "effort": "M",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts",
+          "recorded_at": "2026-09-02T00:00:56Z",
+          "recorded_by": "grok-4.6"
+        }
+      },
+      {
+        "title": "Mirror discovery tip does not fire; recut portfolio-priority Phase 1 so it does not run live classify --mirror",
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/triage/classify/mirror-discovery-tip.test.ts",
+          "recorded_at": "2026-09-02T00:00:56Z",
+          "recorded_by": "grok-4.6"
+        }
+      },
+      {
+        "title": "Before the strip, emit the existing --json digest so #4071 can see shadowed versus faithful chips",
+        "status": "completed",
+        "effort": "M",
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "docs/analysis/2026-09-01-4070-classify-withdraw-digest.json",
+          "recorded_at": "2026-09-02T00:00:56Z",
+          "recorded_by": "grok-4.6"
+        }
+      },
+      {
+        "title": "Strip triaged / triage:deferred|archived|lifecycle-linked|needs-human via remaining-set label apply, not through classify; leave candidates.jsonl, queue grouping, and design-critique catalog chips",
+        "status": "completed",
+        "effort": "L",
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "gh api repos/deftai/directive/issues?labels=triaged&state=all -> [] (126 remaining-set applied)",
+          "recorded_at": "2026-09-02T00:00:56Z",
+          "recorded_by": "grok-4.6"
+        }
+      },
+      {
+        "title": "Name #3579 as transitively withdrawn for the gap; do not close #1423, #3579, #2611, or #3923; leave ingest / triage:accept",
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/skills/deft-directive-triage/SKILL.md",
+          "recorded_at": "2026-09-02T00:00:56Z",
+          "recorded_by": "grok-4.6"
+        }
+      },
+      {
+        "title": "CHANGELOG [Unreleased] names the withdrawal and the strip; commands/help/docs stop teaching live --mirror apply",
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "CHANGELOG.md",
+          "recorded_at": "2026-09-02T00:00:56Z",
+          "recorded_by": "grok-4.6"
+        }
+      }
+    ],
+    "tags": [
+      "chore",
+      "triage",
+      "agent-experience",
+      "process"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4070",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4070: chore(triage): withdraw the classify skill and strip triaged / triage:* chips"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4071",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4071 replacement sieve"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3579",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3579 transitively withdrawn for the gap"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1423",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1423 Wave 1-2 apply unusable; do not close"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4070#issuecomment-5501670096",
+        "type": "x-xbrief/refs",
+        "title": "Synthesis accepted 5501670096"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4070#issuecomment-5501665011",
+        "type": "x-xbrief/refs",
+        "title": "Bound lean 5501665011"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4070#issuecomment-5501668002",
+        "type": "x-xbrief/refs",
+        "title": "Verified-claims table 5501668002"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/cli/src/triage-classify.test.ts packages/core/src/triage/classify/label-mirror.test.ts packages/core/src/triage/classify/mirror-discovery-tip.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "As-filed AC is behavioral; bound lean adds dry-run fail-close. Literal command is the targeted vitest covering fail-close, tip suppression, and remaining-set strip.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Skill entry is withdrawn; packs:slice by those triggers does not load the old playbook.",
+          "artifact_path": "content/packs/skills/skills-pack-0.1.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "triage:classify -- --mirror --apply and dry-run exit non-zero with a pointer to #4070.",
+          "artifact_path": "packages/cli/src/triage-classify.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Mirror discovery tip does not fire.",
+          "artifact_path": "packages/core/src/triage/classify/mirror-discovery-tip.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Zero issues on deftai/directive carry triaged or triage:deferred|archived|lifecycle-linked|needs-human.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Arc chips design-critique:triage-ready / mechanism-shaped unchanged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "CHANGELOG [Unreleased] names the withdrawal and the strip.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "#3124 discovery and #1423 Wave 1-2 apply are unusable after this lands, without closing those issues from this PR.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/cli/src/triage-classify.ts",
+          "packages/core/src/triage/classify/withdraw.ts",
+          "packages/core/src/triage/classify/withdraw.test.ts",
+          "packages/core/src/triage/classify/label-mirror.ts",
+          "packages/core/src/triage/classify/mirror-discovery-tip.ts",
+          "packages/core/src/policy/index.ts",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/templates/agents-entry.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/triage/classify",
+        "split_plan": "Fail-close message, withdrawn-chip remaining-set strip, and digest-before-strip live in a new withdraw.ts module. label-mirror.ts only flips the hygiene default enabled:false; it does not grow the classify engine.",
+        "cohesion_exemption": "CHANGELOG.md is a chronological append-only release log; this slice appends one [Unreleased] entry. label-mirror.ts already exceeds the review trigger; this slice changes only the default enabled flag."
+      }
+    },
+    "updated": "2026-09-01T23:33:42Z"
+  }
+}

@@ -50,7 +50,7 @@ export interface PlanPolicy {
   /**
    * Tier-1 SCM label mirror from classify outcomes (#1423 Wave 1).
    * Maps classify actions to labels; always applies the idempotency marker
-   * (`triaged` by default). Dry-run default on `task triage:classify -- --mirror`.
+   * (`triaged` by default). `task triage:classify -- --mirror` is withdrawn (#4070).
    */
   readonly triageLabelMirror?: {
     readonly enabled?: boolean;

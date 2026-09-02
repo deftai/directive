@@ -38,6 +38,10 @@ import {
 import { resolveCandidatesLogPath } from "../cache-path.js";
 import { iterCachedIssues } from "../summary/index.js";
 import { formatMirrorDiscoveryDigestCues } from "./mirror-discovery-tip.js";
+import {
+  CLASSIFY_MIRROR_WITHDRAWN_EXIT_CODE,
+  CLASSIFY_MIRROR_WITHDRAWN_MESSAGE,
+} from "./withdraw.js";
 
 export const DEFAULT_IDEMPOTENCY_LABEL = "triaged";
 export const CACHE_DIR_NAME = ".deft-cache";
@@ -404,7 +408,7 @@ export function validateLabelMirrorPolicy(raw: unknown): { errors: string[]; war
 /** Default resolved policy when triageLabelMirror is absent. */
 export function defaultLabelMirrorPolicy(): ResolvedLabelMirrorPolicy {
   return {
-    enabled: true,
+    enabled: false,
     idempotencyLabel: DEFAULT_IDEMPOTENCY_LABEL,
     alwaysLabels: [DEFAULT_IDEMPOTENCY_LABEL],
     actionLabels: {},
@@ -705,6 +709,43 @@ export function mirrorLabels(
   };
 
   const emptyDigest = buildLabelMirrorDigest([], sampleLimit);
+
+  if (!dryRun) {
+    return [
+      CLASSIFY_MIRROR_WITHDRAWN_EXIT_CODE,
+      {
+        ...outcomeBase,
+        scanned: 0,
+        planned: 0,
+        applied: 0,
+        unchanged: 0,
+        skipped_already_triaged: 0,
+        skipped_no_match: 0,
+        skipped_unreadable: 0,
+        skipped_closed: 0,
+        skipped_author: 0,
+        re_enrich_planned: 0,
+        re_enrich_applied: 0,
+        errors: 1,
+        digest: emptyDigest,
+        items: [
+          {
+            repo: "",
+            issue_number: 0,
+            state: null,
+            action: null,
+            reason: null,
+            ruleKind: null,
+            current: [],
+            desired: [],
+            add: [],
+            status: "error",
+            message: CLASSIFY_MIRROR_WITHDRAWN_MESSAGE,
+          },
+        ],
+      },
+    ];
+  }
 
   if (!policy.enabled) {
     return [

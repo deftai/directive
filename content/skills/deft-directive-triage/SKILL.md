@@ -1,13 +1,9 @@
 ---
 name: deft-directive-triage
 description: >-
-  Triage-cache hygiene and "what's next?" work selection (ordered plan or
-  ranked queue) -- the agent-facing playbook for syncing the triage cache,
-  classifying candidates, presenting a ranked queue or binding to an active
-  plan-sequence, walking per-item decisions (accept / reject / defer /
-  needs-ac / mark-duplicate), and auditing the session. Use when the operator
-  asks what to work on next, wants to build a cohort, work the cache, or run a
-  triage hygiene pass.
+  Withdrawn (#4070). Classify playbook is off. Work selection is
+  plan-sequence:current then a read-only triage:queue listing. Replacement
+  sieve is #4071. Triggers still match so packs:slice finds this stub.
 triggers:
   - triage
   - triage hygiene
@@ -27,120 +23,22 @@ triggers:
 
 # Deft Directive Triage
 
-Triage-cache hygiene + "what's next?" work selection (ordered plan or ranked queue). Operates against the unified `.deft-cache/github-issue/` mirror (#883 Story 2) and the append-only `xbrief/.eval/candidates.jsonl` audit log (#845 Story 2); writes only via the canonical `task triage:*` verbs.
+Withdrawn (#4070). Replacement sieve is #4071. #3579 is transitively withdrawn for the gap.
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-## Platform Requirements
+## When to Use
 
-! Requires **GitHub** as the SCM platform and the **GitHub CLI (`gh`)** authenticated against the active project's repo -- the cache surface (`task cache:fetch-all`) and the read-side gate (`task verify:cache-fresh`) both depend on it.
-
-## Deterministic Questions Contract
-
-! Every numbered-menu prompt rendered in this skill (Phase 2 candidate selection, Phase 3 per-item decision walk, post-Accept offer) ! MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md): render the canonical numbered menu in chat unless the host UI visibly preserves numeric option labels and returns numeric selections or exact displayed option text. The final two numbered options are `Discuss` and `Back`, in that order, and the Discuss-pause semantic from the contract applies verbatim -- on `Discuss` the agent halts the in-progress sequence and resumes only on an explicit user signal.
-
-## Work selection fork (#2542 / #2402)
-
-Directive does not guess your mix: **ordered plan** (`task plan-sequence:*`) when you know the next units in order, or **ranked queue** (`task triage:queue`) when picking from the backlog. Labels bias the queue; they do not override an active plan.
-
-! Before Phase 2 on bare "what's next?", run `task plan-sequence:current`. Active sequence → that entry only; exhausted → fail closed. Explicit "what's the queue?" / "build a cohort" → Phase 2. See `commands.md` § Backlog Triage → Two paths.
-
-## Phase 0 -- Sync
-
-! Probe cache freshness before doing any classification or selection. Stale cache reads produce stale decisions; the gate is the contract.
-
-1. ! Run `task verify:cache-fresh` (D5 / #1127). Exit 0 -> proceed to Phase 1. Exit 1 (stale or blocked) -> refresh per the printed remediation. Exit 2 (no bootstrap) -> run `task triage:bootstrap` first. When the cache has zero entries, read paths auto-fetch from GitHub first (#2575).
-2. ~ Refresh path: `task cache:fetch-all -- --source=github-issue --repo OWNER/NAME` for an already-bootstrapped project; `task triage:bootstrap` for a first-time seed.
-3. ~ If `xbrief/active/*.xbrief.json` references are in play, run `task triage:refresh-active` to surface drift before the queue is rendered.
-4. ~ When the session one-liner carries `[scope-drift] N` (D14 / #1133), run `task triage:scope-drift` and choose subscribe / ignore before walking the queue.
-5. ⊗ Walk the queue against a stale cache -- the audit log will record decisions against bodies the operator never actually saw.
-
-## Phase 1 -- Classify
-
-! Inspect the auto-classification audit log so manually-decided items are not re-walked, and surface anomalies before the queue render.
-
-1. ! Run `task triage:classify --list` (D10 / #1129) to render effective rules and hold-markers.
-2. ! Walk recent `xbrief/.eval/candidates.jsonl` entries for anomalies (classifier disagreement, repeated defer, stale needs-ac); surface before Phase 2; do NOT auto-fix.
-3. ~ Scope widen/narrow via `task triage:scope --list` (D12 / #1131); edits belong in PROJECT-DEFINITION.
-4. ~ Label hygiene: recommend repo labels via `gh label list` when unlabeled; do not invent labels or block creation solely for missing labels.
-5. ⊗ Re-classify terminally decided items without operator approval -- supersession is `task triage:reset <N>` only.
-
-## Phase 2 -- Present
-
-! Apply the Work selection fork gate (#2542): when no ordered-plan is active, render `task triage:queue` before suggesting work (#1149). Active sequence yields to the ordered-plan entry (#2402).
-
-1. ! Run `task triage:queue --limit=N` (D11 / #1128) -- default `N=10`. Groups `[RESUME]` -> `[URGENT]` -> untriaged -> other; ranking via `plan.policy.triageRankingLabels[]`, tiebreak `updated_at` desc.
-2. ! For per-item detail, run `task triage:show <N>` (default) or `task triage:show --format=operator <N>` (#2890) -- cached payload, latest decision, audit timeline, active-xBRIEF flag; operator format is the pasteable Phase 3 brief backbone. Exit 0 on hit, 1 on cache miss (re-sync per Phase 0).
-3. ~ Present the ranked **queue listing** verbatim; do NOT silently re-rank, drop, or annotate the listing beyond the canonical renderer. This queue non-annotation rule does **not** forbid Phase 3 per-candidate operator briefs or leans (see Phase 3 / #2890).
-4. ⊗ Recommend a specific issue without `task triage:queue` first, or an issue absent from the queue without `task triage:show` to surface why.
-
-## Phase 3 -- Decide
-
-! Walk per-item decisions through the canonical `task triage:*` verbs (tasks own audit-log append / schema / `xbrief/proposed/` write).
-
-! **Operator brief (same turn as menu) (#2890 / #3116):** Before every per-item decision menu, present an operator brief in the **same operator-visible message/surface** as the menu, containing at least: **URL-first** lead (canonical issue URL as the first line for that item, or `#N title` + URL); labels (or explicit none); **current-state validity** (`still-open` | `partial` | `likely-shipped` | `needs-re-scope`) + one-line evidence (linked closed PR, code path, or "no evidence of fix"); 2–5 line problem/context summary; AC bullets or explicit "thin body / no AC"; agent **lean** + one-line why (Accept / Defer / Reject / Needs-AC / …). ~ Prefer `task triage:show --format=operator <N>` as the brief backbone (URL-first + validity placeholder); agent still owns validity verdict and lean. ⊗ Menu-only or chip-only Phase 3 turns without that brief. ⊗ Brief-only turn followed by a later chip/menu-only turn that does not restate the brief. ⊗ Body-only summary without validity check against current master, closed children, or linked PRs.
-
-! **Host structured-question adapter:** On chips / `ask_user` / similar UIs (e.g. OpenClaw `ask_user`), keep the prose brief in chat; structured options are **actions only** (Accept / Defer / Reject / Needs-AC / Mark duplicate / Discuss / Back). Option labels ≉ substitute for the brief.
-
-For each candidate, render the canonical numbered action menu and dispatch:
-
-```
-What would you like to do with this candidate?
-  1. Accept         -- `task triage:accept -- --issue <N> --repo OWNER/NAME`
-  2. Reject         -- `task triage:reject -- --issue <N> --repo OWNER/NAME`
-  3. Defer          -- `task triage:defer -- --issue <N> --repo OWNER/NAME [--resume-on <event>]`
-  4. Needs-AC       -- `task triage:needs-ac -- --issue <N> --repo OWNER/NAME`
-  5. Mark duplicate -- `task triage:mark-duplicate -- --issue <N> --of <of-issue> --repo OWNER/NAME`
-  6. Discuss
-  7. Back
-```
-
-- ! Map user replies only to the displayed number (`1`-`7`) or exact displayed option text. ⊗ Do NOT infer from alphabetic host affordances or bare letters such as `d` / `b` unless those letters were visibly rendered as choices.
-- ! On `Discuss`, halt immediately, prompt `What would you like to discuss?`, resume only on explicit user signal. ⊗ Implicit resumption.
-- ! On `Back`, un-buffer prior selection and re-render its action menu only before a `task triage:*` dispatch; after dispatch use `task triage:reset`.
-- ~ Bulk: `task triage:bulk-{accept,reject,defer,needs-ac}`; results still flow through the audit log.
-- ⊗ Write to `xbrief/proposed/` directly -- only `task triage:accept` is authorised.
-- ~ **Accept → pending chain (#1136):** `task triage:accept` ingests into **`proposed/`**. To stage into WIP (`pending/`) in one operator action: `task triage:accept -- --issue <N> --repo OWNER/NAME --auto-promote` (WIP cap still enforced; use `--force` on the accept command for WIP override). Separately, promote an already-accepted proposed scope by issue: `task scope:promote -- --from-issue=<N> [--repo OWNER/NAME]` (gates on latest `candidates.jsonl` decision = `accept`; non-accept refuses unless `--force-no-cache`; no decision soft-warns, `--strict` fails). Path-based `task scope:promote -- <file>` remains ungated for refinement scaffolds.
-- ? **After Accept (#3708):** offer `deft-directive-design-critique`. Optional; same after `--auto-promote` (promote already happened). Decline writes nothing. Menu: 1. Run critique (existing ADR-005 path) 2. Skip 3. Discuss 4. Back. Back = Skip (do not re-open Accept; undo is `task triage:reset`).
-
-## Phase 4 -- Audit
-
-! Confirm the session's decisions landed coherently before exiting the skill.
-
-1. ! Run `task triage:audit --format=json` (D11 / #1128); optional `#1180` filters `--since` / `--action`. Transform with `jq` -- framework does not compute trends.
-2. ! Run `task triage:summary` (D2 / #1122) -- `[triage] N untriaged · S stale-defer · M in-flight · WIP X/Y [⚠] [· [scope-drift] N]`.
-3. ~ Non-zero `[scope-drift]` → surface `task triage:scope-drift` + subscribe/unsubscribe/ignore remediation; then `task triage:bootstrap -- --resume`.
-4. ~ Stale accept (no active xBRIEF ref) → re-ingest or `task triage:reset`.
-5. ⊗ Skip Phase 4 audit.
-6. ! Umbrella/epic status: REST comments → `## Current shape (as of pass-N)` (#2066 / #1152); never body alone.
-
-## Reversibility
-
-! Undo via `task triage:reset <N>` (Layer 5; history never deleted). ⊗ Edit/delete `xbrief/.eval/candidates.jsonl` to "undo".
-
-## Quarterly closed-entry archive vs TTL prune (#1137)
-
-Live walkers (`triage:queue`, scope-drift, bootstrap) scan `.deft-cache/github-issue/`. Closed issues can linger forever. Operators may run an **explicit, reversible** archive pass — never auto on bootstrap/session/check.
-
-| Tool | What it does |
-| --- | --- |
-| `task triage:cache-archive` | Move **closed** + aged (default 30d) entries → `.deft-cache/archived/github-issue/...` with `archive-meta.json`. Skips open lifecycle scopes. `--dry-run` first. |
-| `task triage:archive-list` / `task triage:restore-from-archive` | List / move back to live. |
-| `task cache:prune` | **TTL hard-delete** by `expires_at` — **not** reversible; **not** closed-state archive. |
-
-! Prefer archive for closed clutter; use prune only for expired TTL / cap eviction. ⊗ Wire archive into session-start or `task check`.
-
-## Anti-Patterns
-
-- ⊗ Recommend work without `task triage:queue` (#1149).
-- ⊗ Conclude "nothing to do" from folder scans or live GitHub alone (#2576).
-- ⊗ Stale-cache walk; reimplement audit/`proposed/` writes; treat defer/needs-ac as terminal; edit candidates.jsonl; menu-only Phase 3 without operator brief (#2890); body-only brief without URL-first or current-state validity (#3116).
+- Triggers still match so `packs:slice` finds this stub.
+- ⊗ Do not load the old classify / Phase 1-3 playbook.
 
 ## EXIT
 
-! On opt-out: `deft-directive-triage complete -- exiting skill.` Chain: `deft-directive-refinement` (accepted items) · `deft-directive-swarm` (cohort) · `task cache:fetch-all` then re-enter. ⊗ Silent exit.
+! On any trigger: print `deft-directive-triage withdrawn -- exiting skill.` Point at https://github.com/deftai/directive/issues/4070 and #4071.
 
-## References
+! Work selection during the gap: `task plan-sequence:current`, then a read-only `task triage:queue` listing.
 
-- #1119 D6; #1128 D11 (`triage:queue` / `show` / `audit`); #2890 Phase 3 operator brief; #3116 validity + URL-first; #1122 / #1123 / #1127 / #1129 / #1131; #1136 (`scope:promote --from-issue` / `triage:accept --auto-promote`); #3708 (post-Accept design-critique offer)
-- Siblings: `deft-directive-refinement`, `deft-directive-swarm`, `deft-directive-sync`
+⊗ `task triage:classify -- --mirror` (dry-run or `--apply`).
+⊗ Treat leftover `triaged` / `triage:*` chips as a decision.
+
+`task triage:accept` / `issue:ingest` stay. Do not close #1423, #3579, #2611, or #3923.

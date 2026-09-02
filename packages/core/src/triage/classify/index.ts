@@ -961,6 +961,18 @@ export {
   resolveMirrorDiscoveryStatePath,
 } from "./mirror-discovery-tip.js";
 export {
+  applyWithdrawnChipStrip,
+  CLASSIFY_MIRROR_WITHDRAWN_EXIT_CODE,
+  CLASSIFY_MIRROR_WITHDRAWN_ISSUE,
+  CLASSIFY_MIRROR_WITHDRAWN_MESSAGE,
+  CLASSIFY_MIRROR_WITHDRAWN_REPLACEMENT_ISSUE,
+  CLASSIFY_MIRROR_WITHDRAWN_TRANSITIVE_ISSUE,
+  remainingSetAfterWithdrawnChipStrip,
+  stripWithdrawnChips,
+  WITHDRAWN_TRIAGE_CHIPS,
+  withdrawnChipStripDelta,
+} from "./withdraw.js";
+export {
   buildLabelMirrorDigest,
   type ClassifyAction,
   DEFAULT_APPLY_BATCH_SIZE,

@@ -405,7 +405,7 @@ Agent `edit_files` operations can fail when structured file sections contain Uni
 
 **Status / role**: `status:tracker`, `status:child` (parented work), optional `epic` only for multi-ship product roots; project-specific holds as needed
 
-**Mirror** (if using `triage:classify -- --mirror`): at least `triaged`; optional `triage:deferred` / `triage:archived` when `actionLabels` maps them
+**Mirror** (`triage:classify -- --mirror`) is withdrawn (#4070). Do not stamp `triaged` / `triage:*` from classify. Replacement sieve is #4071.
 
 ### Consumer hard-blocker (`adoption-blocker`)
 

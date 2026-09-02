@@ -28,7 +28,7 @@ Conversational refinement session -- ingest, evaluate, reconcile, and prioritize
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**Upstream pass**: refinement begins with a triage pass -- see [`../deft-directive-triage/SKILL.md`](../deft-directive-triage/SKILL.md) (D6 / #1130) for the canonical cache-hygiene + "what's next?" queue playbook before continuing into the refinement flow below.
+**Upstream pass**: classify playbook withdrawn (#4070). Work selection is `task plan-sequence:current`, then a read-only `task triage:queue` listing. The withdrawn stub is [`../deft-directive-triage/SKILL.md`](../deft-directive-triage/SKILL.md). Replacement sieve is #4071. Ingest / `task triage:accept` stay.
 
 **See also**: [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md) (canonical numbered-menu rule used by every Phase 0 / Phase 2-5 gate below) | `task cache:fetch-all` / `task cache:get` (Tier 1 unified content cache, #883 Story 2) | `task triage:bootstrap` / `task triage:accept` / `task triage:reject` / `task triage:defer` / `task triage:needs-ac` / `task triage:mark-duplicate` / `task triage:bulk-*` / `task triage:refresh-active` (Phase 0 action surface, #845 + #883 Story 3 rebind).
 
@@ -101,10 +101,10 @@ The agent may suggest the next phase, but the user decides. Phases can be entere
 3. ! **Outstanding-work gate.** If the cache is populated AND any of `untriaged`, `stale-defer (resume condition met)`, or `in-flight` is non-zero, surface the one-liner verbatim to the user with the canonical recommendation:
 
    ```
-   triage cache has outstanding work -- recommend running `skills/deft-directive-triage/SKILL.md` (D6 / #1130) first. Proceed to refinement anyway? [y/N]
+   classify playbook withdrawn (#4070) -- work selection is `task plan-sequence:current` then a read-only `task triage:queue` listing. Proceed to refinement ingest? [y/N]
    ```
 
-   ~ Default is `N`: deferring to the triage skill is the documented happy path because refinement consumes `accept`-decisioned candidates and an untriaged backlog means there are fewer `accept` rows than there could be. On `N`, exit with the canonical confirmation phrasing and the chaining instruction `Run skills/deft-directive-triage/SKILL.md to clear the backlog, then re-enter refinement.`. On `y`, proceed to Phase 0b.
+   ~ Default is `N`: on `N`, exit with the canonical confirmation phrasing and the chaining instruction `Run task plan-sequence:current, then a read-only task triage:queue listing (#4070).`. On `y`, proceed to Phase 0b.
 
 4. ? When all counts are zero (cache populated, no outstanding work), proceed to Phase 0b without prompting.
 

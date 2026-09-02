@@ -49,8 +49,9 @@ describe("test_portfolio_priority_skill", () => {
     expect(text).toContain("Phase 0");
     expect(text).toContain("task verify:cache-fresh");
     expect(text).toContain("Phase 1");
-    expect(text).toContain("task triage:classify");
+    expect(text).toContain("#4070");
     expect(text).toMatch(/FILTER only|filter only/i);
+    expect(text).toContain("task triage:queue");
     expect(text).toContain("Phase 4");
     expect(text).toContain("Epistemic");
   });

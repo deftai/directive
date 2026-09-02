@@ -1,9 +1,9 @@
 ---
 name: deft-directive-triage
 description: >-
-  Triage-cache hygiene and "what's next?" queue selection -- the agent-facing
-  playbook for syncing the triage cache, classifying candidates, presenting a
-  ranked queue, walking per-item decisions, and auditing the session.
+  Withdrawn (#4070). Classify playbook is off. Work selection is
+  plan-sequence:current then a read-only triage:queue listing. Replacement
+  sieve is #4071. Triggers still match so packs:slice finds this stub.
 ---
 
 Read and follow: skills/deft-directive-triage/SKILL.md

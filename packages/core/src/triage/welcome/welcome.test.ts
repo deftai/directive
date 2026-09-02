@@ -22,9 +22,8 @@ describe("welcome prior state", () => {
     runDefaultMode(root, { output: (l) => lines.push(l), writeHistory: false });
     expect(lines[0]).toContain("[triage] cache empty");
     expect(lines.some((l) => l.includes("First-time?"))).toBe(true);
-    // #3124: first-time welcome also surfaces SCM label-mirror discovery tip.
-    expect(lines.some((l) => l.includes("SCM label mirror discovery"))).toBe(true);
-    expect(lines.some((l) => l.includes("triage:classify -- --mirror"))).toBe(true);
+    expect(lines.some((l) => l.includes("SCM label mirror discovery"))).toBe(false);
+    expect(lines.some((l) => l.includes("triage:classify -- --mirror"))).toBe(false);
     rmSync(root, { recursive: true, force: true });
   });
 
@@ -61,7 +60,7 @@ describe("welcome prior state", () => {
     );
     const first: string[] = [];
     runDefaultMode(root, { output: (l) => first.push(l), writeHistory: false });
-    expect(first.some((l) => l.includes("SCM label mirror discovery"))).toBe(true);
+    expect(first.some((l) => l.includes("SCM label mirror discovery"))).toBe(false);
     // Simulate first successful --mirror dry-run throttle.
     writeFileSync(
       join(root, "xbrief", ".triage-cache", "scm-label-mirror-discovery-state.json"),

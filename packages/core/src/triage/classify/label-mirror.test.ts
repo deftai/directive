@@ -32,6 +32,14 @@ function tmpRoot(): string {
 
 function writeProject(root: string, policy?: Record<string, unknown>): void {
   mkdirSync(join(root, "xbrief"), { recursive: true });
+  const triageLabelMirror = {
+    enabled: true,
+    ...(typeof policy?.triageLabelMirror === "object" && policy.triageLabelMirror !== null
+      ? (policy.triageLabelMirror as Record<string, unknown>)
+      : {}),
+  };
+  const rest = { ...(policy ?? {}) };
+  delete rest.triageLabelMirror;
   writeFileSync(
     join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
     JSON.stringify({
@@ -40,7 +48,7 @@ function writeProject(root: string, policy?: Record<string, unknown>): void {
         title: "T",
         status: "running",
         items: [],
-        ...(policy !== undefined ? { "x-directive/policy": policy } : {}),
+        "x-directive/policy": { ...rest, triageLabelMirror },
       },
     }),
     "utf8",
@@ -133,6 +141,7 @@ describe("desiredLabelsForClassification", () => {
 
   it("defaults to triaged only", () => {
     const policy = defaultLabelMirrorPolicy();
+    expect(policy.enabled).toBe(false);
     expect(policy.idempotencyLabel).toBe(DEFAULT_IDEMPOTENCY_LABEL);
     expect(desiredLabelsForClassification("archive", policy)).toEqual(["triaged"]);
   });
@@ -330,14 +339,10 @@ describe("mirrorLabels", () => {
       },
     });
     expect(code).toBe(1);
-    expect(outcome.applied).toBe(2);
-    expect(outcome.errors).toBe(1);
-    expect(calls).toBe(3);
-    // Failed attempts still count toward batchSize, so sleeps fire before 2nd and 3rd attempts.
-    expect(sleeps).toEqual([5, 5]);
-    const errItem = outcome.items.find((i) => i.issue_number === 21);
-    expect(errItem?.status).toBe("error");
-    expect(errItem?.message).toMatch(/ensure label/i);
+    expect(outcome.applied).toBe(0);
+    expect(calls).toBe(0);
+    expect(sleeps).toEqual([]);
+    expect(outcome.items[0]?.message).toContain("#4070");
   });
 
   it("skips already-triaged issues (idempotent)", () => {
@@ -449,16 +454,10 @@ describe("mirrorLabels", () => {
       reEnrich: true,
       delayMs: 0,
     });
-    expect(code).toBe(0);
-    expect(outcome.re_enrich_applied).toBe(1);
-    expect(client.applyCalls).toHaveLength(1);
-    const [, , add, remove] = client.applyCalls[0] ?? ["", 0, [], []];
-    expect(add).toEqual(["status:deferred"]);
-    expect(remove).toEqual([]); // additive-only v1
-    // legacy-chip must remain (not stripped)
-    expect(client.labels.get("acme/demo:32")?.sort()).toEqual(
-      ["legacy-chip", "status:deferred", "triaged"].sort(),
-    );
+    expect(code).toBe(1);
+    expect(outcome.re_enrich_applied).toBe(0);
+    expect(client.applyCalls).toHaveLength(0);
+    expect(outcome.items[0]?.message).toContain("#4070");
   });
 
   it("--apply writes labels via LabelClient; re-run is no-op", () => {
@@ -485,12 +484,11 @@ describe("mirrorLabels", () => {
       useLiveLabels: true,
       delayMs: 0,
     });
-    expect(code1).toBe(0);
-    expect(outcome1.applied).toBe(1);
-    expect(client.applyCalls).toHaveLength(1);
-    expect(client.applyCalls[0]?.[2].sort()).toEqual(["status:deferred", "triaged"]);
+    expect(code1).toBe(1);
+    expect(outcome1.applied).toBe(0);
+    expect(client.applyCalls).toHaveLength(0);
+    expect(outcome1.items[0]?.message).toContain("#4070");
 
-    // Re-run: live labels now include triaged → skip
     const [code2, outcome2] = mirrorLabels(root, {
       dryRun: false,
       client,
@@ -498,10 +496,9 @@ describe("mirrorLabels", () => {
       useLiveLabels: true,
       delayMs: 0,
     });
-    expect(code2).toBe(0);
+    expect(code2).toBe(1);
     expect(outcome2.applied).toBe(0);
-    expect(outcome2.skipped_already_triaged).toBe(1);
-    expect(client.applyCalls).toHaveLength(1); // no second apply
+    expect(client.applyCalls).toHaveLength(0);
   });
 
   it("never mutates on dry-run even when client is provided", () => {

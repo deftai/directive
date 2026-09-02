@@ -53,7 +53,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 ## Inputs
 
 - ! Local `.deft-cache/github-issue/` (bodies available)
-- ! Classify partition via `task triage:classify -- --mirror` (or cached JSON digest) as **FILTER only**
+- ! Classify --mirror is withdrawn (#4070). Use a read-only `task triage:queue` listing (or a captured #4070 digest) as **FILTER only**. ⊗ Run `task triage:classify -- --mirror`.
 - ~ Optional theme slice: label family, title prefix, author, epic parent
 
 ## Phases
@@ -66,7 +66,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ### Phase 1 — Classify as FILTER only
 
-1. ! Run `task triage:classify -- --mirror` (dry-run; optional `--json`) to partition dispositions (`no_match` / escalate / defer / already planned).
+1. ! Classify --mirror is withdrawn (#4070). Partition from a read-only `task triage:queue` listing or a captured digest from `task triage:strip-withdrawn-chips -- --emit-digest`. ⊗ Run live `task triage:classify -- --mirror`.
 2. ! Use classify outcomes only to **filter** the portfolio slice (e.g. deep-dive candidates from `no_match`; keep escalate on an interrupt queue).
 3. ⊗ Use classify disposition chips as the **ranker** or final shortlist order.
 4. ⊗ Pass `--apply` or `--re-enrich` with intent to write labels from this skill.

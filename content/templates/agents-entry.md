@@ -21,7 +21,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Session-start ritual (#1149)
 
-! On **mutation** session start, run `deft session:start`; before code-writing or `start_agent` dispatch run `deft verify:session-ritual -- --tier=gated` (stale after `plan.policy.sessionRitualStalenessHours`; records `deft verify:tools` / `deft doctor` / `deft verify:cache-fresh` / `deft agents:refresh` / `npm i -g @deftai/directive@latest`; #1149 / #1348) — `.deft/core/commands.md` § Session-start ritual. Recovery: `deft session:ready` (one-shot: start + gated ritual + cache recovery; #2993). ! SCM mirror tip (#3124): restate existence + get-the-most user-visible when tip fires (depth `commands.md`). ⊗ Absorb tip without restating.
+! On **mutation** session start, run `deft session:start`; before code-writing or `start_agent` dispatch run `deft verify:session-ritual -- --tier=gated` (stale after `plan.policy.sessionRitualStalenessHours`; records `deft verify:tools` / `deft doctor` / `deft verify:cache-fresh` / `deft agents:refresh` / `npm i -g @deftai/directive@latest`; #1149 / #1348) — `.deft/core/commands.md` § Session-start ritual. Recovery: `deft session:ready` (one-shot: start + gated ritual + cache recovery; #2993). The #3124 SCM mirror tip does not fire (`triage:classify --mirror` withdrawn, #4070).
 
 ## WIP cap
 
@@ -39,7 +39,7 @@ Legacy `vbrief/`; `deft migrate:xbrief` (v0.6→v0.8). New writes `"version": "0
 
 ## Cache-as-authoritative work selection (#1149)
 
-! "what next?" → two work-selection modes (#2402): **ordered plan** (`deft plan-sequence:*`) or **ranked queue** (`deft triage:queue`) — `commands.md` § Backlog Triage → Two paths. ordered-plan first; else `deft-directive-triage` + `deft triage:queue --limit=10` (D11). Empty cache auto-populates from GitHub (#2575).
+! "what next?" → two work-selection modes (#2402 / #1149): **ordered-plan first** (`deft plan-sequence:current`), then a read-only `deft triage:queue --limit=10` listing (D11) — `commands.md` § Backlog Triage → Two paths. `deft-directive-triage` classify withdrawn (#4070 / #4071). Empty cache auto-populates from GitHub (#2575).
 
 ⊗ Recommend work without queue/plan consult; ⊗ widen past an exhausted plan; ⊗ conclude "nothing to do" from `xbrief/{pending,active}` folder scans or GitHub-only reads without `deft triage:queue` (#2576).
 

@@ -172,9 +172,9 @@ describe("parseArgs", () => {
     const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
     const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
     try {
-      expect(run(["--mirror", "--author=", "--project-root", root])).toBe(2);
+      expect(run(["--mirror", "--author=", "--project-root", root])).toBe(1);
       const stderr = err.mock.calls.map((c) => String(c[0])).join("");
-      expect(stderr).toMatch(/--author|non-empty/);
+      expect(stderr).toContain("#4070");
     } finally {
       err.mockRestore();
       out.mockRestore();
@@ -243,34 +243,18 @@ describe("run", () => {
       }),
       "utf8",
     );
-    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
-    expect(run(["--mirror", "--project-root", root])).toBe(0);
-    const text = out.mock.calls.map((c) => String(c[0])).join("");
-    expect(text).toContain("dry-run");
-    expect(text).toContain("open-only");
-    expect(text).toContain("By state");
-    expect(text).toMatch(/planned=1|Samples/);
-    expect(text).toMatch(/closed_skipped=1/);
-    out.mockRestore();
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    expect(run(["--mirror", "--project-root", root])).toBe(1);
+    expect(err.mock.calls.map((c) => String(c[0])).join("")).toContain("#4070");
+    err.mockRestore();
   });
 
   it("--mirror --json emits structured outcome with digest", () => {
     const root = buildRepo();
-    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
-    expect(run(["--mirror", "--json", "--project-root", root])).toBe(0);
-    const text = out.mock.calls.map((c) => String(c[0])).join("");
-    const parsed = JSON.parse(text) as {
-      dry_run: boolean;
-      scanned: number;
-      skipped_closed: number;
-      digest: { by_state: Record<string, number> };
-      filters: { include_closed: boolean };
-    };
-    expect(parsed.dry_run).toBe(true);
-    expect(typeof parsed.scanned).toBe("number");
-    expect(parsed.filters.include_closed).toBe(false);
-    expect(parsed.digest).toBeDefined();
-    out.mockRestore();
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    expect(run(["--mirror", "--json", "--project-root", root])).toBe(1);
+    expect(err.mock.calls.map((c) => String(c[0])).join("")).toContain("#4070");
+    err.mockRestore();
   });
 
   it("--mirror --author plans only matching author and surfaces filter (#3129)", () => {
@@ -317,32 +301,29 @@ describe("run", () => {
       }),
       "utf8",
     );
-    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
-    expect(run(["--mirror", "--author", "alice", "--project-root", root])).toBe(0);
-    const text = out.mock.calls.map((c) => String(c[0])).join("");
-    expect(text).toContain("author=alice");
-    expect(text).toMatch(/author_skipped=/);
-    expect(text).toContain("closed_skipped=");
-    // dry-run sample should include #7 not #9
-    expect(text).toMatch(/#7/);
-    expect(text).not.toMatch(/#9:/);
-    out.mockRestore();
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    expect(run(["--mirror", "--author", "alice", "--project-root", root])).toBe(1);
+    expect(err.mock.calls.map((c) => String(c[0])).join("")).toContain("#4070");
+    err.mockRestore();
+  });
 
-    const outJson = vi.spyOn(process.stdout, "write").mockReturnValue(true);
-    expect(run(["--mirror", "--json", "--author", "alice", "--project-root", root])).toBe(0);
-    const jsonText = outJson.mock.calls.map((c) => String(c[0])).join("");
-    const parsed = JSON.parse(jsonText) as {
-      planned: number;
-      skipped_author: number;
-      skipped_closed: number;
-      filters: { author: string | null; include_closed: boolean };
-    };
-    expect(parsed.filters.author).toBe("alice");
-    expect(parsed.filters.include_closed).toBe(false);
-    expect(parsed.skipped_closed).toBeGreaterThanOrEqual(1);
-    expect(parsed.skipped_author).toBeGreaterThanOrEqual(1);
-    expect(parsed.planned).toBe(1);
-    outJson.mockRestore();
+  it("--mirror --apply fail-closes with pointer to #4070 even when enabled is true", () => {
+    const root = buildRepo({
+      policy: {
+        triageLabelMirror: {
+          enabled: true,
+          idempotencyLabel: "triaged",
+          alwaysLabels: ["triaged"],
+          actionLabels: { defer: ["triage:deferred"] },
+        },
+      },
+    });
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    expect(run(["--mirror", "--apply", "--project-root", root])).toBe(1);
+    const text = err.mock.calls.map((c) => String(c[0])).join("");
+    expect(text).toContain("#4070");
+    expect(text).toContain("#3579");
+    err.mockRestore();
   });
 });
 

@@ -77,29 +77,24 @@ describe("mirror discovery tip content (#3124)", () => {
 });
 
 describe("mirror discovery tip throttle (#3124)", () => {
-  it("is due when no state exists", () => {
+  it("is not due after #4070 withdraw even when no state exists", () => {
     const root = tmpRoot();
-    expect(isMirrorDiscoveryTipDue(root)).toBe(true);
+    expect(isMirrorDiscoveryTipDue(root)).toBe(false);
+    expect(maybeFormatMirrorDiscoveryTip(root)).toBe("");
   });
 
-  it("emits tip and records shownAt", () => {
+  it("does not emit or record shownAt", () => {
     const root = tmpRoot();
     const tip = maybeFormatMirrorDiscoveryTip(root, {
       now: new Date("2026-08-11T12:00:00.000Z"),
     });
-    expect(tip).toContain("SCM label mirror discovery");
-    expect(tip).toContain(MIRROR_DISCOVERY_DRY_RUN_COMMAND);
-    const statePath = resolveMirrorDiscoveryStatePath(root);
-    expect(statePath).toContain(MIRROR_DISCOVERY_STATE_FILE);
-    const state = JSON.parse(readFileSync(statePath, "utf8")) as { shownAt?: string };
-    expect(state.shownAt).toBe("2026-08-11T12:00:00.000Z");
-    // Still due until ack or successful dry-run (shownAt alone does not hide).
-    expect(isMirrorDiscoveryTipDue(root)).toBe(true);
+    expect(tip).toBe("");
+    expect(isMirrorDiscoveryTipDue(root)).toBe(false);
   });
 
   it("hides after successful dry-run", () => {
     const root = tmpRoot();
-    expect(maybeFormatMirrorDiscoveryTip(root).length).toBeGreaterThan(0);
+    expect(maybeFormatMirrorDiscoveryTip(root)).toBe("");
     recordMirrorDiscoverySuccessfulDryRun(root, {
       now: new Date("2026-08-11T13:00:00.000Z"),
     });
@@ -134,7 +129,7 @@ describe("mirror discovery tip throttle (#3124)", () => {
   it("recordShown=false evaluates without writing state", () => {
     const root = tmpRoot();
     const tip = maybeFormatMirrorDiscoveryTip(root, { recordShown: false });
-    expect(tip).toContain("SCM label mirror discovery");
+    expect(tip).toBe("");
     expect(readMirrorDiscoveryState(root)).toEqual({});
   });
 });
@@ -202,7 +197,7 @@ describe("mirror discovery tip branch residual (#3124 / #3287 hairline)", () => 
     const path = resolveMirrorDiscoveryStatePath(root);
     mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
     writeFileSync(path, JSON.stringify({ ackedAt: "", successfulDryRunAt: "" }), "utf8");
-    expect(isMirrorDiscoveryTipDue(root)).toBe(true);
+    expect(isMirrorDiscoveryTipDue(root)).toBe(false);
   });
 
   it("maybeFormat swallows writeState errors", () => {
@@ -212,7 +207,7 @@ describe("mirror discovery tip branch residual (#3124 / #3287 hairline)", () => 
         throw new Error("disk full");
       },
     });
-    expect(tip).toContain("SCM label mirror discovery");
+    expect(tip).toBe("");
   });
 
   it("custom readState/writeState and both digest cues together", () => {
@@ -225,8 +220,8 @@ describe("mirror discovery tip branch residual (#3124 / #3287 hairline)", () => 
         written = content;
       },
     });
-    expect(tip.length).toBeGreaterThan(0);
-    expect(written).toContain("shownAt");
+    expect(tip).toBe("");
+    expect(written).toBe("");
     const cues = formatMirrorDiscoveryDigestCues({
       planned: 10,
       applied: 2,

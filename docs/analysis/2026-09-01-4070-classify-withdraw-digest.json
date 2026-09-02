@@ -1,0 +1,6339 @@
+{
+  "repo": "deftai/directive",
+  "dry_run": true,
+  "scanned": 126,
+  "planned": 126,
+  "applied": 0,
+  "unchanged": 0,
+  "errors": 0,
+  "items": [
+    {
+      "repo": "deftai/directive",
+      "issue_number": 445,
+      "current": [
+        "operational",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "operational"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 453,
+      "current": [
+        "enhancement",
+        "Workflow",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "Workflow"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 456,
+      "current": [
+        "enhancement",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 487,
+      "current": [
+        "enhancement",
+        "patterns",
+        "context-engineering",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "patterns",
+        "context-engineering"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 514,
+      "current": [
+        "enhancement",
+        "ci-cd",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "ci-cd"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 515,
+      "current": [
+        "design",
+        "swarm",
+        "rfc",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "swarm",
+        "rfc"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 607,
+      "current": [
+        "enhancement",
+        "determinism",
+        "area:skills",
+        "status:child",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "determinism",
+        "area:skills",
+        "status:child"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 621,
+      "current": [
+        "enhancement",
+        "patterns",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "patterns"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 622,
+      "current": [
+        "enhancement",
+        "area:skills",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "area:skills"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 625,
+      "current": [
+        "enhancement",
+        "patterns",
+        "patterns:multi-agent",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "patterns",
+        "patterns:multi-agent"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 634,
+      "current": [
+        "determinism",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "determinism"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 635,
+      "current": [
+        "enhancement",
+        "epic",
+        "determinism",
+        "status:tracker",
+        "area:skills",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "epic",
+        "determinism",
+        "status:tracker",
+        "area:skills"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 662,
+      "current": [
+        "enhancement",
+        "context-engineering",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "context-engineering"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 678,
+      "current": [
+        "security",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "security"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 683,
+      "current": [
+        "patterns",
+        "type:research",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "patterns",
+        "type:research"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 688,
+      "current": [
+        "design",
+        "patterns",
+        "context-engineering",
+        "type:research",
+        "agent-experience",
+        "runtime-portability",
+        "agent-memory",
+        "patterns:agent-memory",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "patterns",
+        "context-engineering",
+        "type:research",
+        "agent-experience",
+        "runtime-portability",
+        "agent-memory",
+        "patterns:agent-memory"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 691,
+      "current": [
+        "security",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "security"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 692,
+      "current": [
+        "enhancement",
+        "coding-standards",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "coding-standards"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 711,
+      "current": [
+        "design",
+        "rfc",
+        "source-of-truth",
+        "metrics",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "rfc",
+        "source-of-truth",
+        "metrics"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 714,
+      "current": [
+        "documentation",
+        "design",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "documentation",
+        "design"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 835,
+      "current": [
+        "security",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "security"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 853,
+      "current": [
+        "enhancement",
+        "patterns",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "patterns"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 878,
+      "current": [
+        "rfc",
+        "meta",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "rfc",
+        "meta"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 882,
+      "current": [
+        "type:research",
+        "status:tracker",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "type:research",
+        "status:tracker"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 886,
+      "current": [
+        "determinism",
+        "status:tracker",
+        "meta",
+        "triage",
+        "process",
+        "urgent",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "determinism",
+        "status:tracker",
+        "meta",
+        "triage",
+        "process",
+        "urgent"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 887,
+      "current": [
+        "type:research",
+        "status:tracker",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "type:research",
+        "status:tracker"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 958,
+      "current": [
+        "design",
+        "rfc",
+        "patterns",
+        "context-engineering",
+        "agent-experience",
+        "source-of-truth",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "rfc",
+        "patterns",
+        "context-engineering",
+        "agent-experience",
+        "source-of-truth"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 964,
+      "current": [
+        "enhancement",
+        "swarm",
+        "determinism",
+        "agent-experience",
+        "review-cycle",
+        "process",
+        "runtime-portability",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "swarm",
+        "determinism",
+        "agent-experience",
+        "review-cycle",
+        "process",
+        "runtime-portability"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1084,
+      "current": [
+        "security",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "security"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1090,
+      "current": [
+        "enhancement",
+        "swarm",
+        "rfc",
+        "type:research",
+        "area:skills",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "swarm",
+        "rfc",
+        "type:research",
+        "area:skills"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1091,
+      "current": [
+        "enhancement",
+        "design",
+        "security",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "design",
+        "security"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1094,
+      "current": [
+        "security",
+        "epic",
+        "status:tracker",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "security",
+        "epic",
+        "status:tracker"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1175,
+      "current": [
+        "enhancement",
+        "swarm",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "swarm"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1176,
+      "current": [
+        "enhancement",
+        "determinism",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "determinism"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1183,
+      "current": [
+        "status:tracker",
+        "meta",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "status:tracker",
+        "meta"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1204,
+      "current": [
+        "enhancement",
+        "coding-standards",
+        "security",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "coding-standards",
+        "security"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1211,
+      "current": [
+        "enhancement",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1283,
+      "current": [
+        "design",
+        "rfc",
+        "source-of-truth",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "rfc",
+        "source-of-truth"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1285,
+      "current": [
+        "epic",
+        "determinism",
+        "status:tracker",
+        "source-of-truth",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "epic",
+        "determinism",
+        "status:tracker",
+        "source-of-truth"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1297,
+      "current": [
+        "enhancement",
+        "status:blocked",
+        "source-of-truth",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "status:blocked",
+        "source-of-truth"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1298,
+      "current": [
+        "chore",
+        "status:blocked",
+        "source-of-truth",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "chore",
+        "status:blocked",
+        "source-of-truth"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1299,
+      "current": [
+        "documentation",
+        "status:blocked",
+        "source-of-truth",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "documentation",
+        "status:blocked",
+        "source-of-truth"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1304,
+      "current": [
+        "enhancement",
+        "swarm",
+        "review-cycle",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "swarm",
+        "review-cycle"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1305,
+      "current": [
+        "documentation",
+        "process",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "documentation",
+        "process"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1317,
+      "current": [
+        "enhancement",
+        "rfc",
+        "type:research",
+        "Workflow",
+        "area:skills",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "rfc",
+        "type:research",
+        "Workflow",
+        "area:skills"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1318,
+      "current": [
+        "enhancement",
+        "rfc",
+        "type:research",
+        "Workflow",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "rfc",
+        "type:research",
+        "Workflow"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1492,
+      "current": [
+        "rfc",
+        "determinism",
+        "source-of-truth",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "rfc",
+        "determinism",
+        "source-of-truth"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1498,
+      "current": [
+        "design",
+        "rfc",
+        "patterns",
+        "context-engineering",
+        "determinism",
+        "agent-experience",
+        "source-of-truth",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "rfc",
+        "patterns",
+        "context-engineering",
+        "determinism",
+        "agent-experience",
+        "source-of-truth"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1534,
+      "current": [
+        "enhancement",
+        "type:research",
+        "agent-experience",
+        "agent-memory",
+        "area:skills",
+        "metrics",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "type:research",
+        "agent-experience",
+        "agent-memory",
+        "area:skills",
+        "metrics"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1535,
+      "current": [
+        "enhancement",
+        "security",
+        "source-of-truth",
+        "agent-safety",
+        "skill-lifecycle",
+        "area:skills",
+        "triaged",
+        "triage:needs-human"
+      ],
+      "remaining": [
+        "enhancement",
+        "security",
+        "source-of-truth",
+        "agent-safety",
+        "skill-lifecycle",
+        "area:skills"
+      ],
+      "remove": [
+        "triaged",
+        "triage:needs-human"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1567,
+      "current": [
+        "documentation",
+        "design",
+        "type:research",
+        "source-of-truth",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "documentation",
+        "design",
+        "type:research",
+        "source-of-truth"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1583,
+      "current": [
+        "rfc",
+        "type:research",
+        "runtime-portability",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "rfc",
+        "type:research",
+        "runtime-portability"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1592,
+      "current": [
+        "enhancement",
+        "swarm",
+        "type:research",
+        "review-cycle",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "swarm",
+        "type:research",
+        "review-cycle"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1597,
+      "current": [
+        "research-strategy",
+        "type:research",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "research-strategy",
+        "type:research"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1617,
+      "current": [
+        "enhancement",
+        "doctor",
+        "agent-experience",
+        "runtime-portability",
+        "tooling",
+        "agent-safety",
+        "triaged",
+        "triage:needs-human"
+      ],
+      "remaining": [
+        "enhancement",
+        "doctor",
+        "agent-experience",
+        "runtime-portability",
+        "tooling",
+        "agent-safety"
+      ],
+      "remove": [
+        "triaged",
+        "triage:needs-human"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1618,
+      "current": [
+        "rfc",
+        "status:tracker",
+        "refactor",
+        "source-of-truth",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "rfc",
+        "status:tracker",
+        "refactor",
+        "source-of-truth"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1700,
+      "current": [
+        "enhancement",
+        "rfc",
+        "security",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "rfc",
+        "security"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1702,
+      "current": [
+        "design",
+        "rfc",
+        "meta",
+        "process",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "rfc",
+        "meta",
+        "process"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1707,
+      "current": [
+        "design",
+        "rfc",
+        "agent-experience",
+        "process",
+        "runtime-portability",
+        "ts-migration",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "rfc",
+        "agent-experience",
+        "process",
+        "runtime-portability",
+        "ts-migration"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1772,
+      "current": [
+        "swarm",
+        "context-engineering",
+        "type:research",
+        "agent-experience",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "swarm",
+        "context-engineering",
+        "type:research",
+        "agent-experience"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1779,
+      "current": [
+        "enhancement",
+        "rfc",
+        "security",
+        "tooling",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "rfc",
+        "security",
+        "tooling"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1874,
+      "current": [
+        "rfc",
+        "meta",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "rfc",
+        "meta"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1944,
+      "current": [
+        "rfc",
+        "type:research",
+        "runtime-portability",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "rfc",
+        "type:research",
+        "runtime-portability"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1975,
+      "current": [
+        "patterns",
+        "type:research",
+        "patterns:multi-agent",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "patterns",
+        "type:research",
+        "patterns:multi-agent"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1976,
+      "current": [
+        "enhancement",
+        "swarm",
+        "area:vbrief",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "swarm",
+        "area:vbrief"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2021,
+      "current": [
+        "enhancement",
+        "type:research",
+        "Workflow",
+        "area:skills",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "type:research",
+        "Workflow",
+        "area:skills"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2087,
+      "current": [
+        "design",
+        "rfc",
+        "agent-experience",
+        "process",
+        "runtime-portability",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "rfc",
+        "agent-experience",
+        "process",
+        "runtime-portability"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2173,
+      "current": [
+        "enhancement",
+        "dependencies",
+        "type:research",
+        "area:installer",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "dependencies",
+        "type:research",
+        "area:installer"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2312,
+      "current": [
+        "design",
+        "rfc",
+        "type:research",
+        "source-of-truth",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "rfc",
+        "type:research",
+        "source-of-truth"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2316,
+      "current": [
+        "chore",
+        "determinism",
+        "test-debt",
+        "review-cycle",
+        "harness",
+        "area:skills",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "chore",
+        "determinism",
+        "test-debt",
+        "review-cycle",
+        "harness",
+        "area:skills"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2436,
+      "current": [
+        "enhancement",
+        "patterns",
+        "type:research",
+        "status:blocked",
+        "area:skills",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "patterns",
+        "type:research",
+        "status:blocked",
+        "area:skills"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2439,
+      "current": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2485,
+      "current": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2603,
+      "current": [
+        "enhancement",
+        "rfc",
+        "epic",
+        "status:tracker",
+        "agent-experience",
+        "metrics",
+        "triaged",
+        "triage:deferred",
+        "eval-signal"
+      ],
+      "remaining": [
+        "enhancement",
+        "rfc",
+        "epic",
+        "status:tracker",
+        "agent-experience",
+        "metrics",
+        "eval-signal"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2651,
+      "current": [
+        "enhancement",
+        "design",
+        "rfc",
+        "epic",
+        "status:tracker",
+        "scm",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "design",
+        "rfc",
+        "epic",
+        "status:tracker",
+        "scm"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2697,
+      "current": [
+        "enhancement",
+        "rfc",
+        "agent-experience",
+        "urgent",
+        "metrics",
+        "triaged",
+        "triage:deferred",
+        "eval-signal"
+      ],
+      "remaining": [
+        "enhancement",
+        "rfc",
+        "agent-experience",
+        "urgent",
+        "metrics",
+        "eval-signal"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2701,
+      "current": [
+        "rfc",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "rfc"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2702,
+      "current": [
+        "rfc",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "rfc"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2703,
+      "current": [
+        "rfc",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "rfc"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2706,
+      "current": [
+        "enhancement",
+        "swarm",
+        "type:research",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "swarm",
+        "type:research"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2712,
+      "current": [
+        "enhancement",
+        "doctor",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "doctor"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2715,
+      "current": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "rfc",
+        "status:blocked"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2716,
+      "current": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "rfc",
+        "status:blocked"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2717,
+      "current": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "rfc",
+        "status:blocked"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2718,
+      "current": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "rfc",
+        "status:blocked"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2719,
+      "current": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "rfc",
+        "status:blocked"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2720,
+      "current": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "rfc",
+        "status:blocked"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2721,
+      "current": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "rfc",
+        "status:blocked"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2722,
+      "current": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "rfc",
+        "status:blocked"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2723,
+      "current": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "rfc",
+        "status:blocked"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2724,
+      "current": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "rfc",
+        "status:blocked"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2725,
+      "current": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "rfc",
+        "status:blocked"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2726,
+      "current": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "rfc",
+        "status:blocked"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2727,
+      "current": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "rfc",
+        "status:blocked"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2728,
+      "current": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "rfc",
+        "status:blocked"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2729,
+      "current": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "rfc",
+        "status:blocked"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2730,
+      "current": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "rfc",
+        "status:blocked"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2731,
+      "current": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "rfc",
+        "status:blocked"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2732,
+      "current": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "rfc",
+        "status:blocked"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2733,
+      "current": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "design",
+        "rfc",
+        "status:blocked"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2776,
+      "current": [
+        "enhancement",
+        "rfc",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "rfc"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2777,
+      "current": [
+        "enhancement",
+        "rfc",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "rfc"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2784,
+      "current": [
+        "enhancement",
+        "rfc",
+        "ts-migration",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "rfc",
+        "ts-migration"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2812,
+      "current": [
+        "epic",
+        "status:tracker",
+        "beta",
+        "area:release",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "epic",
+        "status:tracker",
+        "beta",
+        "area:release"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2849,
+      "current": [
+        "enhancement",
+        "design",
+        "operational",
+        "epic",
+        "determinism",
+        "harness",
+        "scm",
+        "agent-safety",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "design",
+        "operational",
+        "epic",
+        "determinism",
+        "harness",
+        "scm",
+        "agent-safety"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2966,
+      "current": [
+        "enhancement",
+        "design",
+        "patterns",
+        "agent-experience",
+        "harness",
+        "source-of-truth",
+        "area:guidance",
+        "hold",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "design",
+        "patterns",
+        "agent-experience",
+        "harness",
+        "source-of-truth",
+        "area:guidance",
+        "hold"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3007,
+      "current": [
+        "documentation",
+        "enhancement",
+        "security",
+        "grok-build",
+        "tooling",
+        "hold",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "documentation",
+        "enhancement",
+        "security",
+        "grok-build",
+        "tooling",
+        "hold"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3014,
+      "current": [
+        "research-strategy",
+        "type:research",
+        "agent-experience",
+        "area:guidance",
+        "hold",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "research-strategy",
+        "type:research",
+        "agent-experience",
+        "area:guidance",
+        "hold"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3086,
+      "current": [
+        "enhancement",
+        "patterns",
+        "agent-experience",
+        "harness",
+        "agent-safety",
+        "patterns:agent-app",
+        "area:guidance",
+        "triaged",
+        "triage:needs-human"
+      ],
+      "remaining": [
+        "enhancement",
+        "patterns",
+        "agent-experience",
+        "harness",
+        "agent-safety",
+        "patterns:agent-app",
+        "area:guidance"
+      ],
+      "remove": [
+        "triaged",
+        "triage:needs-human"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3124,
+      "current": [
+        "enhancement",
+        "triage",
+        "agent-experience",
+        "process",
+        "status:child",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "triage",
+        "agent-experience",
+        "process",
+        "status:child"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3158,
+      "current": [
+        "enhancement",
+        "swarm",
+        "patterns:multi-agent",
+        "status:child",
+        "triaged",
+        "triage:deferred"
+      ],
+      "remaining": [
+        "enhancement",
+        "swarm",
+        "patterns:multi-agent",
+        "status:child"
+      ],
+      "remove": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3206,
+      "current": [
+        "bug",
+        "security",
+        "harness",
+        "agent-safety",
+        "urgent",
+        "area:cli",
+        "triaged",
+        "triage:needs-human"
+      ],
+      "remaining": [
+        "bug",
+        "security",
+        "harness",
+        "agent-safety",
+        "urgent",
+        "area:cli"
+      ],
+      "remove": [
+        "triaged",
+        "triage:needs-human"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3233,
+      "current": [
+        "bug",
+        "agent-safety",
+        "triaged"
+      ],
+      "remaining": [
+        "bug",
+        "agent-safety"
+      ],
+      "remove": [
+        "triaged"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3234,
+      "current": [
+        "bug",
+        "agent-safety",
+        "triaged"
+      ],
+      "remaining": [
+        "bug",
+        "agent-safety"
+      ],
+      "remove": [
+        "triaged"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3235,
+      "current": [
+        "bug",
+        "agent-safety",
+        "triaged"
+      ],
+      "remaining": [
+        "bug",
+        "agent-safety"
+      ],
+      "remove": [
+        "triaged"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3236,
+      "current": [
+        "bug",
+        "agent-safety",
+        "triaged"
+      ],
+      "remaining": [
+        "bug",
+        "agent-safety"
+      ],
+      "remove": [
+        "triaged"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3237,
+      "current": [
+        "enhancement",
+        "design",
+        "epic",
+        "status:tracker",
+        "process",
+        "agent-safety",
+        "triaged"
+      ],
+      "remaining": [
+        "enhancement",
+        "design",
+        "epic",
+        "status:tracker",
+        "process",
+        "agent-safety"
+      ],
+      "remove": [
+        "triaged"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3238,
+      "current": [
+        "enhancement",
+        "process",
+        "agent-safety",
+        "status:child",
+        "triaged"
+      ],
+      "remaining": [
+        "enhancement",
+        "process",
+        "agent-safety",
+        "status:child"
+      ],
+      "remove": [
+        "triaged"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3239,
+      "current": [
+        "enhancement",
+        "process",
+        "agent-safety",
+        "status:child",
+        "triaged"
+      ],
+      "remaining": [
+        "enhancement",
+        "process",
+        "agent-safety",
+        "status:child"
+      ],
+      "remove": [
+        "triaged"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3240,
+      "current": [
+        "enhancement",
+        "process",
+        "agent-safety",
+        "status:child",
+        "triaged"
+      ],
+      "remaining": [
+        "enhancement",
+        "process",
+        "agent-safety",
+        "status:child"
+      ],
+      "remove": [
+        "triaged"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3241,
+      "current": [
+        "enhancement",
+        "process",
+        "agent-safety",
+        "status:child",
+        "triaged"
+      ],
+      "remaining": [
+        "enhancement",
+        "process",
+        "agent-safety",
+        "status:child"
+      ],
+      "remove": [
+        "triaged"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3242,
+      "current": [
+        "enhancement",
+        "process",
+        "agent-safety",
+        "status:child",
+        "triaged"
+      ],
+      "remaining": [
+        "enhancement",
+        "process",
+        "agent-safety",
+        "status:child"
+      ],
+      "remove": [
+        "triaged"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3243,
+      "current": [
+        "enhancement",
+        "process",
+        "agent-safety",
+        "status:child",
+        "triaged"
+      ],
+      "remaining": [
+        "enhancement",
+        "process",
+        "agent-safety",
+        "status:child"
+      ],
+      "remove": [
+        "triaged"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3245,
+      "current": [
+        "bug",
+        "security",
+        "triage",
+        "harness",
+        "agent-safety",
+        "urgent",
+        "area:cli",
+        "triaged"
+      ],
+      "remaining": [
+        "bug",
+        "security",
+        "triage",
+        "harness",
+        "agent-safety",
+        "urgent",
+        "area:cli"
+      ],
+      "remove": [
+        "triaged"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3246,
+      "current": [
+        "bug",
+        "agent-experience",
+        "harness",
+        "area:cli",
+        "triaged"
+      ],
+      "remaining": [
+        "bug",
+        "agent-experience",
+        "harness",
+        "area:cli"
+      ],
+      "remove": [
+        "triaged"
+      ],
+      "status": "planned",
+      "message": null
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3252,
+      "current": [
+        "bug",
+        "enhancement",
+        "process",
+        "agent-safety",
+        "status:child",
+        "triaged"
+      ],
+      "remaining": [
+        "bug",
+        "enhancement",
+        "process",
+        "agent-safety",
+        "status:child"
+      ],
+      "remove": [
+        "triaged"
+      ],
+      "status": "planned",
+      "message": null
+    }
+  ],
+  "digest": [
+    {
+      "repo": "deftai/directive",
+      "issue_number": 445,
+      "state": "open",
+      "current_labels": [
+        "operational",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 453,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "Workflow",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 456,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 487,
+      "state": "closed",
+      "current_labels": [
+        "enhancement",
+        "patterns",
+        "context-engineering",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 514,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "ci-cd",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 515,
+      "state": "open",
+      "current_labels": [
+        "design",
+        "swarm",
+        "rfc",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 607,
+      "state": "closed",
+      "current_labels": [
+        "enhancement",
+        "determinism",
+        "area:skills",
+        "status:child",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 621,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "patterns",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 622,
+      "state": "closed",
+      "current_labels": [
+        "enhancement",
+        "area:skills",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 625,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "patterns",
+        "patterns:multi-agent",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 634,
+      "state": "open",
+      "current_labels": [
+        "determinism",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 635,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "epic",
+        "determinism",
+        "status:tracker",
+        "area:skills",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 662,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "context-engineering",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 678,
+      "state": "open",
+      "current_labels": [
+        "security",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 683,
+      "state": "open",
+      "current_labels": [
+        "patterns",
+        "type:research",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 688,
+      "state": "open",
+      "current_labels": [
+        "design",
+        "patterns",
+        "context-engineering",
+        "type:research",
+        "agent-experience",
+        "runtime-portability",
+        "agent-memory",
+        "patterns:agent-memory",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 691,
+      "state": "open",
+      "current_labels": [
+        "security",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 692,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "coding-standards",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 711,
+      "state": "open",
+      "current_labels": [
+        "design",
+        "rfc",
+        "source-of-truth",
+        "metrics",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 714,
+      "state": "open",
+      "current_labels": [
+        "documentation",
+        "design",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 835,
+      "state": "open",
+      "current_labels": [
+        "security",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 853,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "patterns",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 878,
+      "state": "open",
+      "current_labels": [
+        "rfc",
+        "meta",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 882,
+      "state": "open",
+      "current_labels": [
+        "type:research",
+        "status:tracker",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 886,
+      "state": "open",
+      "current_labels": [
+        "determinism",
+        "status:tracker",
+        "meta",
+        "triage",
+        "process",
+        "urgent",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "escalate",
+        "reason": "urgent ranking — human prioritization (experimental #1423 dogfood)",
+        "ruleIndex": 4,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[4]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 887,
+      "state": "open",
+      "current_labels": [
+        "type:research",
+        "status:tracker",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 958,
+      "state": "closed",
+      "current_labels": [
+        "design",
+        "rfc",
+        "patterns",
+        "context-engineering",
+        "agent-experience",
+        "source-of-truth",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 1,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 964,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "swarm",
+        "determinism",
+        "agent-experience",
+        "review-cycle",
+        "process",
+        "runtime-portability",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1084,
+      "state": "open",
+      "current_labels": [
+        "security",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1090,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "swarm",
+        "rfc",
+        "type:research",
+        "area:skills",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1091,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "design",
+        "security",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1094,
+      "state": "open",
+      "current_labels": [
+        "security",
+        "epic",
+        "status:tracker",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1175,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "swarm",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1176,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "determinism",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1183,
+      "state": "open",
+      "current_labels": [
+        "status:tracker",
+        "meta",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1204,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "coding-standards",
+        "security",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1211,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1283,
+      "state": "closed",
+      "current_labels": [
+        "design",
+        "rfc",
+        "source-of-truth",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 1,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1285,
+      "state": "open",
+      "current_labels": [
+        "epic",
+        "determinism",
+        "status:tracker",
+        "source-of-truth",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1297,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "status:blocked",
+        "source-of-truth",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "status:blocked — waiting on dependency/decision",
+        "ruleIndex": 13,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[13]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1298,
+      "state": "open",
+      "current_labels": [
+        "chore",
+        "status:blocked",
+        "source-of-truth",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "status:blocked — waiting on dependency/decision",
+        "ruleIndex": 13,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[13]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1299,
+      "state": "open",
+      "current_labels": [
+        "documentation",
+        "status:blocked",
+        "source-of-truth",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "status:blocked — waiting on dependency/decision",
+        "ruleIndex": 13,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[13]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1304,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "swarm",
+        "review-cycle",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1305,
+      "state": "open",
+      "current_labels": [
+        "documentation",
+        "process",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1317,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "rfc",
+        "type:research",
+        "Workflow",
+        "area:skills",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1318,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "rfc",
+        "type:research",
+        "Workflow",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1492,
+      "state": "open",
+      "current_labels": [
+        "rfc",
+        "determinism",
+        "source-of-truth",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1498,
+      "state": "open",
+      "current_labels": [
+        "design",
+        "rfc",
+        "patterns",
+        "context-engineering",
+        "determinism",
+        "agent-experience",
+        "source-of-truth",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1534,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "type:research",
+        "agent-experience",
+        "agent-memory",
+        "area:skills",
+        "metrics",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1535,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "security",
+        "source-of-truth",
+        "agent-safety",
+        "skill-lifecycle",
+        "area:skills",
+        "triaged",
+        "triage:needs-human"
+      ],
+      "matched": {
+        "action": "escalate",
+        "reason": "agent-safety facet — human review before automated disposition (experimental #1423 dogfood)",
+        "ruleIndex": 4,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[4]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "escalate",
+        "reason": "agent-safety facet — human review before automated disposition (experimental #1423 dogfood)",
+        "ruleIndex": 3,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[3]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1567,
+      "state": "open",
+      "current_labels": [
+        "documentation",
+        "design",
+        "type:research",
+        "source-of-truth",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1583,
+      "state": "open",
+      "current_labels": [
+        "rfc",
+        "type:research",
+        "runtime-portability",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1592,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "swarm",
+        "type:research",
+        "review-cycle",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1597,
+      "state": "open",
+      "current_labels": [
+        "research-strategy",
+        "type:research",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1617,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "doctor",
+        "agent-experience",
+        "runtime-portability",
+        "tooling",
+        "agent-safety",
+        "triaged",
+        "triage:needs-human"
+      ],
+      "matched": {
+        "action": "escalate",
+        "reason": "agent-safety facet — human review before automated disposition (experimental #1423 dogfood)",
+        "ruleIndex": 4,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[4]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "escalate",
+        "reason": "agent-safety facet — human review before automated disposition (experimental #1423 dogfood)",
+        "ruleIndex": 3,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[3]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1618,
+      "state": "open",
+      "current_labels": [
+        "rfc",
+        "status:tracker",
+        "refactor",
+        "source-of-truth",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1700,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "rfc",
+        "security",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1702,
+      "state": "open",
+      "current_labels": [
+        "design",
+        "rfc",
+        "meta",
+        "process",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1707,
+      "state": "open",
+      "current_labels": [
+        "design",
+        "rfc",
+        "agent-experience",
+        "process",
+        "runtime-portability",
+        "ts-migration",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1772,
+      "state": "open",
+      "current_labels": [
+        "swarm",
+        "context-engineering",
+        "type:research",
+        "agent-experience",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1779,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "rfc",
+        "security",
+        "tooling",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1874,
+      "state": "open",
+      "current_labels": [
+        "rfc",
+        "meta",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1944,
+      "state": "open",
+      "current_labels": [
+        "rfc",
+        "type:research",
+        "runtime-portability",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1975,
+      "state": "open",
+      "current_labels": [
+        "patterns",
+        "type:research",
+        "patterns:multi-agent",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 1976,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "swarm",
+        "area:vbrief",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2021,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "type:research",
+        "Workflow",
+        "area:skills",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2087,
+      "state": "open",
+      "current_labels": [
+        "design",
+        "rfc",
+        "agent-experience",
+        "process",
+        "runtime-portability",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2173,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "dependencies",
+        "type:research",
+        "area:installer",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2312,
+      "state": "open",
+      "current_labels": [
+        "design",
+        "rfc",
+        "type:research",
+        "source-of-truth",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2316,
+      "state": "open",
+      "current_labels": [
+        "chore",
+        "determinism",
+        "test-debt",
+        "review-cycle",
+        "harness",
+        "area:skills",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2436,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "patterns",
+        "type:research",
+        "status:blocked",
+        "area:skills",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2439,
+      "state": "open",
+      "current_labels": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2485,
+      "state": "open",
+      "current_labels": [
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2603,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "rfc",
+        "epic",
+        "status:tracker",
+        "agent-experience",
+        "metrics",
+        "triaged",
+        "triage:deferred",
+        "eval-signal"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2651,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "design",
+        "rfc",
+        "epic",
+        "status:tracker",
+        "scm",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2697,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "rfc",
+        "agent-experience",
+        "urgent",
+        "metrics",
+        "triaged",
+        "triage:deferred",
+        "eval-signal"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "escalate",
+        "reason": "urgent ranking — human prioritization (experimental #1423 dogfood)",
+        "ruleIndex": 4,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[4]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2701,
+      "state": "open",
+      "current_labels": [
+        "rfc",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2702,
+      "state": "open",
+      "current_labels": [
+        "rfc",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2703,
+      "state": "open",
+      "current_labels": [
+        "rfc",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2706,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "swarm",
+        "type:research",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2712,
+      "state": "closed",
+      "current_labels": [
+        "enhancement",
+        "doctor",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2715,
+      "state": "open",
+      "current_labels": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2716,
+      "state": "open",
+      "current_labels": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2717,
+      "state": "open",
+      "current_labels": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2718,
+      "state": "open",
+      "current_labels": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2719,
+      "state": "open",
+      "current_labels": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2720,
+      "state": "open",
+      "current_labels": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2721,
+      "state": "open",
+      "current_labels": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2722,
+      "state": "open",
+      "current_labels": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2723,
+      "state": "open",
+      "current_labels": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2724,
+      "state": "open",
+      "current_labels": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2725,
+      "state": "open",
+      "current_labels": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2726,
+      "state": "open",
+      "current_labels": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2727,
+      "state": "open",
+      "current_labels": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2728,
+      "state": "open",
+      "current_labels": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2729,
+      "state": "open",
+      "current_labels": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2730,
+      "state": "open",
+      "current_labels": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2731,
+      "state": "open",
+      "current_labels": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2732,
+      "state": "open",
+      "current_labels": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2733,
+      "state": "open",
+      "current_labels": [
+        "design",
+        "rfc",
+        "status:blocked",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2776,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "rfc",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2777,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "rfc",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2784,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "rfc",
+        "ts-migration",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2812,
+      "state": "open",
+      "current_labels": [
+        "epic",
+        "status:tracker",
+        "beta",
+        "area:release",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": null,
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2849,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "design",
+        "operational",
+        "epic",
+        "determinism",
+        "harness",
+        "scm",
+        "agent-safety",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "escalate",
+        "reason": "agent-safety facet — human review before automated disposition (experimental #1423 dogfood)",
+        "ruleIndex": 3,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[3]",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 2966,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "design",
+        "patterns",
+        "agent-experience",
+        "harness",
+        "source-of-truth",
+        "area:guidance",
+        "hold",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold label — do not work yet (complements body hold-markers)",
+        "ruleIndex": 13,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[13]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "hold label — do not work yet (complements body hold-markers)",
+        "ruleIndex": 12,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[12]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3007,
+      "state": "open",
+      "current_labels": [
+        "documentation",
+        "enhancement",
+        "security",
+        "grok-build",
+        "tooling",
+        "hold",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold label — do not work yet (complements body hold-markers)",
+        "ruleIndex": 13,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[13]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "hold label — do not work yet (complements body hold-markers)",
+        "ruleIndex": 12,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[12]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3014,
+      "state": "open",
+      "current_labels": [
+        "research-strategy",
+        "type:research",
+        "agent-experience",
+        "area:guidance",
+        "hold",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 9,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[9]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "defer",
+        "reason": "exploratory",
+        "ruleIndex": 8,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[8]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3086,
+      "state": "open",
+      "current_labels": [
+        "enhancement",
+        "patterns",
+        "agent-experience",
+        "harness",
+        "agent-safety",
+        "patterns:agent-app",
+        "area:guidance",
+        "triaged",
+        "triage:needs-human"
+      ],
+      "matched": {
+        "action": "escalate",
+        "reason": "agent-safety facet — human review before automated disposition (experimental #1423 dogfood)",
+        "ruleIndex": 4,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[4]",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "escalate",
+        "reason": "agent-safety facet — human review before automated disposition (experimental #1423 dogfood)",
+        "ruleIndex": 3,
+        "ruleSource": "consumer",
+        "ruleKind": "consumer[3]",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3124,
+      "state": "closed",
+      "current_labels": [
+        "enhancement",
+        "triage",
+        "agent-experience",
+        "process",
+        "status:child",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3158,
+      "state": "closed",
+      "current_labels": [
+        "enhancement",
+        "swarm",
+        "patterns:multi-agent",
+        "status:child",
+        "triaged",
+        "triage:deferred"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3206,
+      "state": "closed",
+      "current_labels": [
+        "bug",
+        "security",
+        "harness",
+        "agent-safety",
+        "urgent",
+        "area:cli",
+        "triaged",
+        "triage:needs-human"
+      ],
+      "matched": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 1,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3233,
+      "state": "closed",
+      "current_labels": [
+        "bug",
+        "agent-safety",
+        "triaged"
+      ],
+      "matched": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 1,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3234,
+      "state": "closed",
+      "current_labels": [
+        "bug",
+        "agent-safety",
+        "triaged"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3235,
+      "state": "closed",
+      "current_labels": [
+        "bug",
+        "agent-safety",
+        "triaged"
+      ],
+      "matched": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 1,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3236,
+      "state": "closed",
+      "current_labels": [
+        "bug",
+        "agent-safety",
+        "triaged"
+      ],
+      "matched": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 1,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3237,
+      "state": "closed",
+      "current_labels": [
+        "enhancement",
+        "design",
+        "epic",
+        "status:tracker",
+        "process",
+        "agent-safety",
+        "triaged"
+      ],
+      "matched": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 1,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3238,
+      "state": "closed",
+      "current_labels": [
+        "enhancement",
+        "process",
+        "agent-safety",
+        "status:child",
+        "triaged"
+      ],
+      "matched": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 1,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3239,
+      "state": "closed",
+      "current_labels": [
+        "enhancement",
+        "process",
+        "agent-safety",
+        "status:child",
+        "triaged"
+      ],
+      "matched": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 1,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3240,
+      "state": "closed",
+      "current_labels": [
+        "enhancement",
+        "process",
+        "agent-safety",
+        "status:child",
+        "triaged"
+      ],
+      "matched": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 1,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3241,
+      "state": "closed",
+      "current_labels": [
+        "enhancement",
+        "process",
+        "agent-safety",
+        "status:child",
+        "triaged"
+      ],
+      "matched": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 1,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3242,
+      "state": "closed",
+      "current_labels": [
+        "enhancement",
+        "process",
+        "agent-safety",
+        "status:child",
+        "triaged"
+      ],
+      "matched": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 1,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3243,
+      "state": "closed",
+      "current_labels": [
+        "enhancement",
+        "process",
+        "agent-safety",
+        "status:child",
+        "triaged"
+      ],
+      "matched": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 1,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "shadowed": false
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3245,
+      "state": "closed",
+      "current_labels": [
+        "bug",
+        "security",
+        "triage",
+        "harness",
+        "agent-safety",
+        "urgent",
+        "area:cli",
+        "triaged"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3246,
+      "state": "closed",
+      "current_labels": [
+        "bug",
+        "agent-experience",
+        "harness",
+        "area:cli",
+        "triaged"
+      ],
+      "matched": {
+        "action": "defer",
+        "reason": "hold marker in body",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:hold-marker",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "shadowed": true
+    },
+    {
+      "repo": "deftai/directive",
+      "issue_number": 3252,
+      "state": "closed",
+      "current_labels": [
+        "bug",
+        "enhancement",
+        "process",
+        "agent-safety",
+        "status:child",
+        "triaged"
+      ],
+      "matched": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 1,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "without_hold_marker": {
+        "action": "archive",
+        "reason": "closed upstream and never triaged",
+        "ruleIndex": 0,
+        "ruleSource": "framework",
+        "ruleKind": "universal:closed-never-triaged",
+        "resumeOn": null
+      },
+      "shadowed": false
+    }
+  ]
+}

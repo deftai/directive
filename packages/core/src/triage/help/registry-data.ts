@@ -326,19 +326,18 @@ export const registryData = {
     },
     "task triage:classify": {
       name: "task triage:classify",
-      summary: "Inspect / validate auto-classification; bootstrap mass-triage label mirror",
-      refs: "(D10 / #1129, #1423 Wave 1–2 / #3125, #3129, #3197)",
+      summary: "Inspect / validate auto-classification; --mirror withdrawn (#4070)",
+      refs: "(D10 / #1129, withdrawn #4070 / #1423 Wave 1–2)",
       description:
-        "Inspect or validate the auto-classification rule set. --list renders effective rules (framework universal first, consumer overrides next). --validate exits non-zero on a malformed plan.policy.triageAutoClassify or triageLabelMirror. --mirror is the bootstrap mass-triage entrypoint (#3125): classifies the github-issue cache and mirrors outcomes as SCM labels. Open-only by default (opt-in --include-closed); optional --author LOGIN scopes plan/apply to matching author.login (AND with open-only; #3129). Default re-run skips already-stamped (idempotency) issues; after policy/rule changes use --re-enrich to re-classify already-triaged issues and plan additive label deltas only (#3197; re-run vs re-enrich discovery #3124). Dry-run digest shows totals + by state/rule/action + samples, first-time vs re-enrich planned rows, and surfaces the author filter; --apply batches writes with rate-limit delay. Never calls triage:accept / never writes proposed/ xBRIEFs.",
-      usage:
-        "task triage:classify -- [--list | --validate | --mirror [--apply] [--re-enrich] [--include-closed] [--author LOGIN|@me] [--repo owner/name] [--batch-size N] [--delay-ms N] [--sample-limit N] [--json] [--allow-cross-repo]]",
+        "Inspect or validate the auto-classification rule set. --list renders effective rules (framework universal first, consumer overrides next). --validate exits non-zero on a malformed plan.policy.triageAutoClassify or triageLabelMirror. --mirror (dry-run and --apply) is withdrawn (#4070) and fails closed with a pointer at that issue. Replacement sieve is #4071. Strip leftover triaged / triage:* chips with task triage:strip-withdrawn-chips. Never calls triage:accept / never writes proposed/ xBRIEFs.",
+      usage: "task triage:classify -- [--list | --validate]",
       flags: [
         ["--list", "(default)", "Print effective rules + hold markers."],
         ["--validate", "(off)", "Validate plan.policy.triageAutoClassify + triageLabelMirror."],
         [
           "--mirror",
-          "(off)",
-          "Bootstrap mass-triage label mirror: classify cache → planned/applied labels (dry-run default, open-only).",
+          "(withdrawn)",
+          "Fail-closed (#4070). Dry-run and --apply both refuse. Pointer at #4070 / #4071.",
         ],
         [
           "--apply",

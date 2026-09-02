@@ -106,15 +106,11 @@ function writeMirrorDiscoveryState(
 
 /** True when tip should still surface (not acked and no successful dry-run yet). */
 export function isMirrorDiscoveryTipDue(
-  projectRoot: string,
-  options: Pick<MirrorDiscoveryTipOptions, "readState"> = {},
+  _projectRoot: string,
+  _options: Pick<MirrorDiscoveryTipOptions, "readState"> = {},
 ): boolean {
-  const state = readMirrorDiscoveryState(projectRoot, options);
-  if (state.ackedAt !== undefined && state.ackedAt.length > 0) return false;
-  if (state.successfulDryRunAt !== undefined && state.successfulDryRunAt.length > 0) {
-    return false;
-  }
-  return true;
+  // #4070: classify --mirror is withdrawn. Discovery tip must not fire.
+  return false;
 }
 
 /**
