@@ -11,7 +11,7 @@
  */
 
 import { createHash, randomUUID } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 import {
   ContainedWriteError,
@@ -274,9 +274,34 @@ export function evaluateImplementSpawnOccupancy(input: {
   };
 }
 
+function reservationDigestKey(destPath: string): string {
+  const lexical = resolve(destPath);
+  if (!existsSync(lexical)) return lexical;
+  try {
+    return realpathSync(lexical);
+  } catch {
+    return lexical;
+  }
+}
+
 function reservationLockPath(storeRoot: string, destPath: string): string {
-  const digest = createHash("sha256").update(resolve(destPath)).digest("hex").slice(0, 32);
+  const digest = createHash("sha256")
+    .update(reservationDigestKey(destPath))
+    .digest("hex")
+    .slice(0, 32);
   return join(storeRoot, ".deft", "spawn-reservations", digest);
+}
+
+/** Incarnation written by persistSpawnReservation dest-lock, or null. */
+export function readSpawnReservationIncarnation(
+  storeRoot: string,
+  destPath: string,
+): string | null {
+  const lockRoot = reservationLockRoot(resolve(storeRoot));
+  const target = reservationLockPath(lockRoot, destPath);
+  if (!existsSync(target)) return null;
+  const text = readFileSync(target, "utf8").trim();
+  return text.length > 0 ? text : null;
 }
 
 export type PersistSpawnReservationResult = { ok: true } | { ok: false; reason: "conflict" };
@@ -366,11 +391,7 @@ export function allocatedWorktreeMatches(
     const recorded = resolve(rec.worktreePath);
     if (!sameTree(recorded, want)) continue;
     const live = liveOccupant(want);
-    if (
-      live !== null &&
-      live.sessionId !== rec.occupancyOwner &&
-      live.sessionId !== parentId
-    ) {
+    if (live !== null && live.sessionId !== rec.occupancyOwner && live.sessionId !== parentId) {
       continue;
     }
     return true;

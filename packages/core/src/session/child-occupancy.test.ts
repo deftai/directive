@@ -425,4 +425,43 @@ describe("child occupancy dispatch record (#3999)", () => {
     expect(readOccupancy(foreign)?.sessionId).toBe(childOwner);
     expect(existsSync(childOccupancyPath(root, agentId))).toBe(true);
   });
+  it("releases when the heartbeat omits incarnation and the parent store has one (#4066)", () => {
+    const root = tempRoot();
+    recordChildOccupancyLease(root, {
+      agentId,
+      parentId,
+      occupancyOwner: childOwner,
+      worktreePath: root,
+      identitySourceKind: "host-env",
+      incarnation: "inc-store",
+      provenance: "dispatch",
+    });
+    applyWorktreeOccupancy(root, { sessionId: childOwner, now, env: {} });
+    const released = releaseChildOccupancyOnTerminal(root, { agentId, now, parentId });
+    expect(released.reason).toBe("released");
+    expect(readOccupancy(root)).toBeNull();
+    expect(existsSync(childOccupancyPath(root, agentId))).toBe(false);
+  });
+
+  it("refuses a dest-lock incarnation that disagrees with the parent store (#4066)", () => {
+    const root = tempRoot();
+    recordChildOccupancyLease(root, {
+      agentId,
+      parentId,
+      occupancyOwner: childOwner,
+      worktreePath: root,
+      identitySourceKind: "host-env",
+      incarnation: "inc-store",
+      provenance: "dispatch",
+    });
+    applyWorktreeOccupancy(root, { sessionId: childOwner, now, env: {} });
+    const released = releaseChildOccupancyOnTerminal(root, {
+      agentId,
+      now,
+      parentId,
+      reservationIncarnation: "inc-other",
+    });
+    expect(released.reason).toBe("incarnation-mismatch");
+    expect(readOccupancy(root)?.sessionId).toBe(childOwner);
+  });
 });

@@ -3,9 +3,11 @@
  *
  * A parent records the child's occupancy owner, exact worktree root, and a
  * non-reused dispatch incarnation at spawn in `.deft/child-occupancy/`.
- * Terminal release is dispatcher-owned: parent-id match, incarnation match,
- * skip invalid heartbeats, refuse a tree that is not the heartbeat tree or a
- * dispatcher-allocated tree. Ordinary self-claim records are not close-out.
+ * Terminal release is dispatcher-owned: parent-id match, parent-store
+ * incarnation (spawn reservation dest-lock corroborates; heartbeat incarnation
+ * is optional), skip invalid heartbeats, refuse a tree that is not the
+ * heartbeat tree or a dispatcher-allocated tree. Ordinary self-claim records
+ * are not close-out.
  *
  * Payload-kind skip is same-tree logic: after own-tree claim, tree-scoped
  * compare-and-release is safe when the recorded path is a linked worktree
@@ -314,6 +316,7 @@ export function releaseChildOccupancyOnTerminal(
     readonly lockDeps?: LockDeps;
     readonly parentId?: string;
     readonly incarnation?: string;
+    readonly reservationIncarnation?: string;
     readonly heartbeatWorktree?: string;
     readonly heartbeatFailures?: readonly string[];
     readonly observerRoot?: string;
@@ -336,8 +339,13 @@ export function releaseChildOccupancyOnTerminal(
   if (record.incarnation.length === 0 || record.incarnation === "missing") {
     return { reason: "incarnation-mismatch", record, occupancy: null };
   }
+  const storeIncarnation = record.incarnation;
+  const reservationIncarnation = (input.reservationIncarnation ?? "").trim();
+  if (reservationIncarnation.length > 0 && reservationIncarnation !== storeIncarnation) {
+    return { reason: "incarnation-mismatch", record, occupancy: null };
+  }
   const presentedIncarnation = (input.incarnation ?? "").trim();
-  if (presentedIncarnation.length === 0 || presentedIncarnation !== record.incarnation) {
+  if (presentedIncarnation.length > 0 && presentedIncarnation !== storeIncarnation) {
     return { reason: "incarnation-mismatch", record, occupancy: null };
   }
   const presentedParent = (input.parentId ?? "").trim();

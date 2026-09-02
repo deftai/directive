@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -10,6 +10,7 @@ import {
   evaluateImplementSpawnOccupancy,
   inspectSpawnDestination,
   persistSpawnReservation,
+  readSpawnReservationIncarnation,
   releaseSpawnReservation,
 } from "./spawn-occupancy.js";
 
@@ -242,6 +243,38 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
       provenance: "dispatch",
     });
     expect(again.ok).toBe(true);
+  });
+
+  it("dest-locks an existing destination by realpath, with lexical fallback when missing (#4066)", () => {
+    const root = mkdtempSync(join(tmpdir(), "spawn-occ-real-"));
+    temps.push(root);
+    const dest = join(root, "wt-real");
+    mkdirSync(dest, { recursive: true });
+    const alias = join(root, "wt-alias");
+    symlinkSync(dest, alias, process.platform === "win32" ? "junction" : "dir");
+    const first = persistSpawnReservation(root, {
+      agentId: "leaf-a",
+      parentId: "parent",
+      occupancyOwner: "parent",
+      worktreePath: dest,
+      identitySourceKind: "host-env",
+      incarnation: "inc-a",
+      provenance: "dispatch",
+    });
+    expect(first.ok).toBe(true);
+    expect(readSpawnReservationIncarnation(root, dest)).toBe("inc-a");
+    expect(readSpawnReservationIncarnation(root, alias)).toBe("inc-a");
+    const second = persistSpawnReservation(root, {
+      agentId: "leaf-b",
+      parentId: "parent",
+      occupancyOwner: "parent",
+      worktreePath: alias,
+      identitySourceKind: "host-env",
+      incarnation: "inc-b",
+      provenance: "dispatch",
+    });
+    expect(second.ok).toBe(false);
+    if (!second.ok) expect(second.reason).toBe("conflict");
   });
 
   it("dest-locks a missing destination so two first-creates conflict", () => {

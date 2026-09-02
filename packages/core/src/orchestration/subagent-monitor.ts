@@ -4,10 +4,14 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import {
+  readChildOccupancyLease,
   releaseChildOccupancyOnTerminal,
   worktreeCandidatesForHeartbeat,
 } from "../session/child-occupancy.js";
-import { releaseSpawnReservation } from "../session/spawn-occupancy.js";
+import {
+  readSpawnReservationIncarnation,
+  releaseSpawnReservation,
+} from "../session/spawn-occupancy.js";
 
 export const EXIT_OK = 0;
 export const EXIT_STALE = 1;
@@ -470,11 +474,15 @@ export function releaseTerminalChildOccupancy(
     if (rec.failures.length > 0) continue;
     const heartbeatTree = resolve(rec.path, "..", "..", "..");
     for (const root of worktreeCandidatesForHeartbeat(rec.path, cwd)) {
+      const lease = readChildOccupancyLease(root, rec.agent_id);
+      const reservationIncarnation =
+        lease === null ? null : readSpawnReservationIncarnation(root, lease.worktreePath);
       const released = releaseChildOccupancyOnTerminal(root, {
         agentId: rec.agent_id,
         now,
         parentId: rec.parent_id ?? observerParent,
-        incarnation: rec.incarnation ?? "",
+        incarnation: rec.incarnation ?? undefined,
+        reservationIncarnation: reservationIncarnation ?? undefined,
         heartbeatWorktree: heartbeatTree,
         heartbeatFailures: rec.failures,
         observerRoot: cwd,

@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -8,6 +9,10 @@ import {
   evaluateOccupancyWriteGate,
   readOccupancy,
 } from "../session/occupancy.js";
+import {
+  persistSpawnReservation,
+  readSpawnReservationIncarnation,
+} from "../session/spawn-occupancy.js";
 import {
   resolveJudgmentGates,
   validateJudgmentGates,
@@ -243,6 +248,72 @@ describe("subagent-monitor", () => {
       true,
     );
     rmSync(root, { recursive: true, force: true });
+  });
+
+  it("releases and clears the dest lock from a terminal heartbeat with no incarnation field (#4066)", () => {
+    const main = mkdtempSync(join(tmpdir(), "sam-ninc-"));
+    execFileSync("git", ["init", "-q"], { cwd: main, encoding: "utf8" });
+    execFileSync("git", ["config", "user.email", "t@t.local"], { cwd: main, encoding: "utf8" });
+    execFileSync("git", ["config", "user.name", "T"], { cwd: main, encoding: "utf8" });
+    writeFileSync(join(main, "README"), "x\n", "utf8");
+    execFileSync("git", ["add", "README"], { cwd: main, encoding: "utf8" });
+    execFileSync("git", ["commit", "-q", "-m", "init"], { cwd: main, encoding: "utf8" });
+    const parent = join(main, "parent");
+    const child = join(main, "child");
+    execFileSync("git", ["worktree", "add", "--detach", parent, "HEAD"], {
+      cwd: main,
+      encoding: "utf8",
+    });
+    execFileSync("git", ["worktree", "add", "--detach", child, "HEAD"], {
+      cwd: main,
+      encoding: "utf8",
+    });
+    const now = new Date("2026-08-31T12:00:00Z");
+    const childOwner = "host:grok:v1:child-owner";
+    expect(
+      persistSpawnReservation(parent, {
+        agentId: "child-agent",
+        parentId: "parent-agent",
+        occupancyOwner: childOwner,
+        worktreePath: child,
+        identitySourceKind: "host-env",
+        incarnation: "inc-lock",
+        provenance: "dispatch",
+      }).ok,
+    ).toBe(true);
+    expect(readSpawnReservationIncarnation(parent, child)).toBe("inc-lock");
+    applyWorktreeOccupancy(child, { sessionId: childOwner, now, env: {} });
+    const scratch = join(child, ".deft-scratch", "subagent-status");
+    mkdirSync(scratch, { recursive: true });
+    writeFileSync(
+      join(scratch, "child-agent.json"),
+      JSON.stringify({
+        agent_id: "child-agent",
+        parent_id: "parent-agent",
+        last_heartbeat_at: "2026-08-31T12:00:00Z",
+        last_message: "done",
+        phase: "terminal",
+        terminal_state: "CLEAN",
+      }),
+      "utf8",
+    );
+    expect(cmdSubagentMonitor(["--scratch-dir", scratch], parent)).toBe(EXIT_OK);
+    expect(readOccupancy(child)).toBeNull();
+    expect(readSpawnReservationIncarnation(parent, child)).toBeNull();
+    expect(
+      persistSpawnReservation(parent, {
+        agentId: "leaf-b",
+        parentId: "parent-agent",
+        occupancyOwner: childOwner,
+        worktreePath: child,
+        identitySourceKind: "host-env",
+        incarnation: "inc-next",
+        provenance: "dispatch",
+      }).ok,
+    ).toBe(true);
+    rmSync(parent, { recursive: true, force: true });
+    rmSync(child, { recursive: true, force: true });
+    rmSync(main, { recursive: true, force: true });
   });
 });
 
