@@ -994,4 +994,113 @@ describe("runTransition activate envelope policy (#3933 criterion 7)", () => {
     expect(existsSync(src)).toBe(true);
     expect(existsSync(join(root, "xbrief", "active", "story.xbrief.json"))).toBe(false);
   });
+
+  it("repairs a unique ingest-owner plan.id on promote (#4119)", () => {
+    const root = repo();
+    const path = join(root, "xbrief", "proposed", "missing-id.xbrief.json");
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8", description: "Scope xBRIEF ingested from GitHub issue #9" },
+      plan: {
+        title: "T",
+        status: "proposed",
+        narratives: { Origin: "Ingested from https://github.com/o/r/issues/9" },
+        items: [],
+      },
+    });
+    const result = runTransition("promote", path);
+    expect(result.ok).toBe(true);
+    const dest = join(root, "xbrief", "pending", "missing-id.xbrief.json");
+    const data = JSON.parse(readFileSync(dest, "utf8")) as { plan: { id: string } };
+    expect(data.plan.id).toBe("github.issue.fallback.o.r.9");
+  });
+
+  it("refuses promote of blank malformed conflicting and duplicate plan.id (#4119)", () => {
+    const root = repo();
+    const blank = join(root, "xbrief", "proposed", "blank.xbrief.json");
+    writeFile(blank, {
+      xBRIEFInfo: { version: "0.8", description: "Scope xBRIEF ingested from GitHub issue #1" },
+      plan: {
+        id: "  ",
+        title: "T",
+        status: "proposed",
+        narratives: { Origin: "Ingested from https://github.com/o/r/issues/1" },
+        items: [],
+      },
+    });
+    expect(runTransition("promote", blank).ok).toBe(false);
+
+    const malformed = join(root, "xbrief", "proposed", "bad.xbrief.json");
+    writeFile(malformed, {
+      xBRIEFInfo: { version: "0.8", description: "Scope xBRIEF ingested from GitHub issue #2" },
+      plan: {
+        id: "not/valid",
+        title: "T",
+        status: "proposed",
+        narratives: { Origin: "Ingested from https://github.com/o/r/issues/2" },
+        items: [],
+      },
+    });
+    expect(runTransition("promote", malformed).ok).toBe(false);
+
+    const occupant = join(root, "xbrief", "completed", "occ.xbrief.json");
+    writeFile(occupant, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: { id: "github.issue.1", title: "Occ", status: "completed", items: [] },
+    });
+    const dup = join(root, "xbrief", "proposed", "dup.xbrief.json");
+    writeFile(dup, {
+      xBRIEFInfo: { version: "0.8", description: "Scope xBRIEF ingested from GitHub issue #3" },
+      plan: {
+        id: "github.issue.1",
+        title: "T",
+        status: "proposed",
+        narratives: { Origin: "Ingested from https://github.com/o/r/issues/3" },
+        items: [],
+      },
+    });
+    expect(runTransition("promote", dup).ok).toBe(false);
+
+    const conflict = join(root, "xbrief", "proposed", "conflict.xbrief.json");
+    writeFile(conflict, {
+      xBRIEFInfo: { version: "0.8", description: "Scope xBRIEF ingested from GitHub issue #4" },
+      plan: {
+        id: "github.issue.4",
+        title: "T",
+        status: "proposed",
+        narratives: { Origin: "Ingested from https://github.com/o/r/issues/4" },
+        items: [],
+        metadata: { "x-directive/plan-id": { id: "github.issue.99" } },
+      },
+    });
+    expect(runTransition("promote", conflict).ok).toBe(false);
+  });
+
+  it("promotes an ingest owner with a unique plan.id and leaves child slugs alone (#4119)", () => {
+    const root = repo();
+    const owner = join(root, "xbrief", "proposed", "owner.xbrief.json");
+    writeFile(owner, {
+      xBRIEFInfo: { version: "0.8", description: "Scope xBRIEF ingested from GitHub issue #5" },
+      plan: {
+        id: "github.issue.5",
+        title: "T",
+        status: "proposed",
+        narratives: { Origin: "Ingested from https://github.com/o/r/issues/5" },
+        items: [],
+      },
+    });
+    expect(runTransition("promote", owner).ok).toBe(true);
+
+    const child = join(root, "xbrief", "proposed", "child.xbrief.json");
+    writeFile(child, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        id: "635-child-slug",
+        title: "Child",
+        status: "proposed",
+        references: [{ type: "x-xbrief/github-issue", uri: "https://github.com/o/r/issues/635" }],
+        items: [],
+      },
+    });
+    expect(runTransition("promote", child).ok).toBe(true);
+  });
 });

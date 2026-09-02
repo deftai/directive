@@ -12,6 +12,7 @@ import { type CallOptions, type CompletedProcess, call } from "../scm/call.js";
 import { updateDecomposedChildBackReferences } from "../scope/decomposed-refs.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
 import { resolveProjectRepo } from "../slice/project-context.js";
+import { parseGithubIssueUri } from "../triage/reconcile/parse-uri.js";
 import { FOLDER_ALLOWED_STATUSES } from "../vbrief-validate/constants.js";
 
 export const LIFECYCLE_FOLDERS = [
@@ -104,7 +105,50 @@ export function extractReferencesFromVbrief(
   return refs;
 }
 
+/** Repository-qualified GitHub issue origin (#4119). */
+export interface IssueOrigin {
+  readonly owner: string;
+  readonly repo: string;
+  readonly number: number;
+}
+
+/** Stable origin key `owner/repo#number` (lowercased owner/repo). */
+export function issueOriginKey(origin: IssueOrigin): string {
+  return `${origin.owner.toLowerCase()}/${origin.repo.toLowerCase()}#${origin.number}`;
+}
+
+/**
+ * Parse owner/repo/number from a github-issue reference.
+ * Accepts github.com and api.github.com URIs. Number-only `#N` is not origin-complete.
+ */
+export function parseIssueOrigin(ref: Record<string, unknown>): IssueOrigin | null {
+  for (const key of ["uri", "url"] as const) {
+    const value = ref[key];
+    if (typeof value !== "string" || value.length === 0) {
+      continue;
+    }
+    const [repo, number] = parseGithubIssueUri(value);
+    if (repo === null || number === null) {
+      continue;
+    }
+    const slash = repo.indexOf("/");
+    if (slash <= 0 || slash === repo.length - 1) {
+      continue;
+    }
+    return {
+      owner: repo.slice(0, slash),
+      repo: repo.slice(slash + 1),
+      number,
+    };
+  }
+  return null;
+}
+
 export function parseIssueNumber(ref: Record<string, unknown>): number | null {
+  const origin = parseIssueOrigin(ref);
+  if (origin !== null) {
+    return origin.number;
+  }
   for (const key of ["uri", "url"] as const) {
     const value = ref[key];
     if (typeof value === "string" && value.length > 0) {

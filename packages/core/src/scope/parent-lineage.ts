@@ -263,6 +263,7 @@ export function extractPlanId(doc: unknown): string | null {
 /**
  * Scan lifecycle folders for artifacts whose plan.id exactly equals parentPlanId.
  * Returns every match (caller enforces uniqueness). Does not use basenames.
+ * #4119 reuses this as the lifecycle-root identity census (not a second folder walk).
  */
 export function findParentsByPlanId(
   lifecycleRoot: string,

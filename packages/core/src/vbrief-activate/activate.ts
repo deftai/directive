@@ -13,6 +13,7 @@ import {
   assertProjectionContained,
   ProjectionContainmentError,
 } from "../fs/projection-containment.js";
+import { evaluateIssuePlanIdAdmission, withPlanIdIdentityLock } from "../intake/issue-ingest.js";
 import {
   BRIEF_ENVELOPE_KEYS,
   missingEnvelopeMessage,
@@ -189,6 +190,26 @@ export function activate(vbriefPath: string, options: ActivateOptions = {}): Act
     return { exitCode: 1, message: effortGate.message };
   }
 
+  const vbriefDirEarly = dirname(dirname(vbriefPath));
+  return withPlanIdIdentityLock(vbriefDirEarly, () => {
+    const admission = evaluateIssuePlanIdAdmission({
+      lifecycleRoot: vbriefDirEarly,
+      artifactPath: vbriefPath,
+      data: payload,
+    });
+    if (!admission.ok) {
+      return { exitCode: 1, message: admission.message };
+    }
+    return activateAfterIdentity(vbriefPath, payload, planObj, now);
+  });
+}
+
+function activateAfterIdentity(
+  vbriefPath: string,
+  payload: Record<string, unknown>,
+  planObj: Record<string, unknown>,
+  now: Date,
+): ActivateResult {
   // Resolve destination early so containment can refuse before any mutation.
   // Parity with scope:activate / #2447: projectRoot is parent of the xbrief/ root.
   const vbriefDir = dirname(dirname(vbriefPath));

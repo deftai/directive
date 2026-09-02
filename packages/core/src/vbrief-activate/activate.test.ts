@@ -362,4 +362,45 @@ describe("activate projection containment (#3147 / #2447 parity)", () => {
       expect(unchanged.plan.status).toBe("pending");
     },
   );
+
+  it("repairs a unique ingest-owner plan.id on activate (#4119)", () => {
+    const root = tempRoot("deft-4119-");
+    const src = writeVbrief(root, "pending", {
+      payloadOverride: {
+        xBRIEFInfo: { version: "0.8", description: "Scope xBRIEF ingested from GitHub issue #9" },
+        plan: {
+          title: "T",
+          status: "pending",
+          narratives: { Origin: "Ingested from https://github.com/o/r/issues/9" },
+          items: [],
+        },
+      },
+    });
+    const result = activate(src, { now: FIXED_NOW });
+    expect(result.exitCode).toBe(0);
+    const dest = join(root, "xbrief", "active", FIXTURE_NAME);
+    const payload = JSON.parse(readFileSync(dest, "utf8")) as { plan: { id: string } };
+    expect(payload.plan.id).toBe("github.issue.fallback.o.r.9");
+  });
+
+  it("activates an ingest owner with a unique plan.id (#4119)", () => {
+    const root = tempRoot("deft-4119-");
+    const src = writeVbrief(root, "pending", {
+      payloadOverride: {
+        xBRIEFInfo: { version: "0.8", description: "Scope xBRIEF ingested from GitHub issue #9" },
+        plan: {
+          id: "github.issue.9",
+          title: "T",
+          status: "pending",
+          narratives: { Origin: "Ingested from https://github.com/o/r/issues/9" },
+          items: [],
+        },
+      },
+    });
+    const result = activate(src, { now: FIXED_NOW });
+    expect(result.exitCode).toBe(0);
+    const dest = join(root, "xbrief", "active", FIXTURE_NAME);
+    const payload = JSON.parse(readFileSync(dest, "utf8")) as { plan: { id: string } };
+    expect(payload.plan.id).toBe("github.issue.9");
+  });
 });

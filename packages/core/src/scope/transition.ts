@@ -13,6 +13,7 @@ import {
   applyClauseDerivationToPlan,
   maybeEmitAcceptanceStampFromChange,
 } from "../intake/clause-derivation.js";
+import { evaluateIssuePlanIdAdmission, withPlanIdIdentityLock } from "../intake/issue-ingest.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { stampExistingEnvelopes } from "../lifecycle/brief-envelope.js";
 import { evaluateCompletedPlanConsistency } from "../lifecycle/completed-consistency.js";
@@ -327,157 +328,174 @@ export function runTransition(
     }
   }
 
-  planObj.status = targetStatus;
-  planObj.updated = nowIso;
-  // Keep the envelope clock aligned with plan.updated on every mutating transition (#2862).
-  // Stamps whichever envelope is present, never creates one (#3933 / #2346).
-  stampExistingEnvelopes(data, nowIso);
+  const commitTransition = (): TransitionResult => {
+    planObj.status = targetStatus;
+    planObj.updated = nowIso;
+    // Keep the envelope clock aligned with plan.updated on every mutating transition (#2862).
+    // Stamps whichever envelope is present, never creates one (#3933 / #2346).
+    stampExistingEnvelopes(data, nowIso);
 
-  // Reconcile the completing brief's own plan.items (mirrors #1527 / #2566 registry sync) (#2862).
-  // On complete, items only reach here when #3240 evidence/disposition gate passed.
-  if (OWN_ITEMS_RECONCILE_ACTIONS.has(act)) {
-    advanceNonTerminalOwnItems(planObj.items, targetStatus);
-  }
+    // Reconcile the completing brief's own plan.items (mirrors #1527 / #2566 registry sync) (#2862).
+    // On complete, items only reach here when #3240 evidence/disposition gate passed.
+    if (OWN_ITEMS_RECONCILE_ACTIONS.has(act)) {
+      advanceNonTerminalOwnItems(planObj.items, targetStatus);
+    }
 
-  if (act === "complete") {
-    stampCompletionMetadata(planObj, projectRoot, nowIso, {
-      completedSessionId: resolveCompletionSessionId(projectRoot),
-    });
-    // #3242 / epic #3237 Q4: after reconcile, completed lifecycle must match
-    // plan.status=completed and terminal plan.items (compose with #3240).
-    const consistency = evaluateCompletedPlanConsistency(planObj, {
-      relPath: basename,
-      requireStatus: "completed",
-    });
-    if (!consistency.ok) {
+    if (act === "complete") {
+      stampCompletionMetadata(planObj, projectRoot, nowIso, {
+        completedSessionId: resolveCompletionSessionId(projectRoot),
+      });
+      // #3242 / epic #3237 Q4: after reconcile, completed lifecycle must match
+      // plan.status=completed and terminal plan.items (compose with #3240).
+      const consistency = evaluateCompletedPlanConsistency(planObj, {
+        relPath: basename,
+        requireStatus: "completed",
+      });
+      if (!consistency.ok) {
+        return {
+          ok: false,
+          message: consistency.message,
+          acceptanceReports,
+        };
+      }
+    }
+
+    if (act === "fail") {
+      stampLifecycleWrite(planObj, "fail", nowIso);
+    }
+    if (act === "cancel") {
+      stampLifecycleWrite(planObj, "cancel", nowIso);
+    }
+
+    const formatted = formatBriefJson(data);
+    const crud = new InstrumentedVbriefCrud({ now: () => now });
+
+    if (targetFolder !== null) {
+      const destDir = join(vbriefRoot, targetFolder);
+      mkdirSync(destDir, { recursive: true });
+      const destPath = join(destDir, basename);
+      if (existsSync(destPath)) {
+        return { ok: false, message: `Target already exists: ${destPath}` };
+      }
+
+      // #2578: stamp terminal status at the destination path in the same write as
+      // folder placement — never leave a non-terminal status under completed/.
+      const writeResult = atomicWriteBrief(destPath, data, vbriefRoot, { projectRoot });
+      if (!writeResult.ok) {
+        return { ok: false, message: writeResult.message };
+      }
+      crud.recordTrustedUpdate(destPath, formatted);
+      if (act === "complete") {
+        const sessionId = resolveCompletionSessionId(projectRoot);
+        if (sessionId !== null) {
+          try {
+            writeSessionCompletedMarker(projectRoot, {
+              path: destPath,
+              sessionId,
+              completedAt: nowIso,
+            });
+          } catch {
+            try {
+              unlinkSync(destPath);
+            } catch {
+              /* dest rollback after marker failure */
+            }
+            return { ok: false, message: SESSION_COMPLETED_AC_REMEDIATION };
+          }
+        }
+      }
+
+      try {
+        unlinkSync(resolvedPath);
+      } catch (err: unknown) {
+        try {
+          unlinkSync(destPath);
+        } catch {
+          /* best-effort rollback */
+        }
+        return { ok: false, message: `Failed to remove source after move: ${String(err)}` };
+      }
+
+      try {
+        persistCrudMetrics(projectRoot, crud.getMetrics());
+      } catch {
+        /* best-effort telemetry persistence */
+      }
+
+      updateDecomposedParentBackReferences(data, resolvedPath, destPath, vbriefRoot);
+      updateDecomposedChildBackReferences(data, resolvedPath, destPath, vbriefRoot);
+      const actionLabel = MOVE_LABELS[act] ?? act.charAt(0).toUpperCase() + act.slice(1);
+      const pdSyncError = syncProjectDefinitionAfterScopeMove(
+        data,
+        resolvedPath,
+        destPath,
+        vbriefRoot,
+        targetStatus,
+      );
+      if (pdSyncError !== null) {
+        return {
+          ok: false,
+          message:
+            `${actionLabel} ${basename}: brief moved to ${targetFolder}/ but ` +
+            `PROJECT-DEFINITION sync failed: ${pdSyncError}`,
+          acceptanceReports,
+        };
+      }
+      syncSpecificationAfterScopeMove(data, resolvedPath, destPath, vbriefRoot, targetStatus);
+      if (act === "activate" || act === "promote") {
+        maybeEmitAcceptanceStampFromChange(projectRoot, previousAcceptance, planObj.acceptance);
+      }
+      const moveMsg =
+        `${actionLabel} ${basename}: ${currentFolder}/ -> ${targetFolder}/ (status: ${targetStatus})` +
+        (derivationNotice.length > 0 ? `\n${derivationNotice}` : "") +
+        (acceptanceListing.length > 0 ? `\n${acceptanceListing}` : "");
       return {
-        ok: false,
-        message: consistency.message,
+        ok: true,
+        message: moveMsg,
         acceptanceReports,
       };
     }
-  }
 
-  if (act === "fail") {
-    stampLifecycleWrite(planObj, "fail", nowIso);
-  }
-  if (act === "cancel") {
-    stampLifecycleWrite(planObj, "cancel", nowIso);
-  }
-
-  const formatted = formatBriefJson(data);
-  const crud = new InstrumentedVbriefCrud({ now: () => now });
-
-  if (targetFolder !== null) {
-    const destDir = join(vbriefRoot, targetFolder);
-    mkdirSync(destDir, { recursive: true });
-    const destPath = join(destDir, basename);
-    if (existsSync(destPath)) {
-      return { ok: false, message: `Target already exists: ${destPath}` };
-    }
-
-    // #2578: stamp terminal status at the destination path in the same write as
-    // folder placement — never leave a non-terminal status under completed/.
-    const writeResult = atomicWriteBrief(destPath, data, vbriefRoot, { projectRoot });
+    const writeResult = atomicWriteBrief(resolvedPath, data, vbriefRoot, { projectRoot });
     if (!writeResult.ok) {
       return { ok: false, message: writeResult.message };
     }
-    crud.recordTrustedUpdate(destPath, formatted);
-    if (act === "complete") {
-      const sessionId = resolveCompletionSessionId(projectRoot);
-      if (sessionId !== null) {
-        try {
-          writeSessionCompletedMarker(projectRoot, {
-            path: destPath,
-            sessionId,
-            completedAt: nowIso,
-          });
-        } catch {
-          try {
-            unlinkSync(destPath);
-          } catch {
-            /* dest rollback after marker failure */
-          }
-          return { ok: false, message: SESSION_COMPLETED_AC_REMEDIATION };
-        }
-      }
-    }
-
-    try {
-      unlinkSync(resolvedPath);
-    } catch (err: unknown) {
-      try {
-        unlinkSync(destPath);
-      } catch {
-        /* best-effort rollback */
-      }
-      return { ok: false, message: `Failed to remove source after move: ${String(err)}` };
-    }
-
+    crud.recordTrustedUpdate(resolvedPath, formatted);
     try {
       persistCrudMetrics(projectRoot, crud.getMetrics());
     } catch {
       /* best-effort telemetry persistence */
     }
 
-    updateDecomposedParentBackReferences(data, resolvedPath, destPath, vbriefRoot);
-    updateDecomposedChildBackReferences(data, resolvedPath, destPath, vbriefRoot);
-    const actionLabel = MOVE_LABELS[act] ?? act.charAt(0).toUpperCase() + act.slice(1);
-    const pdSyncError = syncProjectDefinitionAfterScopeMove(
-      data,
-      resolvedPath,
-      destPath,
-      vbriefRoot,
-      targetStatus,
-    );
-    if (pdSyncError !== null) {
-      return {
-        ok: false,
-        message:
-          `${actionLabel} ${basename}: brief moved to ${targetFolder}/ but ` +
-          `PROJECT-DEFINITION sync failed: ${pdSyncError}`,
-        acceptanceReports,
-      };
-    }
-    syncSpecificationAfterScopeMove(data, resolvedPath, destPath, vbriefRoot, targetStatus);
+    const actionLabel = STAY_LABELS[act] ?? act.charAt(0).toUpperCase() + act.slice(1);
     if (act === "activate" || act === "promote") {
       maybeEmitAcceptanceStampFromChange(projectRoot, previousAcceptance, planObj.acceptance);
     }
-    const moveMsg =
-      `${actionLabel} ${basename}: ${currentFolder}/ -> ${targetFolder}/ (status: ${targetStatus})` +
+    const stayMsg =
+      `${actionLabel} ${basename}: stays in ${currentFolder}/ (status: ${targetStatus})` +
       (derivationNotice.length > 0 ? `\n${derivationNotice}` : "") +
       (acceptanceListing.length > 0 ? `\n${acceptanceListing}` : "");
     return {
       ok: true,
-      message: moveMsg,
+      message: stayMsg,
       acceptanceReports,
     };
-  }
-
-  const writeResult = atomicWriteBrief(resolvedPath, data, vbriefRoot, { projectRoot });
-  if (!writeResult.ok) {
-    return { ok: false, message: writeResult.message };
-  }
-  crud.recordTrustedUpdate(resolvedPath, formatted);
-  try {
-    persistCrudMetrics(projectRoot, crud.getMetrics());
-  } catch {
-    /* best-effort telemetry persistence */
-  }
-
-  const actionLabel = STAY_LABELS[act] ?? act.charAt(0).toUpperCase() + act.slice(1);
-  if (act === "activate" || act === "promote") {
-    maybeEmitAcceptanceStampFromChange(projectRoot, previousAcceptance, planObj.acceptance);
-  }
-  const stayMsg =
-    `${actionLabel} ${basename}: stays in ${currentFolder}/ (status: ${targetStatus})` +
-    (derivationNotice.length > 0 ? `\n${derivationNotice}` : "") +
-    (acceptanceListing.length > 0 ? `\n${acceptanceListing}` : "");
-  return {
-    ok: true,
-    message: stayMsg,
-    acceptanceReports,
   };
+
+  if (act === "promote" || act === "activate") {
+    return withPlanIdIdentityLock(vbriefRoot, () => {
+      const admission = evaluateIssuePlanIdAdmission({
+        lifecycleRoot: vbriefRoot,
+        artifactPath: resolvedPath,
+        data,
+      });
+      if (!admission.ok) {
+        return { ok: false, message: admission.message };
+      }
+      return commitTransition();
+    });
+  }
+  return commitTransition();
 }
 
 interface RestampArgs {
