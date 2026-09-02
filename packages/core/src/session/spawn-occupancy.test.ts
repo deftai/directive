@@ -86,6 +86,16 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
       expect(decision.hostCanReroot).toBe(true);
       expect(decision.incarnation.length).toBeGreaterThan(0);
       expect(decision.reservation.provenance).toBe("dispatch");
+      expect(decision.reservation.worktreePath).not.toBe(root);
+      expect(decision.reservation.worktreePath).toContain("spawn-pending");
+      expect(persistSpawnReservation(root, decision.reservation).ok).toBe(true);
+      const second = evaluateImplementSpawnOccupancy({
+        payload: { tool_name: "Task", tool_input: { isolation: "worktree", prompt: "build" } },
+        payloadRoot: root,
+        host: "claude",
+      });
+      expect(second.allow).toBe(true);
+      if (second.allow) expect(persistSpawnReservation(root, second.reservation).ok).toBe(true);
     }
   });
 

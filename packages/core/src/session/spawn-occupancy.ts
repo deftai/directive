@@ -16,6 +16,7 @@ import { isAbsolute, join, resolve } from "node:path";
 import {
   ContainedWriteError,
   ContainedWriteErrorCode,
+  containedRemove,
   containedWrite,
 } from "../fs/contained-write.js";
 import { fieldString, record, toolInputRecord } from "../hooks/classify/payload.js";
@@ -225,7 +226,7 @@ export function evaluateImplementSpawnOccupancy(input: {
     agentId,
     parentId,
     occupancyOwner: parentId,
-    worktreePath: destPath ?? payloadRoot,
+    worktreePath: destPath ?? join(payloadRoot, ".deft", "spawn-pending", incarnation),
     identitySourceKind: input.host === "grok" ? "host-env" : "payload",
     incarnation,
     provenance: "dispatch",
@@ -266,25 +267,34 @@ export function persistSpawnReservation(
   const dest = resolve(reservation.worktreePath);
   const incarnation = reservation.incarnation?.trim() ?? "";
   if (incarnation.length === 0) return { ok: false, reason: "conflict" };
-  try {
-    containedWrite({
-      root,
-      target: reservationLockPath(root, dest),
-      data: incarnation,
-      mode: "create",
-      encoding: "utf8",
-    });
-  } catch (err) {
-    if (err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS) {
-      return { ok: false, reason: "conflict" };
+  const skipDestLock = dest === root || !existsSync(dest);
+  if (!skipDestLock) {
+    try {
+      containedWrite({
+        root,
+        target: reservationLockPath(root, dest),
+        data: incarnation,
+        mode: "create",
+        encoding: "utf8",
+      });
+    } catch (err) {
+      if (err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS) {
+        return { ok: false, reason: "conflict" };
+      }
+      throw err;
     }
-    throw err;
   }
   recordChildOccupancyLease(root, reservation);
   if (existsSync(dest) && dest !== root) {
     recordChildOccupancyLease(dest, reservation);
   }
   return { ok: true };
+}
+
+export function releaseSpawnReservation(storeRoot: string, destPath: string): void {
+  const root = resolve(storeRoot);
+  if (!existsSync(root)) return;
+  containedRemove({ root, target: reservationLockPath(root, destPath) });
 }
 
 export function allocatedWorktreeMatches(storeRoot: string, candidate: string): boolean {

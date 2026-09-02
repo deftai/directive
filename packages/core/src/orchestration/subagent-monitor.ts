@@ -7,6 +7,7 @@ import {
   releaseChildOccupancyOnTerminal,
   worktreeCandidatesForHeartbeat,
 } from "../session/child-occupancy.js";
+import { releaseSpawnReservation } from "../session/spawn-occupancy.js";
 
 export const EXIT_OK = 0;
 export const EXIT_STALE = 1;
@@ -478,6 +479,10 @@ export function releaseTerminalChildOccupancy(
         heartbeatFailures: rec.failures,
         observerRoot: cwd,
       });
+      if (released.reason === "released" || released.reason === "already-free") {
+        const dest = released.record?.worktreePath;
+        if (dest) releaseSpawnReservation(root, dest);
+      }
       if (released.reason !== "missing-record") break;
     }
   }
