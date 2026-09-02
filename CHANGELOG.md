@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **Land completed-tracked artifact for #4081 (#3264 / #1358).** The #4081 xBRIEF stayed untracked after squash of PR 4110 (efdbcd60). Moved to xbrief/completed/ via scope:complete. Does not recut that issue. Refs #2321, #3476.
 - **`verify:links` C3 evaluates an initialized consumer deposit in deposit-relative coordinates (#4081).** From a consumer root the gate walks `.deft/core`, not the project tree and not `contentRoot(cwd)`. Declared exclusions match. Consumer markdown naming `path/to.py` is out of the walk. A product `content/` directory no longer fail-opens a dirty deposit. Closes #4081.
 - **Land completed-tracked artifact for #4083 (#3264 / #1358).** The #4083 xBRIEF stayed untracked after squash of PR 4106 (80cbaadb). Moved to xbrief/completed/ via scope:complete. Does not recut that issue. Refs #2321, #3476.
 - **`triage:evaluate` spawns Windows npm `deft.cmd` for isolated `session:start --read-only` (#4083).** Bare `deft` argv0 ENOENTed under `execFileSync`. Resolve via PATHEXT-aware `whichAllFromPath`, spawn through `cliSpawnPlan`; `runText` stays `shell: false`. Closes #4083. Refs #2606, #2911.
