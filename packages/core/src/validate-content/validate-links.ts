@@ -145,12 +145,12 @@ export function resolveC3EvaluationRoot(cwd: string): C3EvaluationRoot {
   if (deposit !== null) {
     return {
       stagedRoot: deposit,
-      extraFiles: extraDepositMarkdownFiles(deposit),
+      extraFiles: [],
     };
   }
   return {
     stagedRoot: cwd,
-    extraFiles: extraDepositMarkdownFiles(cwd),
+    extraFiles: [],
   };
 }
 

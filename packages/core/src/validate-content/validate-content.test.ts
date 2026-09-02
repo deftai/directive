@@ -188,11 +188,7 @@ describe("validate-links C3 consumer root (#4081)", () => {
     const { cwd, deposit } = initializedConsumer();
     const resolved = resolveC3EvaluationRoot(cwd);
     expect(resolved.stagedRoot).toBe(resolve(deposit));
-    expect(resolved.extraFiles.map((f) => f.relativePath).sort()).toEqual(
-      extraDepositMarkdownFiles(deposit)
-        .map((f) => f.relativePath)
-        .sort(),
-    );
+    expect(resolved.extraFiles).toEqual([]);
     const fromConsumer = evaluateLiveProcedureTargets(resolved);
     const fromDeposit = evaluateLiveProcedureTargets({
       stagedRoot: deposit,
@@ -264,6 +260,15 @@ describe("validate-links C3 consumer root (#4081)", () => {
     const result = evaluateLinks({ cwd });
     expect(result.code).toBe(1);
     expect(result.message).toContain("scripts/definitely_missing.py");
+  });
+
+  it("does not double-scan deposit extras already in the walk", () => {
+    const { cwd, deposit } = initializedConsumer();
+    writeFileSync(join(deposit, "main.md"), "! run `scripts/dup.py`\n", "utf8");
+    const result = evaluateLinks({ cwd });
+    expect(result.code).toBe(1);
+    const hits = result.message.split("\n").filter((line) => line.includes("scripts/dup.py"));
+    expect(hits).toHaveLength(1);
   });
 
   it("binds C3 extras to the deposit, not consumer-root main.md", () => {
