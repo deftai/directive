@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **verify:ac no longer false-FAILS a clause because `'` and `"` share one delimiter class (#4103).** `extractExpectedTokens` pairs each quote type with itself and does not treat an in-word apostrophe as a quote opener. A lone possessive was already a non-event. Closes #4103.
 - **Land completed-tracked artifact for #4081 (#3264 / #1358).** The #4081 xBRIEF stayed untracked after squash of PR 4110 (efdbcd60). Moved to xbrief/completed/ via scope:complete. Does not recut that issue. Refs #2321, #3476.
 - **`verify:links` C3 evaluates an initialized consumer deposit in deposit-relative coordinates (#4081).** From a consumer root the gate walks `.deft/core`, not the project tree and not `contentRoot(cwd)`. Declared exclusions match. Consumer markdown naming `path/to.py` is out of the walk. A product `content/` directory no longer fail-opens a dirty deposit. Closes #4081.
 - **Land completed-tracked artifact for #4072 (#3264 / #1358).** The #4072 xBRIEF stayed in active/ after squash of PR 4108 (18d50df3). Moved to xbrief/completed/ via scope:complete. Does not recut that issue. Refs #2321, #3476.

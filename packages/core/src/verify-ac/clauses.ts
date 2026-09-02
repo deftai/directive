@@ -751,23 +751,33 @@ function isContained(root: string, child: string): boolean {
   return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
 }
 
-function extractExpectedTokens(clause: AcceptanceClause): string[] {
+/**
+ * Quoted literals a clause asks the walk to find verbatim in the artifact.
+ *
+ * Apostrophe and double-quote are separate delimiter classes. An apostrophe
+ * immediately after alphanumeric is a possessive or contraction, not a quote
+ * opener. Pairing those as one class captured fragments that cannot exist
+ * in the artifact and false-FAILED correct work (#4103).
+ */
+export function extractExpectedTokens(clause: AcceptanceClause): string[] {
   const tokens: string[] = [];
   const seen = new Set<string>();
-  const quoted = /["']([^"'\n]{3,80})["']/g;
-  let match = quoted.exec(clause.text);
-  while (match !== null) {
-    const token = (match[1] ?? "").trim();
-    const skip =
-      token.length === 0 ||
-      token === clause.artifact_path ||
-      looksLikeFilePath(token) ||
-      seen.has(token);
-    if (!skip) {
-      seen.add(token);
-      tokens.push(token);
+  const patterns = [/"([^"\n]{3,80})"/g, /(?<![A-Za-z0-9])'([^'\n]{3,80})'/g];
+  for (const quoted of patterns) {
+    let match = quoted.exec(clause.text);
+    while (match !== null) {
+      const token = (match[1] ?? "").trim();
+      const skip =
+        token.length === 0 ||
+        token === clause.artifact_path ||
+        looksLikeFilePath(token) ||
+        seen.has(token);
+      if (!skip) {
+        seen.add(token);
+        tokens.push(token);
+      }
+      match = quoted.exec(clause.text);
     }
-    match = quoted.exec(clause.text);
   }
   return tokens;
 }

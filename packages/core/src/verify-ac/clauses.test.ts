@@ -8,6 +8,7 @@ import {
   countAdjudicableClauses,
   countUnverifiedAdjudicableClauses,
   deriveAcceptanceClauses,
+  extractExpectedTokens,
   formatClauseWalkMessage,
   isDeclaredArtifactPath,
   isScratchArtifactPath,
@@ -817,5 +818,53 @@ describe("verified > 0 binds only where the walk has an oracle (#3826)", () => {
     expect(countUnverifiedAdjudicableClauses(rows)).toBe(1);
     expect(countAdjudicableClauses([])).toBe(0);
     expect(countUnverifiedAdjudicableClauses([])).toBe(0);
+  });
+});
+
+describe("extractExpectedTokens quote-class pairing (#4103)", () => {
+  const bound = (text: string) => ({
+    id: 1,
+    text,
+    artifact_path: "shipped.ts",
+    ambiguous: false,
+  });
+
+  it("extracts no quoted token from a lone possessive with no other quote-class character", () => {
+    expect(extractExpectedTokens(bound("the schedule's total"))).toEqual([]);
+  });
+
+  it("does not extract a spurious fragment from a two-apostrophe contraction-pair clause", () => {
+    expect(
+      extractExpectedTokens(bound("verify:ac doesn't fail when the artifact isn't scratch")),
+    ).toEqual([]);
+  });
+
+  it("does not steal a genuine quoted literal from a mixed apostrophe/double-quote clause", () => {
+    expect(
+      extractExpectedTokens(
+        bound('the response returns the user\'s id and logs "unauthorized" on failure'),
+      ),
+    ).toEqual(["unauthorized"]);
+  });
+
+  it("still extracts a genuine same-delimiter quoted literal for verbatim match", () => {
+    expect(extractExpectedTokens(bound('shipped.ts contains "exact string"'))).toEqual([
+      "exact string",
+    ]);
+    expect(extractExpectedTokens(bound("the clause names 'exact string' verbatim"))).toEqual([
+      "exact string",
+    ]);
+  });
+
+  it("does not FAIL a correct artifact on a contraction-pair clause", () => {
+    const root = mkdtempSync(join(tmpdir(), "clause-4103-pair-"));
+    writeFileSync(join(root, "shipped.ts"), "export const ok = true;\n", "utf8");
+    const report = walkAcceptanceClauses(
+      [bound("verify:ac doesn't fail when the artifact isn't scratch")],
+      root,
+      { declaredScope: ["shipped.ts"] },
+    );
+    expect(report.clauses[0]?.outcome).not.toBe("failed");
+    expect(report.clauses[0]?.detail).not.toMatch(/expected token/);
   });
 });
