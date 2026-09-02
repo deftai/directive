@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **`task release:e2e` reaches npm dry-run without a grant (#4000).** Tag-push closed-verb exemption is keyed to the throwaway slug prefix and sentinel `0.0.1`, not `DEFT_RELEASE_E2E`. Production `deftai/directive` plus a real version still denies at Step 10 even when that env is set. Does not close #3916 or #4079.
 
 ### Removed
 

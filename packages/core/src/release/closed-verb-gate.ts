@@ -4,9 +4,14 @@
  * Reuses the draft-flip evaluator (`evaluateReleasePublishGate`) so the
  * distributing step carries the same authz tier. Does not delete or weaken
  * the later `release:publish` draft-flip check.
+ *
+ * Rehearsal exemption (#4000) is keyed to the throwaway slug prefix and
+ * sentinel version the e2e owns. It does not teach the evaluator to honour
+ * DEFT_RELEASE_E2E.
  */
 import { closedVerbEnvBypassKey } from "../authz/closed-verb.js";
 import type { ClosedVerbDecision } from "../authz/types.js";
+import { REHEARSAL_VERSION, REPO_SLUG_PREFIX } from "../release-e2e/constants.js";
 import { evaluateReleasePublishGate } from "../release-publish/pipeline.js";
 import { EXIT_OK, EXIT_VIOLATION, TOTAL_STEPS } from "./constants.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
@@ -16,6 +21,31 @@ function emitGate(label: string, status: string): void {
 }
 
 export const TAG_PUSH_CLOSED_VERB = "release-publish" as const;
+
+export const REHEARSAL_CLOSED_VERB_EXEMPT_STATUS = "OK (rehearsal-closed-verb-exempt)";
+
+function rehearsalRepoSlug(repo: string): string {
+  const trimmed = repo.trim();
+  const slash = trimmed.lastIndexOf("/");
+  return slash === -1 ? trimmed : trimmed.slice(slash + 1);
+}
+
+function normaliseSentinelVersion(version: string): string {
+  const trimmed = version.trim();
+  if (trimmed.startsWith("v") || trimmed.startsWith("V")) return trimmed.slice(1);
+  return trimmed;
+}
+
+/**
+ * True only for the throwaway rehearsal identity: slug prefix AND sentinel
+ * version. Production deftai/directive cannot satisfy the conjunction even
+ * when DEFT_RELEASE_E2E=1.
+ */
+export function isRehearsalClosedVerbExempt(repo: string, version: string): boolean {
+  const slug = rehearsalRepoSlug(repo);
+  if (!slug.startsWith(REPO_SLUG_PREFIX)) return false;
+  return normaliseSentinelVersion(version) === REHEARSAL_VERSION;
+}
 
 export function evaluateReleaseTagPushGate(
   version: string,
@@ -33,8 +63,10 @@ export function evaluateReleaseTagPushGate(
 /**
  * Fail closed before git tag + atomic tag push when skipTag is false.
  * Dry-run and `--skip-tag` do not require a grant (no npm distribution).
- * Returns EXIT_OK to continue, EXIT_VIOLATION to halt. Never spends the grant
- * — draft-flip `release:publish` still owns markGrantUsed (#1095).
+ * Rehearsal throwaway slug + sentinel version may tag without a grant (#4000);
+ * that path still tags and pushes. Returns EXIT_OK to continue, EXIT_VIOLATION
+ * to halt. Never spends the grant — draft-flip `release:publish`
+ * still owns markGrantUsed (#1095).
  */
 export function assertTagPushClosedVerb(config: ReleaseConfig, seams: ReleaseSeams): number {
   if (config.skipTag) {
@@ -47,6 +79,10 @@ export function assertTagPushClosedVerb(config: ReleaseConfig, seams: ReleaseSea
       label,
       "DRYRUN (would require human-origin grant or DEFT_ALLOW_RELEASE_PUBLISH=1 before tag push)",
     );
+    return EXIT_OK;
+  }
+  if (isRehearsalClosedVerbExempt(config.repo, config.version)) {
+    emitGate(label, REHEARSAL_CLOSED_VERB_EXEMPT_STATUS);
     return EXIT_OK;
   }
   const gate = evaluateReleaseTagPushGate(config.version, config.projectRoot, seams, config.repo);
@@ -64,7 +100,9 @@ export function assertTagPushClosedVerb(config: ReleaseConfig, seams: ReleaseSea
   }
   emitGate(
     label,
-    `OK (${gate.code}${gate.humanApprovalRef !== null ? ` grant=${gate.humanApprovalRef}` : ""})`,
+    gate.code === "closed-verb-allow" && gate.humanApprovalRef !== null
+      ? `OK (${gate.code} grant=${gate.humanApprovalRef})`
+      : `OK (${gate.code})`,
   );
   return EXIT_OK;
 }

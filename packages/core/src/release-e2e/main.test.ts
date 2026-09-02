@@ -200,6 +200,7 @@ describe("rehearsal step helpers", () => {
     expect(captured).not.toContain("--allow-skip-ci=716");
     expect(captured).toContain("--skip-build");
     expect(captured).toContain("--allow-vbrief-drift");
+    expect(captured).not.toContain("--skip-tag");
   });
 
   it("callReleaseEntrypoint pins DEFT_PROJECT_ROOT", () => {

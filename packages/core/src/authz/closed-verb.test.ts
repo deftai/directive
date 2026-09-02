@@ -136,6 +136,19 @@ describe("evaluateClosedVerb (#1095)", () => {
     });
     expect(d.allowed).toBe(true);
     expect(d.code).toBe("closed-verb-env-bypass");
+    expect(d.humanApprovalRef).toBeNull();
+  });
+
+  it("does not honour DEFT_RELEASE_E2E as a closed-verb allow (#4000)", () => {
+    const d = evaluateClosedVerb({
+      verb: "release-publish",
+      target: "0.110.0",
+      grants: [],
+      env: { DEFT_RELEASE_E2E: "1" },
+      repo: "deftai/directive",
+    });
+    expect(d.allowed).toBe(false);
+    expect(d.code).toBe("closed-verb-deny-missing");
   });
 
   it("allows matching operator-cli release-publish grant", () => {
