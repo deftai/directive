@@ -1,8 +1,9 @@
-import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { contentRoot } from "../content-root.js";
+import { payloadIsOwnGitRoot } from "../platform/resolve-version.js";
+import { timedGitRunner } from "../session/git.js";
 import { AGENTS_MANAGED_CLOSE } from "./constants.js";
 import { resolveDefaultFrameworkRoot } from "./paths.js";
 
@@ -47,20 +48,11 @@ function resolveFrameworkSha(seams: AgentsMdSeams = {}): string {
     return seams.resolveSha();
   }
   const root = frameworkRoot(seams);
-  try {
-    const proc = spawnSync("git", ["rev-parse", "--short=12", "HEAD"], {
-      cwd: root,
-      encoding: "utf8",
-      timeout: 5000,
-    });
-    if (proc.status !== 0) {
-      return "unknown";
-    }
-    const sha = (proc.stdout ?? "").trim();
-    return sha || "unknown";
-  } catch {
-    return "unknown";
-  }
+  if (!payloadIsOwnGitRoot(root)) return "unknown";
+  const result = timedGitRunner(5000)(root, ["rev-parse", "--short=12", "HEAD"]);
+  if (result.code !== 0) return "unknown";
+  const sha = result.stdout.trim();
+  return sha || "unknown";
 }
 
 function stripManagedSectionAttrs(section: string): string {

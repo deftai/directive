@@ -1,24 +1,12 @@
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
-
-const spawnSyncMock = vi.fn(() => ({ status: 0, stdout: "abc123def456\n" }));
-
-vi.mock("node:child_process", () => ({
-  spawnSync: (...args: unknown[]) => spawnSyncMock(...args),
-}));
-
+import { describe, expect, it } from "vitest";
 import { agentsRefreshPlan, hasV3ManagedMarker } from "./agents-md.js";
 
 const MANAGED = "<!-- deft:managed-section v3 -->\nbody\n<!-- /deft:managed-section -->";
 
 describe("agents-md extra branches", () => {
-  afterEach(() => {
-    spawnSyncMock.mockReset();
-    spawnSyncMock.mockReturnValue({ status: 0, stdout: "abc123def456\n" });
-  });
-
   it("uses resolveSha seam when provided", () => {
     const plan = agentsRefreshPlan("/tmp", {
       readTemplate: () => MANAGED,
@@ -28,33 +16,18 @@ describe("agents-md extra branches", () => {
     expect(plan.sha).toBe("customsha12");
   });
 
-  it("returns unknown when git rev-parse fails", () => {
-    spawnSyncMock.mockReturnValue({ status: 1, stdout: "" });
-    const plan = agentsRefreshPlan("/tmp", {
-      readTemplate: () => MANAGED,
-      readAgents: () => null,
-    });
-    expect(plan.sha).toBe("unknown");
-  });
-
-  it("returns unknown when git stdout is empty", () => {
-    spawnSyncMock.mockReturnValue({ status: 0, stdout: "   \n" });
-    const plan = agentsRefreshPlan("/tmp", {
-      readTemplate: () => MANAGED,
-      readAgents: () => null,
-    });
-    expect(plan.sha).toBe("unknown");
-  });
-
-  it("returns unknown when git throws", () => {
-    spawnSyncMock.mockImplementation(() => {
-      throw new Error("git missing");
-    });
-    const plan = agentsRefreshPlan("/tmp", {
-      readTemplate: () => MANAGED,
-      readAgents: () => null,
-    });
-    expect(plan.sha).toBe("unknown");
+  it("returns unknown when payload is not own git root (#4118)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-doc-nongit-"));
+    try {
+      const plan = agentsRefreshPlan(root, {
+        readTemplate: () => MANAGED,
+        readAgents: () => null,
+        frameworkRoot: root,
+      });
+      expect(plan.sha).toBe("unknown");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("detects template-malformed when close marker missing", () => {

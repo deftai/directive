@@ -1,25 +1,45 @@
-import { sep } from "node:path";
-import { describe, expect, it, vi } from "vitest";
-
-vi.mock("node:child_process", () => ({
-  spawnSync: vi.fn(() => ({ status: 0, stdout: "deadbeef1234\n" })),
-}));
-
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, sep } from "node:path";
+import { describe, expect, it } from "vitest";
 import { agentsRefreshPlan } from "./agents-md.js";
 import { checkInstallPathConsistency } from "./checks.js";
 import { includesBlockHasDeftTaskfile } from "./taskfile.js";
 
+function gitIn(dir: string, args: string[]): void {
+  execFileSync("git", ["-c", "user.email=t@example.com", "-c", "user.name=Test", ...args], {
+    cwd: dir,
+    stdio: "ignore",
+    timeout: 10_000,
+  });
+}
+
 describe("agents-md git integration", () => {
   it("resolves framework sha via git by default", () => {
-    const rendered = "<!-- deft:managed-section v3 -->\nbody\n<!-- /deft:managed-section -->";
-    const plan = agentsRefreshPlan("/tmp", {
-      readTemplate: () => rendered,
-      readAgents: () => null,
-      nowIso: () => "2026-01-01T00:00:00Z",
-      newSession: () => "abcd1234efgh",
-    });
-    expect(plan.state).toBe("absent");
-    expect(plan.sha).toBe("deadbeef1234");
+    const root = mkdtempSync(join(tmpdir(), "deft-doc-sha-"));
+    try {
+      gitIn(root, ["init", "-q"]);
+      gitIn(root, ["commit", "--allow-empty", "--no-gpg-sign", "-m", "init"]);
+      const head = execFileSync("git", ["rev-parse", "--short=12", "HEAD"], {
+        cwd: root,
+        encoding: "utf8",
+        timeout: 10_000,
+      }).trim();
+      const rendered =
+        "<!-- deft:managed-section v3 -->" + "\nbody\n" + "<!-- /deft:managed-section -->";
+      const plan = agentsRefreshPlan(root, {
+        readTemplate: () => rendered,
+        readAgents: () => null,
+        nowIso: () => "2026-01-01T00:00:00Z",
+        newSession: () => "abcd1234efgh",
+        frameworkRoot: root,
+      });
+      expect(plan.state).toBe("absent");
+      expect(plan.sha).toBe(head);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
 

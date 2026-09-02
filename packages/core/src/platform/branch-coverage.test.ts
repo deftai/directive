@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { agentsRefreshPlan as doctorAgentsRefreshPlan } from "../doctor/agents-md.js";
 import {
   agentsRefreshPlan,
   frameworkRoot,
@@ -826,5 +827,88 @@ describe("slug-normalize array-existing branch", () => {
   it("disambiguateSlug accepts an array for existing slugs", () => {
     expect(disambiguateSlug("x", ["x"])).toBe("x-2");
     expect(disambiguateSlug("y", ["x"])).toBe("y");
+  });
+});
+
+const GIT_FATAL = /fatal: not a git repository/;
+const SHA_TEMPLATE =
+  "top\n<!-- deft:managed-section v3 -->\n## Section\nrule\n<!-- /deft:managed-section -->\nbottom";
+
+function captureStderr(fn: () => void): string {
+  const chunks: string[] = [];
+  const prev = process.stderr.write.bind(process.stderr);
+  process.stderr.write = ((chunk: string | Uint8Array) => {
+    chunks.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
+    return true;
+  }) as typeof process.stderr.write;
+  try {
+    fn();
+  } finally {
+    process.stderr.write = prev;
+  }
+  return chunks.join("");
+}
+
+describe("silent git probes on non-git payload roots (#4118)", () => {
+  it("stderr spy detects a leaking execFileSync git probe", () => {
+    withTempDir((dir) => {
+      const leaked = captureStderr(() => {
+        try {
+          execFileSync("git", ["rev-parse", "--show-toplevel"], {
+            cwd: dir,
+            encoding: "utf8",
+            timeout: 10_000,
+          });
+        } catch {
+          // git non-zero on a non-repo; stderr is the probe under test
+        }
+      });
+      expect(leaked).toMatch(GIT_FATAL);
+    });
+  });
+
+  it("payloadIsOwnGitRoot is silent and false", () => {
+    withTempDir((dir) => {
+      let own = true;
+      const leaked = captureStderr(() => {
+        own = payloadIsOwnGitRoot(dir);
+      });
+      expect(own).toBe(false);
+      expect(leaked).not.toMatch(GIT_FATAL);
+    });
+  });
+
+  it("platform resolveFrameworkSha is silent and unknown", () => {
+    withTempDir((dir) => {
+      let sha: unknown;
+      const leaked = captureStderr(() => {
+        sha = agentsRefreshPlan(dir, {
+          readTemplate: () => SHA_TEMPLATE,
+          readAgents: () => null,
+          nowIso: () => "2026-01-01T00:00:00Z",
+          newSession: () => "sess0001",
+          frameworkRoot: dir,
+        }).sha;
+      });
+      expect(sha).toBe("unknown");
+      expect(leaked).not.toMatch(GIT_FATAL);
+    });
+  });
+
+  it("doctor resolveFrameworkSha is silent and unknown", () => {
+    withTempDir((dir) => {
+      let sha: unknown;
+      const leaked = captureStderr(() => {
+        sha = doctorAgentsRefreshPlan(dir, {
+          readTemplate: () => SHA_TEMPLATE,
+          readAgents: () => null,
+          nowIso: () => "2026-01-01T00:00:00Z",
+          newSession: () => "sess0001",
+          frameworkRoot: dir,
+        }).sha;
+      });
+      expect(sha).toBe("unknown");
+      expect(leaked).not.toMatch(GIT_FATAL);
+    });
   });
 });

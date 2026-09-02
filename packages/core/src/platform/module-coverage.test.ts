@@ -406,3 +406,28 @@ describe("platform module coverage", () => {
     expect(() => plainRiskSummary(hits, "invalid")).toThrow();
   });
 });
+
+describe("silent payloadIsOwnGitRoot on non-git roots (#4118)", () => {
+  it("does not print fatal: not a git repository", () => {
+    const dir = mkdtempSync(join(tmpdir(), "platform-mod-nongit-"));
+    const chunks: string[] = [];
+    const prev = process.stderr.write.bind(process.stderr);
+    process.stderr.write = ((chunk: string | Uint8Array) => {
+      chunks.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
+      return true;
+    }) as typeof process.stderr.write;
+    try {
+      expect(payloadIsOwnGitRoot(dir)).toBe(false);
+      const plan = agentsRefreshPlan(dir, {
+        readTemplate: () => MANAGED_BODY,
+        readAgents: () => null,
+        frameworkRoot: dir,
+      });
+      expect(plan.sha).toBe("unknown");
+    } finally {
+      process.stderr.write = prev;
+      rmSync(dir, { recursive: true, force: true });
+    }
+    expect(chunks.join("")).not.toMatch(/fatal: not a git repository/);
+  });
+});
