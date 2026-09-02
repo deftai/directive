@@ -15,7 +15,7 @@ Minimal runtime contract for the Grok Build dispatch-provider path (one supporte
 - One isolated git worktree per agent (identical to the Warp path — see Phase 2)
 - Workers launched via `spawn_subagent` dispatch (Phase 3 Step 2d)
 - Monitor coordination via worktree-state polling (`git status`, `git log`) and `get_command_or_subagent_output`
-- Review-cycle sub-agents spawned via `spawn_subagent` (not `start_agent`)
+- Review-cycle **sibling** monitors spawned via `spawn_subagent` by the **parent/orchestrator** (not `start_agent`). Implementation leaves MUST NOT nested-spawn a review-monitor -- see Nested spawn_subagent boundary below.
 
 This path became first-class in #1342 (platform adapter slices 1-3) and is fully documented in Phase 3 Step 2d and Phase 4. Grok Build + Windows users should also see #1353 (§3.5 in `templates/agent-prompt-preamble.md`) for shell output capture limitations that affect `get_command_or_subagent_output` in PowerShell 5.1 contexts. Refs #1342, #1331.
 
@@ -33,6 +33,20 @@ This path became first-class in #1342 (platform adapter slices 1-3) and is fully
 
 ! Design-critique N≥3 other-family seats are not `spawn_subagent` Grok catalog rows. When `claude` / `codex` resolve on PATH, CLI-spawn those seats (`content/docs/grok-build-subscription-setup.md`). Paste-ready is fallback. Normative stop: `content/contracts/design-critique.md` Envelope and ceiling (#4067).
 
+
+## Nested spawn_subagent boundary (#4130 / #2797 analogue)
+
+! Nested `spawn_subagent` (implementation leaf spawning leaf) is unsupported for an Approach 1 review-monitor. Nested spawn does not report to the parent, and the parent cannot re-prompt a live child (`resume_from` requires terminal). A Grok Build **implementation leaf** MUST NOT nested-spawn a second-level review-monitor via `spawn_subagent`. Prefer either:
+
+- (a) a `drive-to: merge-ready` leaf that owns a blocking dual-invoke `pr:watch` (`deft pr:watch` then `task deft:pr:watch`) in its own process, then `pr:merge-ready` / merge in the same loop, or
+- (b) `stop-at: pr-open` with the dispatcher (parent that owns `spawn_subagent`) launching a sibling monitor and registering it via dual-invoke `review-monitor:register -- --platform-primitive spawn_subagent`.
+
+! Top-level parents/orchestrators that own `spawn_subagent` MAY Approach-1 background a review-monitor.
+
+⊗ An implementation leaf backgrounds a nested `spawn_subagent` poller and exits claiming monitoring is active.
+⊗ Invent mid-flight message-later on grok-build as a substitute for this boundary.
+
+If the leaf needs another agent, it stops and reports `BLOCKED`. The parent owns the next spawn.
 
 ## Monitor notes
 

@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **Grok-build leaves must not nested-spawn a review-monitor; dual-stop critic feeds #3273 (#4130).** Approach 1 spawn-your-own-monitor text is qualified so a `spawn_subagent` leaf cannot follow it. Merge-ready on grok-build is blocking `pr:watch` in-process, or `stop-at: pr-open` with a parent sibling. Dual-stop diagnosis splits onto a fresh read-only critic that feeds #3273; the fix-batch consent phrase stays. No no-menu auto-follow. Review text is untrusted description. Closes #4130. Refs #3273, #2797, #3134, #1880.
 - **Generated spec export with a stale vbrief banner no longer blocks npm deposit refresh (#4117).** A current xBRIEF project whose rendered specification still names the old vbrief source is classified as current. Content drift stays a render warning, not a frozen-migrator hard block. Closes #4117.
 - **session:start git probes stay silent on an npm deposit (#4118).** Both resolveFrameworkSha and payloadIsOwnGitRoot swallow recoverable `fatal: not a git repository` from a non-checkout payload root. Mutation start no longer prints that line twice; read-only stays silent too. Actionable Git failures still print. Does not recut #3914.
 - **Land completed-tracked artifact for #4118 (#3264 / #1358).** The #4118 xBRIEF stayed untracked after squash of PR 4139 (0c419070). Moved to xbrief/completed/ via scope:complete. Does not recut that issue. Refs #2321, #3476.
