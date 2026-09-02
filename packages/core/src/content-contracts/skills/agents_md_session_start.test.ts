@@ -42,6 +42,7 @@ describe("test_agents_md_session_start", () => {
     expect(entrySection).toBeTruthy();
     expect(entrySection.toLowerCase()).toContain("read-only");
     expect(entrySection).toContain("deft session:start -- --read-only");
+    expect(entrySection).not.toMatch(/Task-only/i);
     expect(entrySection).toContain("addressing-name");
     // #2535: mutation discoverability via "mutation intent" / "Mutation →" pointer tokens.
     expect(entrySection.toLowerCase()).toContain("mutation intent");
@@ -54,7 +55,10 @@ describe("test_agents_md_session_start", () => {
     expect(commandsSection).toContain("Session routing (#2176)");
     expect(commandsSection).toContain("read-only posture");
     expect(commandsSection).toContain(".deft/ritual-state.json");
-    expect(commandsSection).toContain("deft session:start -- --read-only");
+    expect(commandsSection).toContain("deft session:start --read-only");
+    expect(commandsSection).toContain("task session:start -- --read-only");
+    expect(commandsSection).not.toContain("deft session:start -- --read-only");
+    expect(commandsSection).not.toMatch(/Task-only/i);
     expect(commandsSection).toContain("%APPDATA%\\deft\\USER.md");
   });
 

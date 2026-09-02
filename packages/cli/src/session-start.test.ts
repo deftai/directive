@@ -1,6 +1,8 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { agentsRefreshPlan, payloadIsOwnGitRoot } from "@deftai/directive-core/platform";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseArgs, run } from "./session-start.js";
 
@@ -82,6 +84,15 @@ describe("session-start parseArgs", () => {
       ceremonyTier: "cold",
       ...emptyDial,
     });
+  });
+
+  it("skips a lone -- separator before flags (#3914)", () => {
+    expect(parseArgs(["--", "--read-only"])).toEqual(parseArgs(["--read-only"]));
+    expect(parseArgs(["--", "--read-only"]).readOnly).toBe(true);
+    expect(parseArgs(["--", "--read-only"]).error).toBeUndefined();
+    expect(parseArgs(["--", "--compact"])).toEqual(parseArgs(["--compact"]));
+    expect(parseArgs(["--"])).toEqual(parseArgs([]));
+    expect(parseArgs(["--", "--nope"]).error).toContain("unrecognized argument");
   });
 
   it("parses occupancy steal flags (#3433)", () => {
@@ -329,5 +340,78 @@ describe("session-start run", () => {
       process.stdout.write = prevStdout;
       process.stderr.write = prevStderr;
     }
+  });
+});
+
+const SHA_OPEN = "<!-- deft:managed-section v3 -->";
+const SHA_CLOSE = "<!-- /deft:managed-section -->";
+const SHA_TEMPLATE = `top\n${SHA_OPEN}\n## Section\nrule\n${SHA_CLOSE}\nbottom`;
+
+function gitIn(dir: string, args: string[]): void {
+  execFileSync("git", ["-c", "user.email=t@example.com", "-c", "user.name=Test", ...args], {
+    cwd: dir,
+    stdio: "ignore",
+    timeout: 10_000,
+  });
+}
+
+describe("framework SHA own-git-root (#3914)", () => {
+  it("nested non-checkout does not stamp an enclosing repository SHA", () => {
+    const parent = mkdtempSync(join(tmpdir(), "deft-sha-parent-"));
+    temps.push(parent);
+    gitIn(parent, ["init", "-q"]);
+    gitIn(parent, ["commit", "--allow-empty", "--no-gpg-sign", "-m", "init"]);
+    const parentSha = execFileSync("git", ["rev-parse", "--short=12", "HEAD"], {
+      cwd: parent,
+      encoding: "utf8",
+      timeout: 10_000,
+    }).trim();
+    const nested = join(parent, "vendor", "framework");
+    mkdirSync(nested, { recursive: true });
+    expect(payloadIsOwnGitRoot(nested)).toBe(false);
+    expect(payloadIsOwnGitRoot(parent)).toBe(true);
+    const plan = agentsRefreshPlan(nested, {
+      readTemplate: () => SHA_TEMPLATE,
+      readAgents: () => null,
+      nowIso: () => "2026-01-01T00:00:00Z",
+      newSession: () => "sess0001",
+      frameworkRoot: nested,
+    });
+    expect(plan.sha).toBe("unknown");
+    expect(plan.sha).not.toBe(parentSha);
+  });
+
+  it("own-git-root framework SHA is the short HEAD", () => {
+    const dir = mkdtempSync(join(tmpdir(), "deft-sha-own-"));
+    temps.push(dir);
+    gitIn(dir, ["init", "-q"]);
+    gitIn(dir, ["commit", "--allow-empty", "--no-gpg-sign", "-m", "init"]);
+    const head = execFileSync("git", ["rev-parse", "--short=12", "HEAD"], {
+      cwd: dir,
+      encoding: "utf8",
+      timeout: 10_000,
+    }).trim();
+    const plan = agentsRefreshPlan(dir, {
+      readTemplate: () => SHA_TEMPLATE,
+      readAgents: () => null,
+      nowIso: () => "2026-01-01T00:00:00Z",
+      newSession: () => "sess0001",
+      frameworkRoot: dir,
+    });
+    expect(plan.sha).toBe(head);
+  });
+
+  it("current managed section still reports unknown SHA when not own-git-root", () => {
+    const dir = mkdtempSync(join(tmpdir(), "deft-sha-current-"));
+    temps.push(dir);
+    const plan = agentsRefreshPlan(dir, {
+      readTemplate: () => SHA_TEMPLATE,
+      readAgents: () => SHA_TEMPLATE,
+      nowIso: () => "2026-01-01T00:00:00Z",
+      newSession: () => "sess0001",
+      frameworkRoot: dir,
+    });
+    expect(plan.state).toBe("current");
+    expect(plan.sha).toBe("unknown");
   });
 });

@@ -1,14 +1,15 @@
-import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { atomicWriteText } from "../cache/io.js";
 import { contentRoot } from "../content-root.js";
+import { defaultGitRunner } from "../session/git.js";
 import { type LockDeps, withAppendLock } from "../slice/lock.js";
 import { composeGreenfieldAgentsMd } from "./agents-consumer-header.js";
 import { AGENTS_MANAGED_CLOSE, AGENTS_MANAGED_OPEN_V3_LITERAL } from "./constants.js";
 import { findManagedOpenMarker } from "./linear-scan.js";
+import { payloadIsOwnGitRoot } from "./resolve-version.js";
 
 export interface ManagedSectionAttrs {
   readonly version: number;
@@ -69,17 +70,11 @@ function readAgentsTemplate(seams: AgentsMdSeams = {}): string | null {
 function resolveFrameworkSha(seams: AgentsMdSeams = {}): string {
   if (seams.resolveSha) return seams.resolveSha();
   const root = frameworkRoot(seams);
-  try {
-    const stdout = execFileSync("git", ["rev-parse", "--short=12", "HEAD"], {
-      cwd: root,
-      encoding: "utf8",
-      timeout: 5000,
-    });
-    const sha = stdout.trim();
-    return sha || "unknown";
-  } catch {
-    return "unknown";
-  }
+  if (!payloadIsOwnGitRoot(root)) return "unknown";
+  const result = defaultGitRunner(root, ["rev-parse", "--short=12", "HEAD"]);
+  if (result.code !== 0) return "unknown";
+  const sha = result.stdout.trim();
+  return sha || "unknown";
 }
 
 function nowUtcIso(): string {
@@ -298,6 +293,7 @@ export function agentsRefreshPlan(
       rendered,
       existing,
       new_content: existing,
+      sha: frameworkSha,
     };
   }
   const newContent = normalised.replace(extracted, attributedRendered);

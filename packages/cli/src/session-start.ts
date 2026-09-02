@@ -104,6 +104,9 @@ export function parseArgs(argv: readonly string[]): ParsedSessionStartArgs {
   } = {};
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
+    if (arg === "--") {
+      continue;
+    }
     if (arg === "--json") {
       parsed.emitJson = true;
     } else if (arg === "--no-history") {

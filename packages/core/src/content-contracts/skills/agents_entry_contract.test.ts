@@ -485,7 +485,8 @@ const POINTER_RELOCATED_RULES: readonly PointerRuleSpec[] = [
     canonicalBodyMarkers: [
       "read-only posture",
       "mutation intent",
-      "deft session:start -- --read-only",
+      "deft session:start --read-only",
+      "task session:start -- --read-only",
       "%APPDATA%\\deft\\USER.md",
       "USER.md resolved",
     ],

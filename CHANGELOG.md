@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **session:start skips a lone `--`; framework SHA requires own-git-root (#3914).** Direct docs use `deft session:start --read-only`; the parser also accepts `-- --read-only`. The managed agents-entry line keeps `-- --` so `task` substitution still reaches the verb. The SHA probe uses the silent git-runner and `payloadIsOwnGitRoot`, so a nested non-checkout does not stamp an enclosing repository SHA and a successful start does not print `fatal: not a git repository`. Closes #3914.
 - **Land completed-tracked artifact for #4041 (#3264 / #1358).** The #4041 xBRIEF stayed untracked after squash of PR 4123 (75d5970a). Moved to xbrief/completed/ via scope:complete. Does not recut that issue. Refs #2321, #3476.
 - **classifyHookAuthzOps uses isShellTool so Grok `monitor` and `run_terminal_command` hit the same UAT grant check as Bash (#4041).** The private bash|shell|run_terminal_cmd name gate left both Grok shells as `allow/shell-op-unclassifiable`. Tests pin every `SHELL_TOOL_NAMES` member. Does not add `run_terminal_cmd` to that catalog. Does not bind residual-interpreter harvest (#4005 HIGH 2/3/MEDIUM, #3849). Closes #4041.
 - **Land completed-tracked artifact for #3993 (#3264 / #1358).** The #3993 xBRIEF stayed untracked after squash of PR 4107 (9bb09f98). Moved to xbrief/completed/. Does not recut that issue. Refs #2321, #3476.

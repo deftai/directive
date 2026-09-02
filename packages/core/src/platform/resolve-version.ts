@@ -8,6 +8,7 @@ import {
   NonPublishableVersionError,
   toPep440,
 } from "../release/version.js";
+import { defaultGitRunner, type GitRunner } from "../session/git.js";
 import { DEV_FALLBACK, ENV_VAR } from "./constants.js";
 
 export { DEV_FALLBACK, ENV_VAR, isPublishable, NonPublishableVersionError, toPep440 };
@@ -82,19 +83,14 @@ function readDeftVersion(baseDir: string): string | null {
   }
 }
 
-export function payloadIsOwnGitRoot(payloadDir: string): boolean {
-  try {
-    const stdout = execFileSync("git", ["rev-parse", "--show-toplevel"], {
-      cwd: payloadDir,
-      encoding: "utf8",
-      timeout: 10_000,
-    });
-    const toplevel = stdout.trim();
-    if (!toplevel) return false;
-    return resolve(toplevel) === resolve(payloadDir);
-  } catch {
-    return false;
-  }
+export function payloadIsOwnGitRoot(
+  payloadDir: string,
+  runGit: GitRunner = defaultGitRunner,
+): boolean {
+  const { code, stdout } = runGit(payloadDir, ["rev-parse", "--show-toplevel"]);
+  const toplevel = stdout.trim();
+  if (code !== 0 || !toplevel) return false;
+  return resolve(toplevel) === resolve(payloadDir);
 }
 
 function fromEnv(): string | null {
