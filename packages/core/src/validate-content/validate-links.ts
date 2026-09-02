@@ -1,10 +1,14 @@
-import { type Dirent, existsSync, readdirSync, readFileSync } from "node:fs";
+import { type Dirent, existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
+import { isFrameworkRepoRoot } from "../check/context.js";
 import {
+  type ExtraMarkdownFile,
   evaluateLiveProcedureTargets,
+  extraDepositMarkdownFiles,
   formatLiveProcedureFailure,
 } from "../deposit/live-procedure-targets.js";
 import { NON_PRODUCT_DIRS } from "../fs/non-product-dirs.js";
+import { CANONICAL_INSTALL_ROOT } from "../init-deposit/constants.js";
 import { extractLinkTargets, shouldSkipLinkTarget } from "./link-parser.js";
 import type { EvaluateResult } from "./types.js";
 
@@ -102,20 +106,59 @@ export function collectBrokenLinks(cwd: string): BrokenLink[] {
 /**
  * Validate internal markdown links. Faithful to `scripts/validate-links.py`.
  */
-function contentRootForC3(cwd: string): string {
-  const underContent = join(cwd, "content");
-  return existsSync(underContent) ? underContent : cwd;
+function isDirectory(path: string): boolean {
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
 }
 
-function extraMarkdownForC3(cwd: string): { relativePath: string; absolutePath: string }[] {
-  const extras: { relativePath: string; absolutePath: string }[] = [];
-  for (const name of ["main.md", "SKILL.md"] as const) {
-    const absolutePath = join(cwd, name);
-    if (existsSync(absolutePath)) {
-      extras.push({ relativePath: name, absolutePath });
-    }
+function consumerDepositDir(cwd: string): string | null {
+  for (const rel of [CANONICAL_INSTALL_ROOT, "deft"] as const) {
+    const candidate = join(cwd, rel);
+    if (isDirectory(candidate)) return candidate;
   }
-  return extras;
+  return null;
+}
+
+export interface C3EvaluationRoot {
+  readonly stagedRoot: string;
+  readonly extraFiles: ExtraMarkdownFile[];
+}
+
+/**
+ * Choose the C3 walk root. Probe framework source first, then an initialized
+ * consumer deposit, then treat cwd as a flattened deposit. Do not use
+ * contentRoot(cwd): that prefers the npm content package over the vendored
+ * deposit (#4081).
+ */
+export function resolveC3EvaluationRoot(cwd: string): C3EvaluationRoot {
+  if (isFrameworkRepoRoot(cwd)) {
+    const underContent = join(cwd, "content");
+    return {
+      stagedRoot: isDirectory(underContent) ? underContent : cwd,
+      extraFiles: extraDepositMarkdownFiles(cwd),
+    };
+  }
+  const deposit = consumerDepositDir(cwd);
+  if (deposit !== null) {
+    return {
+      stagedRoot: deposit,
+      extraFiles: extraDepositMarkdownFiles(deposit),
+    };
+  }
+  return {
+    stagedRoot: cwd,
+    extraFiles: extraDepositMarkdownFiles(cwd),
+  };
+}
+
+function formatMissingC3Root(stagedRoot: string): string {
+  return (
+    "C3 live-procedure target validation failed: deposit root is missing or not a directory: " +
+    stagedRoot
+  );
 }
 
 export function evaluate(options: ValidateLinksOptions = {}): EvaluateResult {
@@ -126,9 +169,17 @@ export function evaluate(options: ValidateLinksOptions = {}): EvaluateResult {
     (options.argv ?? []).includes("--strict") ||
     process.env.LINK_CHECK_STRICT === "1";
 
+  const c3Root = resolveC3EvaluationRoot(cwd);
+  if (!isDirectory(c3Root.stagedRoot)) {
+    return {
+      code: 1,
+      message: formatMissingC3Root(c3Root.stagedRoot),
+      stream: "stdout",
+    };
+  }
   const c3 = evaluateLiveProcedureTargets({
-    stagedRoot: contentRootForC3(cwd),
-    extraFiles: extraMarkdownForC3(cwd),
+    stagedRoot: c3Root.stagedRoot,
+    extraFiles: c3Root.extraFiles,
   });
   if (c3.uniqueTargets.length > 0) {
     return {

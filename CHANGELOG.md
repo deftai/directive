@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **`verify:links` C3 evaluates an initialized consumer deposit in deposit-relative coordinates (#4081).** From a consumer root the gate walks `.deft/core`, not the project tree and not `contentRoot(cwd)`. Declared exclusions match. Consumer markdown naming `path/to.py` is out of the walk. A product `content/` directory no longer fail-opens a dirty deposit. Closes #4081.
 - **Land completed-tracked artifact for #4083 (#3264 / #1358).** The #4083 xBRIEF stayed untracked after squash of PR 4106 (80cbaadb). Moved to xbrief/completed/ via scope:complete. Does not recut that issue. Refs #2321, #3476.
 - **`triage:evaluate` spawns Windows npm `deft.cmd` for isolated `session:start --read-only` (#4083).** Bare `deft` argv0 ENOENTed under `execFileSync`. Resolve via PATHEXT-aware `whichAllFromPath`, spawn through `cliSpawnPlan`; `runText` stays `shell: false`. Closes #4083. Refs #2606, #2911.
 - **Release skill names the real mint CLI at Phase 1 and does not stall rehearsal on a grant (#4079).** After version confirm it prints deft authz:grant with template release-publish and --confirm, and keeps mint immediately before Phase 4. Phase 3 halt is retry-or-stop; rehearsal 0.0.1 is not minted. Policy restore closeout names both default-branch and destructive-gh env bypasses on those git commands. Phase 1 CI is task check. Closes #4079. Refs #4000.
