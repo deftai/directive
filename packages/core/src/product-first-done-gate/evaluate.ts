@@ -173,12 +173,18 @@ function captureFromNarrativesFlag(options: EvaluateVerifyAcOptions): boolean | 
 }
 
 function ledgerEntriesFromCommands(
-  commands: readonly { command: string; cwd?: string | null; expectedExitCode?: number }[],
+  commands: readonly {
+    command: string;
+    cwd?: string | null;
+    expectedExitCode?: number;
+    expectedStdout?: string | null;
+  }[],
 ): AcceptanceLedgerEntry[] {
   return commands.map((c) => ({
     command: c.command,
     cwd: c.cwd ?? null,
     expectedExitCode: c.expectedExitCode ?? 0,
+    expectedStdout: c.expectedStdout ?? null,
   }));
 }
 

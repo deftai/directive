@@ -112,12 +112,13 @@ export function resolvedAcceptanceCommandCount(reading: AcceptanceReading): numb
 
 /**
  * One row of the resolved literal+swarm+narrative contract (#4060).
- * Identity is command + cwd + expectedExitCode -- not plan.acceptance.commands.length.
+ * Identity is command + cwd + expectedExitCode + expectedStdout -- not plan.acceptance.commands.length.
  */
 export interface AcceptanceLedgerEntry {
   readonly command: string;
   readonly cwd?: string | null;
   readonly expectedExitCode?: number;
+  readonly expectedStdout?: string | null;
 }
 
 function asLedgerRecord(value: unknown): Record<string, unknown> | null {
@@ -134,7 +135,11 @@ export function acceptanceLedgerKey(entry: AcceptanceLedgerEntry): string {
       ? String(entry.cwd).trim()
       : "";
   const exit = typeof entry.expectedExitCode === "number" ? entry.expectedExitCode : 0;
-  return `${entry.command}\0${cwd}\0${String(exit)}`;
+  const stdout =
+    entry.expectedStdout !== undefined && entry.expectedStdout !== null
+      ? String(entry.expectedStdout)
+      : "";
+  return `${entry.command}\0${cwd}\0${String(exit)}\0${stdout}`;
 }
 
 /** Coerce a bank/cache snapshot command list into ledger entries. */
@@ -145,7 +150,7 @@ export function readAcceptanceLedger(
   const out: AcceptanceLedgerEntry[] = [];
   for (const item of raw) {
     if (typeof item === "string" && item.trim().length > 0) {
-      out.push({ command: item.trim(), cwd: null, expectedExitCode: 0 });
+      out.push({ command: item.trim(), cwd: null, expectedExitCode: 0, expectedStdout: null });
       continue;
     }
     const rec = asLedgerRecord(item);
@@ -156,6 +161,7 @@ export function readAcceptanceLedger(
       command: rec.command.trim(),
       cwd: typeof rec.cwd === "string" ? rec.cwd : null,
       expectedExitCode: typeof rec.expectedExitCode === "number" ? rec.expectedExitCode : 0,
+      expectedStdout: typeof rec.expectedStdout === "string" ? rec.expectedStdout : null,
     });
   }
   return out;

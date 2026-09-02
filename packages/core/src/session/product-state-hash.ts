@@ -59,6 +59,7 @@ function structuredAcceptanceContract(plan: Record<string, unknown>): {
   readonly acceptance: unknown;
   readonly swarmVerifyCommands: unknown;
   readonly literalAcceptanceCommands: unknown;
+  readonly swarmLiteralAcceptanceCommands: unknown;
 } {
   const meta = asRecord(plan.metadata);
   const swarm = asRecord(meta?.swarm);
@@ -67,6 +68,8 @@ function structuredAcceptanceContract(plan: Record<string, unknown>): {
     swarmVerifyCommands: swarm?.verify_commands ?? null,
     literalAcceptanceCommands:
       meta?.literal_acceptance_commands ?? meta?.literalAcceptanceCommands ?? null,
+    swarmLiteralAcceptanceCommands:
+      swarm?.literal_acceptance_commands ?? swarm?.literalAcceptanceCommands ?? null,
   };
 }
 

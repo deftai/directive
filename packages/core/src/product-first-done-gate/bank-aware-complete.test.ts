@@ -25,8 +25,13 @@ function writeBrief(root: string, plan: Record<string, unknown>): string {
 
 function statedLedger(
   commands: string[],
-): { command: string; cwd: null; expectedExitCode: number }[] {
-  return commands.map((command) => ({ command, cwd: null, expectedExitCode: 0 }));
+): { command: string; cwd: null; expectedExitCode: number; expectedStdout: null }[] {
+  return commands.map((command) => ({
+    command,
+    cwd: null,
+    expectedExitCode: 0,
+    expectedStdout: null,
+  }));
 }
 
 function parseJsonl(path: string): { event: string; payload: Record<string, unknown> }[] {
@@ -621,8 +626,14 @@ describe("one-path complete recut (#4060)", () => {
       false,
     );
     expect(readAcceptanceLedger(["task check"])).toEqual([
-      { command: "task check", cwd: null, expectedExitCode: 0 },
+      { command: "task check", cwd: null, expectedExitCode: 0, expectedStdout: null },
     ]);
+    expect(
+      acceptanceLedgersEqual(
+        [{ command: "task check", expectedStdout: "ok" }],
+        [{ command: "task check", expectedStdout: "other" }],
+      ),
+    ).toBe(false);
   });
 
   it("matching swarm-only bank serves complete with zero new invocations", () => {
@@ -938,5 +949,84 @@ describe("one-path complete recut (#4060)", () => {
     });
     expect(walk.servedFrom).toBe("executed");
     expect(executions).toBeGreaterThan(0);
+  });
+
+  it("expectedStdout-only swarm literal change refuses reuse", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-4060-stdout-"));
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src", "product.txt"), "v1\n", "utf8");
+    const clauses = [
+      {
+        id: 1,
+        text: "behavioral contract with no machine check against product.txt",
+        artifact_path: "src/product.txt",
+        ambiguous: false,
+        provenance: "statement",
+      },
+      {
+        id: 2,
+        text: "another unquoted behavioral claim against the shipped product",
+        artifact_path: "src/product.txt",
+        ambiguous: false,
+        provenance: "statement",
+      },
+    ];
+    const mintPlan: Record<string, unknown> = {
+      id: "4060-stdout",
+      title: "stdout",
+      status: "running",
+      acceptance: {
+        commands: [],
+        none_stated: true,
+        source_rung: "derived",
+        ambiguity_attestation: "none_found",
+        clauses,
+      },
+      metadata: {
+        swarm: {
+          verify_commands: [],
+          literal_acceptance_commands: [
+            { command: "task check", expectedStdout: "ok", source: "explicit" },
+          ],
+        },
+      },
+    };
+    const brief = writeBrief(root, mintPlan);
+    let executions = 0;
+    const runner = (cmd: { command: string }) => {
+      executions += 1;
+      return { exitCode: 0, stdout: cmd.command === "task check" ? "ok" : "other", stderr: "" };
+    };
+    const productPaths = ["src/product.txt"];
+    expect(
+      evaluateVerifyAcFromPath(brief, {
+        projectRoot: root,
+        captureFromNarratives: false,
+        runner,
+        productPaths,
+        hasSuiteFloor: true,
+      }).ok,
+    ).toBe(true);
+    expect(executions).toBe(1);
+    const changed: Record<string, unknown> = {
+      ...mintPlan,
+      metadata: {
+        swarm: {
+          verify_commands: [],
+          literal_acceptance_commands: [
+            { command: "task check", expectedStdout: "other", source: "explicit" },
+          ],
+        },
+      },
+    };
+    const walk = evaluateScopeCompleteAcceptanceWalk(changed, {
+      projectRoot: root,
+      captureFromNarratives: false,
+      runner,
+      productPaths,
+      hasSuiteFloor: true,
+    });
+    expect(walk.servedFrom).toBe("executed");
+    expect(executions).toBe(2);
   });
 });
