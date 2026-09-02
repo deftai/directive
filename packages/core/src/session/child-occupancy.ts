@@ -14,12 +14,12 @@
 
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { isAbsolute, join, relative, resolve } from "node:path";
 import { containedRemove, containedWrite } from "../fs/contained-write.js";
 import type { LockDeps } from "../slice/lock.js";
 import { hookHostIdentitySource } from "./host-session-owner.js";
 import { stableJson } from "./json.js";
-import { isLinkedWorktreePath } from "./main-worktree.js";
+import { isLinkedWorktreePath, mainWorktreeRoot } from "./main-worktree.js";
 import { type OccupancyDecision, readOccupancy, releaseOccupancy } from "./occupancy.js";
 
 export const CHILD_OCCUPANCY_SCHEMA_VERSION = 2;
@@ -262,6 +262,45 @@ function sameTree(left: string, right: string): boolean {
   return a === b;
 }
 
+function isSpawnPendingPlaceholder(worktreePath: string, storeRoot: string): boolean {
+  const pendingRoot = join(resolve(storeRoot), ".deft", "spawn-pending");
+  const recorded = resolve(worktreePath);
+  const rel = relative(pendingRoot, recorded);
+  return rel.length > 0 && !rel.startsWith("..") && !isAbsolute(rel);
+}
+
+function sameRepository(left: string, right: string): boolean {
+  const a = mainWorktreeRoot(left);
+  const b = mainWorktreeRoot(right);
+  if (a === null || b === null) return false;
+  return sameTree(a, b);
+}
+
+/**
+ * Pathless isolation=worktree records a spawn-pending placeholder. Terminal
+ * cleanup binds the host-created heartbeat tree when it is a linked worktree
+ * of the same repo and not the parent observer root.
+ */
+function bindReleaseTree(
+  storeRoot: string,
+  record: ChildOccupancyRecord,
+  heartbeatTree: string | null,
+  observerRoot: string,
+): string {
+  const tree = resolve(record.worktreePath);
+  if (heartbeatTree === null) return tree;
+  if (sameTree(tree, heartbeatTree)) return tree;
+  if (
+    isSpawnPendingPlaceholder(tree, storeRoot) &&
+    isLinkedWorktreePath(heartbeatTree) &&
+    !sameTree(heartbeatTree, observerRoot) &&
+    sameRepository(storeRoot, heartbeatTree)
+  ) {
+    return heartbeatTree;
+  }
+  return tree;
+}
+
 /**
  * Compare-and-release under the occupancy lock. Caller identity is the id the
  * parent recorded at dispatch — not the occupant currently named in the lease
@@ -314,17 +353,22 @@ export function releaseChildOccupancyOnTerminal(
     input.observerRoot !== undefined && input.observerRoot.trim().length > 0
       ? resolve(input.observerRoot)
       : resolve(storeRoot);
-  if (heartbeatTree !== null && !sameTree(tree, heartbeatTree) && !sameTree(tree, observerRoot)) {
+  const boundTree = bindReleaseTree(storeRoot, record, heartbeatTree, observerRoot);
+  if (
+    heartbeatTree !== null &&
+    !sameTree(boundTree, heartbeatTree) &&
+    !sameTree(tree, observerRoot)
+  ) {
     return { reason: "tree-not-allocated", record, occupancy: null };
   }
   if (record.identitySourceKind === "payload") {
-    const linked = isLinkedWorktreePath(tree);
-    if (!linked || sameTree(tree, observerRoot)) {
+    const linked = isLinkedWorktreePath(boundTree);
+    if (!linked || sameTree(boundTree, observerRoot)) {
       return { reason: "payload-skip", record, occupancy: null };
     }
   }
   const now = input.now ?? new Date();
-  const live = readOccupancy(tree);
+  const live = readOccupancy(boundTree);
   if (live === null) {
     removeChildOccupancyLease(storeRoot, agentId);
     return { reason: "already-free", record, occupancy: null };
@@ -332,7 +376,7 @@ export function releaseChildOccupancyOnTerminal(
   if (live.sessionId !== record.occupancyOwner) {
     return { reason: "owner-changed", record, occupancy: null };
   }
-  const occupancy = releaseOccupancy(tree, {
+  const occupancy = releaseOccupancy(boundTree, {
     sessionId: record.occupancyOwner,
     now,
     env: {},
@@ -340,7 +384,7 @@ export function releaseChildOccupancyOnTerminal(
   });
   if (occupancy.action === "released") {
     removeChildOccupancyLease(storeRoot, agentId);
-    if (resolve(storeRoot) !== tree) removeChildOccupancyLease(tree, agentId);
+    if (resolve(storeRoot) !== boundTree) removeChildOccupancyLease(boundTree, agentId);
     return { reason: "released", record, occupancy };
   }
   return { reason: "denied", record, occupancy };

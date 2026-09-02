@@ -17,6 +17,22 @@ afterEach(() => {
   for (const t of temps.splice(0)) rmSync(t, { recursive: true, force: true });
 });
 
+function gitInit(root: string): void {
+  execFileSync("git", ["init", "-q"], { cwd: root, encoding: "utf8" });
+  execFileSync("git", ["config", "user.email", "t@t.local"], { cwd: root, encoding: "utf8" });
+  execFileSync("git", ["config", "user.name", "T"], { cwd: root, encoding: "utf8" });
+  writeFileSync(join(root, "README"), "x\n", "utf8");
+  execFileSync("git", ["add", "README"], { cwd: root, encoding: "utf8" });
+  execFileSync("git", ["commit", "-q", "-m", "init"], { cwd: root, encoding: "utf8" });
+}
+
+function addLinkedWorktree(root: string, dest: string): void {
+  execFileSync("git", ["worktree", "add", "--detach", dest, "HEAD"], {
+    cwd: root,
+    encoding: "utf8",
+  });
+}
+
 describe("inspectSpawnDestination (#4066)", () => {
   it("reads isolation=worktree from tool_input and ignores parent payload cwd", () => {
     expect(
@@ -146,6 +162,33 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
     if (!decision.allow) expect(decision.reason).toBe("reservation-conflict");
   });
 
+  it("dest-locks a missing destination so two first-creates conflict", () => {
+    const root = mkdtempSync(join(tmpdir(), "spawn-occ-missing-"));
+    temps.push(root);
+    const dest = join(root, "wt-missing");
+    const first = persistSpawnReservation(root, {
+      agentId: "leaf-1",
+      parentId: "parent",
+      occupancyOwner: "parent",
+      worktreePath: dest,
+      identitySourceKind: "host-env",
+      incarnation: "inc-a",
+      provenance: "dispatch",
+    });
+    expect(first.ok).toBe(true);
+    const second = persistSpawnReservation(root, {
+      agentId: "leaf-2",
+      parentId: "parent",
+      occupancyOwner: "parent",
+      worktreePath: dest,
+      identitySourceKind: "host-env",
+      incarnation: "inc-b",
+      provenance: "dispatch",
+    });
+    expect(second.ok).toBe(false);
+    if (!second.ok) expect(second.reason).toBe("conflict");
+  });
+
   it("persists a dispatch reservation with incarnation", () => {
     const root = mkdtempSync(join(tmpdir(), "spawn-occ-persist-"));
     temps.push(root);
@@ -214,6 +257,44 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
       provenance: "dispatch",
     });
     expect(allocatedWorktreeMatches(parent, other)).toBe(false);
-    expect(allocatedWorktreeMatches(other, other)).toBe(true);
+    expect(allocatedWorktreeMatches(other, other)).toBe(false);
+  });
+
+  it("binds allocation to same-repo linked worktree, incarnation, and owner", () => {
+    const parent = mkdtempSync(join(tmpdir(), "spawn-occ-repo-p-"));
+    temps.push(parent);
+    gitInit(parent);
+    const wt = join(parent, "wt");
+    addLinkedWorktree(parent, wt);
+    recordChildOccupancyLease(parent, {
+      agentId: "leaf",
+      parentId: "parent",
+      occupancyOwner: "parent",
+      worktreePath: wt,
+      identitySourceKind: "host-env",
+      incarnation: "inc-1",
+      provenance: "dispatch",
+    });
+    expect(allocatedWorktreeMatches(parent, wt)).toBe(true);
+  });
+
+  it("rejects a foreign-repository path even when a dispatch record names it", () => {
+    const parent = mkdtempSync(join(tmpdir(), "spawn-occ-repo-f-"));
+    const foreign = mkdtempSync(join(tmpdir(), "spawn-occ-repo-x-"));
+    temps.push(parent, foreign);
+    gitInit(parent);
+    gitInit(foreign);
+    const foreignWt = join(foreign, "wt");
+    addLinkedWorktree(foreign, foreignWt);
+    recordChildOccupancyLease(parent, {
+      agentId: "stranger",
+      parentId: "other-parent",
+      occupancyOwner: "other-parent",
+      worktreePath: foreignWt,
+      identitySourceKind: "host-env",
+      incarnation: "inc-x",
+      provenance: "dispatch",
+    });
+    expect(allocatedWorktreeMatches(parent, foreignWt)).toBe(false);
   });
 });

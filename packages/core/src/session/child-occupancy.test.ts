@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -28,6 +29,22 @@ function tempRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "child-occupancy-"));
   temps.push(root);
   return root;
+}
+
+function gitInit(root: string): void {
+  execFileSync("git", ["init", "-q"], { cwd: root, encoding: "utf8" });
+  execFileSync("git", ["config", "user.email", "t@t.local"], { cwd: root, encoding: "utf8" });
+  execFileSync("git", ["config", "user.name", "T"], { cwd: root, encoding: "utf8" });
+  writeFileSync(join(root, "README"), "x\n", "utf8");
+  execFileSync("git", ["add", "README"], { cwd: root, encoding: "utf8" });
+  execFileSync("git", ["commit", "-q", "-m", "init"], { cwd: root, encoding: "utf8" });
+}
+
+function addLinkedWorktree(root: string, dest: string): void {
+  execFileSync("git", ["worktree", "add", "--detach", dest, "HEAD"], {
+    cwd: root,
+    encoding: "utf8",
+  });
 }
 
 describe("child occupancy dispatch record (#3999)", () => {
@@ -347,5 +364,65 @@ describe("child occupancy dispatch record (#3999)", () => {
       }).reason,
     ).toBe("parent-mismatch");
     expect(readOccupancy(root)?.sessionId).toBe(childOwner);
+  });
+
+  it("binds a spawn-pending placeholder to the heartbeat linked worktree (#4066)", () => {
+    const root = tempRoot();
+    gitInit(root);
+    const child = join(root, "wt-child");
+    addLinkedWorktree(root, child);
+    const placeholder = join(root, ".deft", "spawn-pending", "inc-pathless");
+    mkdirSync(placeholder, { recursive: true });
+    recordChildOccupancyLease(root, {
+      agentId,
+      parentId,
+      occupancyOwner: childOwner,
+      worktreePath: placeholder,
+      identitySourceKind: "payload",
+      incarnation: "inc-pathless",
+      provenance: "dispatch",
+    });
+    applyWorktreeOccupancy(child, { sessionId: childOwner, now, env: {} });
+    const released = releaseChildOccupancyOnTerminal(root, {
+      agentId,
+      now,
+      incarnation: "inc-pathless",
+      parentId,
+      heartbeatWorktree: child,
+      observerRoot: root,
+    });
+    expect(released.reason).toBe("released");
+    expect(readOccupancy(child)).toBeNull();
+    expect(existsSync(childOccupancyPath(root, agentId))).toBe(false);
+  });
+
+  it("does not bind a spawn-pending placeholder to a foreign heartbeat tree (#4066)", () => {
+    const root = tempRoot();
+    const foreign = tempRoot();
+    gitInit(root);
+    gitInit(foreign);
+    const placeholder = join(root, ".deft", "spawn-pending", "inc-pathless");
+    mkdirSync(placeholder, { recursive: true });
+    recordChildOccupancyLease(root, {
+      agentId,
+      parentId,
+      occupancyOwner: childOwner,
+      worktreePath: placeholder,
+      identitySourceKind: "payload",
+      incarnation: "inc-pathless",
+      provenance: "dispatch",
+    });
+    applyWorktreeOccupancy(foreign, { sessionId: childOwner, now, env: {} });
+    const released = releaseChildOccupancyOnTerminal(root, {
+      agentId,
+      now,
+      incarnation: "inc-pathless",
+      parentId,
+      heartbeatWorktree: foreign,
+      observerRoot: root,
+    });
+    expect(released.reason).toBe("tree-not-allocated");
+    expect(readOccupancy(foreign)?.sessionId).toBe(childOwner);
+    expect(existsSync(childOccupancyPath(root, agentId))).toBe(true);
   });
 });

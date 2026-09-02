@@ -26,7 +26,7 @@ import {
   recordChildOccupancyLease,
 } from "./child-occupancy.js";
 import { defaultGitRunner, type GitRunner } from "./git.js";
-import { isMainWorktreePath } from "./main-worktree.js";
+import { isLinkedWorktreePath, isMainWorktreePath, mainWorktreeRoot } from "./main-worktree.js";
 import { liveOccupant } from "./occupancy.js";
 
 export type SpawnDestinationKind = "host-isolation" | "path";
@@ -222,6 +222,9 @@ export function evaluateImplementSpawnOccupancy(input: {
   const incarnation = randomUUID();
   const parentId = (input.parentId?.trim() || parentIdFromEnv(environ)).trim() || "none";
   const agentId = agentIdFromPayload(input.payload, incarnation);
+  // Pathless isolation=worktree is in-AC. PreToolUse cannot name the
+  // host-created child tree (class B: needs a host callback). Terminal
+  // release binds the heartbeat linked worktree by parent + incarnation.
   const reservation: ChildOccupancyDispatchInput = {
     agentId,
     parentId,
@@ -267,7 +270,9 @@ export function persistSpawnReservation(
   const dest = resolve(reservation.worktreePath);
   const incarnation = reservation.incarnation?.trim() ?? "";
   if (incarnation.length === 0) return { ok: false, reason: "conflict" };
-  const skipDestLock = dest === root || !existsSync(dest);
+  // Dest-keyed lock lives under the parent store. Missing dest still races
+  // two first-creates of the same path, so do not skip the lock for !exists.
+  const skipDestLock = dest === root;
   if (!skipDestLock) {
     try {
       containedWrite({
@@ -297,14 +302,38 @@ export function releaseSpawnReservation(storeRoot: string, destPath: string): vo
   containedRemove({ root, target: reservationLockPath(root, destPath) });
 }
 
-export function allocatedWorktreeMatches(storeRoot: string, candidate: string): boolean {
+function sameTree(left: string, right: string): boolean {
+  const a = resolve(left);
+  const b = resolve(right);
+  if (process.platform === "win32") return a.toLowerCase() === b.toLowerCase();
+  return a === b;
+}
+
+/**
+ * True when `candidate` is a dispatcher-allocated child of `storeRoot`.
+ * Path match alone is not enough: bind git common-dir (repo), incarnation,
+ * and occupancy owner so a stale/foreign dispatch record cannot rewrite
+ * identity against the wrong tree.
+ */
+export function allocatedWorktreeMatches(
+  storeRoot: string,
+  candidate: string,
+  runGit: GitRunner = defaultGitRunner,
+): boolean {
   const want = resolve(candidate);
-  if (!existsSync(storeRoot)) return false;
-  for (const rec of listChildOccupancyLeases(storeRoot)) {
+  const root = resolve(storeRoot);
+  if (!existsSync(root)) return false;
+  const storeRepo = mainWorktreeRoot(root, runGit);
+  const candidateRepo = mainWorktreeRoot(want, runGit);
+  if (storeRepo === null || candidateRepo === null) return false;
+  if (!sameTree(storeRepo, candidateRepo)) return false;
+  if (!isLinkedWorktreePath(want)) return false;
+  for (const rec of listChildOccupancyLeases(root)) {
     if (rec.provenance !== "dispatch") continue;
+    if (rec.incarnation.length === 0 || rec.incarnation === "missing") continue;
+    if (rec.occupancyOwner.trim().length === 0) continue;
     const recorded = resolve(rec.worktreePath);
-    if (recorded === want) return true;
-    if (process.platform === "win32" && recorded.toLowerCase() === want.toLowerCase()) return true;
+    if (sameTree(recorded, want)) return true;
   }
   return false;
 }
