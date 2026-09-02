@@ -517,6 +517,10 @@ function planIdSegmentOk(segment: string): boolean {
   return /^[a-zA-Z0-9_-]+$/.test(segment);
 }
 
+function encodeFallbackSegment(raw: string): string {
+  return raw.replace(/\./g, "x2e");
+}
+
 export function mintIssuePlanId(input: {
   readonly issueId?: unknown;
   readonly owner: string;
@@ -539,13 +543,13 @@ export function mintIssuePlanId(input: {
       version: PLAN_ID_MINT_VERSION,
     };
   }
-  const ownerSegs = input.owner.split(".").filter(Boolean);
-  const repoSegs = input.repo.split(".").filter(Boolean);
+  const ownerSeg = encodeFallbackSegment(input.owner);
+  const repoSeg = encodeFallbackSegment(input.repo);
   if (
-    ownerSegs.length === 0 ||
-    repoSegs.length === 0 ||
-    !ownerSegs.every(planIdSegmentOk) ||
-    !repoSegs.every(planIdSegmentOk) ||
+    ownerSeg.length === 0 ||
+    repoSeg.length === 0 ||
+    !planIdSegmentOk(ownerSeg) ||
+    !planIdSegmentOk(repoSeg) ||
     !Number.isSafeInteger(input.number) ||
     input.number <= 0
   ) {
@@ -555,7 +559,7 @@ export function mintIssuePlanId(input: {
     );
   }
   return {
-    id: `github.issue.fallback.${ownerSegs.join(".")}.${repoSegs.join(".")}.${input.number}`,
+    id: `github.issue.fallback.${ownerSeg}.${repoSeg}.${input.number}`,
     source: "github-repo-fallback",
     githubIssueId: null,
     originKey,
@@ -932,6 +936,28 @@ export function repairNonterminalIssuePlanIds(options: {
             to: null,
             action: "refuse",
             reason: "ingest origin has no repository",
+          });
+          continue;
+        }
+        const planRec = asPlanRecord(data);
+        const rawId = planRec?.id;
+        if (typeof rawId === "string" && rawId.trim().length === 0) {
+          mappings.push({
+            path: rel,
+            from: rawId,
+            to: null,
+            action: "refuse",
+            reason: "blank plan.id is not overwritten",
+          });
+          continue;
+        }
+        if (extracted !== null && !PLAN_ID_FORMAT.test(extracted)) {
+          mappings.push({
+            path: rel,
+            from: extracted,
+            to: null,
+            action: "refuse",
+            reason: "malformed plan.id is not overwritten",
           });
           continue;
         }

@@ -1308,6 +1308,14 @@ describe("#4119 plan.id mint, admission, and repair", () => {
     expect(a.id).toBe(b.id);
   });
 
+  it("keeps dotted owner/repo fallback ids injective", () => {
+    const a = mintIssuePlanId({ owner: "a.b", repo: "c", number: 9 });
+    const b = mintIssuePlanId({ owner: "a", repo: "b.c", number: 9 });
+    expect(a.id).toBe("github.issue.fallback.ax2eb.c.9");
+    expect(b.id).toBe("github.issue.fallback.a.bx2ec.9");
+    expect(a.id).not.toBe(b.id);
+  });
+
   it("does not collide fallback ids for the same number in two repositories", () => {
     const a = mintIssuePlanId({ owner: "acme", repo: "one", number: 42 });
     const b = mintIssuePlanId({ owner: "acme", repo: "two", number: 42 });
@@ -1473,6 +1481,50 @@ describe("#4119 plan.id mint, admission, and repair", () => {
       const result = repairNonterminalIssuePlanIds({ vbriefDir: xbriefDir, dryRun: false });
       expect(result.ok).toBe(false);
       expect(planOf(ambiguous).id).toBeUndefined();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses to overwrite blank or malformed plan.id during repair", () => {
+    const root = mkdtempSync(join(tmpdir(), "4119-repair-malformed-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(join(xbriefDir, "proposed"), { recursive: true });
+    const blank = join(xbriefDir, "proposed", "blank.xbrief.json");
+    writeFileSync(
+      blank,
+      `${JSON.stringify({
+        xBRIEFInfo: { version: "0.8", description: "Scope xBRIEF ingested from GitHub issue #3" },
+        plan: {
+          id: "  ",
+          title: "Blank",
+          status: "proposed",
+          narratives: { Origin: "Ingested from https://github.com/o/r/issues/3" },
+          items: [],
+        },
+      })}\n`,
+      "utf8",
+    );
+    const bad = join(xbriefDir, "proposed", "bad.xbrief.json");
+    writeFileSync(
+      bad,
+      `${JSON.stringify({
+        xBRIEFInfo: { version: "0.8", description: "Scope xBRIEF ingested from GitHub issue #4" },
+        plan: {
+          id: "not/valid",
+          title: "Bad",
+          status: "proposed",
+          narratives: { Origin: "Ingested from https://github.com/o/r/issues/4" },
+          items: [],
+        },
+      })}\n`,
+      "utf8",
+    );
+    try {
+      const result = repairNonterminalIssuePlanIds({ vbriefDir: xbriefDir, dryRun: false });
+      expect(result.ok).toBe(false);
+      expect(planOf(blank).id).toBe("  ");
+      expect(planOf(bad).id).toBe("not/valid");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
