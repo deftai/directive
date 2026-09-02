@@ -1,0 +1,284 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #4060 recut onto one bank-aware complete path (lean 5500805298, synthesis 5500810193)",
+    "updated": "2026-09-02T20:23:46Z"
+  },
+  "plan": {
+    "title": "bug(lifecycle): scope:complete one bank-aware path for swarm-only banks",
+    "status": "completed",
+    "narratives": {
+      "Description": "Recut #4060: keep evaluateScopeCompleteAcceptanceWalk as the one complete path; remove the pre-walk standalone executor; resolve via resolveLiteralAcceptanceDetailed with no execute, then match, then execute once on miss. Persist cache-shaped mint snapshot (commands and runs) on the durable bank. Swarm-only eligible only when resolved ledger is non-empty and equals mint-time ledger. Truly empty stays refused. #3993 is a non-regression. Bound SoT: lean 5500805298, synthesis 5500810193, critic 5500796036.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4060",
+      "Overview": "## Summary\n\nscope:complete replays acceptance before bank lookup and rejects swarm-only banks\n\n## Context\n\nDirective v0.109.1 in consumer bxc-3ci/FreshserviceAI. Issue #372 merged in PR #376 at 2890691ce96ea5e3e650cc6806b6e5c7f194b917 with all declared verification commands green. A fresh verify:ac bank at that exact HEAD recorded productStateHash fc7db5294dcf7a51b8a3656707fd115a46b443a5bbbeddc58e1d0a502420c48c. The active xBRIEF has plan.acceptance.commands=[] and six executable plan.metadata.swarm.verify_commands, including verify:scope-provenance and task check.\n\n## Expected behavior\n\nscope:complete should resolve and safety-check one acceptance command contract, reuse a matching green bank without executing those commands again, and execute every resolved command exactly once when no valid bank exists. A bank created from executable swarm.verify_commands should remain eligible when plan.acceptance.commands is empty. Changed commands, narrative captures, product state, or stale evidence must still fail closed.\n\n## Actual behavior / gap\n\nscope:complete invokes the standalone literal acceptance evaluator before its bank-aware completion walk. That evaluator rereads swarm.verify_commands and executes all six wrappers, so a fresh matching bank cannot suppress duplicate local work. Only afterward does the bank-aware path run, and its reuse check returns no bank when plan.acceptance.commands.length===0 even though verify:ac created the bank from the executable swarm ledger. In the consumer closeout, the pre-bank replay reached provenance and failed before any lifecycle mutation.\n\n## Session notes\n\n## Minimal reproduction\n\nUse an active, approved xBRIEF with valid completion evidence and delivery evidence, plus:\n\n```json\n{\n  \"plan\": {\n    \"acceptance\": {\n      \"commands\": [],\n      \"none_stated\": true,\n      \"source_rung\": \"derived\"\n    },\n    \"metadata\": {\n      \"swarm\": {\n        \"verify_commands\": [\"<instrumented always-green command>\"]\n      }\n    }\n  }\n}\n```\n\n1. Run `deft verify:ac` at the merged product HEAD and confirm it records a green durable bank.\n2. Reset the instrumented command's invocation counter.\n3. Call `runTransition(\"complete\")` or the equivalent `deft scope:complete` command with valid PR and merge evidence.\n4. A matching bank should produce zero new invocations. The current transition invokes the command before it reaches the bank-aware walk.\n5. Because `plan.acceptance.commands=[]`, the later reuse path also refuses the bank created from `swarm.verify_commands`; if the earlier execution remains green, the same ledger can be selected again by the later walk.\n\nThe FreshserviceAI #372 reproduction used six real wrappers and a fresh bank at merge commit `2890691ce96ea5e3e650cc6806b6e5c7f194b917`. Completion replayed the wrappers until `verify:scope-provenance` failed on the separate canonical-evidence defect. This is why a lifecycle-only closeout attempted local product validation again after the product and required CI were already green.\n\n## Root cause evidence in v0.109.1\n\n- [`scope/transition.ts:280-329`](https://github.com/deftai/directive/blob/v0.109.1/packages/core/src/scope/transition.ts#L280-L329) establishes the production order: per-item evidence gate, standalone `evaluateLiteralAcceptanceFromPlan`, then `evaluateScopeCompleteAcceptanceWalk`.\n- [`literal-acceptance/evaluate.ts:249-260`](https://github.com/deftai/directive/blob/v0.109.1/packages/core/src/literal-acceptance/evaluate.ts#L249-L260) directly invokes the command runner and exposes no bank/cache option.\n- [`literal-acceptance/capture.ts:580-639`](https://github.com/deftai/directive/blob/v0.109.1/packages/core/src/literal-acceptance/capture.ts#L580-L639) reads `plan.metadata.swarm.verify_commands` into that executable ledger.\n- [`scope/acceptance-evidence.ts:515-556`](https://github.com/deftai/directive/blob/v0.109.1/packages/core/src/scope/acceptance-evidence.ts#L515-L556) reaches the product-first, bank-aware evaluator only after the standalone execution.\n- [`product-first-done-gate/evaluate.ts:166-232`](https://github.com/deftai/directive/blob/v0.109.1/packages/core/src/product-first-done-gate/evaluate.ts#L166-L232) contains the later bank-reuse check, including the refusal when `plan.acceptance.commands.length===0`.\n- [`product-first-done-gate/acceptance-resolver.ts:274-277`](https://github.com/deftai/directive/blob/v0.109.1/packages/core/src/product-first-done-gate/acceptance-resolver.ts#L274-L277) selects bank-only reuse for completion's later walk.\n- [`product-first-done-gate/bank-aware-complete.test.ts:1-96`](https://github.com/deftai/directive/blob/v0.109.1/packages/core/src/product-first-done-gate/bank-aware-complete.test.ts#L1-L96) tests `evaluateScopeCompleteAcceptanceWalk` directly, not full `runTransition(\"complete\")`, so it cannot detect the earlier standalone invocation.\n\n## Relationship to #3993\n\nThis partially overlaps [#3993](https://github.com/deftai/directive/issues/3993). That issue observes the same literal-before-walk sequence, then focuses on a bank-served result losing the green-run fact (`runs: []`) and failing clause composition. This report covers two additional defects in the same transition:\n\n1. a matching bank cannot suppress the standalone execution that occurs before lookup; and\n2. the later reuse check refuses a bank created from `swarm.verify_commands` when `plan.acceptance.commands` is empty.\n\nThe fix should coordinate with #3993 so a consolidated bank-served result also retains the trusted green-run fact required by clause walking. That is a dependency/non-regression requirement, not a duplicate claim.\n\n## Proposed fix\n\nConsolidate completion onto one bank-aware acceptance path.\n\n1. Resolve and safety-check literal, swarm, and narrative commands without executing them.\n2. Include the resolved acceptance contract in bank eligibility, or store an equivalent trusted digest/fact.\n3. If product state and the resolved contract match a valid green bank, serve completion from the bank with zero command replays.\n4. Otherwise execute each resolved command exactly once.\n5. Allow a bank minted from executable `swarm.verify_commands` to serve completion when `plan.acceptance.commands=[]`.\n6. Preserve narrative-rescan, stale-product-state, changed-command, and failed-clause fail-closed guarantees.\n7. Preserve the trusted green-run fact needed by clause-walk composition, consistent with #3993.\n\nSimply deleting the earlier literal call is insufficient if bank eligibility does not bind the resolved command/narrative contract.\n\n## Acceptance criteria\n\n- [ ] A real `runTransition(\"complete\")` regression uses commands only in `swarm.verify_commands`, `plan.acceptance.commands=[]`, valid item evidence, and valid delivery evidence.\n- [ ] With a matching green bank, the regression records zero new command invocations and completes successfully.\n- [ ] Without a bank, every resolved command runs exactly once, never twice.\n- [ ] A bank created from executable `swarm.verify_commands` is eligible even when `plan.acceptance.commands=[]`.\n- [ ] A changed command ledger or newly captured narrative command invalidates or refuses reuse and causes at most one execution.\n- [ ] A stale product-state hash remains fail-closed.\n- [ ] Bank-served results retain the green-run fact needed by clause-walk composition as a #3993 non-regression.\n- [ ] Tests cover both the direct acceptance-walk evaluator and full production transition ordering.\n- [ ] A lifecycle-only completion with a valid matching bank does not invoke the consumer's generic local product build/test wrapper.\n- [ ] No production skip flag, command deletion, or gate weakening is introduced.\n\n## Workarounds evaluated\n\n- Deleting or subsetting `swarm.verify_commands`, replacing them with no-ops, or changing the gate definition would violate gate integrity.\n- Pre-marking items complete, manually moving the brief, or using internal test-only skips would bypass lifecycle gates.\n- A valid human approval-only remint can address the separate provenance conflict, but completion still replays every declared wrapper, including `task check`; it does not make bank reuse work.\n- There is no supported no-replay path in v0.109.1 for this shape.\n\nConsumer reproduction: [bxc-3ci/FreshserviceAI#372](https://github.com/bxc-3ci/FreshserviceAI/issues/372), delivered by [PR #376](https://github.com/bxc-3ci/FreshserviceAI/pull/376). Consumer follow-up [#375](https://github.com/bxc-3ci/FreshserviceAI/issues/375) separately records the product requirement that canonical lifecycle-only local changes must not invoke `task ci:check`, `task check`, .NET setup, product build, or product tests.\n\n---\n_Filed via `task feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-01T21:31:03Z)\n\nmodel: grok-4.6\nrole: triage\n\ndesign-critique: warranted, because completion is the chokepoint between a green bank and a lifecycle move, and replaying the consumer product wrappers after merge is an authorization-of-work / gate-integrity decision, not a docs patch.\n\ncharter: refutation\nspend: N=1\ntarget shape: single issue premise\ninput-ceiling: this comment\nrefutation-target: consolidating scope:complete onto one bank-aware acceptance path — resolve without executing, reuse a matching green bank including a bank minted from executable swarm.verify_commands when plan.acceptance.commands is empty, otherwise execute each resolved command exactly once, and retain the trusted green-run fact for clause-walk composition — is the whole remedy.\naudit-targets: none\n\nSpend rationale: N=1 taken as the default motion. The issue names a defensible presumption with a local ordering/eligibility fix. Panel permission is available (overlaps #3993; blast radius is every swarm-only complete). Operator said yolo for #4059 and \"arc 4060 just on github\"; this is dispatch delegation for an N=1 GitHub-only refutation, not synthesis bind, and not implement.\n\nmechanism-shaped: true\n\nOperator verb: arc 4060 just on github. Recorded as dispatch delegation for this N=1 refutation on the GitHub thread only. Not ingest. Not implement.\n\nSHA at dispatch: origin/master f96963e9ce2a9bab41fdc2646e67380e8bf0dbaa.\nRelated: #3993 is a dependency/non-regression, not a duplicate claim.\r\n\n\n### Comment by @MScottAdams (2026-09-01T21:39:25Z)\n\nmodel: grok-4.6\nrole: critic\n\nsha: f96963e9ce2a9bab41fdc2646e67380e8bf0dbaa\ncharter: refutation\nspend: N=1\nround: 1 critic\ncritic-role: fresh\ninput-ceiling: 5500706522\ntarget: GitHub issue #4060 single-issue premise\naudit-targets: none\n\n## Verdict\n\nThe recorded refutation-target is not the whole remedy. One bank-aware complete path is the right chokepoint, and both cited defects are real at this SHA: the pre-walk executor always runs, and later bank reuse refuses empty `plan.acceptance.commands`. Matching and bank-serve reconstruction are still `plan.acceptance.commands`-shaped and omit `swarm.verify_commands`. A consolidation that only drops the pre-walk call and the empty-length guard would reuse a swarm-minted bank without binding or serving the swarm ledger.\n\nFiling anchors re-checked at f96963e9 (origin/master). v0.109.1 line cites drift on `transition.ts` (now 297-343, not 280-329); order still holds. Other cited ranges still hold.\n\n## 1. Bank eligibility and serve reconstruction omit the swarm ledger (`blocks-the-design`)\n\nEvidence. `tryReuseVerifyAc` (`packages/core/src/product-first-done-gate/evaluate.ts:209-231`) returns null when `acceptance.commands.length === 0`, then on a hit maps `commands` from `plan.acceptance.commands` and sets `runs: []`. `hashProductState` digests `{ acceptance: plan.acceptance, head, files }` and does not read `plan.metadata.swarm.verify_commands`. `AcPassBankRecord` stores product-state hash, scope id, head, and budget fields; it does not store commands or runs. Capture still loads swarm commands into the executable ledger (`literal-acceptance/capture.ts:625-639`). The pre-walk executor runs that ledger with no bank option (`literal-acceptance/evaluate.ts:24-34, 249-260`).\n\nFailure mode. The filing shape is swarm-only complete: `plan.acceptance.commands=[]` plus executable `swarm.verify_commands`. Deleting `transition.ts:311-329` and `if (commandCount === 0) return null` would serve a matching product-hash bank as `commands: []`, `runs: []`, `resolvedCommandCount: 0`. Changing or adding `swarm.verify_commands` after mint would still match. Clause-walk would see no green-run fact (`evaluate.ts:728-729`). The filing already said deleting the earlier literal call is insufficient if eligibility does not bind the resolved contract. The recorded target compresses that bind into \"including a bank minted from\".\n\nDisposition consequence. This lean cannot bind until eligibility matching and bank-serve reconstruction use the resolved literal+swarm+narrative contract from existing `resolveLiteralAcceptanceDetailed` (no execute), persisted at mint. `plan.acceptance.commands.length` is not that contract.\n\n## 2. Reuse currently precedes resolve (`sharpens-framing`)\n\nEvidence. `evaluateVerifyAcFromPlan` calls `tryReuseVerifyAc` at line 343, then `evaluateLiteralAcceptanceFromPlan` at 353. The complete profile is `reuseMode: \"bank\"` and `captureFromNarratives: true` (`acceptance-resolver.ts:274-277`).\n\nFailure mode. If consolidation keeps try-reuse first, \"resolve without executing\" does not run before matching. Newly captured narrative commands and the safety-rejected ledger cannot invalidate a bank.\n\nDisposition consequence. The single path must resolve and safety-check with no execute, then match, then execute each resolved command once on miss. That is a reorder of the existing walk, not a new evaluator.\n\n## 3. Empty `plan.acceptance.commands` is three cases (`sharpens-framing`)\n\nEvidence. Bank-aware tests still refuse empty stamped acceptance (`bank-aware-complete.test.ts`, soft_empty / #3334). `maybeBankOnAcPass` can bank a verified-pass with zero shell runs (`verifiedPass: true`). Swarm-only is a third case: empty `plan.acceptance.commands`, non-empty resolved executable ledger.\n\nFailure mode. Treating `commands.length===0` as the swarm-only allow-list would also serve 0-run verified-pass banks and could skip the soft_empty refuse.\n\nDisposition consequence. Swarm-only is eligible only when the resolved executable ledger is non-empty and equals the mint-time ledger. Truly empty stays refused.\n\n## 4. Green-run fact already lives on the cache snapshot complete is profiled to ignore (`sharpens-framing`)\n\nEvidence. `CachedVerifyAcSnapshot` stores `commands` and `runs` (`verify-ac-session-cache.ts:19-31`). Cache reuse copies those fields (`evaluate.ts:186-206`). Bank reuse does not (`evaluate.ts:225`). Complete uses `reuseMode: \"bank\"`, so it never reads the snapshot that has the fact. `clauseWalkBlocks` still keys `hasGreenExecutableRun` off `result.runs` (`acceptance-resolver.ts:236-244`). #3993 is that erasure on the finalize path.\n\nFailure mode. Keeping the fact as a later #3993 hope, or treating any matching bank as a green run, either leaves swarm-only complete with `runs: []` or weakens the clause predicate without recording which commands ran.\n\nDisposition consequence. #4060 owns persisting a cache-shaped mint snapshot onto the durable bank. Do not weaken `clauseWalkBlocks` to \"servedFrom=bank implies green run\". #3993 is a non-regression on this change, not a duplicate and not a deferral.\n\n## 5. Production-order tests (`footnote`)\n\n`bank-aware-complete.test.ts` calls `evaluateScopeCompleteAcceptanceWalk` directly, never `runTransition(\"complete\")`. `runTransition` complete tests exist, but `skipAcceptanceEvidenceGate` is used at `transition.test.ts:512`, and none count invocations on a swarm-only bank. `restampCompletedBrief` does not run the acceptance walk; it is outside the consumer closeout path.\n\n## Injection / swarm lens\n\nThis target changes what a swarm is allowed to re-execute after merge. `scope:complete` is the Phase 6 / complete-cohort chokepoint. Banks are unsigned files under `.deft/cache/ac-pass-banks`. Today `commandCount === 0` forces re-execution of swarm wrappers even when a product-hash bank exists. Removing that lock without putting the resolved swarm ledger into the digest lets a worktree-local bank at matching product hash authorize skipping whatever `verify_commands` now say, including a newly added `task check` / product build. The consumer filing wants that skip for a matching contract, not for a different one. Control: eligibility digest includes the resolved command contract; a `.deft/cache` write is not itself a green run of the current wrappers.\n\n## Existing mechanisms\n\n- `resolveLiteralAcceptanceDetailed` — resolve and safety-check, no execute.\n- `evaluateScopeCompleteAcceptanceWalk` — already the complete bank-aware path (`reuseMode: \"bank\"`).\n- `readStoredLiteralAcceptanceCommands` / `hasStructuredAcceptanceCommands` — `swarm.verify_commands` is already structured AC.\n- `resolveAcReuse` + `hashProductState` + `maybeBankOnAcPass` — durable bank; digest is product plus `plan.acceptance` only.\n- `persistVerifyAcSessionCache` / `CachedVerifyAcSnapshot` — already stores commands and runs; complete is profiled off it.\n- `skipAcceptanceEvidenceGate` — test-only, not a product skip.\n\nNo new resolver. No third complete walker. Extend mint, match, and serve of the existing bank to the resolved ledger.\n\n## Road-not-taken\n\nRejected: add a bank flag to `evaluateLiteralAcceptanceFromPlan` (two executors remain; the pre-walk still races). Rejected: copy `swarm.verify_commands` onto `plan.acceptance.commands` at mint (makes `commandCount>0` and would enter today's hash, but mutates stated versus derived, leaves the pre-walk executor, and still serves `runs: []`). Rejected: flip complete to `reuseMode: \"auto\"` so it reads the session cache (the cache already has runs, but it is session-scoped; post-merge complete is often a new session). Rejected: delete only the pre-walk call (the filing already refuses that).\n\nChosen: keep `evaluateScopeCompleteAcceptanceWalk` as the one complete path, reorder resolve-then-match, persist a cache-shaped snapshot on the bank, keep truly-empty refused.\n\n## Steelman\n\nThe strongest reading of the target is that \"including a bank minted from executable swarm.verify_commands\" already means bind and serve the resolved ledger, and \"retain the green-run fact\" already means persist runs at mint. Under that reading, finding 1 is specification of matching rather than a hole. What would flip the block to a sharpen: a later map that names `resolveLiteralAcceptanceDetailed` as the pre-reuse step, names that `hashProductState` / `AcPassBankRecord` currently omit the swarm ledger as in-scope work on this issue, and refuses \"any bank is a green run\" as the #3993 shortcut. Until that map exists, the cheapest reading of the recorded target is delete the first call and the empty-length guard, which is not the whole remedy.\n\n### Comment by @MScottAdams (2026-09-01T21:40:16Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nBoth cited defects are real: complete still executes before it looks at a bank, and later reuse refuses an empty plan.acceptance.commands even when swarm.verify_commands minted the bank. One bank-aware complete path is the right chokepoint. It is not the whole remedy if matching and serve still key off plan.acceptance.commands and serve runs as empty. Confirming this map restates the remedy as: resolve the literal plus swarm plus narrative contract without executing, persist that ledger and its green-run fact on the durable bank, match against that contract, then execute each resolved command once on a miss. Truly empty stays refused. Swarm-only is eligible only when the resolved executable ledger is non-empty and equals the mint-time ledger. Confirming does not land code and does not ingest this issue.\n\nForward verdict: restated one-path complete, not delete-the-first-call.\n\nDisposition: accept all four classified headings into contract.\n\nNon-self-arbitration: I authored the Stop 1 write-back. I originated none of the classified findings.\n\nWhat this arc does not do: it does not implement, it does not ingest, it does not reopen #3993 as a duplicate, it does not weaken clause-walk to treat any bank as a green run.\n\n**Lean:** accept all four classified headings from 5500796036. Supersedes Stop 1 write-back 5500706522.\n\n## Take map\n\nDenominator is the blocking and sharpening set from the in-envelope critic. Footnotes are census.\n\n| # | Sibling | Heading | Class | Take |\n|---|---|---|---|---|\n| 1 | 5500796036 | Bank eligibility and serve reconstruction omit the swarm ledger | blocks-the-design | accept-into-contract |\n| 2 | 5500796036 | Reuse currently precedes resolve | sharpens-framing | accept-into-contract |\n| 3 | 5500796036 | Empty plan.acceptance.commands is three cases | sharpens-framing | accept-into-contract |\n| 4 | 5500796036 | Green-run fact already lives on the cache snapshot complete is profiled to ignore | sharpens-framing | accept-into-contract |\n\nFootnotes (census): Production-order tests.\n\nTotal over the denominator, every take accept-into-contract, empty disagreement set, zero unresolved audit markers, one critic posted against ceiling 5500706522.\n\n## Bound remedy (reading of the takes)\n\n1. Keep `evaluateScopeCompleteAcceptanceWalk` as the one complete path. Remove the pre-walk standalone executor. Do not add a second executor or a third walker.\n2. Resolve and safety-check via existing `resolveLiteralAcceptanceDetailed` with no execute, then match, then execute each resolved command once on miss.\n3. Eligibility matching and bank-serve reconstruction use the resolved literal+swarm+narrative contract, persisted at mint. `plan.acceptance.commands.length` is not that contract. `hashProductState` / `AcPassBankRecord` currently omit the swarm ledger; that omission is in-scope work on this issue.\n4. Swarm-only is eligible only when the resolved executable ledger is non-empty and equals the mint-time ledger. Truly empty stays refused. 0-run verified-pass banks are not the swarm-only allow-list.\n5. Persist a cache-shaped mint snapshot (commands and runs) onto the durable bank. Do not weaken `clauseWalkBlocks` to \"servedFrom=bank implies green run\". #3993 is a non-regression on this change.\n\nThis lean does not auto-stamp by itself. Operator yolo on the dispatch turn, with \"just on github\", is recorded as confirm of this all-accept map and as a refuse of ingest/implement from this arc.\r\n\n\n### Comment by @MScottAdams (2026-09-01T21:40:31Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nEach row names its method. Agreement with the critic is not evidence.\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | `runTransition(\"complete\")` still runs standalone `evaluateLiteralAcceptanceFromPlan` then `evaluateScopeCompleteAcceptanceWalk` | Parent read `packages/core/src/scope/transition.ts` `:297-318` at SHA f96963e9 | verified, parent source read |\n| 2 | Bank reuse returns null when `plan.acceptance.commands.length === 0` and serves `runs: []` on a hit | Parent read `packages/core/src/product-first-done-gate/evaluate.ts` `:209-231` | verified, parent source read |\n| 3 | `evaluateVerifyAcFromPlan` tries reuse before `evaluateLiteralAcceptanceFromPlan` | Parent read `evaluate.ts` `:343-353` | verified, parent source read |\n| 4 | `hashProductState` digests `{ acceptance: plan.acceptance, head, files }` and does not include `swarm.verify_commands` | Parent read `packages/core/src/session/product-state-hash.ts` `:675-687` | verified, parent source read |\n| 5 | Cache reuse copies `commands` and `runs`; bank reuse does not | Parent read `evaluate.ts` `:186-206` versus `:211-232` | verified, parent source read |\n\nDecorrelation: every row is parent primary-source at the dispatch SHA. No row is verified because the critic stated it.\r\n\n\n### Comment by @MScottAdams (2026-09-01T21:40:44Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nBoth cited defects are real. One bank-aware complete path is the right chokepoint. Matching and serve still key off plan.acceptance.commands and serve empty runs, so deleting the pre-walk call is not the whole remedy. The bound work is: resolve the literal plus swarm plus narrative contract without executing, persist that ledger and its green-run fact on the durable bank, match against that contract, then execute each resolved command once on a miss. Truly empty stays refused. This record does not ingest and does not implement.\n\nNon-self-arbitration: I authored the Stop 1 write-back, the successor lean, and this record. I originated none of the classified findings. The five verified claims were re-read from source at the dispatch SHA.\n\n---\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCiting successor lean 5500805298 and verified-claims table 5500807740. Round 1 complete, N=1, critic 5500796036 against ceiling 5500706522. Four classified headings, total all-accept map, zero unresolved audit markers. Operator yolo with just-on-github is the confirm of that map and a refuse of ingest/implement from this arc.",
+      "Labels": "bug, design-critique:triage-ready",
+      "ImplementationPlan": "Remove pre-walk evaluateLiteralAcceptanceFromPlan from runTransition complete. Reorder resolve-then-match. Extend hashProductState / AcPassBankRecord to the resolved literal+swarm+narrative contract. Persist commands and runs on the bank. Tests: runTransition complete swarm-only with matching bank (zero new invocations) and miss (each command once). Do not weaken clauseWalkBlocks to servedFrom=bank implies green run."
+    },
+    "items": [
+      {
+        "title": "A real `runTransition(\"complete\")` regression uses commands only in `swarm.verify_commands`, `plan.acceptance.commands=[]`, valid item evidence, and valid delivery evidence.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/bank-aware-complete.test.ts + packages/core/src/scope/transition.test.ts (20 bank-aware tests including runTransition swarm-only hit/miss)",
+          "recorded_at": "2026-09-02T20:22:00Z",
+          "recorded_by": "host:grok:v1:MDFhMDYzNWQtY2Y3Zi03MTcyLWI3MDMtNjRlZjIwNjQ4Y2I4"
+        }
+      },
+      {
+        "title": "With a matching green bank, the regression records zero new command invocations and completes successfully.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/bank-aware-complete.test.ts + packages/core/src/scope/transition.test.ts (20 bank-aware tests including runTransition swarm-only hit/miss)",
+          "recorded_at": "2026-09-02T20:22:00Z",
+          "recorded_by": "host:grok:v1:MDFhMDYzNWQtY2Y3Zi03MTcyLWI3MDMtNjRlZjIwNjQ4Y2I4"
+        }
+      },
+      {
+        "title": "Without a bank, every resolved command runs exactly once, never twice.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/bank-aware-complete.test.ts + packages/core/src/scope/transition.test.ts (20 bank-aware tests including runTransition swarm-only hit/miss)",
+          "recorded_at": "2026-09-02T20:22:00Z",
+          "recorded_by": "host:grok:v1:MDFhMDYzNWQtY2Y3Zi03MTcyLWI3MDMtNjRlZjIwNjQ4Y2I4"
+        }
+      },
+      {
+        "title": "A bank created from executable `swarm.verify_commands` is eligible even when `plan.acceptance.commands=[]`.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/bank-aware-complete.test.ts + packages/core/src/scope/transition.test.ts (20 bank-aware tests including runTransition swarm-only hit/miss)",
+          "recorded_at": "2026-09-02T20:22:00Z",
+          "recorded_by": "host:grok:v1:MDFhMDYzNWQtY2Y3Zi03MTcyLWI3MDMtNjRlZjIwNjQ4Y2I4"
+        }
+      },
+      {
+        "title": "A changed command ledger or newly captured narrative command invalidates or refuses reuse and causes at most one execution.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/bank-aware-complete.test.ts + packages/core/src/scope/transition.test.ts (20 bank-aware tests including runTransition swarm-only hit/miss)",
+          "recorded_at": "2026-09-02T20:22:00Z",
+          "recorded_by": "host:grok:v1:MDFhMDYzNWQtY2Y3Zi03MTcyLWI3MDMtNjRlZjIwNjQ4Y2I4"
+        }
+      },
+      {
+        "title": "A stale product-state hash remains fail-closed.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/bank-aware-complete.test.ts + packages/core/src/scope/transition.test.ts (20 bank-aware tests including runTransition swarm-only hit/miss)",
+          "recorded_at": "2026-09-02T20:22:00Z",
+          "recorded_by": "host:grok:v1:MDFhMDYzNWQtY2Y3Zi03MTcyLWI3MDMtNjRlZjIwNjQ4Y2I4"
+        }
+      },
+      {
+        "title": "Bank-served results retain the green-run fact needed by clause-walk composition as a #3993 non-regression.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/bank-aware-complete.test.ts + packages/core/src/scope/transition.test.ts (20 bank-aware tests including runTransition swarm-only hit/miss)",
+          "recorded_at": "2026-09-02T20:22:00Z",
+          "recorded_by": "host:grok:v1:MDFhMDYzNWQtY2Y3Zi03MTcyLWI3MDMtNjRlZjIwNjQ4Y2I4"
+        }
+      },
+      {
+        "title": "Tests cover both the direct acceptance-walk evaluator and full production transition ordering.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/bank-aware-complete.test.ts + packages/core/src/scope/transition.test.ts (20 bank-aware tests including runTransition swarm-only hit/miss)",
+          "recorded_at": "2026-09-02T20:22:00Z",
+          "recorded_by": "host:grok:v1:MDFhMDYzNWQtY2Y3Zi03MTcyLWI3MDMtNjRlZjIwNjQ4Y2I4"
+        }
+      },
+      {
+        "title": "A lifecycle-only completion with a valid matching bank does not invoke the consumer's generic local product build/test wrapper.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4124 merge 0d5da1e7327ed1661f06e2bed68e8ffea01a6573",
+          "recorded_at": "2026-09-02T20:21:20Z",
+          "recorded_by": "host:grok:v1:MDFhMDYzNWQtY2Y3Zi03MTcyLWI3MDMtNjRlZjIwNjQ4Y2I4"
+        }
+      },
+      {
+        "title": "No production skip flag, command deletion, or gate weakening is introduced.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4124 Greptile CLEAN 5/5 HEAD b692dcc078ec2f6baa25a7f9519d6df2778f2d97",
+          "recorded_at": "2026-09-02T20:17:00Z",
+          "recorded_by": "host:grok:v1:MDFhMDYzNWQtY2Y3Zi03MTcyLWI3MDMtNjRlZjIwNjQ4Y2I4"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4060",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4060: [framework-gap] scope:complete replays acceptance before bank lookup and rejects swarm-only banks"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft verify:ac",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L42"
+        },
+        {
+          "command": "runs: []",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L62"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/product-first-done-gate/evaluate.ts",
+          "packages/core/src/product-first-done-gate/acceptance-resolver.ts",
+          "packages/core/src/product-first-done-gate/bank-aware-complete.test.ts",
+          "packages/core/src/session/product-state-hash.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/scope/transition.test.ts packages/core/src/product-first-done-gate/bank-aware-complete.test.ts"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/product-first-done-gate/evaluate.ts",
+          "packages/core/src/product-first-done-gate/acceptance-resolver.ts",
+          "packages/core/src/product-first-done-gate/bank-aware-complete.test.ts",
+          "packages/core/src/session/product-state-hash.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/product-first-done-gate",
+        "cohesion_exemption": "CHANGELOG.md already exceeds FILE_SIZE_REVIEW_TRIGGER_LINES; this slice only adds the #4060 Unreleased line. Splitting CHANGELOG is out of scope."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4124,
+        "prBase": null,
+        "mergeCommit": "0d5da1e7327ed1661f06e2bed68e8ffea01a6573",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0d5da1e7327ed1661f06e2bed68e8ffea01a6573",
+        "verifiedAt": "2026-09-02T20:23:46Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDYzNWQtY2Y3Zi03MTcyLWI3MDMtNjRlZjIwNjQ4Y2I4"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-02T20:23:46Z"
+      },
+      "completedAt": "2026-09-02T20:23:46Z",
+      "completedSessionId": "host:grok:v1:MDFhMDYzNWQtY2Y3Zi03MTcyLWI3MDMtNjRlZjIwNjQ4Y2I4",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 10 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "A real `runTransition(\"complete\")` regression uses commands only in `swarm.verify_commands`, `plan.acceptance.commands=[]`, valid item evidence, and valid delivery evidence.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "With a matching green bank, the regression records zero new command invocations and completes successfully.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Without a bank, every resolved command runs exactly once, never twice.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "A bank created from executable `swarm.verify_commands` is eligible even when `plan.acceptance.commands=[]`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "A changed command ledger or newly captured narrative command invalidates or refuses reuse and causes at most one execution.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "A stale product-state hash remains fail-closed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Bank-served results retain the green-run fact needed by clause-walk composition as a #3993 non-regression.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Tests cover both the direct acceptance-walk evaluator and full production transition ordering.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "A lifecycle-only completion with a valid matching bank does not invoke the consumer's generic local product build/test wrapper.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "No production skip flag, command deletion, or gate weakening is introduced.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-09-02T20:23:46Z"
+  }
+}
