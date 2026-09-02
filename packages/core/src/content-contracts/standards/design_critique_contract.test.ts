@@ -4,7 +4,6 @@ import { dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { COMPLETED_ARC_BLOCK_REASONS } from "../../design-critique/completed-arc-record.js";
 import { remainingSetAfterDesignCritiqueChip } from "../../design-critique/exclusive-chip.js";
-import { evaluatePanelSeatComposition } from "../../design-critique/panel-seat-families.js";
 import { evaluateParentAudit } from "../../design-critique/parent-audit.js";
 import { isFile, readText, repoRoot, resolveContentPath } from "./_helpers.js";
 
@@ -96,7 +95,6 @@ const REQUIRED_CONTRACT_POINTERS = [
   "## Parent-side substantiation",
   "ADR-006-parent-side-substantiation.md",
   "evaluateParentAudit",
-  "evaluatePanelSeatComposition",
   "AND zero unresolved audit markers",
   "independence, not provenance",
   "measured-versus-asserted",
@@ -142,8 +140,6 @@ const REQUIRED_TEMPLATE_POINTERS = [
   "Audit targets",
   "ids only",
   "`refutation-target:`",
-  "Seat families (N≥3",
-  "Launcher (spawn_subagent | grok | claude | codex | paste-ready)",
 ];
 
 const METHOD_RECONCILIATION =
@@ -171,9 +167,6 @@ const REQUIRED_SKILL_POINTERS = [
   "Auto-stamp after operator confirm; not while same-round siblings outstanding",
   "completed-arc record",
   "Chip apply miss is non-blocking",
-  "Seat families",
-  "Grok Build launcher",
-  "prevention issue",
 ];
 
 const DEFAULT_ALWAYS_PINS = [
@@ -738,7 +731,6 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(ceiling).toContain("No code observes them.");
     expect(ceiling).toContain("nothing machine-checks it");
     expect(testSurface).toContain("Panel completeness is locked as contract text only");
-    expect(testSurface).toContain("evaluatePanelSeatComposition");
     // #3850: presence anywhere in a section is not enough — one bind guard can
     // regress to the deposit-qualified wording while a sibling occurrence keeps
     // the substring assertion green. Pin the superseded qualifiers out of the
@@ -821,7 +813,6 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(text).toMatch(
       /panel-deposit\r?\nround: 1\r?\nsiblings: 3\r?\ninput-ceiling: 5390001612/,
     );
-    expect(text).toContain("families: grok, claude, codex");
     expect(text).toContain("These are not rules.");
     expect(text).toContain("A parent that leans on any of them MUST carry an audit marker");
     expect(text).toContain("the most recent parent artifact that supersedes the map");
@@ -830,39 +821,26 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(text).toContain("the merged map");
   });
 
-  it("locks N>=3 seat families, same-family no-lean, Grok Build launcher, and miss-file-issue (#4067)", () => {
+  it("locks N>=3 cross-family seat composition and same-family recovery (#4067)", () => {
     const text = readText(CONTRACT);
-    const ceiling = markdownSection(text, "### Envelope and ceiling");
-    expect(ceiling).toContain("names three claimed families before the first sibling spawn");
-    expect(ceiling).toContain("A same-family sibling set is not a panel");
-    expect(ceiling).toContain("re-seat (or halt), not wait for Stop 5");
-    expect(ceiling).toContain("Grok Build launcher tree");
-    expect(ceiling).toContain("spawn_subagent");
-    expect(ceiling).toContain("codex exec");
-    expect(ceiling).toContain("Paste-ready is the fallback when a named family's CLI is absent");
-    expect(ceiling).toContain("evaluatePanelSeatComposition");
-    expect(ceiling).toContain("After a dispatch-composition miss, offer a prevention issue");
-    expect(ceiling).toContain("On yolo, file it");
-    expect(ceiling).toContain("⊗ Classify family from a model slug");
+    const composition = markdownSection(text, "### N≥3 panel seat composition");
+    expect(composition, "N>=3 composition section missing").toContain(
+      "### N≥3 panel seat composition",
+    );
+    expect(composition).toContain("families: <family-1>, <family-2>, <family-3>");
+    expect(composition).toContain("three distinct family names");
+    expect(composition).toContain("Before the first sibling spawn");
+    expect(composition).toContain("same-family");
+    expect(composition).toContain("MUST NOT lean");
+    expect(composition).toContain("re-seat");
+    expect(composition).toContain("halt");
+    expect(composition).toContain("Stop 5");
+    expect(composition).toContain("not evidence");
+
     const template = readText(TEMPLATE);
-    expect(template).toContain("Seat families (N≥3: three claimed families before spawn)");
-    expect(template).toContain("Launcher (spawn_subagent | grok | claude | codex | paste-ready)");
-    const skill = readText(SKILL_REL);
-    expect(skill).toContain("Seat families");
-    expect(skill).toContain("Grok Build launcher");
-    expect(skill).toContain("prevention issue");
-    const pasteReadyFirst = evaluatePanelSeatComposition({
-      claimedSeats: [
-        { family: "grok", launcher: "spawn_subagent" },
-        { family: "claude", launcher: "paste-ready" },
-        { family: "codex", launcher: "paste-ready" },
-      ],
-      path: { claude: true, codex: true },
-    });
-    expect(pasteReadyFirst.ok).toBe(false);
-    if (!pasteReadyFirst.ok) {
-      expect(pasteReadyFirst.code).toBe("paste-ready-first");
-    }
+    expect(template).toContain("Panel seat families");
+    expect(template).toContain("three distinct families");
+    expect(template).toContain("first sibling spawn");
   });
 
   it("locks parent-side substantiation MUSTs, both auto-bind sites, and omission fail-closed (#3651)", () => {

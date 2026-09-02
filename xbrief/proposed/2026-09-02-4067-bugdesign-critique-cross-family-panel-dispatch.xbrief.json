@@ -1,0 +1,74 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4067"
+  },
+  "plan": {
+    "title": "bug(design-critique): bind cross-family panel seats and CLI launchers before dispatch",
+    "status": "proposed",
+    "narratives": {
+      "Description": "bug(design-critique): bind cross-family panel seats and CLI launchers before dispatch",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4067",
+      "Overview": "Implement the smallest dispatch-layer change that records the declared model family for N>=3 sibling seats before spawn, rejects same-family-only panels with a re-seat or halt recovery, probes available claude/codex CLIs for Grok Build cross-family seats, and offers paste-ready dispatch only when a required CLI is unavailable. Preserve the existing operator verb, worktree isolation, ceilings, and non-goals. Add a focused regression fixture for the Grok parent with claude and codex on PATH."
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4067",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4067: cross-family panel composition and Grok Build CLI dispatch"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "derived from the five acceptance criteria in Issue #4067 before product edit",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "An N>=3 panel-deposit or sibling-seat record names three families before the first sibling spawn.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "A same-family sibling set cannot be leaned; its recovery is to re-seat or halt.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "A Grok Build parent with claude and codex on PATH CLI-spawns those other-family seats, with paste-ready output only as the fallback when a named CLI is unavailable.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "A regression or fixture covers the Grok parent plus PATH claude/codex case without a paste-ready-first path.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "A dispatch-composition miss offers or files a prevention issue under the existing operator workflow.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": "dispatch composition and launcher selection"
+      }
+    }
+  }
+}

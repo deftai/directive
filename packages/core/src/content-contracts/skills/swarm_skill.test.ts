@@ -768,6 +768,23 @@ describe("test_swarm_skill", () => {
     expect(host).toContain("Nested Agent boundary");
   });
 
+  it("grok_build_design_critique_cross_family_dispatch_4067", () => {
+    const host = readRepoFile("skills/deft-directive-swarm/references/host-grok-build.md");
+    expect(host).toContain("### Heterogeneous design-critique dispatch (#4067)");
+    expect(host).toContain("spawn_subagent");
+    expect(host).toContain("one family");
+    expect(host).toContain("three distinct family names");
+    expect(host).toContain("before the first sibling spawn");
+    expect(host).toContain("Get-Command claude");
+    expect(host).toContain("Get-Command codex");
+    expect(host).toContain("paste-ready");
+    expect(host).toContain("fallback");
+    expect(host).toContain("re-seat");
+    expect(host).toContain("halt");
+    expect(host).toContain("worktree");
+    expect(readSwarmSkillSurface()).toContain("Heterogeneous design-critique dispatch (#4067)");
+  });
+
   it("openclaw_agent_host_fc14_hard_stop_and_operator_recovery_3131", () => {
     const doc = readRepoFile("docs/openclaw-agent-host.md");
     expect(doc).toContain("#3131");

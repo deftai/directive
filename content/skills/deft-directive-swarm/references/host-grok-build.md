@@ -21,6 +21,14 @@ This path became first-class in #1342 (platform adapter slices 1-3) and is fully
 
 ~ **Windows + Grok Build (#1353):** When issuing shell commands via `run_terminal_command` on this platform, avoid `|`, `>`, or `2>&1` in the command string — use Python `pathlib`/`subprocess` or plain `task` targets instead to avoid wrapper leakage. See `templates/agent-prompt-preamble.md` §3.5 for the full escape hatch list.
 
+### Heterogeneous design-critique dispatch (#4067)
+
+! Grok Build is one family. For an N≥3 design-critique panel, before the first sibling spawn the parent records three distinct family names in the panel-deposit or sibling-seat records. Three `spawn_subagent` seats all launched from Grok are same-family, so the parent MUST NOT lean on them as corroboration; re-seat a missing family or halt.
+
+! When a Grok Build parent has to launch Claude Code and Codex critics, probe command availability with `Get-Command claude` and `Get-Command codex`. When present, CLI-spawn them in separate worktrees (`claude -p` and `codex exec`); paste-ready instructions are a fallback only after the corresponding CLI is confirmed missing. Preserve the operator dispatch verb and one worktree per agent.
+
+~ A composition miss should offer to file a prevention issue, and the parent should halt or re-seat rather than silently downgrade the panel. Family labels are dispatch bookkeeping; Stop 5 still requires independent source re-derivation.
+
 ### Step 2d: Grok Build Launch (spawn_subagent available)
 
 ! When the platform descriptor is `grok-build` (spawn_subagent detected, no start_agent, no WARP_*, no Cursor `Task`, no OpenClaw `sessions_spawn`), dispatch each worker via `spawn_subagent` with:
@@ -30,8 +38,6 @@ This path became first-class in #1342 (platform adapter slices 1-3) and is fully
 3. The worktree path set to the agent's isolated git worktree
 
 ~ This is the first-class non-Warp path. Workers use worktree state polling (`git status`, `git log`) and `get_command_or_subagent_output` as their coordination channel instead of Warp tab state.
-
-! Design-critique N≥3 other-family seats are not `spawn_subagent` Grok catalog rows. When `claude` / `codex` resolve on PATH, CLI-spawn those seats (`content/docs/grok-build-subscription-setup.md`). Paste-ready is fallback. Normative stop: `content/contracts/design-critique.md` Envelope and ceiling (#4067).
 
 
 ## Monitor notes
