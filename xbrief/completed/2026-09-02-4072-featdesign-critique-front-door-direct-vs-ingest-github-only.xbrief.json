@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4072",
-    "updated": "2026-09-02T16:08:06Z"
+    "updated": "2026-09-02T17:10:16Z"
   },
   "plan": {
     "title": "feat(design-critique): front-door direct vs ingest — GitHub-only arcs skip occupancy, worktrees, and ingest",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "GitHub-only design-critique arcs should skip occupancy, worktrees, and ingest. The front door is a run-posture field: direct is session:start --read-only (or release if already claimed), GitHub comments, SHA-pinned reads, family CLIs without worktrees. Ingest stays a later verb after the completed-arc record.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4072",
@@ -20,37 +20,61 @@
       {
         "id": "ac1",
         "title": "Given a GitHub-only design-critique arc, when the front door is direct, then it ",
-        "status": "pending",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "Acceptance": "Given a GitHub-only design-critique arc, when the front door is direct, then it does not require occupancy claim, worktree add, or issue:ingest before critic dispatch."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/run-posture.test.ts#evaluateDirectDispatch (#4072) zero occupancy/worktree/ingest",
+          "recorded_at": "2026-09-02T17:10:06Z",
+          "recorded_by": "grok-build/4072-dc-front-door"
         }
       },
       {
         "id": "ac2",
         "title": "Given session:start --read-only or a release of an existing claim, when direct p",
-        "status": "pending",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "Acceptance": "Given session:start --read-only or a release of an existing claim, when direct posture runs, then GitHub comments and SHA-pinned reads proceed."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/run-posture.test.ts#DIRECT_SESSION_START (#4072) read-only start and SHA-pinned reads",
+          "recorded_at": "2026-09-02T17:10:06Z",
+          "recorded_by": "grok-build/4072-dc-front-door"
         }
       },
       {
         "id": "ac3",
         "title": "Given a completed-arc record, when ingest runs later, then ingest remains a sepa",
-        "status": "pending",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "Acceptance": "Given a completed-arc record, when ingest runs later, then ingest remains a separate verb and is not the front door."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/run-posture.test.ts#completed-arc record ignores arc-mode (#4072)",
+          "recorded_at": "2026-09-02T17:10:06Z",
+          "recorded_by": "grok-build/4072-dc-front-door"
         }
       },
       {
         "id": "ac4",
         "title": "Given CHANGELOG.md, when the recut lands, then Unreleased names the design-criti",
-        "status": "pending",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "Acceptance": "Given CHANGELOG.md, when the recut lands, then Unreleased names the design-critique direct run-posture."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4108 CHANGELOG [Unreleased] run-posture",
+          "recorded_at": "2026-09-02T17:10:06Z",
+          "recorded_by": "grok-build/4072-dc-front-door"
         }
       }
     ],
@@ -107,7 +131,32 @@
         "files": [],
         "module_boundary": ""
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4108,
+        "prBase": null,
+        "mergeCommit": "18d50df3ba519e746e967e3faf6ca9e14ec82193",
+        "deliveryBranch": "master",
+        "deliveryCommit": "18d50df3ba519e746e967e3faf6ca9e14ec82193",
+        "verifiedAt": "2026-09-02T17:10:16Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDYyZGItZDBjYS03NjkxLWI4MmYtMDI5MWI2MGIxMDk4"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-02T17:10:16Z"
+      },
+      "completedAt": "2026-09-02T17:10:16Z",
+      "completedSessionId": "host:claude:v1:MDFhMDYyZGItZDBjYS03NjkxLWI4MmYtMDI5MWI2MGIxMDk4",
+      "capacityBucket": "new-capability"
     },
     "acceptance": {
       "commands": [],
@@ -161,6 +210,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "4072-design-critique-front-door",
-    "updated": "2026-09-02T16:08:06Z"
+    "updated": "2026-09-02T17:10:16Z"
   }
 }
