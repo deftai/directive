@@ -76,6 +76,8 @@ export const FORBIDDEN_BLANKET_EVAL_LINES: readonly string[] = [
   "vbrief/.eval",
   ".deft/approved-scope/",
   ".deft/approved-scope",
+  "/.deft/approved-scope/",
+  "/.deft/approved-scope",
 ];
 
 const DEFT_CACHE_RATIONALE =

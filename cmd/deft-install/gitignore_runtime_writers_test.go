@@ -191,7 +191,7 @@ func TestTrackedProvenanceWritersAreNotCovered(t *testing.T) {
 			t.Errorf("TS baseline covers tracked-provenance writer %q", path)
 		}
 	}
-	for _, line := range []string{".deft/approved-scope/", ".deft/approved-scope"} {
+	for _, line := range []string{".deft/approved-scope/", ".deft/approved-scope", "/.deft/approved-scope/", "/.deft/approved-scope"} {
 		for _, have := range canonicalGitignoreLines {
 			if have == line {
 				t.Errorf("Go baseline still contains directory ignore %q", line)
@@ -262,7 +262,7 @@ func TestApprovedScopeRecordsStageWithoutForce(t *testing.T) {
 
 func TestEnsureGitignoreLinesHealsApprovedScopeDirectoryIgnore(t *testing.T) {
 	tmp := t.TempDir()
-	pre := "node_modules/\n.deft/approved-scope/\n.deft/approved-scope\n"
+	pre := "node_modules/\n.deft/approved-scope/\n.deft/approved-scope\n/.deft/approved-scope/\n/.deft/approved-scope\n"
 	if err := os.WriteFile(filepath.Join(tmp, ".gitignore"), []byte(pre), 0o644); err != nil {
 		t.Fatal(err)
 	}

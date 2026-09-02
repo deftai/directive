@@ -453,6 +453,8 @@ var forbiddenBlanketEvalLines = []string{
 	"vbrief/.eval",
 	".deft/approved-scope/",
 	".deft/approved-scope",
+	"/.deft/approved-scope/",
+	"/.deft/approved-scope",
 }
 
 // minimalTaskfileContent is the canonical starter Taskfile.yml written (or

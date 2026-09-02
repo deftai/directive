@@ -175,7 +175,7 @@ describe("ensureInitGitignoreLines", () => {
     const root = freshRoot("gitignore-heal-4116-");
     writeFileSync(
       join(root, ".gitignore"),
-      "node_modules/\n.deft/approved-scope/\n.deft/approved-scope\n",
+      "node_modules/\n.deft/approved-scope/\n.deft/approved-scope\n/.deft/approved-scope/\n/.deft/approved-scope\n",
       "utf8",
     );
     ensureInitGitignoreLines(root, { printf: () => {} });
@@ -186,6 +186,8 @@ describe("ensureInitGitignoreLines", () => {
       .filter((l) => l.length > 0 && !l.startsWith("#"));
     expect(active).not.toContain(".deft/approved-scope/");
     expect(active).not.toContain(".deft/approved-scope");
+    expect(active).not.toContain("/.deft/approved-scope/");
+    expect(active).not.toContain("/.deft/approved-scope");
     expect(text).toContain(".deft/approved-scope/*.bak");
     expect(text).toContain(".deft/authz/");
   });
