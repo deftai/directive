@@ -116,11 +116,26 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
     }
   });
 
+  it("refuses an ordinary directory that is not a linked worktree", () => {
+    const root = mkdtempSync(join(tmpdir(), "spawn-occ-dir-"));
+    temps.push(root);
+    const dest = join(root, "plain");
+    mkdirSync(dest, { recursive: true });
+    const decision = evaluateImplementSpawnOccupancy({
+      payload: { tool_name: "spawn_subagent", tool_input: { cwd: dest, prompt: "implement" } },
+      payloadRoot: root,
+      host: "grok",
+    });
+    expect(decision.allow).toBe(false);
+    if (!decision.allow) expect(decision.reason).toBe("destination-not-worktree");
+  });
+
   it("refuses a destination that already has a live occupant", () => {
     const root = mkdtempSync(join(tmpdir(), "spawn-occ-live-"));
     temps.push(root);
     const dest = join(root, "wt");
     mkdirSync(dest, { recursive: true });
+    writeFileSync(join(dest, ".git"), "gitdir: /repo/.git/worktrees/wt\n", "utf8");
     const now = new Date("2026-09-02T12:00:00Z");
     applyWorktreeOccupancy(dest, { sessionId: "foreign", now, env: {} });
     const decision = evaluateImplementSpawnOccupancy({
@@ -145,6 +160,7 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
     temps.push(root);
     const dest = join(root, "wt");
     mkdirSync(dest, { recursive: true });
+    writeFileSync(join(dest, ".git"), "gitdir: /repo/.git/worktrees/wt\n", "utf8");
     recordChildOccupancyLease(root, {
       agentId: "first",
       parentId: "parent",

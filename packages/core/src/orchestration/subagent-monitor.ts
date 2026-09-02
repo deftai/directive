@@ -486,7 +486,10 @@ export function releaseTerminalChildOccupancy(
           releaseSpawnReservation(cwd, dest);
         }
       }
-      if (released.reason !== "missing-record") break;
+      if (released.reason === "missing-record" || released.reason === "claim-provenance") {
+        continue;
+      }
+      break;
     }
   }
 }

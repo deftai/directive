@@ -40,6 +40,7 @@ export interface SpawnDestination {
 export type SpawnOccupancyDenyReason =
   | "destination-missing"
   | "primary-path"
+  | "destination-not-worktree"
   | "destination-occupied"
   | "reservation-conflict";
 
@@ -198,6 +199,17 @@ export function evaluateImplementSpawnOccupancy(input: {
         (hostCanReroot
           ? "Pass isolation=worktree or a linked worktree_path."
           : "This host cannot re-root spawn input; pass cwd to a linked worktree."),
+    };
+  }
+
+  if (destPath !== null && existsSync(destPath) && !isLinkedWorktreePath(destPath)) {
+    return {
+      allow: false,
+      reason: "destination-not-worktree",
+      destination,
+      message:
+        `Directive denied spawn: destination ${destPath} exists and is not a linked worktree. ` +
+        "Spawned mutating work takes a linked worktree, not an ordinary directory.",
     };
   }
 
