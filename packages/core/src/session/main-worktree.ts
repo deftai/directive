@@ -7,7 +7,7 @@
  * `.git` directory.
  */
 
-import { existsSync, statSync } from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { defaultGitRunner, type GitRunner, gitCommonDir } from "./git.js";
 
@@ -46,4 +46,32 @@ export function mainWorktreeRoot(
   const common = gitCommonDir(projectRoot, runGit);
   if (common === null) return null;
   return resolve(dirname(common));
+}
+
+/**
+ * True when this repo already has at least one linked worktree. A standalone
+ * clone (consumer session:start, test fixture) is a main worktree but is not
+ * the contended primary of a spawn family.
+ */
+export function hasLinkedWorktrees(
+  projectRoot: string,
+  runGit: GitRunner = defaultGitRunner,
+): boolean {
+  const common = gitCommonDir(projectRoot, runGit);
+  if (common === null) return false;
+  const dir = join(common, "worktrees");
+  try {
+    if (!existsSync(dir) || !statSync(dir).isDirectory()) return false;
+    return readdirSync(dir, { withFileTypes: true }).some((entry) => entry.isDirectory());
+  } catch {
+    return false;
+  }
+}
+
+/** Main clone of a repo that already has linked worktrees. */
+export function isContendedPrimaryCheckout(
+  projectRoot: string,
+  runGit: GitRunner = defaultGitRunner,
+): boolean {
+  return isMainWorktreePath(projectRoot, runGit) && hasLinkedWorktrees(projectRoot, runGit);
 }

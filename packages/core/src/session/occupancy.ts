@@ -68,7 +68,7 @@ import {
   parseCanonicalHostSessionId,
 } from "./host-session-owner.js";
 import { stableJson } from "./json.js";
-import { isMainWorktreePath } from "./main-worktree.js";
+import { isContendedPrimaryCheckout } from "./main-worktree.js";
 import { parseTimestamp, timestampIso } from "./time.js";
 
 export const OCCUPANCY_SCHEMA_VERSION = 1;
@@ -706,7 +706,7 @@ export function applyWorktreeOccupancy(
   const live = liveOccupancyOnTree(projectRoot, existing, now);
   const primaryBlocked =
     input.write !== false &&
-    isMainWorktreePath(projectRoot) &&
+    isContendedPrimaryCheckout(projectRoot) &&
     !isPrimaryClaimException(input.primaryClaimException);
 
   if (input.steal === true) {
@@ -840,7 +840,7 @@ export function stealOccupancy(
   const incoming = resolveOccupancySessionId(input);
   if (
     input.write !== false &&
-    isMainWorktreePath(projectRoot) &&
+    isContendedPrimaryCheckout(projectRoot) &&
     !isPrimaryClaimException(input.primaryClaimException)
   ) {
     return primaryClaimRefusal(projectRoot, incoming, path);

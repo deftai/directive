@@ -1670,7 +1670,16 @@ function inspectMutationGates(
     if (!spawnReservation.allow) {
       return deny(input, "spawn-not-ready", toolName, spawnReservation.message);
     }
-    persistSpawnReservation(payloadRoot, spawnReservation.reservation);
+    const persisted = persistSpawnReservation(payloadRoot, spawnReservation.reservation);
+    if (!persisted.ok) {
+      return deny(
+        input,
+        "spawn-not-ready",
+        toolName,
+        `Directive denied spawn: destination ${spawnReservation.reservation.worktreePath} ` +
+          "is already reserved. Own worktree means a unique reservation.",
+      );
+    }
     const updatedInput = spawnUpdatedInput(
       input,
       spawnReservation.reRootPath,
@@ -1954,10 +1963,7 @@ function lifecycleExecutionRootCheck(
         };
       }
       if (!sameExecutionDirectory(actual, expectedReal)) {
-        if (
-          allocatedWorktreeMatches(expected, actual) ||
-          allocatedWorktreeMatches(actual, actual)
-        ) {
+        if (allocatedWorktreeMatches(expected, actual)) {
           continue;
         }
         return {

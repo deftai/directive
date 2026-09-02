@@ -3,7 +3,13 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { isLinkedWorktreePath, isMainWorktreePath, mainWorktreeRoot } from "./main-worktree.js";
+import {
+  hasLinkedWorktrees,
+  isContendedPrimaryCheckout,
+  isLinkedWorktreePath,
+  isMainWorktreePath,
+  mainWorktreeRoot,
+} from "./main-worktree.js";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -48,6 +54,18 @@ describe("main worktree discriminator (#4066)", () => {
     expect(isMainWorktreePath(linked)).toBe(false);
     expect(isLinkedWorktreePath(linked)).toBe(true);
     expect(isMainWorktreePath(root)).toBe(true);
+    expect(hasLinkedWorktrees(root)).toBe(true);
+    expect(isContendedPrimaryCheckout(root)).toBe(true);
+    expect(isContendedPrimaryCheckout(linked)).toBe(false);
+  });
+
+  it("does not treat a standalone clone as a contended primary", () => {
+    const root = mkdtempSync(join(tmpdir(), "main-wt-solo-"));
+    temps.push(root);
+    gitInit(root);
+    expect(isMainWorktreePath(root)).toBe(true);
+    expect(hasLinkedWorktrees(root)).toBe(false);
+    expect(isContendedPrimaryCheckout(root)).toBe(false);
   });
 
   it("does not treat a .git file outside a real worktree as main", () => {

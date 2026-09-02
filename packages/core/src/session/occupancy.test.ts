@@ -889,8 +889,17 @@ describe("worktree occupancy lease (#3433)", () => {
     ).toMatch(/Use another worktree/);
   });
 
-  it("refuses a fresh mutation claim on a git main worktree without an exception (#4066)", () => {
+  it("claims a standalone clone without an exception (#4066)", () => {
     const root = ownedRitualRepo("owner", new Date());
+    const claimed = applyWorktreeOccupancy(root, { sessionId: "owner", intent: "mutation" });
+    expect(claimed.action).toBe("claimed");
+    expect(readOccupancy(root)?.sessionId).toBe("owner");
+  });
+
+  it("refuses a fresh mutation claim on a contended primary without an exception (#4066)", () => {
+    const root = ownedRitualRepo("owner", new Date());
+    const linked = join(root, "wt");
+    git(root, ["worktree", "add", "-q", linked, "HEAD"]);
     const denied = applyWorktreeOccupancy(root, { sessionId: "owner", intent: "mutation" });
     expect(denied.action).toBe("denied");
     expect(denied.message).toContain("primary checkout");

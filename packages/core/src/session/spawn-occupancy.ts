@@ -10,9 +10,9 @@
  *    actor -- never evaluateOccupancyWriteGate(parentRoot, actor=null).
  */
 
-import { randomUUID } from "node:crypto";
-import { existsSync } from "node:fs";
-import { isAbsolute, resolve } from "node:path";
+import { createHash, randomUUID } from "node:crypto";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { isAbsolute, join, resolve } from "node:path";
 import { fieldString, record, toolInputRecord } from "../hooks/classify/payload.js";
 import {
   type ChildOccupancyDispatchInput,
@@ -21,7 +21,7 @@ import {
 } from "./child-occupancy.js";
 import { defaultGitRunner, type GitRunner } from "./git.js";
 import { isMainWorktreePath } from "./main-worktree.js";
-import { isPrimaryClaimException, liveOccupant, PRIMARY_CLAIM_EXCEPTIONS } from "./occupancy.js";
+import { liveOccupant } from "./occupancy.js";
 
 export type SpawnDestinationKind = "host-isolation" | "path";
 
@@ -99,16 +99,6 @@ export function inspectSpawnDestination(payload: unknown): SpawnDestination | nu
   return null;
 }
 
-function trustedExceptionFromPayload(payload: unknown): string | null {
-  const input = record(payload);
-  if (input === null) return null;
-  const toolInput = toolInputRecord(input) ?? input;
-  return (
-    fieldString(toolInput, "primary_claim_exception") ??
-    fieldString(toolInput, "primaryClaimException")
-  );
-}
-
 function resolveDestinationPath(payloadRoot: string, destination: SpawnDestination): string | null {
   if (destination.path === null) return null;
   return isAbsolute(destination.path)
@@ -177,23 +167,19 @@ export function evaluateImplementSpawnOccupancy(input: {
     };
   }
 
-  const exception = trustedExceptionFromPayload(input.payload);
   const destPath = resolveDestinationPath(payloadRoot, destination);
   const hostCanReroot = HOSTS_THAT_REROOT.has(input.host);
 
-  if (
-    destPath !== null &&
-    isMainWorktreePath(destPath, runGit) &&
-    !isPrimaryClaimException(exception)
-  ) {
+  if (destPath !== null && isMainWorktreePath(destPath, runGit)) {
     return {
       allow: false,
       reason: "primary-path",
       destination,
       message:
         "Directive denied implement-class spawn onto the primary checkout. Spawned mutating " +
-        "work takes a linked worktree. Primary occupancy is the exception " +
-        `(${PRIMARY_CLAIM_EXCEPTIONS.join(", ")}) from a trusted producer, not inherit-cwd. ` +
+        "work takes a linked worktree. A spawn payload cannot name a primary-claim exception; " +
+        "that exception is occupancy-claim only (release-cut, policy-restore, " +
+        "operator-default-branch). " +
         (hostCanReroot
           ? "Pass isolation=worktree or a linked worktree_path."
           : "This host cannot re-root spawn input; pass cwd to a linked worktree."),
@@ -258,17 +244,38 @@ export function evaluateImplementSpawnOccupancy(input: {
   };
 }
 
+function reservationLockPath(storeRoot: string, destPath: string): string {
+  const digest = createHash("sha256").update(resolve(destPath)).digest("hex").slice(0, 32);
+  return join(storeRoot, ".deft", "spawn-reservations", digest);
+}
+
+export type PersistSpawnReservationResult = { ok: true } | { ok: false; reason: "conflict" };
+
 /** Persist the dispatch reservation after other spawn gates have allowed. */
 export function persistSpawnReservation(
   storeRoot: string,
   reservation: ChildOccupancyDispatchInput,
-): void {
-  if (!existsSync(resolve(storeRoot))) return;
-  recordChildOccupancyLease(storeRoot, reservation);
-  const tree = resolve(reservation.worktreePath);
-  if (existsSync(tree) && resolve(storeRoot) !== tree) {
-    recordChildOccupancyLease(tree, reservation);
+): PersistSpawnReservationResult {
+  const root = resolve(storeRoot);
+  if (!existsSync(root)) return { ok: true };
+  const dest = resolve(reservation.worktreePath);
+  const lockDir = join(root, ".deft", "spawn-reservations");
+  mkdirSync(lockDir, { recursive: true });
+  try {
+    writeFileSync(reservationLockPath(root, dest), reservation.incarnation, {
+      flag: "wx",
+      encoding: "utf8",
+    });
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code === "EEXIST") return { ok: false, reason: "conflict" };
+    throw err;
   }
+  recordChildOccupancyLease(root, reservation);
+  if (existsSync(dest) && dest !== root) {
+    recordChildOccupancyLease(dest, reservation);
+  }
+  return { ok: true };
 }
 
 export function allocatedWorktreeMatches(storeRoot: string, candidate: string): boolean {
@@ -279,15 +286,6 @@ export function allocatedWorktreeMatches(storeRoot: string, candidate: string): 
     const recorded = resolve(rec.worktreePath);
     if (recorded === want) return true;
     if (process.platform === "win32" && recorded.toLowerCase() === want.toLowerCase()) return true;
-  }
-  if (existsSync(want) && want !== resolve(storeRoot)) {
-    for (const rec of listChildOccupancyLeases(want)) {
-      if (rec.provenance !== "dispatch") continue;
-      const recorded = resolve(rec.worktreePath);
-      if (recorded === want) return true;
-      if (process.platform === "win32" && recorded.toLowerCase() === want.toLowerCase())
-        return true;
-    }
   }
   return false;
 }
