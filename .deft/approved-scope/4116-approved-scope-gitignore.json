@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-09-02-4116-bugupdategitignore-canonical-gitignore-ignores-deftapproved.xbrief.json",
+  "planId": "4116-approved-scope-gitignore",
+  "approvedAt": "2026-09-02T23:26:24Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "cmd/deft-install/gitignore_runtime_writers_test.go",
+    "cmd/deft-install/setup.go",
+    "content/docs/scope-provenance.md",
+    "packages/core/src/init-deposit/gitignore.test.ts",
+    "packages/core/src/init-deposit/gitignore.ts",
+    "packages/core/src/init-deposit/runtime-writer-paths.json",
+    "packages/core/src/init-deposit/runtime-writers.test.ts",
+    "packages/core/src/init-deposit/runtime-writers.ts",
+    "packages/core/src/triage/bootstrap/gitignore.ts"
+  ],
+  "fileScopeDigest": "780ccab4da2e3746c43bd8f01802a6898861c7d2765164898357edd0b076b08e",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-09-02T23:26:23Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "1f45d9982c3934027064c64642e8aee6afe1267130f68a6842324386cbea67bd",
+  "digestAlgo": "intent-extract-v1"
+}
