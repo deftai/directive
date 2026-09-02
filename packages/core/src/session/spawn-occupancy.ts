@@ -312,14 +312,17 @@ function sameTree(left: string, right: string): boolean {
 /**
  * True when `candidate` is a dispatcher-allocated child of `storeRoot`.
  * Path match alone is not enough: bind git common-dir (repo), incarnation,
- * and occupancy owner so a stale/foreign dispatch record cannot rewrite
- * identity against the wrong tree.
+ * current parent, and live occupant so a stale/foreign dispatch record
+ * cannot rewrite identity against the wrong tree.
  */
 export function allocatedWorktreeMatches(
   storeRoot: string,
   candidate: string,
-  runGit: GitRunner = defaultGitRunner,
+  opts: { readonly parentId?: string; readonly runGit?: GitRunner } = {},
 ): boolean {
+  const parentId = opts.parentId?.trim() ?? "";
+  if (parentId.length === 0) return false;
+  const runGit = opts.runGit ?? defaultGitRunner;
   const want = resolve(candidate);
   const root = resolve(storeRoot);
   if (!existsSync(root)) return false;
@@ -332,8 +335,18 @@ export function allocatedWorktreeMatches(
     if (rec.provenance !== "dispatch") continue;
     if (rec.incarnation.length === 0 || rec.incarnation === "missing") continue;
     if (rec.occupancyOwner.trim().length === 0) continue;
+    if (rec.parentId !== parentId) continue;
     const recorded = resolve(rec.worktreePath);
-    if (sameTree(recorded, want)) return true;
+    if (!sameTree(recorded, want)) continue;
+    const live = liveOccupant(want);
+    if (
+      live !== null &&
+      live.sessionId !== rec.occupancyOwner &&
+      live.sessionId !== parentId
+    ) {
+      continue;
+    }
+    return true;
   }
   return false;
 }

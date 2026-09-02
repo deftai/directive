@@ -256,8 +256,8 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
       incarnation: "inc-x",
       provenance: "dispatch",
     });
-    expect(allocatedWorktreeMatches(parent, other)).toBe(false);
-    expect(allocatedWorktreeMatches(other, other)).toBe(false);
+    expect(allocatedWorktreeMatches(parent, other, { parentId: "parent" })).toBe(false);
+    expect(allocatedWorktreeMatches(other, other, { parentId: "other-parent" })).toBe(false);
   });
 
   it("binds allocation to same-repo linked worktree, incarnation, and owner", () => {
@@ -275,7 +275,8 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
       incarnation: "inc-1",
       provenance: "dispatch",
     });
-    expect(allocatedWorktreeMatches(parent, wt)).toBe(true);
+    expect(allocatedWorktreeMatches(parent, wt, { parentId: "parent" })).toBe(true);
+    expect(allocatedWorktreeMatches(parent, wt, { parentId: "other-parent" })).toBe(false);
   });
 
   it("rejects a foreign-repository path even when a dispatch record names it", () => {
@@ -295,6 +296,25 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
       incarnation: "inc-x",
       provenance: "dispatch",
     });
-    expect(allocatedWorktreeMatches(parent, foreignWt)).toBe(false);
+    expect(allocatedWorktreeMatches(parent, foreignWt, { parentId: "other-parent" })).toBe(false);
+  });
+
+  it("rejects a same-repo tree occupied by a successor that is not the current parent", () => {
+    const parent = mkdtempSync(join(tmpdir(), "spawn-occ-repo-s-"));
+    temps.push(parent);
+    gitInit(parent);
+    const wt = join(parent, "wt");
+    addLinkedWorktree(parent, wt);
+    recordChildOccupancyLease(parent, {
+      agentId: "leaf",
+      parentId: "parent",
+      occupancyOwner: "parent",
+      worktreePath: wt,
+      identitySourceKind: "host-env",
+      incarnation: "inc-1",
+      provenance: "dispatch",
+    });
+    applyWorktreeOccupancy(wt, { sessionId: "successor", now: new Date(), env: {} });
+    expect(allocatedWorktreeMatches(parent, wt, { parentId: "parent" })).toBe(false);
   });
 });

@@ -1917,6 +1917,7 @@ function lifecycleExecutionRootCheck(
   projectRoot: string,
   realpath: (path: string) => string,
   platform: NodeJS.Platform,
+  parentId: string,
 ): { readonly aligned: boolean; readonly message: string } {
   const input = record(payload);
   if (input === null) {
@@ -1963,7 +1964,7 @@ function lifecycleExecutionRootCheck(
         };
       }
       if (!sameExecutionDirectory(actual, expectedReal)) {
-        if (allocatedWorktreeMatches(expected, actual)) {
+        if (allocatedWorktreeMatches(expected, actual, { parentId })) {
           continue;
         }
         return {
@@ -2076,6 +2077,7 @@ function attachLifecycleIdentityRewrite(
     input.projectRoot,
     seams.realpathLifecycleExecutionRoot ?? realpathSync,
     seams.lifecycleExecutionPlatform ?? process.platform,
+    identity.sessionId,
   );
   if (!executionRoot.aligned) {
     return deny(
