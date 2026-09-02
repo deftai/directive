@@ -1,4 +1,10 @@
-export { EvaluateError, evaluateIssues, renderEvaluateText } from "./evaluate.js";
+export type { SessionStartSpawnPlanInput } from "./evaluate.js";
+export {
+  EvaluateError,
+  evaluateIssues,
+  renderEvaluateText,
+  sessionStartSpawnPlan,
+} from "./evaluate.js";
 export { evaluatorWorktreePath, sha12Of, sinkDir } from "./paths.js";
 export type {
   EvaluateOptions,

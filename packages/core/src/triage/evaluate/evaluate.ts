@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { cliSpawnPlan } from "../../check/cli-native-gates.js";
+import { whichAllFromPath } from "../../doctor/which.js";
 import { runText } from "../../swarm/subprocess.js";
 import { defaultGitRunner } from "../../swarm/worktrees.js";
 import { defaultGithubReader, pullsMentioning } from "./github.js";
@@ -33,8 +35,46 @@ function resolveOriginSha(projectRoot: string, git: GitRunner): string {
   return proc.stdout.trim();
 }
 
+export interface SessionStartSpawnPlanInput {
+  readonly platform?: NodeJS.Platform;
+  readonly env?: NodeJS.ProcessEnv;
+  readonly exists?: (path: string) => boolean;
+  readonly isExecutable?: (path: string) => boolean;
+}
+
+const SESSION_START_ARGV = ["session:start", "--read-only"] as const;
+const ENGINE_BINS = ["deft", "directive"] as const;
+
+/**
+ * PATHEXT-aware spawn plan for isolated `session:start --read-only` (#4083).
+ * Resolves `deft` then `directive` via whichAllFromPath, then cliSpawnPlan
+ * so win32 npm `.cmd` shims run without `shell: true` (#2911).
+ */
+export function sessionStartSpawnPlan(input: SessionStartSpawnPlanInput = {}): {
+  readonly command: string;
+  readonly args: string[];
+} {
+  const platform = input.platform ?? process.platform;
+  const whichOpts = {
+    platform,
+    env: input.env,
+    exists: input.exists,
+    isExecutable: input.isExecutable,
+  };
+  let cliBin = "deft";
+  for (const name of ENGINE_BINS) {
+    const hit = whichAllFromPath(name, whichOpts)[0];
+    if (hit !== undefined && hit.length > 0) {
+      cliBin = hit;
+      break;
+    }
+  }
+  return cliSpawnPlan(cliBin, SESSION_START_ARGV, platform);
+}
+
 function defaultSessionStart(worktreePath: string): void {
-  const proc = runText(["deft", "session:start", "--read-only"], { cwd: worktreePath });
+  const plan = sessionStartSpawnPlan();
+  const proc = runText([plan.command, ...plan.args], { cwd: worktreePath });
   if (proc.returncode !== 0) {
     throw new EvaluateError(
       `session:start --read-only failed in ${worktreePath}: ${proc.stderr.trim() || "<no stderr>"}`,

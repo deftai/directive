@@ -22,6 +22,7 @@ export function runText(
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
       maxBuffer: SUBPROCESS_MAX_BUFFER,
+      shell: false,
     });
     return {
       returncode: 0,

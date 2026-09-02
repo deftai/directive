@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **`triage:evaluate` spawns Windows npm `deft.cmd` for isolated `session:start --read-only` (#4083).** Bare `deft` argv0 ENOENTed under `execFileSync`. Resolve via PATHEXT-aware `whichAllFromPath`, spawn through `cliSpawnPlan`; `runText` stays `shell: false`. Closes #4083. Refs #2606, #2911.
 - **Release skill names the real mint CLI at Phase 1 and does not stall rehearsal on a grant (#4079).** After version confirm it prints deft authz:grant with template release-publish and --confirm, and keeps mint immediately before Phase 4. Phase 3 halt is retry-or-stop; rehearsal 0.0.1 is not minted. Policy restore closeout names both default-branch and destructive-gh env bypasses on those git commands. Phase 1 CI is task check. Closes #4079. Refs #4000.
 - **`task release:e2e` reaches npm dry-run without a grant (#4000).** Tag-push closed-verb exemption is keyed to the throwaway slug prefix and sentinel `0.0.1`, not `DEFT_RELEASE_E2E`. Production `deftai/directive` plus a real version still denies at Step 10 even when that env is set. Does not close #3916 or #4079.
 
