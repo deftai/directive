@@ -70,7 +70,10 @@ function v105Config(projectRoot: string, overrides: Partial<ReleaseConfig> = {})
   };
 }
 
-function recordingSeams(overrides: ReleaseSeams = {}): ReleaseSeams & { gitMutations: string[][] } {
+function recordingSeams(
+  overrides: ReleaseSeams = {},
+  originRemote = "https://github.com/deftai/directive.git",
+): ReleaseSeams & { gitMutations: string[][] } {
   const gitMutations: string[][] = [];
   const seams: ReleaseSeams & { gitMutations: string[][] } = {
     gitMutations,
@@ -78,6 +81,9 @@ function recordingSeams(overrides: ReleaseSeams = {}): ReleaseSeams & { gitMutat
       const argv = [...args];
       if (argv.includes("tag") || argv.includes("push")) {
         gitMutations.push(argv);
+      }
+      if (args.includes("remote") && args.includes("get-url")) {
+        return { status: 0, stdout: `${originRemote}\n`, stderr: "" };
       }
       if (args.includes("status")) return { status: 0, stdout: "", stderr: "" };
       if (args.includes("branch")) return { status: 0, stdout: "master\n", stderr: "" };
@@ -293,7 +299,7 @@ describe("tag-push closed-verb gate (#3527)", () => {
     dirs.push(projectRoot);
     const spy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const repo = `deftai/${REPO_SLUG_PREFIX}20260902-abc`;
-    const seams = recordingSeams();
+    const seams = recordingSeams({}, `https://github.com/${repo}.git`);
     const rc = runPipeline(
       v105Config(projectRoot, { version: REHEARSAL_VERSION, repo, skipRelease: true }),
       seams,
@@ -306,6 +312,21 @@ describe("tag-push closed-verb gate (#3527)", () => {
     expect(out).not.toContain("closed-verb-allow");
     expect(out).not.toContain("closed-verb-env-bypass");
     expect(out).not.toMatch(/grant=/);
+  });
+
+  it("rehearsal --repo with production origin still denies (#4000)", () => {
+    const projectRoot = seedReleaseProjectDir();
+    dirs.push(projectRoot);
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const repo = `deftai/${REPO_SLUG_PREFIX}20260902-abc`;
+    const seams = recordingSeams();
+    expect(
+      runPipeline(
+        v105Config(projectRoot, { version: REHEARSAL_VERSION, repo, skipRelease: true }),
+        seams,
+      ),
+    ).toBe(EXIT_VIOLATION);
+    expect(seams.gitMutations.some((a) => a.includes("push"))).toBe(false);
   });
 
   it("sentinel version on deftai/directive still denies (#4000)", () => {

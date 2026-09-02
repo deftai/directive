@@ -14,6 +14,7 @@ import type { ClosedVerbDecision } from "../authz/types.js";
 import { DEFAULT_OWNER, REHEARSAL_VERSION, REPO_SLUG_PREFIX } from "../release-e2e/constants.js";
 import { evaluateReleasePublishGate } from "../release-publish/pipeline.js";
 import { EXIT_OK, EXIT_VIOLATION, TOTAL_STEPS } from "./constants.js";
+import { runGit } from "./git.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
 
 function emitGate(label: string, status: string): void {
@@ -36,6 +37,21 @@ function normaliseSentinelVersion(version: string): string {
  * the conjunction even when DEFT_RELEASE_E2E=1. A prefix-matching slug under
  * another owner is not rehearsal-owned.
  */
+export function githubOwnerRepoFromRemoteUrl(url: string): string | null {
+  const match =
+    /^(?:https?:\/\/github\.com\/|git@github\.com:)(?<owner>[^/]+)\/(?<repo>[^/]+?)(?:\.git)?$/.exec(
+      url.trim(),
+    );
+  if (!match?.groups) return null;
+  return `${match.groups.owner}/${match.groups.repo}`;
+}
+
+function originOwnerRepo(projectRoot: string, seams: ReleaseSeams): string | null {
+  const result = runGit(projectRoot, ["remote", "get-url", "origin"], seams);
+  if (result.status !== 0) return null;
+  return githubOwnerRepoFromRemoteUrl(result.stdout);
+}
+
 export function isRehearsalClosedVerbExempt(repo: string, version: string): boolean {
   const trimmed = repo.trim();
   const slash = trimmed.lastIndexOf("/");
@@ -82,8 +98,15 @@ export function assertTagPushClosedVerb(config: ReleaseConfig, seams: ReleaseSea
     return EXIT_OK;
   }
   if (isRehearsalClosedVerbExempt(config.repo, config.version)) {
-    emitGate(label, REHEARSAL_CLOSED_VERB_EXEMPT_STATUS);
-    return EXIT_OK;
+    const originRepo = originOwnerRepo(config.projectRoot, seams);
+    if (
+      originRepo !== null &&
+      originRepo.toLowerCase() === config.repo.toLowerCase() &&
+      isRehearsalClosedVerbExempt(originRepo, config.version)
+    ) {
+      emitGate(label, REHEARSAL_CLOSED_VERB_EXEMPT_STATUS);
+      return EXIT_OK;
+    }
   }
   const gate = evaluateReleaseTagPushGate(config.version, config.projectRoot, seams, config.repo);
   if (!gate.allowed) {
