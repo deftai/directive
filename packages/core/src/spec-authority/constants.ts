@@ -15,6 +15,12 @@ export const GENERATED_SPEC_SOURCE_PD =
 export const GENERATED_SPEC_SOURCE_PD_XBRIEF =
   "<!-- Source of truth: xbrief/PROJECT-DEFINITION.xbrief.json -->";
 
+/** Stale vbrief generated-source banners aliased when the named file is gone (#4117). */
+export const LEGACY_GENERATED_SPEC_SOURCE_MARKERS = [
+  GENERATED_SPEC_SOURCE_SPEC,
+  GENERATED_SPEC_SOURCE_PD,
+] as const;
+
 const GENERATED_SOURCE_MARKER = /^<!-- Source of truth: (.+?) -->\r?$/gm;
 const PROJECT_DEFINITION_SOURCE = /(?:^|\/)PROJECT-DEFINITION\.(?:vbrief|xbrief)\.json$/i;
 

@@ -14,6 +14,7 @@ import {
   contentHasGeneratedSpecSource,
   GENERATED_SPEC_PURPOSE,
   generatedSpecSourcePaths,
+  LEGACY_GENERATED_SPEC_SOURCE_MARKERS,
 } from "./constants.js";
 
 export type SpecAuthorityKind = "full-spec" | "greenfield";
@@ -73,12 +74,33 @@ function sourcePathFromMarker(projectRoot: string, source: string): string {
   return isAbsolute(source) ? source : resolve(projectRoot, source);
 }
 
+function relativePathFromSourceMarker(marker: string): string {
+  const prefix = "<!-- Source of truth: ";
+  const suffix = " -->";
+  return marker.slice(prefix.length, marker.length - suffix.length);
+}
+
+function contentHasAbsentLegacyGeneratedSource(projectRoot: string, content: string): boolean {
+  for (const marker of LEGACY_GENERATED_SPEC_SOURCE_MARKERS) {
+    if (!content.includes(marker)) continue;
+    const relative = relativePathFromSourceMarker(marker);
+    try {
+      if (statSync(sourcePathFromMarker(projectRoot, relative)).isFile()) continue;
+    } catch {
+      // Named legacy file is gone; render-staleness owns content warning (#4117).
+    }
+    return true;
+  }
+  return false;
+}
+
 function contentMatchesResolvedSpecSource(
   projectRoot: string,
   content: string,
   resolvedSourcePath: string,
 ): boolean {
   if (contentHasGeneratedSpecSource(content, resolvedSourcePath)) return true;
+  if (contentHasAbsentLegacyGeneratedSource(projectRoot, content)) return true;
 
   let resolvedSource: unknown;
   try {

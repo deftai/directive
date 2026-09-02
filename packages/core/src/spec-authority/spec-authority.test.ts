@@ -5,10 +5,14 @@ import { afterEach, describe, expect, it } from "vitest";
 import { exportSpec, exportSpecMain, parseExportSpecArgv } from "../render/export-spec.js";
 import { aggregateScopeSection, buildScopeOutlookSection } from "../render/scope-outlook.js";
 import { renderSpec } from "../render/spec-render.js";
+import { detectPreCutover } from "../vbrief-validate/precutover.js";
 import {
   GENERATED_SPEC_PURPOSE,
+  GENERATED_SPEC_SOURCE_PD,
   GENERATED_SPEC_SOURCE_PD_XBRIEF,
+  GENERATED_SPEC_SOURCE_SPEC,
   GENERATED_SPEC_SOURCE_SPEC_XBRIEF,
+  LEGACY_GENERATED_SPEC_SOURCE_MARKERS,
 } from "./constants.js";
 import { checkSpecMigrationFidelity } from "./migration-fidelity.js";
 import { renderNarrativeSections, resolveExportNarratives } from "./narratives.js";
@@ -311,6 +315,121 @@ describe("spec-authority resolver", () => {
     );
     expect(isFullSpecState(root)).toBe(true);
     expect(isGreenfieldSpecExport(root)).toBe(false);
+  });
+
+  it("treats a stale vbrief spec banner as current when xbrief spec and lifecycle exist (#4117)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-spec-auth-stale-vbrief-"));
+    roots.push(root);
+    const vbrief = join(root, "xbrief");
+    for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
+      mkdirSync(join(vbrief, folder), { recursive: true });
+    }
+    writeProjectDef(vbrief, { Overview: "PD overview" });
+    writeJson(join(vbrief, "specification.xbrief.json"), {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "Full spec",
+        status: "running",
+        narratives: { Overview: "Spec overview" },
+        items: [],
+      },
+    });
+    writeFileSync(
+      join(root, "SPECIFICATION.md"),
+      `${GENERATED_SPEC_PURPOSE}\n${GENERATED_SPEC_SOURCE_SPEC}\n`,
+      "utf8",
+    );
+    expect(isFullSpecState(root)).toBe(true);
+    expect(isCurrentGeneratedSpecification(root)).toBe(true);
+    expect(detectPreCutover(root)).toEqual({ preCutover: false, reasons: [] });
+  });
+
+  it("does not alias a stale vbrief banner when the named file still exists with different content (#4117)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-spec-auth-stale-present-"));
+    roots.push(root);
+    const vbrief = join(root, "xbrief");
+    for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
+      mkdirSync(join(vbrief, folder), { recursive: true });
+    }
+    writeProjectDef(vbrief, { Overview: "PD overview" });
+    writeJson(join(vbrief, "specification.xbrief.json"), {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "Full spec",
+        status: "running",
+        narratives: { Overview: "Spec overview" },
+        items: [],
+      },
+    });
+    mkdirSync(join(root, "vbrief"), { recursive: true });
+    writeJson(join(root, "vbrief", "specification.vbrief.json"), {
+      xBRIEFInfo: { version: "0.8" },
+      plan: { title: "Different", status: "running", narratives: {}, items: [] },
+    });
+    writeFileSync(
+      join(root, "SPECIFICATION.md"),
+      `${GENERATED_SPEC_PURPOSE}\n${GENERATED_SPEC_SOURCE_SPEC}\n`,
+      "utf8",
+    );
+    expect(isFullSpecState(root)).toBe(false);
+    expect(isCurrentGeneratedSpecification(root)).toBe(false);
+  });
+
+  it("treats a stale vbrief PD banner as current when the named file is gone (#4117)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-spec-auth-stale-pd-"));
+    roots.push(root);
+    const vbrief = join(root, "xbrief");
+    for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
+      mkdirSync(join(vbrief, folder), { recursive: true });
+    }
+    writeProjectDef(vbrief, { Overview: "PD overview" });
+    writeJson(join(vbrief, "specification.xbrief.json"), {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "Full spec",
+        status: "running",
+        narratives: { Overview: "Spec overview" },
+        items: [],
+      },
+    });
+    writeFileSync(
+      join(root, "SPECIFICATION.md"),
+      `${GENERATED_SPEC_PURPOSE}\n${GENERATED_SPEC_SOURCE_PD}\n`,
+      "utf8",
+    );
+    expect(isFullSpecState(root)).toBe(true);
+    expect(isCurrentGeneratedSpecification(root)).toBe(true);
+    expect(detectPreCutover(root)).toEqual({ preCutover: false, reasons: [] });
+  });
+
+  it("keeps the generated-source legacy-alias list to the two known vbrief banners (#4117)", () => {
+    expect([...LEGACY_GENERATED_SPEC_SOURCE_MARKERS]).toEqual([
+      GENERATED_SPEC_SOURCE_SPEC,
+      GENERATED_SPEC_SOURCE_PD,
+    ]);
+  });
+
+  it("still classifies a hand-authored SPECIFICATION.md as pre-cutover (#4117)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-spec-auth-hand-authored-"));
+    roots.push(root);
+    const vbrief = join(root, "xbrief");
+    for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
+      mkdirSync(join(vbrief, folder), { recursive: true });
+    }
+    writeProjectDef(vbrief, { Overview: "PD overview" });
+    writeJson(join(vbrief, "specification.xbrief.json"), {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "Full spec",
+        status: "running",
+        narratives: { Overview: "Spec overview" },
+        items: [],
+      },
+    });
+    writeFileSync(join(root, "SPECIFICATION.md"), "# Hand authored spec\n", "utf8");
+    expect(isFullSpecState(root)).toBe(false);
+    expect(isCurrentGeneratedSpecification(root)).toBe(false);
+    expect(detectPreCutover(root).preCutover).toBe(true);
   });
 
   it("recognizes a source-derived banner from an explicit spec path", () => {
