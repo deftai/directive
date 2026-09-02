@@ -230,6 +230,7 @@ This splits #3273 diagnosis onto a **fresh read-only critic**. The critic **feed
 After dual-stop / hard-stop / same-fingerprint / batch-cap on a review-cycle unit:
 
 - ! The parent (whoever owns a spawn primitive) starts a **new** read-only path-forward critic. ⊗ Resume-from the halted worker id. ⊗ Ask the exhausted implementer to analyze itself.
+- ! If this agent is a grok-build implementation leaf, it reports `BLOCKED` with the resume line and does **not** nested-spawn the critic. If this session has no spawn primitive (Tier 3 / direct interactive), the same conversation MAY run the critic read-only, or tell the operator a fresh critic is the next move. Do not deadlock waiting for an absent parent.
 - ? Any parent-owned seat is allowed (`spawn_subagent`, `claude -p`, Cursor `Task`, Claude Code `Agent`, `sessions_spawn`). Prefer a different family than the exhausted worker when one is on PATH.
 - ! Critic stays read-only: no edit, push, merge, or GitHub implement comments.
 - ! Inputs: issue body plus comments, PR plus reviews, HEAD vs `origin/<deliveryBranch>`, bound lean/synthesis if any, RESUME line, batches already tried.
