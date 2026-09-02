@@ -1,0 +1,207 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #4041 recut onto classifyHookAuthzOps via isShellTool (lean 5495604079, synthesis 5495632560)",
+    "updated": "2026-09-02T19:18:04Z"
+  },
+  "plan": {
+    "title": "sec(authz,hooks): classifyHookAuthzOps uses isShellTool so Grok monitor is UAT-denied",
+    "status": "completed",
+    "narratives": {
+      "Description": "Recut #4041: classifyHookAuthzOps still uses a private bash|shell|run_terminal_cmd name gate, so Grok monitor and run_terminal_command skip the UAT grant check Bash hits. Route through isShellTool. Bound SoT: lean 5495604079, synthesis 5495632560, critic 5495555819. Do not bind #4005 HIGH 2/3/MEDIUM. Do not add run_terminal_cmd to SHELL_TOOL_NAMES.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4041",
+      "Overview": "## Summary\n\nAppSec scan of **deftai/directive @ `0e0e24bb`** produced **1 new HIGH**. Under active UAT on Grok Build, the PreToolUse authz classifier does not treat the host `monitor` tool as a shell, so writes that `Bash` / `Shell` would deny fail open.\n\n**Impact theme:** Host-asymmetric UAT bypass on Grok's second shell surface (`monitor`, background shell; #3987 catalog). An agent can forge an authz grant, plant the Directive kill-switch, or forge approved-scope without a grant.\n\n---\n\n## Finding\n\n### HIGH — Grok `monitor` invisible to `classifyHookAuthzOps` (UAT Shell authz fail-open)\n\n| | |\n|--|--|\n| **Severity** | HIGH |\n| **Location** | `packages/core/src/authz/classify.ts` |\n| **Commit** | `0e0e24bb` |\n| **Attacker** | Agent under active UAT on Grok Build; tool name `monitor` (background shell; #3987 catalog) |\n\n**Controlled input:** `monitor` with any Shell write already denied on `Bash` / `Shell` for protected dests — e.g. copy into `.deft/authz/grants/`, write `.deft-directive-disable`, copy/tee into `.deft/approved-scope/**`.\n\n**Path:** `isShellTool(monitor)=true` → PreToolUse shell path → `classifyHookAuthzOps` name gate is `includes(bash|shell) || === run_terminal_cmd` — `monitor` matches none → `ops=[]` → `allow/shell-op-unclassifiable`. Same copy on `Bash` / `Shell` → `deny/authz-grant-missing`.\n\n#3987 added `monitor` to `SHELL_TOOL_NAMES` but did not widen the authz name gate. A narrow -25 fix that only adds `run_terminal_command` still leaves `monitor` open.\n\n**Impact:** Complete host-asymmetric UAT bypass on Grok's second shell surface — forge authz grant / plant kill-switch / forge approved-scope without a grant.\n\n**Remediation:** Route `classifyHookAuthzOps` via `isShellTool(toolName)` (fixes `monitor` + `run_terminal_command` together).\n\n**Regression:** under UAT, `Bash` copy → authz deny **and** `monitor` copy → authz deny.\n\n**Evidence:** PoC @ `0e0e24bb` — `classifyHookAuthzOps(Bash/Shell, copy→authz)=[settings]`; `(monitor|run_terminal_command, same)=[]`. `decideHook`: `Bash` / `Shell` → `deny/authz-grant-missing`; `monitor` → `allow/shell-op-unclassifiable` (authz grant, kill-switch, approved-scope). Distinct from -25 (`run_terminal_command` only; `monitor` added post-scan in #3987).\n\n---\n\n## Acceptance\n\n- [ ] Under active UAT, a `monitor` write to `.deft/authz/grants/`, `.deft-directive-disable`, or `.deft/approved-scope/**` is denied the same way `Bash` / `Shell` is (`deny/authz-grant-missing` or equivalent settings deny — not `allow/shell-op-unclassifiable`)\n- [ ] `run_terminal_command` with the same dests is also denied (do not fix only one Grok shell spelling)\n- [ ] `classifyHookAuthzOps` uses `isShellTool(toolName)` (or equivalent shared shell catalog), not a hard-coded `bash|shell|run_terminal_cmd` name gate\n- [ ] Regression tests: UAT + `Bash` copy → authz deny **and** UAT + `monitor` copy → authz deny\n- [ ] No new completeness predicate or host PATH pins; this is the authz name gate only\n- [ ] CHANGELOG `[Unreleased]` security note\n\n## Non-goals\n\n- Recutting #3987 matcher coverage (already closed)\n- A `run_terminal_command`-only name-list patch that leaves `monitor` open\n- Redesigning UAT grant UX\n\n## Related\n\n- #3987 — Grok `run_terminal_command` / `monitor` added to `SHELL_TOOL_NAMES`; authz name gate not widened\n- #3186 — UAT Shell fail-closed for authz obfuscation, kill-switch/policy, assist-scratch\n- #3110 — UAT self-approval via ungated `authz:grant` shell fail-open\n- #3039 — `.deft-directive-disable` kill-switch (must not be agent-plantable under UAT)\n\n## Origin\n\nCursor AppSec scan (deftai/directive @ `0e0e24bb`) — 1 new HIGH. Filed only; no implementation in the filing session.\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-01T14:17:57Z)\n\nmodel: grok-4.6\r\nrole: triage\r\n\r\ndesign-critique: warranted, because #4041 and #4005 HIGH 1 are the same duplicated name-gate on an authorization classifier, and #4005 also asks to fail-closed on unclassifiable write-shaped Shell — the posture #3997 just bound as the wrong trade. That is a composition decision, not a one-line patch.\r\n\r\ncharter: open critique\r\nspend: N=1\r\ntarget shape: set-level (#4041 + #4005)\r\ninput-ceiling: this comment\r\nrefutation-target: routing classifyHookAuthzOps through isShellTool is the complete remedy for the Grok host-shell UAT fail-open, including the residual-writer half of #4005.\r\naudit-targets: none\r\n\r\nSpend rationale: N=1. Blast radius would permit a panel (UAT fail-open on Grok). The name-gate half has a closed catalog already in SHELL_TOOL_NAMES; the composition question is whether #4005 HIGH 2/3/MEDIUM belongs here or is dominated by #3997 (bound) and #3849 (in-flight residual denylist arc). One critic attacking composition is the better spend.\r\n\r\nmechanism-shaped: true\r\n\r\n## Portfolio\r\n\r\nAnchor thread: #4041. Target is whether these two issues compose as one remedy, not either issue body alone. Disposition is per-issue.\r\n\r\nIn set:\r\n\r\n- #4041 — Grok monitor invisible to classifyHookAuthzOps (ops=[] -> allow/shell-op-unclassifiable). Proposed remedy: route the name gate through isShellTool.\r\n- #4005 HIGH 1 — Grok run_terminal_command hits the same private gate (bash|shell|run_terminal_cmd). Same proposed remedy, plus a test tying classifier coverage to SHELL_TOOL_NAMES.\r\n\r\n#4041 already says a narrow run_terminal_command-only patch still leaves monitor open. A builder who lands #4005 HIGH 1 as a name-list add reproduces #4041.\r\n\r\nAlso in #4005, and part of the composition question:\r\n\r\n- HIGH 2 / HIGH 3 / MEDIUM — residual interpreter denylist (nu/xonsh/truffleruby/…) plus fail-closed on unclassifiable write-shaped Shell under UAT.\r\n\r\nOut of set (same denylist family, not this name-gate):\r\n\r\n- #3953, #3918, #3849, #3804, #3764, #3728, #3626, #3593 — post-#3545 residual writer scans. #3849 already has an in-flight open-critique (ceiling 5471722730, critic 5471786938, no synthesis yet). Do not absorb that arc.\r\n- #3997 — bound 2026-08-30. Fail-open at the shell-write recognizer is the correct trade at that layer. #4005 HIGH 2 restates fail-closed on unclassifiable write-shaped Shell; that is the posture #3997 withdrew.\r\n\r\nOperator verb: arc yolo 4041 and sister issues. Recorded as dispatch delegation for this N=1 set-level open critique. Not synthesis bind.\r\n\r\nSHA at dispatch to be resolved from origin/master (0e0e24bb — also the scan commit named in #4041).\r\n\n\n### Comment by @MScottAdams (2026-09-01T14:31:56Z)\n\nmodel: grok-4.6\nrole: critic\n\n## Verdict\n\n#4041 and #4005 HIGH 1 are one catalog defect. They compose. The residual-writer half of #4005 does not.\n\nRoute `classifyHookAuthzOps` through `isShellTool`. That is the right name-gate. It is not a complete UAT fail-open remedy. Do not bind #4005 HIGH 2 / HIGH 3 / MEDIUM into this issue.\n\n## Re-verification\n\nSHA `0e0e24bb` (`origin/master`). `packages/core/src/authz/classify.ts` blob `7f854a5c`. Live calls against a same-blob dist of that commit.\n\n`SHELL_TOOL_NAMES` = Shell, Bash, BashTool, shell, bash, run_terminal_command, monitor.\n\n`isShellTool`: monitor true, run_terminal_command true, Bash/Shell/BashTool true, run_terminal_cmd **false**, Write false.\n\nPrivate name gate is still `includes(\"bash\") || includes(\"shell\") || === \"run_terminal_cmd\"` (`classify.ts` around the `classifyHookAuthzOps` export).\n\n`decideHook` extracts `shellCommand` only when `isShellTool(toolName)`, then passes that `toolName` into `classifyHookAuthzOps`. The live authz shell path is the **intersection** of the two gates.\n\nUnder active UAT, same command string `cp /tmp/grant.json .deft/authz/grants/evil.json` (and the kill-switch / approved-scope twins):\n\n| tool | classifyHookAuthzOps | decideHook |\n| --- | --- | --- |\n| Bash / Shell | `[\"settings\"]` | deny / `authz-grant-missing` |\n| monitor | `[]` | allow / `shell-op-unclassifiable` |\n| run_terminal_command | `[]` | allow / `shell-op-unclassifiable` |\n| run_terminal_cmd | `[\"settings\"]` (unit fn only) | allow / `not-direct-write` |\n\n`hookShellCommand` already reads `tool_input.command`. Grok `monitor` uses that field. Extraction is not the miss. The second, narrower name list is.\n\nSame command on Bash vs residual interpreters:\n\n| command | classifyShellAuthzOps |\n| --- | --- |\n| python / python3 / node write into `.deft/authz/grants/` | `[\"settings\"]` |\n| `nu` / `xonsh` / `ipython3` with the same write API | `[]` |\n| `zip out.zip .deft/authz/grants/evil.json` | `[]` |\n\nQuoted-token scan of `classify.ts` at `0e0e24bb`: all 30 bins named in #4005 HIGH 2 are absent (0 hits).\n\nExisting mechanism, not a new one: `isShellTool` / `SHELL_TOOL_NAMES` already classify both Grok shells. #3987 closed matcher coverage. `host-tool-coverage.test.ts` already pins `monitor` on the grok audit. `classifyHookAuthzOps` did not take that catalog.\n\n#3997 completed-arc record (comment 5472062522): fail-open at the **shell-write dest-recovery** gate is the bound trade. #3849 is open with `design-critique:mechanism-shaped` (post-#3545 residual-writer harvest, different bin list).\n\n## Findings\n\n### 1. Name-gate is a catalog split — `sharpens-framing`\n\n**Evidence.** Intersection above. Dispatcher already uses `isShellTool`. Classifier re-filters with a private list that misses both Grok spellings and still special-cases Cursor `run_terminal_cmd`, which `isShellTool` rejects.\n\n**Failure mode.** A builder who lands #4005 HIGH 1 as `|| lower === \"run_terminal_command\"` leaves `monitor` on `allow/shell-op-unclassifiable`. #4041 already names that miss. A second private add of `monitor` recreates the drift #3987 closed on the matcher side.\n\n**Disposition.** Bind #4041 + #4005 HIGH 1 as one name-gate: `classifyHookAuthzOps` calls `isShellTool(toolName)`, plus a test that every `SHELL_TOOL_NAMES` member classifies the same command the way Bash does. Do not keep a second name list.\n\n### 2. Residual-writer half does not belong in this remedy — `sharpens-framing`\n\n**Evidence.** After the name gate matches (Bash), `nu` / `xonsh` / `zip` / `ipython3` still return `[]` and `decideHook` still allows `shell-op-unclassifiable`. Routing through `isShellTool` cannot change that: it only decides whether `classifyShellAuthzOps` runs. The residual is inside that function. #4005 HIGH 2/3/MEDIUM also asks to fail-closed on unclassifiable write-shaped Shell under UAT. That is a different predicate from dest-recovery, but it is the same inverted-default shape #3997 bound as the wrong trade at the write-recognizer (unbounded middle, measured false-deny cost). The bounded half of that ask — add named residual bins — is the post-#3545 harvest family already in flight on #3849. Out of set: #3953, #3918, #3849, #3804, #3764, #3728, #3626, #3593.\n\n**Failure mode.** Binding HIGH 2/3/MEDIUM here either (a) ships a denylist harvest inside a name-gate story and collides with #3849, or (b) inverts empty classification of write-shaped Shell to a UAT settings deny and imports the posture #3997 just withdrew, without that arc's measurements.\n\n**Disposition.** Keep #4005 HIGH 1 on this name-gate. Do not bind HIGH 2/3/MEDIUM into #4041. Residual harvest stays on the #3849-class arc. Do not treat #3997 as closing the bin harvest; treat it as closing the unbounded fail-closed inversion.\n\n### 3. `run_terminal_cmd` is a catalog orphan — `sharpens-framing`\n\n**Evidence.** `classify.test.ts` pins `classifyHookAuthzOps({ toolName: \"run_terminal_cmd\", shellCommand: \"git push origin HEAD\" })` as push. Live `decideHook` on that name is `allow/not-direct-write` because `isShellTool` is false, so the command is never extracted. Cursor shell spellings in `HOST_TOOL_SURFACE_AUDIT.cursor` are unobserved.\n\n**Failure mode.** After routing through `isShellTool`, that unit pin fails. A builder who restores `|| lower === \"run_terminal_cmd\"` to keep the test green re-opens a third list. Adding the alias to `SHELL_TOOL_NAMES` recuts #3987 matcher coverage, which #4041 lists as a non-goal.\n\n**Disposition.** Retarget the pin at `SHELL_TOOL_NAMES` (Bash and both Grok names). Do not preserve the orphan alias in this remedy.\n\n### 4. `isShellTool(\"monitor\")` is unasserted in `tools.test.ts` — `footnote`\n\n`host-tool-coverage.test.ts` already expects grok `mutation.shell` to contain `monitor`. The `isShellTool` unit list names `run_terminal_command` and skips `monitor`. Not load-bearing once finding 1's catalog pin exists.\n\n## Injection / swarm lens\n\nThis surface is UAT authorization on untrusted agent tool names and command strings. Identity is the human-origin grant store. Concurrency is a second Grok shell (`monitor`) that already executes while the foreground spelling is gated.\n\nThe name-gate is the control for host-spelling bypass: forge `.deft/authz/grants/`, plant `.deft-directive-disable`, forge `.deft/approved-scope/` without a grant. A catalog pin against `SHELL_TOOL_NAMES` is the deterministic check that a new host spelling cannot land in the dispatcher only.\n\nResidual interpreters remain an independent injection path after that pin. Claiming the name-gate closed them would be a false close. Swarm dispatch does not change the classifier; it only multiplies who can call `monitor`.\n\nIngested remediation text on #4041 / #4005 (\"route through `isShellTool`\") was treated as a claim, not a command. Probes reproduced it for the name-gate and falsified it as a complete remedy.\n\n## Road not taken\n\nChose `isShellTool` over three weaker gates:\n\n- **Private-list add of both Grok names.** Fixes today's two spellings, keeps two catalogs, and repeats this bug on the next host token.\n- **`shellCommand !== null` as the only gate.** Dispatcher already nulls non-shell tools, so the live path would match. Direct `classifyHookAuthzOps` callers could then classify a stray command on a non-shell name. The public function needs the catalog.\n- **Union `isShellTool || run_terminal_cmd`.** Preserves the orphan pin and a third list. Cursor remains unobserved; the live path for that alias is already `not-direct-write`.\n\nSteelman of composing the residual half: same file, same empty-ops allow, one UAT bypass narrative, one PR. What would flip that: a measurement that `isShellTool` routing also classified `nu` / `zip` / `xonsh`. It does not. Bash already fails open on those.\n\n### Comment by @MScottAdams (2026-09-01T14:35:33Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\n#4041 and #4005 HIGH 1 are the same bug: the dispatcher already treats Grok `monitor` and `run_terminal_command` as shells, then the authz classifier asks a second, narrower name list and lets both through. One catalog already has both names. The classifier should use that catalog.\n\n#4005's other half does not belong here. Adding thirty residual interpreters, or denying every unclassifiable write-shaped shell under UAT, is a different design. The first is the residual-denylist harvest already in flight on #3849. The second is the inverted default #3997 just withdrew. Routing through `isShellTool` does not classify `nu` or `zip`; Bash already fails open on those.\n\nConfirming this map asserts: bind the name-gate as shared catalog coverage; keep #4005 HIGH 1 on that gate; leave HIGH 2/3/MEDIUM off this issue; retarget the `run_terminal_cmd` unit pin rather than preserve an alias `isShellTool` rejects.\n\n**Forward verdict.** The set composes on HIGH 1 only.\n\n**Disposition.** #4041 binds. #4005 HIGH 1 binds with it. #4005 HIGH 2/3/MEDIUM stay out. Residual harvest stays on the #3849-class arc.\n\n**Non-self-arbitration.** I authored the Stop 1 write-back and this lean. I originated none of the three classified findings. Finding 1's catalog split and finding 3's orphan pin were re-derived from source before being accepted. Finding 2's live residual-interpreter probes remain the critic's execution.\n\n**What this arc does not do.** It does not close residual-interpreter UAT bypass. It does not recut #3987 matcher coverage. It does not add `run_terminal_cmd` to `SHELL_TOOL_NAMES`.\n\nConsent basis: the operator directed arc yolo on #4041 and sister issues. Recorded as confirm of this all-accept map.\n\n**Lean:** accept all classified headings from `5495555819`. Supersedes Stop 1 write-back `5495365047`.\n\n## Take map\n\nDenominator is the blocking and sharpening set from critic `5495555819`. Footnotes are census.\n\n| # | Heading | Class | Take |\n|---|---|---|---|\n| 1 | Name-gate is a catalog split | `sharpens-framing` | accept-into-contract |\n| 2 | Residual-writer half does not belong in this remedy | `sharpens-framing` | accept-into-contract |\n| 3 | `run_terminal_cmd` is a catalog orphan | `sharpens-framing` | accept-into-contract |\n\nFinding 4 (`isShellTool(\"monitor\")` unasserted in `tools.test.ts`) is a footnote. Census only.\n\nTotal over the denominator, every take `accept-into-contract`, empty disagreement set, zero unresolved audit markers, N=1 so no unposted siblings. Ceiling `5495365047`.\n\n## Bound remedy (reading of the takes)\n\n1. Route `classifyHookAuthzOps` through `isShellTool(toolName)`. Do not keep a second name list.\n2. Pin by test that every `SHELL_TOOL_NAMES` member classifies the same command the way Bash does, including `monitor` and `run_terminal_command`.\n3. Retarget the `run_terminal_cmd` unit pin at `SHELL_TOOL_NAMES`. Do not restore `|| lower === \"run_terminal_cmd\"` to keep that pin green, and do not add the alias to `SHELL_TOOL_NAMES` in this remedy.\n4. Do not bind #4005 HIGH 2/3/MEDIUM into #4041. Residual harvest stays on the #3849-class arc. #3997 closes the unbounded fail-closed inversion, not the bin harvest.\n\n\n### Comment by @MScottAdams (2026-09-01T14:36:40Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nEach row names its method. Agreement with the critic is not evidence.\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | `classifyHookAuthzOps` still uses a private name gate `includes(\"bash\") \\|\\| includes(\"shell\") \\|\\| === \"run_terminal_cmd\"` | Parent `git show 0e0e24bb:packages/core/src/authz/classify.ts` at the export | verified, parent source read |\n| 2 | `SHELL_TOOL_NAMES` already lists `run_terminal_command` and `monitor` | Parent `git show 0e0e24bb:packages/core/src/hooks/tools.ts` | verified, parent source read |\n| 3 | `isShellTool(\"run_terminal_cmd\")` is false | Same catalog; alias is absent from `SHELL_TOOL_NAMES` | verified, parent source read |\n| 4 | `classify.test.ts` pins `classifyHookAuthzOps({ toolName: \"run_terminal_cmd\", shellCommand: \"git push origin HEAD\" })` as push | Parent read `packages/core/src/authz/classify.test.ts:1462-1467` | verified, parent source read |\n| 5 | `tools.test.ts` asserts `isShellTool(\"run_terminal_command\")` and does not assert `monitor` | Parent read `packages/core/src/hooks/tools.test.ts:14-20` | verified, parent source read |\n| 6 | `host-tool-coverage.test.ts` already expects grok `mutation.shell` to contain `monitor` | Parent read `packages/core/src/init-deposit/host-tool-coverage.test.ts:72-73` | verified, parent source read |\n| 7 | Named residual bins from #4005 HIGH 2 (`nu`, `xonsh`, `truffleruby`) are absent from `classify.ts` | Parent grep over `packages/core/src/authz/classify.ts` at this checkout (same gate blob as `0e0e24bb`) | verified, parent grep; critic reported 30/30 absent by quoted-token scan — that count is single-seat |\n| 8 | Under UAT, Bash `cp` into `.deft/authz/grants/` is `deny/authz-grant-missing`; `monitor` and `run_terminal_command` with the same command are `allow/shell-op-unclassifiable` | Critic live `decideHook` at `0e0e24bb` | verified, one seat, primary execution |\n| 9 | After the name gate matches (Bash), `nu` / `xonsh` / `zip` / `ipython3` still classify `[]` | Critic live `classifyShellAuthzOps` | verified, one seat, primary execution |\n| 10 | #3997 bound fail-open at dest-recovery, not residual-bin harvest | Parent read of completed-arc record 5472062522 via the ingested #3997 brief | verified, parent read of bound record |\n\nDecorrelation: rows 1-7 and 10 are parent primary-source reads. Rows 8-9 rest on the critic's execution and are marked as such. No row is verified because the parent agreed with the critic.\n\n\n### Comment by @MScottAdams (2026-09-01T14:37:34Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe Grok host has two shell tools. The write-gate dispatcher already knows both of them. The authorization classifier still asks a shorter private name list, so both Grok shells skip the UAT grant check that Bash hits. The names are already in the shared catalog. The classifier should use that catalog, and a test should refuse a future split.\n\nThe rest of #4005 — leftover interpreters, and a rule that would deny any write-shaped shell the classifier cannot name — is a different problem. One half is already being argued on #3849. The other half is the kind of inverted default #3997 already rejected. This arc does not close those paths.\n\n#4041 binds as that catalog fix. #4005 HIGH 1 binds with it. HIGH 2, HIGH 3, and the MEDIUM stay off this issue.\n\nNon-self-arbitration: I wrote the opening write-back and the lean. The three classified findings came from the critic. Two of them I re-read from source before accepting; the live UAT denies and residual-interpreter probes stay the critic's measurements.\n\n---\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCiting successor lean 5495604079 and verified-claims table 5495619031. Round 1 complete, N=1, critic 5495555819 against ceiling 5495365047. Three classified headings, total all-accept map, zero unresolved audit markers, no unposted siblings.\n\nNon-self-arbitration disclosure: I authored the Stop 1 write-back, the successor lean, and this record. I originated none of the three classified findings.\n\n\n### Comment by @MScottAdams (2026-09-02T18:21:19Z)\n\nmodel: grok-4.6\nrole: parent\n\ntarget shape: single-issue\n\nRecut for ingest after set-level harvest. #4041 binds only the catalog fix: classifyHookAuthzOps routes through isShellTool(toolName). Pin every SHELL_TOOL_NAMES member the same way Bash is pinned, including monitor and run_terminal_command. Retarget the run_terminal_cmd unit pin at SHELL_TOOL_NAMES. Do not add run_terminal_cmd to SHELL_TOOL_NAMES. Do not bind #4005 HIGH 2/3/MEDIUM. Residual harvest stays on the #3849-class arc.\n\nCiting successor lean 5495604079, verified-claims 5495619031, synthesis 5495632560.",
+      "Labels": "bug, security, harness, agent-safety, urgent, design-critique:triage-ready",
+      "UserStory": "As a Grok Build operator under UAT, I want monitor and run_terminal_command writes to protected dests denied the same way Bash is, so UAT cannot be bypassed on the second shell surface.",
+      "ImplementationPlan": "Route classifyHookAuthzOps through isShellTool(toolName) in packages/core/src/authz/classify.ts. Pin tests that every SHELL_TOOL_NAMES member classifies the same command the way Bash does, including monitor and run_terminal_command. Retarget the run_terminal_cmd unit pin at SHELL_TOOL_NAMES. Do not restore || lower === run_terminal_cmd. Do not add the alias to SHELL_TOOL_NAMES. CHANGELOG Unreleased security note.",
+      "Traces": "AC-1 4041"
+    },
+    "items": [
+      {
+        "id": "ac1",
+        "title": "classifyHookAuthzOps uses isShellTool",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/authz/classify.ts, when classifyHookAuthzOps runs, then it uses isShellTool(toolName) rather than a private bash|shell|run_terminal_cmd name gate."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/authz/classify.ts#classifyHookAuthzOps",
+          "recorded_at": "2026-09-02T19:17:56Z",
+          "recorded_by": "leaf-implementation/4041"
+        }
+      },
+      {
+        "id": "ac2",
+        "title": "monitor copy under UAT is denied",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given active UAT, when monitor copies into .deft/authz/grants/, then the decision is deny/authz-grant-missing or equivalent settings deny, not allow/shell-op-unclassifiable."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/authz/classify.test.ts#SHELL_TOOL_NAMES-monitor",
+          "recorded_at": "2026-09-02T19:17:56Z",
+          "recorded_by": "leaf-implementation/4041"
+        }
+      },
+      {
+        "id": "ac3",
+        "title": "run_terminal_command same dests denied",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given the same protected dests, when run_terminal_command is used, then it is also denied. Do not fix only one Grok shell spelling."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/authz/classify.test.ts#SHELL_TOOL_NAMES-run_terminal_command",
+          "recorded_at": "2026-09-02T19:17:56Z",
+          "recorded_by": "leaf-implementation/4041"
+        }
+      },
+      {
+        "id": "ac4",
+        "title": "SHELL_TOOL_NAMES members pinned",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/authz/classify.test.ts, when tests run, then every SHELL_TOOL_NAMES member including monitor and run_terminal_command classifies the same command the way Bash does."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/authz/classify.test.ts#SHELL_TOOL_NAMES-parity",
+          "recorded_at": "2026-09-02T19:17:56Z",
+          "recorded_by": "leaf-implementation/4041"
+        }
+      },
+      {
+        "id": "ac5",
+        "title": "CHANGELOG security note",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given CHANGELOG.md, when the recut lands, then Unreleased names the UAT Grok-shell catalog fix for #4041."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4123",
+          "recorded_at": "2026-09-02T19:17:56Z",
+          "recorded_by": "leaf-implementation/4041"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security",
+      "harness",
+      "agent-safety",
+      "urgent",
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4041",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4041: sec(authz,hooks): AppSec scan @ 0e0e24bb — Grok monitor invisible to classifyHookAuthzOps (UAT Shell authz fail-open)"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/authz/classify.test.ts packages/core/src/hooks/tools.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "derived from operator-accepted synthesis 5495632560 / lean 5495604079; swarm.verify_commands",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Given packages/core/src/authz/classify.ts, when classifyHookAuthzOps runs, then it uses isShellTool(toolName) rather than a private bash|shell|run_terminal_cmd name gate.",
+          "artifact_path": "packages/core/src/authz/classify.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Given active UAT, when monitor copies into .deft/authz/grants/, then the decision is deny/authz-grant-missing or equivalent settings deny, not allow/shell-op-unclassifiable.",
+          "artifact_path": "packages/core/src/authz/classify.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Given the same protected dests, when run_terminal_command is used, then it is also denied.",
+          "artifact_path": "packages/core/src/authz/classify.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Given CHANGELOG.md, when the recut lands, then Unreleased names the UAT Grok-shell catalog fix for #4041.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/authz/classify.ts",
+          "packages/core/src/authz/classify.test.ts",
+          "packages/core/src/hooks/tools.ts",
+          "packages/core/src/hooks/tools.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/authz",
+        "cohesion_exemption": "CHANGELOG.md already exceeds FILE_SIZE_REVIEW_TRIGGER_LINES; this slice only adds the #4041 Unreleased security note. Splitting CHANGELOG is out of scope."
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/authz/classify.ts",
+          "packages/core/src/authz/classify.test.ts",
+          "packages/core/src/hooks/tools.ts",
+          "packages/core/src/hooks/tools.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/authz/classify.test.ts packages/core/src/hooks/tools.test.ts"
+        ]
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4123,
+        "prBase": null,
+        "mergeCommit": "75d5970a0529f122f62561bf68a4c445bfd39e65",
+        "deliveryBranch": "master",
+        "deliveryCommit": "75d5970a0529f122f62561bf68a4c445bfd39e65",
+        "verifiedAt": "2026-09-02T19:18:04Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDYzNWMtZjgyNS03ODYzLWFjMGEtYjE1ODk5NWVmMWM0"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-02T19:18:04Z"
+      },
+      "completedAt": "2026-09-02T19:18:04Z",
+      "completedSessionId": "host:claude:v1:MDFhMDYzNWMtZjgyNS03ODYzLWFjMGEtYjE1ODk5NWVmMWM0",
+      "capacityBucket": "technical-debt"
+    },
+    "updated": "2026-09-02T19:18:04Z"
+  }
+}
