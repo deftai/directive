@@ -85,13 +85,13 @@ function contentHasAbsentLegacyGeneratedSource(projectRoot: string, content: str
     if (!content.includes(marker)) continue;
     const relative = relativePathFromSourceMarker(marker);
     try {
-      if (statSync(sourcePathFromMarker(projectRoot, relative)).isFile()) continue;
+      statSync(sourcePathFromMarker(projectRoot, relative));
     } catch (err) {
       const code = (err as NodeJS.ErrnoException).code;
-      // Permission or IO errors are not absence; keep fail-closed (#4117).
-      if (code !== "ENOENT" && code !== "ENOTDIR") continue;
+      // Only a missing path is absence. Existing files, directories, and
+      // permission errors stay fail-closed (#4117).
+      if (code === "ENOENT" || code === "ENOTDIR") return true;
     }
-    return true;
   }
   return false;
 }
