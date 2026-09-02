@@ -191,7 +191,7 @@ export function activate(vbriefPath: string, options: ActivateOptions = {}): Act
   }
 
   const vbriefDirEarly = dirname(dirname(vbriefPath));
-  return withPlanIdIdentityLock(vbriefDirEarly, () => {
+  const runAdmitted = (): ActivateResult => {
     const admission = evaluateIssuePlanIdAdmission({
       lifecycleRoot: vbriefDirEarly,
       artifactPath: vbriefPath,
@@ -201,7 +201,16 @@ export function activate(vbriefPath: string, options: ActivateOptions = {}): Act
       return { exitCode: 1, message: admission.message };
     }
     return activateAfterIdentity(vbriefPath, payload, planObj, now);
-  });
+  };
+  try {
+    return withPlanIdIdentityLock(vbriefDirEarly, runAdmitted);
+  } catch (err: unknown) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code === "EACCES" || code === "EPERM") {
+      return runAdmitted();
+    }
+    return { exitCode: 1, message: String((err as Error).message) };
+  }
 }
 
 function activateAfterIdentity(
