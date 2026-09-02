@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { SHELL_TOOL_NAMES } from "../hooks/tools.js";
 import { classifyHookAuthzOps, classifyShellAuthzOps } from "./classify.js";
 
 describe("classifyShellAuthzOps (#2944)", () => {
@@ -1460,13 +1461,6 @@ describe("classifyShellAuthzOps (#2944)", () => {
 
     expect(
       classifyHookAuthzOps({
-        toolName: "run_terminal_cmd",
-        shellCommand: "git push origin HEAD",
-        isDirectWrite: false,
-      }),
-    ).toContain("push");
-    expect(
-      classifyHookAuthzOps({
         toolName: "pull_request_create",
         shellCommand: null,
         isDirectWrite: false,
@@ -1493,5 +1487,36 @@ describe("classifyShellAuthzOps (#2944)", () => {
         isDirectWrite: false,
       }),
     ).toEqual(["issue_mutation"]);
+  });
+
+  it("classifies every SHELL_TOOL_NAMES member the way Bash does (#4041)", () => {
+    expect(SHELL_TOOL_NAMES).toContain("monitor");
+    expect(SHELL_TOOL_NAMES).toContain("run_terminal_command");
+    expect(SHELL_TOOL_NAMES).not.toContain("run_terminal_cmd");
+
+    const commands = [
+      "git push origin HEAD",
+      "cp /tmp/grant.json .deft/authz/grants/evil.json",
+      "cp /tmp/disable .deft-directive-disable",
+      "cp forged.json .deft/approved-scope/story.json",
+    ] as const;
+    for (const shellCommand of commands) {
+      const bashOps = classifyHookAuthzOps({
+        toolName: "Bash",
+        shellCommand,
+        isDirectWrite: false,
+      });
+      expect(bashOps.length, shellCommand).toBeGreaterThan(0);
+      for (const toolName of SHELL_TOOL_NAMES) {
+        expect(
+          classifyHookAuthzOps({
+            toolName,
+            shellCommand,
+            isDirectWrite: false,
+          }),
+          `${toolName} ${shellCommand}`,
+        ).toEqual(bashOps);
+      }
+    }
   });
 });

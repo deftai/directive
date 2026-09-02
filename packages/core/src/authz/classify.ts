@@ -7,6 +7,7 @@
  * (CodeQL js/polynomial-redos).
  */
 
+import { isShellTool } from "../hooks/tools.js";
 import {
   classifyMcpTool,
   classifyShellCommand,
@@ -2853,7 +2854,8 @@ export function classifyHookAuthzOps(input: {
   if (isDirectWrite) return ["edit"];
 
   const lower = toolName.toLowerCase();
-  if (lower.includes("bash") || lower.includes("shell") || lower === "run_terminal_cmd") {
+  // Shared catalog (#4041 / #3987). A second name list missed Grok monitor.
+  if (isShellTool(toolName)) {
     // Missing command string: fail open (host gap) — same posture as #2711.
     if (shellCommand === null) return [];
     // Empty classification (git status, tests without product verbs, …) is not gated.

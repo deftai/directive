@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **classifyHookAuthzOps uses isShellTool so Grok `monitor` and `run_terminal_command` hit the same UAT grant check as Bash (#4041).** The private bash|shell|run_terminal_cmd name gate left both Grok shells as `allow/shell-op-unclassifiable`. Tests pin every `SHELL_TOOL_NAMES` member. Does not add `run_terminal_cmd` to that catalog. Does not bind residual-interpreter harvest (#4005 HIGH 2/3/MEDIUM, #3849). Closes #4041.
 - **Land completed-tracked artifact for #3993 (#3264 / #1358).** The #3993 xBRIEF stayed untracked after squash of PR 4107 (9bb09f98). Moved to xbrief/completed/. Does not recut that issue. Refs #2321, #3476.
 - **AC-pass bank reuse keeps the green-run fact so scope:complete does not reintroduce #3497 (#3993).** Matching banks persist and replay command runs the way the session cache already copies them. A v1 bank without that field miss-and-executes. A #3558 zero-run verified-pass stays a zero-run bank and is not treated as a green executable run. Complete still uses reuseMode bank. Does not collapse this issue into #3584.
 - **Land completed-tracked artifact for #4103 (#3264 / #1358).** The #4103 xBRIEF stayed untracked after squash of PR 4114 (e34d76c8). Moved to xbrief/completed/ via scope:complete. Does not recut that issue. Refs #2321, #3476.

@@ -16,6 +16,8 @@ describe("hooks tools classifiers (#2711 / #2952)", () => {
     expect(isShellTool("Bash")).toBe(true);
     expect(isShellTool("shell")).toBe(true);
     expect(isShellTool("run_terminal_command")).toBe(true);
+    expect(isShellTool("monitor")).toBe(true);
+    expect(isShellTool("run_terminal_cmd")).toBe(false);
     expect(isShellTool("Write")).toBe(false);
     expect(isShellTool("")).toBe(false);
   });
