@@ -45,6 +45,7 @@ Auto-stamp after operator confirm; not while same-round siblings outstanding.
 Walk / walk all. Auto-stamp when agents agree: Operator verbs.
 Parent chip write: scm:issue:design-critique-chip.
 Chip apply miss is non-blocking convenience; do not halt. Ingest waits on the completed-arc record, not a catalog chip.
+Run posture: parse closed tokens; else ask. Field lives in the contract.
 
 Each critic dispatch EXITs after posting.
 
@@ -62,4 +63,4 @@ Dispatch-composition miss: offer or file a prevention issue.
 
 ## EXIT
 
-deft-directive-design-critique complete -- exiting skill. Next: operator fills the brief template and dispatches the next envelope.
+deft-directive-design-critique complete -- exiting skill. Next: operator fills the brief template and dispatches the next envelope. Direct EXIT: ingest is a separate operator verb.

@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Design-critique front door is a run-posture field, not a second ingest switch (#4072).** Stop 1 records `arc-mode: direct` or `arc-mode: checkout`. Direct is `session:start --read-only` (or release), GitHub comments via `gh issue comment --body-file -`, SHA-pinned reads, and family CLIs without worktrees. Missing token, including yolo, asks. Ingest stays a later verb after the completed-arc record. Closes #4072. Refs #4020, #4066, #4067.
 
 ### Changed
 

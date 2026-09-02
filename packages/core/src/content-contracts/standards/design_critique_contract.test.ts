@@ -6,6 +6,10 @@ import { COMPLETED_ARC_BLOCK_REASONS } from "../../design-critique/completed-arc
 import { remainingSetAfterDesignCritiqueChip } from "../../design-critique/exclusive-chip.js";
 import { evaluatePanelSeatComposition } from "../../design-critique/panel-seat-families.js";
 import { evaluateParentAudit } from "../../design-critique/parent-audit.js";
+import {
+  evaluateDirectDispatch,
+  parseOperatorRunPosture,
+} from "../../design-critique/run-posture.js";
 import { isFile, readText, repoRoot, resolveContentPath } from "./_helpers.js";
 
 const CONTRACT = "contracts/design-critique.md";
@@ -102,6 +106,14 @@ const REQUIRED_CONTRACT_POINTERS = [
   "measured-versus-asserted",
   "before any critic exists",
   "`refutation-target:`",
+  "### Run posture",
+  "parseOperatorRunPosture",
+  "evaluateDirectDispatch",
+  "session:start --read-only",
+  "gh issue comment --body-file -",
+  "git show <dispatch-sha>:",
+  "#4072",
+  "#4020",
   "highest-leverage asserted premise",
   "first operator surface",
   "empty-lean verb menu",
@@ -142,6 +154,7 @@ const REQUIRED_TEMPLATE_POINTERS = [
   "Audit targets",
   "ids only",
   "`refutation-target:`",
+  "Run posture (`arc-mode: direct`",
   "Seat families (N≥3",
   "Launcher (spawn_subagent | grok | claude | codex | paste-ready)",
 ];
@@ -171,6 +184,8 @@ const REQUIRED_SKILL_POINTERS = [
   "Auto-stamp after operator confirm; not while same-round siblings outstanding",
   "completed-arc record",
   "Chip apply miss is non-blocking",
+  "parse closed tokens",
+  "ingest is a separate operator verb",
   "Seat families",
   "Grok Build launcher",
   "prevention issue",
@@ -863,6 +878,52 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     if (!pasteReadyFirst.ok) {
       expect(pasteReadyFirst.code).toBe("paste-ready-first");
     }
+  });
+
+  it("locks run-posture front door tokens and fixtures (#4072)", () => {
+    const text = readText(CONTRACT);
+    const stop1 = markdownSection(text, "## Stop 1 \u2014 Gate");
+    expect(stop1, "run posture missing from Stop 1").toContain("### Run posture");
+    expect(stop1).toContain("`arc-mode:`");
+    expect(stop1).toContain("session:start --read-only");
+    expect(stop1).toContain("gh issue comment --body-file -");
+    expect(stop1).toContain("git show <dispatch-sha>:");
+    expect(stop1).toContain("parseOperatorRunPosture");
+    expect(stop1).toContain("evaluateDirectDispatch");
+    expect(stop1).toContain("#4020");
+    expect(stop1).toContain("Yolo does not pick a mode");
+    expect(stop1).toContain("\u2297 Front-door mode `ingest`");
+    expect(stop1).toContain("\u2297 Treat `arc-mode:` as ingest clearance");
+    expect(stop1).toContain("\u2297 `git worktree add`");
+    const bind = markdownSection(text, "## Bind after accepted synthesis");
+    expect(bind).toContain("Direct EXIT names it as a later operator verb");
+    const ceiling = markdownSection(text, "### Envelope and ceiling");
+    expect(ceiling).toContain("Worktree isolation before each spawn unless `arc-mode: direct`");
+    const template = readText(TEMPLATE);
+    expect(template).toContain("Run posture (`arc-mode: direct` | `arc-mode: checkout`)");
+    expect(template).toContain("Run posture `arc-mode:`");
+    const skill = readText(SKILL_REL);
+    expect(skill).toContain("parse closed tokens");
+    expect(skill).toContain("ingest is a separate operator verb");
+    expect(skill).not.toContain("session:start --read-only");
+    expect(skill).not.toContain("git worktree add");
+    expect(parseOperatorRunPosture("arc 1234 yolo")).toEqual({
+      kind: "ask",
+      reason: "missing-token",
+    });
+    expect(parseOperatorRunPosture("arc 1234 yolo ingest")).toEqual({
+      kind: "ask",
+      reason: "ingest-is-not-posture",
+    });
+    expect(
+      evaluateDirectDispatch({
+        posture: "direct",
+        occupancyClaimed: false,
+        worktreeAdd: false,
+        issueIngest: false,
+        sessionPosture: "read-only",
+      }),
+    ).toEqual({ ok: true });
   });
 
   it("locks parent-side substantiation MUSTs, both auto-bind sites, and omission fail-closed (#3651)", () => {

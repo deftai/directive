@@ -12,6 +12,7 @@ Dispatch envelope skeleton for one critic or synthesis pass. Fill the fields. Re
 - Critic role (fresh | resume):
 - Id ceiling (GitHub comment id, inclusive):
 - SHA at dispatch:
+- Run posture (`arc-mode: direct` | `arc-mode: checkout`):
 - Target (work issue or umbrella):
 - Audit targets (marker ids, comma-separated, or `none`; ids only, no parent rationale):
 - Seat families (N≥3: three claimed families before spawn):
@@ -38,6 +39,7 @@ Read, do not restate:
 |---|---|
 | Gate (ADR-005) | Stop 1 — Gate |
 | Stop 1 `refutation-target:` | Stop 1 — Gate |
+| Run posture `arc-mode:` | Stop 1 — Gate |
 | Variant selection | Stop 2 — Variant selection |
 | Parent-facing dispatch rules | Parent-facing dispatch rules |
 | Critic method | Critic method |
