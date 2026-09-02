@@ -11,7 +11,7 @@
  */
 import { closedVerbEnvBypassKey } from "../authz/closed-verb.js";
 import type { ClosedVerbDecision } from "../authz/types.js";
-import { REHEARSAL_VERSION, REPO_SLUG_PREFIX } from "../release-e2e/constants.js";
+import { DEFAULT_OWNER, REHEARSAL_VERSION, REPO_SLUG_PREFIX } from "../release-e2e/constants.js";
 import { evaluateReleasePublishGate } from "../release-publish/pipeline.js";
 import { EXIT_OK, EXIT_VIOLATION, TOTAL_STEPS } from "./constants.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
@@ -24,12 +24,6 @@ export const TAG_PUSH_CLOSED_VERB = "release-publish" as const;
 
 export const REHEARSAL_CLOSED_VERB_EXEMPT_STATUS = "OK (rehearsal-closed-verb-exempt)";
 
-function rehearsalRepoSlug(repo: string): string {
-  const trimmed = repo.trim();
-  const slash = trimmed.lastIndexOf("/");
-  return slash === -1 ? trimmed : trimmed.slice(slash + 1);
-}
-
 function normaliseSentinelVersion(version: string): string {
   const trimmed = version.trim();
   if (trimmed.startsWith("v") || trimmed.startsWith("V")) return trimmed.slice(1);
@@ -37,12 +31,18 @@ function normaliseSentinelVersion(version: string): string {
 }
 
 /**
- * True only for the throwaway rehearsal identity: slug prefix AND sentinel
- * version. Production deftai/directive cannot satisfy the conjunction even
- * when DEFT_RELEASE_E2E=1.
+ * True only for the throwaway rehearsal identity: owner DEFAULT_OWNER, slug
+ * prefix, AND sentinel version. Production deftai/directive cannot satisfy
+ * the conjunction even when DEFT_RELEASE_E2E=1. A prefix-matching slug under
+ * another owner is not rehearsal-owned.
  */
 export function isRehearsalClosedVerbExempt(repo: string, version: string): boolean {
-  const slug = rehearsalRepoSlug(repo);
+  const trimmed = repo.trim();
+  const slash = trimmed.lastIndexOf("/");
+  if (slash <= 0) return false;
+  const owner = trimmed.slice(0, slash);
+  const slug = trimmed.slice(slash + 1);
+  if (owner.toLowerCase() !== DEFAULT_OWNER.toLowerCase()) return false;
   if (!slug.startsWith(REPO_SLUG_PREFIX)) return false;
   return normaliseSentinelVersion(version) === REHEARSAL_VERSION;
 }

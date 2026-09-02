@@ -227,6 +227,8 @@ describe("tag-push closed-verb gate (#3527)", () => {
     expect(isRehearsalClosedVerbExempt(`deftai/${slug}`, V105)).toBe(false);
     expect(isRehearsalClosedVerbExempt("deftai/directive", V105)).toBe(false);
     expect(isRehearsalClosedVerbExempt(`evil-${slug}`, REHEARSAL_VERSION)).toBe(false);
+    expect(isRehearsalClosedVerbExempt(`otherorg/${slug}`, REHEARSAL_VERSION)).toBe(false);
+    expect(isRehearsalClosedVerbExempt(slug, REHEARSAL_VERSION)).toBe(false);
   });
 
   it("production deftai/directive + real version + DEFT_RELEASE_E2E=1 still denies (#4000)", () => {
@@ -314,6 +316,24 @@ describe("tag-push closed-verb gate (#3527)", () => {
     expect(
       runPipeline(
         v105Config(projectRoot, { version: REHEARSAL_VERSION, skipRelease: true }),
+        seams,
+      ),
+    ).toBe(EXIT_VIOLATION);
+    expect(seams.gitMutations.some((a) => a.includes("push"))).toBe(false);
+  });
+
+  it("prefix-matching slug under another owner still denies (#4000)", () => {
+    const projectRoot = seedReleaseProjectDir();
+    dirs.push(projectRoot);
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const seams = recordingSeams();
+    expect(
+      runPipeline(
+        v105Config(projectRoot, {
+          version: REHEARSAL_VERSION,
+          repo: `otherorg/${REPO_SLUG_PREFIX}20260902-abc`,
+          skipRelease: true,
+        }),
         seams,
       ),
     ).toBe(EXIT_VIOLATION);
