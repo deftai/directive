@@ -6,10 +6,11 @@
  */
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ENV_RUN_SUMMARY_PATH } from "../run-summary/index.js";
 import { evaluateScopeCompleteAcceptanceWalk } from "../scope/acceptance-evidence.js";
+import { acPassBankPath, maybeBankOnAcPass } from "../session/ac-pass-banking.js";
 import { hashProductState } from "../session/product-state-hash.js";
 import { evaluateVerifyAcFromPath, evaluateVerifyAcFromPlan } from "./evaluate.js";
 
@@ -341,5 +342,204 @@ describe("bank-aware complete walk (#3387)", () => {
       productPaths: ["src/product.txt"],
     });
     expect(second.digest).not.toBe(first.digest);
+  });
+
+  it("complete reuses banked green runs for unquoted behavioural clauses (#3993)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3993-clause-bank-"));
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src", "product.txt"), "v1\n", "utf8");
+    const clauses = [
+      {
+        id: 1,
+        text: "behavioral contract with no machine check against product.txt",
+        artifact_path: "src/product.txt",
+        ambiguous: false,
+        provenance: "statement",
+      },
+      {
+        id: 2,
+        text: "another unquoted behavioral claim against the shipped product",
+        artifact_path: "src/product.txt",
+        ambiguous: false,
+        provenance: "statement",
+      },
+    ];
+    const plan: Record<string, unknown> = {
+      id: "3993-clause-bank",
+      title: "clause-bank",
+      status: "running",
+      acceptance: {
+        commands: [{ command: "task check" }],
+        none_stated: true,
+        source_rung: "derived",
+        ambiguity_attestation: "none_found",
+        clauses,
+      },
+      metadata: { swarm: { file_scope: ["src"] } },
+    };
+    const brief = writeBrief(root, plan);
+    let executions = 0;
+    const runner = () => {
+      executions += 1;
+      return { exitCode: 0, stdout: "ok", stderr: "" };
+    };
+    const productPaths = ["src/product.txt"];
+    const verified = evaluateVerifyAcFromPath(brief, {
+      projectRoot: root,
+      captureFromNarratives: false,
+      runner,
+      productPaths,
+      hasSuiteFloor: true,
+    });
+    expect(verified.ok).toBe(true);
+    expect(verified.servedFrom).toBe("executed");
+    expect(verified.runs.length).toBeGreaterThan(0);
+    expect(executions).toBe(1);
+
+    const complete = evaluateScopeCompleteAcceptanceWalk(plan, {
+      projectRoot: root,
+      captureFromNarratives: false,
+      runner,
+      productPaths,
+      hasSuiteFloor: true,
+    });
+    expect(complete.ok).toBe(true);
+    expect(complete.servedFrom).toBe("bank");
+    expect(executions).toBe(1);
+  });
+
+  it("v1 bank without runs field miss-and-executes rather than inventing a green run (#3993)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3993-v1-bank-"));
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src", "product.txt"), "v1\n", "utf8");
+    const clauses = [
+      {
+        id: 1,
+        text: "behavioral contract with no machine check against product.txt",
+        artifact_path: "src/product.txt",
+        ambiguous: false,
+        provenance: "statement",
+      },
+      {
+        id: 2,
+        text: "another unquoted behavioral claim against the shipped product",
+        artifact_path: "src/product.txt",
+        ambiguous: false,
+        provenance: "statement",
+      },
+    ];
+    const plan: Record<string, unknown> = {
+      id: "3993-v1-bank",
+      title: "v1-bank",
+      status: "running",
+      acceptance: {
+        commands: [{ command: "task check" }],
+        none_stated: true,
+        source_rung: "derived",
+        ambiguity_attestation: "none_found",
+        clauses,
+      },
+      metadata: { swarm: { file_scope: ["src"] } },
+    };
+    const productPaths = ["src/product.txt"];
+    const hashed = hashProductState({ projectRoot: root, plan, productPaths });
+    const bankPath = acPassBankPath(root, "3993-v1-bank");
+    mkdirSync(dirname(bankPath), { recursive: true });
+    writeFileSync(
+      bankPath,
+      JSON.stringify({
+        schemaVersion: 1,
+        scopeId: "3993-v1-bank",
+        bankedAt: "2026-09-02T00:00:00Z",
+        headSha: null,
+        productStateHash: hashed.digest,
+        remainingTurns: null,
+        remainingBudget: null,
+        maxTurns: null,
+        maxBudget: null,
+        surplusThreshold: 0.2,
+        hadSurplus: true,
+        nextAction: "finalize_and_ship",
+        postBankFindings: [],
+      }),
+      "utf8",
+    );
+    let executions = 0;
+    const complete = evaluateScopeCompleteAcceptanceWalk(plan, {
+      projectRoot: root,
+      captureFromNarratives: false,
+      runner: () => {
+        executions += 1;
+        return { exitCode: 0, stdout: "ok", stderr: "" };
+      },
+      productPaths,
+      hasSuiteFloor: true,
+    });
+    expect(complete.servedFrom).toBe("executed");
+    expect(executions).toBe(1);
+    expect(complete.ok).toBe(true);
+  });
+
+  it("zero-run verified-pass bank is not a green executable run (#3558 / #3993)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-3993-zero-run-"));
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src", "product.txt"), "v1\n", "utf8");
+    const clauses = [
+      {
+        id: 1,
+        text: "behavioral contract with no machine check against product.txt",
+        artifact_path: "src/product.txt",
+        ambiguous: false,
+        provenance: "statement",
+      },
+      {
+        id: 2,
+        text: "another unquoted behavioral claim against the shipped product",
+        artifact_path: "src/product.txt",
+        ambiguous: false,
+        provenance: "statement",
+      },
+    ];
+    const plan: Record<string, unknown> = {
+      id: "3993-zero-run",
+      title: "zero-run",
+      status: "running",
+      acceptance: {
+        commands: [{ command: "task check" }],
+        none_stated: true,
+        source_rung: "derived",
+        ambiguity_attestation: "none_found",
+        clauses,
+      },
+      metadata: { swarm: { file_scope: ["src"] } },
+    };
+    const productPaths = ["src/product.txt"];
+    const hashed = hashProductState({ projectRoot: root, plan, productPaths });
+    const banked = maybeBankOnAcPass({
+      projectRoot: root,
+      scopeId: "3993-zero-run",
+      executableRuns: 0,
+      verifiedPass: true,
+      productStateHash: hashed.digest,
+    });
+    expect(banked.banked).toBe(true);
+    expect(banked.bank?.runs).toEqual([]);
+    let executions = 0;
+    const complete = evaluateScopeCompleteAcceptanceWalk(plan, {
+      projectRoot: root,
+      captureFromNarratives: false,
+      runner: () => {
+        executions += 1;
+        return { exitCode: 0, stdout: "ok", stderr: "" };
+      },
+      productPaths,
+      hasSuiteFloor: true,
+    });
+    expect(complete.servedFrom).toBe("bank");
+    expect(executions).toBe(0);
+    expect(complete.ok).toBe(false);
+    expect(complete.message).toMatch(/clause-walk-failed/);
+    expect(complete.message).toMatch(/0 run\(s\)/);
+    expect(complete.message).toMatch(/served_from=bank/);
   });
 });

@@ -206,6 +206,7 @@ function tryReuseVerifyAc(
     };
   }
 
+  if (!Array.isArray(reuse.bank.runs)) return null;
   const commandCount = acceptance.commands.length;
   if (commandCount === 0) return null;
   return {
@@ -222,7 +223,7 @@ function tryReuseVerifyAc(
       source: "explicit" as const,
       sourceSpan: "plan.acceptance.commands",
     })),
-    runs: [],
+    runs: reuse.bank.runs as VerifyAcResult["runs"],
     sourceRung: acceptance.source_rung,
     noneStated: acceptance.none_stated,
     acceptance,
@@ -1019,6 +1020,7 @@ function maybeAttachAcPassBank(
       productStateHash: hashed.complete ? hashed.digest : null,
       environ: options.env,
       headSha: gitHead(projectRoot).head,
+      runs: result.runs,
     });
     if (options.quiet || banked.notes.length === 0) {
       return result;

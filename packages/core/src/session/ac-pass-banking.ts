@@ -72,6 +72,12 @@ export interface AcPassBankRecord {
   readonly hadSurplus: boolean;
   readonly nextAction: Exclude<AcPassNextAction, "still_open">;
   readonly postBankFindings: readonly PostBankFinding[];
+  /**
+   * Cache-shaped command runs from the writer (#3993). Present (even empty)
+   * on new banks. Absent on v1 ledgers — reuse must miss-and-execute, not
+   * invent a green run. Empty array is a #3558 zero-run bank, not green.
+   */
+  readonly runs?: readonly unknown[];
 }
 
 export interface EvaluateSurplusInput {
@@ -108,6 +114,8 @@ export interface BankAcPassInput {
   readonly productStateHash?: string | null;
   readonly now?: string;
   readonly environ?: Readonly<Record<string, string | undefined>>;
+  /** Cache-shaped runs snapshot to persist (#3993). Omitted falls back to prior or []. */
+  readonly runs?: readonly unknown[];
 }
 
 export interface DecidePostBankFindingInput {
@@ -354,6 +362,11 @@ export function acPassBankPath(projectRoot: string, scopeId: string): string {
   return join(acPassBanksDir(projectRoot), acPassBankFilename(scopeId));
 }
 
+/** True when the bank persisted a runs snapshot, including an empty #3558 list (#3993). */
+export function bankHasRunsSnapshot(bank: AcPassBankRecord): boolean {
+  return Array.isArray(bank.runs);
+}
+
 /**
  * Persist a bank checkpoint that survives session death (#3285).
  * Also appends a bank-event to DEFT_RUN_SUMMARY_PATH when set (fail-open).
@@ -444,6 +457,7 @@ export function bankAcPass(input: BankAcPassInput): AcPassBankRecord {
     nextAction: input.nextAction,
     // Journal is append-only SoT for findings across corrupt rewrites (#3285).
     postBankFindings: mergeFindings(prior?.postBankFindings ?? [], journal),
+    runs: input.runs !== undefined ? input.runs : (prior?.runs ?? []),
   };
 
   const dir = acPassBanksDir(root);
@@ -631,13 +645,13 @@ function parseBankText(scopeId: string, text: string): AcPassBankRecord | null {
       return findings.length > 0 ? recoveredStubRecord(scopeId, findings) : null;
     }
     const rec = raw as AcPassBankRecord;
-    if (!Array.isArray(rec.postBankFindings)) {
-      return {
-        ...rec,
-        postBankFindings: recoverFindingsFromLedgerText(text),
-      };
-    }
-    return rec;
+    const runs = Array.isArray(rec.runs) ? rec.runs : undefined;
+    const findings = Array.isArray(rec.postBankFindings)
+      ? rec.postBankFindings
+      : recoverFindingsFromLedgerText(text);
+    return runs === undefined
+      ? { ...rec, postBankFindings: findings, runs: undefined }
+      : { ...rec, postBankFindings: findings, runs };
   } catch {
     const findings = recoverFindingsFromLedgerText(text);
     return findings.length > 0 ? recoveredStubRecord(scopeId, findings) : null;
@@ -848,6 +862,8 @@ export interface MaybeBankOnAcPassInput {
    * Soft/advisory empty passes still skip via executableRuns === 0.
    */
   readonly verifiedPass?: boolean;
+  /** Cache-shaped runs from the green walk (#3993). Omitted writes []. */
+  readonly runs?: readonly unknown[];
 }
 
 export interface MaybeBankOnAcPassResult {
@@ -886,6 +902,7 @@ export function maybeBankOnAcPass(input: MaybeBankOnAcPassInput): MaybeBankOnAcP
     productStateHash: input.productStateHash ?? null,
     now: input.now,
     environ: input.environ,
+    runs: input.runs,
   });
   const notes = [
     ...decision.notes,

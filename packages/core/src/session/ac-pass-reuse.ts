@@ -5,7 +5,7 @@
  * Missing, stale, or mismatched hash → full walk. Empty/failing still refuse.
  */
 
-import { type AcPassBankRecord, readAcPassBank } from "./ac-pass-banking.js";
+import { type AcPassBankRecord, bankHasRunsSnapshot, readAcPassBank } from "./ac-pass-banking.js";
 import { type HashProductStateInput, hashProductState } from "./product-state-hash.js";
 import {
   type CachedVerifyAcSnapshot,
@@ -95,6 +95,14 @@ export function resolveAcReuse(input: ResolveAcReuseInput): AcReuseDecision {
   if (allowBank) {
     const bank = readAcPassBank(input.projectRoot, scopeId);
     if (bank !== null && isUsableBank(bank) && bank.productStateHash === hashed.digest) {
+      if (!bankHasRunsSnapshot(bank)) {
+        return {
+          kind: "miss",
+          servedFrom: "executed",
+          hash: hashed.digest,
+          reason: "v1 bank missing runs snapshot",
+        };
+      }
       return { kind: "bank", servedFrom: "bank", hash: hashed.digest, bank };
     }
     if (bank !== null && !isUsableBank(bank)) {

@@ -17,6 +17,7 @@ import {
 import { parseRunSummaryJsonl } from "../run-summary/share.js";
 import {
   bankAcPass,
+  bankHasRunsSnapshot,
   decidePostBankFinding,
   ENV_RUN_SUMMARY_PATH,
   evaluateAcPassBanking,
@@ -342,11 +343,23 @@ describe("re-bank preserves findings + production bridge (#3285)", () => {
     });
     expect(skipped.banked).toBe(false);
 
+    const greenRuns = [
+      {
+        command: "true",
+        cwd: ".",
+        exitCode: 0,
+        stdout: "",
+        stderr: "",
+        ok: true,
+        detail: "",
+      },
+    ];
     const banked = maybeBankOnAcPass({
       projectRoot: root,
       scopeId: "with-runs",
       executableRuns: 2,
       productStateHash: "digest-3387",
+      runs: greenRuns,
       environ: {
         [ENV_MAX_TURNS]: "100",
         [ENV_REMAINING_TURNS]: "50",
@@ -356,6 +369,8 @@ describe("re-bank preserves findings + production bridge (#3285)", () => {
     expect(banked.banked).toBe(true);
     expect(banked.bank?.scopeId).toBe("with-runs");
     expect(banked.bank?.productStateHash).toBe("digest-3387");
+    expect(banked.bank?.runs).toEqual(greenRuns);
+    expect(banked.bank && bankHasRunsSnapshot(banked.bank)).toBe(true);
     expect(banked.notes.some((n) => n.includes("banked scope="))).toBe(true);
 
     const verifiedZeroRuns = maybeBankOnAcPass({
@@ -367,6 +382,8 @@ describe("re-bank preserves findings + production bridge (#3285)", () => {
     });
     expect(verifiedZeroRuns.banked).toBe(true);
     expect(verifiedZeroRuns.bank?.productStateHash).toBe("digest-3558");
+    expect(verifiedZeroRuns.bank?.runs).toEqual([]);
+    expect(verifiedZeroRuns.bank && bankHasRunsSnapshot(verifiedZeroRuns.bank)).toBe(true);
   });
 
   it("sanitizeScopeIdForFilename collapses unsafe chars without ReDoS", () => {

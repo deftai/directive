@@ -3,9 +3,9 @@
  */
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { maybeBankOnAcPass } from "./ac-pass-banking.js";
+import { acPassBankPath, maybeBankOnAcPass } from "./ac-pass-banking.js";
 import { resolveAcReuse } from "./ac-pass-reuse.js";
 import { hashProductState } from "./product-state-hash.js";
 import { writeVerifyAcSessionCache } from "./verify-ac-session-cache.js";
@@ -158,5 +158,48 @@ describe("resolveAcReuse (#3387)", () => {
     const miss = resolveAcReuse({ projectRoot: root, plan, runGit });
     expect(miss.kind).toBe("miss");
     expect(miss.reason).toMatch(/mismatch/);
+  });
+
+  it("misses a matching v1 bank that lacks the runs field (#3993)", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src", "app.txt"), "ok\n", "utf8");
+    const plan = {
+      id: "v1-bank-scope",
+      acceptance: { commands: [{ command: "true" }] },
+    };
+    const hashed = hashProductState({
+      projectRoot: root,
+      plan,
+      productPaths: ["src/app.txt"],
+    });
+    const path = acPassBankPath(root, "v1-bank-scope");
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(
+      path,
+      JSON.stringify({
+        schemaVersion: 1,
+        scopeId: "v1-bank-scope",
+        bankedAt: "2026-09-02T00:00:00Z",
+        headSha: null,
+        productStateHash: hashed.digest,
+        remainingTurns: null,
+        remainingBudget: null,
+        maxTurns: null,
+        maxBudget: null,
+        surplusThreshold: 0.2,
+        hadSurplus: true,
+        nextAction: "finalize_and_ship",
+        postBankFindings: [],
+      }),
+      "utf8",
+    );
+    const miss = resolveAcReuse({
+      projectRoot: root,
+      plan,
+      productPaths: ["src/app.txt"],
+    });
+    expect(miss.kind).toBe("miss");
+    expect(miss.reason).toMatch(/v1 bank missing runs/);
   });
 });
