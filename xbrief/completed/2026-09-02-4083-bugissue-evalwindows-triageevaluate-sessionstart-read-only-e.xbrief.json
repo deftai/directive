@@ -1,0 +1,232 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4083",
+    "updated": "2026-09-02T16:55:07Z"
+  },
+  "plan": {
+    "title": "bug(issue-eval,windows): triage:evaluate session:start --read-only ENOENTs on npm .cmd shims",
+    "status": "completed",
+    "narratives": {
+      "Description": "task triage:evaluate spawns bare deft via execFileSync so Windows npm deft.cmd is ENOENT. Resolve deft/directive with PATHEXT-aware PATH scan and cliSpawnPlan; keep runText shell-false.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4083",
+      "Overview": "## Summary\n\n`task triage:evaluate` cannot start its isolated evaluator on Windows. The parent worktree is created, then `session:start --read-only` is spawned as a bare `deft` argv0. Node `execFileSync` does not resolve the npm global `deft.cmd` / `deft.ps1` shim, so the evaluator dies with `spawnSync deft ENOENT` and the validity stamp stays `null`.\n\nThis is a consumer hard stop on the documented Stage A issue-eval flow. Interactive `deft` in the same PowerShell works.\n\n## Reproduction\n\nHost: win32, PowerShell. Global CLI present:\n\n```text\nwhere.exe deft\nC:\\Users\\msada\\AppData\\Roaming\\npm\\deft\nC:\\Users\\msada\\AppData\\Roaming\\npm\\deft.cmd\n```\n\nAgainst origin/master `3d8b42438d00`:\n\n```text\ntask triage:evaluate -- 3993 --json\n```\n\nObserved (2026-09-02, deftai/directive, evaluating #3993):\n\n```text\n\"validity\": null\n\"error\": \"session:start --read-only failed in C:/Repos/deft/directive/.deft-scratch/worktrees/issue-eval-3993-f0ac158c-bfde-4357-a5e7-009bd701a223: spawnSync deft ENOENT\"\n```\n\nCall site:\n\n```ts\n// packages/core/src/triage/evaluate/evaluate.ts\nrunText([\"deft\", \"session:start\", \"--read-only\"], { cwd: worktreePath })\n```\n\n```ts\n// packages/core/src/swarm/subprocess.ts\nexecFileSync(binary, args, { cwd, encoding: \"utf8\", ... })\n```\n\n`evaluate.test.ts` stubs `sessionStart`, so this path has no Windows coverage.\n\n## Why this is a recurrence\n\n#2606 is the same ENOENT class (`spawnSync deft ENOENT` despite a working global npm install). That fix landed in `defaultEngineProbe` (doctor/update). `runText` / issue-eval did not take it.\n\n#3648 shipped `triage:evaluate` with a hardcoded `deft` spawn. Nearby PATHEXT / `.cmd` work (#721, #2467, #2548, #2415) also did not reach this helper.\n\nDo not copy `shell: true`. #2911 forbids that on win32 free-text argv.\n\n## Suggested thin fix\n\nResolve `deft` / `directive` with the existing PATHEXT-aware PATH scan (`whichAllFromPath` in `packages/core/src/doctor/which.ts`), then spawn the absolute shim through `cliSpawnPlan` (`cmd.exe /d /s /c` + quoted tokens on win32). Keep `runText` shell-false.\n\nAdd a test that the default session-start spawn plan resolves `deft.cmd` on win32 instead of a bare `deft` argv0.\n\n## Consumer hard-stop evidence\n\nRequired for `adoption-blocker` (`content/scm/github.md`):\n\n1. **Affected consumer flow and version.** Documented Stage A issue-eval: `task triage:evaluate -- <N>` on Windows. Observed on origin/master `3d8b42438d00` (2026-09-02) with a working global npm `deft.cmd`. Intended flow: isolated origin/master validity stamp. Actual: evaluate exits 1, `validity` is `null`.\n2. **Documented alternatives.** There is no documented Windows workaround for this verb. Interactive `deft` in the same shell succeeds and is not a substitute: issue-eval still spawns `deft` via `execFileSync`. Switching to Git Bash or injecting `sessionStart` is not a reasonable consumer workaround.\n3. **Observed recovery cost.** One evaluate invocation failed closed. Isolated validity had to be reconstructed by a manual origin/master code read to finish analysis of #3993. Stage A is unusable on this Windows host until the spawn is fixed.\n4. **Triage owner and date.** Scott, 2026-09-02. Privileged label apply after this body-evidence test.\n\n## References\n\n#2606, #3648, #2911, #2548, #2467, #721, #2415",
+      "Labels": "bug, adoption-blocker, agent-experience, runtime-portability, platform:windows",
+      "UserStory": "As a Windows maintainer, I want triage:evaluate to spawn the npm deft.cmd shim, so that Stage A issue-eval can stamp validity.",
+      "ImplementationPlan": "- Resolve deft/directive with whichAllFromPath in packages/core/src/doctor/which.ts then spawn via cliSpawnPlan (cmd.exe /d /s /c quoted tokens on win32) from packages/core/src/triage/evaluate/evaluate.ts and swarm/subprocess.ts.\n- Keep runText shell-false. Do not copy shell:true (#2911).\n- Add a test that the default session-start spawn plan resolves deft.cmd on win32. CHANGELOG Unreleased.",
+      "Traces": "AC-1 4083"
+    },
+    "items": [
+      {
+        "id": "ac1",
+        "title": "Given win32 with a global npm deft.cmd, when triage:evaluate spawns session:star",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given win32 with a global npm deft.cmd, when triage:evaluate spawns session:start --read-only, then it uses an absolute shim via cliSpawnPlan rather than bare deft argv0."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/triage/evaluate/evaluate-spawn.test.ts",
+          "recorded_at": "2026-09-02T16:54:57.154Z",
+          "recorded_by": "4083-issue-eval"
+        }
+      },
+      {
+        "id": "ac2",
+        "title": "Given runText on win32, when the recut lands, then it remains shell-false and do",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given runText on win32, when the recut lands, then it remains shell-false and does not use shell true."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/swarm/subprocess.ts",
+          "recorded_at": "2026-09-02T16:54:57.154Z",
+          "recorded_by": "4083-issue-eval"
+        }
+      },
+      {
+        "id": "ac3",
+        "title": "Given a unit test of the default session-start spawn plan, when it runs on win32",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given a unit test of the default session-start spawn plan, when it runs on win32, then it resolves deft.cmd instead of a bare deft argv0."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/triage/evaluate/evaluate-spawn.test.ts",
+          "recorded_at": "2026-09-02T16:54:57.154Z",
+          "recorded_by": "4083-issue-eval"
+        }
+      },
+      {
+        "id": "ac4",
+        "title": "Given CHANGELOG.md, when the recut lands, then Unreleased names the issue-eval W",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given CHANGELOG.md, when the recut lands, then Unreleased names the issue-eval Windows shim spawn."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4106",
+          "recorded_at": "2026-09-02T16:54:57.154Z",
+          "recorded_by": "4083-issue-eval"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "runtime-portability",
+      "platform:windows"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4083",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4083: bug(issue-eval,windows): triage:evaluate session:start --read-only ENOENTs on npm .cmd shims"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2606",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2606"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "where.exe deft",
+          "reason": "first token \"where.exe\" is not in the literal-AC allowlist",
+          "sourceSpan": "fence@L13:text"
+        },
+        {
+          "command": "C:\\Users\\msada\\AppData\\Roaming\\npm\\deft",
+          "reason": "path-like first token is not allowlisted",
+          "sourceSpan": "fence@L13:text"
+        },
+        {
+          "command": "C:\\Users\\msada\\AppData\\Roaming\\npm\\deft.cmd",
+          "reason": "path-like first token is not allowlisted",
+          "sourceSpan": "fence@L13:text"
+        },
+        {
+          "command": "task triage:evaluate -- 3993 --json",
+          "reason": "wrapper subcommand must be check|doctor|verify:*|help|--version (scope/policy/swarm/scm/merge and other ambient-authority verbs denied)",
+          "sourceSpan": "fence@L21:text"
+        },
+        {
+          "command": "\"validity\": null",
+          "reason": "path-like first token is not allowlisted",
+          "sourceSpan": "fence@L27:text"
+        },
+        {
+          "command": "\"error\": \"session:start --read-only failed in C:/Repos/deft/directive/.deft-scratch/worktrees/issue-eval-3993-f0ac158c-bfde-4357-a5e7-009bd701a223: spawnSync deft ENOENT\"",
+          "reason": "path-like first token is not allowlisted",
+          "sourceSpan": "fence@L27:text"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/core/src/triage/evaluate/**",
+          "packages/core/src/swarm/subprocess.ts",
+          "packages/core/src/swarm/subprocess*.ts",
+          "packages/core/src/doctor/which.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/triage/evaluate packages/core/src/swarm/subprocess.ts"
+        ],
+        "expected_outputs": [
+          "packages/core/src/triage/evaluate/",
+          "packages/core/src/swarm/subprocess.ts"
+        ],
+        "depends_on": [],
+        "conflict_group": "changelog-unreleased",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "grok-4.6",
+        "missing_traces_justification": [
+          "Ingested through-merge story. Bound by issue #4083."
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4106,
+        "prBase": null,
+        "mergeCommit": "80cbaadb972e8ed5d4b7c4056adcbd5f12b42c8a",
+        "deliveryBranch": "master",
+        "deliveryCommit": "80cbaadb972e8ed5d4b7c4056adcbd5f12b42c8a",
+        "verifiedAt": "2026-09-02T16:55:07Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDYyZGEtYjRjZC03MmUyLTlkZmItNWEyNTVmNTFiOGIx"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-02T16:55:07Z"
+      },
+      "completedAt": "2026-09-02T16:55:07Z",
+      "completedSessionId": "host:claude:v1:MDFhMDYyZGEtYjRjZC03MmUyLTlkZmItNWEyNTVmNTFiOGIx",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Given win32 with a global npm deft.cmd, when triage:evaluate spawns session:start --read-only, then it uses an absolute shim via cliSpawnPlan rather than bare deft argv0.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Given runText on win32, when the recut lands, then it remains shell-false and does not use shell true.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Given a unit test of the default session-start spawn plan, when it runs on win32, then it resolves deft.cmd instead of a bare deft argv0.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Given CHANGELOG.md, when the recut lands, then Unreleased names the issue-eval Windows shim spawn.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "4083-issue-eval-win32-deft-cmd",
+    "updated": "2026-09-02T16:55:07Z"
+  }
+}
