@@ -37,6 +37,7 @@ export interface HeartbeatRecord {
   readonly path: string;
   agent_id: string | null;
   parent_id: string | null;
+  incarnation: string | null;
   last_heartbeat_at_iso: string | null;
   last_heartbeat_at: Date | null;
   last_message: string | null;
@@ -58,6 +59,7 @@ export function recordToDict(rec: HeartbeatRecord): Record<string, unknown> {
     path: rec.path,
     agent_id: rec.agent_id,
     parent_id: rec.parent_id,
+    incarnation: rec.incarnation,
     last_heartbeat_at: rec.last_heartbeat_at_iso,
     last_message: rec.last_message,
     phase: rec.phase,
@@ -96,6 +98,7 @@ function emptyRecord(path: string): HeartbeatRecord {
     path,
     agent_id: null,
     parent_id: null,
+    incarnation: null,
     last_heartbeat_at_iso: null,
     last_heartbeat_at: null,
     last_message: null,
@@ -153,6 +156,7 @@ export function parseHeartbeatFile(
 
   if (typeof obj.agent_id === "string") rec.agent_id = obj.agent_id;
   if (typeof obj.parent_id === "string") rec.parent_id = obj.parent_id;
+  if (typeof obj.incarnation === "string") rec.incarnation = obj.incarnation;
   if (typeof obj.last_message === "string") rec.last_message = obj.last_message;
   if (typeof obj.phase === "string") rec.phase = obj.phase;
   if (typeof obj.terminal_state === "string") rec.terminal_state = obj.terminal_state;
@@ -455,10 +459,25 @@ export function releaseTerminalChildOccupancy(
   cwd: string,
   now: Date = new Date(),
 ): void {
+  const observerParent = (
+    process.env.DEFT_SESSION_ID ??
+    process.env.DEFT_SESSION_NAME ??
+    ""
+  ).trim();
   for (const rec of records) {
     if (!rec.is_terminal || rec.agent_id === null) continue;
+    if (rec.failures.length > 0) continue;
+    const heartbeatTree = resolve(rec.path, "..", "..", "..");
     for (const root of worktreeCandidatesForHeartbeat(rec.path, cwd)) {
-      const released = releaseChildOccupancyOnTerminal(root, { agentId: rec.agent_id, now });
+      const released = releaseChildOccupancyOnTerminal(root, {
+        agentId: rec.agent_id,
+        now,
+        parentId: rec.parent_id ?? observerParent,
+        incarnation: rec.incarnation ?? "",
+        heartbeatWorktree: heartbeatTree,
+        heartbeatFailures: rec.failures,
+        observerRoot: cwd,
+      });
       if (released.reason !== "missing-record") break;
     }
   }

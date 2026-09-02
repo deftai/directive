@@ -519,7 +519,7 @@ export const HOOK_FIXTURE_CASES: readonly HookFixtureCase[] = [
     regression: ["#1185", "#2864", "#2950"],
     payload: {
       tool_name: "Task",
-      tool_input: { description: "explore", prompt: "scan hooks" },
+      tool_input: { description: "explore", prompt: "scan hooks", isolation: "worktree" },
       cwd: "/project",
     },
     expected: {
@@ -538,7 +538,7 @@ export const HOOK_FIXTURE_CASES: readonly HookFixtureCase[] = [
     regression: ["#1185", "#2864", "#2950"],
     payload: {
       tool_name: "Task",
-      tool_input: { description: "implement", prompt: "fix write path" },
+      tool_input: { description: "implement", prompt: "fix write path", isolation: "worktree" },
       workspace_roots: ["C:\\Repos\\deft\\statusreport"],
     },
     expected: {

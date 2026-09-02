@@ -1980,12 +1980,30 @@ describe("direct-write hook policy", () => {
         host: "claude",
         event: "tool.before",
         projectRoot: "/project",
-        payload: { tool_name: "Task", tool_input: { subagent_type: "generalPurpose" } },
+        payload: {
+          tool_name: "Task",
+          tool_input: { subagent_type: "generalPurpose", isolation: "worktree" },
+        },
       },
       readySeams(),
     );
 
     expect(decision).toMatchObject({ verdict: "allow", code: "spawn-ready" });
+  });
+
+  it("denies implement-class spawn with no worktree destination (#4066)", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { toolName: "spawn_subagent", prompt: "implement the story" },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toContain("own worktree");
+    expect(decision.message).not.toContain("steal");
   });
 
   it("allows explore Task spawns without implementation gates (#1185)", () => {
@@ -2028,7 +2046,10 @@ describe("direct-write hook policy", () => {
         host: "cursor",
         event: "tool.before",
         projectRoot: "/project",
-        payload: { tool_name: "Task", tool_input: { subagent_type: "generalPurpose" } },
+        payload: {
+          tool_name: "Task",
+          tool_input: { subagent_type: "generalPurpose", isolation: "worktree" },
+        },
         environ: { [READ_ONLY_HOOK_ENV]: "1" },
       },
       readySeams(),
@@ -2301,7 +2322,10 @@ describe("ephemeral spawn posture (#3080)", () => {
         host: "claude",
         event: "tool.before",
         projectRoot: "/project",
-        payload: { tool_name: "Task", tool_input: { subagent_type: "generalPurpose" } },
+        payload: {
+          tool_name: "Task",
+          tool_input: { subagent_type: "generalPurpose", isolation: "worktree" },
+        },
         environ: {},
       },
       readySeams({ inspectRitual, inspectScope }),
@@ -2436,7 +2460,10 @@ describe("runtime authority policy (#1394)", () => {
         host: "cursor",
         event: "tool.before",
         projectRoot: "/project",
-        payload: { tool_name: "Task", tool_input: { subagent_type: "generalPurpose" } },
+        payload: {
+          tool_name: "Task",
+          tool_input: { subagent_type: "generalPurpose", isolation: "worktree" },
+        },
       },
       policySeams({ ...ENABLED_POLICY, scopes: { edits: false, push: false, merge: false } }),
     );
@@ -3305,7 +3332,10 @@ describe("provider codecs", () => {
         host: "cursor",
         event: "tool.before",
         projectRoot: "/project",
-        payload: { tool_name: "Task", tool_input: { subagent_type: "generalPurpose" } },
+        payload: {
+          tool_name: "Task",
+          tool_input: { subagent_type: "generalPurpose", isolation: "worktree" },
+        },
       },
       readySeams(),
     );

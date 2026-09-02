@@ -97,6 +97,7 @@ Populate `selected_backend` OR `routing_policy` (or both when the operator sets 
 **Role-boundary expectations (all providers):** the same boundaries apply whether the worker runs on Composer, Grok Build, Cursor/cloud, Claude Code, OpenClaw, or a future adapter:
 
 - ! `leaf-implementation` workers implement scoped xBRIEF work in their assigned worktree only -- gates (`task check`, file-scope audit, Greptile review cycle) are model-agnostic and MUST still pass.
+- ! **Spawned mutating workers take their own worktree (#4066).** Implement-class spawn must carry `isolation=worktree` or a linked `worktree_path`/`cwd` before occupancy claim. Sharing the primary checkout with a live occupant is refuse, not `occupancy:grant` across hosts. Master/primary occupancy is the exception (`release-cut`, `policy-restore`, operator-directed default-branch work). `--read-only` never claims. On DONE/terminal the dispatcher compare-and-releases the recorded child tree (incarnation + parent-id); do not steal the parent's lease to recover. Grok `spawn_subagent` cannot rewrite PreToolUse input -- pass cwd to the reserved worktree.
 - ! `orchestrator`, `review-monitor`, and `merge-release` roles MUST run on strong or review-capable agents; dispatchers MUST NOT route these roles to cheap leaf backends.
 - ⊗ Route a cheap leaf backend onto the merge cascade, Phase 5->6 release gate, conflict-resolution rebase, or review-cycle merge-ready decision -- these are irreversible-damage surfaces that stay on the strong tier regardless of provider.
 

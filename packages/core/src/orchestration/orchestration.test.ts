@@ -213,12 +213,14 @@ describe("subagent-monitor", () => {
     mkdirSync(scratch, { recursive: true });
     const now = new Date("2026-08-31T12:00:00Z");
     const childOwner = "host:grok:v1:child-owner";
-    recordChildOccupancyLease(root, {
+    const lease = recordChildOccupancyLease(root, {
       agentId: "child-agent",
       parentId: "parent-agent",
       occupancyOwner: childOwner,
       worktreePath: root,
       identitySourceKind: "host-env",
+      incarnation: "inc-monitor",
+      provenance: "dispatch",
     });
     applyWorktreeOccupancy(root, { sessionId: childOwner, now, env: {} });
     writeFileSync(
@@ -226,6 +228,7 @@ describe("subagent-monitor", () => {
       JSON.stringify({
         agent_id: "child-agent",
         parent_id: "parent-agent",
+        incarnation: lease.incarnation,
         last_heartbeat_at: "2026-08-31T12:00:00Z",
         last_message: "done",
         phase: "terminal",
