@@ -1,0 +1,209 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #4118 recut: silence both resolveFrameworkSha and payloadIsOwnGitRoot (lean 5514730450, synthesis 5514747539). Do not recut #3914.",
+    "updated": "2026-09-02T21:28:49Z"
+  },
+  "plan": {
+    "title": "bug(session): session:start prints git fatal twice then succeeds on an npm deposit",
+    "status": "completed",
+    "narratives": {
+      "Description": "Silence git for both resolveFrameworkSha and payloadIsOwnGitRoot so mutation session:start on an npm deposit emits no fatal: not a git repository. Two call sites explain twice vs once. Do not recut #3914. Bound SoT lean 5514730450 synthesis 5514747539.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4118",
+      "Overview": "## Summary\n\n`deft session:start` (mutation, not `--read-only`) prints `fatal: not a git repository` twice, then continues and exits 0. The line comes from a recoverable probe against the npm-installed framework root, which is not a Git checkout.\n\nThis is additional dogfood on #3914. #3914 reproduces the same fatal on `deft session:start --read-only` at v0.108.0 and names the managed-AGENTS framework-SHA probe. This filing records that the same stderr still ships on mutation `session:start` at v0.110.0.\n\n## Observed on\n\n- Consumer: `deftai/statusreport`\n- Engine: `@deftai/directive@0.110.0` (npm, `managed_by: npm`)\n- Host: Grok Build, Windows, PowerShell\n- Date: 2026-09-02\n- Command: `deft session:start` (mutation; host also injected `--session-id=host:claude:v1:...`)\n\n## Actual output (prefix)\n\n```\nfatal: not a git repository (or any of the parent directories): .git\nfatal: not a git repository (or any of the parent directories): .git\n[deft ceremony-dial] depth=rapid ...\nDeft Directive active -- AGENTS.md loaded.\nUSER.md resolved (platform-config): ...\n[deft scm] SCM ready: ghx present, host-gh authenticated (shallow)\n...\noccupancy claimed session host:claude:v1:... (intent=mutation)\n[deft] session ritual recorded at ...\n```\n\nExit code 0. Ceremony completed. The consumer repo **is** a Git repository (`C:\\Repos\\deft\\statusreport`). The probe that fails is against the installed `.deft/core/` / package tree.\n\nThe fatal printed twice on every `session:start` in this session, including after the 0.110.0 deposit refresh.\n\n## Expected\n\n- A successful `session:start` does not print a raw Git fatal for a recoverable framework-SHA probe.\n- An actual SCM failure stays visible.\n\n## Related\n\n- #3914 — same fatal; currently scoped around read-only syntax plus suppressing that probe stderr. Please treat this as recurrence / widening evidence (mutation start, two lines, 0.110.0), not a second root cause unless investigation splits it.\n- Another consumer agent hit the same mutation-start fatal in a parallel session and will comment here with their reproduction.\n\n## Acceptance\n\n- [ ] Mutation `deft session:start` in a Git consumer with an npm `.deft/core/` deposit emits no `fatal: not a git repository` line on success.\n- [ ] The same holds for `deft session:start --read-only` (#3914).\n- [ ] Actionable Git/SCM failures still print stderr.\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-02T18:44:42Z)\n\nmodel: grok-4.6\nrole: triage\n\ndesign-critique: warranted, because mutation session:start still emits raw git fatal from a recoverable npm-deposit SHA probe, which is session-start gate behavior with a mechanized consumer.\n\nmechanism-shaped: true\n\nrefutation-target: mutation session:start still prints raw fatal: not a git repository from a recoverable framework-SHA probe against the npm-installed framework root, then continues and exits 0.\n\ncharter: refutation\nspend: N=1\ntarget-shape: single-issue\nreason: the issue names that presumption as mutation-start widening of #3914, which already bound; this arc does not recut #3914. N>=3 is permitted and is not used.\n\nsha: 9b78332de5e328874a470d78994499d1d29446f5 (origin/master at Stop 1)\nrelated: #3914 synthesis 5502221319\n\n\n### Comment by @MScottAdams (2026-09-02T18:53:50Z)\n\nmodel: claude-sonnet-5\nrole: critic\n\nRound 1 critic, refutation charter, N=1 spend. Id ceiling 5514603456 (the triage write-back, the only comment on this thread at dispatch). Dispatch SHA `9b78332de5e328874a470d78994499d1d29446f5` (confirmed via `git rev-parse HEAD` in the dispatched worktree). Process-only pass: I audit the recorded premise, protocol fit, and recording obligations, and I do not implement.\n\nAll line cites below were re-read against the worktree at the dispatch SHA. The child-process behavior in F1 and F2 was executed in a controlled fixture (temp directory, no `.git` ancestor), not merely read.\n\n## Re-verification of the refutation-target\n\nThe recorded target — \"mutation `session:start` still prints raw `fatal: not a git repository` from a recoverable framework-SHA probe against the npm-installed framework root, then continues and exits 0\" — survives. `resolveFrameworkSha` in `packages/core/src/platform/agents-md.ts:69-83` is unchanged from the shape #3914's arc diagnosed: `execFileSync(\"git\", [\"rev-parse\", \"--short=12\", \"HEAD\"], { cwd: root, encoding: \"utf8\", timeout: 5000 })` with no `stdio` override, wrapped in a `try/catch` that swallows the exception and returns `\"unknown\"`. #3914's bound synthesis (comment 5502221319, citing successor lean 5502150939) accepted this as real and not yet fixed; nothing in this repo's tree between that arc and this dispatch SHA touches the function. The premise is confirmed true, not merely re-asserted.\n\n## Inventory of existing mechanisms\n\n- `defaultGitRunner` (`packages/core/src/session/git.ts:28-58`) — genuinely silent: `stdio: [\"ignore\",\"pipe\",\"pipe\"]`, captures stderr into a return value instead of letting it reach the parent's stderr.\n- `payloadIsOwnGitRoot` (`packages/core/src/platform/resolve-version.ts:85-98`) — the \"own-git-root\" gate #3914's synthesis names as already in tree.\n- `resolveFrameworkSha` (`platform/agents-md.ts:69-83`) — the leaking probe itself, called from two independent sites in a cold mutation `session:start`: `resolveHostContentSurface` → `host-content-surface.ts:184`'s direct `agentsRefreshPlan(...)` call (session-start.ts:1429, and also at :866/:960 on the read-only/re-arm paths), and `runOrientationCompression` → `runAgentsRefreshOrientationSection` (`orientation-compression.ts:314-388`, invoked at session-start.ts:1577) → `applyAgentsRefresh` → `agentsRefreshPlan`.\n- The duplicate resolver `packages/core/src/doctor/agents-md.ts:45-64` uses `spawnSync` with no `stdio` override either, but that call is only reached from `eval/health.ts`, not from `session-start.ts`; it does not contribute to this bug's console output (spawnSync's own default does not inherit stderr the way execFileSync's does — confirmed the asymmetry empirically, not asserted).\n\n## Findings\n\n### F1 — `blocks-the-design`: the second \"already in tree\" mechanism is not actually silent\n\nEvidence, executed: a Node fixture reproducing `payloadIsOwnGitRoot`'s exact body (`execFileSync(\"git\", [\"rev-parse\",\"--show-toplevel\"], { cwd, encoding: \"utf8\", timeout: 10000 })`, no `stdio` override) against a directory with no git ancestor prints `fatal: not a git repository (or any of the parent directories): .git` to the real process stderr, then returns `false`, exit 0 — the identical leak-then-recover shape #3914 diagnosed in `resolveFrameworkSha`. `payloadIsOwnGitRoot` itself never routes through `defaultGitRunner`.\n\nFailure mode: #3914's accepted synthesis (5502221319) states \"the existing own-git-root check and the silent git-runner already in tree are the mechanisms, not a new probe.\" A build that reads that literally — gate `resolveFrameworkSha` on `payloadIsOwnGitRoot` and call it done — moves the leak rather than closing it: on the exact deposit shape #4118 reproduces (frameworkRoot with no git ancestor at all), the gate call itself prints the raw fatal before the SHA probe ever runs. Both #3914's and #4118's acceptance criteria (\"emits no fatal... line on success\") would still fail after that literal reading.\n\nDisposition consequence: this does not reopen or recut #3914's binding — #4118's own refutation-target is untouched. It blocks treating \"wire the two existing mechanisms together\" as sufficient off-the-shelf: whoever implements the fix must also route `payloadIsOwnGitRoot`'s own `git rev-parse --show-toplevel` through a silent runner (`defaultGitRunner` or equivalent captured-stdio), not only gate the SHA probe behind it as currently implemented.\n\nRoad not taken / steelman: the alternative reading is that #3914's \"already in tree\" phrasing was accurate as written and #4118 needs no further scoping beyond re-running the bound design. Rejected because that reading is contradicted by an executed fixture against the named function, not by a plausible-sounding alternative — `payloadIsOwnGitRoot`'s source has no silent-runner indirection to point to.\n\n### F2 — `sharpens-framing`: two independent call sites explain the \"twice,\" and explain why read-only differs\n\nEvidence, executed: running the fixture from the re-verification section twice in one process (simulating `resolveHostContentSurface`'s drift-check call and `runAgentsRefreshOrientationSection`'s apply call, both against a directory with no git ancestor) prints the fatal line twice, with two independent `\"unknown\"` returns and a clean exit — reproducing #4118's transcript exactly (two consecutive fatal lines before any deft output, then normal completion).\n\nFailure mode without this: a reviewer could read \"prints twice\" as unexplained or nondeterministic, or a narrow fix could patch one call site (e.g., only `applyAgentsRefresh`'s internal call) and leave `host-content-surface.ts:184`'s separate direct `agentsRefreshPlan` call untouched, silencing mutation start down to one fatal line while still failing both AC items and still leaking on `--read-only` (which only exercises the `host-content-surface` call site).\n\nDisposition consequence: the target does not change, but its scope sharpens — fixing the shared `resolveFrameworkSha` (plus F1) closes both call sites at once, because both routes bottom out in the same `agentsRefreshPlan` → `resolveSha` chain in one file. This also grounds the triage's \"widening, not a second root cause\" framing mechanically rather than by assertion: read-only fires one of the two call sites (`resolveHostContentSurface` only), mutation fires both.\n\n### F3 — footnote: this filing evidences one half of #3914's two-part finding, not the other\n\n#3914's arc found two distinct defects in the SHA probe: (a) the stderr leak on a directory with no git ancestor (the \"not a git repository\" text), and (b) a non-checkout nested *under* an unrelated ancestor repo silently returning that ancestor's SHA (gpt-5, comment 5502134138). #4118's transcript text (\"not a git repository (or any of the parent directories): .git\") matches (a) exactly and does not exercise (b). This filing is fresh evidence for the leak half only; it says nothing new about the wrong-SHA-ancestor half, which stays exactly as scoped in #3914's existing binding.\n\n## Injection / swarm lens\n\nNot triggered: the target is a local child-process stderr leak in a session-start probe. It does not change authority, untrusted input, prompts/envelopes, identity, concurrency, worktrees, or shared state.\n\n## Protocol fit\n\nStop 1 write-back (5514603456) is well-formed: `mechanism-shaped: true` plus the mirrored `design-critique:mechanism-shaped` label are both present on the issue; `refutation-target:` names one premise, not a conjunction; `charter`/`spend` are recorded as two separate fields; `sha:` matches this dispatch's `git rev-parse HEAD` exactly; `related:` cites #3914's actual synthesis comment id, and that citation checks out against the fetched comment. No recording-obligation defect found.\n\n\n### Comment by @MScottAdams (2026-09-02T18:54:55Z)\n\nmodel: grok-4.6\nrole: parent\n\n**Lean:**\n\n## In plain English\n\nMutation session:start still prints raw git fatal from a recoverable framework-SHA probe on an npm deposit, then exits 0. That half of #3914 is still true. Wiring the SHA probe behind payloadIsOwnGitRoot is not enough: that gate uses the same leaking execFileSync, so a no-git-ancestor deposit still prints fatal. Two independent session-start call sites explain the double print on mutation and the single print on read-only. Confirming this map recuts #4118 to silence both resolveFrameworkSha and payloadIsOwnGitRoot, and does not recut #3914.\n\nThis parent authored the Stop 1 write-back. The round-1 critic is Claude (cross-family).\n\n## Proposed takes\n\nCritic comment 5514717092. Round 1, spend N=1. Supersedes write-back 5514603456.\n\n1. own-git-root is not silent (blocks-the-design) — take: accept-into-contract\n2. two call sites explain twice vs once (sharpens-framing) — take: accept-into-contract\n3. this filing evidences the leak half of #3914, not the nested-ancestor SHA half (footnote) — take: accept-into-contract (census only; not residual)\n\nResidual headings: none. No defer. No disagree.\n\nParent forward verdict: the refutation-target survives. The bindable recut is silent git for both named functions, closing both mutation call sites. #3914 stays bound as written.\n\n\n### Comment by @MScottAdams (2026-09-02T18:55:03Z)\n\nmodel: grok-4.6\nrole: parent\n\nYOLO operator confirm of successor lean 5514730450. Accept headings 1-3 on critic 5514717092. Empty disagreement set. Zero unresolved audit markers. No unposted same-round siblings.\n\n\n### Comment by @MScottAdams (2026-09-02T18:55:12Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n|---|---|---|\n| resolveFrameworkSha still leaks fatal via execFileSync with no stdio override, then returns unknown | verified | critic read agents-md.ts:69-83 at SHA 9b78332de5e328874a470d78994499d1d29446f5 and executed a no-git-ancestor fixture |\n| payloadIsOwnGitRoot leaks the same way | verified | critic executed the function body against a directory with no git ancestor |\n| Mutation session:start hits two independent agentsRefreshPlan call sites; read-only hits one | verified | critic read session-start / host-content-surface / orientation-compression and reproduced two fatals by running the fixture twice |\n| defaultGitRunner is already silent | verified | critic read session/git.ts:28-58 stdio ignore/pipe/pipe |\n| This filing does not re-exercise #3914 nested-ancestor wrong SHA | verified | critic compared transcript text to #3914 gpt-5 comment 5502134138 |\n\nCited critic comment 5514717092. Cited lean 5514730450.\n\n\n### Comment by @MScottAdams (2026-09-02T18:56:16Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nMutation session:start still prints git fatal on an npm deposit, twice, then succeeds. The own-git-root gate leaks the same way, so it cannot be the whole fix. Silence both git probes. Do not recut #3914.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean 5514730450\nverified-claims table 5514734164",
+      "Labels": "bug, doctor, agent-experience, area:cli, design-critique:triage-ready",
+      "ImplementationPlan": "Silence git for both resolveFrameworkSha and payloadIsOwnGitRoot so mutation session:start on an npm deposit emits no fatal: not a git repository. Two call sites explain twice vs once. Do not recut #3914. Bound SoT lean 5514730450 synthesis 5514747539."
+    },
+    "items": [
+      {
+        "title": "Mutation deft session:start in a Git consumer with an npm .deft/core/ deposit emits no fatal: not a git repository on success.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/platform/branch-coverage.test.ts#silent-git-probes-4118",
+          "recorded_at": "2026-09-02T21:28:35Z",
+          "recorded_by": "leaf-worker/4118"
+        }
+      },
+      {
+        "title": "The same holds for deft session:start --read-only.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/platform/branch-coverage.test.ts#silent-git-probes-4118",
+          "recorded_at": "2026-09-02T21:28:35Z",
+          "recorded_by": "leaf-worker/4118"
+        }
+      },
+      {
+        "title": "Actionable Git/SCM failures still print stderr.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/platform/branch-coverage.test.ts#silent-git-probes-4118",
+          "recorded_at": "2026-09-02T21:28:35Z",
+          "recorded_by": "leaf-worker/4118"
+        }
+      },
+      {
+        "title": "Both resolveFrameworkSha and payloadIsOwnGitRoot are silent. Do not recut #3914.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/platform/branch-coverage.test.ts#silent-git-probes-4118",
+          "recorded_at": "2026-09-02T21:28:35Z",
+          "recorded_by": "leaf-worker/4118"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "doctor",
+      "agent-experience",
+      "area:cli",
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4118",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4118: bug(session): session:start prints git fatal twice then succeeds on an npm deposit"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "fatal: not a git repository (or any of the parent directories): .git",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L19"
+        },
+        {
+          "command": "Deft Directive active -- AGENTS.md loaded",
+          "reason": "wrapper subcommand must be check|doctor|verify:*|help|--version (scope/policy/swarm/scm/merge and other ambient-authority verbs denied)",
+          "sourceSpan": "fence@L19"
+        },
+        {
+          "command": "USER.md resolved (platform-config): ...",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L19"
+        },
+        {
+          "command": "occupancy claimed session host:claude:v1:... (intent=mutation)",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L19"
+        },
+        {
+          "command": "`deft session:start` (mutation; host also injected `--session-id=host:claude:v1:...`)",
+          "reason": "shell metacharacter \"`\" is not allowed in literal AC commands",
+          "sourceSpan": "labeled@L15"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/platform/agents-md.ts",
+          "packages/core/src/platform/resolve-version.ts",
+          "packages/core/src/doctor/agents-md.ts",
+          "packages/core/src/platform/branch-coverage.test.ts",
+          "packages/core/src/platform/module-coverage.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/platform/branch-coverage.test.ts packages/core/src/platform/module-coverage.test.ts"
+        ],
+        "expected_outputs": [
+          "packages/core/src/platform/agents-md.ts",
+          "packages/core/src/platform/resolve-version.ts",
+          "packages/core/src/doctor/agents-md.ts",
+          "packages/core/src/platform/branch-coverage.test.ts",
+          "packages/core/src/platform/module-coverage.test.ts"
+        ],
+        "depends_on": [],
+        "conflict_group": "changelog-unreleased",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "grok-4.6"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/platform/agents-md.ts",
+          "packages/core/src/platform/resolve-version.ts",
+          "packages/core/src/doctor/agents-md.ts",
+          "packages/core/src/platform/branch-coverage.test.ts",
+          "packages/core/src/platform/module-coverage.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/platform",
+        "cohesion_exemption": "CHANGELOG.md already exceeds FILE_SIZE_REVIEW_TRIGGER_LINES; this slice only adds the Unreleased line. Splitting CHANGELOG is out of scope."
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4139,
+        "prBase": null,
+        "mergeCommit": "0c419070a251a7424dbbfd5806eb5caec3ae547a",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0c419070a251a7424dbbfd5806eb5caec3ae547a",
+        "verifiedAt": "2026-09-02T21:28:49Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDYzZDYtMmRhNy03YjEzLWIxZmQtNmY1MDA3ZmIyNGVl"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-02T21:28:49Z"
+      },
+      "completedAt": "2026-09-02T21:28:49Z",
+      "completedSessionId": "host:claude:v1:MDFhMDYzZDYtMmRhNy03YjEzLWIxZmQtNmY1MDA3ZmIyNGVl",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "packages/core/src/platform/agents-md.ts resolveFrameworkSha is silent on recoverable non-git payload roots.",
+          "artifact_path": "packages/core/src/platform/agents-md.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "packages/core/src/platform/resolve-version.ts payloadIsOwnGitRoot is silent on recoverable non-git payload roots.",
+          "artifact_path": "packages/core/src/platform/resolve-version.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "packages/core/src/doctor/agents-md.ts resolveFrameworkSha is silent the same way (second mutation call site).",
+          "artifact_path": "packages/core/src/doctor/agents-md.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "CHANGELOG.md Unreleased names silent git for both named probes. Do not recut #3914.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "4118-session-git-fatal",
+    "updated": "2026-09-02T21:28:49Z"
+  }
+}
