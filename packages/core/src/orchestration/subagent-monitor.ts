@@ -481,7 +481,10 @@ export function releaseTerminalChildOccupancy(
       });
       if (released.reason === "released" || released.reason === "already-free") {
         const dest = released.record?.worktreePath;
-        if (dest) releaseSpawnReservation(root, dest);
+        if (dest) {
+          releaseSpawnReservation(root, dest);
+          releaseSpawnReservation(cwd, dest);
+        }
       }
       if (released.reason !== "missing-record") break;
     }

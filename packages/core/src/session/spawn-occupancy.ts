@@ -135,14 +135,23 @@ function agentIdFromPayload(payload: unknown, incarnation: string): string {
   return `spawn-${incarnation.slice(0, 8)}`;
 }
 
+function reservationLockRoot(storeRoot: string): string {
+  const root = resolve(storeRoot);
+  return mainWorktreeRoot(root) ?? root;
+}
+
 function existingDispatchReservation(storeRoot: string, worktreePath: string) {
-  if (!existsSync(storeRoot)) return null;
   const want = resolve(worktreePath);
-  for (const rec of listChildOccupancyLeases(storeRoot)) {
-    if (rec.provenance !== "dispatch") continue;
-    const recorded = resolve(rec.worktreePath);
-    if (recorded === want) return rec;
-    if (process.platform === "win32" && recorded.toLowerCase() === want.toLowerCase()) return rec;
+  const roots = [resolve(storeRoot)];
+  const main = mainWorktreeRoot(storeRoot);
+  if (main !== null && !sameTree(main, storeRoot)) roots.push(main);
+  for (const root of roots) {
+    if (!existsSync(root)) continue;
+    for (const rec of listChildOccupancyLeases(root)) {
+      if (rec.provenance !== "dispatch") continue;
+      const recorded = resolve(rec.worktreePath);
+      if (sameTree(recorded, want)) return rec;
+    }
   }
   return null;
 }
@@ -270,14 +279,15 @@ export function persistSpawnReservation(
   const dest = resolve(reservation.worktreePath);
   const incarnation = reservation.incarnation?.trim() ?? "";
   if (incarnation.length === 0) return { ok: false, reason: "conflict" };
-  // Dest-keyed lock lives under the parent store. Missing dest still races
-  // two first-creates of the same path, so do not skip the lock for !exists.
-  const skipDestLock = dest === root;
+  // Dest-keyed lock lives under the shared git common-dir (main clone) so two
+  // parent worktrees cannot both first-create the same destination.
+  const lockRoot = reservationLockRoot(root);
+  const skipDestLock = sameTree(dest, lockRoot);
   if (!skipDestLock) {
     try {
       containedWrite({
-        root,
-        target: reservationLockPath(root, dest),
+        root: lockRoot,
+        target: reservationLockPath(lockRoot, dest),
         data: incarnation,
         mode: "create",
         encoding: "utf8",
@@ -298,8 +308,13 @@ export function persistSpawnReservation(
 
 export function releaseSpawnReservation(storeRoot: string, destPath: string): void {
   const root = resolve(storeRoot);
-  if (!existsSync(root)) return;
-  containedRemove({ root, target: reservationLockPath(root, destPath) });
+  const lockRoot = reservationLockRoot(root);
+  if (existsSync(root)) {
+    containedRemove({ root, target: reservationLockPath(root, destPath) });
+  }
+  if (!sameTree(lockRoot, root) && existsSync(lockRoot)) {
+    containedRemove({ root: lockRoot, target: reservationLockPath(lockRoot, destPath) });
+  }
 }
 
 function sameTree(left: string, right: string): boolean {

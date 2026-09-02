@@ -10,6 +10,7 @@ import {
   evaluateImplementSpawnOccupancy,
   inspectSpawnDestination,
   persistSpawnReservation,
+  releaseSpawnReservation,
 } from "./spawn-occupancy.js";
 
 const temps: string[] = [];
@@ -160,6 +161,71 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
     });
     expect(decision.allow).toBe(false);
     if (!decision.allow) expect(decision.reason).toBe("reservation-conflict");
+  });
+
+  it("dest-locks across sibling parent worktrees of the same repo", () => {
+    const main = mkdtempSync(join(tmpdir(), "spawn-occ-main-"));
+    temps.push(main);
+    gitInit(main);
+    const parentA = join(main, "parent-a");
+    const parentB = join(main, "parent-b");
+    addLinkedWorktree(main, parentA);
+    addLinkedWorktree(main, parentB);
+    const dest = join(main, "child-dest");
+    const first = persistSpawnReservation(parentA, {
+      agentId: "leaf-a",
+      parentId: "parent-a",
+      occupancyOwner: "parent-a",
+      worktreePath: dest,
+      identitySourceKind: "host-env",
+      incarnation: "inc-a",
+      provenance: "dispatch",
+    });
+    expect(first.ok).toBe(true);
+    const second = persistSpawnReservation(parentB, {
+      agentId: "leaf-b",
+      parentId: "parent-b",
+      occupancyOwner: "parent-b",
+      worktreePath: dest,
+      identitySourceKind: "host-env",
+      incarnation: "inc-b",
+      provenance: "dispatch",
+    });
+    expect(second.ok).toBe(false);
+    if (!second.ok) expect(second.reason).toBe("conflict");
+  });
+
+  it("releases a dest lock from a sibling worktree of the same repo", () => {
+    const main = mkdtempSync(join(tmpdir(), "spawn-occ-rel-"));
+    temps.push(main);
+    gitInit(main);
+    const parentA = join(main, "parent-a");
+    const child = join(main, "child");
+    addLinkedWorktree(main, parentA);
+    addLinkedWorktree(main, child);
+    const dest = child;
+    expect(
+      persistSpawnReservation(parentA, {
+        agentId: "leaf-a",
+        parentId: "parent-a",
+        occupancyOwner: "parent-a",
+        worktreePath: dest,
+        identitySourceKind: "host-env",
+        incarnation: "inc-a",
+        provenance: "dispatch",
+      }).ok,
+    ).toBe(true);
+    releaseSpawnReservation(child, dest);
+    const again = persistSpawnReservation(parentA, {
+      agentId: "leaf-b",
+      parentId: "parent-a",
+      occupancyOwner: "parent-a",
+      worktreePath: dest,
+      identitySourceKind: "host-env",
+      incarnation: "inc-b",
+      provenance: "dispatch",
+    });
+    expect(again.ok).toBe(true);
   });
 
   it("dest-locks a missing destination so two first-creates conflict", () => {
