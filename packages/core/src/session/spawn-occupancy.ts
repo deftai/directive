@@ -12,7 +12,7 @@
 
 import { createHash, randomUUID } from "node:crypto";
 import { existsSync, readFileSync, realpathSync } from "node:fs";
-import { isAbsolute, join, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import {
   ContainedWriteError,
   ContainedWriteErrorCode,
@@ -41,6 +41,7 @@ export type SpawnOccupancyDenyReason =
   | "destination-missing"
   | "primary-path"
   | "destination-not-worktree"
+  | "destination-foreign"
   | "destination-occupied"
   | "reservation-conflict";
 
@@ -213,6 +214,21 @@ export function evaluateImplementSpawnOccupancy(input: {
     };
   }
 
+  if (destPath !== null && existsSync(destPath)) {
+    const destRepo = mainWorktreeRoot(destPath, runGit);
+    const parentRepo = mainWorktreeRoot(payloadRoot, runGit);
+    if (destRepo !== null && parentRepo !== null && !sameTree(destRepo, parentRepo)) {
+      return {
+        allow: false,
+        reason: "destination-foreign",
+        destination,
+        message:
+          `Directive denied spawn: destination ${destPath} is a linked worktree of a foreign repository. ` +
+          "Spawned mutating work takes a linked worktree of this repo.",
+      };
+    }
+  }
+
   if (destPath !== null) {
     const live = liveOccupant(destPath, input.now);
     if (live !== null) {
@@ -276,12 +292,22 @@ export function evaluateImplementSpawnOccupancy(input: {
 
 function reservationDigestKey(destPath: string): string {
   const lexical = resolve(destPath);
-  if (!existsSync(lexical)) return lexical;
-  try {
-    return realpathSync(lexical);
-  } catch {
-    return lexical;
+  const missing: string[] = [];
+  let cursor = lexical;
+  while (!existsSync(cursor)) {
+    const parent = dirname(cursor);
+    if (parent === cursor) break;
+    missing.unshift(basename(cursor));
+    cursor = parent;
   }
+  let existing = cursor;
+  try {
+    if (existsSync(cursor)) existing = realpathSync(cursor);
+  } catch {
+    existing = cursor;
+  }
+  const canonical = missing.length === 0 ? existing : join(existing, ...missing);
+  return process.platform === "win32" ? canonical.toLowerCase() : canonical;
 }
 
 function reservationLockPath(storeRoot: string, destPath: string): string {

@@ -250,7 +250,7 @@ describe("subagent-monitor", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it("releases and clears the dest lock from a terminal heartbeat with no incarnation field (#4066)", () => {
+  it("does not release a successor dest-lock from an incarnation-less terminal (#4066)", () => {
     const main = mkdtempSync(join(tmpdir(), "sam-ninc-"));
     execFileSync("git", ["init", "-q"], { cwd: main, encoding: "utf8" });
     execFileSync("git", ["config", "user.email", "t@t.local"], { cwd: main, encoding: "utf8" });
@@ -298,8 +298,8 @@ describe("subagent-monitor", () => {
       "utf8",
     );
     expect(cmdSubagentMonitor(["--scratch-dir", scratch], parent)).toBe(EXIT_OK);
-    expect(readOccupancy(child)).toBeNull();
-    expect(readSpawnReservationIncarnation(parent, child)).toBeNull();
+    expect(readOccupancy(child)?.sessionId).toBe(childOwner);
+    expect(readSpawnReservationIncarnation(parent, child)).toBe("inc-lock");
     expect(
       persistSpawnReservation(parent, {
         agentId: "leaf-b",
@@ -310,7 +310,7 @@ describe("subagent-monitor", () => {
         incarnation: "inc-next",
         provenance: "dispatch",
       }).ok,
-    ).toBe(true);
+    ).toBe(false);
     rmSync(parent, { recursive: true, force: true });
     rmSync(child, { recursive: true, force: true });
     rmSync(main, { recursive: true, force: true });

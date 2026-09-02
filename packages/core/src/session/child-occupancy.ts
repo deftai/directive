@@ -3,9 +3,9 @@
  *
  * A parent records the child's occupancy owner, exact worktree root, and a
  * non-reused dispatch incarnation at spawn in `.deft/child-occupancy/`.
- * Terminal release is dispatcher-owned: parent-id match, parent-store
- * incarnation (spawn reservation dest-lock corroborates; heartbeat incarnation
- * is optional), skip invalid heartbeats, refuse a tree that is not the
+ * Terminal release is dispatcher-owned: parent-id match, heartbeat incarnation
+ * match (dest-lock corroborates; it does not substitute a missing heartbeat
+ * incarnation), skip invalid heartbeats, refuse a tree that is not the
  * heartbeat tree or a dispatcher-allocated tree. Ordinary self-claim records
  * are not close-out.
  *
@@ -345,7 +345,7 @@ export function releaseChildOccupancyOnTerminal(
     return { reason: "incarnation-mismatch", record, occupancy: null };
   }
   const presentedIncarnation = (input.incarnation ?? "").trim();
-  if (presentedIncarnation.length > 0 && presentedIncarnation !== storeIncarnation) {
+  if (presentedIncarnation.length === 0 || presentedIncarnation !== storeIncarnation) {
     return { reason: "incarnation-mismatch", record, occupancy: null };
   }
   const presentedParent = (input.parentId ?? "").trim();

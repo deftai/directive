@@ -131,6 +131,23 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
     if (!decision.allow) expect(decision.reason).toBe("destination-not-worktree");
   });
 
+  it("refuses a foreign linked worktree as a spawn destination (#4066)", () => {
+    const parent = mkdtempSync(join(tmpdir(), "spawn-occ-adm-p-"));
+    const foreign = mkdtempSync(join(tmpdir(), "spawn-occ-adm-f-"));
+    temps.push(parent, foreign);
+    gitInit(parent);
+    gitInit(foreign);
+    const foreignWt = join(foreign, "wt");
+    addLinkedWorktree(foreign, foreignWt);
+    const decision = evaluateImplementSpawnOccupancy({
+      payload: { tool_name: "spawn_subagent", tool_input: { cwd: foreignWt, prompt: "implement" } },
+      payloadRoot: parent,
+      host: "grok",
+    });
+    expect(decision.allow).toBe(false);
+    if (!decision.allow) expect(decision.reason).toBe("destination-foreign");
+  });
+
   it("refuses a destination that already has a live occupant", () => {
     const root = mkdtempSync(join(tmpdir(), "spawn-occ-live-"));
     temps.push(root);
@@ -296,6 +313,38 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
       parentId: "parent",
       occupancyOwner: "parent",
       worktreePath: dest,
+      identitySourceKind: "host-env",
+      incarnation: "inc-b",
+      provenance: "dispatch",
+    });
+    expect(second.ok).toBe(false);
+    if (!second.ok) expect(second.reason).toBe("conflict");
+  });
+
+  it("dest-locks a missing dest under a symlink parent to the same key (#4066)", () => {
+    const root = mkdtempSync(join(tmpdir(), "spawn-occ-miss-alias-"));
+    temps.push(root);
+    const realParent = join(root, "real-parent");
+    mkdirSync(realParent, { recursive: true });
+    const aliasParent = join(root, "alias-parent");
+    symlinkSync(realParent, aliasParent, process.platform === "win32" ? "junction" : "dir");
+    const viaAlias = join(aliasParent, "wt-missing");
+    const viaReal = join(realParent, "wt-missing");
+    const first = persistSpawnReservation(root, {
+      agentId: "leaf-a",
+      parentId: "parent",
+      occupancyOwner: "parent",
+      worktreePath: viaAlias,
+      identitySourceKind: "host-env",
+      incarnation: "inc-a",
+      provenance: "dispatch",
+    });
+    expect(first.ok).toBe(true);
+    const second = persistSpawnReservation(root, {
+      agentId: "leaf-b",
+      parentId: "parent",
+      occupancyOwner: "parent",
+      worktreePath: viaReal,
       identitySourceKind: "host-env",
       incarnation: "inc-b",
       provenance: "dispatch",
