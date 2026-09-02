@@ -84,12 +84,7 @@
       "swarm": {
         "readiness": "ready",
         "parallel_safe": false,
-        "file_scope": [
-          "packages/core/src/design-critique/",
-          "content/contracts/design-critique.md",
-          "content/skills/deft-directive-design-critique/",
-          "CHANGELOG.md"
-        ],
+        "file_scope": [],
         "verify_commands": [
           "pnpm exec vitest run packages/core/src/design-critique packages/core/src/content-contracts"
         ],
@@ -103,7 +98,8 @@
         "file_scope_confidence": "high",
         "model_tier": "grok-4.6",
         "missing_traces_justification": [
-          "Ingested through-merge story. Bound by issue #4072 lean 5501806673."
+          "Ingested through-merge story. Bound by issue #4072 lean 5501806673.",
+          "Undeclared file_scope: operator did not mint approved-scope at allocation (#3874 / #3145)."
         ]
       },
       "intended_placement": {
