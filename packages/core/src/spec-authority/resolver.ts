@@ -86,8 +86,10 @@ function contentHasAbsentLegacyGeneratedSource(projectRoot: string, content: str
     const relative = relativePathFromSourceMarker(marker);
     try {
       if (statSync(sourcePathFromMarker(projectRoot, relative)).isFile()) continue;
-    } catch {
-      // Named legacy file is gone; render-staleness owns content warning (#4117).
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      // Permission or IO errors are not absence; keep fail-closed (#4117).
+      if (code !== "ENOENT" && code !== "ENOTDIR") continue;
     }
     return true;
   }

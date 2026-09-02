@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -374,6 +374,46 @@ describe("spec-authority resolver", () => {
     expect(isFullSpecState(root)).toBe(false);
     expect(isCurrentGeneratedSpecification(root)).toBe(false);
   });
+
+  it.skipIf(process.platform === "win32")(
+    "does not alias a stale vbrief banner when the named file is unreadable (#4117)",
+    () => {
+      const root = mkdtempSync(join(tmpdir(), "deft-spec-auth-stale-unreadable-"));
+      roots.push(root);
+      const vbrief = join(root, "xbrief");
+      for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
+        mkdirSync(join(vbrief, folder), { recursive: true });
+      }
+      writeProjectDef(vbrief, { Overview: "PD overview" });
+      writeJson(join(vbrief, "specification.xbrief.json"), {
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "Full spec",
+          status: "running",
+          narratives: { Overview: "Spec overview" },
+          items: [],
+        },
+      });
+      mkdirSync(join(root, "vbrief"), { recursive: true });
+      const legacy = join(root, "vbrief", "specification.vbrief.json");
+      writeJson(legacy, {
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "Different", status: "running", narratives: {}, items: [] },
+      });
+      chmodSync(legacy, 0o000);
+      writeFileSync(
+        join(root, "SPECIFICATION.md"),
+        `${GENERATED_SPEC_PURPOSE}\n${GENERATED_SPEC_SOURCE_SPEC}\n`,
+        "utf8",
+      );
+      try {
+        expect(isFullSpecState(root)).toBe(false);
+        expect(isCurrentGeneratedSpecification(root)).toBe(false);
+      } finally {
+        chmodSync(legacy, 0o644);
+      }
+    },
+  );
 
   it("treats a stale vbrief PD banner as current when the named file is gone (#4117)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-spec-auth-stale-pd-"));
