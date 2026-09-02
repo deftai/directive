@@ -209,7 +209,7 @@ export function activate(vbriefPath: string, options: ActivateOptions = {}): Act
     if (code === "EACCES" || code === "EPERM") {
       return runAdmitted();
     }
-    return { exitCode: 1, message: String((err as Error).message) };
+    throw err;
   }
 }
 
