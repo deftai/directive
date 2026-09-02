@@ -92,7 +92,7 @@ Legacy `vbrief/`; `deft migrate:xbrief` (v0.6→v0.8). New writes `"version": "0
 
 ## Envelope selection SLA (#3153)
 
-! Default story / through-merge unit of work is `drive-to: merge-ready`. Deliberate `stop-at: pr-open` is allowed only when a **partner merge-path owner** is planned (review-cycle babysit / Approach 1 lease / parent-retained) for Greptile + CI + post-merge `scope:complete` — triggers: capacity stall, wall-clock budget, large multi-gate, host nest limits (Cursor / Claude Code / Grok Build; swarm Phase 0 decision tree). A grok-build `drive-to: merge-ready` leaf blocks on `pr:watch` in-process and MUST NOT nested-spawn a review-monitor (#4130). Depth: `deft-directive-swarm` + `deft-directive-review-cycle` partner merge-path.
+! Default story / through-merge unit of work is `drive-to: merge-ready`. Deliberate `stop-at: pr-open` is allowed only when a **partner merge-path owner** is planned (review-cycle babysit / Approach 1 lease / parent-retained) for Greptile + CI + post-merge `scope:complete` — triggers: capacity stall, wall-clock budget, large multi-gate, host nest limits (Cursor / Claude Code / Grok Build #4130; swarm Phase 0 decision tree). Depth: `deft-directive-swarm` + `deft-directive-review-cycle` partner merge-path.
 ! Under human-merge policy, a **durable** owner (parent/monitor sticky lease or Phase 6 closer) MUST remain for post-merge `scope:complete` — CLEAN alone is not lifecycle complete; ⊗ stand down at CLEAN with no reachable owner.
 ⊗ Silent PR-open handback for a worker already scoped `drive-to: merge-ready`.
 ⊗ `stop-at: pr-open` without a named babysit / merge-path owner, or dual review-monitor leases on recovery (#3044 / #2261).
