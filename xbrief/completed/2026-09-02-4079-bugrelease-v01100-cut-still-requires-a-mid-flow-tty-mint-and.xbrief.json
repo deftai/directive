@@ -1,0 +1,227 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4079",
+    "updated": "2026-09-02T16:19:51Z"
+  },
+  "plan": {
+    "title": "bug(release): v0.110.0 cut still requires a mid-flow TTY mint, and the skill names a Task verb that does not exist",
+    "status": "completed",
+    "narratives": {
+      "Description": "The v0.110.0 cut printed a Task verb that does not exist and asked for mint after Phase 3 had already failed. Print deft authz:grant at Phase 1, do not wait for a live grant before Phase 3, and keep mint immediately before Phase 4.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4079",
+      "Overview": "## Recut (set-level arc anchored on #4000)\n\nBound by the #4000 arc: successor lean 5504166310, table 5504171849, completed-arc 5504178463. This issue is the skill/docs remainder. It does not recut #4000.\n\n## What happened\n\nThe v0.110.0 cut required a mid-flow TTY mint after Phase 3 had already failed on rehearsal `0.0.1`, and the first mint command printed was `task authz:grant` (not a Taskfile target). Live command is `deft authz:grant -- --template release-publish --target <version> --confirm` plus typed `mint` on a real TTY.\n\n## Recut design\n\nPrint the exact CLI at Phase 1 after version confirmation. Do **not** make a live grant a Phase 3 precondition: a grant for the cut version cannot satisfy rehearsal `target=0.0.1` in a clone with no `.deft/authz`, and a Phase-1 mint can expire (`1h`) during long e2e before production Step 10. Mint immediately before Phase 4 (current skill line). Phase 3 unblocks only via the recut #4000.\n\n## Acceptance\n\n1. Release skill Phase 1, after version is confirmed, names `deft authz:grant -- --template release-publish --target <version> --confirm`. It does not wait for a live grant before Phase 3. ⊗ `task authz:grant`.\n2. Phase 3 halt text names retry-or-stop in prose (or the real recovery), not \"debug\".\n3. Until #4000 ships, Phase 3 documents the #4000 miss and does not ask the operator to mint `0.0.1`.\n4. Policy restore closeout documents both `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` and `DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1` on the push, scoped to those git commands.\n5. Skill Phase 1 CI line names `task check` as the live command; `ci:local` is historical or removed.\n6. CHANGELOG `[Unreleased]` when the skill/docs land.\n\nDoes not close #4000. Does not weaken the production Step 10 gate. Does not add a second mint engine (#3916 dominated).\n\nRefs #4000, #3527, #1095, #3110, #3156. Arc: https://github.com/deftai/directive/issues/4000#issuecomment-5504166310",
+      "UserStory": "As a maintainer running a release, I want the skill to name the real mint CLI at Phase 1 without blocking rehearsal on a grant, so that the next cut does not stall on 0.0.1 or a missing Task target.",
+      "ImplementationPlan": "- Edit packs/skills source for deft-directive-release, then task packs:render so content/skills/deft-directive-release/SKILL.md updates.\n- Phase 1 names deft authz:grant for the confirmed version and does not wait for a live grant before Phase 3.\n- Phase 3 halt names retry-or-stop, documents the #4000 miss, does not mint 0.0.1. Tests or content-contract pins cover the named CLI and halt language.\n- CHANGELOG Unreleased. Do not recut #4000 engine code.",
+      "missing_traces_justification": "Ingested recut story; no prior implementation traces. Bound by #4000 arc successor lean 5504166310.",
+      "Traces": "AC-1 mint CLI; AC-2 halt language"
+    },
+    "items": [
+      {
+        "id": "ac1",
+        "title": "Phase 1 names real mint CLI",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given a confirmed release version, when Phase 1 of the release skill runs, then it prints deft authz:grant -- --template release-publish --target <version> --confirm and does not wait for a live grant before Phase 3."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/release_workflow.test.ts#test_release_skill_names_mint_cli_after_version_confirm (#4079) mint CLI",
+          "recorded_at": "2026-09-02T16:19:32Z",
+          "recorded_by": "grok-build/4079-merge-release"
+        }
+      },
+      {
+        "id": "ac2",
+        "title": "Phase 3 halt is retry-or-stop",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given a non-zero task release:e2e, when Phase 3 halt text is shown, then it names retry-or-stop in prose and does not use the word debug as a product verb."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/release_workflow.test.ts#test_release_skill_names_mint_cli_after_version_confirm (#4079) retry-or-stop",
+          "recorded_at": "2026-09-02T16:19:32Z",
+          "recorded_by": "grok-build/4079-merge-release"
+        }
+      },
+      {
+        "id": "ac3",
+        "title": "Do not mint rehearsal sentinel",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given #4000 is still open, when Phase 3 documents the miss, then it does not ask the operator to mint target 0.0.1."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/release_workflow.test.ts#test_release_skill_names_mint_cli_after_version_confirm (#4079) no mint 0.0.1",
+          "recorded_at": "2026-09-02T16:19:32Z",
+          "recorded_by": "grok-build/4079-merge-release"
+        }
+      },
+      {
+        "id": "ac4",
+        "title": "Windows restore env vars named",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given policy restore closeout, when the skill documents the push, then both DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 and DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 are named and scoped to those git commands."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/release_workflow.test.ts#test_releasing_doc_names_destructive_gh_closeout (#4079); test_release_skill_names_mint_cli_after_version_confirm DEFT_ALLOW_DESTRUCTIVE_GH_VERBS scoped git",
+          "recorded_at": "2026-09-02T16:19:32Z",
+          "recorded_by": "grok-build/4079-merge-release"
+        }
+      },
+      {
+        "id": "ac5",
+        "title": "Phase 1 CI is task check",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given skill Phase 1 CI line, when the recut lands, then it names task check as the live command and treats ci:local as historical."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/release_workflow.test.ts#test_release_skill_names_mint_cli_after_version_confirm (#4079) task check / ci:local historical",
+          "recorded_at": "2026-09-02T16:19:32Z",
+          "recorded_by": "grok-build/4079-merge-release"
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4079",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4079: bug(release): v0.110.0 cut still requires a mid-flow TTY mint, and the skill names a Task verb that does not exist"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4000",
+        "type": "x-xbrief/closes",
+        "title": "Issue #4000"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4000",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4000"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Release skill Phase 1, after version is confirmed, names `deft authz:grant -- --template release-publish --target <version> --confirm`. It does not wait for a live grant before Phase 3. ⊗ `task authz:grant`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Phase 3 halt text names retry-or-stop in prose (or the real recovery), not \"debug\".",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Until #4000 ships, Phase 3 documents the #4000 miss and does not ask the operator to mint `0.0.1`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Policy restore closeout documents both `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` and `DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1` on the push, scoped to those git commands.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Skill Phase 1 CI line names `task check` as the live command; `ci:local` is historical or removed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "CHANGELOG `[Unreleased]` when the skill/docs land.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "packs/skills/",
+          "content/skills/deft-directive-release/SKILL.md",
+          "content/docs/RELEASING.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts"
+        ],
+        "expected_outputs": [
+          "content/skills/deft-directive-release/SKILL.md",
+          "CHANGELOG.md"
+        ],
+        "depends_on": [
+          "4000-release-e2e-closed-verb-rehearsal"
+        ],
+        "conflict_group": "changelog-unreleased",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "grok-4.6",
+        "missing_traces_justification": [
+          "Ingested recut story; no prior implementation traces. Bound by #4000 arc successor lean 5504166310."
+        ]
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4104,
+        "prBase": null,
+        "mergeCommit": "dbd173b5e1f7ba3b7ed405b57db69966efa173ad",
+        "deliveryBranch": "master",
+        "deliveryCommit": "dbd173b5e1f7ba3b7ed405b57db69966efa173ad",
+        "verifiedAt": "2026-09-02T16:19:51Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDYyZTYtYTdmYi03ZmQwLThmMWYtYzc1N2NkNDY4YzNm"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-02T16:19:51Z"
+      },
+      "completedAt": "2026-09-02T16:19:51Z",
+      "completedSessionId": "host:claude:v1:MDFhMDYyZTYtYTdmYi03ZmQwLThmMWYtYzc1N2NkNDY4YzNm",
+      "capacityBucket": "new-capability"
+    },
+    "updated": "2026-09-02T16:19:51Z",
+    "id": "4079-release-skill-mint-timing"
+  }
+}
