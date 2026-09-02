@@ -103,6 +103,22 @@ describe("test_release_workflow.py", () => {
   it("test_releasing_doc_prefers_typed_policy_opt_out", () => {
     expect(releasingDocText).toContain("plan.policy.allowDirectCommitsToMaster");
   });
+  it("test_release_skill_names_mint_cli_after_version_confirm (#4079)", () => {
+    expect(releaseSkillText).toContain("deft authz:grant -- --template release-publish --target <version> --confirm");
+    expect(releaseSkillText).toMatch(/⊗ `task authz:grant`/);
+    expect(releaseSkillText).not.toMatch(/ask whether to debug/i);
+    expect(releaseSkillText).toMatch(/ask whether to retry[\s\S]*or stop/);
+    expect(releaseSkillText).toMatch(/⊗ Ask the operator to mint `0\.0\.1`/);
+    expect(releaseSkillText).toContain("DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 git add");
+    expect(releaseSkillText).toContain("DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 git commit");
+    expect(releaseSkillText).toContain("DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 git push");
+    expect(releaseSkillText).toMatch(/4\. ! Verify `task check` passes locally/);
+    expect(releaseSkillText).toContain("`task ci:local` is historical and removed");
+  });
+  it("test_releasing_doc_names_destructive_gh_closeout (#4079)", () => {
+    expect(releasingDocText).toContain("DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 git add");
+    expect(releasingDocText).toContain("DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 git push");
+  });
   it("test_releasing_doc_warns_against_broad_env_bypass", () => {
     expect(releasingDocText).toContain("DEFT_ALLOW_DEFAULT_BRANCH_COMMIT");
   });

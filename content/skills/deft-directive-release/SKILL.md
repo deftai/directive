@@ -42,11 +42,11 @@ This writes `plan.policy.allowDirectCommitsToMaster = true` on `xbrief/PROJECT-D
 ```
 task policy:enforce-branches
 # enforce flips the typed flag to false locally — the commit that lands that
-# flip cannot use the typed opt-in anymore. Scope the emergency env bypass to
-# ONLY this closeout commit+push (do NOT export it for the whole session):
-DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 git add xbrief/PROJECT-DEFINITION.xbrief.json meta/policy-changes.log
-DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 git commit -m "chore(policy): restore branch protection after vX.Y.Z"
-DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 git push origin HEAD
+# flip cannot use the typed opt-in anymore. Scope the emergency env bypasses to
+# ONLY this closeout commit+push (do NOT export them for the whole session):
+DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 git add xbrief/PROJECT-DEFINITION.xbrief.json meta/policy-changes.log
+DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 git commit -m "chore(policy): restore branch protection after vX.Y.Z"
+DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 git push origin HEAD
 ```
 
 ⊗ Leave `allowDirectCommitsToMaster=true` on origin after publish. ⊗ Run `policy:enforce-branches` and leave the dirty restore under protection ON without committing (forces a follow-up PR — the v0.79.0 / #2619 failure mode).
@@ -57,12 +57,12 @@ DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 git push origin HEAD
 task verify:branch
 ```
 
-or invoke `task verify:branch`. This is the canonical surface that surfaces the policy state to the operator before the pipeline starts writing files. The release pipeline's other safety surfaces (the dirty-tree guard, base-branch check, `task ci:local` gate) remain independent of this check.
+or invoke `task verify:branch`. This is the canonical surface that surfaces the policy state to the operator before the pipeline starts writing files. The release pipeline's other safety surfaces (the dirty-tree guard, base-branch check, `task check` gate) remain independent of this check. (`task ci:local` is historical and removed.)
 
 **Emergency env-var bypass — narrow scope only (#1553).** `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` is process-wide: every child process, nested test, and temporary repository spawned from the same shell inherits it. During the v0.43.0 release attempt, wrapping the entire `task release` invocation in this env var let the bypass leak into the Step 5 `task ci:local` preflight, which caused `TestWriteConsumerGitHooks_VendoredCommitBlocked_RealGit` to fail because the vendored test repo allowed a direct `master` commit the test expected the hook to block.
 
 - ! Prefer `task policy:allow-direct-commits -- --confirm` for release sessions instead of exporting `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` for the whole shell.
-- ⊗ Wrap `task release`, `task ci:local`, or `task check` in `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` -- the env var is inherited by every subprocess and can produce false preflight failures before any release mutation.
+- ⊗ Wrap `task release` or `task check` in `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` -- the env var is inherited by every subprocess and can produce false preflight failures before any release mutation. (`task ci:local` is historical; same leak class.)
 - ? If the env-var path is unavoidable, scope it to a **single** branch-guard probe only (e.g. `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 task verify:branch`) and do NOT export it for the release session. The release pipeline itself passes the bypass only in scoped subprocess `env=` for its authorised commit/tag/push mutations (#867); operators MUST NOT mirror that pattern at the shell level.
 
 The release pipeline's Step 9/10/11 git mutations carry the bypass in subprocess `env=` only (`the release pipeline subprocess env`, #867) so the parent shell stays clean. Operator-side env-var exports defeat that isolation.
@@ -84,24 +84,24 @@ The release pipeline's Step 9/10/11 git mutations carry the bypass in subprocess
 
 ### Parallel prep — #1880 Gap D (#2692)
 
-! Phase 1 long steps (`task reconcile:issues -- --apply-lifecycle-fixes`, cache refresh when ritual-stale, `task ci:local` / `task check`) and Phase 3 `task release:e2e` MUST be backgrounded or subagent-dispatched when the host supports it (Cursor: Task tool `run_in_background: true`), with progress surfaced via DONE/heartbeat — same ownership as review-cycle / merge-ready workers (#1880 Gap D). The operator conversation MUST stay interactive for version magnitude confirmation, `--summary`, and the Phase 2 dry-run `yes`/`back`/`quit` gate while prep runs.
+! Phase 1 long steps (`task reconcile:issues -- --apply-lifecycle-fixes`, cache refresh when ritual-stale, `task check`) and Phase 3 `task release:e2e` MUST be backgrounded or subagent-dispatched when the host supports it (Cursor: Task tool `run_in_background: true`), with progress surfaced via DONE/heartbeat — same ownership as review-cycle / merge-ready workers (#1880 Gap D). The operator conversation MUST stay interactive for version magnitude confirmation, `--summary`, and the Phase 2 dry-run `yes`/`back`/`quit` gate while prep runs. (`task ci:local` is historical and removed.)
 
 ! **Checklist:** Phase 1 prep parallelized — long prep started in background before (or while) collecting version magnitude / summary / npm irrevocability disclosure.
 
 ! On Windows PowerShell, do NOT wrap long task output in `Select-Object -Last` (it buffers until the process exits); stream to the terminal or log to a file and read incrementally. See `scm/github.md` § #2646 / Windows encoding guidance for related PS pitfalls.
 
-⊗ Foreground-block the operator chat on reconcile / `ci:local` / `release:e2e` when background dispatch is available (#1880 Gap D / #2692).
+⊗ Foreground-block the operator chat on reconcile / `check` / `release:e2e` when background dispatch is available (#1880 Gap D / #2692).
 
 ### Fixable check failure — file-and-merge before resume (#2859)
 
-! When Step 4 (`task ci:local` or `task check`) fails on a **fixable product or test defect** (hang, failing test, validation bug — not operator env misconfiguration), the release cut MUST pause and route the blocker through normal issue → xBRIEF → feature branch → PR → merge before resuming Phase 1.
+! When Step 4 (`task check`) fails on a **fixable product or test defect** (hang, failing test, validation bug — not operator env misconfiguration), the release cut MUST pause and route the blocker through normal issue → xBRIEF → feature branch → PR → merge before resuming Phase 1.
 
 ? **Step 5 branch-coverage threshold misses** during `task release` (Vitest branch coverage below 85% with no other failure mode) are carved out to § Step 5 branch-coverage threshold — open-issue ledger hatch (#2866) below — not this file-and-merge path.
 
 **Required path:**
 1. File a GitHub issue with root cause, recurrence signature, and acceptance criteria.
 2. Ingest / promote / activate scope xBRIEF; implement on a feature branch with `drive-to: merge-ready`.
-3. Merge; confirm `task check` / `ci:local` is green for the failure mode.
+3. Merge; confirm `task check` is green for the failure mode.
 4. Resume the release cut from Phase 1 (re-run Step 4).
 
 ⊗ Lead with an inline-only hotfix on the release branch / default branch without a tracked issue and merged PR.
@@ -174,13 +174,14 @@ See [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Routine vs hard cut for
 
 1. ! Verify the operator is on the configured base branch (default `master`) and the working tree is clean
 2. ! Confirm the next version number (`X.Y.Z`) with the user. Major / minor / patch decision flows from the `[Unreleased]` content (breaking change → major; new feature → minor; fix-only → patch)
+! After the version is confirmed, name the mint CLI for that version. The operator runs it immediately before Phase 4 (not now): `deft authz:grant -- --template release-publish --target <version> --confirm` plus typed `mint` on a real TTY. Do **not** wait for a live grant before Phase 3 — a grant for the cut version cannot satisfy rehearsal `target=0.0.1` in a clone with no `.deft/authz`, and a Phase-1 mint can expire (`1h`) during long e2e before production Step 10. ⊗ `task authz:grant` (not a Taskfile target). ⊗ Treat a live grant as a Phase 3 precondition.
 3. ! Inspect `[Unreleased]` content vs the proposed version bump. If a breaking change appears in `### Changed` / `### Removed` but only a patch is proposed, surface the mismatch and ask the user to choose
-4. ! Verify `task ci:local` passes locally (or `task check` as the graceful-degradation fallback per `tasks/release.yml` line 9-10). The `task release` script will refuse to proceed otherwise -- but Phase 1 catches it earlier — **on failure from a fixable defect, STOP and follow § Fixable check failure below (#2859); do NOT proceed to step 5**
+4. ! Verify `task check` passes locally. (`task ci:local` is historical and removed.) The `task release` script will refuse to proceed otherwise -- but Phase 1 catches it earlier — **on failure from a fixable defect, STOP and follow § Fixable check failure below (#2859); do NOT proceed to step 5**
 5. ! Verify `gh auth status` reports authenticated (`task release` will refuse otherwise)
 6. ! **Run `task reconcile:issues -- --apply-lifecycle-fixes` to clear any closed-issue / non-completed-folder xBRIEFs before invoking `task release`** (#734). The release pipeline carries the deterministic gate at Step 3 (`task reconcile:issues -- --apply-lifecycle-fixes`, refuses with `EXIT_VIOLATION` on any Section (c) mismatch), but Phase 1 is the operator's first-line defence -- running the apply-mode flag here is the canonical clean path; `--allow-vbrief-drift` on the pipeline exists only as the explicit-acknowledgment escape hatch (analogous to `--allow-dirty`). The recurrence record is the v0.21.0 cut, which surfaced 13 stranded xBRIEFs (8 cycle-relevant + 5 historical residue) post-publish; the gate now blocks that drift before any irreversible action
 7. ! **Verify the proposed `v<version>` tag is not already in use locally, on origin, or as a published GitHub release** (#784). The release pipeline carries the deterministic gate at Step 4 (`the release tag-availability gate`, refuses with `EXIT_VIOLATION` before any state mutation -- CHANGELOG promotion, ROADMAP refresh, build, commit), but Phase 1 is the operator's first-line defence. Quickly probe with `git tag -l v<version>` (local), `git ls-remote --tags origin refs/tags/v<version>` (remote), and `gh release view v<version> --repo <owner>/<repo>` (release-only, where `gh release view` exits 0 only when the release exists). The recurrence record is the v0.22.0 → v0.23.0 release attempt on 2026-05-01: the operator typed `0.22.0` (the prior release from 12 hours earlier) and the legacy pipeline ran 8 steps before failing at `git tag` -- leaving a wrong-version local commit + `dist/deft-0.22.0.zip` orphan + manual `git reset --hard` recovery. The new pre-flight gate blocks that mode before any irreversible action
 8. ! **Verify the npm credential path is configured before cutting the tag** (#1910, #1909). A `v*` tag now auto-triggers `.github/workflows/npm-publish.yml`, which publishes the four `@deftai/directive*` packages with `npm publish --provenance`. Confirm the publish path can authenticate: either the `NPM_TOKEN` repo secret is present (`gh secret list --repo <owner>/<repo>` shows `NPM_TOKEN`) OR an npm OIDC trusted publisher is configured for the `@deftai/directive*` packages. If neither is in place, WARN loudly that the tag will fire a publish job that fails (red X on the tag, no packages) -- the operator may still proceed for a GitHub-only release, but the npm channel will not land until #1909's credential is provisioned. Cross-reference #1909.
-9. ! **Disclose npm irrevocability before any tag push (#1972, #2002, #3527).** A `v<version>` tag push is the **real npm publish gate** -- NOT Phase 5 or `task release:publish`. Tag push fires `.github/workflows/npm-publish.yml` in a separate workflow that is NOT draft-gated; npm packages ship immediately and **cannot be retracted** (`npm unpublish` is forbidden). Recovery is forward-only: deprecate, dist-tag, or ship a patch. The last human gates before npm goes live are: (a) Phase 2 dry-run `yes`, (b) a human-origin closed-verb grant (`deft authz:grant -- --template release-publish --target <version>` or `DEFT_ALLOW_RELEASE_PUBLISH=1`). `task release` fails closed at the Step 10–11 tag-push boundary without that grant. Phase 5 only controls GitHub release visibility (draft → public); it does NOT gate npm. The draft-flip `release:publish` closed-verb check remains (#1095).
+9. ! **Disclose npm irrevocability before any tag push (#1972, #2002, #3527).** A `v<version>` tag push is the **real npm publish gate** -- NOT Phase 5 or `task release:publish`. Tag push fires `.github/workflows/npm-publish.yml` in a separate workflow that is NOT draft-gated; npm packages ship immediately and **cannot be retracted** (`npm unpublish` is forbidden). Recovery is forward-only: deprecate, dist-tag, or ship a patch. The last human gates before npm goes live are: (a) Phase 2 dry-run `yes`, (b) a human-origin closed-verb grant (`deft authz:grant -- --template release-publish --target <version> --confirm` or `DEFT_ALLOW_RELEASE_PUBLISH=1`). `task release` fails closed at the Step 10–11 tag-push boundary without that grant. Phase 5 only controls GitHub release visibility (draft → public); it does NOT gate npm. The draft-flip `release:publish` closed-verb check remains (#1095).
 10. ~ Ask the operator for an optional one-line release **summary** (recommended 80-160 chars; can be skipped). The summary is the canonical narrative for THIS release across three audiences: (a) injected as a Markdown blockquote at the top of the promoted `CHANGELOG.md [<version>]` section, (b) auto-flowed into the GitHub release body via the existing `_section_for_version` pickup, and (c) populated VERBATIM into the Phase 8 Slack `*Summary*:` slot. Capture the wording once here; do NOT regenerate per-audience downstream
 
 ⊗ Skip the version-bump magnitude check -- a patch release that ships breaking changes is the kind of regression that Repair Authority [AXIOM] (#709) is designed to prevent.
@@ -222,7 +223,9 @@ The harness provisions `deftai/deftai-release-test-<ts>-<uuid6>`, runs the smoke
 
 ! After Phase 3, the agent MUST NOT retry or escalate temp-repo deletion. Include any leftover temp repo(s) in the phase summary for the operator to clean up manually.
 
-! Treat a non-zero exit from `task release:e2e` as a hard refusal to proceed to Phase 4. Surface the diagnostic and ask whether to debug (return to Phase 1) or abort (`quit`).
+! Treat a non-zero exit from `task release:e2e` as a hard refusal to proceed to Phase 4. Surface the diagnostic and ask whether to retry (return to Phase 1) or stop (`quit`).
+
+! Rehearsal uses sentinel version `0.0.1` on a throwaway repo. The landed rehearsal exemption lets `task release:e2e` reach npm dry-run without a `release-publish` grant. ⊗ Ask the operator to mint `0.0.1`. ⊗ Wait for a live grant before Phase 3. Mint remains immediately before Phase 4.
 
 ? **Skip allowed** when the operator has just run `task release:e2e` successfully against the same branch in the past 30 minutes. Note the prior run timestamp in the user-facing summary.
 
@@ -232,7 +235,7 @@ The harness provisions `deftai/deftai-release-test-<ts>-<uuid6>`, runs the smoke
 
 ## Phase 4 — Production draft
 
-! **Last human gate before npm (#1972, #2002, #3527).** Immediately before invoking `task release`, re-state that the tag push in this step will irrevocably publish all four `@deftai/directive*` packages to npm via `.github/workflows/npm-publish.yml`. There is no undo on npm; only forward recovery (deprecate / dist-tag / patch). Proceed only when the operator explicitly confirms **and** a human-origin grant covers `release-publish` for this version (`deft authz:grant -- --template release-publish --target <version>` or `DEFT_ALLOW_RELEASE_PUBLISH=1`). The pipeline fails closed at Step 10–11 without that grant -- that is the npm-distributing boundary. ⊗ Rely on Phase 5 `release:publish` as the npm gate; it only flips the GitHub draft. ⊗ Delete the draft-flip check as a substitute for the tag-push gate.
+! **Last human gate before npm (#1972, #2002, #3527).** Immediately before invoking `task release`, re-state that the tag push in this step will irrevocably publish all four `@deftai/directive*` packages to npm via `.github/workflows/npm-publish.yml`. There is no undo on npm; only forward recovery (deprecate / dist-tag / patch). Proceed only when the operator explicitly confirms **and** a human-origin grant covers `release-publish` for this version (`deft authz:grant -- --template release-publish --target <version> --confirm` or `DEFT_ALLOW_RELEASE_PUBLISH=1`). The pipeline fails closed at Step 10–11 without that grant -- that is the npm-distributing boundary. ⊗ Rely on Phase 5 `release:publish` as the npm gate; it only flips the GitHub draft. ⊗ Delete the draft-flip check as a substitute for the tag-push gate.
 
 ! Invoke `task release -- <version>` (NO `--dry-run`, NO `--skip-tag`, NO `--skip-release`, NO `--skip-ci`). If Phase 1 collected an operator summary, pass `--summary "<text>"` so the production cut writes the same blockquote the dry-run previewed.
 
@@ -373,7 +376,7 @@ Where `<one-line guidance>` is one of:
 
 ## Anti-Patterns
 
-- ⊗ Foreground-block the operator chat on Phase 1 long prep (`reconcile:issues`, cache refresh, `ci:local` / `check`) or Phase 3 `release:e2e` when background / subagent dispatch is available (#1880 Gap D / #2692) — the interactive channel must stay free for version confirmation, `--summary`, and the Phase 2 dry-run gate
+- ⊗ Foreground-block the operator chat on Phase 1 long prep (`reconcile:issues`, cache refresh, `check`) or Phase 3 `release:e2e` when background / subagent dispatch is available (#1880 Gap D / #2692) — the interactive channel must stay free for version confirmation, `--summary`, and the Phase 2 dry-run gate
 - ⊗ Wrap long release-prep task output in PowerShell `Select-Object -Last` — it buffers until exit and makes the session look hung (#2692)
 - ⊗ Run `task release` without a Phase 2 dry-run preview -- the dry-run is the only safe place to catch a bad version, malformed CHANGELOG, or wrong base branch
 - ⊗ Skip Phase 3 (e2e rehearsal) on the assumption that "the dry-run is enough" -- the e2e harness catches gh-CLI auth issues, repo permission gaps, and pipeline-shape regressions that the dry-run cannot detect
@@ -392,7 +395,9 @@ Where `<one-line guidance>` is one of:
 - ⊗ Hardcode `master` as the base branch -- delegate to the configured base branch from `task release --base-branch <branch>`
 - ⊗ Skip the post-create verify-isDraft gate (#724) -- a successful `gh release create` exit code does NOT prove the release actually landed in draft state; the 5-second poll-and-flip gate in `task release` Step 11 is the only safety net against operator-error variants and partial-success races, and any manual recovery path that bypasses `task release` MUST run `gh release view --json isDraft` followed by `gh release edit --draft=true` on `isDraft=false` before handing off to Phase 5
 - ⊗ Manually rewrite the Phase 8 Slack `*Summary*:` line to deviate from the CHANGELOG `[<version>]` blockquote -- the canonical narrative is authored ONCE at Phase 1 via `--summary` and propagates verbatim across all three audiences (CHANGELOG / GitHub release body / Slack). Per-audience hand-edits create documentation drift that the deterministic `--summary` flow is designed to prevent. If the operator wants Slack-specific tone, fold it into the canonical Phase 1 wording before passing `--summary`, OR amend the CHANGELOG blockquote BEFORE Phase 8 so all three surfaces stay aligned
-- ⊗ Export `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` for the entire release session or wrap `task release` / `task ci:local` in it (#1553) -- the env var is process-wide and leaks into nested tests and temporary repos, producing false preflight failures. Prefer `task policy:allow-direct-commits -- --confirm` and restore with `task policy:enforce-branches` after the cut (closeout commit+push may use a **scoped** env prefix on those three git commands only — see Branch-Protection Policy Guard, #2623)
+- ⊗ Export `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` or `DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1` for the entire release session or wrap `task release` / `task check` in them (#1553) -- the env vars are process-wide and leak into nested tests and temporary repos, producing false preflight failures. Prefer `task policy:allow-direct-commits -- --confirm` and restore with `task policy:enforce-branches` after the cut (closeout commit+push may use a **scoped** prefix of both `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` and `DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1` on those three git commands only — see Branch-Protection Policy Guard, #2623)
+- ⊗ `task authz:grant` — not a Taskfile target. Name `deft authz:grant -- --template release-publish --target <version> --confirm`.
+- ⊗ Wait for a live grant before Phase 3, or ask the operator to mint rehearsal `0.0.1` — mint the confirmed cut version immediately before Phase 4.
 - ⊗ Pass `--allow-coverage-debt=#N` unquoted on Windows PowerShell (#2621) -- `#` starts a comment and silently drops the issue number. Use `--allow-coverage-debt=N` or `--allow-coverage-debt="#N"`
 - ⊗ Soft-pass coverage debt while an **open** coverage-debt issue from a prior hatch still exists (#2866 / #2573 / #3187) -- restore real branch coverage >= 85% and close the debt issue before reusing `--allow-coverage-debt` or expecting auto-hatch; the ledger is open GitHub issues, not prior CHANGELOG citations (#2618 superseded by open-issue ledger)
 - ⊗ Re-run the full Step 5 suite after a legal branch-only hairline when auto-hatch already filed `#N` and continued (`PASS_WITH_DEBT`) — that is the ceremony tax #3187 removes

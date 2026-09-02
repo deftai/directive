@@ -17,11 +17,11 @@ task policy:allow-direct-commits -- --confirm
 # ... run the release workflow ...
 task policy:enforce-branches
 # enforce flips the typed flag to false — commit+push the restore with a
-# scoped env bypass on these commands only (#2623); do not leave dirty under
+# scoped env bypasses of DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 and DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 on these commands only (#2623); do not leave dirty under
 # protection ON (v0.79.0 / #2619 failure mode):
-DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 git add xbrief/PROJECT-DEFINITION.xbrief.json meta/policy-changes.log
-DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 git commit -m "chore(policy): restore branch protection after vX.Y.Z"
-DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 git push origin HEAD
+DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 git add xbrief/PROJECT-DEFINITION.xbrief.json meta/policy-changes.log
+DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 git commit -m "chore(policy): restore branch protection after vX.Y.Z"
+DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 git push origin HEAD
 ```
 
 This writes `plan.policy.allowDirectCommitsToMaster = true` on `xbrief/PROJECT-DEFINITION.xbrief.json` with an audited capability-cost disclosure. It does not leak into child processes the way the emergency env-var bypass does.
@@ -49,7 +49,7 @@ Pointer: `content/scm/github.md` § Release Step 5 timeout (maintainer cross-lin
 
 ## Fixable check failure during release (#2859)
 
-When Phase 1 `task ci:local` / `task check` fails on a **fixable product or test defect** during a cut, do **not** lead with an inline hotfix on the release branch or untracked `--skip-ci`. Pause the cut and route the blocker through normal issue → xBRIEF → feature branch → PR → merge → confirm check green → resume Phase 1.
+When Phase 1 `task check` fails on a **fixable product or test defect** during a cut, do **not** lead with an inline hotfix on the release branch or untracked `--skip-ci`. Pause the cut and route the blocker through normal issue → xBRIEF → feature branch → PR → merge → confirm check green → resume Phase 1.
 
 The full agent contract (including the explicit rejection of AGENTS.md / agents-entry bulk for this reminder) lives in `skills/deft-directive-release/SKILL.md` § **Fixable check failure — file-and-merge before resume (#2859)**. Production `--skip-ci` with `--allow-skip-ci=#N` remains incident-only per § Vitest coverage hang recovery above.
 
