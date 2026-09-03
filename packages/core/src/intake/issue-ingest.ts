@@ -518,9 +518,8 @@ function planIdSegmentOk(segment: string): boolean {
 }
 
 function encodeFallbackSegment(raw: string): string {
-  // Length-prefix so a dotted name cannot collide with a literal x2e segment
-  // (b.c -> 3xbx2ec, bx2ec -> 5xbx2ec).
-  return `${raw.length}x${raw.replace(/\./g, "x2e")}`;
+  // Escape x first so encoded dots cannot collide with a literal x2e sequence.
+  return raw.replace(/x/g, "x78").replace(/\./g, "x2e");
 }
 
 export function mintIssuePlanId(input: {

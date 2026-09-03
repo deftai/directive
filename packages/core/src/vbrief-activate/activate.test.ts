@@ -380,7 +380,7 @@ describe("activate projection containment (#3147 / #2447 parity)", () => {
     expect(result.exitCode).toBe(0);
     const dest = join(root, "xbrief", "active", FIXTURE_NAME);
     const payload = JSON.parse(readFileSync(dest, "utf8")) as { plan: { id: string } };
-    expect(payload.plan.id).toBe("github.issue.fallback.1xo.1xr.9");
+    expect(payload.plan.id).toBe("github.issue.fallback.o.r.9");
   });
 
   it("activates an ingest owner with a unique plan.id (#4119)", () => {
