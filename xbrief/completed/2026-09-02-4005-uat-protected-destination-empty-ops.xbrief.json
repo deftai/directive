@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Bound implementation scope for GitHub issue #4005 after the accepted design-critique synthesis.",
-    "updated": "2026-09-02T22:28:05Z"
+    "updated": "2026-09-03T02:34:55Z"
   },
   "plan": {
     "title": "security: gate destination-visible empty-op Shell mutations under active UAT",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Close the surviving #4005 active-UAT authorization residual without reopening the already-landed shell-host catalog fix or growing another executable-name denylist.",
       "Origin": "Issue #4005 plus accepted synthesis comment 5516048869 and verified-claims table 5516040757.",
@@ -124,8 +124,33 @@
         ],
         "module_boundary": "packages/core/src/authz",
         "cohesion_exemption": "The existing authz classifier and its focused/incident regression suites are the canonical homes for this narrow producer and its boundary tests; extracting a separate module would fragment one classifier rule without reducing those files materially. CHANGELOG.md is an append-only chronological release log, and this slice adds one [Unreleased] entry only. PRD.md is the existing generated specification export that the mandatory pre-PR render refreshed; the operator explicitly retained that deterministic output in this scope."
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4146,
+        "prBase": "master",
+        "mergeCommit": "041469e7dd8358a8763e854abf0e447dab849ba2",
+        "deliveryBranch": "master",
+        "deliveryCommit": "041469e7dd8358a8763e854abf0e447dab849ba2",
+        "verifiedAt": "2026-09-03T02:34:55Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "MDFhMDYwMzEtYzFkYS03MTYzLTg3OTItZDI2YjkzNmMxYWYy"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-03T02:34:55Z"
+      },
+      "completedAt": "2026-09-03T02:34:55Z",
+      "completedSessionId": "MDFhMDYwMzEtYzFkYS03MTYzLTg3OTItZDI2YjkzNmMxYWYy",
+      "capacityBucket": "technical-debt"
     },
-    "updated": "2026-09-02T22:28:05Z"
+    "updated": "2026-09-03T02:34:55Z"
   }
 }

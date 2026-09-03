@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Active UAT denies verified positional `zip` writes to literal protected destinations (#4005).** A bounded empty-op fallback emits `unknown` for `zip <protected archive> <input>` and reaches the existing UAT deny arm. Status, reads, prints, protected archive inputs, dynamic paths, and kill-switch suffix siblings stay unclassified; generic destination flags remain `settings`. Recovery now names a classifiable form or explicit UAT suspension after human review. Approved-scope remains defense in depth. Closes #4005.
+- **Land completed-tracked artifact for #4005 (#3264 / #1358).** The #4005 xBRIEF stayed in active/ after squash of PR 4146 (041469e7). Moved to xbrief/completed/ via scope:complete. Does not recut that issue. Refs #2321, #3476.
 - **Land completed-tracked artifact for #4091 (#3264 / #1358).** The #4091 xBRIEF stayed untracked after squash of PR 4135 (e6ddc860). Moved to xbrief/completed/ via scope:complete. Does not recut that issue. Refs #2321, #3476.
 - **Unknown-verb help recovery names `deft triage-help list` (#4091).** `task triage-help` is not a Taskfile target; the CLI verb is. Refs #4135.
 - **Land completed-tracked artifact for #4088 (#3264 / #1358).** The #4088 xBRIEF stayed untracked after squash of PR 4134 (63a8aa34). Moved to xbrief/completed/ via scope:complete. Does not recut that issue. Refs #2321, #3476.
