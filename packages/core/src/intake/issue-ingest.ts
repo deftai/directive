@@ -741,6 +741,14 @@ function boundPlanId(plan: Record<string, unknown>): string | null {
   return typeof id === "string" && id.trim().length > 0 ? id.trim() : null;
 }
 
+function planIdBindingPresent(plan: Record<string, unknown>): boolean {
+  const meta = plan.metadata;
+  if (meta === null || typeof meta !== "object" || Array.isArray(meta)) {
+    return false;
+  }
+  return Object.hasOwn(meta as Record<string, unknown>, PLAN_ID_ORIGIN_META_KEY);
+}
+
 export type PlanIdAdmissionCode =
   | "ok"
   | "missing"
@@ -798,6 +806,16 @@ export function evaluateIssuePlanIdAdmission(opts: {
   }
   if (typeof raw === "string" && raw.trim().length === 0) {
     return admissionFail("blank", opts.artifactPath, "plan.id is blank.");
+  }
+  if (planIdBindingPresent(plan) && bound === null) {
+    return admissionFail("malformed", opts.artifactPath, "stored plan-id binding is malformed.");
+  }
+  if (planIdBindingPresent(plan) && extracted === null) {
+    return admissionFail(
+      "conflicting",
+      opts.artifactPath,
+      "stored plan-id binding exists without plan.id.",
+    );
   }
   if (extracted !== null && bound !== null && extracted !== bound) {
     return admissionFail(
@@ -972,6 +990,26 @@ export function repairNonterminalIssuePlanIds(options: {
             to: null,
             action: "refuse",
             reason: "malformed plan.id is not overwritten",
+          });
+          continue;
+        }
+        if (planRec !== null && planIdBindingPresent(planRec) && extracted === null) {
+          mappings.push({
+            path: rel,
+            from: null,
+            to: null,
+            action: "refuse",
+            reason: "stored plan-id binding exists without plan.id",
+          });
+          continue;
+        }
+        if (planRec !== null && planIdBindingPresent(planRec) && boundPlanId(planRec) === null) {
+          mappings.push({
+            path: rel,
+            from: extracted,
+            to: null,
+            action: "refuse",
+            reason: "malformed stored plan-id binding is not overwritten",
           });
           continue;
         }

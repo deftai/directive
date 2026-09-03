@@ -30,6 +30,7 @@ import {
   ingestOne,
   ingestSingleForAccept,
   mintIssuePlanId,
+  PLAN_ID_ORIGIN_META_KEY,
   provenanceIssueNumber,
   repairNonterminalIssuePlanIds,
   ScannerHardFailError,
@@ -1542,6 +1543,54 @@ describe("#4119 plan.id mint, admission, and repair", () => {
       expect(result.ok).toBe(false);
       expect(planOf(blank).id).toBe("  ");
       expect(planOf(bad).id).toBe("not/valid");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses stored plan-id binding without plan.id in repair and admission", () => {
+    const root = mkdtempSync(join(tmpdir(), "4119-repair-bound-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(join(xbriefDir, "proposed"), { recursive: true });
+    const path = join(xbriefDir, "proposed", "bound.xbrief.json");
+    writeFileSync(
+      path,
+      `${JSON.stringify({
+        xBRIEFInfo: { version: "0.8", description: "Scope xBRIEF ingested from GitHub issue #6" },
+        plan: {
+          title: "Bound",
+          status: "proposed",
+          narratives: { Origin: "Ingested from https://github.com/o/r/issues/6" },
+          items: [],
+          metadata: {
+            [PLAN_ID_ORIGIN_META_KEY]: {
+              version: 1,
+              source: "github-repo-fallback",
+              github_issue_id: null,
+              origin: "o/r#6",
+              id: "github.issue.fallback.o.r.6",
+            },
+          },
+        },
+      })}\n`,
+      "utf8",
+    );
+    try {
+      const repaired = repairNonterminalIssuePlanIds({ vbriefDir: xbriefDir, dryRun: false });
+      expect(repaired.ok).toBe(false);
+      expect(planOf(path).id).toBeUndefined();
+      const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
+      if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw new Error("expected object");
+      }
+      const admitted = evaluateIssuePlanIdAdmission({
+        lifecycleRoot: xbriefDir,
+        artifactPath: path,
+        data: parsed as Record<string, unknown>,
+      });
+      expect(admitted.ok).toBe(false);
+      expect(admitted.code).toBe("conflicting");
+      expect(planOf(path).id).toBeUndefined();
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
