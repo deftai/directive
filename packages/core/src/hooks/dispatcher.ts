@@ -61,6 +61,11 @@ import { emitSessionRitualBlockedProcessCost } from "../session/process-cost.js"
 import { markRitualStaleAfterCompact } from "../session/ritual-sentinel.js";
 import { runSessionStartHookWrite } from "../session/session-start-hook.js";
 import {
+  allocatedWorktreeMatches,
+  evaluateImplementSpawnOccupancy,
+  persistSpawnReservation,
+} from "../session/spawn-occupancy.js";
+import {
   type DetectWorkSelection,
   formatRitualRecoveryInstruction,
   inspectSessionRitual,
@@ -71,6 +76,7 @@ import {
   writeGateRitualOptions,
 } from "../session/verify-session-ritual.js";
 import {
+  fieldString,
   type HookPayloadContext,
   hookApplyPatchBodyPaths,
   hookApplyPatchBodyText,
@@ -1651,6 +1657,48 @@ function inspectMutationGates(
     const occupancyDeny = recheckOccupancyBeforeWriteAllow();
     if (occupancyDeny !== null) return occupancyDeny;
   }
+  const allowMessage = withOccupancyWarning(
+    `Directive ${isSpawnTool(toolName) ? "spawn" : "write"} gate passed for ${toolName}.`,
+  );
+  if (isSpawnTool(toolName)) {
+    const spawnReservation = evaluateImplementSpawnOccupancy({
+      payload: input.payload,
+      payloadRoot,
+      host: input.host,
+      environ,
+      runGit: dispatchGit,
+    });
+    if (!spawnReservation.allow) {
+      return deny(input, "spawn-not-ready", toolName, spawnReservation.message);
+    }
+    const persisted = persistSpawnReservation(payloadRoot, spawnReservation.reservation);
+    if (!persisted.ok) {
+      return deny(
+        input,
+        "spawn-not-ready",
+        toolName,
+        `Directive denied spawn: destination ${spawnReservation.reservation.worktreePath} ` +
+          "is already reserved. Own worktree means a unique reservation.",
+      );
+    }
+    const updatedInput = spawnUpdatedInput(
+      input,
+      spawnReservation.reRootPath,
+      spawnReservation.hostCanReroot,
+      spawnReservation.incarnation,
+    );
+    return {
+      verdict: "allow",
+      code: allowCode,
+      event: input.event,
+      host: input.host,
+      toolName,
+      projectRoot,
+      message: `${allowMessage} ${spawnReservation.message}`,
+      scopePath: scope.path,
+      ...(updatedInput !== undefined ? { updatedInput } : {}),
+    };
+  }
   return {
     verdict: "allow",
     code: allowCode,
@@ -1658,10 +1706,52 @@ function inspectMutationGates(
     host: input.host,
     toolName,
     projectRoot,
-    message: withOccupancyWarning(
-      `Directive ${isSpawnTool(toolName) ? "spawn" : "write"} gate passed for ${toolName}.`,
-    ),
+    message: allowMessage,
     scopePath: scope.path,
+  };
+}
+
+function spawnIncarnationFromPayload(payload: unknown): string {
+  const input = record(payload);
+  if (input === null) return "";
+  const nested = toolInputRecord(input);
+  const fromTool =
+    nested !== null
+      ? (fieldString(nested, "incarnation") ?? fieldString(nested, "Incarnation"))
+      : null;
+  if (fromTool !== null && fromTool.trim().length > 0) return fromTool.trim();
+  const fromTop = fieldString(input, "incarnation");
+  return fromTop !== null ? fromTop.trim() : "";
+}
+
+function spawnUpdatedInput(
+  input: HookDispatchInput,
+  reRootPath: string | null,
+  hostCanReroot: boolean,
+  incarnation: string,
+): Readonly<Record<string, unknown>> | undefined {
+  if (!hostCanReroot || !hostAcceptsUpdatedInput(input.host)) return undefined;
+  const token = incarnation.trim();
+  if (token.length === 0) return undefined;
+  const payload = record(input.payload);
+  if (payload === null) return undefined;
+  const toolInput = toolInputRecord(payload);
+  const incarnationFields = { incarnation: token };
+  if (toolInput === null) {
+    return {
+      ...payload,
+      ...incarnationFields,
+      ...(reRootPath !== null ? { cwd: reRootPath, working_directory: reRootPath } : {}),
+    };
+  }
+  return {
+    ...payload,
+    ...(reRootPath !== null ? { cwd: reRootPath } : {}),
+    tool_input: {
+      ...toolInput,
+      ...incarnationFields,
+      ...(reRootPath !== null ? { cwd: reRootPath, working_directory: reRootPath } : {}),
+    },
   };
 }
 
@@ -1853,6 +1943,7 @@ function lifecycleExecutionRootCheck(
   projectRoot: string,
   realpath: (path: string) => string,
   platform: NodeJS.Platform,
+  parentId: string,
 ): { readonly aligned: boolean; readonly message: string } {
   const input = record(payload);
   if (input === null) {
@@ -1899,11 +1990,21 @@ function lifecycleExecutionRootCheck(
         };
       }
       if (!sameExecutionDirectory(actual, expectedReal)) {
+        if (
+          allocatedWorktreeMatches(expected, actual, {
+            parentId,
+            incarnation: spawnIncarnationFromPayload(payload) || undefined,
+          })
+        ) {
+          continue;
+        }
         return {
           aligned: false,
           message:
             `execution-directory field ${field} resolves to ${actual}, not the hook project ` +
-            `root ${expectedReal}`,
+            `root ${expectedReal}. Isolate in the allocated child worktree; do not claim the ` +
+            "primary checkout. Hosts that cannot re-root PreToolUse (Grok) must start the child " +
+            "in that worktree.",
         };
       }
     }
@@ -2007,6 +2108,7 @@ function attachLifecycleIdentityRewrite(
     input.projectRoot,
     seams.realpathLifecycleExecutionRoot ?? realpathSync,
     seams.lifecycleExecutionPlatform ?? process.platform,
+    identity.sessionId,
   );
   if (!executionRoot.aligned) {
     return deny(

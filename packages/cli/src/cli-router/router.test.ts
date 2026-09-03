@@ -279,13 +279,24 @@ describe("routeAndDispatch", () => {
     vi.doMock("../scope-lifecycle.js", () => ({ run: handler }));
     resetHandlerCacheForTests();
 
-    await routeAndDispatch(["scope:promote", "--help"], {
+    const helpOut: string[] = [];
+    const helpCode = await routeAndDispatch(["scope:promote", "--help"], {
+      writeOut: (text) => {
+        helpOut.push(text);
+      },
+      writeErr: () => {},
+    });
+    expect(helpCode).toBe(0);
+    expect(helpOut.join("")).toContain("task scope:promote");
+    expect(handler).not.toHaveBeenCalled();
+
+    resetHandlerCacheForTests();
+    await routeAndDispatch(["scope:promote", "xbrief/proposed/foo.xbrief.json"], {
       writeOut: () => {},
       writeErr: () => {},
     });
-
     expect(handler).toHaveBeenCalledOnce();
-    expect(handler.mock.calls[0]?.[0]).toEqual(["promote", "--help"]);
+    expect(handler.mock.calls[0]?.[0]).toEqual(["promote", "xbrief/proposed/foo.xbrief.json"]);
   });
 
   it("routes verify branch to the same handler as verify:branch", async () => {

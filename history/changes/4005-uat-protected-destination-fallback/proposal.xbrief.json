@@ -1,0 +1,32 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8"
+  },
+  "plan": {
+    "title": "4005-uat-protected-destination-fallback",
+    "status": "approved",
+    "narratives": {
+      "Problem": "Under active UAT, supported Shell tools can execute mutation forms that visibly target protected authority paths while the authz classifier returns no operation. The existing `unknown` fail-closed evaluator branch has no production producer.",
+      "Change": "Add a bounded protected-destination producer for `unknown`, exact positive and negative regression coverage, accurate recovery guidance, a brief release note, and the deterministic PRD refresh required by the pre-PR workflow.",
+      "Scope": "In scope: the #4005 accepted synthesis, destination-visible empty-op classification, active/inactive UAT behavior, authz and kill-switch effects, approved-scope defense-in-depth semantics, tests, CHANGELOG, and the retained generated PRD source-banner/footer refresh. Out of scope: HIGH 1, a 30-name binary list, blanket empty-op denial, total Shell parsing, and the product path-write fence.",
+      "Impact": "Touches the authz classifier, evaluator recovery text if required, focused classifier and incident regression tests, the active scope xBRIEF, CHANGELOG.md, and the generated PRD.md export.",
+      "Risks": "An overbroad predicate could deny reads or print-only commands; a narrow executable list would preserve the recurrence class; treating approved-scope like the immediate authority stores would overstate impact.",
+      "Approach": "Test first. Pin exact zip destination vectors and negative controls, implement one narrow producer for the existing unknown operation, verify stronger settings classification still wins, retain the deterministic `task prd:render` output selected by the operator, then run focused coverage and the full merge gate.",
+      "Alternatives": "The issue body's executable-name census was rejected because destination flags already classify independent of names and new names would reopen the hole. Blanket empty-op denial was rejected because it catches status and reads. Reopening the host-name catalog fix was rejected because it already landed.",
+      "Dependencies": "Commit 75d5970a for the shared shell-host catalog, the existing unknown evaluator arm, issue #4005 synthesis 5516048869, and verified claims 5516040757.",
+      "Confirmation": "David explicitly confirmed `/deft:change 4005-uat-protected-destination-fallback` on 2026-09-02 and explicitly selected the retain route for the generated PRD.md refresh."
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4005",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4005"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4005#issuecomment-5516048869",
+        "type": "x-xbrief/github-comment",
+        "title": "Accepted design-critique synthesis"
+      }
+    ]
+  }
+}

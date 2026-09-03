@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -30,13 +31,29 @@ function tempRoot(): string {
   return root;
 }
 
+function gitInit(root: string): void {
+  execFileSync("git", ["init", "-q"], { cwd: root, encoding: "utf8" });
+  execFileSync("git", ["config", "user.email", "t@t.local"], { cwd: root, encoding: "utf8" });
+  execFileSync("git", ["config", "user.name", "T"], { cwd: root, encoding: "utf8" });
+  writeFileSync(join(root, "README"), "x\n", "utf8");
+  execFileSync("git", ["add", "README"], { cwd: root, encoding: "utf8" });
+  execFileSync("git", ["commit", "-q", "-m", "init"], { cwd: root, encoding: "utf8" });
+}
+
+function addLinkedWorktree(root: string, dest: string): void {
+  execFileSync("git", ["worktree", "add", "--detach", dest, "HEAD"], {
+    cwd: root,
+    encoding: "utf8",
+  });
+}
+
 describe("child occupancy dispatch record (#3999)", () => {
   const now = new Date("2026-08-31T12:00:00Z");
   const agentId = "child-agent";
   const parentId = "parent-agent";
   const childOwner = "host:grok:v1:child-owner";
 
-  it("claim under a host-env id records the child so terminal can release without a parent write", () => {
+  it("claim-time records are not dispatcher close-out (#4066)", () => {
     const root = tempRoot();
     const grokRaw = "01a054b9-4042-72e1-929c-b6a1074b31e3";
     const env = { GROK_SESSION_ID: grokRaw };
@@ -44,29 +61,40 @@ describe("child occupancy dispatch record (#3999)", () => {
     const owner = readOccupancy(root)?.sessionId;
     expect(owner).toBeTruthy();
     expect(readChildOccupancyLease(root, grokRaw)?.occupancyOwner).toBe(owner);
+    expect(readChildOccupancyLease(root, grokRaw)?.provenance).toBe("claim");
 
-    const released = releaseChildOccupancyOnTerminal(root, { agentId: grokRaw, now });
-    expect(released.reason).toBe("released");
-    expect(readOccupancy(root)).toBeNull();
-    expect(evaluateOccupancyWriteGate(root, { sessionId: "parent", now, env: {} }).allow).toBe(
-      true,
-    );
+    const recorded = readChildOccupancyLease(root, grokRaw);
+    const released = releaseChildOccupancyOnTerminal(root, {
+      agentId: grokRaw,
+      now,
+      incarnation: recorded?.incarnation,
+      parentId: recorded?.parentId,
+    });
+    expect(released.reason).toBe("claim-provenance");
+    expect(readOccupancy(root)?.sessionId).toBe(owner);
   });
 
   it("dispatch-claim-exit clears the child owner lease without waiting for TTL", () => {
     const root = tempRoot();
-    recordChildOccupancyLease(root, {
+    const lease = recordChildOccupancyLease(root, {
       agentId,
       parentId,
       occupancyOwner: childOwner,
       worktreePath: root,
       identitySourceKind: "host-env",
+      incarnation: "inc-dispatch",
+      provenance: "dispatch",
     });
     expect(existsSync(childOccupancyPath(root, agentId))).toBe(true);
     applyWorktreeOccupancy(root, { sessionId: childOwner, now, env: {} });
     expect(readOccupancy(root)?.sessionId).toBe(childOwner);
 
-    const released = releaseChildOccupancyOnTerminal(root, { agentId, now });
+    const released = releaseChildOccupancyOnTerminal(root, {
+      agentId,
+      now,
+      incarnation: lease.incarnation,
+      parentId,
+    });
 
     expect(released.reason).toBe("released");
     expect(readOccupancy(root)).toBeNull();
@@ -92,9 +120,12 @@ describe("child occupancy dispatch record (#3999)", () => {
       env: {},
     });
 
+    const rec = readChildOccupancyLease(root, agentId);
     const released = releaseChildOccupancyOnTerminal(root, {
       agentId,
       now: new Date(now.getTime() + OCCUPANCY_TTL_MS + 1),
+      incarnation: rec?.incarnation,
+      parentId,
     });
 
     expect(released.reason).toBe("owner-changed");
@@ -113,7 +144,13 @@ describe("child occupancy dispatch record (#3999)", () => {
     });
     applyWorktreeOccupancy(root, { sessionId: shared, now, env: {} });
 
-    const released = releaseChildOccupancyOnTerminal(root, { agentId, now });
+    const rec = readChildOccupancyLease(root, agentId);
+    const released = releaseChildOccupancyOnTerminal(root, {
+      agentId,
+      now,
+      incarnation: rec?.incarnation,
+      parentId,
+    });
 
     expect(released.reason).toBe("payload-skip");
     expect(readOccupancy(root)?.sessionId).toBe(shared);
@@ -209,7 +246,13 @@ describe("child occupancy dispatch record (#3999)", () => {
       worktreePath: root,
       identitySourceKind: "host-env",
     });
-    const released = releaseChildOccupancyOnTerminal(root, { agentId, now });
+    const rec = readChildOccupancyLease(root, agentId);
+    const released = releaseChildOccupancyOnTerminal(root, {
+      agentId,
+      now,
+      incarnation: rec?.incarnation,
+      parentId,
+    });
     expect(released.reason).toBe("already-free");
     expect(existsSync(childOccupancyPath(root, agentId))).toBe(false);
   });
@@ -258,8 +301,167 @@ describe("child occupancy dispatch record (#3999)", () => {
       identitySourceKind: "host-env",
     });
     applyWorktreeOccupancy(tree, { sessionId: childOwner, now, env: {} });
-    const released = releaseChildOccupancyOnTerminal(store, { agentId, now });
+    const rec = readChildOccupancyLease(store, agentId);
+    const released = releaseChildOccupancyOnTerminal(store, {
+      agentId,
+      now,
+      incarnation: rec?.incarnation,
+      parentId,
+    });
     expect(released.reason).toBe("released");
     expect(readOccupancy(tree)).toBeNull();
+  });
+
+  it("refuses a stale incarnation so a retry cannot yank the live lease (#4066)", () => {
+    const root = tempRoot();
+    recordChildOccupancyLease(root, {
+      agentId,
+      parentId,
+      occupancyOwner: childOwner,
+      worktreePath: root,
+      identitySourceKind: "host-env",
+      incarnation: "inc-2",
+      provenance: "dispatch",
+    });
+    applyWorktreeOccupancy(root, { sessionId: childOwner, now, env: {} });
+    const released = releaseChildOccupancyOnTerminal(root, {
+      agentId,
+      now,
+      incarnation: "inc-1",
+      parentId,
+    });
+    expect(released.reason).toBe("incarnation-mismatch");
+    expect(readOccupancy(root)?.sessionId).toBe(childOwner);
+  });
+
+  it("skips invalid heartbeats and parent mismatches (#4066)", () => {
+    const root = tempRoot();
+    recordChildOccupancyLease(root, {
+      agentId,
+      parentId,
+      occupancyOwner: childOwner,
+      worktreePath: root,
+      identitySourceKind: "host-env",
+      incarnation: "inc-ok",
+      provenance: "dispatch",
+    });
+    applyWorktreeOccupancy(root, { sessionId: childOwner, now, env: {} });
+    expect(
+      releaseChildOccupancyOnTerminal(root, {
+        agentId,
+        now,
+        incarnation: "inc-ok",
+        parentId,
+        heartbeatFailures: ["agent_id mismatch"],
+      }).reason,
+    ).toBe("invalid-heartbeat");
+    expect(
+      releaseChildOccupancyOnTerminal(root, {
+        agentId,
+        now,
+        incarnation: "inc-ok",
+        parentId: "other-parent",
+      }).reason,
+    ).toBe("parent-mismatch");
+    expect(readOccupancy(root)?.sessionId).toBe(childOwner);
+  });
+
+  it("binds a spawn-pending placeholder to the heartbeat linked worktree (#4066)", () => {
+    const root = tempRoot();
+    gitInit(root);
+    const child = join(root, "wt-child");
+    addLinkedWorktree(root, child);
+    const placeholder = join(root, ".deft", "spawn-pending", "inc-pathless");
+    mkdirSync(placeholder, { recursive: true });
+    recordChildOccupancyLease(root, {
+      agentId,
+      parentId,
+      occupancyOwner: childOwner,
+      worktreePath: placeholder,
+      identitySourceKind: "payload",
+      incarnation: "inc-pathless",
+      provenance: "dispatch",
+    });
+    applyWorktreeOccupancy(child, { sessionId: childOwner, now, env: {} });
+    const released = releaseChildOccupancyOnTerminal(root, {
+      agentId,
+      now,
+      incarnation: "inc-pathless",
+      parentId,
+      heartbeatWorktree: child,
+      observerRoot: root,
+    });
+    expect(released.reason).toBe("released");
+    expect(readOccupancy(child)).toBeNull();
+    expect(existsSync(childOccupancyPath(root, agentId))).toBe(false);
+  });
+
+  it("does not bind a spawn-pending placeholder to a foreign heartbeat tree (#4066)", () => {
+    const root = tempRoot();
+    const foreign = tempRoot();
+    gitInit(root);
+    gitInit(foreign);
+    const placeholder = join(root, ".deft", "spawn-pending", "inc-pathless");
+    mkdirSync(placeholder, { recursive: true });
+    recordChildOccupancyLease(root, {
+      agentId,
+      parentId,
+      occupancyOwner: childOwner,
+      worktreePath: placeholder,
+      identitySourceKind: "payload",
+      incarnation: "inc-pathless",
+      provenance: "dispatch",
+    });
+    applyWorktreeOccupancy(foreign, { sessionId: childOwner, now, env: {} });
+    const released = releaseChildOccupancyOnTerminal(root, {
+      agentId,
+      now,
+      incarnation: "inc-pathless",
+      parentId,
+      heartbeatWorktree: foreign,
+      observerRoot: root,
+    });
+    expect(released.reason).toBe("tree-not-allocated");
+    expect(readOccupancy(foreign)?.sessionId).toBe(childOwner);
+    expect(existsSync(childOccupancyPath(root, agentId))).toBe(true);
+  });
+  it("refuses an incarnation-less terminal so a successor lease cannot be yanked (#4066)", () => {
+    const root = tempRoot();
+    recordChildOccupancyLease(root, {
+      agentId,
+      parentId,
+      occupancyOwner: childOwner,
+      worktreePath: root,
+      identitySourceKind: "host-env",
+      incarnation: "inc-store",
+      provenance: "dispatch",
+    });
+    applyWorktreeOccupancy(root, { sessionId: childOwner, now, env: {} });
+    const released = releaseChildOccupancyOnTerminal(root, { agentId, now, parentId });
+    expect(released.reason).toBe("incarnation-mismatch");
+    expect(readOccupancy(root)?.sessionId).toBe(childOwner);
+    expect(existsSync(childOccupancyPath(root, agentId))).toBe(true);
+  });
+
+  it("refuses a dest-lock incarnation that disagrees with the parent store (#4066)", () => {
+    const root = tempRoot();
+    recordChildOccupancyLease(root, {
+      agentId,
+      parentId,
+      occupancyOwner: childOwner,
+      worktreePath: root,
+      identitySourceKind: "host-env",
+      incarnation: "inc-store",
+      provenance: "dispatch",
+    });
+    applyWorktreeOccupancy(root, { sessionId: childOwner, now, env: {} });
+    const released = releaseChildOccupancyOnTerminal(root, {
+      agentId,
+      now,
+      parentId,
+      reservationIncarnation: "inc-other",
+    });
+    expect(released.reason).toBe("incarnation-mismatch");
+    expect(readOccupancy(root)?.sessionId).toBe(childOwner);
   });
 });

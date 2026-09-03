@@ -106,9 +106,9 @@ describe("test_main_guidance", () => {
 
 describe("completed xBRIEF record not next-build (#3383)", () => {
   const persistence = (() => {
-    const match = /^##\s+vBRIEF Persistence[\s\S]*?(?=^##\s)/m.exec(mainText);
+    const match = /^##\s+xBRIEF Persistence[\s\S]*?(?=^##\s)/m.exec(mainText);
     if (!match) {
-      throw new Error("vBRIEF Persistence section heading not found");
+      throw new Error("xBRIEF Persistence section heading not found");
     }
     return match[0];
   })();

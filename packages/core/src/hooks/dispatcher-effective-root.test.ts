@@ -203,7 +203,11 @@ describe("effectiveRoot admission (#3794)", () => {
 describe("direct-write occupancy/ritual follow the target worktree (#3794)", () => {
   it("refuses a foreign-repository target even when the payload lease matches", () => {
     const { primary, foreign } = linkedFixture();
-    applyWorktreeOccupancy(primary, { sessionId: "owner", intent: "mutation" });
+    applyWorktreeOccupancy(primary, {
+      primaryClaimException: "operator-default-branch",
+      sessionId: "owner",
+      intent: "mutation",
+    });
     const { ritualRoots, seams } = recordingSeams("owner");
     const decision = decideHook(
       {
@@ -222,7 +226,11 @@ describe("direct-write occupancy/ritual follow the target worktree (#3794)", () 
 
   it("does not block a worktree write for an unrelated primary lease", () => {
     const { primary, wtA } = linkedFixture();
-    applyWorktreeOccupancy(primary, { sessionId: "primary-owner", intent: "mutation" });
+    applyWorktreeOccupancy(primary, {
+      primaryClaimException: "operator-default-branch",
+      sessionId: "primary-owner",
+      intent: "mutation",
+    });
     const { ritualRoots, scopeRoots, seams } = recordingSeams("wt-owner");
     const decision = decideHook(
       {
@@ -708,7 +716,11 @@ describe("no-toplevel targets keep payloadRoot gating (#4013)", () => {
 
   it("denies a no-toplevel direct write under a foreign payload-root lease", () => {
     const { primary } = linkedFixture();
-    applyWorktreeOccupancy(primary, { sessionId: "payload-owner", intent: "mutation" });
+    applyWorktreeOccupancy(primary, {
+      primaryClaimException: "operator-default-branch",
+      sessionId: "payload-owner",
+      intent: "mutation",
+    });
     const { ritualRoots, scopeRoots, seams } = recordingSeams("other");
     const decision = decideHook(
       {
@@ -731,7 +743,11 @@ describe("no-toplevel targets keep payloadRoot gating (#4013)", () => {
 
   it("allows the same target for the payload root's own owner and skips the scope deny", () => {
     const { primary } = linkedFixture();
-    applyWorktreeOccupancy(primary, { sessionId: "owner", intent: "mutation" });
+    applyWorktreeOccupancy(primary, {
+      primaryClaimException: "operator-default-branch",
+      sessionId: "owner",
+      intent: "mutation",
+    });
     const { scopeRoots, seams } = scopeSeams(null);
     const decision = decideHook(
       {
@@ -752,7 +768,11 @@ describe("no-toplevel targets keep payloadRoot gating (#4013)", () => {
 
   it("never reaches root admission for a generic server-prefixed MCP name", () => {
     const { primary } = linkedFixture();
-    applyWorktreeOccupancy(primary, { sessionId: "payload-owner", intent: "mutation" });
+    applyWorktreeOccupancy(primary, {
+      primaryClaimException: "operator-default-branch",
+      sessionId: "payload-owner",
+      intent: "mutation",
+    });
     const target = join(outsideDir(), "note.md");
     const { ritualRoots, scopeRoots, seams } = recordingSeams("other");
     const mcp = decideHook(
@@ -786,7 +806,11 @@ describe("no-toplevel targets keep payloadRoot gating (#4013)", () => {
 
   it("excludes an out-of-repo shell write dest from the reissue path", () => {
     const { primary } = linkedFixture();
-    applyWorktreeOccupancy(primary, { sessionId: "payload-owner", intent: "mutation" });
+    applyWorktreeOccupancy(primary, {
+      primaryClaimException: "operator-default-branch",
+      sessionId: "payload-owner",
+      intent: "mutation",
+    });
     const outsideDest = join(outsideDir(), "note.md");
     expect(isInRepoShellWritePath(resolve(primary), outsideDest)).toBe(false);
     const { ritualRoots, scopeRoots, seams } = recordingSeams("other");
@@ -797,7 +821,7 @@ describe("no-toplevel targets keep payloadRoot gating (#4013)", () => {
         projectRoot: primary,
         payload: {
           tool_name: "run_terminal_command",
-          tool_input: { command: "Set-Content -Path " + outsideDest + " -Value x" },
+          tool_input: { command: `Set-Content -Path ${outsideDest} -Value x` },
         },
         environ: { DEFT_SESSION_ID: "other" },
       },
@@ -818,7 +842,7 @@ describe("no-toplevel targets keep payloadRoot gating (#4013)", () => {
         payload: {
           tool_name: "run_terminal_command",
           tool_input: {
-            command: "Set-Content -Path " + join(primary, "src", "app.ts") + " -Value x",
+            command: `Set-Content -Path ${join(primary, "src", "app.ts")} -Value x`,
           },
         },
         environ: { DEFT_SESSION_ID: "other" },
@@ -858,7 +882,11 @@ describe("no-toplevel targets keep payloadRoot gating (#4013)", () => {
 
   it("collapses a no-toplevel member onto the payload root it already contributes", () => {
     const { primary } = linkedFixture();
-    applyWorktreeOccupancy(primary, { sessionId: "owner", intent: "mutation" });
+    applyWorktreeOccupancy(primary, {
+      primaryClaimException: "operator-default-branch",
+      sessionId: "owner",
+      intent: "mutation",
+    });
     const { ritualRoots, seams } = recordingSeams("owner");
     const decision = decideHook(
       {

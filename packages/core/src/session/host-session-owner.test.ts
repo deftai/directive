@@ -39,7 +39,7 @@ describe("ambientHostSessionOwner (#3873)", () => {
 describe("resolveOccupancySessionId owner precedence (#3873)", () => {
   const mint = () => "minted-uuid";
 
-  it("prefers an explicit owner, then the ambient one, then the host's", () => {
+  it("prefers explicit, then host over inherited DEFT_SESSION_ID at claim (#4066)", () => {
     expect(
       resolveOccupancySessionId({
         sessionId: "explicit",
@@ -52,7 +52,7 @@ describe("resolveOccupancySessionId owner precedence (#3873)", () => {
         env: { DEFT_SESSION_ID: "ambient", GROK_SESSION_ID: "grok-session-a" },
         newSessionId: mint,
       }),
-    ).toBe("ambient");
+    ).toBe(GROK_OWNER);
     expect(
       resolveOccupancySessionId({ env: { GROK_SESSION_ID: "grok-session-a" }, newSessionId: mint }),
     ).toBe(GROK_OWNER);

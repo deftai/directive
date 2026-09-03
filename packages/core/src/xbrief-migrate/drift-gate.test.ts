@@ -170,6 +170,67 @@ describe("evaluateXbriefDrift", () => {
     expect(staged.findings[0]?.kind).toBe("legacy-suffix");
   });
 
+  it("exits 1 on a correctly named *.xbrief.json with a vBRIEFInfo pin", () => {
+    root = initRepo();
+    writeTracked(
+      root,
+      "xbrief/specification.xbrief.json",
+      JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { title: "x" } }, null, 2),
+    );
+    const result = evaluateXbriefDrift(root);
+    expect(result.code).toBe(1);
+    expect(result.findings[0]?.kind).toBe("legacy-envelope-key");
+    expect(result.findings[0]?.path).toBe("xbrief/specification.xbrief.json");
+  });
+
+  it("exits 1 on a hybrid xBRIEFInfo@0.6 envelope", () => {
+    root = initRepo();
+    writeTracked(
+      root,
+      "xbrief/plan.xbrief.json",
+      JSON.stringify({ xBRIEFInfo: { version: "0.6" }, plan: { title: "x" } }, null, 2),
+    );
+    const result = evaluateXbriefDrift(root);
+    expect(result.code).toBe(1);
+    expect(result.findings[0]?.kind).toBe("legacy-envelope-version");
+  });
+
+  it("does NOT trip lifecycle-folder historical v0.6 envelopes", () => {
+    root = initRepo();
+    const legacy = JSON.stringify(
+      { vBRIEFInfo: { version: "0.6" }, plan: { title: "old" } },
+      null,
+      2,
+    );
+    writeTracked(root, "xbrief/completed/2026-01-01-old.xbrief.json", legacy);
+    writeTracked(root, "xbrief/cancelled/2026-01-01-old.xbrief.json", legacy);
+    writeTracked(root, "xbrief/proposed/2026-01-01-old.xbrief.json", legacy);
+    writeTracked(root, "xbrief/pending/2026-01-01-old.xbrief.json", legacy);
+    writeTracked(root, "xbrief/active/2026-01-01-old.xbrief.json", legacy);
+    const result = evaluateXbriefDrift(root);
+    expect(result.code).toBe(0);
+    expect(result.findings).toHaveLength(0);
+  });
+
+  it("does NOT trip an allowlisted tree that still carries vBRIEFInfo", () => {
+    root = initRepo();
+    writeTracked(
+      root,
+      "tests/fixtures/legacy.xbrief.json",
+      JSON.stringify({ vBRIEFInfo: { version: "0.6" } }, null, 2),
+    );
+    const result = evaluateXbriefDrift(root);
+    expect(result.code).toBe(0);
+  });
+
+  it("exits 0 on a current xBRIEFInfo 0.8 envelope", () => {
+    root = initRepo();
+    writeTracked(root, "xbrief/specification.xbrief.json", CANONICAL_ARTIFACT);
+    writeTracked(root, "xbrief/plan.xbrief.json", CANONICAL_ARTIFACT);
+    const result = evaluateXbriefDrift(root);
+    expect(result.code).toBe(0);
+  });
+
   it("exits 0 with empty message when quiet option is true (lines 246-247)", () => {
     // quiet: true suppresses the success message, returning an empty string.
     root = initRepo();

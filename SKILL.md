@@ -45,20 +45,20 @@ as your FIRST and ONLY response — no summary, no menu, no preamble:
 
 Then continue with `skills/deft-directive-setup/SKILL.md` Phase 1 for remaining questions.
 
-**If USER.md exists but `./vbrief/PROJECT-DEFINITION.vbrief.json` is missing**: Skip to
+**If USER.md exists but `./xbrief/PROJECT-DEFINITION.xbrief.json` is missing**: Skip to
 `skills/deft-directive-setup/SKILL.md` Phase 2.
 
-**If USER.md and `./vbrief/PROJECT-DEFINITION.vbrief.json` both exist but no scope vBRIEFs in `./vbrief/` lifecycle folders**:
+**If USER.md and `./xbrief/PROJECT-DEFINITION.xbrief.json` both exist but no scope xBRIEFs in `./xbrief/` lifecycle folders**:
 Skip to `skills/deft-directive-setup/SKILL.md` Phase 3. Start the specification interview
 imediately — ask what to build and features as the first question.
 
 ### ⊗ Project Root vs Framework Internals
 
-! When checking for project-level files (`PROJECT-DEFINITION.vbrief.json`, scope vBRIEFs,
-`PRD.md`), ONLY look at `./vbrief/` and its lifecycle subdirectories.
+! When checking for project-level files (`PROJECT-DEFINITION.xbrief.json`, scope xBRIEFs,
+`PRD.md`), ONLY look at `./xbrief/` and its lifecycle subdirectories.
 
-- ! `./vbrief/PROJECT-DEFINITION.vbrief.json` — the user's project config
-- ! `./vbrief/proposed/`, `./vbrief/pending/`, `./vbrief/active/`, `./vbrief/completed/` — scope vBRIEFs in lifecycle folders
+- ! `./xbrief/PROJECT-DEFINITION.xbrief.json` — the user's project config
+- ! `./xbrief/proposed/`, `./xbrief/pending/`, `./xbrief/active/`, `./xbrief/completed/` — scope xBRIEFs in lifecycle folders
 - ⊗ Count ANY file inside `.deft/core/` (canonical) or `./deft/` (legacy pre-v0.27) as a project-level artifact — those are
   framework-internal (e.g. `.deft/core/PROJECT.md`, `.deft/core/specs/`, `.deft/core/templates/`
   are all part of the framework, NOT the user's project)
@@ -75,7 +75,7 @@ USER.md has two sections with different precedence:
 ```
 USER.md Personal       ← HIGHEST (name, custom rules — always wins)
   ↓
-PROJECT-DEFINITION.vbrief.json  ← Project-specific (strategy, coverage, languages, tech stack)
+PROJECT-DEFINITION.xbrief.json  ← Project-specific (strategy, coverage, languages, tech stack)
   ↓
 USER.md Defaults       ← Fallback defaults (used when PROJECT-DEFINITION doesn't specify)
   ↓
@@ -85,11 +85,11 @@ USER.md Defaults       ← Fallback defaults (used when PROJECT-DEFINITION doesn
   ↓
 main.md                ← General AI behavior
   ↓
-scope vBRIEFs          ← LOWEST precedence (requirements in lifecycle folders)
+scope xBRIEFs          ← LOWEST precedence (requirements in lifecycle folders)
 ```
 
 **IMPORTANT**: USER.md `Personal` section always wins. For project-scoped settings
-(strategy, coverage, languages), `PROJECT-DEFINITION.vbrief.json` overrides USER.md `Defaults`.
+(strategy, coverage, languages), `PROJECT-DEFINITION.xbrief.json` overrides USER.md `Defaults`.
 
 ## File Reading Strategy (Lazy Loading)
 
@@ -97,7 +97,7 @@ scope vBRIEFs          ← LOWEST precedence (requirements in lifecycle folders)
 
 1. **Always start with**: `.deft/core/main.md` (general guidelines)
 2. **Check for**: `~/.config/deft/USER.md` (personal overrides - highest precedence)
-3. **Check for**: `./vbrief/PROJECT-DEFINITION.vbrief.json` (project-specific rules)
+3. **Check for**: `./xbrief/PROJECT-DEFINITION.xbrief.json` (project-specific rules)
 4. **Then read language-specific** only if working with that language:
    - `.deft/core/languages/python.md`
    - `.deft/core/languages/go.md`
@@ -128,8 +128,8 @@ See `.deft/core/tools/taskfile.md` for complete task standards and common comman
 
 **Spec-Driven Development (SDD)** for new features/projects:
 1. Run `skills/deft-directive-setup/SKILL.md` Phase 3 — sizing gate selects Light or Full path
-2. Light: Interview → scope vBRIEFs in `vbrief/proposed/` (embedded requirements) → Implement
-3. Full: Interview → rich narratives in `specification.vbrief.json` (approval gate) → scope vBRIEFs → Implement
+2. Light: Interview → scope xBRIEFs in `xbrief/proposed/` (embedded requirements) → Implement
+3. Full: Interview → rich narratives in `specification.xbrief.json` (approval gate) → scope xBRIEFs → Implement
 
 See `.deft/core/coding/testing.md` for complete testing standards.
 
@@ -167,7 +167,7 @@ task project:render       # Project config → xbrief/PROJECT-DEFINITION.xbrief.
 1. **First time?** If USER.md doesn't exist, run `skills/deft-directive-setup/SKILL.md` Phase 1
 2. Read `.deft/core/main.md` (general guidelines)
 3. Read `~/.config/deft/USER.md` (personal preferences - highest precedence)
-4. Read `./vbrief/PROJECT-DEFINITION.vbrief.json` (project rules)
+4. Read `./xbrief/PROJECT-DEFINITION.xbrief.json` (project rules)
 5. Run `task --list` to see available tasks
 
 See `.deft/core/main.md` for complete workflow details.

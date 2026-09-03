@@ -1,33 +1,36 @@
 /**
- * Dispatch-recorded child occupancy leases (#3999).
+ * Dispatch-recorded child occupancy leases (#3999 / #4066).
  *
- * A parent records the child's occupancy owner and the exact worktree root at
- * dispatch in `.deft/child-occupancy/` — lease-gated, not `.deft-scratch/**`.
- * The orchestration terminal transition already carries agent_id / parent_id /
- * phase; this store is the missing occupancy-owner datum. Release reuses
- * `releaseOccupancy` under the occupancy lock and only fires when the recorded
- * child is still the current owner of the recorded tree.
+ * A parent records the child's occupancy owner, exact worktree root, and a
+ * non-reused dispatch incarnation at spawn in `.deft/child-occupancy/`.
+ * Terminal release is dispatcher-owned: parent-id match, heartbeat incarnation
+ * match (dest-lock corroborates; it does not substitute a missing heartbeat
+ * incarnation), skip invalid heartbeats, refuse a tree that is not the
+ * heartbeat tree or a dispatcher-allocated tree. Ordinary self-claim records
+ * are not close-out.
  *
- * Per identity-source kind: `host-env` children are strangers and strand —
- * that is the defect. `payload` parents share one id with their children, so
- * the same transition is a no-op; auto-release would drop a live parent lease
- * mid-flight. Swarm close-out of the launcher's occupancy_session_id is not
- * the precedent and is not copied here.
+ * Payload-kind skip is same-tree logic: after own-tree claim, tree-scoped
+ * compare-and-release is safe when the recorded path is a linked worktree
+ * distinct from the observer root.
  */
 
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { randomUUID } from "node:crypto";
+import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
+import { isAbsolute, join, relative, resolve } from "node:path";
 import { containedRemove, containedWrite } from "../fs/contained-write.js";
 import type { LockDeps } from "../slice/lock.js";
 import { hookHostIdentitySource } from "./host-session-owner.js";
 import { stableJson } from "./json.js";
+import { isLinkedWorktreePath, mainWorktreeRoot } from "./main-worktree.js";
 import { type OccupancyDecision, readOccupancy, releaseOccupancy } from "./occupancy.js";
 
-export const CHILD_OCCUPANCY_SCHEMA_VERSION = 1;
+export const CHILD_OCCUPANCY_SCHEMA_VERSION = 2;
 export const CHILD_OCCUPANCY_DIR = [".deft", "child-occupancy"] as const;
 export const CHILD_OCCUPANCY_IDENTITY_SOURCE_KINDS = ["host-env", "payload"] as const;
 export type ChildOccupancyIdentitySourceKind =
   (typeof CHILD_OCCUPANCY_IDENTITY_SOURCE_KINDS)[number];
+export const CHILD_OCCUPANCY_PROVENANCES = ["dispatch", "claim"] as const;
+export type ChildOccupancyProvenance = (typeof CHILD_OCCUPANCY_PROVENANCES)[number];
 
 export interface ChildOccupancyRecord {
   readonly schemaVersion: number;
@@ -36,6 +39,8 @@ export interface ChildOccupancyRecord {
   readonly occupancyOwner: string;
   readonly worktreePath: string;
   readonly identitySourceKind: ChildOccupancyIdentitySourceKind;
+  readonly incarnation: string;
+  readonly provenance: ChildOccupancyProvenance;
 }
 
 export interface ChildOccupancyDispatchInput {
@@ -44,6 +49,8 @@ export interface ChildOccupancyDispatchInput {
   readonly occupancyOwner: string;
   readonly worktreePath: string;
   readonly identitySourceKind: ChildOccupancyIdentitySourceKind;
+  readonly incarnation?: string;
+  readonly provenance?: ChildOccupancyProvenance;
 }
 
 export type ChildOccupancyReleaseReason =
@@ -52,7 +59,12 @@ export type ChildOccupancyReleaseReason =
   | "owner-changed"
   | "payload-skip"
   | "missing-record"
-  | "denied";
+  | "denied"
+  | "claim-provenance"
+  | "parent-mismatch"
+  | "incarnation-mismatch"
+  | "invalid-heartbeat"
+  | "tree-not-allocated";
 
 export interface ChildOccupancyReleaseResult {
   readonly reason: ChildOccupancyReleaseReason;
@@ -62,6 +74,10 @@ export interface ChildOccupancyReleaseResult {
 
 function isIdentitySourceKind(value: string): value is ChildOccupancyIdentitySourceKind {
   return (CHILD_OCCUPANCY_IDENTITY_SOURCE_KINDS as readonly string[]).includes(value);
+}
+
+function isProvenance(value: string): value is ChildOccupancyProvenance {
+  return (CHILD_OCCUPANCY_PROVENANCES as readonly string[]).includes(value);
 }
 
 /** Filename-safe agent id; the payload keeps the original. */
@@ -114,6 +130,8 @@ function parseChildOccupancyRecord(payload: unknown): ChildOccupancyRecord | nul
   const worktreePath = typeof obj.worktree_path === "string" ? obj.worktree_path.trim() : "";
   const kindRaw =
     typeof obj.identity_source_kind === "string" ? obj.identity_source_kind.trim() : "";
+  const incarnation = typeof obj.incarnation === "string" ? obj.incarnation.trim() : "";
+  const provenanceRaw = typeof obj.provenance === "string" ? obj.provenance.trim() : "claim";
   if (
     agentId.length === 0 ||
     parentId.length === 0 ||
@@ -123,6 +141,9 @@ function parseChildOccupancyRecord(payload: unknown): ChildOccupancyRecord | nul
   ) {
     return null;
   }
+  const provenance: ChildOccupancyProvenance = isProvenance(provenanceRaw)
+    ? provenanceRaw
+    : "claim";
   return {
     schemaVersion:
       typeof obj.schemaVersion === "number" ? obj.schemaVersion : CHILD_OCCUPANCY_SCHEMA_VERSION,
@@ -131,6 +152,8 @@ function parseChildOccupancyRecord(payload: unknown): ChildOccupancyRecord | nul
     occupancyOwner,
     worktreePath,
     identitySourceKind: kindRaw,
+    incarnation,
+    provenance,
   };
 }
 
@@ -147,6 +170,28 @@ export function readChildOccupancyLease(
   }
 }
 
+export function listChildOccupancyLeases(storeRoot: string): readonly ChildOccupancyRecord[] {
+  const dir = join(resolve(storeRoot), ...CHILD_OCCUPANCY_DIR);
+  try {
+    if (!existsSync(dir)) return [];
+  } catch {
+    return [];
+  }
+  const out: ChildOccupancyRecord[] = [];
+  for (const name of readdirSync(dir)) {
+    if (!name.endsWith(".json")) continue;
+    try {
+      const parsed = parseChildOccupancyRecord(
+        JSON.parse(readFileSync(join(dir, name), { encoding: "utf8" })),
+      );
+      if (parsed !== null) out.push(parsed);
+    } catch {
+      /* skip malformed */
+    }
+  }
+  return out;
+}
+
 /**
  * Parent-only write at dispatch. Workers cannot author this store: `.deft/` is
  * not assist-scratch, so a mutation write is occupancy-gated and an assist
@@ -160,6 +205,8 @@ export function recordChildOccupancyLease(
   const parentId = input.parentId.trim();
   const occupancyOwner = input.occupancyOwner.trim();
   const worktreePath = resolve(input.worktreePath.trim());
+  const incarnation = (input.incarnation ?? "").trim();
+  const provenance = input.provenance ?? "dispatch";
   if (agentId.length === 0) throw new Error("recordChildOccupancyLease needs agentId");
   if (parentId.length === 0) throw new Error("recordChildOccupancyLease needs parentId");
   if (occupancyOwner.length === 0) {
@@ -175,6 +222,8 @@ export function recordChildOccupancyLease(
     occupancyOwner,
     worktreePath,
     identitySourceKind: input.identitySourceKind,
+    incarnation: incarnation.length > 0 ? incarnation : randomUUID(),
+    provenance,
   };
   const root = resolve(storeRoot);
   const relpath = childOccupancyRelpath(agentId);
@@ -190,6 +239,8 @@ export function recordChildOccupancyLease(
         occupancy_owner: record.occupancyOwner,
         worktree_path: record.worktreePath,
         identity_source_kind: record.identitySourceKind,
+        incarnation: record.incarnation,
+        provenance: record.provenance,
       },
       2,
     )}\n`,
@@ -206,6 +257,52 @@ function removeChildOccupancyLease(storeRoot: string, agentId: string): void {
   containedRemove({ root, target: join(...relpath) });
 }
 
+function sameTree(left: string, right: string): boolean {
+  const a = resolve(left);
+  const b = resolve(right);
+  if (process.platform === "win32") return a.toLowerCase() === b.toLowerCase();
+  return a === b;
+}
+
+function isSpawnPendingPlaceholder(worktreePath: string, storeRoot: string): boolean {
+  const pendingRoot = join(resolve(storeRoot), ".deft", "spawn-pending");
+  const recorded = resolve(worktreePath);
+  const rel = relative(pendingRoot, recorded);
+  return rel.length > 0 && !rel.startsWith("..") && !isAbsolute(rel);
+}
+
+function sameRepository(left: string, right: string): boolean {
+  const a = mainWorktreeRoot(left);
+  const b = mainWorktreeRoot(right);
+  if (a === null || b === null) return false;
+  return sameTree(a, b);
+}
+
+/**
+ * Pathless isolation=worktree records a spawn-pending placeholder. Terminal
+ * cleanup binds the host-created heartbeat tree when it is a linked worktree
+ * of the same repo and not the parent observer root.
+ */
+function bindReleaseTree(
+  storeRoot: string,
+  record: ChildOccupancyRecord,
+  heartbeatTree: string | null,
+  observerRoot: string,
+): string {
+  const tree = resolve(record.worktreePath);
+  if (heartbeatTree === null) return tree;
+  if (sameTree(tree, heartbeatTree)) return tree;
+  if (
+    isSpawnPendingPlaceholder(tree, storeRoot) &&
+    isLinkedWorktreePath(heartbeatTree) &&
+    !sameTree(heartbeatTree, observerRoot) &&
+    sameRepository(storeRoot, heartbeatTree)
+  ) {
+    return heartbeatTree;
+  }
+  return tree;
+}
+
 /**
  * Compare-and-release under the occupancy lock. Caller identity is the id the
  * parent recorded at dispatch — not the occupant currently named in the lease
@@ -217,22 +314,69 @@ export function releaseChildOccupancyOnTerminal(
     readonly agentId: string;
     readonly now?: Date;
     readonly lockDeps?: LockDeps;
+    readonly parentId?: string;
+    readonly incarnation?: string;
+    readonly reservationIncarnation?: string;
+    readonly heartbeatWorktree?: string;
+    readonly heartbeatFailures?: readonly string[];
+    readonly observerRoot?: string;
   },
 ): ChildOccupancyReleaseResult {
   const agentId = input.agentId.trim();
   if (agentId.length === 0) {
     return { reason: "missing-record", record: null, occupancy: null };
   }
+  if (input.heartbeatFailures !== undefined && input.heartbeatFailures.length > 0) {
+    return { reason: "invalid-heartbeat", record: null, occupancy: null };
+  }
   const record = readChildOccupancyLease(storeRoot, agentId);
   if (record === null) {
     return { reason: "missing-record", record: null, occupancy: null };
   }
-  if (record.identitySourceKind === "payload") {
-    return { reason: "payload-skip", record, occupancy: null };
+  if (record.provenance !== "dispatch") {
+    return { reason: "claim-provenance", record, occupancy: null };
+  }
+  if (record.incarnation.length === 0 || record.incarnation === "missing") {
+    return { reason: "incarnation-mismatch", record, occupancy: null };
+  }
+  const storeIncarnation = record.incarnation;
+  const reservationIncarnation = (input.reservationIncarnation ?? "").trim();
+  if (reservationIncarnation.length > 0 && reservationIncarnation !== storeIncarnation) {
+    return { reason: "incarnation-mismatch", record, occupancy: null };
+  }
+  const presentedIncarnation = (input.incarnation ?? "").trim();
+  if (presentedIncarnation.length === 0 || presentedIncarnation !== storeIncarnation) {
+    return { reason: "incarnation-mismatch", record, occupancy: null };
+  }
+  const presentedParent = (input.parentId ?? "").trim();
+  if (presentedParent.length > 0 && presentedParent !== record.parentId) {
+    return { reason: "parent-mismatch", record, occupancy: null };
   }
   const tree = resolve(record.worktreePath);
+  const heartbeatTree =
+    input.heartbeatWorktree !== undefined && input.heartbeatWorktree.trim().length > 0
+      ? resolve(input.heartbeatWorktree)
+      : null;
+  const observerRoot =
+    input.observerRoot !== undefined && input.observerRoot.trim().length > 0
+      ? resolve(input.observerRoot)
+      : resolve(storeRoot);
+  const boundTree = bindReleaseTree(storeRoot, record, heartbeatTree, observerRoot);
+  if (
+    heartbeatTree !== null &&
+    !sameTree(boundTree, heartbeatTree) &&
+    !sameTree(tree, observerRoot)
+  ) {
+    return { reason: "tree-not-allocated", record, occupancy: null };
+  }
+  if (record.identitySourceKind === "payload") {
+    const linked = isLinkedWorktreePath(boundTree);
+    if (!linked || sameTree(boundTree, observerRoot)) {
+      return { reason: "payload-skip", record, occupancy: null };
+    }
+  }
   const now = input.now ?? new Date();
-  const live = readOccupancy(tree);
+  const live = readOccupancy(boundTree);
   if (live === null) {
     removeChildOccupancyLease(storeRoot, agentId);
     return { reason: "already-free", record, occupancy: null };
@@ -240,7 +384,7 @@ export function releaseChildOccupancyOnTerminal(
   if (live.sessionId !== record.occupancyOwner) {
     return { reason: "owner-changed", record, occupancy: null };
   }
-  const occupancy = releaseOccupancy(tree, {
+  const occupancy = releaseOccupancy(boundTree, {
     sessionId: record.occupancyOwner,
     now,
     env: {},
@@ -248,7 +392,7 @@ export function releaseChildOccupancyOnTerminal(
   });
   if (occupancy.action === "released") {
     removeChildOccupancyLease(storeRoot, agentId);
-    if (resolve(storeRoot) !== tree) removeChildOccupancyLease(tree, agentId);
+    if (resolve(storeRoot) !== boundTree) removeChildOccupancyLease(boundTree, agentId);
     return { reason: "released", record, occupancy };
   }
   return { reason: "denied", record, occupancy };

@@ -97,16 +97,15 @@ function shouldRenderNarrativeKey(key: string, includeLegacyArtifacts: boolean):
   return key !== LEGACY_ARTIFACTS_NARRATIVE_KEY;
 }
 
-/** Render specification JSON to markdown (mirrors ``scripts/spec_render.render_spec``). */
-export function renderSpec(
+/** Render specification JSON to a markdown buffer (does not write). */
+export function renderSpecMarkdown(
   specPath: string,
-  outPath: string,
   options: RenderSpecOptions = {},
-): RenderSpecResult {
+): { ok: true; markdown: string } | { ok: false; message: string } {
   const includeScopesMode = normalizeIncludeScopesMode(options.includeScopes);
   const includeLegacyArtifacts = options.includeLegacyArtifacts ?? false;
   const [ok, msg] = validateSpec(specPath);
-  if (!ok) return [false, msg];
+  if (!ok) return { ok: false, message: msg };
 
   const spec = JSON.parse(readFileSync(specPath, "utf8")) as JsonObject;
   const plan = spec.plan;
@@ -119,11 +118,12 @@ export function renderSpec(
 
   if (!RENDERABLE_SPEC_STATUSES.has(status)) {
     const renderable = [...RENDERABLE_SPEC_STATUSES].join(", ");
-    return [
-      false,
-      `⚠ specification.vbrief.json status is '${status}' (expected one of ${renderable})\n` +
+    return {
+      ok: false,
+      message:
+        `⚠ specification.vbrief.json status is '${status}' (expected one of ${renderable})\n` +
         "  Have the user review and set status to one of the renderable statuses before rendering.",
-    ];
+    };
   }
 
   const lines: string[] = [buildSpecRenderBanner(specPath)];
@@ -214,7 +214,18 @@ export function renderSpec(
     if (scopeLines.length > 0) lines.push(...scopeLines);
   }
 
-  writeFileSync(outPath, stripTrailingWhitespace(lines.join("\n")), "utf8");
+  return { ok: true, markdown: stripTrailingWhitespace(lines.join("\n")) };
+}
+
+/** Render specification JSON to markdown and write it (mirrors ``scripts/spec_render.render_spec``). */
+export function renderSpec(
+  specPath: string,
+  outPath: string,
+  options: RenderSpecOptions = {},
+): RenderSpecResult {
+  const result = renderSpecMarkdown(specPath, options);
+  if (!result.ok) return [false, result.message];
+  writeFileSync(outPath, result.markdown, "utf8");
   return [true, `✓ Rendered to ${outPath}`];
 }
 

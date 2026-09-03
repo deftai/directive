@@ -21,8 +21,8 @@ tasks:
     #   --format=text|json    -- machine-stable scripting envelope
     #   --changed-only         -- drop default-source rows
     #   --field=<name>         -- single-field isolation
-    # The legacy `python -m scripts.policy show` CLI continues to work for
-    # any scripts that called it directly (back-compat for #746 consumers).
+    # Inspect via engine:invoke / packages/cli/dist (policy:show). The
+    # retired `python -m scripts.policy` launcher is gone.
     desc: "Inspect every registered typed-policy field on vbrief/PROJECT-DEFINITION.vbrief.json (#1148 / N8). -- task policy:show [-- --format=json] [--changed-only] [--field=<name>]"
     dir: '{{.USER_WORKING_DIR}}'
     deps:

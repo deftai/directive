@@ -369,6 +369,19 @@ tasks:
         vars:
           ENGINE_CMD: 'codebase-map-fresh --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
+
+  spec-prd-fresh:
+    desc: "Fail-closed SPECIFICATION.md / PRD.md render-freshness gate (#4086). Re-renders to a buffer and fails on banner or projection diff. Banner canon and full projection freshness are separate assertions. Modeled on verify:codebase-map-fresh."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    # Per conventions/task-caching.md: no sources/generates because this gate
+    # forwards project-root through CLI_ARGS.
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify:spec-prd-fresh --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
   session-ritual:
     desc: "Fail-closed session ritual verifier (#1348). Flags: --tier quick|gated / --json. Set DEFT_SESSION_RITUAL_SKIP=1 for headless workers and CI."
     dir: '{{.USER_WORKING_DIR}}'
@@ -401,7 +414,7 @@ tasks:
           ENGINE_CMD: 'verify:tools {{.CLI_ARGS}}'
 
   scm-boundary:
-    desc: "Detection-bound gate against raw `gh` / `ghx` subprocess calls outside `scripts/scm.py` (#1145 / N5). Scans verb-layer Python files (`scripts/triage_*.py`, `scripts/scope_*.py`, `scripts/slice_*.py`, `scripts/_triage_*.py`, `scripts/_scope_*.py`, `scripts/resume_conditions.py`, `scripts/issue_ingest.py`) and fails loud when any of them invoke `gh` directly instead of going through `scm.call(source, verb, args)`. Three-state exit (0 clean / 1 violations / 2 config error). Document an exception via `--allow-list <path>` (file with newline-separated glob patterns)."
+    desc: "Detection-bound gate against raw `gh` / `ghx` subprocess calls (#1145 / N5). TypeScript verbs route through packages/core/src/scm/call.ts. The scanner still globs retired scripts/triage_*.py paths (vacuous; owner packages/core/src/verify-source/scm-boundary.ts SCOPE_GLOBS). Three-state exit (0 clean / 1 violations / 2 config error). Document an exception via `--allow-list <path>`."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
       - task: :engine:_ts-build

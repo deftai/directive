@@ -370,11 +370,11 @@ includes:
   packs:
     taskfile: ./tasks/packs.yml
     optional: true
-  # Maintainer-only Python self-test lanes (#1813 contributor path / #2022
+  # Maintainer-only packaging lane (#1813 contributor path / #2022
   # Phase 2). `internal: true` hides `core:*` / `ci:*` from `task -l` and
   # blocks direct CLI invocation on consumer installs; only
   # `check:framework-source` below wires them as deps. Consumer `task check`
-  # dispatches to `check:consumer` (TS / deft verbs — no uv/python).
+  # dispatches to `check:consumer` (TS / deft verbs).
   core:
     taskfile: ./tasks/core.yml
     optional: true
@@ -468,6 +468,7 @@ tasks:
         vars:
           CLI_ARGS: "--enforce"
       - verify:codebase-map-fresh
+      - verify:spec-prd-fresh
       - verify-strategy-output
       # #2980 residual: fail-closed product raw-write inventory (allowlist primitives + temporary residual).
       - verify-contained-writes-enforce
@@ -798,18 +799,16 @@ tasks:
   # `triage-bootstrap`) -- a single shared `triage:` include namespace
   # is not supported by go-task v3 (two includes cannot share a key).
   # The aliases below provide the documented `task triage:<verb>`
-  # user-facing surface that vBRIEFs / UPGRADING.md / scripts/triage_*.py
-  # describe. Each alias delegates to the underlying namespaced task
-  # and forwards `{{.CLI_ARGS}}` so flags (`--repo`, `--reason`, etc.)
-  # reach the script. The inner tasks in each fragment are
+  # user-facing surface that xBRIEFs / UPGRADING.md describe. Each alias
+  # delegates to the underlying namespaced task and forwards
+  # `{{.CLI_ARGS}}` so flags (`--repo`, `--reason`, etc.) reach
+  # engine:invoke / packages/cli/dist. The inner tasks in each fragment are
   # `internal: true` so the fragment-namespace forms
   # (`triage-cache:cache`, `triage-actions:accept`, `triage-bulk:bulk-defer`,
   # `triage-bootstrap:bootstrap`) drop out of `task -l`; only the
   # documented `triage:*` aliases below appear in the listing. The
-  # internal tasks remain CALLABLE for legacy invocations (e.g. recap
-  # text in `scripts/triage_bootstrap.py` still prints the namespaced
-  # forms, which continue to dispatch correctly via the fragment
-  # include).
+  # internal tasks remain CALLABLE for legacy invocations via the fragment
+  # include.
   #
   # Aliases are inline at the root Taskfile rather than in a separate
   # fragment because they cross include namespaces and must exist
@@ -828,10 +827,10 @@ tasks:
   # categorized verb list grouped by role (Session-start, State verbs,
   # Read verbs, Lifecycle, Subscription mutation, Archive-rotation /
   # Promote-demote, Activate-complete, Reversibility, Decomposition).
-  # The registry + renderer live in scripts/triage_help.py so every
-  # verb is documented in one place. Each existing `triage:X` /
-  # `scope:X` alias forwards `--help` to the same registry via the
-  # `intercept_help` shim called from each verb script's `main()`.
+  # The registry + renderer live in
+  # packages/core/src/triage/help/registry-data.ts (edit in place; no
+  # generator). Each existing `triage:X` / `scope:X` alias forwards
+  # `--help` to the same registry via interceptHelp (handler + dispatch).
   #
   # Defined at the root Taskfile (not in a fragment) because the bare
   # target shares the `triage:` / `scope:` prefix with the documented

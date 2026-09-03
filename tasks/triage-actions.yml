@@ -20,10 +20,9 @@ version: '3'
 # (#74), `task pr:check-protected-issues` (#702), and `task verify:encoding`
 # (#798).
 #
-# Companion script: scripts/triage_actions.py
-# Companion tests:  tests/test_triage_actions.py
-# Upstream contracts (frozen): scripts/candidates_log.py (#845 Story 2 audit log),
-#                              scripts/cache.py          (#883 Story 2 unified cache).
+# Handler: packages/cli/src/triage-actions.ts via engine:invoke (packages/cli/dist).
+# Help registry: packages/core/src/triage/help/registry-data.ts (edit in place).
+# Audit/cache contracts live in packages/core (candidates log + unified cache).
 
 vars:
   DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'

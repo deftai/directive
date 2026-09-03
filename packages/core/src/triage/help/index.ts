@@ -25,7 +25,7 @@ export const SCRIPT_SUBCOMMAND_MAP: Readonly<Record<string, Readonly<Record<stri
 
 export const HELP_FLAGS = ["--help", "-h"] as const;
 
-const USAGE = `usage: python -m scripts.triage_help <triage|scope|help <verb>|list>
+const USAGE = `usage: triage-help <triage|scope|help <verb>|list>
 
   triage              Print the categorized triage verb list.
   scope               Print the categorized scope verb list.
@@ -94,7 +94,7 @@ export function renderVerbHelp(verb: string): string {
   const entry = REGISTRY[verb];
   if (entry === undefined) {
     throw new Error(
-      `unknown verb ${JSON.stringify(verb)}; not in scripts/triage_help.py REGISTRY. ` +
+      `unknown verb ${JSON.stringify(verb)}; not in packages/core/src/triage/help/registry-data.ts. ` +
         "Run `task triage` or `task scope` to see the catalog.",
     );
   }
@@ -179,7 +179,7 @@ export function interceptHelp(
   try {
     sink.write(`${renderVerbHelp(verb)}\n`);
   } catch (exc: unknown) {
-    sink.write(`triage_help: ${String(exc)}\n`);
+    sink.write(`triage-help: ${String(exc)}\n`);
     return 2;
   }
   return 0;
@@ -223,28 +223,28 @@ export function runHelp(argv: readonly string[]): number {
   }
   if (head === "help") {
     if (rest.length === 0) {
-      process.stderr.write("triage_help: missing <verb> argument for `help`.\n");
+      process.stderr.write("triage-help: missing <verb> argument for `help`.\n");
       process.stderr.write(USAGE);
       return 2;
     }
     const first = rest[0];
     if (first === undefined) {
-      process.stderr.write("triage_help: missing <verb> argument for `help`.\n");
+      process.stderr.write("triage-help: missing <verb> argument for `help`.\n");
       process.stderr.write(USAGE);
       return 2;
     }
     const verb = normalizeVerbArg(first);
     if (REGISTRY[verb] === undefined) {
       process.stderr.write(
-        `triage_help: unknown verb ${JSON.stringify(verb)}. ` +
-          "Run `python -m scripts.triage_help list` to see all registered verbs.\n",
+        `triage-help: unknown verb ${JSON.stringify(verb)}. ` +
+          "Run `deft triage-help list` to see all registered verbs.\n",
       );
       return 2;
     }
     process.stdout.write(`${renderVerbHelp(verb)}\n`);
     return 0;
   }
-  process.stderr.write(`triage_help: unknown command ${JSON.stringify(head)}.\n`);
+  process.stderr.write(`triage-help: unknown command ${JSON.stringify(head)}.\n`);
   process.stderr.write(USAGE);
   return 2;
 }

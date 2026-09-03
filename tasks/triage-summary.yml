@@ -12,8 +12,8 @@ version: '3'
 # `--no-history`, `--json`) are forwarded via {{.CLI_ARGS}} and go-task's
 # incremental-build cache layer would silently swallow them.
 #
-# Companion script: scripts/triage_summary.py
-# Companion tests:  tests/test_triage_summary.py
+# Handler: packages/cli/src/triage-summary.ts via engine:invoke (packages/cli/dist).
+# Help registry: packages/core/src/triage/help/registry-data.ts (edit in place).
 # Pattern reference: tasks/triage-scope.yml (D12 / #1131 / merged via #1190).
 
 vars:

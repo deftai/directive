@@ -1980,12 +1980,74 @@ describe("direct-write hook policy", () => {
         host: "claude",
         event: "tool.before",
         projectRoot: "/project",
-        payload: { tool_name: "Task", tool_input: { subagent_type: "generalPurpose" } },
+        payload: {
+          tool_name: "Task",
+          tool_input: { subagent_type: "generalPurpose", isolation: "worktree" },
+        },
       },
       readySeams(),
     );
 
     expect(decision).toMatchObject({ verdict: "allow", code: "spawn-ready" });
+    const rewritten = decision.updatedInput as { tool_input?: { incarnation?: string } };
+    expect(typeof rewritten?.tool_input?.incarnation).toBe("string");
+    expect(String(rewritten.tool_input?.incarnation).length).toBeGreaterThan(0);
+  });
+
+  it("transports spawn incarnation on the child rewrite path (#4066)", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Task",
+          tool_input: { subagent_type: "generalPurpose", isolation: "worktree" },
+        },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-ready" });
+    const rewritten = decision.updatedInput as {
+      tool_input?: { isolation?: string; incarnation?: string };
+    };
+    expect(rewritten?.tool_input?.isolation).toBe("worktree");
+    expect(rewritten?.tool_input?.incarnation).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    );
+  });
+
+  it("denies implement-class spawn with no worktree destination (#4066)", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { toolName: "spawn_subagent", prompt: "implement the story" },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toContain("own worktree");
+    expect(decision.message).not.toContain("steal");
+  });
+
+  it("denies Grok pathless isolation=worktree implement spawn (#4066)", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: { isolation: "worktree", prompt: "implement the story" },
+        },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toContain("cannot re-root");
+    expect(decision.message).not.toContain("steal");
   });
 
   it("allows explore Task spawns without implementation gates (#1185)", () => {
@@ -2028,7 +2090,10 @@ describe("direct-write hook policy", () => {
         host: "cursor",
         event: "tool.before",
         projectRoot: "/project",
-        payload: { tool_name: "Task", tool_input: { subagent_type: "generalPurpose" } },
+        payload: {
+          tool_name: "Task",
+          tool_input: { subagent_type: "generalPurpose", isolation: "worktree" },
+        },
         environ: { [READ_ONLY_HOOK_ENV]: "1" },
       },
       readySeams(),
@@ -2301,7 +2366,10 @@ describe("ephemeral spawn posture (#3080)", () => {
         host: "claude",
         event: "tool.before",
         projectRoot: "/project",
-        payload: { tool_name: "Task", tool_input: { subagent_type: "generalPurpose" } },
+        payload: {
+          tool_name: "Task",
+          tool_input: { subagent_type: "generalPurpose", isolation: "worktree" },
+        },
         environ: {},
       },
       readySeams({ inspectRitual, inspectScope }),
@@ -2436,7 +2504,10 @@ describe("runtime authority policy (#1394)", () => {
         host: "cursor",
         event: "tool.before",
         projectRoot: "/project",
-        payload: { tool_name: "Task", tool_input: { subagent_type: "generalPurpose" } },
+        payload: {
+          tool_name: "Task",
+          tool_input: { subagent_type: "generalPurpose", isolation: "worktree" },
+        },
       },
       policySeams({ ...ENABLED_POLICY, scopes: { edits: false, push: false, merge: false } }),
     );
@@ -3305,15 +3376,23 @@ describe("provider codecs", () => {
         host: "cursor",
         event: "tool.before",
         projectRoot: "/project",
-        payload: { tool_name: "Task", tool_input: { subagent_type: "generalPurpose" } },
+        payload: {
+          tool_name: "Task",
+          tool_input: { subagent_type: "generalPurpose", isolation: "worktree" },
+        },
       },
       readySeams(),
     );
     expect(spawnAllow.code).toBe("spawn-ready");
-    expect(JSON.parse(renderHostDecision("cursor", spawnAllow))).toEqual({
-      permission: "allow",
-      code: "spawn-ready",
-    });
+    const spawnWire = JSON.parse(renderHostDecision("cursor", spawnAllow)) as {
+      permission: string;
+      code: string;
+      updated_input?: { tool_input?: { incarnation?: string } };
+    };
+    expect(spawnWire).toMatchObject({ permission: "allow", code: "spawn-ready" });
+    expect(spawnWire.updated_input?.tool_input?.incarnation).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    );
   });
 });
 
@@ -3343,10 +3422,15 @@ describe("shared hooks fixture corpus (Phase B of #2950)", () => {
       readySeams(),
     );
     expect(decision.code).toBe("spawn-ready");
-    expect(JSON.parse(renderHostDecision("cursor", decision))).toEqual({
-      permission: "allow",
-      code: "spawn-ready",
-    });
+    const fixtureWire = JSON.parse(renderHostDecision("cursor", decision)) as {
+      permission: string;
+      code: string;
+      updated_input?: { tool_input?: { incarnation?: string } };
+    };
+    expect(fixtureWire).toMatchObject({ permission: "allow", code: "spawn-ready" });
+    expect(fixtureWire.updated_input?.tool_input?.incarnation).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    );
   });
 
   it("decideHook uses fixture outside-root Write and does not emit scope-not-ready (#2885)", () => {

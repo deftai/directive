@@ -144,6 +144,7 @@ export const FRAMEWORK_CHECK_GATES: readonly CheckGateSpec[] = [
   "vbrief:validate",
   "codebase:validate-structure",
   "verify:codebase-map-fresh",
+  "verify:spec-prd-fresh",
   "verify-strategy-output",
   // --- Suite last: vitest + coverage via ts:check-lane (#3188) ---
   "ts:check-lane",

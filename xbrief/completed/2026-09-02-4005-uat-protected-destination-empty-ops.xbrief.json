@@ -1,0 +1,156 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Bound implementation scope for GitHub issue #4005 after the accepted design-critique synthesis.",
+    "updated": "2026-09-03T02:34:55Z"
+  },
+  "plan": {
+    "title": "security: gate destination-visible empty-op Shell mutations under active UAT",
+    "status": "completed",
+    "narratives": {
+      "Description": "Close the surviving #4005 active-UAT authorization residual without reopening the already-landed shell-host catalog fix or growing another executable-name denylist.",
+      "Origin": "Issue #4005 plus accepted synthesis comment 5516048869 and verified-claims table 5516040757.",
+      "Overview": "The accepted design critique refutes the issue body's original bundled remedy. HIGH 1 is already satisfied by the shared SHELL_TOOL_NAMES/isShellTool path. The remaining defect is narrower: a Shell command can visibly name a protected destination yet return no authorization operation, leaving the existing active-UAT `unknown` deny branch unreachable. Exact positional `zip` writes reproduced this for `.deft/authz/**`, `.deft-directive-disable`, and `.deft/approved-scope/**`.",
+      "Contract": "Add one bounded producer for the existing `unknown` authorization operation. It applies only when a protected destination is recoverable from a supported mutation shape and no stronger operation already classifies the command. The resulting `unknown` operation remains allowed when UAT is inactive and denied when UAT is active. Ordinary status, read-only protected-path access, print-only interpreter commands, and commands whose protected path is an input rather than a destination remain unclassified. The denial message must name a viable recovery: use a classifiable form or explicitly suspend UAT after human review.",
+      "ProtectedDestinations": "Immediate authority effects: `.deft/authz/**` and `.deft-directive-disable` / `.no-deft-directive`. Defense in depth: `.deft/approved-scope/**`; same-change creation or rewrite is still rejected by merge-base provenance and is not claimed as immediate self-authorization.",
+      "Acceptance": "1. Exact positional `zip` writes to an authz grant, each kill-switch basename, and approved-scope produce `unknown` when no existing stronger op applies and deny under active UAT. 2. The same commands remain allowed by the Wave 1 authz evaluator when UAT is inactive. 3. `git status`, `cat .deft/authz/state.json`, `echo ok`, print-only interpreter commands, and an archive command that reads a protected file into an ordinary destination remain unclassified/allowed. 4. Existing generic destination flags continue to classify as `settings`, not `unknown`. 5. Approved-scope coverage is described and tested as defense in depth, not immediate authority. 6. Focused classifier and dispatcher/evaluator regression suites pass, followed by the repository merge gate. 7. The required pre-PR `task prd:render` refresh is retained so PRD.md names the canonical xBRIEF source directly and regenerates without further drift.",
+      "OutOfScope": "Do not change the landed shell-host catalog behavior; do not add the issue body's 30 executable names as the enforcement mechanism; do not deny every empty Shell classification; do not claim total Shell parsing or expand the unrelated product path-write fence; do not claim same-change approved-scope files self-authorize.",
+      "FalsePositiveBudget": "The fallback is limited to supported mutation forms with a recoverable literal protected destination. Mere mention of a protected path, read-only access, ordinary status commands, and print-only code are negative controls. Ambiguous commands outside that boundary stay on the existing fail-open path; broadening the boundary requires a separate measured change.",
+      "ImplementationSurfaces": "Primary code: packages/core/src/authz/classify.ts and the active-UAT evaluator/dispatcher path. Coverage: packages/core/src/authz/classify.test.ts and packages/core/src/authz/incident-regression.test.ts, with evaluator message assertions where needed. Release note: CHANGELOG.md [Unreleased]. Generated pre-PR export: PRD.md, retained at the operator's direction after `task prd:render` refreshed its canonical xBRIEF source banner and footer."
+    },
+    "items": [
+      {
+        "id": "destination-visible-unknown-producer",
+        "title": "Implement a bounded protected-destination fallback that emits the existing unknown op",
+        "status": "completed",
+        "effort": "M"
+      },
+      {
+        "id": "positive-negative-regressions",
+        "title": "Add exact positive and ordinary/read-only negative classifier and active-UAT tests",
+        "status": "completed",
+        "effort": "M"
+      },
+      {
+        "id": "recovery-and-release-note",
+        "title": "Keep recovery text accurate and add a brief Unreleased note",
+        "status": "completed",
+        "effort": "S"
+      },
+      {
+        "id": "retain-generated-prd-refresh",
+        "title": "Retain the required pre-PR PRD render refresh in the approved scope",
+        "status": "completed",
+        "effort": "S"
+      }
+    ],
+    "tags": [
+      "bug",
+      "security",
+      "harness",
+      "agent-safety"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4005",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4005: UAT Shell authorization residuals"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4005#issuecomment-5516048869",
+        "type": "x-xbrief/github-comment",
+        "title": "Accepted design-critique synthesis"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4005#issuecomment-5516040757",
+        "type": "x-xbrief/github-comment",
+        "title": "Verified-claims table"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "The operator requested implementation by issue number; the accepted synthesis supplies behavioral clauses but no literal shell acceptance command.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Exact positional zip writes to each retained protected destination produce a gated operation and deny under active UAT.",
+          "artifact_path": "packages/core/src/authz/incident-regression.test.ts",
+          "ambiguous": false,
+          "provenance": "accepted-synthesis"
+        },
+        {
+          "id": 2,
+          "text": "Ordinary status, protected-path reads, print-only interpreter commands, and protected inputs with ordinary destinations remain unclassified.",
+          "artifact_path": "packages/core/src/authz/classify.test.ts",
+          "ambiguous": false,
+          "provenance": "accepted-synthesis"
+        },
+        {
+          "id": 3,
+          "text": "The fallback reaches the existing unknown deny arm only under active UAT and provides accurate recovery guidance.",
+          "artifact_path": "packages/core/src/authz/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "accepted-synthesis"
+        },
+        {
+          "id": 4,
+          "text": "HIGH 1, executable-name enumeration, blanket empty-op denial, and immediate approved-scope authority claims remain out of scope.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "accepted-synthesis"
+        },
+        {
+          "id": 5,
+          "text": "The generated PRD names xbrief/specification.xbrief.json as its canonical source and a repeat render produces no further drift.",
+          "artifact_path": "PRD.md",
+          "ambiguous": false,
+          "provenance": "operator-live"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/authz/classify.ts",
+          "packages/core/src/authz/classify.test.ts",
+          "packages/core/src/authz/evaluate.ts",
+          "packages/core/src/authz/incident-regression.test.ts",
+          "CHANGELOG.md",
+          "PRD.md"
+        ],
+        "module_boundary": "packages/core/src/authz",
+        "cohesion_exemption": "The existing authz classifier and its focused/incident regression suites are the canonical homes for this narrow producer and its boundary tests; extracting a separate module would fragment one classifier rule without reducing those files materially. CHANGELOG.md is an append-only chronological release log, and this slice adds one [Unreleased] entry only. PRD.md is the existing generated specification export that the mandatory pre-PR render refreshed; the operator explicitly retained that deterministic output in this scope."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4146,
+        "prBase": "master",
+        "mergeCommit": "041469e7dd8358a8763e854abf0e447dab849ba2",
+        "deliveryBranch": "master",
+        "deliveryCommit": "041469e7dd8358a8763e854abf0e447dab849ba2",
+        "verifiedAt": "2026-09-03T02:34:55Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "MDFhMDYwMzEtYzFkYS03MTYzLTg3OTItZDI2YjkzNmMxYWYy"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-03T02:34:55Z"
+      },
+      "completedAt": "2026-09-03T02:34:55Z",
+      "completedSessionId": "MDFhMDYwMzEtYzFkYS03MTYzLTg3OTItZDI2YjkzNmMxYWYy",
+      "capacityBucket": "technical-debt"
+    },
+    "updated": "2026-09-03T02:34:55Z"
+  }
+}

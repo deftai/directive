@@ -18,4 +18,5 @@ export * from "./rule-ownership-lint.js";
 export * from "./scm-boundary.js";
 export * from "./semantic-single-source.js";
 export * from "./skill-external-fetch-gate.js";
+export * from "./spec-prd-fresh.js";
 export * from "./verify-stubs.js";

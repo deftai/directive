@@ -1667,3 +1667,145 @@ describe("UAT residual dest-form writers fail-closed (#3545)", () => {
     }
   });
 });
+
+describe("destination-visible empty-op fallback (#4005)", () => {
+  const protectedDestinationCommands = [
+    "zip .deft/authz/grants/evil.json /etc/hosts",
+    "zip .deft-directive-disable /etc/hosts",
+    "zip .no-deft-directive /etc/hosts",
+    // Defense in depth: merge-base provenance independently rejects same-change approval.
+    "zip .deft/approved-scope/evil.json /etc/hosts",
+    "zip .deft/authz/grants/collision.json /etc/hosts pytest",
+    "echo ok&&zip .deft/authz/grants/glued-and.json /etc/hosts",
+    "echo ok;zip .deft/authz/grants/glued-semi.json /etc/hosts",
+    "echo ok|zip .deft/authz/grants/glued-pipe.json /etc/hosts",
+    "zip '.deft/authz/grants/$literal.json' /etc/hosts",
+    "zip .deft/authz/grants/\\$literal.json /etc/hosts",
+    "env zip .deft/authz/grants/env-wrapper.json /etc/hosts",
+    "env ARCHIVE_MODE=fast zip .deft/authz/grants/env-assignment-wrapper.json /etc/hosts",
+    "command zip .deft/authz/grants/command-wrapper.json /etc/hosts",
+    "command -- zip .deft/authz/grants/command-end-options-wrapper.json /etc/hosts",
+    "command -p zip .deft/authz/grants/command-path-wrapper.json /etc/hosts",
+    "sudo zip .deft/authz/grants/sudo-wrapper.json /etc/hosts",
+    "sudo -n zip .deft/authz/grants/sudo-noninteractive.json /etc/hosts",
+    "nice zip .deft/authz/grants/nice-wrapper.json /etc/hosts",
+    "env -i zip .deft/authz/grants/env-clean-wrapper.json /etc/hosts",
+    "env env env env env zip .deft/authz/grants/deep-wrapper.json /etc/hosts",
+    "(zip .deft/authz/grants/grouped.json /etc/hosts)",
+    "(zip .deft/authz/grants/grouped-compound.json /etc/hosts; true)",
+    "{ zip .deft/authz/grants/brace-grouped.json /etc/hosts; }",
+    String.raw`zip .de\ft/authz/grants/escaped-name.json /etc/hosts`,
+    String.raw`zip .deft-directive-dis\able /etc/hosts`,
+    String.raw`z\ip .deft/authz/grants/escaped-bin.json /etc/hosts`,
+    "zip $'.deft/authz/grants/ansi-c.json' /etc/hosts",
+    "zip $'.deft/authz/grants/ansi-\\'quote.json' /etc/hosts",
+    String.raw`zip .\.deft\authz\grants\windows.json C:\tmp\input.txt`,
+    "true && \\\nzip .deft/authz/grants/continued.json /etc/hosts",
+    String.raw`echo foo\ #bar && zip .deft/authz/grants/after-escaped-space.json /etc/hosts`,
+    "git status # zip below still executes after the comment\nzip .deft/authz/grants/after-comment.json /etc/hosts",
+    "cat <<'EOF'\nignored\nEOF\nzip .deft/authz/grants/after-heredoc.json /etc/hosts",
+    "cat <<EO\\\nF\nignored\nEOF\nzip .deft/authz/grants/after-continued-heredoc.json /etc/hosts",
+    "echo $((1 << 2))\nzip .deft/authz/grants/after-arithmetic-shift.json /etc/hosts",
+    "}# ; zip .deft/authz/grants/after-brace-word.json /etc/hosts",
+    "zip .deft/authz/grants/stdin-dash.zip - < /etc/hosts",
+    "zip .deft/authz/grants/redirected-output.zip /etc/hosts >/tmp/zip.log",
+    ">/tmp/zip-prefix.log zip .deft/authz/grants/prefix-redirect.zip /etc/hosts",
+    "(zip .deft/authz/grants/group-redirect.zip /etc/hosts) >/tmp/group.log",
+    "{ zip .deft/authz/grants/brace-redirect.zip /etc/hosts; }>/tmp/brace.log",
+  ] as const;
+
+  function seamsFor(state: AuthzState): HookPolicySeams {
+    return readySeams({
+      loadAuthzState: () => state,
+      loadAuthzGrants: () => [],
+      loadRuntimeAuthority: () => ({
+        enabled: false,
+        allowPaths: [],
+        denyPaths: [],
+        scopes: { edits: true, push: true, merge: true },
+        shellDestForms: "off",
+      }),
+    });
+  }
+
+  it("denies exact protected zip destinations under active UAT", () => {
+    const seams = seamsFor(activeUatState());
+    for (const command of protectedDestinationCommands) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Bash", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("deny");
+      expect(decision.code, command).toBe("authz-uat-deny");
+      expect(decision.message, command).toMatch(/classifiable form/i);
+      expect(decision.message, command).toMatch(/suspend UAT.*human review/i);
+      expect(decision.message, command).not.toMatch(/mint a named fix cohort/i);
+    }
+  });
+
+  it("allows the same unknown operations when UAT is inactive", () => {
+    const seams = seamsFor({ schemaVersion: 1, uat: null, activeGrantIds: [] });
+    for (const command of protectedDestinationCommands) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Shell", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("allow");
+      expect(decision.code, command).not.toMatch(/^authz-/);
+    }
+  });
+
+  it("keeps status, reads, prints, and protected archive inputs unclassified under UAT", () => {
+    const seams = seamsFor(activeUatState());
+    for (const command of [
+      "git status",
+      "cat .deft/authz/state.json",
+      "echo ok",
+      "python -c \"print('.deft/authz/grants/evil.json')\"",
+      "zip /tmp/backup.zip .deft/authz/state.json",
+      "zip /tmp/backup.zip .deft-directive-disable",
+      "zip /tmp/backup.zip .deft/approved-scope/story.json",
+      "(zip .deft/authz/grants/grouped-no-input.zip)",
+      "{ zip .deft/authz/grants/brace-grouped-no-input.zip; }",
+      String.raw`zip .deft\authz\grants\ordinary.json /etc/hosts`,
+      "zip .deft/authz/grants/no-input-option.zip -P secret",
+      'zip ".deft/authz/grants/no input.zip"',
+      'zip " .deft/authz/grants/leading-space.zip" /etc/hosts',
+      'echo "safe && zip" .deft/authz/grants/evil.json /etc/hosts',
+      "printf 'safe ; zip' .deft/authz/grants/evil.json /etc/hosts",
+      "zip .deft/authz/grants/redirect-only.zip >/tmp/zip.log",
+      "zip .deft/authz/grants/redirect-only-amp.zip &>/tmp/zip.log",
+      "zip .deft/authz/grants/heredoc-fd-only.zip 3<<EOF\nignored\nEOF",
+      "zip .deft/authz/grants/stdin-only.zip < /dev/null",
+      "zip .deft/authz/grants/comment-only.zip # no archive input",
+      "git status # && zip .deft/authz/grants/comment-data.zip /etc/hosts",
+      "echo '# && zip .deft/authz/grants/quoted-comment.zip /etc/hosts'",
+      "(:)# ; zip .deft/authz/grants/paren-comment.zip /etc/hosts",
+      "{ :; } # ; zip .deft/authz/grants/brace-comment.zip /etc/hosts",
+      "zip prefix=.deft/authz/grants/ordinary.zip /etc/hosts",
+      "cat <<'EOF'\nzip .deft/authz/grants/heredoc-data.zip /etc/hosts\nEOF",
+    ]) {
+      const decision = decideHook(
+        {
+          host: "claude",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { tool_name: "Bash", tool_input: { command } },
+        },
+        seams,
+      );
+      expect(decision.verdict, command).toBe("allow");
+      expect(decision.code, command).toBe("shell-op-unclassifiable");
+    }
+  });
+});

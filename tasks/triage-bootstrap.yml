@@ -15,8 +15,8 @@ version: '3'
 #   tasks/triage-bulk.yml       (Story 4 -- bulk ops + freshness)
 #   tasks/triage-bootstrap.yml  (Story 6 -- this file)
 #
-# Companion script: scripts/triage_bootstrap.py
-# Companion test:   tests/test_triage_bootstrap.py
+# Handler: packages/cli/src/triage-bootstrap.ts via engine:invoke (packages/cli/dist).
+# Help registry: packages/core/src/triage/help/registry-data.ts (edit in place).
 #
 # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
 # declarations on this task because user-facing recovery flags

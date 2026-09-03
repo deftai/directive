@@ -1,8 +1,8 @@
 {
-  "vBRIEFInfo": {
-    "version": "0.6",
+  "xBRIEFInfo": {
+    "version": "0.8",
     "description": "Current Deft Directive product specification source. Historical completed items remain below for implementation provenance.",
-    "updated": "2026-06-29T19:46:56Z"
+    "updated": "2026-09-02T20:24:42Z"
   },
   "plan": {
     "title": "Deft Directive Current Specification",

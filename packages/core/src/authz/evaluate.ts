@@ -324,8 +324,8 @@ export function evaluateAuthzMutation(input: EvaluateAuthzInput): AuthzDecision 
     return deny(
       "authz-uat-deny",
       `Directive denied unclassifiable mutation under active UAT campaign ${uat.campaignId}. ` +
-        "Fail closed: classify the operation or suspend UAT (`deft authz:uat-suspend`) / " +
-        "mint a named fix cohort (`deft authz:grant -- --cohort <id>`).",
+        "Fail closed: use a classifiable form, or explicitly suspend UAT after human review " +
+        "(`deft authz:uat-suspend`).",
       input,
     );
   }

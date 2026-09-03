@@ -13,9 +13,9 @@ version: '3'
 # `--cache-only`, `--fixture`) are forwarded via {{.CLI_ARGS}} and
 # go-task's incremental-build cache layer would silently swallow them.
 #
-# Companion script:   scripts/triage_smoketest.py (+ scripts/_triage_smoketest_stages.py)
-# Companion fixture:  tests/fixtures/triage_smoketest/
-# Companion tests:    tests/test_triage_smoketest.py + tests/test_triage_smoketest_fixture.py
+# Handler: packages/cli/src/triage-smoketest.ts via engine:invoke (packages/cli/dist).
+# Help registry: packages/core/src/triage/help/registry-data.ts (edit in place).
+# Fixture: tests/fixtures/triage_smoketest/
 # Pattern reference:  tasks/triage-summary.yml (D2 / #1122).
 
 vars:

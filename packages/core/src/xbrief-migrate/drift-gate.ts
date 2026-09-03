@@ -10,8 +10,11 @@ import { fnmatchCase } from "../encoding/text.js";
 import {
   LEGACY_ARTIFACT_DIR,
   LEGACY_ARTIFACT_SUFFIX,
+  LEGACY_INFO_ROOT_KEY,
   MIGRATED_ARTIFACT_DIR,
   MIGRATED_ARTIFACT_SUFFIX,
+  MIGRATED_INFO_ROOT_KEY,
+  VBRIEF_VERSION,
 } from "./constants.js";
 
 /**
@@ -24,7 +27,10 @@ import {
  *   1. a tracked `*.vbrief.json` artifact path (legacy suffix), or
  *   2. a tracked file under a top-level `vbrief/` lifecycle directory, or
  *   3. a bare `x-vbrief/` reference type inside a canonical corpus artifact
- *      (`xbrief/ ** / *.xbrief.json`).
+ *      (`xbrief/ ** / *.xbrief.json`), or
+ *   4. a legacy envelope key/version (`vBRIEFInfo` or `xBRIEFInfo` not at the
+ *      current write version) on a correctly named `*.xbrief.json` outside
+ *      lifecycle-folder prefixes and the built-in allowlist (#4086).
  *
  * It is a DATA-PLANE gate by construction: it only inspects artifact PATHS and
  * the JSON content of canonical `*.xbrief.json` corpus files. The sanctioned
@@ -70,8 +76,26 @@ export type DriftScanMode = "all" | "staged";
 
 export interface DriftFinding {
   readonly path: string;
-  readonly kind: "legacy-suffix" | "legacy-lifecycle-dir" | "legacy-reference-token";
+  readonly kind:
+    | "legacy-suffix"
+    | "legacy-lifecycle-dir"
+    | "legacy-reference-token"
+    | "legacy-envelope-key"
+    | "legacy-envelope-version";
   readonly detail: string;
+}
+
+/** Lifecycle folders whose historical v0.6 records stay historical (#4086). */
+export const LIFECYCLE_FOLDER_PREFIXES: readonly string[] = [
+  `${MIGRATED_ARTIFACT_DIR}/proposed/`,
+  `${MIGRATED_ARTIFACT_DIR}/pending/`,
+  `${MIGRATED_ARTIFACT_DIR}/active/`,
+  `${MIGRATED_ARTIFACT_DIR}/completed/`,
+  `${MIGRATED_ARTIFACT_DIR}/cancelled/`,
+];
+
+function isLifecycleFolderPath(relPath: string): boolean {
+  return LIFECYCLE_FOLDER_PREFIXES.some((prefix) => relPath.startsWith(prefix));
 }
 
 export interface DriftEvaluateOptions {
@@ -160,6 +184,45 @@ export function scanCorpusToken(fullPath: string): boolean {
   return source.includes(`"${LEGACY_REFERENCE_PREFIX}`) || source.includes(LEGACY_REFERENCE_PREFIX);
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** Envelope-key/version predicate for correctly named `*.xbrief.json` (#4086). */
+export function scanCorpusEnvelope(relPath: string, fullPath: string): DriftFinding | null {
+  let raw: string;
+  try {
+    raw = readFileSync(fullPath, { encoding: "utf8" });
+  } catch {
+    return null;
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!isPlainObject(parsed)) return null;
+  if (Object.hasOwn(parsed, LEGACY_INFO_ROOT_KEY)) {
+    return {
+      path: relPath,
+      kind: "legacy-envelope-key",
+      detail:
+        `legacy envelope key \`${LEGACY_INFO_ROOT_KEY}\` on a correctly named \`${MIGRATED_ARTIFACT_SUFFIX}\` artifact ` +
+        `(canonical: \`${MIGRATED_INFO_ROOT_KEY}\` @ ${VBRIEF_VERSION})`,
+    };
+  }
+  const info = parsed[MIGRATED_INFO_ROOT_KEY];
+  if (isPlainObject(info) && typeof info.version === "string" && info.version !== VBRIEF_VERSION) {
+    return {
+      path: relPath,
+      kind: "legacy-envelope-version",
+      detail: `\`${MIGRATED_INFO_ROOT_KEY}.version\` is \`${info.version}\` (canonical write: \`${VBRIEF_VERSION}\`)`,
+    };
+  }
+  return null;
+}
+
 export function evaluateXbriefDrift(
   projectRoot: string,
   options: DriftEvaluateOptions = {},
@@ -219,21 +282,26 @@ export function evaluateXbriefDrift(
       continue;
     }
     if (rel.startsWith(corpusPrefix) && rel.endsWith(MIGRATED_ARTIFACT_SUFFIX)) {
-      if (scanCorpusToken(join(root, rel))) {
+      const full = join(root, rel);
+      if (scanCorpusToken(full)) {
         findings.push({
           path: rel,
           kind: "legacy-reference-token",
           detail: `bare legacy reference token \`${LEGACY_REFERENCE_PREFIX}\` in a canonical corpus artifact (canonical: \`x-${MIGRATED_ARTIFACT_DIR}/\`)`,
         });
       }
+      if (!isLifecycleFolderPath(rel)) {
+        const envelope = scanCorpusEnvelope(rel, full);
+        if (envelope !== null) findings.push(envelope);
+      }
     }
   }
 
   if (findings.length > 0) {
     const header =
-      `verify_xbrief_drift: detected ${findings.length} legacy-layout token(s) reintroduced into the data plane (#2109).\n` +
-      "  Root cause: the canonical lifecycle layout is `xbrief/ ** / *.xbrief.json` with `x-xbrief/` reference types.\n" +
-      "  Fix: rename the artifact to `.xbrief.json`, move it under `xbrief/`, and use the `x-xbrief/` reference prefix.\n" +
+      `verify_xbrief_drift: detected ${findings.length} legacy-layout token(s) reintroduced into the data plane (#2109 / #4086).\n` +
+      "  Root cause: the canonical lifecycle layout is `xbrief/ ** / *.xbrief.json` with `x-xbrief/` reference types and `xBRIEFInfo` @ 0.8.\n" +
+      "  Fix: rename the artifact to `.xbrief.json`, move it under `xbrief/`, use the `x-xbrief/` reference prefix, and lift current envelopes to `xBRIEFInfo` 0.8.\n" +
       "  Sanctioned back-compat fixtures are allowlisted; add a documented exception via `--allow-list <path>`\n" +
       "  (file with newline-separated glob patterns).";
     const body = findings

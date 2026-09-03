@@ -64,9 +64,11 @@ import { recordChildOccupancyLease } from "./child-occupancy.js";
 import {
   ambientHostSessionOwner,
   claimsHostSessionIdShape,
+  isUsableHostSessionId,
   parseCanonicalHostSessionId,
 } from "./host-session-owner.js";
 import { stableJson } from "./json.js";
+import { isContendedPrimaryCheckout } from "./main-worktree.js";
 import { parseTimestamp, timestampIso } from "./time.js";
 
 export const OCCUPANCY_SCHEMA_VERSION = 1;
@@ -107,6 +109,17 @@ export const OCCUPANCY_STALE_WARN_MS = (OCCUPANCY_TTL_MS * 3) / 4;
 export const OCCUPANCY_MAX_LEASE_MS = OCCUPANCY_TTL_MS * 36;
 export const OCCUPANCY_INTENTS = ["mutation", "swarm", "review"] as const;
 export type OccupancyIntent = (typeof OCCUPANCY_INTENTS)[number];
+/** Trusted primary-checkout claim exceptions (#4066). `--read-only` never claims. */
+export const PRIMARY_CLAIM_EXCEPTIONS = [
+  "release-cut",
+  "policy-restore",
+  "operator-default-branch",
+] as const;
+export type PrimaryClaimException = (typeof PRIMARY_CLAIM_EXCEPTIONS)[number];
+export function isPrimaryClaimException(value: string | undefined | null): boolean {
+  if (value === undefined || value === null) return false;
+  return (PRIMARY_CLAIM_EXCEPTIONS as readonly string[]).includes(value.trim());
+}
 export const OCCUPANCY_JOIN_PROTOCOLS = ["none", "heartbeat-file", "parent-message"] as const;
 export type OccupancyJoinProtocol = (typeof OCCUPANCY_JOIN_PROTOCOLS)[number];
 /**
@@ -131,10 +144,9 @@ export const OCCUPANCY_MAX_GRANTS = 32;
  * the tree it covers, the role it was dispatched for, and when it stops being
  * true. A grant admits writes; it never admits administration.
  *
- * `worktreePath` is recorded rather than assumed. Dispatched children land in
- * their own worktree because the dispatch envelope puts them there, not because
- * anything enforces it, so same-tree dispatch stays reachable and a lease may
- * hold several grants over one path.
+ * `worktreePath` is recorded rather than assumed. Spawned mutating children
+ * take a reserved linked worktree (#4066); same-tree membership stays reachable
+ * only as the documented primary-path exception, not as the default.
  */
 export interface OccupancyGrant {
   readonly ownerSessionId: string;
@@ -218,6 +230,11 @@ export interface ApplyOccupancyInput {
   readonly write?: boolean;
   /** Test seam for lock wait / timeout. */
   readonly lockDeps?: LockDeps;
+  /**
+   * Closed exception enum for claiming the primary checkout (#4066). Trusted
+   * producer: CLI / launch manifest / structured spawn field -- not prompt text.
+   */
+  readonly primaryClaimException?: PrimaryClaimException | string;
 }
 
 export function occupancyPath(projectRoot: string): string {
@@ -389,6 +406,12 @@ function commandSessionId(sessionId: string, placeholder: string): string {
   return SHELL_SAFE_SESSION_ID.test(sessionId) ? sessionId : placeholder;
 }
 
+/** One-line, bounded echo of a caller-supplied id (#4066 F6). */
+function renderEchoedSessionId(id: string): string {
+  if (isUsableHostSessionId(id)) return id;
+  return "<unusable-child-id>";
+}
+
 function occupancyClockLine(record: OccupancyRecord): string {
   const lastWrite =
     record.lastWriteAt === null ? "" : ` last_write_at=${timestampIso(record.lastWriteAt)}`;
@@ -443,6 +466,22 @@ export function formatOccupancyAgeCapRemediation(
  * `occupancy:grant --child-session-id=` is refused at parse and at membership --
  * so that remediation is not printed to a caller who could never run it.
  */
+function isOwnInheritedPresentation(occupantId: string, presented: string): boolean {
+  if (presented === occupantId) return false;
+  const presentedParts = parseCanonicalHostSessionId(presented);
+  const occupantParts = parseCanonicalHostSessionId(occupantId);
+  if (
+    presentedParts !== null &&
+    occupantParts !== null &&
+    presentedParts.rawSessionId === occupantParts.rawSessionId
+  ) {
+    return true;
+  }
+  if (presentedParts !== null && presentedParts.rawSessionId === occupantId) return true;
+  if (occupantParts !== null && occupantParts.rawSessionId === presented) return true;
+  return false;
+}
+
 export function formatOccupancyRemediation(
   record: OccupancyRecord,
   now: Date = new Date(),
@@ -453,13 +492,15 @@ export function formatOccupancyRemediation(
     `Worktree occupied by session ${record.sessionId} (intent=${record.intent}, heartbeat ${age}s ago, ` +
     `${formatLastWritePhrase(record, now)}, ${occupancyClockLine(record)}).\n`;
   const tail = "\nThe occupant may release (`occupancy:release` / `session:end`).";
+  const worktreeFirst = "Use another worktree.";
 
   if (presented === undefined) {
     return (
-      `${header}Stay read-only (\`session:start --read-only\`), use another worktree,\n` +
-      "ask the occupant for a write grant (`occupancy:grant --child-session-id=<your-session-id> " +
-      "--role <worker-role>`, run by the occupant), or run a confirmed owner transition " +
-      `(\`session:start --steal --confirm --occupant <reported-session-id> --session-id=<your-session-id>\`).${tail}`
+      `${header}${worktreeFirst} Stay read-only (\`session:start --read-only\`).\n` +
+      "Ask the occupant for a write grant (`occupancy:grant --child-session-id=<your-session-id> " +
+      "--role <worker-role>`, run by the occupant). A confirmed owner transition " +
+      "(`session:start --steal --confirm --occupant <reported-session-id> --session-id=<your-session-id>`) " +
+      `is last resort, not the default recovery.${tail}`
     );
   }
 
@@ -469,18 +510,27 @@ export function formatOccupancyRemediation(
     return (
       `${header}This process presented no session identity, so a write grant cannot name it ` +
       "and an owner transition would not be recognised on its next write.\n" +
-      "Stay read-only (`session:start --read-only`), use another worktree, or ask the occupant " +
+      `${worktreeFirst} Stay read-only (\`session:start --read-only\`), or ask the occupant ` +
       `to release the lease (\`occupancy:release --session-id=${occupantArg}\` / \`session:end\`).${tail}`
+    );
+  }
+  if (isOwnInheritedPresentation(record.sessionId, actor)) {
+    return (
+      `${header}This process presented session ${actor}, which is this occupant's own host ` +
+      "session under a second identity -- not a stranger.\n" +
+      `${worktreeFirst} Do not steal this lease from yourself. Stay read-only ` +
+      `(\`session:start --read-only\`) or isolate in a linked worktree and claim that tree.${tail}`
     );
   }
   const actorArg = commandSessionId(actor, "<your-session-id>");
   return (
     `${header}This process presented session ${actor}, which neither holds that lease nor has a ` +
     "write grant on it.\n" +
-    "Stay read-only (`session:start --read-only`), use another worktree,\n" +
-    `ask the occupant for a write grant (\`occupancy:grant --child-session-id=${actorArg} ` +
-    "--role <worker-role>`, run by the occupant), or run a confirmed owner transition " +
-    `(\`session:start --steal --confirm --occupant ${occupantArg} --session-id=${actorArg}\`).${tail}`
+    `${worktreeFirst} Stay read-only (\`session:start --read-only\`).\n` +
+    `Ask the occupant for a write grant (\`occupancy:grant --child-session-id=${actorArg} ` +
+    "--role <worker-role>`, run by the occupant). A confirmed owner transition " +
+    `(\`session:start --steal --confirm --occupant ${occupantArg} --session-id=${actorArg}\`) ` +
+    `is last resort, not isolation.${tail}`
   );
 }
 
@@ -591,8 +641,13 @@ export function formatPresentedIdentityDisagreement(identity: PresentedIdentity)
  * one terminal the prove-surfaces deliberately do not share (#3954).
  */
 export function resolveOccupancySessionId(input: ApplyOccupancyInput = {}): string {
-  const presented = resolvePresentedIdentity(input).sessionId;
-  if (presented.length > 0) return presented;
+  const identity = resolvePresentedIdentity(input);
+  // #4066: host-authoritative claim. Inherited DEFT_SESSION_ID must not beat the
+  // host-published owner -- that split is the measured steal-from-self loop.
+  if (identity.source === "environment" && identity.disagreeingHostOwner !== null) {
+    return identity.disagreeingHostOwner;
+  }
+  if (identity.sessionId.length > 0) return identity.sessionId;
   return (input.newSessionId ?? randomUUID)();
 }
 
@@ -621,6 +676,25 @@ export function liveOccupant(
   return liveOccupancyOnTree(projectRoot, readOccupancy(projectRoot), now, ttlMs, maxLeaseMs);
 }
 
+function primaryClaimRefusal(
+  projectRoot: string,
+  incoming: string,
+  path: string,
+): OccupancyDecision {
+  return {
+    action: "denied",
+    sessionId: incoming,
+    record: readOccupancy(projectRoot),
+    path,
+    message:
+      "occupancy refuses a mutation claim on the primary checkout. Spawned mutating work " +
+      "takes a linked worktree. Primary occupancy is the exception " +
+      `(${PRIMARY_CLAIM_EXCEPTIONS.join(", ")}) from a trusted producer. ` +
+      "Use another worktree. `--read-only` never claims.",
+    code: 1,
+  };
+}
+
 export function applyWorktreeOccupancy(
   projectRoot: string,
   input: ApplyOccupancyInput = {},
@@ -630,9 +704,18 @@ export function applyWorktreeOccupancy(
   const incoming = resolveOccupancySessionId(input);
   const existing = readOccupancy(projectRoot);
   const live = liveOccupancyOnTree(projectRoot, existing, now);
+  const primaryBlocked =
+    input.write !== false &&
+    isContendedPrimaryCheckout(projectRoot) &&
+    !isPrimaryClaimException(input.primaryClaimException);
 
   if (input.steal === true) {
+    if (primaryBlocked) return primaryClaimRefusal(projectRoot, incoming, path);
     return stealOccupancy(projectRoot, { ...input, sessionId: incoming, now });
+  }
+
+  if (primaryBlocked && (live === null || live.sessionId !== incoming)) {
+    return primaryClaimRefusal(projectRoot, incoming, path);
   }
 
   if (live !== null && live.sessionId !== incoming) {
@@ -741,6 +824,7 @@ function maybeRecordChildOccupancyOnClaim(
       occupancyOwner,
       worktreePath: resolve(projectRoot),
       identitySourceKind: grokRaw.length > 0 ? "host-env" : "payload",
+      provenance: "claim",
     });
   } catch {
     // Claim already succeeded; a missing dispatch record is a no-op on terminal.
@@ -754,6 +838,13 @@ export function stealOccupancy(
   const now = input.now ?? new Date();
   const path = occupancyPath(projectRoot);
   const incoming = resolveOccupancySessionId(input);
+  if (
+    input.write !== false &&
+    isContendedPrimaryCheckout(projectRoot) &&
+    !isPrimaryClaimException(input.primaryClaimException)
+  ) {
+    return primaryClaimRefusal(projectRoot, incoming, path);
+  }
   if (input.confirm !== true) {
     const current = readOccupancy(projectRoot);
     // Show the occupant's write recency before the steal, not only after it
@@ -1100,7 +1191,7 @@ export function grantOccupancyMembership(
       record: readOccupancy(projectRoot),
       path,
       message:
-        `occupancy:grant refuses the child id ${child}: the \`host:\` prefix is reserved for ` +
+        `occupancy:grant refuses the child id ${renderEchoedSessionId(child)}: the \`host:\` prefix is reserved for ` +
         "host-published identity, and this is not a well-formed owner " +
         "(`host:<provider>:v1:<base64url>`), so no session could ever present it. Pass the id " +
         "the child's own host publishes, or an opaque id the child sets as DEFT_SESSION_ID.",
@@ -1124,7 +1215,7 @@ export function grantOccupancyMembership(
       record: readOccupancy(projectRoot),
       path,
       message:
-        `occupancy:grant refuses the child id ${child}: it carries this lease owner's own host ` +
+        `occupancy:grant refuses the child id ${renderEchoedSessionId(child)}: it carries this lease owner's own host ` +
         `session (${ownerParts.rawSessionId}) under provider ${childParts.provider}. That is a ` +
         "self-grant across a provider prefix, and the child it names cannot exist.",
       code: 2,
