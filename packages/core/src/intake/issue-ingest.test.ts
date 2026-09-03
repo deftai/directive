@@ -20,6 +20,7 @@ import { runTransition } from "../scope/transition.js";
 import {
   buildIssueVbrief,
   enrichIssueWithComments,
+  evaluateIssuePlanIdAdmission,
   extractCrossRefs,
   extractPlanItems,
   fetchFromCache,
@@ -1298,7 +1299,7 @@ describe("#4119 plan.id mint, admission, and repair", () => {
       repo: "directive",
       number: 4119,
     });
-    expect(mint.id).toBe("github.issue.fallback.deftai.directive.4119");
+    expect(mint.id).toBe("github.issue.fallback.6xdeftai.9xdirective.4119");
     expect(mint.source).toBe("github-repo-fallback");
   });
 
@@ -1311,9 +1312,17 @@ describe("#4119 plan.id mint, admission, and repair", () => {
   it("keeps dotted owner/repo fallback ids injective", () => {
     const a = mintIssuePlanId({ owner: "a.b", repo: "c", number: 9 });
     const b = mintIssuePlanId({ owner: "a", repo: "b.c", number: 9 });
-    expect(a.id).toBe("github.issue.fallback.ax2eb.c.9");
-    expect(b.id).toBe("github.issue.fallback.a.bx2ec.9");
+    expect(a.id).toBe("github.issue.fallback.3xax2eb.1xc.9");
+    expect(b.id).toBe("github.issue.fallback.1xa.3xbx2ec.9");
     expect(a.id).not.toBe(b.id);
+  });
+
+  it("does not collide fallback repo b.c with literal bx2ec", () => {
+    const dotted = mintIssuePlanId({ owner: "acme", repo: "b.c", number: 1 });
+    const literal = mintIssuePlanId({ owner: "acme", repo: "bx2ec", number: 1 });
+    expect(dotted.id).toBe("github.issue.fallback.4xacme.3xbx2ec.1");
+    expect(literal.id).toBe("github.issue.fallback.4xacme.5xbx2ec.1");
+    expect(dotted.id).not.toBe(literal.id);
   });
 
   it("does not collide fallback ids for the same number in two repositories", () => {
@@ -1398,8 +1407,8 @@ describe("#4119 plan.id mint, admission, and repair", () => {
       );
       expect(a).toBe("created");
       expect(b).toBe("created");
-      expect(planOf(pathA as string).id).toBe("github.issue.fallback.acme.a.42");
-      expect(planOf(pathB as string).id).toBe("github.issue.fallback.acme.b.42");
+      expect(planOf(pathA as string).id).toBe("github.issue.fallback.4xacme.1xa.42");
+      expect(planOf(pathB as string).id).toBe("github.issue.fallback.4xacme.1xb.42");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -1449,7 +1458,7 @@ describe("#4119 plan.id mint, admission, and repair", () => {
       expect(planOf(proposed).id).toBeUndefined();
       const applied = repairNonterminalIssuePlanIds({ vbriefDir: xbriefDir, dryRun: false });
       expect(applied.ok).toBe(true);
-      expect(planOf(proposed).id).toBe("github.issue.fallback.o.r.9");
+      expect(planOf(proposed).id).toBe("github.issue.fallback.1xo.1xr.9");
       expect(planOf(completed).id).toBeUndefined();
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -1530,6 +1539,46 @@ describe("#4119 plan.id mint, admission, and repair", () => {
     }
   });
 
+  it("refuses non-string plan.id as malformed in repair and admission", () => {
+    const root = mkdtempSync(join(tmpdir(), "4119-repair-nonstring-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(join(xbriefDir, "proposed"), { recursive: true });
+    const numeric = join(xbriefDir, "proposed", "numeric.xbrief.json");
+    writeFileSync(
+      numeric,
+      `${JSON.stringify({
+        xBRIEFInfo: { version: "0.8", description: "Scope xBRIEF ingested from GitHub issue #5" },
+        plan: {
+          id: 4119,
+          title: "Num",
+          status: "proposed",
+          narratives: { Origin: "Ingested from https://github.com/o/r/issues/5" },
+          items: [],
+        },
+      })}\n`,
+      "utf8",
+    );
+    try {
+      const repaired = repairNonterminalIssuePlanIds({ vbriefDir: xbriefDir, dryRun: false });
+      expect(repaired.ok).toBe(false);
+      expect(planOf(numeric).id).toBe(4119);
+      const parsed: unknown = JSON.parse(readFileSync(numeric, "utf8"));
+      if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw new Error("expected object");
+      }
+      const admitted = evaluateIssuePlanIdAdmission({
+        lifecycleRoot: xbriefDir,
+        artifactPath: numeric,
+        data: parsed as Record<string, unknown>,
+      });
+      expect(admitted.ok).toBe(false);
+      expect(admitted.code).toBe("malformed");
+      expect(planOf(numeric).id).toBe(4119);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("refuses repair when the derived id is already occupied", () => {
     const root = mkdtempSync(join(tmpdir(), "4119-repair-dup-"));
     const xbriefDir = join(root, "xbrief");
@@ -1539,7 +1588,12 @@ describe("#4119 plan.id mint, admission, and repair", () => {
       join(xbriefDir, "completed", "occ.xbrief.json"),
       `${JSON.stringify({
         xBRIEFInfo: { version: "0.8" },
-        plan: { id: "github.issue.fallback.o.r.9", title: "Occ", status: "completed", items: [] },
+        plan: {
+          id: "github.issue.fallback.1xo.1xr.9",
+          title: "Occ",
+          status: "completed",
+          items: [],
+        },
       })}\n`,
       "utf8",
     );

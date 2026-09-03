@@ -518,7 +518,9 @@ function planIdSegmentOk(segment: string): boolean {
 }
 
 function encodeFallbackSegment(raw: string): string {
-  return raw.replace(/\./g, "x2e");
+  // Length-prefix so a dotted name cannot collide with a literal x2e segment
+  // (b.c -> 3xbx2ec, bx2ec -> 5xbx2ec).
+  return `${raw.length}x${raw.replace(/\./g, "x2e")}`;
 }
 
 export function mintIssuePlanId(input: {
@@ -792,6 +794,9 @@ export function evaluateIssuePlanIdAdmission(opts: {
   const extracted = extractPlanId(opts.data);
   const raw = plan.id;
   const bound = boundPlanId(plan);
+  if (Object.hasOwn(plan, "id") && typeof raw !== "string") {
+    return admissionFail("malformed", opts.artifactPath, "plan.id is not a string.");
+  }
   if (typeof raw === "string" && raw.trim().length === 0) {
     return admissionFail("blank", opts.artifactPath, "plan.id is blank.");
   }
@@ -941,6 +946,16 @@ export function repairNonterminalIssuePlanIds(options: {
         }
         const planRec = asPlanRecord(data);
         const rawId = planRec?.id;
+        if (planRec !== null && Object.hasOwn(planRec, "id") && typeof rawId !== "string") {
+          mappings.push({
+            path: rel,
+            from: null,
+            to: null,
+            action: "refuse",
+            reason: "malformed plan.id is not overwritten",
+          });
+          continue;
+        }
         if (typeof rawId === "string" && rawId.trim().length === 0) {
           mappings.push({
             path: rel,

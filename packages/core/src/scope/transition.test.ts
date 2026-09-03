@@ -1011,7 +1011,7 @@ describe("runTransition activate envelope policy (#3933 criterion 7)", () => {
     expect(result.ok).toBe(true);
     const dest = join(root, "xbrief", "pending", "missing-id.xbrief.json");
     const data = JSON.parse(readFileSync(dest, "utf8")) as { plan: { id: string } };
-    expect(data.plan.id).toBe("github.issue.fallback.o.r.9");
+    expect(data.plan.id).toBe("github.issue.fallback.1xo.1xr.9");
   });
 
   it("refuses promote of blank malformed conflicting and duplicate plan.id (#4119)", () => {
