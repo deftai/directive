@@ -899,6 +899,30 @@ export function repairNonterminalIssuePlanIds(options: {
   return withPlanIdIdentityLock(options.vbriefDir, () => {
     const mappings: PlanIdRepairMapping[] = [];
     const writes: Array<{ abs: string; data: Record<string, unknown> }> = [];
+    const pendingMints = new Map<string, { rel: string; abs: string }>();
+    const refuseQueuedMint = (mintId: string, siblingRel: string): void => {
+      const prior = pendingMints.get(mintId);
+      if (prior === undefined) {
+        return;
+      }
+      const idx = mappings.findIndex((row) => row.path === prior.rel && row.action === "repair");
+      if (idx >= 0) {
+        const row = mappings[idx];
+        if (row !== undefined) {
+          mappings[idx] = {
+            path: row.path,
+            from: row.from,
+            to: row.to,
+            action: "refuse",
+            reason: `derived id ${mintId} would collide with ${siblingRel} in this repair pass`,
+          };
+        }
+      }
+      const writeIdx = writes.findIndex((row) => sameResolvedPath(row.abs, prior.abs));
+      if (writeIdx >= 0) {
+        writes.splice(writeIdx, 1);
+      }
+    };
     for (const folder of LIFECYCLE_FOLDERS) {
       const folderPath = join(options.vbriefDir, folder);
       try {
@@ -1054,6 +1078,18 @@ export function repairNonterminalIssuePlanIds(options: {
           });
           continue;
         }
+        const queued = pendingMints.get(mint.id);
+        if (queued !== undefined) {
+          refuseQueuedMint(mint.id, rel);
+          mappings.push({
+            path: rel,
+            from: extracted,
+            to: mint.id,
+            action: "refuse",
+            reason: `derived id ${mint.id} would collide with ${queued.rel} in this repair pass`,
+          });
+          continue;
+        }
         const plan = asPlanRecord(data);
         if (plan === null) {
           mappings.push({
@@ -1066,6 +1102,7 @@ export function repairNonterminalIssuePlanIds(options: {
           continue;
         }
         attachPlanIdMint(plan, mint);
+        pendingMints.set(mint.id, { rel, abs });
         writes.push({ abs, data });
         mappings.push({
           path: rel,

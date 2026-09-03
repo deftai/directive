@@ -1677,6 +1677,36 @@ describe("#4119 plan.id mint, admission, and repair", () => {
     }
   });
 
+  it("refuses two same-origin missing-id artifacts in one repair pass", () => {
+    const root = mkdtempSync(join(tmpdir(), "4119-repair-same-origin-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(join(xbriefDir, "proposed"), { recursive: true });
+    const body = (title: string): string =>
+      `${JSON.stringify({
+        xBRIEFInfo: { version: "0.8", description: "Scope xBRIEF ingested from GitHub issue #9" },
+        plan: {
+          title,
+          status: "proposed",
+          narratives: { Origin: "Ingested from https://github.com/o/r/issues/9" },
+          items: [],
+        },
+      })}\n`;
+    const a = join(xbriefDir, "proposed", "a.xbrief.json");
+    const b = join(xbriefDir, "proposed", "b.xbrief.json");
+    writeFileSync(a, body("A"), "utf8");
+    writeFileSync(b, body("B"), "utf8");
+    try {
+      const result = repairNonterminalIssuePlanIds({ vbriefDir: xbriefDir, dryRun: false });
+      expect(result.ok).toBe(false);
+      expect(result.mappings.filter((row) => row.action === "repair")).toHaveLength(0);
+      expect(result.mappings.filter((row) => row.action === "refuse")).toHaveLength(2);
+      expect(planOf(a).id).toBeUndefined();
+      expect(planOf(b).id).toBeUndefined();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("preserves one minted id from ingest through promote activate complete", () => {
     const root = mkdtempSync(join(tmpdir(), "4119-e2e-"));
     const xbriefDir = join(root, "xbrief");
