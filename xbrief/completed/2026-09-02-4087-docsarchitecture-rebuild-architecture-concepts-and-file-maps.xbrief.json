@@ -1,0 +1,63 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Completed-tracked land for Wave 1b FILES.md orientation map (#4087 / PR #4160). Record of what shipped; no next-build authority.",
+    "updated": "2026-09-03T18:15:00Z"
+  },
+  "plan": {
+    "id": "4087-docs-files-map",
+    "title": "docs(architecture): rebuild architecture, concepts, and file maps for the current runtime tree",
+    "status": "completed",
+    "narratives": {
+      "Description": "Wave 1b of #4087: reconcile labeled-current docs/FILES.md trees to the TypeScript checkout after Wave 1a landed ARCHITECTURE/CONCEPTS. Guidance and skills live under content/; lifecycle state is xbrief/. Shipped in PR #4160 (squash 51891041).",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4087",
+      "Overview": "Wave 1b only. Does not generate FILES.md, reimplement C3, touch README, or author package topology (#4093). Parent umbrella #4085 stays open. Bound by merged PR https://github.com/deftai/directive/pull/4160.",
+      "ImplementationPlan": "Update docs/FILES.md labeled-current trees and pin existence/classification/skills-census contracts in packages/core/src/content-contracts/docs-orientation-current.test.ts. CHANGELOG Unreleased Changed."
+    },
+    "items": [
+      {
+        "title": "Reconcile labeled-current FILES.md trees to content/ and xbrief/ path classes.",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given docs/FILES.md labeled-current trees, when the content-contract tests run, then documented current paths exist, retired Python/run paths are not taught as current, and the skills census matches content/skills/."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/docs-orientation-current.test.ts",
+          "recorded_at": "2026-09-03T18:12:29Z",
+          "recorded_by": "grok-parent/4160-babysit"
+        }
+      }
+    ],
+    "tags": [
+      "documentation",
+      "status:child"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4087",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4087: docs(architecture): rebuild architecture, concepts, and file maps"
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/content-contracts/docs-orientation-current.test.ts"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Given docs/FILES.md labeled-current trees, when the content-contract tests run, then documented current paths exist, retired Python/run paths are not taught as current, and the skills census matches content/skills/.",
+          "artifact_path": "docs/FILES.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ]
+    }
+  }
+}
