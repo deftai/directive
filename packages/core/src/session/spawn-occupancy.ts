@@ -431,9 +431,10 @@ function sameTree(left: string, right: string): boolean {
 
 /**
  * True when `candidate` is a dispatcher-allocated child of `storeRoot`.
- * Path match alone is not enough: bind git common-dir (repo), current dest-lock
- * incarnation, parent, and live occupant so a stale unoccupied dispatch record
- * cannot rewrite identity against a reused tree.
+ * Path match alone is not enough: bind git common-dir (repo), presented and
+ * current dest-lock incarnation, parent, and live occupant so a stale unoccupied
+ * dispatch record cannot rewrite identity against a reused tree. Dest-lock does
+ * not substitute a missing presented incarnation.
  */
 export function allocatedWorktreeMatches(
   storeRoot: string,
@@ -447,7 +448,7 @@ export function allocatedWorktreeMatches(
   const parentId = opts.parentId?.trim() ?? "";
   if (parentId.length === 0) return false;
   const presentedIncarnation = opts.incarnation?.trim() ?? "";
-  if (presentedIncarnation === "missing") return false;
+  if (presentedIncarnation.length === 0 || presentedIncarnation === "missing") return false;
   const runGit = opts.runGit ?? defaultGitRunner;
   const want = resolve(candidate);
   const root = resolve(storeRoot);
@@ -459,7 +460,7 @@ export function allocatedWorktreeMatches(
   if (!isLinkedWorktreePath(want)) return false;
   const currentIncarnation = readSpawnReservationIncarnation(root, want);
   if (currentIncarnation === null || currentIncarnation.length === 0) return false;
-  if (presentedIncarnation.length > 0 && presentedIncarnation !== currentIncarnation) {
+  if (presentedIncarnation !== currentIncarnation) {
     return false;
   }
   for (const rec of listChildOccupancyLeases(root)) {

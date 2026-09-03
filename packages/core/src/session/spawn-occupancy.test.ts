@@ -523,7 +523,7 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
         provenance: "dispatch",
       }).ok,
     ).toBe(true);
-    expect(allocatedWorktreeMatches(parent, wt, { parentId: "parent" })).toBe(true);
+    expect(allocatedWorktreeMatches(parent, wt, { parentId: "parent" })).toBe(false);
     expect(allocatedWorktreeMatches(parent, wt, { parentId: "parent", incarnation: "inc-1" })).toBe(
       true,
     );
