@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for #4116 recut: two-class RUNTIME_WRITER_PATHS, per-file ignore, dual-rail heal-off (lean 5514569427, synthesis 5514578327)",
-    "updated": "2026-09-02T20:33:50Z"
+    "updated": "2026-09-03T00:09:16Z"
   },
   "plan": {
     "title": "bug(update,gitignore): canonical gitignore ignores .deft/approved-scope/ which provenance requires on the merge base",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Two-class RUNTIME_WRITER_PATHS (local-cache covered, tracked-provenance not). Per-file gitignore: approved-scope record kinds trackable; journal/lock/next sidecars ignored. Dual-rail heal-off of both slash spellings. Deterministic tracked-versus-baseline check. Bound SoT lean 5514569427 synthesis 5514578327. Do not drop ignore line without splitting the registry. Do not un-ignore the whole directory.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4116",
@@ -17,27 +17,63 @@
     "items": [
       {
         "title": "RUNTIME_WRITER_PATHS is two-class: local-cache MUST be covered; tracked-provenance MUST NOT.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/runtime-writers.test.ts#two-class",
+          "recorded_at": "2026-09-03T00:08:59Z",
+          "recorded_by": "grok-leaf/4116"
+        }
       },
       {
         "title": "Canonical gitignore: approved-scope record kinds stage with plain git add; journal/lock/next sidecars stay ignored.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/gitignore.test.ts#records-stage",
+          "recorded_at": "2026-09-03T00:08:59Z",
+          "recorded_by": "grok-leaf/4116"
+        }
       },
       {
         "title": "Heal-off of the approved-scope ignore on both TS and Go rails, both slash spellings.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/gitignore.test.ts#heal-off-root-anchored",
+          "recorded_at": "2026-09-03T00:08:59Z",
+          "recorded_by": "grok-leaf/4116"
+        }
       },
       {
         "title": "Deterministic check: no non-glob canonical baseline rule covers a git ls-files path in this repo for approved-scope records.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/runtime-writers.test.ts#tracked-vs-baseline",
+          "recorded_at": "2026-09-03T00:08:59Z",
+          "recorded_by": "grok-leaf/4116"
+        }
       },
       {
         "title": "Neighbor local-only paths stay ignored.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/gitignore.test.ts#neighbor-authz",
+          "recorded_at": "2026-09-03T00:08:59Z",
+          "recorded_by": "grok-leaf/4116"
+        }
       },
       {
         "title": "Do not delete the ignore line without the registry split. Do not un-ignore the whole directory.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/runtime-writers.test.ts#registry-split",
+          "recorded_at": "2026-09-03T00:08:59Z",
+          "recorded_by": "grok-leaf/4116"
+        }
       }
     ],
     "tags": [
@@ -120,7 +156,32 @@
         "module_boundary": "packages/core/src/init-deposit",
         "cohesion_exemption": "CHANGELOG.md already exceeds FILE_SIZE_REVIEW_TRIGGER_LINES; this slice only adds the Unreleased line. Splitting CHANGELOG is out of scope."
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4138,
+        "prBase": null,
+        "mergeCommit": "321ba5506399c9e005a8c058f374c5541aec951d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "321ba5506399c9e005a8c058f374c5541aec951d",
+        "verifiedAt": "2026-09-03T00:09:16Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDY0ODItMGM3MC03YzkwLWJlZWUtOWI1ZWIwZjUwZjc1"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-03T00:09:16Z"
+      },
+      "completedAt": "2026-09-03T00:09:16Z",
+      "completedSessionId": "host:grok:v1:MDFhMDY0ODItMGM3MC03YzkwLWJlZWUtOWI1ZWIwZjUwZjc1",
+      "capacityBucket": "technical-debt"
     },
     "acceptance": {
       "commands": [],
@@ -174,6 +235,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "4116-approved-scope-gitignore",
-    "updated": "2026-09-02T20:33:50Z"
+    "updated": "2026-09-03T00:09:16Z"
   }
 }
