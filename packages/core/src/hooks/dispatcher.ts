@@ -76,6 +76,7 @@ import {
   writeGateRitualOptions,
 } from "../session/verify-session-ritual.js";
 import {
+  fieldString,
   type HookPayloadContext,
   hookApplyPatchBodyPaths,
   hookApplyPatchBodyText,
@@ -1684,6 +1685,7 @@ function inspectMutationGates(
       input,
       spawnReservation.reRootPath,
       spawnReservation.hostCanReroot,
+      spawnReservation.incarnation,
     );
     return {
       verdict: "allow",
@@ -1709,23 +1711,47 @@ function inspectMutationGates(
   };
 }
 
+function spawnIncarnationFromPayload(payload: unknown): string {
+  const input = record(payload);
+  if (input === null) return "";
+  const nested = toolInputRecord(input);
+  const fromTool =
+    nested !== null
+      ? (fieldString(nested, "incarnation") ?? fieldString(nested, "Incarnation"))
+      : null;
+  if (fromTool !== null && fromTool.trim().length > 0) return fromTool.trim();
+  const fromTop = fieldString(input, "incarnation");
+  return fromTop !== null ? fromTop.trim() : "";
+}
+
 function spawnUpdatedInput(
   input: HookDispatchInput,
   reRootPath: string | null,
   hostCanReroot: boolean,
+  incarnation: string,
 ): Readonly<Record<string, unknown>> | undefined {
-  if (!hostCanReroot || reRootPath === null || !hostAcceptsUpdatedInput(input.host))
-    return undefined;
+  if (!hostCanReroot || !hostAcceptsUpdatedInput(input.host)) return undefined;
+  const token = incarnation.trim();
+  if (token.length === 0) return undefined;
   const payload = record(input.payload);
   if (payload === null) return undefined;
   const toolInput = toolInputRecord(payload);
+  const incarnationFields = { incarnation: token };
   if (toolInput === null) {
-    return { ...payload, cwd: reRootPath, working_directory: reRootPath };
+    return {
+      ...payload,
+      ...incarnationFields,
+      ...(reRootPath !== null ? { cwd: reRootPath, working_directory: reRootPath } : {}),
+    };
   }
   return {
     ...payload,
-    cwd: reRootPath,
-    tool_input: { ...toolInput, cwd: reRootPath, working_directory: reRootPath },
+    ...(reRootPath !== null ? { cwd: reRootPath } : {}),
+    tool_input: {
+      ...toolInput,
+      ...incarnationFields,
+      ...(reRootPath !== null ? { cwd: reRootPath, working_directory: reRootPath } : {}),
+    },
   };
 }
 
@@ -1964,7 +1990,12 @@ function lifecycleExecutionRootCheck(
         };
       }
       if (!sameExecutionDirectory(actual, expectedReal)) {
-        if (allocatedWorktreeMatches(expected, actual, { parentId })) {
+        if (
+          allocatedWorktreeMatches(expected, actual, {
+            parentId,
+            incarnation: spawnIncarnationFromPayload(payload) || undefined,
+          })
+        ) {
           continue;
         }
         return {

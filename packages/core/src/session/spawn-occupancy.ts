@@ -389,17 +389,23 @@ function sameTree(left: string, right: string): boolean {
 
 /**
  * True when `candidate` is a dispatcher-allocated child of `storeRoot`.
- * Path match alone is not enough: bind git common-dir (repo), incarnation,
- * current parent, and live occupant so a stale/foreign dispatch record
- * cannot rewrite identity against the wrong tree.
+ * Path match alone is not enough: bind git common-dir (repo), current dest-lock
+ * incarnation, parent, and live occupant so a stale unoccupied dispatch record
+ * cannot rewrite identity against a reused tree.
  */
 export function allocatedWorktreeMatches(
   storeRoot: string,
   candidate: string,
-  opts: { readonly parentId?: string; readonly runGit?: GitRunner } = {},
+  opts: {
+    readonly parentId?: string;
+    readonly incarnation?: string;
+    readonly runGit?: GitRunner;
+  } = {},
 ): boolean {
   const parentId = opts.parentId?.trim() ?? "";
   if (parentId.length === 0) return false;
+  const presentedIncarnation = opts.incarnation?.trim() ?? "";
+  if (presentedIncarnation === "missing") return false;
   const runGit = opts.runGit ?? defaultGitRunner;
   const want = resolve(candidate);
   const root = resolve(storeRoot);
@@ -409,9 +415,15 @@ export function allocatedWorktreeMatches(
   if (storeRepo === null || candidateRepo === null) return false;
   if (!sameTree(storeRepo, candidateRepo)) return false;
   if (!isLinkedWorktreePath(want)) return false;
+  const currentIncarnation = readSpawnReservationIncarnation(root, want);
+  if (currentIncarnation === null || currentIncarnation.length === 0) return false;
+  if (presentedIncarnation.length > 0 && presentedIncarnation !== currentIncarnation) {
+    return false;
+  }
   for (const rec of listChildOccupancyLeases(root)) {
     if (rec.provenance !== "dispatch") continue;
     if (rec.incarnation.length === 0 || rec.incarnation === "missing") continue;
+    if (rec.incarnation !== currentIncarnation) continue;
     if (rec.occupancyOwner.trim().length === 0) continue;
     if (rec.parentId !== parentId) continue;
     const recorded = resolve(rec.worktreePath);

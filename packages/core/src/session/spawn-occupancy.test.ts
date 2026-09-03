@@ -424,8 +424,8 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
     expect(allocatedWorktreeMatches(other, other, { parentId: "other-parent" })).toBe(false);
   });
 
-  it("binds allocation to same-repo linked worktree, incarnation, and owner", () => {
-    const parent = mkdtempSync(join(tmpdir(), "spawn-occ-repo-p-"));
+  it("refuses a stale unoccupied dispatch record without current incarnation (#4066)", () => {
+    const parent = mkdtempSync(join(tmpdir(), "spawn-occ-stale-"));
     temps.push(parent);
     gitInit(parent);
     const wt = join(parent, "wt");
@@ -436,10 +436,39 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
       occupancyOwner: "parent",
       worktreePath: wt,
       identitySourceKind: "host-env",
-      incarnation: "inc-1",
+      incarnation: "inc-stale",
       provenance: "dispatch",
     });
+    expect(allocatedWorktreeMatches(parent, wt, { parentId: "parent" })).toBe(false);
+    expect(
+      allocatedWorktreeMatches(parent, wt, { parentId: "parent", incarnation: "inc-stale" }),
+    ).toBe(false);
+  });
+
+  it("binds allocation to same-repo linked worktree, current incarnation, and owner", () => {
+    const parent = mkdtempSync(join(tmpdir(), "spawn-occ-repo-p-"));
+    temps.push(parent);
+    gitInit(parent);
+    const wt = join(parent, "wt");
+    addLinkedWorktree(parent, wt);
+    expect(
+      persistSpawnReservation(parent, {
+        agentId: "leaf",
+        parentId: "parent",
+        occupancyOwner: "parent",
+        worktreePath: wt,
+        identitySourceKind: "host-env",
+        incarnation: "inc-1",
+        provenance: "dispatch",
+      }).ok,
+    ).toBe(true);
     expect(allocatedWorktreeMatches(parent, wt, { parentId: "parent" })).toBe(true);
+    expect(allocatedWorktreeMatches(parent, wt, { parentId: "parent", incarnation: "inc-1" })).toBe(
+      true,
+    );
+    expect(
+      allocatedWorktreeMatches(parent, wt, { parentId: "parent", incarnation: "inc-other" }),
+    ).toBe(false);
     expect(allocatedWorktreeMatches(parent, wt, { parentId: "other-parent" })).toBe(false);
   });
 
