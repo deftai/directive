@@ -489,9 +489,15 @@ export function releaseTerminalChildOccupancy(
       });
       if (released.reason === "released" || released.reason === "already-free") {
         const dest = released.record?.worktreePath;
+        const incarnation = (
+          released.record?.incarnation ??
+          rec.incarnation ??
+          reservationIncarnation ??
+          ""
+        ).trim();
         if (dest) {
-          releaseSpawnReservation(root, dest);
-          releaseSpawnReservation(cwd, dest);
+          releaseSpawnReservation(root, dest, incarnation);
+          releaseSpawnReservation(cwd, dest, incarnation);
         }
       }
       if (released.reason === "missing-record" || released.reason === "claim-provenance") {

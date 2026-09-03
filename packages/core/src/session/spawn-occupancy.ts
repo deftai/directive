@@ -369,15 +369,46 @@ export function persistSpawnReservation(
   return { ok: true };
 }
 
-export function releaseSpawnReservation(storeRoot: string, destPath: string): void {
+/**
+ * Release a dest-lock only when it still names this incarnation.
+ * Path-only or stale-incarnation cleanup must not delete a successor
+ * reservation (#4066).
+ */
+export function releaseSpawnReservation(
+  storeRoot: string,
+  destPath: string,
+  incarnation?: string,
+): boolean {
+  const want = (incarnation ?? "").trim();
+  if (want.length === 0) return false;
   const root = resolve(storeRoot);
   const lockRoot = reservationLockRoot(root);
+  let released = false;
   if (existsSync(root)) {
-    containedRemove({ root, target: reservationLockPath(root, destPath) });
+    released = releaseLockIfIncarnation(root, destPath, want) || released;
   }
   if (!sameTree(lockRoot, root) && existsSync(lockRoot)) {
-    containedRemove({ root: lockRoot, target: reservationLockPath(lockRoot, destPath) });
+    released = releaseLockIfIncarnation(lockRoot, destPath, want) || released;
   }
+  return released;
+}
+
+function readLockIncarnation(storeRoot: string, destPath: string): string | null {
+  const target = reservationLockPath(resolve(storeRoot), destPath);
+  if (!existsSync(target)) return null;
+  const text = readFileSync(target, "utf8").trim();
+  return text.length > 0 ? text : null;
+}
+
+function releaseLockIfIncarnation(
+  storeRoot: string,
+  destPath: string,
+  incarnation: string,
+): boolean {
+  const current = readLockIncarnation(storeRoot, destPath);
+  if (current === null || current !== incarnation) return false;
+  containedRemove({ root: storeRoot, target: reservationLockPath(storeRoot, destPath) });
+  return true;
 }
 
 function sameTree(left: string, right: string): boolean {

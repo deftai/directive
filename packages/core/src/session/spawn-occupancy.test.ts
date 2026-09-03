@@ -249,7 +249,7 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
         provenance: "dispatch",
       }).ok,
     ).toBe(true);
-    releaseSpawnReservation(child, dest);
+    expect(releaseSpawnReservation(child, dest, "inc-a")).toBe(true);
     const again = persistSpawnReservation(parentA, {
       agentId: "leaf-b",
       parentId: "parent-a",
@@ -260,6 +260,47 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
       provenance: "dispatch",
     });
     expect(again.ok).toBe(true);
+  });
+
+  it("path-only and stale-incarnation cleanup leave a successor dest-lock (#4066)", () => {
+    const main = mkdtempSync(join(tmpdir(), "spawn-occ-succ-"));
+    temps.push(main);
+    gitInit(main);
+    const parentA = join(main, "parent-a");
+    const dest = join(main, "child-dest");
+    addLinkedWorktree(main, parentA);
+    expect(
+      persistSpawnReservation(parentA, {
+        agentId: "leaf-a",
+        parentId: "parent-a",
+        occupancyOwner: "parent-a",
+        worktreePath: dest,
+        identitySourceKind: "host-env",
+        incarnation: "inc-a",
+        provenance: "dispatch",
+      }).ok,
+    ).toBe(true);
+    expect(releaseSpawnReservation(parentA, dest)).toBe(false);
+    expect(readSpawnReservationIncarnation(parentA, dest)).toBe("inc-a");
+    expect(releaseSpawnReservation(parentA, dest, "inc-a")).toBe(true);
+    expect(readSpawnReservationIncarnation(parentA, dest)).toBeNull();
+    expect(
+      persistSpawnReservation(parentA, {
+        agentId: "leaf-b",
+        parentId: "parent-a",
+        occupancyOwner: "parent-a",
+        worktreePath: dest,
+        identitySourceKind: "host-env",
+        incarnation: "inc-b",
+        provenance: "dispatch",
+      }).ok,
+    ).toBe(true);
+    expect(releaseSpawnReservation(parentA, dest)).toBe(false);
+    expect(releaseSpawnReservation(parentA, dest, "inc-a")).toBe(false);
+    expect(releaseSpawnReservation(main, dest)).toBe(false);
+    expect(releaseSpawnReservation(main, dest, "inc-a")).toBe(false);
+    expect(readSpawnReservationIncarnation(parentA, dest)).toBe("inc-b");
+    expect(readSpawnReservationIncarnation(main, dest)).toBe("inc-b");
   });
 
   it("dest-locks an existing destination by realpath, with lexical fallback when missing (#4066)", () => {
