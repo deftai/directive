@@ -1340,6 +1340,15 @@ describe("#4119 plan.id mint, admission, and repair", () => {
     expect(a.id).not.toBe(b.id);
   });
 
+  it("case-normalizes fallback owner/repo like origin keys", () => {
+    const mixed = mintIssuePlanId({ owner: "Acme", repo: "Directive", number: 9 });
+    const lower = mintIssuePlanId({ owner: "acme", repo: "directive", number: 9 });
+    expect(mixed.id).toBe("github.issue.fallback.acme.directive.9");
+    expect(mixed.id).toBe(lower.id);
+    expect(mixed.originKey).toBe("acme/directive#9");
+    expect(mixed.originKey).toBe(lower.originKey);
+  });
+
   it("writes a minted plan.id on ingest and does not mint 1:1 for extra github-issue refs", () => {
     const root = mkdtempSync(join(tmpdir(), "4119-ingest-"));
     const xbriefDir = join(root, "xbrief");
@@ -1591,6 +1600,108 @@ describe("#4119 plan.id mint, admission, and repair", () => {
       expect(admitted.ok).toBe(false);
       expect(admitted.code).toBe("conflicting");
       expect(planOf(path).id).toBeUndefined();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("repairs mixed-case Origin fallback ids with lowercase owner/repo", () => {
+    const root = mkdtempSync(join(tmpdir(), "4119-case-repair-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(join(xbriefDir, "proposed"), { recursive: true });
+    const path = join(xbriefDir, "proposed", "mixed.xbrief.json");
+    writeFileSync(
+      path,
+      `${JSON.stringify({
+        xBRIEFInfo: { version: "0.8", description: "Scope xBRIEF ingested from GitHub issue #9" },
+        plan: {
+          title: "Mixed",
+          status: "proposed",
+          narratives: { Origin: "Ingested from https://github.com/Acme/Directive/issues/9" },
+          items: [],
+        },
+      })}\n`,
+      "utf8",
+    );
+    try {
+      const result = repairNonterminalIssuePlanIds({ vbriefDir: xbriefDir, dryRun: false });
+      expect(result.ok).toBe(true);
+      expect(planOf(path).id).toBe("github.issue.fallback.acme.directive.9");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses matching plan.id when stored binding origin/source/github_issue_id/version conflict", () => {
+    const root = mkdtempSync(join(tmpdir(), "4119-binding-fields-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(join(xbriefDir, "proposed"), { recursive: true });
+    const originUrl = "Ingested from https://github.com/o/r/issues/6";
+    const matchingId = "github.issue.fallback.o.r.6";
+    const writeBrief = (name: string, binding: Record<string, unknown>): string => {
+      const path = join(xbriefDir, "proposed", name);
+      writeFileSync(
+        path,
+        `${JSON.stringify({
+          xBRIEFInfo: { version: "0.8", description: "Scope xBRIEF ingested from GitHub issue #6" },
+          plan: {
+            id: matchingId,
+            title: name,
+            status: "proposed",
+            narratives: { Origin: originUrl },
+            items: [],
+            metadata: { [PLAN_ID_ORIGIN_META_KEY]: binding },
+          },
+        })}\n`,
+        "utf8",
+      );
+      return path;
+    };
+    const originConflict = writeBrief("origin.xbrief.json", {
+      version: 1,
+      source: "github-repo-fallback",
+      github_issue_id: null,
+      origin: "other/r#6",
+      id: matchingId,
+    });
+    const badSource = writeBrief("source.xbrief.json", {
+      version: 1,
+      source: "not-a-source",
+      github_issue_id: null,
+      origin: "o/r#6",
+      id: matchingId,
+    });
+    const badVersion = writeBrief("version.xbrief.json", {
+      version: 2,
+      source: "github-repo-fallback",
+      github_issue_id: null,
+      origin: "o/r#6",
+      id: matchingId,
+    });
+    const restMismatch = writeBrief("restid.xbrief.json", {
+      version: 1,
+      source: "github-rest-id",
+      github_issue_id: 99,
+      origin: "o/r#6",
+      id: matchingId,
+    });
+    try {
+      const repaired = repairNonterminalIssuePlanIds({ vbriefDir: xbriefDir, dryRun: false });
+      expect(repaired.ok).toBe(false);
+      for (const path of [originConflict, badSource, badVersion, restMismatch]) {
+        expect(planOf(path).id).toBe(matchingId);
+        const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
+        if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+          throw new Error("expected object");
+        }
+        const admitted = evaluateIssuePlanIdAdmission({
+          lifecycleRoot: xbriefDir,
+          artifactPath: path,
+          data: parsed as Record<string, unknown>,
+        });
+        expect(admitted.ok).toBe(false);
+        expect(["malformed", "conflicting"]).toContain(admitted.code);
+      }
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

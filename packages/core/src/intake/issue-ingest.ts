@@ -544,8 +544,8 @@ export function mintIssuePlanId(input: {
       version: PLAN_ID_MINT_VERSION,
     };
   }
-  const ownerSeg = encodeFallbackSegment(input.owner);
-  const repoSeg = encodeFallbackSegment(input.repo);
+  const ownerSeg = encodeFallbackSegment(input.owner.toLowerCase());
+  const repoSeg = encodeFallbackSegment(input.repo.toLowerCase());
   if (
     ownerSeg.length === 0 ||
     repoSeg.length === 0 ||
@@ -728,25 +728,147 @@ function asPlanRecord(data: Record<string, unknown>): Record<string, unknown> | 
   return plan as Record<string, unknown>;
 }
 
-function boundPlanId(plan: Record<string, unknown>): string | null {
-  const meta = plan.metadata;
-  if (meta === null || typeof meta !== "object" || Array.isArray(meta)) {
+function parseOriginKey(origin: string): IssueOrigin | null {
+  const match = /^([^/]+)\/([^#]+)#(\d+)$/.exec(origin);
+  if (!match?.[1] || !match[2] || !match[3]) {
     return null;
   }
-  const binding = (meta as Record<string, unknown>)[PLAN_ID_ORIGIN_META_KEY];
-  if (binding === null || typeof binding !== "object" || Array.isArray(binding)) {
+  const number = Number.parseInt(match[3], 10);
+  if (!Number.isSafeInteger(number) || number <= 0) {
     return null;
   }
-  const id = (binding as Record<string, unknown>).id;
-  return typeof id === "string" && id.trim().length > 0 ? id.trim() : null;
+  return { owner: match[1], repo: match[2], number };
 }
 
-function planIdBindingPresent(plan: Record<string, unknown>): boolean {
+type ParsedPlanIdBinding =
+  | { readonly kind: "absent" }
+  | { readonly kind: "malformed"; readonly detail: string }
+  | {
+      readonly kind: "ok";
+      readonly binding: {
+        readonly version: typeof PLAN_ID_MINT_VERSION;
+        readonly source: PlanIdMintSource;
+        readonly githubIssueId: number | null;
+        readonly origin: string;
+        readonly id: string;
+      };
+    };
+
+function parseStoredPlanIdBinding(plan: Record<string, unknown>): ParsedPlanIdBinding {
   const meta = plan.metadata;
   if (meta === null || typeof meta !== "object" || Array.isArray(meta)) {
-    return false;
+    return { kind: "absent" };
   }
-  return Object.hasOwn(meta as Record<string, unknown>, PLAN_ID_ORIGIN_META_KEY);
+  const rec = meta as Record<string, unknown>;
+  if (!Object.hasOwn(rec, PLAN_ID_ORIGIN_META_KEY)) {
+    return { kind: "absent" };
+  }
+  const raw = rec[PLAN_ID_ORIGIN_META_KEY];
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+    return { kind: "malformed", detail: "stored plan-id binding is not an object." };
+  }
+  const binding = raw as Record<string, unknown>;
+  for (const key of ["version", "source", "github_issue_id", "origin", "id"] as const) {
+    if (!Object.hasOwn(binding, key)) {
+      return { kind: "malformed", detail: `stored plan-id binding is missing ${key}.` };
+    }
+  }
+  if (binding.version !== PLAN_ID_MINT_VERSION) {
+    return { kind: "malformed", detail: "stored plan-id binding version is not supported." };
+  }
+  const source = binding.source;
+  if (source !== "github-rest-id" && source !== "github-repo-fallback") {
+    return {
+      kind: "malformed",
+      detail: "stored plan-id binding source is not a known mint source.",
+    };
+  }
+  const origin = binding.origin;
+  if (typeof origin !== "string" || origin.trim().length === 0) {
+    return { kind: "malformed", detail: "stored plan-id binding origin is malformed." };
+  }
+  const parsedOrigin = parseOriginKey(origin);
+  if (parsedOrigin === null || issueOriginKey(parsedOrigin) !== origin) {
+    return {
+      kind: "malformed",
+      detail: "stored plan-id binding origin is not a canonical origin key.",
+    };
+  }
+  const id = binding.id;
+  if (typeof id !== "string" || id.trim().length === 0) {
+    return { kind: "malformed", detail: "stored plan-id binding id is malformed." };
+  }
+  if (source === "github-rest-id") {
+    if (typeof binding.github_issue_id !== "number") {
+      return { kind: "malformed", detail: "stored plan-id binding github_issue_id is malformed." };
+    }
+    const restId = parsePositiveGithubIssueId(binding.github_issue_id);
+    if (restId === null) {
+      return { kind: "malformed", detail: "stored plan-id binding github_issue_id is malformed." };
+    }
+    return {
+      kind: "ok",
+      binding: {
+        version: PLAN_ID_MINT_VERSION,
+        source,
+        githubIssueId: restId,
+        origin,
+        id: id.trim(),
+      },
+    };
+  }
+  if (binding.github_issue_id !== null) {
+    return {
+      kind: "malformed",
+      detail: "stored plan-id fallback binding github_issue_id must be null.",
+    };
+  }
+  return {
+    kind: "ok",
+    binding: {
+      version: PLAN_ID_MINT_VERSION,
+      source,
+      githubIssueId: null,
+      origin,
+      id: id.trim(),
+    },
+  };
+}
+
+function bindingIdentityConflict(
+  binding: Extract<ParsedPlanIdBinding, { kind: "ok" }>["binding"],
+  planId: string | null,
+  provenance: IngestProvenanceResolution,
+): string | null {
+  if (planId !== null && planId !== binding.id) {
+    return `plan.id ${planId} disagrees with stored mint ${binding.id}.`;
+  }
+  if (provenance.kind === "owner") {
+    const expected = issueOriginKey(provenance.origin);
+    if (binding.origin !== expected) {
+      return `stored plan-id origin ${binding.origin} disagrees with ingest origin ${expected}.`;
+    }
+  }
+  if (binding.source === "github-rest-id") {
+    const expectedId = `github.issue.${binding.githubIssueId}`;
+    if (binding.id !== expectedId) {
+      return `stored plan-id ${binding.id} disagrees with github_issue_id ${binding.githubIssueId}.`;
+    }
+    return null;
+  }
+  const origin = parseOriginKey(binding.origin);
+  if (origin === null) {
+    return "stored plan-id origin is not a canonical origin key.";
+  }
+  const mint = mintIssuePlanId({
+    owner: origin.owner,
+    repo: origin.repo,
+    number: origin.number,
+  });
+  if (binding.id !== mint.id) {
+    return `stored plan-id ${binding.id} disagrees with fallback mint for ${binding.origin}.`;
+  }
+  return null;
 }
 
 export type PlanIdAdmissionCode =
@@ -800,29 +922,28 @@ export function evaluateIssuePlanIdAdmission(opts: {
   }
   const extracted = extractPlanId(opts.data);
   const raw = plan.id;
-  const bound = boundPlanId(plan);
   if (Object.hasOwn(plan, "id") && typeof raw !== "string") {
     return admissionFail("malformed", opts.artifactPath, "plan.id is not a string.");
   }
   if (typeof raw === "string" && raw.trim().length === 0) {
     return admissionFail("blank", opts.artifactPath, "plan.id is blank.");
   }
-  if (planIdBindingPresent(plan) && bound === null) {
-    return admissionFail("malformed", opts.artifactPath, "stored plan-id binding is malformed.");
+  const parsedBinding = parseStoredPlanIdBinding(plan);
+  if (parsedBinding.kind === "malformed") {
+    return admissionFail("malformed", opts.artifactPath, parsedBinding.detail);
   }
-  if (planIdBindingPresent(plan) && extracted === null) {
+  if (parsedBinding.kind === "ok" && extracted === null) {
     return admissionFail(
       "conflicting",
       opts.artifactPath,
       "stored plan-id binding exists without plan.id.",
     );
   }
-  if (extracted !== null && bound !== null && extracted !== bound) {
-    return admissionFail(
-      "conflicting",
-      opts.artifactPath,
-      `plan.id ${extracted} disagrees with stored mint ${bound}.`,
-    );
+  if (parsedBinding.kind === "ok") {
+    const conflict = bindingIdentityConflict(parsedBinding.binding, extracted, provenance);
+    if (conflict !== null) {
+      return admissionFail("conflicting", opts.artifactPath, conflict);
+    }
   }
   if (extracted !== null && !PLAN_ID_FORMAT.test(extracted)) {
     return admissionFail(
@@ -1017,25 +1138,41 @@ export function repairNonterminalIssuePlanIds(options: {
           });
           continue;
         }
-        if (planRec !== null && planIdBindingPresent(planRec) && extracted === null) {
-          mappings.push({
-            path: rel,
-            from: null,
-            to: null,
-            action: "refuse",
-            reason: "stored plan-id binding exists without plan.id",
-          });
-          continue;
-        }
-        if (planRec !== null && planIdBindingPresent(planRec) && boundPlanId(planRec) === null) {
-          mappings.push({
-            path: rel,
-            from: extracted,
-            to: null,
-            action: "refuse",
-            reason: "malformed stored plan-id binding is not overwritten",
-          });
-          continue;
+        if (planRec !== null) {
+          const parsedBinding = parseStoredPlanIdBinding(planRec);
+          if (parsedBinding.kind === "malformed") {
+            mappings.push({
+              path: rel,
+              from: extracted,
+              to: null,
+              action: "refuse",
+              reason: "malformed stored plan-id binding is not overwritten",
+            });
+            continue;
+          }
+          if (parsedBinding.kind === "ok" && extracted === null) {
+            mappings.push({
+              path: rel,
+              from: null,
+              to: null,
+              action: "refuse",
+              reason: "stored plan-id binding exists without plan.id",
+            });
+            continue;
+          }
+          if (parsedBinding.kind === "ok") {
+            const conflict = bindingIdentityConflict(parsedBinding.binding, extracted, provenance);
+            if (conflict !== null) {
+              mappings.push({
+                path: rel,
+                from: extracted,
+                to: null,
+                action: "refuse",
+                reason: conflict.replace(/\.$/, ""),
+              });
+              continue;
+            }
+          }
         }
         if (extracted !== null && PLAN_ID_FORMAT.test(extracted)) {
           const occupants = findParentsByPlanId(options.vbriefDir, extracted).filter(
