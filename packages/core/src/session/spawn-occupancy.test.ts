@@ -117,6 +117,26 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
     }
   });
 
+  it("refuses Grok pathless isolation=worktree because the host cannot reroot (#4066)", () => {
+    const root = mkdtempSync(join(tmpdir(), "spawn-occ-grok-iso-"));
+    temps.push(root);
+    const decision = evaluateImplementSpawnOccupancy({
+      payload: {
+        tool_name: "spawn_subagent",
+        tool_input: { isolation: "worktree", prompt: "implement" },
+      },
+      payloadRoot: root,
+      host: "grok",
+    });
+    expect(decision.allow).toBe(false);
+    if (!decision.allow) {
+      expect(decision.reason).toBe("destination-missing");
+      expect(decision.message).toContain("cannot re-root");
+      expect(decision.message).toContain("cwd");
+      expect(decision.message).not.toContain("steal");
+    }
+  });
+
   it("refuses an ordinary directory that is not a linked worktree", () => {
     const root = mkdtempSync(join(tmpdir(), "spawn-occ-dir-"));
     temps.push(root);

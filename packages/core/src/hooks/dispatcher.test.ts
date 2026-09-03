@@ -2032,6 +2032,24 @@ describe("direct-write hook policy", () => {
     expect(decision.message).not.toContain("steal");
   });
 
+  it("denies Grok pathless isolation=worktree implement spawn (#4066)", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: { isolation: "worktree", prompt: "implement the story" },
+        },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toContain("cannot re-root");
+    expect(decision.message).not.toContain("steal");
+  });
+
   it("allows explore Task spawns without implementation gates (#1185)", () => {
     const inspectRitual = vi.fn(() => READY_RITUAL);
     const inspectScope = vi.fn(() => READY_SCOPE);

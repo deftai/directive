@@ -187,6 +187,18 @@ export function evaluateImplementSpawnOccupancy(input: {
   const destPath = resolveDestinationPath(payloadRoot, destination);
   const hostCanReroot = HOSTS_THAT_REROOT.has(input.host);
 
+  if (destPath === null && !hostCanReroot) {
+    return {
+      allow: false,
+      reason: "destination-missing",
+      destination,
+      message:
+        "Directive denied implement-class spawn: this host cannot re-root PreToolUse input, " +
+        "and isolation=worktree has no concrete cwd/worktree_path. Grok spawn_subagent cannot " +
+        "rewrite input -- pass cwd to a reserved linked worktree before the spawn primitive.",
+    };
+  }
+
   if (destPath !== null && isMainWorktreePath(destPath, runGit)) {
     return {
       allow: false,
@@ -259,9 +271,8 @@ export function evaluateImplementSpawnOccupancy(input: {
   const incarnation = randomUUID();
   const parentId = (input.parentId?.trim() || parentIdFromEnv(environ)).trim() || "none";
   const agentId = agentIdFromPayload(input.payload, incarnation);
-  // Pathless isolation=worktree is in-AC. PreToolUse cannot name the
-  // host-created child tree (class B: needs a host callback). Terminal
-  // release binds the heartbeat linked worktree by parent + incarnation.
+  // Pathless isolation=worktree is in-AC only for hosts that re-root.
+  // Grok cannot rewrite PreToolUse input; that arm is denied above.
   const reservation: ChildOccupancyDispatchInput = {
     agentId,
     parentId,
