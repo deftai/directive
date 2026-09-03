@@ -1,0 +1,52 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8"
+  },
+  "plan": {
+    "title": "4005-uat-protected-destination-fallback",
+    "status": "approved",
+    "items": [
+      {
+        "id": "bind-contract",
+        "title": "Bind the accepted #4005 synthesis into the active scope",
+        "status": "completed",
+        "effort": "S"
+      },
+      {
+        "id": "tdd-fallback",
+        "title": "Add tests and implement the bounded protected-destination unknown producer",
+        "status": "completed",
+        "effort": "M"
+      },
+      {
+        "id": "verify-deliver",
+        "title": "Run quality gates, pre-PR review, and deliver through the selected PR lifecycle",
+        "status": "pending",
+        "effort": "M"
+      },
+      {
+        "id": "retain-generated-prd-refresh",
+        "title": "Expand scope to retain the deterministic pre-PR PRD refresh selected by the operator",
+        "status": "completed",
+        "effort": "S"
+      }
+    ],
+    "edges": [
+      {
+        "from": "bind-contract",
+        "to": "tdd-fallback",
+        "type": "blocks"
+      },
+      {
+        "from": "tdd-fallback",
+        "to": "retain-generated-prd-refresh",
+        "type": "blocks"
+      },
+      {
+        "from": "retain-generated-prd-refresh",
+        "to": "verify-deliver",
+        "type": "blocks"
+      }
+    ]
+  }
+}

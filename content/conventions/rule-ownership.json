@@ -252,11 +252,11 @@
     },
     {
       "id": "main-vbrief-persistence",
-      "text": "All vBRIEF files MUST be stored in `./vbrief/` or its lifecycle subfolders",
+      "text": "All xBRIEF files MUST be stored in `./xbrief/` or its lifecycle subfolders",
       "owner_file": "main.md",
-      "owner_section": "## vBRIEF Persistence",
+      "owner_section": "## xBRIEF Persistence",
       "authority": "MUST",
-      "last_verified": "2026-04-28"
+      "last_verified": "2026-09-02"
     },
     {
       "id": "agents-deft-alignment-confirmation",

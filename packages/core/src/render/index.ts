@@ -16,8 +16,10 @@ export {
   normalizeTaskSeparator,
   runFrameworkCommand,
 } from "./framework-commands.js";
+export type { ExpectedPrdMarkdown } from "./prd-render.js";
 export * as prdRender from "./prd-render.js";
 export {
+  buildExpectedPrdMarkdown,
   main as prdRenderMain,
   parsePrdArgv,
   renderPrd,

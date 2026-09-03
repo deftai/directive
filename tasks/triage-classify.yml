@@ -13,8 +13,8 @@ version: '3'
 # `--validate`, `--project-root`) are forwarded via {{.CLI_ARGS}} and
 # go-task's incremental-build cache layer would silently swallow them.
 #
-# Companion script: scripts/triage_classify.py (+ scripts/_triage_classify_cli.py)
-# Companion tests:  tests/test_triage_classify.py
+# Handler: packages/cli/src/triage-classify.ts via engine:invoke (packages/cli/dist).
+# Help registry: packages/core/src/triage/help/registry-data.ts (edit in place).
 # Current Shape:    https://github.com/deftai/directive/issues/1129#issuecomment-4471901622
 
 vars:

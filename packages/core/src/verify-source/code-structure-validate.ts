@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { expandModuleGlobs } from "../codebase/glob-files.js";
 import {
   hasArtifactSuffix,
   projectDefinitionRelPath,
@@ -220,6 +221,7 @@ function validateModule(
   index: number,
   errors: CsFinding[],
   globOwner: Map<string, string>,
+  emptyWaivers: Map<string, Set<string>>,
 ): string | null {
   const location = `modules[${index}]`;
   if (typeof module !== "object" || module === null) {
@@ -274,7 +276,119 @@ function validateModule(
       globOwner.set(gv, id);
     }
   }
+  const globSet = new Set(globs.filter((value): value is string => typeof value === "string"));
+  emptyWaivers.set(id, parseEmptyMatchExceptions(rec, id, location, errors, globSet));
   return id;
+}
+
+function parseEmptyMatchExceptions(
+  rec: Record<string, unknown>,
+  id: string,
+  location: string,
+  errors: CsFinding[],
+  globSet: Set<string>,
+): Set<string> {
+  if ("allowEmpty" in rec) {
+    errors.push(
+      finding(
+        "CS-EMPTY-EXCEPTION",
+        `module '${id}' must not set bare allowEmpty; use emptyMatchExceptions with a non-empty rationale`,
+        `${location}.allowEmpty`,
+      ),
+    );
+  }
+  const waived = new Set<string>();
+  if (!("emptyMatchExceptions" in rec) || rec.emptyMatchExceptions === undefined) {
+    return waived;
+  }
+  const entries = rec.emptyMatchExceptions;
+  if (!Array.isArray(entries)) {
+    errors.push(
+      finding(
+        "CS-EMPTY-EXCEPTION",
+        `module '${id}' emptyMatchExceptions must be an array`,
+        `${location}.emptyMatchExceptions`,
+      ),
+    );
+    return waived;
+  }
+  for (let index = 0; index < entries.length; index += 1) {
+    const loc = `${location}.emptyMatchExceptions[${index}]`;
+    const entry = entries[index];
+    if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
+      errors.push(
+        finding("CS-EMPTY-EXCEPTION", "emptyMatchExceptions entry must be an object", loc),
+      );
+      continue;
+    }
+    const item = entry as Record<string, unknown>;
+    const globValue = item.pathGlob;
+    const rationale = item.rationale;
+    if (typeof globValue !== "string" || !globSet.has(globValue)) {
+      errors.push(
+        finding(
+          "CS-EMPTY-EXCEPTION",
+          `emptyMatchExceptions.pathGlob must match a pathGlob on module '${id}'`,
+          `${loc}.pathGlob`,
+        ),
+      );
+    }
+    if (!nonEmptyString(rationale)) {
+      errors.push(
+        finding(
+          "CS-EMPTY-EXCEPTION",
+          `emptyMatchExceptions for module '${id}' needs a non-empty rationale`,
+          `${loc}.rationale`,
+        ),
+      );
+    }
+    if (typeof globValue === "string" && globSet.has(globValue) && nonEmptyString(rationale)) {
+      waived.add(globValue);
+    }
+  }
+  return waived;
+}
+
+function validateUnmatchedGlobs(
+  record: Record<string, unknown>,
+  projectRoot: string,
+  emptyWaivers: Map<string, Set<string>>,
+  errors: CsFinding[],
+  warnings: CsFinding[],
+  enforce: boolean,
+): void {
+  const modules = asList(record.modules);
+  for (let index = 0; index < modules.length; index += 1) {
+    const module = modules[index];
+    if (typeof module !== "object" || module === null || Array.isArray(module)) {
+      continue;
+    }
+    const rec = module as Record<string, unknown>;
+    const id = typeof rec.id === "string" ? rec.id : "unknown";
+    const globs = Array.isArray(rec.pathGlobs)
+      ? rec.pathGlobs.filter((value): value is string => typeof value === "string")
+      : [];
+    if (globs.length === 0) {
+      continue;
+    }
+    const expansion = expandModuleGlobs(projectRoot, globs);
+    const waived = emptyWaivers.get(id) ?? new Set<string>();
+    for (const globValue of expansion.unmatched) {
+      if (waived.has(globValue)) {
+        continue;
+      }
+      const item = finding(
+        "CS-UNMATCHED-GLOB",
+        `module '${id}' pathGlob '${globValue}' matches no tracked files`,
+        `modules[${index}].pathGlobs`,
+      );
+      if (enforce) {
+        errors.push(item);
+      } else {
+        warnings.push(item);
+      }
+    }
+  }
 }
 
 function validateModuleRef(
@@ -605,10 +719,15 @@ function validateBoundedness(record: Record<string, unknown>, warnings: CsFindin
   }
 }
 
+export interface ValidateCodeStructureOptions {
+  readonly enforce?: boolean;
+}
+
 export function validateCodeStructure(
   record: Record<string, unknown>,
   source = "<memory>",
   projectRoot: string | null = null,
+  options: ValidateCodeStructureOptions = {},
 ): ValidationResult {
   const errors: CsFinding[] = [];
   const warnings: CsFinding[] = [];
@@ -617,8 +736,15 @@ export function validateCodeStructure(
 
   const globOwner = new Map<string, string>();
   const moduleIds = new Set<string>();
+  const emptyWaivers = new Map<string, Set<string>>();
   for (let index = 0; index < asList(record.modules).length; index += 1) {
-    const moduleId = validateModule(asList(record.modules)[index], index, errors, globOwner);
+    const moduleId = validateModule(
+      asList(record.modules)[index],
+      index,
+      errors,
+      globOwner,
+      emptyWaivers,
+    );
     if (moduleId === null) {
       continue;
     }
@@ -636,6 +762,18 @@ export function validateCodeStructure(
   validateFilePurposeOverrides(record.filePurposeOverrides, moduleIds, errors);
   validateGlossaryRefs(record.glossaryRefs, errors, projectRoot);
   validateBoundedness(record, warnings);
+  // projectRoot null: shape-only. evaluateCodeStructure always passes the
+  // resolved root, including explicit --path, so unmatched globs cannot no-op.
+  if (projectRoot !== null) {
+    validateUnmatchedGlobs(
+      record,
+      projectRoot,
+      emptyWaivers,
+      errors,
+      warnings,
+      options.enforce === true,
+    );
+  }
   return { errors, warnings, ok: errors.length === 0 };
 }
 
@@ -661,7 +799,11 @@ export function loadJsonFile(path: string): Record<string, unknown> {
 
 export function validateFile(
   path: string,
-  options: { projectRoot?: string | null; allowStandalone?: boolean } = {},
+  options: {
+    projectRoot?: string | null;
+    allowStandalone?: boolean;
+    enforce?: boolean;
+  } = {},
 ): ValidationResult {
   const projectRoot = options.projectRoot ?? null;
   const allowStandalone = options.allowStandalone ?? true;
@@ -712,7 +854,9 @@ export function validateFile(
       ok: false,
     };
   }
-  const result = validateCodeStructure(extracted.record, `${path}:${extracted.home}`, projectRoot);
+  const result = validateCodeStructure(extracted.record, `${path}:${extracted.home}`, projectRoot, {
+    enforce: options.enforce,
+  });
   return {
     errors: [...errors, ...result.errors],
     warnings: result.warnings,
@@ -807,6 +951,7 @@ export interface CodeStructureEvaluateOptions {
   readonly paths?: readonly string[];
   readonly json?: boolean;
   readonly strict?: boolean;
+  readonly enforce?: boolean;
 }
 
 export function evaluateCodeStructure(
@@ -843,8 +988,9 @@ export function evaluateCodeStructure(
   for (const path of paths) {
     try {
       const result = validateFile(path, {
-        projectRoot: explicitPaths ? null : root,
+        projectRoot: root,
         allowStandalone: explicitPaths,
+        enforce: options.enforce,
       });
       summaries.push(resultToDict(path, result));
       if (exitCode === 0 && (!result.ok || (options.strict && result.warnings.length > 0))) {

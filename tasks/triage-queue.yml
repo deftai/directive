@@ -17,8 +17,8 @@ version: '3'
 # `--project-root`, `--cache-root`, `--audit-log`) via {{.CLI_ARGS}} and
 # go-task's incremental-build cache layer would silently swallow them.
 #
-# Companion script: scripts/triage_queue.py (+ scripts/_triage_queue_cli.py)
-# Companion tests:  tests/test_triage_queue.py
+# Handler: packages/cli/src/triage-queue.ts via engine:invoke (packages/cli/dist).
+# Help registry: packages/core/src/triage/help/registry-data.ts (edit in place).
 # Current Shape:    https://github.com/deftai/directive/issues/1128#issuecomment-4471272093
 
 vars:

@@ -1,17 +1,9 @@
 import { createHash } from "node:crypto";
-import {
-  existsSync,
-  globSync,
-  readdirSync,
-  readFileSync,
-  realpathSync,
-  type Stats,
-  statSync,
-} from "node:fs";
+import { existsSync, readdirSync, readFileSync, realpathSync, type Stats, statSync } from "node:fs";
 import { isAbsolute, join, relative, resolve } from "node:path";
-import { NON_PRODUCT_DIRS } from "../fs/non-product-dirs.js";
 import { resolveProjectDefinitionPath } from "../layout/resolve.js";
 import { extractCodeStructure, loadJsonFile } from "../verify-source/code-structure-validate.js";
+import { globFiles, SKIP_DIRS } from "./glob-files.js";
 import { sortedStringifyPretty } from "./json.js";
 import {
   CODEBASE_MAP_FORMAT_VERSION,
@@ -25,12 +17,7 @@ export const MAX_IMPORT_SCAN_BYTES = 262_144;
 export const MAX_FILES_PER_MODULE = 100;
 export const MAX_EVIDENCE_PER_EDGE = 5;
 
-/**
- * Shared "not product source" core (#3487) plus `build`, which only the
- * codebase extractor treats as non-source. Agent worktrees are not source
- * modules (#2953, #1656).
- */
-export const SKIP_DIRS = new Set([...NON_PRODUCT_DIRS, "build"]);
+export { SKIP_DIRS };
 
 export const LANGUAGE_BY_SUFFIX: Readonly<Record<string, string>> = {
   ".go": "Go",
@@ -177,36 +164,6 @@ function repoFiles(projectRoot: string): string[] {
   return files.sort((a, b) =>
     relativeFile(a, projectRoot).localeCompare(relativeFile(b, projectRoot)),
   );
-}
-
-function globFiles(projectRoot: string, globs: string[]): string[] {
-  const files = new Map<string, string>();
-  for (const globValue of globs) {
-    let matches: string[];
-    try {
-      matches = globSync(globValue, { cwd: projectRoot });
-    } catch {
-      continue;
-    }
-    for (const match of matches) {
-      const full = join(projectRoot, match);
-      let st: Stats | undefined;
-      try {
-        st = statSync(full);
-      } catch {
-        continue;
-      }
-      if (!st.isFile()) {
-        continue;
-      }
-      const relParts = relativeFile(full, projectRoot).split("/");
-      if (relParts.some((part) => SKIP_DIRS.has(part))) {
-        continue;
-      }
-      files.set(relativeFile(full, projectRoot), full);
-    }
-  }
-  return [...files.keys()].sort().map((key) => files.get(key) as string);
 }
 
 function loadAuthoredCodeStructure(

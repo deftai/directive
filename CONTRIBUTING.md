@@ -8,10 +8,11 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 The following tools must be installed before working on Deft:
 
+- **Node.js 24+** and **pnpm** — required for the TypeScript CLI (`packages/cli`) and test suite
 - **Go 1.22+** — required for building the installer (`cmd/deft-install/`)
-- **Python 3.11+** — required for the CLI (`run`) and test suite
-- **uv** — Python package manager and task runner ([docs.astral.sh/uv](https://docs.astral.sh/uv))
 - **task** — Taskfile runner ([taskfile.dev](https://taskfile.dev))
+
+Python is not required for the CLI or the default test suite. The retired root `run` launcher and `uv run python` CLI are gone.
 
 ## Grok Build as parent (#4035)
 
@@ -20,9 +21,9 @@ If Grok Build is the parent agent and Claude Code / Codex run as subscription CL
 Verify your toolchain:
 
 ```bash
+node --version    # v24 or later
+pnpm --version    # any recent version
 go version        # go1.22 or later
-python --version  # Python 3.11 or later
-uv --version      # any recent version
 task --version    # any recent version
 ```
 
@@ -122,10 +123,10 @@ git clone https://github.com/deftai/directive.git
 cd directive
 ```
 
-2. Install Python dependencies:
+2. Install JavaScript dependencies:
 
 ```bash
-uv sync
+pnpm install
 ```
 
 3. Verify everything works:
@@ -200,37 +201,38 @@ task check    # runs: validate + lint + test
 
 ### Slow tests (#975)
 
-Deft uses a `slow` pytest marker to keep `task check` fast on tight-loop iteration. Tests that exceed ~1s wall-clock (e.g. real `time.sleep` / thread-join waits in the watchdog regression suite) are marked with `@pytest.mark.slow` and **excluded by default** from `task check` via `addopts = "-m 'not slow'"` in `pyproject.toml`. The current marker users in `tests/integration/test_triage_bootstrap_at_scale.py` and `tests/test_triage_bootstrap.py` range from ~0.5s to ~1.9s; the **1s threshold is the contributor decision point**, not a hard floor on which existing tests qualify.
+Keep default `vitest run` / `task check` fast on tight-loop iteration. The retired Python `@pytest.mark.slow` lane (`pyproject.toml` `addopts`, `task check:slow`) is gone with the Python CLI. The **1s threshold is still the contributor decision point**.
 
 ```bash
-task check        # default lane -- skips @pytest.mark.slow tests (fast)
-task check:slow   # slow lane -- runs only @pytest.mark.slow tests
+task check                          # merge chokepoint -- full gate
+pnpm exec vitest run --coverage <paths>   # iteration lane on changed modules
 ```
 
-! When a test you write exceeds ~1s, mark it with `@pytest.mark.slow` or refactor it to use injected clocks / `monkeypatch` so it runs in milliseconds. The slow lane is intended as a stop-gap; the long-term fix for any genuinely slow test is to remove the wall-clock dependency, not to leave the marker in place forever.
+! When a test you write exceeds ~1s, refactor it to use injected clocks / fake timers so it runs in milliseconds. Do not add a pytest slow marker; that lane does not exist on this tree.
 
-~ Run `task check:slow` locally before pushing changes that touch any `@pytest.mark.slow` test (or the watchdog / threading code those tests cover) so the slow lane stays green. CI runs both lanes.
+~ During implementation, use the iteration lane (`vitest run` on changed paths, `task coverage:hotspots`, `task verify:forward-coverage`) rather than full `task check` on every commit (#1704). Run full `task check` once before push/PR.
 
-~ When profiling a suite that feels slow, run `pytest <file> --durations=20` (or the equivalent `task` invocation) to see the top wall-clock offenders. If a single test exceeds 1s, mark it `@pytest.mark.slow` or refactor it before merging.
+~ When profiling a suite that feels slow, run `pnpm exec vitest run <file> --reporter=verbose` (or the equivalent `task` invocation) and look at wall-clock. If a single test exceeds 1s, refactor it before merging.
 
-⊗ Add `@pytest.mark.slow` to tests that are fast but flaky -- the marker is for genuine wall-clock cost, not for hiding intermittent failures. Flaky tests should be fixed at the root cause.
+⊗ Hide flaky tests behind a slow marker or skip -- flaky tests should be fixed at the root cause.
 
 ## Running CLI Locally
 
-The Deft CLI is a Python script at the repo root. Run it with:
+The Deft CLI is TypeScript. On a framework-source checkout, `task <verb>` goes through `engine:invoke`, which runs `packages/cli/dist/bin.js` (rebuilt by `engine:_ts-build` when sources are newer). You can also invoke the dist binary directly after a build:
 
 ```bash
-uv run python run
+task doctor
+task check
+node packages/cli/dist/bin.js doctor
 ```
 
-Available CLI commands:
+Useful local commands:
 
 ```bash
-uv run python run bootstrap    # Set up user preferences
-uv run python run project      # Configure project settings (writes PROJECT-DEFINITION.vbrief.json)
-uv run python run spec         # Generate specification via AI interview (produces scope vBRIEFs)
-uv run python run validate     # Check deft configuration
-uv run python run doctor       # Check system dependencies
+task session:start             # Session ritual
+task doctor                    # Check system dependencies
+task check                     # Authoritative pre-commit gate
+task project:render            # Refresh project definition exports
 ```
 
 ## Building the Go Installer
@@ -301,11 +303,11 @@ Example (good):
 Example (bad):
 
 > **feat(cache):
-> scripts/cache.py::cache:fetch-all migrated to paginated REST via
-> scripts/scm.py::call('github-issue', 'api', ...). Backward-compat
-> reader normalizes uppercase state. New test fixtures at
-> tests/cli/test_gh_rest.py exercise...** [continues for 4 paragraphs of
-> file paths, function names, and per-test assertions]
+> packages/core/src/cache/fetch-all.ts migrated to paginated REST via
+> packages/core/src/scm/call.ts. Backward-compat reader normalizes
+> uppercase state. New tests at packages/core/src/cache/fetch-all.test.ts
+> exercise...** [continues for 4 paragraphs of file paths, function names,
+> and per-test assertions]
 
 The load-bearing difference: the bad version is what the PR body should
 carry; the good version is what the release notes carry. A reader who
@@ -319,15 +321,15 @@ code review on every PR that touches `CHANGELOG.md`.
 ## Windows CLI_ARGS quoting limitation (#1231)
 
 Every `task` fragment under `tasks/` forwards user-facing flags into the
-backing Python script via go-task's `{{.CLI_ARGS}}` placeholder. The
-placeholder is substituted **bare** -- go-task's `shellQuote` filter
+TypeScript CLI via `engine:invoke` and go-task's `{{.CLI_ARGS}}` placeholder.
+The placeholder is substituted **bare** -- go-task's `shellQuote` filter
 misbehaves on Windows (#577) so wrapping `{{.CLI_ARGS}}` in double quotes
 is NOT a viable hardening, and changing the substitution shape is
 deferred to a follow-up that switches to a temp-file argv dispatch.
 
 The practical consequence on Windows shells (cmd.exe, PowerShell): an
 argument value that contains spaces may be re-split by the shell before
-`argparse` sees it. For example, this DOES NOT work as written on
+the verb's argv parser sees it. For example, this DOES NOT work as written on
 Windows:
 
 ```powershell
@@ -349,7 +351,7 @@ Workarounds, ranked by simplicity:
 The limitation is **repo-wide**: every `tasks/*.yml` fragment uses the
 same bare-`{{.CLI_ARGS}}` shape, so the workarounds above apply to every
 `task triage:* `, `task scope:*`, `task slice:*`, etc. verb. The verb's
-`task --list` description (and each script's `--help`) name the
+`task --list` description (and each verb's `--help`) name the
 limitation in their summary when a multi-word value is a plausible
 operator input.
 
@@ -364,68 +366,100 @@ Maintainer taxonomy for **`deftai/directive` only** lives in [`.github/ISSUE_LAB
 
 Before inventing a label or applying epic/child roles, read that file. Prefer **colon** facet names; never apply `legacy:*` (closed-history quarantine only). Portable **consumer** kit is [`content/docs/consumer-issue-label-kit.md`](content/docs/consumer-issue-label-kit.md) (**#2611**) — not this full set. Open-issue migration onto the scheme is **#3128** (one-shot: `node .github/scripts/migrate-issue-labels-3128.mjs --dry-run` then `--apply`; report in `.github/ISSUE_LABEL_MIGRATION_3128.json`).
 
-## Adding a new triage / scope verb (#1150 / N10)
+## Adding a new triage / scope verb (#1150 / N10 / #4091)
 
 Every `task triage:*` and `task scope:*` verb is documented in one place:
-the registry in `scripts/triage_help.py`. The bare `task triage` /
-`task scope` invocations and per-verb `--help` flag both render from this
-registry, so a new verb without a registry entry will not appear in the
-operator-facing catalog.
+the hand-maintained help registry in
+`packages/core/src/triage/help/registry-data.ts`. Edit that file in place.
+There is no generator. ⊗ Regenerate help from Python.
 
-To add a new verb (call it `task triage:foo`):
+Bare `task triage` / `task scope` and per-verb `--help` both render from
+this registry, so a new verb without a registry entry will not appear in
+the operator-facing catalog.
 
-1. **Implement the verb script** under `scripts/` (e.g.
-   `scripts/triage_foo.py`) following the existing `triage:*` / `scope:*`
-   pattern (argparse, project-root resolution, audit-log append where
-   applicable). Route any `gh` invocation through `scripts.scm.call`
-   (#1145 / N5); raw `gh` subprocess calls outside `scripts/scm.py` are
-   rejected by `task verify:scm-boundary`.
+`engine:invoke` (`tasks/engine.yml`) runs `packages/cli/dist/bin.js` on a
+framework-source checkout. Dist is rebuilt by `engine:_ts-build` when
+sources are newer. Slash-command / native-wrapper deposit
+(`content/commands.md` § Native multi-host registration) is a different
+family and out of this section.
 
-2. **Add a Taskfile fragment** (or extend an existing one) under `tasks/`
-   that wires the script. Expose the verb as a `task triage:foo` /
-   `task scope:foo` alias at the root of `Taskfile.yml`, mirroring the
-   existing aliases.
+There is no single undifferentiated dispatch path. Pick a topology.
 
-3. **Register the help metadata** in `scripts/triage_help.py`:
+### Topology A — new CLI module
 
-   - Add one `REGISTRY["task triage:foo"] = _entry(...)` entry with
-     `summary`, `refs`, `description`, `usage`, `flags`, `examples`, and
-     `see_also`. Keep `summary` <= 70 chars so the bare-list view stays
-     scannable.
-   - Add the verb name under the appropriate role in
-     `CATEGORIES_TRIAGE` (or `CATEGORIES_SCOPE` for scope verbs). The
-     category structure is stable across umbrella waves; do NOT
-     re-organize existing categories without an explicit umbrella amendment.
-   - Add the script-to-subcommand mapping under
-     `SCRIPT_SUBCOMMAND_MAP[<script_name>]`. Use `"__default__"` for a
-     single-verb script; use the subcommand keyword for a multi-verb
-     dispatcher (`triage_actions` / `scope_lifecycle` / etc.).
+Standalone verb (example: `task triage:evaluate`).
 
-4. **Wire the help intercept** at the top of the script's `main()`:
+1. **Handler** in `packages/cli/src/<stem>.ts` (or a core-only entry under
+   `packages/core/src/` with no CLI wrapper). Export `run` / `main`.
+2. **Register the stem** in `CLI_MODULE_VERBS` (CLI wrapper) or
+   `CORE_MODULE_VERBS` (core-only) in `packages/cli/src/dispatch.ts`. Add a
+   `VERB_ALIASES` colon spelling (`"triage:foo": "triage-foo"`).
+3. **Taskfile fragment** under `tasks/` that calls `engine:invoke` with
+   `ENGINE_CMD: '<stem> {{.CLI_ARGS}}'`. Expose `task triage:foo` as a root
+   alias in `Taskfile.yml`.
+4. **Help triple** in `registry-data.ts` (edit in place):
+   - `registry["task triage:foo"]` with `summary`, `refs`, `description`,
+     `usage`, `flags`, `examples`, and `see_also`. Keep `summary` <= 70 chars.
+   - Verb name under the matching role in `categoriesTriage` /
+     `categoriesScope`. Do not re-organize existing categories without an
+     umbrella amendment.
+   - `scriptSubcommandMap["triage_foo"]`. Use `"__default__"` for a
+     single-verb module.
+5. **`interceptHelp("triage_foo", argv)`** at the top of the handler
+   `run()`. The dispatcher also forwards `--help` for mapped script ids so
+   advertised forms compose: `directive triage:foo --help`,
+   `directive triage-foo --help`, and `task triage:foo -- --help`.
+   `triage:accept --help` failing while `triage:evaluate --help` works is
+   the class this intercept exists to catch.
+6. **Guards:** `packages/cli/src/dispatch.test.ts` (every CLI module verb,
+   core verb, and alias). New source files need a colocated test;
+   `task verify:forward-coverage` is in `task check`.
 
-   ```python
-   def main(argv: list[str] | None = None) -> int:
-       from triage_help import intercept_help
+### Topology B — multiplexed subcommand
 
-       rc = intercept_help("triage_foo", argv)
-       if rc is not None:
-           return rc
-       # ... existing argparse + dispatch ...
-   ```
+New subcommand of an existing dispatcher (example: `task triage:accept` on
+`triage-actions`).
 
-   The shim returns `0` and prints the structured help when `--help` /
-   `-h` is in `argv`; returns `None` otherwise so argparse takes over.
+1. **Handler case** in the existing module (e.g.
+   `packages/cli/src/triage-actions.ts`).
+2. **Alias-to-subcommand map** in `dispatch.ts`
+   (`TRIAGE_ACTION_ALIAS_SUBCOMMANDS` or the matching family) **and** a
+   matching `SUBCOMMAND_ROUTES` row in
+   `packages/cli/src/cli-router/route-argv.ts`. The alias maps must mirror
+   `SUBCOMMAND_ROUTES`.
+3. **Taskfile** inner task that invokes `engine:invoke` with the subcommand
+   token (`ENGINE_CMD: 'triage-actions accept {{.CLI_ARGS}}'`) plus a root
+   `task triage:accept` alias.
+4. **Help triple** as in topology A, with
+   `scriptSubcommandMap["triage_actions"]` mapping `accept` →
+   `task triage:accept` (not `__default__`).
+5. **`interceptHelp("triage_actions", argv)`** at handler `run()` so
+   `accept --help` resolves. Dispatch injects the subcommand for colon
+   aliases (`triage:accept --help` → `["accept", "--help"]`) and intercepts
+   `--help` before the handler parser.
+6. Same `dispatch.test.ts` / `verify:forward-coverage` guards.
 
-5. **Add forward coverage tests** in `tests/test_triage_foo.py` exercising
-   the new verb's happy path AND its `--help` output via the
-   `triage_help.intercept_help` shim. The existing
-   `tests/test_triage_help.py` already covers registry shape invariants
-   so a missing entry is a deterministic test failure.
+### SCM boundary and containment
 
-6. **CHANGELOG entry** under `[Unreleased]` referencing the umbrella and
-   the verb's child issue.
+Route `gh` / `ghx` through `packages/core/src/scm/call.ts`
+(`call(source, verb, args)`). `task verify:scm-boundary` is the merge-path
+gate (`packages/core/src/verify-source/scm-boundary.ts`).
+
+That gate's `SCOPE_GLOBS` still lists retired `scripts/triage_*.py` /
+`scripts/scope_*.py` paths. `scripts/` has no `.py` files, so the glob set
+is vacuous and a green result does not mean TypeScript verb modules were
+scanned. Owner of that vacuity: `packages/core/src/verify-source/scm-boundary.ts`
+(`SCOPE_GLOBS`). Do not treat the empty Python glob as the TypeScript control.
+
+Product write sinks under `packages/core/src/**` use `containedWrite`
+(`packages/core/src/fs/contained-write.ts`). Inventory:
+`task verify:contained-writes` (not in `task check` yet; `--enforce`
+fail-closes).
+
+7. **CHANGELOG** `[Unreleased]` entry referencing the umbrella and the
+   verb's child issue.
 
 Forward-looking placeholders (verbs whose implementation has not landed
-yet) carry `placeholder=True` so the structured help prints a
+yet) carry `placeholder: true` so the structured help prints a
 "(not yet implemented)" note. Replace the placeholder entry's metadata
 when the verb's implementation child merges.

@@ -19,6 +19,7 @@ import {
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { engineInfo, userConfig } from "@deftai/directive-core";
+import { interceptHelp } from "@deftai/directive-core/dist/triage/help/index.js";
 import { parseInitArgv, runInitDepositCli } from "@deftai/directive-core/init-deposit";
 import {
   appendAuditLog,
@@ -185,6 +186,7 @@ export const CLI_MODULE_VERBS = [
   "verify-plan-sequence",
   "verify-stubs",
   "verify-xbrief-drift",
+  "verify-spec-prd-fresh",
   "rule-ownership-lint",
   "verify-story-ready",
   "verify-review-monitor",
@@ -427,6 +429,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "verify:bridge-drift": "verify-bridge-drift",
   "verify:scm-boundary": "verify-scm-boundary",
   "verify:xbrief-drift": "verify-xbrief-drift",
+  "verify:spec-prd-fresh": "verify-spec-prd-fresh",
   "verify:capacity": "verify-capacity",
   "verify:session-ritual": "verify-session-ritual",
   "verify:plan-sequence": "verify-plan-sequence",
@@ -510,6 +513,7 @@ const SUBDIR_CLI_STEMS: Readonly<Record<string, string>> = {
   "verify-openclaw-tier1": "verify-source-cli/verify-openclaw-tier1",
   "verify-scm-boundary": "verify-source-cli/verify-scm-boundary",
   "verify-xbrief-drift": "verify-source-cli/verify-xbrief-drift",
+  "verify-spec-prd-fresh": "verify-source-cli/verify-spec-prd-fresh",
   "verify-go-freeze": "gates-cli/verify-go-freeze",
   "verify-bridge-drift": "gates-cli/verify-bridge-drift",
   "validate-links": "content-validate-cli/validate-links",
@@ -639,18 +643,27 @@ function parseCodeStructureArgs(argv: readonly string[]): {
   paths: string[];
   json: boolean;
   strict: boolean;
+  enforce: boolean;
   error?: string;
 } {
   let projectRoot = ".";
   const paths: string[] = [];
   let json = false;
   let strict = false;
+  let enforce = false;
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--project-root") {
       const v = argv[i + 1];
       if (v === undefined)
-        return { projectRoot, paths, json, strict, error: "missing --project-root value" };
+        return {
+          projectRoot,
+          paths,
+          json,
+          strict,
+          enforce,
+          error: "missing --project-root value",
+        };
       projectRoot = v;
       i += 1;
     } else if (arg?.startsWith("--project-root=")) {
@@ -658,7 +671,7 @@ function parseCodeStructureArgs(argv: readonly string[]): {
     } else if (arg === "--path") {
       const v = argv[i + 1];
       if (v === undefined)
-        return { projectRoot, paths, json, strict, error: "missing --path value" };
+        return { projectRoot, paths, json, strict, enforce, error: "missing --path value" };
       paths.push(v);
       i += 1;
     } else if (arg?.startsWith("--path=")) {
@@ -667,11 +680,22 @@ function parseCodeStructureArgs(argv: readonly string[]): {
       json = true;
     } else if (arg === "--strict") {
       strict = true;
+    } else if (arg === "--enforce") {
+      enforce = true;
+    } else if (arg !== undefined && !arg.startsWith("-")) {
+      paths.push(arg);
     } else {
-      return { projectRoot, paths, json, strict, error: `unrecognized argument: ${arg}` };
+      return {
+        projectRoot,
+        paths,
+        json,
+        strict,
+        enforce,
+        error: `unrecognized argument: ${arg}`,
+      };
     }
   }
-  return { projectRoot, paths, json, strict };
+  return { projectRoot, paths, json, strict, enforce };
 }
 
 // ===========================================================================
@@ -2867,6 +2891,7 @@ async function loadCoreModuleHandler(verb: string, io: DispatchIo): Promise<Comm
           paths: parsed.paths.length > 0 ? parsed.paths : undefined,
           json: parsed.json,
           strict: parsed.strict,
+          enforce: parsed.enforce,
         });
         if (result.stdout) io.writeOut(result.stdout);
         if (result.stderr) io.writeErr(result.stderr);
@@ -3256,7 +3281,6 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
   }
 
   try {
-    const handler = await loadHandler(canonical, io);
     const triageSubcommand = verb !== undefined ? TRIAGE_ACTION_ALIAS_SUBCOMMANDS[verb] : undefined;
     const policySubcommand = verb !== undefined ? POLICY_ACTION_ALIAS_SUBCOMMANDS[verb] : undefined;
     const authzSubcommand = verb !== undefined ? AUTHZ_ACTION_ALIAS_SUBCOMMANDS[verb] : undefined;
@@ -3291,6 +3315,13 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
                       : vbriefValidateSubcommand !== undefined
                         ? [vbriefValidateSubcommand, ...rest]
                         : rest;
+    const helpRc = interceptHelp(canonical.replaceAll("-", "_"), handlerArgv, {
+      write: io.writeOut,
+    });
+    if (helpRc !== null) {
+      return helpRc;
+    }
+    const handler = await loadHandler(canonical, io);
     return await invokeHandler(handler, handlerArgv);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);

@@ -5,33 +5,24 @@ vars:
 
 # scope lifecycle tasks.
 #
-# IMPORTANT: every task sets ``dir: '{{.USER_WORKING_DIR}}'`` so the Python
-# script's CWD is the consumer project root, NOT ``deft/``. The script path
-# is resolved via ``{{.DEFT_ROOT}}/scripts/`` (DEFT_ROOT is defined locally
-# in this file's `vars:` block via ``{{joinPath .TASKFILE_DIR ".."}}`` --
-# see ../Taskfile.yml for why root-level definition is avoided) so it
-# still points at ``deft/scripts/scope_lifecycle.py`` after the dir switch.
-# The previous ``{{.TASKFILE_DIR}}/../scripts/`` form broke on Windows
-# under `uv --project "{{.DEFT_ROOT}}" run python` (#566) because mixed-separator traversal
-# normalizes incorrectly and drops the deft/ prefix.
+# IMPORTANT: every task sets ``dir: '{{.USER_WORKING_DIR}}'`` so
+# engine:invoke CWD is the consumer project root, NOT the framework tree.
+# DEFT_ROOT is defined locally in this file's `vars:` block via
+# ``{{joinPath .TASKFILE_DIR ".."}}`` -- see ../Taskfile.yml for why
+# root-level definition is avoided.
 #
-# CLI_ARGS: passed to the script raw / unquoted. go-task shell-escapes
-# CLI_ARGS with single quotes on its own, so wrapping the interpolation
-# in Taskfile-level double quotes produces ``"'path'"`` at dispatch time
-# on Windows (pwsh/cmd preserve nested quotes verbatim), and Python's
-# argv receives a literal single-quote-prefixed filename that fails to
-# open (#577). All seven scope:* commands therefore forward
+# Handler: packages/cli/src/scope-lifecycle.ts via engine:invoke
+# (packages/cli/dist). Help registry:
+# packages/core/src/triage/help/registry-data.ts (edit in place).
+#
+# CLI_ARGS: passed raw / unquoted. go-task shell-escapes CLI_ARGS with
+# single quotes on its own, so wrapping the interpolation in
+# Taskfile-level double quotes produces ``"'path'"`` at dispatch time
+# on Windows (#577). All scope:* commands therefore forward
 # ``{{.CLI_ARGS}}`` bare -- matching migrate.yml / prd.yml / issue.yml /
-# reconcile.yml.  ``scope_lifecycle.py`` handles both absolute and
-# relative values via ``_resolve_file_path`` + ``resolve_project_root``
-# -- the script owns path resolution, the task just forwards
-# ``--project-root`` so detection never silently falls back to deft's
-# own tree (#535). Relative paths resolve against the consumer root
-# thanks to ``--project-root``; absolute paths are used as-is.
-#
-# ``env: PYTHONUTF8: "1"`` is set per-task as a belt-and-suspenders guard
-# for Windows (cp1252 default crashes on -- / -> / x / !); the top-level
-# Taskfile.yml also sets this (#540).
+# reconcile.yml. The TypeScript handler owns path resolution; the task
+# forwards ``--project-root`` so detection never silently falls back to
+# the framework tree (#535).
 
 tasks:
 

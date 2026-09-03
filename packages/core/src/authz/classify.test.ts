@@ -1403,6 +1403,137 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("pdftk .deft/authz/grants/input.pdf dump_data")).toEqual([]);
   });
 
+  it("emits unknown only for protected first-positional zip destinations (#4005)", () => {
+    for (const command of [
+      "zip .deft/authz/grants/evil.json /etc/hosts",
+      "zip .deft-directive-disable /etc/hosts",
+      "zip .no-deft-directive /etc/hosts",
+      "zip .deft/approved-scope/evil.json /etc/hosts",
+      "/usr/bin/zip .deft/authz/grants/qualified.json /etc/hosts",
+      "zip -q .deft/authz/grants/quiet.json /etc/hosts",
+    ]) {
+      expect(classifyShellAuthzOps(command), command).toEqual(["unknown"]);
+    }
+
+    for (const command of [
+      "echo ok&&zip .deft/authz/grants/glued-and.json /etc/hosts",
+      "echo ok;zip .deft/authz/grants/glued-semi.json /etc/hosts",
+      "echo ok|zip .deft/authz/grants/glued-pipe.json /etc/hosts",
+      "zip '.deft/authz/grants/$literal.json' /etc/hosts",
+      "zip .deft/authz/grants/\\$literal.json /etc/hosts",
+      'zip ".deft/authz/grants/\\$quoted-literal.json" /etc/hosts',
+      "zip -- .deft/authz/grants/end-options.json /etc/hosts",
+      "zip .deft/authz/grants/dash-input.json -- -literal-input",
+      "env zip .deft/authz/grants/env-wrapper.json /etc/hosts",
+      "env ARCHIVE_MODE=fast zip .deft/authz/grants/env-assignment-wrapper.json /etc/hosts",
+      "command zip .deft/authz/grants/command-wrapper.json /etc/hosts",
+      "command -- zip .deft/authz/grants/command-end-options-wrapper.json /etc/hosts",
+      "command -p zip .deft/authz/grants/command-path-wrapper.json /etc/hosts",
+      "sudo zip .deft/authz/grants/sudo-wrapper.json /etc/hosts",
+      "sudo -n zip .deft/authz/grants/sudo-noninteractive.json /etc/hosts",
+      "nice zip .deft/authz/grants/nice-wrapper.json /etc/hosts",
+      "env -i zip .deft/authz/grants/env-clean-wrapper.json /etc/hosts",
+      "env env env env env zip .deft/authz/grants/deep-wrapper.json /etc/hosts",
+      "(zip .deft/authz/grants/grouped.json /etc/hosts)",
+      "(zip .deft/authz/grants/grouped-compound.json /etc/hosts; true)",
+      "{ zip .deft/authz/grants/brace-grouped.json /etc/hosts; }",
+      String.raw`zip .de\ft/authz/grants/escaped-name.json /etc/hosts`,
+      String.raw`zip .deft-directive-dis\able /etc/hosts`,
+      String.raw`z\ip .deft/authz/grants/escaped-bin.json /etc/hosts`,
+      "zip $'.deft/authz/grants/ansi-c.json' /etc/hosts",
+      "zip $'.deft/authz/grants/ansi-\\'quote.json' /etc/hosts",
+      String.raw`zip .\.deft\authz\grants\windows.json C:\tmp\input.txt`,
+      "true && \\\nzip .deft/authz/grants/continued.json /etc/hosts",
+      String.raw`echo foo\ #bar && zip .deft/authz/grants/after-escaped-space.json /etc/hosts`,
+      "git status # zip below still executes after the comment\nzip .deft/authz/grants/after-comment.json /etc/hosts",
+      "cat <<'EOF'\nignored\nEOF\nzip .deft/authz/grants/after-heredoc.json /etc/hosts",
+      "cat <<EO\\\nF\nignored\nEOF\nzip .deft/authz/grants/after-continued-heredoc.json /etc/hosts",
+      "echo $((1 << 2))\nzip .deft/authz/grants/after-arithmetic-shift.json /etc/hosts",
+      "}# ; zip .deft/authz/grants/after-brace-word.json /etc/hosts",
+      "zip .deft/authz/grants/hash#name.json /etc/hosts",
+      String.raw`zip .deft/authz/grants/escaped\#name.json /etc/hosts`,
+      "zip .deft/authz/grants/stdin-dash.zip - < /etc/hosts",
+      "zip .deft/authz/grants/redirected-output.zip /etc/hosts >/tmp/zip.log",
+      ">/tmp/zip-prefix.log zip .deft/authz/grants/prefix-redirect.zip /etc/hosts",
+      "(zip .deft/authz/grants/group-redirect.zip /etc/hosts) >/tmp/group.log",
+      "{ zip .deft/authz/grants/brace-redirect.zip /etc/hosts; }>/tmp/brace.log",
+    ]) {
+      expect(classifyShellAuthzOps(command), command).toContain("unknown");
+    }
+
+    const safeTokenCollision = classifyShellAuthzOps(
+      "zip .deft/authz/grants/collision.json /etc/hosts pytest",
+    );
+    expect(safeTokenCollision).toContain("test");
+    expect(safeTokenCollision).toContain("unknown");
+
+    for (const command of [
+      "git status",
+      "cat .deft/authz/state.json",
+      "echo ok",
+      "python -c \"print('.deft/authz/grants/evil.json')\"",
+      "zip /tmp/backup.zip .deft/authz/state.json",
+      "zip /tmp/backup.zip .deft-directive-disable",
+      "zip /tmp/backup.zip .deft/approved-scope/story.json",
+      "zip .deft/authz/grants/no-input.zip",
+      "(zip .deft/authz/grants/grouped-no-input.zip)",
+      "{ zip .deft/authz/grants/brace-grouped-no-input.zip; }",
+      "zip .deft-directive-disable.backup /etc/hosts",
+      "zip .no-deft-directive.txt /etc/hosts",
+      "zip .deft/authz-backup.zip /etc/hosts",
+      String.raw`zip .deft\authz\grants\ordinary.json /etc/hosts`,
+      'zip "$DEST/.deft/authz/grants/evil.json" /etc/hosts',
+      'zip ".deft/authz/grants/$$.json" /etc/hosts',
+      'zip ".deft/authz/grants/$-.json" /etc/hosts',
+      'zip ".deft/authz/grants/`pwd`.json" /etc/hosts',
+      'zip ".deft/authz/grants/%DEST%.json" /etc/hosts',
+      "zip '.deft/authz/grants/unclosed.json /etc/hosts",
+      "zip ~/.deft/authz/grants/evil.json /etc/hosts",
+      "zip -P .deft-directive-disable /tmp/backup.zip /etc/hosts",
+      "zip .deft/authz/grants/no-input-option.zip -P secret",
+      'zip ".deft/authz/grants/no input.zip"',
+      'zip " .deft/authz/grants/leading-space.zip" /etc/hosts',
+      "echo zip .deft/authz/grants/evil.json /etc/hosts",
+      "git log zip .deft/authz/grants/evil.json /etc/hosts",
+      'echo "safe && zip" .deft/authz/grants/evil.json /etc/hosts',
+      "printf 'safe ; zip' .deft/authz/grants/evil.json /etc/hosts",
+      "zip .deft/authz/grants/redirect-only.zip >/tmp/zip.log",
+      "zip .deft/authz/grants/redirect-only-amp.zip &>/tmp/zip.log",
+      "zip .deft/authz/grants/heredoc-fd-only.zip 3<<EOF\nignored\nEOF",
+      "zip .deft/authz/grants/stdin-only.zip < /dev/null",
+      "zip .deft/authz/grants/comment-only.zip # no archive input",
+      "git status # && zip .deft/authz/grants/comment-data.zip /etc/hosts",
+      "echo '# && zip .deft/authz/grants/quoted-comment.zip /etc/hosts'",
+      "(:)# ; zip .deft/authz/grants/paren-comment.zip /etc/hosts",
+      "{ :; } # ; zip .deft/authz/grants/brace-comment.zip /etc/hosts",
+      "zip prefix=.deft/authz/grants/ordinary.zip /etc/hosts",
+      "cat <<'EOF'\nzip .deft/authz/grants/heredoc-data.zip /etc/hosts\nEOF",
+    ]) {
+      expect(classifyShellAuthzOps(command), command).toEqual([]);
+    }
+
+    const stronger = classifyShellAuthzOps("ghc -o .deft/authz/grants/evil.json /tmp/source.hs");
+    expect(stronger).toContain("settings");
+    expect(stronger).not.toContain("unknown");
+
+    const strongerCompound = classifyShellAuthzOps(
+      "gh api repos/o/r/settings && zip .deft/authz/grants/settings-gated.zip /etc/hosts",
+    );
+    expect(strongerCompound).toContain("settings");
+    expect(strongerCompound).not.toContain("unknown");
+  });
+
+  it("preprocesses arithmetic shifts without quadratic rescans (#4005)", () => {
+    const shifts = " << 1".repeat(16_000);
+    const command = `echo $((1${shifts}))\nzip .deft/authz/grants/after-many-shifts.zip /etc/hosts`;
+    const startedAt = performance.now();
+    const classified = classifyShellAuthzOps(command);
+    const elapsedMs = performance.now() - startedAt;
+
+    expect(classified).toContain("unknown");
+    expect(elapsedMs).toBeLessThan(1_000);
+  });
+
   it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {
     // Base64/byte path construction — residual after #3110 literal path match.
     expect(

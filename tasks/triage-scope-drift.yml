@@ -13,8 +13,8 @@ version: '3'
 # {{.CLI_ARGS}} and go-task's incremental-build cache layer would silently
 # swallow them.
 #
-# Companion script: scripts/triage_scope_drift.py (+ shims).
-# Companion tests:  tests/test_triage_scope_drift.py.
+# Handler: packages/cli/src/triage-scope-drift.ts via engine:invoke (packages/cli/dist).
+# Help registry: packages/core/src/triage/help/registry-data.ts (edit in place).
 
 vars:
   DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'

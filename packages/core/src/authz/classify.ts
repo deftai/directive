@@ -1339,6 +1339,911 @@ function pathishIsProtectedDest(pathish: string): boolean {
   );
 }
 
+const ZIP_PREFIX_NO_VALUE_FLAGS = new Set(["-q", "--quiet"]);
+type ZipShellQuote = "'" | '"' | "$'" | null;
+
+/**
+ * Split only the bounded zip fallback into quote-aware shell segments.
+ * Operators inside quotes or after an escape remain data; glued operators
+ * (`ok&&zip`, `ok;zip`, `ok|zip`) still begin a real executable segment.
+ */
+function zipShellSegments(command: string): string[] {
+  const segments: string[] = [];
+  let current = "";
+  let quote: ZipShellQuote = null;
+  let atWordStart = true;
+
+  for (let i = 0; i < command.length; i++) {
+    const char = command[i] as string;
+    if (char === "\\" && quote !== "'" && i + 1 < command.length) {
+      if (command[i + 1] === "\n") {
+        i++;
+        continue;
+      }
+      if (command[i + 1] === "\r" && command[i + 2] === "\n") {
+        i += 2;
+        continue;
+      }
+      current += char;
+      current += command[i + 1] as string;
+      atWordStart = false;
+      i++;
+      continue;
+    }
+    if (quote === null && char === "$" && command[i + 1] === "'") {
+      quote = "$'";
+      current += "$'";
+      atWordStart = false;
+      i++;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      if (quote === null) quote = char;
+      else if (quote === "$'" && char === "'") quote = null;
+      else if (quote === char) quote = null;
+      current += char;
+      atWordStart = false;
+      continue;
+    }
+    if (quote === null) {
+      if (char === "#" && atWordStart) {
+        while (i + 1 < command.length && command[i + 1] !== "\n" && command[i + 1] !== "\r") {
+          i++;
+        }
+        continue;
+      }
+      if (
+        char === "&" &&
+        (current[current.length - 1] === ">" ||
+          current[current.length - 1] === "<" ||
+          command[i + 1] === ">")
+      ) {
+        current += char;
+        atWordStart = false;
+        continue;
+      }
+      if ((char === "&" || char === "|") && command[i + 1] === char) {
+        segments.push(current);
+        current = "";
+        atWordStart = true;
+        i++;
+        continue;
+      }
+      if (char === ";" || char === "&" || char === "|" || char === "\n" || char === "\r") {
+        segments.push(current);
+        current = "";
+        atWordStart = true;
+        continue;
+      }
+    }
+    current += char;
+    atWordStart =
+      quote === null &&
+      (char === " " ||
+        char === "\t" ||
+        char === "(" ||
+        char === ")" ||
+        char === "<" ||
+        char === ">");
+  }
+
+  segments.push(current);
+  return segments;
+}
+
+/** Quote-aware word split for one bounded zip segment; null means unmatched quotes. */
+function zipShellWords(segment: string): string[] | null {
+  const words: string[] = [];
+  let current = "";
+  let quote: ZipShellQuote = null;
+
+  for (let i = 0; i < segment.length; i++) {
+    const char = segment[i] as string;
+    if (char === "\\" && quote !== "'" && i + 1 < segment.length) {
+      current += char;
+      current += segment[i + 1] as string;
+      i++;
+      continue;
+    }
+    if (quote === null && char === "$" && segment[i + 1] === "'") {
+      quote = "$'";
+      current += "$'";
+      i++;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      if (quote === null) quote = char;
+      else if (quote === "$'" && char === "'") quote = null;
+      else if (quote === char) quote = null;
+      current += char;
+      continue;
+    }
+    if (quote === null && (char === " " || char === "\t" || char === "\r" || char === "\n")) {
+      if (current.length > 0) {
+        words.push(current);
+        current = "";
+      }
+      continue;
+    }
+    current += char;
+  }
+
+  if (quote !== null) return null;
+  if (current.length > 0) words.push(current);
+  return words;
+}
+
+/** Remove POSIX backslash-newline continuations before physical heredoc lines are read. */
+function zipShellWithoutLineContinuations(command: string): string {
+  let result = "";
+  let quote: ZipShellQuote = null;
+
+  for (let i = 0; i < command.length; i++) {
+    const char = command[i] as string;
+    if (char === "\\" && quote !== "'" && i + 1 < command.length) {
+      if (command[i + 1] === "\n") {
+        i++;
+        continue;
+      }
+      if (command[i + 1] === "\r" && command[i + 2] === "\n") {
+        i += 2;
+        continue;
+      }
+      result += char;
+      result += command[i + 1] as string;
+      i++;
+      continue;
+    }
+    if (quote === null && char === "$" && command[i + 1] === "'") {
+      quote = "$'";
+      result += "$'";
+      i++;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      if (quote === null) quote = char;
+      else if (quote === "$'" && char === "'") quote = null;
+      else if (quote === char) quote = null;
+    }
+    result += char;
+  }
+
+  return result;
+}
+
+/** True for shell expansion syntax outside single quotes and not escaped. */
+function zipShellWordHasExpansion(raw: string): boolean {
+  let quote: ZipShellQuote = null;
+  for (let i = 0; i < raw.length; i++) {
+    const char = raw[i] as string;
+    if (char === "\\" && quote !== "'" && i + 1 < raw.length) {
+      i++;
+      continue;
+    }
+    if (quote === null && char === "$" && raw[i + 1] === "'") {
+      quote = "$'";
+      i++;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      if (quote === null) quote = char;
+      else if (quote === "$'" && char === "'") quote = null;
+      else if (quote === char) quote = null;
+      continue;
+    }
+    if (quote === "'" || quote === "$'") continue;
+    if (char === "`") return true;
+    if (char === "$" && i + 1 < raw.length) {
+      const next = raw[i + 1] as string;
+      if (
+        next === "{" ||
+        next === "(" ||
+        next === "_" ||
+        next === "'" ||
+        next === "@" ||
+        next === "*" ||
+        next === "?" ||
+        next === "#" ||
+        next === "!" ||
+        next === "$" ||
+        next === "-" ||
+        (next >= "0" && next <= "9") ||
+        (next >= "A" && next <= "Z") ||
+        (next >= "a" && next <= "z")
+      ) {
+        return true;
+      }
+    }
+    if (char === "%" && i + 1 < raw.length) {
+      const next = raw[i + 1] as string;
+      if (next === "_" || (next >= "A" && next <= "Z") || (next >= "a" && next <= "z")) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+const ZIP_SHELL_WINDOWS_ESCAPED_LITERAL_CHARS = new Set([
+  "$",
+  "`",
+  "'",
+  '"',
+  "\\",
+  " ",
+  "\t",
+  "\r",
+  "\n",
+  ";",
+  "&",
+  "|",
+]);
+
+type ZipAnsiCEscape = {
+  value: string;
+  endIndex: number;
+};
+
+function zipAnsiCEscape(raw: string, slashIndex: number): ZipAnsiCEscape | null {
+  const next = raw[slashIndex + 1];
+  if (next === undefined) return null;
+  const simple: Record<string, string> = {
+    a: "\u0007",
+    b: "\b",
+    e: "\u001b",
+    E: "\u001b",
+    f: "\f",
+    n: "\n",
+    r: "\r",
+    t: "\t",
+    v: "\u000b",
+    "\\": "\\",
+    "'": "'",
+    '"': '"',
+    "?": "?",
+  };
+  if (next in simple) {
+    return { value: simple[next] as string, endIndex: slashIndex + 1 };
+  }
+  if (next === "\n") return { value: "", endIndex: slashIndex + 1 };
+
+  const isHex = (char: string | undefined): boolean =>
+    char !== undefined &&
+    ((char >= "0" && char <= "9") || (char >= "a" && char <= "f") || (char >= "A" && char <= "F"));
+  if (next === "x" || next === "u" || next === "U") {
+    const maxDigits = next === "x" ? 2 : next === "u" ? 4 : 8;
+    let end = slashIndex + 2;
+    while (end < raw.length && end < slashIndex + 2 + maxDigits && isHex(raw[end])) end++;
+    if (end === slashIndex + 2) return null;
+    const codePoint = Number.parseInt(raw.slice(slashIndex + 2, end), 16);
+    if (!Number.isSafeInteger(codePoint) || codePoint > 0x10ffff) return null;
+    return { value: String.fromCodePoint(codePoint), endIndex: end - 1 };
+  }
+  if (next >= "0" && next <= "7") {
+    let end = slashIndex + 1;
+    while (
+      end < raw.length &&
+      end < slashIndex + 4 &&
+      (raw[end] as string) >= "0" &&
+      (raw[end] as string) <= "7"
+    ) {
+      end++;
+    }
+    return {
+      value: String.fromCodePoint(Number.parseInt(raw.slice(slashIndex + 1, end), 8)),
+      endIndex: end - 1,
+    };
+  }
+  if (next === "c" && raw[slashIndex + 2] !== undefined) {
+    const codePoint = (raw.charCodeAt(slashIndex + 2) & 0x1f) >>> 0;
+    return { value: String.fromCodePoint(codePoint), endIndex: slashIndex + 2 };
+  }
+  return { value: `\\${next}`, endIndex: slashIndex + 1 };
+}
+
+/** Resolve POSIX shell quote and backslash syntax to a literal word. */
+function zipShellWordLiteral(raw: string): string | null {
+  let literal = "";
+  let quote: "'" | '"' | null = null;
+  let ansiC = false;
+
+  for (let i = 0; i < raw.length; i++) {
+    const char = raw[i] as string;
+    if (quote === null && char === "$" && raw[i + 1] === "'") {
+      quote = "'";
+      ansiC = true;
+      i++;
+      continue;
+    }
+    if (ansiC && char === "\\") {
+      const decoded = zipAnsiCEscape(raw, i);
+      if (decoded === null) return null;
+      literal += decoded.value;
+      i = decoded.endIndex;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      if (quote === null) {
+        quote = char;
+        continue;
+      }
+      if (quote === char) {
+        quote = null;
+        ansiC = false;
+        continue;
+      }
+    }
+    if (char === "\\" && quote !== "'" && i + 1 < raw.length) {
+      const next = raw[i + 1] as string;
+      if (quote === null) {
+        literal += next;
+        i++;
+        continue;
+      }
+      if (next === "$" || next === "`" || next === '"' || next === "\\") {
+        literal += next;
+        i++;
+        continue;
+      }
+    }
+    literal += char;
+  }
+
+  return quote === null ? literal : null;
+}
+
+/**
+ * Preserve unquoted Windows separators as a second literal interpretation.
+ * This keeps PowerShell-style protected paths visible without weakening POSIX
+ * handling of arbitrary escapes such as `.de\\ft/authz`.
+ */
+function zipShellWordWindowsLiteral(raw: string): string | null {
+  let literal = "";
+  let quote: "'" | '"' | null = null;
+
+  for (let i = 0; i < raw.length; i++) {
+    const char = raw[i] as string;
+    if (char === "'" || char === '"') {
+      if (quote === null) {
+        quote = char;
+        continue;
+      }
+      if (quote === char) {
+        quote = null;
+        continue;
+      }
+    }
+    if (char === "\\" && quote !== "'" && i + 1 < raw.length) {
+      const next = raw[i + 1] as string;
+      const escapedInDouble =
+        quote === '"' && (next === "$" || next === "`" || next === '"' || next === "\\");
+      if (
+        escapedInDouble ||
+        (quote === null && ZIP_SHELL_WINDOWS_ESCAPED_LITERAL_CHARS.has(next))
+      ) {
+        literal += next;
+        i++;
+        continue;
+      }
+    }
+    literal += char;
+  }
+
+  return quote === null ? literal : null;
+}
+
+type ZipHereDocSpec = {
+  delimiter: string;
+  stripLeadingTabs: boolean;
+};
+
+/** Locate shifts inside `$((...))` or a bounded `((...))` command in one linear pass. */
+function zipShellArithmeticShiftIndexes(line: string): ReadonlySet<number> {
+  const shiftIndexes = new Set<number>();
+  let quote: "'" | '"' | null = null;
+  let parenDepth = 0;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i] as string;
+    if (char === "\\" && quote !== "'" && i + 1 < line.length) {
+      i++;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      if (quote === null) quote = char;
+      else if (quote === char) quote = null;
+      continue;
+    }
+    if (quote !== null) continue;
+
+    if (parenDepth === 0) {
+      const startsExpansion = char === "$" && line[i + 1] === "(" && line[i + 2] === "(";
+      const previous = line[i - 1];
+      const startsCommand =
+        char === "(" &&
+        line[i + 1] === "(" &&
+        (previous === undefined || " \t\r;|&(".includes(previous));
+      if (startsExpansion || startsCommand) {
+        parenDepth = 2;
+        i += startsExpansion ? 2 : 1;
+      }
+      continue;
+    }
+
+    if (char === "<" && line[i + 1] === "<") shiftIndexes.add(i);
+    if (char === "(") parenDepth++;
+    else if (char === ")") parenDepth--;
+  }
+
+  return shiftIndexes;
+}
+
+function zipStripHereDocDeclarationsFromLine(line: string): {
+  sanitized: string;
+  specs: ZipHereDocSpec[];
+} {
+  const specs: ZipHereDocSpec[] = [];
+  const arithmeticShiftIndexes = zipShellArithmeticShiftIndexes(line);
+  let sanitized = "";
+  let quote: "'" | '"' | null = null;
+  let atWordStart = true;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i] as string;
+    if (char === "\\" && quote !== "'" && i + 1 < line.length) {
+      sanitized += char;
+      sanitized += line[i + 1] as string;
+      atWordStart = false;
+      i++;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      if (quote === null) quote = char;
+      else if (quote === char) quote = null;
+      sanitized += char;
+      atWordStart = false;
+      continue;
+    }
+    if (quote === null && char === "#" && atWordStart) {
+      sanitized += line.slice(i);
+      break;
+    }
+    if (
+      quote === null &&
+      char === "<" &&
+      line[i - 1] !== "<" &&
+      line[i + 1] === "<" &&
+      line[i + 2] !== "<" &&
+      !arithmeticShiftIndexes.has(i)
+    ) {
+      let cursor = i + 2;
+      let stripLeadingTabs = false;
+      if (line[cursor] === "-") {
+        stripLeadingTabs = true;
+        cursor++;
+      }
+      while (line[cursor] === " " || line[cursor] === "\t") cursor++;
+      const delimiterStart = cursor;
+      let delimiterQuote: "'" | '"' | null = null;
+      while (cursor < line.length) {
+        const delimiterChar = line[cursor] as string;
+        if (delimiterChar === "\\" && delimiterQuote !== "'" && cursor + 1 < line.length) {
+          cursor += 2;
+          continue;
+        }
+        if (delimiterChar === "'" || delimiterChar === '"') {
+          if (delimiterQuote === null) delimiterQuote = delimiterChar;
+          else if (delimiterQuote === delimiterChar) delimiterQuote = null;
+          cursor++;
+          continue;
+        }
+        if (
+          delimiterQuote === null &&
+          (delimiterChar === " " ||
+            delimiterChar === "\t" ||
+            delimiterChar === "\r" ||
+            delimiterChar === ";" ||
+            delimiterChar === "&" ||
+            delimiterChar === "|" ||
+            delimiterChar === "<" ||
+            delimiterChar === ">" ||
+            delimiterChar === "(" ||
+            delimiterChar === ")")
+        ) {
+          break;
+        }
+        cursor++;
+      }
+      const rawDelimiter = line.slice(delimiterStart, cursor);
+      const delimiter = rawDelimiter.length > 0 ? zipShellWordLiteral(rawDelimiter) : null;
+      if (delimiter !== null) {
+        let ioNumberStart = sanitized.length;
+        while (
+          ioNumberStart > 0 &&
+          (sanitized[ioNumberStart - 1] as string) >= "0" &&
+          (sanitized[ioNumberStart - 1] as string) <= "9"
+        ) {
+          ioNumberStart--;
+        }
+        const beforeIoNumber = sanitized[ioNumberStart - 1];
+        if (
+          ioNumberStart < sanitized.length &&
+          (beforeIoNumber === undefined ||
+            beforeIoNumber === " " ||
+            beforeIoNumber === "\t" ||
+            beforeIoNumber === ";" ||
+            beforeIoNumber === "&" ||
+            beforeIoNumber === "|" ||
+            beforeIoNumber === "(")
+        ) {
+          sanitized = sanitized.slice(0, ioNumberStart);
+        }
+        sanitized += " ";
+        specs.push({ delimiter, stripLeadingTabs });
+        atWordStart = true;
+        i = cursor - 1;
+        continue;
+      }
+    }
+    sanitized += char;
+    if (quote === null) {
+      atWordStart =
+        char === " " ||
+        char === "\t" ||
+        char === "\r" ||
+        char === ";" ||
+        char === "&" ||
+        char === "|" ||
+        char === "(" ||
+        char === ")" ||
+        char === "<" ||
+        char === ">";
+    }
+  }
+
+  return { sanitized, specs };
+}
+
+/**
+ * Remove recognized heredoc bodies while preserving commands before and after
+ * them. Here-strings remain ordinary redirections for the bounded word parser.
+ */
+function zipShellWithoutHereDocBodies(command: string): string {
+  const lines = command.split("\n");
+  const kept: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const parsed = zipStripHereDocDeclarationsFromLine(lines[i] as string);
+    kept.push(parsed.sanitized);
+    for (const spec of parsed.specs) {
+      let foundDelimiter = false;
+      while (i + 1 < lines.length) {
+        i++;
+        let candidate = (lines[i] as string).replace(/\r$/, "");
+        if (spec.stripLeadingTabs) candidate = candidate.replace(/^\t+/, "");
+        if (candidate === spec.delimiter) {
+          foundDelimiter = true;
+          break;
+        }
+      }
+      if (!foundDelimiter) return kept.join("\n");
+    }
+  }
+
+  return kept.join("\n");
+}
+
+function zipLiteralHasDirSegment(pathish: string, dir: string): boolean {
+  const canonical = canonicalizePathish(pathish);
+  if (canonical === dir || canonical.startsWith(`${dir}/`)) return true;
+  for (let i = 0; i < canonical.length; i++) {
+    const char = canonical[i] as string;
+    if (char !== "/") continue;
+    const rest = canonical.slice(i + 1);
+    if (rest === dir || rest.startsWith(`${dir}/`)) return true;
+  }
+  return false;
+}
+
+function zipLiteralIsProtectedDest(word: string, windowsSeparators = false): boolean {
+  const lower = word.toLowerCase();
+  const literal = windowsSeparators ? lower.replace(/\\/g, "/") : lower;
+  if (literal.startsWith("~/")) return false;
+  if (
+    zipLiteralHasDirSegment(literal, ".deft/authz") ||
+    zipLiteralHasDirSegment(literal, ".deft/approved-scope")
+  ) {
+    return true;
+  }
+  const canonical = canonicalizePathish(literal);
+  return KILL_SWITCH_BASENAMES.some((name) => canonical === name || canonical.endsWith(`/${name}`));
+}
+
+function zipLiteralIsUnambiguousWindowsPath(word: string): boolean {
+  return (
+    /^[A-Za-z]:[\\/]/.test(word) ||
+    word.startsWith(".\\") ||
+    word.startsWith("..\\") ||
+    word.startsWith("\\")
+  );
+}
+
+/** Literal protected destination predicate for the bounded zip producer. */
+function pathishIsLiteralProtectedDest(rawWord: string): boolean {
+  if (zipShellWordHasExpansion(rawWord)) return false;
+  const posix = zipShellWordLiteral(rawWord);
+  const windows = zipShellWordWindowsLiteral(rawWord);
+  return (
+    (posix !== null && zipLiteralIsProtectedDest(posix)) ||
+    (windows !== null &&
+      windows !== posix &&
+      zipLiteralIsUnambiguousWindowsPath(windows) &&
+      zipLiteralIsProtectedDest(windows, true))
+  );
+}
+
+type ZipShellRedirection = {
+  positionalPrefix: string | null;
+  consumesNextWord: boolean;
+};
+
+/** Split a shell word at its first active redirection operator. */
+function zipShellWordRedirection(raw: string): ZipShellRedirection | null {
+  let quote: "'" | '"' | null = null;
+
+  for (let i = 0; i < raw.length; i++) {
+    const char = raw[i] as string;
+    if (char === "\\" && quote !== "'" && i + 1 < raw.length) {
+      i++;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      if (quote === null) quote = char;
+      else if (quote === char) quote = null;
+      continue;
+    }
+    if (quote === null && (char === "<" || char === ">")) {
+      const prefix = raw.slice(0, i);
+      let targetIndex = i + 1;
+      while (
+        targetIndex < raw.length &&
+        (raw[targetIndex] === "<" ||
+          raw[targetIndex] === ">" ||
+          raw[targetIndex] === "&" ||
+          raw[targetIndex] === "|")
+      ) {
+        targetIndex++;
+      }
+      return {
+        positionalPrefix:
+          prefix.length > 0 && prefix !== "&" && !/^[0-9]+$/.test(prefix) ? prefix : null,
+        consumesNextWord: targetIndex === raw.length,
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Remove only shell redirection syntax and its targets. A word prefix before an
+ * attached redirect remains positional (`input>/tmp/log` still passes input).
+ */
+function zipShellWordsWithoutRedirections(input: readonly string[]): string[] {
+  const words: string[] = [];
+
+  for (let i = 0; i < input.length; i++) {
+    const raw = input[i] as string;
+    const redirection = zipShellWordRedirection(raw);
+    if (redirection === null) {
+      words.push(raw);
+      continue;
+    }
+    if (redirection.positionalPrefix !== null) words.push(redirection.positionalPrefix);
+    if (redirection.consumesNextWord) i++;
+  }
+
+  return words;
+}
+
+function zipWordEndsWithUnquotedCloseParen(raw: string): boolean {
+  let quote: "'" | '"' | null = null;
+
+  for (let i = 0; i < raw.length; i++) {
+    const char = raw[i] as string;
+    if (char === "\\" && quote !== "'" && i + 1 < raw.length) {
+      i++;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      if (quote === null) quote = char;
+      else if (quote === char) quote = null;
+      continue;
+    }
+    if (i === raw.length - 1) return quote === null && char === ")";
+  }
+
+  return false;
+}
+
+/** Support exactly one simple outer subshell group: `(zip ...)`. */
+function zipUnwrapSimpleGrouping(
+  input: readonly string[],
+  hasClosingBraceAfter: boolean,
+  hasClosingParenAfter: boolean,
+): string[] | null {
+  const words = [...input];
+  const first = words[0];
+  if (first === undefined) return words;
+
+  if (first === "{") {
+    if (!hasClosingBraceAfter) return null;
+    words.shift();
+    return words;
+  }
+  if (first === "(") {
+    words.shift();
+  } else if (first.startsWith("(") && !first.startsWith("((")) {
+    words[0] = first.slice(1);
+  } else {
+    return words;
+  }
+
+  const lastIndex = words.length - 1;
+  const last = words[lastIndex];
+  if (last === undefined) return null;
+  if (last === ")") {
+    words.pop();
+  } else if (!last.endsWith("))") && zipWordEndsWithUnquotedCloseParen(last)) {
+    const withoutClose = last.slice(0, -1);
+    if (withoutClose.length === 0) words.pop();
+    else words[lastIndex] = withoutClose;
+  } else if (hasClosingParenAfter) {
+    return words;
+  } else {
+    return null;
+  }
+
+  return words;
+}
+
+const ZIP_SIMPLE_WRAPPERS = new Set(["command", "env", "nice", "sudo"]);
+const ZIP_EXECUTABLE_NAMES = new Set(["zip"]);
+const ZIP_WRAPPER_NO_VALUE_FLAGS: Readonly<Record<string, ReadonlySet<string>>> = {
+  command: new Set(["-p"]),
+  env: new Set(["-i", "--ignore-environment"]),
+  nice: new Set(),
+  sudo: new Set(["-n"]),
+};
+
+function zipKnownBinName(raw: string, names: ReadonlySet<string>): string | null {
+  if (zipShellWordHasExpansion(raw)) return null;
+  for (const literal of [zipShellWordLiteral(raw), zipShellWordWindowsLiteral(raw)]) {
+    if (literal === null) continue;
+    const name = writeBinName(literal);
+    if (names.has(name)) return name;
+  }
+  return null;
+}
+
+/** Find zip after only bounded, no-value wrapper forms. */
+function zipExecutableIndex(words: readonly string[]): number | null {
+  let i = 0;
+  while (i < words.length && isEnvAssign(words[i] as string)) i++;
+
+  let wrapper = i < words.length ? zipKnownBinName(words[i] as string, ZIP_SIMPLE_WRAPPERS) : null;
+  while (wrapper !== null) {
+    i++;
+    const noValueFlags = ZIP_WRAPPER_NO_VALUE_FLAGS[wrapper] ?? new Set<string>();
+    while (i < words.length && noValueFlags.has(normalizeToken(words[i] as string))) i++;
+    if (normalizeToken(words[i] ?? "") === "--") i++;
+    if (wrapper === "env") {
+      while (i < words.length && isEnvAssign(words[i] as string)) i++;
+    }
+    wrapper = i < words.length ? zipKnownBinName(words[i] as string, ZIP_SIMPLE_WRAPPERS) : null;
+  }
+
+  return i < words.length && zipKnownBinName(words[i] as string, ZIP_EXECUTABLE_NAMES) !== null
+    ? i
+    : null;
+}
+
+/**
+ * Recognize the verified `zip [quiet] <archive> <input>` mutation grammar (#4005).
+ * The first positional operand is the archive destination; later protected
+ * operands are inputs and must not be treated as writes. Unknown option shapes
+ * remain fail-open instead of turning this bounded producer into a zip parser.
+ */
+function hasProtectedZipArchiveDestination(command: string): boolean {
+  const boundedCommand = zipShellWithoutHereDocBodies(zipShellWithoutLineContinuations(command));
+  const wordSegments = zipShellSegments(boundedCommand).map((segment) => zipShellWords(segment));
+  const closingBraceAfter = new Array<boolean>(wordSegments.length).fill(false);
+  const closingParenAfter = new Array<boolean>(wordSegments.length).fill(false);
+  let sawClosingBrace = false;
+  let sawClosingParen = false;
+  for (let i = wordSegments.length - 1; i >= 0; i--) {
+    closingBraceAfter[i] = sawClosingBrace;
+    closingParenAfter[i] = sawClosingParen;
+    const words = wordSegments[i];
+    if (
+      words !== null &&
+      words !== undefined &&
+      zipShellWordsWithoutRedirections(words)[0] === "}"
+    ) {
+      sawClosingBrace = true;
+    }
+    if (words?.some((word) => zipWordEndsWithUnquotedCloseParen(word))) {
+      sawClosingParen = true;
+    }
+  }
+
+  for (let segmentIndex = 0; segmentIndex < wordSegments.length; segmentIndex++) {
+    const splitWords = wordSegments[segmentIndex];
+    if (splitWords === null || splitWords === undefined) continue;
+    let groupedWords = zipUnwrapSimpleGrouping(
+      splitWords,
+      closingBraceAfter[segmentIndex] as boolean,
+      closingParenAfter[segmentIndex] as boolean,
+    );
+    if (groupedWords === null) {
+      groupedWords = zipUnwrapSimpleGrouping(
+        zipShellWordsWithoutRedirections(splitWords),
+        closingBraceAfter[segmentIndex] as boolean,
+        closingParenAfter[segmentIndex] as boolean,
+      );
+    }
+    if (groupedWords === null) continue;
+    const words = zipShellWordsWithoutRedirections(groupedWords);
+    const executableIndex = zipExecutableIndex(words);
+    if (executableIndex === null) continue;
+
+    let i = executableIndex + 1;
+    let optionsEnded = false;
+    let destination: string | null = null;
+    let sawInput = false;
+    let supportedShape = true;
+
+    while (i < words.length) {
+      const raw = words[i] as string;
+      const normalized = normalizeToken(raw);
+
+      if (destination === null) {
+        if (!optionsEnded && normalized === "--") {
+          optionsEnded = true;
+        } else if (!optionsEnded && normalized.startsWith("-")) {
+          if (!ZIP_PREFIX_NO_VALUE_FLAGS.has(normalized)) {
+            supportedShape = false;
+            break;
+          }
+        } else {
+          destination = raw;
+        }
+      } else if (!optionsEnded && normalized === "--") {
+        optionsEnded = true;
+      } else if (!optionsEnded && normalized.startsWith("-") && normalized !== "-") {
+        supportedShape = false;
+        break;
+      } else {
+        const literalInput = zipShellWordLiteral(raw);
+        if (literalInput !== null && literalInput.length > 0) sawInput = true;
+      }
+
+      i++;
+    }
+
+    if (
+      supportedShape &&
+      destination !== null &&
+      sawInput &&
+      pathishIsLiteralProtectedDest(destination)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function isGenericProtectedDestFlag(flag: string): boolean {
   return DOWNLOADER_FILE_DEST_FLAGS.has(flag) || GENERIC_PROTECTED_EXTRA_DEST_FLAGS.has(flag);
 }
@@ -2838,6 +3743,12 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
   // so a compound safe prefix cannot hide a write-capable residual (SLizard residual).
   if (hasWriteCapableProgrammaticShell(cmd, tokens)) {
     found.add("settings");
+  }
+  // #4005: a verified protected zip mutation must not be hidden by unrelated
+  // always-allowed token matches such as an input named `pytest`. Commands that
+  // use existing generic destination flags never enter this exact zip grammar.
+  if (!found.has("settings") && hasProtectedZipArchiveDestination(cmd)) {
+    found.add("unknown");
   }
 
   return [...found];

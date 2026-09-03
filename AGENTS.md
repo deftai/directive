@@ -160,7 +160,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=0de4d5a29c0d refreshed=2026-09-01T23:50:50Z session=31b0f1179feb -->
+<!-- deft:managed-section v3 sha=56bc7de22307 refreshed=2026-09-02T23:51:43Z session=78bfbcc6fbd8 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -191,9 +191,9 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## xBRIEF layout (#2034 / #2110)
 
-Legacy `vbrief/`; `deft migrate:xbrief` (v0.6→v0.8). New writes `"version": "0.8"`. Depth: `main.md` (#3600).
-! Completed xBRIEFs are record of *what is*, zero authority over *what to build next* (#3383). Current contract = active xBRIEF + human operator live instruction. Depth: `main.md` Persistence; build skill declare-the-contract / halt-and-ask.
-⊗ Treat a completed xBRIEF as the next-build contract.
+! Writes: `./xbrief/` (`PROJECT-DEFINITION.xbrief.json`, `plan.xbrief.json`, `specification.xbrief.json`) as `"xBRIEFInfo"` `"version": "0.8"`. Legacy `vbrief/`; `deft migrate:xbrief`.
+! Completed xBRIEFs are record of *what is*, zero authority over *what to build next* (#3383). Current contract = active xBRIEF + human operator live instruction.
+⊗ Treat a completed xBRIEF as the next-build contract. ⊗ Emit `"version": "0.6"` on new writes.
 
 ## Unmanaged project header (#2065)
 

@@ -788,6 +788,16 @@ describe("test_agents_entry_contract", () => {
     expect(templateManaged).toContain("Treat a completed xBRIEF as the next-build contract");
   });
 
+  it("xbrief_layout_names_current_write_paths (#4086)", () => {
+    expect(templateManaged).toContain("./xbrief/");
+    expect(templateManaged).toContain("xBRIEFInfo");
+    expect(templateManaged).toContain("PROJECT-DEFINITION.xbrief.json");
+    expect(templateManaged).toContain("plan.xbrief.json");
+    expect(templateManaged).toContain("specification.xbrief.json");
+    expect(templateManaged).toContain('"version": "0.8"');
+    expect(templateManaged).toContain("deft migrate:xbrief");
+  });
+
   it("managed_section_contains_implementation_intent_gate", () => {
     expect(templateManaged).toContain("Implementation Intent Gate");
   });

@@ -9,7 +9,7 @@ Foundational guidelines for AI agent behavior in the Deft framework.
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**⚠️ Rule Precedence**: USER.md has two sections: `Personal` (always wins — name, custom rules) and `Defaults` (fallback — strategy, coverage, languages; PROJECT-DEFINITION.vbrief.json overrides these). (Override path via `DEFT_USER_PATH` env var; )
+**⚠️ Rule Precedence**: USER.md has two sections: `Personal` (always wins — name, custom rules) and `Defaults` (fallback — strategy, coverage, languages; PROJECT-DEFINITION.xbrief.json overrides these). (Override path via `DEFT_USER_PATH` env var; )
 
 **📋 Lazy Loading**: See `npx deft packs:slice skills list` (Skills Index; `REFERENCES.md` is maintainer-only and does not ship) for guidance on when to load which files.
 
@@ -25,7 +25,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - `main.md` - General AI behavior (this document)
 - [coding/coding.md](./content/coding/coding.md) - Software development guidelines
 - `~/.config/deft/USER.md` - Personal preferences (highest precedence)
-- `./vbrief/PROJECT-DEFINITION.vbrief.json` - Project identity gestalt and scope registry
+- `./xbrief/PROJECT-DEFINITION.xbrief.json` - Project identity gestalt and scope registry
 
 **Coding-Specific:**
 - Languages: [languages/cpp.md](./content/languages/cpp.md), [languages/go.md](./content/languages/go.md), [languages/officejs.md](./content/languages/officejs.md), [languages/python.md](./content/languages/python.md), [languages/typescript.md](./content/languages/typescript.md), [languages/vba.md](./content/languages/vba.md)
@@ -190,21 +190,21 @@ Source material: AI Agent Traps paper (`docs/ssrn-6372438.pdf`, Franklin et al.,
 
 Propagation: the canonical orchestrator preamble at [templates/agent-prompt-preamble.md](./content/templates/agent-prompt-preamble.md) carries the same rule so dispatched workers inherit the behavior. This is the same class as the approval-fatigue defense above (`## Agent Trap Defenses`) applied to a different surface -- "you cancelled" is a buried mis-attribution that the rule corrects with the same fail-loud / surface-the-anomaly discipline.
 
-## vBRIEF Persistence
+## xBRIEF Persistence
 
-- ! All vBRIEF files MUST be stored in `./vbrief/` or its lifecycle subfolders — never in workspace root
-- ! Use `PROJECT-DEFINITION.vbrief.json` (singular) as the project identity gestalt — narratives for identity, items as scope registry
-- ! Use `plan.vbrief.json` (singular) for session-level tactical plans and progress tracking
-- ! Use `continue.vbrief.json` (singular) for interruption recovery checkpoints
-- ! Specifications are written as `specification.vbrief.json`, then rendered to `.md`
-- ! Scope vBRIEFs live in lifecycle folders: `proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`
-- ! Scope vBRIEF filenames MUST follow: `YYYY-MM-DD-descriptive-slug.vbrief.json` (slug rules: [`conventions/vbrief-filenames.md`](./content/conventions/vbrief-filenames.md))
-- ! Playbooks use `playbook-{name}.vbrief.json` (named, not ULID-suffixed)
+- ! All xBRIEF files MUST be stored in `./xbrief/` or its lifecycle subfolders — never in workspace root
+- ! Use `PROJECT-DEFINITION.xbrief.json` (singular) as the project identity gestalt — narratives for identity, items as scope registry
+- ! Use `plan.xbrief.json` (singular) for session-level tactical plans and progress tracking
+- ! Use `continue.xbrief.json` (singular) for interruption recovery checkpoints
+- ! Specifications are written as `specification.xbrief.json`, then rendered to `.md`
+- ! Scope xBRIEFs live in lifecycle folders: `proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`
+- ! Scope xBRIEF filenames MUST follow: `YYYY-MM-DD-descriptive-slug.xbrief.json` (slug rules: [`conventions/vbrief-filenames.md`](./content/conventions/vbrief-filenames.md))
+- ! Playbooks use `playbook-{name}.xbrief.json` (named, not ULID-suffixed)
 - ! Completed xBRIEFs are evidence of what was built — full standing as a record of *what is*, zero authority over *what to build next* (#3383). The current contract is the active xBRIEF plus the human operator's live instruction. Both halves are required.
 - ⊗ Use ULID-suffixed filenames for plan, todo, or continue files
-- ⊗ Place vBRIEF files at workspace root
-- ⊗ Write `SPECIFICATION.md` directly — it MUST be generated from `specification.vbrief.json`
-- ⊗ Move scope vBRIEFs between lifecycle folders without updating `plan.status`
+- ⊗ Place xBRIEF files at workspace root
+- ⊗ Write `SPECIFICATION.md` directly — it MUST be generated from `specification.xbrief.json`
+- ⊗ Move scope xBRIEFs between lifecycle folders without updating `plan.status`
 - ⊗ Treat a completed xBRIEF as the next-build contract, or let it override the active story or the live human instruction
 
 ### Schema version: v0.8 (canonical write)
@@ -229,10 +229,10 @@ Projects that pre-date v0.20 (pre-vBRIEF-centric model) must migrate on a **pinn
 
 A consumer project is **pre-cutover** if ANY of these hold:
 
-- `SPECIFICATION.md` exists at the project root and is neither a deprecation redirect nor a current generated spec export. A current generated spec export contains `<!-- Purpose: rendered specification -->` and `<!-- Source of truth: vbrief/specification.vbrief.json -->`, and `vbrief/specification.vbrief.json` plus all five lifecycle folders exist.
+- `SPECIFICATION.md` exists at the project root and is neither a deprecation redirect nor a current generated spec export. A current generated spec export contains `<!-- Purpose: rendered specification -->` and a layout-resolved `<!-- Source of truth: ... -->` line for the specification artifact (`xbrief/specification.xbrief.json` on a migrated tree), and that artifact plus all five lifecycle folders exist.
 - `PROJECT.md` exists at the project root and is not a deprecation redirect (`<!-- deft:deprecated-redirect -->` or `<!-- Purpose: deprecation redirect -->`)
-- `vbrief/` exists but one or more of the five lifecycle subfolders (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`) is missing
-- `vbrief/PROJECT-DEFINITION.vbrief.json` is absent on a project that otherwise looks set up
+- `xbrief/` exists but one or more of the five lifecycle subfolders (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`) is missing
+- `xbrief/PROJECT-DEFINITION.xbrief.json` is absent on a project that otherwise looks set up
 
 The executable detection helper is `task migrate:preflight`. The full agent-facing flow lives in [QUICK-START.md](./content/QUICK-START.md) Step 2 and in [skills/deft-directive-setup/SKILL.md](./content/skills/deft-directive-setup/SKILL.md) (Pre-Cutover Detection Guard).
 
@@ -274,7 +274,7 @@ After migration completes, upgrade to current npm per [UPGRADING.md](./content/U
 
 ### What migration produces
 
-The migrator replaces `SPECIFICATION.md` and `PROJECT.md` with deprecation-redirect stubs (both carry the `<!-- deft:deprecated-redirect -->` sentinel) and writes:
+**Legacy (frozen v0.59.0 `task migrate:vbrief` only — not a current write path; do not reverse #2907).** The migrator replaces `SPECIFICATION.md` and `PROJECT.md` with deprecation-redirect stubs (both carry the `<!-- deft:deprecated-redirect -->` sentinel) and writes:
 
 - `vbrief/PROJECT-DEFINITION.vbrief.json` — project identity gestalt (narratives + items registry)
 - `vbrief/specification.vbrief.json` — design narratives and requirements
@@ -365,18 +365,18 @@ See [commands.md](./content/commands.md) for full workflow details.
 ### Session
 
 - `/deft:continue` — Resume from continue checkpoint ([resilience/continue-here.md](./content/resilience/continue-here.md))
-- `/deft:checkpoint` — Save session state to `./vbrief/continue.vbrief.json`
+- `/deft:checkpoint` — Save session state to `./xbrief/continue.xbrief.json`
 
 ## Context Awareness
 
 **Project Context:**
-- ! Check `./vbrief/PROJECT-DEFINITION.vbrief.json` (in your consumer project) for project-specific rules and scope registry
+- ! Check `./xbrief/PROJECT-DEFINITION.xbrief.json` (in your consumer project) for project-specific rules and scope registry
 - ! Follow project-specific patterns and conventions
 - ~ Note which rules/patterns are being applied
 
 **User Context:**
 - ! Respect `~/.config/deft/USER.md` Personal section (highest precedence)
-- ! For project-scoped settings, PROJECT-DEFINITION.vbrief.json overrides USER.md Defaults
+- ! For project-scoped settings, PROJECT-DEFINITION.xbrief.json overrides USER.md Defaults
 - ! Remember user's maintained projects and their purposes
 - ~ Adapt communication style to user's expertise level
 
@@ -388,4 +388,4 @@ See [commands.md](./content/commands.md) for full workflow details.
 
 **Context Engineering:**
 - ~ See [context/context.md](./content/context/context.md) for strategies on managing context budget
-- ~ Use vBRIEF ([vbrief.org](https://vbrief.org)) for structured task plans, scratchpads, and checkpoints
+- ~ Use xBRIEF for structured task plans, scratchpads, and checkpoints

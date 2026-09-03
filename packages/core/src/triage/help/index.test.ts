@@ -197,6 +197,8 @@ describe("runHelp CLI", () => {
       expect(runHelp(["-h"])).toBe(0);
       expect(runHelp(["--help"])).toBe(0);
       expect(runHelp(["help", "task triage:missing-verb-xyz"])).toBe(2);
+      expect(stderr.join("")).toContain("deft triage-help list");
+      expect(stderr.join("")).not.toContain("task triage-help");
     } finally {
       process.stdout.write = origOut;
       process.stderr.write = origErr;

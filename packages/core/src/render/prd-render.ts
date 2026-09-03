@@ -47,6 +47,16 @@ function writePrd(
     process.stderr.write(`Warning: no narratives found in ${sourcePath}\n`);
   }
 
+  writeFileSync(outputPath, buildPrdMarkdown(title, narratives, sourcePath), "utf8");
+  process.stdout.write(`PRD.md written to ${outputPath}\n`);
+}
+
+/** Render a PRD markdown buffer from title, narratives, and the resolved source path. */
+export function buildPrdMarkdown(
+  title: string,
+  narratives: Record<string, unknown>,
+  sourcePath: string,
+): string {
   const lines: string[] = [
     buildPrdBanner(sourcePath),
     `# ${title} -- Product Requirements Document\n`,
@@ -71,18 +81,22 @@ function writePrd(
       "via `task prd:render`. Do not edit directly.*\n",
   );
 
-  writeFileSync(outputPath, lines.join("\n"), "utf8");
-  process.stdout.write(`PRD.md written to ${outputPath}\n`);
+  return lines.join("\n");
 }
 
-function loadTitleAndNarratives(sourcePath: string): {
-  title: string;
-  narratives: Record<string, unknown>;
-} {
-  const payload: unknown = JSON.parse(readFileSync(sourcePath, "utf8"));
+function tryLoadTitleAndNarratives(
+  sourcePath: string,
+):
+  | { ok: true; title: string; narratives: Record<string, unknown> }
+  | { ok: false; message: string } {
+  let payload: unknown;
+  try {
+    payload = JSON.parse(readFileSync(sourcePath, "utf8"));
+  } catch (err) {
+    return { ok: false, message: String(err) };
+  }
   if (typeof payload !== "object" || payload === null || Array.isArray(payload)) {
-    process.stderr.write(`Error: ${sourcePath} root must be a JSON object\n`);
-    process.exit(1);
+    return { ok: false, message: `${sourcePath} root must be a JSON object` };
   }
   const data = payload as JsonObject;
   const plan = (data.plan ?? {}) as JsonObject;
@@ -92,7 +106,73 @@ function loadTitleAndNarratives(sourcePath: string): {
     !Array.isArray(plan.narratives)
       ? (plan.narratives as Record<string, unknown>)
       : {};
-  return { title: String(plan.title ?? "Project"), narratives };
+  return { ok: true, title: String(plan.title ?? "Project"), narratives };
+}
+
+function loadTitleAndNarratives(sourcePath: string): {
+  title: string;
+  narratives: Record<string, unknown>;
+} {
+  const loaded = tryLoadTitleAndNarratives(sourcePath);
+  if (!loaded.ok) {
+    process.stderr.write(`Error: ${loaded.message}\n`);
+    process.exit(1);
+  }
+  return { title: loaded.title, narratives: loaded.narratives };
+}
+
+export type ExpectedPrdMarkdown =
+  | { ok: true; markdown: string; sourcePath: string }
+  | { ok: false; message: string };
+
+/**
+ * Buffer that `task prd:render --project-root` would write: authority-aware
+ * narratives when PROJECT-DEFINITION exists, else the spec-path compatibility
+ * render (#3598 / #4086).
+ */
+export function buildExpectedPrdMarkdown(projectRoot: string): ExpectedPrdMarkdown {
+  const root = resolve(projectRoot);
+  const authority = resolveSpecAuthority(root);
+  if (!authority) {
+    try {
+      const specPath = resolveSpecArtifactPath(root);
+      if (existsSync(specPath)) {
+        const loaded = tryLoadTitleAndNarratives(specPath);
+        if (!loaded.ok) return loaded;
+        return {
+          ok: true,
+          markdown: buildPrdMarkdown(loaded.title, loaded.narratives, specPath),
+          sourcePath: specPath,
+        };
+      }
+    } catch (err) {
+      return { ok: false, message: err instanceof Error ? err.message : String(err) };
+    }
+    return {
+      ok: false,
+      message: "xbrief/PROJECT-DEFINITION.xbrief.json not found; PRD authority is unavailable.",
+    };
+  }
+  if (authority.kind === "full-spec" && authority.specPath) {
+    const [ok, message] = validateSpec(authority.specPath);
+    if (!ok) return { ok: false, message };
+  } else if (!greenfieldOverviewNonEmpty(authority)) {
+    return {
+      ok: false,
+      message: "PROJECT-DEFINITION.xbrief.json Overview narrative is empty; cannot render PRD.",
+    };
+  }
+  const loaded = tryLoadTitleAndNarratives(authority.sourcePath);
+  if (!loaded.ok) return loaded;
+  return {
+    ok: true,
+    markdown: buildPrdMarkdown(
+      loaded.title,
+      resolveExportNarratives(authority),
+      authority.sourcePath,
+    ),
+    sourcePath: authority.sourcePath,
+  };
 }
 
 /** Read an explicit specification artifact and write PRD.md. */
@@ -170,7 +250,7 @@ export function main(args: PrdCliArgs = {}): void {
   } else if (args.projectRoot !== undefined) {
     renderProjectPrd(args.projectRoot, outputPath, options);
   } else {
-    renderPrd("vbrief/specification.vbrief.json", outputPath, options);
+    renderPrd("xbrief/specification.xbrief.json", outputPath, options);
   }
 }
 

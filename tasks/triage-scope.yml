@@ -14,8 +14,8 @@ version: '3'
 # via {{.CLI_ARGS}} and go-task's incremental-build cache layer would
 # silently swallow them.
 #
-# Companion script: scripts/triage_scope.py (+ scripts/_triage_scope_cli.py)
-# Companion tests:  tests/test_triage_scope.py
+# Handler: packages/cli/src/triage-scope.ts via engine:invoke (packages/cli/dist).
+# Help registry: packages/core/src/triage/help/registry-data.ts (edit in place).
 # Current Shape:    https://github.com/deftai/directive/issues/1131#issuecomment-4471901494
 
 vars:

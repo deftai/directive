@@ -83,7 +83,7 @@ describe("test_vbrief_schema.py", () => {
   }
   it("test_spec_has_required_top_level_keys", () => {
     const data = loadJson("xbrief/specification.xbrief.json") as Record<string, unknown>;
-    expect(data).toHaveProperty("vBRIEFInfo");
+    expect(data).toHaveProperty("xBRIEFInfo");
     expect(data).toHaveProperty("plan");
     expect(typeof data.plan).toBe("object");
   });

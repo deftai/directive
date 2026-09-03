@@ -12,8 +12,8 @@ version: '3'
 # declarations -- user-facing flags (`--label`, `--milestone`, `--issue`,
 # `--issue-note`, `--actor`) are forwarded via {{.CLI_ARGS}}.
 #
-# Companion script: scripts/triage_subscribe.py (+ shim).
-# Companion tests:  tests/test_triage_subscribe.py.
+# Handler: packages/cli/src/triage-subscribe.ts via engine:invoke (packages/cli/dist).
+# Help registry: packages/core/src/triage/help/registry-data.ts (edit in place).
 
 vars:
   DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'

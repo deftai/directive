@@ -112,6 +112,7 @@ export const HYGIENE_GATE_ID_PREFIXES: readonly string[] = [
   "vbrief:validate",
   "codebase:validate-structure",
   "verify:codebase-map-fresh",
+  "verify:spec-prd-fresh",
   "verify-strategy-output",
   "doctor",
 ];
