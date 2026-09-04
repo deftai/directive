@@ -922,6 +922,14 @@ function gitOut(repoRoot: string, args: readonly string[]): string {
   }
 }
 
+function gitOutOrNull(repoRoot: string, args: readonly string[]): string | null {
+  try {
+    return execFileSync("git", args, { cwd: repoRoot, encoding: "utf8" });
+  } catch {
+    return null;
+  }
+}
+
 function gitOk(repoRoot: string, args: readonly string[]): boolean {
   try {
     execFileSync("git", args, {
@@ -976,12 +984,12 @@ function diffAgainstBase(repoRoot: string, base: string, files: readonly string[
     // Depth-one clones point origin/<default> at HEAD, so merge-base==HEAD is
     // not a PR base and would hide earlier commits as an empty range.
     if (isShallowRepo(repoRoot) && mergeBase === head) return null;
-    return gitOut(repoRoot, ["diff", `${mergeBase}...HEAD`, "--", ...files]);
+    return gitOutOrNull(repoRoot, ["diff", `${mergeBase}...HEAD`, "--", ...files]);
   }
   if (commitExists(repoRoot, base)) {
     const baseSha = gitOut(repoRoot, ["rev-parse", `${base}^{commit}`]).trim();
     if (isShallowRepo(repoRoot) && baseSha === head) return null;
-    return gitOut(repoRoot, ["diff", base, "HEAD", "--", ...files]);
+    return gitOutOrNull(repoRoot, ["diff", base, "HEAD", "--", ...files]);
   }
   return null;
 }
@@ -1010,9 +1018,11 @@ export function readCommandSnippetCandidateDiff(repoRoot: string): string {
   ].filter((base) => base.length > 0);
   for (const base of bases) {
     const ranged = diffAgainstBase(repoRoot, base, files);
-    // Empty stdout is not a candidate diff. A failed or disconnected
-    // shallow range must not hide later bases or the git-log fallback.
-    if (ranged !== null && ranged.includes("diff --git")) return ranged;
+    // null is a failed or disconnected range — try the next base.
+    // "" is a successful empty range (this PR does not touch command-snippet
+    // paths). That is resolved, not UNRESOLVED_SHALLOW.
+    if (ranged === null) continue;
+    return ranged;
   }
   // Depth-one PR checkouts only have HEAD. A `git log -p` fallback would hide
   // exemption + snippet additions from earlier PR commits (fail-open).
