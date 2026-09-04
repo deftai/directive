@@ -1,0 +1,151 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Lifecycle land for GitHub issue #4099 after PR #4185 merged without a tracked completed xBRIEF.",
+    "created": "2026-09-02T14:37:27Z",
+    "updated": "2026-09-04T18:20:00Z"
+  },
+  "plan": {
+    "title": "docs(features): add a capability map and verifiable documentation-impact contract",
+    "status": "completed",
+    "id": "2026-09-02-4099-docsfeatures-add-a-capability-map-and-verifiable-documentation-impac.xbrief",
+    "narratives": {
+      "Description": "Generated capability index over existing registries plus a declared-versus-touched PR documentation-impact check. HITL taxonomy locked in the committed overlay. Shipped in PR #4185 (merge f2d6e00d). This file is the post-merge completed-tracked land (#3264 / #3476); the product work already merged.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4099. Parent #4085. Bound by successor lean 5514567780 and verified-claims table 5515165945.",
+      "Overview": "Audience-based capability index pointing at canonical command, conceptual documentation, status, gotchas, and examples. Pair with an explicit PR documentation-impact declaration and a focused verifier so new features and withdrawals propagate beyond implementation-local pages. #447 remains the rule body by reference."
+    },
+    "items": [
+      {
+        "title": "Lock HITL audience/status taxonomy in the committed overlay",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given the committed capability overlay, when it is read, then audience and status values are a closed enum approved at HITL."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "packages/core/src/docs/capability-map.ts",
+          "recorded_at": "2026-09-04T13:05:54Z",
+          "recorded_by": "lifecycle-land/4099"
+        }
+      },
+      {
+        "title": "Generate a user-facing capability index from existing registries",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given the overlay and registries, when the index is generated, then one page lists current capabilities with audience, status, canonical command, conceptual source, gotchas, and example or explicit none."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "content/docs/capabilities.md",
+          "recorded_at": "2026-09-04T13:05:54Z",
+          "recorded_by": "lifecycle-land/4099"
+        }
+      },
+      {
+        "title": "Fail-closed documentation-impact declaration versus touched closed surfaces",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given a PR body, when verify:docs-impact runs, then change_class/surfaces are machine-checked against added or removed command, skill-trigger, help, and docs-site surfaces; rationale is data not a waiver."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/docs/docs-impact.test.ts",
+          "recorded_at": "2026-09-04T13:05:54Z",
+          "recorded_by": "lifecycle-land/4099"
+        }
+      },
+      {
+        "title": "Keep #447 as the rule body by reference; do not duplicate it",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "When the new verifier lands, then #447 same-PR documentation rules remain intact and are referenced rather than restated."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "packages/core/src/docs/docs-impact.ts",
+          "recorded_at": "2026-09-04T13:05:54Z",
+          "recorded_by": "lifecycle-land/4099"
+        }
+      }
+    ],
+    "tags": ["documentation", "status:child"],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4099",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4099: docs(features): add a capability map and verifiable documentation-impact contract"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/4185",
+        "type": "x-xbrief/github-pr",
+        "title": "PR #4185 merged f2d6e00d"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4085",
+        "type": "x-xbrief/refs",
+        "title": "Parent epic #4085"
+      }
+    ],
+    "acceptance": {
+      "commands": [{"command": "pnpm exec vitest run packages/core/src/docs packages/core/src/check"}],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "Product AC shipped in PR #4185. This land records delivery; focused vitest is the stated local check from that PR.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "One generated index lists current capabilities with audience, status, canonical command, conceptual source, gotchas, and example or explicit none.",
+          "artifact_path": "content/docs/capabilities.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Feature PRs declare affected documentation surfaces or no user-doc impact; the declaration is machine-checked for presence and valid values.",
+          "artifact_path": "packages/core/src/docs/docs-impact.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": ["xbrief/completed/2026-09-02-4099-docsfeatures-add-a-capability-map-and-verifiable-documentation-impac.xbrief.json"],
+        "depends_on": [],
+        "size": "small",
+        "file_scope_confidence": "high"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "16f92c026672d6cb40af1e03d40e19f6e5852a0a",
+        "prNumber": 4185,
+        "prBase": "master",
+        "mergeCommit": "f2d6e00d66229543f4768fb50388dab380aaf834",
+        "deliveryBranch": "master",
+        "deliveryCommit": "f2d6e00d66229543f4768fb50388dab380aaf834",
+        "verifiedAt": "2026-09-04T18:20:00Z",
+        "verifier": "lifecycle-pr",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDZjODAtY2ViZi03ZmIyLTgyNzYtNDliNTkzZTY5ODkx"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {"action": "complete", "writtenAt": "2026-09-04T18:20:00Z"},
+      "completedAt": "2026-09-04T18:20:00Z",
+      "completedSessionId": "host:grok:v1:MDFhMDZjODAtY2ViZi03ZmIyLTgyNzYtNDliNTkzZTY5ODkx",
+      "capacityBucket": "cognitive-debt"
+    },
+    "updated": "2026-09-04T18:20:00Z"
+  }
+}

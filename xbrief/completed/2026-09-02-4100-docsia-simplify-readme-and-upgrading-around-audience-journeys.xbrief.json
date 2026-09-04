@@ -1,0 +1,137 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Lifecycle land for GitHub issue #4100 after PR #4197 merged without a tracked completed xBRIEF.",
+    "created": "2026-09-02T14:37:29Z",
+    "updated": "2026-09-04T18:20:00Z"
+  },
+  "plan": {
+    "title": "docs(ia): recut README and UPGRADING around audience journeys",
+    "status": "completed",
+    "id": "2026-09-02-4100-docsia-simplify-readme-and-upgrading-around-audience-journeys.xbrief",
+    "narratives": {
+      "Description": "Reorganize public documentation around audience journeys. Cold-start stays first in README. Current upgrade path opens UPGRADING; frozen hops stay section-excluded. Docs-site primary bar stays the six-item inventory. Shipped in PR #4197 (merge 9ca8e3b0).",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4100. Parent #4085.",
+      "Overview": "README is a landing page plus three-command install and getting-started pointer. Extra roles name owners. Architecture stays maintainer-tier docs/ARCHITECTURE.md. UPGRADING opens with the current path."
+    },
+    "items": [
+      {
+        "title": "Recut README around audience journeys without moving the cold-start region",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given README.md, when a new clone is opened, then the #2273 cold-start remains the first committed region and the remainder is a concise landing plus three-command install."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "README.md",
+          "recorded_at": "2026-09-04T18:14:17Z",
+          "recorded_by": "lifecycle-land/4100"
+        }
+      },
+      {
+        "title": "Open UPGRADING with the current path; keep frozen hops as named section exclusions",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given UPGRADING.md, when live-procedure scan runs, then current upgrade guidance is checked and frozen historical sections are excluded by name, not by skipping the whole file."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/deposit/live-procedure-targets.test.ts",
+          "recorded_at": "2026-09-04T18:14:17Z",
+          "recorded_by": "lifecycle-land/4100"
+        }
+      },
+      {
+        "title": "Fail-closed docs-site primary navigation inventory",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given docs-site HTML pages, when docs_site_nav tests run, then the six-item primary bar is identical across current pages."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/docs_site_nav.test.ts",
+          "recorded_at": "2026-09-04T18:14:17Z",
+          "recorded_by": "lifecycle-land/4100"
+        }
+      }
+    ],
+    "tags": ["documentation", "status:child"],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4100",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4100: docs(ia): simplify README and UPGRADING around audience journeys"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/4197",
+        "type": "x-xbrief/github-pr",
+        "title": "PR #4197 merged 9ca8e3b0"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4085",
+        "type": "x-xbrief/refs",
+        "title": "Parent epic #4085"
+      }
+    ],
+    "acceptance": {
+      "commands": [{"command": "pnpm exec vitest run packages/core/src/content-contracts/standards/docs_site_nav.test.ts packages/core/src/deposit/live-procedure-targets.test.ts"}],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "Product AC shipped in PR #4197. This land records delivery.",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "README remains a concise landing page with cold-start first and three-command install.",
+          "artifact_path": "README.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "UPGRADING opens with the current path; frozen transitions stay named historical sections.",
+          "artifact_path": "content/UPGRADING.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": ["xbrief/completed/2026-09-02-4100-docsia-simplify-readme-and-upgrading-around-audience-journeys.xbrief.json"],
+        "depends_on": [],
+        "size": "small",
+        "file_scope_confidence": "high"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "66cf90ae65c912de33808f8f7a8fc426d36b70a1",
+        "prNumber": 4197,
+        "prBase": "master",
+        "mergeCommit": "9ca8e3b0f8dbe69aaf5a44393d82314b9264294c",
+        "deliveryBranch": "master",
+        "deliveryCommit": "9ca8e3b0f8dbe69aaf5a44393d82314b9264294c",
+        "verifiedAt": "2026-09-04T18:20:00Z",
+        "verifier": "lifecycle-pr",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDZjODAtY2ViZi03ZmIyLTgyNzYtNDliNTkzZTY5ODkx"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {"action": "complete", "writtenAt": "2026-09-04T18:20:00Z"},
+      "completedAt": "2026-09-04T18:20:00Z",
+      "completedSessionId": "host:grok:v1:MDFhMDZjODAtY2ViZi03ZmIyLTgyNzYtNDliNTkzZTY5ODkx",
+      "capacityBucket": "cognitive-debt"
+    },
+    "updated": "2026-09-04T18:20:00Z"
+  }
+}
