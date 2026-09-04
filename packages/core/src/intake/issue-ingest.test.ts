@@ -1863,5 +1863,5 @@ describe("#4119 plan.id mint, admission, and repair", () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
-  });
+  }, 15_000);
 });

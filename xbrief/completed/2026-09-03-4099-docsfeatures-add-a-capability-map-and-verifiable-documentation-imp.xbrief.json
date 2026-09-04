@@ -1,0 +1,253 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Recut swarm-ready scope from bound lean 5514567780, parent #4085. HITL candidate taxonomy locked in this artifact; PR merge is confirm-or-amend.",
+    "updated": "2026-09-04T13:32:08Z"
+  },
+  "plan": {
+    "title": "docs(features): add a capability map and verifiable documentation-impact contract",
+    "status": "completed",
+    "narratives": {
+      "Description": "HITL remaining child: typed overlay on existing registries, generated capability index, wired --check, declared-versus-touched PR declaration. Do not always-pin. Do not mint a parallel RULE-MAP. Do not score rationale prose. Bound lean 5514567780. Synthesis 5515166095.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4099",
+      "Overview": "## Parent\n\n#4085\n\n## Bound contract (not the pass-1 body)\n\nBuild from bound lean 5514567780 and synthesis 5515166095. Operator confirmed the all-accept map on 2026-09-02. 2026-09-04 operator: implement remaining children after Wave 3 PRs are 5/5 with no blockers. HITL confirm-or-amend is this xBRIEF's locked candidate taxonomy; David confirms by merging the implementation PR. Do not wait for a separate HITL comment round.\n\nPass-1 issue body is the original write-up only. Thread: https://github.com/deftai/directive/issues/4099 (lean 5514567780, verified-claims 5515165945, synthesis 5515166095). Worker MUST ingest comments via REST before code (#2143).\n\n## What to build (recut)\n\n1. One user-facing capability index as a **generated view** over registries that already exist (Taskfile graph, dispatch.ts / CLI_MODULE_VERBS, skill pack / help keys, public docs-site pages). A small typed overlay supplies audience, status, gotchas, in-the-public-index. `--check` is wired into `check:framework-source` / `FRAMEWORK_CHECK_GATES`.\n2. A declared-versus-touched PR documentation-impact declaration. Not presence-and-enum on author prose. `no user-doc impact` is refused when a registered command, skill, help key, or public docs-site page is added or removed. Syntactic trigger over tracked paths. Rationale is length-bounded quoted data and never a gate input.\n3. Lane: a `pull_request` step that invokes the verifier with the event PR number via existing closing-keywords `--pr` / `--body-file` transport. Fork PRs are read-only against GitHub and do not run with elevated credentials. Local `task check` cannot see a GitHub-only field without `--body-file`.\n\n## HITL candidate taxonomy (locked here; merge = confirm-or-amend)\n\nClosed enums live in the committed overlay after this PR, not only in issue comments.\n\n- audience: `consumer` | `maintainer` | `frozen`  (#4100 consumes this enum)\n- status: `current` | `compatibility` | `withdrawn` | `experimental`\n- status owners: current = registry owner (Taskfile / dispatch / skill pack); compatibility = dispatch.ts alias owner; withdrawn = same-PR as #447 (pack source, not a drifting render path); experimental = required overlay field `status_owner`\n- surface / canonical_entry.kind: `command` | `skill-trigger` | `document` | `none` (typed union)\n- change_class: `add` | `change` | `withdraw`\n- overlay fields: audience, status, gotchas (quoted, length-bounded, never a gate input), in_the_public_index (boolean), canonical_entry `{kind, id}`, optional status_owner\n- membership predicate (not editorial \"major\"): `in_the_public_index === true && status ∈ {current, compatibility} && canonical_entry.kind !== \"none\"`\n- PR templates: **both** `.github/PULL_REQUEST_TEMPLATE.md` (maintainer) and `content/templates/PULL_REQUEST_TEMPLATE.md` (consumer)\n- first delivery: PR declaration + capability-map source/check. Change-class `withdraw` maps to the closed surface set (command / skill / help key / public docs-site page). Do not keep an unevidenced same-delivery-unit content requirement on a presence-only verifier.\n- #447 stays the rule body by reference (pack source).\n\n## Why (survives the recut)\n\nScattered implementation-local docs and a self-clearing presence-only PR checkbox. One generated index plus declared-versus-touched is the control.\n\n## Out of scope\n\n- AGENTS.md / agents-entry growth (do not always-pin the index)\n- Parallel RULE-MAP / second command extractor (consume #4087 / #4094 registries if projecting commands)\n- Scoring rationale prose\n- README/UPGRADING/docs-site IA rewrite (#4100)\n- Release-notes as a required AC unless the worker can evidence a detecting event; default is drop release from what-to-build\n- #2702 / #3798 as this delivery unit\n\n## Type\n\nHITL — taxonomy is the candidate in this xBRIEF; merge confirms.\n\n## Blocked by\n\n- #4086, #4087, #4091 (Wave 1 landed). HITL taxonomy need not wait on remaining AFK siblings.\n",
+      "Labels": "documentation, status:child",
+      "UserStory": "As a maintainer, I want a generated capability index over existing registries and a declared-versus-touched PR check, so that new features and withdrawals cannot omit public docs by writing `no user-doc impact`.",
+      "ImplementationPlan": "Add typed overlay + generator + --check on existing registries. Add declared-versus-touched verifier on both PR templates and a pull_request --pr/--body-file lane. Do not always-pin. Do not mint RULE-MAP. Do not edit README, UPGRADING, docs-site IA, SUPPORT.md, or getting-started.md. 1. Edit swarm.file_scope. 2. Add focused tests. 3. Run verify_commands.",
+      "Decisions": "Build from bound lean 5514567780, not the pass-1 issue body. Operator confirmed the all-accept map on 2026-09-02. 2026-09-04 operator: implement remaining children. HITL candidate taxonomy is locked in this xBRIEF; PR merge is confirm-or-amend. File-scope partitioned vs #4100 (README/UPGRADING/docs-site)."
+    },
+    "items": [
+      {
+        "title": "Lock closed audience/status/surface/change-class enums in a committed overlay; membership is a predicate; #4100 consumes audience.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When the overlay is read, then audience is consumer|maintainer|frozen, status is current|compatibility|withdrawn|experimental with a named owner, canonical_entry.kind is command|skill-trigger|document|none, and public-index membership uses the predicate, not editorial major."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4185 merge f2d6e00d66229543f4768fb50388dab380aaf834",
+          "recorded_at": "2026-09-04T13:28:11Z",
+          "recorded_by": "grok-leaf/4099-complete"
+        }
+      },
+      {
+        "title": "Typed overlay on existing registries; generated human page; --check in check:framework-source; no always-pin; no parallel RULE-MAP.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When the overlay and registries disagree, or the generated page is stale, then the focused --check wired into FRAMEWORK_CHECK_GATES fails."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4185 merge f2d6e00d66229543f4768fb50388dab380aaf834",
+          "recorded_at": "2026-09-04T13:28:11Z",
+          "recorded_by": "grok-leaf/4099-complete"
+        }
+      },
+      {
+        "title": "Declared-versus-touched PR declaration; no user-doc impact refused on add/remove of command/skill/help key/docs-site page; rationale never a gate input.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When a PR adds or removes a registered command, skill, help key, or public docs-site page and the body says no user-doc impact, then the verifier fails."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4185 merge f2d6e00d66229543f4768fb50388dab380aaf834",
+          "recorded_at": "2026-09-04T13:28:11Z",
+          "recorded_by": "grok-leaf/4099-complete"
+        }
+      },
+      {
+        "title": "pull_request lane reuses closing-keywords --pr/--body-file; both PR templates; fork read-only.",
+        "status": "completed",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "When CI runs on a pull_request event, then the verifier is invoked with the event PR number (or --body-file locally) and does not use elevated credentials on fork PRs."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4185 merge f2d6e00d66229543f4768fb50388dab380aaf834",
+          "recorded_at": "2026-09-04T13:28:11Z",
+          "recorded_by": "grok-leaf/4099-complete"
+        }
+      },
+      {
+        "title": "First delivery is PR declaration plus capability-map source/check; change-class add/change/withdraw; #447 by reference.",
+        "status": "completed",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "When change_class is withdraw, then the closed surface set (command/skill/help key/public docs-site page) is the detecting event, and #447 is referenced rather than duplicated."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4185 merge f2d6e00d66229543f4768fb50388dab380aaf834",
+          "recorded_at": "2026-09-04T13:28:11Z",
+          "recorded_by": "grok-leaf/4099-complete"
+        }
+      }
+    ],
+    "tags": [
+      "documentation",
+      "status:child"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4099",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4099: docs(features): add a capability map and verifiable documentation-impact contract"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4085",
+        "type": "x-xbrief/parent",
+        "title": "Issue #4085"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4100",
+        "type": "x-xbrief/related",
+        "title": "Issue #4100 consumes audience enum"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/447",
+        "type": "x-xbrief/related",
+        "title": "Issue #447 same-PR documentation rule"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4094",
+        "type": "x-xbrief/related",
+        "title": "Issue #4094 command registry if projecting commands"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "content/docs/capability-overlay.json",
+          "content/docs/capabilities.md",
+          "packages/core/src/docs/capability-map.ts",
+          "packages/core/src/docs/capability-map.test.ts",
+          "packages/core/src/docs/docs-impact.ts",
+          "packages/core/src/docs/docs-impact.test.ts",
+          "packages/core/src/check/gate-lists.ts",
+          "tasks/docs.yml",
+          "tasks/verify.yml",
+          ".github/PULL_REQUEST_TEMPLATE.md",
+          "content/templates/PULL_REQUEST_TEMPLATE.md",
+          ".github/workflows/ci.yml",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/docs",
+          "task verify:encoding"
+        ],
+        "expected_outputs": [
+          "generated content/docs/capabilities.md",
+          "wired --check in FRAMEWORK_CHECK_GATES",
+          "CHANGELOG Unreleased note"
+        ],
+        "depends_on": [],
+        "conflict_group": "4085-hitl-4099-capability-map",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "leaf-implementation",
+        "acceptance_criteria_justification": "Recut clauses from bound lean 5514567780; HITL taxonomy locked in this xBRIEF.",
+        "missing_traces_justification": "Traced to GitHub issue plus bound design-critique lean on parent epic #4085 rather than a SPECIFICATION section."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5325325850,
+        "origin": "deftai/directive#4099",
+        "id": "github.issue.5325325850"
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4185,
+        "prBase": null,
+        "mergeCommit": "f2d6e00d66229543f4768fb50388dab380aaf834",
+        "deliveryBranch": "master",
+        "deliveryCommit": "f2d6e00d66229543f4768fb50388dab380aaf834",
+        "verifiedAt": "2026-09-04T13:32:08Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDZjOTktMTNkNC03YjYxLTg5MDItZmQ4Njg2YWM5Zjdk"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-04T13:32:08Z"
+      },
+      "completedAt": "2026-09-04T13:32:08Z",
+      "completedSessionId": "host:grok:v1:MDFhMDZjOTktMTNkNC03YjYxLTg5MDItZmQ4Njg2YWM5Zjdk",
+      "capacityBucket": "cognitive-debt"
+    },
+    "acceptance": {
+      "commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/docs"
+        },
+        {
+          "command": "task verify:encoding"
+        }
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "derived 5 independently testable clauses from the recut task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When the overlay is read, then audience is consumer|maintainer|frozen, status is current|compatibility|withdrawn|experimental with a named owner, canonical_entry.kind is command|skill-trigger|document|none, and public-index membership uses the predicate, not editorial major.",
+          "artifact_path": "content/docs/capability-overlay.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When the overlay and registries disagree, or the generated page is stale, then the focused --check wired into FRAMEWORK_CHECK_GATES fails.",
+          "artifact_path": "packages/core/src/docs/capability-map.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When a PR adds or removes a registered command, skill, help key, or public docs-site page and the body says no user-doc impact, then the verifier fails.",
+          "artifact_path": "packages/core/src/docs/docs-impact.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "When CI runs on a pull_request event, then the verifier is invoked with the event PR number (or --body-file locally) and does not use elevated credentials on fork PRs.",
+          "artifact_path": ".github/workflows/ci.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "When change_class is withdraw, then the closed surface set (command/skill/help key/public docs-site page) is the detecting event, and #447 is referenced rather than duplicated.",
+          "artifact_path": "packages/core/src/docs/docs-impact.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5325325850",
+    "updated": "2026-09-04T13:32:08Z"
+  }
+}
