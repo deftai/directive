@@ -88,8 +88,11 @@ describe("formatIngestCreatedMessage (#3398)", () => {
 - class SessionGate source contains helper "bindExpiry"
 - class WorkerPool source contains helper "partitionByKey"
 `;
-    const callSpy = vi.spyOn(scm, "call").mockImplementation(() =>
-      completed(
+    const callSpy = vi.spyOn(scm, "call").mockImplementation((_source, _verb, args) => {
+      if (String(args[0] ?? "").includes("/comments")) {
+        return completed("[]", "", 0);
+      }
+      return completed(
         JSON.stringify({
           number: 3398,
           title: "Accept notice",
@@ -99,8 +102,8 @@ describe("formatIngestCreatedMessage (#3398)", () => {
         }),
         "",
         0,
-      ),
-    );
+      );
+    });
     try {
       const [result, path, msg] = ingestSingleForAccept(3398, "o/r", { projectRoot: root });
       expect(result).toBe("created");
@@ -923,7 +926,7 @@ describe("fetchIssue", () => {
       );
 
       const scmCall = vi.fn((_source: string, _verb: string, args: readonly string[]) => {
-        if (args[0]?.endsWith("/comments")) {
+        if (args[0]?.includes("/comments")) {
           return completed("[]", "", 0);
         }
         return completed(
@@ -964,7 +967,7 @@ describe("fetchIssue", () => {
       );
 
       const scmCall = vi.fn((_source: string, _verb: string, args: readonly string[]) => {
-        if (args[0]?.endsWith("/comments")) {
+        if (args[0]?.includes("/comments")) {
           return completed("[]", "", 0);
         }
         return completed("", "network error", 1);
@@ -979,7 +982,7 @@ describe("fetchIssue", () => {
 
   it("marks empty comment threads fetched so ingestOne does not re-fetch", () => {
     const scmCall = vi.fn((_source: string, _verb: string, args: readonly string[]) => {
-      if (args[0]?.endsWith("/comments")) {
+      if (args[0]?.includes("/comments")) {
         return completed("[]", "", 0);
       }
       return completed(
@@ -1043,7 +1046,12 @@ describe("ingestOne with fetchIssue", () => {
       };
       const issue = fetchIssue("o/r", 500, {
         cacheRoot,
-        scmCall: () => completed(JSON.stringify(liveIssue), "", 0),
+        scmCall: (_source, _verb, args) => {
+          if (args[0]?.includes("/comments")) {
+            return completed("[]", "", 0);
+          }
+          return completed(JSON.stringify(liveIssue), "", 0);
+        },
       });
       expect(issue).not.toBeNull();
 
@@ -1855,11 +1863,11 @@ describe("#4119 plan.id mint, admission, and repair", () => {
         expect(activated.ok).toBe(true);
         const active = join(xbriefDir, "active", (path as string).split(/[/\\]/).pop() as string);
         expect(planOf(active).id).toBe(minted);
-        const completed = runTransition("complete", active, new Date(), {
+        const completedTransition = runTransition("complete", active, new Date(), {
           nonDeliveryDisposition: "accepted_not_delivered",
           skipAcceptanceEvidenceGate: true,
         });
-        expect(completed.ok, completed.message).toBe(true);
+        expect(completedTransition.ok, completedTransition.message).toBe(true);
         const done = join(xbriefDir, "completed", (path as string).split(/[/\\]/).pop() as string);
         expect(planOf(done).id).toBe(minted);
       } finally {

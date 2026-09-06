@@ -99,6 +99,22 @@ export class ScannerHardFailError extends Error {
   }
 }
 
+/**
+ * Thrown when ingest cannot retrieve the full issue comment thread (#4137).
+ * Fail closed: do not attach `[]` or a partial prefix as a successful fetch.
+ */
+export class IssueCommentFetchError extends Error {
+  readonly repo: string;
+  readonly issueNumber: number;
+
+  constructor(repo: string, issueNumber: number, message: string) {
+    super(`issue:ingest failed fetching comments for #${issueNumber} (${repo}): ${message}`);
+    this.name = "IssueCommentFetchError";
+    this.repo = repo;
+    this.issueNumber = issueNumber;
+  }
+}
+
 /** GitHub issue comment thread entry (REST `repos/.../issues/N/comments`). */
 export interface IssueComment {
   readonly id?: number;
@@ -112,6 +128,12 @@ export interface IssueComment {
 
 /** Enriched on issues after `fetchIssue` when the comment thread is non-empty (#2143). */
 export const ISSUE_COMMENT_THREAD_KEY = "issueCommentThread" as const;
+
+/** REST page size for ingest comment fetch. Stays on the ghx cached-get seam (#4137). */
+export const ISSUE_COMMENT_PAGE_SIZE = 100;
+
+/** Max pages for ingest comment fetch. Cap without a short terminal page is failure (#4137). */
+export const ISSUE_COMMENT_PAGE_CAP = 50;
 
 /**
  * Map ingest/REST comment rows onto the umbrella-current-shape selector input
@@ -1651,30 +1673,62 @@ export function fetchFromCache(
   }
 }
 
+export function issueCommentsPagePath(repo: string, number: number, page: number): string {
+  return `repos/${repo}/issues/${number}/comments?per_page=${ISSUE_COMMENT_PAGE_SIZE}&page=${page}`;
+}
+
 export function fetchIssueComments(
   repo: string,
   number: number,
   options: FetchIssueOptions = {},
 ): IssueComment[] {
   const scmCall = options.scmCall ?? call;
-  let result: CompletedProcess;
-  try {
-    result = scmCall("github-issue", "api", [`repos/${repo}/issues/${number}/comments`], {
-      timeout: 30,
-      cwd: options.cwd ?? undefined,
-    });
-  } catch {
-    return [];
+  const comments: IssueComment[] = [];
+  for (let page = 1; page <= ISSUE_COMMENT_PAGE_CAP; page += 1) {
+    const path = issueCommentsPagePath(repo, number, page);
+    let result: CompletedProcess;
+    try {
+      result = scmCall("github-issue", "api", [path], {
+        timeout: 30,
+        cwd: options.cwd ?? undefined,
+      });
+    } catch (exc) {
+      throw new IssueCommentFetchError(
+        repo,
+        number,
+        `page ${page} spawn failed: ${exc instanceof Error ? exc.message : String(exc)}`,
+      );
+    }
+    if (result.returncode !== 0) {
+      throw new IssueCommentFetchError(
+        repo,
+        number,
+        `page ${page} failed: ${(result.stderr || "").trim() || `exit ${result.returncode}`}`,
+      );
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(result.stdout);
+    } catch (exc) {
+      throw new IssueCommentFetchError(
+        repo,
+        number,
+        `page ${page} returned non-JSON: ${String(exc)}`,
+      );
+    }
+    if (!Array.isArray(parsed)) {
+      throw new IssueCommentFetchError(repo, number, `page ${page} returned non-array`);
+    }
+    comments.push(...(parsed as IssueComment[]));
+    if (parsed.length < ISSUE_COMMENT_PAGE_SIZE) {
+      return comments;
+    }
   }
-  if (result.returncode !== 0) {
-    return [];
-  }
-  try {
-    const parsed = JSON.parse(result.stdout) as unknown;
-    return Array.isArray(parsed) ? (parsed as IssueComment[]) : [];
-  } catch {
-    return [];
-  }
+  throw new IssueCommentFetchError(
+    repo,
+    number,
+    `comment page cap ${ISSUE_COMMENT_PAGE_CAP} exhausted without a short terminal page`,
+  );
 }
 
 export function attachIssueCommentThread(

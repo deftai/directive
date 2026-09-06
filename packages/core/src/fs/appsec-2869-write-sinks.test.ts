@@ -102,6 +102,7 @@ describe("AppSec write sinks symlink containment (#2869)", () => {
           status: "proposed",
           repoUrl: "https://github.com/o/r",
           cwd: root,
+          scmCall: () => ({ stdout: "[]", stderr: "", returncode: 0 }),
         },
       ),
     ).toThrow(/projection write refused|symlink/);

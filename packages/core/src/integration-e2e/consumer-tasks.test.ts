@@ -152,6 +152,7 @@ describe("integration-e2e consumer tasks (mirrors test_consumer_tasks.py)", () =
         vbriefDir: join(consumer, "xbrief"),
         status: "proposed",
         repoUrl: "https://github.com/owner/consumer",
+        scmCall: () => ({ stdout: "[]", stderr: "", returncode: 0 }),
       },
     );
     expect(result[0]).toBe("created");
