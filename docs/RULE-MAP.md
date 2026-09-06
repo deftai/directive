@@ -21,7 +21,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | ci-cd | CI runner and pipeline guidance, loaded when migrating or configuring CI. | 6 | 5 | 4 | 6 | 0 | 0 |
 | coding | Core software-development rules for agents: hygiene, testing, debugging, security, build output. | 10 | 194 | 57 | 140 | 2 | 5 |
 | context | How to feed agents context well: examples, deterministic splits, spec deltas. | 8 | 42 | 67 | 30 | 16 | 13 |
-| contracts | Interface/behavioral contracts the framework enforces. | 16 | 165 | 16 | 110 | 0 | 5 |
+| contracts | Interface/behavioral contracts the framework enforces. | 16 | 166 | 16 | 110 | 0 | 5 |
 | conventions | Cross-cutting naming, formatting, and repo conventions. | 4 | 16 | 2 | 16 | 0 | 3 |
 | deployments | Provider-specific deployment playbooks (AWS, Azure, GCP, Cloudflare, Vercel, fly.io…). | 52 | 107 | 74 | 24 | 13 | 6 |
 | docs | Explanatory docs and the framework glossary. | 34 | 18 | 12 | 52 | 1 | 2 |
