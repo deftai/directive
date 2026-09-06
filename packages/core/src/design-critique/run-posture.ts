@@ -20,9 +20,11 @@ export type RunPostureParse =
 /** Published closed tokens that resolve to `direct`. */
 export const DIRECT_RUN_POSTURE_TOKENS = [
   "direct",
+  "directly",
   "forge-only",
   "github-only",
   "github only",
+  "on github",
   "no worktrees",
 ] as const;
 
@@ -45,7 +47,8 @@ export type DirectDispatchVerdict =
   | { ok: true }
   | { ok: false; violations: readonly DirectDispatchViolation[] };
 
-const DIRECT_TOKEN_RE = /\b(?:direct|forge-only|github-only|github[ \t]+only|no[ \t]+worktrees)\b/i;
+const DIRECT_TOKEN_RE =
+  /\b(?:direct|directly|forge-only|github-only|github[ \t]+only|on[ \t]+github|no[ \t]+worktrees)\b/i;
 const CHECKOUT_TOKEN_RE = /\bcheckout\b/i;
 const INGEST_TOKEN_RE = /\bingest\b/i;
 const DISPATCH_SHA_RE = /^[0-9a-f]{7,40}$/i;
