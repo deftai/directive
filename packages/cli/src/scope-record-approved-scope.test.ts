@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -30,6 +30,15 @@ function operatorSeams() {
     readInteractiveConfirm: () => "mint",
   };
 }
+
+const taskAvailable = (() => {
+  try {
+    execSync("task --version", { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+})();
 
 describe("scope-record-approved-scope CLI (#3205)", () => {
   let root: string | undefined;
@@ -390,7 +399,7 @@ describe("scope-record-approved-scope CLI (#3205)", () => {
     expect(scopeYml).not.toMatch(/scope:record-approved-scope -- \{\{\.CLI_ARGS\}\}/);
   });
 
-  it("go-task strips -- before CLI_ARGS (#4203)", () => {
+  it.skipIf(!taskAvailable)("go-task strips -- before CLI_ARGS (#4203)", () => {
     const dir = mkdtempSync(join(tmpdir(), "task-strip-4203-"));
     try {
       writeFileSync(
