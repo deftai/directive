@@ -1,0 +1,238 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4220",
+    "updated": "2026-09-06T17:48:41Z"
+  },
+  "plan": {
+    "title": "bug(design-critique): parseOperatorRunPosture rejects directly and on github as direct synonyms (#4072)",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(design-critique): parseOperatorRunPosture rejects directly and on github as direct synonyms (#4072)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4220",
+      "Overview": "## Summary\n\n`parseOperatorRunPosture` (#4072) only accepts closed tokens `direct`, `forge-only`, `github-only`, `github only`, and `no worktrees` for `arc-mode: direct`. Operator utterances that clearly mean the same thing still `ask` with `missing-token`.\n\nField instance (2026-09-06): the operator said `arc directly on github yolo 4219`. The parser does not treat `directly` as `direct` (test: `please run this directly` is `missing-token`, to avoid matching inside `directive`). It also does not treat `on github` as `github only` (the working synonym is `arc N yolo on github only`). Yolo does not pick a mode, so Stop 1 asked instead of recording `arc-mode: direct`.\n\nThis is a closed-token gap, not a request for NLP. Keep fail-closed on missing tokens. Add the extra spellings as explicit synonyms.\n\n## Location\n\n- `packages/core/src/design-critique/run-posture.ts` (`DIRECT_TOKEN_RE`, `DIRECT_RUN_POSTURE_TOKENS`)\n- `packages/core/src/design-critique/run-posture.test.ts`\n- Contract copy of the token list: `content/contracts/design-critique.md` Stop 1 `### Run posture (#4072)`\n\n## Expected\n\n- `\\bdirectly\\b` resolves to `direct`. Does not match `directive` (`arc 1 yolo on the directive repo` stays `missing-token`).\n- `\\bon github\\b` (and the existing `github only` / `github-only`) resolves to `direct`.\n- `arc 4219 yolo on github` and `arc 4219 yolo directly` resolve `direct` without asking.\n- `arc N yolo` with no posture token still asks. `ingest` still asks. Yolo still does not default-direct.\n- No substring / NLP classification.\n\n## Acceptance\n\n- [ ] `parseOperatorRunPosture(\"please run this directly\")` is `{ kind: \"resolved\", posture: \"direct\" }`\n- [ ] `parseOperatorRunPosture(\"arc 4219 yolo on github\")` is `{ kind: \"resolved\", posture: \"direct\" }`\n- [ ] `parseOperatorRunPosture(\"arc 1 yolo on the directive repo\")` stays `{ kind: \"ask\", reason: \"missing-token\" }`\n- [ ] Existing tokens (`direct`, `github only`, `github-only`, `forge-only`, `no worktrees`) still resolve `direct`\n- [ ] Contract token list updated to name the new spellings\n- [ ] CHANGELOG\n\n## Related\n\n- #4072 -- run-posture front door\n- #4219 -- field instance (Stop 1 asked because this gap fired)\n- Contract: `content/contracts/design-critique.md` Stop 1 Run posture\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-06T15:58:53Z)\n\nmodel: grok-4.6\nrole: triage\n\ndesign-critique: warranted, because parseOperatorRunPosture is a measured front-door mechanism whose failure mode is asking before Stop 1 on operator utterances that already mean arc-mode: direct.\n\nmechanism-shaped: true\narc-mode: direct\nrefutation-target: Adding closed tokens `\\bdirectly\\b` and `\\bon github\\b` makes parseOperatorRunPosture resolve those spellings to direct without NLP, while `directive` and bare `arc N yolo` still ask.\ncharter: refutation\nspend: N=1\nreason: default motion; the issue names a defensible presumption and a closed-token patch. Field instance is this session's extra confirm on #4219.\naudit-targets: none\ntarget shape: single-issue\ndispatch-sha: ed58d30f420d54085a937410a2b197ec2491927e\ninput-ceiling: this comment\n\n#4072 is the front door. #4219 is the field instance, not this target.\n\n### Comment by @MScottAdams (2026-09-06T16:00:22Z)\n\nmodel: grok-4.6\nrole: critic\n\nRound 1, fresh critic; charter: refutation; spend: N=1; arc-mode: direct. Input ceiling: 5560406350 inclusive. SHA verified `ed58d30f420d54085a937410a2b197ec2491927e` via `git show` of `packages/core/src/design-critique/run-posture.ts` and `run-posture.test.ts`. Issue body and comment 5560406350 fetched through REST; no later comments were read.\n\nAttestation: critic ran in-process under direct posting (same model family as triage). `spawn_subagent` was denied earlier this session on the same host. Disclosed, not a second family.\n\n**Verdict: the target survives for `directly`. It survives for `on github` only as a location synonym with documented extra matches.** Census: 0 `blocks-the-design`, 2 `sharpens-framing`, 1 `footnote`.\n\n**Reproduction.** At this SHA, `DIRECT_TOKEN_RE` is `\\b(?:direct|forge-only|github-only|github[ \\t]+only|no[ \\t]+worktrees)\\b`. A node measurement of that regex vs a proposed regex that also has `directly` and `on[ \\t]+github`:\n\n| utterance | current | proposed |\n| --- | --- | --- |\n| please run this directly | false | true |\n| arc 1 yolo on the directive repo | false | false |\n| arc 4219 yolo on github | false | true |\n| arc 1234 yolo | false | false |\n| arc 4066 yolo on github only | true | true |\n| file an issue on github | false | true |\n| the comments live on github | false | true |\n| directive | false | false |\n| arc direct on github yolo 4220 | true | true |\n\nThe field instance is the first three rows. `directive` stays out. Bare yolo stays out.\n\n### 1. sharpens-framing -- Split the test that bundles `directive` with `directly`\n\n**Evidence:** `run-posture.test.ts` test name is `does not match direct inside directive or directly`. It asserts both `arc 1 yolo on the directive repo` and `please run this directly` are `missing-token`. The `directive` case is infix protection (`\\bdirect\\b` must not fire inside `directive`). The `directly` case is a different word. `\\bdirect\\b` already fails on `directly` because `t`/`l` is not a word boundary. That is why the field instance asked.\n\n**Failure mode:** Shipping `\\bdirectly\\b` without splitting that test either keeps the AC red or silently deletes the `directive` guard.\n\n**Disposition consequence:** The lean can bind. Rewrite that test into two: `directive` still asks; `directly` resolves `direct`. Keep the issue AC for `please run this directly`.\n\n### 2. sharpens-framing -- `\\bon github\\b` is a location synonym, not a narrow `github only` alias\n\n**Evidence:** Current working synonym is `github[ \\t]+only` (`arc 4066 yolo on github only` already resolves). Proposed `\\bon github\\b` also matches `file an issue on github` and `the comments live on github` (measured above). This parser is the Stop 1 front door only (`parseOperatorRunPosture` call sites: run-posture tests and the contract content-contract). At that door, \"on github\" means the GitHub-thread posting path, which is `direct`. It is not NLP. It is a broader closed token than `github only`.\n\n**Failure mode:** If the AC is read as \"only arc N yolo on github\", implementers may add a negative fixture for `file an issue on github` and then the field phrasing `arc directly on github` still works via `directly`, but `arc 4219 yolo on github` without `only` becomes a fight. If they add `\\bon github\\b` with no extra fixtures, later mixed utterances at this door resolve `direct` by design and look like bugs.\n\n**Disposition consequence:** The lean can bind if it records `\\bon github\\b` as an accepted location synonym: those extra matches resolve `direct`. Do not add a negative fixture that refuses `on github` outside an `arc N` prefix (that is NLP). Keep `github only` / `github-only`. Do not treat this as substring classification.\n\n### 3. footnote -- Token list and regex must stay twins\n\nIssue already names `DIRECT_RUN_POSTURE_TOKENS` and `DIRECT_TOKEN_RE` and the contract copy. A regex-only edit leaves the published token array lying. Content-contract already locks the string `parseOperatorRunPosture` in Stop 1.\n\n**Injection / swarm lens.** N/A as a required paragraph: this target does not change authority, untrusted input, envelopes, identity, concurrency, worktrees, or shared state. It changes a closed-token list at a session-local front door.\n\n**Road-not-taken.** NLP / stemming `direct*` (forbidden, would hit `directive`). Requiring `arc` nearby (NLP). Shipping only `directly` and leaving `on github` as `github only` (rejects the field utterance `yolo on github` without `only`). Chosen: both tokens, with `on github` documented as a location synonym.\n\n**Steelman of refusing `on github`.** `github only` is already the closed location token; adding `on github` buys false matches. What flips finding 2 to a block: a second caller of `parseOperatorRunPosture` outside Stop 1. None exists at this SHA.\n\n### Comment by @MScottAdams (2026-09-06T16:00:55Z)\n\nmodel: grok-4.6\nrole: parent\n\n**Lean:**\n\n## In plain English\n\nThe parser should treat `directly` and `on github` as closed `direct` tokens. `directive` and bare `arc N yolo` still ask. Confirming this map would split the bundled test, document `on github` as a location synonym (extra matches resolve direct), and keep the token array in sync with the regex. It would not add NLP.\n\n**Forward verdict.** Sustain the defect. Bind both tokens with the two sharpenings.\n\n**Disposition.** Two sharpening headings are proposed `accept-into-contract`. One heading is a footnote.\n\n**Non-self-arbitration.** This parent wrote Stop 1 (5560406350), the critic (5560414578), and this lean. Same session, in-process critic. Disclosed.\n\n**What this arc does not do.** It does not implement #4220 or ingest.\n\narc-mode: direct\nRound 1 dispatched siblings: 1. Critic record: [5560414578](https://github.com/deftai/directive/issues/4220#issuecomment-5560414578).\nInput ceiling: 5560406350. Supersedes write-back 5560406350.\n\n## Take map\n\n| Critic | Heading | Class | Proposed take |\n| --- | --- | --- | --- |\n| 5560414578 | Split the test that bundles directive with directly | sharpens-framing | accept-into-contract |\n| 5560414578 | on github is a location synonym, not a narrow github only alias | sharpens-framing | accept-into-contract |\n| 5560414578 | Token list and regex must stay twins | footnote | census |\n\n## Accepted set\n\nThe two `accept-into-contract` rows. Footnote stays census.\n\n## Residual\n\nNone named. Map is total over the sharpening headings.\n\n## Proposed bound reading\n\n1. Add `\\bdirectly\\b` and `\\bon github\\b` (plus existing tokens) to `DIRECT_TOKEN_RE` and `DIRECT_RUN_POSTURE_TOKENS`.\n2. Split `does not match direct inside directive or directly` into: `directive` still asks; `please run this directly` resolves `direct`.\n3. Record `on github` as a location synonym. `file an issue on github` and `the comments live on github` resolve `direct` at this front door. Do not add an `arc N` proximity check.\n4. Bare `arc N yolo` still asks. `ingest` still asks. Yolo still does not default-direct. No NLP.\n5. Update the contract token list in Stop 1 Run posture. CHANGELOG.\n\nAudit markers: none.\n\nThis is the first operator surface after the round-1 critic post. It is a proposed map, not synthesis bind.\n\n### Comment by @MScottAdams (2026-09-06T16:14:56Z)\n\nmodel: grok-4.6\nrole: parent\n\nAccept successor lean 5560417775 (operator verb: accept).\n\nThe proposed takes are now bindable:\n\n- Critic 5560414578 heading 1 (split the test that bundles directive with directly): accept-into-contract\n- Critic 5560414578 heading 2 (on github is a location synonym): accept-into-contract\n- Critic 5560414578 heading 3 (token list and regex must stay twins): census\n\nFootnotes stay census only. Audit markers: none. Same-round siblings are posted. Empty disagreement set. Auto-stamp path runs next.\n\n### Comment by @MScottAdams (2026-09-06T16:15:05Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nSHA: ed58d30f420d54085a937410a2b197ec2491927e. Method for every row: primary-source `git show` of that pin, or a node regex run against the pin's `DIRECT_TOKEN_RE` plus the proposed extra alts. Not critic agreement.\n\n| Claim | Value | Method |\n| --- | --- | --- |\n| DIRECT_TOKEN_RE | `\\b(?:direct|forge-only|github-only|github[ \\t]+only|no[ \\t]+worktrees)\\b` | `git show ed58d30f:packages/core/src/design-critique/run-posture.ts` line 48 |\n| DIRECT_RUN_POSTURE_TOKENS | direct, forge-only, github-only, github only, no worktrees | same file lines 21-27 |\n| please run this directly | missing-token | `run-posture.test.ts` lines 51-54 |\n| arc 1 yolo on the directive repo | missing-token | `run-posture.test.ts` lines 47-50 |\n| arc 4066 yolo on github only | resolved direct | `run-posture.test.ts` lines 28-30 |\n| arc N yolo with no posture token | missing-token | `run-posture.test.ts` lines 57-60 |\n| ingest | ingest-is-not-posture | `run-posture.test.ts` lines 68-72 |\n| proposed `\\bdirectly\\b` on please run this directly | match | node regex vs pin regex |\n| proposed `\\bon github\\b` on arc 4219 yolo on github | match | node regex vs pin regex |\n| proposed `\\bon github\\b` on file an issue on github | match | node regex vs pin regex |\n| proposed tokens on directive | no match | node regex vs pin regex |\n| parseOperatorRunPosture live callers | tests and content-contract only | `git grep parseOperatorRunPosture` at the pin |\n\n### Comment by @MScottAdams (2026-09-06T16:15:33Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\n`parseOperatorRunPosture` should treat `directly` and `on github` as closed `direct` tokens. `directive` and bare `arc N yolo` still ask. The bundled test splits. `on github` is a location synonym, so extra matches at this front door resolve direct. Token array and regex stay twins. No NLP. This record is not ingest and not an implement grant.\n\nThis parent authored Stop 1 comment 5560406350. The accepted takes are critic 5560414578. Empty disagreement set.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean 5560417775\nverified-claims table 5560501453",
+      "Labels": "bug, agent-experience, process, design-critique:triage-ready"
+    },
+    "items": [
+      {
+        "title": "`parseOperatorRunPosture(\"please run this directly\")` is `{ kind: \"resolved\", posture: \"direct\" }`",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/run-posture.test.ts#resolves please run this directly to direct",
+          "recorded_at": "2026-09-06T16:58:51Z",
+          "recorded_by": "leaf-implementation/4220"
+        }
+      },
+      {
+        "title": "`parseOperatorRunPosture(\"arc 4219 yolo on github\")` is `{ kind: \"resolved\", posture: \"direct\" }`",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/run-posture.test.ts#resolves on github as a location synonym",
+          "recorded_at": "2026-09-06T16:58:51Z",
+          "recorded_by": "leaf-implementation/4220"
+        }
+      },
+      {
+        "title": "`parseOperatorRunPosture(\"arc 1 yolo on the directive repo\")` stays `{ kind: \"ask\", reason: \"missing-token\" }`",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/run-posture.test.ts#does not match direct inside directive",
+          "recorded_at": "2026-09-06T16:58:51Z",
+          "recorded_by": "leaf-implementation/4220"
+        }
+      },
+      {
+        "title": "Existing tokens (`direct`, `github only`, `github-only`, `forge-only`, `no worktrees`) still resolve `direct`",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/run-posture.test.ts#resolves forge-only and github-only closed synonyms",
+          "recorded_at": "2026-09-06T16:58:51Z",
+          "recorded_by": "leaf-implementation/4220"
+        }
+      },
+      {
+        "title": "Contract token list updated to name the new spellings",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "content/contracts/design-critique.md#Run posture",
+          "recorded_at": "2026-09-06T16:58:51Z",
+          "recorded_by": "leaf-implementation/4220"
+        }
+      },
+      {
+        "title": "CHANGELOG",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "observed_behavior",
+          "pointer": "CHANGELOG.md#[Unreleased] #4220",
+          "recorded_at": "2026-09-06T16:58:51Z",
+          "recorded_by": "leaf-implementation/4220"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4220",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4220: bug(design-critique): parseOperatorRunPosture rejects directly and on github as direct synonyms (#4072)"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "arc directly on github yolo 4219",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "please run this directly",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "directive",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "on github",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "github only",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "arc N yolo on github only",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "arc-mode: direct",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "### Run posture (#4072)",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L15"
+        },
+        {
+          "command": "parseOperatorRunPosture(\"please run this directly\")",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L27"
+        },
+        {
+          "command": "{ kind: \"resolved\", posture: \"direct\" }",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L27"
+        }
+      ],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5366015597,
+        "origin": "deftai/directive#4220",
+        "id": "github.issue.5366015597"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4221,
+        "prBase": null,
+        "mergeCommit": "aa3a9e7c6754b5256f3046a452cfae8ec821f195",
+        "deliveryBranch": "master",
+        "deliveryCommit": "aa3a9e7c6754b5256f3046a452cfae8ec821f195",
+        "verifiedAt": "2026-09-06T17:48:41Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDc3YzctZWIxZi03YjcwLTliY2EtOWU2N2Y2YzI0M2Q5"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-06T17:48:41Z"
+      },
+      "completedAt": "2026-09-06T17:48:41Z",
+      "completedSessionId": "host:grok:v1:MDFhMDc3YzctZWIxZi03YjcwLTliY2EtOWU2N2Y2YzI0M2Q5",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "`parseOperatorRunPosture(\"please run this directly\")` is `{ kind: \"resolved\", posture: \"direct\" }`",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "`parseOperatorRunPosture(\"arc 4219 yolo on github\")` is `{ kind: \"resolved\", posture: \"direct\" }`",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "`parseOperatorRunPosture(\"arc 1 yolo on the directive repo\")` stays `{ kind: \"ask\", reason: \"missing-token\" }`",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Existing tokens (`direct`, `github only`, `github-only`, `forge-only`, `no worktrees`) still resolve `direct`",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Contract token list updated to name the new spellings",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "CHANGELOG",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5366015597",
+    "updated": "2026-09-06T17:48:41Z"
+  }
+}
