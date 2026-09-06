@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4137",
-    "updated": "2026-09-06T15:36:51Z"
+    "updated": "2026-09-06T19:10:17Z"
   },
   "plan": {
     "title": "bug(intake): issue:ingest comment fetch is unpaginated so threads over 30 comments miss synthesis",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(intake): issue:ingest comment fetch is unpaginated so threads over 30 comments miss synthesis",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4137",
@@ -146,9 +146,34 @@
         "github_issue_id": 5329075719,
         "origin": "deftai/directive#4137",
         "id": "github.issue.5329075719"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4223,
+        "prBase": null,
+        "mergeCommit": "c991046c950d98c253a90e129a860320485488a9",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c991046c950d98c253a90e129a860320485488a9",
+        "verifiedAt": "2026-09-06T19:10:17Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDc3OWEtMjc3YS03MDMyLWE5YzktNTc4MjliZmRhMzE3"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-06T19:10:17Z"
+      },
+      "completedAt": "2026-09-06T19:10:17Z",
+      "completedSessionId": "host:grok:v1:MDFhMDc3OWEtMjc3YS03MDMyLWE5YzktNTc4MjliZmRhMzE3",
+      "capacityBucket": "technical-debt"
     },
     "id": "github.issue.5329075719",
-    "updated": "2026-09-06T15:36:51Z"
+    "updated": "2026-09-06T19:10:17Z"
   }
 }
