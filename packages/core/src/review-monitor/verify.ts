@@ -59,8 +59,9 @@ function spawnRedirect(probe: MonitoringTierProbe): string {
     primitive === "cursor-task" ||
     primitive === "grok-bot-executor"
   ) {
+    const issueRef = primitive === "grok-bot-executor" ? "#4201" : "#2797 / #3134";
     return (
-      `Ownership path for ${primitive} (#2797 / #3134):\n` +
+      `Ownership path for ${primitive} (${issueRef}):\n` +
       "  1. Implementation leaf (drive-to: merge-ready): keep ownership in THIS process " +
       "via blocking dual-invoke `pr:watch` (`deft pr:watch <N>` then `task deft:pr:watch -- <N>`). " +
       `Do NOT nested-spawn another ${primitive} review-monitor.\n` +

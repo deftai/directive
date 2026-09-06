@@ -56,7 +56,7 @@ export const REVIEW_MONITOR_HELP =
   "\n" +
   "Claim a lease after spawning Approach 1:\n" +
   "  task review-monitor:register -- --pr <N> --monitor-agent-id <id> \\\n" +
-  "    --platform-primitive cursor-task|claude-agent|spawn_subagent|start_agent|sessions_spawn \\\n" +
+  "    --platform-primitive cursor-task|claude-agent|spawn_subagent|start_agent|sessions_spawn|grok-bot-executor \\\n" +
   "    [--head-sha SHA] [--repo OWNER/REPO] [--force]\n" +
   "\n" +
   "Release when done:\n" +
