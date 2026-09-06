@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4200",
-    "updated": "2026-09-06T21:10:00Z"
+    "updated": "2026-09-06T06:20:36Z"
   },
   "plan": {
     "title": "feat(session,scm): list-visible work-claim tag plus task verb, without a lifecycle PR",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(session,scm): list-visible work-claim tag plus task verb, without a lifecycle PR",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4200",
@@ -17,43 +17,91 @@
     "items": [
       {
         "title": "An agent can claim and release with GitHub writes only, through the verb (no tree mutation, no brief promote).",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scm/work-claim.test.ts#runWorkClaim",
+          "recorded_at": "2026-09-06T06:19:38Z",
+          "recorded_by": "host:grok:v1:MDFhMDc0NTItOTdlMy03YWEzLWFmNDktMGYxNzAwNTI2MGQy"
+        }
       },
       {
         "title": "A second agent opening the same issue can see the tag on the label list without reading the comment thread.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scm/work-claim.test.ts#show",
+          "recorded_at": "2026-09-06T06:19:38Z",
+          "recorded_by": "host:grok:v1:MDFhMDc0NTItOTdlMy03YWEzLWFmNDktMGYxNzAwNTI2MGQy"
+        }
       },
       {
         "title": "Occupancy, #3607 pass marks, and PR review-owner leases remain separate kinds.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/scm/github.md#work-claim",
+          "recorded_at": "2026-09-06T06:19:38Z",
+          "recorded_by": "host:grok:v1:MDFhMDc0NTItOTdlMy03YWEzLWFmNDktMGYxNzAwNTI2MGQy"
+        }
       },
       {
         "title": "Docs state collision vs permission, and that v1 does not detect two-issue path overlap.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/scm/github.md#work-claim + content/commands.md#work-claim",
+          "recorded_at": "2026-09-06T06:19:38Z",
+          "recorded_by": "host:grok:v1:MDFhMDc0NTItOTdlMy03YWEzLWFmNDktMGYxNzAwNTI2MGQy"
+        }
       },
       {
         "title": "Content-contract / label catalog names the tag; agents do not invent it per issue.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scm/work-claim.test.ts#catalog pin",
+          "recorded_at": "2026-09-06T06:19:38Z",
+          "recorded_by": "host:grok:v1:MDFhMDc0NTItOTdlMy03YWEzLWFmNDktMGYxNzAwNTI2MGQy"
+        }
       },
       {
         "title": "MUST scan the tag on session-start or pre-edit (xbrief:preflight). MAY is not an on-ramp.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/vbrief-preflight.test.ts + packages/core/src/scm/work-claim.test.ts#session:start scan",
+          "recorded_at": "2026-09-06T06:19:38Z",
+          "recorded_by": "host:grok:v1:MDFhMDc0NTItOTdlMy03YWEzLWFmNDktMGYxNzAwNTI2MGQy"
+        }
       },
       {
         "title": "Claim MUST refuse under read-only or no occupancy. Forge-only sessions must not claim.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scm/work-claim.test.ts#claim refuses",
+          "recorded_at": "2026-09-06T06:19:38Z",
+          "recorded_by": "host:grok:v1:MDFhMDc0NTItOTdlMy03YWEzLWFmNDktMGYxNzAwNTI2MGQy"
+        }
       },
       {
         "title": "Warn is success for v1 (not an exclusive GitHub lock). Last-write-wins: the board can lie about who.",
-        "status": "proposed",
-        "effort": "S"
+        "status": "completed",
+        "effort": "S",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scm/work-claim.test.ts#show warns when claimed and still exits 0",
+          "recorded_at": "2026-09-06T06:19:38Z",
+          "recorded_by": "host:grok:v1:MDFhMDc0NTItOTdlMy03YWEzLWFmNDktMGYxNzAwNTI2MGQy"
+        }
       }
     ],
     "tags": [
@@ -153,9 +201,34 @@
         "github_issue_id": 5352468839,
         "origin": "deftai/directive#4200",
         "id": "github.issue.5352468839"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4207,
+        "prBase": null,
+        "mergeCommit": "c1e038f8442b9c7a8c4efd0a27a8220602607a38",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c1e038f8442b9c7a8c4efd0a27a8220602607a38",
+        "verifiedAt": "2026-09-06T06:20:36Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDc0NTItOTdlMy03YWEzLWFmNDktMGYxNzAwNTI2MGQy"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-06T06:20:36Z"
+      },
+      "completedAt": "2026-09-06T06:20:36Z",
+      "completedSessionId": "host:grok:v1:MDFhMDc0NTItOTdlMy03YWEzLWFmNDktMGYxNzAwNTI2MGQy",
+      "capacityBucket": "new-capability"
     },
     "id": "github.issue.5352468839",
-    "updated": "2026-09-06T21:10:00Z"
+    "updated": "2026-09-06T06:20:36Z"
   }
 }
