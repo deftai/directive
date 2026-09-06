@@ -1818,52 +1818,56 @@ describe("#4119 plan.id mint, admission, and repair", () => {
     }
   });
 
-  it("preserves one minted id from ingest through promote activate complete", () => {
-    const root = mkdtempSync(join(tmpdir(), "4119-e2e-"));
-    const xbriefDir = join(root, "xbrief");
-    for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
-      mkdirSync(join(xbriefDir, folder), { recursive: true });
-    }
-    try {
-      const [created, path] = ingestOne(
-        {
-          id: 4242,
-          number: 77,
-          title: "Lifecycle",
-          url: "https://github.com/o/r/issues/77",
-          body: "plain body",
-          labels: [],
-        },
-        {
-          vbriefDir: xbriefDir,
-          status: "proposed",
-          repoUrl: "https://github.com/o/r",
-          cwd: root,
-          scmCall: () => completed("[]", "", 0),
-        },
-      );
-      expect(created).toBe("created");
-      const minted = planOf(path as string).id;
-      expect(minted).toBe("github.issue.4242");
-      const promoted = runTransition("promote", path as string);
-      expect(promoted.ok).toBe(true);
-      const pending = join(xbriefDir, "pending", (path as string).split(/[/\\]/).pop() as string);
-      expect(planOf(pending).id).toBe(minted);
-      const activated = runTransition("activate", pending);
-      expect(activated.ok).toBe(true);
-      const active = join(xbriefDir, "active", (path as string).split(/[/\\]/).pop() as string);
-      expect(planOf(active).id).toBe(minted);
-      const completed = runTransition("complete", active, new Date(), {
-        nonDeliveryDisposition: "accepted_not_delivered",
-        skipAcceptanceEvidenceGate: true,
-      });
-      expect(completed.ok, completed.message).toBe(true);
-      const done = join(xbriefDir, "completed", (path as string).split(/[/\\]/).pop() as string);
-      expect(planOf(done).id).toBe(minted);
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
-    // Linux CI needs more than the 5s default (#4194). A bare 15s here
-    // LOWERS the win32 suite cap (#3616) and flakes under AV spawn cost.
-  }, process.platform === "win32" ? 240_000 : 15_000);
+  it(
+    "preserves one minted id from ingest through promote activate complete",
+    () => {
+      const root = mkdtempSync(join(tmpdir(), "4119-e2e-"));
+      const xbriefDir = join(root, "xbrief");
+      for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
+        mkdirSync(join(xbriefDir, folder), { recursive: true });
+      }
+      try {
+        const [created, path] = ingestOne(
+          {
+            id: 4242,
+            number: 77,
+            title: "Lifecycle",
+            url: "https://github.com/o/r/issues/77",
+            body: "plain body",
+            labels: [],
+          },
+          {
+            vbriefDir: xbriefDir,
+            status: "proposed",
+            repoUrl: "https://github.com/o/r",
+            cwd: root,
+            scmCall: () => completed("[]", "", 0),
+          },
+        );
+        expect(created).toBe("created");
+        const minted = planOf(path as string).id;
+        expect(minted).toBe("github.issue.4242");
+        const promoted = runTransition("promote", path as string);
+        expect(promoted.ok).toBe(true);
+        const pending = join(xbriefDir, "pending", (path as string).split(/[/\\]/).pop() as string);
+        expect(planOf(pending).id).toBe(minted);
+        const activated = runTransition("activate", pending);
+        expect(activated.ok).toBe(true);
+        const active = join(xbriefDir, "active", (path as string).split(/[/\\]/).pop() as string);
+        expect(planOf(active).id).toBe(minted);
+        const completed = runTransition("complete", active, new Date(), {
+          nonDeliveryDisposition: "accepted_not_delivered",
+          skipAcceptanceEvidenceGate: true,
+        });
+        expect(completed.ok, completed.message).toBe(true);
+        const done = join(xbriefDir, "completed", (path as string).split(/[/\\]/).pop() as string);
+        expect(planOf(done).id).toBe(minted);
+      } finally {
+        rmSync(root, { recursive: true, force: true });
+      }
+      // Linux CI needs more than the 5s default (#4194). A bare 15s here
+      // LOWERS the win32 suite cap (#3616) and flakes under AV spawn cost.
+    },
+    process.platform === "win32" ? 240_000 : 15_000,
+  );
 });
