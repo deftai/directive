@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { DESIGN_CRITIQUE_CATALOG_CHIPS } from "../design-critique/exclusive-chip.js";
 import { ScmLabelError } from "../vbrief-reconcile/labels.js";
 import type { LabelClient } from "../vbrief-reconcile/types.js";
 import {
+  CHIP_ALIASES,
   DESIGN_CRITIQUE_CHIP_USAGE,
   parseDesignCritiqueChipArgs,
   resolveDesignCritiqueChipArg,
@@ -36,13 +38,25 @@ class FakeLabelClient implements LabelClient {
 }
 
 describe("resolveDesignCritiqueChipArg", () => {
+  it("CHIP_ALIASES covers every catalog chip short and full name", () => {
+    for (const chip of DESIGN_CRITIQUE_CATALOG_CHIPS) {
+      expect(CHIP_ALIASES[chip]).toBe(chip);
+      const short = chip.slice("design-critique:".length);
+      expect(CHIP_ALIASES[short]).toBe(chip);
+    }
+  });
+
   it("accepts short and full catalog names", () => {
     expect(resolveDesignCritiqueChipArg("triage-ready")).toBe("design-critique:triage-ready");
     expect(resolveDesignCritiqueChipArg("mechanism-shaped")).toBe(
       "design-critique:mechanism-shaped",
     );
+    expect(resolveDesignCritiqueChipArg("recut-needed")).toBe("design-critique:recut-needed");
     expect(resolveDesignCritiqueChipArg("design-critique:triage-ready")).toBe(
       "design-critique:triage-ready",
+    );
+    expect(resolveDesignCritiqueChipArg("design-critique:recut-needed")).toBe(
+      "design-critique:recut-needed",
     );
   });
 
@@ -54,6 +68,7 @@ describe("resolveDesignCritiqueChipArg", () => {
       /unknown design-critique chip/,
     );
     expect(() => resolveDesignCritiqueChipArg("bug")).toThrow(/unknown design-critique chip/);
+    expect(() => resolveDesignCritiqueChipArg("recut")).toThrow(/unknown design-critique chip/);
   });
 });
 
@@ -180,6 +195,21 @@ describe("runDesignCritiqueChip", () => {
     expect(client.labels.sort()).toEqual(
       ["area:cli", "bug", "design-critique:triage-ready"].sort(),
     );
+  });
+
+  it("applies recut-needed in one remaining-set write (#4205)", () => {
+    const client = new FakeLabelClient(["bug", "design-critique:mechanism-shaped", "area:cli"]);
+    const result = runDesignCritiqueChip(
+      ["--issue", "4205", "--chip", "recut-needed", "--repo", "deftai/directive", "--json"],
+      { client },
+    );
+    expect(result.exitCode).toBe(0);
+    expect(client.applyCalls).toEqual([
+      { add: ["design-critique:recut-needed"], remove: ["design-critique:mechanism-shaped"] },
+    ]);
+    const payload = JSON.parse(result.stdout) as { remaining: string[] };
+    expect(payload.remaining).toEqual(["bug", "area:cli", "design-critique:recut-needed"]);
+    expect(payload.remaining).not.toContain("design-critique:triage-ready");
   });
 
   it("recuts to mechanism-shaped and keeps other facets", () => {

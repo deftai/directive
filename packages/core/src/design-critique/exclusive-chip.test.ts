@@ -67,15 +67,33 @@ describe("design-critique exclusive remaining-set chip (#3642)", () => {
     expect(remaining.filter((n) => n.startsWith("design-critique:")).length).toBe(1);
   });
 
-  it("rejects names outside the two-chip catalog", () => {
+  it("rejects names outside the three-chip catalog", () => {
     expect(() => remainingSetAfterDesignCritiqueChip(["bug"], "design-critique:halted")).toThrow(
       /not a design-critique catalog chip/,
     );
     expect(isDesignCritiqueCatalogChip("design-critique:halted")).toBe(false);
+    expect(isDesignCritiqueCatalogChip("design-critique:recut-needed")).toBe(true);
     expect(DESIGN_CRITIQUE_CATALOG_CHIPS).toEqual([
       "design-critique:mechanism-shaped",
       "design-critique:triage-ready",
+      "design-critique:recut-needed",
     ]);
+  });
+
+  it("replaces triage-ready with recut-needed and keeps other facets (#4205)", () => {
+    const remaining = remainingSetAfterDesignCritiqueChip(
+      ["bug", "design-critique:triage-ready", "area:cli"],
+      "design-critique:recut-needed",
+    );
+    expect(remaining).toEqual(["bug", "area:cli", "design-critique:recut-needed"]);
+  });
+
+  it("recut to mechanism-shaped drops recut-needed", () => {
+    const remaining = remainingSetAfterDesignCritiqueChip(
+      ["enhancement", "design-critique:recut-needed"],
+      "design-critique:mechanism-shaped",
+    );
+    expect(remaining).toEqual(["enhancement", "design-critique:mechanism-shaped"]);
   });
 
   it("apply delta is one add+remove, not two-step DELETE-then-POST", () => {

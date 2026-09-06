@@ -4,6 +4,7 @@ import type { LabelClient } from "../vbrief-reconcile/types.js";
 export const DESIGN_CRITIQUE_CATALOG_CHIPS = [
   "design-critique:mechanism-shaped",
   "design-critique:triage-ready",
+  "design-critique:recut-needed",
 ] as const;
 
 export type DesignCritiqueCatalogChip = (typeof DESIGN_CRITIQUE_CATALOG_CHIPS)[number];
