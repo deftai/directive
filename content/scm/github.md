@@ -399,6 +399,8 @@ Agent `edit_files` operations can fail when structured file sections contain Uni
 
 **Framework source (`deftai/directive` only):** use the maintainer catalog at repo-root `.github/ISSUE_LABELS.md` (#2609) — full facets, platform, machine/mirror set (`triaged`, `triage:*`). That path is **repository-only** (not deposited under `.deft/core/`); browse the live file on GitHub rather than a relative path from this shipped guide. Do not invent labels outside that catalog.
 
+**Work claim (`status:claimed`, #4200).** Same-issue busy flag, not permission and not two-issue path overlap. Occupancy stays local. `#3607` `kind: pass` and PR review-owner leases stay separate. Verb: `task scm:issue:work-claim -- claim|show|release --issue N [--repo OWNER/NAME]` (`deft scm issue work-claim`). Session-start and `xbrief:preflight` MUST scan; warn is success (not a GitHub lock). Claim refuses read-only / no occupancy. Last-write-wins: the board can lie about who. Clear with `release` or `scope:complete`. ⊗ Invent the label per issue. ⊗ Hang the signal on `scope:promote`.
+
 **When no project taxonomy file exists** (fallback shorthand; full kit is the consumer doc above):
 
 **Type**: `bug`, `enhancement`, `documentation`, `duplicate`, `wontfix` (prefer existing repo names over inventing `feat` / bare `docs` twins); optional `urgent`

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
 import { emitJson, evaluate, PREFLIGHT_USAGE_HINT } from "@deftai/directive-core/preflight";
+import { scanWorkClaimForBriefPath } from "@deftai/directive-core/scm";
 
 interface ParsedArgs {
   vbriefPath: string | null;
@@ -96,7 +97,10 @@ export function parseArgs(argv: string[]): ParsedArgs {
 }
 
 /** Run the gate and return the process exit code (parse errors -> 2). */
-export function run(argv: string[]): number {
+export function run(
+  argv: string[],
+  scan: (briefPath: string) => readonly string[] = scanWorkClaimForBriefPath,
+): number {
   const args = parseArgs(argv);
   if (args.help) {
     process.stdout.write(HELP_TEXT);
@@ -108,13 +112,30 @@ export function run(argv: string[]): number {
   }
   const vbriefPath = args.vbriefPath as string;
   const result = evaluate(vbriefPath);
+  let scanLines: string[] = [];
+  try {
+    scanLines = [...scan(vbriefPath)];
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    scanLines = [
+      `[deft work-claim] warning: scan failed (${message}). Warn is success; this is not a GitHub lock.`,
+    ];
+  }
 
   if (args.emitJson) {
-    process.stdout.write(`${emitJson(vbriefPath, result.exitCode, result.message)}\n`);
+    const message =
+      scanLines.length > 0 ? `${result.message}\n${scanLines.join("\n")}` : result.message;
+    process.stdout.write(`${emitJson(vbriefPath, result.exitCode, message)}\n`);
   } else if (result.exitCode === 0) {
     process.stdout.write(`${result.message}\n`);
+    for (const line of scanLines) {
+      process.stdout.write(`${line}\n`);
+    }
   } else {
     process.stderr.write(`${result.message}\n`);
+    for (const line of scanLines) {
+      process.stderr.write(`${line}\n`);
+    }
   }
   return result.exitCode;
 }

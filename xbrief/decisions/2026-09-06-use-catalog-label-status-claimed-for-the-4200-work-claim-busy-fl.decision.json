@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "use-catalog-label-status-claimed-for-the-4200-work-claim-busy-fl",
+  "decision": "Use catalog label status:claimed for the #4200 work-claim busy flag",
+  "governingRule": {
+    "description": "Land the tag in the catalog first; do not invent in the field",
+    "path": null,
+    "rfc2119": null
+  },
+  "alternativesConsidered": [
+    {
+      "option": "new catalog name such as work:claimed"
+    }
+  ],
+  "whyWinner": "status:* is already the list-visible lifecycle facet; a new prefix would invent a facet",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "xbrief/active/2026-09-06-4200-featsessionscm-list-visible-work-claim-tag-plus-task-verb-wi.xbrief.json"
+  ],
+  "timestamp": "2026-09-06T01:58:57Z",
+  "revisitTrigger": "If status:claimed pollutes child/tracker filters, split to a coord: facet",
+  "tags": [
+    "process"
+  ],
+  "relatedIssues": [
+    4200
+  ]
+}

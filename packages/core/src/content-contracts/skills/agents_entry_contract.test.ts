@@ -152,6 +152,14 @@ const HOOK_RUNTIME_UNAVAILABLE_MARKERS = [
   "silently re-arms the lockout",
 ] as const;
 
+/** Always-on same-issue busy flag (#4200) — session-start MUST scan. */
+const WORK_CLAIM_MARKERS = [
+  "Work-claim (#4200)",
+  "status:claimed",
+  "scm issue work-claim",
+  "warn is success",
+] as const;
+
 /** Always-on through-merge dispatch doctrine (#3032) — parent must not implement. */
 /** Pointer bodies for Rule Authority / #3265 — headings alone are not enough (#3313). */
 const RULE_AUTHORITY_THIN_FAIL_CLOSED_POINTER_MARKERS = [
@@ -868,6 +876,11 @@ describe("test_agents_entry_contract", () => {
   it("hook_runtime_unavailable_markers_present_in_both_files", () => {
     expect(missingMarkers(template, HOOK_RUNTIME_UNAVAILABLE_MARKERS)).toEqual([]);
     expect(missingMarkers(agents, HOOK_RUNTIME_UNAVAILABLE_MARKERS)).toEqual([]);
+  });
+
+  it("work_claim_markers_present_in_both_files", () => {
+    expect(missingMarkers(template, WORK_CLAIM_MARKERS)).toEqual([]);
+    expect(missingMarkers(agents, WORK_CLAIM_MARKERS)).toEqual([]);
   });
 
   it("portable_shell_orientation_markers_present_in_both_files", () => {

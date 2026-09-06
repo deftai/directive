@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { dirname } from "node:path";
+import { releaseWorkClaimForBrief } from "../scm/work-claim.js";
 import { maybeRunStalenessTickler } from "../staleness-tickler/run.js";
 import { interceptHelp } from "../triage/help/index.js";
 import { reconcileUmbrellas, renderUmbrellasReport } from "../vbrief-reconcile/umbrellas.js";
@@ -429,6 +430,20 @@ export function lifecycleMain(argv: string[]): number {
         }
       } catch {
         /* best-effort staleness tickler; lifecycle success remains authoritative */
+      }
+      try {
+        const completedPath = completedPathForScopeMove(filePath);
+        const rootForClaim =
+          resolveProjectRoot(projectRoot) ?? dirname(dirname(dirname(completedPath)));
+        const released = releaseWorkClaimForBrief(completedPath, {
+          cwd: rootForClaim,
+          occupancyLive: () => true,
+        });
+        if (released.message.length > 0) {
+          process.stdout.write(`${released.message}\n`);
+        }
+      } catch {
+        /* best-effort work-claim release; lifecycle success remains authoritative */
       }
     }
     return 0;

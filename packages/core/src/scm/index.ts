@@ -12,3 +12,4 @@ export * from "./py-format.js";
 export * from "./readiness.js";
 export * from "./rest-dispatch.js";
 export * from "./spawn-status.js";
+export * from "./work-claim.js";

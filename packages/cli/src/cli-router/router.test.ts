@@ -141,6 +141,25 @@ describe("routeArgv", () => {
     expect(routeArgv(["scm", "issue", "list"]).argv).toEqual(["scm", "issue", "list"]);
   });
 
+  it("maps scm:issue:work-claim colon and space forms (#4200)", () => {
+    expect(routeArgv(["scm", "issue", "work-claim", "show", "--issue", "4200"]).argv).toEqual([
+      "scm",
+      "issue",
+      "work-claim",
+      "show",
+      "--issue",
+      "4200",
+    ]);
+    expect(routeArgv(["scm:issue:work-claim", "claim", "--issue", "4200"]).argv).toEqual([
+      "scm",
+      "issue",
+      "work-claim",
+      "claim",
+      "--issue",
+      "4200",
+    ]);
+  });
+
   it("maps scm:issue:design-critique-chip colon and space forms (#3642)", () => {
     expect(
       routeArgv([

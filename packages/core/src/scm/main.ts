@@ -8,6 +8,7 @@ import { ScmStubError } from "./errors.js";
 import type { GhRestSeams } from "./gh-rest.js";
 import { requireScmReady } from "./readiness.js";
 import { runRestList, runRestView } from "./rest-dispatch.js";
+import { runWorkClaim, WORK_CLAIM_VERB } from "./work-claim.js";
 
 export interface MainOptions {
   readonly whichFn?: Parameters<typeof import("./binary.js").resolveBinary>[0];
@@ -18,8 +19,10 @@ export interface MainOptions {
    * Production CLI always probes.
    */
   readonly skipReadiness?: boolean;
-  /** LabelClient seam for `issue design-critique-chip` (#3642). */
+  /** LabelClient seam for `issue design-critique-chip` (#3642) and `issue work-claim` (#4200). */
   readonly labelClient?: LabelClient;
+  /** Occupancy probe seam for `issue work-claim` (#4200). */
+  readonly occupancyLive?: (projectRoot: string) => boolean;
 }
 
 /**
@@ -47,7 +50,7 @@ export function main(argv: readonly string[], options: MainOptions = {}): number
   if (argv.length < 2) {
     process.stderr.write(
       "usage: scm.py <namespace> <verb> [pass-through args...]\n" +
-        "       (v1 stub: namespace=issue, verb=list|view|close|edit|design-critique-chip)\n" +
+        "       (v1 stub: namespace=issue, verb=list|view|close|edit|design-critique-chip|work-claim)\n" +
         "       --rest opt-in is supported on issue view/list (#976)\n",
     );
     return 2;
@@ -61,6 +64,23 @@ export function main(argv: readonly string[], options: MainOptions = {}): number
     const blocked = guardScmReady(options);
     if (blocked !== null) return blocked;
     const result = runDesignCritiqueChip(extra, { client: options.labelClient });
+    if (result.stdout.length > 0) {
+      process.stdout.write(result.stdout);
+    }
+    if (result.stderr.length > 0) {
+      process.stderr.write(result.stderr);
+    }
+    return result.exitCode;
+  }
+
+  if (namespace === "issue" && verb === WORK_CLAIM_VERB) {
+    const blocked = guardScmReady(options);
+    if (blocked !== null) return blocked;
+    const result = runWorkClaim(extra, {
+      client: options.labelClient,
+      occupancyLive: options.occupancyLive,
+      cwd: process.cwd(),
+    });
     if (result.stdout.length > 0) {
       process.stdout.write(result.stdout);
     }

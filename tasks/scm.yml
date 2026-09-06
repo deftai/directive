@@ -14,6 +14,7 @@ version: '3'
 #   - scm:issue:close   (thin wrapper over `ghx|gh issue close`)
 #   - scm:issue:edit    (thin wrapper over `ghx|gh issue edit`)
 #   - scm:issue:design-critique-chip (#3642 closed catalog remaining-set)
+#   - scm:issue:work-claim (#4200 same-issue busy flag)
 #   - scm:body:*        (#1555 safe Markdown body posting via github-body TS CLI)
 #
 # Each command is a thin pass-through to `ghx <verb>` (when ghx is on PATH)
@@ -100,6 +101,16 @@ tasks:
       - task: :engine:invoke
         vars:
           ENGINE_CMD: 'scm issue design-critique-chip {{.CLI_ARGS}}'
+
+  issue:work-claim:
+    desc: "[#4200] Same-issue busy flag -- task scm:issue:work-claim -- claim|show|release --issue N [--repo OWNER/NAME] [--json]"
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'scm issue work-claim {{.CLI_ARGS}}'
 
   body:issue:create:
     desc: "[#1555] Safely create an issue body from --body-file without shell Markdown interpolation"
