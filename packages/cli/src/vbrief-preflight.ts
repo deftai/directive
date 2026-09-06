@@ -97,7 +97,10 @@ export function parseArgs(argv: string[]): ParsedArgs {
 }
 
 /** Run the gate and return the process exit code (parse errors -> 2). */
-export function run(argv: string[]): number {
+export function run(
+  argv: string[],
+  scan: (briefPath: string) => readonly string[] = scanWorkClaimForBriefPath,
+): number {
   const args = parseArgs(argv);
   if (args.help) {
     process.stdout.write(HELP_TEXT);
@@ -109,12 +112,15 @@ export function run(argv: string[]): number {
   }
   const vbriefPath = args.vbriefPath as string;
   const result = evaluate(vbriefPath);
+  const scanLines = result.exitCode === 0 ? [...scan(vbriefPath)] : [];
 
   if (args.emitJson) {
-    process.stdout.write(`${emitJson(vbriefPath, result.exitCode, result.message)}\n`);
+    const message =
+      scanLines.length > 0 ? `${result.message}\n${scanLines.join("\n")}` : result.message;
+    process.stdout.write(`${emitJson(vbriefPath, result.exitCode, message)}\n`);
   } else if (result.exitCode === 0) {
     process.stdout.write(`${result.message}\n`);
-    for (const line of scanWorkClaimForBriefPath(vbriefPath)) {
+    for (const line of scanLines) {
       process.stdout.write(`${line}\n`);
     }
   } else {

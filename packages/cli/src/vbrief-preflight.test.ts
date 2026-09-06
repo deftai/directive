@@ -152,6 +152,27 @@ describe("run", () => {
       err.mockRestore();
     }
   });
+
+  it("includes the work-claim scan in --json output on success (#4200)", () => {
+    const path = activeRunning();
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    try {
+      expect(
+        run(["--vbrief-path", path, "--json"], () => [
+          "[deft work-claim] warning: deftai/directive#4200 carries status:claimed (busy). Warn is success; this is not a GitHub lock.",
+        ]),
+      ).toBe(0);
+      const written = String(out.mock.calls[0]?.[0] ?? "");
+      const payload = JSON.parse(written.trim()) as { ready: boolean; message: string };
+      expect(payload.ready).toBe(true);
+      expect(payload.message).toContain("status:claimed");
+      expect(payload.message).toContain("Warn is success");
+    } finally {
+      out.mockRestore();
+      err.mockRestore();
+    }
+  });
 });
 
 describe("vbrief-preflight-parity helpers", () => {

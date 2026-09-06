@@ -9,6 +9,7 @@
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { resolveProjectRoot } from "../scope/project-context.js";
 import { liveOccupant } from "../session/occupancy.js";
 import { extractIssueRef } from "../triage/reconcile/parse-uri.js";
 import { ScmLabelClient } from "../vbrief-reconcile/labels.js";
@@ -26,8 +27,9 @@ export type WorkClaimAction = (typeof WORK_CLAIM_ACTIONS)[number];
 export const WORK_CLAIM_USAGE =
   "usage: scm issue work-claim <claim|show|release> --issue N [--repo OWNER/NAME] [--project-root PATH] [--json]\n" +
   "       Same-issue busy flag. Catalog label status:claimed. Not a lock.\n" +
-  "       claim refuses read-only / no occupancy. Warn is success for show.\n" +
-  "       Last-write-wins: the board can lie about who. v1 does not detect two-issue path overlap.\n";
+  "       claim refuses read-only / no occupancy. release clears abandoned tags without occupancy.\n" +
+  "       Warn is success for show. Last-write-wins: the board can lie about who.\n" +
+  "       v1 does not detect two-issue path overlap.\n";
 
 const LIFECYCLE_ROOTS = ["xbrief", "vbrief"] as const;
 const LIFECYCLE_FOLDERS = ["proposed", "pending", "active"] as const;
@@ -175,17 +177,28 @@ function resolveRepo(args: WorkClaimArgs, seams: WorkClaimSeams): string {
   return repo;
 }
 
-function claimAllowed(
+function occupancyRoot(args: WorkClaimArgs, seams: WorkClaimSeams): string {
+  if (args.projectRoot !== null && args.projectRoot.length > 0) {
+    return args.projectRoot;
+  }
+  const start = seams.cwd ?? process.cwd();
+  return resolveProjectRoot(null, start) ?? start;
+}
+
+function mutationAllowed(
   args: WorkClaimArgs,
   seams: WorkClaimSeams,
+  kind: "claim" | "release",
 ): { ok: true; projectRoot: string } | { ok: false; message: string } {
   if (args.readOnly) {
     return { ok: false, message: REFUSE_READ_ONLY };
   }
-  const projectRoot = args.projectRoot ?? seams.cwd ?? process.cwd();
-  const occupancyLive = seams.occupancyLive ?? defaultOccupancyLive;
-  if (!occupancyLive(projectRoot)) {
-    return { ok: false, message: REFUSE_NO_OCCUPANCY };
+  const projectRoot = occupancyRoot(args, seams);
+  if (kind === "claim") {
+    const occupancyLive = seams.occupancyLive ?? defaultOccupancyLive;
+    if (!occupancyLive(projectRoot)) {
+      return { ok: false, message: REFUSE_NO_OCCUPANCY };
+    }
   }
   return { ok: true, projectRoot };
 }
@@ -236,7 +249,7 @@ function runClaim(
   client: LabelClient,
   seams: WorkClaimSeams,
 ): WorkClaimResult {
-  const gate = claimAllowed(args, seams);
+  const gate = mutationAllowed(args, seams, "claim");
   if (!gate.ok) {
     const payload = resultPayload(args, repo, {
       claimed: false,
@@ -269,7 +282,7 @@ function runRelease(
   client: LabelClient,
   seams: WorkClaimSeams,
 ): WorkClaimResult {
-  const gate = claimAllowed(args, seams);
+  const gate = mutationAllowed(args, seams, "release");
   if (!gate.ok) {
     const payload = resultPayload(args, repo, {
       claimed: true,

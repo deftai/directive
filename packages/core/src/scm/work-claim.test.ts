@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { runSessionStart } from "../session/session-start.js";
 import type { LabelClient } from "../vbrief-reconcile/types.js";
@@ -201,14 +201,46 @@ describe("runWorkClaim", () => {
     expect(client.labels).toEqual(["bug"]);
   });
 
-  it("release refuses with no occupancy", () => {
+  it("release clears an abandoned tag without occupancy", () => {
     const client = new FakeLabelClient([WORK_CLAIM_LABEL]);
     const result = runWorkClaim(["release", "--issue", "4200", "--repo", "deftai/directive"], {
       client,
       occupancyLive: () => false,
     });
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("released");
+    expect(client.applyCalls).toEqual([{ add: [], remove: [WORK_CLAIM_LABEL] }]);
+  });
+
+  it("release refuses --read-only", () => {
+    const client = new FakeLabelClient([WORK_CLAIM_LABEL]);
+    const result = runWorkClaim(
+      ["release", "--issue", "4200", "--repo", "deftai/directive", "--read-only"],
+      { client, occupancyLive: () => true },
+    );
     expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("read-only");
     expect(client.applyCalls).toHaveLength(0);
+  });
+
+  it("claim resolves occupancy from a nested cwd", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    const nested = join(root, "packages", "core");
+    mkdirSync(nested, { recursive: true });
+    const seen: string[] = [];
+    const client = new FakeLabelClient([]);
+    const result = runWorkClaim(["claim", "--issue", "4200", "--repo", "deftai/directive"], {
+      client,
+      occupancyLive: (projectRoot) => {
+        seen.push(projectRoot);
+        return true;
+      },
+      cwd: nested,
+    });
+    expect(result.exitCode).toBe(0);
+    expect(seen[0]).toBe(resolve(root));
+    expect(client.applyCalls).toEqual([{ add: [WORK_CLAIM_LABEL], remove: [] }]);
   });
 
   it("prints usage on --help", () => {

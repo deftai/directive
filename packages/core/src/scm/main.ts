@@ -79,6 +79,7 @@ export function main(argv: readonly string[], options: MainOptions = {}): number
     const result = runWorkClaim(extra, {
       client: options.labelClient,
       occupancyLive: options.occupancyLive,
+      cwd: process.cwd(),
     });
     if (result.stdout.length > 0) {
       process.stdout.write(result.stdout);
