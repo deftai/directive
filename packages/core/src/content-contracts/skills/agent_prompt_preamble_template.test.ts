@@ -268,4 +268,11 @@ describe("test_agent_prompt_preamble_template", () => {
     expect(templateText).toContain("claude-agent");
     expect(templateText).toContain("#3134");
   });
+
+  it("template_lists_grok_bot_dispatch_provider_4201", () => {
+    expect(templateText).toContain("grok-bot");
+    expect(templateText).toContain("grok-bot-executor");
+    expect(templateText).toContain("#4201");
+    expect(templateText).toContain("not Grok Build");
+  });
 });

@@ -181,6 +181,40 @@ describe("resolveDispatchProvider (#1877 / #2875)", () => {
     expect(resolveDispatchProvider({ DEFT_AGENT_RUNTIME: "grok-build" })).toBe("grok");
   });
 
+  it("maps Grok Bot unique signals to grok-bot before spawn_subagent (#4201)", () => {
+    expect(resolveDispatchProvider({ DEFT_PROBE_GROK_BOT: "1" })).toBe("grok-bot");
+    expect(resolveDispatchProvider({ GROK_BOT: "true" })).toBe("grok-bot");
+    expect(resolveDispatchProvider({ DEFT_HAS_GROK_BOT_WIDGETS: "yes" })).toBe("grok-bot");
+    expect(resolveDispatchProvider({ DEFT_HAS_GROK_BOT_EXECUTOR: "1" })).toBe("grok-bot");
+    expect(resolveDispatchProvider({ DEFT_AGENT_RUNTIME: "grok-bot" })).toBe("grok-bot");
+    expect(resolveDispatchProvider({ DEFT_AGENT_RUNTIME: "grokbot" })).toBe("grok-bot");
+  });
+
+  it("does not misclassify Grok Bot as grok when spawn_subagent is also present (#4201)", () => {
+    expect(
+      resolveDispatchProvider({
+        DEFT_PROBE_GROK_BOT: "1",
+        DEFT_HAS_SPAWN_SUBAGENT: "true",
+        GROK_BUILD: "1",
+      }),
+    ).toBe("grok-bot");
+  });
+
+  it("Cursor still wins over Grok Bot env when CURSOR_* is set (#4201)", () => {
+    expect(resolveDispatchProvider({ CURSOR_COMPOSER: "1", GROK_BOT: "1" })).toBe("cursor");
+  });
+
+  it("prefers grok-bot over CI cloud-headless when Grok Bot signals are set (#4201)", () => {
+    expect(resolveDispatchProvider({ CI: "true", GROK_BOT: "1" })).toBe("grok-bot");
+    expect(resolveDispatchProvider({ CI: "true", DEFT_PROBE_GROK_BOT: "1" })).toBe("grok-bot");
+  });
+
+  it("maps grok-bot runtime strings before generic grok (#4201)", () => {
+    expect(dispatchProviderFromRuntime("grok-bot")).toBe("grok-bot");
+    expect(dispatchProviderFromRuntime("grokbot")).toBe("grok-bot");
+    expect(dispatchProviderFromRuntime("grok-build")).toBe("grok");
+  });
+
   it("maps the same grok probes probeMonitoringTier already uses (#3469)", () => {
     expect(resolveDispatchProvider({ DEFT_HAS_SPAWN_SUBAGENT: "1" })).toBe("grok");
     expect(resolveDispatchProvider({ DEFT_PROBE_GROK_BUILD: "true" })).toBe("grok");

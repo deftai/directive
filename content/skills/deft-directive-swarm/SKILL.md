@@ -80,6 +80,7 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 | `cursor-composer` / `cursor-cloud-agent` | Cursor `Task` | [`references/host-cursor.md`](references/host-cursor.md) |
 | `claude-code` | Claude `Agent` (`run_in_background`) / `claude-agent` | [`references/host-claude-code.md`](references/host-claude-code.md) |
 | `openclaw` | `sessions_spawn` | [`references/host-openclaw.md`](references/host-openclaw.md) |
+| `grok-bot` | Task / executor / CloudAgent (`grok-bot-executor`) | [`references/host-grokbot.md`](references/host-grokbot.md) |
 | `grok-build` | `spawn_subagent` | [`references/host-grok-build.md`](references/host-grok-build.md) |
 | `generic-terminal` (or explicit cloud) | serial / paste / `oz agent run-cloud` | [`references/host-generic.md`](references/host-generic.md) |
 
@@ -170,14 +171,16 @@ Thin pointer: dual-invoke `pr:merge-ready` / `pr:watch`; spawn **one** residual 
 3. ! **Probe for the Cursor `Task` tool** — Tier 1; descriptor `cursor-composer` / `cursor-cloud-agent` (#1877). Require Cursor signals (`CURSOR_*` or Cursor-only Task surface) — not bare `Task` alone.
 4. ! **Probe for Claude Code** — Tier 1; descriptor `claude-code` (#3134). Claude-unique signals only: `Agent` (or `CreateAgent` / `SubagentStart`) with background / `run_in_background`, and/or `DEFT_PROBE_CLAUDE_CODE` / `DEFT_AGENT_RUNTIME=claude-code` / `CLAUDECODE`. ⊗ Misclassify as `cursor-composer` via bare `Task`.
 5. ! **Probe for the OpenClaw `sessions_spawn` tool** — Tier 1; descriptor `openclaw` (#2875). Do NOT misclassify as `grok-build` or `generic-terminal`.
-6. ! **Probe for `spawn_subagent` tool** — descriptor `grok-build`.
-7. ! **Select launch path automatically** — load the matching host adapter (route table). No static A/B/C menu.
-8. ! **Return a stable platform descriptor** for Phase 4/6: `warp-orchestrated`, `warp-manual`, `cursor-composer`, `cursor-cloud-agent`, `claude-code`, `openclaw`, `grok-build`, or `generic-terminal`.
-9. ? **Cloud escape hatch** — `oz agent run-cloud` only on explicit user request (host-generic).
+6. ! **Probe for Grok Bot** — Tier 1; descriptor `grok-bot` (#4201). Unique signals only: question widgets, Task/executor/CloudAgent, routines, short main-chat beats, and/or `DEFT_PROBE_GROK_BOT` / `DEFT_HAS_GROK_BOT_WIDGETS` / `DEFT_HAS_GROK_BOT_EXECUTOR` / `DEFT_AGENT_RUNTIME=grok-bot` / `GROK_BOT`. Probe **before** `spawn_subagent`. ⊗ Misclassify as `grok-build` via bare `spawn_subagent`. ⊗ Misclassify as `cursor-composer` via bare `Task`.
+7. ! **Probe for `spawn_subagent` tool** — descriptor `grok-build`.
+8. ! **Select launch path automatically** — load the matching host adapter (route table). No static A/B/C menu.
+9. ! **Return a stable platform descriptor** for Phase 4/6: `warp-orchestrated`, `warp-manual`, `cursor-composer`, `cursor-cloud-agent`, `claude-code`, `openclaw`, `grok-bot`, `grok-build`, or `generic-terminal`.
+10. ? **Cloud escape hatch** — `oz agent run-cloud` only on explicit user request (host-generic).
 
 ⊗ Present static launch options instead of detecting capabilities at runtime.
 ⊗ Offer Warp-specific launch paths when not inside Warp.
 ⊗ Classify Claude Code as `cursor-composer` / `generic-terminal` when Claude-unique signals are present (#3134).
+⊗ Classify Grok Bot as `grok-build` via bare `spawn_subagent`, or as `cursor-composer` via bare `Task`, when Grok-Bot-unique signals are present (#4201).
 
 ## Retained addressable sub-agents (#3158)
 
@@ -230,6 +233,7 @@ Named mode **beside** dispatch-and-collect. Canon: [`../../swarm/swarm.md`](../.
 - ⊗ Skip Phase 0 approval before Phase 1
 - ⊗ Misclassify OpenClaw `sessions_spawn` as `grok-build` or `generic-terminal` (#2875)
 - ⊗ Misclassify Claude Code as `cursor-composer` / `generic-terminal` (#3134)
+- ⊗ Misclassify Grok Bot as `grok-build` via bare `spawn_subagent` or as `cursor-composer` via bare `Task` (#4201)
 - ⊗ Run multi-iteration repair/monitor loops without a failure stop or with silent continuation after the envelope is exhausted (#2442)
 - ⊗ Dual-stop/hard-stop halt without #3273 resume line (leftover class + resolved floor + standing vs one-shot), or unlimited residual auto-retry without new operator consent (#3273 / #3448)
 - ⊗ Hard-code 5/5 as the continue-until target, or park a class A already-touched leftover as a new story (#3448 / #2881 / #3095)

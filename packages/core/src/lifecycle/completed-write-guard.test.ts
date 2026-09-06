@@ -231,7 +231,7 @@ describe("evaluateCompletedWriteGuard (#3679)", () => {
     }
   });
 
-  it("fails closed when a git tree has no merge-base ref", { timeout: 20_000 }, () => {
+  it("fails closed when a git tree has no merge-base ref", () => {
     const root = mkdtempSync(join(tmpdir(), "completed-write-nobase-"));
     try {
       const init = spawnSync("git", ["init", "-q", "-b", "deft-no-base"], {
@@ -250,7 +250,7 @@ describe("evaluateCompletedWriteGuard (#3679)", () => {
     }
   });
 
-  it("fails closed when the base ref has no merge-base with HEAD", { timeout: 20_000 }, () => {
+  it("fails closed when the base ref has no merge-base with HEAD", () => {
     const root = mkdtempSync(join(tmpdir(), "completed-write-unrelated-"));
     try {
       gitOk(["init", "-q", "-b", "master"], root);
@@ -486,7 +486,7 @@ describe("evaluateCompletedWriteGuard (#3766 active deletion)", () => {
     expect(result.message).toContain(UNPAIRED_ACTIVE_DELETE_REMEDIATION);
   });
 
-  it("rejects an unaccompanied active delete discovered from git", { timeout: 20_000 }, () => {
+  it("rejects an unaccompanied active delete discovered from git", () => {
     const root = mkdtempSync(join(tmpdir(), "completed-write-active-del-"));
     try {
       gitOk(["init", "-q", "-b", "master"], root);

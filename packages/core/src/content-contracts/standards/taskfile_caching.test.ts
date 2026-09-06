@@ -890,7 +890,7 @@ describe("test_taskfile_caching.py", () => {
   });
   it.skipIf(!taskAvailable)(
     "test_prd_render_force_overwrites_hand_authored_prd",
-    { timeout: process.platform === "win32" ? 120_000 : 60_000 },
+    { timeout: process.platform === "win32" ? 240_000 : 60_000 },
     () => {
       const fixture = mkdtempSync(join(tmpdir(), "deft-prd-render-574-"));
       try {

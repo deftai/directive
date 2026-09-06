@@ -14,5 +14,6 @@ describe("review-monitor constants", () => {
     expect(MONITORING_TIER_1).toBe(1);
     expect(SCHEMA_VERSION).toBe(1);
     expect(REVIEW_MONITOR_HELP).toContain("verify:review-monitor");
+    expect(REVIEW_MONITOR_HELP).toContain("grok-bot-executor");
   });
 });

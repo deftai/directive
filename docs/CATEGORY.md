@@ -14,7 +14,7 @@ Related research and naming (do not replace this map):
 
 | Need | Fit | Examples (illustrative) |
 |------|-----|-------------------------|
-| Run the agent in an editor or CLI | **Coding host** | Cursor, Claude Code, Codex, OpenClaw |
+| Run the agent in an editor or CLI | **Coding host** | Cursor, Claude Code, Codex, OpenClaw, Grok Bot, Grok Build |
 | Improve methodology inside one session | **Skill pack** | Superpowers-class host plugins / skill sets |
 | Shared standards + durable work state + hard gates **in this repo** | **Directive practice layer** | `@deftai/directive` (this product) |
 | Multi-agent product / swarm runtime **in app code** | **Orchestrator** | LangGraph, CrewAI, AutoGen, Ruflo-class |
@@ -41,7 +41,7 @@ It deposits practice **with the code**:
 
 | Not this | Why |
 |----------|-----|
-| A **coding host** | Hosts run the agent UI/runtime. Directive **feeds** hosts; it does not replace Cursor, Claude Code, Codex, or similar. |
+| A **coding host** | Hosts run the agent UI/runtime. Directive **feeds** hosts; it does not replace Cursor, Claude Code, Codex, Grok Bot, Grok Build, or similar. Grok Bot is not Grok Build. |
 | Only a **skill pack** | Skill packs improve one session or one host. Directive is a **repo deposit** with lifecycle state and hard gates. |
 | An app **orchestrator** | Orchestrators run multi-agent products **inside application code**. That is a different job from repo practice. |
 | A substitute measured by **star count peers** | Category demand is not the same as substitute size. See [Star-count misuse](#star-count-misuse). |

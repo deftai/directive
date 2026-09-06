@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Grok Bot is a first-class host, distinct from Grok Build (#4201).** Unique grok-bot signals probe before `spawn_subagent`. Adapter `host-grokbot.md`, routing, and `grok-bot-executor` registration. Closes #4201.
 - **List-visible work-claim tag plus `task scm:issue:work-claim` (#4200).** Catalog label `status:claimed` is the same-issue busy flag. Verb `claim|show|release` writes GitHub labels only. Session-start and `xbrief:preflight` (including `--json`) MUST scan; warn is success, not a lock. Claim refuses read-only / no occupancy. Explicit release clears abandoned tags without occupancy. Occupancy lookup walks to the checkout root. Consumer agents-entry pins the scan. `plan.policy.agentsMdBudget.absoluteMaxBytes` 16565→16850 for that pointer. Last-write-wins: the board can lie about who. v1 does not detect two-issue path overlap. Occupancy, `#3607` pass marks, and PR review-owner leases stay separate. Closes #4200.
 - **Generated capability index and declared-versus-touched PR documentation-impact check (#4099).** Typed overlay supplies audience, status, and gotchas over existing registries. `task docs:capability-map:check` is wired into `FRAMEWORK_CHECK_GATES`. `no user-doc impact` is refused when a registered command, skill, help key, or docs-site page is added or removed. #447 stays the rule body by reference. Closes #4099. Refs #4085, #447.
 - **Current Task and CLI snippets in commands.md resolve against the Taskfile graph and dispatch/help registries (#4094).** Extends the live-procedure markdown walker. Classification is a closed set; same-diff exemptions fail. Lookup is verb/namespace only and does not execute fences. Does not rewrite Task descriptions. Closes #4094. Refs #4085.
@@ -33,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Win32 git-fixture tests inherit a 240s suite cap under coverage contention (#3616).** `testTimeout` 120s→240s. The ingest lifecycle e2e 15s local cap is Linux-only so it does not lower the win32 cap (#4194). Does not lower `maxWorkers`. Refs #3480, #4194.
 - **Land leftover completed-tracked artifact for #4200 (#3264 / #1358).** The #4200 xBRIEF stayed in `active/` after squash of PR 4207 (`c1e038f8`). Moved to `xbrief/completed/` via scope:complete. Does not recut that issue. Refs #2321, #3476.
 - **Ingest lifecycle e2e no longer times out the merge-gate 5s default (#4194).** `preserves one minted id from ingest through promote activate complete` is 15s. Does not raise the suite default. Refs #4119, #4194.
 - **Land leftover completed-tracked artifact for #4099 (#3264 / #1358).** The #4099 xBRIEF stayed untracked after squash of PR 4185 (f2d6e00d). Moved to xbrief/completed/ via scope:complete. Does not recut that issue. Refs #2321, #3476.

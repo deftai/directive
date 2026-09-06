@@ -21,8 +21,9 @@ Probe order (must match engine `probeMonitoringTier` / `resolveDispatchProvider`
 3. Cursor `Task` **with Cursor signals** (`CURSOR_COMPOSER` / `CURSOR_AGENT` or Cursor-only Task surface) → `cursor-composer` / `cursor-cloud-agent`
 4. **Claude Code** (this descriptor) — see unique signals below → `claude-code`
 5. OpenClaw `sessions_spawn` → `openclaw`
-6. `spawn_subagent` → `grok-build`
-7. else → `generic-terminal` (Tier 3)
+6. Grok Bot unique signals → `grok-bot`
+7. `spawn_subagent` → `grok-build`
+8. else → `generic-terminal` (Tier 3)
 
 ### Claude-unique signals (any one is sufficient when earlier probes are absent)
 

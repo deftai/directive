@@ -163,6 +163,21 @@ describe("evaluateReviewMonitorGate", () => {
     expect(spawnIdx).toBeGreaterThan(leafIdx);
   });
 
+  it("Grok Bot Tier-1 redirect cites #4201 leaf-safe ownership", () => {
+    const root = mkdtempSync(join(tmpdir(), "rm-gate-grok-bot-leaf-"));
+    const result = evaluateReviewMonitorGate({
+      pr: 43,
+      projectRoot: root,
+      repo: "deftai/directive",
+      approach3: true,
+      environ: { DEFT_PROBE_GROK_BOT: "1" },
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toContain("grok-bot-executor");
+    expect(result.message).toContain("Ownership path for grok-bot-executor (#4201)");
+    expect(result.message).toContain("Do NOT nested-spawn");
+  });
+
   it("allows Approach 3 on Tier 3 with warning ack", () => {
     const root = mkdtempSync(join(tmpdir(), "rm-gate-a3ok-"));
     const result = evaluateReviewMonitorGate({

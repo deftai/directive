@@ -38,7 +38,7 @@ export const ROUTING_MODE_HARNESS_DEFAULT = "harness-default";
 export const ROUTING_FILENAME = "routing.local.json";
 
 /** Providers whose model is harness-bound -- deft cannot pin or verify a slug. */
-export const HARNESS_BOUND_PROVIDERS = new Set<string>(["grok"]);
+export const HARNESS_BOUND_PROVIDERS = new Set<string>(["grok", "grok-bot"]);
 
 /**
  * Live routing key for Grok Build. A `grok-build` file key is a trap (#3469):
@@ -65,6 +65,7 @@ export const HOST_DETECT_PROBE_NAMES = [
 export const ROUTING_GATED_DISPATCH_PROVIDERS = new Set<string>([
   "cursor",
   "grok",
+  "grok-bot",
   "openclaw",
   "claude",
 ]);
@@ -255,6 +256,10 @@ export function dispatchProviderFromRuntime(runtimeMode: string): string {
   if (normalized.includes("claude")) {
     return "claude";
   }
+  // Grok Bot before generic "grok" so "grok-bot" does not collapse to grok-build (#4201).
+  if (normalized.includes("grok-bot") || normalized.includes("grokbot")) {
+    return "grok-bot";
+  }
   if (normalized.includes("grok")) {
     return "grok";
   }
@@ -297,6 +302,17 @@ export function resolveDispatchProvider(environ: NodeJS.ProcessEnv = process.env
   ) {
     return "openclaw";
   }
+  // Grok Bot unique signals before spawn_subagent / GROK_BUILD (#4201).
+  if (
+    envTruthy(environ, "DEFT_PROBE_GROK_BOT") ||
+    envTruthy(environ, "DEFT_HAS_GROK_BOT_WIDGETS") ||
+    envTruthy(environ, "DEFT_HAS_GROK_BOT_EXECUTOR") ||
+    envTruthy(environ, "GROK_BOT") ||
+    runtime === "grok-bot" ||
+    runtime === "grokbot"
+  ) {
+    return "grok-bot";
+  }
   if (
     envTruthy(environ, "GROK_BUILD") ||
     envTruthy(environ, "DEFT_HAS_SPAWN_SUBAGENT") ||
@@ -319,7 +335,9 @@ export function resolveDispatchProvider(environ: NodeJS.ProcessEnv = process.env
       !envTruthy(environ, "DEFT_HAS_SESSIONS_SPAWN") &&
       !envTruthy(environ, "CLAUDECODE") &&
       !envTruthy(environ, "CLAUDE_CODE") &&
-      !envTruthy(environ, "DEFT_PROBE_CLAUDE_CODE"))
+      !envTruthy(environ, "DEFT_PROBE_CLAUDE_CODE") &&
+      !envTruthy(environ, "GROK_BOT") &&
+      !envTruthy(environ, "DEFT_PROBE_GROK_BOT"))
   ) {
     return "cloud-headless";
   }

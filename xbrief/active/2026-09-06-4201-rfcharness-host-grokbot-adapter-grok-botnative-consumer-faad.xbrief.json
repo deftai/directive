@@ -1,0 +1,155 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4201",
+    "updated": "2026-09-06T02:11:35Z"
+  },
+  "plan": {
+    "title": "rfc(harness): host-grokbot adapter + Grok Bot–native consumer façade",
+    "status": "running",
+    "narratives": {
+      "Description": "rfc(harness): host-grokbot adapter + Grok Bot–native consumer façade",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4201",
+      "Overview": "## Parent\n\nSet-level bind: [5556011390](https://github.com/deftai/directive/issues/4201#issuecomment-5556011390) / successor lean [5555943410](https://github.com/deftai/directive/issues/4201#issuecomment-5555943410). Companion recut: #4202.\n\n## Recut (post-bind, 2026-09-06)\n\nLocked from the set arc. Grok Bot is not Grok Build. This issue is the host adapter plus consumer facade. The arc thin router lives on #4202, not here.\n\n## Summary\n\nAdd a first-class Grok Bot host adapter and thin consumer facade so Directive skills (especially swarm) run natively on Grok Bot -- not as a Warp/Cursor dialect pasted into chat.\n\nDirective stays a repo practice layer (standards + xBRIEF + gates). Grok Bot stays the coding host / CoS cockpit. This RFC is the host-deposit boundary, not a bid to own Slack/calendar/bot roster orchestration.\n\n## Presumption\n\nA dedicated `grok-bot` platform descriptor and `host-grokbot.md` are required. Extending `host-grok-build.md` is not enough if probe 6 (`spawn_subagent` -> `grok-build`) fires first.\n\n## Proposed shape\n\n### 1. Detect before spawn_subagent\n\nAdd descriptor `grok-bot` mapping to widgets for operator gates and Task/executor/CloudAgent for workers.\n\n- Name unique grok-bot signals (widgets, Task/executor, cloud agents, routines, short main-chat beats).\n- Probe those signals **before** probe 6 (`spawn_subagent` -> `grok-build`). Same class as Claude-before-Task (#3134) and OpenClaw-before-grok-build (#2875).\n- Do not misclassify as grok-build via bare spawn_subagent, or as cursor-composer via bare Task.\n\nMap: Phase 0 / mid-scope / dual-stop -> question widgets (Discuss and Back visible, #1470 / #1563); leaf workers -> executor/CloudAgent with worktree isolation MUST before parallel spawn; parent consolidate -> short main-chat beats; human decision -> one clear ask then stop.\n\n### 2. Consumer facade: three verbs for swarm\n\nExpose propose cohort / launch / status. Keep Phases 0-6 internal. Lazy-load phase refs; do not load all host adapters just in case (#2928).\n\n### 3. Thin skill pack for Grok Bot consumers\n\nSmall discovery set: setup, xbrief, triage, swarm (facade), build -- thin routers. The **arc** thin router is #4202. This pack list points at #4202. Do not implement that skill twice.\n\n### 4. Doctor / cold-start chat narratable\n\nOne happy path: npx @deftai/directive doctor -> one next step -> optional agent-driven setup. Hide package-manager and offline forks behind doctor.\n\n### 5. Prefer connector-shaped GitHub where the host has it\n\nPrefer GitHub MCP/connector tools when available; gh as fallback.\n\n## Non-goals\n\n- Do not replace other hosts.\n- Do not make Grok Bot a multi-agent app orchestrator inside Directive.\n- No auto-dispatch arcs without operator consent (#3578 / #1702).\n- Do not drop worktree isolation for parallel code cohorts.\n- Do not implement the design-critique thin skill on this issue.\n\n## Acceptance\n\n- [ ] `grok-bot` descriptor plus misclassification tests: unique signals before spawn_subagent.\n- [ ] `host-grokbot.md`.\n- [ ] propose/launch/status docs.\n- [ ] Consumer skill-pack slice points at #4202 for arc; no second arc router here.\n- [ ] Doctor one-liner; CATEGORY.md note.\n- [ ] No normative contract bodies in thin routers.\n- [ ] Widgets used for Phase 0 gates preserve numbered Discuss and Back.\n- [ ] CHANGELOG entry.\n\n## Practical sequence\n\n1. Detect + host-grokbot.md + widget contract (Discuss/Back).\n2. Swarm facade.\n3. Consumer pack + doctor (arc router deferred to #4202).\n4. GitHub connector preference.\n\nRefs: deft-directive-swarm SKILL.md #2928; #1355; #1331; #3134; #2875; #1470; #1563; docs/CATEGORY.md; #4202; #3845.\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-04T23:38:01Z)\n\nCompanion: https://github.com/deftai/directive/issues/4202 (feat(design-critique): Grok Bot–native arc — triggers, direct default, widget operator verbs).\n\n### Comment by @MScottAdams (2026-09-06T00:58:18Z)\n\nmodel: grok-4.6\nrole: triage\n\nhttps://github.com/deftai/directive/issues/4201\n\nTriage write-back. SHA at write-back: origin/master `20f9dfbda67746fc0367b4856cfeb016e6e96213` (resolved this session via git rev-parse origin/master).\n\n**Authorship disclosure.** This session did not file #4201 or #4202. They were filed as MScottAdams from a Grok Bot session. Critics should still re-derive.\n\nmechanism-shaped: true. The question is whether Directive needs a Grok Bot host adapter and a Grok Bot-native arc motion, and whether #4201 and #4202 compose as a remedy portfolio.\n\ndesign-critique: warranted, because the lean changes host detect, spawn routing, operator-consent UI, and design-critique triggers (identity, envelopes, concurrency, worktrees, shared state); because Grok Build already has `host-grok-build.md` and probe-6 `spawn_subagent` -> `grok-build`; and because a missing `grok-bot` descriptor will misclassify this host.\n\nrefutation-target: none as a filed field. Charter is open critique of the portfolio claim that a dedicated `grok-bot` adapter plus a Grok Bot-native arc (triggers, direct default, widget verbs) is the right split for \"make Directive Grok Bot usable/friendly.\"\n\narc-mode: direct\ntarget shape: set-level\nportfolio: #4201, #4202\nanchor: #4201\n\n## Current-state validity (read, not re-invented)\n\n- Swarm route table at this SHA has warp, cursor, claude-code, openclaw, grok-build, generic-terminal. No `host-grokbot.md`. No `grok-bot` descriptor.\n- Probe 6 is `spawn_subagent` -> `grok-build` (deft-directive-swarm SKILL Runtime Capability Detection). Grok Bot is not in that list.\n- Design-critique skill triggers are design critique / design-critique / critique panel / mechanism-shaped triage. #3845 is open: literal \"run an arc\" does not route.\n- `parseOperatorRunPosture` (#4072) already matches direct / github-only / no worktrees. Direct default on grok-bot detect is host wiring, not a new posture parser.\n- Deterministic questions (#1470) require numbered menus with Discuss and Back unless the host UI visibly preserves those labels.\n- Companion comments: 5547685066 on #4201, 5547685199 on #4202.\n\n## Stop 2\n\ncharter: open critique. Neither issue names a refutation-target field. The portfolio claim is still the target.\n\nspend: N=1. Default after a mechanism-shaped stamp. Panel permission is available (new host adapter, consent UI, high blast if mis-detect) and is not used this round.\n\nround: 1. critic role: fresh.\n\nVerification posture: arc-mode direct. Critic is process-only. Pin reads to `git show 20f9dfbda67746fc0367b4856cfeb016e6e96213:` . No worktree add. No product implementation. Read both issue bodies. Post the critic on the anchor (#4201). Disposition per-issue.\n\n\n### Comment by @MScottAdams (2026-09-06T00:59:41Z)\n\nmodel: grok-4.6\nrole: critic\n\nDispatch SHA: `20f9dfbda67746fc0367b4856cfeb016e6e96213`\nCeiling: 5555932274. Charter: open critique. Target shape: set-level. Portfolio #4201 / #4202. Anchor #4201.\n\nVerdict on the portfolio claim: **the split is real and they compose only if detect is ordered**. Grok Bot is not Grok Build. There is no `grok-bot` descriptor and no `host-grokbot.md`. #3845 is still open. Extending `host-grok-build.md` does not fix misclassification if probe 6 fires first.\n\n## `blocks-the-design` -- grok-bot detect must precede spawn_subagent or it never fires\n\nEvidence. Swarm SKILL Runtime Capability Detection at this SHA: probe 6 is `spawn_subagent` -> descriptor `grok-build`. Route table has no `grok-bot`. Claude/OpenClaw already have unique-signal-before-fallback rules (#3134 / #2875) for this class. #4201 says do not misclassify as grok-build via bare spawn_subagent, but it does not name probe order.\n\nConcrete failure mode. Grok Bot that also exposes `spawn_subagent` (or a Task-like tool) classifies as `grok-build` or `cursor-composer`. #4202 \"on grok-bot detect, default arc-mode:direct\" never runs. Widgets never map. The dedicated adapter is dead code.\n\nDisposition consequence. #4201 AC must name unique grok-bot signals and a probe slot **before** probe 6. Same pattern as Claude-before-Task. Without that, #4202 direct-default is unsatisfiable.\n\n## `sharpens-framing` -- #4202 trigger close is host-neutral; widget/direct-default is not\n\nEvidence. Design-critique skill triggers at this SHA: design critique, design-critique, critique panel, mechanism-shaped triage. #3845 open: literal \"run an arc\" does not route. `parseOperatorRunPosture` already matches direct / github-only. Widget mapping is grok-bot-specific. #1470 / #1563: host widgets MUST still show numbered Discuss and Back.\n\nConcrete failure mode. Burying #3845 inside a grok-bot-only issue delays a host-neutral miss. Shipping #4202 widgets without #1470 Discuss/Back is a contract miss on every Phase-0 gate.\n\nDisposition consequence. Keep #4202, but split AC: (1) trigger fixtures close #3845 with no grok-bot dependency; (2) widget map + direct default depend on #4201 detect and MUST preserve Discuss/Back. Record #4202 as status:child of #4201 for (2), not for (1).\n\n## `sharpens-framing` -- Consumer pack \"arc (router)\" on #4201 duplicates #4202\n\nEvidence. #4201 proposal 3 lists thin routers: setup, xbrief, triage, arc (router), swarm (facade), build. #4202 is that arc router. Two issues both claim the thin skill.\n\nConcrete failure mode. Two PRs edit the same pack slice and diverge. Or #4201 ships an empty arc router and #4202 is treated as optional.\n\nDisposition consequence. #4201 pack list points at #4202 for the arc router. Do not implement the arc thin skill twice.\n\n## `footnote` -- parseOperatorRunPosture already exists\n\n#4202 should consume #4072, not re-parse direct/checkout. Host default is \"if grok-bot and no checkout token, treat as direct\" -- one line in the adapter, not a second parser.\n\n## Injection / swarm lens\n\nThin routers that trigger on \"phrases humans say\" are untrusted input. Keep normative contract bodies out (already a non-goal). Worktree isolation before parallel code cohorts stays MUST (already a non-goal to drop). Widgets that omit Discuss/Back become an un-escapable consent UI.\n\n## Road not taken\n\nMerge #4201 and #4202 into one issue -- worse for swarm, hides the #3845 split. Extend only host-grok-build.md -- fails the probe-order hole.\n\n## Steelman\n\nSteelman for \"Grok Bot is close enough to Grok Build; add a subsection\": both are xAI, spawn_subagent may exist, one adapter is cheaper. That flips the dedicated-descriptor finding only if unique grok-bot signals do not exist. The filing names widgets, Task/executor, cloud agents, routines, short main-chat beats. Those are not spawn_subagent. The steelman does not survive that inventory.\n\n\n### Comment by @MScottAdams (2026-09-06T01:00:38Z)\n\nmodel: grok-4.6\nrole: parent\n\n**Lean:**\n\n## In plain English\n\n#4201 and #4202 belong together. Grok Bot is not Grok Build. A dedicated descriptor is the right split. They compose only if grok-bot unique signals are probed before spawn_subagent. Otherwise #4202 direct-default never fires.\n\n#3845 (literal run an arc) is host-neutral and should not wait on a Grok Bot adapter. Widget map and direct default do wait on detect, and widgets must keep Discuss and Back. The arc thin router lives on #4202, not twice.\n\nIf this map is confirmed, synthesis would assert: keep both issues; #4201 AC names probe-before-spawn_subagent; #4202 splits trigger fixtures from widget/direct; #4201 pack list points at #4202. It would not assert that Grok Build is enough. Confirming does not start a build. Set-level ingest later needs recut bodies, not the un-recut pair.\n\nParent forward verdict: neither dominated. Non-self-arbitration: this parent authored Stop 1 (5555932274) and the critic (5555938725) after spawn_subagent was refused. This session did not file the issues. Confirming this map is an operator act. What this arc does not do: implement, bind synthesis, or ingest.\n\ntarget shape: set-level\nRound 1 dispatched 1 sibling: [5555938725](https://github.com/deftai/directive/issues/4201#issuecomment-5555938725) (grok-4.6). This map supersedes Stop 1 5555932274. Portfolio member pointer on #4202: 5555930881.\n\n## Takes\n\n### 5555938725 / grok-bot detect must precede spawn_subagent or it never fires -- accept-into-contract\nPer-issue #4201: AC names unique grok-bot signals and a probe slot before probe 6. Same class as Claude-before-Task.\n\n### 5555938725 / #4202 trigger close is host-neutral; widget/direct-default is not -- accept-into-contract\nPer-issue #4202: keep the issue. Split AC -- trigger fixtures close #3845 with no grok-bot dependency; widget map plus direct default depend on #4201 detect and MUST preserve Discuss/Back.\n\n### 5555938725 / Consumer pack arc router on #4201 duplicates #4202 -- accept-into-contract\nPer-issue both: #4201 pack list points at #4202 for the arc router. Do not implement it twice.\n\n## Residual\n\nNone that still changes disposition once probe-order and the #4202 split are accepted. Footnote (reuse parseOperatorRunPosture) is census only.\n\nOperator verbs that apply: **accept**, **retry differences**, **walk all**.\n\n\n### Comment by @MScottAdams (2026-09-06T01:14:23Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\n#4201 and #4202 compose only if grok-bot unique signals are probed before spawn_subagent. #3845 is host-neutral. Widgets must keep Discuss and Back. The arc router lives on #4202. Confirming this table binds that split. Confirming does not ingest and does not start a build. Set-level ingest later needs recut bodies.\n\nNon-self-arbitration: this parent authored Stop 1 5555932274 and critic 5555938725. This session did not file the issues. Rows marked verified rest on SHA reads named in the method column, not on \"the critic agreed.\"\n\n## Verified-claims table\nVerified-claims table for the arc bound at successor lean 5555943410. Every row names its method.\n\n| Claim | Method | Status |\n|---|---|---|\n| Swarm route table has no grok-bot descriptor and no host-grokbot.md | git show 20f9dfbd:content/skills/deft-directive-swarm/SKILL.md route table; references/ listing | verified |\n| Probe 6 is spawn_subagent -> grok-build | same SKILL Runtime Capability Detection steps 6-8 at 20f9dfbd | verified |\n| Claude/OpenClaw already require unique signals before fallback | SKILL anti-patterns #3134 / #2875 at 20f9dfbd | verified |\n| Design-critique skill triggers omit run an arc; #3845 is open | skill frontmatter triggers; gh issue 3845 state=open | verified |\n| parseOperatorRunPosture already matches direct / github-only | packages/core/src/design-critique/run-posture.ts / tests at 20f9dfbd | verified |\n| Deterministic questions require numbered Discuss and Back on host widgets | content/contracts/deterministic-questions.md Host-UI portability #1563 | verified |\n| #4201 proposal 3 lists an arc thin router; #4202 is that motion | live issue bodies | verified |\n\nAccepted successor lean: 5555943410. Critic: 5555938725. Stop 1: 5555932274. Dispatch SHA: 20f9dfbda67746fc0367b4856cfeb016e6e96213. Round-1 N=1. target shape: set-level. Audit markers: none.\n\n\n### Comment by @MScottAdams (2026-09-06T01:15:15Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThis set arc found that #4201 and #4202 belong together, that Grok Bot is not Grok Build, and that they compose only if grok-bot unique signals are probed before spawn_subagent. #3845 is host-neutral. Widget map and direct default wait on detect and must keep Discuss and Back. The arc thin router lives on #4202. Neither issue is dominated. Confirming this record does not start a build and does not ingest. Set-level ingest later needs recut bodies.\n\ntarget shape: set-level\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nAccepted successor lean 5555943410. Verified-claims table 5556007078. Round-1 critic 5555938725. Stop 1 write-back 5555932274. Portfolio member #4202 pointer 5555930881. Dispatch SHA 20f9dfbda67746fc0367b4856cfeb016e6e96213. Charter open critique, spend N=1, arc-mode: direct.\n\nEvery classified heading took accept-into-contract. Audit markers: none. Residual: none.\n\nThe arc closes here. Ingest stays a later operator verb.\n\n\n### Comment by @MScottAdams (2026-09-06T01:32:35Z)\n\nmodel: grok-4.6\nrole: parent\n\ntarget shape: single issue premise\n\nRecut of #4201 after set-level bind 5556011390 / lean 5555943410. Body now carries probe-before-spawn_subagent and points the arc router at #4202. Chip stays design-critique:triage-ready. This field clears unrecut-body. No new critique of this recut unless the operator asks.",
+      "Labels": "swarm, rfc, agent-experience, grok-build, harness, runtime-portability, urgent, area:skills, design-critique:triage-ready"
+    },
+    "items": [
+      {
+        "title": "`grok-bot` descriptor plus misclassification tests: unique signals before spawn_subagent.",
+        "status": "proposed"
+      },
+      {
+        "title": "`host-grokbot.md`.",
+        "status": "proposed"
+      },
+      {
+        "title": "propose/launch/status docs.",
+        "status": "proposed"
+      },
+      {
+        "title": "Consumer skill-pack slice points at #4202 for arc; no second arc router here.",
+        "status": "proposed"
+      },
+      {
+        "title": "Doctor one-liner; CATEGORY.md note.",
+        "status": "proposed"
+      },
+      {
+        "title": "No normative contract bodies in thin routers.",
+        "status": "proposed"
+      },
+      {
+        "title": "Widgets used for Phase 0 gates preserve numbered Discuss and Back.",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG entry.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "swarm",
+      "rfc",
+      "agent-experience",
+      "grok-build",
+      "harness",
+      "runtime-portability",
+      "urgent",
+      "area:skills",
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4201",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4201: rfc(harness): host-grokbot adapter + Grok Bot–native consumer façade"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3845",
+        "type": "x-xbrief/related",
+        "title": "Issue #3845 (host-neutral; owned by companion #4202, not this recut)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 8 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "`grok-bot` descriptor plus misclassification tests: unique signals before spawn_subagent.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "`host-grokbot.md`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "propose/launch/status docs.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Consumer skill-pack slice points at #4202 for arc; no second arc router here.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Doctor one-liner; CATEGORY.md note.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "No normative contract bodies in thin routers.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Widgets used for Phase 0 gates preserve numbered Discuss and Back.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "CHANGELOG entry.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5354137174,
+        "origin": "deftai/directive#4201",
+        "id": "github.issue.5354137174"
+      }
+    },
+    "id": "github.issue.5354137174",
+    "updated": "2026-09-06T02:11:35Z"
+  }
+}
