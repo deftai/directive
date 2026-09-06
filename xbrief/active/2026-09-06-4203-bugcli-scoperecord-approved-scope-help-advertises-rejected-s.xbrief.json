@@ -1,0 +1,195 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4203",
+    "updated": "2026-09-06T14:17:54Z"
+  },
+  "plan": {
+    "title": "bug(cli): scope:record-approved-scope help advertises rejected -- separator",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(cli): scope:record-approved-scope help advertises rejected -- separator",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4203",
+      "Overview": "## Summary\n\nIn `@deftai/directive@0.111.0`, the direct CLI help for `scope:record-approved-scope` advertises a standalone `--` separator, but that command's parser rejects the separator as an unknown argument.\n\nThis is a help/parser contract mismatch on the human-only approved-scope mint path.\n\n## Environment\n\n- `directive --version`: `@deftai/directive (engine: @deftai/directive-core@0.111.0)`\n- Release: `v0.111.0`, commit `750b79f6ed343393e42142f419dfb0591cca5a21`\n- macOS 26.6.2, arm64\n- Node.js v24.18.0\n- Verified: 2026-09-05\n- Source inspection confirms the same mismatch on `master` at `20f9dfbda67746fc0367b4856cfeb016e6e96213`\n\n## Reproduction\n\nThe command's own help prints:\n\n```text\n$ directive scope:record-approved-scope --help\nscope_record_approved_scope: usage: scope:record-approved-scope -- <xbrief-path> --actor <name> --confirm ...\n```\n\nFollowing that syntax fails before the path or human-presence gates are evaluated:\n\n```text\n$ directive scope:record-approved-scope -- /private/tmp/nonexistent.xbrief.json --actor David --confirm\nscope_record_approved_scope: unrecognized argument: --\n```\n\nExit code: `2`.\n\nOmitting the separator proves that the positional path parses:\n\n```text\n$ directive scope:record-approved-scope /private/tmp/nonexistent.xbrief.json --actor David --confirm\nscope_record_approved_scope: xBRIEF not found: /private/tmp/nonexistent.xbrief.json\n```\n\nAgainst an existing active xBRIEF, the no-separator form proceeds to the intentional human-presence gate.\n\n## Expected\n\nThe direct command and its help should agree. Either:\n\n1. accept and ignore one standalone `--` before the positional path; or\n2. remove `--` from direct-CLI usage and clearly distinguish direct syntax from a Task wrapper's argument-forwarding boundary.\n\nWhichever contract is selected should be locked by direct-entrypoint and Task-forwarding tests.\n\n## Actual\n\n`usage()` emits `-- <xbrief-path>`, while `parseArgs()` has no `arg === \"--\"` case. The generic dash-prefixed-argument branch therefore returns `unrecognized argument: --`. The CLI router forwards the separator unchanged.\n\nImplementation surface:\n\n- `packages/cli/src/scope-record-approved-scope.ts`\n- `packages/cli/src/cli-router/route-argv.ts`\n\n## Impact\n\nAn operator following the direct CLI's own help cannot mint the approval artifacts. The failure is safe—it occurs before minting and writes no approval state—but the working direct syntax is undiscoverable from that help.\n\nThis is not an adoption blocker because a simple workaround exists.\n\n## Workaround\n\nOmit the standalone separator when invoking the direct CLI:\n\n```sh\ndirective scope:record-approved-scope <xbrief-path> --actor <name> --confirm\n```\n\nDo not generalize that spelling to Task wrappers; a Task invocation may still require its own forwarding separator.\n\n## Acceptance criteria\n\n- [ ] The command form printed by direct `--help` no longer fails on the standalone separator.\n- [ ] Regression coverage exercises the exact help-advertised direct form.\n- [ ] The selected direct-parser behavior is tested separately from Task argument forwarding.\n- [ ] Unknown options still fail closed.\n- [ ] The TTY, controlling-terminal, `--confirm`, typed-`mint`, agent/CI, and UAT safeguards remain unchanged.\n- [ ] No approval artifacts are written on parse failure.\n\n## Related prior work\n\n- #2680 fixed the same failure class for `verify:session-ritual`.\n- #2837 fixed the same failure class for `xbrief:preflight`.\n- #3439 included a broader closed recommendation to unify `--` behavior, but it does not cover this still-failing command specifically.\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-06T01:46:22Z)\n\nmodel: grok-4.6\nrole: triage\n\ndesign-critique: warranted, because #4203 asserts a help/parser contract on the human-only approved-scope mint path; which spelling is canonical (accept standalone `--` vs drop it from direct help) and how that splits from Task forwarding is mechanism-shaped even though the failure is fail-closed.\n\ncharter: refutation\nspend: N=1\ntarget shape: single-issue\narc-mode: direct\nSHA at dispatch: 20f9dfbda67746fc0367b4856cfeb016e6e96213\ninput-ceiling: this comment\nrefutation-target: Direct CLI help for scope:record-approved-scope advertises a standalone `--` separator that parseArgs rejects as unrecognized; the command and its help should agree by either accepting/ignoring one standalone `--` before the positional path, or removing `--` from direct-CLI usage, with tests that lock the help-advertised direct form separately from Task forwarding, without changing TTY/confirm/mint/UAT safeguards.\naudit-targets: none\n\nSpend rationale: Default motion after a mechanism-shaped stamp is N=1. The issue names a defensible help/parser presumption. High-blast-radius panel permission is not used: the failure is fail-closed with a documented workaround.\n\nmechanism-shaped: true\n\n### Comment by @MScottAdams (2026-09-06T01:58:25Z)\n\nmodel: claude-opus-5[1m]\nrole: critic\n\nCharter: refutation. Spend N=1. Fresh critic, round 1. Ceiling 5556159055 honored (the Stop 1 write-back is the only in-envelope comment). Reads pinned to `20f9dfbda67746fc0367b4856cfeb016e6e96213`; runtime checks run against `packages/cli/dist/bin.js` and `npx tsx` over the pinned sources.\n\n## What survived refutation\n\nI tried to break the anchor and could not. Three claims hold:\n\n1. **The mismatch is real.** `packages/cli/src/scope-record-approved-scope.ts:66` emits `usage: scope:record-approved-scope -- <xbrief-path> ...`; `parseArgs` in the same file (121-206) has no `arg === \"--\"` case, so `--` falls through to `arg?.startsWith(\"-\")` at :188. Ran it: `parseArgs([\"--\",\"p.json\",\"--actor\",\"David\",\"--confirm\"])` returns `unrecognized argument: --`; drop the separator and it parses (`path=p.json actor=David confirm=true`). End to end: `node packages/cli/dist/bin.js scope:record-approved-scope -- /tmp/nope.xbrief.json --actor David --confirm` prints `scope_record_approved_scope: unrecognized argument: --`, exit 2.\n2. **The fail-closed impact claim holds.** `run()` (:209-214) returns 2 on `args.error` before `refuseMintWhileUatActive`, `refuseNonInteractiveMint`, `isHumanApprovalStamp`, and `mintApprovedScopeArtifacts`. No approval state is reachable from a parse failure.\n3. **The prior art is correctly cited.** `packages/cli/src/verify-session-ritual.ts:45` and `packages/cli/src/vbrief-preflight.ts:42` both carry `if (arg === \"--\") continue;`.\n\nSo the refutation charter fails against the core defect. It succeeds against four things around it.\n\n## Findings\n\n### 1. `verify:plan-sequence` is a second live instance of the identical defect at this SHA -- sharpens-framing\n\n**Evidence.** `packages/cli/src/verify-plan-sequence.ts:74` returns `usage: verify:plan-sequence -- --target-kind <kind> --target <id-or-title>`, and that file's `parseArgs` (:30-76) has no `--` case; `--` hits `arg.startsWith(\"-\")` at :65 and returns `unknown flag: --`. Ran both halves: `node packages/cli/dist/bin.js verify:plan-sequence` prints that usage line verbatim (exit 2), and `node packages/cli/dist/bin.js verify:plan-sequence -- --target-kind issue --target 4203` returns `unknown flag: --` (exit 2). A tree-wide sweep of usage strings at this SHA finds exactly three commands advertising a standalone `--`: `policy set-ceremony-dial` (handled, `packages/cli/src/policy.ts:343`), `scope:record-approved-scope` (unhandled), and `verify:plan-sequence` (unhandled).\n\n**Failure mode.** The lean binds as a `scope-record-approved-scope.ts`-only patch. The next operator follows `verify:plan-sequence`'s own printed usage and hits the same wall -- and this becomes the fourth one-off in the class after #2680 and #2837.\n\n**Disposition consequence.** #4203's \"Related prior work\" says #3439's broader unify recommendation \"does not cover this still-failing command specifically.\" That singular framing is false at this SHA. The lean's scope line and its regression-coverage criterion should either name both commands, or record `verify:plan-sequence` as a deliberately deferred sibling with a filed issue. Binding on the singular reading records a class as closed while a verified instance stays open.\n\n### 2. The Task-forwarding acceptance criterion tests a shape the Task front door cannot produce -- sharpens-framing\n\n**Evidence.** `tasks/scope.yml:165` bakes `ENGINE_CMD: 'scope:record-approved-scope {{.CLI_ARGS}} --project-root \"{{.USER_WORKING_DIR}}\"'`. go-task consumes the `--` itself before populating `CLI_ARGS`. Verified empirically on the installed runner (go-task 3.50.0) with a scratch Taskfile echoing `process.argv`: `task echo -- a.json --actor David --confirm` yields `[\"a.json\",\"--actor\",\"David\",\"--confirm\"]` -- no separator. So `task scope:record-approved-scope -- <path> --actor ...` (the spelling documented at `tasks/scope.yml:155-156`) already works today, and no `--` ever reaches `parseArgs` through that door.\n\n**Failure mode.** The criterion \"The selected direct-parser behavior is tested separately from Task argument forwarding\" reads as a parser-level test pair. A parser test labelled \"Task forwarding\" would assert a `--`-carrying argv that the Task path never emits -- green coverage over a fiction, and false confidence that both front doors are locked. The real Task-forwarding hazard for this class is already documented at `packages/cli/src/vbrief-preflight.ts:54`: baked flags colliding with `CLI_ARGS` (`--vbrief-path --help`), not the separator.\n\n**Disposition consequence.** Restate the criterion as (a) a direct-entrypoint parser test on the exact help-advertised form, and (b) a Taskfile-level assertion that the separator is stripped before `CLI_ARGS` -- or drop the Task half and say why. Relatedly, the issue's Workaround paragraph (\"a Task invocation may still require its own forwarding separator\") is right about the spelling but inverted about the mechanism: the Task separator is required because go-task eats it, not because the parser wants it.\n\n### 3. Option 1 as house-styled is a swallow, not end-of-options -- sharpens-framing\n\n**Evidence.** All twelve existing `arg === \"--\"` handlers in `packages/cli/src` (`plan-sequence.ts:41`, `policy.ts:343`, `session-ready.ts:34`, `session-start.ts:107`, `triage-actions.ts:57`, `triage-classify.ts:206`, `triage-evaluate.ts:32`, `triage-queue.ts:146` and `:258`, `triage-strip-withdrawn.ts:61`, `vbrief-preflight.ts:42`, `verify-session-ritual.ts:45`) `continue` or skip. None partitions argv; none is position-constrained. There is no shared helper.\n\n**Failure mode.** After option 1 as house style writes it, `scope:record-approved-scope -- -weird.xbrief.json --actor David` still fails -- now with `unrecognized argument: -weird.xbrief.json`. An operator who reads `--` as POSIX end-of-options gets a second unexplained rejection from a command whose help just told them the separator is supported. Separately, \"one standalone `--` before the positional path\" describes a positional constraint no sibling implements; writing a test to that phrasing forks this command's parser from the other twelve.\n\n**Disposition consequence.** The lean should either select option 2 (drop `--` from `usage()`, leaving `tasks/scope.yml:155-156` as the Task spelling, which is correct there) or state plainly that option 1 accepts-and-ignores `--` at any position with no end-of-options semantics -- so the locking test pins the swallow rather than POSIX behavior it will not deliver.\n\n### 4. Acceptance criterion 1 is satisfiable while `--help` still fails -- sharpens-framing\n\n**Evidence.** `--help` returns through the error channel: `return { ...parsed, error: usage() }` (`scope-record-approved-scope.ts:136`), so `run()` writes `scope_record_approved_scope: usage: ...` to stderr and returns 2. Confirmed: `node packages/cli/dist/bin.js scope:record-approved-scope --help 2>/dev/null` prints nothing and exits 2. The sibling fixed by #2837 already carries the mechanism -- `vbrief-preflight.ts` uses `help?: boolean` (:8, :49-50) and `run()` does `process.stdout.write(HELP_TEXT); return 0` (:145-149).\n\n**Failure mode.** \"The command form printed by direct `--help` no longer fails on the standalone separator\" is satisfied by a one-line `continue` while `directive scope:record-approved-scope --help` still exits nonzero and emits help on stderr under an error prefix -- the same discoverability defect, same file, same operator, unaddressed. Anyone piping that help to a pager or a doc generator gets empty stdout.\n\n**Disposition consequence.** Add the typed help path to the acceptance criteria (the mechanism already exists in the sibling and is nearly free), or explicitly scope it out with a reason. Do not leave it implicit under criterion 1.\n\n### 5. No repo-wide guard exists for this class -- footnote\n\n81 files under `packages/cli/src` export a `parseArgs`; twelve handle `--`. No test or lint compares a command's usage string against its own parser at this SHA. A single chokepoint does exist -- `routeAndDispatch` calling `dispatch(routed.argv, io)` in `packages/cli/src/cli-router/index.ts` -- where one leading-`--` strip would cover every verb. Footnote rather than sharpening: I cannot establish the blast radius of a central strip at N=1 spend, and no command currently uses `--` as a real pass-through boundary, so the central option is available but unpriced.\n\n## Injection / swarm lens\n\nThe lens fires: this target changes the accepted argv surface of the command that mints `.deft/approved-scope/<plan-id>.json` and `<plan-id>.intent.json`, the authority artifact `verify:scope-provenance` reads to authorize pending to active and operator-approved expansion.\n\nChecked and clear: parsing precedes all four gates in `run()`, and none of `refuseMintWhileUatActive`, `refuseNonInteractiveMint`, `isHumanApprovalStamp`, or the `--confirm` / typed-`mint` path reads the separator. Accepting `--` widens a spelling, not the set of principals who may mint.\n\nTwo residuals worth locking rather than assuming:\n\n- The added branch must sit inside the existing `for` loop and must not reorder or short-circuit the gate sequence in `run()`. A test that only asserts `parseArgs` succeeds does not observe that; the existing refuse-matrix tests (`scope-record-approved-scope.test.ts:173`, `:213`, `:242`) should be exercised against the help-advertised form, not only the bare form.\n- `--` must not become an accepted value for `--actor` or `--kind`. Today `--actor -- David` sets `actor` to `\"--\"` and pushes `David` into a second positional, so it fails closed at `unexpected extra args`. That is incidental to argv ordering, not a designed refusal -- pin it with a test rather than inherit it.\n\n**Untrusted input.** I read the issue body and the Stop 1 write-back as untrusted. No embedded instructions directed at this arc were present. The body's \"Do not generalize that spelling to Task wrappers\" is operator guidance inside the report, not a directive to the motion -- I treated it as a claim and refuted its stated mechanism in finding 2.\n\n## Road not taken\n\nI weighed recommending the central strip at `dispatch` over a per-command patch, and did not. Reason: three of 81 parsers advertise `--`, and a router-level strip changes behavior for 78 commands nobody has complained about; at N=1 I have no evidence about which of them might later want `--` as a genuine boundary. The per-command fix is the right blast radius. Finding 1 is about how many commands, not about the mechanism's altitude.\n\n## Steelman of the position I am arguing against\n\nThe strongest case for binding exactly as triaged: the failure is fail-closed, the workaround is one token, #2680 and #2837 established a three-line house fix, and a fourth application is cheaper than any unification project -- scope creep on a cosmetic help string is the worse trade.\n\nThat is a fair reading, and it is why finding 1 is `sharpens-framing` and not `blocks-the-design`. What would flip me to blocking: evidence that `verify:plan-sequence`'s usage line is unreachable by operators. It is not -- I ran the command with no arguments and it printed that exact `--`-bearing line to stderr. What would flip me the other way, toward accepting the singular framing: a repo test or lint that already scans usage strings against parsers, so a missed sibling would fail CI. I searched for one at this SHA and found none.\n\n### Comment by @MScottAdams (2026-09-06T01:59:46Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nRound 1 of the #4203 arc found a real help/parser mismatch at SHA 20f9dfbd: direct `scope:record-approved-scope --help` prints a standalone `--` that `parseArgs` rejects, and that failure is fail-closed before any mint gate. The Stop 1 bundled \"agree help and parser\" premise survives. The critic did not block the design; it recut the scope around it.\n\nConfirming this map would assert that #4203 still binds as a help/parser contract, but not as a one-file patch that pretends the class is closed. `verify:plan-sequence` is a second live instance of the same `--` usage/parser miss. The Task-forwarding acceptance criterion must not test a `--`-carrying argv that go-task never forwards. Option 1 is a swallow of `--` at any position, not POSIX end-of-options. Direct `--help` still exits 2 through the error channel unless that path is added or scoped out.\n\nThis parent authored Stop 1. None of the classified findings below. Confirming this map is take-bind, not synthesis stamp.\n\nThe arc does not implement a fix, ingest the issue, or stamp triage-ready.\n\n**Lean:** accept all sharpening headings from critic 5556214431, subject to operator confirmation.\n\narc-mode: direct\n\nRound 1 dispatched siblings: 1. Critic record: Claude [5556214431](https://github.com/deftai/directive/issues/4203#issuecomment-5556214431).\n\nInput ceiling: 5556159055. Supersedes Stop 1 write-back 5556159055.\n\n## Take map\n\n| Critic | Heading | Class | Proposed take |\n| --- | --- | --- | --- |\n| 5556214431 | verify:plan-sequence is a second live instance of the identical defect | sharpens-framing | accept-into-contract |\n| 5556214431 | Task-forwarding acceptance criterion tests a shape the Task front door cannot produce | sharpens-framing | accept-into-contract |\n| 5556214431 | Option 1 as house-styled is a swallow, not end-of-options | sharpens-framing | accept-into-contract |\n| 5556214431 | Acceptance criterion 1 is satisfiable while --help still fails | sharpens-framing | accept-into-contract |\n\n## Accepted set\n\nThe proposed accepted set is all four rows above.\n\n## Residual\n\nNo disposition-changing disagreement remains in the classified blocking and sharpening set. There were zero `blocks-the-design` headings.\n\n## Footnote census\n\n- Claude 5556214431: no repo-wide usage-vs-parser guard; a central `--` strip at dispatch is available but unpriced at N=1.\n\n## Proposed bound reading\n\n1. Keep the core defect: help-advertised `--` vs `parseArgs` reject, fail-closed before mint.\n2. Widen scope to name `verify:plan-sequence` as the same class at this SHA, or file it as a deferred sibling. Do not bind a singular \"this command only\" close.\n3. Direct tests lock the help-advertised form. Task tests lock that go-task strips `--` before `CLI_ARGS`, not a fictional parser argv that still contains `--`.\n4. If option 1: accept-and-ignore `--` at any position (house swallow). If option 2: drop `--` from direct `usage()` and leave the Task spelling on the Taskfile. Do not claim POSIX end-of-options.\n5. Add a typed `--help` stdout/exit-0 path (sibling already has it) or explicitly scope it out.\n6. Keep TTY/confirm/mint/UAT refuse-matrix tests on the help-advertised form as well as the bare form. `--` must not become an `--actor`/`--kind` value.\n\nAudit markers: none.\n\nThis is the first operator surface after the critic post. It is a proposed map, not synthesis bind.\n\n### Comment by @MScottAdams (2026-09-06T02:15:55Z)\n\nmodel: grok-4.6\nrole: parent\n\nAccept, successor lean 5556220318. Operator verb accept. All-accept map, empty disagreement set, zero audit markers, no unposted same-round siblings.\n\n### Comment by @MScottAdams (2026-09-06T02:16:29Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nRe-derived against blobs `20f9dfbda67746fc0367b4856cfeb016e6e96213:packages/cli/src/scope-record-approved-scope.ts` and `verify-plan-sequence.ts`. Local hashes match (`1050b225`, `0d012462`). Probe: `node --import tsx` of exported `parseArgs`; `node packages/cli/dist/bin.js` for live CLI. No row is marked verified from critic agreement alone.\n\nNon-self-arbitration: this parent authored Stop 1 `5556159055`. None of the classified critic findings.\n\n| Claim | Result | Method | Evidence |\n| --- | --- | --- | --- |\n| Dispatch SHA sources match the working tree used for probes. | verified | `git rev-parse SHA:path` vs `git hash-object` | Both files identical. |\n| Direct usage advertises a standalone `--` before the xBRIEF path. | verified | Read scope-record-approved-scope.ts:66 | `usage: scope:record-approved-scope -- <xbrief-path> ...` |\n| `parseArgs` has no `arg === \"--\"` case; `--` is unrecognized. | verified | Imported `parseArgs` | `[\"--\",\"p.json\",\"--actor\",\"David\",\"--confirm\"]` error `unrecognized argument: --`. Bare form parses `path=p.json actor=David confirm=true`. |\n| Live CLI help-advertised form exits 2 before path lookup. | verified | `node packages/cli/dist/bin.js scope:record-approved-scope -- /tmp/nope.xbrief.json --actor David --confirm` | stderr `unrecognized argument: --`, exit 2. Bare form reaches `xBRIEF not found`, exit 2. |\n| `run()` returns 2 on parse error before mint gates. | verified | Read run() at :209-214 | `if (args.error !== undefined) { stderr; return 2; }` precedes UAT/human-presence mint. |\n| Direct `--help` still fails closed through the error channel. | verified | Live CLI `--help` | Prints usage with `scope_record_approved_scope:` prefix, exit 2. `parseArgs([\"--help\"])` returns `error: usage()`. |\n| `verify:plan-sequence` is a second live instance. | verified | Read verify-plan-sequence.ts:67-74 plus live CLI | Usage string contains `-- --target-kind`. `node ... verify:plan-sequence -- --target-kind issue --target 4203` -> `unknown flag: --`, exit 2. Bare command prints that usage, exit 2. |\n| Taskfile documents a `--` forwarding spelling and does not pass `--` in ENGINE_CMD. | verified | Read tasks/scope.yml:155-165 | Comment uses `task scope:record-approved-scope -- xbrief/...`. ENGINE_CMD is `scope:record-approved-scope {{.CLI_ARGS}} --project-root ...`. |\n| Twelve existing CLI parsers swallow `--`; this command is not among them. | verified | Search `arg === \"--\"` under packages/cli/src | 12 handler lines in 11 files. scope-record-approved-scope.ts and verify-plan-sequence.ts have usage `--` and no handler. |\n| All-accept completion preconditions are present. | verified | REST comments plus operator accept 5556296491 | 1 critic family posted; lean 5556220318 has 4 `accept-into-contract`, 0 disagree, 0 defer, 0 audit markers; operator `accept`. |\n\n### Comment by @MScottAdams (2026-09-06T02:16:51Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe help/parser mismatch is real and fail-closed. Direct `scope:record-approved-scope` prints `--` in usage and rejects that token. The Stop 1 agree-help-and-parser premise binds. The recut is: also cover `verify:plan-sequence`, test Task stripping rather than a fictional `--`-carrying parser argv, treat option 1 as a swallow not POSIX end-of-options, and either give `--help` a typed exit-0 path or scope that out.\n\nAccepted record: successor lean 5556220318; verified-claims table 5556299167.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)",
+      "Labels": "design-critique:triage-ready"
+    },
+    "items": [
+      {
+        "title": "The command form printed by direct `--help` no longer fails on the standalone separator.",
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/scope-record-approved-scope.test.ts#typed --help writes usage to stdout and exits 0 (#4203)",
+          "recorded_at": "2026-09-06T14:17:54Z",
+          "recorded_by": "leaf-implementation/4203"
+        }
+      },
+      {
+        "title": "Regression coverage exercises the exact help-advertised direct form.",
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/scope-record-approved-scope.test.ts#swallows -- at any position on the help-advertised form (#4203)",
+          "recorded_at": "2026-09-06T14:17:54Z",
+          "recorded_by": "leaf-implementation/4203"
+        }
+      },
+      {
+        "title": "The selected direct-parser behavior is tested separately from Task argument forwarding.",
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/scope-record-approved-scope.test.ts#Taskfile ENGINE_CMD forwards CLI_ARGS without embedding -- (#4203)",
+          "recorded_at": "2026-09-06T14:17:54Z",
+          "recorded_by": "leaf-implementation/4203"
+        }
+      },
+      {
+        "title": "Unknown options still fail closed.",
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/scope-record-approved-scope.test.ts#unknown options still fail closed with or without -- (#4203)",
+          "recorded_at": "2026-09-06T14:17:54Z",
+          "recorded_by": "leaf-implementation/4203"
+        }
+      },
+      {
+        "title": "The TTY, controlling-terminal, `--confirm`, typed-`mint`, agent/CI, and UAT safeguards remain unchanged.",
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "uat",
+          "pointer": "packages/cli/src/scope-record-approved-scope.test.ts#help-advertised refuse matrix and parse failure write no approval artifacts (#4203)",
+          "recorded_at": "2026-09-06T14:17:54Z",
+          "recorded_by": "leaf-implementation/4203"
+        }
+      },
+      {
+        "title": "No approval artifacts are written on parse failure.",
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/scope-record-approved-scope.test.ts#help-advertised refuse matrix and parse failure write no approval artifacts (#4203)",
+          "recorded_at": "2026-09-06T14:17:54Z",
+          "recorded_by": "leaf-implementation/4203"
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4203",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4203: bug(cli): scope:record-approved-scope help advertises rejected -- separator"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "directive scope:record-approved-scope --help",
+          "reason": "wrapper subcommand must be check|doctor|verify:*|help|--version (scope/policy/swarm/scm/merge and other ambient-authority verbs denied)",
+          "sourceSpan": "fence@L22:text"
+        },
+        {
+          "command": "scope_record_approved_scope: usage: scope:record-approved-scope -- <xbrief-path> --actor <name> --confirm ...",
+          "reason": "shell metacharacter \"<\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L22:text"
+        },
+        {
+          "command": "directive scope:record-approved-scope -- /private/tmp/nonexistent.xbrief.json --actor David --confirm",
+          "reason": "wrapper subcommand must be check|doctor|verify:*|help|--version (scope/policy/swarm/scm/merge and other ambient-authority verbs denied)",
+          "sourceSpan": "fence@L29:text"
+        },
+        {
+          "command": "scope_record_approved_scope: unrecognized argument: --",
+          "reason": "path-like first token is not allowlisted",
+          "sourceSpan": "fence@L29:text"
+        },
+        {
+          "command": "directive scope:record-approved-scope /private/tmp/nonexistent.xbrief.json --actor David --confirm",
+          "reason": "wrapper subcommand must be check|doctor|verify:*|help|--version (scope/policy/swarm/scm/merge and other ambient-authority verbs denied)",
+          "sourceSpan": "fence@L38:text"
+        },
+        {
+          "command": "scope_record_approved_scope: xBRIEF not found: /private/tmp/nonexistent.xbrief.json",
+          "reason": "path-like first token is not allowlisted",
+          "sourceSpan": "fence@L38:text"
+        },
+        {
+          "command": "directive scope:record-approved-scope <xbrief-path> --actor <name> --confirm",
+          "reason": "shell metacharacter \"<\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L73:sh"
+        }
+      ],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5361117533,
+        "origin": "deftai/directive#4203",
+        "id": "github.issue.5361117533"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "The command form printed by direct `--help` no longer fails on the standalone separator.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Regression coverage exercises the exact help-advertised direct form.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The selected direct-parser behavior is tested separately from Task argument forwarding.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Unknown options still fail closed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "The TTY, controlling-terminal, `--confirm`, typed-`mint`, agent/CI, and UAT safeguards remain unchanged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "No approval artifacts are written on parse failure.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5361117533",
+    "updated": "2026-09-06T12:53:57Z"
+  }
+}
