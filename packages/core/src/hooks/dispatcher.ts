@@ -1364,8 +1364,7 @@ function inspectMutationGates(
     }
     spawnConsult = consult;
   }
-  const skipParentRitual =
-    spawnConsult?.destProven === true && spawnConsult.parentId !== "none";
+  const skipParentRitual = spawnConsult?.destProven === true && spawnConsult.parentId !== "none";
 
   let ritual: VerifyResult | undefined;
   if (!skipParentRitual) {
