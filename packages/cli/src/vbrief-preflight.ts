@@ -112,7 +112,15 @@ export function run(
   }
   const vbriefPath = args.vbriefPath as string;
   const result = evaluate(vbriefPath);
-  const scanLines = [...scan(vbriefPath)];
+  let scanLines: string[] = [];
+  try {
+    scanLines = [...scan(vbriefPath)];
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    scanLines = [
+      `[deft work-claim] warning: scan failed (${message}). Warn is success; this is not a GitHub lock.`,
+    ];
+  }
 
   if (args.emitJson) {
     const message =

@@ -135,6 +135,27 @@ describe("run", () => {
     expect(silentRun(["--vbrief-path", path])).toBe(1);
   });
 
+  it("fail-opens when the work-claim scan throws (#4200)", () => {
+    const path = activeRunning();
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    try {
+      expect(
+        run(["--vbrief-path", path, "--json"], () => {
+          throw new Error("git missing");
+        }),
+      ).toBe(0);
+      const written = String(out.mock.calls[0]?.[0] ?? "");
+      const payload = JSON.parse(written.trim()) as { ready: boolean; message: string };
+      expect(payload.ready).toBe(true);
+      expect(payload.message).toContain("scan failed");
+      expect(payload.message).toContain("Warn is success");
+    } finally {
+      out.mockRestore();
+      err.mockRestore();
+    }
+  });
+
   it("still scans work-claim when preflight evaluation fails (#4200)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-cli-pending-scan-"));
     temps.push(root);
