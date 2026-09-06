@@ -93,7 +93,7 @@ tasks:
           ENGINE_CMD: 'scm issue edit {{.CLI_ARGS}}'
 
   issue:design-critique-chip:
-    desc: "[#3642] Exclusive design-critique catalog chip -- task scm:issue:design-critique-chip -- --issue N --chip triage-ready|mechanism-shaped [--repo OWNER/NAME]"
+    desc: "[#3642] Exclusive design-critique catalog chip -- task scm:issue:design-critique-chip -- --issue N --chip triage-ready|mechanism-shaped|recut-needed [--repo OWNER/NAME]"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
       - task: :engine:_ts-build

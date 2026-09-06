@@ -2,14 +2,19 @@
 import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { resolveAutoStampCatalogChip } from "../../design-critique/auto-stamp-chip.js";
 import { COMPLETED_ARC_BLOCK_REASONS } from "../../design-critique/completed-arc-record.js";
-import { remainingSetAfterDesignCritiqueChip } from "../../design-critique/exclusive-chip.js";
+import {
+  DESIGN_CRITIQUE_CATALOG_CHIPS,
+  remainingSetAfterDesignCritiqueChip,
+} from "../../design-critique/exclusive-chip.js";
 import { evaluatePanelSeatComposition } from "../../design-critique/panel-seat-families.js";
 import { evaluateParentAudit } from "../../design-critique/parent-audit.js";
 import {
   evaluateDirectDispatch,
   parseOperatorRunPosture,
 } from "../../design-critique/run-posture.js";
+import { resolveDesignCritiqueChipArg } from "../../scm/design-critique-chip.js";
 import { isFile, readText, repoRoot, resolveContentPath } from "./_helpers.js";
 
 const CONTRACT = "contracts/design-critique.md";
@@ -76,6 +81,9 @@ const REQUIRED_CONTRACT_POINTERS = [
   "first line",
   "second line",
   "design-critique:triage-ready",
+  "design-critique:recut-needed",
+  "resolveAutoStampCatalogChip",
+  "Recut:",
   "design-critique: halted, because",
   "design-critique: synthesis accepted, because",
   "triage:accept",
@@ -646,7 +654,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(labelsDoc).toContain("#3640 auto-stamp");
   });
 
-  it("pins exclusive remaining-set replace of the two catalog chips", () => {
+  it("pins exclusive remaining-set replace of the three catalog chips", () => {
     const remaining = remainingSetAfterDesignCritiqueChip(
       ["bug", "design-critique:mechanism-shaped", "area:cli"],
       "design-critique:triage-ready",
@@ -676,7 +684,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     const labelsDoc = readText(".github/ISSUE_LABELS.md");
     expect(labelsDoc).toContain("remaining-set replace");
     expect(labelsDoc).toContain("Do not DELETE-then-POST");
-    expect(labelsDoc).toContain("Remove-set is those two catalog names only");
+    expect(labelsDoc).toContain("Remove-set is those three catalog names only");
     const skill = readText(SKILL_REL);
     expect(skill).not.toContain("DELETE-then-POST");
     expect(skill).not.toContain("remaining-set");
@@ -697,7 +705,46 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     const anyOf = gateMatch?.[1] ?? "";
     expect(anyOf).toContain("design-critique:mechanism-shaped");
     expect(anyOf).not.toContain("design-critique:triage-ready");
+    expect(anyOf).not.toContain("design-critique:recut-needed");
     expect(anyOf).not.toContain("critic-posted");
+  });
+
+  it("locks recut-needed chip, Recut: token, CHIP_ALIASES, and no-NLP auto-stamp (#4205)", () => {
+    expect(DESIGN_CRITIQUE_CATALOG_CHIPS).toEqual([
+      "design-critique:mechanism-shaped",
+      "design-critique:triage-ready",
+      "design-critique:recut-needed",
+    ]);
+    expect(resolveDesignCritiqueChipArg("recut-needed")).toBe("design-critique:recut-needed");
+    expect(resolveDesignCritiqueChipArg("design-critique:recut-needed")).toBe(
+      "design-critique:recut-needed",
+    );
+    expect(
+      resolveAutoStampCatalogChip(
+        "**Lean:** recut of 5555695949. Repo-wide lookup or drop cross-issue overlap.\n",
+      ),
+    ).toBe("design-critique:triage-ready");
+    expect(
+      resolveAutoStampCatalogChip("**Lean:** next-build is not this body.\n\n**Recut:**\n"),
+    ).toBe("design-critique:recut-needed");
+    const remaining = remainingSetAfterDesignCritiqueChip(
+      ["bug", "design-critique:mechanism-shaped"],
+      "design-critique:recut-needed",
+    );
+    expect(remaining).toEqual(["bug", "design-critique:recut-needed"]);
+    expect(remaining).not.toContain("design-critique:triage-ready");
+    const text = readText(CONTRACT);
+    expect(text).toContain("design-critique:recut-needed");
+    expect(text).toContain("resolveAutoStampCatalogChip");
+    expect(text).toContain("Recut:");
+    expect(text).toContain("--chip recut-needed");
+    expect(text).toContain("⊗ Classify recut by NLP of the lean.");
+    expect(text).toContain(
+      "⊗ Add `design-critique:recut-needed` to `judgmentGates` labels.any-of.",
+    );
+    const labelsDoc = readText(".github/ISSUE_LABELS.md");
+    expect(labelsDoc).toContain("design-critique:recut-needed");
+    expect(labelsDoc).toContain("CHIP_ALIASES");
   });
 
   it("locks first-lean recording obligation after this round's siblings are posted (#4027 / #3741)", () => {

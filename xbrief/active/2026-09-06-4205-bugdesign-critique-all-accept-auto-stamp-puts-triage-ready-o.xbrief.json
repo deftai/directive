@@ -1,0 +1,130 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4205",
+    "updated": "2026-09-06T01:07:52Z"
+  },
+  "plan": {
+    "title": "bug(design-critique): all-accept auto-stamp puts triage-ready on a recut lean",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(design-critique): all-accept auto-stamp puts triage-ready on a recut lean",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4205",
+      "Overview": "## Parent\n\n#3434\n\n## Problem\n\nThe #3640 all-accept auto-stamp always remaining-set-replaces the catalog chip to `design-critique:triage-ready`. That name reads as \"ready to ingest and build this body.\" The synthesis-accepted sentence is the same whether the arc concludes \"build this\" or \"this cannot be built as written -- recut first.\"\n\nMeasured on #4200 (2026-09-05). Operator confirmed an all-accept lean whose next-build contract was recut (repo-wide lookup or drop cross-issue overlap; add a task verb). Path 1 auto-posted the verified-claims table, posted `design-critique: synthesis accepted, because agents agreed (empty disagreement set)`, and applied `triage-ready`. The list then showed a recut-needed draft as ready.\n\nThe contract already says ingest does not take the chip as clearance (latest successor lean + synthesis-accepted line). That does not help operators or agents who filter on the chip. Recut is defined as dropping `triage-ready` and re-applying `mechanism-shaped` -- so the protocol stamps ready, then expects a recut to unstamp it.\n\n## Current catalog\n\n`DESIGN_CRITIQUE_CATALOG_CHIPS` (`packages/core/src/design-critique/exclusive-chip.ts`) is a closed two-name set:\n\n- `design-critique:mechanism-shaped` -- in-flight, `judgmentGates` match\n- `design-critique:triage-ready` -- bound / list-visible convenience\n\n`scm:issue:design-critique-chip` remaining-set-replaces within that set. A third chip is a catalog change, not a label invention in the field.\n\n## Proposed direction (fork, not locked)\n\nThe auto-stamp must not leave `triage-ready` on an issue whose accepted lean is \"recut, do not implement this body.\"\n\nCandidate shapes (arc should pick one):\n\n1. **Third exclusive chip**, e.g. `design-critique:recut-needed` -- last chip wins; `judgmentGates` still matches only `mechanism-shaped`; ingest still reads the lean, not the chip.\n2. **Do not auto-stamp `triage-ready`** when the lean's next-build reading is recut / cannot-bind-as-written; stay on `mechanism-shaped` or post synthesis-accepted without flipping the chip.\n3. **Rename or split `triage-ready`** so \"arc complete\" and \"this body is the implement contract\" are not the same list state.\n\nDo not treat chip as ingest clearance. Do not add a halt chip. Do not DELETE-then-POST.\n\n## Acceptance (draft)\n\n- [ ] An all-accept bind whose lean is recut / not-the-next-build-contract does not display `design-critique:triage-ready`.\n- [ ] `judgmentGates` still matches only `mechanism-shaped`.\n- [ ] Ingest still keys off the completed-arc record + latest successor lean, not the chip.\n- [ ] Recut of a later body still opens a new arc (mechanism-shaped, old record does not clear the new lean).\n- [ ] Closed catalog stays exclusive remaining-set (one write). Content-contract tests lock the new names.\n- [ ] #4200 (or a fixture) is the exemplar: empty-disagreement recut lean must not look implement-ready on the label list.\n\n## Non-goals\n\n- Re-litigating that synthesis-accepted prose is identical across verdicts (that is load-bearing).\n- Making the chip ingest clearance.\n- Classifying recut by NLP of the lean.\n\nRefs #3434, #3640, #3642, #4200, `content/contracts/design-critique.md` Recut / Operator verbs / Bind after accepted synthesis.\r\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-06T00:38:54Z)\n\nmodel: grok-4.6\nrole: triage\n\nhttps://github.com/deftai/directive/issues/4205\n\nTriage write-back. SHA at write-back: origin/master `20f9dfbda67746fc0367b4856cfeb016e6e96213` (resolved this session via git rev-parse origin/master).\n\n**Authorship disclosure.** This session filed the issue and produced the presumption in it. Critics should re-derive rather than defer.\n\nmechanism-shaped: true. The question is how the catalog chip behaves after an all-accept bind whose next-build contract is recut, not implement this body.\n\ndesign-critique: warranted, because the proposed direction changes the exclusive catalog and the #3640 auto-stamp path (labels, protocol recording, list-visible state); because `judgmentGates` must keep matching only `mechanism-shaped`; because ingest already ignores the chip and that split is load-bearing; and because #4200 just measured the failure: all-accept recut lean stamped `triage-ready`, then recut had to unstamp it.\n\nrefutation-target: the filing core presumption -- that the #3640 all-accept auto-stamp must not leave `design-critique:triage-ready` on an issue whose accepted lean is recut / not-the-next-build-contract, without making the chip ingest clearance, without a halt chip, without DELETE-then-POST, and without classifying recut by NLP of the lean.\n\narc-mode: direct\n\n## Current-state validity (read, not re-invented)\n\n- `DESIGN_CRITIQUE_CATALOG_CHIPS` at this SHA is a closed two-name set: `design-critique:mechanism-shaped`, `design-critique:triage-ready` (`packages/core/src/design-critique/exclusive-chip.ts`). Remaining-set replace. A third name is a catalog change.\n- Auto-stamp is parent protocol in `content/contracts/design-critique.md` Operator verbs / Bind path 1: total all-accept map plus operator confirm remaining-set-replaces to `triage-ready`. It does not read the lean for recut vs implement.\n- Recut after bind re-applies `mechanism-shaped` and drops `triage-ready`. Measured this session on #4200: synthesis 5555695949 stamped ready; recut comment 5555835582 plus chip write removed `triage-ready`.\n- Ingest keys off latest successor lean plus the synthesis-accepted line. Catalog chips are list-visible convenience, not clearance (completed-arc-record tests at this SHA).\n- `judgmentGates` matches `mechanism-shaped` only.\n\n## Stop 2\n\ncharter: refutation. The issue names a defensible presumption with an explicit refutation target.\n\nspend: N=1. Default after a mechanism-shaped stamp. Three candidate shapes are forks inside the presumption, not a third charter. Panel permission is available (catalog blast) and is not used this round.\n\nround: 1. critic role: fresh.\n\nVerification posture: arc-mode direct. Critic is process-only. Pin reads to `git show 20f9dfbda67746fc0367b4856cfeb016e6e96213:` . No worktree add. No product implementation. No exclusive-chip catalog edit.\n\n\n### Comment by @MScottAdams (2026-09-06T00:41:27Z)\n\nmodel: grok-4.6\nrole: critic\n\nDispatch SHA: `20f9dfbda67746fc0367b4856cfeb016e6e96213`\nCeiling: 5555840550. Charter: refutation.\n\nVerdict on the refutation target: **not refuted as a hole**. Auto-stamp remaining-set-replaces to `triage-ready` on every all-accept bind. It does not read the lean. Ingest already ignores the chip. The list still showed a recut-needed #4200 as ready (synthesis 5555695949), then recut had to unstamp it (5555835582). The cheap list-visible lie is real. The recorded **fork 2** cannot carry the job without a new stamp.\n\n## `sharpens-framing` -- Fork 2 has no mechanical discriminator\n\nEvidence. At this SHA, `DESIGN_CRITIQUE_CATALOG_CHIPS` is two names (`packages/core/src/design-critique/exclusive-chip.ts` lines 4-7). `CHIP_ALIASES` in `packages/core/src/scm/design-critique-chip.ts` is the same two. `DESIGN_CRITIQUE_MARKER_LABEL` is only `design-critique:mechanism-shaped` (`packages/core/src/orchestration/judgment-policy.ts`). Bind path 1 in `content/contracts/design-critique.md` auto-stamps `triage-ready` from a total all-accept map plus operator confirm. Nothing in that path inspects lean prose. The issue non-goal is classifying recut by NLP of the lean.\n\nConcrete failure mode. An implementer told to \"skip triage-ready when the lean is recut\" either parses English (the non-goal) or invents a parent judgment that ADR-005 already refused (stamp, do not compute). Fork 2 as written is unsatisfiable.\n\nDisposition consequence. Mechanize fork 2 as a closed token on the successor lean (a line-start auto-stamp can match, in the same family as `Lean:`), or drop fork 2 from the pickable set. Do not leave \"when the lean reads recut\" as an implementable shape.\n\n## `sharpens-framing` -- Fork 3 is a list migration, not a local auto-stamp tweak\n\nEvidence. `triage-ready` is already on bound issues (measured: #4200 carried it until this session recut). Content-contract tests pin the two catalog names and the `--chip triage-ready|mechanism-shaped` usage string.\n\nConcrete failure mode. Rename or split without a migration leaves two \"arc complete\" chips on the list, or silently retags every previously-ready issue. That is repo-wide vocabulary change, not the #4200-shaped local miss.\n\nDisposition consequence. v1 default is not fork 3. If the arc still wants rename, AC must name alias-or-rewrite of existing `triage-ready`. Otherwise pick a third exclusive chip or stay on `mechanism-shaped` without flipping.\n\n## `footnote` -- A third name is a closed-set change across exclusive-chip, CHIP_ALIASES, and content-contract\n\n`resolveDesignCritiqueChipArg` fails closed on an unknown `--chip`. Adding a GitHub label in the field without those three surfaces leaves the parent verb unable to write `recut-needed` and tempts additive `scm:issue:edit --add-label`, which breaks remaining-set. The issue AC already says catalog plus content-contract; this footnote names the CLI alias table as the third lock.\n\n## Injection / swarm lens\n\nA last-wins catalog chip is list-visible state anyone with label write can flip. Same as the current two-name set. Do not give a third chip fail-closed halt meaning (halt chip is a non-goal). Chip apply miss stays non-blocking convenience.\n\n## Road not taken\n\nNLP of the lean -- issue non-goal; would re-open ADR-005. Halt chip -- issue non-goal; would add a label the contract forbids.\n\n## Steelman\n\nSteelman for keeping `triage-ready` on every all-accept bind: the chip means arc-complete bookkeeping, ingest already reads the lean, operators can learn. That would flip the hole only if the measured #4200 misread did not happen. It did. The list-visible name is the operator surface. The steelman does not survive that measurement.\n\n\n### Comment by @MScottAdams (2026-09-06T00:42:21Z)\n\nmodel: grok-4.6\nrole: parent\n\n**Lean:**\n\n## In plain English\n\nThe hole is real: all-accept auto-stamp always puts `triage-ready` on the issue, even when the next-build contract is recut. Ingest already ignores the chip. The list does not. #4200 measured that.\n\nFork 2 as written cannot be built. Auto-stamp does not read lean prose, and NLP is a non-goal. Recut vs implement has to be a closed token, or fork 2 is dropped.\n\nFork 3 (rename or split `triage-ready`) is a list migration. v1 should not take it.\n\nIf this map is confirmed, the next-build contract is: add a third exclusive chip (`design-critique:recut-needed`), drive auto-stamp from a closed token on the successor lean, keep `judgmentGates` matching only `mechanism-shaped`, and leave ingest on the completed-arc record. Confirming does not start a build.\n\nParent forward verdict: third chip plus token; not rename. Disposition is per-heading below. Non-self-arbitration: this parent authored Stop 1 (5555840550) and, after spawn_subagent was refused on ritual-stale HEAD, also posted the critic comment (5555852837). Same-family, same session. Confirming this map is an operator act, not the parent clearing its own critique. What this arc does not do: implement, bind synthesis, or ingest.\n\nRound 1 dispatched 1 sibling: [5555852837](https://github.com/deftai/directive/issues/4205#issuecomment-5555852837) (grok-4.6). This map supersedes Stop 1 write-back 5555840550.\n\n## Takes\n\n### 5555852837 / Fork 2 has no mechanical discriminator -- accept-into-contract\nMechanize recut vs implement as a closed token on the successor lean that auto-stamp can match, or drop fork 2. Do not classify recut by reading lean prose.\n\n### 5555852837 / Fork 3 is a list migration, not a local auto-stamp tweak -- accept-into-contract\nv1 does not rename `triage-ready`. Remaining pick is a third exclusive chip (with CHIP_ALIASES plus content-contract) or stay on `mechanism-shaped` without flipping. Forward verdict is the third chip.\n\n## Residual\n\nNone that still changes disposition once the token-plus-third-chip reading is accepted. Stay-on-mechanism-shaped-without-flipping is the operator fork inside the second heading, not a third heading. Footnote (CLI alias table) is census only.\n\nOperator verbs that apply: **accept**, **retry differences**, **walk all**.\n\n\n### Comment by @MScottAdams (2026-09-06T00:45:54Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe hole is real: all-accept auto-stamp always leaves `triage-ready` on the list, even when the next-build contract is recut. Ingest already ignores the chip. Fork 2 cannot be built without a closed token. Fork 3 is a list migration. Confirming this table binds the successor lean: third exclusive chip plus a closed token, not a rename, not NLP. Confirming does not ingest and does not start a build.\n\nNon-self-arbitration: this parent authored Stop 1 5555840550 and critic comment 5555852837 (spawn_subagent refused ritual-stale HEAD). Rows marked verified rest on SHA reads named in the method column, not on \"the critic agreed.\"\n\n## Verified-claims table\nVerified-claims table for the arc bound at successor lean 5555856999. Every row names its method.\n\n| Claim | Method | Status |\n|---|---|---|\n| Catalog is a closed two-name set (mechanism-shaped, triage-ready) | git show 20f9dfbd:packages/core/src/design-critique/exclusive-chip.ts lines 4-7 DESIGN_CRITIQUE_CATALOG_CHIPS | verified |\n| CHIP_ALIASES is the same two names; unknown --chip fails closed | git show 20f9dfbd:packages/core/src/scm/design-critique-chip.ts CHIP_ALIASES 32-37 and resolveDesignCritiqueChipArg 55-64 | verified |\n| judgmentGates / DESIGN_CRITIQUE_MARKER_LABEL match only mechanism-shaped | git show 20f9dfbd:packages/core/src/orchestration/judgment-policy.ts lines 14-15; PROJECT-DEFINITION plan.policy.judgmentGates labels.any-of | verified |\n| Auto-stamp remaining-set-replaces to triage-ready from a total all-accept map; it does not inspect lean prose | content/contracts/design-critique.md Operator verbs / Bind path 1 at 20f9dfbd; no lean-text parser in exclusive-chip.ts or design-critique-chip.ts | verified |\n| Ingest does not treat leftover mechanism-shaped or triage-ready as clearance | packages/core/src/design-critique/completed-arc-record.test.ts at 20f9dfbd: leftover-chip missing-record; does not require triage-ready once the record is present | verified |\n| #4200 all-accept recut lean was stamped triage-ready, then recut unstamped it | GitHub REST: synthesis 5555695949; recut comment 5555835582; live labels now mechanism-shaped without triage-ready | verified |\n| NLP of the lean is a non-goal | #4205 body Non-goals; ADR-005 stamp-do-not-compute | verified |\n| Exclusive issue lock / halt chip are out | #4205 non-goals; contract forbids a halt chip | verified |\n\nAccepted successor lean: 5555856999. Critic: 5555852837. Stop 1: 5555840550. Dispatch SHA: 20f9dfbda67746fc0367b4856cfeb016e6e96213. Round-1 N=1. Audit markers: none.\n\n\n### Comment by @MScottAdams (2026-09-06T00:46:39Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThis arc found that all-accept auto-stamp always leaves `triage-ready` on the list, that ingest already ignores the chip, and that skip-on-recut-prose cannot be built without a closed token. Confirming this record does not start a build and does not ingest. The next-build contract is a third exclusive chip (`design-critique:recut-needed`) driven by a closed token on the successor lean, with `judgmentGates` still matching only `mechanism-shaped`. This lean is that contract, not a recut-needed draft, so the list chip after bind is the current-protocol bound state.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nAccepted successor lean 5555856999. Verified-claims table 5555873869. Round-1 critic 5555852837. Stop 1 write-back 5555840550. Dispatch SHA 20f9dfbda67746fc0367b4856cfeb016e6e96213. Charter refutation, spend N=1, arc-mode: direct.\n\nEvery classified heading took accept-into-contract. Audit markers: none. Residual: none.\n\nThe arc closes here. Ingest stays a later operator verb.",
+      "Labels": "bug, agent-experience, process, area:skills, status:child, design-critique:triage-ready"
+    },
+    "items": [
+      {
+        "title": "An all-accept bind whose lean is recut / not-the-next-build-contract does not display `design-critique:triage-ready`.",
+        "status": "proposed"
+      },
+      {
+        "title": "`judgmentGates` still matches only `mechanism-shaped`.",
+        "status": "proposed"
+      },
+      {
+        "title": "Ingest still keys off the completed-arc record + latest successor lean, not the chip.",
+        "status": "proposed"
+      },
+      {
+        "title": "Recut of a later body still opens a new arc (mechanism-shaped, old record does not clear the new lean).",
+        "status": "proposed"
+      },
+      {
+        "title": "Closed catalog stays exclusive remaining-set (one write). Content-contract tests lock the new names.",
+        "status": "proposed"
+      },
+      {
+        "title": "#4200 (or a fixture) is the exemplar: empty-disagreement recut lean must not look implement-ready on the label list.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "area:skills",
+      "status:child",
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4205",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4205: bug(design-critique): all-accept auto-stamp puts triage-ready on a recut lean"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3434",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3434"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "An all-accept bind whose lean is recut / not-the-next-build-contract does not display `design-critique:triage-ready`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "`judgmentGates` still matches only `mechanism-shaped`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Ingest still keys off the completed-arc record + latest successor lean, not the chip.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Recut of a later body still opens a new arc (mechanism-shaped, old record does not clear the new lean).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Closed catalog stays exclusive remaining-set (one write). Content-contract tests lock the new names.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "#4200 (or a fixture) is the exemplar: empty-disagreement recut lean must not look implement-ready on the label list.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5361832594,
+        "origin": "deftai/directive#4205",
+        "id": "github.issue.5361832594"
+      }
+    },
+    "id": "github.issue.5361832594",
+    "updated": "2026-09-06T01:07:52Z"
+  }
+}

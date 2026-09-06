@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **All-accept auto-stamp no longer leaves `triage-ready` on a recut lean (#4205).** Third exclusive chip `design-critique:recut-needed`. Auto-stamp matches a Lean-family `Recut:` line-start on the successor lean (`resolveAutoStampCatalogChip`); it does not parse lean English. `CHIP_ALIASES` and content-contract tests lock the name. `judgmentGates` still matches only `mechanism-shaped`. Ingest still keys off the completed-arc record. Closes #4205. Refs #3434, #3640, #3642, #4200.
 - **Land leftover completed-tracked artifact for #4202 (#3264 / #1358).** The #4202 xBRIEF stayed in `active/` after squash of PR 4211 (`d89f559d`). Moved to `xbrief/completed/` via scope:complete. Does not recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #4201 (#3264 / #1358).** The #4201 xBRIEF stayed in `active/` after squash of PR 4209 (`78aaba66`). Moved to `xbrief/completed/` via scope:complete. Does not recut that issue. Refs #2321, #3476.
 - **Win32 git-fixture tests inherit a 240s suite cap under coverage contention (#3616).** `testTimeout` 120s→240s. The ingest lifecycle e2e 15s local cap is Linux-only so it does not lower the win32 cap (#4194). Does not lower `maxWorkers`. Refs #3480, #4194.
