@@ -5,6 +5,7 @@ import {
   ARC_RUN_POSTURES,
   arcModeRecordLine,
   DIRECT_POSTING_PATH,
+  DIRECT_RUN_POSTURE_TOKENS,
   DIRECT_SESSION_START,
   evaluateDirectDispatch,
   isDispatchShaPin,
@@ -44,15 +45,42 @@ describe("parseOperatorRunPosture (#4072)", () => {
     });
   });
 
-  it("does not match direct inside directive or directly", () => {
+  it("does not match direct inside directive", () => {
     expect(parseOperatorRunPosture("arc 1 yolo on the directive repo")).toEqual({
       kind: "ask",
       reason: "missing-token",
     });
+  });
+
+  it("resolves please run this directly to direct", () => {
     expect(parseOperatorRunPosture("please run this directly")).toEqual({
-      kind: "ask",
-      reason: "missing-token",
+      kind: "resolved",
+      posture: "direct",
     });
+  });
+
+  it("resolves on github as a location synonym, including extra matches", () => {
+    expect(parseOperatorRunPosture("arc 4219 yolo on github")).toEqual({
+      kind: "resolved",
+      posture: "direct",
+    });
+    expect(parseOperatorRunPosture("file an issue on github")).toEqual({
+      kind: "resolved",
+      posture: "direct",
+    });
+    expect(parseOperatorRunPosture("the comments live on github")).toEqual({
+      kind: "resolved",
+      posture: "direct",
+    });
+  });
+
+  it("keeps DIRECT_RUN_POSTURE_TOKENS twins with the matcher", () => {
+    for (const token of DIRECT_RUN_POSTURE_TOKENS) {
+      expect(parseOperatorRunPosture(token)).toEqual({
+        kind: "resolved",
+        posture: "direct",
+      });
+    }
   });
 
   it("asks when yolo has no posture token", () => {
