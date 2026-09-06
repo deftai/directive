@@ -1863,5 +1863,7 @@ describe("#4119 plan.id mint, admission, and repair", () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
-  }, 15_000);
+    // Linux CI needs more than the 5s default (#4194). A bare 15s here
+    // LOWERS the win32 suite cap (#3616) and flakes under AV spawn cost.
+  }, process.platform === "win32" ? 240_000 : 15_000);
 });

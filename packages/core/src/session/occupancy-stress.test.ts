@@ -39,7 +39,7 @@ function markersNeverInterleave(markers: string[]): boolean {
 
 describe("occupancy concurrency stress (#3433)", () => {
   it("child workers never interleave live leases", {
-    timeout: process.platform === "win32" ? 120_000 : 30_000,
+    timeout: process.platform === "win32" ? 240_000 : 30_000,
   }, async () => {
     const root = mkdtempSync(join(tmpdir(), "occupancy-stress-"));
     temps.push(root);

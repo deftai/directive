@@ -297,8 +297,9 @@ describe("session branches", () => {
   });
 
   // Linux CI full-suite can exceed the 5s default under load (merge-gate flake on #3287).
+  // win32 keeps the suite cap (#3616). A bare 15s here would LOWER win32.
   it("runSessionStart triage exception path", {
-    timeout: process.platform === "win32" ? 120_000 : 15_000,
+    timeout: process.platform === "win32" ? 240_000 : 15_000,
   }, () => {
     const { root, head } = initRepo();
     const result = runSessionStart(root, {
