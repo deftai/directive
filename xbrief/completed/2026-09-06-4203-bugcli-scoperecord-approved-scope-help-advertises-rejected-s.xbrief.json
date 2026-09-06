@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4203",
-    "updated": "2026-09-06T14:17:54Z"
+    "updated": "2026-09-06T14:30:16Z"
   },
   "plan": {
     "title": "bug(cli): scope:record-approved-scope help advertises rejected -- separator",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(cli): scope:record-approved-scope help advertises rejected -- separator",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4203",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "The command form printed by direct `--help` no longer fails on the standalone separator.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/cli/src/scope-record-approved-scope.test.ts#typed --help writes usage to stdout and exits 0 (#4203)",
@@ -26,7 +26,7 @@
       },
       {
         "title": "Regression coverage exercises the exact help-advertised direct form.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/cli/src/scope-record-approved-scope.test.ts#swallows -- at any position on the help-advertised form (#4203)",
@@ -36,7 +36,7 @@
       },
       {
         "title": "The selected direct-parser behavior is tested separately from Task argument forwarding.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/cli/src/scope-record-approved-scope.test.ts#Taskfile ENGINE_CMD forwards CLI_ARGS without embedding -- (#4203)",
@@ -46,7 +46,7 @@
       },
       {
         "title": "Unknown options still fail closed.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/cli/src/scope-record-approved-scope.test.ts#unknown options still fail closed with or without -- (#4203)",
@@ -56,7 +56,7 @@
       },
       {
         "title": "The TTY, controlling-terminal, `--confirm`, typed-`mint`, agent/CI, and UAT safeguards remain unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "uat",
           "pointer": "packages/cli/src/scope-record-approved-scope.test.ts#help-advertised refuse matrix and parse failure write no approval artifacts (#4203)",
@@ -66,7 +66,7 @@
       },
       {
         "title": "No approval artifacts are written on parse failure.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/cli/src/scope-record-approved-scope.test.ts#help-advertised refuse matrix and parse failure write no approval artifacts (#4203)",
@@ -136,7 +136,32 @@
         "github_issue_id": 5361117533,
         "origin": "deftai/directive#4203",
         "id": "github.issue.5361117533"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4214,
+        "prBase": null,
+        "mergeCommit": "c6e396a0d47aa46ed7b67307fe68d13a305d34c4",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c6e396a0d47aa46ed7b67307fe68d13a305d34c4",
+        "verifiedAt": "2026-09-06T14:30:16Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDc2YzItZDU3NC03ZTkyLTk4NWMtMmMxM2QxN2U3Zjgx"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-06T14:30:16Z"
+      },
+      "completedAt": "2026-09-06T14:30:16Z",
+      "completedSessionId": "host:grok:v1:MDFhMDc2YzItZDU3NC03ZTkyLTk4NWMtMmMxM2QxN2U3Zjgx",
+      "capacityBucket": "new-capability"
     },
     "acceptance": {
       "commands": [],
@@ -190,6 +215,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.5361117533",
-    "updated": "2026-09-06T12:53:57Z"
+    "updated": "2026-09-06T14:30:16Z"
   }
 }
