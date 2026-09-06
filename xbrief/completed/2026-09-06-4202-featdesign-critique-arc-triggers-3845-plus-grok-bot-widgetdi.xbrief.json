@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4202",
-    "updated": "2026-09-06T02:14:24Z"
+    "updated": "2026-09-06T10:07:57Z"
   },
   "plan": {
     "title": "feat(design-critique): arc triggers (#3845) plus Grok Bot widget/direct default",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(design-critique): arc triggers (#3845) plus Grok Bot widget/direct default",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4202",
@@ -16,39 +16,93 @@
     "items": [
       {
         "title": "Trigger fixtures close #3845 with no grok-bot dependency.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "evals/trigger-cases.jsonl#design-critique-pos-3",
+          "recorded_at": "2026-09-06T10:07:01Z",
+          "recorded_by": "host:grok:v1:MDFhMDc0NzQtZGMyMC03OTgzLTg3YTktNjU0MzI0N2RkOWU1"
+        }
       },
       {
         "title": "Slice A may ship while #4201 is open; status:child is not a gate on trigger fixtures.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4211",
+          "recorded_at": "2026-09-06T10:07:01Z",
+          "recorded_by": "host:grok:v1:MDFhMDc0NzQtZGMyMC03OTgzLTg3YTktNjU0MzI0N2RkOWU1"
+        }
       },
       {
         "title": "Negative fixture: bare review does not steal from review-cycle.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "evals/trigger-cases.jsonl#design-critique-neg-2",
+          "recorded_at": "2026-09-06T10:07:01Z",
+          "recorded_by": "host:grok:v1:MDFhMDc0NzQtZGMyMC03OTgzLTg3YTktNjU0MzI0N2RkOWU1"
+        }
       },
       {
         "title": "Direct default only after grok-bot detect; checkout tokens still win.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/run-posture.test.ts#resolveArcRunPostureForHost",
+          "recorded_at": "2026-09-06T10:07:01Z",
+          "recorded_by": "host:grok:v1:MDFhMDc0NzQtZGMyMC03OTgzLTg3YTktNjU0MzI0N2RkOWU1"
+        }
       },
       {
         "title": "Widget mapping preserves Discuss and Back; apply-set matches the contract (no retry on empty residual).",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/widget-apply-set.test.ts",
+          "recorded_at": "2026-09-06T10:07:01Z",
+          "recorded_by": "host:grok:v1:MDFhMDc0NzQtZGMyMC03OTgzLTg3YTktNjU0MzI0N2RkOWU1"
+        }
       },
       {
         "title": "Plain-English main-chat; ingest gated on completed-arc record.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/skills/deft-directive-design-critique/SKILL.md",
+          "recorded_at": "2026-09-06T10:07:01Z",
+          "recorded_by": "host:grok:v1:MDFhMDc0NzQtZGMyMC03OTgzLTg3YTktNjU0MzI0N2RkOWU1"
+        }
       },
       {
         "title": "No normative body in the thin skill.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-09-06T10:07:01Z",
+          "recorded_by": "host:grok:v1:MDFhMDc0NzQtZGMyMC03OTgzLTg3YTktNjU0MzI0N2RkOWU1"
+        }
       },
       {
         "title": "#4201 pack list is the only other pointer at this router.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-09-06T10:07:01Z",
+          "recorded_by": "host:grok:v1:MDFhMDc0NzQtZGMyMC03OTgzLTg3YTktNjU0MzI0N2RkOWU1"
+        }
       },
       {
         "title": "CHANGELOG.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "CHANGELOG.md#unreleased",
+          "recorded_at": "2026-09-06T10:07:01Z",
+          "recorded_by": "host:grok:v1:MDFhMDc0NzQtZGMyMC03OTgzLTg3YTktNjU0MzI0N2RkOWU1"
+        }
       }
     ],
     "tags": [
@@ -172,7 +226,32 @@
         "github_issue_id": 5354137708,
         "origin": "deftai/directive#4202",
         "id": "github.issue.5354137708"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4211,
+        "prBase": null,
+        "mergeCommit": "d89f559dca7d64d3215d70e801c0ff39d525384a",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d89f559dca7d64d3215d70e801c0ff39d525384a",
+        "verifiedAt": "2026-09-06T10:07:57Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDc0NzQtZGMyMC03OTgzLTg3YTktNjU0MzI0N2RkOWU1"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-06T10:07:57Z"
+      },
+      "completedAt": "2026-09-06T10:07:57Z",
+      "completedSessionId": "host:grok:v1:MDFhMDc0NzQtZGMyMC03OTgzLTg3YTktNjU0MzI0N2RkOWU1",
+      "capacityBucket": "new-capability"
     },
     "architecture": {
       "systemOfRecord": {
@@ -182,7 +261,10 @@
             "classification": "canonical_artifact",
             "owner": "source control",
             "approvedStorage": "json_file",
-            "forbiddenStorage": ["browser_storage", "in_memory"],
+            "forbiddenStorage": [
+              "browser_storage",
+              "in_memory"
+            ],
             "mutable": false
           }
         ],
@@ -190,6 +272,6 @@
       }
     },
     "id": "github.issue.5354137708",
-    "updated": "2026-09-06T02:14:24Z"
+    "updated": "2026-09-06T10:07:57Z"
   }
 }
