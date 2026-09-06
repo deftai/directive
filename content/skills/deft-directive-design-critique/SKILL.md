@@ -49,8 +49,8 @@ Walk / walk all. Auto-stamp when agents agree: Operator verbs.
 Parent chip write: scm:issue:design-critique-chip.
 Chip apply miss is non-blocking convenience; do not halt. Ingest waits on the completed-arc record, not a catalog chip.
 Run posture: parse closed tokens; else ask. Field lives in the contract.
-On grok-bot detect, default arc-mode:direct unless checkout tokens. Consume parseOperatorRunPosture.
-Widgets: numbered Discuss and Back. Apply-set: Operator verbs. Plain English first in main-chat.
+Grok-bot detect default and widget apply-set live in the contract. Consume parseOperatorRunPosture.
+Widgets: numbered Discuss and Back. Plain English first in main-chat.
 
 Each critic dispatch EXITs after posting.
 

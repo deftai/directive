@@ -1234,6 +1234,11 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(skill).toContain("numbered Discuss and Back");
     expect(skill).toContain("parseOperatorRunPosture");
     expect(skill).toContain("Plain English first in main-chat");
+    expect(skill).toContain("Grok-bot detect default and widget apply-set live in the contract");
+    const contract = readText("contracts/design-critique.md");
+    expect(contract).toContain("resolveArcRunPostureForHost");
+    expect(contract).toContain("operatorVerbApplySet");
+    expect(contract).toContain("Default-direct without grok-bot detect");
     const references = readText("REFERENCES.md");
     expect(references).toContain("`arc`");
     expect(references).toContain("`run an arc`");

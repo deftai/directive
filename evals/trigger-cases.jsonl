@@ -78,6 +78,8 @@
 {"id":"design-critique-pos-6","query":"arc","skill":"deft-directive-design-critique","should_trigger":true}
 {"id":"design-critique-neg-1","query":"implement the payment module from the active xBRIEF","skill":"deft-directive-design-critique","should_trigger":false}
 {"id":"design-critique-neg-2","query":"review","skill":"deft-directive-design-critique","should_trigger":false}
+{"id":"design-critique-neg-3","query":"summarize the project architecture overview","skill":"deft-directive-design-critique","should_trigger":false}
+{"id":"design-critique-neg-4","query":"archive the old notes","skill":"deft-directive-design-critique","should_trigger":false}
 {"id":"issue-eval-pos-1","query":"run issue-eval on these GitHub issues","skill":"deft-directive-issue-eval","should_trigger":true}
 {"id":"issue-eval-pos-2","query":"triage:evaluate 3648 off origin/master","skill":"deft-directive-issue-eval","should_trigger":true}
 {"id":"issue-eval-neg-1","query":"implement the payment module from the active xBRIEF","skill":"deft-directive-issue-eval","should_trigger":false}

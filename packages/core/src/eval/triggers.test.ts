@@ -53,6 +53,21 @@ describe("eval triggers (#1586)", () => {
     expect(winner?.skillId).toBe("deft-directive-triage");
   });
 
+  it("bare arc does not steal architecture or archive queries (#4202)", () => {
+    expect(
+      wouldRouteToSkill(
+        "summarize the project architecture overview",
+        "deft-directive-design-critique",
+        index,
+      ),
+    ).toBe(false);
+    expect(
+      wouldRouteToSkill("archive the old notes", "deft-directive-design-critique", index),
+    ).toBe(false);
+    expect(wouldRouteToSkill("arc", "deft-directive-design-critique", index)).toBe(true);
+    expect(wouldRouteToSkill("arc #286", "deft-directive-design-critique", index)).toBe(true);
+  });
+
   it("trigger-cases.jsonl meets per-skill coverage minimums", () => {
     const loaded = loadTriggerCases(resolve(repoRoot, TRIGGER_CASES_REL));
     expect("error" in loaded).toBe(false);
