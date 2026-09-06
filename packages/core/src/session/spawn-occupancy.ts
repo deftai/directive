@@ -19,7 +19,7 @@ import {
   containedRemove,
   containedWrite,
 } from "../fs/contained-write.js";
-import { fieldString, record, toolInputRecord } from "../hooks/classify/payload.js";
+import { fieldPresent, fieldString, record, toolInputRecord } from "../hooks/classify/payload.js";
 import {
   type ChildOccupancyDispatchInput,
   listChildOccupancyLeases,
@@ -158,7 +158,7 @@ function spawnToolInput(payload: unknown): Record<string, unknown> {
 function grokExtraDestKey(payload: unknown): string | null {
   const toolInput = spawnToolInput(payload);
   for (const key of GROK_EXTRA_DEST_KEYS) {
-    if (fieldString(toolInput, key) !== null) return key;
+    if (fieldPresent(toolInput, key)) return key;
   }
   return null;
 }
@@ -288,6 +288,7 @@ export function consultImplementSpawnOccupancy(
   const parentId = (input.parentId?.trim() || parentIdFromEnv(environ)).trim() || "none";
   const hostCanReroot = HOSTS_THAT_REROOT.has(input.host);
   const grokHost = input.host === "grok";
+  const grokCwd = grokHost ? grokCwdPath(input.payload) : null;
 
   if (grokHost) {
     const extra = grokExtraDestKey(input.payload);
@@ -300,8 +301,7 @@ export function consultImplementSpawnOccupancy(
       );
     }
     const isolationWorktree = grokIsolationWorktree(input.payload);
-    const cwd = grokCwdPath(input.payload);
-    if (isolationWorktree && cwd !== null) {
+    if (isolationWorktree && grokCwd !== null) {
       return consultDeny(
         "invalid-extra-destination",
         "Directive denied implement-class spawn: isolation=worktree together with cwd is " +
@@ -309,10 +309,10 @@ export function consultImplementSpawnOccupancy(
         parentId,
       );
     }
-    if (isolationWorktree && cwd === null) {
+    if (isolationWorktree && grokCwd === null) {
       return consultDeny("destination-missing", grokMissingDestMessage(), parentId);
     }
-    if (cwd === null) {
+    if (grokCwd === null) {
       return consultDeny("destination-missing", grokMissingDestMessage(), parentId);
     }
   }
@@ -320,7 +320,7 @@ export function consultImplementSpawnOccupancy(
   const destination = grokHost
     ? ({
         kind: "path",
-        path: grokCwdPath(input.payload),
+        path: grokCwd,
         isolation: null,
       } satisfies SpawnDestination)
     : inspectSpawnDestination(input.payload);
@@ -539,12 +539,15 @@ export function readSpawnReservationIncarnation(
   return text.length > 0 ? text : null;
 }
 
-export type PersistSpawnReservationResult = { ok: true } | { ok: false; reason: "conflict" };
+export type PersistSpawnReservationResult =
+  | { ok: true }
+  | { ok: false; reason: "conflict" | "occupied" };
 
 /** Persist the dispatch reservation after other spawn gates have allowed. */
 export function persistSpawnReservation(
   storeRoot: string,
   reservation: ChildOccupancyDispatchInput,
+  now?: Date,
 ): PersistSpawnReservationResult {
   const root = resolve(storeRoot);
   if (!existsSync(root)) return { ok: true };
@@ -570,6 +573,10 @@ export function persistSpawnReservation(
       }
       throw err;
     }
+  }
+  if (existsSync(dest) && liveOccupant(dest, now) !== null) {
+    if (!skipDestLock) releaseSpawnReservation(root, dest, incarnation);
+    return { ok: false, reason: "occupied" };
   }
   recordChildOccupancyLease(root, reservation);
   if (existsSync(dest) && dest !== root) {

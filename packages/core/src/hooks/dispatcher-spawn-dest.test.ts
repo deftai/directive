@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { applyWorktreeOccupancy } from "../session/occupancy.js";
 import { readSpawnReservationIncarnation } from "../session/spawn-occupancy.js";
 import { decideHook, type HookPolicySeams } from "./index.js";
 
@@ -186,6 +187,29 @@ describe("dest-proven implement spawn (#4215)", () => {
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "intent-ceiling-deny" });
     expect(inspectRitual).not.toHaveBeenCalled();
+    expect(readSpawnReservationIncarnation(root, dest)).toBeNull();
+  });
+
+  it("denies persist when dest becomes occupied after dest-proven consult", () => {
+    const { root, dest } = destFixture();
+    const inspectRitual = vi.fn(() => STALE_RITUAL);
+    const now = new Date("2026-09-06T20:00:00Z");
+    applyWorktreeOccupancy(dest, { sessionId: "foreign", now, env: {} });
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: { cwd: dest, prompt: "implement the story" },
+        },
+        environ: { DEFT_SESSION_ID: "parent-1" },
+      },
+      readySeams({ inspectRitual }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toMatch(/occupied/i);
     expect(readSpawnReservationIncarnation(root, dest)).toBeNull();
   });
 

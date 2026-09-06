@@ -688,6 +688,50 @@ describe("consultImplementSpawnOccupancy (#4215)", () => {
     expect(readSpawnReservationIncarnation(root, dest)).toBeNull();
   });
 
+  it("occupancy-denies Grok empty worktree_path extra dest", () => {
+    const root = mkdtempSync(join(tmpdir(), "spawn-occ-empty-wtp-"));
+    temps.push(root);
+    gitInit(root);
+    const dest = join(root, "wt");
+    addLinkedWorktree(root, dest);
+    const decision = consultImplementSpawnOccupancy({
+      payload: { tool_name: "spawn_subagent", tool_input: { cwd: dest, worktree_path: "" } },
+      payloadRoot: root,
+      host: "grok",
+      parentId: "parent-1",
+    });
+    expect(decision.allow).toBe(false);
+    if (!decision.allow) expect(decision.reason).toBe("invalid-extra-destination");
+    expect(readSpawnReservationIncarnation(root, dest)).toBeNull();
+  });
+
+  it("persist refuses a dest that became occupied after consult", () => {
+    const root = mkdtempSync(join(tmpdir(), "spawn-occ-persist-live-"));
+    temps.push(root);
+    gitInit(root);
+    const dest = join(root, "wt");
+    addLinkedWorktree(root, dest);
+    const consult = consultImplementSpawnOccupancy({
+      payload: { tool_name: "spawn_subagent", tool_input: { cwd: dest } },
+      payloadRoot: root,
+      host: "grok",
+      parentId: "parent-1",
+    });
+    expect(consult.allow).toBe(true);
+    if (!consult.allow) return;
+    const minted = mintImplementSpawnReservation(consult, {
+      payload: { tool_name: "spawn_subagent", tool_input: { cwd: dest } },
+      payloadRoot: root,
+      host: "grok",
+    });
+    const now = new Date("2026-09-06T20:00:00Z");
+    applyWorktreeOccupancy(dest, { sessionId: "foreign", now, env: {} });
+    const persisted = persistSpawnReservation(root, minted.reservation, now);
+    expect(persisted.ok).toBe(false);
+    if (!persisted.ok) expect(persisted.reason).toBe("occupied");
+    expect(readSpawnReservationIncarnation(root, dest)).toBeNull();
+  });
+
   it("does not dest-prove pathless isolation=worktree on reroot hosts", () => {
     const root = mkdtempSync(join(tmpdir(), "spawn-occ-iso-unproven-"));
     temps.push(root);

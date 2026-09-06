@@ -1710,12 +1710,17 @@ function inspectMutationGates(
     });
     const persisted = persistSpawnReservation(payloadRoot, spawnReservation.reservation);
     if (!persisted.ok) {
+      const dest = spawnReservation.reservation.worktreePath;
+      const occupied = persisted.reason === "occupied";
       return deny(
         input,
         "spawn-not-ready",
         toolName,
-        `Directive denied spawn: destination ${spawnReservation.reservation.worktreePath} ` +
-          "is already reserved. Own worktree means a unique reservation.",
+        occupied
+          ? `Directive denied spawn: destination ${dest} became occupied after consult. ` +
+              "Use another worktree."
+          : `Directive denied spawn: destination ${dest} ` +
+              "is already reserved. Own worktree means a unique reservation.",
       );
     }
     const updatedInput = spawnUpdatedInput(
