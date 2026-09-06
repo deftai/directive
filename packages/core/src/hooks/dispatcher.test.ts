@@ -2046,7 +2046,8 @@ describe("direct-write hook policy", () => {
       readySeams(),
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
-    expect(decision.message).toContain("cannot re-root");
+    expect(decision.message).toContain("cwd");
+    expect(decision.message).not.toContain("worktree_path");
     expect(decision.message).not.toContain("steal");
   });
 
@@ -2159,7 +2160,11 @@ describe("ephemeral spawn posture (#3080)", () => {
         projectRoot: "/project",
         payload: {
           tool_name: "Task",
-          tool_input: { subagent_type: "generalPurpose", prompt: "implement feature" },
+          tool_input: {
+            subagent_type: "generalPurpose",
+            isolation: "worktree",
+            prompt: "implement feature",
+          },
         },
       },
       emptyScopeSeams(),
@@ -2215,7 +2220,11 @@ describe("ephemeral spawn posture (#3080)", () => {
         projectRoot: "/project",
         payload: {
           tool_name: "Task",
-          tool_input: { subagent_type: "generalPurpose", prompt: "ship it" },
+          tool_input: {
+            subagent_type: "generalPurpose",
+            isolation: "worktree",
+            prompt: "ship it",
+          },
         },
         environ: {},
       },
@@ -2238,6 +2247,7 @@ describe("ephemeral spawn posture (#3080)", () => {
           tool_name: "Task",
           tool_input: {
             subagent_type: "generalPurpose",
+            isolation: "worktree",
             prompt: "[worker_role: ephemeral] start local app",
           },
         },

@@ -62,8 +62,10 @@ import { markRitualStaleAfterCompact } from "../session/ritual-sentinel.js";
 import { runSessionStartHookWrite } from "../session/session-start-hook.js";
 import {
   allocatedWorktreeMatches,
-  evaluateImplementSpawnOccupancy,
+  consultImplementSpawnOccupancy,
+  mintImplementSpawnReservation,
   persistSpawnReservation,
+  type SpawnOccupancyConsultAllow,
 } from "../session/spawn-occupancy.js";
 import {
   type DetectWorkSelection,
@@ -1338,49 +1340,77 @@ function inspectMutationGates(
     );
   }
 
-  let ritual: VerifyResult;
-  try {
-    // Mutation dispatch is a live gated boundary: active verification reruns
-    // non-cacheable agent-hook readiness instead of trusting persisted success.
-    // Write-surface authority executes agent_hooks only (#3738). cache_fresh
-    // is not required and is never executed. doctor is read from the record.
-    // Its allow fixture is non-write and its deny fixture is read-only, so the
-    // installed-shim probe cannot recurse into this mutation path.
-    ritual = (
-      seams.verifyRitual ??
-      seams.inspectRitual ??
-      ((root) =>
-        verifySessionRitual(
-          root,
-          writeGateRitualOptions({
-            bypass: false,
-            runner: seams.ritualRunner,
-            detectWorkSelection: seams.detectWorkSelection,
-            runGit: dispatchGit,
-          }),
-        ))
-    )(effectiveRoot);
-  } catch (cause) {
-    // #2994: best-effort local process-cost; never changes deny verdict.
-    emitSessionRitualBlockedProcessCost(
-      {
+  let spawnConsult: SpawnOccupancyConsultAllow | null = null;
+  if (isSpawnTool(toolName)) {
+    const consult = consultImplementSpawnOccupancy({
+      payload: input.payload,
+      payloadRoot,
+      host: input.host,
+      environ,
+      runGit: dispatchGit,
+    });
+    if (!consult.allow) {
+      const inspected = ritualDetailForOccupancyDeny();
+      const ritualNote =
+        inspected !== null && inspected.code !== 0
+          ? ` Also ritual-not-ready: ${inspected.message}`
+          : "";
+      return deny(
+        input,
+        "spawn-not-ready",
         toolName,
-        code: "ritual-not-ready",
-        recoveryTier: "cold",
-        detail: `inspect threw: ${String(cause)}`,
-      },
-      { projectRoot },
-    );
-    return deny(
-      input,
-      "ritual-not-ready",
-      toolName,
-      `Directive could not inspect the gated session ritual: ${String(cause)}. ` +
-        formatRitualRecoveryInstruction("cold") +
-        rootsNote,
-    );
+        `${consult.message}${ritualNote}${rootsNote}`,
+      );
+    }
+    spawnConsult = consult;
   }
-  if (occupancyGate.occupant !== null && actor !== null) {
+  const skipParentRitual = spawnConsult?.destProven === true && spawnConsult.parentId !== "none";
+
+  let ritual: VerifyResult | undefined;
+  if (!skipParentRitual) {
+    try {
+      // Mutation dispatch is a live gated boundary: active verification reruns
+      // non-cacheable agent-hook readiness instead of trusting persisted success.
+      // Write-surface authority executes agent_hooks only (#3738). cache_fresh
+      // is not required and is never executed. doctor is read from the record.
+      // Its allow fixture is non-write and its deny fixture is read-only, so the
+      // installed-shim probe cannot recurse into this mutation path.
+      ritual = (
+        seams.verifyRitual ??
+        seams.inspectRitual ??
+        ((root) =>
+          verifySessionRitual(
+            root,
+            writeGateRitualOptions({
+              bypass: false,
+              runner: seams.ritualRunner,
+              detectWorkSelection: seams.detectWorkSelection,
+              runGit: dispatchGit,
+            }),
+          ))
+      )(effectiveRoot);
+    } catch (cause) {
+      // #2994: best-effort local process-cost; never changes deny verdict.
+      emitSessionRitualBlockedProcessCost(
+        {
+          toolName,
+          code: "ritual-not-ready",
+          recoveryTier: "cold",
+          detail: `inspect threw: ${String(cause)}`,
+        },
+        { projectRoot },
+      );
+      return deny(
+        input,
+        "ritual-not-ready",
+        toolName,
+        `Directive could not inspect the gated session ritual: ${String(cause)}. ` +
+          formatRitualRecoveryInstruction("cold") +
+          rootsNote,
+      );
+    }
+  }
+  if (ritual !== undefined && occupancyGate.occupant !== null && actor !== null) {
     // A granted member writes under the owner's ceremony (#3755). Ritual state
     // is single-owner and a child cannot bind its own while the owner's lease is
     // live, so requiring the writer's own binding would make every admitted
@@ -1419,7 +1449,7 @@ function inspectMutationGates(
       );
     }
   }
-  if (ritual.code !== 0) {
+  if (ritual !== undefined && ritual.code !== 0) {
     // #2992: prefer re-arm recovery when age/compact stale; cold when bind invalid.
     const recoveryTier = ritual.recoveryTier === "rearm" ? "rearm" : "cold";
     // #2994: best-effort local process-cost; never changes deny verdict.
@@ -1487,6 +1517,7 @@ function inspectMutationGates(
     if (
       finalOccupancy.occupant !== null &&
       finalExpectedOwner !== undefined &&
+      ritual !== undefined &&
       ritual.boundSessionId !== finalExpectedOwner
     ) {
       return deny(
@@ -1494,7 +1525,7 @@ function inspectMutationGates(
         "occupancy-ritual-mismatch",
         toolName,
         `Directive denied ${toolName}: final lease owner ${finalExpectedOwner} does not match ` +
-          `the exact verified ritual owner ${ritual.boundSessionId ?? "<unbound>"}. ` +
+          `the exact verified ritual owner ${ritual?.boundSessionId ?? "<unbound>"}. ` +
           "Run `deft session:start --rearm --session-id=<same-session-id>` when re-arm is eligible; " +
           "otherwise run `deft session:start --session-id=<same-session-id>` for a cold ceremony." +
           rootsNote,
@@ -1661,24 +1692,35 @@ function inspectMutationGates(
     `Directive ${isSpawnTool(toolName) ? "spawn" : "write"} gate passed for ${toolName}.`,
   );
   if (isSpawnTool(toolName)) {
-    const spawnReservation = evaluateImplementSpawnOccupancy({
+    const consult = spawnConsult;
+    if (consult === null) {
+      return deny(
+        input,
+        "spawn-not-ready",
+        toolName,
+        `Directive denied ${toolName}: spawn destination consult was missing.`,
+      );
+    }
+    const spawnReservation = mintImplementSpawnReservation(consult, {
       payload: input.payload,
       payloadRoot,
       host: input.host,
       environ,
       runGit: dispatchGit,
     });
-    if (!spawnReservation.allow) {
-      return deny(input, "spawn-not-ready", toolName, spawnReservation.message);
-    }
     const persisted = persistSpawnReservation(payloadRoot, spawnReservation.reservation);
     if (!persisted.ok) {
+      const dest = spawnReservation.reservation.worktreePath;
+      const occupied = persisted.reason === "occupied";
       return deny(
         input,
         "spawn-not-ready",
         toolName,
-        `Directive denied spawn: destination ${spawnReservation.reservation.worktreePath} ` +
-          "is already reserved. Own worktree means a unique reservation.",
+        occupied
+          ? `Directive denied spawn: destination ${dest} became occupied after consult. ` +
+              "Use another worktree."
+          : `Directive denied spawn: destination ${dest} ` +
+              "is already reserved. Own worktree means a unique reservation.",
       );
     }
     const updatedInput = spawnUpdatedInput(

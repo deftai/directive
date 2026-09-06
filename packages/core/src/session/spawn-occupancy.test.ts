@@ -7,8 +7,10 @@ import { listChildOccupancyLeases, recordChildOccupancyLease } from "./child-occ
 import { applyWorktreeOccupancy } from "./occupancy.js";
 import {
   allocatedWorktreeMatches,
+  consultImplementSpawnOccupancy,
   evaluateImplementSpawnOccupancy,
   inspectSpawnDestination,
+  mintImplementSpawnReservation,
   persistSpawnReservation,
   readSpawnReservationIncarnation,
   releaseSpawnReservation,
@@ -131,8 +133,9 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
     expect(decision.allow).toBe(false);
     if (!decision.allow) {
       expect(decision.reason).toBe("destination-missing");
-      expect(decision.message).toContain("cannot re-root");
       expect(decision.message).toContain("cwd");
+      expect(decision.message).not.toContain("worktree_path");
+      expect(decision.message).not.toContain("isolation=worktree");
       expect(decision.message).not.toContain("steal");
     }
   });
@@ -570,5 +573,175 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
     });
     applyWorktreeOccupancy(wt, { sessionId: "successor", now: new Date(), env: {} });
     expect(allocatedWorktreeMatches(parent, wt, { parentId: "parent" })).toBe(false);
+  });
+});
+
+describe("consultImplementSpawnOccupancy (#4215)", () => {
+  it("does not mint or dest-lock on consult", () => {
+    const root = mkdtempSync(join(tmpdir(), "spawn-occ-consult-"));
+    temps.push(root);
+    gitInit(root);
+    const dest = join(root, "wt");
+    addLinkedWorktree(root, dest);
+    const first = consultImplementSpawnOccupancy({
+      payload: { tool_name: "spawn_subagent", tool_input: { cwd: dest } },
+      payloadRoot: root,
+      host: "grok",
+      parentId: "parent-1",
+    });
+    const second = consultImplementSpawnOccupancy({
+      payload: { tool_name: "spawn_subagent", tool_input: { cwd: dest } },
+      payloadRoot: root,
+      host: "grok",
+      parentId: "parent-1",
+    });
+    expect(first.allow).toBe(true);
+    expect(second.allow).toBe(true);
+    if (!first.allow || !second.allow) return;
+    expect(first.destProven).toBe(true);
+    expect(second.destProven).toBe(true);
+    expect(readSpawnReservationIncarnation(root, dest)).toBeNull();
+    const mintedA = mintImplementSpawnReservation(first, {
+      payload: { tool_name: "spawn_subagent", tool_input: { cwd: dest } },
+      payloadRoot: root,
+      host: "grok",
+    });
+    const mintedB = mintImplementSpawnReservation(second, {
+      payload: { tool_name: "spawn_subagent", tool_input: { cwd: dest } },
+      payloadRoot: root,
+      host: "grok",
+    });
+    expect(persistSpawnReservation(root, mintedA.reservation).ok).toBe(true);
+    expect(persistSpawnReservation(root, mintedB.reservation).ok).toBe(false);
+  });
+
+  it("occupancy-denies Grok cwd plus worktree_path with no dest-lock", () => {
+    const root = mkdtempSync(join(tmpdir(), "spawn-occ-both-"));
+    temps.push(root);
+    gitInit(root);
+    const dest = join(root, "wt");
+    addLinkedWorktree(root, dest);
+    const same = consultImplementSpawnOccupancy({
+      payload: {
+        tool_name: "spawn_subagent",
+        tool_input: { cwd: dest, worktree_path: dest },
+      },
+      payloadRoot: root,
+      host: "grok",
+      parentId: "parent-1",
+    });
+    const different = consultImplementSpawnOccupancy({
+      payload: {
+        tool_name: "spawn_subagent",
+        tool_input: { cwd: dest, worktree_path: join(root, "other") },
+      },
+      payloadRoot: root,
+      host: "grok",
+      parentId: "parent-1",
+    });
+    expect(same.allow).toBe(false);
+    expect(different.allow).toBe(false);
+    if (!same.allow) expect(same.reason).toBe("invalid-extra-destination");
+    if (!different.allow) expect(different.reason).toBe("invalid-extra-destination");
+    expect(readSpawnReservationIncarnation(root, dest)).toBeNull();
+  });
+
+  it("occupancy-denies Grok worktree_path alone with no dest-lock", () => {
+    const root = mkdtempSync(join(tmpdir(), "spawn-occ-wtp-"));
+    temps.push(root);
+    gitInit(root);
+    const dest = join(root, "wt");
+    addLinkedWorktree(root, dest);
+    const decision = consultImplementSpawnOccupancy({
+      payload: { tool_name: "spawn_subagent", tool_input: { worktree_path: dest } },
+      payloadRoot: root,
+      host: "grok",
+      parentId: "parent-1",
+    });
+    expect(decision.allow).toBe(false);
+    if (!decision.allow) {
+      expect(decision.reason).toBe("invalid-extra-destination");
+      expect(decision.message).toContain("cwd");
+      expect(decision.message).toContain("invalid on Grok");
+      expect(decision.message).not.toMatch(/pass isolation=worktree/i);
+    }
+    expect(readSpawnReservationIncarnation(root, dest)).toBeNull();
+  });
+
+  it("occupancy-denies Grok cwd that is not an existing directory", () => {
+    const root = mkdtempSync(join(tmpdir(), "spawn-occ-missdir-"));
+    temps.push(root);
+    gitInit(root);
+    const dest = join(root, "missing-wt");
+    const decision = consultImplementSpawnOccupancy({
+      payload: { tool_name: "spawn_subagent", tool_input: { cwd: dest } },
+      payloadRoot: root,
+      host: "grok",
+      parentId: "parent-1",
+    });
+    expect(decision.allow).toBe(false);
+    if (!decision.allow) {
+      expect(decision.reason).toBe("destination-missing");
+      expect(decision.message).toContain("cwd");
+      expect(decision.message).not.toContain("worktree_path");
+    }
+    expect(readSpawnReservationIncarnation(root, dest)).toBeNull();
+  });
+
+  it("occupancy-denies Grok empty worktree_path extra dest", () => {
+    const root = mkdtempSync(join(tmpdir(), "spawn-occ-empty-wtp-"));
+    temps.push(root);
+    gitInit(root);
+    const dest = join(root, "wt");
+    addLinkedWorktree(root, dest);
+    const decision = consultImplementSpawnOccupancy({
+      payload: { tool_name: "spawn_subagent", tool_input: { cwd: dest, worktree_path: "" } },
+      payloadRoot: root,
+      host: "grok",
+      parentId: "parent-1",
+    });
+    expect(decision.allow).toBe(false);
+    if (!decision.allow) expect(decision.reason).toBe("invalid-extra-destination");
+    expect(readSpawnReservationIncarnation(root, dest)).toBeNull();
+  });
+
+  it("persist refuses a dest that became occupied after consult", () => {
+    const root = mkdtempSync(join(tmpdir(), "spawn-occ-persist-live-"));
+    temps.push(root);
+    gitInit(root);
+    const dest = join(root, "wt");
+    addLinkedWorktree(root, dest);
+    const consult = consultImplementSpawnOccupancy({
+      payload: { tool_name: "spawn_subagent", tool_input: { cwd: dest } },
+      payloadRoot: root,
+      host: "grok",
+      parentId: "parent-1",
+    });
+    expect(consult.allow).toBe(true);
+    if (!consult.allow) return;
+    const minted = mintImplementSpawnReservation(consult, {
+      payload: { tool_name: "spawn_subagent", tool_input: { cwd: dest } },
+      payloadRoot: root,
+      host: "grok",
+    });
+    const now = new Date("2026-09-06T20:00:00Z");
+    applyWorktreeOccupancy(dest, { sessionId: "foreign", now, env: {} });
+    const persisted = persistSpawnReservation(root, minted.reservation, now);
+    expect(persisted.ok).toBe(false);
+    if (!persisted.ok) expect(persisted.reason).toBe("occupied");
+    expect(readSpawnReservationIncarnation(root, dest)).toBeNull();
+  });
+
+  it("does not dest-prove pathless isolation=worktree on reroot hosts", () => {
+    const root = mkdtempSync(join(tmpdir(), "spawn-occ-iso-unproven-"));
+    temps.push(root);
+    const decision = consultImplementSpawnOccupancy({
+      payload: { tool_name: "Task", tool_input: { isolation: "worktree", prompt: "build" } },
+      payloadRoot: root,
+      host: "claude",
+      parentId: "parent-1",
+    });
+    expect(decision.allow).toBe(true);
+    if (decision.allow) expect(decision.destProven).toBe(false);
   });
 });
