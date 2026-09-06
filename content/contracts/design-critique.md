@@ -51,7 +51,7 @@ The Stop 1 write-back records `refutation-target:` naming the triage author's hi
 
 The front door is a session-local run-posture field, not a second ingest switch and not a third occupancy concept. Occupancy mechanics stay on #4020. Cite that rule; do not clone it.
 
-Closed tokens on the operator utterance: `direct`, `forge-only`, `github-only`, `github only`, `no worktrees` for direct; `checkout` for the mutating checkout path. `parseOperatorRunPosture` (`packages/core/src/design-critique/run-posture.ts`) matches those tokens with word boundaries. Missing token, including `arc <N> yolo`, asks before Stop 1. Yolo does not pick a mode. `ingest` is not a front-door mode; that token asks. ⊗ Substring or NLP classification. ⊗ Front-door mode `ingest`. ⊗ A yolo default-direct.
+Closed tokens on the operator utterance: `direct`, `forge-only`, `github-only`, `github only`, `no worktrees` for direct; `checkout` for the mutating checkout path. `parseOperatorRunPosture` (`packages/core/src/design-critique/run-posture.ts`) matches those tokens with word boundaries. Missing token, including `arc <N> yolo`, asks before Stop 1. Yolo does not pick a mode. `ingest` is not a front-door mode; that token asks. On grok-bot detect, a missing-token ask resolves to `arc-mode:direct` unless checkout tokens already won. `resolveArcRunPostureForHost` consumes `parseOperatorRunPosture`; do not clone the parser. ⊗ Substring or NLP classification. ⊗ Front-door mode `ingest`. ⊗ A yolo default-direct. ⊗ Default-direct without grok-bot detect.
 
 Record `arc-mode: direct` or `arc-mode: checkout` on the Stop 1 write-back. `evaluateDirectDispatch` is a fixture over parent-claimed actions, not a live occupancy observer.
 
@@ -378,6 +378,7 @@ Contract stops stay internal. Parent prints these phrases when they apply. They 
 **walk** iterates recorded parent-disagree headings (successor-lean take is `disagree`). **walk all** is the census of every classified finding in existing order (blocking then sharpening then footnotes — or the critic's numbering). For one release, `walk findings one at a time` is an alias of **walk all**. Short forms of accept synthesis are valid: `accept synt`, `synt accepted`, `synt approved`, `accept synthesis`, `synthesis accepted`, `synthesis approved`. Same idea for other printed verbs when the short form is unambiguous (`retry` for `retry differences`). If the operator types a bare word that could be either **walk** or **walk all** and only one was offered, map it to the offered one. If ambiguous, parent re-prints the offered phrases and waits.
 
 - ! Print the phrases when they apply. An empty-lean verb menu is a miss.
+- ! Host widgets print only the verbs that apply and MUST end the numbered list with Discuss then Back (#1470 / #1563). `operatorVerbApplySet` is the fixture.
 - ! Do not print **walk** until at least one proposed take on the posted lean is `disagree`.
 - ! Do not print **retry differences** until residual headings are named on that map.
 - ! Do not skip the first-lean offer because the draft is all-accept.

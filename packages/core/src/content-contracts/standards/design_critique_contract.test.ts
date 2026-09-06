@@ -1225,4 +1225,28 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
       expect(agentsEntry).toContain(pin);
     }
   });
+
+  it("pins host-neutral arc triggers on the thin skill and Skills Index (#3845 / #4202)", () => {
+    const skill = readText(SKILL_REL);
+    expect(skill).toContain("\n  - arc\n");
+    expect(skill).toContain("\n  - run an arc\n");
+    expect(skill).toContain("arc, or run an arc");
+    expect(skill).toContain("numbered Discuss and Back");
+    expect(skill).toContain("parseOperatorRunPosture");
+    expect(skill).toContain("Plain English first in main-chat");
+    expect(skill).toContain("Grok-bot detect default and widget apply-set live in the contract");
+    const contract = readText("contracts/design-critique.md");
+    expect(contract).toContain("resolveArcRunPostureForHost");
+    expect(contract).toContain("operatorVerbApplySet");
+    expect(contract).toContain("Default-direct without grok-bot detect");
+    const references = readText("REFERENCES.md");
+    expect(references).toContain("`arc`");
+    expect(references).toContain("`run an arc`");
+    const pack = JSON.parse(readText("packs/skills/skills-pack-0.1.json")) as {
+      skills: readonly { id: string }[];
+    };
+    expect(
+      pack.skills.filter((entry) => entry.id === "deft-directive-design-critique"),
+    ).toHaveLength(1);
+  });
 });

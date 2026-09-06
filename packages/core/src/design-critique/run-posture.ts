@@ -73,6 +73,25 @@ export function parseOperatorRunPosture(utterance: string): RunPostureParse {
   return { kind: "ask", reason: "missing-token" };
 }
 
+/**
+ * Host-facing run-posture resolver (#4202). Consumes parseOperatorRunPosture.
+ * On grok-bot detect, missing-token defaults to direct. Checkout tokens still
+ * win. Does not clone the parser and does not implement grok-bot detect.
+ */
+export function resolveArcRunPostureForHost(input: {
+  utterance: string;
+  grokBotDetected: boolean;
+}): RunPostureParse {
+  const parsed = parseOperatorRunPosture(input.utterance);
+  if (parsed.kind === "resolved") {
+    return parsed;
+  }
+  if (input.grokBotDetected && parsed.reason === "missing-token") {
+    return { kind: "resolved", posture: "direct" };
+  }
+  return parsed;
+}
+
 /** Stop 1 record line. Never writes `arc-mode: ingest`. */
 export function arcModeRecordLine(posture: ArcRunPosture): string {
   return `arc-mode: ${posture}`;

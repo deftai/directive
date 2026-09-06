@@ -62,6 +62,18 @@ export function normalizeTriggerText(text: string): string {
   return text.toLowerCase().replace(/\s+/g, " ").trim();
 }
 
+/**
+ * True when *trigger* occurs in *normalizedQuery* as a phrase, not as a
+ * substring of a longer token. Bare `arc` must not match `architecture`.
+ */
+export function triggerOccurs(normalizedQuery: string, trigger: string): boolean {
+  if (trigger.length === 0) {
+    return false;
+  }
+  const escaped = trigger.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(?:^|[^a-z0-9])${escaped}(?:[^a-z0-9]|$)`).test(normalizedQuery);
+}
+
 /** Collapse embedded newlines before interpolating user/data into log lines. */
 export function sanitizeTriggerLogLine(text: string): string {
   return text.replace(/\r?\n/g, " ").trim();
@@ -125,7 +137,7 @@ export function resolveTriggerWinner(
   let best: TriggerMatch | null = null;
   for (const entry of index) {
     for (const trigger of entry.triggers) {
-      if (!normalized.includes(trigger)) {
+      if (!triggerOccurs(normalized, trigger)) {
         continue;
       }
       if (

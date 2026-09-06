@@ -1,0 +1,195 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4202",
+    "updated": "2026-09-06T02:14:24Z"
+  },
+  "plan": {
+    "title": "feat(design-critique): arc triggers (#3845) plus Grok Bot widget/direct default",
+    "status": "running",
+    "narratives": {
+      "Description": "feat(design-critique): arc triggers (#3845) plus Grok Bot widget/direct default",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4202",
+      "Overview": "## Parent\n\n#4201\n\nSet-level bind: [5556011390](https://github.com/deftai/directive/issues/4201#issuecomment-5556011390) / successor lean [5555943410](https://github.com/deftai/directive/issues/4201#issuecomment-5555943410). Companion recut: #4201.\n\n## Recut (post-bind, 2026-09-06)\n\nLocked from the set arc. Keep this issue. Split the AC. Trigger fixtures that close #3845 are host-neutral. Widget map and arc-mode:direct default wait on #4201 grok-bot detect. The arc thin router lives here, not on #4201.\n\n## Summary\n\nMake \"run an arc\" a first-class design-critique motion: reliable triggers on every host, plus Grok Bot widget consent and arc-mode:direct default once grok-bot detect exists. GitHub thread remains the durable completed-arc ledger.\n\n## Two slices (do not couple them)\n\n### A. Host-neutral triggers (closes #3845)\n\nTrigger coverage: arc, run an arc, arc #N, run an arc on #N, plus existing design-critique / critique panel / mechanism-shaped triage.\n\n- Positive fixtures for those phrases.\n- Negative: bare \"review\" without a critique target must not select design-critique over review-cycle.\n- This slice has no grok-bot dependency. It must not wait on #4201 detect.\n\n### B. Grok Bot cockpit (depends on #4201)\n\n- On grok-bot detect, default arc-mode:direct unless checkout tokens. Consume `parseOperatorRunPosture` (#4072). Do not write a second parser.\n- No worktree for process-only critics. EXIT names ingest as a later operator verb -- no auto-ingest.\n- Widget-map operator verbs after successor lean: Accept, Walk, Walk all, Retry differences, Post verified-claims table, Accept synthesis, Halt. Print only the verbs that apply (retry only if residual headings are named; walk only if a take is disagree). Chat short-forms remain valid.\n- Widgets MUST show numbered Discuss and Back (#1470 / #1563).\n- Plain-English first in main-chat; contract jargon in thread; summaries non-normative for downstream agents (#480).\n\nClearance stays on GitHub. Grok Bot is cockpit. Issue thread is ledger. Chips are not ingest clearance.\n\n## Non-goals\n\n- No auto-dispatch critics.\n- Do not move clearance off GitHub.\n- Contract stays SoT.\n- Do not re-parse direct/checkout.\n- Do not implement the host adapter (that is #4201).\n\n## Acceptance\n\n- [ ] Trigger fixtures close #3845 with no grok-bot dependency.\n- [ ] Slice A may ship while #4201 is open; status:child is not a gate on trigger fixtures.\n- [ ] Negative fixture: bare review does not steal from review-cycle.\n- [ ] Direct default only after grok-bot detect; checkout tokens still win.\n- [ ] Widget mapping preserves Discuss and Back; apply-set matches the contract (no retry on empty residual).\n- [ ] Plain-English main-chat; ingest gated on completed-arc record.\n- [ ] No normative body in the thin skill.\n- [ ] #4201 pack list is the only other pointer at this router.\n- [ ] CHANGELOG.\n\nRefs: design-critique contract; design-critique skill; #3845; #3797/#3798; #4072; #1470; #1563; ADR-005/006; #4201.\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-04T23:38:03Z)\n\nCompanion: https://github.com/deftai/directive/issues/4201 (rfc(harness): host-grokbot adapter + Grok Bot–native consumer façade).\n\n### Comment by @MScottAdams (2026-09-06T00:58:00Z)\n\nmodel: grok-4.6\nrole: parent\n\nSet-level portfolio member. The arc anchors on #4201. This thread is not a second Stop 1.\n\nPortfolio: #4201 (host-grokbot adapter + consumer facade) and #4202 (Grok Bot-native design-critique arc). Companion comment 5547685199 already names that pair.\n\nCeiling, critic post, and successor lean land on #4201. Disposition will be per-issue. Do not ingest this body as a standalone implement contract while the set arc is in flight.\n\n\n### Comment by @MScottAdams (2026-09-06T01:15:57Z)\n\nmodel: grok-4.6\nrole: parent\n\nSet-level bind landed on the anchor #4201. Synthesis 5556011390. This issue is not cancelled and not a second completed-arc record. Keep it. Recut the body before ingest; the set-level field on #4201 blocks ingest of the un-recut pair.\n\n\n### Comment by @MScottAdams (2026-09-06T01:32:36Z)\n\nmodel: grok-4.6\nrole: parent\n\nRecut of #4202 after set-level bind 5556011390 / lean 5555943410. Body now splits host-neutral #3845 triggers from Grok Bot widget/direct (depends on #4201 detect). Chip remaining-set to design-critique:mechanism-shaped. A new single-issue critique of this recut body follows on this thread.\n\n\n### Comment by @MScottAdams (2026-09-06T01:33:57Z)\n\nmodel: grok-4.6\nrole: triage\n\nhttps://github.com/deftai/directive/issues/4202\n\nTriage write-back for the post-bind recut. SHA at write-back: origin/master `20f9dfbda67746fc0367b4856cfeb016e6e96213`.\n\n**Authorship disclosure.** This session recut the body from the #4201 set-level bind. Critics should re-derive.\n\nmechanism-shaped: true. The question is whether host-neutral arc triggers (#3845) can ship without grok-bot detect, while widget map and arc-mode:direct default wait on #4201.\n\ndesign-critique: warranted, because the recut changes design-critique triggers, operator-consent UI, and run posture (envelopes, identity, host detect); because #3845 is still open; and because `parseOperatorRunPosture` already exists and must not be cloned.\n\nrefutation-target: the recut presumption -- that trigger fixtures closing #3845 are host-neutral and must not wait on #4201, and that widget/direct-default is a second slice that depends on grok-bot detect, consumes #4072, and must preserve Discuss and Back.\n\narc-mode: direct\ntarget shape: single issue premise\n\n## Current-state validity (read, not re-invented)\n\n- Design-critique skill triggers omit run an arc. #3845 is open.\n- `parseOperatorRunPosture` matches direct / github-only / no worktrees (#4072).\n- No `grok-bot` descriptor yet (#4201 recut). Slice B cannot fire until that detect exists.\n- Deterministic questions require numbered Discuss and Back on host widgets (#1470 / #1563).\n- Set-level pointer 5555930881 is history. Recut comment 5556092511 is the body revision.\n\n## Stop 2\n\ncharter: refutation. The recut names a defensible split with an explicit refutation target.\n\nspend: N=1. Default after a mechanism-shaped stamp.\n\nround: 1. critic role: fresh.\n\nVerification posture: arc-mode direct. Critic is process-only. Pin reads to `git show 20f9dfbda67746fc0367b4856cfeb016e6e96213:` . No worktree add. No product implementation.\n\n\n### Comment by @MScottAdams (2026-09-06T01:34:59Z)\n\nmodel: grok-4.6\nrole: critic\n\nDispatch SHA: `20f9dfbda67746fc0367b4856cfeb016e6e96213`\nCeiling: 5556098786. Charter: refutation. Recut body. Target shape: single issue premise.\n\nVerdict on the refutation target: **not refuted**. #3845 is open. Skill triggers omit \"run an arc\". `parseOperatorRunPosture` already exists. Slice B cannot run until #4201 detect exists. The split is the right cheap shape.\n\n## `sharpens-framing` -- status:child on the whole issue couples the host-neutral slice to #4201\n\nEvidence. Recut body: slice A has no grok-bot dependency. Slice B depends on #4201. This session added `status:child` to #4202. Set-level lean said child for (2), not for (1).\n\nConcrete failure mode. Queue readers treat the whole issue as blocked on the parent adapter. Slice A (close #3845) waits on host work it does not need.\n\nDisposition consequence. Keep Parent #4201 in the body. Drop `status:child` from this issue, or say in AC that slice A may ship while #4201 is open. Do not make child-of-4201 a gate on trigger fixtures.\n\n## `footnote` -- Widget apply-set is now in AC; do not re-parse #4072\n\nBody already: print only verbs that apply; consume `parseOperatorRunPosture`. Content-contract tests pin trigger strings on the skill, not live parent menus. Slice B is host wiring.\n\n## Injection / swarm lens\n\nTrigger phrases are untrusted input. Keep normative contract bodies out of the thin skill (already a non-goal). Widgets that omit Discuss/Back become an un-escapable consent UI (already in AC).\n\n## Road not taken\n\nMove slice A onto #3845 as the implement vehicle -- possible, but the recut already makes #4202 the closer. Merge slice B into #4201 -- hides the trigger gap again.\n\n## Steelman\n\nSteelman for one coupled issue: operators say \"arc it\" on Grok Bot, so triggers and widgets are one ship. That flips the child-label finding only if slice A is allowed to merge while #4201 is open. The AC line above is that permission. Without it, child-of-4201 is a silent gate.\n\n\n### Comment by @MScottAdams (2026-09-06T01:35:48Z)\n\nmodel: grok-4.6\nrole: parent\n\n**Lean:**\n\n## In plain English\n\nThe recut split stands. Host-neutral triggers can close #3845 without waiting on a Grok Bot adapter. Widget map and direct default wait on #4201 detect, reuse parseOperatorRunPosture, and must keep Discuss and Back.\n\nstatus:child on this whole issue would make slice A look blocked on the parent. AC must say slice A may ship while #4201 is open. Parent #4201 stays in the body.\n\nIf this map is confirmed, that is the next-build contract. Confirming does not start a build.\n\nParent forward verdict: keep the split; add the slice-A-may-ship line. Non-self-arbitration: this parent recut the body, authored Stop 1 (5556098786), and posted the critic (5556103719) after spawn_subagent was refused. Confirming this map is an operator act. What this arc does not do: implement, bind synthesis, or ingest.\n\ntarget shape: single issue premise\nRound 1 dispatched 1 sibling: [5556103719](https://github.com/deftai/directive/issues/4202#issuecomment-5556103719) (grok-4.6). This map supersedes recut Stop 1 5556098786.\n\n## Takes\n\n### 5556103719 / status:child on the whole issue couples the host-neutral slice to #4201 -- accept-into-contract\nAC names that slice A (trigger fixtures / #3845) may ship while #4201 is open. Parent #4201 stays in the body. status:child is not a gate on slice A.\n\n## Residual\n\nNone. Footnote is census only.\n\nOperator verbs that apply: **accept**.\n\n\n### Comment by @MScottAdams (2026-09-06T01:44:38Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe recut split stands. Host-neutral triggers can close #3845 without waiting on #4201. Widget map and direct default wait on grok-bot detect, reuse parseOperatorRunPosture, and keep Discuss and Back. Slice A may ship while #4201 is open. Confirming this table binds that contract. Confirming does not ingest and does not start a build.\n\nNon-self-arbitration: this parent recut the body, authored Stop 1 5556098786, and critic 5556103719. Rows marked verified rest on SHA reads named in the method column, not on \"the critic agreed.\"\n\n## Verified-claims table\nVerified-claims table for the arc bound at successor lean 5556107709. Every row names its method.\n\n| Claim | Method | Status |\n|---|---|---|\n| Design-critique skill triggers omit run an arc; #3845 is open | skill frontmatter at 20f9dfbd; gh issue 3845 state=open | verified |\n| parseOperatorRunPosture already matches direct / github-only | packages/core/src/design-critique/run-posture.ts at 20f9dfbd | verified |\n| Deterministic questions require numbered Discuss and Back on host widgets | content/contracts/deterministic-questions.md #1563 | verified |\n| No grok-bot descriptor yet; slice B waits on #4201 detect | swarm SKILL route table at 20f9dfbd; #4201 recut body | verified |\n| Recut body splits slice A (host-neutral) from slice B (grok-bot) | live #4202 body after recut | verified |\n\nAccepted successor lean: 5556107709. Critic: 5556103719. Stop 1: 5556098786. Dispatch SHA: 20f9dfbda67746fc0367b4856cfeb016e6e96213. Round-1 N=1. target shape: single issue premise. Audit markers: none.\n\n\n### Comment by @MScottAdams (2026-09-06T01:45:22Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThis arc found that host-neutral arc triggers can close #3845 without a Grok Bot adapter, and that widget map plus direct default wait on #4201 detect, reuse parseOperatorRunPosture, and must keep Discuss and Back. Slice A may ship while #4201 is open. Confirming this record does not start a build and does not ingest.\n\ntarget shape: single issue premise\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nAccepted successor lean 5556107709. Verified-claims table 5556150080. Round-1 critic 5556103719. Stop 1 write-back 5556098786. Dispatch SHA 20f9dfbda67746fc0367b4856cfeb016e6e96213. Charter refutation, spend N=1, arc-mode: direct.\n\nEvery classified heading took accept-into-contract. Audit markers: none. Residual: none.\n\nThe arc closes here. Ingest stays a later operator verb.",
+      "Labels": "enhancement, Workflow, agent-experience, grok-build, harness, runtime-portability, urgent, area:skills, status:child, design-critique:triage-ready, critic"
+    },
+    "items": [
+      {
+        "title": "Trigger fixtures close #3845 with no grok-bot dependency.",
+        "status": "proposed"
+      },
+      {
+        "title": "Slice A may ship while #4201 is open; status:child is not a gate on trigger fixtures.",
+        "status": "proposed"
+      },
+      {
+        "title": "Negative fixture: bare review does not steal from review-cycle.",
+        "status": "proposed"
+      },
+      {
+        "title": "Direct default only after grok-bot detect; checkout tokens still win.",
+        "status": "proposed"
+      },
+      {
+        "title": "Widget mapping preserves Discuss and Back; apply-set matches the contract (no retry on empty residual).",
+        "status": "proposed"
+      },
+      {
+        "title": "Plain-English main-chat; ingest gated on completed-arc record.",
+        "status": "proposed"
+      },
+      {
+        "title": "No normative body in the thin skill.",
+        "status": "proposed"
+      },
+      {
+        "title": "#4201 pack list is the only other pointer at this router.",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "Workflow",
+      "agent-experience",
+      "grok-build",
+      "harness",
+      "runtime-portability",
+      "urgent",
+      "area:skills",
+      "status:child",
+      "design-critique:triage-ready",
+      "critic"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4202",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4202: feat(design-critique): arc triggers (#3845) plus Grok Bot widget/direct default"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3845",
+        "type": "x-xbrief/closes",
+        "title": "Issue #3845"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 9 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Trigger fixtures close #3845 with no grok-bot dependency.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Slice A may ship while #4201 is open; status:child is not a gate on trigger fixtures.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Negative fixture: bare review does not steal from review-cycle.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Direct default only after grok-bot detect; checkout tokens still win.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Widget mapping preserves Discuss and Back; apply-set matches the contract (no retry on empty residual).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Plain-English main-chat; ingest gated on completed-arc record.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "No normative body in the thin skill.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "#4201 pack list is the only other pointer at this router.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "CHANGELOG.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-design-critique/SKILL.md",
+          "REFERENCES.md",
+          "evals/trigger-cases.jsonl",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "packages/core/src/design-critique/run-posture.ts",
+          "packages/core/src/design-critique/run-posture.test.ts",
+          "packages/core/src/design-critique/widget-apply-set.ts",
+          "packages/core/src/design-critique/widget-apply-set.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "content/skills/deft-directive-design-critique",
+        "cohesion_exemption": "CHANGELOG.md is a chronological append-only release log; this slice appends one [Unreleased] entry and edits nothing else in the file."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5354137708,
+        "origin": "deftai/directive#4202",
+        "id": "github.issue.5354137708"
+      }
+    },
+    "architecture": {
+      "systemOfRecord": {
+        "stateSurfaces": [
+          {
+            "name": "design-critique skill and contract",
+            "classification": "canonical_artifact",
+            "owner": "source control",
+            "approvedStorage": "json_file",
+            "forbiddenStorage": ["browser_storage", "in_memory"],
+            "mutable": false
+          }
+        ],
+        "referenceApplications": []
+      }
+    },
+    "id": "github.issue.5354137708",
+    "updated": "2026-09-06T02:14:24Z"
+  }
+}
