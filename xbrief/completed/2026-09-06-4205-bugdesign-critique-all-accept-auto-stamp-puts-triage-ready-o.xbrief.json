@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4205",
-    "updated": "2026-09-06T01:07:52Z"
+    "updated": "2026-09-06T12:50:30Z"
   },
   "plan": {
     "title": "bug(design-critique): all-accept auto-stamp puts triage-ready on a recut lean",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(design-critique): all-accept auto-stamp puts triage-ready on a recut lean",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4205",
@@ -16,27 +16,63 @@
     "items": [
       {
         "title": "An all-accept bind whose lean is recut / not-the-next-build-contract does not display `design-critique:triage-ready`.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/auto-stamp-chip.test.ts#empty-disagreement recut lean with Recut: does not leave triage-ready on the list",
+          "recorded_at": "2026-09-06T12:50:22Z",
+          "recorded_by": "host:grok:v1:MDFhMDc2YjktZDFmYS03MmYxLThhYmItMDI1YmI5OGY3ODBi"
+        }
       },
       {
         "title": "`judgmentGates` still matches only `mechanism-shaped`.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts#catalogs design-critique:triage-ready only, not critic-posted, and keeps judgmentGates on mechanism-shaped",
+          "recorded_at": "2026-09-06T12:50:22Z",
+          "recorded_by": "host:grok:v1:MDFhMDc2YjktZDFmYS03MmYxLThhYmItMDI1YmI5OGY3ODBi"
+        }
       },
       {
         "title": "Ingest still keys off the completed-arc record + latest successor lean, not the chip.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/completed-arc-record.test.ts#does not treat leftover recut-needed as clearance (#4205)",
+          "recorded_at": "2026-09-06T12:50:22Z",
+          "recorded_by": "host:grok:v1:MDFhMDc2YjktZDFmYS03MmYxLThhYmItMDI1YmI5OGY3ODBi"
+        }
       },
       {
         "title": "Recut of a later body still opens a new arc (mechanism-shaped, old record does not clear the new lean).",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/completed-arc-record.test.ts#completes a recut when synthesis cites the latest lean",
+          "recorded_at": "2026-09-06T12:50:22Z",
+          "recorded_by": "host:grok:v1:MDFhMDc2YjktZDFmYS03MmYxLThhYmItMDI1YmI5OGY3ODBi"
+        }
       },
       {
         "title": "Closed catalog stays exclusive remaining-set (one write). Content-contract tests lock the new names.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts#locks recut-needed chip, Recut: token, CHIP_ALIASES, and no-NLP auto-stamp (#4205)",
+          "recorded_at": "2026-09-06T12:50:22Z",
+          "recorded_by": "host:grok:v1:MDFhMDc2YjktZDFmYS03MmYxLThhYmItMDI1YmI5OGY3ODBi"
+        }
       },
       {
         "title": "#4200 (or a fixture) is the exemplar: empty-disagreement recut lean must not look implement-ready on the label list.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/auto-stamp-chip.test.ts#empty-disagreement recut lean with Recut: does not leave triage-ready on the list",
+          "recorded_at": "2026-09-06T12:50:22Z",
+          "recorded_by": "host:grok:v1:MDFhMDc2YjktZDFmYS03MmYxLThhYmItMDI1YmI5OGY3ODBi"
+        }
       }
     ],
     "tags": [
@@ -122,9 +158,34 @@
         "github_issue_id": 5361832594,
         "origin": "deftai/directive#4205",
         "id": "github.issue.5361832594"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4206,
+        "prBase": null,
+        "mergeCommit": "1f1d6ffa15957c7069a9a0f1200e1d069f5356cd",
+        "deliveryBranch": "master",
+        "deliveryCommit": "1f1d6ffa15957c7069a9a0f1200e1d069f5356cd",
+        "verifiedAt": "2026-09-06T12:50:30Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDc2YjktZDFmYS03MmYxLThhYmItMDI1YmI5OGY3ODBi"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-06T12:50:30Z"
+      },
+      "completedAt": "2026-09-06T12:50:30Z",
+      "completedSessionId": "host:grok:v1:MDFhMDc2YjktZDFmYS03MmYxLThhYmItMDI1YmI5OGY3ODBi",
+      "capacityBucket": "technical-debt"
     },
     "id": "github.issue.5361832594",
-    "updated": "2026-09-06T01:07:52Z"
+    "updated": "2026-09-06T12:50:30Z"
   }
 }
