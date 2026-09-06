@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Land leftover completed-tracked artifact for #4201 (#3264 / #1358).** The #4201 xBRIEF stayed in `active/` after squash of PR 4209 (`78aaba66`). Moved to `xbrief/completed/` via scope:complete. Does not recut that issue. Refs #2321, #3476.
 - **Win32 git-fixture tests inherit a 240s suite cap under coverage contention (#3616).** `testTimeout` 120s→240s. The ingest lifecycle e2e 15s local cap is Linux-only so it does not lower the win32 cap (#4194). Does not lower `maxWorkers`. Refs #3480, #4194.
 - **Land leftover completed-tracked artifact for #4200 (#3264 / #1358).** The #4200 xBRIEF stayed in `active/` after squash of PR 4207 (`c1e038f8`). Moved to `xbrief/completed/` via scope:complete. Does not recut that issue. Refs #2321, #3476.
 - **Ingest lifecycle e2e no longer times out the merge-gate 5s default (#4194).** `preserves one minted id from ingest through promote activate complete` is 15s. Does not raise the suite default. Refs #4119, #4194.

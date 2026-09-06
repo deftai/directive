@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4201",
-    "updated": "2026-09-06T02:11:35Z"
+    "updated": "2026-09-06T09:03:13Z"
   },
   "plan": {
     "title": "rfc(harness): host-grokbot adapter + Grok Bot–native consumer façade",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "rfc(harness): host-grokbot adapter + Grok Bot–native consumer façade",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4201",
@@ -16,35 +16,83 @@
     "items": [
       {
         "title": "`grok-bot` descriptor plus misclassification tests: unique signals before spawn_subagent.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/4209 merge 78aaba667cb61da7d0efa2f1e0ec2d7c2c5b8337 — packages/core/src/review-monitor/tier-detection.test.ts + swarm/routing.test.ts grok-bot before spawn_subagent",
+          "recorded_at": "2026-09-06T09:02:00Z",
+          "recorded_by": "agent/4201-grok-bot-adapter"
+        }
       },
       {
         "title": "`host-grokbot.md`.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4209 merge 78aaba667cb61da7d0efa2f1e0ec2d7c2c5b8337 — content/skills/deft-directive-swarm/references/host-grokbot.md",
+          "recorded_at": "2026-09-06T09:02:00Z",
+          "recorded_by": "agent/4201-grok-bot-adapter"
+        }
       },
       {
         "title": "propose/launch/status docs.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4209 merge 78aaba667cb61da7d0efa2f1e0ec2d7c2c5b8337 — host-grokbot.md propose/launch/status facade",
+          "recorded_at": "2026-09-06T09:02:00Z",
+          "recorded_by": "agent/4201-grok-bot-adapter"
+        }
       },
       {
         "title": "Consumer skill-pack slice points at #4202 for arc; no second arc router here.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4209 merge 78aaba667cb61da7d0efa2f1e0ec2d7c2c5b8337 — skills pack points arc router at #4202; no second arc skill",
+          "recorded_at": "2026-09-06T09:02:00Z",
+          "recorded_by": "agent/4201-grok-bot-adapter"
+        }
       },
       {
         "title": "Doctor one-liner; CATEGORY.md note.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4209 merge 78aaba667cb61da7d0efa2f1e0ec2d7c2c5b8337 — docs/CATEGORY.md Grok Bot coding-host note",
+          "recorded_at": "2026-09-06T09:02:00Z",
+          "recorded_by": "agent/4201-grok-bot-adapter"
+        }
       },
       {
         "title": "No normative contract bodies in thin routers.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/pull/4209 Greptile CLEAN 5/5; thin routers keep normative bodies out",
+          "recorded_at": "2026-09-06T09:02:00Z",
+          "recorded_by": "agent/4201-grok-bot-adapter"
+        }
       },
       {
         "title": "Widgets used for Phase 0 gates preserve numbered Discuss and Back.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4209 merge 78aaba667cb61da7d0efa2f1e0ec2d7c2c5b8337 — host-grokbot.md Phase 0 widgets keep numbered Discuss and Back",
+          "recorded_at": "2026-09-06T09:02:00Z",
+          "recorded_by": "agent/4201-grok-bot-adapter"
+        }
       },
       {
         "title": "CHANGELOG entry.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4209 merge 78aaba667cb61da7d0efa2f1e0ec2d7c2c5b8337 — CHANGELOG.md [Unreleased] Grok Bot host entry",
+          "recorded_at": "2026-09-06T09:02:00Z",
+          "recorded_by": "agent/4201-grok-bot-adapter"
+        }
       }
     ],
     "tags": [
@@ -147,9 +195,34 @@
         "github_issue_id": 5354137174,
         "origin": "deftai/directive#4201",
         "id": "github.issue.5354137174"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4209,
+        "prBase": null,
+        "mergeCommit": "78aaba667cb61da7d0efa2f1e0ec2d7c2c5b8337",
+        "deliveryBranch": "master",
+        "deliveryCommit": "78aaba667cb61da7d0efa2f1e0ec2d7c2c5b8337",
+        "verifiedAt": "2026-09-06T09:03:13Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDc0NzQtZGMyNy03NDkzLTk0ZjYtZWRhMTQzMzY0Mzlm"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-06T09:03:13Z"
+      },
+      "completedAt": "2026-09-06T09:03:13Z",
+      "completedSessionId": "host:grok:v1:MDFhMDc0NzQtZGMyNy03NDkzLTk0ZjYtZWRhMTQzMzY0Mzlm",
+      "capacityBucket": "agentic-debt"
     },
     "id": "github.issue.5354137174",
-    "updated": "2026-09-06T02:11:35Z"
+    "updated": "2026-09-06T09:03:13Z"
   }
 }
