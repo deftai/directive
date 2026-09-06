@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Land leftover completed-tracked artifact for #4200 (#3264 / #1358).** The #4200 xBRIEF stayed in `active/` after squash of PR 4207 (`c1e038f8`). Moved to `xbrief/completed/` via scope:complete. Does not recut that issue. Refs #2321, #3476.
 - **Ingest lifecycle e2e no longer times out the merge-gate 5s default (#4194).** `preserves one minted id from ingest through promote activate complete` is 15s. Does not raise the suite default. Refs #4119, #4194.
 - **Land leftover completed-tracked artifact for #4099 (#3264 / #1358).** The #4099 xBRIEF stayed untracked after squash of PR 4185 (f2d6e00d). Moved to xbrief/completed/ via scope:complete. Does not recut that issue. Refs #2321, #3476.
 - **Empty command-snippet candidate ranges on shallow PRs are resolved, not unresolved-shallow (#4094).** A pull request that does not touch command-snippet paths no longer fails `command_snippets` because `git diff` against the base is empty. Exec failures stay `null` and still try later bases. Refs #4094, #4185.
