@@ -190,11 +190,10 @@ describe("dest-proven implement spawn (#4215)", () => {
     expect(readSpawnReservationIncarnation(root, dest)).toBeNull();
   });
 
-  it("denies persist when dest becomes occupied after dest-proven consult", () => {
+  it("denies dest-proven spawn when dest is live occupied", () => {
     const { root, dest } = destFixture();
     const inspectRitual = vi.fn(() => STALE_RITUAL);
-    const now = new Date("2026-09-06T20:00:00Z");
-    applyWorktreeOccupancy(dest, { sessionId: "foreign", now, env: {} });
+    applyWorktreeOccupancy(dest, { sessionId: "foreign", env: {} });
     const decision = decideHook(
       {
         host: "grok",
