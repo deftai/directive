@@ -134,6 +134,30 @@ describe("run", () => {
     writeFileSync(path, JSON.stringify({ plan: { status: "running" } }), "utf8");
     expect(silentRun(["--vbrief-path", path])).toBe(1);
   });
+
+  it("still scans work-claim when preflight evaluation fails (#4200)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-cli-pending-scan-"));
+    temps.push(root);
+    const dir = join(root, "pending");
+    mkdirSync(dir, { recursive: true });
+    const path = join(dir, "story.xbrief.json");
+    writeFileSync(path, JSON.stringify({ plan: { status: "running" } }), "utf8");
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    try {
+      expect(
+        run(["--vbrief-path", path], () => [
+          "[deft work-claim] warning: deftai/directive#4200 carries status:claimed (busy). Warn is success; this is not a GitHub lock.",
+        ]),
+      ).toBe(1);
+      const written = err.mock.calls.map((c) => String(c[0] ?? "")).join("");
+      expect(written).toContain("status:claimed");
+      expect(written).toContain("Warn is success");
+    } finally {
+      out.mockRestore();
+      err.mockRestore();
+    }
+  });
   it("returns 2 for a bad argument", () => {
     expect(silentRun(["--bogus"])).toBe(2);
   });

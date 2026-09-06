@@ -112,7 +112,7 @@ export function run(
   }
   const vbriefPath = args.vbriefPath as string;
   const result = evaluate(vbriefPath);
-  const scanLines = result.exitCode === 0 ? [...scan(vbriefPath)] : [];
+  const scanLines = [...scan(vbriefPath)];
 
   if (args.emitJson) {
     const message =
@@ -125,6 +125,9 @@ export function run(
     }
   } else {
     process.stderr.write(`${result.message}\n`);
+    for (const line of scanLines) {
+      process.stderr.write(`${line}\n`);
+    }
   }
   return result.exitCode;
 }
