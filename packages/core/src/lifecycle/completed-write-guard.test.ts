@@ -486,7 +486,9 @@ describe("evaluateCompletedWriteGuard (#3766 active deletion)", () => {
     expect(result.message).toContain(UNPAIRED_ACTIVE_DELETE_REMEDIATION);
   });
 
-  it("rejects an unaccompanied active delete discovered from git", { timeout: 20_000 }, () => {
+  it("rejects an unaccompanied active delete discovered from git", {
+    timeout: process.platform === "win32" ? 60_000 : 20_000,
+  }, () => {
     const root = mkdtempSync(join(tmpdir(), "completed-write-active-del-"));
     try {
       gitOk(["init", "-q", "-b", "master"], root);
