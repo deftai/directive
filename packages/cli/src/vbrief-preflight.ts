@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
 import { emitJson, evaluate, PREFLIGHT_USAGE_HINT } from "@deftai/directive-core/preflight";
+import { scanWorkClaimForBriefPath } from "@deftai/directive-core/scm";
 
 interface ParsedArgs {
   vbriefPath: string | null;
@@ -113,6 +114,9 @@ export function run(argv: string[]): number {
     process.stdout.write(`${emitJson(vbriefPath, result.exitCode, result.message)}\n`);
   } else if (result.exitCode === 0) {
     process.stdout.write(`${result.message}\n`);
+    for (const line of scanWorkClaimForBriefPath(vbriefPath)) {
+      process.stdout.write(`${line}\n`);
+    }
   } else {
     process.stderr.write(`${result.message}\n`);
   }

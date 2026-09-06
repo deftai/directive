@@ -16,7 +16,7 @@
 | **Type** | `bug`, `enhancement`, `rfc`, `epic`, `documentation`, … | What kind of issue |
 | **Area** | Prefer **`area:*`** forward (#1789) | Product surface; resolve legacy twins over time |
 | **Platform** | `platform:windows`, `platform:macos`, `platform:linux` | OS-intrinsic only |
-| **Status / role** | `status:blocked`, `status:tracker`, **`status:child`**, `status:superseded-pending`, … | Lifecycle / queue role |
+| **Status / role** | `status:blocked`, `status:tracker`, **`status:child`**, `status:superseded-pending`, **`status:claimed`**, … | Lifecycle / queue role / same-issue busy flag |
 | **Audience / ranking** | `urgent`, `adoption-blocker`, `agent-experience`, … | Earn keep; used sparingly |
 | **Machine / mirror** | `triaged`, `triage:deferred`, `triage:archived`, `triage:lifecycle-linked`, `triage:needs-human` | Closed set; primary writer = mirror apply |
 
@@ -130,6 +130,18 @@ Do **not** invent a classifier for "mechanism-shaped." Stamp or omit. No stamp -
 
 Critic does not write issue labels. Do not add a critic-posted or author/role chip. `judgmentGates` still matches only `design-critique:mechanism-shaped`. No halt chip. Remove-set is those two catalog names only.
 
+### Work claim (`status:claimed`, #4200)
+
+List-visible same-issue busy flag. Occupancy is who owns this checkout on this disk. `status:claimed` says this issue is being implemented. Not `kind: pass` (#3607). Not a PR review-owner lease. Not an exclusive lock.
+
+| Label | Means | Not |
+|-------|--------|-----|
+| **`status:claimed`** | This issue is busy (someone started work) | Who; permission; two-issue path overlap |
+
+Verb: `task scm:issue:work-claim -- claim|show|release --issue N [--repo OWNER/NAME]`. Session-start and `xbrief:preflight` MUST show. Warn is success. Claim refuses read-only / no occupancy. Last-write-wins: the board can lie about who. Clear on explicit release and on `scope:complete`. Do not invent this name per issue. Do not hang the signal on `scope:promote`.
+
+GitHub description (100-char cap): `This issue is being implemented (busy flag; not a lock; last-write-wins)`
+
 ---
 
 ## Platform facet
@@ -224,7 +236,7 @@ Inventory ~85 labels at #2609 implement time. This section lists **canonical** n
 
 ### Status / role
 
-`status:blocked`, `status:tracker`, `status:child`, `status:superseded-pending`, `hold`, `fixed-pending-merge`
+`status:blocked`, `status:tracker`, `status:child`, `status:superseded-pending`, `status:claimed`, `hold`, `fixed-pending-merge`
 
 ### Machine / mirror (created or confirmed Phase A)
 
@@ -339,6 +351,7 @@ Skill / SCM pointer: `content/scm/github.md` § Issue Labels (framework source) 
 
 | Date | Change |
 |------|--------|
+| 2026-09-06 | Add `status:claimed` work-claim busy flag plus `scm:issue:work-claim` (#4200) |
 | 2026-08-24 | Broaden `adoption-blocker` to the full intended-flow range; state positive-only semantics; distinguish from `Upgrade Blocker`, `status:blocked`, and `urgent` (#3650) |
 | 2026-08-27 | Catalog chips are list convenience; ingest waits on the completed-arc record (#3806) |
 | 2026-08-21 | Design-critique stamp label `design-critique:mechanism-shaped` + write-back field `mechanism-shaped: true` (ADR-005 / #3434 Story 1) |

@@ -50,6 +50,25 @@ describe("main non-rest branches", () => {
     stdout.mockRestore();
   });
 
+  it("dispatches issue work-claim without forwarding to gh (#4200)", () => {
+    const apply = vi.fn();
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    expect(
+      main(["issue", "work-claim", "claim", "--issue", "4200", "--repo", "deftai/directive"], {
+        skipReadiness: true,
+        occupancyLive: () => true,
+        labelClient: {
+          fetchLabels: () => ["bug"],
+          apply,
+        },
+      }),
+    ).toBe(0);
+    expect(spawnSyncMock).not.toHaveBeenCalled();
+    expect(apply).toHaveBeenCalledTimes(1);
+    expect(apply.mock.calls[0]?.slice(2)).toEqual([["status:claimed"], []]);
+    stdout.mockRestore();
+  });
+
   it("returns 2 for unknown design-critique-chip names without spawning gh", () => {
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     expect(

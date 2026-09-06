@@ -68,6 +68,7 @@ import {
   type ScmReadinessReport,
   scmReadinessToDict,
 } from "../scm/readiness.js";
+import { workClaimSessionScanLines } from "../scm/work-claim.js";
 import { maybeRunStalenessTickler } from "../staleness-tickler/run.js";
 import { runDefaultMode } from "../triage/welcome/default-mode.js";
 import { type ResolveUserMdResult, resolveUserMdPath } from "../user-config/resolve-user-md.js";
@@ -357,6 +358,19 @@ export interface SessionStartOptions {
    */
   readonly orientation?: OrientationBundle | null;
   readonly orientationOptions?: Partial<RunOrientationOptions>;
+  /**
+   * #4200: MUST scan origin issues for status:claimed. Warn is success.
+   * Inject in tests; default walks lifecycle xBRIEFs and GETs labels.
+   */
+  readonly scanWorkClaims?: (projectRoot: string) => readonly string[];
+}
+
+function pushWorkClaimScan(
+  lines: string[],
+  projectRoot: string,
+  options: SessionStartOptions,
+): void {
+  lines.push(...workClaimSessionScanLines(projectRoot, options.scanWorkClaims));
 }
 
 function ritualPersistenceTransitionError(cause: unknown, sessionId: string): Error {
@@ -874,6 +888,7 @@ function runReadOnlySessionStart(
   lines.push(...effortBudget.lines);
   const runGit = options.runGit ?? defaultGitRunner;
   pushLifecycleVisibleAdvisory(lines, projectRoot, options, runGit);
+  pushWorkClaimScan(lines, projectRoot, options);
   const resultPayload = {
     ready: true,
     exit_code: 0,
@@ -1063,6 +1078,7 @@ function runSessionRearm(
   // #3433: keep DEFT_SESSION_ID / occupant id. Do not mint a new UUID on re-arm.
   const rearmSessionId = persistedOccupancy.sessionId;
   lines.push(persistedOccupancy.message);
+  pushWorkClaimScan(lines, projectRoot, options);
   // Fresh payload (no rearm_needed / compact_resume_at) clears compact markers (#2992).
   const writePayload: Record<string, unknown> = {
     ...newRitualStatePayload({
@@ -1760,6 +1776,7 @@ export function runSessionStart(
   }
   const coldSessionId = persistedOccupancy.sessionId;
   lines.push(persistedOccupancy.message);
+  pushWorkClaimScan(lines, projectRoot, options);
   const dialDict = {
     ...ceremonyDialToDict(ceremonyDialSelection),
     start_tier: ceremonyDialSelection.depth,

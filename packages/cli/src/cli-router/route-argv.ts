@@ -225,6 +225,10 @@ function routeNamespaceVerb(ns: string, verb: string, rest: string[]): RoutedArg
     return { kind: "dispatch", argv: ["scm", "issue", "design-critique-chip", ...rest] };
   }
 
+  if (ns === "scm" && verb === "issue:work-claim") {
+    return { kind: "dispatch", argv: ["scm", "issue", "work-claim", ...rest] };
+  }
+
   if (ns === "issue" && verb === "ingest") {
     return { kind: "dispatch", argv: ["issue-ingest", ...rest] };
   }
