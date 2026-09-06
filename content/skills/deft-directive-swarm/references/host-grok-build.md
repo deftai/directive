@@ -27,7 +27,9 @@ This path became first-class in #1342 (platform adapter slices 1-3) and is fully
 0. Create `<worktree>/.deft-scratch/subagent-status/` before spawn if launch/pre-dispatch did not already, and instruct the worker to heartbeat + commit early (#3730).
 1. The canonical `templates/agent-prompt-preamble.md` content as the preamble
 2. The standard worktree prompt (STEP 1-6 from the Prompt Template below), adapted to use `get_command_or_subagent_output` for polling rather than `start_agent` lifecycle events
-3. The worktree path set to the agent's isolated git worktree
+3. `tool_input.cwd` set to the agent's reserved linked worktree. Grok implement dest is `cwd` only. Do not pass `worktree_path`, `worktreePath`, `worktree`, or `isolation=worktree`.
+
+! **Parent ritual HEAD-discontinuous / dest occupancy deny class (#4215).** Native `spawn_subagent` with `cwd` to a dest-proven reserved linked worktree must not require a live parent primary ritual. Occupancy-refused on the contended primary is why `session:start --rearm` on master is the wrong recovery, not a spawn skip. If native spawn is denied, record that deny text in the handback. CLI `grok --cwd` is last-resort after that deny, not a habit after the first failure. Do not dual-launch CLI and `spawn_subagent` on the same unit. Do not document CLI as the real Grok Build launch path.
 
 ~ This is the first-class non-Warp path. Workers use worktree state polling (`git status`, `git log`) and `get_command_or_subagent_output` as their coordination channel instead of Warp tab state.
 

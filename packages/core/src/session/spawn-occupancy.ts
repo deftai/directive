@@ -11,7 +11,7 @@
  */
 
 import { createHash, randomUUID } from "node:crypto";
-import { existsSync, readFileSync, realpathSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import {
   ContainedWriteError,
@@ -25,7 +25,7 @@ import {
   listChildOccupancyLeases,
   recordChildOccupancyLease,
 } from "./child-occupancy.js";
-import { defaultGitRunner, type GitRunner } from "./git.js";
+import { defaultGitRunner, type GitRunner, gitCommonDir } from "./git.js";
 import { isLinkedWorktreePath, isMainWorktreePath, mainWorktreeRoot } from "./main-worktree.js";
 import { liveOccupant } from "./occupancy.js";
 
@@ -39,6 +39,7 @@ export interface SpawnDestination {
 
 export type SpawnOccupancyDenyReason =
   | "destination-missing"
+  | "invalid-extra-destination"
   | "primary-path"
   | "destination-not-worktree"
   | "destination-foreign"
@@ -64,7 +65,31 @@ export interface SpawnOccupancyDeny {
 
 export type SpawnOccupancyDecision = SpawnOccupancyAllow | SpawnOccupancyDeny;
 
+export interface SpawnOccupancyConsultAllow {
+  readonly allow: true;
+  readonly destProven: boolean;
+  readonly destination: SpawnDestination;
+  readonly destPath: string | null;
+  readonly reRootPath: string | null;
+  readonly hostCanReroot: boolean;
+  readonly message: string;
+  readonly parentId: string;
+}
+
+export interface SpawnOccupancyConsultDeny {
+  readonly allow: false;
+  readonly destProven: false;
+  readonly reason: SpawnOccupancyDenyReason;
+  readonly destination: SpawnDestination | null;
+  readonly destPath: string | null;
+  readonly message: string;
+  readonly parentId: string;
+}
+
+export type SpawnOccupancyConsult = SpawnOccupancyConsultAllow | SpawnOccupancyConsultDeny;
+
 const HOSTS_THAT_REROOT = new Set(["claude", "cursor", "codex"]);
+const GROK_EXTRA_DEST_KEYS = ["worktree_path", "worktreePath", "worktree"] as const;
 
 function looksLikePath(value: string): boolean {
   if (value.length === 0) return false;
@@ -124,6 +149,71 @@ function parentIdFromEnv(environ: NodeJS.ProcessEnv): string {
   return "none";
 }
 
+function spawnToolInput(payload: unknown): Record<string, unknown> {
+  const input = record(payload);
+  if (input === null) return {};
+  return toolInputRecord(input) ?? {};
+}
+
+function grokExtraDestKey(payload: unknown): string | null {
+  const toolInput = spawnToolInput(payload);
+  for (const key of GROK_EXTRA_DEST_KEYS) {
+    if (fieldString(toolInput, key) !== null) return key;
+  }
+  return null;
+}
+
+function grokIsolationWorktree(payload: unknown): boolean {
+  const toolInput = spawnToolInput(payload);
+  const isolation = fieldString(toolInput, "isolation") ?? fieldString(toolInput, "Isolation");
+  return isolation !== null && isolation.toLowerCase() === "worktree";
+}
+
+function grokCwdPath(payload: unknown): string | null {
+  const cwd = fieldString(spawnToolInput(payload), "cwd");
+  return cwd !== null && looksLikePath(cwd) ? cwd : null;
+}
+
+function grokMissingDestMessage(): string {
+  return (
+    "Directive denied implement-class spawn: no worktree destination on the spawn payload " +
+    "(tool_input.cwd). Spawned mutating work takes its own worktree; do not inherit the " +
+    "parent checkout. Grok spawn_subagent cannot rewrite input -- pass cwd to a reserved " +
+    "linked worktree before the spawn primitive."
+  );
+}
+
+function rerootMissingDestMessage(): string {
+  return (
+    "Directive denied implement-class spawn: no worktree destination on the spawn payload " +
+    "(tool_input.isolation=worktree, worktree_path, or cwd). Spawned mutating work takes " +
+    "its own worktree; do not inherit the parent checkout. Pass isolation=worktree or a " +
+    "linked worktree_path before the spawn primitive."
+  );
+}
+
+function isExistingDirectory(path: string): boolean {
+  try {
+    return existsSync(path) && statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+function destIsProven(opts: {
+  readonly destPath: string | null;
+  readonly payloadRoot: string;
+  readonly runGit: GitRunner;
+}): boolean {
+  if (opts.destPath === null) return false;
+  if (!isExistingDirectory(opts.destPath)) return false;
+  if (!isLinkedWorktreePath(opts.destPath)) return false;
+  const destCommon = gitCommonDir(opts.destPath, opts.runGit);
+  const parentCommon = gitCommonDir(opts.payloadRoot, opts.runGit);
+  if (destCommon === null || parentCommon === null) return false;
+  return sameTree(destCommon, parentCommon);
+}
+
 function agentIdFromPayload(payload: unknown, incarnation: string): string {
   const input = record(payload);
   const toolInput = input !== null ? (toolInputRecord(input) ?? input) : null;
@@ -158,7 +248,7 @@ function existingDispatchReservation(storeRoot: string, worktreePath: string) {
   return null;
 }
 
-export function evaluateImplementSpawnOccupancy(input: {
+export type ConsultImplementSpawnOccupancyInput = {
   readonly payload: unknown;
   readonly payloadRoot: string;
   readonly host: string;
@@ -166,122 +256,179 @@ export function evaluateImplementSpawnOccupancy(input: {
   readonly runGit?: GitRunner;
   readonly now?: Date;
   readonly parentId?: string;
-}): SpawnOccupancyDecision {
+};
+
+function consultDeny(
+  reason: SpawnOccupancyDenyReason,
+  message: string,
+  parentId: string,
+  destination: SpawnDestination | null = null,
+  destPath: string | null = null,
+): SpawnOccupancyConsultDeny {
+  return {
+    allow: false,
+    destProven: false,
+    reason,
+    destination,
+    destPath,
+    message,
+    parentId,
+  };
+}
+
+/**
+ * Decision-only dest occupancy. Does not mint an incarnation or persist a dest-lock.
+ */
+export function consultImplementSpawnOccupancy(
+  input: ConsultImplementSpawnOccupancyInput,
+): SpawnOccupancyConsult {
   const payloadRoot = resolve(input.payloadRoot);
   const environ = input.environ ?? process.env;
   const runGit = input.runGit ?? defaultGitRunner;
-  const destination = inspectSpawnDestination(input.payload);
-  if (destination === null) {
-    return {
-      allow: false,
-      reason: "destination-missing",
-      destination: null,
-      message:
-        "Directive denied implement-class spawn: no worktree destination on the spawn payload " +
-        "(tool_input.isolation=worktree, worktree_path, or cwd). Spawned mutating work takes " +
-        "its own worktree; do not inherit the parent checkout. Grok spawn_subagent cannot " +
-        "rewrite input -- pass cwd/worktree_path before the spawn primitive.",
-    };
+  const parentId = (input.parentId?.trim() || parentIdFromEnv(environ)).trim() || "none";
+  const hostCanReroot = HOSTS_THAT_REROOT.has(input.host);
+  const grokHost = input.host === "grok";
+
+  if (grokHost) {
+    const extra = grokExtraDestKey(input.payload);
+    if (extra !== null) {
+      return consultDeny(
+        "invalid-extra-destination",
+        "Directive denied implement-class spawn: extra destination field " +
+          `${extra} is invalid on Grok. Grok dest is tool_input.cwd only.`,
+        parentId,
+      );
+    }
+    const isolationWorktree = grokIsolationWorktree(input.payload);
+    const cwd = grokCwdPath(input.payload);
+    if (isolationWorktree && cwd !== null) {
+      return consultDeny(
+        "invalid-extra-destination",
+        "Directive denied implement-class spawn: isolation=worktree together with cwd is " +
+          "both-set on Grok. Grok dest is tool_input.cwd only.",
+        parentId,
+      );
+    }
+    if (isolationWorktree && cwd === null) {
+      return consultDeny("destination-missing", grokMissingDestMessage(), parentId);
+    }
+    if (cwd === null) {
+      return consultDeny("destination-missing", grokMissingDestMessage(), parentId);
+    }
+  }
+
+  const destination = grokHost
+    ? ({
+        kind: "path",
+        path: grokCwdPath(input.payload),
+        isolation: null,
+      } satisfies SpawnDestination)
+    : inspectSpawnDestination(input.payload);
+  if (destination === null || (grokHost && destination.path === null)) {
+    return consultDeny(
+      "destination-missing",
+      grokHost ? grokMissingDestMessage() : rerootMissingDestMessage(),
+      parentId,
+    );
   }
 
   const destPath = resolveDestinationPath(payloadRoot, destination);
-  const hostCanReroot = HOSTS_THAT_REROOT.has(input.host);
 
   if (destPath === null && !hostCanReroot) {
-    return {
-      allow: false,
-      reason: "destination-missing",
+    return consultDeny(
+      "destination-missing",
+      grokMissingDestMessage(),
+      parentId,
       destination,
-      message:
-        "Directive denied implement-class spawn: this host cannot re-root PreToolUse input, " +
-        "and isolation=worktree has no concrete cwd/worktree_path. Grok spawn_subagent cannot " +
-        "rewrite input -- pass cwd to a reserved linked worktree before the spawn primitive.",
-    };
+      destPath,
+    );
+  }
+
+  if (grokHost && (destPath === null || !isExistingDirectory(destPath))) {
+    return consultDeny(
+      "destination-missing",
+      "Directive denied implement-class spawn: destination cwd does not exist as a " +
+        "directory. Pass cwd to an existing reserved linked worktree.",
+      parentId,
+      destination,
+      destPath,
+    );
   }
 
   if (destPath !== null && isMainWorktreePath(destPath, runGit)) {
-    return {
-      allow: false,
-      reason: "primary-path",
-      destination,
-      message:
-        "Directive denied implement-class spawn onto the primary checkout. Spawned mutating " +
+    return consultDeny(
+      "primary-path",
+      "Directive denied implement-class spawn onto the primary checkout. Spawned mutating " +
         "work takes a linked worktree. A spawn payload cannot name a primary-claim exception; " +
         "that exception is occupancy-claim only (release-cut, policy-restore, " +
         "operator-default-branch). " +
         (hostCanReroot
           ? "Pass isolation=worktree or a linked worktree_path."
           : "This host cannot re-root spawn input; pass cwd to a linked worktree."),
-    };
+      parentId,
+      destination,
+      destPath,
+    );
   }
 
   if (destPath !== null && existsSync(destPath) && !isLinkedWorktreePath(destPath)) {
-    return {
-      allow: false,
-      reason: "destination-not-worktree",
-      destination,
-      message:
-        `Directive denied spawn: destination ${destPath} exists and is not a linked worktree. ` +
+    return consultDeny(
+      "destination-not-worktree",
+      `Directive denied spawn: destination ${destPath} exists and is not a linked worktree. ` +
         "Spawned mutating work takes a linked worktree, not an ordinary directory.",
-    };
+      parentId,
+      destination,
+      destPath,
+    );
   }
 
   if (destPath !== null && existsSync(destPath)) {
     const destRepo = mainWorktreeRoot(destPath, runGit);
     const parentRepo = mainWorktreeRoot(payloadRoot, runGit);
     if (destRepo !== null && parentRepo !== null && !sameTree(destRepo, parentRepo)) {
-      return {
-        allow: false,
-        reason: "destination-foreign",
-        destination,
-        message:
-          `Directive denied spawn: destination ${destPath} is a linked worktree of a foreign repository. ` +
+      return consultDeny(
+        "destination-foreign",
+        `Directive denied spawn: destination ${destPath} is a linked worktree of a foreign repository. ` +
           "Spawned mutating work takes a linked worktree of this repo.",
-      };
+        parentId,
+        destination,
+        destPath,
+      );
     }
   }
 
   if (destPath !== null) {
     const live = liveOccupant(destPath, input.now);
     if (live !== null) {
-      return {
-        allow: false,
-        reason: "destination-occupied",
-        destination,
-        message:
-          `Directive denied spawn: destination worktree is occupied by session ${live.sessionId} ` +
+      return consultDeny(
+        "destination-occupied",
+        `Directive denied spawn: destination worktree is occupied by session ${live.sessionId} ` +
           `(intent=${live.intent}). Use another worktree. Do not grant across hosts onto that lease ` +
           "and do not take over the primary checkout.",
-      };
+        parentId,
+        destination,
+        destPath,
+      );
     }
     const existing = existingDispatchReservation(payloadRoot, destPath);
     if (existing !== null) {
-      return {
-        allow: false,
-        reason: "reservation-conflict",
-        destination,
-        message:
-          `Directive denied spawn: destination ${destPath} is already reserved for dispatch ` +
+      return consultDeny(
+        "reservation-conflict",
+        `Directive denied spawn: destination ${destPath} is already reserved for dispatch ` +
           `${existing.incarnation} (agent ${existing.agentId}). Own worktree means a unique ` +
           "reservation, not a shared linked tree.",
-      };
+        parentId,
+        destination,
+        destPath,
+      );
     }
   }
 
-  const incarnation = randomUUID();
-  const parentId = (input.parentId?.trim() || parentIdFromEnv(environ)).trim() || "none";
-  const agentId = agentIdFromPayload(input.payload, incarnation);
-  // Pathless isolation=worktree is in-AC only for hosts that re-root.
-  // Grok cannot rewrite PreToolUse input; that arm is denied above.
-  const reservation: ChildOccupancyDispatchInput = {
-    agentId,
-    parentId,
-    occupancyOwner: parentId,
-    worktreePath: destPath ?? join(payloadRoot, ".deft", "spawn-pending", incarnation),
-    identitySourceKind: input.host === "grok" ? "host-env" : "payload",
-    incarnation,
-    provenance: "dispatch",
-  };
+  const destProven =
+    destIsProven({ destPath, payloadRoot, runGit }) && destPath !== null
+      ? liveOccupant(destPath, input.now) === null &&
+        existingDispatchReservation(payloadRoot, destPath) === null
+      : false;
 
   const reRootPath = destPath;
   const rerootNote = hostCanReroot
@@ -292,13 +439,64 @@ export function evaluateImplementSpawnOccupancy(input: {
 
   return {
     allow: true,
+    destProven,
     destination,
-    incarnation,
-    reservation,
+    destPath,
     reRootPath,
     hostCanReroot,
+    message: `Directive consulted spawn destination.${rerootNote}`,
+    parentId,
+  };
+}
+
+/** Mint incarnation + reservation after remaining parent gates have allowed. */
+export function mintImplementSpawnReservation(
+  consult: SpawnOccupancyConsultAllow,
+  input: ConsultImplementSpawnOccupancyInput,
+): SpawnOccupancyAllow {
+  const payloadRoot = resolve(input.payloadRoot);
+  const incarnation = randomUUID();
+  const parentId = consult.parentId;
+  const agentId = agentIdFromPayload(input.payload, incarnation);
+  const destPath = consult.destPath;
+  const reservation: ChildOccupancyDispatchInput = {
+    agentId,
+    parentId,
+    occupancyOwner: parentId,
+    worktreePath: destPath ?? join(payloadRoot, ".deft", "spawn-pending", incarnation),
+    identitySourceKind: input.host === "grok" ? "host-env" : "payload",
+    incarnation,
+    provenance: "dispatch",
+  };
+  const rerootNote = consult.hostCanReroot
+    ? consult.reRootPath !== null
+      ? ` Hook payload will re-root onto ${consult.reRootPath}.`
+      : " Host isolation=worktree re-roots the child payload."
+    : " This host cannot re-root PreToolUse input; the child must start in the reserved worktree.";
+  return {
+    allow: true,
+    destination: consult.destination,
+    incarnation,
+    reservation,
+    reRootPath: consult.reRootPath,
+    hostCanReroot: consult.hostCanReroot,
     message: `Directive reserved spawn worktree incarnation ${incarnation}.${rerootNote}`,
   };
+}
+
+export function evaluateImplementSpawnOccupancy(
+  input: ConsultImplementSpawnOccupancyInput,
+): SpawnOccupancyDecision {
+  const consult = consultImplementSpawnOccupancy(input);
+  if (!consult.allow) {
+    return {
+      allow: false,
+      reason: consult.reason,
+      destination: consult.destination,
+      message: consult.message,
+    };
+  }
+  return mintImplementSpawnReservation(consult, input);
 }
 
 function reservationDigestKey(destPath: string): string {

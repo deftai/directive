@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Dest-proven implement spawn skips parent ritual without dest-root swap (#4215).** Occupancy consult runs first with no mint. Skip parent `verifySessionRitual` only when dest is dest-proven, not when occupancy allows. On Grok, occupancy dest, dest-proven dest, persist dest-lock, and host launch are `tool_input.cwd`; extra dest keys occupancy-deny. Persist/reservation-conflict stays the final launch refusal. Closes #4215. Refs #1185, #4066.
 - **Land leftover completed-tracked artifact for #4137 (#3264 / #1358).** The #4137 xBRIEF stayed in `active/` after squash of PR 4223 (`c991046c`). Moved to `xbrief/completed/` via scope:complete. Does not recut that issue. Refs #2321, #3476.
 - **issue:ingest paginates comment fetch so threads over 30 comments keep synthesis (#4137).** `fetchIssueComments` walks `?per_page=100&page=N` on the same cached-get seam. Fail closed on spawn throw, non-zero, non-JSON, non-array pages, and cap exhaustion without a short terminal page. Does not call `restIssueComments` or `--paginate`. Closes #4137.
 - **parseOperatorRunPosture treats `directly` and `on github` as closed `direct` tokens (#4220).** `directive` and bare `arc N yolo` still ask. `on github` is a location synonym at the Stop 1 front door. Token array and regex stay twins. Closes #4220. Refs #4072.

@@ -1,0 +1,223 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF recut from GitHub issue #4215 locked v5 plus accepted Astra F1/F2",
+    "updated": "2026-09-06T18:15:32Z"
+  },
+  "plan": {
+    "title": "rfc(harness): implement spawn into a reserved worktree must not require a live primary ritual (#1185 leftover / #4066)",
+    "status": "running",
+    "narratives": {
+      "Description": "rfc(harness): implement spawn into a reserved worktree must not require a live primary ritual (#1185 leftover / #4066)",
+      "Origin": "Recut from https://github.com/deftai/directive/issues/4215 locked v5 body plus accepted v5 synthesis",
+      "Overview": "## Bound contract (locked v5 + Astra F1/F2)\n\nIssue body is locked v5. Binding arc: recut body note 5560842284; Stop 1 5560964229; critic Astra 5561005528; successor lean 5561016491; verified-claims 5561018593; synthesis accepted 5561018721. Older critic 5559958873 / premature lean 5559969396 / synthesis 5559971786 are SUPERSEDED. Do not implement dest-root ritual/scope swap. Do not skip-on-allow. Do not treat worktree_path as a Grok dest.\n\nProduct base is origin/master after rebase. Critic evidence pin SHA: 04bf3a7097ec8386e20e361ef861cf028522a044.\n\n## Locked v5\n\n- Skip parent verifySessionRitual only when dest is dest-proven, not when evaluateImplementSpawnOccupancy.allow. Dest occupancy consult-only runs first (no mint). Mint and persistSpawnReservation stay last, after parent-root active-scope and intent ceiling.\n- Dest-proven skip calls neither verifySessionRitual nor inspectSessionRitual. Dest-unproven keeps verifySessionRitual. inspectSessionRitual is occupancy-deny decoration only, not a conjunct on dest-proven.\n- Dest-proven fail-closed: destPath set, exists, isLinkedWorktreePath, both git-common-dirs resolve, same repo, not live occupied, not already reserved. Unproven common-dir does not skip.\n- On Grok, occupancy destPath, dest-proven destPath, persist dest-lock, and host launch are the same field: tool_input.cwd. worktree_path / worktreePath / worktree are occupancy-deny (invalid extra dest), not a second dest. isolation=worktree with cwd is both-set occupancy-deny. isolation=worktree without cwd is destination-missing. Drop the ritual-deny OR. Tests: cwd dest-proven plus worktree_path (same or different) occupancy-deny, no skip, no dest-lock; worktree_path alone occupancy-deny, no skip, no dest-lock.\n- Grok occupancy consult also fails closed when kind=path and dest does not exist as a directory: occupancy deny, no skip, no dest-lock.\n- Pathless isolation=worktree on reroot hosts does not skip.\n- Skill recut includes swarm Phase 0 destination-field list (core-phase-0.md): Grok implement spawn is cwd only. isolation=worktree / worktree_path stay on reroot hosts. host-grok-build.md names cwd, deny class, CLI --cwd last-resort after that deny, no dual-launch. Do not advertise worktree_path.\n- Occupancy-refused on the contended primary is why session:start --rearm is the wrong recovery, not a spawn skip. Keep spawn write-gate occupancy hardcoded allow.\n- Skip denies when resolved parent identity is none.\n- Parent must not author dest ritual-state. Dest-lock / incarnation stays.\n- Parent-root active-scope stays. Capability-mode implement spawn stays read-only-deny.\n- Child still ritualizes dest before product writes.\n- Slice B is #4219, blocked by this issue. Not required to close this issue.\n\n## Astra F1 (accept-into-contract)\n\nEarly dest-proven consult is a snapshot; persist/reservation-conflict remains the final launch refusal. Two successful consults, only one successful persist/launch. Scope/intent denial after consult: zero mint, zero persist.\n\n## Astra F2 (accept-into-contract)\n\nGrok missing/invalid-destination recovery text must advertise cwd and must not prescribe worktree_path or pathless isolation. Reroot-host recovery may keep its alternatives.\n\n## Dropped (do not implement)\n\n- Dest-root ritual/scope swap.\n- Skip-on-allow (skip when occupancy allow rather than dest-proven).\n- Occupancy-refused as a spawn skip.\n- Capability-mode punch / PRIMARY_CLAIM_EXCEPTIONS expansion.\n- worktree_path as a Grok dest.\n- Slice B / #4219.\n- Take over #4137. Reopen/merge closed PR 4217. Touch #4220 leftover PR 4222.\n\n## Native unlock\n\nDest-proven skip of parent verifySessionRitual. On Grok, one dest field (tool_input.cwd) for occupancy, dest-proven, persist, and launch.\n\n## File scope\n\npackages/core/src/hooks/dispatcher.ts; packages/core/src/session/spawn-occupancy.ts and tests; content/skills/deft-directive-swarm/references/core-phase-0.md; content/skills/deft-directive-swarm/references/host-grok-build.md; CHANGELOG.md (append-only).",
+      "Labels": "swarm, rfc, agent-experience, process, grok-build, harness, design-critique:mechanism-shaped"
+    },
+    "items": [
+      {
+        "title": "Dest-proven implement spawn is not refused because parent primary ritual is HEAD-discontinuous or age-stale.",
+        "status": "proposed"
+      },
+      {
+        "title": "Dest occupancy consult (no mint) runs before parent verifySessionRitual. Mint/persist stay after parent-root scope and intent ceiling.",
+        "status": "proposed"
+      },
+      {
+        "title": "On Grok, occupancy dest, dest-proven dest, persist dest-lock, and host launch are tool_input.cwd. worktree_path (alone or with cwd) occupancy-denies, no skip, no dest-lock.",
+        "status": "proposed"
+      },
+      {
+        "title": "Pathless isolation=worktree on reroot hosts does not skip.",
+        "status": "proposed"
+      },
+      {
+        "title": "Absent dest still fails closed.",
+        "status": "proposed"
+      },
+      {
+        "title": "Child still claims occupancy and ritual on dest before product writes.",
+        "status": "proposed"
+      },
+      {
+        "title": "Parent-root active-scope remains required.",
+        "status": "proposed"
+      },
+      {
+        "title": "Capability-mode implement spawn remains denied.",
+        "status": "proposed"
+      },
+      {
+        "title": "Skip denies when resolved parent identity is none.",
+        "status": "proposed"
+      },
+      {
+        "title": "Phase 0 Grok dest field is cwd only. host-grok-build.md names cwd. Tests lock the four-way same-field conjunction.",
+        "status": "proposed"
+      },
+      {
+        "title": "Astra F1: two successful consults, only one successful persist/launch; scope/intent denial after consult is zero mint, zero persist.",
+        "status": "proposed"
+      },
+      {
+        "title": "Astra F2: Grok missing/invalid-destination recovery advertises cwd and does not prescribe worktree_path or pathless isolation.",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "swarm",
+      "rfc",
+      "agent-experience",
+      "process",
+      "grok-build",
+      "harness",
+      "design-critique:mechanism-shaped"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4215",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4215: rfc(harness): implement spawn into a reserved worktree must not require a live primary ritual (#1185 leftover / #4066)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived independently testable clauses from locked v5 body plus accepted Astra F1/F2 before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Dest-proven implement spawn is not refused because parent primary ritual is HEAD-discontinuous or age-stale.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Dest occupancy consult (no mint) runs before parent verifySessionRitual. Mint/persist stay after parent-root scope and intent ceiling.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "On Grok, occupancy dest, dest-proven dest, persist dest-lock, and host launch are tool_input.cwd. worktree_path (alone or with cwd) occupancy-denies, no skip, no dest-lock.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Pathless isolation=worktree on reroot hosts does not skip.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Absent dest still fails closed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Child still claims occupancy and ritual on dest before product writes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Parent-root active-scope remains required.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Capability-mode implement spawn remains denied.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Skip denies when resolved parent identity is none.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Phase 0 Grok dest field is cwd only. host-grok-build.md names cwd. Tests lock the four-way same-field conjunction.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Astra F1: two successful consults, only one successful persist/launch; scope/intent denial after consult is zero mint, zero persist.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "synthesis"
+        },
+        {
+          "id": 12,
+          "text": "Astra F2: Grok missing/invalid-destination recovery advertises cwd and does not prescribe worktree_path or pathless isolation.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "synthesis"
+        },
+        {
+          "id": 13,
+          "text": "CHANGELOG.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/session/spawn-occupancy.ts",
+          "packages/core/src/session/spawn-occupancy.test.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
+          "content/skills/deft-directive-swarm/references/core-phase-0.md",
+          "content/skills/deft-directive-swarm/references/host-grok-build.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "typescript-engine",
+        "cohesion_exemption": "dispatcher.ts, dispatcher.test.ts, and CHANGELOG.md already exceed the review trigger. This slice adds dest-proven skip and Grok cwd-only dest on the existing spawn occupancy seam; it does not split those files. CHANGELOG.md is append-only."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5365500280,
+        "origin": "deftai/directive#4215",
+        "id": "github.issue.5365500280"
+      },
+      "bound_contract": {
+        "issue_body": "locked-v5",
+        "recut_body_note": 5560842284,
+        "stop_1": 5560964229,
+        "critic": 5561005528,
+        "successor_lean": 5561016491,
+        "verified_claims": 5561018593,
+        "synthesis": 5561018721,
+        "pin_sha": "04bf3a7097ec8386e20e361ef861cf028522a044"
+      }
+    },
+    "id": "github.issue.5365500280",
+    "updated": "2026-09-06T18:15:32Z"
+  }
+}
