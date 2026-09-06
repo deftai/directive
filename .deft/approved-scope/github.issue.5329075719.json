@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-09-06-4137-bugintake-issueingest-comment-fetch-is-unpaginated-so-thread.xbrief.json",
+  "planId": "github.issue.5329075719",
+  "approvedAt": "2026-09-06T14:08:59Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "packages/core/src/fs/appsec-2869-write-sinks.test.ts",
+    "packages/core/src/intake",
+    "packages/core/src/intake/intake-coverage-boost.test.ts",
+    "packages/core/src/intake/issue-ingest.test.ts",
+    "packages/core/src/intake/issue-ingest.ts",
+    "packages/core/src/integration-e2e/consumer-tasks.test.ts",
+    "xbrief"
+  ],
+  "fileScopeDigest": "3da1761e3627abe7bc0d30c694d501ac9c965ebb114f6c8defeeee640789cb80",
+  "humanApproval": {
+    "kind": "renewed-approval",
+    "actor": "David",
+    "mintedAt": "2026-09-06T14:08:59Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "1442890104c29a9f39a985ae67c218c6174add8a08c9f96ac3267a30ba8ddd09",
+  "digestAlgo": "intent-extract-v1"
+}
