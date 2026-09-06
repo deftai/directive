@@ -54,7 +54,11 @@ function spawnRedirect(probe: MonitoringTierProbe): string {
   // ownership so implementation leaves never treat nested Task/Agent spawn as the
   // default instruction. Top-level parents that own the primitive still get the
   // Approach 1 background path second.
-  if (primitive === "claude-agent" || primitive === "cursor-task") {
+  if (
+    primitive === "claude-agent" ||
+    primitive === "cursor-task" ||
+    primitive === "grok-bot-executor"
+  ) {
     return (
       `Ownership path for ${primitive} (#2797 / #3134):\n` +
       "  1. Implementation leaf (drive-to: merge-ready): keep ownership in THIS process " +

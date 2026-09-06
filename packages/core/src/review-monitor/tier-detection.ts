@@ -9,7 +9,8 @@ export type PlatformPrimitive =
   | "cursor-task"
   | "claude-agent"
   | "sessions_spawn"
-  | "openclaw-sessions-spawn";
+  | "openclaw-sessions-spawn"
+  | "grok-bot-executor";
 
 /** Accepted `--platform-primitive` values (register CLI + help text). */
 export const PLATFORM_PRIMITIVES: readonly PlatformPrimitive[] = [
@@ -19,6 +20,7 @@ export const PLATFORM_PRIMITIVES: readonly PlatformPrimitive[] = [
   "claude-agent",
   "sessions_spawn",
   "openclaw-sessions-spawn",
+  "grok-bot-executor",
 ] as const;
 
 export const PLATFORM_PRIMITIVE_SET = new Set<string>(PLATFORM_PRIMITIVES);
@@ -54,8 +56,9 @@ function probeOverride(environ: NodeJS.ProcessEnv): MonitoringTierProbe | null {
  * this probe does not block MVP.
  *
  * Ordered env probe (must match skill matrix placement; Claude after Cursor so bare
- * Task / CURSOR_* never misclassify Claude Code as cursor-composer):
- * start_agent → WARP_* → Cursor → Claude Code → OpenClaw → grok-build → Tier2 → Tier3.
+ * Task / CURSOR_* never misclassify Claude Code as cursor-composer; Grok Bot unique
+ * signals before spawn_subagent so Grok Bot is never grok-build, #4201):
+ * start_agent → WARP_* → Cursor → Claude Code → OpenClaw → grok-bot → grok-build → Tier2 → Tier3.
  */
 export function probeMonitoringTier(environ: NodeJS.ProcessEnv = process.env): MonitoringTierProbe {
   const override = probeOverride(environ);
@@ -114,6 +117,20 @@ export function probeMonitoringTier(environ: NodeJS.ProcessEnv = process.env): M
         ? "openclaw-sessions-spawn"
         : "sessions_spawn";
     return { tier: MONITORING_TIER_1, primitive: alias, descriptor: "openclaw" };
+  }
+
+  // Grok Bot: unique signals BEFORE spawn_subagent → grok-build (#4201).
+  // Same class as Claude-before-Task (#3134) and OpenClaw-before-grok-build (#2875).
+  // Bare spawn_subagent or bare Task must not win this branch.
+  if (
+    envTruthy(environ, "DEFT_PROBE_GROK_BOT") ||
+    envTruthy(environ, "DEFT_HAS_GROK_BOT_WIDGETS") ||
+    envTruthy(environ, "DEFT_HAS_GROK_BOT_EXECUTOR") ||
+    envTruthy(environ, "GROK_BOT") ||
+    runtime === "grok-bot" ||
+    runtime === "grokbot"
+  ) {
+    return { tier: MONITORING_TIER_1, primitive: "grok-bot-executor", descriptor: "grok-bot" };
   }
 
   if (

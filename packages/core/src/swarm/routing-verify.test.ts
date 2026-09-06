@@ -73,6 +73,16 @@ describe("verifyRouting (enforce posture, three-state)", () => {
     expect(r.report).toContain("harness-bound");
   });
 
+  it("treats grok-bot as harness-bound like grok (#4201)", () => {
+    const { dir, env } = withRouteFile({
+      "grok-bot": { "leaf-implementation": { model: "grok-4.6", mode: "pinned" } },
+    });
+    cleanups.push(dir);
+    const r = verifyRouting({ projectRoot: dir, environ: env, provider: "grok-bot" });
+    expect(r.exitCode).toBe(2);
+    expect(r.report).toContain("harness-bound");
+  });
+
   it("respects a widened --roles set", () => {
     const { dir, env } = withRouteFile({
       cursor: { "leaf-implementation": { model: "composer-2.5-fast", mode: "pinned" } },

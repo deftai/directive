@@ -23,7 +23,7 @@ This path became first-class in #1342 (platform adapter slices 1-3) and is fully
 
 ### Step 2d: Grok Build Launch (spawn_subagent available)
 
-! When the platform descriptor is `grok-build` (spawn_subagent detected, no start_agent, no WARP_*, no Cursor `Task`, no OpenClaw `sessions_spawn`), dispatch each worker via `spawn_subagent` with:
+! When the platform descriptor is `grok-build` (spawn_subagent detected, no start_agent, no WARP_*, no Cursor `Task`, no OpenClaw `sessions_spawn`, no Grok Bot unique signals), dispatch each worker via `spawn_subagent` with:
 0. Create `<worktree>/.deft-scratch/subagent-status/` before spawn if launch/pre-dispatch did not already, and instruct the worker to heartbeat + commit early (#3730).
 1. The canonical `templates/agent-prompt-preamble.md` content as the preamble
 2. The standard worktree prompt (STEP 1-6 from the Prompt Template below), adapted to use `get_command_or_subagent_output` for polling rather than `start_agent` lifecycle events

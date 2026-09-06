@@ -74,7 +74,8 @@ export const REGISTER_HELP =
   "  --monitor-agent-id ID      Stable poller agent id / Task handle\n" +
   "  --platform-primitive P     start_agent | spawn_subagent | cursor-task |\n" +
   "                             claude-agent (#3134) | sessions_spawn |\n" +
-  "                             openclaw-sessions-spawn (#2876)\n" +
+  "                             openclaw-sessions-spawn (#2876) |\n" +
+  "                             grok-bot-executor (#4201)\n" +
   "\n" +
   "options:\n" +
   "  --repo OWNER/REPO          Repository (default: origin / DEFT_TRIAGE_REPO)\n" +

@@ -59,6 +59,7 @@ export const SWARM_REFERENCE_ORDER = [
   "host-cursor.md",
   "host-claude-code.md",
   "host-openclaw.md",
+  "host-grokbot.md",
   "core-phase-4.md",
   "core-phase-5-6.md",
   "core-ops.md",

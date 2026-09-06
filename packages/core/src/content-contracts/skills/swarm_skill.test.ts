@@ -750,6 +750,30 @@ describe("test_swarm_skill", () => {
     expect(doc).toMatch(/⊗[^\n]*progress-only[^\n]*#2943/);
   });
 
+  it("grok_bot_tier1_descriptor_matrix_4201", () => {
+    const text = _read_swarm();
+    expect(text).toContain("grok-bot");
+    expect(text).toContain("grok-bot-executor");
+    expect(text).toContain("host-grokbot.md");
+    expect(text).toContain("Probe for Grok Bot");
+    expect(text).toContain("Step 2h: Grok Bot Launch");
+    expect(text).toContain("DEFT_PROBE_GROK_BOT");
+    expect(text).toContain("GROK_BOT");
+    expect(text).toMatch(/before[^\n]*spawn_subagent|Probe \*\*before\*\* `spawn_subagent`/i);
+    expect(text).toMatch(/bare `spawn_subagent`/i);
+    expect(text).toContain("#4201");
+    const host = readRepoFile("skills/deft-directive-swarm/references/host-grokbot.md");
+    expect(host).toContain("Detection spike");
+    expect(host).toContain("Discuss");
+    expect(host).toContain("Back");
+    expect(host).toContain("propose");
+    expect(host).toContain("launch");
+    expect(host).toContain("status");
+    expect(host).toContain("#4202");
+    expect(host).toContain("npx @deftai/directive doctor");
+    expect(host).not.toMatch(/design-critique thin skill/);
+  });
+
   it("claude_code_tier1_descriptor_matrix_3134", () => {
     const text = _read_swarm();
     expect(text).toContain("claude-code");

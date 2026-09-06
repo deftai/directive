@@ -60,6 +60,16 @@ describe("review-monitor-register CLI", () => {
     ).toBe("claude-agent");
   });
 
+  it("accepts Grok Bot grok-bot-executor primitive (#4201)", () => {
+    expect(
+      parseRegisterArgs([
+        "--pr=12",
+        "--monitor-agent-id=gb-monitor",
+        "--platform-primitive=grok-bot-executor",
+      ]).platformPrimitive,
+    ).toBe("grok-bot-executor");
+  });
+
   it("rejects invalid primitive and unknown args", () => {
     expect(parseRegisterArgs(["--platform-primitive", "nope"]).error).toMatch(/invalid/);
     expect(parseRegisterArgs(["--bogus"]).error).toMatch(/unrecognized/);
