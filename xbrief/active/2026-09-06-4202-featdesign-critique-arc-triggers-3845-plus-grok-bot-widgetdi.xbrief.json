@@ -172,21 +172,6 @@
         "github_issue_id": 5354137708,
         "origin": "deftai/directive#4202",
         "id": "github.issue.5354137708"
-      },
-      "swarm": {
-        "file_scope": [
-          "content/packs/skills/skills-pack-0.1.json",
-          "content/skills/deft-directive-design-critique/SKILL.md",
-          "REFERENCES.md",
-          "evals/trigger-cases.jsonl",
-          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
-          "packages/core/src/design-critique/run-posture.ts",
-          "packages/core/src/design-critique/run-posture.test.ts",
-          "packages/core/src/design-critique/widget-apply-set.ts",
-          "packages/core/src/design-critique/widget-apply-set.test.ts",
-          "CHANGELOG.md"
-        ],
-        "file_scope_confidence": "high"
       }
     },
     "id": "github.issue.5354137708",
