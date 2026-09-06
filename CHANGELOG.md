@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **issue:ingest paginates comment fetch so threads over 30 comments keep synthesis (#4137).** `fetchIssueComments` walks `?per_page=100&page=N` on the same cached-get seam. Fail closed on spawn throw, non-zero, non-JSON, non-array pages, and cap exhaustion without a short terminal page. Does not call `restIssueComments` or `--paginate`. Closes #4137.
 - **parseOperatorRunPosture treats `directly` and `on github` as closed `direct` tokens (#4220).** `directive` and bare `arc N yolo` still ask. `on github` is a location synonym at the Stop 1 front door. Token array and regex stay twins. Closes #4220. Refs #4072.
 - **Land leftover completed-tracked artifact for #4203 (#3264 / #1358).** The #4203 xBRIEF stayed in `active/` after squash of PR 4214 (`c6e396a0`). Moved to `xbrief/completed/` via scope:complete. Does not recut that issue. Refs #2321, #3476.
 - **Direct `scope:record-approved-scope` and `verify:plan-sequence` accept the `--` their help prints (#4203).** Parsers swallow `--` at any position, matching `verify:session-ritual` and `xbrief:preflight`. Direct `--help` prints usage on stdout and exits 0. Task wrappers still strip `--` before forwarding arguments. Unknown options and mint gates stay fail-closed. Closes #4203.

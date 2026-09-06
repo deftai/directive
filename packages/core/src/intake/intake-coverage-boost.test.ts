@@ -209,7 +209,7 @@ describe("intake coverage boost", () => {
 
     it("fetchIssue attaches comment thread from scm", () => {
       const scmCall = vi.fn((_source: string, _verb: string, args: readonly string[]) => {
-        if (args[0] === "repos/o/r/issues/99/comments") {
+        if (args[0]?.startsWith("repos/o/r/issues/99/comments")) {
           return completed(
             JSON.stringify([
               {
@@ -220,7 +220,7 @@ describe("intake coverage boost", () => {
             ]),
           );
         }
-        if (args[0] === "repos/o/r/issues/1/comments") {
+        if (args[0]?.startsWith("repos/o/r/issues/1/comments")) {
           return completed("[]");
         }
         return completed(
@@ -253,7 +253,13 @@ describe("intake coverage boost", () => {
       expect(dup).toBe("duplicate");
       const [dry] = ingestOne(
         { number: 6, title: "New", url: "https://github.com/o/r/issues/6" },
-        { vbriefDir: dir, status: "proposed", repoUrl: "https://github.com/o/r", dryRun: true },
+        {
+          vbriefDir: dir,
+          status: "proposed",
+          repoUrl: "https://github.com/o/r",
+          dryRun: true,
+          scmCall: () => completed("[]"),
+        },
       );
       expect(dry).toBe("dryrun");
       rmSync(dir, { recursive: true, force: true });
@@ -272,6 +278,7 @@ describe("intake coverage boost", () => {
           repoUrl: "https://github.com/o/r",
           label: "bug",
           dryRun: true,
+          scmCall: () => completed("[]"),
         },
       );
       expect(summary.total).toBe(1);

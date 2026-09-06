@@ -59,9 +59,12 @@ describe("intake cli and branch coverage", () => {
   describe("cli mainEntry wrappers", () => {
     it("issue-ingest-cli parses all flags", () => {
       const dir = mkdtempSync(join(tmpdir(), "ingest-cli-"));
-      const callSpy = vi.spyOn(scm, "call").mockImplementation((_s, verb) => {
+      const callSpy = vi.spyOn(scm, "call").mockImplementation((_s, verb, args) => {
         if (verb === "issue") {
           return completed('[{"number":2,"title":"Bulk","labels":[{"name":"x"}]}]', "", 0);
+        }
+        if (String(args[0] ?? "").includes("/comments")) {
+          return completed("[]", "", 0);
         }
         return completed("{}", "", 0);
       });
@@ -143,14 +146,18 @@ describe("intake cli and branch coverage", () => {
         vbriefDir: dir,
         status: "proposed",
         repoUrl: "https://github.com/o/r",
+        scmCall: () => completed("[]", "", 0),
       });
       expect(result).toBe("created");
       expect(path).not.toBeNull();
       expect(readFileSync(path as string, "utf8")).toContain("Ship it");
 
-      const callSpy = vi
-        .spyOn(scm, "call")
-        .mockImplementation(() => completed(JSON.stringify(issue), "", 0));
+      const callSpy = vi.spyOn(scm, "call").mockImplementation((_source, _verb, args) => {
+        if (String(args[0] ?? "").includes("/comments")) {
+          return completed("[]", "", 0);
+        }
+        return completed(JSON.stringify(issue), "", 0);
+      });
       const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
       expect(
         issueIngestMain({
@@ -186,8 +193,11 @@ describe("intake cli and branch coverage", () => {
       const root = mkdtempSync(join(tmpdir(), "accept-ok-"));
       mkdirSync(join(root, "xbrief"), { recursive: true });
       writeFileSync(join(root, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
-      const callSpy = vi.spyOn(scm, "call").mockImplementation(() =>
-        completed(
+      const callSpy = vi.spyOn(scm, "call").mockImplementation((_source, _verb, args) => {
+        if (String(args[0] ?? "").includes("/comments")) {
+          return completed("[]", "", 0);
+        }
+        return completed(
           JSON.stringify({
             number: 15,
             title: "Accept me",
@@ -197,8 +207,8 @@ describe("intake cli and branch coverage", () => {
           }),
           "",
           0,
-        ),
-      );
+        );
+      });
       const [result, path, msg] = ingestSingleForAccept(15, "o/r", { projectRoot: root });
       expect(result).toBe("created");
       expect(path).toContain("xbrief");
@@ -209,9 +219,12 @@ describe("intake cli and branch coverage", () => {
 
     it("issueIngestMain --all dry-run bulk path", () => {
       const dir = mkdtempSync(join(tmpdir(), "ingest-all-"));
-      const callSpy = vi.spyOn(scm, "call").mockImplementation((_s, verb) => {
+      const callSpy = vi.spyOn(scm, "call").mockImplementation((_s, verb, args) => {
         if (verb === "issue") {
           return completed('[{"number":8,"title":"Eight","labels":[]}]', "", 0);
+        }
+        if (String(args[0] ?? "").includes("/comments")) {
+          return completed("[]", "", 0);
         }
         return completed("{}", "", 0);
       });
@@ -231,15 +244,16 @@ describe("intake cli and branch coverage", () => {
     });
 
     it("fetchIssue uses scm when cache misses", () => {
-      const callSpy = vi
-        .spyOn(scm, "call")
-        .mockImplementation(() =>
-          completed(
-            JSON.stringify({ number: 1, html_url: "https://github.com/o/r/issues/1" }),
-            "",
-            0,
-          ),
+      const callSpy = vi.spyOn(scm, "call").mockImplementation((_source, _verb, args) => {
+        if (String(args[0] ?? "").includes("/comments")) {
+          return completed("[]", "", 0);
+        }
+        return completed(
+          JSON.stringify({ number: 1, html_url: "https://github.com/o/r/issues/1" }),
+          "",
+          0,
         );
+      });
       const issue = fetchIssue("o/r", 1, { cacheRoot: "/nonexistent-cache-root" });
       expect(issue?.number).toBe(1);
       callSpy.mockRestore();

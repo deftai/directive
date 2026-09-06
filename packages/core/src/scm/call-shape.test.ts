@@ -11,6 +11,12 @@ describe("classifyScmArgv", () => {
     expect(classifyScmArgv("api", ["repos/deftai/directive/issues/3737"])).toBe("cached-get");
   });
 
+  it("treats comments page-loop query as cached-get (#4137)", () => {
+    expect(classifyScmArgv("api", ["repos/o/r/issues/4137/comments?per_page=100&page=2"])).toBe(
+      "cached-get",
+    );
+  });
+
   it("treats a mutation method as live-gh", () => {
     expect(
       classifyScmArgv("api", ["repos/o/r/issues/1/comments", "--method", "POST", "--input", "-"]),
