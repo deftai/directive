@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4203",
-    "updated": "2026-09-06T12:53:57Z"
+    "updated": "2026-09-06T14:17:54Z"
   },
   "plan": {
     "title": "bug(cli): scope:record-approved-scope help advertises rejected -- separator",
@@ -16,27 +16,63 @@
     "items": [
       {
         "title": "The command form printed by direct `--help` no longer fails on the standalone separator.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/scope-record-approved-scope.test.ts#typed --help writes usage to stdout and exits 0 (#4203)",
+          "recorded_at": "2026-09-06T14:17:54Z",
+          "recorded_by": "leaf-implementation/4203"
+        }
       },
       {
         "title": "Regression coverage exercises the exact help-advertised direct form.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/scope-record-approved-scope.test.ts#swallows -- at any position on the help-advertised form (#4203)",
+          "recorded_at": "2026-09-06T14:17:54Z",
+          "recorded_by": "leaf-implementation/4203"
+        }
       },
       {
         "title": "The selected direct-parser behavior is tested separately from Task argument forwarding.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/scope-record-approved-scope.test.ts#Taskfile ENGINE_CMD forwards CLI_ARGS without embedding -- (#4203)",
+          "recorded_at": "2026-09-06T14:17:54Z",
+          "recorded_by": "leaf-implementation/4203"
+        }
       },
       {
         "title": "Unknown options still fail closed.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/scope-record-approved-scope.test.ts#unknown options still fail closed with or without -- (#4203)",
+          "recorded_at": "2026-09-06T14:17:54Z",
+          "recorded_by": "leaf-implementation/4203"
+        }
       },
       {
         "title": "The TTY, controlling-terminal, `--confirm`, typed-`mint`, agent/CI, and UAT safeguards remain unchanged.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "uat",
+          "pointer": "packages/cli/src/scope-record-approved-scope.test.ts#help-advertised refuse matrix and parse failure write no approval artifacts (#4203)",
+          "recorded_at": "2026-09-06T14:17:54Z",
+          "recorded_by": "leaf-implementation/4203"
+        }
       },
       {
         "title": "No approval artifacts are written on parse failure.",
-        "status": "proposed"
+        "status": "proposed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/scope-record-approved-scope.test.ts#help-advertised refuse matrix and parse failure write no approval artifacts (#4203)",
+          "recorded_at": "2026-09-06T14:17:54Z",
+          "recorded_by": "leaf-implementation/4203"
+        }
       }
     ],
     "tags": [
