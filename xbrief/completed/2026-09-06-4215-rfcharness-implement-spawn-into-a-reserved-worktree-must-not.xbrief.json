@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF recut from GitHub issue #4215 locked v5 plus accepted Astra F1/F2",
-    "updated": "2026-09-06T18:15:32Z"
+    "updated": "2026-09-06T21:30:15Z"
   },
   "plan": {
     "title": "rfc(harness): implement spawn into a reserved worktree must not require a live primary ritual (#1185 leftover / #4066)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "rfc(harness): implement spawn into a reserved worktree must not require a live primary ritual (#1185 leftover / #4066)",
       "Origin": "Recut from https://github.com/deftai/directive/issues/4215 locked v5 body plus accepted v5 synthesis",
@@ -16,55 +16,133 @@
     "items": [
       {
         "title": "Dest-proven implement spawn is not refused because parent primary ritual is HEAD-discontinuous or age-stale.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
+          "recorded_at": "2026-09-06T21:22:52Z",
+          "recorded_by": "leaf-worker/4215"
+        }
       },
       {
         "title": "Dest occupancy consult (no mint) runs before parent verifySessionRitual. Mint/persist stay after parent-root scope and intent ceiling.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
+          "recorded_at": "2026-09-06T21:22:52Z",
+          "recorded_by": "leaf-worker/4215"
+        }
       },
       {
         "title": "On Grok, occupancy dest, dest-proven dest, persist dest-lock, and host launch are tool_input.cwd. worktree_path (alone or with cwd) occupancy-denies, no skip, no dest-lock.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
+          "recorded_at": "2026-09-06T21:22:52Z",
+          "recorded_by": "leaf-worker/4215"
+        }
       },
       {
         "title": "Pathless isolation=worktree on reroot hosts does not skip.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
+          "recorded_at": "2026-09-06T21:22:52Z",
+          "recorded_by": "leaf-worker/4215"
+        }
       },
       {
         "title": "Absent dest still fails closed.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
+          "recorded_at": "2026-09-06T21:22:52Z",
+          "recorded_by": "leaf-worker/4215"
+        }
       },
       {
         "title": "Child still claims occupancy and ritual on dest before product writes.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
+          "recorded_at": "2026-09-06T21:22:52Z",
+          "recorded_by": "leaf-worker/4215"
+        }
       },
       {
         "title": "Parent-root active-scope remains required.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
+          "recorded_at": "2026-09-06T21:22:52Z",
+          "recorded_by": "leaf-worker/4215"
+        }
       },
       {
         "title": "Capability-mode implement spawn remains denied.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
+          "recorded_at": "2026-09-06T21:22:52Z",
+          "recorded_by": "leaf-worker/4215"
+        }
       },
       {
         "title": "Skip denies when resolved parent identity is none.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
+          "recorded_at": "2026-09-06T21:22:52Z",
+          "recorded_by": "leaf-worker/4215"
+        }
       },
       {
         "title": "Phase 0 Grok dest field is cwd only. host-grok-build.md names cwd. Tests lock the four-way same-field conjunction.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/skills/deft-directive-swarm/references/core-phase-0.md",
+          "recorded_at": "2026-09-06T21:22:52Z",
+          "recorded_by": "leaf-worker/4215"
+        }
       },
       {
         "title": "Astra F1: two successful consults, only one successful persist/launch; scope/intent denial after consult is zero mint, zero persist.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/spawn-occupancy.test.ts",
+          "recorded_at": "2026-09-06T21:22:52Z",
+          "recorded_by": "leaf-worker/4215"
+        }
       },
       {
         "title": "Astra F2: Grok missing/invalid-destination recovery advertises cwd and does not prescribe worktree_path or pathless isolation.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/skills/deft-directive-swarm/references/host-grok-build.md",
+          "recorded_at": "2026-09-06T21:22:52Z",
+          "recorded_by": "leaf-worker/4215"
+        }
       },
       {
         "title": "CHANGELOG.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4a049ae18570836447d4444d09dc87ec50979f92",
+          "recorded_at": "2026-09-06T21:22:52Z",
+          "recorded_by": "leaf-worker/4215"
+        }
       }
     ],
     "tags": [
@@ -215,9 +293,34 @@
         "verified_claims": 5561018593,
         "synthesis": 5561018721,
         "pin_sha": "04bf3a7097ec8386e20e361ef861cf028522a044"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4226,
+        "prBase": null,
+        "mergeCommit": "4a049ae18570836447d4444d09dc87ec50979f92",
+        "deliveryBranch": "master",
+        "deliveryCommit": "4a049ae18570836447d4444d09dc87ec50979f92",
+        "verifiedAt": "2026-09-06T21:30:15Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDc3ZTYtZmY5Mi03OTEyLWJjMDUtOWUxMmY4Zjg4NGYz"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-06T21:30:15Z"
+      },
+      "completedAt": "2026-09-06T21:30:15Z",
+      "completedSessionId": "host:grok:v1:MDFhMDc3ZTYtZmY5Mi03OTEyLWJjMDUtOWUxMmY4Zjg4NGYz",
+      "capacityBucket": "agentic-debt"
     },
     "id": "github.issue.5365500280",
-    "updated": "2026-09-06T18:15:32Z"
+    "updated": "2026-09-06T21:30:15Z"
   }
 }
