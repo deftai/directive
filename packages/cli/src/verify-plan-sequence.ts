@@ -10,11 +10,13 @@ import {
   verifyPlanTarget,
 } from "@deftai/directive-core/plan-sequence";
 
-interface Parsed {
+export interface Parsed {
   projectRoot: string;
   targetKind: PlanTargetKind | null;
   target: string | null;
   emitJson: boolean;
+  /** Typed `--help` / `-h` (#4203); main() prints usage on stdout and exits 0. */
+  help?: boolean;
   error?: string;
 }
 
@@ -28,7 +30,9 @@ const KINDS: readonly PlanTargetKind[] = [
   "review",
 ];
 
-function parseArgs(argv: string[]): Parsed {
+const USAGE = "usage: verify:plan-sequence -- --target-kind <kind> --target <id-or-title>";
+
+export function parseArgs(argv: string[]): Parsed {
   const parsed: Parsed = {
     projectRoot: ".",
     targetKind: null,
@@ -37,41 +41,53 @@ function parseArgs(argv: string[]): Parsed {
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (arg === undefined) continue;
+    if (arg === undefined || arg === "--") continue;
+    if (arg === "--help" || arg === "-h") {
+      return { ...parsed, help: true };
+    }
     if (arg === "--json") {
       parsed.emitJson = true;
     } else if (arg === "--project-root") {
       const value = argv[++i];
-      if (value === undefined) return { ...parsed, error: "--project-root requires a value" };
+      if (value === undefined || value === "--") {
+        return { ...parsed, error: "--project-root requires a value" };
+      }
       parsed.projectRoot = value;
     } else if (arg.startsWith("--project-root=")) {
       parsed.projectRoot = arg.slice("--project-root=".length);
     } else if (arg === "--target-kind") {
       const value = argv[++i];
-      if (value === undefined || !KINDS.includes(value as PlanTargetKind)) {
+      if (value === undefined || value === "--" || !KINDS.includes(value as PlanTargetKind)) {
         return { ...parsed, error: `--target-kind must be one of ${KINDS.join("|")}` };
       }
       parsed.targetKind = value as PlanTargetKind;
     } else if (arg.startsWith("--target-kind=")) {
       const value = arg.slice("--target-kind=".length);
-      if (!KINDS.includes(value as PlanTargetKind)) {
+      if (value === "--" || !KINDS.includes(value as PlanTargetKind)) {
         return { ...parsed, error: `--target-kind must be one of ${KINDS.join("|")}` };
       }
       parsed.targetKind = value as PlanTargetKind;
     } else if (arg === "--target") {
       const value = argv[++i];
-      if (value === undefined) return { ...parsed, error: "--target requires a value" };
+      if (value === undefined || value === "--") {
+        return { ...parsed, error: "--target requires a value" };
+      }
       parsed.target = value;
     } else if (arg.startsWith("--target=")) {
-      parsed.target = arg.slice("--target=".length);
+      const value = arg.slice("--target=".length);
+      if (value.length === 0 || value === "--") {
+        return { ...parsed, error: "--target requires a value" };
+      }
+      parsed.target = value;
     } else if (arg.startsWith("-")) {
       return { ...parsed, error: `unknown flag: ${arg}` };
     }
   }
+  if (parsed.help) return parsed;
   if (parsed.targetKind === null || parsed.target === null) {
     return {
       ...parsed,
-      error: "usage: verify:plan-sequence -- --target-kind <kind> --target <id-or-title>",
+      error: USAGE,
     };
   }
   return parsed;
@@ -79,6 +95,10 @@ function parseArgs(argv: string[]): Parsed {
 
 export function main(argv: string[] = process.argv.slice(2)): number {
   const parsed = parseArgs(argv);
+  if (parsed.help) {
+    process.stdout.write(`${USAGE}\n`);
+    return 0;
+  }
   if (parsed.error || parsed.targetKind === null || parsed.target === null) {
     process.stderr.write(`${parsed.error ?? "usage error"}\n`);
     return 2;

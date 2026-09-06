@@ -58,6 +58,8 @@ export interface ParsedArgs {
   confirm: boolean;
   /** Optional owner/name seed for preimage approvedRepos (#3385 R5). */
   repo: string;
+  /** Typed `--help` / `-h` (#4203); run() prints usage on stdout and exits 0. */
+  help?: boolean;
   error?: string;
 }
 
@@ -132,8 +134,11 @@ export function parseArgs(argv: string[]): ParsedArgs {
   const positionals: string[] = [];
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
+    if (arg === "--") {
+      continue;
+    }
     if (arg === "--help" || arg === "-h") {
-      return { ...parsed, error: usage() };
+      return { ...parsed, help: true };
     }
     if (arg === "--quiet") {
       parsed.quiet = true;
@@ -141,7 +146,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
       parsed.confirm = true;
     } else if (arg === "--project-root") {
       const value = argv[i + 1];
-      if (value === undefined) {
+      if (value === undefined || value === "--") {
         return { ...parsed, error: "argument --project-root: expected one argument" };
       }
       parsed.projectRoot = value;
@@ -150,25 +155,33 @@ export function parseArgs(argv: string[]): ParsedArgs {
       parsed.projectRoot = arg.slice("--project-root=".length);
     } else if (arg === "--actor") {
       const value = argv[i + 1];
-      if (value === undefined) {
+      if (value === undefined || value === "--") {
         return { ...parsed, error: "argument --actor: expected one argument" };
       }
       parsed.actor = value;
       i += 1;
     } else if (arg?.startsWith("--actor=")) {
-      parsed.actor = arg.slice("--actor=".length);
+      const value = arg.slice("--actor=".length);
+      if (value.length === 0 || value === "--") {
+        return { ...parsed, error: "argument --actor: expected one argument" };
+      }
+      parsed.actor = value;
     } else if (arg === "--kind") {
       const value = argv[i + 1];
-      if (value === undefined) {
+      if (value === undefined || value === "--") {
         return { ...parsed, error: "argument --kind: expected one argument" };
       }
       parsed.kind = value;
       i += 1;
     } else if (arg?.startsWith("--kind=")) {
-      parsed.kind = arg.slice("--kind=".length);
+      const value = arg.slice("--kind=".length);
+      if (value.length === 0 || value === "--") {
+        return { ...parsed, error: "argument --kind: expected one argument" };
+      }
+      parsed.kind = value;
     } else if (arg === "--xbrief-rel-path") {
       const value = argv[i + 1];
-      if (value === undefined) {
+      if (value === undefined || value === "--") {
         return { ...parsed, error: "argument --xbrief-rel-path: expected one argument" };
       }
       parsed.xbriefRelPath = value;
@@ -177,7 +190,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
       parsed.xbriefRelPath = arg.slice("--xbrief-rel-path=".length);
     } else if (arg === "--repo") {
       const value = argv[i + 1];
-      if (value === undefined) {
+      if (value === undefined || value === "--") {
         return { ...parsed, error: "argument --repo: expected one argument" };
       }
       parsed.repo = value;
@@ -189,6 +202,9 @@ export function parseArgs(argv: string[]): ParsedArgs {
     } else if (arg !== undefined) {
       positionals.push(arg);
     }
+  }
+  if (parsed.help) {
+    return parsed;
   }
   if (positionals.length === 0) {
     return { ...parsed, error: `missing xBRIEF path\n${usage()}` };
@@ -208,6 +224,10 @@ export function parseArgs(argv: string[]): ParsedArgs {
 
 export function run(argv: string[], seams: HumanPresenceMintSeams = {}): number {
   const args = parseArgs(argv);
+  if (args.help) {
+    process.stdout.write(`${usage()}\n`);
+    return 0;
+  }
   if (args.error !== undefined) {
     process.stderr.write(`scope_record_approved_scope: ${args.error}\n`);
     return 2;
