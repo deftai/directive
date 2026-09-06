@@ -10,6 +10,7 @@ import {
   isDispatchShaPin,
   parseOperatorRunPosture,
   pinnedShowCommand,
+  resolveArcRunPostureForHost,
 } from "./run-posture.js";
 
 const LEAN_ID = 5442939496;
@@ -92,6 +93,29 @@ describe("parseOperatorRunPosture (#4072)", () => {
     expect(arcModeRecordLine("direct")).toBe("arc-mode: direct");
     expect(ARC_RUN_POSTURES).not.toContain("ingest");
     expect(ARC_MODE_FIELD).toBe("arc-mode:");
+  });
+});
+
+describe("resolveArcRunPostureForHost (#4202)", () => {
+  it("defaults missing-token to direct only after grok-bot detect", () => {
+    expect(
+      resolveArcRunPostureForHost({ utterance: "run an arc on #286", grokBotDetected: true }),
+    ).toEqual({ kind: "resolved", posture: "direct" });
+    expect(
+      resolveArcRunPostureForHost({ utterance: "run an arc on #286", grokBotDetected: false }),
+    ).toEqual({ kind: "ask", reason: "missing-token" });
+  });
+
+  it("lets checkout tokens win over the grok-bot direct default", () => {
+    expect(
+      resolveArcRunPostureForHost({ utterance: "arc 1234 checkout", grokBotDetected: true }),
+    ).toEqual({ kind: "resolved", posture: "checkout" });
+  });
+
+  it("does not treat ingest as a defaulted front-door mode", () => {
+    expect(
+      resolveArcRunPostureForHost({ utterance: "arc 1234 ingest", grokBotDetected: true }),
+    ).toEqual({ kind: "ask", reason: "ingest-is-not-posture" });
   });
 });
 
