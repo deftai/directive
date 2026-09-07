@@ -16,6 +16,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.112.0] - 2026-09-07
+
+> Grok Bot as a first-class host, design-critique arc triggers, work-claim tags, and a docs/capability-map plus getting-started refresh.
+
+### Added
+
 - **Land leftover completed-tracked artifact for #4215 (#3264 / #1358).** The #4215 xBRIEF stayed in `active/` after squash of PR 4226 (`4a049ae1`). Moved to `xbrief/completed/` via `scope:complete`. Does not recut that issue. Refs #2321, #3476.
 - **Design-critique arc triggers plus Grok Bot widget/direct default (#4202 / #3845).** Thin router and Skills Index recognize `arc`, `run an arc`, `arc #N`, and `run an arc on #N`. Bare `review` still routes to review-cycle. On grok-bot detect, missing-token defaults to `arc-mode:direct` via `parseOperatorRunPosture`; checkout tokens still win. Widget apply-set prints only the verbs that apply and ends with numbered Discuss and Back. Slice A has no grok-bot dependency. Closes #3845. Closes #4202.
 - **Grok Bot is a first-class host, distinct from Grok Build (#4201).** Unique grok-bot signals probe before `spawn_subagent`. Adapter `host-grokbot.md`, routing, and `grok-bot-executor` registration. Closes #4201.
@@ -5846,7 +5858,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.111.0...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.112.0...HEAD
+[0.112.0]: https://github.com/deftai/directive/compare/v0.111.0...v0.112.0
 [0.111.0]: https://github.com/deftai/directive/compare/v0.110.0...v0.111.0
 [0.110.0]: https://github.com/deftai/directive/compare/v0.109.1...v0.110.0
 [0.109.1]: https://github.com/deftai/directive/compare/v0.109.0...v0.109.1

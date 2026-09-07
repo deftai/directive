@@ -44,8 +44,20 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1422 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1434 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#4215** -- rfc(harness): implement spawn into a reserved worktree must not require a live primary ritual (#1185 leftover / #4066) -- `[completed]`
+- **#4137** -- bug(intake): issue:ingest comment fetch is unpaginated so threads over 30 comments miss synthesis -- `[completed]`
+- **#4220** -- bug(design-critique): parseOperatorRunPosture rejects directly and on github as direct synonyms (#4072) -- `[completed]`
+- **#4203** -- bug(cli): scope:record-approved-scope help advertises rejected -- separator -- `[completed]`
+- **#4205** -- bug(design-critique): all-accept auto-stamp puts triage-ready on a recut lean -- `[completed]`
+- **#4202** -- feat(design-critique): arc triggers (#3845) plus Grok Bot widget/direct default -- `[completed]`
+- **#4201** -- rfc(harness): host-grokbot adapter + Grok Bot–native consumer façade -- `[completed]`
+- **#4200** -- feat(session,scm): list-visible work-claim tag plus task verb, without a lifecycle PR -- `[completed]`
+- **#4100** -- docs(ia): recut README and UPGRADING around audience journeys -- `[completed]`
+- **#4099** -- docs(features): add a capability map and verifiable documentation-impact contract -- `[completed]`
+- **#4099** -- docs(features): add a capability map and verifiable documentation-impact contract -- `[completed]`
+- **#4087** -- docs(architecture): rebuild architecture, concepts, and file maps for the current runtime tree -- `[completed]`
 - **#4119** -- bug(intake,lifecycle): issue:ingest omits stable plan.id and transitions admit it -- `[completed]`
 - **#4066** -- rfc(session,swarm): spawned work takes its own worktree; master occupancy is the exception and must be released -- `[completed]`
 - **#4086** -- docs(canon): remove residual legacy authority from current xBRIEF sources -- `[completed]`
@@ -59,16 +71,4 @@ _Showing 25 of 1422 completed scopes (newest first). Full history: lifecycle `co
 - **#4060** -- bug(lifecycle): scope:complete one bank-aware path for swarm-only banks -- `[completed]`
 - **#3914** -- bug(session): session:start skips --; own-git-root SHA; drop Task-only parenthetical -- `[completed]`
 - **#4041** -- sec(authz,hooks): classifyHookAuthzOps uses isShellTool so Grok monitor is UAT-denied -- `[completed]`
-- **#3993** -- bug(lifecycle): AC-pass bank loses green-run evidence and reintroduces #3497 -- `[completed]`
-- **#4103** -- bug(verify-ac): extractExpectedTokens quote-class pairing false-FAILS clauses with two+ apostrophes -- `[completed]`
-- **#4081** -- BLOCKER: bug(validate-links): C3 exclusions fail from a consumer root -- `[completed]`
-- **#4072** -- feat(design-critique): front-door direct vs ingest — GitHub-only arcs skip occupancy, worktrees, and ingest -- `[completed]`
-- **#4083** -- bug(issue-eval,windows): triage:evaluate session:start --read-only ENOENTs on npm .cmd shims -- `[completed]`
-- **#4079** -- bug(release): v0.110.0 cut still requires a mid-flow TTY mint, and the skill names a Task verb that does not exist -- `[completed]`
-- **#4000** -- bug(release): release:e2e is denied at the Step 10 closed-verb gate, so the rehearsal never reaches the npm phase -- `[completed]`
-- **#4070** -- chore(triage): withdraw the classify skill and strip triaged / triage:* chips -- `[completed]`
-- **#4067** -- bug(design-critique): N=3 panel dispatch does not bind cross-family seats, and a Grok parent with claude/codex CLIs still paste-readies -- `[completed]`
-- **#4059** -- [framework-gap] scope:provenance rejects canonical scope:complete evidence as intent drift -- `[completed]`
-- **#4009** -- [framework-gap] verify:forward-coverage ignores configured testRoots and matches on a bare filename stem -- `[completed]`
-- **#4057** -- rfc(intake,design-critique): set-level bind does not change ingest — sisters mint harvest xbriefs and superseded threads stay blocked -- `[completed]`
 
