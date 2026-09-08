@@ -13,6 +13,8 @@ import { type ScanFlag, scan } from "../cache/scanner.js";
 import {
   assertCompletedArcAllowsIngest,
   DesignCritiqueIngestBlockedError,
+  evaluateTargetDigestAdmission,
+  hasOperativeTargetDigestLine,
   type ThreadComment,
 } from "../design-critique/completed-arc-record.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
@@ -70,6 +72,10 @@ import {
 
 /** Reference type pointing at the canonical current-shape comment permalink (#1870). */
 export const CURRENT_SHAPE_REF_TYPE = "x-xbrief/current-shape" as const;
+
+/** Recorded on an ingested scope when the cited lean's Target-digest matched (#4243). */
+export const ADMITTED_TARGET_DIGEST_META_KEY = "x-directive/admitted-target-digest" as const;
+export const ADMITTED_TARGET_DIGEST_SCHEMA = "deft.scope.admitted-target-digest.v1" as const;
 
 export const INGEST_STATUSES = ["proposed", "pending", "active"] as const;
 export type IngestStatus = (typeof INGEST_STATUSES)[number];
@@ -1884,6 +1890,59 @@ function threadCommentsFromIssue(issue: Record<string, unknown>): ThreadComment[
   return out;
 }
 
+/**
+ * Live GitHub REST issue `body` field as returned. Cache is not admission (#4243 F2).
+ */
+function fetchLiveIssueBodyForAdmission(
+  issueNumber: number,
+  repoUrl: string,
+  options: { scmCall?: ScmCallFn; cwd?: string | null },
+): string {
+  const repo = repoSlugFromUrl(repoUrl);
+  if (repo === null) {
+    throw new DesignCritiqueIngestBlockedError(
+      issueNumber,
+      "stale-target",
+      "live REST issue body unavailable; cache is not admission",
+    );
+  }
+  const live = fetchSingleIssue(repo, issueNumber, {
+    scmCall: options.scmCall,
+    cwd: options.cwd,
+  });
+  if (live === null) {
+    throw new DesignCritiqueIngestBlockedError(
+      issueNumber,
+      "stale-target",
+      "live REST issue body unavailable; cache is not admission",
+    );
+  }
+  if (live.body === null || live.body === undefined) return "";
+  if (typeof live.body !== "string") {
+    throw new DesignCritiqueIngestBlockedError(
+      issueNumber,
+      "stale-target",
+      "live REST issue body unavailable; cache is not admission",
+    );
+  }
+  return live.body;
+}
+
+function attachAdmittedTargetDigest(plan: unknown, digest: string): void {
+  if (plan === null || typeof plan !== "object" || Array.isArray(plan)) return;
+  const rec = plan as Record<string, unknown>;
+  const meta =
+    rec.metadata !== null && typeof rec.metadata === "object" && !Array.isArray(rec.metadata)
+      ? (rec.metadata as Record<string, unknown>)
+      : {};
+  meta[ADMITTED_TARGET_DIGEST_META_KEY] = {
+    schema: ADMITTED_TARGET_DIGEST_SCHEMA,
+    algorithm: "sha256",
+    sha256: digest,
+  };
+  rec.metadata = meta;
+}
+
 export function ingestOne(
   issue: Record<string, unknown>,
   options: {
@@ -1930,16 +1989,41 @@ export function ingestOne(
       cwd: options.cwd,
       cacheRoot: options.cacheRoot,
     });
-    assertCompletedArcAllowsIngest({
+    const comments = threadCommentsFromIssue(enriched);
+    const verdict = assertCompletedArcAllowsIngest({
       issueNumber: number,
       labels: issueLabelNames(enriched),
-      comments: threadCommentsFromIssue(enriched),
+      comments,
     });
+    let admittedDigest: string | null = null;
+    if (verdict.status === "complete") {
+      const cited = comments.find((comment) => comment.id === verdict.citedLeanId);
+      const citedBody = cited?.body ?? "";
+      if (hasOperativeTargetDigestLine(citedBody)) {
+        const liveBody = fetchLiveIssueBodyForAdmission(number, options.repoUrl, {
+          scmCall: options.scmCall,
+          cwd: options.cwd,
+        });
+        const pin = evaluateTargetDigestAdmission({
+          citedLeanBody: citedBody,
+          liveIssueBody: liveBody,
+        });
+        if (pin.status === "blocked") {
+          throw new DesignCritiqueIngestBlockedError(number, pin.reason, pin.detail);
+        }
+        if (pin.status === "match") {
+          admittedDigest = pin.digest;
+        }
+      }
+    }
     const emissionLayout = resolveIngestEmissionLayout(options.vbriefDir);
     const [vbrief, folder] = buildIssueVbrief(enriched, options.status, options.repoUrl, {
       infoRootKey: emissionLayout.infoRootKey,
       infoVersion: emissionLayout.infoVersion,
     });
+    if (admittedDigest !== null) {
+      attachAdmittedTargetDigest(vbrief.plan, admittedDigest);
+    }
     const filename = targetFilename(
       number,
       String(issue.title ?? ""),

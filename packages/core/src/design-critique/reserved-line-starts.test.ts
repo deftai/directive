@@ -15,6 +15,9 @@ import { describe, expect, it } from "vitest";
 import {
   evaluateCompletedArcRecord,
   extractCitedCommentIds,
+  extractOperativeTargetDigest,
+  hashIssueBodyBytes,
+  hasOperativeTargetDigestLine,
   isSuccessorLeanBody,
   isSynthesisAcceptedShape,
   isVerifiedClaimsTableBody,
@@ -216,5 +219,101 @@ describe("family 3 -- the fixed accepted sentence (#3929)", () => {
     // that hides the sentence from the shape predicate refuses a citation.
     expect(extractCitedCommentIds(`> Citing accepted successor lean ${LEAN_ID}.`)).toEqual([]);
     expect(extractCitedCommentIds(`Citing accepted successor lean ${LEAN_ID}.`)).toEqual([LEAN_ID]);
+  });
+});
+
+const TARGET_DIGEST_SPELLINGS = [
+  "Target-digest:",
+  "*Target-digest:",
+  "**Target-digest:",
+  "Target-digest:*",
+  "Target-digest:**",
+  "*Target-digest:*",
+  "*Target-digest:**",
+  "**Target-digest:*",
+  "**Target-digest:**",
+] as const;
+
+const SAMPLE_BODY = "## Summary\n\nPin the live REST body.\n";
+const SAMPLE_DIGEST = hashIssueBodyBytes(SAMPLE_BODY);
+const TARGET_DIGEST_LINE = `Target-digest: sha256:${SAMPLE_DIGEST}`;
+
+describe("family 4 -- Target-digest reserved line-start (#4243)", () => {
+  it("is required on the successor lean and inert for classification when Lean: is already present", () => {
+    const shaped = summaryWithLine(lean, TARGET_DIGEST_LINE);
+    expect(hasOperativeTargetDigestLine(shaped.body)).toBe(true);
+    expect(extractOperativeTargetDigest(shaped.body)).toBe(SAMPLE_DIGEST);
+    expect(evaluateCompletedArcRecord({ comments: [shaped, table, synthesis] })).toEqual({
+      status: "complete",
+      synthesisCommentId: SYNTHESIS_ID,
+      citedLeanId: LEAN_ID,
+      citedTableId: TABLE_ID,
+    });
+  });
+
+  it("reclassifies a synthesis, table, critic, and walk comment in all nine spellings", () => {
+    for (const spelling of TARGET_DIGEST_SPELLINGS) {
+      const line = `${spelling} sha256:${SAMPLE_DIGEST}`;
+      const asSynthesis = summaryWithLine(synthesis, line);
+      expect(isSuccessorLeanBody(asSynthesis.body), `synthesis ${spelling}`).toBe(true);
+      expect(
+        evaluateCompletedArcRecord({ comments: [lean, table, asSynthesis] }),
+        `synthesis ${spelling}`,
+      ).toMatchObject({ status: "blocked", reason: "missing-record" });
+
+      const asTable: ThreadComment = {
+        id: TABLE_ID,
+        body: `${table.body}\n${line}\n`,
+      };
+      expect(isSuccessorLeanBody(asTable.body), `table ${spelling}`).toBe(true);
+      expect(isVerifiedClaimsTableBody(asTable.body), `table ${spelling}`).toBe(true);
+
+      const critic: ThreadComment = {
+        id: SYNTHESIS_ID + 60,
+        body: `model: grok-4.6\nrole: critic\n\n${line}\n`,
+      };
+      expect(isSuccessorLeanBody(critic.body), `critic ${spelling}`).toBe(true);
+      expect(
+        evaluateCompletedArcRecord({ comments: [...completeArc, critic] }),
+        `critic ${spelling}`,
+      ).toMatchObject({ status: "blocked", reason: "missing-record" });
+
+      const walk: ThreadComment = {
+        id: SYNTHESIS_ID + 50,
+        body: `model: grok-4.6\nrole: parent\n\nWalk note.\n\n${line}\n`,
+      };
+      expect(isSuccessorLeanBody(walk.body), `walk ${spelling}`).toBe(true);
+      expect(
+        evaluateCompletedArcRecord({ comments: [...completeArc, walk] }),
+        `walk ${spelling}`,
+      ).toMatchObject({ status: "blocked", reason: "missing-record" });
+    }
+  });
+
+  it("does not count Target-digest inside a fence or quote", () => {
+    const fenced = summaryWithLine(
+      synthesis,
+      `Example pin:\n\n\`\`\`text\n${TARGET_DIGEST_LINE}\n\`\`\``,
+    );
+    expect(hasOperativeTargetDigestLine(fenced.body)).toBe(false);
+    expect(extractOperativeTargetDigest(fenced.body)).toBeNull();
+    expect(isSuccessorLeanBody(fenced.body)).toBe(false);
+    expect(evaluateCompletedArcRecord({ comments: [lean, table, fenced] })).toEqual({
+      status: "complete",
+      synthesisCommentId: SYNTHESIS_ID,
+      citedLeanId: LEAN_ID,
+      citedTableId: TABLE_ID,
+    });
+
+    const quoted = summaryWithLine(synthesis, `> ${TARGET_DIGEST_LINE}`);
+    expect(hasOperativeTargetDigestLine(quoted.body)).toBe(false);
+    expect(extractOperativeTargetDigest(quoted.body)).toBeNull();
+    expect(isSuccessorLeanBody(quoted.body)).toBe(false);
+    expect(evaluateCompletedArcRecord({ comments: [lean, table, quoted] })).toEqual({
+      status: "complete",
+      synthesisCommentId: SYNTHESIS_ID,
+      citedLeanId: LEAN_ID,
+      citedTableId: TABLE_ID,
+    });
   });
 });
