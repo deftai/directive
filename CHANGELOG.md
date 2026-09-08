@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Land leftover completed-tracked artifact for #4230 (#3264 / #1358).** The #4230 xBRIEF stayed untracked after squash of PR 4249 (`6b55e61c`). Moved to `xbrief/completed/` via `scope:complete`. Does not recut that issue. Refs #2321, #3476.
 - **issue:ingest refuses a live body that does not match Target-digest on the cited successor lean (#4243).** New successor leans pin SHA-256 of GitHub REST body bytes. The pin must be 64 lowercase hex digits to end of line. Mismatch or trailing junk is `stale-target` and writes nothing. Cache is not admission. Duplicate-already-tracked stays before fetch. Legacy leans with no digest stay admitted. Recut-without-digest stays on #4237. Closes #4243.
 
 ### Removed
