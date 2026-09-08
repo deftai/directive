@@ -102,6 +102,7 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
       payload: { tool_name: "Task", tool_input: { isolation: "worktree", prompt: "build" } },
       payloadRoot: root,
       host: "claude",
+      environ: {},
     });
     expect(decision.allow).toBe(true);
     if (decision.allow) {
@@ -118,6 +119,7 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
         payload: { tool_name: "Task", tool_input: { isolation: "worktree", prompt: "build" } },
         payloadRoot: root,
         host: "claude",
+        environ: {},
       });
       expect(second.allow).toBe(true);
       if (second.allow && second.reservation !== null) {
@@ -821,6 +823,7 @@ describe("consultImplementSpawnOccupancy (#4215)", () => {
       payloadRoot: root,
       host: "claude",
       parentId: "parent-1",
+      environ: {},
     });
     expect(decision.allow).toBe(true);
     if (decision.allow) expect(decision.destProven).toBe(false);

@@ -290,10 +290,8 @@ export function isGrokSpawnToolName(toolName: string | null | undefined): boolea
  * TUI test runner does not flip Cursor Task dest occupancy.
  */
 export function isGrokHookProcess(environ?: NodeJS.ProcessEnv): boolean {
-  if (environ == null) {
-    return Boolean(process.env.GROK_HOOK_EVENT?.trim());
-  }
-  return Boolean(environ.GROK_HOOK_EVENT?.trim() || environ.GROK_SESSION_ID?.trim());
+  const env = environ ?? process.env;
+  return Boolean(env.GROK_HOOK_EVENT?.trim() || env.GROK_SESSION_ID?.trim());
 }
 
 export interface GrokSpawnDestContractInput {

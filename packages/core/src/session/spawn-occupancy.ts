@@ -221,7 +221,8 @@ function grokMissingDestMessage(): string {
     "Directive denied implement-class spawn: no worktree destination on the spawn payload " +
     "(tool_input.cwd). Spawned mutating work takes its own worktree; do not inherit the " +
     "parent checkout. Grok spawn_subagent cannot rewrite input -- pass cwd to a reserved " +
-    "linked worktree before the spawn primitive."
+    "linked worktree before the spawn primitive. " +
+    GROK_VENDOR_COMPAT_HOOKS_DISABLE_REFUSE
   );
 }
 

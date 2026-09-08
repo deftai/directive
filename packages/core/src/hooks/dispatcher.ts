@@ -1355,7 +1355,7 @@ function inspectMutationGates(
       payload: input.payload,
       payloadRoot,
       host: input.host,
-      environ: input.environ,
+      environ,
       runGit: dispatchGit,
     });
     if (!consult.allow) {
@@ -1716,7 +1716,7 @@ function inspectMutationGates(
       payload: input.payload,
       payloadRoot,
       host: input.host,
-      environ: input.environ,
+      environ,
       runGit: dispatchGit,
     });
     const reservation = spawnReservation.reservation;
@@ -1732,7 +1732,7 @@ function inspectMutationGates(
       host: input.host,
       toolName,
       payload: input.payload,
-      environ: input.environ,
+      environ,
     });
     const updatedInput = spawnUpdatedInput(
       input,
@@ -1840,12 +1840,11 @@ function spawnUpdatedInput(
   const grokDest = appliesGrokSpawnDestContract({
     host: input.host,
     payload: input.payload,
-    environ: input.environ,
+    environ: input.environ ?? process.env,
   });
-  if (grokDest) {
-    if (!hostCanReroot || !hostAcceptsUpdatedInput(input.host)) return undefined;
-    return spawnToolArgUpdatedInput(input.payload, reRootPath, incarnation);
-  }
+  // Host identity: no rewrite. spawnToolArgUpdatedInput is the backstop shape
+  // if a future reroot path emits updatedInput for Grok-applied spawn.
+  if (grokDest) return undefined;
   if (!hostCanReroot || !hostAcceptsUpdatedInput(input.host)) return undefined;
   const token = incarnation.trim();
   if (token.length === 0) return undefined;
@@ -2535,7 +2534,7 @@ function routeHookDecision(
       !isProcessOnlyCriticSpawn(input.payload, {
         host: input.host,
         toolName,
-        environ: input.environ,
+        environ,
       })
     ) {
       return deny(
@@ -2565,7 +2564,7 @@ function routeHookDecision(
       isProcessOnlyCriticSpawn(input.payload, {
         host: input.host,
         toolName,
-        environ: input.environ,
+        environ,
       })
     ) {
       return {

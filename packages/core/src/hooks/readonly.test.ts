@@ -285,6 +285,7 @@ describe("process-only critic spawn (#4241)", () => {
     expect(isGrokHookProcess({ GROK_SESSION_ID: "grok-session-a" })).toBe(true);
     expect(isGrokHookProcess({ GROK_HOOK_EVENT: "PreToolUse" })).toBe(true);
     expect(isGrokHookProcess({})).toBe(false);
+    expect(isGrokHookProcess({ GROK_SESSION_ID: " " })).toBe(false);
     expect(
       appliesGrokSpawnDestContract({
         host: "cursor",
