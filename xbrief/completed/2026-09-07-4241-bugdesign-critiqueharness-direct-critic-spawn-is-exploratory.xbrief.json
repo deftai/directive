@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4241",
-    "updated": "2026-09-07T23:05:29Z"
+    "updated": "2026-09-08T16:08:03Z"
   },
   "plan": {
     "title": "bug(design-critique,harness): direct critic spawn is exploratory/non-mutation and must not go through #4066 dest occupancy",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "A direct critic spawn is not product work. Tag that spawn on the spawn itself with a field Grok actually sends. The hook skips the worktree rule for that tag only. Do not read arc-mode from the GitHub thread. Implement workers still take a linked worktree.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4241",
@@ -18,30 +18,54 @@
     "items": [
       {
         "title": "Given a process-only critic spawn tag that Grok PreToolUse stdin actually contains, when spawn runs, then it does not re",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a process-only critic spawn tag that Grok PreToolUse stdin actually contains, when spawn runs, then it does not require a linked worktree and does not claim primary occupancy."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher.test.ts#process-only-critic-spawn-dest-skip",
+          "recorded_at": "2026-09-08T16:08:02Z",
+          "recorded_by": "review-cycle/4251"
         }
       },
       {
         "title": "Given that critic spawn class, when the child needs evidence, then git show of a pinned sha and gh issue comment remain ",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given that critic spawn class, when the child needs evidence, then git show of a pinned sha and gh issue comment remain available."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher.test.ts#keeps-git-show-and-gh-issue-comment",
+          "recorded_at": "2026-09-08T16:08:02Z",
+          "recorded_by": "review-cycle/4251"
         }
       },
       {
         "title": "Given a general-purpose implement spawn on Grok, when dest consult runs, then a linked worktree is still required.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a general-purpose implement spawn on Grok, when dest consult runs, then a linked worktree is still required."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher.test.ts#general-purpose-still-requires-worktree",
+          "recorded_at": "2026-09-08T16:08:02Z",
+          "recorded_by": "review-cycle/4251"
         }
       },
       {
         "title": "Given a parent names critic only in the prompt, when spawn is general-purpose, then the dest occupancy skip does not fir",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a parent names critic only in the prompt, when spawn is general-purpose, then the dest occupancy skip does not fire."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher.test.ts#prompt-text-does-not-skip-dest",
+          "recorded_at": "2026-09-08T16:08:02Z",
+          "recorded_by": "review-cycle/4251"
         }
       }
     ],
@@ -141,9 +165,34 @@
         "file_scope_confidence": "high",
         "model_tier": "standard",
         "missing_traces_justification": "Ingested from GitHub issue #4241 recut body plus accepted F1/F2; no numbered FR registry."
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4251,
+        "prBase": null,
+        "mergeCommit": "da06e0402b9483be0801e5da3dd11da511df2648",
+        "deliveryBranch": "master",
+        "deliveryCommit": "da06e0402b9483be0801e5da3dd11da511df2648",
+        "verifiedAt": "2026-09-08T16:08:03Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDgxNDctMmZiZC03YmIxLWIwYTEtNTUzM2IyMzI4M2Uw"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-08T16:08:03Z"
+      },
+      "completedAt": "2026-09-08T16:08:03Z",
+      "completedSessionId": "host:grok:v1:MDFhMDgxNDctMmZiZC03YmIxLWIwYTEtNTUzM2IyMzI4M2Uw",
+      "capacityBucket": "technical-debt"
     },
     "id": "github.issue.5378913980",
-    "updated": "2026-09-07T23:02:37Z"
+    "updated": "2026-09-08T16:08:03Z"
   }
 }
