@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyWorktreeOccupancy } from "../session/occupancy.js";
 import { readSpawnReservationIncarnation } from "../session/spawn-occupancy.js";
-import { decideHook, type HookPolicySeams } from "./index.js";
+import { decideHook, type HookPolicySeams, spawnToolArgUpdatedInput } from "./index.js";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -321,5 +321,218 @@ describe("dest-proven implement spawn (#4215)", () => {
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "read-only-deny" });
     expect(readSpawnReservationIncarnation(root, dest)).toBeNull();
+  });
+});
+
+describe("Grok-applied spawn_subagent handler-runtime identity (#4272)", () => {
+  it("applies Grok dest and emits no envelope rewrite when --host is cursor", () => {
+    const { root, dest } = destFixture();
+    const inspectRitual = vi.fn(() => STALE_RITUAL);
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: { cwd: dest, prompt: "implement the story" },
+        },
+        environ: { DEFT_SESSION_ID: "parent-1", GROK_SESSION_ID: "grok-session-a" },
+      },
+      readySeams({ inspectRitual }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-ready" });
+    expect(decision.updatedInput).toBeUndefined();
+    expect(decision.message).toContain("cannot re-root");
+    expect(inspectRitual).not.toHaveBeenCalled();
+  });
+
+  it("applies Grok dest and emits no envelope rewrite when --host is claude and GROK_HOOK_EVENT is set", () => {
+    const { root, dest } = destFixture();
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "spawn_subagent",
+          tool_input: { cwd: dest, prompt: "implement the story" },
+        },
+        environ: { DEFT_SESSION_ID: "parent-1", GROK_HOOK_EVENT: "PreToolUse" },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-ready" });
+    expect(decision.updatedInput).toBeUndefined();
+  });
+
+  it("applies Grok dest from the spawn_subagent tool even without Grok env", () => {
+    const { root, dest } = destFixture();
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: { cwd: dest, prompt: "implement the story" },
+        },
+        environ: { DEFT_SESSION_ID: "parent-1" },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-ready" });
+    expect(decision.updatedInput).toBeUndefined();
+  });
+
+  it("denies missing dest with Grok cwd text, not Cursor reroot text", () => {
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: { toolName: "spawn_subagent", tool_input: { prompt: "implement the story" } },
+        environ: { DEFT_SESSION_ID: "parent-1", GROK_SESSION_ID: "grok-session-a" },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toContain("tool_input.cwd");
+    expect(decision.message).not.toMatch(/isolation=worktree/);
+    expect(decision.message).not.toContain("worktree_path");
+  });
+
+  it("does not persist dest-lock from a vendor-compat handler on Grok-applied spawn", () => {
+    const { root, dest } = destFixture();
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: { cwd: dest, prompt: "implement the story" },
+        },
+        environ: { DEFT_SESSION_ID: "parent-1", GROK_SESSION_ID: "grok-session-a" },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-ready" });
+    expect(readSpawnReservationIncarnation(root, dest)).toBeNull();
+  });
+
+  it("leftover-releases a prior dest-lock then allows the applying Grok host", () => {
+    const { root, dest } = destFixture();
+    const payload = {
+      toolName: "spawn_subagent",
+      tool_input: { cwd: dest, prompt: "implement the story" },
+    };
+    const vendor = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: root,
+        payload,
+        environ: { DEFT_SESSION_ID: "parent-1", GROK_SESSION_ID: "grok-session-a" },
+      },
+      readySeams(),
+    );
+    const applying = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload,
+        environ: { DEFT_SESSION_ID: "parent-1", GROK_SESSION_ID: "grok-session-a" },
+      },
+      readySeams(),
+    );
+    expect(vendor).toMatchObject({ verdict: "allow", code: "spawn-ready" });
+    expect(applying).toMatchObject({ verdict: "allow", code: "spawn-ready" });
+    expect(applying.updatedInput).toBeUndefined();
+    expect(readSpawnReservationIncarnation(root, dest)).not.toBeNull();
+  });
+
+  it("does not leftover-release an applying-host dest-lock from a later vendor-compat handler", () => {
+    const { root, dest } = destFixture();
+    const payload = {
+      toolName: "spawn_subagent",
+      tool_input: { cwd: dest, prompt: "implement the story" },
+    };
+    const applying = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload,
+        environ: { DEFT_SESSION_ID: "parent-1", GROK_SESSION_ID: "grok-session-a" },
+      },
+      readySeams(),
+    );
+    const firstIncarnation = readSpawnReservationIncarnation(root, dest);
+    const vendor = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: root,
+        payload,
+        environ: { DEFT_SESSION_ID: "parent-1", GROK_SESSION_ID: "grok-session-a" },
+      },
+      readySeams(),
+    );
+    expect(applying).toMatchObject({ verdict: "allow", code: "spawn-ready" });
+    expect(vendor).toMatchObject({ verdict: "allow", code: "spawn-ready" });
+    expect(readSpawnReservationIncarnation(root, dest)).toBe(firstIncarnation);
+  });
+
+  it("keeps Cursor Task dest occupancy and envelope rewrite", () => {
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Task",
+          tool_input: { subagent_type: "generalPurpose", isolation: "worktree" },
+        },
+        environ: { DEFT_SESSION_ID: "parent-1" },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-ready" });
+    const rewritten = decision.updatedInput as {
+      tool_input?: { isolation?: string; incarnation?: string };
+    };
+    expect(rewritten?.tool_input?.isolation).toBe("worktree");
+    expect(typeof rewritten?.tool_input?.incarnation).toBe("string");
+  });
+
+  it("backstop rewrite is the tool-arg object with prompt and dest cwd, not an envelope", () => {
+    const rewritten = spawnToolArgUpdatedInput(
+      {
+        tool_name: "spawn_subagent",
+        tool_input: { cwd: "/wt", prompt: "implement the story" },
+      },
+      "/wt",
+      "inc-1",
+    );
+    expect(rewritten).toMatchObject({
+      prompt: "implement the story",
+      cwd: "/wt",
+      incarnation: "inc-1",
+    });
+    expect(rewritten).not.toHaveProperty("tool_input");
+    expect(rewritten).not.toHaveProperty("tool_name");
+  });
+
+  it("backstop rewrite is undefined when prompt is missing", () => {
+    expect(
+      spawnToolArgUpdatedInput(
+        { tool_name: "spawn_subagent", tool_input: { cwd: "/wt" } },
+        "/wt",
+        "inc-1",
+      ),
+    ).toBeUndefined();
+    expect(spawnToolArgUpdatedInput(null, "/wt", "inc-1")).toBeUndefined();
   });
 });

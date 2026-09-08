@@ -1984,6 +1984,7 @@ describe("direct-write hook policy", () => {
           tool_name: "Task",
           tool_input: { subagent_type: "generalPurpose", isolation: "worktree" },
         },
+        environ: {},
       },
       readySeams(),
     );
@@ -2004,6 +2005,7 @@ describe("direct-write hook policy", () => {
           tool_name: "Task",
           tool_input: { subagent_type: "generalPurpose", isolation: "worktree" },
         },
+        environ: {},
       },
       readySeams(),
     );
@@ -2166,6 +2168,7 @@ describe("ephemeral spawn posture (#3080)", () => {
             prompt: "implement feature",
           },
         },
+        environ: {},
       },
       emptyScopeSeams(),
     );
@@ -2705,6 +2708,7 @@ describe("runtime authority policy (#1394)", () => {
           tool_name: "Task",
           tool_input: { subagent_type: "generalPurpose", isolation: "worktree" },
         },
+        environ: {},
       },
       policySeams({ ...ENABLED_POLICY, scopes: { edits: false, push: false, merge: false } }),
     );
@@ -3577,6 +3581,7 @@ describe("provider codecs", () => {
           tool_name: "Task",
           tool_input: { subagent_type: "generalPurpose", isolation: "worktree" },
         },
+        environ: {},
       },
       readySeams(),
     );
@@ -3615,6 +3620,7 @@ describe("shared hooks fixture corpus (Phase B of #2950)", () => {
         event: "tool.before",
         projectRoot: "/project",
         payload: task?.payload,
+        environ: {},
       },
       readySeams(),
     );

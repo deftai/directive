@@ -110,6 +110,7 @@ import {
   restampOwnerLivenessOnHookEvent,
 } from "./owner-liveness.js";
 import {
+  appliesGrokSpawnDestContract,
   isAssistPosture,
   isEphemeralSpawn,
   isExploreSpawn,
@@ -129,10 +130,13 @@ import { isDirectWriteTool, isMcpTool, isShellTool, isSpawnTool } from "./tools.
 
 export {
   ASSIST_SESSION_POSTURE_ENV,
+  appliesGrokSpawnDestContract,
   hookReadOnlyFromPayload,
   isAssistPosture,
   isEphemeralSpawn,
   isExploreSpawn,
+  isGrokHookProcess,
+  isGrokSpawnToolName,
   isProcessOnlyCriticSpawn,
   isReadOnlyHookContext,
 } from "./readonly.js";
@@ -1708,10 +1712,6 @@ function inspectMutationGates(
         `Directive denied ${toolName}: spawn destination consult was missing.`,
       );
     }
-    const leftover = consult.leftoverIncarnation?.trim() ?? "";
-    if (leftover.length > 0 && consult.destPath !== null) {
-      releaseLeftoverSpawnReservation(payloadRoot, consult.destPath, leftover);
-    }
     const spawnReservation = mintImplementSpawnReservation(consult, {
       payload: input.payload,
       payloadRoot,
@@ -1728,27 +1728,44 @@ function inspectMutationGates(
         `Directive denied ${toolName}: implement spawn produced no destination reservation.`,
       );
     }
-    const persisted = persistSpawnReservation(payloadRoot, reservation);
-    if (!persisted.ok) {
-      const dest = reservation.worktreePath;
-      const occupied = persisted.reason === "occupied";
-      return deny(
-        input,
-        "spawn-not-ready",
-        toolName,
-        occupied
-          ? `Directive denied spawn: destination ${dest} became occupied after consult. ` +
-              "Use another worktree."
-          : `Directive denied spawn: destination ${dest} ` +
-              "is already reserved. Own worktree means a unique reservation.",
-      );
-    }
+    const grokDest = appliesGrokSpawnDestContract({
+      host: input.host,
+      toolName,
+      payload: input.payload,
+      environ,
+    });
     const updatedInput = spawnUpdatedInput(
       input,
       spawnReservation.reRootPath,
       spawnReservation.hostCanReroot,
       spawnReservation.incarnation ?? "",
     );
+    // Persist only on the applying host (#4272). A vendor-compat --host cursor/claude
+    // handler that rewrites can schema-fail after persist; leftover dest-lock then
+    // ghosts a retry. Do not leftover-release unless this handler will persist —
+    // otherwise a later vendor-compat pass would drop the applying host's lock.
+    const persistThisHandler = !grokDest || !hostAcceptsUpdatedInput(input.host);
+    if (persistThisHandler) {
+      const leftover = consult.leftoverIncarnation?.trim() ?? "";
+      if (leftover.length > 0 && consult.destPath !== null) {
+        releaseLeftoverSpawnReservation(payloadRoot, consult.destPath, leftover);
+      }
+      const persisted = persistSpawnReservation(payloadRoot, reservation);
+      if (!persisted.ok) {
+        const dest = reservation.worktreePath;
+        const occupied = persisted.reason === "occupied";
+        return deny(
+          input,
+          "spawn-not-ready",
+          toolName,
+          occupied
+            ? `Directive denied spawn: destination ${dest} became occupied after consult. ` +
+                "Use another worktree."
+            : `Directive denied spawn: destination ${dest} ` +
+                "is already reserved. Own worktree means a unique reservation.",
+        );
+      }
+    }
     return {
       verdict: "allow",
       code: allowCode,
@@ -1786,12 +1803,48 @@ function spawnIncarnationFromPayload(payload: unknown): string {
   return fromTop !== null ? fromTop.trim() : "";
 }
 
+/**
+ * Backstop rewrite shape for a Grok-applied spawn (#4272): the tool-arg object
+ * with required `prompt` and dest `cwd`, not a PreToolUse envelope. Host
+ * identity is "emit no rewrite"; this shape is only used if a reroot host still
+ * asks for updatedInput.
+ */
+export function spawnToolArgUpdatedInput(
+  payload: unknown,
+  reRootPath: string | null,
+  incarnation: string,
+): Readonly<Record<string, unknown>> | undefined {
+  const input = record(payload);
+  if (input === null) return undefined;
+  const toolInput = toolInputRecord(input) ?? {};
+  const prompt = fieldString(toolInput, "prompt") ?? fieldString(input, "prompt");
+  if (prompt === null) return undefined;
+  const cwd =
+    reRootPath ?? fieldString(toolInput, "cwd") ?? fieldString(toolInput, "working_directory");
+  const token = incarnation.trim();
+  const next: Record<string, unknown> = { ...toolInput, prompt };
+  if (cwd !== null) {
+    next.cwd = cwd;
+    next.working_directory = cwd;
+  }
+  if (token.length > 0) next.incarnation = token;
+  return next;
+}
+
 function spawnUpdatedInput(
   input: HookDispatchInput,
   reRootPath: string | null,
   hostCanReroot: boolean,
   incarnation: string,
 ): Readonly<Record<string, unknown>> | undefined {
+  const grokDest = appliesGrokSpawnDestContract({
+    host: input.host,
+    payload: input.payload,
+    environ: input.environ ?? process.env,
+  });
+  // Host identity: no rewrite. spawnToolArgUpdatedInput is the backstop shape
+  // if a future reroot path emits updatedInput for Grok-applied spawn.
+  if (grokDest) return undefined;
   if (!hostCanReroot || !hostAcceptsUpdatedInput(input.host)) return undefined;
   const token = incarnation.trim();
   if (token.length === 0) return undefined;
@@ -2478,7 +2531,11 @@ function routeHookDecision(
     if (
       readOnly &&
       !isExploreSpawn(input.payload) &&
-      !isProcessOnlyCriticSpawn(input.payload, { host: input.host, toolName })
+      !isProcessOnlyCriticSpawn(input.payload, {
+        host: input.host,
+        toolName,
+        environ,
+      })
     ) {
       return deny(
         input,
@@ -2503,7 +2560,13 @@ function routeHookDecision(
     }
     // Process-only critic (`subagent_type` plan): dest consult, worktree, ritual,
     // and active-xBRIEF skip. Not the explore tool allowlist. Prompt text is not a class (#4241).
-    if (isProcessOnlyCriticSpawn(input.payload, { host: input.host, toolName })) {
+    if (
+      isProcessOnlyCriticSpawn(input.payload, {
+        host: input.host,
+        toolName,
+        environ,
+      })
+    ) {
       return {
         verdict: "allow",
         code: "spawn-process-only-ready",

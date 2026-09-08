@@ -20,7 +20,7 @@ import {
   containedWrite,
 } from "../fs/contained-write.js";
 import { fieldPresent, fieldString, record, toolInputRecord } from "../hooks/classify/payload.js";
-import { isProcessOnlyCriticSpawn } from "../hooks/readonly.js";
+import { appliesGrokSpawnDestContract, isProcessOnlyCriticSpawn } from "../hooks/readonly.js";
 import {
   type ChildOccupancyDispatchInput,
   type ChildOccupancyRecord,
@@ -100,6 +100,14 @@ export type SpawnOccupancyConsult = SpawnOccupancyConsultAllow | SpawnOccupancyC
 
 const HOSTS_THAT_REROOT = new Set(["claude", "cursor", "codex"]);
 const GROK_EXTRA_DEST_KEYS = ["worktree_path", "worktreePath", "worktree"] as const;
+
+/**
+ * #4272: `[compat.cursor] hooks = false` is not the product fix. That flag
+ * only stops Grok from scanning Cursor hook files; Cursor IDE still loads
+ * them. Refuse it because default-on vendor compat must work.
+ */
+export const GROK_VENDOR_COMPAT_HOOKS_DISABLE_REFUSE =
+  "Default-on vendor compat must work; do not set [compat.cursor] hooks = false as the product fix.";
 
 function looksLikePath(value: string): boolean {
   if (value.length === 0) return false;
@@ -213,7 +221,8 @@ function grokMissingDestMessage(): string {
     "Directive denied implement-class spawn: no worktree destination on the spawn payload " +
     "(tool_input.cwd). Spawned mutating work takes its own worktree; do not inherit the " +
     "parent checkout. Grok spawn_subagent cannot rewrite input -- pass cwd to a reserved " +
-    "linked worktree before the spawn primitive."
+    "linked worktree before the spawn primitive. " +
+    GROK_VENDOR_COMPAT_HOOKS_DISABLE_REFUSE
   );
 }
 
@@ -320,8 +329,13 @@ export function consultImplementSpawnOccupancy(
   const environ = input.environ ?? process.env;
   const runGit = input.runGit ?? defaultGitRunner;
   const parentId = (input.parentId?.trim() || parentIdFromEnv(environ)).trim() || "none";
-  const hostCanReroot = HOSTS_THAT_REROOT.has(input.host);
-  if (isProcessOnlyCriticSpawn(input.payload, { host: input.host })) {
+  const grokHost = appliesGrokSpawnDestContract({
+    host: input.host,
+    payload: input.payload,
+    environ: input.environ,
+  });
+  const hostCanReroot = HOSTS_THAT_REROOT.has(input.host) && !grokHost;
+  if (isProcessOnlyCriticSpawn(input.payload, { host: input.host, environ: input.environ })) {
     return {
       allow: true,
       destProven: false,
@@ -336,7 +350,6 @@ export function consultImplementSpawnOccupancy(
       leftoverIncarnation: null,
     };
   }
-  const grokHost = input.host === "grok";
   const grokCwd = grokHost ? grokCwdPath(input.payload) : null;
 
   if (grokHost) {
@@ -523,7 +536,13 @@ export function mintImplementSpawnReservation(
     parentId,
     occupancyOwner: parentId,
     worktreePath: destPath ?? join(payloadRoot, ".deft", "spawn-pending", incarnation),
-    identitySourceKind: input.host === "grok" ? "host-env" : "payload",
+    identitySourceKind: appliesGrokSpawnDestContract({
+      host: input.host,
+      payload: input.payload,
+      environ: input.environ,
+    })
+      ? "host-env"
+      : "payload",
     incarnation,
     provenance: "dispatch",
   };
@@ -556,7 +575,7 @@ export function evaluateImplementSpawnOccupancy(
       message: consult.message,
     };
   }
-  if (isProcessOnlyCriticSpawn(input.payload, { host: input.host })) {
+  if (isProcessOnlyCriticSpawn(input.payload, { host: input.host, environ: input.environ })) {
     return {
       allow: true,
       destination: consult.destination,

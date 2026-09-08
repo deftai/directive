@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Grok-applied spawn_subagent keeps the Grok dest contract when vendor-compat handlers run (#4272).** GROK hook-process env or the `spawn_subagent` tool applies cwd-only dest and emits no envelope rewrite even if argv `--host` is cursor or claude. Matcher-split is not the isolation. Vendor-compat handlers do not persist dest-lock; leftover-release stays on retry. Default-on vendor compat must work; `[compat.cursor] hooks = false` is not the product fix. Rewrite-shape (tool-arg `prompt` + dest `cwd`) is a backstop. Closes #4272.
+
 ### Removed
 
 ## [0.113.0] - 2026-09-08

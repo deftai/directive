@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   ASSIST_SESSION_POSTURE_ENV,
+  appliesGrokSpawnDestContract,
   hookReadOnlyFromPayload,
   isAssistPosture,
   isEphemeralSpawn,
   isExploreSpawn,
+  isGrokHookProcess,
   isProcessOnlyCriticSpawn,
   isReadOnlyHookContext,
 } from "./readonly.js";
@@ -277,6 +279,53 @@ describe("process-only critic spawn (#4241)", () => {
         { host: "grok", toolName: "Task" },
       ),
     ).toBe(false);
+  });
+
+  it("treats GROK_SESSION_ID on the hook environ and spawn_subagent as Grok dest identity (#4272)", () => {
+    expect(isGrokHookProcess({ GROK_SESSION_ID: "grok-session-a" })).toBe(true);
+    expect(isGrokHookProcess({ GROK_HOOK_EVENT: "PreToolUse" })).toBe(true);
+    expect(isGrokHookProcess({})).toBe(false);
+    expect(isGrokHookProcess({ GROK_SESSION_ID: " " })).toBe(false);
+    expect(
+      appliesGrokSpawnDestContract({
+        host: "cursor",
+        toolName: "spawn_subagent",
+        environ: {},
+      }),
+    ).toBe(true);
+    expect(
+      appliesGrokSpawnDestContract({
+        host: "cursor",
+        toolName: "Task",
+        environ: {},
+      }),
+    ).toBe(false);
+    expect(
+      appliesGrokSpawnDestContract({
+        host: "cursor",
+        toolName: "Task",
+        environ: { GROK_SESSION_ID: "grok-session-a" },
+      }),
+    ).toBe(true);
+  });
+
+  it("skips dest occupancy for Grok-applied spawn_subagent plan even when argv host is cursor (#4272)", () => {
+    expect(
+      isProcessOnlyCriticSpawn(
+        { tool_name: "spawn_subagent", tool_input: { subagent_type: "plan" } },
+        {
+          host: "cursor",
+          toolName: "spawn_subagent",
+          environ: { GROK_SESSION_ID: "grok-session-a" },
+        },
+      ),
+    ).toBe(true);
+    expect(
+      isProcessOnlyCriticSpawn(
+        { tool_name: "spawn_subagent", tool_input: { subagent_type: "plan" } },
+        { host: "claude", toolName: "spawn_subagent" },
+      ),
+    ).toBe(true);
   });
 });
 
