@@ -20,6 +20,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+### Removed
+
+## [0.113.1] - 2026-09-08
+
+> Grok-applied spawn_subagent keeps the Grok dest contract under vendor-compat, so through-merge dispatch no longer drops required prompt.
+
+### Added
+
+### Changed
+
+### Fixed
+
 - **Grok-applied spawn_subagent keeps the Grok dest contract when vendor-compat handlers run (#4272).** GROK hook-process env or the `spawn_subagent` tool applies cwd-only dest and emits no envelope rewrite even if argv `--host` is cursor or claude. Matcher-split is not the isolation. Vendor-compat handlers do not persist dest-lock; leftover-release stays on retry. Default-on vendor compat must work; `[compat.cursor] hooks = false` is not the product fix. Rewrite-shape (tool-arg `prompt` + dest `cwd`) is a backstop. Closes #4272.
 
 ### Removed
@@ -5882,7 +5894,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.113.0...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.113.1...HEAD
+[0.113.1]: https://github.com/deftai/directive/compare/v0.113.0...v0.113.1
 [0.113.0]: https://github.com/deftai/directive/compare/v0.112.0...v0.113.0
 [0.112.0]: https://github.com/deftai/directive/compare/v0.111.0...v0.112.0
 [0.111.0]: https://github.com/deftai/directive/compare/v0.110.0...v0.111.0

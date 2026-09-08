@@ -44,8 +44,9 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1438 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1439 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#4272** -- bug(hooks,harness): Grok Build spawn_subagent hits Cursor-compat rewrite; updated_input drops required prompt -- `[completed]`
 - **#4254** -- bug(hooks,harness): dest-lock consult-deny after first allow ghosts a retry -- `[completed]`
 - **#4241** -- bug(design-critique,harness): direct critic spawn is exploratory/non-mutation and must not go through #4066 dest occupancy -- `[completed]`
 - **#4240** -- bug(verify-ac): bound behavioral clauses with no executable run still cannot complete -- `[completed]`
@@ -70,5 +71,4 @@ _Showing 25 of 1438 completed scopes (newest first). Full history: lifecycle `co
 - **#4088** -- fix(architecture): cover content modules in codeStructure validation -- `[completed]`
 - **#4116** -- bug(update,gitignore): canonical gitignore ignores .deft/approved-scope/ which provenance requires on the merge base -- `[completed]`
 - **#4130** -- bug(review-cycle,swarm): dual-stop max-out needs a parent-owned fresh critic; grok leaf must not nest -- `[completed]`
-- **#4117** -- bug(update): generated SPECIFICATION.md with stale vbrief banner hard-blocks npm deposit refresh -- `[completed]`
 
