@@ -99,7 +99,7 @@ function hasPathToken(text: string, token: string): boolean {
       return false;
     }
     const asSubject = new RegExp(
-      `(?:^|[\\s'"\`./])${escaped}\\s+(?:${ABSENCE_ALTERNATION})\\b`,
+      `(?:^|[\\s'"\`./])${escaped}(?:\\s+\\w+){0,1}\\s+(?:${ABSENCE_ALTERNATION})\\b`,
       "i",
     );
     const asPrefixed = new RegExp(`(?:^|[\\s])\\./${escaped}(?![A-Za-z0-9._-])`);
