@@ -1,0 +1,603 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4230",
+    "updated": "2026-09-08T14:57:30.094Z"
+  },
+  "plan": {
+    "title": "perf(check,release): one suite at Step 5, real 20-min suite-gate hang (supervisor), full-mode pin — lane fixed host-side (stale CI cache)",
+    "status": "completed",
+    "narratives": {
+      "Overview": "One suite at release pipeline Step 5, a 20-minute cached-path hang supervisor (exit 124, REAL_FAILURE), and a full-mode pin. Fork (b): coverage.reporter stays text plus text-summary. Residual #4244 and #3512 stay out. Landed by PR 4249 (squash 6b55e61c).",
+      "UserStory": "As a release operator, I want one full suite at Step 5 with a real 20-minute hang supervisor and a full-mode pin, so that a production cut does not run the suite twice or hang unbounded on the cached path.",
+      "ImplementationPlan": "Edit the release skill pack so Phase 1 has no ordered-list task check. Add a check module supervisor with timeoutMs only on runReleaseCheck. Tee with exclusive create, prune that spares live tees, named-cause strings, win32 taskkill /T. Pin DEFT_CHECK_MODE=full and delete AC-only and hygiene-advisory. Verify with targeted vitest tests in packages/core/src/check and release plus task check. CHANGELOG #4230."
+    },
+    "items": [
+      {
+        "title": "One suite at Step 5",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a fresh production cut at a clean HEAD, when Phase 1 plus task release run, then the vitest suite runs exactly once and Phase 1 has no ordered-list task check."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/release_workflow.test.ts",
+          "recorded_at": "2026-09-08T14:25:00Z",
+          "recorded_by": "review-monitor/4230"
+        }
+      },
+      {
+        "title": "Supervised 20-minute hang",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given runReleaseCheck on the cached path, when the suite hangs past timeoutMs, then the supervisor kills the tree, exits 124, and classifyStep5Failure keeps REAL_FAILURE without pass_with_debt."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/check/suite-gate-supervisor.test.ts#kills a hung child at timeoutMs and reports 124",
+          "recorded_at": "2026-09-08T14:25:00Z",
+          "recorded_by": "review-monitor/4230"
+        }
+      },
+      {
+        "title": "Suite-ran vs SKIP_NOTICE",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a lane skip that prints SKIP_NOTICE and exits 0, when Step 5 records suite-ran, then it does not treat status run alone as executed."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/check/suite-gate-supervisor.test.ts#does not treat status run plus SKIP_NOTICE as executed",
+          "recorded_at": "2026-09-08T14:25:00Z",
+          "recorded_by": "review-monitor/4230"
+        }
+      },
+      {
+        "title": "Full-mode pin",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given releaseCheckEnv, when Step 5 starts, then DEFT_CHECK_MODE is full and DEFT_CHECK_AC_ONLY and DEFT_HYGIENE_ADVISORY are deleted."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/release/preflight.test.ts",
+          "recorded_at": "2026-09-08T14:25:00Z",
+          "recorded_by": "review-monitor/4230"
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4230",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4230: perf(check,release): one suite at Step 5, real 20-min suite-gate hang (supervisor), full-mode pin — lane fixed host-side (stale CI cache)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3891",
+        "type": "x-xbrief/closes",
+        "title": "Issue #3891"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4157",
+        "type": "x-xbrief/closes",
+        "title": "Issue #4157"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4157",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4157"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "task check",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L23"
+        },
+        {
+          "command": "4. ! Verify task check passes locally",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L27"
+        },
+        {
+          "command": "## Phase 1",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L27"
+        },
+        {
+          "command": "CheckGateOutcome.status === \"run\"",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L50"
+        },
+        {
+          "command": "onGateComplete(gateId, 0, false)",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L50"
+        },
+        {
+          "command": "Measure-Command { node -e 0 }",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L57"
+        },
+        {
+          "command": "git --version",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L57"
+        },
+        {
+          "command": "status === \"run\"",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L86"
+        },
+        {
+          "command": "stdio: inherit",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L135"
+        },
+        {
+          "command": "vitest.config.ts",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L284"
+        },
+        {
+          "command": "pnpm run test --coverage",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L376"
+        },
+        {
+          "command": "4. ! Verify \\",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L385"
+        },
+        {
+          "command": "passes locally",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L385"
+        },
+        {
+          "command": "taskkill /T /F /PID <child>",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L390"
+        },
+        {
+          "command": "detached: true",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L390"
+        },
+        {
+          "command": "RELEASE_CHECK_TIMEOUT_MINUTES = 60",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L473"
+        },
+        {
+          "command": "timeout-minutes: 20",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L473"
+        },
+        {
+          "command": "pnpm run test",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L477"
+        },
+        {
+          "command": "task release",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L516"
+        },
+        {
+          "command": "git",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L602"
+        },
+        {
+          "command": "min(12, floor(cpus × 0.25))",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L602"
+        },
+        {
+          "command": "npm publish --dry-run",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L614"
+        },
+        {
+          "command": "node.exe",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L625"
+        },
+        {
+          "command": "git.exe",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L625"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/check/cached-orchestrator.ts",
+          "packages/core/src/release/preflight.ts",
+          "packages/core/src/check/named-cause.ts",
+          "content/packs/skills/skills-pack-0.1.json",
+          "docs/RELEASING.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/check/suite-gate-supervisor.test.ts packages/core/src/check/suite-gate-supervisor-lib.test.ts packages/core/src/release/preflight.test.ts"
+        ],
+        "expected_outputs": [
+          "one suite at Step 5",
+          "20-min supervisor hang with exit 124",
+          "full-mode pin",
+          "tests and CHANGELOG #4230"
+        ],
+        "depends_on": [],
+        "conflict_group": "4230-one-suite-step5",
+        "size": "large",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Ingested from GitHub issue #4230 recut-6 plus accepted map 5577445373; no numbered FR registry."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5369297861,
+        "origin": "deftai/directive#4230",
+        "id": "github.issue.5369297861"
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4249,
+        "prBase": null,
+        "mergeCommit": "6b55e61ccccae927ee42ecfc102d530bfd4a6500",
+        "deliveryBranch": "master",
+        "deliveryCommit": "508e3e8841eac3c5e89b8acf77b1af63d8f522e2",
+        "verifiedAt": "2026-09-08T14:48:43Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDgxNDctMmZkNS03MDEzLTkyM2YtOWRkYzI2YmE3M2Mw"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-08T14:48:43Z"
+      },
+      "completedAt": "2026-09-08T14:48:43Z",
+      "completedSessionId": "host:grok:v1:MDFhMDgxNDctMmZkNS03MDEzLTkyM2YtOWRkYzI2YmE3M2Mw",
+      "capacityBucket": "new-capability"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 44 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Phase 1 numbered step list does not invoke `task check` (including the #2859 required-path item at `:104`). Stale Step 4 pointers at `:97` and `:106` rewritten to pipeline Step 5. #4079 mint pin kept; step-4 regex replaced by that numbered-step-list pin. Pack and SKILL.md match.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Cached-path suite-gate hang: supervisor kills the descendant tree without killing the pipeline; gate reports 124; `classifyStep5Failure` returns `REAL_FAILURE`; no `pass_with_debt` stamp on 124, signal death, or a vitest failure. Timeout armed only when `options.timeoutMs` is set. Tests: suite-gate-only predicate, win32 `/T` (including CLI-native `cmd.exe` walk), detached POSIX `-child.pid`, two concurrent runs in one session -> two tees, exclusive create, named-cause selects a failure-signal line from the tee on inherit, child argv from the resolved dispatch plan.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "`RELEASE_CHECK_TIMEOUT_MINUTES` remains 20. RELEASING.md describes hang detection on the cached release path (not both paths), stale-binary diagnostic with the fresh-copy comparison before vitest/skip-ci, and does not claim the default path already enforced 20.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Ambient rapid / AC-only cannot stamp `pass` without a successful full-suite execution. Ceremony rapid covered via a `ceremonyDepth` fixture. Skip / no-runner does not stamp. Poisoned-input then successful full-suite may stamp. A failing suite cannot stamp `pass_with_debt`. Suite-ran is `status === \"run\"`, not an exit-0 callback. Poison list extended as leak containment. `coverage.reporter` is still text + text-summary.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Residual is #4244 and is not implemented in this PR. Hatch prose does not claim a live `coverage-final.json` path.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "`task check` shows vitest-phase progress live; named-cause has this run's selected failure-signal bytes. `reason` is not raw suite bytes. Tee writes through one contained open or a named allowlist entry, not per-chunk append. Prune at check start with an age bound. `check:merge` is the contained-writes enforce surface. #3891 is not closed on 2.8 MB.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "CONTRIBUTING iteration-lane text (#3479) untouched. CHANGELOG entry.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Phase 1 numbered step list does not invoke `task check`. Pipeline Step 5 is the only suite. #4079 mint pin kept; step-4 regex replaced by a numbered-step-list pin, not a second mint assertion and not a section-wide absence pin. Pack and SKILL.md match.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Cached-path suite-gate hang: supervisor kills the descendant tree without killing the pipeline; gate reports 124; `classifyStep5Failure` returns `REAL_FAILURE`; no `pass_with_debt` stamp on 124, signal death, or a vitest failure. Timeout armed only when `options.timeoutMs` is set. Tests: suite-gate-only predicate, win32 `/T` (including CLI-native `cmd.exe` walk), detached POSIX `-child.pid`, two concurrent runs in one session -> two tees, exclusive create, named-cause reads the tee on inherit, child argv from the resolved dispatch plan.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Ambient rapid / AC-only / ceremony rapid cannot make Step 5 stamp `pass`. A failing suite cannot stamp `pass_with_debt`. Tests through `releaseCheckEnv` for all three mode keys independently, plus a failure-outcome case. Poison list extended. Green-path stamp uses a dispatcher boolean, not coverage-final mtime. `coverage.reporter` is still text + text-summary.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "`task check` shows vitest-phase progress live; named-cause has this run's bytes (tee readback). `reason` is not raw suite bytes. Tee writes through one contained open or a named allowlist entry, not per-chunk append. `check:merge` is the contained-writes enforce surface. #3891 is not closed on 2.8 MB.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Ambient rapid / AC-only / ceremony rapid cannot make Step 5 stamp `pass`. A failing suite cannot stamp `pass_with_debt`. Tests through `releaseCheckEnv` for all three mode keys independently, plus a failure-outcome case. Poison list extended. Green-path stamp uses `suiteBoundMtime` (strict `>`) under fork (a), or a dispatcher boolean under fork (b).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "The PR names fork (a) or (b). Fork (a): `json` reporter present; `failedTests` populated; goal stays 85 with floor-gated hairline; mtime seam/stderr/green-path test. Fork (b): reporter unchanged; hatch/teardown either repaired or parked; no mtime-only green stamp.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Phase 1 does not invoke `task check` anywhere in the pack + skill (numbered step, Parallel prep, checklist, anti-patterns, #2859). Pipeline Step 5 is the only suite. #4079 mint pin kept; step-4 regex replaced by a \"Phase 1 has no suite\" pin, not a second mint assertion. Pack and SKILL.md match.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Cached-path suite-gate hang: supervisor kills the descendant tree without killing the pipeline; gate reports 124; `classifyStep5Failure` returns `REAL_FAILURE`; no `pass_with_debt` stamp on 124, signal death, or a vitest failure. Timeout armed only when `options.timeoutMs` is set. Tests: suite-gate-only predicate, win32 `/T`, detached POSIX `-child.pid`, two concurrent runs in one session -> two tees, exclusive create, named-cause reads the tee on inherit, child argv via `cliSpawnPlan`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Ambient rapid / AC-only / ceremony rapid cannot make Step 5 stamp `pass`. A failing suite cannot stamp `pass_with_debt`. Tests through `releaseCheckEnv` for all three mode keys independently, plus a failure-outcome case. Poison list extended.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "`task check` shows vitest-phase progress live; named-cause has this run's bytes (tee readback). Tee writes through one contained open or a named allowlist entry, not per-chunk append. `check:merge` is the contained-writes enforce surface named in the recut. #3891 is not closed on 2.8 MB.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "A fresh production cut at a clean HEAD runs the vitest suite exactly once; Phase 1 does not invoke `task check` anywhere in the skill (numbered step, Parallel prep, checklist, anti-patterns, #2859 text). #4079 pin re-anchored, not deleted.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "Cached-path suite-gate hang: supervisor kills the descendant tree without killing the pipeline, gate reports 124, `classifyStep5Failure` returns `REAL_FAILURE`. Tests: 124 mapping in `dispatchCachedTaskCheck`, suite-gate-only predicate, win32 `/T` and POSIX group kill, two concurrent runs → two tee files, tee written through a contained primitive.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "`RELEASE_CHECK_TIMEOUT_MINUTES` remains 20; RELEASING.md describes it as hang detection on both paths.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "Ambient rapid / AC-only / ceremony rapid cannot make Step 5 stamp `pass` without the suite gate; tests through `releaseCheckEnv`; poison list extended.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "`task check` shows `ts:check-lane` vitest-phase progress live; named-cause capture still has this run's bytes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "RELEASING.md carries the stale-binary diagnostic and the AV-optional sentence; release skill describes one suite at Step 5 and mint-before-Phase-4. CONTRIBUTING iteration-lane text (#3479) untouched.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "CHANGELOG entry.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "Phase 1 does not invoke `task check` anywhere in the release skill (numbered step 4, Parallel prep, checklist, anti-patterns, #2859). Step 5 is the only suite. `#4079` pin re-anchored, not deleted.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 26,
+          "text": "Ambient rapid / AC-only / ceremony rapid cannot make Step 5 stamp `pass` without the suite gate. Tests cover those cases through `releaseCheckEnv`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 27,
+          "text": "Cached-path suite-gate hang: descendant tree killed without killing the pipeline, gate reports 124, `classifyStep5Failure` returns `REAL_FAILURE` (not `BRANCH_HAIRLINE` / `pass_with_debt`). Uncached `--no-cache` timeout also yields 124 (branch reorder). Tests cover signal propagation, detached POSIX kill, win32 `/T`, suite-gate-only predicate, and two concurrent tees producing two files.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 28,
+          "text": "`task check` tees suite-gate output (session- or pid-scoped path under `.deft/`) so #3470 vitest-phase ticks are live and named-cause still has this run's bytes. #3891 is not closed on 2.8 MB.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 29,
+          "text": "Skill mints `release-publish` after Step 5 has started; mint prints remaining validity; `default_expiry` unchanged; no `--expires` in skill text.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 30,
+          "text": "RELEASING.md states local suite-gate 60 vs CI vitest-step 20 and that coverage freshness follows the hang ceiling + 5 min. `ci-lane.yml` unchanged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 31,
+          "text": "Runtime spawn census recorded on this issue before any partition PR.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 32,
+          "text": "CHANGELOG entry. CONTRIBUTING iteration-lane text (#3479) untouched.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 33,
+          "text": "A fresh production cut at a clean HEAD runs the vitest suite exactly once: Phase 1 does not invoke `task check`; Step 5 does. No `suite stamp hit` clause that requires Phase 1 to have produced a stamp.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 34,
+          "text": "Cached-path suite-gate hang: descendant tree is killed, gate reports 124, `classifyStep5Failure` returns `REAL_FAILURE` (not `BRANCH_HAIRLINE` / `pass_with_debt`). Tests cover signal propagation, 124 mapping inside `dispatchCachedTaskCheck`, and the suite-gate-only predicate. `RELEASE_CHECK_TIMEOUT_MINUTES` is the hang ceiling (60 unless a measured ordinary-run replaces it). RELEASING.md describes hang detection, not a 20-minute success SLA.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 35,
+          "text": "`task check` tees suite-gate output so #3470 vitest-phase progress ticks are visible live, and named-cause capture still has bytes. #3891 is not closed on 2.8 MB.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 36,
+          "text": "Mint output states remaining `release-publish` validity and a remint path. `default_expiry` is unchanged in this issue.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 37,
+          "text": "A runtime spawn census for win32 `pnpm run test` is recorded on this issue before any test-partition PR opens.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 38,
+          "text": "Release skill and RELEASING.md describe one suite per cut at Step 5 and the real hang budget. CONTRIBUTING iteration-lane text (#3479) is untouched.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 39,
+          "text": "A fresh production cut at a clean HEAD runs the vitest suite exactly once across Phase 1 + `task release`; Step 5 logs `suite stamp hit` when Phase 1 ran it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 40,
+          "text": "`task release` Step 5 on the default (cached) path terminates a hung suite at 20 minutes with exit 124 and the documented remedy text; a unit test covers `timeoutMs` propagation through `dispatchCachedTaskCheck`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 41,
+          "text": "`task check` prints `ts:check-lane NN% (…files)` progress lines while the suite is running, and a 2.8 MB+ lane output never produces ENOBUFS (#3891 closes or is superseded).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 42,
+          "text": "`release-publish` default expiry is `4h` in `verb-classification.json`; mint output states remaining validity (#4157 closes or is superseded).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 43,
+          "text": "A spawn census number for a full win32 `pnpm run test` is recorded in this issue before any test-partition PR opens.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 44,
+          "text": "RELEASING.md and the release skill describe one suite per cut and the real Step 5 budget; CONTRIBUTING iteration-lane text (#3479) is untouched.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5369297861",
+    "updated": "2026-09-08T14:48:43Z"
+  }
+}
