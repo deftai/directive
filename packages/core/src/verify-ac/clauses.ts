@@ -30,9 +30,10 @@ export interface ClauseWalkResult {
   readonly outcome: ClauseOutcome;
   readonly detail: string;
   /**
-   * True when the walk had an oracle for this clause — a path the brief declared
-   * on `plan.metadata.swarm.file_scope`. An unbound or undeclared clause can only
-   * ever come back `unverifiable`, so it carries no weight either way (#3835).
+   * True when the walk had an oracle for this clause — a declared path plus
+   * extractable tokens or an existence claim. An unbound, undeclared, or
+   * bound-behavioral clause can only ever come back `unverifiable`, so it
+   * carries no weight either way (#3835 / #4240).
    */
   readonly adjudicable: boolean;
 }
@@ -877,10 +878,17 @@ function walkOne(
   if (EXISTENCE_CLAIM.test(clause.text)) {
     return bound("verified", `shipped artifact exists at ${artifactPath}`);
   }
-  return bound(
-    "unverifiable",
-    `cannot evaluate behavioral claim against shipped artifact ${artifactPath}`,
-  );
+  // #4240: a declared path is not an oracle for a behavioral or negative claim
+  // with no extractable tokens and no existence claim. Treat it like unbound:
+  // unverifiable, not adjudicable. failed === 0 is the strongest static verdict.
+  return {
+    id: clause.id,
+    text: clause.text,
+    artifact_path: artifactPath,
+    outcome: "unverifiable",
+    detail: `cannot evaluate behavioral claim against shipped artifact ${artifactPath}`,
+    adjudicable: false,
+  };
 }
 
 /**

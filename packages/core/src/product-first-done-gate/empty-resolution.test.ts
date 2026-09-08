@@ -3,7 +3,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ENV_RUN_SUMMARY_PATH } from "../run-summary/index.js";
-import { deriveAcceptanceClauses } from "../verify-ac/clauses.js";
 import {
   EMPTY_AC_CAUSE,
   EMPTY_AC_REMEDY,
@@ -320,5 +319,140 @@ describe("verify:ac clause walk (#3323)", () => {
     const acceptance = lines.find((l) => l.event === "acceptance");
     expect(acceptance?.payload.source_rung).toBe("derived");
     expect(acceptance?.payload.clause_count).toBe(1);
+  });
+});
+
+describe("bound behavioral clause set is not #3334 empty acceptance (#4240)", () => {
+  function boundBehavioralPlan(fileScope: readonly string[]): Record<string, unknown> {
+    return {
+      title: "stated behavioral",
+      acceptance: {
+        commands: [],
+        none_stated: true,
+        source_rung: "stated",
+        ambiguity_attestation: "none_found",
+        clauses: [
+          {
+            id: 1,
+            text: "existing callers are unchanged",
+            artifact_path: "README.md",
+            ambiguous: false,
+          },
+        ],
+      },
+      items: [],
+      metadata: { swarm: { file_scope: fileScope } },
+    };
+  }
+
+  it("is not empty resolution when a clause set is present", () => {
+    expect(
+      isEmptyAcResolution({
+        ok: true,
+        code: 0,
+        runsLength: 0,
+        commandCount: 0,
+        rejectedCount: 0,
+        clauseCount: 1,
+      }),
+    ).toBe(false);
+    expect(
+      isEmptyAcResolution({
+        ok: true,
+        code: 0,
+        runsLength: 0,
+        commandCount: 0,
+        rejectedCount: 0,
+        clauseCount: 0,
+      }),
+    ).toBe(true);
+  });
+
+  it("completes the bound fixture on a suite floor without a grep token", () => {
+    const root = mkdtempSync(join(tmpdir(), "empty-ac-4240-suite-"));
+    writeFileSync(join(root, "README.md"), "existing callers stay as they are\n", "utf8");
+    const result = evaluateVerifyAcFromPlan(boundBehavioralPlan(["README.md"]), {
+      projectRoot: root,
+      captureFromNarratives: false,
+      hasSuiteFloor: true,
+    });
+    expect(result.ok).toBe(true);
+    expect(result.clauseWalked).toBe(true);
+    expect(result.clauseOutcomes?.map((row) => row.outcome)).toEqual(["unverifiable"]);
+    expect(result.clauseOutcomes?.filter((row) => row.outcome === "verified")).toHaveLength(0);
+    expect(result.message).not.toMatch(/clause-walk-failed/);
+    expect(result.message).not.toMatch(/soft_empty/);
+  });
+
+  it("completes the same fixture on a consumer floor instead of printing #3334", () => {
+    const root = mkdtempSync(join(tmpdir(), "empty-ac-4240-consumer-"));
+    writeFileSync(join(root, "README.md"), "existing callers stay as they are\n", "utf8");
+    const result = evaluateVerifyAcFromPlan(boundBehavioralPlan(["README.md"]), {
+      projectRoot: root,
+      captureFromNarratives: false,
+      hasSuiteFloor: false,
+    });
+    expect(result.ok).toBe(true);
+    expect(result.resolution).not.toBe("soft_empty");
+    expect(result.message).not.toMatch(/soft_empty \(#3334\)/);
+    expect(result.message).not.toMatch(/no acceptance stamped/);
+    expect(result.clauseOutcomes?.[0]?.outcome).toBe("unverifiable");
+  });
+
+  it("still refuses empty clauses[] as #3334 on a consumer floor", () => {
+    const root = mkdtempSync(join(tmpdir(), "empty-ac-4240-empty-clauses-"));
+    const result = evaluateVerifyAcFromPlan(
+      {
+        title: "unstamped",
+        acceptance: {
+          commands: [],
+          none_stated: true,
+          source_rung: "stated",
+          clauses: [],
+        },
+        items: [],
+      },
+      { projectRoot: root, captureFromNarratives: false, hasSuiteFloor: false },
+    );
+    expect(result.ok).toBe(false);
+    expect(result.resolution).toBe("soft_empty");
+    expect(result.message).toMatch(/soft_empty \(#3334\)/);
+  });
+
+  it("does not block the bound fixture when a green executable run is present", () => {
+    const root = mkdtempSync(join(tmpdir(), "empty-ac-4240-green-run-"));
+    writeFileSync(join(root, "README.md"), "existing callers stay as they are\n", "utf8");
+    const result = evaluateVerifyAcFromPlan(
+      {
+        title: "stated behavioral plus run",
+        acceptance: {
+          commands: [{ command: "task check" }],
+          none_stated: true,
+          source_rung: "derived",
+          ambiguity_attestation: "none_found",
+          clauses: [
+            {
+              id: 1,
+              text: "existing callers are unchanged",
+              artifact_path: "README.md",
+              ambiguous: false,
+            },
+          ],
+        },
+        items: [],
+        metadata: { swarm: { file_scope: ["README.md"] } },
+      },
+      {
+        projectRoot: root,
+        captureFromNarratives: false,
+        hasSuiteFloor: true,
+        reuseMode: "never",
+        applyOracleIntegrity: false,
+        runner: () => ({ exitCode: 0, stdout: "ok\n", stderr: "" }),
+      },
+    );
+    expect(result.ok).toBe(true);
+    expect(result.runs.length).toBeGreaterThan(0);
+    expect(result.clauseOutcomes?.[0]?.outcome).toBe("unverifiable");
   });
 });

@@ -205,8 +205,8 @@ describe("one bound path does not re-arm the whole clause set (#3835)", () => {
         { id: 1, text: 'src/a.ts contains "alpha"', artifact_path: "src/a.ts", ambiguous: false },
         {
           id: 2,
-          text: "b sharding is behavioral and cannot be read off the file",
-          artifact_path: "src/b.ts",
+          text: "the helper returns a directory that does not exist yet",
+          artifact_path: "src/ghost.ts",
           ambiguous: false,
         },
       ],

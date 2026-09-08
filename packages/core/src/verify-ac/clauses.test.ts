@@ -868,3 +868,66 @@ describe("extractExpectedTokens quote-class pairing (#4103)", () => {
     expect(report.clauses[0]?.detail).not.toMatch(/expected token/);
   });
 });
+
+describe("bound behavioral clauses have no static oracle (#4240)", () => {
+  it("does not treat a bound no-token no-existence clause as adjudicable", () => {
+    const root = mkdtempSync(join(tmpdir(), "clause-4240-bound-"));
+    writeFileSync(join(root, "README.md"), "existing callers stay as they are\n", "utf8");
+    const report = walkAcceptanceClauses(
+      [
+        {
+          id: 1,
+          text: "existing callers are unchanged",
+          artifact_path: "README.md",
+          ambiguous: false,
+        },
+      ],
+      root,
+      { declaredScope: ["README.md"] },
+    );
+    expect(report.clauses[0]?.outcome).toBe("unverifiable");
+    expect(report.clauses[0]?.adjudicable).toBe(false);
+    expect(countAdjudicableClauses(report.clauses)).toBe(0);
+    expect(countUnverifiedAdjudicableClauses(report.clauses)).toBe(0);
+    expect(report.verified).toHaveLength(0);
+    expect(report.ok).toBe(true);
+  });
+
+  it("keeps the same text unbound and non-blocking", () => {
+    const root = mkdtempSync(join(tmpdir(), "clause-4240-unbound-"));
+    const report = walkAcceptanceClauses(
+      [
+        {
+          id: 1,
+          text: "existing callers are unchanged",
+          artifact_path: null,
+          ambiguous: false,
+        },
+      ],
+      root,
+      { declaredScope: ["README.md"] },
+    );
+    expect(report.clauses[0]?.outcome).toBe("unverifiable");
+    expect(report.clauses[0]?.adjudicable).toBe(false);
+    expect(report.ok).toBe(true);
+  });
+
+  it("still fails a bound existence claim whose artifact is missing", () => {
+    const root = mkdtempSync(join(tmpdir(), "clause-4240-missing-"));
+    const report = walkAcceptanceClauses(
+      [
+        {
+          id: 1,
+          text: "README.md exists at the stated path",
+          artifact_path: "README.md",
+          ambiguous: false,
+        },
+      ],
+      root,
+      { declaredScope: ["README.md"] },
+    );
+    expect(report.clauses[0]?.outcome).toBe("failed");
+    expect(report.clauses[0]?.adjudicable).toBe(true);
+    expect(report.ok).toBe(false);
+  });
+});

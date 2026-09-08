@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Bound behavioral clauses no longer block complete without a grep token (#4240).** A declared path with no extractable tokens and no existence claim is not an oracle. Consumer empty-floor no longer prints `#3334` when clauses exist. Empty `clauses[]` still refuses. Does not restore `verified.length > 0`. Does not recut #3497 or #4103. Companion #4239 stays open. Closes #4240.
+
 ### Removed
 
 ## [0.112.0] - 2026-09-07

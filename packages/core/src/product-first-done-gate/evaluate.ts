@@ -680,6 +680,10 @@ function applyEmptyFloorPolicy(
       commandCount: Math.max(result.commands.length, result.acceptance.commands.length),
       rejectedCount: result.rejected?.length ?? 0,
       resolution: result.resolution,
+      clauseCount: Math.max(
+        result.acceptance.clauses?.length ?? 0,
+        result.clauseOutcomes?.length ?? 0,
+      ),
     })
   ) {
     return result;
@@ -934,13 +938,10 @@ function applyOracle(
 ): VerifyAcResult {
   const projectRoot = resolve(options.projectRoot ?? process.cwd());
   const walked = applyClauseWalk(applyRejectedNoop(result), options, plan);
-  // #3835: the clause walk may stand in for the empty floor only when it actually
-  // verified something. A walk that verified nothing is not positive evidence, so
-  // an otherwise-empty acceptance still answers to the project floor rather than
-  // passing on the strength of a clause set nothing adjudicated.
-  const walkVerified = (walked.clauseOutcomes ?? []).some((row) => row.outcome === "verified");
-  const gated =
-    walked.clauseWalked === true && walkVerified ? walked : applyEmptyFloorPolicy(walked, options);
+  // #3835: a verified row may relabel empty-pass as verified-pass (applyClauseWalk).
+  // #4240: a walked clause set is not empty acceptance — even when nothing
+  // verified. applyEmptyFloorPolicy (#3334) still owns empty clauses[].
+  const gated = walked.clauseWalked === true ? walked : applyEmptyFloorPolicy(walked, options);
   // Emit/read disk only when the caller supplied env (CLI passes process.env).
   // Tests stay isolated unless they opt in with env or runSummaryText.
   if (options.env !== undefined) {

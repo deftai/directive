@@ -42,6 +42,11 @@ export interface EmptyAcResolutionInput {
   readonly commandCount: number;
   readonly rejectedCount: number;
   readonly resolution?: VerifyAcResolution;
+  /**
+   * Stamped or walked clause count. Empty `clauses[]` stays the #3334 story;
+   * a present clause set is not empty acceptance (#4240).
+   */
+  readonly clauseCount?: number;
 }
 
 /** Zero executable commands, no rejected/unpromoted ledger, not already classified. */
@@ -57,6 +62,9 @@ export function isEmptyAcResolution(input: EmptyAcResolutionInput): boolean {
     return false;
   }
   if (input.rejectedCount > 0 || input.commandCount > 0 || input.runsLength > 0) {
+    return false;
+  }
+  if ((input.clauseCount ?? 0) > 0) {
     return false;
   }
   return true;
