@@ -1,9 +1,14 @@
+import { EventEmitter } from "node:events";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { SKIP_NOTICE } from "../ts-check-lane/run-lane.js";
 import {
+  appendBoundedCapture,
+  bindWorkerFailureToWaiter,
+  boundedCaptureText,
+  createBoundedCapture,
   killDescendantTree,
   mintSuiteRunId,
   ownerPidFromTeeName,
@@ -120,6 +125,49 @@ describe("pruneSuiteTees", () => {
       isPidAlive: () => false,
     });
     expect(removed.some((p) => p.endsWith(`${runId}.log`))).toBe(true);
+  });
+});
+
+describe("bounded diagnostic capture", () => {
+  it("keeps the tail when chunks exceed the byte cap", () => {
+    const acc = createBoundedCapture();
+    appendBoundedCapture(acc, Buffer.from("aaaa"), 6);
+    appendBoundedCapture(acc, Buffer.from("bbbb"), 6);
+    const text = boundedCaptureText(acc);
+    expect(text.length).toBeLessThanOrEqual(8);
+    expect(text.endsWith("bbbb")).toBe(true);
+  });
+});
+
+describe("bindWorkerFailureToWaiter", () => {
+  it("records a worker error and notifies the waiter", () => {
+    const signal = new Int32Array(new SharedArrayBuffer(4));
+    const record: { failure?: string } = {};
+    const fake = new EventEmitter();
+    bindWorkerFailureToWaiter(fake, signal, record);
+    fake.emit("error", new Error("load failed"));
+    expect(record.failure).toBe("load failed");
+    expect(Atomics.load(signal, 0)).toBe(1);
+  });
+
+  it("records a non-zero exit when the worker dies before posting", () => {
+    const signal = new Int32Array(new SharedArrayBuffer(4));
+    const record: { failure?: string } = {};
+    const fake = new EventEmitter();
+    bindWorkerFailureToWaiter(fake, signal, record);
+    fake.emit("exit", 1);
+    expect(record.failure).toMatch(/exited before posting/);
+    expect(Atomics.load(signal, 0)).toBe(1);
+  });
+
+  it("ignores a zero exit after a successful post", () => {
+    const signal = new Int32Array(new SharedArrayBuffer(4));
+    const record: { failure?: string } = {};
+    const fake = new EventEmitter();
+    bindWorkerFailureToWaiter(fake, signal, record);
+    fake.emit("exit", 0);
+    expect(record.failure).toBeUndefined();
+    expect(Atomics.load(signal, 0)).toBe(0);
   });
 });
 

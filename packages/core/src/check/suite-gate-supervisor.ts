@@ -10,6 +10,7 @@ import { sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { MessageChannel, receiveMessageOnPort, Worker } from "node:worker_threads";
 import {
+  bindWorkerFailureToWaiter,
   mintSuiteRunId,
   pruneSuiteTees,
   type SupervisedGatePlan,
@@ -17,14 +18,20 @@ import {
 } from "./suite-gate-supervisor-lib.js";
 
 export {
+  appendBoundedCapture,
   assertTeePathContained,
+  bindWorkerFailureToWaiter,
+  boundedCaptureText,
+  createBoundedCapture,
   FAILURE_SIGNAL_TAIL_LINES,
   type KillTreeSeams,
   killDescendantTree,
   mintSuiteRunId,
+  notifySupervisorWaiter,
   ownerPidFromTeeName,
   pruneSuiteTees,
   readTeeText,
+  SUITE_CAPTURE_MAX_BYTES,
   SUITE_TEE_DIR_REL,
   SUITE_TEE_HANG_CEILING_MS,
   SUITE_TEE_PRUNE_AGE_MS,
@@ -87,7 +94,8 @@ export function runSupervisedGate(plan: SupervisedGatePlan): SupervisedGateResul
       spawnError: err instanceof Error ? err.message : String(err),
     };
   }
-  worker.on("error", () => {});
+  const failure: { failure?: string } = {};
+  bindWorkerFailureToWaiter(worker, signal, failure);
   const waitMs = fullPlan.timeoutMs !== undefined ? fullPlan.timeoutMs + 15_000 : 60 * 60 * 1000;
   try {
     const waitResult = Atomics.wait(signal, 0, 0, waitMs);
@@ -97,9 +105,10 @@ export function runSupervisedGate(plan: SupervisedGatePlan): SupervisedGateResul
         timedOut: true,
         signal: null,
         stdout: "",
-        stderr: "suite-gate supervisor worker did not notify before backstop",
+        stderr: failure.failure ?? "suite-gate supervisor worker did not notify before backstop",
         teePath: "",
         teeRel: "",
+        spawnError: failure.failure,
       };
     }
     const received = receiveMessageOnPort(channel.port1);
@@ -109,9 +118,10 @@ export function runSupervisedGate(plan: SupervisedGatePlan): SupervisedGateResul
         timedOut: false,
         signal: null,
         stdout: "",
-        stderr: "suite-gate supervisor worker produced no result",
+        stderr: failure.failure ?? "suite-gate supervisor worker produced no result",
         teePath: "",
         teeRel: "",
+        spawnError: failure.failure,
       };
     }
     return received.message as SupervisedGateResult;

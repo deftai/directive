@@ -17,6 +17,71 @@ export const SUITE_TEE_DIR_REL = ".deft/check-tees";
 export const SUITE_TEE_PRUNE_AGE_MS = 25 * 60 * 1000;
 export const SUITE_TEE_HANG_CEILING_MS = RELEASE_CHECK_TIMEOUT_MS;
 export const FAILURE_SIGNAL_TAIL_LINES = 80;
+/** In-memory diagnostic capture; the tee still holds the full stream. */
+export const SUITE_CAPTURE_MAX_BYTES = 256 * 1024;
+
+export interface BoundedCapture {
+  chunks: Buffer[];
+  size: number;
+}
+
+export function createBoundedCapture(): BoundedCapture {
+  return { chunks: [], size: 0 };
+}
+
+export function appendBoundedCapture(
+  acc: BoundedCapture,
+  chunk: Buffer,
+  maxBytes: number = SUITE_CAPTURE_MAX_BYTES,
+): void {
+  acc.chunks.push(chunk);
+  acc.size += chunk.length;
+  while (acc.size > maxBytes && acc.chunks.length > 1) {
+    const dropped = acc.chunks.shift();
+    if (dropped !== undefined) acc.size -= dropped.length;
+  }
+  if (acc.chunks.length === 1 && acc.size > maxBytes) {
+    const only = acc.chunks[0];
+    if (only !== undefined) {
+      acc.chunks[0] = only.subarray(only.length - maxBytes);
+      acc.size = acc.chunks[0].length;
+    }
+  }
+}
+
+export function boundedCaptureText(acc: BoundedCapture): string {
+  if (acc.chunks.length === 0) return "";
+  return Buffer.concat(acc.chunks).toString("utf8");
+}
+
+export function notifySupervisorWaiter(signal: Int32Array): void {
+  Atomics.store(signal, 0, 1);
+  Atomics.notify(signal, 0);
+}
+
+export type WorkerFailureHost = {
+  on(event: "error", listener: (err: Error) => void): unknown;
+  on(event: "exit", listener: (exitCode: number) => void): unknown;
+};
+
+/** Record a worker crash or premature exit and wake `Atomics.wait`. */
+export function bindWorkerFailureToWaiter(
+  worker: WorkerFailureHost,
+  signal: Int32Array,
+  record: { failure?: string },
+): void {
+  worker.on("error", (err: Error) => {
+    if (record.failure !== undefined) return;
+    record.failure = err.message;
+    notifySupervisorWaiter(signal);
+  });
+  worker.on("exit", (exitCode: number) => {
+    if (record.failure !== undefined) return;
+    if (exitCode === 0) return;
+    record.failure = `suite-gate supervisor worker exited before posting a result (code ${exitCode})`;
+    notifySupervisorWaiter(signal);
+  });
+}
 
 export interface SupervisedGatePlan {
   readonly command: string;
@@ -213,8 +278,8 @@ export async function superviseChild(plan: SupervisedGatePlan): Promise<Supervis
   const projectRoot = resolve(plan.projectRoot);
   assertTeePathContained(projectRoot, teeRel);
   const handle = containedOpenExclusive({ root: projectRoot, target: teeRel });
-  const stdoutChunks: Buffer[] = [];
-  const stderrChunks: Buffer[] = [];
+  const stdoutCap = createBoundedCapture();
+  const stderrCap = createBoundedCapture();
   const platform = plan.platform ?? process.platform;
   const child = spawn(plan.command, [...plan.args], {
     cwd: plan.cwd,
@@ -223,13 +288,13 @@ export async function superviseChild(plan: SupervisedGatePlan): Promise<Supervis
     detached: platform !== "win32" && plan.timeoutMs !== undefined,
     windowsHide: true,
   });
-  const writeBoth = (chunk: Buffer, stream: NodeJS.WriteStream, acc: Buffer[]): void => {
-    acc.push(chunk);
+  const writeBoth = (chunk: Buffer, stream: NodeJS.WriteStream, acc: BoundedCapture): void => {
+    appendBoundedCapture(acc, chunk);
     stream.write(chunk);
     handle.write(chunk);
   };
-  child.stdout?.on("data", (chunk: Buffer) => writeBoth(chunk, process.stdout, stdoutChunks));
-  child.stderr?.on("data", (chunk: Buffer) => writeBoth(chunk, process.stderr, stderrChunks));
+  child.stdout?.on("data", (chunk: Buffer) => writeBoth(chunk, process.stdout, stdoutCap));
+  child.stderr?.on("data", (chunk: Buffer) => writeBoth(chunk, process.stderr, stderrCap));
 
   let timedOut = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -257,8 +322,8 @@ export async function superviseChild(plan: SupervisedGatePlan): Promise<Supervis
   } catch {
     // already closed
   }
-  const stdout = Buffer.concat(stdoutChunks).toString("utf8");
-  const stderr = Buffer.concat(stderrChunks).toString("utf8");
+  const stdout = boundedCaptureText(stdoutCap);
+  const stderr = boundedCaptureText(stderrCap);
   if (timedOut) {
     return {
       exitCode: 124,
