@@ -502,18 +502,14 @@ describe("bank-aware complete walk (#3387)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-3993-zero-run-"));
     mkdirSync(join(root, "src"), { recursive: true });
     writeFileSync(join(root, "src", "product.txt"), "v1\n", "utf8");
+    // #4240: bound behavioral claims are no longer an unmet oracle. Keep this
+    // pin on a still-adjudicable unverifiable row (absent path + prose negation)
+    // so a zero-run bank cannot stand in for a green executable run (#3558).
     const clauses = [
       {
         id: 1,
-        text: "behavioral contract with no machine check against product.txt",
-        artifact_path: "src/product.txt",
-        ambiguous: false,
-        provenance: "statement",
-      },
-      {
-        id: 2,
-        text: "another unquoted behavioral claim against the shipped product",
-        artifact_path: "src/product.txt",
+        text: "worktreePath() swallows the failure and returns a directory that does not exist yet",
+        artifact_path: "src/ghost.txt",
         ambiguous: false,
         provenance: "statement",
       },

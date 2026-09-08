@@ -868,3 +868,225 @@ describe("extractExpectedTokens quote-class pairing (#4103)", () => {
     expect(report.clauses[0]?.detail).not.toMatch(/expected token/);
   });
 });
+
+describe("bound behavioral clauses have no static oracle (#4240)", () => {
+  it("does not treat a bound no-token no-existence clause as adjudicable", () => {
+    const root = mkdtempSync(join(tmpdir(), "clause-4240-bound-"));
+    writeFileSync(join(root, "README.md"), "existing callers stay as they are\n", "utf8");
+    const report = walkAcceptanceClauses(
+      [
+        {
+          id: 1,
+          text: "existing callers are unchanged",
+          artifact_path: "README.md",
+          ambiguous: false,
+        },
+      ],
+      root,
+      { declaredScope: ["README.md"] },
+    );
+    expect(report.clauses[0]?.outcome).toBe("unverifiable");
+    expect(report.clauses[0]?.adjudicable).toBe(false);
+    expect(countAdjudicableClauses(report.clauses)).toBe(0);
+    expect(countUnverifiedAdjudicableClauses(report.clauses)).toBe(0);
+    expect(report.verified).toHaveLength(0);
+    expect(report.ok).toBe(true);
+  });
+
+  it("keeps the same text unbound and non-blocking", () => {
+    const root = mkdtempSync(join(tmpdir(), "clause-4240-unbound-"));
+    const report = walkAcceptanceClauses(
+      [
+        {
+          id: 1,
+          text: "existing callers are unchanged",
+          artifact_path: null,
+          ambiguous: false,
+        },
+      ],
+      root,
+      { declaredScope: ["README.md"] },
+    );
+    expect(report.clauses[0]?.outcome).toBe("unverifiable");
+    expect(report.clauses[0]?.adjudicable).toBe(false);
+    expect(report.ok).toBe(true);
+  });
+
+  it("still fails a bound existence claim whose artifact is missing", () => {
+    const root = mkdtempSync(join(tmpdir(), "clause-4240-missing-"));
+    const report = walkAcceptanceClauses(
+      [
+        {
+          id: 1,
+          text: "README.md exists at the stated path",
+          artifact_path: "README.md",
+          ambiguous: false,
+        },
+      ],
+      root,
+      { declaredScope: ["README.md"] },
+    );
+    expect(report.clauses[0]?.outcome).toBe("failed");
+    expect(report.clauses[0]?.adjudicable).toBe(true);
+    expect(report.ok).toBe(false);
+  });
+
+  it("still fails unrecognized absence wording when the bound artifact is present", () => {
+    const root = mkdtempSync(join(tmpdir(), "clause-4240-absent-"));
+    writeFileSync(join(root, "README.md"), "still here\n", "utf8");
+    const report = walkAcceptanceClauses(
+      [
+        {
+          id: 1,
+          text: "README.md must be absent",
+          artifact_path: "README.md",
+          ambiguous: false,
+        },
+      ],
+      root,
+      { declaredScope: ["README.md"] },
+    );
+    expect(report.clauses[0]?.outcome).toBe("failed");
+    expect(report.clauses[0]?.adjudicable).toBe(true);
+    expect(report.clauses[0]?.detail).toMatch(/requires absence/);
+    expect(report.ok).toBe(false);
+  });
+
+  it("does not treat other-subject absence prose as a claim the bound file is missing", () => {
+    const root = mkdtempSync(join(tmpdir(), "clause-4240-behavior-"));
+    writeFileSync(join(root, "shipped.ts"), "export const ok = true;\n", "utf8");
+    const report = walkAcceptanceClauses(
+      [
+        {
+          id: 1,
+          text: "the helper returns a directory that must be absent from the runtime graph",
+          artifact_path: "shipped.ts",
+          ambiguous: false,
+        },
+      ],
+      root,
+      { declaredScope: ["shipped.ts"] },
+    );
+    expect(report.clauses[0]?.outcome).toBe("unverifiable");
+    expect(report.clauses[0]?.adjudicable).toBe(false);
+    expect(report.ok).toBe(true);
+  });
+
+  it("does not treat a longer filename as the bound basename", () => {
+    const root = mkdtempSync(join(tmpdir(), "clause-4240-basename-"));
+    writeFileSync(join(root, "shipped.ts"), "export const ok = true;\n", "utf8");
+    const report = walkAcceptanceClauses(
+      [
+        {
+          id: 1,
+          text: "shipped.tsx must be absent",
+          artifact_path: "shipped.ts",
+          ambiguous: false,
+        },
+      ],
+      root,
+      { declaredScope: ["shipped.ts"] },
+    );
+    expect(report.clauses[0]?.outcome).not.toBe("failed");
+    expect(report.ok).toBe(true);
+  });
+
+  it("fails a short bound name whose clause requires absence", () => {
+    const root = mkdtempSync(join(tmpdir(), "clause-4240-short-"));
+    writeFileSync(join(root, "ab"), "x\n", "utf8");
+    const report = walkAcceptanceClauses(
+      [
+        {
+          id: 1,
+          text: "ab must not exist",
+          artifact_path: "ab",
+          ambiguous: false,
+        },
+      ],
+      root,
+      { declaredScope: ["ab"] },
+    );
+    expect(report.clauses[0]?.outcome).toBe("failed");
+    expect(report.clauses[0]?.adjudicable).toBe(true);
+    expect(report.ok).toBe(false);
+  });
+
+  it("does not treat a short basename as an artifact when it is later English prose", () => {
+    const root = mkdtempSync(join(tmpdir(), "clause-4240-short-prose-"));
+    writeFileSync(join(root, "go"), "package main\n", "utf8");
+    const report = walkAcceptanceClauses(
+      [
+        {
+          id: 1,
+          text: "the helper should not exist before we go",
+          artifact_path: "go",
+          ambiguous: false,
+        },
+      ],
+      root,
+      { declaredScope: ["go"] },
+    );
+    expect(report.clauses[0]?.outcome).not.toBe("failed");
+    expect(report.ok).toBe(true);
+  });
+
+  it("fails a short name with one intervening word before the absence phrase", () => {
+    const root = mkdtempSync(join(tmpdir(), "clause-4240-short-file-"));
+    writeFileSync(join(root, "go"), "package main\n", "utf8");
+    const report = walkAcceptanceClauses(
+      [
+        {
+          id: 1,
+          text: "the go file must not exist",
+          artifact_path: "go",
+          ambiguous: false,
+        },
+      ],
+      root,
+      { declaredScope: ["go"] },
+    );
+    expect(report.clauses[0]?.outcome).toBe("failed");
+    expect(report.clauses[0]?.adjudicable).toBe(true);
+    expect(report.ok).toBe(false);
+  });
+
+  it("fails a ./ prefixed absence clause against the normalized bound path", () => {
+    const root = mkdtempSync(join(tmpdir(), "clause-4240-dotslash-"));
+    mkdirSync(join(root, "src"));
+    writeFileSync(join(root, "src", "result.ts"), "export const ok = true;\n", "utf8");
+    const report = walkAcceptanceClauses(
+      [
+        {
+          id: 1,
+          text: "./src/result.ts must not exist",
+          artifact_path: "src/result.ts",
+          ambiguous: false,
+        },
+      ],
+      root,
+      { declaredScope: ["src/result.ts"] },
+    );
+    expect(report.clauses[0]?.outcome).toBe("failed");
+    expect(report.clauses[0]?.adjudicable).toBe(true);
+    expect(report.ok).toBe(false);
+  });
+
+  it("does not fail other-subject should-not-exist prose on a present bound file", () => {
+    const root = mkdtempSync(join(tmpdir(), "clause-4240-should-not-"));
+    writeFileSync(join(root, "shipped.ts"), "export const ok = true;\n", "utf8");
+    const report = walkAcceptanceClauses(
+      [
+        {
+          id: 1,
+          text: "the helper returns a directory that should not exist yet",
+          artifact_path: "shipped.ts",
+          ambiguous: false,
+        },
+      ],
+      root,
+      { declaredScope: ["shipped.ts"] },
+    );
+    expect(report.clauses[0]?.outcome).not.toBe("failed");
+    expect(report.ok).toBe(true);
+  });
+});

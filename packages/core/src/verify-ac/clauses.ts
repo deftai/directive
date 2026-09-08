@@ -4,7 +4,7 @@
  */
 
 import { existsSync, readFileSync, statSync } from "node:fs";
-import { isAbsolute, relative, resolve } from "node:path";
+import { basename, isAbsolute, relative, resolve } from "node:path";
 import { findAcHeading, parseListItems, sliceAcSection } from "../intake/markdown-scanners.js";
 
 export type ClauseOutcome = "verified" | "unverifiable" | "failed";
@@ -30,9 +30,10 @@ export interface ClauseWalkResult {
   readonly outcome: ClauseOutcome;
   readonly detail: string;
   /**
-   * True when the walk had an oracle for this clause — a path the brief declared
-   * on `plan.metadata.swarm.file_scope`. An unbound or undeclared clause can only
-   * ever come back `unverifiable`, so it carries no weight either way (#3835).
+   * True when the walk had an oracle for this clause — a declared path plus
+   * extractable tokens or an existence claim. An unbound, undeclared, or
+   * bound-behavioral clause can only ever come back `unverifiable`, so it
+   * carries no weight either way (#3835 / #4240).
    */
   readonly adjudicable: boolean;
 }
@@ -73,8 +74,56 @@ const SCRATCH_SEGMENTS = new Set([
 ]);
 const EXISTENCE_CLAIM =
   /\b(?:exists?|stored on|written to|emitted? (?:at|to)|at its stated path|artifact path)\b/i;
-const NEGATED_EXISTENCE =
-  /\b(?:does not exist|doesn't exist|must not exist|never exists?|not exist)\b/i;
+const ABSENCE_ALTERNATION =
+  "does not exist|doesn't exist|must not exist|never exists?|not exist|must be absent|must remain absent|must stay absent|should be absent|must not be present|should not exist|must not be shipped";
+const NEGATED_EXISTENCE = new RegExp(`\\b(?:${ABSENCE_ALTERNATION})\\b`, "i");
+
+function stripLeadingDotSlash(path: string): string {
+  let unified = path.replace(/\\/g, "/");
+  while (unified.startsWith("./")) {
+    unified = unified.slice(2);
+  }
+  return unified;
+}
+
+function hasPathToken(text: string, token: string): boolean {
+  if (token.length === 0) {
+    return false;
+  }
+  const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const isShortBare = token.length < 3 && !token.includes(".") && !token.includes("/");
+  if (isShortBare) {
+    // 2-char names (`ab`, `go`) are also English words. Only treat them as the
+    // bound artifact when they are the subject of the absence phrase, or `./go`.
+    if (token.length < 2) {
+      return false;
+    }
+    const asSubject = new RegExp(
+      `(?:^|[\\s'"\`./])${escaped}(?:\\s+\\w+){0,1}\\s+(?:${ABSENCE_ALTERNATION})\\b`,
+      "i",
+    );
+    const asPrefixed = new RegExp(`(?:^|[\\s])\\./${escaped}(?![A-Za-z0-9._-])`);
+    return asSubject.test(text) || asPrefixed.test(text);
+  }
+  // `./src/result.ts` must still name bound `src/result.ts`: allow a `./` prefix
+  // as a boundary, not only start-of-string or a non-path character.
+  return new RegExp(`(?:^|[^A-Za-z0-9_./\\\\-]|\\./)${escaped}(?![A-Za-z0-9._-])`).test(text);
+}
+
+/** True when the clause names the bound path, not some other runtime subject. */
+function clauseNamesBoundArtifact(text: string, artifactPath: string): boolean {
+  const unified = stripLeadingDotSlash(artifactPath);
+  const candidates = [artifactPath, unified, `./${unified}`];
+  const base = basename(unified);
+  if (base.length > 0) {
+    candidates.push(base, `./${base}`);
+  }
+  return candidates.some((candidate) => hasPathToken(text, candidate));
+}
+
+function isBoundArtifactAbsenceClaim(text: string, artifactPath: string): boolean {
+  return NEGATED_EXISTENCE.test(text) && clauseNamesBoundArtifact(text, artifactPath);
+}
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (typeof value === "object" && value !== null && !Array.isArray(value)) {
@@ -854,7 +903,7 @@ function walkOne(
   } catch {
     return bound("failed", `artifact unreadable at stated path ${artifactPath}`);
   }
-  if (NEGATED_EXISTENCE.test(clause.text)) {
+  if (isBoundArtifactAbsenceClaim(clause.text, artifactPath)) {
     return bound("failed", `artifact exists at ${artifactPath} but the clause requires absence`);
   }
   const expected = extractExpectedTokens(clause);
@@ -877,10 +926,19 @@ function walkOne(
   if (EXISTENCE_CLAIM.test(clause.text)) {
     return bound("verified", `shipped artifact exists at ${artifactPath}`);
   }
-  return bound(
-    "unverifiable",
-    `cannot evaluate behavioral claim against shipped artifact ${artifactPath}`,
-  );
+  // #4240: a declared path is not an oracle for a behavioral claim with no
+  // extractable tokens and no existence claim. Treat it like unbound:
+  // unverifiable, not adjudicable. failed === 0 is the strongest static verdict.
+  // Absence of THIS bound artifact is recognized above. Whole-clause
+  // negation that names some other subject is behavioral, not an oracle.
+  return {
+    id: clause.id,
+    text: clause.text,
+    artifact_path: artifactPath,
+    outcome: "unverifiable",
+    detail: `cannot evaluate behavioral claim against shipped artifact ${artifactPath}`,
+    adjudicable: false,
+  };
 }
 
 /**
