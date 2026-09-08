@@ -4,7 +4,7 @@
  */
 
 import { existsSync, readFileSync, statSync } from "node:fs";
-import { isAbsolute, relative, resolve } from "node:path";
+import { basename, isAbsolute, relative, resolve } from "node:path";
 import { findAcHeading, parseListItems, sliceAcSection } from "../intake/markdown-scanners.js";
 
 export type ClauseOutcome = "verified" | "unverifiable" | "failed";
@@ -76,6 +76,20 @@ const EXISTENCE_CLAIM =
   /\b(?:exists?|stored on|written to|emitted? (?:at|to)|at its stated path|artifact path)\b/i;
 const NEGATED_EXISTENCE =
   /\b(?:does not exist|doesn't exist|must not exist|never exists?|not exist|must be absent|must remain absent|must stay absent|should be absent|must not be present|should not exist|must not be shipped)\b/i;
+
+/** True when the clause names the bound path, not some other runtime subject. */
+function clauseNamesBoundArtifact(text: string, artifactPath: string): boolean {
+  const unified = artifactPath.replace(/\\/g, "/");
+  if (text.includes(artifactPath) || text.includes(unified)) {
+    return true;
+  }
+  const base = basename(unified);
+  return base.length >= 3 && text.includes(base);
+}
+
+function isBoundArtifactAbsenceClaim(text: string, artifactPath: string): boolean {
+  return NEGATED_EXISTENCE.test(text) && clauseNamesBoundArtifact(text, artifactPath);
+}
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (typeof value === "object" && value !== null && !Array.isArray(value)) {
@@ -855,7 +869,7 @@ function walkOne(
   } catch {
     return bound("failed", `artifact unreadable at stated path ${artifactPath}`);
   }
-  if (NEGATED_EXISTENCE.test(clause.text)) {
+  if (isBoundArtifactAbsenceClaim(clause.text, artifactPath)) {
     return bound("failed", `artifact exists at ${artifactPath} but the clause requires absence`);
   }
   const expected = extractExpectedTokens(clause);
@@ -881,8 +895,8 @@ function walkOne(
   // #4240: a declared path is not an oracle for a behavioral claim with no
   // extractable tokens and no existence claim. Treat it like unbound:
   // unverifiable, not adjudicable. failed === 0 is the strongest static verdict.
-  // Absence wording is recognized above via NEGATED_EXISTENCE so a present
-  // artifact still fails; this fallthrough is not an absence oracle.
+  // Absence of THIS bound artifact is recognized above. Whole-clause
+  // negation that names some other subject is behavioral, not an oracle.
   return {
     id: clause.id,
     text: clause.text,

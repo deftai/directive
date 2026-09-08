@@ -951,4 +951,43 @@ describe("bound behavioral clauses have no static oracle (#4240)", () => {
     expect(report.clauses[0]?.detail).toMatch(/requires absence/);
     expect(report.ok).toBe(false);
   });
+
+  it("does not treat other-subject absence prose as a claim the bound file is missing", () => {
+    const root = mkdtempSync(join(tmpdir(), "clause-4240-behavior-"));
+    writeFileSync(join(root, "shipped.ts"), "export const ok = true;\n", "utf8");
+    const report = walkAcceptanceClauses(
+      [
+        {
+          id: 1,
+          text: "the helper returns a directory that must be absent from the runtime graph",
+          artifact_path: "shipped.ts",
+          ambiguous: false,
+        },
+      ],
+      root,
+      { declaredScope: ["shipped.ts"] },
+    );
+    expect(report.clauses[0]?.outcome).toBe("unverifiable");
+    expect(report.clauses[0]?.adjudicable).toBe(false);
+    expect(report.ok).toBe(true);
+  });
+
+  it("does not fail other-subject should-not-exist prose on a present bound file", () => {
+    const root = mkdtempSync(join(tmpdir(), "clause-4240-should-not-"));
+    writeFileSync(join(root, "shipped.ts"), "export const ok = true;\n", "utf8");
+    const report = walkAcceptanceClauses(
+      [
+        {
+          id: 1,
+          text: "the helper returns a directory that should not exist yet",
+          artifact_path: "shipped.ts",
+          ambiguous: false,
+        },
+      ],
+      root,
+      { declaredScope: ["shipped.ts"] },
+    );
+    expect(report.clauses[0]?.outcome).not.toBe("failed");
+    expect(report.ok).toBe(true);
+  });
 });
