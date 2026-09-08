@@ -687,9 +687,13 @@ export function releaseLeftoverSpawnReservation(
   if (want.length === 0) return false;
   const dest = resolve(destPath);
   if (liveOccupant(dest, now) !== null) return false;
+  // Revalidate immediately before dest-lock delete so a child that claimed
+  // after the first read keeps its dispatch record (#4254 Greptile P1).
+  if (liveOccupant(dest, now) !== null) return false;
   const root = resolve(storeRoot);
   const lockRoot = reservationLockRoot(root);
   const releasedLock = releaseSpawnReservation(root, dest, want);
+  if (liveOccupant(dest, now) !== null) return false;
   let removedLease = false;
   const roots = [root];
   if (!sameTree(lockRoot, root)) roots.push(lockRoot);
@@ -700,6 +704,7 @@ export function releaseLeftoverSpawnReservation(
       if (rec.provenance !== "dispatch") continue;
       if (rec.incarnation !== want) continue;
       if (!sameTree(rec.worktreePath, dest)) continue;
+      if (liveOccupant(dest, now) !== null) return releasedLock || removedLease;
       containedRemove({ root: r, target: join(...childOccupancyRelpath(rec.agentId)) });
       removedLease = true;
     }
