@@ -104,10 +104,13 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
     expect(decision.allow).toBe(true);
     if (decision.allow) {
       expect(decision.hostCanReroot).toBe(true);
-      expect(decision.incarnation.length).toBeGreaterThan(0);
-      expect(decision.reservation.provenance).toBe("dispatch");
-      expect(decision.reservation.worktreePath).not.toBe(root);
-      expect(decision.reservation.worktreePath).toContain("spawn-pending");
+      expect(decision.exemption).toBeNull();
+      expect(decision.incarnation?.length).toBeGreaterThan(0);
+      expect(decision.reservation?.provenance).toBe("dispatch");
+      expect(decision.reservation?.worktreePath).not.toBe(root);
+      expect(decision.reservation?.worktreePath).toContain("spawn-pending");
+      expect(decision.reservation).not.toBeNull();
+      if (decision.reservation === null) return;
       expect(persistSpawnReservation(root, decision.reservation).ok).toBe(true);
       const second = evaluateImplementSpawnOccupancy({
         payload: { tool_name: "Task", tool_input: { isolation: "worktree", prompt: "build" } },
@@ -115,7 +118,9 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
         host: "claude",
       });
       expect(second.allow).toBe(true);
-      if (second.allow) expect(persistSpawnReservation(root, second.reservation).ok).toBe(true);
+      if (second.allow && second.reservation !== null) {
+        expect(persistSpawnReservation(root, second.reservation).ok).toBe(true);
+      }
     }
   });
 
@@ -430,7 +435,7 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
       parentId: "parent-1",
     });
     expect(decision.allow).toBe(true);
-    if (!decision.allow) return;
+    if (!decision.allow || decision.reservation === null) return;
     const first = persistSpawnReservation(root, decision.reservation);
     expect(first.ok).toBe(true);
     const listed = listChildOccupancyLeases(root);
@@ -606,8 +611,28 @@ describe("consultImplementSpawnOccupancy (#4215)", () => {
     });
     expect(evaluated.allow).toBe(true);
     if (!evaluated.allow) return;
-    expect(evaluated.incarnation).toBe("process-only-critic");
+    expect(evaluated.exemption).toBe("process-only-critic");
+    expect(evaluated.incarnation).toBeNull();
+    expect(evaluated.reservation).toBeNull();
     expect(readSpawnReservationIncarnation(root, root)).toBeNull();
+  });
+
+  it("does not skip dest consult for plan spawn on non-Grok hosts (#4241)", () => {
+    const root = mkdtempSync(join(tmpdir(), "spawn-occ-plan-host-"));
+    temps.push(root);
+    gitInit(root);
+    const consult = consultImplementSpawnOccupancy({
+      payload: {
+        tool_name: "Task",
+        tool_input: { subagent_type: "plan", prompt: "critic" },
+      },
+      payloadRoot: root,
+      host: "claude",
+    });
+    expect(consult.allow).toBe(false);
+    if (consult.allow) return;
+    expect(consult.reason).not.toBeUndefined();
+    expect(consult.message).not.toMatch(/process-only critic/);
   });
 
   it("still dest-consults general-purpose spawn onto a git main clone (#4241)", () => {

@@ -50,8 +50,10 @@ export type SpawnOccupancyDenyReason =
 export interface SpawnOccupancyAllow {
   readonly allow: true;
   readonly destination: SpawnDestination;
-  readonly incarnation: string;
-  readonly reservation: ChildOccupancyDispatchInput;
+  readonly incarnation: string | null;
+  readonly reservation: ChildOccupancyDispatchInput | null;
+  /** Set when dest consult was skipped; reservation is null (#4241). */
+  readonly exemption: "process-only-critic" | null;
   readonly reRootPath: string | null;
   readonly hostCanReroot: boolean;
   readonly message: string;
@@ -288,7 +290,7 @@ export function consultImplementSpawnOccupancy(
   const runGit = input.runGit ?? defaultGitRunner;
   const parentId = (input.parentId?.trim() || parentIdFromEnv(environ)).trim() || "none";
   const hostCanReroot = HOSTS_THAT_REROOT.has(input.host);
-  if (isProcessOnlyCriticSpawn(input.payload)) {
+  if (isProcessOnlyCriticSpawn(input.payload, { host: input.host })) {
     return {
       allow: true,
       destProven: false,
@@ -493,6 +495,7 @@ export function mintImplementSpawnReservation(
     destination: consult.destination,
     incarnation,
     reservation,
+    exemption: null,
     reRootPath: consult.reRootPath,
     hostCanReroot: consult.hostCanReroot,
     message: `Directive reserved spawn worktree incarnation ${incarnation}.${rerootNote}`,
@@ -511,20 +514,13 @@ export function evaluateImplementSpawnOccupancy(
       message: consult.message,
     };
   }
-  if (isProcessOnlyCriticSpawn(input.payload)) {
+  if (isProcessOnlyCriticSpawn(input.payload, { host: input.host })) {
     return {
       allow: true,
       destination: consult.destination,
-      incarnation: "process-only-critic",
-      reservation: {
-        agentId: "process-only-critic",
-        parentId: consult.parentId,
-        occupancyOwner: consult.parentId,
-        worktreePath: resolve(input.payloadRoot),
-        identitySourceKind: input.host === "grok" ? "host-env" : "payload",
-        incarnation: "process-only-critic",
-        provenance: "dispatch",
-      },
+      incarnation: null,
+      reservation: null,
+      exemption: "process-only-critic",
       reRootPath: null,
       hostCanReroot: consult.hostCanReroot,
       message: consult.message,

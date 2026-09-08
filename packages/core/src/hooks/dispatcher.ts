@@ -1714,9 +1714,18 @@ function inspectMutationGates(
       environ,
       runGit: dispatchGit,
     });
-    const persisted = persistSpawnReservation(payloadRoot, spawnReservation.reservation);
+    const reservation = spawnReservation.reservation;
+    if (reservation === null) {
+      return deny(
+        input,
+        "spawn-not-ready",
+        toolName,
+        `Directive denied ${toolName}: implement spawn produced no destination reservation.`,
+      );
+    }
+    const persisted = persistSpawnReservation(payloadRoot, reservation);
     if (!persisted.ok) {
-      const dest = spawnReservation.reservation.worktreePath;
+      const dest = reservation.worktreePath;
       const occupied = persisted.reason === "occupied";
       return deny(
         input,
@@ -1733,7 +1742,7 @@ function inspectMutationGates(
       input,
       spawnReservation.reRootPath,
       spawnReservation.hostCanReroot,
-      spawnReservation.incarnation,
+      spawnReservation.incarnation ?? "",
     );
     return {
       verdict: "allow",
@@ -2464,7 +2473,7 @@ function routeHookDecision(
     if (
       readOnly &&
       !isExploreSpawn(input.payload) &&
-      !isProcessOnlyCriticSpawn(input.payload)
+      !isProcessOnlyCriticSpawn(input.payload, { host: input.host, toolName })
     ) {
       return deny(
         input,
@@ -2489,7 +2498,7 @@ function routeHookDecision(
     }
     // Process-only critic (`subagent_type` plan): dest consult, worktree, ritual,
     // and active-xBRIEF skip. Not the explore tool allowlist. Prompt text is not a class (#4241).
-    if (isProcessOnlyCriticSpawn(input.payload)) {
+    if (isProcessOnlyCriticSpawn(input.payload, { host: input.host, toolName })) {
       return {
         verdict: "allow",
         code: "spawn-process-only-ready",

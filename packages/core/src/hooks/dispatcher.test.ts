@@ -2420,17 +2420,18 @@ describe("process-only critic spawn dest skip (#4241)", () => {
   });
 
   it("allows plan spawn onto a primary cwd without claiming dest occupancy", () => {
+    const primary = "/repos/deft/directive";
     const decision = decideHook(
       {
         host: "grok",
         event: "tool.before",
-        projectRoot: "C:\\Repos\\deft\\directive",
+        projectRoot: primary,
         payload: {
           toolName: "spawn_subagent",
           tool_input: {
             subagent_type: "plan",
             isolation: "none",
-            cwd: "C:\\Repos\\deft\\directive",
+            cwd: primary,
             prompt: "process-only critic",
           },
         },
@@ -2438,6 +2439,27 @@ describe("process-only critic spawn dest skip (#4241)", () => {
       readySeams(),
     );
     expect(decision).toMatchObject({ verdict: "allow", code: "spawn-process-only-ready" });
+  });
+
+  it("does not early-allow plan spawn on non-Grok hosts", () => {
+    const inspectRitual = vi.fn(() => READY_RITUAL);
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          toolName: "Task",
+          tool_input: {
+            subagent_type: "plan",
+            prompt: "process-only critic",
+          },
+        },
+      },
+      readySeams({ inspectRitual }),
+    );
+    expect(decision.code).not.toBe("spawn-process-only-ready");
+    expect(inspectRitual).toHaveBeenCalled();
   });
 
   it("allows plan spawn under read-only so the critic is not forced into explore", () => {

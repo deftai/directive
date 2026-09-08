@@ -265,15 +265,42 @@ export function isEphemeralSpawn(
 /** Grok PreToolUse stdin field for process-only critic spawn (#4241). Not explore. */
 const PROCESS_ONLY_CRITIC_SUBAGENT_TYPE = "plan";
 
+/** Verified Grok spawn surface that actually emits `subagent_type` (#4241). */
+const GROK_SPAWN_TOOL_NORMALIZED = "spawnsubagent";
+
+export interface ProcessOnlyCriticSpawnContext {
+  readonly host: string;
+  readonly toolName?: string | null;
+}
+
+function normalizedHookToolName(toolName: string): string {
+  return toolName.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
 /**
  * Process-only critic spawn: dest occupancy skip without the explore tool allowlist (#4241).
- * True only for structural `subagent_type`/`subagentType` === `plan` (the field Grok
- * PreToolUse stdin actually contains). Prompt text is never a class. Implement
- * envelope signals win, so a parent cannot opt an implement worker in.
+ * True only on the verified Grok `spawn_subagent` surface when structural
+ * `subagent_type`/`subagentType` === `plan` (the field Grok PreToolUse stdin
+ * actually contains). Other hosts and other spawn tools stay implement-class.
+ * Prompt text is never a class. Implement envelope signals win, so a parent
+ * cannot opt an implement worker in.
  */
-export function isProcessOnlyCriticSpawn(payload: unknown): boolean {
+export function isProcessOnlyCriticSpawn(
+  payload: unknown,
+  context: ProcessOnlyCriticSpawnContext,
+): boolean {
+  if (context.host !== "grok") return false;
   const input = record(payload);
   if (input === null) return false;
+  const toolName =
+    (typeof context.toolName === "string" && context.toolName.trim().length > 0
+      ? context.toolName.trim()
+      : null) ??
+    fieldString(input, "tool_name") ??
+    fieldString(input, "toolName");
+  if (toolName === null || normalizedHookToolName(toolName) !== GROK_SPAWN_TOOL_NORMALIZED) {
+    return false;
+  }
   const toolInput = toolInputRecord(input) ?? input;
   const subagentType =
     fieldString(toolInput, "subagent_type") ??
