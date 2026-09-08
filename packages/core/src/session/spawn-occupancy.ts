@@ -23,6 +23,8 @@ import { fieldPresent, fieldString, record, toolInputRecord } from "../hooks/cla
 import { isProcessOnlyCriticSpawn } from "../hooks/readonly.js";
 import {
   type ChildOccupancyDispatchInput,
+  type ChildOccupancyRecord,
+  childOccupancyRelpath,
   listChildOccupancyLeases,
   recordChildOccupancyLease,
 } from "./child-occupancy.js";
@@ -77,6 +79,11 @@ export interface SpawnOccupancyConsultAllow {
   readonly hostCanReroot: boolean;
   readonly message: string;
   readonly parentId: string;
+  /**
+   * Leftover dest-lock incarnation to release before minting a new one (#4254).
+   * Consult does not mutate; evaluate/dispatcher leftover-release then mint.
+   */
+  readonly leftoverIncarnation: string | null;
 }
 
 export interface SpawnOccupancyConsultDeny {
@@ -175,6 +182,30 @@ function grokIsolationWorktree(payload: unknown): boolean {
 function grokCwdPath(payload: unknown): string | null {
   const cwd = fieldString(spawnToolInput(payload), "cwd");
   return cwd !== null && looksLikePath(cwd) ? cwd : null;
+}
+
+function presentedSpawnIncarnation(payload: unknown): string {
+  const toolInput = spawnToolInput(payload);
+  const fromTool = fieldString(toolInput, "incarnation") ?? fieldString(toolInput, "Incarnation");
+  if (fromTool !== null && fromTool.trim().length > 0) return fromTool.trim();
+  const input = record(payload);
+  if (input === null) return "";
+  const fromTop = fieldString(input, "incarnation");
+  return fromTop !== null ? fromTop.trim() : "";
+}
+
+function leftoverReuseIncarnation(
+  existing: ChildOccupancyRecord,
+  parentId: string,
+  presentedIncarnation: string,
+): string | null {
+  const existingIncarnation = existing.incarnation.trim();
+  if (existingIncarnation.length === 0 || existingIncarnation === "missing") return null;
+  if (existing.parentId !== parentId) return null;
+  if (presentedIncarnation.length > 0 && presentedIncarnation !== existingIncarnation) {
+    return null;
+  }
+  return existingIncarnation;
 }
 
 function grokMissingDestMessage(): string {
@@ -302,6 +333,7 @@ export function consultImplementSpawnOccupancy(
         "Directive skipped dest occupancy consult for process-only critic spawn " +
         "(subagent_type plan).",
       parentId,
+      leftoverIncarnation: null,
     };
   }
   const grokHost = input.host === "grok";
@@ -414,6 +446,7 @@ export function consultImplementSpawnOccupancy(
     }
   }
 
+  let leftoverIncarnation: string | null = null;
   if (destPath !== null) {
     const live = liveOccupant(destPath, input.now);
     if (live !== null) {
@@ -429,23 +462,27 @@ export function consultImplementSpawnOccupancy(
     }
     const existing = existingDispatchReservation(payloadRoot, destPath);
     if (existing !== null) {
-      return consultDeny(
-        "reservation-conflict",
-        `Directive denied spawn: destination ${destPath} is already reserved for dispatch ` +
-          `${existing.incarnation} (agent ${existing.agentId}). Own worktree means a unique ` +
-          "reservation, not a shared linked tree.",
+      const leftover = leftoverReuseIncarnation(
+        existing,
         parentId,
-        destination,
-        destPath,
+        presentedSpawnIncarnation(input.payload),
       );
+      if (leftover === null) {
+        return consultDeny(
+          "reservation-conflict",
+          `Directive denied spawn: destination ${destPath} is already reserved for dispatch ` +
+            `${existing.incarnation} (agent ${existing.agentId}). Own worktree means a unique ` +
+            "reservation, not a shared linked tree.",
+          parentId,
+          destination,
+          destPath,
+        );
+      }
+      leftoverIncarnation = leftover;
     }
   }
 
-  const destProven =
-    destIsProven({ destPath, payloadRoot, runGit }) && destPath !== null
-      ? liveOccupant(destPath, input.now) === null &&
-        existingDispatchReservation(payloadRoot, destPath) === null
-      : false;
+  const destProven = destIsProven({ destPath, payloadRoot, runGit });
 
   const reRootPath = destPath;
   const rerootNote = hostCanReroot
@@ -453,6 +490,10 @@ export function consultImplementSpawnOccupancy(
       ? ` Hook payload will re-root onto ${reRootPath}.`
       : " Host isolation=worktree re-roots the child payload."
     : " This host cannot re-root PreToolUse input; the child must start in the reserved worktree.";
+  const leftoverNote =
+    leftoverIncarnation !== null
+      ? ` Leftover dest-lock incarnation ${leftoverIncarnation} will be released before mint.`
+      : "";
 
   return {
     allow: true,
@@ -461,8 +502,9 @@ export function consultImplementSpawnOccupancy(
     destPath,
     reRootPath,
     hostCanReroot,
-    message: `Directive consulted spawn destination.${rerootNote}`,
+    message: `Directive consulted spawn destination.${leftoverNote}${rerootNote}`,
     parentId,
+    leftoverIncarnation,
   };
 }
 
@@ -525,6 +567,15 @@ export function evaluateImplementSpawnOccupancy(
       hostCanReroot: consult.hostCanReroot,
       message: consult.message,
     };
+  }
+  const leftover = consult.leftoverIncarnation?.trim() ?? "";
+  if (leftover.length > 0 && consult.destPath !== null) {
+    releaseLeftoverSpawnReservation(
+      resolve(input.payloadRoot),
+      consult.destPath,
+      leftover,
+      input.now,
+    );
   }
   return mintImplementSpawnReservation(consult, input);
 }
@@ -599,9 +650,13 @@ export function persistSpawnReservation(
       });
     } catch (err) {
       if (err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS) {
-        return { ok: false, reason: "conflict" };
+        const current = readLockIncarnation(lockRoot, dest);
+        if (current !== incarnation) {
+          return { ok: false, reason: "conflict" };
+        }
+      } else {
+        throw err;
       }
-      throw err;
     }
   }
   if (existsSync(dest) && liveOccupant(dest, now) !== null) {
@@ -613,6 +668,48 @@ export function persistSpawnReservation(
     recordChildOccupancyLease(dest, reservation);
   }
   return { ok: true };
+}
+
+/**
+ * Release a dest-lock leftover of an allow the host did not launch (#4254).
+ * Incarnation-scoped, same as releaseSpawnReservation. Refuses when the dest
+ * has a live occupant. Also drops matching dispatch occupancy records so a
+ * retry is not consult-denied as already reserved. A retry after this returns
+ * true may persist a new incarnation.
+ */
+export function releaseLeftoverSpawnReservation(
+  storeRoot: string,
+  destPath: string,
+  incarnation: string,
+  now?: Date,
+): boolean {
+  const want = incarnation.trim();
+  if (want.length === 0) return false;
+  const dest = resolve(destPath);
+  if (liveOccupant(dest, now) !== null) return false;
+  // Revalidate immediately before dest-lock delete so a child that claimed
+  // after the first read keeps its dispatch record (#4254 Greptile P1).
+  if (liveOccupant(dest, now) !== null) return false;
+  const root = resolve(storeRoot);
+  const lockRoot = reservationLockRoot(root);
+  const releasedLock = releaseSpawnReservation(root, dest, want);
+  if (liveOccupant(dest, now) !== null) return false;
+  let removedLease = false;
+  const roots = [root];
+  if (!sameTree(lockRoot, root)) roots.push(lockRoot);
+  if (existsSync(dest) && !roots.some((r) => sameTree(r, dest))) roots.push(dest);
+  for (const r of roots) {
+    if (!existsSync(r)) continue;
+    for (const rec of listChildOccupancyLeases(r)) {
+      if (rec.provenance !== "dispatch") continue;
+      if (rec.incarnation !== want) continue;
+      if (!sameTree(rec.worktreePath, dest)) continue;
+      if (liveOccupant(dest, now) !== null) return releasedLock || removedLease;
+      containedRemove({ root: r, target: join(...childOccupancyRelpath(rec.agentId)) });
+      removedLease = true;
+    }
+  }
+  return releasedLock || removedLease;
 }
 
 /**

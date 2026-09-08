@@ -243,6 +243,42 @@ describe("dest-proven implement spawn (#4215)", () => {
     expect(second.message).toContain("already reserved");
   });
 
+  it("leftover-releases then allows a later same-parent Grok tool.before with no live occupant (#4254)", () => {
+    const { root, dest } = destFixture();
+    const payload = {
+      toolName: "spawn_subagent",
+      tool_input: { cwd: dest, prompt: "implement the story" },
+    };
+    const first = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload,
+        environ: { DEFT_SESSION_ID: "parent-1" },
+      },
+      readySeams(),
+    );
+    const firstIncarnation = readSpawnReservationIncarnation(root, dest);
+    const second = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload,
+        environ: { DEFT_SESSION_ID: "parent-1" },
+      },
+      readySeams(),
+    );
+    expect(first).toMatchObject({ verdict: "allow", code: "spawn-ready" });
+    expect(second).toMatchObject({ verdict: "allow", code: "spawn-ready" });
+    expect(second.message).not.toContain("already reserved");
+    const secondIncarnation = readSpawnReservationIncarnation(root, dest);
+    expect(firstIncarnation).not.toBeNull();
+    expect(secondIncarnation).not.toBeNull();
+    expect(secondIncarnation).not.toBe(firstIncarnation);
+  });
+
   it("occupancy-denies Grok cwd plus worktree_path without skipping ritual or dest-lock", () => {
     const { root, dest } = destFixture();
     const inspectRitual = vi.fn(() => STALE_RITUAL);
