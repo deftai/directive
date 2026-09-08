@@ -20,12 +20,23 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { posix, win32 } from "node:path";
+import {
+  ENV_CHECK_AC_ONLY,
+  ENV_CHECK_MODE,
+  ENV_HYGIENE_ADVISORY,
+} from "../product-first-done-gate/index.js";
 import { BRANCH_GATE_BYPASS_ENV, RELEASE_PREFLIGHT_ENV } from "../release/constants.js";
 import { resolveCoverageDebtIssue } from "../vitest-runner/coverage-debt.js";
 import { buildTestLaneCommand, resolveTestLaneCommand } from "./progress.js";
 
-/** Release Step-5 vars that must not leak into vitest via inherited pnpm env (#2434). */
-const TS_LANE_POISON_ENV_KEYS = [BRANCH_GATE_BYPASS_ENV, RELEASE_PREFLIGHT_ENV] as const;
+/** Release Step-5 vars that must not leak into vitest via inherited pnpm env (#2434 / #4230). */
+const TS_LANE_POISON_ENV_KEYS = [
+  BRANCH_GATE_BYPASS_ENV,
+  RELEASE_PREFLIGHT_ENV,
+  ENV_CHECK_MODE,
+  ENV_CHECK_AC_ONLY,
+  ENV_HYGIENE_ADVISORY,
+] as const;
 
 /**
  * Run order is deliberate: lint (cheapest, catches the biome class first),

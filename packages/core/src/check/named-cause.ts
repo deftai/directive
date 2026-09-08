@@ -93,6 +93,10 @@ export function extractGateCause(
       return sanitizeCauseLine(toolFailure);
     }
   }
+  const failureSignal = useful.find((line) => /\bFAIL\b/.test(line) || /\bTests?\b/.test(line));
+  if (failureSignal !== undefined) {
+    return sanitizeCauseLine(failureSignal);
+  }
   if (gateHint.length > 0) {
     const named = useful.find((line) => line.includes(gateHint));
     if (named !== undefined) {

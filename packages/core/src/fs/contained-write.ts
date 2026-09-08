@@ -566,6 +566,129 @@ export function containedWrite(input: ContainedWriteInput): ContainedWriteResult
   }
 }
 
+export interface ContainedOpenHandle {
+  readonly fd: number;
+  readonly path: string;
+  write(data: string | Buffer): number;
+  close(): void;
+}
+
+/**
+ * Exclusive contained open that keeps the fd (suite tee, #4230).
+ * `O_CREAT|O_EXCL` refuses an existing path. Caller writes chunks on the
+ * retained fd; do not use per-chunk `containedWrite({mode:"append"})`.
+ */
+export function containedOpenExclusive(input: {
+  readonly root: string;
+  readonly target: string;
+  readonly mkdir?: boolean;
+  readonly mutation?: ContainedWriteInput["mutation"];
+}): ContainedOpenHandle {
+  const rootAbs = resolve(input.root);
+  try {
+    realpathSync(rootAbs);
+  } catch {
+    throw new ContainedWriteError(`contained write refused: root ${rootAbs} does not exist`, {
+      code: ContainedWriteErrorCode.ROOT_MISSING,
+      root: rootAbs,
+      target: String(input.target),
+      offendingPath: rootAbs,
+    });
+  }
+  const targetAbs = resolveContainedTarget(rootAbs, input.target);
+  try {
+    assertWriteTargetSafe(rootAbs, targetAbs);
+  } catch (err) {
+    if (err instanceof ProjectionContainmentError) {
+      throw mapProjectionError(err, rootAbs, targetAbs);
+    }
+    throw err;
+  }
+  if (input.mkdir !== false) {
+    ensureParents(rootAbs, targetAbs);
+  }
+  try {
+    assertWriteTargetSafe(rootAbs, targetAbs);
+  } catch (err) {
+    if (err instanceof ProjectionContainmentError) {
+      throw mapProjectionError(err, rootAbs, targetAbs);
+    }
+    throw err;
+  }
+  if (isPortRecordMode()) {
+    recordWriteMutation(targetAbs, input.mutation);
+    return {
+      fd: -1,
+      path: targetAbs,
+      write: () => 0,
+      close: () => undefined,
+    };
+  }
+  let fd: number;
+  try {
+    fd = openSync(
+      targetAbs,
+      constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW,
+      0o644,
+    );
+  } catch (err) {
+    const code =
+      typeof err === "object" && err !== null && "code" in err
+        ? (err as NodeJS.ErrnoException).code
+        : undefined;
+    if (code === "EEXIST") {
+      throw new ContainedWriteError(
+        `contained write refused: target ${targetAbs} already exists (mode=create)`,
+        {
+          code: ContainedWriteErrorCode.EXISTS,
+          root: rootAbs,
+          target: targetAbs,
+          offendingPath: targetAbs,
+        },
+      );
+    }
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new ContainedWriteError(`contained write I/O failed: ${msg}`, {
+      code: ContainedWriteErrorCode.IO,
+      root: rootAbs,
+      target: targetAbs,
+      offendingPath: targetAbs,
+    });
+  }
+  recordWriteMutation(targetAbs, input.mutation);
+  let closed = false;
+  return {
+    fd,
+    path: targetAbs,
+    write(data: string | Buffer): number {
+      const buf = toBuffer(data, "utf8");
+      let offset = 0;
+      while (offset < buf.length) {
+        const n = writeSync(fd, buf, offset, buf.length - offset, null);
+        if (n <= 0) {
+          throw new ContainedWriteError(`contained write I/O failed: short write to ${targetAbs}`, {
+            code: ContainedWriteErrorCode.IO,
+            root: rootAbs,
+            target: targetAbs,
+            offendingPath: targetAbs,
+          });
+        }
+        offset += n;
+      }
+      return offset;
+    },
+    close(): void {
+      if (closed) return;
+      closed = true;
+      try {
+        fsyncSync(fd);
+      } finally {
+        closeSync(fd);
+      }
+    },
+  };
+}
+
 /**
  * Contained remove: resolve under root, refuse parent-path symlink / out-of-root,
  * then delete. An in-root leaf symlink is unlinked (not followed, not refused).

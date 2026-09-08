@@ -2,6 +2,8 @@
 import type { EnvMap } from "../authz/closed-verb.js";
 import type { HumanOriginGrant } from "../authz/types.js";
 
+export type { CachedCheckCompletion } from "../check/orchestrator.js";
+
 export interface ReleaseConfig {
   readonly version: string;
   readonly repo: string;
