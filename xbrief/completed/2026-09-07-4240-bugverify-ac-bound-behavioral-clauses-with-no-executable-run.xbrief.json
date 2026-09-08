@@ -1,0 +1,310 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4240",
+    "updated": "2026-09-08T15:26:59Z"
+  },
+  "plan": {
+    "title": "bug(verify-ac): bound behavioral clauses with no executable run still cannot complete",
+    "status": "completed",
+    "narratives": {
+      "Description": "A bound behavioral or negative stated-rung brief with no executable run still cannot complete. Consumer applyEmptyFloorPolicy can print 3334 empty-acceptance even when clauses exist. The primary job is to let that fixture complete without minting a grep token, or refuse it under a predicate whose observed value and remedy are true.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4240",
+      "Overview": "## Recut (post-bind, 2026-09-07)\n\nOperator recut after accepted synthesis [5574304813](https://github.com/deftai/directive/issues/4240#issuecomment-5574304813) / successor lean [5574299098](https://github.com/deftai/directive/issues/4240#issuecomment-5574299098).\n\nLocked: a bound behavioral or negative clause with no extractable tokens and no green executable run still blocks `scope:complete`. Do not restore `verified.length > 0` as a set predicate.\n\nDropped from this recut:\n\n- Defect 1 (the walk prints `verify:ac passed` on fail) -- already `#3497` `labelVerdict`.\n- Defect 2 (apostrophe and quote as one delimiter class) -- already `#4103` quote-class pairing.\n\nCensus only, not this recut: expected tokens still cannot contain quotes.\n\nThe older completed-arc record does not clear this recut body.\n\nCompanion #4239 is a different component (CLI help for `scope:complete`) and is not this target.\n\n## Problem\n\n`scope:complete` still cannot finish an honest stated-rung brief whose criteria are all behavioral or negative, once those clauses are bound to a real declared artifact.\n\nAt pin `7236655ef6f586169c94f3c4ce5eeccf5668960b`:\n\n- `walkOne` on a declared path with no extractable tokens and no `EXISTENCE_CLAIM` returns `unverifiable` with `adjudicable: true`.\n- `countUnverifiedAdjudicableClauses` counts that row.\n- `clauseWalkBlocks` then blocks unless `hasGreenExecutableRun`.\n- `#3334` still refuses an empty `clauses[]`, so deleting the set is not a way through.\n- There is no clause-level non-file evidence kind (`#3240` `x-directive/evidence` is a plan-item shape, not a clause shape).\n\nThe original `verified.length > 0 || walked.length === 0` bar is gone (`#3826` / `#3835`). Unbound clauses are not adjudicable and do not block. A green executable run already excuses unverifiable adjudicable clauses. The remaining hole is narrower and still real: **clauses-only, bound, behavioral or negative, no executable run**.\n\nThe pressure is the same as the original filing: mint a grep-able token chosen for checkability, or add an executable command, even when the meaningful criterion is \"callers are unchanged\" / \"no canary glob was added\".\n\n## Residual (next-build)\n\n1. A stated-rung brief whose only clauses are bound behavioral or negative (no extractable tokens, no existence claim) and that has no executable commands must be able to complete without minting a grep token, **or** the refusal must name this case instead of looking like a failed walk.\n2. Unbound (non-adjudicable) clauses stay non-blocking.\n3. A green executable run still excuses unverifiable adjudicable clauses (`clauseWalkBlocks`).\n4. Do not restore `verified.length > 0` as a set predicate.\n5. `#3334` empty `clauses[]` still refuses.\n\n## Open fork\n\nGive clauses an explicit non-file evidence kind (as `#3240` plan items already can), or treat a bound behavioral clause like an unbound one (no oracle, so `failed === 0` is the strongest static verdict). Remedy is not locked.\n\n## Non-goals\n\n- Re-landing `#3497` or `#4103`.\n- Changing quote-class pairing, or adding backtick expected-token delimiters, unless a later recut asks for quoted-value tokens.\n- Companion #4239.\n\n## Acceptance (draft)\n\n- [ ] A fixture with one bound behavioral clause, no extractable tokens, no executable commands, and a declared `file_scope` path does not fail `scope:complete` / `verify:ac` solely because the walk returned `unverifiable`, **or** the printed verdict names that case.\n- [ ] The same fixture with a green executable run still does not block on that unverifiable clause.\n- [ ] An unbound clause still does not block.\n- [ ] Empty `clauses[]` still fails `#3334`.\n- [ ] Tests pin the residual; they do not re-assert the old `verified.length > 0` set predicate.\n\n## History (original filing)\n\nThe body below is the 0.104.0 three-defect write-up as filed. It is history. It is not the next-build contract.\n\n---\n\n## Summary\n\nThree defects in the `#3323` clause walk on `@deftai/directive-core@0.104.0`, found while binding acceptance clauses to clear the `#3357` precondition on `scope:complete`. All three are reproducible with a two-clause fixture and no project state.\n\nCompanion to #4239 (same session, different component: that one is the CLI help for `scope:complete`, this one is `verify-ac/clauses.js`).\n\n## 1. The walk prints `verify:ac passed` when it failed\n\nThe line is emitted identically whether the walk passed or failed. Only the counts and the exit code carry the signal — and the `#3357` refusal on `scope:complete` embeds this same misleading line in its own output, so a refusal reads as a pass.\n\n| Fixture | Walk result | Printed | Exit |\n|---|---|---|---|\n| one verified clause | `1 verified, 0 unverifiable, 0 failed` | `verify:ac passed (#3284) [rung=stated]` | 0 |\n| one failed clause | `0 verified, 0 unverifiable, 1 failed` | `verify:ac passed (#3284) [rung=stated]` | **1** |\n| one unverifiable clause | `0 verified, 1 unverifiable, 0 failed` | `verify:ac passed (#3284) [rung=stated]` | **1** |\n\nThis matters because the documented remediation for `#3357` is *\"Run `task verify:ac -- <completing-xbrief>` and stamp executable plan.acceptance\"* — and running exactly that prints `passed`. Every path a user is pointed at tells them the thing that is blocking them is fine.\n\n## 2. An apostrophe in clause prose is parsed as a token delimiter\n\n`extractExpectedTokens` (`dist/verify-ac/clauses.js:305`):\n\n```js\nconst quoted = /[\"']([^\"'\\n]{3,80})[\"']/g;\n```\n\nStraight quotes and apostrophes are the same character class, so ordinary English possessives split a junk \"expected token\" out of otherwise-correct text and fail the clause. Repro:\n\n```json\n{ \"id\": 1,\n  \"text\": \"The doc describes the project's own posture ('AgentSentri').\",\n  \"artifact_path\": \"README.md\" }\n```\n\n```\nverify:ac clause walk (#3323): 0 verified, 0 unverifiable, 1 failed\n  [failed] clause 1 @ README.md: The doc describes the project's own posture ('AgentSentri').\n           — expected token(s) missing from README.md: s own posture (\n```\n\n`AgentSentri` is present in `README.md` ten times. The clause fails on `s own posture (` — text between the apostrophe in `project's` and the opening quote of the real token. Removing the apostrophe makes the identical clause pass. This hit real briefs twice in one session (\"the skill's own Zod schema\", \"another project's MCP resource\"), and the failure names a token the author never wrote, so it reads as a checker bug rather than a prose problem.\n\n## 3. Some real criteria cannot be expressed as tokens, which blocks completion\n\nSame character class means a token can never contain a quote, so a criterion about a quoted value is unexpressible: `\"jsx\": \"preserve\"` cannot be a token. `looksLikeFilePath` (line 34) additionally drops path-shaped tokens silently. A clause left with zero usable tokens falls through to `unverifiable`, and:\n\n```js\nconst ok = failed.length === 0 && (verified.length > 0 || walked.length === 0);  // line 453\n```\n\n`scope:complete` requires that `ok`, so **at least one clause must be `verified`**. A brief whose stated criteria are all behavioral or negative (\"no canary include glob was added\", \"existing callers are unchanged\") can never satisfy it. Two briefs in this session were `0 verified, N unverifiable` with hand-authored `rung=stated` clauses that were *accurate*; the only way through was to bind one clause each to a token in a real file — chosen for checkability, not because it was the most meaningful criterion. The gate rewards clauses that are easy to grep for over clauses that describe the delivery.\n\n(For the record, deleting the clause set is *not* a shortcut: `#3334 soft_empty` catches an empty `clauses[]` at exit 1. The pressure is toward weak clauses, not no clauses.)\n\n## Repro\n\n```bash\ncat > /tmp/repro-apostrophe.xbrief.json <<'EOF'\n{\n  \"xBRIEFInfo\": {\"version\": \"0.8\", \"author\": \"repro\", \"description\": \"repro\",\n                 \"created\": \"2026-09-07T00:00:00Z\", \"updated\": \"2026-09-07T00:00:00Z\"},\n  \"plan\": {\"title\": \"repro apostrophe token\", \"status\": \"running\", \"items\": [],\n    \"acceptance\": {\"commands\": [], \"none_stated\": true, \"source_rung\": \"stated\",\n      \"clauses\": [{\"id\": 1,\n        \"text\": \"The doc describes the project's own posture ('AgentSentri').\",\n        \"artifact_path\": \"README.md\"}]}}\n}\nEOF\ndeft verify:ac --xbrief /tmp/repro-apostrophe.xbrief.json; echo \"exit=$?\"\n```\n\nRun from any project whose `README.md` contains `AgentSentri` (or swap the token). Drop the `'AgentSentri'` token for fixture 3; drop the apostrophe for the passing control.\n\n## Suggested fix\n\n1. Print `verify:ac failed` (or nothing) when the walk is not ok — never `passed` on exit 1. This one is a one-line change and removes most of the confusion on its own.\n2. Use a token delimiter that cannot collide with prose: backticks, or paired straight double quotes only, and ignore unpaired apostrophes.\n3. Let a token be delimited so it can contain quotes (backticks would do both jobs).\n4. Reconsider `verified.length > 0` as the completion bar, or give clauses an explicit non-file evidence kind so a behavioral criterion can carry `x-directive/evidence` (as `#3240` plan items already can) instead of being forced into a grep. As written, an honest all-behavioral clause set cannot complete.\n\n## Environment\n\n- `@deftai/directive` global CLI, engine `@deftai/directive-core@0.104.0`\n- macOS (darwin 25.5.0), Node via global npm install\n- Consumer project (`deftai/agentsentri`) with a vendored content-only `.deft/core` deposit\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-07T18:07:06Z)\n\nmodel: grok-4.6\nrole: triage\n\ndesign-critique: warranted, because the #3323 clause walk is a measured acceptance-gate mechanism whose failure modes (always-passed status line, apostrophe-as-delimiter, unverifiable-as-block) poison scope:complete remediation.\n\nmechanism-shaped: true\narc-mode: direct\nrefutation-target: The #3323 clause walk prints verify:ac passed identically on pass and fail, so the #3357 refusal embeds a pass line and the documented remediation reads as already green.\ncharter: open critique\nspend: N=1\nreason: default motion; the issue names three measured defects plus a completion-bar design fork, not one closed-token patch.\naudit-targets: none\ntarget shape: single-issue\ndispatch-sha: 7236655ef6f586169c94f3c4ce5eeccf5668960b\ninput-ceiling: this comment\n\nReported against @deftai/directive-core@0.104.0. Companion #4239 is a different component (CLI help for scope:complete) and is not this target.\n\n\n### Comment by @MScottAdams (2026-09-07T18:11:18Z)\n\nmodel: grok-4.6\nrole: critic\n\nRound 1, fresh critic; charter: open critique; spend: N=1; arc-mode: direct. Input ceiling: 5574260459 inclusive. SHA verified `7236655ef6f586169c94f3c4ce5eeccf5668960b` via `git show` of `packages/core/src/verify-ac/clauses.ts`, `packages/core/src/product-first-done-gate/evaluate.ts`, and `packages/core/src/product-first-done-gate/acceptance-resolver.ts`. Issue body and comment 5574260459 fetched through REST; no later comments were read.\n\nAttestation: critic ran in-process under direct posting (same model family as triage). `spawn_subagent` was denied on this host for a no-worktree spawn (primary-checkout hook). Disclosed, not a second family.\n\n**Verdict: the three-defect body does not survive as the next-build contract at this SHA.** Census: 0 `blocks-the-design`, 2 `sharpens-framing`, 1 `footnote`.\n\n**Reproduction (tokens).** Issue repro clause: `The doc describes the project's own posture ('AgentSentri').`\n\n| regex | extracted |\n| --- | --- |\n| 0.104.0 class `/[\"']([^\"'\\n]{3,80})[\"']/` | `s own posture (` |\n| pin double-quote | (none) |\n| pin apostrophe lookbehind `(?<![A-Za-z0-9])'([^'\\n]{3,80})'` | `AgentSentri` |\n\nThe filed junk token is the 0.104.0 class. At this SHA the possessive is not an opener and the genuine single-quoted literal remains.\n\n**Inventory (existing mechanisms, do not re-land).**\n\n- `#3497` `labelVerdict` in `evaluate.ts`: later stages can flip `ok` after `annotate` stamps `verify:ac passed (#3284)`; the pin replaces that lead with `verify:ac FAILED (#3284)` and appends `acceptance verdict (#3497): clause-walk-failed — …`. Test: `acceptance-resolver.test.ts` \"never reports 'passed' for a result it refused\".\n- `#4103` `extractExpectedTokens`: apostrophe and double-quote are separate classes; in-word apostrophe is not an opener. Tests: `clauses.test.ts` quote-class pairing.\n- `#3826` / `#3835` / `clauseWalkBlocks`: walk `ok` is `failed.length === 0 && countUnverifiedAdjudicableClauses === 0`, not `verified.length > 0 || walked.length === 0`. Unbound clauses are not adjudicable. Unverifiable adjudicable clauses block only when there is no green executable run.\n\nInjection / swarm lens: N/A. This target does not change authority, untrusted input, prompts, identity, concurrency, worktrees, or shared state. File reads stay behind `#3835` declared `file_scope`.\n\n### 1. sharpens-framing -- Recut the body; defects 1 and 2 are closed at this SHA\n\n**Evidence:** The `#3497` comment in `evaluate.ts` names the filed failure (\"stale passed lead … scope:complete printed four passing lines and then refused\") and the test asserts the composed message contains `verify:ac FAILED (#3284)` and does not contain `verify:ac passed (#3284)` on a refused walk. The token table above is a node run of the pin regex vs the 0.104.0 class on the issue's exact clause.\n\n**Failure mode:** Binding this body as written re-implements `#3497` and `#4103`.\n\n**Disposition:** Recut. Drop defect 1 (always-passed line) and defect 2 (apostrophe-as-delimiter) from the next-build contract. Keep them as 0.104.0 history. Companion `#4239` stays a different component.\n\n### 2. sharpens-framing -- Residual: a bound behavioral clause set with no green executable run still cannot complete\n\n**Evidence:** At this SHA, a bound path with no extractable tokens and no `EXISTENCE_CLAIM` returns `unverifiable` with `adjudicable: true` (`walkOne` fallthrough in `clauses.ts`). `countUnverifiedAdjudicableClauses` counts it. `clauseWalkBlocks` then blocks unless `hasGreenExecutableRun`. The issue's old line `verified.length > 0 || walked.length === 0` is gone; the remaining hole is narrower: clauses-only, bound, behavioral or negative, no executable run. `#3334` still refuses empty `clauses[]`. There is no clause-level non-file evidence kind (the `#3240` plan-item `x-directive/evidence` shape is not on clauses).\n\n**Failure mode:** An honest stated-rung brief whose criteria are all behavioral, bound to a real file, still cannot `scope:complete` without minting a grep-able token or an executable command.\n\n**Disposition:** Recut the live target to this residual (and, if wanted, an explicit non-file evidence kind). Do not restore `verified.length > 0` as a set predicate.\n\n### 3. footnote -- Expected tokens still cannot contain quotes\n\n**Evidence:** `extractExpectedTokens` delimiters at this SHA are paired `\"` and paired `'` only. Backticks are used in `extractPathTokens` for paths, not as expected-token delimiters. `looksLikeFilePath` still drops path-shaped tokens. A criterion about `\"jsx\": \"preserve\"` still cannot be a token.\n\n**Failure mode:** Suggested fixes 3 and the path-drop note remain true, but they are not what blocks completion on the issue's apostrophe repro at this SHA.\n\n**Disposition:** Census only. Fold into the recut only if the residual body wants a delimiter that can carry quotes.\n\nRoad-not-taken: implement all four suggested fixes on this body. Rejected because two are already shipped; a different method (ship-the-four-fixes) would re-land closed work. What would flip: a pin where `labelVerdict` is absent or the quote-class is still one character class.\n\n\n### Comment by @MScottAdams (2026-09-07T18:12:01Z)\n\nmodel: grok-4.6\nrole: parent\n\n**Lean:**\nRecut:\n\n## In plain English\n\nTwo of the three filed defects are already shipped at this SHA. The always-passed status line is `#3497`. The apostrophe-as-delimiter false-FAIL is `#4103`. Confirming this map would recut the next-build contract to the residual: a bound behavioral clause set with no green executable run still cannot complete, and there is still no clause-level non-file evidence kind. Quoted-value tokens stay a footnote. This record is not ingest and not an implement grant.\n\n**Forward verdict.** Recut. Do not bind this body.\n\n**Disposition.** Two sharpening headings are proposed `accept-into-contract`. One heading is a footnote.\n\n**Non-self-arbitration.** This parent wrote Stop 1 (5574260459), the critic (5574293483), and this lean. Same session, in-process critic after `spawn_subagent` was denied. Disclosed. Takes are a reading of that critic post. They add no new load-bearing premise.\n\n**What this arc does not do.** It does not implement a patch, ingest, or close `#4239`.\n\narc-mode: direct\nRound 1 dispatched siblings: 1. Critic record: [5574293483](https://github.com/deftai/directive/issues/4240#issuecomment-5574293483).\nInput ceiling: 5574260459. Supersedes write-back 5574260459.\n\n## Take map\n\n| Critic | Heading | Class | Proposed take |\n| --- | --- | --- | --- |\n| 5574293483 | Recut the body; defects 1 and 2 are closed at this SHA | sharpens-framing | accept-into-contract |\n| 5574293483 | Residual: a bound behavioral clause set with no green executable run still cannot complete | sharpens-framing | accept-into-contract |\n| 5574293483 | Expected tokens still cannot contain quotes | footnote | census |\n\n## Accepted set\n\nThe two `accept-into-contract` rows. Footnote stays census.\n\n## Residual\n\nNone named. Map is total over the sharpening headings.\n\n## Proposed bound reading\n\n1. Recut `#4240`. Next-build contract is not this three-defect body.\n2. Drop defect 1 (always-passed line) as history of `#3497` `labelVerdict`.\n3. Drop defect 2 (apostrophe delimiter class) as history of `#4103` quote-class pairing.\n4. Keep as live target: a bound behavioral or negative clause with no extractable tokens and no green executable run still blocks `scope:complete`. Optional: a clause-level non-file evidence kind. Do not restore `verified.length > 0` as a set predicate.\n5. Quoted-value tokens (`\"jsx\": \"preserve\"`) remain unexpressible; census only unless the recut body asks for a delimiter that can carry quotes.\n\nAudit markers: none.\n\nThis is the first operator surface after the round-1 critic post. It is a proposed map, not synthesis bind.\n\n\n### Comment by @MScottAdams (2026-09-07T18:12:16Z)\n\nmodel: grok-4.6\nrole: parent\n\nAccept successor lean 5574299098 (operator verb: yolo / accept).\n\nThe proposed takes are now bindable:\n\n- Critic 5574293483 heading 1 (recut; defects 1 and 2 closed): accept-into-contract\n- Critic 5574293483 heading 2 (bound behavioral residual): accept-into-contract\n- Critic 5574293483 heading 3 (quoted-value tokens): census\n\nFootnotes stay census only. Audit markers: none. Same-round siblings are posted. Empty disagreement set. Auto-stamp path runs next. Recut token is present on the lean.\n\n\n### Comment by @MScottAdams (2026-09-07T18:12:32Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nSHA: 7236655ef6f586169c94f3c4ce5eeccf5668960b. Method for every row: primary-source `git show` of that pin, or a node regex run against the pin's `extractExpectedTokens` patterns. Not critic agreement.\n\n| Claim | Value | Method |\n| --- | --- | --- |\n| extractExpectedTokens patterns | `/\\\"([^\\\"\\\\n]{3,80})\\\"/g` and `/(?<![A-Za-z0-9])'([^'\\\\n]{3,80})'/g` | `git show 7236655e:packages/core/src/verify-ac/clauses.ts` |\n| issue repro under 0.104.0 class `/[\"']([^\"'\\\\n]{3,80})[\"']/` | `s own posture (` | node regex vs that class |\n| issue repro under pin apostrophe lookbehind | `AgentSentri` | node regex vs pin pattern |\n| labelVerdict on not-ok | replaces `verify:ac passed (#3284)` with `verify:ac FAILED (#3284)` | `git show 7236655e:packages/core/src/product-first-done-gate/evaluate.ts` |\n| refused walk message | contains FAILED, does not contain passed | `acceptance-resolver.test.ts` \"never reports 'passed' for a result it refused\" |\n| walk ok predicate | `failed.length === 0 && countUnverifiedAdjudicableClauses === 0` | `clauses.ts` `walkAcceptanceClauses` |\n| bound no-token no-existence clause | `unverifiable` and `adjudicable: true` | `walkOne` fallthrough in `clauses.ts` |\n| clauseWalkBlocks with adjudicableUnverified>0 and no green run | blocks | `acceptance-resolver.ts` `clauseWalkBlocks` |\n\n\n### Comment by @MScottAdams (2026-09-07T18:12:47Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nRecut `#4240`. Defects 1 and 2 are already `#3497` and `#4103` at this SHA. The live remainder is a bound behavioral clause set with no green executable run, which still cannot complete. Quoted-value tokens stay a footnote. This record is not ingest and not an implement grant.\n\nThis parent authored Stop 1 comment 5574260459 and critic 5574293483. The accepted takes are critic 5574293483. Empty disagreement set.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean 5574299098\nverified-claims table 5574302856\n\n\n### Comment by @MScottAdams (2026-09-07T18:19:41Z)\n\nmodel: grok-4.6\nrole: triage\n\ndesign-critique: warranted, because the recut residual is a measured completion-bar hole in the #3323 clause walk: bound behavioral clauses with no executable run still block scope:complete.\n\nmechanism-shaped: true\narc-mode: direct\nrefutation-target: A bound behavioral or negative clause with no extractable tokens and no green executable run still blocks scope:complete, and that is a defect the next-build contract should close without restoring verified.length > 0 as a set predicate.\ncharter: open critique\nspend: N=1\nreason: default motion; the recut names a residual hole and an unlocked remedy fork, not one closed-token patch.\naudit-targets: none\ntarget shape: single-issue\ndispatch-sha: 7236655ef6f586169c94f3c4ce5eeccf5668960b\ninput-ceiling: this comment\n\nRecut of #4240. Older completed-arc record 5574304813 does not clear this body. History below the recut heading is not the target. Companion #4239 is not this target.\n\n\n### Comment by @MScottAdams (2026-09-07T18:21:55Z)\n\nmodel: grok-4.6\nrole: critic\n\nRound 1, fresh critic; charter: open critique; spend: N=1; arc-mode: direct. Input ceiling: 5574359881 inclusive. SHA verified `7236655ef6f586169c94f3c4ce5eeccf5668960b` via `git show` of `packages/core/src/verify-ac/clauses.ts`, `packages/core/src/product-first-done-gate/evaluate.ts`, `packages/core/src/product-first-done-gate/empty-resolution.ts`, and `packages/core/src/product-first-done-gate/acceptance-resolver.ts`. Issue body (recut) and comment 5574359881 fetched through REST. History below the recut heading is not the target. Prior-arc comments were read as history only.\n\nAttestation: critic ran in-process under direct posting (same model family as triage). `spawn_subagent` was denied on this host for a no-worktree spawn. Disclosed, not a second family.\n\n**Verdict: the residual hole is real. The recut can bind if it names the consumer composition, not only `clauseWalkBlocks`.** Census: 0 `blocks-the-design`, 2 `sharpens-framing`, 1 `footnote`.\n\n**Reproduction.** Fixture: one stated clause `existing callers are unchanged` bound to declared `README.md`, `commands: []`, `ambiguity_attestation: none_found`. Node require of the pin's dist:\n\n| Check | Bound behavioral | Unbound same text |\n| --- | --- | --- |\n| walk outcome | `unverifiable` `adjudicable: true` | `unverifiable` `adjudicable: false` |\n| walk `ok` | false | true |\n| `clauseWalkBlocks` no green run | true | false |\n| `clauseWalkBlocks` green run | false | false |\n\n`evaluateVerifyAcFromPlan` on that bound fixture:\n\n- `hasSuiteFloor: true`: `ok=false`, `resolution=empty-pass`, verdict `clause-walk-failed` — `0 verified, 1 unverifiable, 0 failed`. Remedy: \"ship the artifact each failed clause names, or bind the clause to the path it actually landed at\". README.md is present and bound.\n- `hasSuiteFloor: false` (consumer, the original filing environment): `ok=false`, `resolution=soft_empty`, verdict `empty-acceptance` — `plan.acceptance.commands=0, runs=0`. Message is `#3334` \"no acceptance stamped — floor is empty\". `clauseOutcomes` still carry the unverifiable row. The operator-visible predicate is not `clause-walk-failed`.\n\nInjection / swarm lens: N/A. File reads stay behind `#3835` declared `file_scope`.\n\n### 1. sharpens-framing -- Pin the consumer overlay, not only clauseWalkBlocks\n\n**Evidence:** `applyOracle` sends a walk that verified nothing through `applyEmptyFloorPolicy`. `isEmptyAcResolution` is true for 0 commands / 0 runs even when `clauseOutcomes` exist. On no suite floor that overwrites `resolution` to `soft_empty` and the message to `#3334`. Measured above. The recut Problem section names `clauseWalkBlocks` as the hole. The filed environment was a consumer deposit.\n\n**Failure mode:** An implementer who only changes `clauseWalkBlocks` / walk `ok` still leaves consumer `scope:complete` printing empty-acceptance for a brief that has clauses. The draft AC \"or the printed verdict names that case\" is not met today on consumer: it names `#3334`, which is the empty-clauses story, not a bound behavioral clause.\n\n**Disposition:** Absorb into the bound reading. Residual includes the `applyEmptyFloorPolicy` overlay. Do not treat `#3334` empty `clauses[]` and this case as the same refusal.\n\n### 2. sharpens-framing -- The dual AC is two jobs; the current \"name\" arm is false on both floors\n\n**Evidence:** Draft AC 1 is complete-without-grep **or** name the case. Framework path already prints unverifiable counts, but the `#3497` remedy is ship/bind, which this fixture falsifies. Consumer path names empty-acceptance, which this fixture also falsifies (clauses are present and bound). Completing without a grep token is the other arm and is not done.\n\n**Failure mode:** Binding the dual as written lets an implementer \"fix\" the remedy string and leave the completion hole, or vice versa, and still tick the box.\n\n**Disposition:** Lock one primary job: an honest bound behavioral stated-rung brief with no executable run can complete without a grep token (or is refused under a predicate whose observed value and remedy are true for that fixture). The open fork (non-file evidence kind vs treat-as-unbound) can stay a how, not a second AC.\n\n### 3. footnote -- Treat-as-unbound already matches the unbound row\n\n**Evidence:** Same text with `artifact_path: null` is walk `ok: true` and does not block. That is the recut's \"treat like an unbound clause\" arm, measured. `#3240` evidence kind is still absent on clauses. `verified.length > 0` is already not the walk `ok` predicate.\n\n**Disposition:** Census. The fork is real; it does not need to be locked for this body to bind.\n\nRoad-not-taken: recut again. Rejected because the residual hole is measured and the two sharpenings are absorbable. What would flip: a pin where consumer `hasSuiteFloor: false` already prints a true bound-behavioral predicate, or where bound behavioral walk `ok` is true.\n\n\n### Comment by @MScottAdams (2026-09-07T18:22:14Z)\n\nmodel: grok-4.6\nrole: parent\n\n**Lean:**\n\n## In plain English\n\nThe recut hole is real: a bound behavioral clause with no executable run cannot complete. Confirming this map would keep that as the next-build contract, and add two sharpenings: pin the consumer `#3334` overlay (`applyEmptyFloorPolicy` after a walk that verified nothing), and lock one primary job so \"name the case\" cannot be satisfied by a false remedy. The how (evidence kind vs treat-as-unbound) stays a fork. This record is not ingest until the operator asks.\n\n**Forward verdict.** Sustain the recut. Bind with the two sharpenings. Not another recut.\n\n**Disposition.** Two sharpening headings are proposed `accept-into-contract`. One heading is a footnote.\n\n**Non-self-arbitration.** This parent wrote Stop 1 (5574359881), the critic (5574380260), and this lean. Same session, in-process critic after `spawn_subagent` was denied. Disclosed. Takes are a reading of that critic post. They add no new load-bearing premise.\n\n**What this arc does not do.** It does not implement a patch, ingest, re-land `#3497` / `#4103`, or close `#4239`.\n\narc-mode: direct\nRound 1 dispatched siblings: 1. Critic record: [5574380260](https://github.com/deftai/directive/issues/4240#issuecomment-5574380260).\nInput ceiling: 5574359881. Supersedes write-back 5574359881.\n\n## Take map\n\n| Critic | Heading | Class | Proposed take |\n| --- | --- | --- | --- |\n| 5574380260 | Pin the consumer overlay, not only clauseWalkBlocks | sharpens-framing | accept-into-contract |\n| 5574380260 | The dual AC is two jobs; the current name arm is false on both floors | sharpens-framing | accept-into-contract |\n| 5574380260 | Treat-as-unbound already matches the unbound row | footnote | census |\n\n## Accepted set\n\nThe two `accept-into-contract` rows. Footnote stays census.\n\n## Residual\n\nNone named. Map is total over the sharpening headings.\n\n## Proposed bound reading\n\n1. Keep `#4240` recut body as the next-build contract: a bound behavioral or negative stated-rung brief with no executable run still cannot complete.\n2. Pin the consumer composition: `applyEmptyFloorPolicy` after a walk that verified nothing can print `#3334` empty-acceptance even when clauses exist. That overlay is in scope. Empty `clauses[]` stays a different `#3334` refusal.\n3. Lock one primary job: that fixture can complete without minting a grep token, or it is refused under a predicate whose observed value and remedy are true for a bound shipped path. Do not treat \"fix the ship/bind remedy string\" as completing the story by itself.\n4. How stays open: non-file evidence kind, or treat bound behavioral like unbound (already measured walk `ok: true` when `artifact_path` is null).\n5. Do not restore `verified.length > 0` as a set predicate. Do not re-land `#3497` or `#4103`.\n\nAudit markers: none.\n\nThis is the first operator surface after the recut-arc round-1 critic post. It is a proposed map, not synthesis bind.\n\n\n### Comment by @MScottAdams (2026-09-07T18:22:24Z)\n\nmodel: grok-4.6\nrole: parent\n\nAccept successor lean 5574382652 (operator verb: yolo / accept).\n\nThe proposed takes are now bindable:\n\n- Critic 5574380260 heading 1 (consumer overlay): accept-into-contract\n- Critic 5574380260 heading 2 (lock one primary job): accept-into-contract\n- Critic 5574380260 heading 3 (treat-as-unbound): census\n\nFootnotes stay census only. Audit markers: none. Same-round siblings are posted. Empty disagreement set. Auto-stamp path runs next.\n\n\n### Comment by @MScottAdams (2026-09-07T18:22:38Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nSHA: 7236655ef6f586169c94f3c4ce5eeccf5668960b. Method for every row: primary-source `git show` of that pin, or a node require of that pin's dist against a one-clause fixture. Not critic agreement.\n\n| Claim | Value | Method |\n| --- | --- | --- |\n| bound `existing callers are unchanged` @ README.md | `unverifiable`, `adjudicable: true`, walk `ok: false` | `walkAcceptanceClauses` via dist |\n| same text, `artifact_path: null` | `unverifiable`, `adjudicable: false`, walk `ok: true` | same |\n| `clauseWalkBlocks` bound, no green run | true | dist `clauseWalkBlocks` |\n| `clauseWalkBlocks` bound, green run | false | same |\n| `evaluateVerifyAcFromPlan` `hasSuiteFloor: true` | `ok=false`, verdict `clause-walk-failed`, remedy ship/bind | dist `evaluateVerifyAcFromPlan` |\n| same fixture `hasSuiteFloor: false` | `ok=false`, `resolution=soft_empty`, verdict `empty-acceptance` `#3334` | same |\n| `isEmptyAcResolution` 0 commands / 0 runs | true even when clause outcomes exist | `empty-resolution.ts` at pin |\n| `applyOracle` walk with no verified row | sends result through `applyEmptyFloorPolicy` | `evaluate.ts` at pin |\n\n\n### Comment by @MScottAdams (2026-09-07T18:22:58Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\n`#4240` recut is the next-build contract: a bound behavioral clause with no executable run still cannot complete. The consumer path currently names that as `#3334` empty-acceptance. The primary job is to let that fixture complete without a grep token, or refuse it under a true predicate. How (evidence kind vs treat-as-unbound) stays open. This record is not ingest until asked.\n\nThis parent authored Stop 1 comment 5574359881 and critic 5574380260. The accepted takes are critic 5574380260. Empty disagreement set. Older record 5574304813 does not clear this recut body.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean 5574382652\nverified-claims table 5574385748",
+      "Labels": "bug, area:cli, area:vbrief, design-critique:triage-ready",
+      "UserStory": "As a stated-rung brief author, I want bound behavioral clauses without a grep token or executable run to complete or refuse under a true predicate, so that honest negative criteria are not forced into checkable tokens.",
+      "ImplementationPlan": "Keep the recut body as next-build. Pin the consumer overlay in applyEmptyFloorPolicy after a walk that verified nothing. Lock one primary job so fixing a false remedy string is not enough. How stays open: non-file evidence kind versus treat bound behavioral like unbound. Do not restore verified.length greater than zero. Do not re-land 3497 or 4103. Tests pin the residual fixture on both floors. Change files in the product-first-done-gate module (evaluate.ts, empty-resolution.ts) and verify-ac clauses module. Verify with targeted vitest tests and fixtures plus task check."
+    },
+    "items": [
+      {
+        "title": "Given one bound behavioral clause with no extractable tokens and no executable commands, when verify:ac or scope:complet",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given one bound behavioral clause with no extractable tokens and no executable commands, when verify:ac or scope:complete runs, then it does not fail solely because the walk returned unverifiable, or the printed verdict names that bound-behavioral case."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/empty-resolution.test.ts#completes the bound fixture on a suite floor without a grep token",
+          "recorded_at": "2026-09-08T15:22:28.144Z",
+          "recorded_by": "review-cycle-4250-parent-retained"
+        }
+      },
+      {
+        "title": "Given the same bound fixture plus a green executable run, when clauseWalkBlocks evaluates, then that unverifiable clause",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the same bound fixture plus a green executable run, when clauseWalkBlocks evaluates, then that unverifiable clause does not block completion."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/empty-resolution.test.ts#does not block the bound fixture when a green executable run is present",
+          "recorded_at": "2026-09-08T15:22:28.144Z",
+          "recorded_by": "review-cycle-4250-parent-retained"
+        }
+      },
+      {
+        "title": "Given an unbound clause with the same text, when the walk runs, then it remains non-blocking.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given an unbound clause with the same text, when the walk runs, then it remains non-blocking."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/verify-ac/clauses.test.ts#keeps the same text unbound and non-blocking",
+          "recorded_at": "2026-09-08T15:22:28.144Z",
+          "recorded_by": "review-cycle-4250-parent-retained"
+        }
+      },
+      {
+        "title": "Given an empty clauses array, when empty-floor policy runs, then 3334 empty-acceptance still refuses and is distinct fro",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given an empty clauses array, when empty-floor policy runs, then 3334 empty-acceptance still refuses and is distinct from the bound-behavioral overlay."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/product-first-done-gate/empty-resolution.test.ts#still refuses empty clauses[] as #3334 on a consumer floor",
+          "recorded_at": "2026-09-08T15:22:28.144Z",
+          "recorded_by": "review-cycle-4250-parent-retained"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "area:cli",
+      "area:vbrief",
+      "design-critique:triage-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4240",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4240: bug(verify-ac): bound behavioral clauses with no executable run still cannot complete"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "— expected token(s) missing from README.md: s own posture (",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L102"
+        },
+        {
+          "command": "cat > /tmp/repro-apostrophe.xbrief.json <<'EOF'",
+          "reason": "shell metacharacter \">\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L124:bash"
+        },
+        {
+          "command": "{",
+          "reason": "shell metacharacter \"{\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L124:bash"
+        },
+        {
+          "command": "\"xBRIEFInfo\": {\"version\": \"0.8\", \"author\": \"repro\", \"description\": \"repro\",",
+          "reason": "shell metacharacter \"{\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L124:bash"
+        },
+        {
+          "command": "\"created\": \"2026-09-07T00:00:00Z\", \"updated\": \"2026-09-07T00:00:00Z\"},",
+          "reason": "shell metacharacter \"}\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L124:bash"
+        },
+        {
+          "command": "\"plan\": {\"title\": \"repro apostrophe token\", \"status\": \"running\", \"items\": [],",
+          "reason": "shell metacharacter \"{\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L124:bash"
+        },
+        {
+          "command": "\"acceptance\": {\"commands\": [], \"none_stated\": true, \"source_rung\": \"stated\",",
+          "reason": "shell metacharacter \"{\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L124:bash"
+        },
+        {
+          "command": "\"clauses\": [{\"id\": 1,",
+          "reason": "shell metacharacter \"{\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L124:bash"
+        },
+        {
+          "command": "\"text\": \"The doc describes the project's own posture ('AgentSentri').\",",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L124:bash"
+        },
+        {
+          "command": "\"artifact_path\": \"README.md\"}]}}",
+          "reason": "shell metacharacter \"}\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L124:bash"
+        },
+        {
+          "command": "}",
+          "reason": "shell metacharacter \"}\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L124:bash"
+        },
+        {
+          "command": "EOF",
+          "reason": "first token \"eof\" is not in the literal-AC allowlist",
+          "sourceSpan": "fence@L124:bash"
+        },
+        {
+          "command": "deft verify:ac --xbrief /tmp/repro-apostrophe.xbrief.json; echo \"exit=$?\"",
+          "reason": "shell metacharacter \";\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L124:bash"
+        },
+        {
+          "command": "verified.length > 0",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "verify:ac passed",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L11"
+        },
+        {
+          "command": "verified.length > 0 || walked.length === 0",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L32"
+        },
+        {
+          "command": "1 verified, 0 unverifiable, 0 failed",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L80"
+        },
+        {
+          "command": "verify:ac passed (#3284) [rung=stated]",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L80"
+        },
+        {
+          "command": "0 verified, 0 unverifiable, 1 failed",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L81"
+        },
+        {
+          "command": "0 verified, 1 unverifiable, 0 failed",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L82"
+        },
+        {
+          "command": "task verify:ac -- <completing-xbrief>",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L84"
+        },
+        {
+          "command": "verify:ac failed",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L143"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/product-first-done-gate/evaluate.ts",
+          "packages/core/src/product-first-done-gate/acceptance-resolver.ts",
+          "packages/core/src/product-first-done-gate/empty-resolution.ts",
+          "packages/core/src/verify-ac/clauses.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/product-first-done-gate/empty-resolution.test.ts packages/core/src/verify-ac/clauses.test.ts"
+        ],
+        "expected_outputs": [
+          "bound behavioral fixture can complete or true-predicate refuse",
+          "consumer empty-floor overlay distinguished from empty clauses",
+          "tests pin residual without verified.length set predicate",
+          "CHANGELOG #4240"
+        ],
+        "depends_on": [],
+        "conflict_group": "4240-behavioral-clause-complete",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Ingested from GitHub issue #4240 recut plus accepted consumer-overlay takes; no numbered FR registry."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5377593264,
+        "origin": "deftai/directive#4240",
+        "id": "github.issue.5377593264"
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4250,
+        "prBase": null,
+        "mergeCommit": "802f2cb8db90b883261a0145e0ddad12833fc57e",
+        "deliveryBranch": "master",
+        "deliveryCommit": "802f2cb8db90b883261a0145e0ddad12833fc57e",
+        "verifiedAt": "2026-09-08T15:26:59Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDgxNDctMzA1YS03NzIzLTllYjctZWI3NGU3NWUwYTBj"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-08T15:26:59Z"
+      },
+      "completedAt": "2026-09-08T15:26:59Z",
+      "completedSessionId": "host:grok:v1:MDFhMDgxNDctMzA1YS03NzIzLTllYjctZWI3NGU3NWUwYTBj",
+      "capacityBucket": "technical-debt"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "A fixture with one bound behavioral clause, no extractable tokens, no executable commands, and a declared `file_scope` path does not fail `scope:complete` / `verify:ac` solely because the walk returned `unverifiable`, or the printed verdict names that case.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The same fixture with a green executable run still does not block on that unverifiable clause.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "An unbound clause still does not block.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Empty `clauses[]` still fails `#3334`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Tests pin the residual; they do not re-assert the old `verified.length > 0` set predicate.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5377593264",
+    "updated": "2026-09-08T15:26:59Z"
+  }
+}
