@@ -991,6 +991,47 @@ describe("bound behavioral clauses have no static oracle (#4240)", () => {
     expect(report.ok).toBe(true);
   });
 
+  it("fails a short bound name whose clause requires absence", () => {
+    const root = mkdtempSync(join(tmpdir(), "clause-4240-short-"));
+    writeFileSync(join(root, "ab"), "x\n", "utf8");
+    const report = walkAcceptanceClauses(
+      [
+        {
+          id: 1,
+          text: "ab must not exist",
+          artifact_path: "ab",
+          ambiguous: false,
+        },
+      ],
+      root,
+      { declaredScope: ["ab"] },
+    );
+    expect(report.clauses[0]?.outcome).toBe("failed");
+    expect(report.clauses[0]?.adjudicable).toBe(true);
+    expect(report.ok).toBe(false);
+  });
+
+  it("fails a ./ prefixed absence clause against the normalized bound path", () => {
+    const root = mkdtempSync(join(tmpdir(), "clause-4240-dotslash-"));
+    mkdirSync(join(root, "src"));
+    writeFileSync(join(root, "src", "result.ts"), "export const ok = true;\n", "utf8");
+    const report = walkAcceptanceClauses(
+      [
+        {
+          id: 1,
+          text: "./src/result.ts must not exist",
+          artifact_path: "src/result.ts",
+          ambiguous: false,
+        },
+      ],
+      root,
+      { declaredScope: ["src/result.ts"] },
+    );
+    expect(report.clauses[0]?.outcome).toBe("failed");
+    expect(report.clauses[0]?.adjudicable).toBe(true);
+    expect(report.ok).toBe(false);
+  });
+
   it("does not fail other-subject should-not-exist prose on a present bound file", () => {
     const root = mkdtempSync(join(tmpdir(), "clause-4240-should-not-"));
     writeFileSync(join(root, "shipped.ts"), "export const ok = true;\n", "utf8");

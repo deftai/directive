@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Bound behavioral clauses no longer block complete without a grep token (#4240).** A declared path with no extractable tokens and no existence claim is not an oracle. Consumer empty-floor no longer prints `#3334` when clauses exist. Empty `clauses[]` still refuses. Absence wording such as `must be absent` still fails when the bound file is present and named as a path token. Other-subject negation is not an oracle for that path. Does not restore `verified.length > 0`. Does not recut #3497 or #4103. Companion #4239 stays open. Closes #4240.
+- **Bound behavioral clauses no longer block complete without a grep token (#4240).** A declared path with no extractable tokens and no existence claim is not an oracle. Consumer empty-floor no longer prints `#3334` when clauses exist. Empty `clauses[]` still refuses. Absence wording such as `must be absent` still fails when the bound file is present and named as a path token, including short names and `./` prefixes. Other-subject negation is not an oracle for that path. Does not restore `verified.length > 0`. Does not recut #3497 or #4103. Companion #4239 stays open. Closes #4240.
 
 ### Removed
 

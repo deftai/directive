@@ -77,22 +77,38 @@ const EXISTENCE_CLAIM =
 const NEGATED_EXISTENCE =
   /\b(?:does not exist|doesn't exist|must not exist|never exists?|not exist|must be absent|must remain absent|must stay absent|should be absent|must not be present|should not exist|must not be shipped)\b/i;
 
+function stripLeadingDotSlash(path: string): string {
+  let unified = path.replace(/\\/g, "/");
+  while (unified.startsWith("./")) {
+    unified = unified.slice(2);
+  }
+  return unified;
+}
+
 function hasPathToken(text: string, token: string): boolean {
-  if (token.length < 3) {
+  if (token.length === 0) {
+    return false;
+  }
+  // Single-letter tokens are English articles too often; 2-char names (`ab`, `go`)
+  // and any token with a path or extension separator are exact path mentions.
+  if (token.length < 2 && !token.includes(".") && !token.includes("/")) {
     return false;
   }
   const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`(?:^|[^A-Za-z0-9_./\\\\-])${escaped}(?![A-Za-z0-9._-])`).test(text);
+  // `./src/result.ts` must still name bound `src/result.ts`: allow a `./` prefix
+  // as a boundary, not only start-of-string or a non-path character.
+  return new RegExp(`(?:^|[^A-Za-z0-9_./\\\\-]|\\./)${escaped}(?![A-Za-z0-9._-])`).test(text);
 }
 
 /** True when the clause names the bound path, not some other runtime subject. */
 function clauseNamesBoundArtifact(text: string, artifactPath: string): boolean {
-  const unified = artifactPath.replace(/\\/g, "/");
-  if (hasPathToken(text, artifactPath) || hasPathToken(text, unified)) {
-    return true;
-  }
+  const unified = stripLeadingDotSlash(artifactPath);
+  const candidates = [artifactPath, unified, `./${unified}`];
   const base = basename(unified);
-  return hasPathToken(text, base);
+  if (base.length > 0) {
+    candidates.push(base, `./${base}`);
+  }
+  return candidates.some((candidate) => hasPathToken(text, candidate));
 }
 
 function isBoundArtifactAbsenceClaim(text: string, artifactPath: string): boolean {
