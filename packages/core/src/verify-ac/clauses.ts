@@ -75,7 +75,7 @@ const SCRATCH_SEGMENTS = new Set([
 const EXISTENCE_CLAIM =
   /\b(?:exists?|stored on|written to|emitted? (?:at|to)|at its stated path|artifact path)\b/i;
 const NEGATED_EXISTENCE =
-  /\b(?:does not exist|doesn't exist|must not exist|never exists?|not exist)\b/i;
+  /\b(?:does not exist|doesn't exist|must not exist|never exists?|not exist|must be absent|must remain absent|must stay absent|should be absent|must not be present|should not exist|must not be shipped)\b/i;
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (typeof value === "object" && value !== null && !Array.isArray(value)) {
@@ -878,9 +878,11 @@ function walkOne(
   if (EXISTENCE_CLAIM.test(clause.text)) {
     return bound("verified", `shipped artifact exists at ${artifactPath}`);
   }
-  // #4240: a declared path is not an oracle for a behavioral or negative claim
-  // with no extractable tokens and no existence claim. Treat it like unbound:
+  // #4240: a declared path is not an oracle for a behavioral claim with no
+  // extractable tokens and no existence claim. Treat it like unbound:
   // unverifiable, not adjudicable. failed === 0 is the strongest static verdict.
+  // Absence wording is recognized above via NEGATED_EXISTENCE so a present
+  // artifact still fails; this fallthrough is not an absence oracle.
   return {
     id: clause.id,
     text: clause.text,

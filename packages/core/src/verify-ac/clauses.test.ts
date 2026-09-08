@@ -930,4 +930,25 @@ describe("bound behavioral clauses have no static oracle (#4240)", () => {
     expect(report.clauses[0]?.adjudicable).toBe(true);
     expect(report.ok).toBe(false);
   });
+
+  it("still fails unrecognized absence wording when the bound artifact is present", () => {
+    const root = mkdtempSync(join(tmpdir(), "clause-4240-absent-"));
+    writeFileSync(join(root, "README.md"), "still here\n", "utf8");
+    const report = walkAcceptanceClauses(
+      [
+        {
+          id: 1,
+          text: "README.md must be absent",
+          artifact_path: "README.md",
+          ambiguous: false,
+        },
+      ],
+      root,
+      { declaredScope: ["README.md"] },
+    );
+    expect(report.clauses[0]?.outcome).toBe("failed");
+    expect(report.clauses[0]?.adjudicable).toBe(true);
+    expect(report.clauses[0]?.detail).toMatch(/requires absence/);
+    expect(report.ok).toBe(false);
+  });
 });
