@@ -12,12 +12,16 @@ import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { cachePut } from "../cache/operations.js";
 import { FixedClock } from "../cache/test-helpers.js";
-import { DesignCritiqueIngestBlockedError } from "../design-critique/completed-arc-record.js";
+import {
+  DesignCritiqueIngestBlockedError,
+  hashIssueBodyBytes,
+} from "../design-critique/completed-arc-record.js";
 import { INTENDED_PLACEMENT_SCHEMA } from "../preflight/intended-placement.js";
 import type { CompletedProcess } from "../scm/call.js";
 import * as scm from "../scm/call.js";
 import { runTransition } from "../scope/transition.js";
 import {
+  ADMITTED_TARGET_DIGEST_META_KEY,
   buildIssueVbrief,
   enrichIssueWithComments,
   evaluateIssuePlanIdAdmission,
@@ -1147,6 +1151,254 @@ describe("ingestOne completed-arc record (#3806)", () => {
         ),
       ).toThrow(DesignCritiqueIngestBlockedError);
       expect(readdirSync(xbriefDir).filter((n) => n.endsWith(".json"))).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("ingestOne Target-digest (#4243)", () => {
+  const restBody = "## Acceptance\n- wait on completed-arc record";
+  const digest = hashIssueBodyBytes(restBody);
+  const lean = {
+    id: 5442939496,
+    body: `**Lean:** chips are convenience.\n\nTarget-digest: sha256:${digest}\n`,
+  };
+  const table = {
+    id: 5443106967,
+    body: "## Verified-claims table\n",
+  };
+  const synthesis = {
+    id: 5443114746,
+    body:
+      "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+      "Bound contract: successor lean 5442939496, verified-claims table 5443106967.\n",
+  };
+
+  function liveIssueScm(issue: {
+    readonly number: number;
+    readonly title: string;
+    readonly body: string;
+  }) {
+    return vi.fn((_source: string, _verb: string, args: readonly string[]) => {
+      const path = args[0] ?? "";
+      if (path.includes("/comments")) {
+        return completed("[]", "", 0);
+      }
+      return completed(
+        JSON.stringify({
+          number: issue.number,
+          title: issue.title,
+          body: issue.body,
+          html_url: `https://github.com/o/r/issues/${issue.number}`,
+        }),
+        "",
+        0,
+      );
+    });
+  }
+
+  it("ingests a matching Target-digest and records the admitted digest on the scope", () => {
+    const root = mkdtempSync(join(tmpdir(), "ingest-4243-ok-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(xbriefDir, { recursive: true });
+    try {
+      const scmCall = liveIssueScm({
+        number: 4243,
+        title: "fresh title",
+        body: restBody,
+      });
+      const [result, path] = ingestOne(
+        {
+          number: 4243,
+          title: "stale title",
+          html_url: "https://github.com/o/r/issues/4243",
+          body: "cached body must not be admission",
+          labels: [{ name: "design-critique:triage-ready" }],
+          [ISSUE_COMMENT_THREAD_KEY]: [lean, table, synthesis],
+        },
+        {
+          vbriefDir: xbriefDir,
+          status: "proposed",
+          repoUrl: "https://github.com/o/r",
+          cwd: root,
+          scmCall,
+        },
+      );
+      expect(result).toBe("created");
+      expect(path).toBeTruthy();
+      const written = readJsonObject(path as string);
+      const plan = written.plan as Record<string, unknown>;
+      const meta = plan.metadata as Record<string, unknown>;
+      expect(meta[ADMITTED_TARGET_DIGEST_META_KEY]).toEqual({
+        schema: "deft.scope.admitted-target-digest.v1",
+        algorithm: "sha256",
+        sha256: digest,
+      });
+      expect(
+        scmCall.mock.calls.some((call) => String(call[2]?.[0] ?? "").includes("/comments")),
+      ).toBe(false);
+      expect(
+        scmCall.mock.calls.some((call) => String(call[2]?.[0] ?? "") === "repos/o/r/issues/4243"),
+      ).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses stale-target on a live body edit and writes nothing", () => {
+    const root = mkdtempSync(join(tmpdir(), "ingest-4243-stale-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(xbriefDir, { recursive: true });
+    try {
+      expect(() =>
+        ingestOne(
+          {
+            number: 4243,
+            title: "title",
+            html_url: "https://github.com/o/r/issues/4243",
+            body: restBody,
+            labels: [{ name: "design-critique:triage-ready" }],
+            [ISSUE_COMMENT_THREAD_KEY]: [lean, table, synthesis],
+          },
+          {
+            vbriefDir: xbriefDir,
+            status: "proposed",
+            repoUrl: "https://github.com/o/r",
+            cwd: root,
+            scmCall: liveIssueScm({
+              number: 4243,
+              title: "title",
+              body: `${restBody}\n`,
+            }),
+          },
+        ),
+      ).toThrow(DesignCritiqueIngestBlockedError);
+      try {
+        ingestOne(
+          {
+            number: 4243,
+            title: "title",
+            html_url: "https://github.com/o/r/issues/4243",
+            body: restBody,
+            labels: [{ name: "design-critique:triage-ready" }],
+            [ISSUE_COMMENT_THREAD_KEY]: [lean, table, synthesis],
+          },
+          {
+            vbriefDir: xbriefDir,
+            status: "proposed",
+            repoUrl: "https://github.com/o/r",
+            cwd: root,
+            scmCall: liveIssueScm({
+              number: 4243,
+              title: "title",
+              body: `${restBody}\n`,
+            }),
+          },
+        );
+      } catch (error) {
+        expect((error as DesignCritiqueIngestBlockedError).reason).toBe("stale-target");
+      }
+      expect(readdirSync(xbriefDir).filter((n) => n.endsWith(".json"))).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("proceeds when only the title changed and body bytes match", () => {
+    const root = mkdtempSync(join(tmpdir(), "ingest-4243-title-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(xbriefDir, { recursive: true });
+    try {
+      const [result] = ingestOne(
+        {
+          number: 4243,
+          title: "old title",
+          html_url: "https://github.com/o/r/issues/4243",
+          body: restBody,
+          labels: [{ name: "design-critique:triage-ready" }],
+          [ISSUE_COMMENT_THREAD_KEY]: [lean, table, synthesis],
+        },
+        {
+          vbriefDir: xbriefDir,
+          status: "proposed",
+          repoUrl: "https://github.com/o/r",
+          cwd: root,
+          scmCall: liveIssueScm({
+            number: 4243,
+            title: "new title only",
+            body: restBody,
+          }),
+        },
+      );
+      expect(result).toBe("created");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("still admits a legacy complete record with no Target-digest", () => {
+    const root = mkdtempSync(join(tmpdir(), "ingest-4243-legacy-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(xbriefDir, { recursive: true });
+    const scmCall = vi.fn(() => completed("[]", "", 0));
+    try {
+      const [result] = ingestOne(
+        {
+          number: 4241,
+          title: "legacy recut bind",
+          html_url: "https://github.com/o/r/issues/4241",
+          body: restBody,
+          labels: [{ name: "design-critique:triage-ready" }],
+          [ISSUE_COMMENT_THREAD_KEY]: [
+            { id: 5442939496, body: "**Lean:** Recut: leftover.\n" },
+            table,
+            synthesis,
+          ],
+        },
+        {
+          vbriefDir: xbriefDir,
+          status: "proposed",
+          repoUrl: "https://github.com/o/r",
+          cwd: root,
+          scmCall,
+        },
+      );
+      expect(result).toBe("created");
+      expect(scmCall).not.toHaveBeenCalled();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("returns duplicate-already-tracked before any live body fetch", () => {
+    const root = mkdtempSync(join(tmpdir(), "ingest-4243-dup-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(xbriefDir, { recursive: true });
+    const existing = "proposed/already.xbrief.json";
+    writeFileSync(join(xbriefDir, "already.xbrief.json"), "{}\n", "utf8");
+    const scmCall = vi.fn(() => completed("[]", "", 0));
+    try {
+      const [result] = ingestOne(
+        {
+          number: 4243,
+          title: "dup",
+          html_url: "https://github.com/o/r/issues/4243",
+          body: restBody,
+          labels: [{ name: "design-critique:triage-ready" }],
+          [ISSUE_COMMENT_THREAD_KEY]: [lean, table, synthesis],
+        },
+        {
+          vbriefDir: xbriefDir,
+          status: "proposed",
+          repoUrl: "https://github.com/o/r",
+          cwd: root,
+          scmCall,
+          existingRefs: new Map([[4243, [existing]]]),
+        },
+      );
+      expect(result).toBe("duplicate");
+      expect(scmCall).not.toHaveBeenCalled();
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

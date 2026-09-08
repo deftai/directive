@@ -16,6 +16,7 @@
  * A later successor lean after cancel starts a recut arc.
  */
 
+import { createHash } from "node:crypto";
 import {
   ACCEPTED_CITATION_FORMS,
   type Citation,
@@ -45,6 +46,7 @@ export const COMPLETED_ARC_BLOCK_REASONS = [
   "ambiguous-table-cite",
   "cancelled",
   "unrecut-body",
+  "stale-target",
 ] as const;
 
 export type CompletedArcBlockReason = (typeof COMPLETED_ARC_BLOCK_REASONS)[number];
@@ -68,6 +70,10 @@ const CANCELLED_SHAPE_RE = /(?:^|\n)\s*design-critique:\s*cancelled,\s*because\b
 const TARGET_SHAPE_FIELD_RE = /(?:^|\n)\s*target shape:\s*([^\n]+)/gi;
 const LEAN_HEADING_RE = /(?:^|\n)\s*\*{0,2}Lean:\*{0,2}/;
 const TABLE_HEADING_RE = /(?:^|\n)\s*##\s+Verified-claims table\b/;
+/** Same wrapping as Lean: — zero to two asterisks independently on each side. */
+const TARGET_DIGEST_HEADING_RE = /(?:^|\n)\s*\*{0,2}Target-digest:\*{0,2}/g;
+const TARGET_DIGEST_VALUE_RE =
+  /(?:^|\n)\s*\*{0,2}Target-digest:\*{0,2}[ \t]*sha256:([a-f0-9]{64})[ \t]*(?=\r?(?:\n|$))/g;
 
 /** How many ids a block detail lists before it truncates. */
 const DETAIL_ID_LIMIT = 5;
@@ -96,8 +102,89 @@ export function isCancelledShape(body: string): boolean {
   return CANCELLED_SHAPE_RE.test(body);
 }
 
+function operativeLineStartOffset(match: RegExpMatchArray, token: string): number {
+  const matchOffset = match.index ?? 0;
+  const inner = match[0].search(token);
+  return matchOffset + (inner >= 0 ? inner : 0);
+}
+
+/**
+ * Operative `Target-digest:` line-start. Fence, quote, inline-code, strike,
+ * and negation do not count — same classifyPosition family as citations (#4243).
+ */
+export function hasOperativeTargetDigestLine(body: string): boolean {
+  const re = new RegExp(TARGET_DIGEST_HEADING_RE.source, "g");
+  for (const match of body.matchAll(re)) {
+    if (classifyPosition(body, operativeLineStartOffset(match, "Target-digest:")) === null) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function isSuccessorLeanBody(body: string): boolean {
-  return LEAN_HEADING_RE.test(body);
+  return LEAN_HEADING_RE.test(body) || hasOperativeTargetDigestLine(body);
+}
+
+/** First operative `Target-digest: sha256:` + 64 lowercase hex digits, or null. */
+export function extractOperativeTargetDigest(body: string): string | null {
+  const re = new RegExp(TARGET_DIGEST_VALUE_RE.source, "g");
+  for (const match of body.matchAll(re)) {
+    if (classifyPosition(body, operativeLineStartOffset(match, "Target-digest:")) !== null) {
+      continue;
+    }
+    const digest = match[1];
+    if (typeof digest === "string" && digest.length === 64) return digest;
+  }
+  return null;
+}
+
+/** SHA-256 of GitHub REST issue `body` bytes as returned. No extra newline. */
+export function hashIssueBodyBytes(body: string): string {
+  return createHash("sha256").update(body, "utf8").digest("hex");
+}
+
+export type TargetDigestAdmission =
+  | { readonly status: "unpinned" }
+  | { readonly status: "match"; readonly digest: string }
+  | {
+      readonly status: "blocked";
+      readonly reason: "stale-target";
+      readonly detail: string;
+    };
+
+/**
+ * Ingest admission against the cited successor lean's Target-digest (#4243).
+ * Legacy leans with no digest stay unpinned (admitted). Recut-without-digest
+ * stays on #4237.
+ */
+export function evaluateTargetDigestAdmission(input: {
+  readonly citedLeanBody: string;
+  readonly liveIssueBody: string;
+}): TargetDigestAdmission {
+  const pinned = extractOperativeTargetDigest(input.citedLeanBody);
+  if (pinned === null) {
+    if (hasOperativeTargetDigestLine(input.citedLeanBody)) {
+      return {
+        status: "blocked",
+        reason: "stale-target",
+        detail:
+          "cited successor lean carries Target-digest: but it is not sha256: plus 64 lowercase hex digits",
+      };
+    }
+    return { status: "unpinned" };
+  }
+  const live = hashIssueBodyBytes(input.liveIssueBody);
+  if (live !== pinned) {
+    return {
+      status: "blocked",
+      reason: "stale-target",
+      detail:
+        `live REST issue body sha256:${live} does not match Target-digest sha256:${pinned}; ` +
+        "cache is not admission",
+    };
+  }
+  return { status: "match", digest: pinned };
 }
 
 export function isVerifiedClaimsTableBody(body: string): boolean {

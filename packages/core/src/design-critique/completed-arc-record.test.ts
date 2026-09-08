@@ -3,7 +3,10 @@ import {
   assertCompletedArcAllowsIngest,
   DesignCritiqueIngestBlockedError,
   evaluateCompletedArcRecord,
+  evaluateTargetDigestAdmission,
   extractCitedCommentIds,
+  extractOperativeTargetDigest,
+  hashIssueBodyBytes,
   type ThreadComment,
 } from "./completed-arc-record.js";
 
@@ -1140,5 +1143,54 @@ describe("set-level recut-then-ingest refuse (#4057)", () => {
       expect(error).toBeInstanceOf(DesignCritiqueIngestBlockedError);
       expect((error as DesignCritiqueIngestBlockedError).reason).toBe("cancelled");
     }
+  });
+});
+
+describe("Target-digest admission (#4243)", () => {
+  const restBody = "## Summary\n\nNo trailing newline";
+  const digest = hashIssueBodyBytes(restBody);
+
+  it("leaves a legacy lean without a digest unpinned", () => {
+    expect(
+      evaluateTargetDigestAdmission({ citedLeanBody: lean.body, liveIssueBody: restBody }),
+    ).toEqual({ status: "unpinned" });
+  });
+
+  it("matches the live REST body bytes and refuses a trailing-newline loader", () => {
+    const cited = `**Lean:** pin.\n\nTarget-digest: sha256:${digest}\n`;
+    expect(extractOperativeTargetDigest(cited)).toBe(digest);
+    expect(
+      evaluateTargetDigestAdmission({ citedLeanBody: cited, liveIssueBody: restBody }),
+    ).toEqual({
+      status: "match",
+      digest,
+    });
+    const loader = `${restBody}\n`;
+    expect(hashIssueBodyBytes(loader)).not.toBe(digest);
+    expect(
+      evaluateTargetDigestAdmission({ citedLeanBody: cited, liveIssueBody: loader }),
+    ).toMatchObject({ status: "blocked", reason: "stale-target" });
+  });
+
+  it("refuses whitespace, checkbox, and CRLF edits after the pin", () => {
+    const cited = `**Lean:** pin.\n\nTarget-digest: sha256:${digest}\n`;
+    for (const edited of [`${restBody} `, `${restBody}\r\n`, `${restBody}\n- [x] done`]) {
+      expect(
+        evaluateTargetDigestAdmission({ citedLeanBody: cited, liveIssueBody: edited }),
+        JSON.stringify(edited),
+      ).toMatchObject({ status: "blocked", reason: "stale-target" });
+    }
+  });
+
+  it("does not treat a title as part of the digest", () => {
+    expect(hashIssueBodyBytes(restBody)).toBe(digest);
+  });
+
+  it("refuses a digest value with trailing text after the 64 hex digits", () => {
+    const cited = `**Lean:** pin.\n\nTarget-digest: sha256:${digest} trailing-text\n`;
+    expect(extractOperativeTargetDigest(cited)).toBeNull();
+    expect(
+      evaluateTargetDigestAdmission({ citedLeanBody: cited, liveIssueBody: restBody }),
+    ).toMatchObject({ status: "blocked", reason: "stale-target" });
   });
 });
