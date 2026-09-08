@@ -127,8 +127,7 @@
           "packages/core/src/session/spawn-occupancy.ts"
         ],
         "verify_commands": [
-          "pnpm exec vitest run packages/core/src/hooks/dispatcher.test.ts packages/core/src/session/spawn-occupancy.ts",
-          "task check"
+          "pnpm exec vitest run packages/core/src/hooks/dispatcher.test.ts packages/core/src/hooks/readonly.test.ts packages/core/src/session/spawn-occupancy.test.ts"
         ],
         "expected_outputs": [
           "critic spawn tag early-allow",
