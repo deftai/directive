@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4254",
-    "updated": "2026-09-08T16:32:19Z"
+    "updated": "2026-09-08T18:00:54Z"
   },
   "plan": {
     "title": "bug(hooks,harness): dest-lock consult-deny after first allow ghosts a retry",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(hooks,harness): dest-lock consult-deny after first allow ghosts a retry",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4254",
@@ -16,27 +16,63 @@
     "items": [
       {
         "title": "Two `tool.before` invocations for one Grok `spawn_subagent` on one dest-proven cwd, first allow persisted, no live occupant: the second consult does not deny `already reserved` and does not leave a ghost dest-lock a human must delete by incarnation",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts leftover-releases then allows a later same-parent Grok tool.before with no live occupant (#4254); packages/core/src/session/spawn-occupancy.test.ts leftover-releases then mints a new incarnation on a later same-parent consult",
+          "recorded_at": "2026-09-08T18:10:00Z",
+          "recorded_by": "leaf-implementation/4254"
+        }
       },
       {
         "title": "Two different dispatch incarnations on the same dest still conflict",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/spawn-occupancy.test.ts still reservation-conflicts a presented incarnation that is not the leftover",
+          "recorded_at": "2026-09-08T18:10:00Z",
+          "recorded_by": "leaf-implementation/4254"
+        }
       },
       {
         "title": "Two parents on the same dest still conflict",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts keeps persist/reservation-conflict as the final launch refusal after two dest-proven consults; packages/core/src/session/spawn-occupancy.test.ts still reservation-conflicts two parents on one leftover dest",
+          "recorded_at": "2026-09-08T18:10:00Z",
+          "recorded_by": "leaf-implementation/4254"
+        }
       },
       {
         "title": "Occupied persist still releases this incarnation; EXISTS conflict does not delete the winner",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/spawn-occupancy.test.ts persist refuses a dest that became occupied after consult; EXISTS of a different incarnation does not delete the winner",
+          "recorded_at": "2026-09-08T18:10:00Z",
+          "recorded_by": "leaf-implementation/4254"
+        }
       },
       {
         "title": "`general-purpose` implement spawn still requires a unique linked worktree (#4066)",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/spawn-occupancy.test.ts dest-locks across sibling parent worktrees of the same repo; packages/core/src/hooks/dispatcher-spawn-dest.test.ts occupancy-denies Grok cwd plus worktree_path without skipping ritual or dest-lock",
+          "recorded_at": "2026-09-08T18:10:00Z",
+          "recorded_by": "leaf-implementation/4254"
+        }
       },
       {
         "title": "CHANGELOG",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4261 CHANGELOG Unreleased dest-lock leftover-release (#4254); merge e8530fba836b3c60a521ef60a45fa4bd653ee9cb",
+          "recorded_at": "2026-09-08T18:10:00Z",
+          "recorded_by": "leaf-implementation/4254"
+        }
       }
     ],
     "tags": [
@@ -76,7 +112,32 @@
         "github_issue_id": 5387876801,
         "origin": "deftai/directive#4254",
         "id": "github.issue.5387876801"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4261,
+        "prBase": null,
+        "mergeCommit": "e8530fba836b3c60a521ef60a45fa4bd653ee9cb",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e8530fba836b3c60a521ef60a45fa4bd653ee9cb",
+        "verifiedAt": "2026-09-08T18:00:54Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDgxZDctZWY4YS03ODcyLWFhOTYtYWQzMmRmNGQ3Mjlh"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-08T18:00:54Z"
+      },
+      "completedAt": "2026-09-08T18:00:54Z",
+      "completedSessionId": "host:grok:v1:MDFhMDgxZDctZWY4YS03ODcyLWFhOTYtYWQzMmRmNGQ3Mjlh",
+      "capacityBucket": "technical-debt"
     },
     "acceptance": {
       "commands": [],
@@ -130,6 +191,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.5387876801",
-    "updated": "2026-09-08T16:32:19Z"
+    "updated": "2026-09-08T18:00:54Z"
   }
 }
