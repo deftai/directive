@@ -89,6 +89,17 @@ describe("named-cause gate failures (#3282)", () => {
     expect(cause).not.toContain("DEFT_FOO");
   });
 
+  it("selects a FAIL or Tests line instead of a banner (#4230)", () => {
+    const cause = extractGateCause(
+      "vitest banner\nFAIL packages/core/src/foo.test.ts\nTests  1 failed\n",
+      "check: starting suite gate ts:check-lane\n",
+      1,
+      undefined,
+      "ts:check-lane",
+    );
+    expect(cause).toMatch(/FAIL packages\/core\/src\/foo\.test\.ts/);
+  });
+
   it("formats degraded skip report with causes", () => {
     const lines = formatDegradedSkipReport({
       reason: "task missing",

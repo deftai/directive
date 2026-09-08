@@ -19,6 +19,18 @@ export interface CheckOrchestratorSeams extends CheckOrchestratorOptions {
   readonly env?: NodeJS.ProcessEnv;
   /** Wall-clock spawn timeout in milliseconds (default: none). */
   readonly timeoutMs?: number;
+  /**
+   * Gate-outcome collector (#4230). Cached orchestrator forwards outcomes
+   * without changing `dispatchTaskCheck`'s number return.
+   */
+  readonly onCheckComplete?: (completion: CachedCheckCompletion) => void;
+}
+
+/** Completion snapshot forwarded to release Step 5 (suite-ran vs skip). */
+export interface CachedCheckCompletion {
+  readonly exitCode: number;
+  readonly gates: readonly import("../run-summary/types.js").CheckGateOutcome[];
+  readonly suiteTeeText: string;
 }
 
 /** True when `path` is the directive framework source checkout root. */

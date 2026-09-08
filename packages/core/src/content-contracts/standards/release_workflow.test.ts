@@ -114,8 +114,15 @@ describe("test_release_workflow.py", () => {
     expect(releaseSkillText).toContain("DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 git add");
     expect(releaseSkillText).toContain("DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 git commit");
     expect(releaseSkillText).toContain("DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 git push");
-    expect(releaseSkillText).toMatch(/4\. ! Verify `task check` passes locally/);
+    expect(releaseSkillText).not.toMatch(/4\. ! Verify `task check` passes locally/);
     expect(releaseSkillText).toContain("`task ci:local` is historical and removed");
+    const phase1 = releaseSkillText.slice(
+      releaseSkillText.indexOf("## Phase 1"),
+      releaseSkillText.indexOf("## Phase 2"),
+    );
+    const numbered = [...phase1.matchAll(/^\d+\. .+$/gm)].map((m) => m[0]);
+    expect(numbered.some((line) => /task check/.test(line))).toBe(false);
+    expect(releaseSkillText).toMatch(/Step 4 is the tag-availability pre-flight gate/);
   });
   it("test_releasing_doc_names_destructive_gh_closeout (#4079)", () => {
     expect(releasingDocText).toContain("DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 git add");

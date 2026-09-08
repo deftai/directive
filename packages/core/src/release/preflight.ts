@@ -7,7 +7,14 @@
  * context, so the framework root equals the project root and the orchestrator
  * dispatches `check:framework-source`.
  */
-import { type CheckOrchestratorSeams, dispatchTaskCheck } from "../check/orchestrator.js";
+import type { CachedCheckCompletion, CheckOrchestratorSeams } from "../check/orchestrator.js";
+import { dispatchTaskCheck } from "../check/orchestrator.js";
+import { suiteActuallyRan } from "../check/suite-gate-supervisor.js";
+import {
+  ENV_CHECK_AC_ONLY,
+  ENV_CHECK_MODE,
+  ENV_HYGIENE_ADVISORY,
+} from "../product-first-done-gate/index.js";
 import { COVERAGE_DEBT_ENV, RELEASE_CHECK_TIMEOUT_MS, RELEASE_PREFLIGHT_ENV } from "./constants.js";
 import { releaseSubprocessEnv } from "./git.js";
 
@@ -23,7 +30,10 @@ export function releaseCheckEnv(options: ReleaseCheckEnvOptions = {}): NodeJS.Pr
   const env: NodeJS.ProcessEnv = {
     ...releaseSubprocessEnv(base),
     [RELEASE_PREFLIGHT_ENV]: "1",
+    [ENV_CHECK_MODE]: "full",
   };
+  delete env[ENV_CHECK_AC_ONLY];
+  delete env[ENV_HYGIENE_ADVISORY];
   if (allowCoverageDebtIssue !== null) {
     env[COVERAGE_DEBT_ENV] = String(allowCoverageDebtIssue);
   } else {
@@ -60,6 +70,8 @@ export function runReleaseCheck(
   allowCoverageDebtIssue: number | null = null,
 ): [boolean, string] {
   const dispatch = seams.dispatchCheck ?? dispatchTaskCheck;
+  let completion: CachedCheckCompletion | undefined;
+  const priorComplete = seams.checkSeams?.onCheckComplete;
   const checkSeams: CheckOrchestratorSeams = {
     ...seams.checkSeams,
     timeoutMs: seams.checkSeams?.timeoutMs ?? RELEASE_CHECK_TIMEOUT_MS,
@@ -67,16 +79,30 @@ export function runReleaseCheck(
       base: seams.checkSeams?.env ?? process.env,
       allowCoverageDebtIssue,
     }),
+    onCheckComplete: (snapshot) => {
+      completion = snapshot;
+      priorComplete?.(snapshot);
+    },
   };
   const code = dispatch(projectRoot, projectRoot, checkSeams);
-  if (code === 0) {
-    return [true, "ran native TypeScript task check"];
-  }
   if (code === 124) {
     return [
       false,
       `task check timed out after ${RELEASE_CHECK_TIMEOUT_MS / 60_000}m (vitest coverage hang — see docs/RELEASING.md)`,
     ];
+  }
+  if (code === 0) {
+    if (completion !== undefined) {
+      const suite = completion.gates.find((g) => g.id === "ts:check-lane");
+      const ran = suiteActuallyRan({
+        status: suite?.status,
+        teeText: completion.suiteTeeText,
+      });
+      if (!ran) {
+        return [false, "suite gate did not run (ts:check-lane skip/SKIP_NOTICE)"];
+      }
+    }
+    return [true, "ran native TypeScript task check"];
   }
   return [false, `task check failed (exit ${code})`];
 }

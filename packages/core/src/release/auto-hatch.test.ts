@@ -98,6 +98,16 @@ describe("classifyStep5Failure", () => {
     expect(classifyStep5Failure({})).toBe("UNKNOWN");
   });
 
+  it("classifies signal death as UNKNOWN fail-closed, not REAL_FAILURE (#4230)", () => {
+    expect(classifyStep5Failure({ output: "task check failed (exit 143)", exitCode: 143 })).toBe(
+      "UNKNOWN",
+    );
+    expect(classifyStep5Failure({ output: "task check failed (exit 137)", exitCode: 137 })).toBe(
+      "UNKNOWN",
+    );
+    expect(classifyStep5Failure({ exitCode: 124 })).toBe("REAL_FAILURE");
+  });
+
   it("treats coverage-threshold-only output without totals as OTHER_COVERAGE", () => {
     expect(
       classifyStep5Failure({

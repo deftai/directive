@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **One suite at release pipeline Step 5, a 20-minute cached-path hang supervisor, and a full-mode pin (#4230).** Phase 1 no longer runs `task check`. Cached `runReleaseCheck` tees the suite, kills the tree at 20 minutes with exit 124 (`REAL_FAILURE`), and sets `DEFT_CHECK_MODE=full`. Worker load/exit failures notify the waiter instead of waiting out the backstop; in-memory capture is byte-capped. Fork (b): reporter stays text + text-summary. Residual [#4244](https://github.com/deftai/directive/issues/4244). Closes #4230.
+
 ### Fixed
 
 ### Removed

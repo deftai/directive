@@ -315,6 +315,56 @@ describe("dispatchCachedTaskCheck fail-fast before suite (#3188)", () => {
     errWrite.mockRestore();
   });
 
+  it("arms the suite supervisor timeout only when timeoutMs is set (#4230)", () => {
+    const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const plans: Array<{ timeoutMs?: number; command: string; args: readonly string[] }> = [];
+    const code = dispatchCachedTaskCheck("/fw-root-4230", "/fw-root-4230", {
+      noCache: true,
+      preflight: null,
+      emitRunSummary: false,
+      timeoutMs: 50,
+      gateSpawnFn: () => ({ exitCode: 0, stdout: "", stderr: "" }),
+      superviseSuite: (plan) => {
+        plans.push({ timeoutMs: plan.timeoutMs, command: plan.command, args: plan.args });
+        return {
+          exitCode: 0,
+          timedOut: false,
+          signal: null,
+          stdout: "ok",
+          stderr: "",
+          teePath: "",
+          teeRel: "",
+        };
+      },
+    });
+    expect(code).toBe(0);
+    expect(plans).toHaveLength(1);
+    expect(plans[0]?.timeoutMs).toBe(50);
+
+    plans.length = 0;
+    dispatchCachedTaskCheck("/fw-root-4230b", "/fw-root-4230b", {
+      noCache: true,
+      preflight: null,
+      emitRunSummary: false,
+      gateSpawnFn: () => ({ exitCode: 0, stdout: "", stderr: "" }),
+      superviseSuite: (plan) => {
+        plans.push({ timeoutMs: plan.timeoutMs, command: plan.command, args: plan.args });
+        return {
+          exitCode: 0,
+          timedOut: false,
+          signal: null,
+          stdout: "ok",
+          stderr: "",
+          teePath: "",
+          teeRel: "",
+        };
+      },
+    });
+    expect(plans).toHaveLength(1);
+    expect(plans[0]?.timeoutMs).toBeUndefined();
+    errWrite.mockRestore();
+  });
+
   it("does not claim suite skip when consumer list has no suite gate", () => {
     // Minimal deposit that passes #3070 consumer-gate integrity so the
     // sequential runner reaches CONSUMER_CHECK_GATES (no suite entries).

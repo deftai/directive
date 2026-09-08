@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  ENV_CHECK_AC_ONLY,
+  ENV_CHECK_MODE,
+  ENV_HYGIENE_ADVISORY,
+} from "../product-first-done-gate/index.js";
+import {
   BRANCH_GATE_BYPASS_ENV,
   COVERAGE_DEBT_ENV,
   RELEASE_PREFLIGHT_ENV,
@@ -52,6 +57,19 @@ describe("sanitizeTsLaneEnv", () => {
     expect(sanitized.HOME).toBe("/home/user");
     expect(sanitized[BRANCH_GATE_BYPASS_ENV]).toBeUndefined();
     expect(sanitized[RELEASE_PREFLIGHT_ENV]).toBeUndefined();
+  });
+
+  it("poisons check-mode keys so nested vitest cannot inherit the release pin (#4230)", () => {
+    const sanitized = sanitizeTsLaneEnv({
+      [ENV_CHECK_MODE]: "full",
+      [ENV_CHECK_AC_ONLY]: "1",
+      [ENV_HYGIENE_ADVISORY]: "1",
+      PATH: "/usr/bin",
+    });
+    expect(sanitized[ENV_CHECK_MODE]).toBeUndefined();
+    expect(sanitized[ENV_CHECK_AC_ONLY]).toBeUndefined();
+    expect(sanitized[ENV_HYGIENE_ADVISORY]).toBeUndefined();
+    expect(sanitized.PATH).toBe("/usr/bin");
   });
 
   it("does not mutate the input env object", () => {
