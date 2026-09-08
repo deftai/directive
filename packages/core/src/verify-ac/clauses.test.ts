@@ -972,6 +972,25 @@ describe("bound behavioral clauses have no static oracle (#4240)", () => {
     expect(report.ok).toBe(true);
   });
 
+  it("does not treat a longer filename as the bound basename", () => {
+    const root = mkdtempSync(join(tmpdir(), "clause-4240-basename-"));
+    writeFileSync(join(root, "shipped.ts"), "export const ok = true;\n", "utf8");
+    const report = walkAcceptanceClauses(
+      [
+        {
+          id: 1,
+          text: "shipped.tsx must be absent",
+          artifact_path: "shipped.ts",
+          ambiguous: false,
+        },
+      ],
+      root,
+      { declaredScope: ["shipped.ts"] },
+    );
+    expect(report.clauses[0]?.outcome).not.toBe("failed");
+    expect(report.ok).toBe(true);
+  });
+
   it("does not fail other-subject should-not-exist prose on a present bound file", () => {
     const root = mkdtempSync(join(tmpdir(), "clause-4240-should-not-"));
     writeFileSync(join(root, "shipped.ts"), "export const ok = true;\n", "utf8");

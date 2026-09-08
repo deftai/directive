@@ -77,14 +77,22 @@ const EXISTENCE_CLAIM =
 const NEGATED_EXISTENCE =
   /\b(?:does not exist|doesn't exist|must not exist|never exists?|not exist|must be absent|must remain absent|must stay absent|should be absent|must not be present|should not exist|must not be shipped)\b/i;
 
+function hasPathToken(text: string, token: string): boolean {
+  if (token.length < 3) {
+    return false;
+  }
+  const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(?:^|[^A-Za-z0-9_./\\\\-])${escaped}(?![A-Za-z0-9._-])`).test(text);
+}
+
 /** True when the clause names the bound path, not some other runtime subject. */
 function clauseNamesBoundArtifact(text: string, artifactPath: string): boolean {
   const unified = artifactPath.replace(/\\/g, "/");
-  if (text.includes(artifactPath) || text.includes(unified)) {
+  if (hasPathToken(text, artifactPath) || hasPathToken(text, unified)) {
     return true;
   }
   const base = basename(unified);
-  return base.length >= 3 && text.includes(base);
+  return hasPathToken(text, base);
 }
 
 function isBoundArtifactAbsenceClaim(text: string, artifactPath: string): boolean {
