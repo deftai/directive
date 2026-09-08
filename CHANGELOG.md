@@ -18,6 +18,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+### Fixed
+
+### Removed
+
+## [0.113.0] - 2026-09-08
+
+> One suite at release Step 5 with a 20-minute hang supervisor, plus dest-lock leftover-release, ingest Target-digest, and critic-spawn occupancy fixes.
+
+### Added
+
+### Changed
+
 - **One suite at release pipeline Step 5, a 20-minute cached-path hang supervisor, and a full-mode pin (#4230).** Phase 1 no longer runs `task check`. Cached `runReleaseCheck` tees the suite, kills the tree at 20 minutes with exit 124 (`REAL_FAILURE`), and sets `DEFT_CHECK_MODE=full`. Worker load/exit failures notify the waiter instead of waiting out the backstop; in-memory capture is byte-capped. Fork (b): reporter stays text + text-summary. Residual [#4244](https://github.com/deftai/directive/issues/4244). Closes #4230.
 
 ### Fixed
@@ -5868,7 +5880,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.112.0...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.113.0...HEAD
+[0.113.0]: https://github.com/deftai/directive/compare/v0.112.0...v0.113.0
 [0.112.0]: https://github.com/deftai/directive/compare/v0.111.0...v0.112.0
 [0.111.0]: https://github.com/deftai/directive/compare/v0.110.0...v0.111.0
 [0.110.0]: https://github.com/deftai/directive/compare/v0.109.1...v0.110.0

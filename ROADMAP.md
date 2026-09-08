@@ -44,8 +44,12 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1434 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1438 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#4254** -- bug(hooks,harness): dest-lock consult-deny after first allow ghosts a retry -- `[completed]`
+- **#4241** -- bug(design-critique,harness): direct critic spawn is exploratory/non-mutation and must not go through #4066 dest occupancy -- `[completed]`
+- **#4240** -- bug(verify-ac): bound behavioral clauses with no executable run still cannot complete -- `[completed]`
+- **#4230** -- perf(check,release): one suite at Step 5, real 20-min suite-gate hang (supervisor), full-mode pin — lane fixed host-side (stale CI cache) -- `[completed]`
 - **#4215** -- rfc(harness): implement spawn into a reserved worktree must not require a live primary ritual (#1185 leftover / #4066) -- `[completed]`
 - **#4137** -- bug(intake): issue:ingest comment fetch is unpaginated so threads over 30 comments miss synthesis -- `[completed]`
 - **#4220** -- bug(design-critique): parseOperatorRunPosture rejects directly and on github as direct synonyms (#4072) -- `[completed]`
@@ -67,8 +71,4 @@ _Showing 25 of 1434 completed scopes (newest first). Full history: lifecycle `co
 - **#4116** -- bug(update,gitignore): canonical gitignore ignores .deft/approved-scope/ which provenance requires on the merge base -- `[completed]`
 - **#4130** -- bug(review-cycle,swarm): dual-stop max-out needs a parent-owned fresh critic; grok leaf must not nest -- `[completed]`
 - **#4117** -- bug(update): generated SPECIFICATION.md with stale vbrief banner hard-blocks npm deposit refresh -- `[completed]`
-- **#4118** -- bug(session): session:start prints git fatal twice then succeeds on an npm deposit -- `[completed]`
-- **#4060** -- bug(lifecycle): scope:complete one bank-aware path for swarm-only banks -- `[completed]`
-- **#3914** -- bug(session): session:start skips --; own-git-root SHA; drop Task-only parenthetical -- `[completed]`
-- **#4041** -- sec(authz,hooks): classifyHookAuthzOps uses isShellTool so Grok monitor is UAT-denied -- `[completed]`
 
