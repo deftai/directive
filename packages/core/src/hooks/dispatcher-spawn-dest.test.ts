@@ -243,7 +243,7 @@ describe("dest-proven implement spawn (#4215)", () => {
     expect(second.message).toContain("already reserved");
   });
 
-  it("reuses leftover dest-lock on a later same-parent Grok tool.before with no live occupant (#4254)", () => {
+  it("leftover-releases then allows a later same-parent Grok tool.before with no live occupant (#4254)", () => {
     const { root, dest } = destFixture();
     const payload = {
       toolName: "spawn_subagent",
@@ -259,6 +259,7 @@ describe("dest-proven implement spawn (#4215)", () => {
       },
       readySeams(),
     );
+    const firstIncarnation = readSpawnReservationIncarnation(root, dest);
     const second = decideHook(
       {
         host: "grok",
@@ -272,7 +273,10 @@ describe("dest-proven implement spawn (#4215)", () => {
     expect(first).toMatchObject({ verdict: "allow", code: "spawn-ready" });
     expect(second).toMatchObject({ verdict: "allow", code: "spawn-ready" });
     expect(second.message).not.toContain("already reserved");
-    expect(readSpawnReservationIncarnation(root, dest)).not.toBeNull();
+    const secondIncarnation = readSpawnReservationIncarnation(root, dest);
+    expect(firstIncarnation).not.toBeNull();
+    expect(secondIncarnation).not.toBeNull();
+    expect(secondIncarnation).not.toBe(firstIncarnation);
   });
 
   it("occupancy-denies Grok cwd plus worktree_path without skipping ritual or dest-lock", () => {

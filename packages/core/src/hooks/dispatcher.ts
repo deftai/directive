@@ -65,6 +65,7 @@ import {
   consultImplementSpawnOccupancy,
   mintImplementSpawnReservation,
   persistSpawnReservation,
+  releaseLeftoverSpawnReservation,
   type SpawnOccupancyConsultAllow,
 } from "../session/spawn-occupancy.js";
 import {
@@ -1706,6 +1707,10 @@ function inspectMutationGates(
         toolName,
         `Directive denied ${toolName}: spawn destination consult was missing.`,
       );
+    }
+    const leftover = consult.leftoverIncarnation?.trim() ?? "";
+    if (leftover.length > 0 && consult.destPath !== null) {
+      releaseLeftoverSpawnReservation(payloadRoot, consult.destPath, leftover);
     }
     const spawnReservation = mintImplementSpawnReservation(consult, {
       payload: input.payload,

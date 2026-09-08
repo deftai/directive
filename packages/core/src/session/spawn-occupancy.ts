@@ -79,8 +79,11 @@ export interface SpawnOccupancyConsultAllow {
   readonly hostCanReroot: boolean;
   readonly message: string;
   readonly parentId: string;
-  /** Leftover dest-lock incarnation to reuse without minting (#4254). */
-  readonly reuseIncarnation: string | null;
+  /**
+   * Leftover dest-lock incarnation to release before minting a new one (#4254).
+   * Consult does not mutate; evaluate/dispatcher leftover-release then mint.
+   */
+  readonly leftoverIncarnation: string | null;
 }
 
 export interface SpawnOccupancyConsultDeny {
@@ -330,7 +333,7 @@ export function consultImplementSpawnOccupancy(
         "Directive skipped dest occupancy consult for process-only critic spawn " +
         "(subagent_type plan).",
       parentId,
-      reuseIncarnation: null,
+      leftoverIncarnation: null,
     };
   }
   const grokHost = input.host === "grok";
@@ -443,7 +446,7 @@ export function consultImplementSpawnOccupancy(
     }
   }
 
-  let reuseIncarnation: string | null = null;
+  let leftoverIncarnation: string | null = null;
   if (destPath !== null) {
     const live = liveOccupant(destPath, input.now);
     if (live !== null) {
@@ -475,7 +478,7 @@ export function consultImplementSpawnOccupancy(
           destPath,
         );
       }
-      reuseIncarnation = leftover;
+      leftoverIncarnation = leftover;
     }
   }
 
@@ -488,7 +491,9 @@ export function consultImplementSpawnOccupancy(
       : " Host isolation=worktree re-roots the child payload."
     : " This host cannot re-root PreToolUse input; the child must start in the reserved worktree.";
   const leftoverNote =
-    reuseIncarnation !== null ? ` Reusing leftover dest-lock incarnation ${reuseIncarnation}.` : "";
+    leftoverIncarnation !== null
+      ? ` Leftover dest-lock incarnation ${leftoverIncarnation} will be released before mint.`
+      : "";
 
   return {
     allow: true,
@@ -499,7 +504,7 @@ export function consultImplementSpawnOccupancy(
     hostCanReroot,
     message: `Directive consulted spawn destination.${leftoverNote}${rerootNote}`,
     parentId,
-    reuseIncarnation,
+    leftoverIncarnation,
   };
 }
 
@@ -509,8 +514,7 @@ export function mintImplementSpawnReservation(
   input: ConsultImplementSpawnOccupancyInput,
 ): SpawnOccupancyAllow {
   const payloadRoot = resolve(input.payloadRoot);
-  const reuse = consult.reuseIncarnation?.trim() ?? "";
-  const incarnation = reuse.length > 0 ? reuse : randomUUID();
+  const incarnation = randomUUID();
   const parentId = consult.parentId;
   const agentId = agentIdFromPayload(input.payload, incarnation);
   const destPath = consult.destPath;
@@ -528,10 +532,6 @@ export function mintImplementSpawnReservation(
       ? ` Hook payload will re-root onto ${consult.reRootPath}.`
       : " Host isolation=worktree re-roots the child payload."
     : " This host cannot re-root PreToolUse input; the child must start in the reserved worktree.";
-  const reserved =
-    reuse.length > 0
-      ? `Directive reused leftover dest-lock incarnation ${incarnation}.`
-      : `Directive reserved spawn worktree incarnation ${incarnation}.`;
   return {
     allow: true,
     destination: consult.destination,
@@ -540,7 +540,7 @@ export function mintImplementSpawnReservation(
     exemption: null,
     reRootPath: consult.reRootPath,
     hostCanReroot: consult.hostCanReroot,
-    message: `${reserved}${rerootNote}`,
+    message: `Directive reserved spawn worktree incarnation ${incarnation}.${rerootNote}`,
   };
 }
 
@@ -567,6 +567,15 @@ export function evaluateImplementSpawnOccupancy(
       hostCanReroot: consult.hostCanReroot,
       message: consult.message,
     };
+  }
+  const leftover = consult.leftoverIncarnation?.trim() ?? "";
+  if (leftover.length > 0 && consult.destPath !== null) {
+    releaseLeftoverSpawnReservation(
+      resolve(input.payloadRoot),
+      consult.destPath,
+      leftover,
+      input.now,
+    );
   }
   return mintImplementSpawnReservation(consult, input);
 }

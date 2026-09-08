@@ -838,27 +838,22 @@ describe("leftover dest-lock consult reuse (#4254)", () => {
     };
   }
 
-  it("reuses leftover dest-lock on a later same-parent consult with no live occupant", () => {
+  it("leftover-releases then mints a new incarnation on a later same-parent consult", () => {
     const root = mkdtempSync(join(tmpdir(), "spawn-occ-reuse-"));
     temps.push(root);
     gitInit(root);
     const dest = join(root, "wt");
     addLinkedWorktree(root, dest);
-    const firstConsult = consultImplementSpawnOccupancy({
+    const first = evaluateImplementSpawnOccupancy({
       payload: grokPayload(dest),
       payloadRoot: root,
       host: "grok",
       parentId: "parent-1",
     });
-    expect(firstConsult.allow).toBe(true);
-    if (!firstConsult.allow) return;
-    const firstMint = mintImplementSpawnReservation(firstConsult, {
-      payload: grokPayload(dest),
-      payloadRoot: root,
-      host: "grok",
-    });
-    expect(persistSpawnReservation(root, firstMint.reservation).ok).toBe(true);
-    const firstIncarnation = firstMint.incarnation;
+    expect(first.allow).toBe(true);
+    if (!first.allow || first.reservation === null) return;
+    expect(persistSpawnReservation(root, first.reservation).ok).toBe(true);
+    const firstIncarnation = first.incarnation;
     expect(firstIncarnation).not.toBeNull();
     const retryConsult = consultImplementSpawnOccupancy({
       payload: grokPayload(dest),
@@ -868,17 +863,23 @@ describe("leftover dest-lock consult reuse (#4254)", () => {
     });
     expect(retryConsult.allow).toBe(true);
     if (!retryConsult.allow) return;
-    expect(retryConsult.reuseIncarnation).toBe(firstIncarnation);
+    expect(retryConsult.leftoverIncarnation).toBe(firstIncarnation);
     expect(retryConsult.destProven).toBe(true);
     expect(retryConsult.message).not.toMatch(/already reserved/);
-    const retryMint = mintImplementSpawnReservation(retryConsult, {
+    const retry = evaluateImplementSpawnOccupancy({
       payload: grokPayload(dest),
       payloadRoot: root,
       host: "grok",
+      parentId: "parent-1",
     });
-    expect(retryMint.incarnation).toBe(firstIncarnation);
-    expect(persistSpawnReservation(root, retryMint.reservation).ok).toBe(true);
-    expect(readSpawnReservationIncarnation(root, dest)).toBe(firstIncarnation);
+    expect(retry.allow).toBe(true);
+    if (!retry.allow || retry.reservation === null) return;
+    expect(retry.incarnation).not.toBe(firstIncarnation);
+    expect(persistSpawnReservation(root, retry.reservation).ok).toBe(true);
+    expect(readSpawnReservationIncarnation(root, dest)).toBe(retry.incarnation);
+    expect(listChildOccupancyLeases(root).some((r) => r.incarnation === firstIncarnation)).toBe(
+      false,
+    );
   });
 
   it("still reservation-conflicts two parents on one leftover dest", () => {
@@ -982,7 +983,7 @@ describe("leftover dest-lock consult reuse (#4254)", () => {
     });
     expect(retryConsult.allow).toBe(true);
     if (!retryConsult.allow) return;
-    expect(retryConsult.reuseIncarnation).toBeNull();
+    expect(retryConsult.leftoverIncarnation).toBeNull();
     const retryMint = mintImplementSpawnReservation(retryConsult, {
       payload: grokPayload(dest),
       payloadRoot: root,
