@@ -34,9 +34,13 @@ If the env-var bypass is unavoidable outside the enforce closeout above, scope i
 
 See `skills/deft-directive-release/SKILL.md` § Branch-Protection Policy Guard for the full operator workflow.
 
-## Vitest coverage hang recovery (#2652)
+## Vitest coverage hang recovery (#2652 / #4230)
 
-Release Step 5 runs `task check` → vitest coverage with a **20-minute hard timeout**. GHA `CI` → “Test with coverage (vitest)” uses the same wall-clock budget (`timeout-minutes: 20` on that step).
+Release Step 5 runs `task check` on the **cached** path with a **20-minute hang detector** (`runReleaseCheck` arms `timeoutMs`). That is hang detection, not a success SLA. Ambient `task check` tees without that kill. `task release` does not take the uncached `--no-cache` path.
+
+**Stale-binary diagnostic (before treating 124 as a vitest hang).** If a single-shot `Measure-Command { node -e 0 }` is greater than about 100 ms or `git --version` is greater than about 150 ms, investigate before assuming a suite hang. Probe with a **repeated** measurement and read the **median** — the first invocation in a fresh shell is a warm. Confirm with the claimant's differential: rename the original binary, copy a fresh file onto the original path; the renamed original stays slow and the fresh copy at the same path goes fast. Then copy-over-self / reinstall. Measured 40 min → 3.6 min on deft01 2026-09-07. Bitdefender exceptions are optional (216–277 s across states, within noise).
+
+GHA `CI` → “Test with coverage (vitest)” uses the same 20-minute wall-clock budget (`timeout-minutes: 20` on that step). The default path did not already enforce 20 minutes before this hang detector.
 
 **When Step 5 or CI appears stuck**
 
@@ -49,13 +53,13 @@ Pointer: `content/scm/github.md` § Release Step 5 timeout (maintainer cross-lin
 
 ## Fixable check failure during release (#2859)
 
-When Phase 1 `task check` fails on a **fixable product or test defect** during a cut, do **not** lead with an inline hotfix on the release branch or untracked `--skip-ci`. Pause the cut and route the blocker through normal issue → xBRIEF → feature branch → PR → merge → confirm check green → resume Phase 1.
+When pipeline Step 5 fails on a **fixable product or test defect** during a cut, do **not** lead with an inline hotfix on the release branch or untracked `--skip-ci`. Pause the cut and route the blocker through normal issue → xBRIEF → feature branch → PR → merge → confirm pipeline Step 5 is green → resume Phase 1.
 
 The full agent contract (including the explicit rejection of AGENTS.md / agents-entry bulk for this reminder) lives in `skills/deft-directive-release/SKILL.md` § **Fixable check failure — file-and-merge before resume (#2859)**. Production `--skip-ci` with `--allow-skip-ci=#N` remains incident-only per § Vitest coverage hang recovery above.
 
 ## Coverage debt hatch during release (#2866 / #3187)
 
-When **`task release` Step 5** fails on Vitest coverage below the 85% goal, use this hatch **only** when **branches** is the **sole** metric below 85% (lines, functions, and statements all ≥ 85%). Confirm from the Step 5 output, `coverage/coverage-final.json`, or `task coverage:hotspots`. If any other metric also misses, or the failure is a hang / failing test / non-coverage defect, pause and follow § Fixable check failure during release (#2859).
+When **`task release` Step 5** fails on Vitest coverage below the 85% goal, use this hatch **only** when **branches** is the **sole** metric below 85% (lines, functions, and statements all ≥ 85%). Confirm from the Step 5 output or `task coverage:hotspots`. Do not treat `coverage/coverage-final.json` as live until [#4244](https://github.com/deftai/directive/issues/4244). If any other metric also misses, or the failure is a hang / failing test / non-coverage defect, pause and follow § Fixable check failure during release (#2859).
 
 **Runtime note:** `--allow-coverage-debt=#N` zeros all vitest coverage thresholds for the Step 5 run (`vitest.config.ts`, #2573). File debt only for branch-only hairlines; acceptance criteria must restore **all four metrics** to ≥ 85%.
 

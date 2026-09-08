@@ -43,7 +43,11 @@ export {
   type NamedCauseMessage,
   remedyForGate,
 } from "./named-cause.js";
-export type { CheckOrchestratorOptions, CheckOrchestratorSeams } from "./orchestrator.js";
+export type {
+  CachedCheckCompletion,
+  CheckOrchestratorOptions,
+  CheckOrchestratorSeams,
+} from "./orchestrator.js";
 export {
   dispatchTaskCheck,
   isFrameworkRepoRoot,

@@ -25,7 +25,11 @@ import {
 } from "./consumer-gate-integrity.js";
 import { type CheckOrchestratorSeams, resolveCheckTarget } from "./context.js";
 
-export type { CheckOrchestratorOptions, CheckOrchestratorSeams } from "./context.js";
+export type {
+  CachedCheckCompletion,
+  CheckOrchestratorOptions,
+  CheckOrchestratorSeams,
+} from "./context.js";
 export { isFrameworkRepoRoot, isFrameworkSourceContext, resolveCheckTarget } from "./context.js";
 
 /**

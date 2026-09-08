@@ -8,6 +8,7 @@ import {
 import type { TaskRunResult } from "../cache/task-cache/types.js";
 import { defaultWhich } from "../doctor/which.js";
 import { readCorePackageVersion } from "../engine-version.js";
+import { containedRemove } from "../fs/contained-write.js";
 import {
   applyProductFirstGateMode,
   EMPTY_AC_CAUSE,
@@ -43,6 +44,14 @@ import {
   isSuiteCheckGate,
 } from "./gate-lists.js";
 import { formatDegradedSkipReport, formatNamedCauseFailure, remedyForGate } from "./named-cause.js";
+import {
+  pruneSuiteTees,
+  readTeeText,
+  runSupervisedGate,
+  type SupervisedGatePlan,
+  type SupervisedGateResult,
+  selectFailureSignalLines,
+} from "./suite-gate-supervisor.js";
 
 export interface CachedCheckOptions extends CheckOrchestratorSeams {
   readonly onGateStart?: (gateId: string) => void;
@@ -66,6 +75,8 @@ export interface CachedCheckOptions extends CheckOrchestratorSeams {
   readonly which?: (name: string) => string | null;
   /** Override global CLI binary when dispatching CLI-native gates (#3335). */
   readonly cliBin?: string | null;
+  /** Suite-gate supervisor seam (tests). Production uses `runSupervisedGate`. */
+  readonly superviseSuite?: (plan: SupervisedGatePlan) => SupervisedGateResult;
 }
 
 function captureSpawn(
@@ -165,6 +176,9 @@ export function dispatchCachedTaskCheck(
   const codeVersion = readCorePackageVersion();
   const sessionId = options.sessionId;
   const gateOutcomes: CheckGateOutcome[] = [];
+  let lastSuiteTeeText = "";
+  let lastSuiteTeeRel: string | null = null;
+  pruneSuiteTees({ projectRoot: resolvedProject });
 
   const emitSummary = (exitCode: number, degraded: boolean): void => {
     if (options.emitRunSummary === false) return;
@@ -188,6 +202,16 @@ export function dispatchCachedTaskCheck(
     }
   };
 
+  const finish = (exitCode: number, degradedFlag: boolean): number => {
+    options.onCheckComplete?.({
+      exitCode,
+      gates: gateOutcomes,
+      suiteTeeText: lastSuiteTeeText,
+    });
+    emitSummary(exitCode, degradedFlag);
+    return exitCode;
+  };
+
   if (modeResolution.mode !== "full") {
     process.stderr.write(
       `check: product-first mode=${modeResolution.mode} ` +
@@ -203,8 +227,7 @@ export function dispatchCachedTaskCheck(
     const integrity = evaluateConsumerGateIntegrity(resolvedFramework);
     if (!integrity.ok) {
       process.stderr.write(formatConsumerGateIntegrityFailure(integrity));
-      emitSummary(2, false);
-      return 2;
+      return finish(2, false);
     }
   }
 
@@ -215,14 +238,12 @@ export function dispatchCachedTaskCheck(
         `check: task registry lint failed for ${finding.taskId}: ${finding.detail}\n`,
       );
     }
-    emitSummary(2, false);
-    return 2;
+    return finish(2, false);
   }
 
   if (gates.length === 0) {
     process.stderr.write(`check: no gate list for target ${target}\n`);
-    emitSummary(2, false);
-    return 2;
+    return finish(2, false);
   }
 
   // #3282: toolchain preflight — degraded skip when framework tools missing.
@@ -282,8 +303,7 @@ export function dispatchCachedTaskCheck(
           exitCode: 2,
         }),
       );
-      emitSummary(2, true);
-      return 2;
+      return finish(2, true);
     }
   }
 
@@ -350,6 +370,41 @@ export function dispatchCachedTaskCheck(
       codeVersion,
       noCache: options.noCache,
       runner: () => {
+        if (
+          isSuiteCheckGate(gateSpec) &&
+          (options.superviseSuite !== undefined || options.gateSpawnFn === undefined)
+        ) {
+          const plan =
+            dispatch.mode === "cli"
+              ? cliSpawnPlan(spawnBin, spawnArgs)
+              : { command: spawnBin, args: spawnArgs };
+          const supervised = (options.superviseSuite ?? runSupervisedGate)({
+            command: plan.command,
+            args: plan.args,
+            cwd,
+            projectRoot: resolvedProject,
+            env: options.env,
+            timeoutMs: options.timeoutMs,
+            sessionId,
+            platform: process.platform,
+          });
+          lastSpawn = {
+            exitCode: supervised.exitCode,
+            stdout: supervised.stdout,
+            stderr: supervised.stderr,
+            spawnError: supervised.spawnError,
+          };
+          lastSuiteTeeRel = supervised.teeRel.length > 0 ? supervised.teeRel : null;
+          lastSuiteTeeText =
+            (supervised.teePath.length > 0 ? readTeeText(supervised.teePath) : "") ||
+            `${supervised.stdout}\n${supervised.stderr}`;
+          return {
+            exitCode: supervised.exitCode,
+            stdout: supervised.stdout,
+            stderr: supervised.stderr,
+            spawnError: supervised.spawnError,
+          };
+        }
         const spawned = options.gateSpawnFn
           ? options.gateSpawnFn(gateId, spawnBin, spawnArgs, {
               cwd,
@@ -410,8 +465,7 @@ export function dispatchCachedTaskCheck(
             });
           }
         }
-        emitSummary(1, true);
-        return 1;
+        return finish(1, true);
       }
       if (modeResolution.hygieneAdvisory && isHygieneGate(gateId) && !isProductAcGate(gateId)) {
         process.stderr.write(
@@ -439,7 +493,10 @@ export function dispatchCachedTaskCheck(
       const named = formatNamedCauseFailure({
         gateId,
         exitCode: result.exitCode,
-        stdout: lastSpawn.stdout,
+        stdout:
+          isSuiteCheckGate(gateSpec) && lastSuiteTeeText.length > 0
+            ? selectFailureSignalLines(lastSuiteTeeText)
+            : lastSpawn.stdout,
         stderr: lastSpawn.stderr,
         spawnError: lastSpawn.spawnError,
       });
@@ -474,8 +531,7 @@ export function dispatchCachedTaskCheck(
           `check: product AC gate ${gateId} failed (exit ${result.exitCode}); ` +
             `failing closed before hygiene (#3284)\n`,
         );
-        emitSummary(result.exitCode, degraded);
-        return result.exitCode;
+        return finish(result.exitCode, degraded);
       }
       if (!isSuiteCheckGate(gateSpec)) {
         const remaining = gates.some(isSuiteCheckGate)
@@ -485,10 +541,17 @@ export function dispatchCachedTaskCheck(
           `check: fast gate ${gateId} failed (exit ${result.exitCode}); ${remaining} (#3188)\n`,
         );
       }
-      emitSummary(result.exitCode, degraded);
-      return result.exitCode;
+      return finish(result.exitCode, degraded);
     }
 
+    if (isSuiteCheckGate(gateSpec) && lastSuiteTeeRel !== null) {
+      try {
+        containedRemove({ root: resolvedProject, target: lastSuiteTeeRel });
+      } catch {
+        // best-effort green cleanup
+      }
+      lastSuiteTeeRel = null;
+    }
     gateOutcomes.push({
       id: gateId,
       status: "run",
@@ -514,10 +577,8 @@ export function dispatchCachedTaskCheck(
         exitCode: 2,
       }),
     );
-    emitSummary(2, true);
-    return 2;
+    return finish(2, true);
   }
 
-  emitSummary(0, degraded);
-  return 0;
+  return finish(0, degraded);
 }
