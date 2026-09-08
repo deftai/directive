@@ -74,8 +74,9 @@ const SCRATCH_SEGMENTS = new Set([
 ]);
 const EXISTENCE_CLAIM =
   /\b(?:exists?|stored on|written to|emitted? (?:at|to)|at its stated path|artifact path)\b/i;
-const NEGATED_EXISTENCE =
-  /\b(?:does not exist|doesn't exist|must not exist|never exists?|not exist|must be absent|must remain absent|must stay absent|should be absent|must not be present|should not exist|must not be shipped)\b/i;
+const ABSENCE_ALTERNATION =
+  "does not exist|doesn't exist|must not exist|never exists?|not exist|must be absent|must remain absent|must stay absent|should be absent|must not be present|should not exist|must not be shipped";
+const NEGATED_EXISTENCE = new RegExp(`\\b(?:${ABSENCE_ALTERNATION})\\b`, "i");
 
 function stripLeadingDotSlash(path: string): string {
   let unified = path.replace(/\\/g, "/");
@@ -89,12 +90,21 @@ function hasPathToken(text: string, token: string): boolean {
   if (token.length === 0) {
     return false;
   }
-  // Single-letter tokens are English articles too often; 2-char names (`ab`, `go`)
-  // and any token with a path or extension separator are exact path mentions.
-  if (token.length < 2 && !token.includes(".") && !token.includes("/")) {
-    return false;
-  }
   const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const isShortBare = token.length < 3 && !token.includes(".") && !token.includes("/");
+  if (isShortBare) {
+    // 2-char names (`ab`, `go`) are also English words. Only treat them as the
+    // bound artifact when they are the subject of the absence phrase, or `./go`.
+    if (token.length < 2) {
+      return false;
+    }
+    const asSubject = new RegExp(
+      `(?:^|[\\s'"\`./])${escaped}\\s+(?:${ABSENCE_ALTERNATION})\\b`,
+      "i",
+    );
+    const asPrefixed = new RegExp(`(?:^|[\\s])\\./${escaped}(?![A-Za-z0-9._-])`);
+    return asSubject.test(text) || asPrefixed.test(text);
+  }
   // `./src/result.ts` must still name bound `src/result.ts`: allow a `./` prefix
   // as a boundary, not only start-of-string or a non-path character.
   return new RegExp(`(?:^|[^A-Za-z0-9_./\\\\-]|\\./)${escaped}(?![A-Za-z0-9._-])`).test(text);

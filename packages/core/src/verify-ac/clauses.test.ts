@@ -1011,6 +1011,25 @@ describe("bound behavioral clauses have no static oracle (#4240)", () => {
     expect(report.ok).toBe(false);
   });
 
+  it("does not treat a short basename as an artifact when it is later English prose", () => {
+    const root = mkdtempSync(join(tmpdir(), "clause-4240-short-prose-"));
+    writeFileSync(join(root, "go"), "package main\n", "utf8");
+    const report = walkAcceptanceClauses(
+      [
+        {
+          id: 1,
+          text: "the helper should not exist before we go",
+          artifact_path: "go",
+          ambiguous: false,
+        },
+      ],
+      root,
+      { declaredScope: ["go"] },
+    );
+    expect(report.clauses[0]?.outcome).not.toBe("failed");
+    expect(report.ok).toBe(true);
+  });
+
   it("fails a ./ prefixed absence clause against the normalized bound path", () => {
     const root = mkdtempSync(join(tmpdir(), "clause-4240-dotslash-"));
     mkdirSync(join(root, "src"));
