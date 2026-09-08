@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-09-07-4241-bugdesign-critiqueharness-direct-critic-spawn-is-exploratory.xbrief.json",
+  "planId": "github.issue.5378913980",
+  "approvedAt": "2026-09-08T14:47:13Z",
+  "fileScope": [
+    "packages/core/src/hooks/dispatcher.test.ts",
+    "packages/core/src/hooks/dispatcher.ts",
+    "packages/core/src/session/spawn-occupancy.ts"
+  ],
+  "fileScopeDigest": "631cc263fea50bc176cfb0fbf733bd955e18cc72f0bf367ca982489accf0ea24",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-09-08T14:47:13Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "0d716237a3cd0bb0a7205e7058600e06f8554d540baa44a75c14f72b7813aa39",
+  "digestAlgo": "intent-extract-v1"
+}
