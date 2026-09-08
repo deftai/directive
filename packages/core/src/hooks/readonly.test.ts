@@ -5,6 +5,7 @@ import {
   isAssistPosture,
   isEphemeralSpawn,
   isExploreSpawn,
+  isProcessOnlyCriticSpawn,
   isReadOnlyHookContext,
 } from "./readonly.js";
 import { READ_ONLY_HOOK_ENV } from "./tools.js";
@@ -195,6 +196,53 @@ describe("assist posture detection (#1802)", () => {
     expect(
       isAssistPosture({
         tool_input: { worker_role: "ephemeral", drive_to: "merge-ready" },
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("process-only critic spawn (#4241)", () => {
+  it("recognizes Grok-visible subagent_type plan", () => {
+    expect(isProcessOnlyCriticSpawn({ tool_input: { subagent_type: "plan" } })).toBe(true);
+    expect(isProcessOnlyCriticSpawn({ subagentType: "plan" })).toBe(true);
+    expect(isProcessOnlyCriticSpawn({ tool_input: { subagentType: "PLAN" } })).toBe(true);
+  });
+
+  it("does not treat explore or general-purpose as process-only critic", () => {
+    expect(isProcessOnlyCriticSpawn({ tool_input: { subagent_type: "explore" } })).toBe(false);
+    expect(isProcessOnlyCriticSpawn({ tool_input: { subagent_type: "general-purpose" } })).toBe(
+      false,
+    );
+    expect(isProcessOnlyCriticSpawn({ tool_input: { subagent_type: "generalPurpose" } })).toBe(
+      false,
+    );
+  });
+
+  it("does not classify from prompt text naming critic", () => {
+    expect(
+      isProcessOnlyCriticSpawn({
+        tool_input: {
+          subagent_type: "general-purpose",
+          prompt: "You are a process-only critic. Do not write the checkout.",
+        },
+      }),
+    ).toBe(false);
+    expect(
+      isProcessOnlyCriticSpawn({
+        tool_input: { prompt: "role: critic; subagent_type: plan" },
+      }),
+    ).toBe(false);
+  });
+
+  it("implement signals win over plan (fail closed)", () => {
+    expect(
+      isProcessOnlyCriticSpawn({
+        tool_input: { subagent_type: "plan", drive_to: "merge-ready" },
+      }),
+    ).toBe(false);
+    expect(
+      isProcessOnlyCriticSpawn({
+        tool_input: { subagent_type: "plan", worker_role: "leaf-implementation" },
       }),
     ).toBe(false);
   });

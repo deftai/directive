@@ -577,6 +577,60 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
 });
 
 describe("consultImplementSpawnOccupancy (#4215)", () => {
+  it("skips dest consult for process-only critic plan spawn (#4241)", () => {
+    const root = mkdtempSync(join(tmpdir(), "spawn-occ-plan-"));
+    temps.push(root);
+    gitInit(root);
+    const consult = consultImplementSpawnOccupancy({
+      payload: {
+        tool_name: "spawn_subagent",
+        tool_input: { subagent_type: "plan", cwd: root, prompt: "critic" },
+      },
+      payloadRoot: root,
+      host: "grok",
+      parentId: "parent-1",
+    });
+    expect(consult.allow).toBe(true);
+    if (!consult.allow) return;
+    expect(consult.destProven).toBe(false);
+    expect(consult.destPath).toBeNull();
+    expect(consult.message).toMatch(/process-only critic/);
+    const evaluated = evaluateImplementSpawnOccupancy({
+      payload: {
+        tool_name: "spawn_subagent",
+        tool_input: { subagent_type: "plan", cwd: root, prompt: "critic" },
+      },
+      payloadRoot: root,
+      host: "grok",
+      parentId: "parent-1",
+    });
+    expect(evaluated.allow).toBe(true);
+    if (!evaluated.allow) return;
+    expect(evaluated.incarnation).toBe("process-only-critic");
+    expect(readSpawnReservationIncarnation(root, root)).toBeNull();
+  });
+
+  it("still dest-consults general-purpose spawn onto a git main clone (#4241)", () => {
+    const root = mkdtempSync(join(tmpdir(), "spawn-occ-gp-"));
+    temps.push(root);
+    gitInit(root);
+    const consult = consultImplementSpawnOccupancy({
+      payload: {
+        tool_name: "spawn_subagent",
+        tool_input: {
+          subagent_type: "general-purpose",
+          cwd: root,
+          prompt: "You are a critic",
+        },
+      },
+      payloadRoot: root,
+      host: "grok",
+    });
+    expect(consult.allow).toBe(false);
+    if (consult.allow) return;
+    expect(consult.reason).toBe("primary-path");
+  });
+
   it("does not mint or dest-lock on consult", () => {
     const root = mkdtempSync(join(tmpdir(), "spawn-occ-consult-"));
     temps.push(root);

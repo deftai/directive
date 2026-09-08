@@ -20,6 +20,7 @@ import {
   containedWrite,
 } from "../fs/contained-write.js";
 import { fieldPresent, fieldString, record, toolInputRecord } from "../hooks/classify/payload.js";
+import { isProcessOnlyCriticSpawn } from "../hooks/readonly.js";
 import {
   type ChildOccupancyDispatchInput,
   listChildOccupancyLeases,
@@ -287,6 +288,20 @@ export function consultImplementSpawnOccupancy(
   const runGit = input.runGit ?? defaultGitRunner;
   const parentId = (input.parentId?.trim() || parentIdFromEnv(environ)).trim() || "none";
   const hostCanReroot = HOSTS_THAT_REROOT.has(input.host);
+  if (isProcessOnlyCriticSpawn(input.payload)) {
+    return {
+      allow: true,
+      destProven: false,
+      destination: { kind: "path", path: null, isolation: null },
+      destPath: null,
+      reRootPath: null,
+      hostCanReroot,
+      message:
+        "Directive skipped dest occupancy consult for process-only critic spawn " +
+        "(subagent_type plan).",
+      parentId,
+    };
+  }
   const grokHost = input.host === "grok";
   const grokCwd = grokHost ? grokCwdPath(input.payload) : null;
 
@@ -493,6 +508,25 @@ export function evaluateImplementSpawnOccupancy(
       allow: false,
       reason: consult.reason,
       destination: consult.destination,
+      message: consult.message,
+    };
+  }
+  if (isProcessOnlyCriticSpawn(input.payload)) {
+    return {
+      allow: true,
+      destination: consult.destination,
+      incarnation: "process-only-critic",
+      reservation: {
+        agentId: "process-only-critic",
+        parentId: consult.parentId,
+        occupancyOwner: consult.parentId,
+        worktreePath: resolve(input.payloadRoot),
+        identitySourceKind: input.host === "grok" ? "host-env" : "payload",
+        incarnation: "process-only-critic",
+        provenance: "dispatch",
+      },
+      reRootPath: null,
+      hostCanReroot: consult.hostCanReroot,
       message: consult.message,
     };
   }

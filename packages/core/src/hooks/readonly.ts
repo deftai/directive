@@ -261,3 +261,25 @@ export function isEphemeralSpawn(
   }
   return true;
 }
+
+/** Grok PreToolUse stdin field for process-only critic spawn (#4241). Not explore. */
+const PROCESS_ONLY_CRITIC_SUBAGENT_TYPE = "plan";
+
+/**
+ * Process-only critic spawn: dest occupancy skip without the explore tool allowlist (#4241).
+ * True only for structural `subagent_type`/`subagentType` === `plan` (the field Grok
+ * PreToolUse stdin actually contains). Prompt text is never a class. Implement
+ * envelope signals win, so a parent cannot opt an implement worker in.
+ */
+export function isProcessOnlyCriticSpawn(payload: unknown): boolean {
+  const input = record(payload);
+  if (input === null) return false;
+  const toolInput = toolInputRecord(input) ?? input;
+  const subagentType =
+    fieldString(toolInput, "subagent_type") ??
+    fieldString(toolInput, "subagentType") ??
+    fieldString(input, "subagent_type") ??
+    fieldString(input, "subagentType");
+  if (subagentType?.toLowerCase() !== PROCESS_ONLY_CRITIC_SUBAGENT_TYPE) return false;
+  return !hasImplementConflictSignal(toolInput, input);
+}
