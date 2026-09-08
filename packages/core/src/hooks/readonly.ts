@@ -271,25 +271,65 @@ const GROK_SPAWN_TOOL_NORMALIZED = "spawnsubagent";
 export interface ProcessOnlyCriticSpawnContext {
   readonly host: string;
   readonly toolName?: string | null;
+  readonly environ?: NodeJS.ProcessEnv;
 }
 
 function normalizedHookToolName(toolName: string): string {
   return toolName.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+export function isGrokSpawnToolName(toolName: string | null | undefined): boolean {
+  if (typeof toolName !== "string" || toolName.trim().length === 0) return false;
+  return normalizedHookToolName(toolName) === GROK_SPAWN_TOOL_NORMALIZED;
+}
+
+/**
+ * Grok hook-process identity (#4272). `GROK_HOOK_EVENT` is injected into every
+ * Grok hook process. `GROK_SESSION_ID` is read from the hook environ object
+ * when the caller supplied one — not from ambient `process.env`, so a Grok
+ * TUI test runner does not flip Cursor Task dest occupancy.
+ */
+export function isGrokHookProcess(environ?: NodeJS.ProcessEnv): boolean {
+  if (environ == null) {
+    return Boolean(process.env.GROK_HOOK_EVENT?.trim());
+  }
+  return Boolean(environ.GROK_HOOK_EVENT?.trim() || environ.GROK_SESSION_ID?.trim());
+}
+
+export interface GrokSpawnDestContractInput {
+  readonly host: string;
+  readonly toolName?: string | null;
+  readonly payload?: unknown;
+  readonly environ?: NodeJS.ProcessEnv;
+}
+
+/**
+ * Handler-runtime identity for Grok dest occupancy (#4272).
+ * True when argv host is grok, the hook process is Grok, or the tool is
+ * `spawn_subagent` (Grok aliases Task onto the shared Cursor/Claude deposit).
+ */
+export function appliesGrokSpawnDestContract(input: GrokSpawnDestContractInput): boolean {
+  if (input.host === "grok") return true;
+  if (isGrokHookProcess(input.environ)) return true;
+  if (isGrokSpawnToolName(input.toolName)) return true;
+  const payload = record(input.payload);
+  if (payload === null) return false;
+  return isGrokSpawnToolName(fieldString(payload, "tool_name") ?? fieldString(payload, "toolName"));
+}
+
 /**
  * Process-only critic spawn: dest occupancy skip without the explore tool allowlist (#4241).
- * True only on the verified Grok `spawn_subagent` surface when structural
+ * True on the verified Grok `spawn_subagent` surface when structural
  * `subagent_type`/`subagentType` === `plan` (the field Grok PreToolUse stdin
- * actually contains). Other hosts and other spawn tools stay implement-class.
- * Prompt text is never a class. Implement envelope signals win, so a parent
- * cannot opt an implement worker in.
+ * actually contains). Handler-runtime identity (#4272) applies this skip when
+ * argv `--host` is cursor or claude and the tool is still `spawn_subagent`.
+ * Other spawn tools stay implement-class. Prompt text is never a class.
+ * Implement envelope signals win, so a parent cannot opt an implement worker in.
  */
 export function isProcessOnlyCriticSpawn(
   payload: unknown,
   context: ProcessOnlyCriticSpawnContext,
 ): boolean {
-  if (context.host !== "grok") return false;
   const input = record(payload);
   if (input === null) return false;
   const toolName =
@@ -298,7 +338,15 @@ export function isProcessOnlyCriticSpawn(
       : null) ??
     fieldString(input, "tool_name") ??
     fieldString(input, "toolName");
-  if (toolName === null || normalizedHookToolName(toolName) !== GROK_SPAWN_TOOL_NORMALIZED) {
+  if (!isGrokSpawnToolName(toolName)) return false;
+  if (
+    !appliesGrokSpawnDestContract({
+      host: context.host,
+      toolName,
+      payload,
+      environ: context.environ,
+    })
+  ) {
     return false;
   }
   const toolInput = toolInputRecord(input) ?? input;

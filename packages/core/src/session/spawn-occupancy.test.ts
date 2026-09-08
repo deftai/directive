@@ -9,6 +9,7 @@ import {
   allocatedWorktreeMatches,
   consultImplementSpawnOccupancy,
   evaluateImplementSpawnOccupancy,
+  GROK_VENDOR_COMPAT_HOOKS_DISABLE_REFUSE,
   inspectSpawnDestination,
   mintImplementSpawnReservation,
   persistSpawnReservation,
@@ -823,6 +824,78 @@ describe("consultImplementSpawnOccupancy (#4215)", () => {
     });
     expect(decision.allow).toBe(true);
     if (decision.allow) expect(decision.destProven).toBe(false);
+  });
+});
+
+describe("Grok dest contract under vendor-compat argv host (#4272)", () => {
+  it("uses cwd-only dest when argv host is cursor and the tool is spawn_subagent", () => {
+    const root = mkdtempSync(join(tmpdir(), "spawn-occ-4272-cursor-"));
+    temps.push(root);
+    gitInit(root);
+    const dest = join(root, "wt");
+    addLinkedWorktree(root, dest);
+    const decision = consultImplementSpawnOccupancy({
+      payload: {
+        tool_name: "spawn_subagent",
+        tool_input: { cwd: dest, prompt: "implement" },
+      },
+      payloadRoot: root,
+      host: "cursor",
+      parentId: "parent-1",
+      environ: { GROK_SESSION_ID: "grok-session-a" },
+    });
+    expect(decision.allow).toBe(true);
+    if (decision.allow) {
+      expect(decision.hostCanReroot).toBe(false);
+      expect(decision.destProven).toBe(true);
+      expect(decision.message).toContain("cannot re-root");
+    }
+  });
+
+  it("occupancy-denies extra dest keys on spawn_subagent even when argv host is cursor", () => {
+    const root = mkdtempSync(join(tmpdir(), "spawn-occ-4272-extra-"));
+    temps.push(root);
+    gitInit(root);
+    const dest = join(root, "wt");
+    addLinkedWorktree(root, dest);
+    const decision = consultImplementSpawnOccupancy({
+      payload: {
+        tool_name: "spawn_subagent",
+        tool_input: { cwd: dest, worktree_path: dest, prompt: "implement" },
+      },
+      payloadRoot: root,
+      host: "cursor",
+      parentId: "parent-1",
+    });
+    expect(decision.allow).toBe(false);
+    if (!decision.allow) {
+      expect(decision.reason).toBe("invalid-extra-destination");
+      expect(decision.message).toContain("cwd");
+      expect(decision.message).toContain("invalid on Grok");
+    }
+  });
+
+  it("keeps Cursor Task isolation=worktree reroot when Grok dest does not apply", () => {
+    const root = mkdtempSync(join(tmpdir(), "spawn-occ-4272-task-"));
+    temps.push(root);
+    const decision = consultImplementSpawnOccupancy({
+      payload: { tool_name: "Task", tool_input: { isolation: "worktree", prompt: "build" } },
+      payloadRoot: root,
+      host: "cursor",
+      parentId: "parent-1",
+      environ: {},
+    });
+    expect(decision.allow).toBe(true);
+    if (decision.allow) expect(decision.hostCanReroot).toBe(true);
+  });
+
+  it("recuts the vendor-compat disable refuse: default-on compat must work", () => {
+    expect(GROK_VENDOR_COMPAT_HOOKS_DISABLE_REFUSE.toLowerCase()).toContain(
+      "default-on vendor compat must work",
+    );
+    expect(GROK_VENDOR_COMPAT_HOOKS_DISABLE_REFUSE.toLowerCase()).not.toContain(
+      "drop cursor hooks",
+    );
   });
 });
 

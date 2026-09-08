@@ -1,0 +1,187 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Handwritten Recut ingest from successor lean 5591348099 for GitHub issue #4272 (#4258 harvest hole)",
+    "updated": "2026-09-08T20:38:59Z"
+  },
+  "plan": {
+    "title": "bug(hooks,harness): Grok Build spawn_subagent hits Cursor-compat rewrite; updated_input drops required prompt",
+    "status": "running",
+    "narratives": {
+      "Description": "Grok-applied spawn_subagent still runs Cursor dest occupancy and envelope rewrite under default vendor-compat. Isolation is handler-runtime identity, not matcher-split.",
+      "Origin": "Handwritten Recut ingest from https://github.com/deftai/directive/issues/4272 successor lean 5591348099. Not issue:ingest (#4258).",
+      "Overview": "## Recut of the filed body\n\nHandwritten ingest from the bound successor-lean Bound-remedy. Not issue:ingest. #4258: Recut harvest still maps plan.items and stated acceptance from the GitHub body; extractPlanItems cannot see a Bound-remedy numbered list. Body PATCH as the ingest path is the #4254 trap and is rejected on #4258. Do not restamp design-critique:mechanism-shaped.\n\nBound by successor lean 5591348099, verified-claims table 5591394437, and synthesis 5591397893 (dispatch SHA 37c306e8c223d0eb5231acc400ac4a07b64b4521). That arc accepted all four classified headings. The filed matcher-split-as-root repair is withdrawn.\n\n## Problem\n\nOn Grok Build TUI, implement-class spawn_subagent into a dest-proven linked worktree does not start. Grok merges Cursor and Claude hook files by default. Directive deposits one SPAWN_HOOK_MATCHER including spawn_subagent onto those files. Cursor occupancy and rewrite then run against Grok spawn_subagent. Cursor updated_input is a PreToolUse envelope; Grok applies it as tool args and schema-fails missing field prompt.\n\nRound-1 critic 5591333464: matcher-split-as-root does not isolate, because Grok aliases Task to spawn_subagent on the shared deposit file. Isolation is inside the handler.\n\n## Field instance\n\nGrok Build TUI, deftai/directive, 2026-09-08, origin/master 37c306e8, @deftai/directive@0.113.0. Native spawn_subagent with cwd to a dest-proven worktree: Hook denied, updatedInput failed the tool schema, missing field prompt. Same fail re-measured when dispatching this arc critic.\n\n## What to build\n\nThe next-build contract is the Bound-remedy of lean 5591348099 (plan.items below). Not the filed Product repair numbered list.\n\n## Rejected\n\n- Matcher-split-as-root (literal spawn_subagent removed from Cursor/Claude matchers) as the isolation\n- issue:ingest of the GitHub body (#4258 harvest hole)\n- GitHub body PATCH as the ingest path (#4254 trap)\n- [compat.cursor] hooks = false as the product fix\n- Teaching Grok isolation=worktree\n- Folding #4219 CLI grok --cwd classification\n\n## Related\n\n- #4066 #4215 (closed) dest cwd-only\n- #4241 (closed) plan skip is grok-host-only\n- #4219 (open) CLI classification; do not fold\n- #4254 (closed) dest-lock after first allow; leftover lock is in scope here\n- #3987 (closed) matcher cousin\n- #4258 Recut harvest mapper; why this ingest is handwritten",
+      "Labels": "bug, swarm, agent-experience, process, grok-build, harness, design-critique:recut-needed",
+      "UserStory": "As a Grok Build orchestrator, I want dest-proven cwd-only spawn_subagent to start a child under default Cursor/Claude hook compat, so that through-merge workers dispatch without an envelope rewrite dropping required prompt.",
+      "ImplementationPlan": "In dispatcher and spawn occupancy, when GROK_SESSION_ID or GROK_HOOK_EVENT is present or the tool is spawn_subagent, apply the Grok dest contract and do not emit envelope updatedInput even if argv --host is cursor or claude. Persist dest-lock only after the applying host accepted the input, or clean leftover locks. Keep rewrite-shape as a backstop (tool-arg object with prompt and cwd). Tests at packages/core/src/hooks and spawn-occupancy. CHANGELOG [Unreleased]. Do not treat matcher token subtraction as the close."
+    },
+    "items": [
+      {
+        "title": "When the hook process is Grok (GROK_SESSION_ID / GROK_HOOK_EVENT) or the tool is spawn_subagent, apply the Grok dest contract and emit no envelope rewrite, even if argv --host is cursor or claude. Do not bind matcher-split-as-root.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Observable: When the hook process is Grok (GROK_SESSION_ID / GROK_HOOK_EVENT) or the tool is spawn_subagent, apply the Grok dest contract and emit no envelope rewrite, even if argv --host is cursor or claude. Do not bind matcher-split-as-root. A failing test or named refuse proves the gap; a passing fixture proves the close.",
+          "Traces": "accepted successor lean 5591348099"
+        }
+      },
+      {
+        "title": "Drop the literal-token AC disjunct. The test is behavioral: Grok-applied spawn_subagent does not run Cursor dest occupancy and does not emit an envelope rewrite.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Observable: Drop the literal-token AC disjunct. The test is behavioral: Grok-applied spawn_subagent does not run Cursor dest occupancy and does not emit an envelope rewrite. A failing test or named refuse proves the gap; a passing fixture proves the close.",
+          "Traces": "accepted successor lean 5591348099"
+        }
+      },
+      {
+        "title": "This repair owns leftover dest-lock cleanup, or persist-only after the host that applies the tool has accepted the input. Do not bind the not-4254 exclusion as a scope cut.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Observable: This repair owns leftover dest-lock cleanup, or persist-only after the host that applies the tool has accepted the input. Do not bind the not-4254 exclusion as a scope cut. A failing test or named refuse proves the gap; a passing fixture proves the close.",
+          "Traces": "accepted successor lean 5591348099"
+        }
+      },
+      {
+        "title": "Recut the [compat.cursor] hooks = false blast-radius sentence. The refuse reason is that default-on vendor compat must work.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Observable: Recut the [compat.cursor] hooks = false blast-radius sentence. The refuse reason is that default-on vendor compat must work. A failing test or named refuse proves the gap; a passing fixture proves the close.",
+          "Traces": "accepted successor lean 5591348099"
+        }
+      },
+      {
+        "title": "Rewrite-shape (updatedInput as the tool-arg object with prompt and dest cwd) stays a backstop, not host identity.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Observable: Rewrite-shape (updatedInput as the tool-arg object with prompt and dest cwd) stays a backstop, not host identity. A failing test or named refuse proves the gap; a passing fixture proves the close.",
+          "Traces": "accepted successor lean 5591348099"
+        }
+      },
+      {
+        "title": "CHANGELOG [Unreleased] entry",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Observable: CHANGELOG [Unreleased] entry A failing test or named refuse proves the gap; a passing fixture proves the close.",
+          "Traces": "accepted successor lean 5591348099"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "agent-experience",
+      "process",
+      "grok-build",
+      "harness",
+      "design-critique:recut-needed"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4272",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4272"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4272#issuecomment-5591348099",
+        "type": "x-xbrief/refs",
+        "title": "successor lean 5591348099"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4258",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4258 Recut harvest hole"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/hooks/dispatcher.test.ts packages/core/src/hooks/dispatcher-spawn-dest.test.ts packages/core/src/session/spawn-occupancy.test.ts packages/core/src/hooks/readonly.test.ts"
+        ],
+        "expected_outputs": [
+          "Grok-applied spawn_subagent uses Grok dest contract despite --host cursor/claude",
+          "no envelope updated_input on that path",
+          "CHANGELOG #4272"
+        ],
+        "depends_on": [],
+        "conflict_group": "4272-spawn-host-identity",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Handwritten Recut ingest; AC traces the accepted successor lean rather than a specification FR id."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/session/spawn-occupancy.ts",
+          "packages/core/src/hooks/readonly.ts"
+        ],
+        "module_boundary": "packages/core/src/hooks"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5391354959,
+        "origin": "deftai/directive#4272",
+        "id": "github.issue.5391354959"
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the Bound-remedy task statement before product edit (#3323); handwritten because #4258 Recut harvest is not landed",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When the hook process is Grok (GROK_SESSION_ID / GROK_HOOK_EVENT) or the tool is spawn_subagent, apply the Grok dest contract and emit no envelope rewrite, even if argv --host is cursor or claude. Do not bind matcher-split-as-root.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Drop the literal-token AC disjunct. The test is behavioral: Grok-applied spawn_subagent does not run Cursor dest occupancy and does not emit an envelope rewrite.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "This repair owns leftover dest-lock cleanup, or persist-only after the host that applies the tool has accepted the input. Do not bind the not-4254 exclusion as a scope cut.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Recut the [compat.cursor] hooks = false blast-radius sentence. The refuse reason is that default-on vendor compat must work.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Rewrite-shape (updatedInput as the tool-arg object with prompt and dest cwd) stays a backstop, not host identity.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "CHANGELOG [Unreleased] entry",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5391354959",
+    "updated": "2026-09-08T20:38:59Z"
+  }
+}
