@@ -488,9 +488,7 @@ export function consultImplementSpawnOccupancy(
       : " Host isolation=worktree re-roots the child payload."
     : " This host cannot re-root PreToolUse input; the child must start in the reserved worktree.";
   const leftoverNote =
-    reuseIncarnation !== null
-      ? ` Reusing leftover dest-lock incarnation ${reuseIncarnation}.`
-      : "";
+    reuseIncarnation !== null ? ` Reusing leftover dest-lock incarnation ${reuseIncarnation}.` : "";
 
   return {
     allow: true,
