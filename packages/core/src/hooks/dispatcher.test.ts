@@ -2390,6 +2390,193 @@ describe("ephemeral spawn posture (#3080)", () => {
   });
 });
 
+describe("process-only critic spawn dest skip (#4241)", () => {
+  it("allows Grok plan spawn without cwd or dest consult", () => {
+    const inspectRitual = vi.fn(() => READY_RITUAL);
+    const inspectScope = vi.fn(() => ({
+      ready: false,
+      path: null,
+      message: "No active xBRIEF artifact was found under xbrief/active/",
+    }));
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: {
+            subagent_type: "plan",
+            prompt: "git show the dispatch sha and post a GitHub comment",
+          },
+        },
+      },
+      readySeams({ inspectRitual, inspectScope }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-process-only-ready" });
+    expect(decision.code).not.toBe("spawn-explore-ready");
+    expect(inspectRitual).not.toHaveBeenCalled();
+    expect(inspectScope).not.toHaveBeenCalled();
+  });
+
+  it("allows plan spawn onto a primary cwd without claiming dest occupancy", () => {
+    const primary = "/repos/deft/directive";
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: {
+            subagent_type: "plan",
+            isolation: "none",
+            cwd: primary,
+            prompt: "process-only critic",
+          },
+        },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-process-only-ready" });
+  });
+
+  it("does not early-allow plan spawn on non-Grok hosts", () => {
+    const inspectRitual = vi.fn(() => READY_RITUAL);
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          toolName: "Task",
+          tool_input: {
+            subagent_type: "plan",
+            prompt: "process-only critic",
+          },
+        },
+      },
+      readySeams({ inspectRitual }),
+    );
+    expect(decision.code).not.toBe("spawn-process-only-ready");
+    expect(inspectRitual).toHaveBeenCalled();
+  });
+
+  it("allows plan spawn under read-only so the critic is not forced into explore", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: { subagent_type: "plan", prompt: "post critic findings" },
+        },
+        environ: { [READ_ONLY_HOOK_ENV]: "1" },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-process-only-ready" });
+    expect(decision.code).not.toBe("spawn-explore-ready");
+  });
+
+  it("still requires a worktree for general-purpose implement spawn on Grok", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: {
+            subagent_type: "general-purpose",
+            prompt: "You are a critic. Implement the story.",
+          },
+        },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toContain("own worktree");
+  });
+
+  it("does not skip dest occupancy when critic is named only in the prompt", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: {
+            subagent_type: "general-purpose",
+            prompt: "role: critic. Process-only. Do not write the checkout.",
+          },
+        },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+  });
+
+  it("keeps git show of a pinned sha available (not explore-class tools)", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          toolName: "Shell",
+          tool_input: { command: "git show abcdef1:packages/core/src/hooks/dispatcher.ts" },
+        },
+      },
+      readySeams(),
+    );
+    expect(decision.verdict).toBe("allow");
+    expect(decision.code).toBe("shell-op-unclassifiable");
+  });
+
+  it("keeps gh issue comment --body-file available", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          toolName: "Shell",
+          tool_input: { command: "gh issue comment 4241 --body-file %TEMP%\\critic.md" },
+        },
+      },
+      readySeams(),
+    );
+    expect(decision.verdict).toBe("allow");
+    expect(decision.code).toBe("shell-op-unclassifiable");
+  });
+
+  it("does not exempt checkout writes for a later child Edit", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          toolName: "Edit",
+          tool_input: { file_path: "/project/packages/core/src/hooks/dispatcher.ts" },
+        },
+      },
+      readySeams({
+        inspectScope: () => ({
+          ready: false,
+          path: null,
+          message: "No active xBRIEF artifact was found under xbrief/active/",
+        }),
+      }),
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.code).not.toBe("spawn-process-only-ready");
+  });
+});
+
 describe("runtime authority policy (#1394)", () => {
   const ENABLED_POLICY = {
     enabled: true,

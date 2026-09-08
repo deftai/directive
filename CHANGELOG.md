@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Land leftover completed-tracked artifact for #4240 (#3264 / #1358).** The #4240 xBRIEF stayed untracked after squash of PR 4250 (`802f2cb8`). Moved to `xbrief/completed/` via `scope:complete`. Does not recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #4230 (#3264 / #1358).** The #4230 xBRIEF stayed untracked after squash of PR 4249 (`6b55e61c`). Moved to `xbrief/completed/` via `scope:complete`. Does not recut that issue. Refs #2321, #3476.
 - **issue:ingest refuses a live body that does not match Target-digest on the cited successor lean (#4243).** New successor leans pin SHA-256 of GitHub REST body bytes. The pin must be 64 lowercase hex digits to end of line. Mismatch or trailing junk is `stale-target` and writes nothing. Cache is not admission. Duplicate-already-tracked stays before fetch. Legacy leans with no digest stay admitted. Recut-without-digest stays on #4237. Closes #4243.
+- **Process-only critic spawn (`subagent_type` plan) skips dest occupancy (#4241).** Only Grok `spawn_subagent` PreToolUse stdin that sends `plan`. Skip dest consult, worktree, ritual, and active-story for that tag only. No synthetic reservation. The skip still works under read-only. Not the explore subagent. Other hosts and `general-purpose` still need a worktree. Naming critic in the prompt is not a class. Child checkout writes stay gated. Closes #4241. Refs #4066, #4072.
 
 ### Removed
 

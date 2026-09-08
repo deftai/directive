@@ -112,6 +112,7 @@ import {
   isAssistPosture,
   isEphemeralSpawn,
   isExploreSpawn,
+  isProcessOnlyCriticSpawn,
   isReadOnlyHookContext,
 } from "./readonly.js";
 import {
@@ -131,6 +132,7 @@ export {
   isAssistPosture,
   isEphemeralSpawn,
   isExploreSpawn,
+  isProcessOnlyCriticSpawn,
   isReadOnlyHookContext,
 } from "./readonly.js";
 export {
@@ -202,6 +204,8 @@ export type HookDecisionCode =
   | "spawn-explore-ready"
   /** Non-lifecycle assist/docs spawn allowed without active xBRIEF (#3080). */
   | "spawn-ephemeral-ready"
+  /** Process-only critic spawn (`subagent_type` plan) skips dest occupancy (#4241). */
+  | "spawn-process-only-ready"
   | "spawn-ready"
   | "spawn-not-ready"
   | "runtime-policy-deny-path"
@@ -1612,8 +1616,10 @@ function inspectMutationGates(
           "`worker_role`/`subagent_type` ∈ {ephemeral, docs, assist} (hosts that support them), " +
           "or set session assist (`DEFT_SESSION_POSTURE=assist` or `DEFT_HOOK_ASSIST=1`), " +
           "or run local-dev Shell (`docker compose` / `pnpm dev`) in the parent without a " +
-          "lifecycle story. Free-text markers such as `[worker_role: ephemeral]` in the " +
-          "prompt are NOT sufficient. Do not invent a fake scope only to satisfy this gate.";
+          "lifecycle story. (4) Process-only critic — spawn with structural `subagent_type` " +
+          "plan (Grok PreToolUse stdin). Free-text markers such as `[worker_role: ephemeral]` " +
+          "or naming critic in the prompt are NOT sufficient. Do not invent a fake scope " +
+          "only to satisfy this gate.";
       } else if (
         options.proposedLifecycleExempt &&
         relTarget !== null &&
@@ -1708,9 +1714,18 @@ function inspectMutationGates(
       environ,
       runGit: dispatchGit,
     });
-    const persisted = persistSpawnReservation(payloadRoot, spawnReservation.reservation);
+    const reservation = spawnReservation.reservation;
+    if (reservation === null) {
+      return deny(
+        input,
+        "spawn-not-ready",
+        toolName,
+        `Directive denied ${toolName}: implement spawn produced no destination reservation.`,
+      );
+    }
+    const persisted = persistSpawnReservation(payloadRoot, reservation);
     if (!persisted.ok) {
-      const dest = spawnReservation.reservation.worktreePath;
+      const dest = reservation.worktreePath;
       const occupied = persisted.reason === "occupied";
       return deny(
         input,
@@ -1727,7 +1742,7 @@ function inspectMutationGates(
       input,
       spawnReservation.reRootPath,
       spawnReservation.hostCanReroot,
-      spawnReservation.incarnation,
+      spawnReservation.incarnation ?? "",
     );
     return {
       verdict: "allow",
@@ -2455,13 +2470,18 @@ function routeHookDecision(
   }
 
   if (isSpawnTool(toolName)) {
-    if (readOnly && !isExploreSpawn(input.payload)) {
+    if (
+      readOnly &&
+      !isExploreSpawn(input.payload) &&
+      !isProcessOnlyCriticSpawn(input.payload, { host: input.host, toolName })
+    ) {
       return deny(
         input,
         "read-only-deny",
         toolName,
         `Directive denied ${toolName}: read-only posture blocks implementation sub-agent spawns. ` +
-          "Use subagent_type explore for read-only research spawns.",
+          "Use subagent_type explore for read-only research spawns, or subagent_type plan " +
+          "for process-only critic spawns.",
       );
     }
     if (isExploreSpawn(input.payload)) {
@@ -2473,6 +2493,22 @@ function routeHookDecision(
         toolName,
         projectRoot,
         message: `Directive allowed explore ${toolName} spawn without implementation gates.`,
+        scopePath: null,
+      };
+    }
+    // Process-only critic (`subagent_type` plan): dest consult, worktree, ritual,
+    // and active-xBRIEF skip. Not the explore tool allowlist. Prompt text is not a class (#4241).
+    if (isProcessOnlyCriticSpawn(input.payload, { host: input.host, toolName })) {
+      return {
+        verdict: "allow",
+        code: "spawn-process-only-ready",
+        event: input.event,
+        host: input.host,
+        toolName,
+        projectRoot,
+        message:
+          `Directive allowed process-only critic ${toolName} spawn without dest occupancy ` +
+          "or implementation gates (subagent_type plan).",
         scopePath: null,
       };
     }

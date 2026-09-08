@@ -5,6 +5,7 @@ import {
   isAssistPosture,
   isEphemeralSpawn,
   isExploreSpawn,
+  isProcessOnlyCriticSpawn,
   isReadOnlyHookContext,
 } from "./readonly.js";
 import { READ_ONLY_HOOK_ENV } from "./tools.js";
@@ -196,6 +197,85 @@ describe("assist posture detection (#1802)", () => {
       isAssistPosture({
         tool_input: { worker_role: "ephemeral", drive_to: "merge-ready" },
       }),
+    ).toBe(false);
+  });
+});
+
+describe("process-only critic spawn (#4241)", () => {
+  const grok = { host: "grok", toolName: "spawn_subagent" } as const;
+
+  it("recognizes Grok-visible subagent_type plan on spawn_subagent", () => {
+    expect(isProcessOnlyCriticSpawn({ tool_input: { subagent_type: "plan" } }, grok)).toBe(true);
+    expect(isProcessOnlyCriticSpawn({ subagentType: "plan" }, grok)).toBe(true);
+    expect(isProcessOnlyCriticSpawn({ tool_input: { subagentType: "PLAN" } }, grok)).toBe(true);
+  });
+
+  it("does not treat explore or general-purpose as process-only critic", () => {
+    expect(isProcessOnlyCriticSpawn({ tool_input: { subagent_type: "explore" } }, grok)).toBe(
+      false,
+    );
+    expect(
+      isProcessOnlyCriticSpawn({ tool_input: { subagent_type: "general-purpose" } }, grok),
+    ).toBe(false);
+    expect(
+      isProcessOnlyCriticSpawn({ tool_input: { subagent_type: "generalPurpose" } }, grok),
+    ).toBe(false);
+  });
+
+  it("does not classify from prompt text naming critic", () => {
+    expect(
+      isProcessOnlyCriticSpawn(
+        {
+          tool_input: {
+            subagent_type: "general-purpose",
+            prompt: "You are a process-only critic. Do not write the checkout.",
+          },
+        },
+        grok,
+      ),
+    ).toBe(false);
+    expect(
+      isProcessOnlyCriticSpawn(
+        {
+          tool_input: { prompt: "role: critic; subagent_type: plan" },
+        },
+        grok,
+      ),
+    ).toBe(false);
+  });
+
+  it("implement signals win over plan (fail closed)", () => {
+    expect(
+      isProcessOnlyCriticSpawn(
+        {
+          tool_input: { subagent_type: "plan", drive_to: "merge-ready" },
+        },
+        grok,
+      ),
+    ).toBe(false);
+    expect(
+      isProcessOnlyCriticSpawn(
+        {
+          tool_input: { subagent_type: "plan", worker_role: "leaf-implementation" },
+        },
+        grok,
+      ),
+    ).toBe(false);
+  });
+
+  it("does not skip dest occupancy for plan on non-Grok hosts", () => {
+    const payload = { tool_name: "Task", tool_input: { subagent_type: "plan" } };
+    expect(isProcessOnlyCriticSpawn(payload, { host: "claude", toolName: "Task" })).toBe(false);
+    expect(isProcessOnlyCriticSpawn(payload, { host: "cursor", toolName: "Task" })).toBe(false);
+    expect(isProcessOnlyCriticSpawn(payload, { host: "codex", toolName: "Task" })).toBe(false);
+  });
+
+  it("does not skip dest occupancy for Grok spawn tools other than spawn_subagent", () => {
+    expect(
+      isProcessOnlyCriticSpawn(
+        { tool_input: { subagent_type: "plan" } },
+        { host: "grok", toolName: "Task" },
+      ),
     ).toBe(false);
   });
 });
