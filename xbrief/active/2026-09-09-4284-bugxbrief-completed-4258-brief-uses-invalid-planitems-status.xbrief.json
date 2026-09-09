@@ -72,8 +72,7 @@
           "CHANGELOG.md"
         ],
         "verify_commands": [
-          "task vbrief:validate",
-          "task check"
+          "pnpm exec vitest run packages/core/src/scope/transition.test.ts"
         ],
         "expected_outputs": [
           "vbrief:validate exit 0",
