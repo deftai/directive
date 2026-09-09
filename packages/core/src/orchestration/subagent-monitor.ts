@@ -250,7 +250,34 @@ export interface ScratchDirEntry {
   readonly label: string;
 }
 
-/** Walk scratch dirs and parse every *.json heartbeat record. */
+/**
+ * Heartbeat filenames are top-level `<agent-id>.json` only (#4286).
+ * Skip ack/steer suffixes and do not recurse into subdirectories.
+ */
+export function isHeartbeatScratchFilename(name: string): boolean {
+  if (!name.endsWith(".json")) return false;
+  if (name.includes("/") || name.includes("\\")) return false;
+  const stem = name.slice(0, -".json".length);
+  if (stem.length === 0) return false;
+  if (stem.endsWith(".ack") || stem.endsWith(".steer")) return false;
+  return true;
+}
+
+/** Steer inbox JSON dropped in the liveness dir is not a heartbeat (#4286). */
+export function heartbeatFileIsSteerSchema(filePath: string): boolean {
+  try {
+    const payload = JSON.parse(readFileSync(filePath, "utf8")) as unknown;
+    if (typeof payload !== "object" || payload === null || Array.isArray(payload)) {
+      return false;
+    }
+    const schema = (payload as Record<string, unknown>).schema;
+    return typeof schema === "string" && schema.startsWith("deft.subagent.steer");
+  } catch {
+    return false;
+  }
+}
+
+/** Walk scratch dirs and parse top-level heartbeat `<agent-id>.json` records. */
 export function sweepScratchDirs(
   scratchDirs: ScratchDirEntry[],
   options: { thresholdMinutes: number; now?: Date },
@@ -287,7 +314,7 @@ export function sweepScratchDirs(
     let children: string[];
     try {
       children = readdirSync(d)
-        .filter((name) => name.endsWith(".json"))
+        .filter((name) => isHeartbeatScratchFilename(name))
         .sort();
     } catch (exc: unknown) {
       result.sweep_errors.push(
@@ -302,6 +329,9 @@ export function sweepScratchDirs(
           continue;
         }
       } catch {
+        continue;
+      }
+      if (heartbeatFileIsSteerSchema(child)) {
         continue;
       }
       result.records.push(parseHeartbeatFile(child, { now, thresholdSeconds }));

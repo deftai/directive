@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Parent-steer inbox for grok-build leaves (#4286).** Parent writes a closed-schema inbox at `.deft-scratch/subagent-steer/<agent-id>.json`; the child reads it on each pollable slice and acks apply-once. Heartbeat sweep skips steer schema and only reads top-level `<agent-id>.json`. `verify:subagent-steer` exit 1 is `STEER_PENDING`, not `REDISPATCH_OK`. Does not replace split-dispatch. Closes #4286.
+
 ### Changed
 
 - **Design-critique exclusive catalog is mechanism-shaped, in-progress, ingest-ready (#4298).** One bind chip after a complete record: ingest-ready. judgmentGates stays on mechanism-shaped. in-progress flips on first panel-deposit or role: critic, not spawn intent. Recut: is a lean token, not a chip; auto-stamp writes ingest-ready. Old triage-ready / recut-needed fail closed. In-arc membership is thread-only. Halt leaves the standing in-flight chip. Closes #4298. Refs #3642, #4205, #3640, #3806.

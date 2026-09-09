@@ -703,3 +703,13 @@ tasks:
       - task: :engine:invoke
         vars:
           ENGINE_CMD: 'verify-subagent-alive {{.CLI_ARGS}}'
+
+  subagent-steer:
+    desc: "Parent-visible unread steer flag (#4286): exit 1 is STEER_PENDING, not REDISPATCH_OK. Three-state exit (0 none / 1 unread / 2 config)."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify-subagent-steer {{.CLI_ARGS}}'

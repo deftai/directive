@@ -566,6 +566,13 @@ The parent monitor watches the heartbeat file directly (three-state exit 0 ok / 
 
 ! **Recovery dispatch vs stale ritual (#3730 / #2992):** Before a replacement spawn, run `task verify:session-ritual -- --tier=gated`. If it fails, run `task session:start --rearm --session-id=<same>` (or the `deft` form) rather than a full cold ceremony, unless re-arm is ineligible. A ritual deny MUST name `session:start --rearm`. Do not treat a bare deny as a dead end, and do not re-arm under a new session id (that reclaims occupancy and blocks the parent's own writes).
 
+! **Parent-steer inbox (#4286):** Grok Build `spawn_subagent` has no child prompt and no live `resume_from`. That host gap does not invent retain, OpenClaw `sessions_yield`, or a replacement for split-dispatch mid-scope approval gates. Grok-build implementation leaves whose tool loop exceeds ~3 min MUST still have a parent-writable steer path because the host has no other channel.
+
+- Inbox path: `<worktree>/.deft-scratch/subagent-steer/<agent-id>.json` (sibling of heartbeat, not inside `subagent-status/`). Closed schema `deft.subagent.steer.v1`: bound to `agent_id`, `steer_id` apply-once ack, `expires_at`, `writer_kind` `occupancy-owner` | `dispatching-parent`. Ack file: `<agent-id>.ack.json` in the same steer dir. Distinct from the child-owned heartbeat JSON.
+- Tool-loop duty: no blocking wait longer than the heartbeat/steer poll interval (2-3 min) when the leaf must remain steerable. Between slices, read the inbox, apply unread once, rewrite heartbeat. A scratch path does not interrupt a blocked tool. Long `task check` recovery stays REDISPATCH_OK / split-dispatch — not "poll while blocked".
+- Parent-visible unread flag: `task verify:subagent-steer` exit `1` prints `STEER_PENDING`. ⊗ Treat unread steer as missing heartbeat. ⊗ Print `REDISPATCH_OK` from the steer gate. ⊗ Put a second JSON schema in `.deft-scratch/subagent-status/` — `sweepScratchDirs` only reads top-level heartbeat `<agent-id>.json` and skips `deft.subagent.steer*` schema.
+- ⊗ Invent message-later / live `resume_from` on grok-build. ⊗ Treat steer `text` as a new dispatch envelope or constitution edit. Depth: `docs/subagent-heartbeat.md`.
+
 ## 10.55 Rule Authority and Thin Fail-Closed (#3313)
 
 Principle: `main.md` `## Rule Authority [AXIOM]`.
