@@ -9,6 +9,12 @@ import {
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { missingEnvelopeMessage, stampExistingEnvelopes } from "../lifecycle/brief-envelope.js";
 import { type CallOptions, type CompletedProcess, call } from "../scm/call.js";
+import {
+  GhRestError,
+  InvalidRepoError,
+  type RunGhApiFn,
+  restIssueListOpenInventory,
+} from "../scm/gh-rest.js";
 import { updateDecomposedChildBackReferences } from "../scope/decomposed-refs.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
 import { resolveProjectRepo } from "../slice/project-context.js";
@@ -383,6 +389,113 @@ export function fetchIssueStates(
 
   for (const n of sortedNumbers) {
     const fetched = fetchOneIssueStateRest(owner, name, n, scmCall, options.cwd ?? undefined);
+    if (fetched === "CLI_MISSING") {
+      process.stderr.write("Error: gh CLI not found. Install GitHub CLI.\n");
+      return null;
+    }
+    if (fetched === null) {
+      return null;
+    }
+    states.set(n, fetched);
+  }
+  return states;
+}
+
+function scmCallToRunGhApi(scmCall: ScmCallFn, cwd?: string): RunGhApiFn {
+  return (args, options) => {
+    const result = scmCall("github-issue", "api", args, {
+      timeout: options?.timeout ?? 120,
+      cwd,
+    });
+    return {
+      returncode: result.returncode,
+      stdout: result.stdout,
+      stderr: result.stderr,
+    };
+  };
+}
+
+/** Unique issue numbers from non-terminal lifecycle anchors (#4269). */
+export function collectNonTerminalApplyIssueNumbers(
+  anchors: readonly Record<string, unknown>[],
+): Set<number> {
+  const numbers = new Set<number>();
+  for (const anchor of anchors) {
+    const rel = String(anchor.rel_path ?? "");
+    if (isTerminalLifecyclePath(rel)) {
+      continue;
+    }
+    const n = anchor.issue_number;
+    if (typeof n === "number" && Number.isInteger(n)) {
+      numbers.add(n);
+    }
+  }
+  return numbers;
+}
+
+/**
+ * Apply-lifecycle-fixes fetch: open-issue inventory for OPEN membership,
+ * live REST only for remaining non-open non-terminal movers (#4269).
+ */
+export function fetchIssueStatesForApply(
+  repo: string,
+  anchors: readonly Record<string, unknown>[],
+  options: FetchIssueStatesOptions = {},
+): Map<number, IssueState> | null {
+  const needed = collectNonTerminalApplyIssueNumbers(anchors);
+  if (needed.size === 0) {
+    return new Map();
+  }
+  const parsed = splitRepoSlug(repo);
+  if (parsed === null) {
+    process.stderr.write(
+      `Error: invalid repo slug ${JSON.stringify(repo)}; expected OWNER/REPO.\n`,
+    );
+    return null;
+  }
+  const [owner, name] = parsed;
+  const scmCall = options.scmCall ?? call;
+  const cwd = options.cwd ?? undefined;
+
+  let inventory: Record<string, unknown>[];
+  try {
+    inventory = restIssueListOpenInventory(repo, {
+      runGhApiFn: scmCallToRunGhApi(scmCall, cwd),
+    });
+  } catch (err) {
+    if (err instanceof GhRestError || err instanceof InvalidRepoError) {
+      process.stderr.write(`Error: ${err.message}\n`);
+      return null;
+    }
+    process.stderr.write("Error: gh CLI not found. Install GitHub CLI.\n");
+    return null;
+  }
+
+  const openNumbers = new Set<number>();
+  for (const row of inventory) {
+    const n = row.number;
+    if (typeof n === "number" && Number.isInteger(n)) {
+      openNumbers.add(n);
+    }
+  }
+
+  const states = new Map<number, IssueState>();
+  const remaining: number[] = [];
+  for (const n of [...needed].sort((a, b) => a - b)) {
+    if (openNumbers.has(n)) {
+      states.set(n, new IssueState("OPEN"));
+    } else {
+      remaining.push(n);
+    }
+  }
+
+  const total = remaining.length;
+  for (let i = 0; i < remaining.length; i += 1) {
+    const n = remaining[i] as number;
+    process.stderr.write(
+      `[${i + 1}/${total}] apply-lifecycle-fixes fetching state_reason for #${n}\n`,
+    );
+    const fetched = fetchOneIssueStateRest(owner, name, n, scmCall, cwd);
     if (fetched === "CLI_MISSING") {
       process.stderr.write("Error: gh CLI not found. Install GitHub CLI.\n");
       return null;
@@ -807,7 +920,7 @@ function propagateItemStatus(items: unknown, itemStatus: string, stamp: string):
   return touched;
 }
 
-function destinationFolder(stateReason: string | null | undefined): string {
+export function destinationFolder(stateReason: string | null | undefined): string {
   if (
     stateReason !== null &&
     stateReason !== undefined &&
@@ -1078,12 +1191,6 @@ export function reconcileMain(args: ReconcileCliArgs): number {
   const needed = new Set(issueMap.keys());
   if (args.applyLifecycleFixes) {
     anchors = scanLifecycleAnchors(vbriefDir);
-    for (const a of anchors) {
-      const n = a.issue_number as number | null;
-      if (n !== null) {
-        needed.add(n);
-      }
-    }
   }
 
   let issueStateMap: Map<number, IssueState> | null = null;
@@ -1103,11 +1210,17 @@ export function reconcileMain(args: ReconcileCliArgs): number {
     }
     report = reconcileWithUnlinked(issueToVbriefsObj, openIssues);
     if (args.applyLifecycleFixes) {
-      issueStateMap = fetchIssueStates(repo, needed, { cwd: projectRoot });
+      issueStateMap = fetchIssueStatesForApply(repo, anchors, { cwd: projectRoot });
       if (issueStateMap === null) {
         return 1;
       }
     }
+  } else if (args.applyLifecycleFixes) {
+    issueStateMap = fetchIssueStatesForApply(repo, anchors, { cwd: projectRoot });
+    if (issueStateMap === null) {
+      return 1;
+    }
+    report = reconcile(issueToVbriefsObj, issueStateMap);
   } else {
     issueStateMap = fetchIssueStates(repo, needed, { cwd: projectRoot });
     if (issueStateMap === null) {

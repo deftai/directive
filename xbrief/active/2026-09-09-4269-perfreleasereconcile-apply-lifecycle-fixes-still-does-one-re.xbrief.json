@@ -1,0 +1,156 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4269",
+    "updated": "2026-09-09T00:28:24Z"
+  },
+  "plan": {
+    "title": "perf(release,reconcile): apply-lifecycle-fixes still does one REST call per anchored issue",
+    "status": "running",
+    "narratives": {
+      "Description": "perf(release,reconcile): apply-lifecycle-fixes still does one REST call per anchored issue",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4269",
+      "Overview": "## Recut of the filed body\n\nBody alignment to the bound arc. Not a new target. Do not restamp `design-critique:mechanism-shaped`.\n\nBound by successor lean 5590854039, verified-claims table 5590921871, and synthesis 5590925030 (dispatch SHA `37c306e8c223d0eb5231acc400ac4a07b64b4521`). That arc accepted F1-F3 (blocking and sharpening) and recorded F4-F5 as footnotes. `## Repairs` maps each heading to a row. The original \"reuse the #3752 inventory, treat absence as non-open\" contract is withdrawn.\n\nThis rewrite is a bootstrap so current ingest can harvest this issue. It does not restamp. It does not open a recut arc.\n\n## Parent\n\n#4265\n\n## Problem, restated against the tree\n\n`task reconcile:issues -- --apply-lifecycle-fixes` still walks one REST GET per anchored issue. On the v0.113.0 cut that was 1496 lifecycle anchors, 1261 unique numbers, ~18 minutes of silence, then moved=0, already-terminal=1425.\n\nRelease Step 3 already loads one paginated REST inventory (#3752) and maps presence to OPEN and absence to NOT_FOUND with a null `stateReason`. The operator apply path in `reconcileMain` unions every lifecycle-folder anchor into `needed`, then `fetchIssueStates` loops `fetchOneIssueStateRest`. `applyLifecycleFixes` skips completed/cancelled paths after that fetch. The skip does not shrink the GET set.\n\nThe #3752 inventory is enough to know which anchors are still open. It is not enough to choose completed versus cancelled. `destinationFolder` uses `state_reason` (NOT_PLANNED / DUPLICATE -> cancelled, else completed). Inventory absence is `IssueState(\"NOT_FOUND\")` with null reason, which always files completed. Copying Step 3's unconfirmed absence into a path that writes and `git mv`s briefs would mis-file not_planned and duplicate issues.\n\nOrphan-active (#3767) already reuses the same inventory and confirms absence with one live GET before acting. Apply is a stronger consumer.\n\n## What to build\n\n1. Shrink the fetch set to non-terminal anchors before any network. Already-terminal briefs (completed/, cancelled/) are not live-fetched unless a mismatch actually requires state.\n\n2. Use the #3752 open-issue inventory for OPEN membership. Fail closed on truncated or malformed inventory, same as Step 3.\n\n3. Live REST GET only for the remaining non-open, non-terminal candidates that would actually move, so `state_reason` is known and `destinationFolder` can choose completed versus cancelled. Reuse one live result when several briefs name the same issue.\n\n4. Print progress (N/total or equivalent) on that remaining work so a long run cannot look hung.\n\n5. A fixture or test locks: no per-issue loop over a >1 inventory for OPEN membership; destination for a not_planned/duplicate closed issue is cancelled, not completed.\n\n6. CHANGELOG entry.\n\n7. task check passes.\n\n## Type\n\nAFK\n\n## Blocked by\n\nNone -- can start immediately after ingest.\n\n## Rejected\n\n- Wholesale `fetchIssueStatesForRelease` as the whole apply contract (no `state_reason`)\n- Treating inventory absence as sufficient for `destinationFolder`\n- Restoring GraphQL batching (#954)\n- Recutting #3752\n- Fetching already-terminal briefs \"just in case\" when no mismatch requires state\n\n## Acceptance\n\n- [ ] `--apply-lifecycle-fixes` does not issue one REST GET per anchored issue when an open-issue inventory is available (OPEN membership comes from the inventory)\n- [ ] Already-terminal briefs (completed/, cancelled/) are not live-fetched unless a mismatch actually requires state\n- [ ] Non-open non-terminal movers receive a live REST `state_reason`; NOT_PLANNED and DUPLICATE go to cancelled/, other closed go to completed/\n- [ ] Progress is printed (N/total or equivalent) on the remaining work\n- [ ] A fixture or test locks the inventory OPEN path (no per-issue loop on a >1 inventory) and the cancelled-versus-completed destination\n- [ ] CHANGELOG entry\n- [ ] task check passes\n\n## Non-goals\n\n- Do not recut #3752\n- Do not restore GraphQL\n- Do not restamp this issue for a second arc\n- Do not implement #4258 here (Recut-lean ingest harvest). This body recut is so current harvest can read these AC checkboxes\n- Occupancy CLI flag (#4266), npm sibling wait (#4267), win32 body-file closeout (#4268)\n\n## Repairs (accepted headings -> this body)\n\n| Heading | Class | Where |\n| --- | --- | --- |\n| Inventory absence has no state_reason; apply would file every move as completed | blocks-the-design | Problem restated; What to build 3; Acceptance live `state_reason`; Rejected wholesale Step 3 substitute |\n| #3767 already refused unconfirmed absence for a weaker consumer | sharpens-framing | Problem restated; What to build 2-3 (inventory for OPEN, live GET for movers) |\n| Skipping terminal live-fetch is a fetch-set shrink, not an inventory property | sharpens-framing | What to build 1; Acceptance already-terminal bullet |\n| Progress during fetch | footnote | What to build 4; Acceptance progress |\n| GraphQL batching | footnote | Rejected; Non-goals |\n\n## Related\n\n- #3752 -- open-issue inventory (do not recut)\n- #3767 -- inventory absence confirmed by one live GET\n- #954 -- REST, not GraphQL\n- #4258 -- Recut-lean ingest harvest; this recut is the body-alignment workaround, not that mapper\n- #4265 -- parent tracker\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-08T19:36:35Z)\n\nmodel: grok-4.6\r\nrole: triage\r\n\r\nmechanism-shaped: true\r\narc-mode: direct\r\ncharter: refutation\r\nspend: N=1\r\nwhy: the issue names a defensible presumption with a refutation target (reuse the #3752 open-issue inventory, treat absence as non-open); default motion is one fresh critic. Panel permission unused.\r\nrefutation-target: The #3752 paginated open-issue inventory, with absence treated as non-open, is a sufficient substitute for per-issue REST GETs on the operator apply-lifecycle-fixes path, including skipping live fetch of already-terminal briefs unless a mismatch actually requires state.\r\ndesign-critique: warranted, because apply-lifecycle-fixes mutates lifecycle placement from issue-openness, and substituting an inventory absence for a live GET is a protocol about what \"open\" means, not a local constant change.\r\nSHA: 37c306e8c223d0eb5231acc400ac4a07b64b4521\r\ntarget: #4269\r\n\r\nOperator: arc 4269, then direct.\r\n\r\n## What the body asserts\r\n\r\nOn the v0.113.0 cut, `task reconcile:issues -- --apply-lifecycle-fixes` ran ~18 minutes with no progress, then moved=0, already-terminal=1425 (1496 anchors / 1261 unique numbers). Release Step 3 already loads one paginated REST inventory (#3752) and treats absence as non-open. The operator apply path still walks one REST GET per anchored issue. Do not restore GraphQL batching (#954).\r\n\r\n## Measured at SHA 37c306e8 (claims, not evidence)\r\n\r\n- `--apply-lifecycle-fixes` unions every lifecycle-folder anchor into the fetch set, then `fetchIssueStates` issues one REST GET per number.\r\n- `applyLifecycleFixes` skips completed/cancelled paths after that fetch. The skip does not shrink the GET set.\r\n- Progress prints after apply (`moved` / `already-terminal`), not during the fetch loop.\r\n- Release Step 3 already maps inventory presence to OPEN and absence to NOT_FOUND.\r\n- `--report-unlinked` has a different open-issue list helper. That is an existing mechanism, not this target.\r\n\r\n## Out of this arc\r\n\r\n#4266 occupancy CLI flag, #4267 npm sibling wait, #4268 win32 body-file closeout. Do not recut #3752.\n\n\n### Comment by @MScottAdams (2026-09-08T19:44:11Z)\n\nmodel: grok-4.6\r\nrole: critic\r\n\r\nTarget: #4269. Ceiling 5590754032 inclusive. Dispatch SHA 37c306e8c223d0eb5231acc400ac4a07b64b4521. Charter: refutation. Spend: N=1.\r\nRefutation target: the #3752 paginated open-issue inventory, with absence treated as non-open, is a sufficient substitute for per-issue REST GETs on the operator apply-lifecycle-fixes path, including skipping live fetch of already-terminal briefs unless a mismatch actually requires state.\r\nSeat: grok parent seat. spawn_subagent plan was denied as implement-class (reroot dest-missing; plan skip did not fire). Child did not start. This post is the round-1 critic.\r\n\r\n## Re-verified (ran, not line-cite)\r\n\r\n| Claim | Method | Result |\r\n|---|---|---|\r\n| apply path still loops one REST GET per number | `git show 37c306e8:packages/core/src/intake/reconcile-issues.ts` — `fetchIssueStates` calls `fetchOneIssueStateRest` in a for-loop; `reconcileMain` unions `scanLifecycleAnchors` into `needed` then fetches | Holds |\r\n| Terminal skip is after fetch | same file: `applyLifecycleFixes` `isTerminalLifecyclePath` continue; `needed.add` is every lifecycle folder | Holds |\r\n| Step 3 maps inventory absence to NOT_FOUND with no reason | `git show 37c306e8:packages/core/src/release/issue-state-fetch.ts` `buildStatesFromOpenInventory` — `OPEN` if present else `new IssueState(\"NOT_FOUND\")` | Holds |\r\n| Apply destination uses state_reason | same reconcile file: `destinationFolder` — NOT_PLANNED/DUPLICATE → cancelled, else completed | Holds |\r\n| #3767 confirms inventory absence before acting | `git show 37c306e8:packages/core/src/orphan-active/issue-state.ts` — absence confirmed by one authoritative read, reused per number | Holds |\r\n| `--report-unlinked` uses a different list helper | `fetchAllOpenIssues` / `runGhIssueList` in the same reconcile module; apply still calls `fetchIssueStates` even on that branch | Holds |\r\n| Progress prints after apply, not during fetch | `reconcileMain` stderr `[moved/candidates]` after `applyLifecycleFixes` | Holds |\r\n\r\n## F1 — Inventory absence has no state_reason; apply would file every move as completed [blocks-the-design]\r\n\r\n**Evidence.** Step 3's substitute (`buildStatesFromOpenInventory`) emits `IssueState(\"NOT_FOUND\")` with default `stateReason: null`. `stateReasonOf` returns that null. `destinationFolder(null)` returns `completed`. CANCELLED_STATE_REASONS is only NOT_PLANNED and DUPLICATE, which live on the per-issue REST payload `state_reason` that the inventory row does not carry.\r\n\r\n**Failure mode.** `--apply-lifecycle-fixes` moves non-terminal briefs whose issues are closed not_planned or duplicate into `completed/` instead of `cancelled/`. The 18-minute run's `moved=0` hid this: once the fetch is fast, the first real moves inherit the wrong folder. That is a lifecycle mutation error, not a perf miss.\r\n\r\n**Disposition.** The lean cannot bind the body's \"reuse #3752, absence as non-open\" as sufficient for the apply path. Open vs not-open is one axis. Destination folder is another, and the inventory does not carry it.\r\n\r\n## F2 — #3767 already refused unconfirmed absence for a weaker consumer [sharpens-framing]\r\n\r\n**Evidence.** Orphan-active reuses the same inventory, then confirms absence with one live GET before the gate acts, because absence is the direction that authorizes `scope:complete`. Apply-lifecycle-fixes is a stronger consumer: it writes and `git mv`s briefs.\r\n\r\n**Failure mode.** Copying Step 3's unconfirmed absence (release preflight, no tree mutation) into the apply path skips a confirm that a later, related gate already required.\r\n\r\n**Disposition.** Bindable. Name the existing mechanism: inventory for OPEN membership; live GET (or equivalent) only for non-open non-terminal candidates that would actually move. Do not treat Step 3 as the whole apply contract.\r\n\r\n## F3 — Skipping terminal live-fetch is a fetch-set shrink, not an inventory property [sharpens-framing]\r\n\r\n**Evidence.** `needed` is every `scanLifecycleAnchors` number including completed/cancelled. `applyLifecycleFixes` then skips those paths. The 1425 already-terminal count is the skip after the GET, not a reason the GET ran.\r\n\r\n**Failure mode.** An implementer \"reuses the inventory\" and still fetches 1261 numbers, or skips terminal fetch but still uses inventory-absence for the movers (F1). The AC bullet is real and separable.\r\n\r\n**Disposition.** Bindable. Shrink `needed` to non-terminal anchors before any network. Inventory vs live GET is only about that remaining set.\r\n\r\n## F4 — Progress during fetch [footnote]\r\n\r\nThe AC wants N/total during the 18-minute silence. Step 3 already prints unique-anchor and inventory counts before the wait. This does not change F1–F3.\r\n\r\n## F5 — GraphQL batching [footnote]\r\n\r\nBody: do not restore GraphQL (#954). `FetchIssueStatesOptions.batchSize` is already `@deprecated` REST-per-issue. Not residual.\r\n\r\n## Injection / swarm lens\r\n\r\nTriggered: shared state (lifecycle tree), untrusted GitHub inventory as authority for mutation. Deterministic control is: fail closed on truncated inventory (Step 3 already), and do not move on absence-without-reason. Reviewer-catch is not a finding.\r\n\r\n## Road-not-taken\r\n\r\nWholesale `fetchIssueStatesForRelease` on the apply path. Steelman: one code path, already fail-closed on bad inventory, already prints progress. What flips: F1 — that helper cannot name cancelled vs completed. The stronger existing pattern is #3767 (inventory + confirm on absence) plus F3's fetch-set shrink.\r\n\r\n## Verdict\r\n\r\nRefutation target is refuted for sufficiency. Inventory membership can replace per-issue GETs for OPEN. It cannot replace them for destination. Recut the apply contract to: shrink fetch set to non-terminal; inventory for open; live REST only where a move needs `state_reason`; progress during that remaining work. ⊗ GraphQL.\n\n\n### Comment by @MScottAdams (2026-09-08T19:44:34Z)\n\nmodel: grok-4.6\r\nrole: parent\r\n\r\n## In plain English\r\n\r\nThe filed apply-lifecycle-fixes design is not safe as written. The #3752 inventory can tell you which anchors are still open. It cannot tell you completed versus cancelled, because that folder is chosen from `state_reason`, which the inventory does not carry. Copying Step 3's \"absence means NOT_FOUND\" into a path that `git mv`s briefs would file not_planned and duplicate issues as completed.\r\n\r\nWhat confirming this map would assert: recut #4269. Shrink the fetch set to non-terminal briefs first. Use the inventory for open membership. Live REST only for the remaining non-open candidates that would actually move, so destination is known. Print progress on that remaining work. Do not restore GraphQL.\r\n\r\nThis is not an instruction to a later builder. Same grok-4.6 seat wrote Stop 1 and the critic because spawn_subagent plan was denied as implement-class. Operator confirm is the independent clearance.\r\n\r\nRecut: next-build contract is not this body.\r\n\r\n**Lean:** recut of #4269 after critic 5590848858. Round 1 siblings dispatched: 1. Supersedes write-back 5590754032.\r\n\r\nTarget-digest: sha256:8eaf30dafe04c664e03cacd668391f975dc0e0e4f11ab748f238272cb83dd622\r\n\r\n### Takes (critic 5590848858)\r\n\r\n- F1 Inventory absence has no state_reason; apply would file every move as completed — accept-into-contract\r\n- F2 #3767 already refused unconfirmed absence for a weaker consumer — accept-into-contract\r\n- F3 Skipping terminal live-fetch is a fetch-set shrink, not an inventory property — accept-into-contract\r\n- F4 Progress during fetch — accept-into-contract\r\n- F5 GraphQL batching — accept-into-contract\r\n\r\nAccepted set: F1–F5. Still-open residual: none. Ceiling if retrying: n/a.\r\n\r\nNon-self-arbitration: this parent authored Stop 1 5590754032 and the round-1 critic. Same-family, same seat. Decorrelation: these takes are not independent confirmation of the critic. Operator confirm or amend is what makes them bindable.\n\n\n### Comment by @MScottAdams (2026-09-08T19:49:43Z)\n\nmodel: grok-4.6\r\nrole: parent\r\n\r\n## Verified-claims table\r\n\r\nEach row names its method. Same-seat agreement is not evidence.\r\n\r\n| # | Claim | Method | Status |\r\n| --- | --- | --- | --- |\r\n| 1 | apply-lifecycle-fixes still issues one REST GET per anchored number | `git show 37c306e8:packages/core/src/intake/reconcile-issues.ts` — `fetchIssueStates` loops `fetchOneIssueStateRest`; `reconcileMain` unions `scanLifecycleAnchors` into `needed` | measured |\r\n| 2 | already-terminal skip is after that fetch, not a shrink of `needed` | same file: `applyLifecycleFixes` `isTerminalLifecyclePath` continue; `needed.add` walks every lifecycle folder | measured |\r\n| 3 | Step 3 inventory absence is `NOT_FOUND` with null `stateReason` | `git show 37c306e8:packages/core/src/release/issue-state-fetch.ts` `buildStatesFromOpenInventory` | measured |\r\n| 4 | apply destination is `state_reason` (NOT_PLANNED/DUPLICATE → cancelled, else completed) | same reconcile file: `destinationFolder` + `CANCELLED_STATE_REASONS` | measured |\r\n| 5 | orphan-active confirms inventory absence with one live GET before acting | `git show 37c306e8:packages/core/src/orphan-active/issue-state.ts` | measured |\r\n| 6 | GraphQL batching is already refused on this fetch | `FetchIssueStatesOptions.batchSize` `@deprecated` REST-per-issue; body Refs #954 | measured |\n\n\n### Comment by @MScottAdams (2026-09-08T19:49:58Z)\n\nmodel: grok-4.6\r\nrole: parent\r\n\r\n## In plain English\r\n\r\nThe filed apply-lifecycle-fixes design cannot be built as written. The open-issue inventory is enough to know which anchors are still open. It is not enough to choose completed versus cancelled, because that choice needs `state_reason`, which the inventory does not carry. The next-build contract is a recut: shrink the fetch set to non-terminal briefs, use the inventory for open membership, live REST only for movers that need a reason, and print progress on that remaining set. GraphQL stays out.\r\n\r\nThis is not an instruction to a later builder.\r\n\r\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\r\n\r\nCiting successor lean 5590854039 and verified-claims table 5590921871.\r\n\r\nNon-self-arbitration: same grok-4.6 seat as Stop 1 5590754032, critic 5590848858, and lean 5590854039. Operator accept 2026-09-08. Round 1 complete, N=1, critic 5590848858, ceiling 5590754032.",
+      "Labels": "bug, determinism, tooling, area:release, status:child, design-critique:recut-needed",
+      "HarvestProvenance": "issue:ingest harvested plan.items from GitHub-body Acceptance checkboxes. That is the #4254-style bootstrap, not Recut-lean harvest (#4258 not landed). Cited successor lean 5590854039 has no Bound-remedy heading; extractPlanItems on that lean returns empty. Next-build is the recut in lean 5590854039 and the aligned body What-to-build / Acceptance: shrink fetch set to non-terminal; inventory for OPEN; live REST state_reason only for movers; progress on that remaining set; no GraphQL. Do not implement withdrawn absence-as-non-open as sufficient for destinationFolder. Do not implement #4258 in this issue. acceptance.none_stated is the second #4258 mapper hole; treat the seven checkbox items as the contract."
+    },
+    "items": [
+      {
+        "title": "`--apply-lifecycle-fixes` does not issue one REST GET per anchored issue when an open-issue inventory is available (OPEN membership comes from the inventory)",
+        "status": "proposed"
+      },
+      {
+        "title": "Already-terminal briefs (completed/, cancelled/) are not live-fetched unless a mismatch actually requires state",
+        "status": "proposed"
+      },
+      {
+        "title": "Non-open non-terminal movers receive a live REST `state_reason`; NOT_PLANNED and DUPLICATE go to cancelled/, other closed go to completed/",
+        "status": "proposed"
+      },
+      {
+        "title": "Progress is printed (N/total or equivalent) on the remaining work",
+        "status": "proposed"
+      },
+      {
+        "title": "A fixture or test locks the inventory OPEN path (no per-issue loop on a >1 inventory) and the cancelled-versus-completed destination",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG entry",
+        "status": "proposed"
+      },
+      {
+        "title": "task check passes",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "determinism",
+      "tooling",
+      "area:release",
+      "status:child",
+      "design-critique:recut-needed"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4269",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4269: perf(release,reconcile): apply-lifecycle-fixes still does one REST call per anchored issue"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/954",
+        "type": "x-xbrief/refs",
+        "title": "Issue #954"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 7 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "`--apply-lifecycle-fixes` does not issue one REST GET per anchored issue when an open-issue inventory is available (OPEN membership comes from the inventory)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Already-terminal briefs (completed/, cancelled/) are not live-fetched unless a mismatch actually requires state",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Non-open non-terminal movers receive a live REST `state_reason`; NOT_PLANNED and DUPLICATE go to cancelled/, other closed go to completed/",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Progress is printed (N/total or equivalent) on the remaining work",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "A fixture or test locks the inventory OPEN path (no per-issue loop on a >1 inventory) and the cancelled-versus-completed destination",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "CHANGELOG entry",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "task check passes",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5390938424,
+        "origin": "deftai/directive#4269",
+        "id": "github.issue.5390938424"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "8eaf30dafe04c664e03cacd668391f975dc0e0e4f11ab748f238272cb83dd622"
+      },
+      "x-directive/harvest": {
+        "schema": "deft.scope.harvest-provenance.v1",
+        "source": "github-body-acceptance-checkboxes",
+        "reason": "4258-recut-harvest-not-landed",
+        "cited_lean": 5590854039,
+        "lean_has_bound_remedy_heading": false,
+        "synthesis": 5590925030,
+        "verified_claims": 5590921871
+      }
+    },
+    "id": "github.issue.5390938424",
+    "updated": "2026-09-09T00:28:24Z"
+  }
+}
