@@ -101,6 +101,12 @@ describe("Bound-remedy harvest extractor (#4258)", () => {
     expect(extractBoundRemedyHarvest(lean)).toEqual({ items: [], sourceText: "" });
   });
 
+  it("accepts only the contract level-2 Bound-remedy heading", () => {
+    expect(findBoundRemedyHeading("# Bound remedy\n1. not enough")).toBeNull();
+    expect(findBoundRemedyHeading("### Bound remedy\n1. nested")).toBeNull();
+    expect(findBoundRemedyHeading("## Bound remedy\n1. ok")).not.toBeNull();
+  });
+
   it("does not treat extractPlanItems checkbox-first as this extractor", () => {
     const body = "## Acceptance\n- [ ] withdrawn body checkbox that must not win\n";
     expect(extractBoundRemedyHarvest(body).items).toEqual([]);

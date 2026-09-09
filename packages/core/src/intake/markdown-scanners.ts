@@ -201,7 +201,7 @@ function matchBoundRemedyHeadingLine(line: string): { level: number; end: number
   while (level < line.length && line[level] === "#") {
     level += 1;
   }
-  if (level < 1 || level > 6) {
+  if (level !== 2) {
     return null;
   }
   if (level >= line.length || line[level] !== " ") {
