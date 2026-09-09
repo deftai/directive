@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4289",
-    "updated": "2026-09-09T20:55:55Z"
+    "updated": "2026-09-09T22:36:58Z"
   },
   "plan": {
     "title": "bug(greptile-detector): new HTML summaries omit Last reviewed commit; SHA-match holdout stalls every review consumer",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(greptile-detector): new HTML summaries omit Last reviewed commit; SHA-match holdout stalls every review consumer",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4289",
@@ -16,7 +16,7 @@
     "items": [
       {
         "title": "Named state fail-closes when the new HTML has no findings channel. Do not CLEAN on parsed confidence plus a terminal Greptile Review check-run plus vacuous detect() zeros. Findings for this shape come from REST pulls comments and/or check-run comments-added text.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/content-contracts/skills/greptile-detector.thin-html.test.ts",
@@ -26,7 +26,7 @@
       },
       {
         "title": "Restate the open-PR symptom per surface: blocking pr:watch waits to cap TIMEOUT; one-shot is PENDING; merge-ready is a parse fail; swarm poller STALLs; review-cycle Step 6 stays unknown. Do not bind every-consumer-until-TIMEOUT. Keep #4288 as the merged/closed terminal.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/content-contracts/skills/swarm_poller_template.test.ts",
@@ -36,7 +36,7 @@
       },
       {
         "title": "Pin SHA currency to the already-fetched Greptile Review check-run on current HEAD, not pending_required. Name both SHA gates (evaluateCleanGate and evaluateGates / findLastReviewedCommitSha). Define the dirty path so NEW_P0_P1 does not still require a body SHA for this HTML shape.",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/pr-watch/probe.test.ts",
@@ -46,7 +46,7 @@
       },
       {
         "title": "1 Rolling-summary P0=0 P1=0 is not a findings pin — accept-into-contract",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/pr-merge-readiness/parse.test.ts",
@@ -56,7 +56,7 @@
       },
       {
         "title": "2 Every consumer until TIMEOUT is false — accept-into-contract",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/pr-watch/watch.ts",
@@ -66,7 +66,7 @@
       },
       {
         "title": "3 Dual SHA gates and the terminalCheckRun alias — accept-into-contract",
-        "status": "proposed",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/pr-merge-readiness/evaluate.ts",
@@ -153,9 +153,34 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "b2317c4394325f319f9ed851cc7e75b43d12c9e2196766a90e8d92ae54a06c48"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4303,
+        "prBase": null,
+        "mergeCommit": "47ccccd0e921e435805b3c8de216ac9e757dbc16",
+        "deliveryBranch": "master",
+        "deliveryCommit": "1f5c7b091525db22d27c713bd3d1bfd60776876c",
+        "verifiedAt": "2026-09-09T22:36:58Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDg3ZjUtYjU0YS03YjUyLTk2YTktODc5MmViMDM4ZmE2"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-09T22:36:58Z"
+      },
+      "completedAt": "2026-09-09T22:36:58Z",
+      "completedSessionId": "host:claude:v1:MDFhMDg3ZjUtYjU0YS03YjUyLTk2YTktODc5MmViMDM4ZmE2",
+      "capacityBucket": "new-capability"
     },
     "id": "github.issue.5401547504",
-    "updated": "2026-09-09T20:55:55Z"
+    "updated": "2026-09-09T22:36:58Z"
   }
 }
