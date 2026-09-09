@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4269",
-    "updated": "2026-09-09T00:28:24Z"
+    "updated": "2026-09-09T03:28:48Z"
   },
   "plan": {
     "title": "perf(release,reconcile): apply-lifecycle-fixes still does one REST call per anchored issue",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "perf(release,reconcile): apply-lifecycle-fixes still does one REST call per anchored issue",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4269",
@@ -17,31 +17,73 @@
     "items": [
       {
         "title": "`--apply-lifecycle-fixes` does not issue one REST GET per anchored issue when an open-issue inventory is available (OPEN status comes from the inventory)",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/intake/reconcile-issues.test.ts#fetchIssueStatesForApply",
+          "recorded_at": "2026-09-09T03:28:38Z",
+          "recorded_by": "leaf-worker/4269"
+        }
       },
       {
         "title": "Already-terminal briefs (completed/, cancelled/) are not live-fetched unless a mismatch actually requires state",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/intake/reconcile-issues.test.ts#fetchIssueStatesForApply",
+          "recorded_at": "2026-09-09T03:28:38Z",
+          "recorded_by": "leaf-worker/4269"
+        }
       },
       {
         "title": "Non-open non-terminal movers receive a live REST `state_reason`; NOT_PLANNED and DUPLICATE go to cancelled/, other closed go to completed/",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/intake/reconcile-issues.test.ts#destinationFolder",
+          "recorded_at": "2026-09-09T03:28:38Z",
+          "recorded_by": "leaf-worker/4269"
+        }
       },
       {
         "title": "Progress is printed (N/total or equivalent) on the remaining work",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/intake/reconcile-issues.test.ts#fetchIssueStatesForApply",
+          "recorded_at": "2026-09-09T03:28:38Z",
+          "recorded_by": "leaf-worker/4269"
+        }
       },
       {
         "title": "A fixture or test locks the inventory OPEN path (no per-issue loop on a >1 inventory) and the cancelled-versus-completed destination",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/intake/reconcile-issues.test.ts#fetchIssueStatesForApply",
+          "recorded_at": "2026-09-09T03:28:38Z",
+          "recorded_by": "leaf-worker/4269"
+        }
       },
       {
         "title": "CHANGELOG entry",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4275",
+          "recorded_at": "2026-09-09T03:28:38Z",
+          "recorded_by": "leaf-worker/4269"
+        }
       },
       {
         "title": "task check passes",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/intake/reconcile-issues.test.ts",
+          "recorded_at": "2026-09-09T03:28:38Z",
+          "recorded_by": "leaf-worker/4269"
+        }
       }
     ],
     "tags": [
@@ -148,9 +190,34 @@
         "lean_has_bound_remedy_heading": false,
         "synthesis": 5590925030,
         "verified_claims": 5590921871
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4275,
+        "prBase": null,
+        "mergeCommit": "5c03a06a3d79503662396b91d29440ea2302b56c",
+        "deliveryBranch": "master",
+        "deliveryCommit": "5c03a06a3d79503662396b91d29440ea2302b56c",
+        "verifiedAt": "2026-09-09T03:28:48Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDg0MTItZjMxYS03ZmUyLTljZjctZDY3OWFhZTMwNzZi"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-09T03:28:48Z"
+      },
+      "completedAt": "2026-09-09T03:28:48Z",
+      "completedSessionId": "host:claude:v1:MDFhMDg0MTItZjMxYS03ZmUyLTljZjctZDY3OWFhZTMwNzZi",
+      "capacityBucket": "technical-debt"
     },
     "id": "github.issue.5390938424",
-    "updated": "2026-09-09T00:28:24Z"
+    "updated": "2026-09-09T03:28:48Z"
   }
 }
