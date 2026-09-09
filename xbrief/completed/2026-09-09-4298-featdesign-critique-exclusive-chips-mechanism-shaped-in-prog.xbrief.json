@@ -1,0 +1,388 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4298",
+    "updated": "2026-09-09T21:13:13Z"
+  },
+  "plan": {
+    "title": "feat(design-critique): exclusive chips mechanism-shaped, in-progress, ingest-ready, decisions-needed",
+    "status": "completed",
+    "narratives": {
+      "Description": "feat(design-critique): exclusive chips mechanism-shaped, in-progress, ingest-ready, decisions-needed",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4298",
+      "Overview": "## Summary\n\nThe design-critique catalog chip is the wrong operator step after a pass, and it cannot show an orphaned arc.\n\nToday the exclusive remaining-set is three names: mechanism-shaped (in-flight), triage-ready (bound this body), recut-needed (bound recut / not this body). Auto-stamp maps a Lean-family Recut: token to recut-needed and then tells the operator to ingest. Operators still read recut-needed as \"another arc must occur.\" Those two steps cannot share one chip.\n\nThis issue is only the catalog, the gate match, orphan finding, and ingest's duty to ignore chips as SoT. Dest / GitHub-only / arc worktree stay on #4296.\n\n## Operator machine (exclusive)\n\nAfter a pass you are ready or you keep going. ingest-ready and decisions-needed are mutually exclusive.\n\nFour exclusive chips (last wins):\n\n1. design-critique:mechanism-shaped -- stamped, arc not started. No critic dispatched yet. judgmentGates still matches this.\n2. design-critique:in-progress -- a critic has been dispatched (or a panel-deposit / role:critic post exists). Remaining-set replaces mechanism-shaped at first dispatch.\n3. design-critique:ingest-ready -- pass over, synthesis accepted, ingest this number. Replaces triage-ready in English. Recut: on the lean does not pick this by itself.\n4. design-critique:decisions-needed -- pass over enough to see leftovers; do not ingest. Rewrite (old body stays history) and/or another pass and/or open issues still to decide. Keep going.\n\nrecut-needed is not a bind chip. triage-ready either aliases ingest-ready or goes away.\n\n## Chips are labels, not SoT\n\nCatalog chips are GitHub labels. Lists and humans filter them. They are not source of truth.\n\nExternal maintainers (and anyone with label write) can add, drop, or wrong-chip without the parent remaining-set write. A collaborator can stamp ingest-ready on a live arc, strip in-progress off an orphan, or leave recut-needed on a bound lean.\n\nTherefore:\n\n- Ingest must not treat ingest-ready as the go bit, and must not treat decisions-needed or a missing chip as the refuse bit.\n- Ingest still reads the thread: the completed-arc record (synthesis-accepted citing the latest successor lean), Recut: / Bound remedy vs body, halt line, critic posts. From that it selects harvest lean, ingest body, or refuse.\n- A forged ingest-ready on an in-progress or decisions-needed thread must not ingest. A missing ingest-ready on a complete record must not block ingest (chip apply miss stays non-blocking).\n- Orphan find may use labels as the search index, then confirm on the thread. A wrong label is not an orphan verdict.\n\nDo not teach the hook or ingest to treat a label as dest, occupancy, or next-build contract.\n\n## Why in-progress is not \"too many\"\n\nmechanism-shaped with no critic is the queue: stamped, never started, including crash before spawn. in-progress is live. A label search can find both orphan classes:\n\n- mechanism-shaped, no role:critic, stale -- orphaned before dispatch\n- in-progress, no recent critic/parent, no halt line -- orphaned mid-arc\n\nThread comments can derive the same split. Labels are what gh issue list and humans filter. Confirm on the thread because labels are not SoT.\n\n## Gate\n\nplan.policy.judgmentGates today matches only design-critique:mechanism-shaped. After in-progress replaces it, in-flight issues leave the gate list unless the gate matches both in-flight chips (any-of mechanism-shaped and in-progress). Terminals (ingest-ready, decisions-needed) still leave the gate, same as triage-ready / recut-needed do today.\n\nAdvisory/observe: a maintainer-applied in-progress without a critic post is a list lie, not a gate skip. Presence of clearance is still the thread line, not the chip.\n\n## Recut: on the lean\n\nKeep the lean token. It is not a chip. After the operator accepts the map they pick the terminal:\n\n- Recut is the next-build contract -- ingest-ready (ingest may harvest Bound remedy)\n- Recut means keep going -- decisions-needed, no ingest\n\nresolveAutoStampCatalogChip must not map Recut: to recut-needed or to ingest. Auto-stamp of synthesis-accepted still requires the all-accept conjunct; the catalog chip is the operator pick, not the lean spelling. Ingest follows the completed-arc record and that lean, not the chip name.\n\n## Operator rewrite path\n\nIf the pass is not good enough on this number: rewrite the issue, keep the prior body as history, remaining-set back to in-progress (or mechanism-shaped if no critic has been dispatched yet), new arc. Do not ingest while in-progress or decisions-needed. Ingest refuses on the thread (no accepted synthesis citing the latest lean), even if someone labeled ingest-ready.\n\n## Rejected\n\n- ingest-ready and decisions-needed both on at once\n- recut-needed meaning both \"run another arc\" and \"ingest the lean\"\n- Folding this catalog into #4296 (arc dest / GitHub-only)\n- Occupancy or dest-path as a chip\n- Dropping in-progress because the thread can derive it -- lists cannot\n- judgmentGates matching only mechanism-shaped after in-progress replaces it\n- Treating catalog chips as SoT because ingest or orphan find is easier that way\n- Ingest succeeding because a maintainer applied ingest-ready\n- Ingest refusing because a maintainer dropped ingest-ready or left recut-needed\n\n## Acceptance\n\n- CHIP_ALIASES / remaining-set is the four names above (aliases for old triage-ready / recut-needed fail closed or map one-way to ingest-ready / decisions-needed -- pick one and pin it).\n- First critic dispatch (or panel-deposit) remaining-set replaces mechanism-shaped with in-progress.\n- Bind path stamps ingest-ready or decisions-needed from the operator pick, not from Recut:.\n- judgmentGates labels.any-of includes mechanism-shaped and in-progress. Terminals are not in that match.\n- A documented orphan query: mechanism-shaped and no critic comment; in-progress and no halt / no recent critic. Query is label-indexed; verdict is thread-confirmed.\n- Ingest selects harvest-lean / ingest-body / refuse from the completed-arc record and cited lean, not from any catalog chip. Tests: ingest-ready label on an incomplete thread refuses; complete record with no ingest-ready (or with recut-needed / decisions-needed / mechanism-shaped left on) still ingests when the record allows; complete Recut: lean harvests Bound remedy even if the chip says ingest-ready or still says recut-needed.\n- Chip apply miss stays non-blocking.\n- Tests pin the exclusive remaining-set, the first-dispatch flip, the no-Recut-auto-chip rule, the gate any-of, and the ingest-ignores-chip cases.\n\n## Related\n\n- #4296 -- dest, GitHub-only, arc worktree; not this catalog\n- #3642 -- exclusive remaining-set chips\n- #4205 -- Recut: token to recut-needed auto-stamp\n- #3640 -- all-accept auto-stamp\n- ADR-005 -- judgmentGates match on mechanism-shaped\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-09T20:00:43Z)\n\nmodel: grok-4.6\nrole: triage\n\nmechanism-shaped: true\ndesign-critique: warranted, because the lean is a catalog-and-ingest recording obligation (exclusive chips, labels not SoT, orphan find)\nrefutation-target: After a pass the exclusive terminal is ingest-ready or decisions-needed; chips are GitHub labels not SoT; ingest reads the completed-arc record; mechanism-shaped means not started and in-progress means a critic has been dispatched so orphans are list-findable.\narc-mode: no-ingest\ndest: C:/Repos/deft/directive/.deft-scratch/worktrees/parent-arc-4298\norigin-ref: origin/master\ndispatch-sha: 7609d700f6e96d9e8bf250fc0e4faeaa1331f686\n\ncharter: refutation\nspend: N=1\nwhy: the body names a defensible presumption with a refutation target; default motion\ntarget shape: single issue\n\n## Scope recorded\n\nIssue 4298 as amended (labels not SoT, ingest AC). Dest created this session: git fetch origin; git worktree add --detach at origin/master. Parent unclaimed on primary. Ingest is not this motion.\n\n### Comment by @MScottAdams (2026-09-09T20:07:48Z)\n\nmodel: grok-4.6\nrole: critic\n\nRound 1, N=1, charter refutation. Ceiling inclusive comment 5607929306. SHA 7609d700. GitHub-only; reads pinned with `git show 7609d700:path`. Audit-targets: none.\n\nRefutation target (write-back 5607929306): after a pass the exclusive terminal is ingest-ready or decisions-needed; chips are GitHub labels not SoT; ingest reads the completed-arc record; mechanism-shaped means not started and in-progress means a critic has been dispatched so orphans are list-findable.\n\nInventory at 7609d700 (existing mechanisms, not a new catalog):\n- Closed remaining-set is three names in `packages/core/src/design-critique/exclusive-chip.ts` (`DESIGN_CRITIQUE_CATALOG_CHIPS`) and `CHIP_ALIASES` in `packages/core/src/scm/design-critique-chip.ts`: mechanism-shaped, triage-ready, recut-needed. Unknown `--chip` and `design-critique:halted` fail closed.\n- `resolveAutoStampCatalogChip` (`packages/core/src/design-critique/auto-stamp-chip.ts`) maps a Lean-family Recut token to recut-needed, else triage-ready. It does not ask the operator.\n- Ingest clearance is `assertCompletedArcAllowsIngest` → `evaluateCompletedArcRecord` (`packages/core/src/design-critique/completed-arc-record.ts`). Labels enter only as `hasDesignCritiqueCatalogChip` for in-arc membership. Go/no-go is the completed-arc record plus citation grammar (`packages/core/src/design-critique/citation-grammar.ts`). `issue-ingest.ts` then harvests Bound remedy from the cited lean when that lean carries Recut, not from the chip.\n- Halt is a thread line with no catalog chip (contract Halt line; exclusive-chip tests refuse `design-critique:halted`). Halt is not a `CompletedArcBlockReason`. A halt-only comment is `not-in-arc`; halt after critic/lean is leftover in-flight → `missing-record`.\n- Cancel is a real ingest refuse (`cancelled` / `unrecut-body`) that is not a chip.\n- ADR-005 / `DESIGN_CRITIQUE_MARKER_LABEL` in `packages/core/src/orchestration/judgment-policy.ts` matches only `design-critique:mechanism-shaped`. Contract keeps terminals out of that match.\n- Run posture (`packages/core/src/design-critique/run-posture.ts`) is session-local dest/direct vs checkout. It is not a chip and not occupancy. Occupancy stays on #4020; dest stays on #4296.\n\nRe-verified by running `completed-arc-record`, `exclusive-chip`, `design-critique-chip`, and `auto-stamp-chip` tests at this SHA: 112 passed. Anchors that already hold: leftover triage-ready / recut-needed with no record is `missing-record`; leftover mechanism-shaped with a citing complete record is `complete`; halt is not cancel.\n\nThe SoT/ingest half of the target is already true in this tree. The exclusive-two-terminal half fights that half. That conjunction is what this pass refutes.\n\n## Finding 1 — exclusive terminals cannot mean ingest vs do-not-ingest while chips are not SoT\n\nClass: blocks-the-design\n\nEvidence: Issue body: ingest-ready means \"ingest this number\"; decisions-needed means \"do not ingest\"; Recut-keep-going stamps decisions-needed and \"no ingest\"; a complete record with decisions-needed (or leftover recut-needed) \"still ingests when the record allows.\" `evaluateCompletedArcRecord` at `completed-arc-record.ts` 561–584 and `assertCompletedArcAllowsIngest` throw only on `blocked`; they do not read chip English. `issue-ingest.ts` 2022–2044 harvests Recut from the cited lean after a complete verdict. Bind path 1 (`content/contracts/design-critique.md` Stop 5 / Operator verbs) auto-posts the completed-arc record on all-accept confirm, then remaining-set-replaces via `resolveAutoStampCatalogChip`. The proposal forbids mapping Recut to a chip, so that auto-stamp still mints the record while the chip becomes a later operator pick.\n\nFailure mode: operator confirms an all-accept Recut map meaning keep-going. The record lands. Ingest follows the record and may harvest Bound remedy. Stamping decisions-needed does not refuse. The only way to make \"do not ingest\" true is to teach ingest to honor the chip (rejected by this lean) or to withhold the completed-arc record. Withholding the record means decisions-needed is in-flight list English, not a bind terminal. The operator machine \"after a pass you are ready or you keep going\" as two exclusive bind chips cannot coexist with \"ingest reads the completed-arc record.\"\n\nDisposition: the lean cannot bind as written. Split the axes. The only bind chip that may leave the gate is ingest-ready, and only after a complete record. \"Keep going\" is the absence of that record (in-progress or a named in-flight leftover), never a chip that claims to block ingest.\n\n## Finding 2 — decisions-needed cannot leave judgmentGates if it means keep going\n\nClass: blocks-the-design\n\nEvidence: Body: terminals ingest-ready and decisions-needed \"still leave the gate, same as triage-ready / recut-needed do today.\" Today those two leave because they are bound (`content/contracts/design-critique.md` Bind after accepted synthesis: keep `judgmentGates` matching only mechanism-shaped; after replace, the issue leaves). `DESIGN_CRITIQUE_MARKER_LABEL` is still only mechanism-shaped (`judgment-policy.ts` 14–15). Recut of a live arc today stays on the gate because the remaining-set is still mechanism-shaped until bind.\n\nFailure mode: a keep-going pass stamps decisions-needed, drops in-progress, and leaves the gate list. The next pass is the work, and the list that ADR-005 uses to find in-flight critique is empty for that number. Forged or parent-applied decisions-needed becomes a gate-skip, which is labels-as-auth for \"this motion is over.\" Advisory/observe does not repair a catalog that classifies unfinished work as a terminal.\n\nDisposition: if decisions-needed exists, it stays an in-flight catalog name and stays in `labels.any-of` with mechanism-shaped and in-progress. It is not a sibling of ingest-ready.\n\n## Finding 3 — halt and cancel are pass-endings the two-terminal machine cannot name\n\nClass: blocks-the-design\n\nEvidence: Dual-stop halt posts `design-critique: halted, because …` and forbids a halt chip (`content/contracts/design-critique.md` Halt line; `exclusive-chip.test.ts` throws on `design-critique:halted`). Remaining-set last-wins cannot drop in-progress except by writing another catalog name (`remainingSetAfterDesignCritiqueChip` always pushes `nextChip`). Cancel is an ingest refuse with no chip (`cancelled` / `unrecut-body` in `COMPLETED_ARC_BLOCK_REASONS`). Resume after halt is a new operator verb, not rewrite-and-another-pass.\n\nFailure mode: after halt, leftover in-progress is a list lie that \"a critic has been dispatched\" as live work; stamping decisions-needed is a list lie that the operator should keep going; a halt chip is forbidden. The orphan query \"in-progress and no halt\" can exclude halt only after a thread confirm, so `gh issue list --label design-critique:in-progress` still mixes live, dispatch-fail, halt, and (under Finding 1) complete-but-unpicked. Cancelled numbers are a fourth pass-ending. \"After a pass the exclusive terminal is ingest-ready or decisions-needed\" is false against machinery this SHA already runs.\n\nDisposition: keep halt and cancel chip-less. Recut the operator machine from \"two exclusive terminals after every pass\" to \"one bind chip after a complete record; every other catalog name is in-flight list state; halt/cancel live on the thread.\"\n\n## Finding 4 — in-progress flip moment collapses the two orphan classes\n\nClass: sharpens-framing\n\nEvidence: Body: mechanism-shaped is \"stamped, never started, including crash before spawn\"; in-progress is \"a critic has been dispatched (or a panel-deposit / role:critic post exists)\"; first dispatch remaining-set-replaces. Those are two clocks. `isInFlightCritiqueThread` (`completed-arc-record.ts` 228–236) already splits on thread evidence (lean, `role: critic`, `mechanism-shaped: true`, panel-deposit), not on spawn intent. This arc's parent flipped the list chip to in-progress at dispatch; `spawn_subagent` was denied (#2885); `CHIP_ALIASES` at this SHA has no in-progress, so that flip was not the remaining-set verb. Envelope: chips are not SoT.\n\nFailure mode: flip at spawn-intent makes crash-before-spawn and dispatch-fail look like in-progress with no critic post — orphan class 2 — so class 1 (mechanism-shaped, never started) never sees a failed spawn. Flip at first thread evidence (panel-deposit or `role: critic`) keeps class 1, and class 2 is live or post-live. \"Orphans are list-findable\" as two label queries is true for at most one of those clocks.\n\nDisposition: pin the flip to first in-envelope thread evidence (panel-deposit or critic comment), not parent spawn intent. List queries stay an index; the verdict stays the thread. Do not bind occupancy, dest, or \"a critic is running\" to the chip (injection lens below).\n\n## Finding 5 — Recut auto-stamp and old-name aliases are unpinned\n\nClass: sharpens-framing\n\nEvidence: `resolveAutoStampCatalogChip` is a total function from lean body to a catalog chip (`auto-stamp-chip.ts` 23–27). Bind paths 1 and 2 both apply whatever it returns. Acceptance: \"aliases for old triage-ready / recut-needed fail closed or map one-way … pick one and pin it.\" recut-needed today means bound recut / ingest harvest, which is the overload this issue exists to kill. Mapping it to decisions-needed re-lies every already-bound recut as keep-going. Mapping it to ingest-ready re-lies every recut that meant another pass.\n\nFailure mode: an implementer keeps `resolveAutoStampCatalogChip` and the two-terminal catalog cannot express operator pick. A one-way alias reintroduces the two-meanings chip under a new name.\n\nDisposition: delete Recut→chip mapping. Auto-stamp may post the completed-arc record; it must not pick ingest-ready vs keep-going. Old `triage-ready` / `recut-needed` fail closed in `CHIP_ALIASES`. Historical labels are not a migration map.\n\n## Finding 6 — contract still names the last chip as current-state authority\n\nClass: footnote\n\nEvidence: `content/contracts/design-critique.md` Bind after accepted synthesis: \"Current-state authority is the last catalog chip.\" Same section: chip is list-visible state, not consent; leftover mechanism-shaped does not block ingest. Tests at this SHA already implement the second sentence.\n\nFailure mode: parents and operators keep reading remaining-set as SoT even if ingest does not. That is the recut-needed confusion under a different heading.\n\nDisposition: when the catalog recuts, replace that authority sentence. Do not leave it beside \"chips are not SoT.\"\n\n## Injection / swarm lens\n\nThe target changes list identity and ingest authority. Labels-as-auth is the live risk.\n\n- Occupancy is bearer-id (#4020 / #3433), not a GitHub label. `evaluateDirectDispatch` treats occupancy-claim as a direct-dispatch violation (`run-posture.ts`). Teaching hook, occupancy, or dest that in-progress means a live critic is labels-as-auth. This dest already shows the lie: in-progress was applied at dispatch while spawn was denied and no critic comment existed yet.\n- `judgmentGates` already matches a label (ADR-005). Adding in-progress to the match is list membership, not Stop 1 re-judgment, if and only if Finding 2 holds (keep-going names stay in-flight). Adding a keep-going terminal to the match-exit set is a collaborator gate-skip.\n- Ingest already ignores author login (`completed-arc-record.ts` \"Labels and author identity are not predicates\"). Do not add a chip predicate. Forged ingest-ready on an incomplete thread is already `missing-record` for any name in the catalog.\n\nN/A would be theater here; the catalog is the authority surface.\n\n## Road not taken\n\nKeep one bind chip (rename triage-ready → ingest-ready) that leaves the gate only after a complete record. Split not-started vs live as in-flight remaining-set names that stay on `judgmentGates` any-of. Do not add a do-not-ingest chip. Halt and cancel stay thread records. Recut: stays a lean token that ingest already harvests. That preserves chips-not-SoT and list-findable orphans without a second bind terminal.\n\nSteelman of the target: recut-needed is overloaded; operators do read it as \"another arc\"; mechanism-shaped today cannot list-find never-started vs live; ingest-on-record is the right SoT and is already coded. What would flip Finding 1: define decisions-needed as in-flight-without-bind, never apply it when a complete record exists, keep it on the gate match, and drop \"do not ingest\" from its English. That is a recut of the operator machine, not a rename of recut-needed.\n\nNo classified finding is closed with reviewer attention. Residual for the parent lean: Findings 1–3 must change the catalog shape; 4–5 change flip/alias/auto-stamp rules; 6 is contract wording.\n\n### Comment by @MScottAdams (2026-09-09T20:08:29Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\n4298 cannot bind as two exclusive bind terminals. Ingest already follows the completed-arc record, not chips. A decisions-needed chip that means do-not-ingest fights that. A keep-going name that leaves judgmentGates hides the next pass. Halt and cancel already end a pass on the thread with no chip.\n\nConfirming this map recuts 4298. One bind chip after a complete record: ingest-ready. Every other catalog name is in-flight list state and stays on the gate match (mechanism-shaped, in-progress, and decisions-needed if it exists as keep-going-without-bind). Halt and cancel stay chip-less. Flip in-progress on first critic or panel-deposit post, not spawn intent. Delete Recut-to-chip auto-stamp. Old triage-ready / recut-needed fail closed. Ingest still ignores labels.\n\nThis is not an instruction to a later builder.\n\nRecut: next-build contract is not this body.\n\n**Lean:** recut of #4298 after critic 5608017114. Round 1 siblings dispatched: 1. Supersedes write-back 5607929306.\n\nTarget-digest: sha256:2615b6769c65600298fd2abade591402800d21b1f1f97477eefd47b19a2def85\n\narc-mode: no-ingest\ndest: C:/Repos/deft/directive/.deft-scratch/worktrees/parent-arc-4298\ndispatch-sha: 7609d700f6e96d9e8bf250fc0e4faeaa1331f686\n\n## Bound remedy\n\n- One bind chip after a complete record: ingest-ready. It leaves the gate. Ingest still keys off the completed-arc record and cited lean, not the chip.\n- Keep-going is absence of that record. If decisions-needed exists, it is in-flight list English, stays on judgmentGates any-of with mechanism-shaped and in-progress, and does not mean do-not-ingest.\n- mechanism-shaped is stamped, no critic post yet. in-progress flips on first in-envelope thread evidence (panel-deposit or role: critic), not parent spawn intent.\n- Halt and cancel stay chip-less thread records. Do not add a halt chip. Remaining-set last-wins must not force a fake terminal after halt.\n- Delete resolveAutoStampCatalogChip Recut-to-chip mapping. Auto-stamp may post the completed-arc record; the operator picks ingest-ready vs keep-going. Old triage-ready and recut-needed fail closed in CHIP_ALIASES.\n- Replace the contract sentence that current-state authority is the last catalog chip.\n- Labels remain not SoT. External maintainers can wrong-chip. Tests: forged ingest-ready on incomplete thread refuses; complete record with leftover in-flight chips still ingests; Recut lean harvests Bound remedy regardless of chip.\n\n### Takes (critic 5608017114)\n\n- 1 exclusive terminals cannot mean ingest vs do-not-ingest while chips are not SoT — accept-into-contract\n- 2 decisions-needed cannot leave judgmentGates if it means keep going — accept-into-contract\n- 3 halt and cancel are pass-endings the two-terminal machine cannot name — accept-into-contract\n- 4 in-progress flip moment collapses the two orphan classes — accept-into-contract\n- 5 Recut auto-stamp and old-name aliases are unpinned — accept-into-contract\n- 6 contract still names the last chip as current-state authority — accept-into-contract\n\nAccepted set: 1-6. Still-open residual: none.\n\nNon-self-arbitration: this parent authored Stop 1 5607929306. The critic was a same-family grok-4.6 CLI child on the dest after spawn_subagent died on #2885. These takes are not independent confirmation. This session also applied in-progress at spawn intent; Finding 4 says that flip is the wrong clock.\n\n### Comment by @MScottAdams (2026-09-09T20:16:18Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nEach row names its method. Agreement is not evidence.\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | Closed catalog is three names; unknown chip fails closed | Critic git show exclusive-chip.ts and design-critique-chip.ts; 112 tests at 7609d700 | measured |\n| 2 | resolveAutoStampCatalogChip maps Recut to recut-needed with no operator pick | Critic git show auto-stamp-chip.ts 23-27 | measured |\n| 3 | Ingest go/no-go is evaluateCompletedArcRecord; leftover mechanism-shaped with complete record is complete | Critic ran completed-arc-record tests at SHA | measured |\n| 4 | Recut harvest is cited lean Bound remedy after complete, not the chip | Critic git show issue-ingest.ts 2022-2044 | measured |\n| 5 | Halt has no catalog chip; cancel is ingest refuse without a chip | Critic exclusive-chip.test.ts plus Halt line | measured |\n| 6 | judgmentGates matches only mechanism-shaped | Critic git show judgment-policy.ts 14-15 | measured |\n\n### Comment by @MScottAdams (2026-09-09T20:16:38Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\n4298 cannot bind two exclusive bind terminals. Next-build is one ingest-ready chip after a complete record; keep-going stays in-flight; halt and cancel stay on the thread; ingest ignores labels.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCiting successor lean 5608025628 and verified-claims table 5608122326.\n\nNon-self-arbitration: same grok-4.6 parent as Stop 1; critic was a same-family grok CLI child. Operator accepted 2026-09-09 then asked for opus and gpt critics. Round 1 complete, N=1, critic 5608017114, ceiling 5607929306.\n\n### Comment by @MScottAdams (2026-09-09T20:17:03Z)\n\nmodel: grok-4.6\nrole: parent\n\npanel-deposit\nround: 2\nsiblings: 2\ninput-ceiling: 5608126304\nfamilies: claude, codex\nseat: claude launcher: claude\nseat: codex launcher: codex\ndest: C:/Repos/deft/directive/.deft-scratch/worktrees/parent-arc-4298\ndispatch-sha: 7609d700f6e96d9e8bf250fc0e4faeaa1331f686\nwhy: operator accept of round-1 recut, then raise cap for cross-family critics (opus and gpt)\n\n### Comment by @MScottAdams (2026-09-09T20:20:30Z)\n\nmodel: gpt-6\nrole: critic\n\n### footnote — Critique blocked by unavailable evidence\n\nEvidence: `gh` failed before retrieving issue #4298 or its comments because access to `C:\\Users\\msada\\AppData\\Roaming\\GitHub CLI\\config.yml` was denied. No comments beyond ceiling 5608126304 were read.\n\nFailure mode: Without the filed proposal, Round-1 critique, recut, and synthesis, I cannot assess whether the recut Bound remedy survives refutation. Treating this run as agreement would turn an access failure into false consensus.\n\nDisposition: This is an incomplete critic run, not approval or rejection of the design. Do not count it toward binding the remedy. Rerun with readable GitHub credentials and the same SHA and comment ceiling.\n\n### Comment by @MScottAdams (2026-09-09T20:26:51Z)\n\nmodel: claude-opus-5\nrole: critic\n\nRound 2, charter refutation, spend N=2 (operator raised the cap). Inclusive input ceiling 5608126304. My sibling's post is out of envelope; I have not read it. SHA 7609d700, reads pinned with `git show 7609d700:path`. Process-only. Audit-targets: none.\n\nTarget of this pass: the Bound remedy on the recut lean 5608025628, as accepted at 5608126304 over claims table 5608122326.\n\n## Re-verification (checks run, not cites)\n\nRan `completed-arc-record`, `exclusive-chip`, `design-critique-chip`, `auto-stamp-chip` at 7609d700: 4 files, 112 tests, all pass. That reproduces the round-1 anchor independently.\n\nInventory beyond round 1, at this SHA:\n\n- `packages/core/src/design-critique/exclusive-chip.ts` — `DESIGN_CRITIQUE_CATALOG_CHIPS` is three names. `remainingSetAfterDesignCritiqueChip` filters the catalog out and then **always pushes `nextChip`**. `designCritiqueChipApplyDelta` removes only sibling catalog names. There is no clear-to-none path.\n- `packages/core/src/scm/design-critique-chip.ts` — `--chip` is required, `CHIP_ALIASES` is six keys, unknown fails closed. `CHIP_APPLY_MISS_TOKEN` is non-blocking.\n- `packages/core/src/design-critique/auto-stamp-chip.ts` 23–27 — `resolveAutoStampCatalogChip` is total: Recut token to recut-needed, else triage-ready. It is the only chip resolver bind path 1 has.\n- `packages/core/src/design-critique/completed-arc-record.ts` 495–573 — go/no-go is thread structure. **Line 561 is the exception the round-1 pass did not price:** `hasDesignCritiqueCatalogChip(labels) || isInFlightCritiqueThread(...)`. Labels alone move a verdict.\n- `packages/core/src/orchestration/judgment-policy.ts` 15 — `DESIGN_CRITIQUE_MARKER_LABEL` is one string, `\"design-critique:mechanism-shaped\"`.\n- `packages/core/src/orchestration/verify-judgment-gates.ts` 459–481, 281–289, 304–322 — `matchEvidence` sets `evidence.labels = matchedLabels(match, candidate)`, the sorted intersection of the gate `any-of` with the issue's labels. `fingerprintScope` sha256s that object. `lookupClearance` requires `entry.cleared_scope === scope` exactly; anything else returns as `stale`. `outcomeUncleared` is `clearance === null`.\n- `packages/core/src/orchestration/design-critique-gate.test.ts` 28–36, 156 — the gate is `class: declared`, `tier: review`, `any-of: [DESIGN_CRITIQUE_MARKER_LABEL]`, and the pinned clearance scope is literally `fingerprintScope({ labels: [DESIGN_CRITIQUE_MARKER_LABEL] })`.\n- `content/contracts/design-critique.md` 516–517 — two prohibitions: do not add triage-ready to `judgmentGates` labels.any-of; **do not add recut-needed to it either.** `packages/core/src/content-contracts/standards/design_critique_contract.test.ts` 708 asserts `anyOf` does not contain recut-needed; 687 asserts `.github/ISSUE_LABELS.md` contains the literal string \"Remove-set is those three catalog names only\".\n\nThe round-1 verdict — two exclusive bind terminals cannot coexist with record-as-SoT — holds, and I do not reopen it. What follows is that the recut remedy is not yet a bindable next-build contract: its central bullets change mechanisms it never names, and two of them are unbuildable as written.\n\n## Finding 1 — the in-progress flip invalidates the recorded Stop 1 clearance\n\nClass: blocks-the-design\n\nEvidence: remedy bullets 2 and 3 together mandate (a) in-progress and decisions-needed on `judgmentGates` labels.any-of, and (b) the remaining-set flip from mechanism-shaped to in-progress on first critic or panel-deposit post. Clearance scope is `fingerprintScope(matchEvidence(...))` and, for a labels predicate, the hashed payload is the *matched label set* (`verify-judgment-gates.ts` 459–481, 281–289). The pinned scope is `fingerprintScope({ labels: [\"design-critique:mechanism-shaped\"] })` (`design-critique-gate.test.ts` 156). `lookupClearance` is exact string equality on `cleared_scope` (304–322).\n\nFailure mode: at Stop 1 the parent records the warranted clearance line and it lands under scope `H({labels:[\"…mechanism-shaped\"]})`. The first critic posts, the flip fires, and the matched set becomes `[\"…in-progress\"]`, so the scope is `H'` and `H' != H`. `lookupClearance` returns `[null, stale]`, so the gate now reports **fired and uncleared** for the entire live arc — the one arc whose clearance line demonstrably exists on the thread. A maintainer who hand-adds both chips (the remedy's own premise: label write is external) produces a third distinct scope. Today this cannot happen: recut re-applies mechanism-shaped, so the matched name never changes identity mid-arc. This proposal is the first design in which it does.\n\nThe gate is `declared`/`review` and non-blocking even under `--enforce` (`design-critique-gate.test.ts` \"stays advisory\"), so nothing breaks in the pipeline. What breaks is the observe metric. ADR-005 line 85: \"do not set block+enforce until observe fire rate and clearance rate prove honest stamps.\" This flip drives the clearance rate toward zero by construction, and the number the ADR reserved for that decision stops meaning anything.\n\nDisposition: cannot bind as written. Pick one and pin it — scope the design-critique clearance to the gate id (or the issue) rather than to matched labels; or hold `judgmentGates` at mechanism-shaped only and carry the orphan split on a label that is not in the gate match. Bullet 2 as written requires the first change and does not name it.\n\n## Finding 2 — the harvested slice negates a pinned prohibition and omits two pinned surfaces\n\nClass: blocks-the-design\n\nEvidence: this is a Recut lean, so the next-build contract is the `## Bound remedy` slice harvested to `plan.items` by literal capture (`content/contracts/design-critique.md` 280–282), and the body becomes historical. The slice names exactly one collateral edit: the \"Current-state authority is the last catalog chip\" sentence (contract 513, from footnote 6). It names none of these: contract 517, the prohibition on adding recut-needed to `judgmentGates` labels.any-of, which bullet 2 directly negates for that chip's successor; `design_critique_contract.test.ts` 708, which asserts the same thing as code; `design_critique_contract.test.ts` 687, which pins the \"three catalog names only\" string in `.github/ISSUE_LABELS.md`.\n\nFailure mode: a builder harvests the slice, implements it faithfully, and the content-contract suite goes red on three assertions the items never mentioned — one of which (517) is a live prohibition the builder is being asked to violate with no recorded decision superseding it. Under #4237 body-is-normative the builder could fall back to the body's Acceptance section; under Recut harvest the body is history, so there is no second source. The remedy also honours contract 516 (the parallel prohibition on triage-ready) consistently, which makes the silence on 517 read as oversight rather than a decision.\n\nDisposition: cannot bind as written. The Bound remedy slice must name the surfaces it changes: contract 513 and 517, `design_critique_contract.test.ts` 687/708, and `.github/ISSUE_LABELS.md` 121/132. One added bullet suffices; the harvest is literal, so an unnamed surface is an unbuilt one.\n\n## Finding 3 — label-alone is already the refuse bit, and the remedy widens it\n\nClass: blocks-the-design\n\nEvidence: `completed-arc-record.ts` 561: `const inArc = hasDesignCritiqueCatalogChip(labels) || isInFlightCritiqueThread(recutComments)`. With no synthesis and no thread evidence, a catalog label alone flips `not-in-arc` to `blocked / missing-record`. Pinned twice: `completed-arc-record.test.ts` 66–86 asserts that `{labels:[\"design-critique:triage-ready\"], comments: []}` and `{labels:[\"design-critique:recut-needed\"], comments: []}` both block. Issue body, Chips-are-labels section: \"Ingest … must not treat decisions-needed or a missing chip as the refuse bit.\" Remedy bullet 7 asserts \"Labels remain not SoT\" and lists three tests — all three probe the *go* direction (forged go-chip refuses; leftover chips still ingest). None probes the refuse direction.\n\nFailure mode: anyone with label write adds `design-critique:decisions-needed` to an unrelated issue that has no critique thread. `assertCompletedArcAllowsIngest` throws `missing-record`, and `issue:ingest` refuses a number that was never in an arc — a label acting alone as a denial. Today the same hole exists over three names; the remedy expands the domain to four and adds the two names most likely to be hand-applied by a maintainer working from a list. The remedy's \"not SoT\" claim and line 561 point in opposite directions for the same code path, and its own acceptance tests cannot detect the disagreement because they only cover one direction.\n\nDisposition: cannot bind as written. Either drop `hasDesignCritiqueCatalogChip` from the `inArc` predicate so in-arc membership is thread-only, or state expressly in the slice that label-only in-arc-block is retained and why a maintainer-applied chip may refuse ingest. Add the missing-direction test: catalog chip present, zero thread evidence, expect `not-in-arc` rather than `blocked`.\n\n## Finding 4 — deleting the Recut resolver leaves bind path 1 with no chip rule\n\nClass: blocks-the-design\n\nEvidence: `resolveAutoStampCatalogChip` is total and is the only chip resolver on the auto-stamp path; contract 395 has bind path 1 auto-post the table, auto-post the accepted sentence, and remaining-set-replace via that resolver in one step, on operator confirm of an all-accept map. Remedy bullet 5: \"Delete resolveAutoStampCatalogChip Recut-to-chip mapping. Auto-stamp may post the completed-arc record; the operator picks ingest-ready vs keep-going.\"\n\nFailure mode: the remedy's own axioms make that pick a singleton in both branches. Bullet 1: the only bind chip after a complete record is ingest-ready. Bullet 2: keep-going is the absence of that record. At the moment of the pick, bind path 1 has already posted the record (contract 395 posts it in the same step), so ingest-ready is the only legal value; and if no record exists, ingest-ready is illegal and there is nothing to pick. The genuine choice is a *verb* upstream of the record — accept synthesis, versus post another lean — not a chip downstream of it. So the slice deletes the resolver, describes a chip-level pick with one option, and specifies no rule for what bind path 1 writes. An implementer must invent one, and the two obvious inventions (prompt the operator, or stamp deterministically) differ in whether that path stays unattended.\n\nDisposition: cannot bind as written. Restate as: auto-stamp resolves the chip from the completed-arc record, not from the lean spelling — record present, stamp ingest-ready. That keeps the deletion the remedy wants, keeps bind path 1 unattended, and puts the operator's real choice on the verb where contract 395 already has it.\n\n## Finding 5 — keep-going is a superseding lean, not an absence\n\nClass: sharpens-framing\n\nEvidence: `completed-arc-record.ts` 525–555. When complete records exist, the evaluator keeps only those whose `citedLeanId === latestSuccessorLean(...).id`; if none match and no later synthesis exists, it blocks `missing-record` with \"no completed-arc record cites the latest successor lean N\". `latestSuccessorLean` is max comment id over lean-shaped bodies (246–253).\n\nFailure mode: bullet 2 says \"Keep-going is absence of that record.\" A posted record cannot be made absent — comment ids only increase. The reachable state is *superseded*: post a new successor lean, and the standing record stops citing the latest lean, so ingest refuses. An operator or builder reading \"absence\" literally looks for a withdraw affordance, finds none, and reaches for the chip — which is exactly the labels-as-auth move round 1 closed.\n\nDisposition: can bind, restated. Write the mechanism into the bullet: keep-going is a **new successor lean superseding the cited one**, after which `evaluateCompletedArcRecord` returns `missing-record` until a record cites that lean. This is also the only route by which anything in this round changes the disposition (see Finding 8).\n\n## Finding 6 — no affordance clears a chip, so halt leaves in-progress standing\n\nClass: sharpens-framing\n\nEvidence: `remainingSetAfterDesignCritiqueChip` always pushes `nextChip`; `designCritiqueChipApplyDelta` removes only sibling catalog names; the CLI requires `--chip` and `CHIP_ALIASES` fails closed on anything outside its six keys. There is no `none` / clear target. Halt is a thread line with no chip, and `exclusive-chip.test.ts` refuses `design-critique:halted`.\n\nFailure mode: bullet 4 says \"Remaining-set last-wins must not force a fake terminal after halt.\" That prohibition is satisfiable — by not calling the verb — but the residue is unstated: after halt, in-progress stays on the issue, and `gh issue list --label design-critique:in-progress` returns halted arcs alongside live ones. The body's orphan query (\"in-progress and no halt line\") excludes them only after thread confirm, which the design already requires; so the prohibition is honoured and the list is still wrong. Clearing the label at all means going outside the verb, i.e. the external-label-write path the design treats as untrusted.\n\nDisposition: can bind, restated. Say expressly that halt leaves the standing in-flight chip in place, that no clear verb is added, and that the halt line is the thread record the orphan query confirms against. If that residue is unacceptable, the slice needs a clear-to-none target on the verb — a mechanism the remedy currently neither adds nor forbids.\n\n## Finding 7 — the catalog's cardinality is left conditional\n\nClass: sharpens-framing\n\nEvidence: bullet 2 opens \"If decisions-needed exists\". The body's Acceptance says the remaining-set \"is the four names above\". Harvest is literal capture into `plan.items` with a derived-clause `taskStatement` (contract 281–282).\n\nFailure mode: the harvested item is a conditional, so it is satisfied vacuously by a three-name catalog (mechanism-shaped, in-progress, ingest-ready) and also by a four-name one. The body that would have settled it is history under Recut. Two incompatible builds both close the item, and the choice silently sets the scope of Findings 2 and 3.\n\nDisposition: can bind, restated. Decide the cardinality in the slice. Three names is the cheaper build and is consistent with bullet 2's own reading that keep-going is the absence of a record rather than a name.\n\n## Finding 8 — this round is bookkeeping over an arc that already bound, and the live record is harvestable now\n\nClass: sharpens-framing\n\nEvidence: `### The arc`: \"The arc stays open … until a verified synthesis is accepted.\" That happened at 5608126304. Contract 236: Stop 4 is for use \"only when round 1 leaves residual disagreement that still changes disposition\"; lean 5608025628 records \"Still-open residual: none.\" Contract: \"Round-2 ceiling is the disagreement-map comment\" — there is no disagreement map, and my ceiling was set to the accepted-synthesis comment instead. Contract, run posture: after synthesis accepted on a Recut lean, print ingest and do not print next-envelope as the default next. The panel deposit for this round records `round: 2` inside that closed arc. Meanwhile `evaluateCompletedArcRecord` returns **complete** on this thread right now: 5608126304 cites lean 5608025628, which is the latest lean-shaped comment, and cites table 5608122326, which opens the required table heading.\n\nFailure mode: `issue:ingest` is clear on #4298 today and would harvest the Bound remedy slice I have just found four blocking defects in. Nothing about this round changes that: critic posts are in no ingest predicate, and a complete record has no withdraw. Recorded as `round: 2` rather than as a fresh arc, the round also inherits a ceiling rule that does not apply to it, so the envelope boundary rests on parent choice rather than on the contract.\n\nDisposition: can bind, restated. Before ingest, post a successor lean superseding 5608025628 (Finding 5's mechanism) — that is what makes this round's findings reachable at all. Record this round either as arc 2 with its own Stop 1 write-back, or as an operator-directed extension with its ceiling rule named expressly, since neither the round-1 nor the round-2 ceiling rule fits it.\n\n## Finding 9 — a footnote became a bound item with no substantiation token\n\nClass: footnote\n\nEvidence: round-1 finding 6 is classified `footnote`. Critic method: \"A `footnote` cannot carry disposition weight: it is in the census, it is not residual, and it is not in the auto-stamp denominator.\" Lean 5608025628 records `accept-into-contract` on it, lists \"Accepted set: 1-6\", and promotes it to a Bound remedy bullet. No `audit:` token is recorded, and the synthesis states zero unresolved markers.\n\nFailure mode: the only accepted basis for the contract-513 edit is a class the contract says carries no disposition weight, so the item is either parent-introduced — a load-bearing premise changing the next-build contract, which contract 366 leaves unaudited until a critic targets its marker — or it rests on a misclassification. Totality was unaffected: the denominator is findings 1–5 and the map covers 1–6, so the bind conjunct held either way. The item itself is right on the merits.\n\nDisposition: no disposition weight. Round-1 finding 6 named evidence, a failure mode, and a disposition consequence, so it qualified as `sharpens-framing`; reclassifying it on the superseding lean removes the tension at zero cost.\n\n## Injection / swarm lens\n\nFires: the target changes ingest authority, gate identity, and a shared mutable surface (GitHub labels) that untrusted parties can write.\n\n- **Label write is the untrusted input, and the design has two label-authority holes, not one.** The go direction is covered — forged ingest-ready on an incomplete thread still refuses (`verdictForSynthesis`). The refuse direction is not (Finding 3, line 561). A denial primitive available to anyone with label write is the more interesting one, because it fails silently as \"ingest refused\" rather than as a forged clearance.\n- **The gate match set becomes attacker-influenced state.** Under Finding 1 the clearance scope is a hash of the *matched* label set, so a third party who adds or removes a chip in the gate `any-of` changes the scope and voids the recorded clearance. Widening `any-of` widens that surface from one name to three.\n- **The flip is a two-write sequence.** It is triggered by a thread post and effected by a label write. A crash in between leaves mechanism-shaped on a live arc. Under Finding 1 that is the *safe* residue, since the clearance scope is preserved — which argues for keeping the gate-matched name stable across the arc rather than for making the flip atomic.\n- **Occupancy stays out.** `evaluateDirectDispatch` treats an occupancy claim as a direct-dispatch violation; teaching in-progress to mean \"a worker is live\" would put a mutation lease on a GitHub label. This dest already shows the lie in the other direction: in-progress is on #4298 right now, applied at spawn intent, while `CHIP_ALIASES` at this SHA has no such name.\n- No finding here closes on reviewer attention. Findings 1–4 each name a deterministic control or stay open.\n\n## Road not taken\n\nFor Finding 1 I chose among three mechanisms: (a) re-scope the design-critique clearance fingerprint to the gate id, (b) hold `judgmentGates` at mechanism-shaped and carry the orphan split on a non-gate label, (c) make the clearance survive a scope change by treating `stale_clearance` as valid for this gate. I did not take (c): it removes the only thing the fingerprint buys — that a clearance is scoped to the evidence it cleared — for every gate, to absorb one chip rename. I recommend (b) over (a), because (b) needs no change to a shared engine and leaves ADR-005's observe numbers comparable across the rename; (a) is correct but touches every gate consumer.\n\n## Steelman\n\nThe strongest case for binding as-is: round 1 found the real defect and the remedy fixes it; four of my nine findings are missing bullets rather than wrong ones; the gate is advisory, so Finding 1 breaks a metric and not a build; and holding a correct remedy for collateral bookkeeping is how arcs stall. On that reading the honest disposition is bind now and file the collateral.\n\nWhat would flip me: if the slice named its surfaces (Finding 2), stated the auto-stamp rule after the resolver is deleted (Finding 4), and picked a direction on line 561 (Finding 3), then Finding 1 alone would be `sharpens-framing` and the remedy should bind. As it stands, three of my four blocking findings are things a builder cannot resolve from the harvested items, and Recut harvest removes the body as a fallback source. That is what keeps them blocking rather than collateral.\n\nResidual for the parent: Findings 1–4 need bullets on a superseding lean before ingest; 5–7 restate existing bullets; 8 is this round's own recording; 9 is a reclassification.\n\n\n### Comment by @MScottAdams (2026-09-09T20:28:10Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nRound 1 bind is superseded. Opus found four blocking defects in the harvested Bound remedy: the in-progress flip voids Stop 1 clearance scope; the slice omits contract 517 and two content-contract pins; label-alone is already an ingest refuse bit; deleting Recut-to-chip leaves bind path 1 with no chip rule. Codex could not read gh (config.yml access denied) and posted a footnote incomplete run, not a design verdict.\n\nConfirming this map posts a new successor lean so ingest no longer harvests the round-1 slice. Next-build must name those surfaces, pin auto-stamp after resolver delete, and pick a direction on line 561. Keep-going is a new lean superseding the cited one, not absence of a comment.\n\nThis is not an instruction to a later builder.\n\nRecut: next-build contract is not this body.\n\n**Lean:** recut of #4298 after round-2 critics 5608248378 (claude-opus-5) and 5608172261 (gpt-6). Round 2 siblings dispatched: 2. Supersedes lean 5608025628 and synthesis 5608126304.\n\nTarget-digest: sha256:2615b6769c65600298fd2abade591402800d21b1f1f97477eefd47b19a2def85\n\narc-mode: no-ingest\ndest: C:/Repos/deft/directive/.deft-scratch/worktrees/parent-arc-4298\ndispatch-sha: 7609d700f6e96d9e8bf250fc0e4faeaa1331f686\n\n## Bound remedy\n\n- One bind chip after a complete record: ingest-ready. Hold judgmentGates at mechanism-shaped only. Carry not-started vs live on in-progress, which is not in the gate match, so Stop 1 clearance scope stays H({mechanism-shaped}).\n- Keep-going is a new successor lean that supersedes the cited lean, after which evaluateCompletedArcRecord is missing-record until a record cites that lean. Not comment deletion. If decisions-needed exists it is in-flight list English and stays out of the bind-terminal pair; cardinality of the catalog is three names: mechanism-shaped, in-progress, ingest-ready.\n- in-progress flips on first in-envelope thread evidence (panel-deposit or role: critic), not spawn intent.\n- Halt and cancel stay chip-less. Halt leaves the standing in-flight chip in place. No clear-to-none verb. Orphan query confirms halt on the thread.\n- Delete resolveAutoStampCatalogChip Recut-to-chip mapping. Bind path 1 after all-accept confirm posts the completed-arc record and remaining-set-replaces ingest-ready (the only legal bind chip once the record exists). Old triage-ready and recut-needed fail closed in CHIP_ALIASES.\n- Name collateral edits in this slice: contract sentence that current-state authority is the last catalog chip (513); contract 517 (do not add recut-needed to judgmentGates any-of) remains in force because keep-going names are not gate-matched; content-contract tests 687 and 708 and ISSUE_LABELS.md three-name pin recut to the three names above.\n- Drop hasDesignCritiqueCatalogChip from the inArc predicate so in-arc membership is thread-only. Add the refuse-direction test: catalog chip present, zero thread evidence, expect not-in-arc. Labels remain not SoT.\n\n### Takes (critic 5608248378)\n\n- 1 the in-progress flip invalidates the recorded Stop 1 clearance — accept-into-contract\n- 2 the harvested slice negates a pinned prohibition and omits two pinned surfaces — accept-into-contract\n- 3 label-alone is already the refuse bit, and the remedy widens it — accept-into-contract\n- 4 deleting the Recut resolver leaves bind path 1 with no chip rule — accept-into-contract\n- 5 keep-going is supersession, not absence — accept-into-contract\n- 6 no affordance clears a chip, so halt leaves in-progress standing — accept-into-contract\n- 7 the catalog's cardinality is left conditional — accept-into-contract\n- 8 this round is bookkeeping over an arc that already bound — accept-into-contract\n\n### Takes (critic 5608172261)\n\n- footnote Critique blocked by unavailable evidence — defer (incomplete run, gh config.yml access denied; not a design verdict)\n\nAccepted set: opus 1-8. Still-open residual: none on opus classified blocking/sharpening. Codex incomplete is not residual on the design.\n\nNon-self-arbitration: this parent authored Stop 1, round-1 lean, and round-1 synthesis. Opus is a different family. Codex did not independently reproduce. These takes on opus 1-8 are parent accept of that critic, not grok-family confirmation.\n\n### Comment by @MScottAdams (2026-09-09T20:30:41Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nEach row names its method. Agreement is not evidence.\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | Clearance scope hashes the matched label set; lookupClearance is exact equality | Opus git show verify-judgment-gates.ts 459-481 and 304-322 | measured |\n| 2 | Pinned gate any-of is mechanism-shaped only; contract 517 forbids recut-needed in that match | Opus git show judgment-policy.ts 15, contract 516-517, design_critique_contract.test.ts 708 | measured |\n| 3 | hasDesignCritiqueCatalogChip alone flips not-in-arc to missing-record | Opus git show completed-arc-record.ts 561; tests 66-86 | measured |\n| 4 | remainingSetAfterDesignCritiqueChip always pushes nextChip; no clear-to-none | Opus git show exclusive-chip.ts | measured |\n| 5 | resolveAutoStampCatalogChip is total Recut to recut-needed else triage-ready | Round-1 plus opus git show auto-stamp-chip.ts 23-27 | measured |\n| 6 | A later successor lean makes a prior synthesis missing-record (supersession) | Opus git show completed-arc-record.ts 525-555 | measured |\n| 7 | Codex gh failed on config.yml access denied; incomplete footnote only | Codex log plus recorded comment 5608172261 | measured |\n\n### Comment by @MScottAdams (2026-09-09T20:31:19Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe round-1 harvest slice cannot be built. Next-build is the round-2 lean: ingest-ready after a complete record, gate stays on mechanism-shaped, in-progress is list-only, in-arc is thread-only, auto-stamp writes ingest-ready, keep-going is a superseding lean.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCiting successor lean 5608263815 and verified-claims table 5608293367.\n\nNon-self-arbitration: parent authored earlier leans; opus 5608248378 is a different family and is the independent source for findings 1-8. Codex 5608172261 was incomplete. Operator accepted 2026-09-09. Round 2 complete, siblings 2, ceiling 5608126304.",
+      "Labels": "enhancement, design, agent-experience, process, critic, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "One bind chip after a complete record: ingest-ready. Hold judgmentGates at mechanism-shaped only. Carry not-started vs live on in-progress, which is not in the gate match, so Stop 1 clearance scope stays H({mechanism-shaped}).",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/orchestration/design-critique-gate.test.ts",
+          "recorded_at": "2026-09-09T21:13:00Z",
+          "recorded_by": "leaf-4298-exclusive-chips"
+        }
+      },
+      {
+        "title": "Keep-going is a new successor lean that supersedes the cited lean, after which evaluateCompletedArcRecord is missing-record until a record cites that lean. Not comment deletion. If decisions-needed exists it is in-flight list English and stays out of the bind-terminal pair; cardinality of the catalog is three names: mechanism-shaped, in-progress, ingest-ready.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/exclusive-chip.test.ts",
+          "recorded_at": "2026-09-09T21:13:00Z",
+          "recorded_by": "leaf-4298-exclusive-chips"
+        }
+      },
+      {
+        "title": "in-progress flips on first in-envelope thread evidence (panel-deposit or role: critic), not spawn intent.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/in-progress-flip.test.ts",
+          "recorded_at": "2026-09-09T21:13:00Z",
+          "recorded_by": "leaf-4298-exclusive-chips"
+        }
+      },
+      {
+        "title": "Halt and cancel stay chip-less. Halt leaves the standing in-flight chip in place. No clear-to-none verb. Orphan query confirms halt on the thread.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/exclusive-chip.test.ts",
+          "recorded_at": "2026-09-09T21:13:00Z",
+          "recorded_by": "leaf-4298-exclusive-chips"
+        }
+      },
+      {
+        "title": "Delete resolveAutoStampCatalogChip Recut-to-chip mapping. Bind path 1 after all-accept confirm posts the completed-arc record and remaining-set-replaces ingest-ready (the only legal bind chip once the record exists). Old triage-ready and recut-needed fail closed in CHIP_ALIASES.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/auto-stamp-chip.test.ts",
+          "recorded_at": "2026-09-09T21:13:00Z",
+          "recorded_by": "leaf-4298-exclusive-chips"
+        }
+      },
+      {
+        "title": "Name collateral edits in this slice: contract sentence that current-state authority is the last catalog chip (513); contract 517 (do not add recut-needed to judgmentGates any-of) remains in force because keep-going names are not gate-matched; content-contract tests 687 and 708 and ISSUE_LABELS.md three-name pin recut to the three names above.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-09-09T21:13:00Z",
+          "recorded_by": "leaf-4298-exclusive-chips"
+        }
+      },
+      {
+        "title": "Drop hasDesignCritiqueCatalogChip from the inArc predicate so in-arc membership is thread-only. Add the refuse-direction test: catalog chip present, zero thread evidence, expect not-in-arc. Labels remain not SoT.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/design-critique/completed-arc-record.test.ts",
+          "recorded_at": "2026-09-09T21:13:00Z",
+          "recorded_by": "leaf-4298-exclusive-chips"
+        }
+      },
+      {
+        "title": "1 the in-progress flip invalidates the recorded Stop 1 clearance — accept-into-contract",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Critic take already bound into Bound remedy items 0-6; not a separate implementation criterion.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-09T21:13:00Z"
+        }
+      },
+      {
+        "title": "2 the harvested slice negates a pinned prohibition and omits two pinned surfaces — accept-into-contract",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Critic take already bound into Bound remedy items 0-6; not a separate implementation criterion.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-09T21:13:00Z"
+        }
+      },
+      {
+        "title": "3 label-alone is already the refuse bit, and the remedy widens it — accept-into-contract",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Critic take already bound into Bound remedy items 0-6; not a separate implementation criterion.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-09T21:13:00Z"
+        }
+      },
+      {
+        "title": "4 deleting the Recut resolver leaves bind path 1 with no chip rule — accept-into-contract",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Critic take already bound into Bound remedy items 0-6; not a separate implementation criterion.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-09T21:13:00Z"
+        }
+      },
+      {
+        "title": "5 keep-going is supersession, not absence — accept-into-contract",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Critic take already bound into Bound remedy items 0-6; not a separate implementation criterion.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-09T21:13:00Z"
+        }
+      },
+      {
+        "title": "6 no affordance clears a chip, so halt leaves in-progress standing — accept-into-contract",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Critic take already bound into Bound remedy items 0-6; not a separate implementation criterion.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-09T21:13:00Z"
+        }
+      },
+      {
+        "title": "7 the catalog's cardinality is left conditional — accept-into-contract",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Critic take already bound into Bound remedy items 0-6; not a separate implementation criterion.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-09T21:13:00Z"
+        }
+      },
+      {
+        "title": "8 this round is bookkeeping over an arc that already bound — accept-into-contract",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Critic take already bound into Bound remedy items 0-6; not a separate implementation criterion.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-09T21:13:00Z"
+        }
+      },
+      {
+        "title": "footnote Critique blocked by unavailable evidence — defer (incomplete run, gh config.yml access denied; not a design verdict)",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Critic take already bound into Bound remedy items 0-6; not a separate implementation criterion.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-09T21:13:00Z"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design",
+      "agent-experience",
+      "process",
+      "critic",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4298",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4298: feat(design-critique): exclusive chips mechanism-shaped, in-progress, ingest-ready, decisions-needed"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 16 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "One bind chip after a complete record: ingest-ready. Hold judgmentGates at mechanism-shaped only. Carry not-started vs live on in-progress, which is not in the gate match, so Stop 1 clearance scope stays H({mechanism-shaped}).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Keep-going is a new successor lean that supersedes the cited lean, after which evaluateCompletedArcRecord is missing-record until a record cites that lean. Not comment deletion. If decisions-needed exists it is in-flight list English and stays out of the bind-terminal pair; cardinality of the catalog is three names: mechanism-shaped, in-progress, ingest-ready.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "in-progress flips on first in-envelope thread evidence (panel-deposit or role: critic), not spawn intent.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Halt and cancel stay chip-less. Halt leaves the standing in-flight chip in place. No clear-to-none verb. Orphan query confirms halt on the thread.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Delete resolveAutoStampCatalogChip Recut-to-chip mapping. Bind path 1 after all-accept confirm posts the completed-arc record and remaining-set-replaces ingest-ready (the only legal bind chip once the record exists). Old triage-ready and recut-needed fail closed in CHIP_ALIASES.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Name collateral edits in this slice: contract sentence that current-state authority is the last catalog chip (513); contract 517 (do not add recut-needed to judgmentGates any-of) remains in force because keep-going names are not gate-matched; content-contract tests 687 and 708 and ISSUE_LABELS.md three-name pin recut to the three names above.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Drop hasDesignCritiqueCatalogChip from the inArc predicate so in-arc membership is thread-only. Add the refuse-direction test: catalog chip present, zero thread evidence, expect not-in-arc. Labels remain not SoT.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "1 the in-progress flip invalidates the recorded Stop 1 clearance — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "2 the harvested slice negates a pinned prohibition and omits two pinned surfaces — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "3 label-alone is already the refuse bit, and the remedy widens it — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "4 deleting the Recut resolver leaves bind path 1 with no chip rule — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "5 keep-going is supersession, not absence — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "6 no affordance clears a chip, so halt leaves in-progress standing — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "7 the catalog's cardinality is left conditional — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "8 this round is bookkeeping over an arc that already bound — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "footnote Critique blocked by unavailable evidence — defer (incomplete run, gh config.yml access denied; not a design verdict)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5403964626,
+        "origin": "deftai/directive#4298",
+        "id": "github.issue.5403964626"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "2615b6769c65600298fd2abade591402800d21b1f1f97477eefd47b19a2def85"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4299,
+        "prBase": null,
+        "mergeCommit": "672150376a9390e0aebf1f0c429e495f7b641433",
+        "deliveryBranch": "master",
+        "deliveryCommit": "672150376a9390e0aebf1f0c429e495f7b641433",
+        "verifiedAt": "2026-09-09T21:13:13Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDg3ZTQtNjQ1Ni03M2QzLWFlZGItODA1ZGI2YTIzMDJl"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-09T21:13:13Z"
+      },
+      "completedAt": "2026-09-09T21:13:13Z",
+      "completedSessionId": "host:claude:v1:MDFhMDg3ZTQtNjQ1Ni03M2QzLWFlZGItODA1ZGI2YTIzMDJl",
+      "capacityBucket": "new-capability"
+    },
+    "id": "github.issue.5403964626",
+    "updated": "2026-09-09T21:13:13Z"
+  }
+}
