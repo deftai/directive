@@ -517,9 +517,18 @@ describe("test_swarm_poller_template", () => {
       expect(templateText).toContain(holdout_name);
     }
   });
+  it("template_thin_html_named_state_4289", () => {
+    expect(templateText).toContain("Thin HTML named state (#4289)");
+    expect(templateText).toContain("findings_channel");
+    expect(templateText).toContain("pending_required");
+    expect(templateText).toContain("every-consumer-until-TIMEOUT");
+    expect(templateText).toContain("findings_channel_present=findings_channel_present");
+    expect(templateText).toContain("--paginate");
+    expect(templateText).toContain("comments?\\s+added");
+  });
   it("template_clean_gate_enforces_terminal_check_run", () => {
     const gate_start = templateText.indexOf("def evaluate_clean_gate(");
-    const gate_block = templateText.slice(gate_start, gate_start + 2200);
+    const gate_block = templateText.slice(gate_start, gate_start + 2800);
     expect(gate_block).toContain("terminal_check_run,");
     expect(gate_block).toContain("if not terminal_check_run:");
     expect(gate_block).toContain('return False, "terminal_check_run"');

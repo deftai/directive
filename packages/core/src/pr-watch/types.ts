@@ -26,6 +26,8 @@ export interface WatchProbe {
   readonly ciCapacityStalledChecks: readonly string[];
   /** All required CI check-runs have a terminal conclusion (none pending). */
   readonly terminalCheckRun: boolean;
+  /** Greptile Review check-run on current HEAD is completed+{success,neutral} (#4289). */
+  readonly greptileReviewTerminal?: boolean;
   readonly isClean: boolean;
   /** First unmet clean-gate condition (evaluateCleanGate holdout), or null when clean. */
   readonly cleanGateHoldout: string | null;

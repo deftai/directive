@@ -32,12 +32,14 @@ export {
 } from "./gh.js";
 export {
   evaluateInlineReviewThreads,
+  fetchGreptilePullCommentsRest,
   fetchUnresolvedGreptileInlineFindings,
   headShaMatches,
   type InlineGreptileFindings,
   type InlineReviewComment,
   type InlineReviewThread,
   inlineFindingsToDict,
+  loadThinHtmlInlineFindings,
 } from "./greptile-inline.js";
 export { cmdPrMergeReadiness, parseArgs, run } from "./main.js";
 export {

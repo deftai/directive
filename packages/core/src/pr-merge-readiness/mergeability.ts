@@ -129,6 +129,11 @@ export function verdictBlockIsSoftOnly(
   if (verdict.informalClean) {
     return false;
   }
+  // Thin HTML named state is fail-closed: GitHub mergeability must not skip
+  // the SHA pin or findings channel (#4289).
+  if (verdict.thinHtmlSummary) {
+    return false;
+  }
   // Excluded-author skip is an intentional N/A reviewer state (#2375).
   if (verdict.excludedAuthor) {
     return true;

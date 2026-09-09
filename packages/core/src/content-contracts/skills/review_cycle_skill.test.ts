@@ -193,6 +193,15 @@ describe("test_review_cycle_skill", () => {
     expect(readReviewCycleSkill()).toContain("INCOMPLETE_BUT_RATED");
   });
 
+  it("thin_html_named_state_is_not_informal_clean (#4289)", () => {
+    const text = readReviewCycleSkill();
+    expect(text).toContain("Thin HTML named state (#4289)");
+    expect(text).toContain("findings channel");
+    expect(text).toContain("pending_required");
+    expect(text).toContain("evaluateCleanGate");
+    expect(text).toContain("every-consumer-until-TIMEOUT");
+  });
+
   it("phase2_step1_no_cp1252_mojibake", () => {
     expect(phase2Step1Section()).not.toContain("\u0393\u00E8\u00F9");
   });

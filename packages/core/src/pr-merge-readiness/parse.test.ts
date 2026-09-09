@@ -211,6 +211,70 @@ describe("evaluateGates", () => {
     expect(evaluateGates(1, HEAD, verdict({ p2Count: 5 }))).toEqual([]);
   });
 
+  it("thin HTML SHA pin skips Last reviewed parse fail (#4289)", () => {
+    const failures = evaluateGates(
+      1,
+      HEAD,
+      verdict({
+        lastReviewedSha: null,
+        confidence: 5,
+        thinHtmlSummary: true,
+        p0Count: 0,
+        p1Count: 0,
+      }),
+      { p0Count: 0, p1Count: 0, unresolvedThreadCount: 0, error: null },
+      { greptileReviewTerminalOnHead: true, commentsAdded: 0 },
+    );
+    expect(failures).toEqual([]);
+  });
+
+  it("thin HTML without findings channel fail-closes (#4289)", () => {
+    const failures = evaluateGates(
+      1,
+      HEAD,
+      verdict({ lastReviewedSha: null, confidence: 5, thinHtmlSummary: true }),
+      null,
+      { greptileReviewTerminalOnHead: true, commentsAdded: null },
+    );
+    expect(failures.some((f) => f.includes("no findings channel"))).toBe(true);
+  });
+
+  it("thin HTML REST P1 is a findings pin, not vacuous detect zeros (#4289)", () => {
+    const failures = evaluateGates(
+      1,
+      HEAD,
+      verdict({
+        lastReviewedSha: null,
+        confidence: 5,
+        thinHtmlSummary: true,
+        p0Count: 0,
+        p1Count: 0,
+      }),
+      { p0Count: 0, p1Count: 1, unresolvedThreadCount: 1, error: null },
+      { greptileReviewTerminalOnHead: true, commentsAdded: 1 },
+    );
+    expect(failures.some((f) => f.includes("findings channel"))).toBe(true);
+  });
+
+  it("thin HTML comments-added dirty path does not report 0/0 (#4289)", () => {
+    const failures = evaluateGates(
+      1,
+      HEAD,
+      verdict({
+        lastReviewedSha: null,
+        confidence: 5,
+        thinHtmlSummary: true,
+        p0Count: 0,
+        p1Count: 0,
+      }),
+      { p0Count: 0, p1Count: 0, unresolvedThreadCount: 0, error: "graphql rate limit" },
+      { greptileReviewTerminalOnHead: true, commentsAdded: 1 },
+    );
+    expect(failures.some((f) => f.includes("0 P0 and 0 P1"))).toBe(false);
+    expect(failures.some((f) => f.includes("comments-added"))).toBe(true);
+    expect(failures.some((f) => f.includes("Could not verify Greptile inline"))).toBe(false);
+  });
+
   it("emits informal clean diagnostic", () => {
     const failures = evaluateGates(
       1,

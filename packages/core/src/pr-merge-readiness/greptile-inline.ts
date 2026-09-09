@@ -291,3 +291,171 @@ export function fetchUnresolvedGreptileInlineFindings(
 
   return evaluateInlineReviewThreads(allThreads, headSha);
 }
+
+const REST_COMMENTS_PER_PAGE = 100;
+
+function parsePaginatedRestComments(stdout: string): { items: unknown[]; error: string | null } {
+  if (!stdout.trim()) {
+    return { items: [], error: null };
+  }
+  try {
+    const payload = JSON.parse(stdout) as unknown;
+    if (Array.isArray(payload)) {
+      return { items: payload, error: null };
+    }
+    return { items: [], error: "REST pulls comments JSON is not an array" };
+  } catch {
+    // gh --paginate may concatenate page arrays as `][`.
+  }
+  const items: unknown[] = [];
+  let idx = 0;
+  const text = stdout;
+  while (idx < text.length) {
+    while (idx < text.length && /\s/.test(text.charAt(idx))) {
+      idx += 1;
+    }
+    if (idx >= text.length) {
+      break;
+    }
+    if (text.charAt(idx) !== "[" && text.charAt(idx) !== "{") {
+      return {
+        items: [],
+        error: "could not parse REST pulls comments JSON: invalid JSON at offset",
+      };
+    }
+    let end = idx;
+    let depth = 0;
+    let inString = false;
+    let isEscaped = false;
+    for (; end < text.length; end += 1) {
+      const ch = text.charAt(end);
+      if (inString) {
+        if (isEscaped) {
+          isEscaped = false;
+        } else if (ch === "\\") {
+          isEscaped = true;
+        } else if (ch === '"') {
+          inString = false;
+        }
+        continue;
+      }
+      if (ch === '"') {
+        inString = true;
+        continue;
+      }
+      if (ch === "[" || ch === "{") {
+        depth += 1;
+      } else if (ch === "]" || ch === "}") {
+        depth -= 1;
+        if (depth === 0) {
+          end += 1;
+          break;
+        }
+      }
+    }
+    let obj: unknown;
+    try {
+      obj = JSON.parse(text.slice(idx, end)) as unknown;
+    } catch (exc: unknown) {
+      const message = exc instanceof Error ? exc.message : String(exc);
+      return { items: [], error: `could not parse REST pulls comments JSON: ${message}` };
+    }
+    if (Array.isArray(obj)) {
+      items.push(...obj);
+    } else if (obj !== null && typeof obj === "object") {
+      items.push(obj);
+    }
+    idx = end;
+  }
+  return { items, error: null };
+}
+
+/**
+ * Score REST pull-review comments pinned to HEAD.
+ *
+ * REST has no isResolved / isOutdated. Count matching-HEAD Greptile comments
+ * only. GraphQL `evaluateInlineReviewThreads` remains the lifecycle filter (#4289).
+ */
+function scoreRestPullComments(items: readonly unknown[], headSha: string): InlineGreptileFindings {
+  let p0Count = 0;
+  let p1Count = 0;
+  let unresolvedThreadCount = 0;
+  for (const item of items) {
+    if (item === null || typeof item !== "object" || Array.isArray(item)) {
+      continue;
+    }
+    const rec = item as Record<string, unknown>;
+    const user = rec.user;
+    let login = "";
+    if (user !== null && typeof user === "object" && !Array.isArray(user) && "login" in user) {
+      const raw = (user as Record<string, unknown>).login;
+      login = typeof raw === "string" ? raw : "";
+    }
+    if (login !== GREPTILE_LOGIN) {
+      continue;
+    }
+    const commitId = typeof rec.commit_id === "string" ? rec.commit_id : null;
+    if (commitId === null || !headShaMatches(commitId, headSha)) {
+      continue;
+    }
+    const body = typeof rec.body === "string" ? rec.body : "";
+    const findings = detect(body);
+    if (findings.p0_count + findings.p1_count > 0) {
+      p0Count += findings.p0_count;
+      p1Count += findings.p1_count;
+      unresolvedThreadCount += 1;
+    }
+  }
+  return { p0Count, p1Count, unresolvedThreadCount, error: null };
+}
+
+/** Fetch Greptile inline P0/P1 via REST pulls comments (paginated; no GraphQL) (#4289). */
+export function fetchGreptilePullCommentsRest(
+  prNumber: number,
+  repo: string,
+  headSha: string,
+  runGh: RunGhFn,
+): InlineGreptileFindings {
+  const rc = runGh([
+    "gh",
+    "api",
+    "--paginate",
+    `repos/${repo}/pulls/${prNumber}/comments?per_page=${REST_COMMENTS_PER_PAGE}`,
+  ]);
+  if (rc.returncode !== 0) {
+    return {
+      ...EMPTY_INLINE,
+      error: `REST pulls comments failed: ${rc.stderr.trim() || rc.stdout.trim()}`,
+    };
+  }
+  const parsed = parsePaginatedRestComments(rc.stdout);
+  if (parsed.error !== null) {
+    return { ...EMPTY_INLINE, error: parsed.error };
+  }
+  return scoreRestPullComments(parsed.items, headSha);
+}
+
+/**
+ * Thin HTML findings: GraphQL lifecycle wins; paginated REST is HEAD-match fallback.
+ * Do not CLEAN on a truncated first REST page. Do not let resolved GraphQL threads
+ * stay blocking via REST (#4289).
+ */
+export function loadThinHtmlInlineFindings(
+  prNumber: number,
+  repo: string,
+  headSha: string,
+  runGh: RunGhFn,
+): InlineGreptileFindings {
+  const graphql = fetchUnresolvedGreptileInlineFindings(prNumber, repo, headSha, runGh);
+  if (graphql.error === null) {
+    return graphql;
+  }
+  const rest = fetchGreptilePullCommentsRest(prNumber, repo, headSha, runGh);
+  if (rest.error === null) {
+    return rest;
+  }
+  return {
+    ...EMPTY_INLINE,
+    error: `graphql: ${graphql.error}; rest: ${rest.error}`,
+  };
+}

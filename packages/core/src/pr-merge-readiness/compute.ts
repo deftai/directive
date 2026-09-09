@@ -1,3 +1,7 @@
+import {
+  isGreptileReviewTerminal,
+  parseCommentsAdded,
+} from "../content-contracts/skills/greptile-detector.js";
 import { resolveMinGreptileConfidence } from "../policy/min-greptile-confidence.js";
 import type { CiGateOptions } from "./ci-gate.js";
 import { buildCiSummaryLine, evaluateCiGate } from "./ci-gate.js";
@@ -27,6 +31,7 @@ import {
   fetchUnresolvedGreptileInlineFindings,
   type InlineGreptileFindings,
   inlineFindingsToDict,
+  loadThinHtmlInlineFindings,
 } from "./greptile-inline.js";
 import {
   fetchMergeability,
@@ -327,6 +332,7 @@ function loadInlineGreptileFindings(
   repo: string | null,
   headSha: string,
   runGh: RunGhFn,
+  thinHtmlSummary = false,
 ): InlineGreptileFindings {
   const resolved = resolveRepo(repo, runGh);
   if (resolved.repo === null) {
@@ -337,6 +343,9 @@ function loadInlineGreptileFindings(
       error:
         resolved.error || "repo unresolved for inline reviewThreads lookup; pass --repo OWNER/REPO",
     };
+  }
+  if (thinHtmlSummary) {
+    return loadThinHtmlInlineFindings(prNumber, resolved.repo, headSha, runGh);
   }
   return fetchUnresolvedGreptileInlineFindings(prNumber, resolved.repo, headSha, runGh);
 }
@@ -351,12 +360,35 @@ function finalizeVerdictGate(
 ): { failures: string[]; partialData: Record<string, unknown> } {
   const partialData: Record<string, unknown> = {};
   const resolved = resolveRepo(repo, runGh);
-  const inline = loadInlineGreptileFindings(prNumber, repo, headSha, runGh);
+  const inline = loadInlineGreptileFindings(
+    prNumber,
+    repo,
+    headSha,
+    runGh,
+    verdict.thinHtmlSummary,
+  );
   partialData.greptile_inline = inlineFindingsToDict(inline);
   const minConfidence = resolvedMinConfidence(options);
   partialData.min_greptile_confidence = minConfidence;
+  let greptileReviewTerminalOnHead = false;
+  let commentsAdded: number | null = null;
+  if (resolved.repo !== null) {
+    const check = fetchCheckRunsRest(headSha, resolved.repo, runGh);
+    if (check.summary !== null) {
+      const greptileRun = check.checkRuns.find((run) => run.name === "Greptile Review");
+      greptileReviewTerminalOnHead = isGreptileReviewTerminal(
+        greptileRun?.status,
+        greptileRun?.conclusion,
+      );
+      commentsAdded = parseCommentsAdded(greptileRun?.summary);
+      partialData.greptile_review = check.summary.greptile_review;
+      partialData.greptile_comments_added = commentsAdded;
+    }
+  }
   const failures = evaluateGates(prNumber, headSha, verdict, inline, {
     minConfidence,
+    greptileReviewTerminalOnHead,
+    commentsAdded,
   });
 
   if (failures.length === 0) {
