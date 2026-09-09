@@ -1,12 +1,12 @@
 import {
+  resolveFindingsChannel,
+  resolveShaCurrency,
+} from "../content-contracts/skills/greptile-detector.js";
+import {
   DEFAULT_CONSUMER_MIN_GREPTILE_CONFIDENCE,
   formatMinConfidenceRequirement,
   meetsMinGreptileConfidence,
 } from "../policy/min-greptile-confidence.js";
-import {
-  resolveFindingsChannel,
-  resolveShaCurrency,
-} from "../content-contracts/skills/greptile-detector.js";
 import { INFORMAL_CLEAN_DIAGNOSTIC } from "./constants.js";
 import type { InlineGreptileFindings } from "./greptile-inline.js";
 import type { GreptileVerdict } from "./types.js";

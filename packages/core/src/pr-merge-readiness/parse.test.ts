@@ -243,13 +243,18 @@ describe("evaluateGates", () => {
     const failures = evaluateGates(
       1,
       HEAD,
-      verdict({ lastReviewedSha: null, confidence: 5, thinHtmlSummary: true, p0Count: 0, p1Count: 0 }),
+      verdict({
+        lastReviewedSha: null,
+        confidence: 5,
+        thinHtmlSummary: true,
+        p0Count: 0,
+        p1Count: 0,
+      }),
       { p0Count: 0, p1Count: 1, unresolvedThreadCount: 1, error: null },
       { greptileReviewTerminalOnHead: true, commentsAdded: 1 },
     );
     expect(failures.some((f) => f.includes("findings channel"))).toBe(true);
   });
-
 
   it("emits informal clean diagnostic", () => {
     const failures = evaluateGates(

@@ -104,7 +104,7 @@ export function extractAdvisoryVerdictRegions(body: string): string {
   }
 
   for (const m of text.matchAll(
-    /(?:^|\n)#{1,6}\s*Confidence\s+Score\s*:[^\n]*\n([\s\S]*?)(?=\n#{1,6}\s|\n<details\b|\n---\s*$|\n\*?\*?Last reviewed|\z)/gi,
+    /(?:^|\n)#{1,6}\s*Confidence\s+Score\s*:[^\n]*\n([\s\S]*?)(?=\n#{1,6}\s|\n<details\b|\n---\s*$|\n\*?\*?Last reviewed|z)/gi,
   )) {
     regions.push(m[0] ?? "");
   }
@@ -323,7 +323,8 @@ export function isThinHtmlSummary(body: string): boolean {
     return false;
   }
   return (
-    parseLastReviewedShaMarkdownLink(body) === null && parseLastReviewedShaNaiveInline(body) === null
+    parseLastReviewedShaMarkdownLink(body) === null &&
+    parseLastReviewedShaNaiveInline(body) === null
   );
 }
 
@@ -690,9 +691,8 @@ export const BODY_PR4292_THIN_HTML =
 
 /** REST pulls comment 3970461813 on PR 4292: inline P1 outside the rolling summary. */
 export const BODY_PR4292_INLINE_P1 =
-  "<a href=\"#\"><img alt=\"P1\" src=\"https://greptile-static-assets.s3.amazonaws.com/badges/p1.svg?v=9\" align=\"top\"></a> " +
+  '<a href="#"><img alt="P1" src="https://greptile-static-assets.s3.amazonaws.com/badges/p1.svg?v=9" align="top"></a> ' +
   "**Split issue becomes completed**\n";
-
 
 /**
  * Fail-closed CLEAN gate shared by pr:watch, swarm poller, and content-contracts.
@@ -870,7 +870,10 @@ export function simulatePollLoop(params: {
     if (isClean) {
       return ["CLEAN", i, cleanGateHoldout, logLines];
     }
-    if (hasBlocking && (lastReviewedSha === headSha || (thinHtmlSummary && greptileReviewTerminalOnHead))) {
+    if (
+      hasBlocking &&
+      (lastReviewedSha === headSha || (thinHtmlSummary && greptileReviewTerminalOnHead))
+    ) {
       return ["NEW_P0P1", i, cleanGateHoldout, logLines];
     }
     if (errored) {

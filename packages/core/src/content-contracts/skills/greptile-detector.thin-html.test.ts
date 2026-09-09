@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { parseGreptileBody } from "../../pr-merge-readiness/parse.js";
 import {
   BODY_AC4_MARKDOWN_LINK_CLEAN,
   BODY_PR4287_THIN_HTML,
@@ -15,7 +16,6 @@ import {
   resolveShaCurrency,
   simulatePollLoop,
 } from "./greptile-detector.js";
-import { parseGreptileBody } from "../../pr-merge-readiness/parse.js";
 
 const HEAD = "73f6e732aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 

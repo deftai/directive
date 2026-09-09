@@ -202,7 +202,6 @@ describe("test_review_cycle_skill", () => {
     expect(text).toContain("every-consumer-until-TIMEOUT");
   });
 
-
   it("phase2_step1_no_cp1252_mojibake", () => {
     expect(phase2Step1Section()).not.toContain("\u0393\u00E8\u00F9");
   });

@@ -1,3 +1,7 @@
+import {
+  isGreptileReviewTerminal,
+  parseCommentsAdded,
+} from "../content-contracts/skills/greptile-detector.js";
 import { resolveMinGreptileConfidence } from "../policy/min-greptile-confidence.js";
 import type { CiGateOptions } from "./ci-gate.js";
 import { buildCiSummaryLine, evaluateCiGate } from "./ci-gate.js";
@@ -8,7 +12,6 @@ import {
   VIA_FALLBACK2,
   VIA_PRIMARY,
 } from "./constants.js";
-import { isGreptileReviewTerminal, parseCommentsAdded } from "../content-contracts/skills/greptile-detector.js";
 import { evaluateGates, isMergeReady } from "./evaluate.js";
 import {
   type CheckRunRecord,

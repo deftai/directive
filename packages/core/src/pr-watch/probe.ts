@@ -97,8 +97,7 @@ export function probeOnce(
   const errored = trimmed.startsWith(GREPTILE_ERRORED_SENTINEL);
   const findings = detect(body);
   const confidence = parseConfidence(body);
-  const bodySha =
-    parseLastReviewedShaMarkdownLink(body) ?? parseLastReviewedShaNaiveInline(body);
+  const bodySha = parseLastReviewedShaMarkdownLink(body) ?? parseLastReviewedShaNaiveInline(body);
   const thinHtmlSummary = isThinHtmlSummary(body);
 
   // 3. CI failures (best-effort). When check-runs are unreachable we degrade to

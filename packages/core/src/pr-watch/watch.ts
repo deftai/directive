@@ -125,8 +125,7 @@ export function watch(
     // check-run is terminal on HEAD (#4289).
     if (
       probe.hasBlocking &&
-      (probe.shaMatch ||
-        (probe.lastReviewedSha === null && probe.greptileReviewTerminal === true))
+      (probe.shaMatch || (probe.lastReviewedSha === null && probe.greptileReviewTerminal === true))
     ) {
       return build(VERDICT_NEW_P0_P1, EXIT_NEW_P0_P1, probe, poll);
     }

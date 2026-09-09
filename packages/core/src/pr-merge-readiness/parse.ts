@@ -1,4 +1,7 @@
-import { hasShouldNotMergeProse, isThinHtmlSummary } from "../content-contracts/skills/greptile-detector.js";
+import {
+  hasShouldNotMergeProse,
+  isThinHtmlSummary,
+} from "../content-contracts/skills/greptile-detector.js";
 import { findLastReviewedCommitSha } from "../text/redos-safe.js";
 import {
   CONFIDENCE_RE,
