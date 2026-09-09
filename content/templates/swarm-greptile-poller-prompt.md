@@ -474,41 +474,34 @@ if thin_html:
     rest_fetched = False
     rest_p0 = 0
     rest_p1 = 0
-    page = 1
-    per_page = 100
-    while page <= 10:
-        proc = subprocess.run(
-            ["gh", "api", f"repos/{repo}/pulls/{pr_number}/comments?per_page={{per_page}}&page={{page}}"],
-            capture_output=True,
-            text=True,
-        )
-        if proc.returncode != 0:
+    proc = subprocess.run(
+        ["gh", "api", "--paginate", f"repos/{repo}/pulls/{pr_number}/comments?per_page=100"],
+        capture_output=True,
+        text=True,
+    )
+    items = []
+    if proc.returncode == 0:
+        raw = proc.stdout or "[]"
+        try:
+            parsed = json.loads(raw)
+            items = parsed if isinstance(parsed, list) else []
+            rest_fetched = isinstance(parsed, list)
+        except json.JSONDecodeError:
             rest_fetched = False
-            break
-        items = json.loads(proc.stdout or "[]")
-        if not isinstance(items, list):
-            rest_fetched = False
-            break
-        rest_fetched = True
-        for item in items:
-            user = (item or {}).get("user") or {}
-            if user.get("login") != "greptile-apps[bot]":
-                continue
-            commit_id = item.get("commit_id") or ""
-            if head_sha and commit_id and not (
-                str(head_sha).startswith(str(commit_id)) or str(commit_id).startswith(str(head_sha))
-            ):
-                continue
-            text = item.get("body") or ""
-            if '<img alt="P0"' in text:
-                rest_p0 += 1
-            if '<img alt="P1"' in text:
-                rest_p1 += 1
-        if len(items) < per_page:
-            break
-        page += 1
-    else:
-        rest_fetched = False
+    for item in items:
+        user = (item or {}).get("user") or {}
+        if user.get("login") != "greptile-apps[bot]":
+            continue
+        commit_id = item.get("commit_id") or ""
+        if head_sha and commit_id and not (
+            str(head_sha).startswith(str(commit_id)) or str(commit_id).startswith(str(head_sha))
+        ):
+            continue
+        text = item.get("body") or ""
+        if '<img alt="P0"' in text:
+            rest_p0 += 1
+        if '<img alt="P1"' in text:
+            rest_p1 += 1
     findings_channel_present = rest_fetched or comments_added is not None
     if rest_fetched:
         p0_count, p1_count = rest_p0, rest_p1

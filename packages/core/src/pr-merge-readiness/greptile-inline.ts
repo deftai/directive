@@ -293,23 +293,81 @@ export function fetchUnresolvedGreptileInlineFindings(
 }
 
 const REST_COMMENTS_PER_PAGE = 100;
-const REST_COMMENTS_MAX_PAGES = 10;
 
-function parseRestCommentsPage(stdout: string): { items: unknown[]; error: string | null } {
+function parsePaginatedRestComments(stdout: string): { items: unknown[]; error: string | null } {
   if (!stdout.trim()) {
     return { items: [], error: null };
   }
-  let payload: unknown;
   try {
-    payload = JSON.parse(stdout) as unknown;
-  } catch (exc: unknown) {
-    const message = exc instanceof Error ? exc.message : String(exc);
-    return { items: [], error: `could not parse REST pulls comments JSON: ${message}` };
-  }
-  if (!Array.isArray(payload)) {
+    const payload = JSON.parse(stdout) as unknown;
+    if (Array.isArray(payload)) {
+      return { items: payload, error: null };
+    }
     return { items: [], error: "REST pulls comments JSON is not an array" };
+  } catch {
+    // gh --paginate may concatenate page arrays as `][`.
   }
-  return { items: payload, error: null };
+  const items: unknown[] = [];
+  let idx = 0;
+  const text = stdout;
+  while (idx < text.length) {
+    while (idx < text.length && /\s/.test(text.charAt(idx))) {
+      idx += 1;
+    }
+    if (idx >= text.length) {
+      break;
+    }
+    if (text.charAt(idx) !== "[" && text.charAt(idx) !== "{") {
+      return {
+        items: [],
+        error: "could not parse REST pulls comments JSON: invalid JSON at offset",
+      };
+    }
+    let end = idx;
+    let depth = 0;
+    let inString = false;
+    let isEscaped = false;
+    for (; end < text.length; end += 1) {
+      const ch = text.charAt(end);
+      if (inString) {
+        if (isEscaped) {
+          isEscaped = false;
+        } else if (ch === "\\") {
+          isEscaped = true;
+        } else if (ch === '"') {
+          inString = false;
+        }
+        continue;
+      }
+      if (ch === '"') {
+        inString = true;
+        continue;
+      }
+      if (ch === "[" || ch === "{") {
+        depth += 1;
+      } else if (ch === "]" || ch === "}") {
+        depth -= 1;
+        if (depth === 0) {
+          end += 1;
+          break;
+        }
+      }
+    }
+    let obj: unknown;
+    try {
+      obj = JSON.parse(text.slice(idx, end)) as unknown;
+    } catch (exc: unknown) {
+      const message = exc instanceof Error ? exc.message : String(exc);
+      return { items: [], error: `could not parse REST pulls comments JSON: ${message}` };
+    }
+    if (Array.isArray(obj)) {
+      items.push(...obj);
+    } else if (obj !== null && typeof obj === "object") {
+      items.push(obj);
+    }
+    idx = end;
+  }
+  return { items, error: null };
 }
 
 /**
@@ -358,32 +416,23 @@ export function fetchGreptilePullCommentsRest(
   headSha: string,
   runGh: RunGhFn,
 ): InlineGreptileFindings {
-  const all: unknown[] = [];
-  for (let page = 1; page <= REST_COMMENTS_MAX_PAGES; page += 1) {
-    const rc = runGh([
-      "gh",
-      "api",
-      `repos/${repo}/pulls/${prNumber}/comments?per_page=${REST_COMMENTS_PER_PAGE}&page=${page}`,
-    ]);
-    if (rc.returncode !== 0) {
-      return {
-        ...EMPTY_INLINE,
-        error: `REST pulls comments failed: ${rc.stderr.trim() || rc.stdout.trim()}`,
-      };
-    }
-    const parsed = parseRestCommentsPage(rc.stdout);
-    if (parsed.error !== null) {
-      return { ...EMPTY_INLINE, error: parsed.error };
-    }
-    all.push(...parsed.items);
-    if (parsed.items.length < REST_COMMENTS_PER_PAGE) {
-      return scoreRestPullComments(all, headSha);
-    }
+  const rc = runGh([
+    "gh",
+    "api",
+    "--paginate",
+    `repos/${repo}/pulls/${prNumber}/comments?per_page=${REST_COMMENTS_PER_PAGE}`,
+  ]);
+  if (rc.returncode !== 0) {
+    return {
+      ...EMPTY_INLINE,
+      error: `REST pulls comments failed: ${rc.stderr.trim() || rc.stdout.trim()}`,
+    };
   }
-  return {
-    ...EMPTY_INLINE,
-    error: `REST pulls comments pagination exceeded ${REST_COMMENTS_MAX_PAGES} pages`,
-  };
+  const parsed = parsePaginatedRestComments(rc.stdout);
+  if (parsed.error !== null) {
+    return { ...EMPTY_INLINE, error: parsed.error };
+  }
+  return scoreRestPullComments(parsed.items, headSha);
 }
 
 /**

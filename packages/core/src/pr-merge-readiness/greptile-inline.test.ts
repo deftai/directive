@@ -230,7 +230,7 @@ describe("fetchGreptilePullCommentsRest (#4289)", () => {
     expect(findings.error).toContain("REST pulls comments failed");
   });
 
-  it("paginates past page 1 before scoring (#4289)", () => {
+  it("uses gh api --paginate so later pages are scored (#4289)", () => {
     const page1 = Array.from({ length: 100 }, (_, i) => ({
       user: { login: "human" },
       body: `note ${i}`,
@@ -244,16 +244,26 @@ describe("fetchGreptilePullCommentsRest (#4289)", () => {
       },
     ];
     const runGh: RunGhFn = (cmd) => {
-      const joined = cmd.join(" ");
-      const pageMatch = /[?&]page=(\d+)/.exec(joined);
-      const page = pageMatch === null ? 0 : Number(pageMatch[1]);
-      if (page === 1) {
-        return { returncode: 0, stdout: JSON.stringify(page1), stderr: "" };
-      }
-      if (page === 2) {
-        return { returncode: 0, stdout: JSON.stringify(page2), stderr: "" };
-      }
-      return { returncode: 1, stdout: "", stderr: `unexpected page ${joined}` };
+      expect(cmd).toContain("--paginate");
+      return { returncode: 0, stdout: JSON.stringify([...page1, ...page2]), stderr: "" };
+    };
+    const findings = fetchGreptilePullCommentsRest(4292, "deftai/directive", HEAD, runGh);
+    expect(findings.error).toBeNull();
+    expect(findings.p1Count).toBeGreaterThanOrEqual(1);
+  });
+
+  it("decodes concatenated --paginate arrays (#4289)", () => {
+    const page1 = JSON.stringify([{ user: { login: "human" }, body: "note", commit_id: HEAD }]);
+    const page2 = JSON.stringify([
+      {
+        user: { login: "greptile-apps[bot]" },
+        body: INLINE_P1_BODY,
+        commit_id: HEAD,
+      },
+    ]);
+    const runGh: RunGhFn = (cmd) => {
+      expect(cmd).toContain("--paginate");
+      return { returncode: 0, stdout: page1 + page2, stderr: "" };
     };
     const findings = fetchGreptilePullCommentsRest(4292, "deftai/directive", HEAD, runGh);
     expect(findings.error).toBeNull();

@@ -523,7 +523,7 @@ describe("test_swarm_poller_template", () => {
     expect(templateText).toContain("pending_required");
     expect(templateText).toContain("every-consumer-until-TIMEOUT");
     expect(templateText).toContain("findings_channel_present=findings_channel_present");
-    expect(templateText).toContain("per_page={{per_page}}&page={{page}}");
+    expect(templateText).toContain("--paginate");
     expect(templateText).toContain("comments?\\s+added");
   });
   it("template_clean_gate_enforces_terminal_check_run", () => {
