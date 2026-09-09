@@ -209,7 +209,7 @@ export type HookDecisionCode =
   | "spawn-explore-ready"
   /** Non-lifecycle assist/docs spawn allowed without active xBRIEF (#3080). */
   | "spawn-ephemeral-ready"
-  /** Process-only critic spawn (`subagent_type` plan) skips dest occupancy (#4241). */
+  /** Process-only critic spawn (`subagent_type` plan or `process_only`) skips dest occupancy. */
   | "spawn-process-only-ready"
   | "spawn-ready"
   | "spawn-not-ready"
@@ -1622,9 +1622,9 @@ function inspectMutationGates(
           "or set session assist (`DEFT_SESSION_POSTURE=assist` or `DEFT_HOOK_ASSIST=1`), " +
           "or run local-dev Shell (`docker compose` / `pnpm dev`) in the parent without a " +
           "lifecycle story. (4) Process-only critic — spawn with structural `subagent_type` " +
-          "plan (Grok PreToolUse stdin). Free-text markers such as `[worker_role: ephemeral]` " +
-          "or naming critic in the prompt are NOT sufficient. Do not invent a fake scope " +
-          "only to satisfy this gate.";
+          "plan or `process_only` (Grok PreToolUse stdin). Dest-path is not that class. " +
+          "Free-text markers such as `[worker_role: ephemeral]` or naming critic in the prompt " +
+          "are NOT sufficient. Do not invent a fake scope only to satisfy this gate.";
       } else if (
         options.proposedLifecycleExempt &&
         relTarget !== null &&
@@ -2542,8 +2542,8 @@ function routeHookDecision(
         "read-only-deny",
         toolName,
         `Directive denied ${toolName}: read-only posture blocks implementation sub-agent spawns. ` +
-          "Use subagent_type explore for read-only research spawns, or subagent_type plan " +
-          "for process-only critic spawns.",
+          "Use subagent_type explore for read-only research spawns, or subagent_type plan / " +
+          "process_only for process-only critic spawns.",
       );
     }
     if (isExploreSpawn(input.payload)) {
@@ -2558,8 +2558,8 @@ function routeHookDecision(
         scopePath: null,
       };
     }
-    // Process-only critic (`subagent_type` plan): dest consult, worktree, ritual,
-    // and active-xBRIEF skip. Not the explore tool allowlist. Prompt text is not a class (#4241).
+    // Process-only critic (`subagent_type` plan or `process_only`): dest occupancy,
+    // ritual, and active-xBRIEF skip. Dest-path is not the class. Prompt is not a class.
     if (
       isProcessOnlyCriticSpawn(input.payload, {
         host: input.host,
@@ -2576,7 +2576,7 @@ function routeHookDecision(
         projectRoot,
         message:
           `Directive allowed process-only critic ${toolName} spawn without dest occupancy ` +
-          "or implementation gates (subagent_type plan).",
+          "or implementation gates (subagent_type plan or process_only).",
         scopePath: null,
       };
     }

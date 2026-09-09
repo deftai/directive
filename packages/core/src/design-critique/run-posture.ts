@@ -1,13 +1,13 @@
 /**
- * Design-critique run-posture front door (#4072).
+ * Design-critique run-posture front door (#4072 / #4296).
  *
  * Session-local execution posture chosen before mutation-capable session
  * start. Not a second ingest switch and not a third occupancy concept.
- * Closed tokens only; missing or `ingest` asks. Direct means
- * `session:start --read-only` (or release). Ingest stays `issue:ingest`
- * after the completed-arc record.
+ * Closed tokens only; missing or `ingest` asks. GitHub-only means no-ingest,
+ * not no-worktree. Direct tokens resolve to `no-ingest`. Ingest stays
+ * `issue:ingest` after the completed-arc record.
  */
-export const ARC_RUN_POSTURES = ["direct", "checkout"] as const;
+export const ARC_RUN_POSTURES = ["no-ingest", "checkout"] as const;
 
 export type ArcRunPosture = (typeof ARC_RUN_POSTURES)[number];
 
@@ -17,7 +17,7 @@ export type RunPostureParse =
   | { kind: "resolved"; posture: ArcRunPosture }
   | { kind: "ask"; reason: RunPostureAskReason };
 
-/** Published closed tokens that resolve to `direct`. */
+/** Published closed tokens that resolve to `no-ingest` (github-only, not no-worktree). */
 export const DIRECT_RUN_POSTURE_TOKENS = [
   "direct",
   "directly",
@@ -26,6 +26,8 @@ export const DIRECT_RUN_POSTURE_TOKENS = [
   "github only",
   "on github",
   "no worktrees",
+  "no-ingest",
+  "no ingest",
 ] as const;
 
 /** Published closed token that resolves to `checkout`. */
@@ -37,9 +39,10 @@ export const DIRECT_POSTING_PATH = "gh issue comment --body-file -";
 
 export const ARC_MODE_FIELD = "arc-mode:";
 
+export const NO_INGEST_ARC_MODE = "no-ingest";
+
 export type DirectDispatchViolation =
   | "occupancy-claim"
-  | "worktree-add"
   | "issue-ingest"
   | "mutation-session-start";
 
@@ -47,25 +50,31 @@ export type DirectDispatchVerdict =
   | { ok: true }
   | { ok: false; violations: readonly DirectDispatchViolation[] };
 
-const DIRECT_TOKEN_RE =
-  /\b(?:direct|directly|forge-only|github-only|github[ \t]+only|on[ \t]+github|no[ \t]+worktrees)\b/i;
+const NO_INGEST_TOKEN_RE =
+  /\b(?:direct|directly|forge-only|github-only|github[ \t]+only|on[ \t]+github|no[ \t]+worktrees|no-ingest|no[ \t]+ingest)\b/i;
 const CHECKOUT_TOKEN_RE = /\bcheckout\b/i;
-const INGEST_TOKEN_RE = /\bingest\b/i;
+/** Bare `ingest` only. `no-ingest` / `no ingest` are github-only tokens. */
+const INGEST_TOKEN_RE = /(?<!no[ \t-])\bingest\b/i;
 const DISPATCH_SHA_RE = /^[0-9a-f]{7,40}$/i;
 
 /**
  * Parse an operator utterance for the run-posture closed set.
  * Yolo is not a posture token. `ingest` is not a front-door mode.
+ * GitHub-only closed tokens resolve to `no-ingest`, not no-worktree.
  */
 export function parseOperatorRunPosture(utterance: string): RunPostureParse {
-  const hasDirect = DIRECT_TOKEN_RE.test(utterance);
+  const hasNoIngest = NO_INGEST_TOKEN_RE.test(utterance);
   const hasCheckout = CHECKOUT_TOKEN_RE.test(utterance);
   const hasIngest = INGEST_TOKEN_RE.test(utterance);
-  if ((hasDirect && hasCheckout) || (hasDirect && hasIngest) || (hasCheckout && hasIngest)) {
+  if (
+    (hasNoIngest && hasCheckout) ||
+    (hasNoIngest && hasIngest) ||
+    (hasCheckout && hasIngest)
+  ) {
     return { kind: "ask", reason: "ambiguous" };
   }
-  if (hasDirect) {
-    return { kind: "resolved", posture: "direct" };
+  if (hasNoIngest) {
+    return { kind: "resolved", posture: "no-ingest" };
   }
   if (hasCheckout) {
     return { kind: "resolved", posture: "checkout" };
@@ -78,7 +87,7 @@ export function parseOperatorRunPosture(utterance: string): RunPostureParse {
 
 /**
  * Host-facing run-posture resolver (#4202). Consumes parseOperatorRunPosture.
- * On grok-bot detect, missing-token defaults to direct. Checkout tokens still
+ * On grok-bot detect, missing-token defaults to no-ingest. Checkout tokens still
  * win. Does not clone the parser and does not implement grok-bot detect.
  */
 export function resolveArcRunPostureForHost(input: {
@@ -90,12 +99,12 @@ export function resolveArcRunPostureForHost(input: {
     return parsed;
   }
   if (input.grokBotDetected && parsed.reason === "missing-token") {
-    return { kind: "resolved", posture: "direct" };
+    return { kind: "resolved", posture: "no-ingest" };
   }
   return parsed;
 }
 
-/** Stop 1 record line. Never writes `arc-mode: ingest`. */
+/** Stop 1 record line. Never writes `arc-mode: ingest`. Emits parser posture. */
 export function arcModeRecordLine(posture: ArcRunPosture): string {
   return `arc-mode: ${posture}`;
 }
@@ -106,7 +115,7 @@ export function isDispatchShaPin(value: string): boolean {
 }
 
 /**
- * SHA-pinned read root for direct critics. Refuses a moving branch ref.
+ * SHA-pinned read root for github-only critics. Refuses a moving branch ref.
  */
 export function pinnedShowCommand(sha: string): string {
   const pin = sha.trim();
@@ -117,8 +126,10 @@ export function pinnedShowCommand(sha: string): string {
 }
 
 /**
- * Fixture over parent-claimed actions for a direct dispatch. Does not observe
- * live occupancy or GitHub, matching `evaluatePanelSeatComposition`.
+ * Fixture over parent-claimed actions for a github-only (no-ingest) dispatch.
+ * Worktree-add is not a violation: github-only means no-ingest, not no-worktree.
+ * Parent-unclaimed (`occupancyClaimed: false`) is its own MUST.
+ * Does not observe live occupancy or GitHub, matching `evaluatePanelSeatComposition`.
  */
 export function evaluateDirectDispatch(input: {
   posture: ArcRunPosture;
@@ -127,15 +138,13 @@ export function evaluateDirectDispatch(input: {
   issueIngest: boolean;
   sessionPosture: "read-only" | "mutation";
 }): DirectDispatchVerdict {
-  if (input.posture !== "direct") {
+  if (input.posture !== "no-ingest") {
     return { ok: true };
   }
+  void input.worktreeAdd;
   const violations: DirectDispatchViolation[] = [];
   if (input.occupancyClaimed) {
     violations.push("occupancy-claim");
-  }
-  if (input.worktreeAdd) {
-    violations.push("worktree-add");
   }
   if (input.issueIngest) {
     violations.push("issue-ingest");

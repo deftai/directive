@@ -73,6 +73,38 @@ function readySeams(overrides: Partial<HookPolicySeams> = {}): HookPolicySeams {
 }
 
 describe("dest-proven implement spawn (#4215)", () => {
+  it("does not skip #2885 on destProven implement-class spawn (#4296)", () => {
+    const { root, dest } = destFixture();
+    const inspectRitual = vi.fn(() => STALE_RITUAL);
+    const inspectScope = vi.fn(() => ({
+      ready: false,
+      path: null,
+      message: "No active xBRIEF artifact was found under xbrief/active/",
+    }));
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: {
+            subagent_type: "general-purpose",
+            cwd: dest,
+            prompt: "implement the story",
+          },
+        },
+        environ: { DEFT_SESSION_ID: "parent-1" },
+      },
+      readySeams({ inspectRitual, inspectScope }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toMatch(/process_only/);
+    expect(decision.message).toMatch(/Dest-path is not that class/);
+    expect(inspectRitual).not.toHaveBeenCalled();
+    expect(inspectScope).toHaveBeenCalled();
+  });
+
   it("skips parent ritual when Grok cwd is dest-proven and parent identity is set", () => {
     const { root, dest } = destFixture();
     const inspectRitual = vi.fn(() => STALE_RITUAL);

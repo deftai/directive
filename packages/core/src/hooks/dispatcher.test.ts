@@ -2483,6 +2483,35 @@ describe("process-only critic spawn dest skip (#4241)", () => {
     expect(decision.code).not.toBe("spawn-explore-ready");
   });
 
+  it("allows general-purpose process_only critic without dest occupancy or active xBRIEF (#4296)", () => {
+    const inspectRitual = vi.fn(() => READY_RITUAL);
+    const inspectScope = vi.fn(() => ({
+      ready: false,
+      path: null,
+      message: "No active xBRIEF artifact was found under xbrief/active/",
+    }));
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: {
+            subagent_type: "general-purpose",
+            process_only: true,
+            cwd: "/dest",
+            prompt: "git show the dispatch sha and post a GitHub comment",
+          },
+        },
+      },
+      readySeams({ inspectRitual, inspectScope }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-process-only-ready" });
+    expect(inspectRitual).not.toHaveBeenCalled();
+    expect(inspectScope).not.toHaveBeenCalled();
+  });
+
   it("still requires a worktree for general-purpose implement spawn on Grok", () => {
     const decision = decideHook(
       {

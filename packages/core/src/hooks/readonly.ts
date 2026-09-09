@@ -265,6 +265,26 @@ export function isEphemeralSpawn(
 /** Grok PreToolUse stdin field for process-only critic spawn (#4241). Not explore. */
 const PROCESS_ONLY_CRITIC_SUBAGENT_TYPE = "plan";
 
+/** Host-visible spawn flag implement-class never sets (#4296). Not dest-path. */
+const PROCESS_ONLY_CRITIC_FLAG_KEYS = ["process_only", "processOnly"] as const;
+
+function fieldTruthy(input: Record<string, unknown>, key: string): boolean {
+  const value = input[key];
+  if (value === true) return true;
+  if (typeof value === "number") return value === 1;
+  if (typeof value === "string") return TRUTHY.has(value.trim().toLowerCase());
+  return false;
+}
+
+function hasProcessOnlyCriticFlag(
+  toolInput: Record<string, unknown>,
+  input: Record<string, unknown>,
+): boolean {
+  return PROCESS_ONLY_CRITIC_FLAG_KEYS.some(
+    (key) => fieldTruthy(toolInput, key) || fieldTruthy(input, key),
+  );
+}
+
 /** Verified Grok spawn surface that actually emits `subagent_type` (#4241). */
 const GROK_SPAWN_TOOL_NORMALIZED = "spawnsubagent";
 
@@ -316,13 +336,11 @@ export function appliesGrokSpawnDestContract(input: GrokSpawnDestContractInput):
 }
 
 /**
- * Process-only critic spawn: dest occupancy skip without the explore tool allowlist (#4241).
- * True on the verified Grok `spawn_subagent` surface when structural
- * `subagent_type`/`subagentType` === `plan` (the field Grok PreToolUse stdin
- * actually contains). Handler-runtime identity (#4272) applies this skip when
- * argv `--host` is cursor or claude and the tool is still `spawn_subagent`.
- * Other spawn tools stay implement-class. Prompt text is never a class.
- * Implement envelope signals win, so a parent cannot opt an implement worker in.
+ * Process-only critic spawn: dest occupancy skip without the explore tool allowlist
+ * (#4241 / #4296). True on Grok `spawn_subagent` when a host-visible stdin marker
+ * implement-class never sets is present: `subagent_type` `plan`, or `process_only`.
+ * Dest-path (`cwd`) is not a class. Prompt text is never a class. Do not skip
+ * #2885 on destProven. Implement envelope signals win.
  */
 export function isProcessOnlyCriticSpawn(
   payload: unknown,
@@ -353,6 +371,8 @@ export function isProcessOnlyCriticSpawn(
     fieldString(toolInput, "subagentType") ??
     fieldString(input, "subagent_type") ??
     fieldString(input, "subagentType");
-  if (subagentType?.toLowerCase() !== PROCESS_ONLY_CRITIC_SUBAGENT_TYPE) return false;
+  const isPlan = subagentType?.toLowerCase() === PROCESS_ONLY_CRITIC_SUBAGENT_TYPE;
+  const isFlag = hasProcessOnlyCriticFlag(toolInput, input);
+  if (!isPlan && !isFlag) return false;
   return !hasImplementConflictSignal(toolInput, input);
 }

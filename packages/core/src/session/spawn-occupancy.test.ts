@@ -603,7 +603,7 @@ describe("consultImplementSpawnOccupancy (#4215)", () => {
     if (!consult.allow) return;
     expect(consult.destProven).toBe(false);
     expect(consult.destPath).toBeNull();
-    expect(consult.message).toMatch(/process-only critic/);
+    expect(consult.message).toMatch(/cwd-without-occupy/);
     const evaluated = evaluateImplementSpawnOccupancy({
       payload: {
         tool_name: "spawn_subagent",
@@ -637,6 +637,76 @@ describe("consultImplementSpawnOccupancy (#4215)", () => {
     if (consult.allow) return;
     expect(consult.reason).not.toBeUndefined();
     expect(consult.message).not.toMatch(/process-only critic/);
+  });
+
+  it("cwd-without-occupy shares one dest for process_only siblings (#4296)", () => {
+    const root = mkdtempSync(join(tmpdir(), "spawn-occ-share-"));
+    temps.push(root);
+    gitInit(root);
+    const dest = join(root, "wt");
+    addLinkedWorktree(root, dest);
+    const payload = {
+      tool_name: "spawn_subagent",
+      tool_input: {
+        subagent_type: "general-purpose",
+        process_only: true,
+        cwd: dest,
+        prompt: "critic",
+      },
+    };
+    const first = evaluateImplementSpawnOccupancy({
+      payload,
+      payloadRoot: root,
+      host: "grok",
+      parentId: "parent-1",
+    });
+    const second = evaluateImplementSpawnOccupancy({
+      payload,
+      payloadRoot: root,
+      host: "grok",
+      parentId: "parent-1",
+    });
+    expect(first.allow).toBe(true);
+    expect(second.allow).toBe(true);
+    if (!first.allow || !second.allow) return;
+    expect(first.exemption).toBe("process-only-critic");
+    expect(second.exemption).toBe("process-only-critic");
+    expect(first.reservation).toBeNull();
+    expect(second.reservation).toBeNull();
+    expect(readSpawnReservationIncarnation(root, dest)).toBeNull();
+  });
+
+  it("keeps unique dest-lock for implement-class general-purpose (#4296)", () => {
+    const root = mkdtempSync(join(tmpdir(), "spawn-occ-lock-"));
+    temps.push(root);
+    gitInit(root);
+    const dest = join(root, "wt");
+    addLinkedWorktree(root, dest);
+    const payload = {
+      tool_name: "spawn_subagent",
+      tool_input: { subagent_type: "general-purpose", cwd: dest, prompt: "implement" },
+    };
+    const first = evaluateImplementSpawnOccupancy({
+      payload,
+      payloadRoot: root,
+      host: "grok",
+      parentId: "parent-1",
+    });
+    expect(first.allow).toBe(true);
+    if (!first.allow) return;
+    expect(first.exemption).toBeNull();
+    expect(first.reservation).not.toBeNull();
+    if (first.reservation === null) return;
+    expect(persistSpawnReservation(root, first.reservation).ok).toBe(true);
+    const second = evaluateImplementSpawnOccupancy({
+      payload,
+      payloadRoot: root,
+      host: "grok",
+      parentId: "parent-2",
+    });
+    expect(second.allow).toBe(false);
+    if (second.allow) return;
+    expect(second.reason).toBe("reservation-conflict");
   });
 
   it("still dest-consults general-purpose spawn onto a git main clone (#4241)", () => {
