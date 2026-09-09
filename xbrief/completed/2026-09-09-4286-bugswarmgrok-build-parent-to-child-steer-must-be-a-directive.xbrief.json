@@ -1,0 +1,254 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4286",
+    "updated": "2026-09-09T22:27:08Z"
+  },
+  "plan": {
+    "title": "bug(swarm,grok-build): parent-to-child steer must be a Directive inbox; host supplies no child prompt",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(swarm,grok-build): parent-to-child steer must be a Directive inbox; host supplies no child prompt",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4286",
+      "Overview": "## Problem\n\nGrok Build `spawn_subagent` children have **no operator input**. Selecting the child window shows no prompt. Paste from the operator lands in the **parent** chat. `resume_from` is terminal-only (completed source, not running). Host adapter `host-grok-build.md` #3158: default one-shot; mid-flight steer only if the host exposes a live channel. Grok Build does not.\n\nHeartbeat (`docs/subagent-heartbeat.md`, preamble §10.5, #1365 / #3730) is **child → parent** liveness. There is no **parent → child** steer contract. Ad-hoc `PARENT-STEER.md` in `.deft-scratch/subagent-status/` only works if the child happens to open it.\n\nDirective must own an always-on steer path that does not wait for Grok to grow an input field.\n\n## Recurrence (measured 2026-09-09, #4284 worker)\n\n- Parent could not re-prompt live `spawn_subagent` `01a0866d-…`.\n- Operator could not paste into the child window (no input field).\n- Parent wrote `.deft-scratch/worktrees/4284-xbrief-item-status/.deft-scratch/subagent-status/PARENT-STEER.md` (and worktree-root copy). Child heartbeat stayed on \"next: promote/activate\" until it later read the file.\n- Steer content: leftover #3785 `running` brief on master made `task check` / `verify:ac --soft-missing-xbrief` run 3785's vitest first (#4285). Do not kill check thinking 4284 AC hung. Do not git rm / complete 3785 in the 4284 PR.\n- Operator **did** kill check earlier, then recovered. 4284 was moved out of `active/` on that tree after the steer was read.\n\nNuclear-family (#3155) already says cross-session coordination goes through parent-owned artifacts. That path is not mechanical for grok-build leaves.\n\n## Acceptance\n\n- Grok-build implementation leaves (tool loop > ~3 min) **MUST** poll a Directive-owned parent-steer inbox on the same worktree scratch as the heartbeat (same `.deft-scratch/subagent-status/` tree, distinct filename/schema from the liveness JSON).\n- Parent (or operator via parent) writes the inbox; child applies unread steer and acks (heartbeat field or sibling ack file). Poll cadence matches heartbeat (2–3 min), including while blocked on `task check` / `verify:ac`.\n- This is **required** on grok-build even when the host has no child prompt. Do not gate it on \"if the host supplies message-later\".\n- Preamble + `host-grok-build.md` name the inbox. Dispatch mkdir already required for heartbeat (#3730) covers the directory.\n- A fail-closed test or `verify:subagent-alive` sibling proves: unread steer older than one poll interval is visible to the parent (steer-pending), and a child that never polls is the same class of contract break as a missing heartbeat.\n- Do not invent OpenClaw-style `sessions_yield` on Grok. Do not treat `resume_from` on a live child as the product. Do not require killing the child to steer.\n\n## Non-goals\n\n- #4285 (`verify:ac` running every active brief).\n- Completing leftover #3785.\n- Asking xAI to add a child prompt (nice; not the close).\r\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-09T20:40:56Z)\n\nmodel: grok-4.6\nrole: triage\n\nmechanism-shaped: true\ndesign-critique: warranted, because the lean is a parent-to-child steer inbox recording obligation on grok-build leaves (shared scratch with heartbeat, poll while blocked)\nrefutation-target: Grok Build spawn_subagent children have no operator input, so Directive must require an always-on parent-steer inbox on the worktree scratch that the child polls even while blocked on check, without waiting for a host child prompt or resume_from on a live child.\narc-mode: no-ingest\ndest: C:/Repos/deft/directive/.deft-scratch/worktrees/parent-arc-4286\norigin-ref: origin/master\ndispatch-sha: 7609d700f6e96d9e8bf250fc0e4faeaa1331f686\n\ncharter: refutation\nspend: N=1\nwhy: the body names a defensible presumption with a refutation target; default motion\ntarget shape: single issue\n\n## Scope recorded\n\nDest-first GitHub-only pass. Dest created this session at origin/master 7609d700. Parent unclaimed on primary. Ingest is not this motion.\n\n### Comment by @MScottAdams (2026-09-09T20:46:40Z)\n\nmodel: grok-4.6\nrole: critic\n\nRound 1, charter refutation, spend N=1. Dispatch SHA 7609d700. Input ceiling comment 5608428884 (inclusive). Pin reads via `git show 7609d700:<path>`. This session's spawn_subagent schema is a live host measurement, not a tree file.\n\nRefutation target (as given): Grok Build spawn_subagent children have no operator input, so Directive must require an always-on parent-steer inbox on the worktree scratch that the child polls even while blocked on check, without waiting for a host child prompt or resume_from on a live child.\n\n## Verdict\n\nThe antecedent survives. The consequent does not bind as written.\n\nNo parent→child prompt exists on this host today. `resume_from` is terminal-only. That does not imply an always-on scratch inbox the child can poll *while blocked on check*, and it does not license treating unread steer as the same fail-closed class as a missing heartbeat.\n\n## Inventory (existing mechanisms)\n\nMeasured at 7609d700 unless noted.\n\n- Heartbeat (`docs/subagent-heartbeat.md`, preamble §10.5, `packages/core/src/orchestration/subagent-monitor.ts`) is **child → parent** liveness. Required fields: `agent_id`, `parent_id`, `last_heartbeat_at`, `last_message`, `phase`. Optional `extra` is ignored by the parser. Default stale = 30 minutes. Long validation already names two remedies: raise `--threshold-minutes`, or split into dispatch + poller (preamble §10).\n- `sweepScratchDirs` reads **every** `*.json` in `.deft-scratch/subagent-status/` as a heartbeat. Malformed JSON is exit 1 / REDISPATCH_OK via `verify:subagent-alive`.\n- Grok adapter (`content/skills/deft-directive-swarm/references/host-grok-build.md`): default one-shot; mid-flight steer only if the host exposes a live channel; after terminal, successor dispatch. Nested leaf spawn is unsupported. Do not invent message-later on this path.\n- Preamble §10 / #3158: hosts without retain keep **split-dispatch**. Retention is orchestration, not constitution self-edit.\n- Occupancy `joinProtocol` (`none` | `heartbeat-file` | `parent-message`) is recorded as **how the child reports back** (parked join vocabulary). It is not a parent-steer inbox. `occupancy:request` stays unimplemented.\n- Nuclear-family (#3155) already allows parent-owned artifacts for cross-session coordination. Permission is not a poll/apply contract.\n- No `PARENT-STEER` / parent-steer schema exists in tree at this SHA. The body's ad-hoc markdown is outside the engine.\n- This session's `spawn_subagent`: `resume_from` requires a **completed** source, not a running one. No message/steer argument. `get_command_or_subagent_output` waits; it does not inject.\n\nThe child-window \"no prompt\" UI claim in the issue body is **asserted** from the #4284 worker measurement. Not re-observed here. The tool surface is enough for the host-gap half.\n\n## 1. Poll-while-blocked is not a file\n\n**class:** blocks-the-design\n\n**evidence:** A child waiting on a long `run_terminal_command` / `get_command_or_subagent_output` for `task check` or `verify:ac` cannot issue another tool call until that wait returns. Heartbeat already records the same physics: implementation agents on large suites will miss the 2–3 min cadence, so the prescribed remedies are a larger stale threshold or split-dispatch (`docs/subagent-heartbeat.md` \"What stale means\"). The acceptance line \"including while blocked on `task check` / `verify:ac`\" names the blocked state as the operating condition.\n\n**failure mode:** Parent writes the inbox during check. Child cannot read it until check returns. Operator repeats the #4284 kill because \"the inbox is required\" yet nothing moved. A later implementer \"satisfies\" the AC by documenting a file the blocked child never opens.\n\n**disposition:** The lean cannot bind that sentence. Recut to a **tool-loop duty**: no blocking wait longer than the poll interval; between slices, read the inbox and rewrite heartbeat. Or drop \"while blocked\" and keep REDISPATCH_OK / split-dispatch as the mid-block recovery. A scratch path does not interrupt a blocked tool.\n\n## 2. Distinct JSON in the heartbeat directory trips REDISPATCH_OK\n\n**class:** blocks-the-design\n\n**evidence:** `sweepScratchDirs` (`packages/core/src/orchestration/subagent-monitor.ts`) filters `name.endsWith(\".json\")` then `parseHeartbeatFile`. Missing required heartbeat fields → malformed → `verify:subagent-alive` exit 1 prints REDISPATCH_OK. Acceptance wants the same `.deft-scratch/subagent-status/` tree and a distinct schema, plus \"heartbeat field or sibling ack file\".\n\n**failure mode:** Parent drops `steer-<id>.json` or an ack JSON next to `<agent-id>.json`. The next monitor sweep treats it as a broken heartbeat and authorizes takeover of a live worker. The #3730 mkdir that arms this directory makes the collision the default path, not an edge.\n\n**disposition:** Cannot bind \"same tree, distinct schema\" without one of: sweep only `<agent-id>.json`; steer/ack as non-json (the recurrence's `.md` would not be swept); or a subdirectory the sweep does not walk. Do not put a second JSON schema in the liveness directory as it exists today.\n\n## 3. Steer-pending ≠ missing heartbeat\n\n**class:** blocks-the-design\n\n**evidence:** Acceptance: unread steer older than **one poll interval** (2–3 min) is visible as steer-pending, and a child that never polls is \"the same class of contract break as a missing heartbeat.\" Heartbeat stale default is **30 minutes**. `verify:subagent-alive` exit 1 is takeover (`REDISPATCH_OK`), not a yellow flag.\n\n**failure mode:** Parent writes steer 3 minutes into a healthy 15-minute `task check`. Gate fires. Monitor kills/replaces a validating worker whose heartbeat is still fresh. That is the operator-kill recurrence the body wants to stop, now automated.\n\n**disposition:** Steer-pending cannot share the REDISPATCH_OK class with missing/STALE heartbeat unless the child is in a proven pollable window. A parent-visible unread flag is fine. Takeover is not.\n\n## 4. Apply-unread-scratch is a new authority channel\n\n**class:** sharpens-framing\n\n**evidence (injection / swarm lens):** Target changes envelopes, identity, and shared scratch. Nuclear-family (#3155) permits parent → child artifacts; `content/meta/security.md` still treats content on those edges as untrusted for aggregation. Occupancy is a cooperative bearer-id boundary, not lineage (`packages/core/src/session/occupancy.ts`). Heartbeat `parent_id` is a monitor filter, not an authenticator for inbound files. `sweepScratchDirs` / occupancy grant do not sign writers. Acceptance says the child **applies** unread steer.\n\n**failure mode:** Any process with write to the worktree scratch plants instructions the live implementation identity obeys (confused deputy). Two files or a heartbeat `extra` plus a sibling ack concatenate into a compositional fragment (#480). Child overwrite of `<agent-id>.json` every 2–3 min races any parent field on that same file.\n\n**disposition:** A parent→child file can bind only with a closed schema, bind-to-`agent_id`, apply-once ack, expiry, and a refusal to treat free-form contents as envelope prose. Writer is the occupancy owner or the dispatching parent, recorded, not \"anyone who can touch `.deft-scratch`\". Distinct file from the child-owned heartbeat JSON (child overwrite). This is framing, not a veto of any inbox: the host-gap is real; unconstrained apply is not.\n\n## 5. \"Must require always-on inbox\" does not follow from the host gap\n\n**class:** sharpens-framing\n\n**evidence:** Host gap holds: this session's `spawn_subagent` has no child prompt argument; `resume_from` requires completed; adapter default is one-shot; preamble §10 keeps split-dispatch on non-retain hosts. Existing recovery already covers \"cannot re-prompt a live child\": wait for terminal + successor, or REDISPATCH_OK cancel + begin (#3730). The body's own recurrence recovered by kill, then a file the child later happened to read.\n\n**failure mode:** Shipping always-on poll as a #3158 substitute invents retain on a one-shot host (forbidden in the adapter and agents-entry). Shipping it as a new required envelope on every grok-build leaf (>~3 min) without the loop duty in finding 1 produces a file nobody reads during the only window the operator needed.\n\n**disposition:** Keep the non-goals (no OpenClaw `sessions_yield`, no live `resume_from`, no waiting on an xAI input field). Scope the product to: parent-writable, child-obligated read on each pollable slice; grok-build required because the host has no other channel. Do not replace split-dispatch for mid-scope **approval** gates. Do not gate the file on \"if message-later exists\" — that part of the body is right — and do not pretend the file is message-later.\n\n## 6. Occupancy join-protocol is not this inbox\n\n**class:** footnote\n\n`parent-message` / `heartbeat-file` on `occupancy:grant` record how a child **reports back**. No reader, no parent→child payload, parked `occupancy:request`. Inventory only: do not cite grant join-protocol as the shipped steer path, and do not clone occupancy.json for runtime last-seen (heartbeat doc already forbids that).\n\n## 7. Live resume_from is already not the product\n\n**class:** footnote\n\nThis session's tool schema refuses `resume_from` on a running child. The non-goal is already true at the host. No disposition weight.\n\n## Road-not-taken\n\nChose to refute the **consequent** (always-on poll-while-blocked inbox as the required product) rather than the **antecedent** (no operator input).\n\nRejected: \"split-dispatch + kill is enough, close as docs.\" Steelmanning that position: #3158 already answered grok-build mid-flight as one-shot; REDISPATCH_OK is the takeover; the #4284 operator did kill check and recover. What flips it: a correction that must land **without** destroying in-flight validation (the body's leftover-#3785 instruction). Kill is a recovery, not a steer channel.\n\nRejected: piggyback on heartbeat `extra`. Child atomic overwrite drops parent writes; parser ignores `extra`; same file cannot be both liveness (child-owned) and inbox (parent-owned).\n\nWhat would flip finding 1: a host side-channel that runs while another tool is blocked (not in this schema), or rewriting \"blocked on check\" to mean \"check is backgrounded and the tool loop continues.\" Under that rewrite, \"while blocked\" is the wrong sentence and finding 1 becomes a recut, not a new mechanism.\n\n## Injection / swarm lens\n\nTriggered: envelopes, identity, worktrees, shared scratch.\n\n- Envelope: every grok-build implementation leaf (>~3 min) would gain a new apply-unread duty. That is prompt assembly from a gitignored file the child did not author.\n- Identity: `agent_id` on heartbeat is a filename match, not a writer proof. Steer must name the same id or a sibling/stranger on the tree can inject.\n- Concurrency: parent write vs child heartbeat rename; two children if dest-lock ever fails; monitor sweep of foreign JSON.\n- Shared state: `.deft-scratch/subagent-status/` is already the liveness SoT. Adding a second schema without a sweep carve-out couples steer to takeover.\n\nAn N/A paragraph would be theater. The host-gap half of the target is real. The bind-as-written half is not.\n\n\n### Comment by @MScottAdams (2026-09-09T20:47:25Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nGrok Build still has no child prompt and no live resume_from. That does not bind an always-on scratch inbox the child can poll while blocked on check, or treat unread steer as missing-heartbeat takeover. Confirming this map recuts 4286: parent-writable inbox on a path the heartbeat sweep does not treat as liveness JSON; child reads on each pollable slice, not during a blocked tool; steer-pending is not REDISPATCH_OK; apply is a closed schema bound to agent_id.\n\nThis is not an instruction to a later builder.\n\nRecut: next-build contract is not this body.\n\n**Lean:** recut of #4286 after critic 5608514401. Round 1 siblings dispatched: 1. Supersedes write-back 5608428884.\n\nTarget-digest: sha256:9787ba12afea31741a9eb1a4518c6019f47e93111357f92d10acf5dade068d6b\n\narc-mode: no-ingest\ndest: C:/Repos/deft/directive/.deft-scratch/worktrees/parent-arc-4286\ndispatch-sha: 7609d700f6e96d9e8bf250fc0e4faeaa1331f686\n\n## Bound remedy\n\n- Keep the host-gap non-goals: no OpenClaw sessions_yield, no live resume_from, no waiting on an xAI child prompt. Grok-build leaves still need a parent-writable steer path because the host has no other channel. Do not replace split-dispatch for mid-scope approval gates.\n- Recut poll-while-blocked to a tool-loop duty: no blocking wait longer than the poll interval; between slices, read the inbox and rewrite heartbeat. Or drop while-blocked and keep REDISPATCH_OK / split-dispatch as mid-block recovery.\n- Do not put a second JSON schema in .deft-scratch/subagent-status/ as sweepScratchDirs exists today. Steer/ack must be non-json, a subdirectory the sweep does not walk, or the sweep must only read agent-id.json.\n- Steer-pending is a parent-visible unread flag. It is not the same class as missing heartbeat and must not share REDISPATCH_OK / takeover.\n- Apply-unread is a closed schema bound to agent_id, apply-once ack, expiry. Writer is the occupancy owner or dispatching parent. Distinct file from the child-owned heartbeat JSON.\n\n### Takes (critic 5608514401)\n\n- 1 Poll-while-blocked is not a file — accept-into-contract\n- 2 Distinct JSON in the heartbeat directory trips REDISPATCH_OK — accept-into-contract\n- 3 Steer-pending is not missing heartbeat — accept-into-contract\n- 4 Apply-unread-scratch is a new authority channel — accept-into-contract\n- 5 Must-require always-on inbox does not follow from the host gap — accept-into-contract\n\nAccepted set: 1-5. Still-open residual: none. Footnotes 6-7 are census only.\n\nNon-self-arbitration: this parent authored Stop 1 5608428884. Classified findings originated in critic 5608514401. Same grok-4.6 family.\n\n### Comment by @MScottAdams (2026-09-09T20:49:25Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nEach row names its method. Agreement is not evidence.\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | Heartbeat is child-to-parent liveness; sweepScratchDirs parses every json in subagent-status | Critic git show docs/subagent-heartbeat.md and subagent-monitor.ts | measured |\n| 2 | spawn_subagent resume_from requires completed source; no child prompt argument | Critic live host schema this session plus host-grok-build.md at SHA | measured |\n| 3 | Malformed json in the heartbeat dir is verify:subagent-alive exit 1 REDISPATCH_OK | Critic git show subagent-monitor.ts parseHeartbeatFile | measured |\n| 4 | Heartbeat stale default is 30 minutes, not one 2-3 min poll interval | Critic git show heartbeat docs stale threshold | measured |\n\n### Comment by @MScottAdams (2026-09-09T20:49:40Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe host gap is real. Next-build is a parent-writable steer path the heartbeat sweep does not treat as liveness JSON, read on pollable slices, not takeover on unread steer.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCiting successor lean 5608523414 and verified-claims table 5608547240.\n\nNon-self-arbitration: parent authored Stop 1 5608428884; critic 5608514401 same grok-4.6 family. Operator accepted 2026-09-09.",
+      "Labels": "design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Keep the host-gap non-goals: no OpenClaw sessions_yield, no live resume_from, no waiting on an xAI child prompt. Grok-build leaves still need a parent-writable steer path because the host has no other channel. Do not replace split-dispatch for mid-scope approval gates.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/orchestration/subagent-steer.test.ts#host-gap-inbox",
+          "recorded_at": "2026-09-09T22:30:00Z",
+          "recorded_by": "leaf-implementation/4286"
+        }
+      },
+      {
+        "title": "Recut poll-while-blocked to a tool-loop duty: no blocking wait longer than the poll interval; between slices, read the inbox and rewrite heartbeat. Or drop while-blocked and keep REDISPATCH_OK / split-dispatch as mid-block recovery.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/orchestration/subagent-steer.test.ts#tool-loop",
+          "recorded_at": "2026-09-09T22:30:00Z",
+          "recorded_by": "leaf-implementation/4286"
+        }
+      },
+      {
+        "title": "Do not put a second JSON schema in .deft-scratch/subagent-status/ as sweepScratchDirs exists today. Steer/ack must be non-json, a subdirectory the sweep does not walk, or the sweep must only read agent-id.json.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/orchestration/subagent-monitor.ts#sweep-heartbeat-json-only",
+          "recorded_at": "2026-09-09T22:30:00Z",
+          "recorded_by": "leaf-implementation/4286"
+        }
+      },
+      {
+        "title": "Steer-pending is a parent-visible unread flag. It is not the same class as missing heartbeat and must not share REDISPATCH_OK / takeover.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/verify-subagent-steer.test.ts#STEER_PENDING",
+          "recorded_at": "2026-09-09T22:30:00Z",
+          "recorded_by": "leaf-implementation/4286"
+        }
+      },
+      {
+        "title": "Apply-unread is a closed schema bound to agent_id, apply-once ack, expiry. Writer is the occupancy owner or dispatching parent. Distinct file from the child-owned heartbeat JSON.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/orchestration/subagent-steer.test.ts#closed-schema",
+          "recorded_at": "2026-09-09T22:30:00Z",
+          "recorded_by": "leaf-implementation/4286"
+        }
+      },
+      {
+        "title": "1 Poll-while-blocked is not a file — accept-into-contract",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/issues/4286#issuecomment-5608523414",
+          "recorded_at": "2026-09-09T22:30:00Z",
+          "recorded_by": "leaf-implementation/4286"
+        }
+      },
+      {
+        "title": "2 Distinct JSON in the heartbeat directory trips REDISPATCH_OK — accept-into-contract",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/issues/4286#issuecomment-5608523414",
+          "recorded_at": "2026-09-09T22:30:00Z",
+          "recorded_by": "leaf-implementation/4286"
+        }
+      },
+      {
+        "title": "3 Steer-pending is not missing heartbeat — accept-into-contract",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/issues/4286#issuecomment-5608523414",
+          "recorded_at": "2026-09-09T22:30:00Z",
+          "recorded_by": "leaf-implementation/4286"
+        }
+      },
+      {
+        "title": "4 Apply-unread-scratch is a new authority channel — accept-into-contract",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/issues/4286#issuecomment-5608523414",
+          "recorded_at": "2026-09-09T22:30:00Z",
+          "recorded_by": "leaf-implementation/4286"
+        }
+      },
+      {
+        "title": "5 Must-require always-on inbox does not follow from the host gap — accept-into-contract",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/issues/4286#issuecomment-5608523414",
+          "recorded_at": "2026-09-09T22:30:00Z",
+          "recorded_by": "leaf-implementation/4286"
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4286",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4286: bug(swarm,grok-build): parent-to-child steer must be a Directive inbox; host supplies no child prompt"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 10 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Keep the host-gap non-goals: no OpenClaw sessions_yield, no live resume_from, no waiting on an xAI child prompt. Grok-build leaves still need a parent-writable steer path because the host has no other channel. Do not replace split-dispatch for mid-scope approval gates.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Recut poll-while-blocked to a tool-loop duty: no blocking wait longer than the poll interval; between slices, read the inbox and rewrite heartbeat. Or drop while-blocked and keep REDISPATCH_OK / split-dispatch as mid-block recovery.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Do not put a second JSON schema in .deft-scratch/subagent-status/ as sweepScratchDirs exists today. Steer/ack must be non-json, a subdirectory the sweep does not walk, or the sweep must only read agent-id.json.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Steer-pending is a parent-visible unread flag. It is not the same class as missing heartbeat and must not share REDISPATCH_OK / takeover.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Apply-unread is a closed schema bound to agent_id, apply-once ack, expiry. Writer is the occupancy owner or dispatching parent. Distinct file from the child-owned heartbeat JSON.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "1 Poll-while-blocked is not a file — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "2 Distinct JSON in the heartbeat directory trips REDISPATCH_OK — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "3 Steer-pending is not missing heartbeat — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "4 Apply-unread-scratch is a new authority channel — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "5 Must-require always-on inbox does not follow from the host gap — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5401234504,
+        "origin": "deftai/directive#4286",
+        "id": "github.issue.5401234504"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "9787ba12afea31741a9eb1a4518c6019f47e93111357f92d10acf5dade068d6b"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4302,
+        "prBase": null,
+        "mergeCommit": "318610ce4b04f94124d08d23f3c4ebb2a3240e9e",
+        "deliveryBranch": "master",
+        "deliveryCommit": "318610ce4b04f94124d08d23f3c4ebb2a3240e9e",
+        "verifiedAt": "2026-09-09T22:27:08Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDg3ZjUtYjU0YS03YjUyLTk2YTktODc3ODM5Njg1OTY0"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-09T22:27:08Z"
+      },
+      "completedAt": "2026-09-09T22:27:08Z",
+      "completedSessionId": "host:grok:v1:MDFhMDg3ZjUtYjU0YS03YjUyLTk2YTktODc3ODM5Njg1OTY0",
+      "capacityBucket": "new-capability"
+    },
+    "id": "github.issue.5401234504",
+    "updated": "2026-09-09T22:27:08Z"
+  }
+}
