@@ -109,7 +109,7 @@
       },
       {
         "uri": "https://github.com/deftai/directive/issues/3888",
-        "type": "x-xbrief/github-issue",
+        "type": "x-xbrief/refs",
         "title": "Issue #3888: bug(hooks): a repo-local deft-hook runner is not portably registrable from one tracked hooks.json (#3785 items 1+2)"
       }
     ],
