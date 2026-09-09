@@ -258,4 +258,56 @@ describe("probeOnce (canonical greptile-detector integration)", () => {
     expect(probe.lastReviewedSha).toBe(FIXTURE_SHA);
     expect(probe.cleanGateHoldout).toBe("has_blocking");
   });
+
+  it("thin HTML GraphQL resolved P1 does not stay blocking via REST (#4289)", () => {
+    const graphqlPayload = {
+      data: {
+        repository: {
+          pullRequest: {
+            reviewThreads: {
+              pageInfo: { hasNextPage: false, endCursor: null },
+              nodes: [
+                {
+                  isResolved: true,
+                  isOutdated: false,
+                  comments: {
+                    nodes: [
+                      {
+                        author: { login: "greptile-apps[bot]" },
+                        body: BODY_PR4292_INLINE_P1,
+                        path: "greptile-inline.ts",
+                        commit: { oid: FIXTURE_SHA },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+    };
+    const gh = makeFakeGh({
+      headSha: FIXTURE_SHA,
+      body: BODY_PR4292_THIN_HTML,
+      checkRuns: [...GREEN_CI, GREPTILE_CLEAN],
+      pullComments: [
+        {
+          user: { login: "greptile-apps[bot]" },
+          body: BODY_PR4292_INLINE_P1,
+          commit_id: FIXTURE_SHA,
+        },
+      ],
+    });
+    const runGh = (cmd: readonly string[]) => {
+      if (cmd.join(" ").includes("graphql")) {
+        return { returncode: 0, stdout: JSON.stringify(graphqlPayload), stderr: "" };
+      }
+      return gh(cmd);
+    };
+    const probe = probeOnce(4303, "deftai/directive", runGh);
+    expect(probe.error).toBeNull();
+    expect(probe.hasBlocking).toBe(false);
+    expect(probe.isClean).toBe(true);
+  });
 });

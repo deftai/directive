@@ -106,6 +106,8 @@ If that pin or findings channel is missing, restate the open-PR symptom **per su
 thin_html = ("<!-- greptile_summary -->" in body and confidence is not None and last_reviewed_sha is None)
 if thin_html and greptile_terminal:
     last_reviewed_sha = head_sha
+# Do NOT set findings_channel_present=True here. Derive it from paginated REST
+# pulls comments and/or check-run comments-added in the CLEAN-gate call site.
 ```
 
 
@@ -397,6 +399,10 @@ def evaluate_clean_gate(
 ):
     """Return (is_clean, clean_gate_holdout) per the (6)-condition AND gate.
 
+    findings_channel_present defaults True only for markdown Last-reviewed
+    bodies. Thin HTML MUST pass a derived value (paginated REST pulls
+    comments and/or check-run comments-added). Do not CLEAN on the default.
+
     clean_gate_holdout names the FIRST failing condition (in 1/2/3/4/5/6
     order) or None when all six pass. The order is the operative
     contract -- callers MUST NOT reorder the checks or the holdout will
@@ -452,6 +458,64 @@ greptile_terminal = (
 ```
 
 ```python
+import json
+import subprocess
+
+_COMMENTS_ADDED_RE = re.compile(r"(\d+)\s+comments?\s+added", re.I)
+_summary = None
+if greptile_run is not None:
+    _summary = (greptile_run.get("output") or {}).get("summary") or greptile_run.get("summary")
+_m = _COMMENTS_ADDED_RE.search(_summary or "")
+comments_added = int(_m.group(1)) if _m else None
+
+findings_channel_present = True
+if thin_html:
+    findings_channel_present = False
+    rest_fetched = False
+    rest_p0 = 0
+    rest_p1 = 0
+    page = 1
+    per_page = 100
+    while page <= 10:
+        proc = subprocess.run(
+            ["gh", "api", f"repos/{repo}/pulls/{pr_number}/comments?per_page={{per_page}}&page={{page}}"],
+            capture_output=True,
+            text=True,
+        )
+        if proc.returncode != 0:
+            rest_fetched = False
+            break
+        items = json.loads(proc.stdout or "[]")
+        if not isinstance(items, list):
+            rest_fetched = False
+            break
+        rest_fetched = True
+        for item in items:
+            user = (item or {}).get("user") or {}
+            if user.get("login") != "greptile-apps[bot]":
+                continue
+            commit_id = item.get("commit_id") or ""
+            if head_sha and commit_id and not (
+                str(head_sha).startswith(str(commit_id)) or str(commit_id).startswith(str(head_sha))
+            ):
+                continue
+            text = item.get("body") or ""
+            if '<img alt="P0"' in text:
+                rest_p0 += 1
+            if '<img alt="P1"' in text:
+                rest_p1 += 1
+        if len(items) < per_page:
+            break
+        page += 1
+    else:
+        rest_fetched = False
+    findings_channel_present = rest_fetched or comments_added is not None
+    if rest_fetched:
+        p0_count, p1_count = rest_p0, rest_p1
+        has_blocking = rest_p0 + rest_p1 > 0
+    elif comments_added is not None:
+        has_blocking = has_blocking or comments_added > 0
+
 is_clean, clean_gate_holdout = evaluate_clean_gate(
     last_reviewed_sha=last_reviewed_sha,
     head_sha=head_sha,
@@ -460,6 +524,7 @@ is_clean, clean_gate_holdout = evaluate_clean_gate(
     ci_failures=ci_failure_count,
     errored=errored,
     terminal_check_run=greptile_terminal,
+    findings_channel_present=findings_channel_present,
 )
 print(
     f"[poll {{i}}/{{cap}}] last_reviewed_sha={{last_reviewed_sha}} "

@@ -39,6 +39,7 @@ export {
   type InlineReviewComment,
   type InlineReviewThread,
   inlineFindingsToDict,
+  loadThinHtmlInlineFindings,
 } from "./greptile-inline.js";
 export { cmdPrMergeReadiness, parseArgs, run } from "./main.js";
 export {

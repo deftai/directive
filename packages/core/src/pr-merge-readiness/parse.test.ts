@@ -256,6 +256,25 @@ describe("evaluateGates", () => {
     expect(failures.some((f) => f.includes("findings channel"))).toBe(true);
   });
 
+  it("thin HTML comments-added dirty path does not report 0/0 (#4289)", () => {
+    const failures = evaluateGates(
+      1,
+      HEAD,
+      verdict({
+        lastReviewedSha: null,
+        confidence: 5,
+        thinHtmlSummary: true,
+        p0Count: 0,
+        p1Count: 0,
+      }),
+      { p0Count: 0, p1Count: 0, unresolvedThreadCount: 0, error: "graphql rate limit" },
+      { greptileReviewTerminalOnHead: true, commentsAdded: 1 },
+    );
+    expect(failures.some((f) => f.includes("0 P0 and 0 P1"))).toBe(false);
+    expect(failures.some((f) => f.includes("comments-added"))).toBe(true);
+    expect(failures.some((f) => f.includes("Could not verify Greptile inline"))).toBe(false);
+  });
+
   it("emits informal clean diagnostic", () => {
     const failures = evaluateGates(
       1,

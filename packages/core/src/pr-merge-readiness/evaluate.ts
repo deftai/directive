@@ -129,12 +129,20 @@ export function evaluateGates(
             "comments-added text.",
         );
       } else if (channel.hasBlocking) {
-        failures.push(
-          `Greptile findings channel reports ${channel.p0Count} P0 and ${channel.p1Count} P1 ` +
-            "on the current HEAD (REST pull comments and/or check-run comments-added). " +
-            "All P0 / P1 findings MUST be addressed before merge (P2 findings are non-blocking).",
-        );
+        if (channel.p0Count + channel.p1Count > 0) {
+          failures.push(
+            `Greptile findings channel reports ${channel.p0Count} P0 and ${channel.p1Count} P1 ` +
+              "on the current HEAD (REST pull comments and/or check-run comments-added). " +
+              "All P0 / P1 findings MUST be addressed before merge (P2 findings are non-blocking).",
+          );
+        } else {
+          failures.push(
+            "Thin HTML findings channel is dirty via check-run comments-added " +
+              "(REST/GraphQL counts unavailable). Do not treat this as 0 P0 / 0 P1 (#4289).",
+          );
+        }
       }
+      return appendInlineFailures(failures, inline, true, channel.present);
     } else if (verdict.p0Count > 0 || verdict.p1Count > 0) {
       failures.push(
         `Greptile reports ${verdict.p0Count} P0 and ${verdict.p1Count} P1 findings ` +
@@ -144,22 +152,25 @@ export function evaluateGates(
     }
   }
 
-  return appendInlineFailures(failures, inline, verdict.thinHtmlSummary);
+  return appendInlineFailures(failures, inline);
 }
 
 function appendInlineFailures(
   failures: string[],
   inline: InlineGreptileFindings | null,
   skipInlineCounts = false,
+  skipErrorWhenChannelPresent = false,
 ): string[] {
   if (inline === null) {
     return failures;
   }
   if (inline.error !== null) {
-    failures.push(
-      "Could not verify Greptile inline review comments on the current HEAD (#2620). " +
-        `Root cause: ${inline.error}`,
-    );
+    if (!skipErrorWhenChannelPresent) {
+      failures.push(
+        "Could not verify Greptile inline review comments on the current HEAD (#2620). " +
+          `Root cause: ${inline.error}`,
+      );
+    }
   } else if (!skipInlineCounts && (inline.p0Count > 0 || inline.p1Count > 0)) {
     failures.push(
       `Greptile has ${inline.p0Count} unresolved inline P0 and ${inline.p1Count} unresolved inline P1 ` +

@@ -292,37 +292,37 @@ export function fetchUnresolvedGreptileInlineFindings(
   return evaluateInlineReviewThreads(allThreads, headSha);
 }
 
-/** Fetch Greptile inline P0/P1 via REST pulls comments (no GraphQL) (#4289). */
-export function fetchGreptilePullCommentsRest(
-  prNumber: number,
-  repo: string,
-  headSha: string,
-  runGh: RunGhFn,
-): InlineGreptileFindings {
-  const rc = runGh(["gh", "api", `repos/${repo}/pulls/${prNumber}/comments`]);
-  if (rc.returncode !== 0) {
-    return {
-      ...EMPTY_INLINE,
-      error: `REST pulls comments failed: ${rc.stderr.trim() || rc.stdout.trim()}`,
-    };
-  }
-  if (!rc.stdout.trim()) {
-    return { ...EMPTY_INLINE };
+const REST_COMMENTS_PER_PAGE = 100;
+const REST_COMMENTS_MAX_PAGES = 10;
+
+function parseRestCommentsPage(stdout: string): { items: unknown[]; error: string | null } {
+  if (!stdout.trim()) {
+    return { items: [], error: null };
   }
   let payload: unknown;
   try {
-    payload = JSON.parse(rc.stdout) as unknown;
+    payload = JSON.parse(stdout) as unknown;
   } catch (exc: unknown) {
     const message = exc instanceof Error ? exc.message : String(exc);
-    return { ...EMPTY_INLINE, error: `could not parse REST pulls comments JSON: ${message}` };
+    return { items: [], error: `could not parse REST pulls comments JSON: ${message}` };
   }
   if (!Array.isArray(payload)) {
-    return { ...EMPTY_INLINE, error: "REST pulls comments JSON is not an array" };
+    return { items: [], error: "REST pulls comments JSON is not an array" };
   }
+  return { items: payload, error: null };
+}
+
+/**
+ * Score REST pull-review comments pinned to HEAD.
+ *
+ * REST has no isResolved / isOutdated. Count matching-HEAD Greptile comments
+ * only. GraphQL `evaluateInlineReviewThreads` remains the lifecycle filter (#4289).
+ */
+function scoreRestPullComments(items: readonly unknown[], headSha: string): InlineGreptileFindings {
   let p0Count = 0;
   let p1Count = 0;
   let unresolvedThreadCount = 0;
-  for (const item of payload) {
+  for (const item of items) {
     if (item === null || typeof item !== "object" || Array.isArray(item)) {
       continue;
     }
@@ -349,4 +349,64 @@ export function fetchGreptilePullCommentsRest(
     }
   }
   return { p0Count, p1Count, unresolvedThreadCount, error: null };
+}
+
+/** Fetch Greptile inline P0/P1 via REST pulls comments (paginated; no GraphQL) (#4289). */
+export function fetchGreptilePullCommentsRest(
+  prNumber: number,
+  repo: string,
+  headSha: string,
+  runGh: RunGhFn,
+): InlineGreptileFindings {
+  const all: unknown[] = [];
+  for (let page = 1; page <= REST_COMMENTS_MAX_PAGES; page += 1) {
+    const rc = runGh([
+      "gh",
+      "api",
+      `repos/${repo}/pulls/${prNumber}/comments?per_page=${REST_COMMENTS_PER_PAGE}&page=${page}`,
+    ]);
+    if (rc.returncode !== 0) {
+      return {
+        ...EMPTY_INLINE,
+        error: `REST pulls comments failed: ${rc.stderr.trim() || rc.stdout.trim()}`,
+      };
+    }
+    const parsed = parseRestCommentsPage(rc.stdout);
+    if (parsed.error !== null) {
+      return { ...EMPTY_INLINE, error: parsed.error };
+    }
+    all.push(...parsed.items);
+    if (parsed.items.length < REST_COMMENTS_PER_PAGE) {
+      return scoreRestPullComments(all, headSha);
+    }
+  }
+  return {
+    ...EMPTY_INLINE,
+    error: `REST pulls comments pagination exceeded ${REST_COMMENTS_MAX_PAGES} pages`,
+  };
+}
+
+/**
+ * Thin HTML findings: GraphQL lifecycle wins; paginated REST is HEAD-match fallback.
+ * Do not CLEAN on a truncated first REST page. Do not let resolved GraphQL threads
+ * stay blocking via REST (#4289).
+ */
+export function loadThinHtmlInlineFindings(
+  prNumber: number,
+  repo: string,
+  headSha: string,
+  runGh: RunGhFn,
+): InlineGreptileFindings {
+  const graphql = fetchUnresolvedGreptileInlineFindings(prNumber, repo, headSha, runGh);
+  if (graphql.error === null) {
+    return graphql;
+  }
+  const rest = fetchGreptilePullCommentsRest(prNumber, repo, headSha, runGh);
+  if (rest.error === null) {
+    return rest;
+  }
+  return {
+    ...EMPTY_INLINE,
+    error: `graphql: ${graphql.error}; rest: ${rest.error}`,
+  };
 }

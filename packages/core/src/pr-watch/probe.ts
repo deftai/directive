@@ -22,7 +22,7 @@ import {
   fetchPrHeadShaRest,
   resolveRepo,
 } from "../pr-merge-readiness/gh.js";
-import { fetchGreptilePullCommentsRest } from "../pr-merge-readiness/greptile-inline.js";
+import { loadThinHtmlInlineFindings } from "../pr-merge-readiness/greptile-inline.js";
 import type { RunGhFn } from "../pr-merge-readiness/types.js";
 import type { WatchProbe } from "./types.js";
 
@@ -133,9 +133,9 @@ export function probeOnce(
 
   let restPullComments: { p0Count: number; p1Count: number } | null = null;
   if (thinHtmlSummary && repo !== null) {
-    const rest = fetchGreptilePullCommentsRest(prNumber, repo, headSha, runGh);
-    if (rest.error === null) {
-      restPullComments = { p0Count: rest.p0Count, p1Count: rest.p1Count };
+    const inline = loadThinHtmlInlineFindings(prNumber, repo, headSha, runGh);
+    if (inline.error === null) {
+      restPullComments = { p0Count: inline.p0Count, p1Count: inline.p1Count };
     }
   }
 

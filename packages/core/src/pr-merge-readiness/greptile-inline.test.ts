@@ -5,6 +5,7 @@ import {
   fetchUnresolvedGreptileInlineFindings,
   headShaMatches,
   type InlineReviewThread,
+  loadThinHtmlInlineFindings,
 } from "./greptile-inline.js";
 import type { RunGhFn } from "./types.js";
 
@@ -227,5 +228,110 @@ describe("fetchGreptilePullCommentsRest (#4289)", () => {
     const runGh: RunGhFn = () => ({ returncode: 1, stdout: "", stderr: "nope" });
     const findings = fetchGreptilePullCommentsRest(4292, "deftai/directive", HEAD, runGh);
     expect(findings.error).toContain("REST pulls comments failed");
+  });
+
+  it("paginates past page 1 before scoring (#4289)", () => {
+    const page1 = Array.from({ length: 100 }, (_, i) => ({
+      user: { login: "human" },
+      body: `note ${i}`,
+      commit_id: HEAD,
+    }));
+    const page2 = [
+      {
+        user: { login: "greptile-apps[bot]" },
+        body: INLINE_P1_BODY,
+        commit_id: HEAD,
+      },
+    ];
+    const runGh: RunGhFn = (cmd) => {
+      const joined = cmd.join(" ");
+      const pageMatch = /[?&]page=(\d+)/.exec(joined);
+      const page = pageMatch === null ? 0 : Number(pageMatch[1]);
+      if (page === 1) {
+        return { returncode: 0, stdout: JSON.stringify(page1), stderr: "" };
+      }
+      if (page === 2) {
+        return { returncode: 0, stdout: JSON.stringify(page2), stderr: "" };
+      }
+      return { returncode: 1, stdout: "", stderr: `unexpected page ${joined}` };
+    };
+    const findings = fetchGreptilePullCommentsRest(4292, "deftai/directive", HEAD, runGh);
+    expect(findings.error).toBeNull();
+    expect(findings.p1Count).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("loadThinHtmlInlineFindings (#4289)", () => {
+  it("prefers GraphQL lifecycle over REST matching-HEAD comments", () => {
+    const graphqlPayload = {
+      data: {
+        repository: {
+          pullRequest: {
+            reviewThreads: {
+              pageInfo: { hasNextPage: false, endCursor: null },
+              nodes: [
+                {
+                  isResolved: true,
+                  isOutdated: false,
+                  comments: {
+                    nodes: [
+                      {
+                        author: { login: "greptile-apps[bot]" },
+                        body: INLINE_P1_BODY,
+                        path: "greptile-inline.ts",
+                        commit: { oid: HEAD },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+    };
+    const runGh: RunGhFn = (cmd) => {
+      const joined = cmd.join(" ");
+      if (joined.includes("graphql")) {
+        return { returncode: 0, stdout: JSON.stringify(graphqlPayload), stderr: "" };
+      }
+      return {
+        returncode: 0,
+        stdout: JSON.stringify([
+          {
+            user: { login: "greptile-apps[bot]" },
+            body: INLINE_P1_BODY,
+            commit_id: HEAD,
+          },
+        ]),
+        stderr: "",
+      };
+    };
+    const findings = loadThinHtmlInlineFindings(4303, "deftai/directive", HEAD, runGh);
+    expect(findings.error).toBeNull();
+    expect(findings.p1Count).toBe(0);
+  });
+
+  it("falls back to paginated REST when GraphQL fails", () => {
+    const runGh: RunGhFn = (cmd) => {
+      const joined = cmd.join(" ");
+      if (joined.includes("graphql")) {
+        return { returncode: 1, stdout: "", stderr: "rate limit" };
+      }
+      return {
+        returncode: 0,
+        stdout: JSON.stringify([
+          {
+            user: { login: "greptile-apps[bot]" },
+            body: INLINE_P1_BODY,
+            commit_id: HEAD,
+          },
+        ]),
+        stderr: "",
+      };
+    };
+    const findings = loadThinHtmlInlineFindings(4303, "deftai/directive", HEAD, runGh);
+    expect(findings.error).toBeNull();
+    expect(findings.p1Count).toBeGreaterThanOrEqual(1);
   });
 });
