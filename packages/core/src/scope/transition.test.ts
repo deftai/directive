@@ -811,6 +811,72 @@ describe("runTransition", () => {
     expect(existsSync(join(root, "xbrief", "active", "husk.xbrief.json"))).toBe(false);
   });
 
+  it("normalizes item status complete to completed on complete (#4284)", () => {
+    root = makeRepo();
+    const path = join(root, "xbrief", "active", "alias-complete.xbrief.json");
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "alias-complete",
+        status: "running",
+        items: [
+          { title: "alias-item", status: "complete", ...aceEvidence("alias-item") },
+          {
+            title: "parent",
+            status: "complete",
+            ...aceEvidence("parent"),
+            subItems: [
+              { title: "nested-alias", status: "complete", ...aceEvidence("nested-alias") },
+            ],
+          },
+        ],
+      },
+    });
+    const illegal = JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
+    expect(validateVbriefSchema(illegal, path).some((e) => e.includes("invalid status"))).toBe(
+      true,
+    );
+    const result = runTransition("complete", path);
+    expect(result.ok).toBe(true);
+    const dest = join(root, "xbrief", "completed", "alias-complete.xbrief.json");
+    const data = JSON.parse(readFileSync(dest, "utf8")) as Record<string, unknown> & {
+      plan: {
+        status: string;
+        items: Array<{
+          title: string;
+          status: string;
+          subItems?: Array<{ title: string; status: string }>;
+        }>;
+      };
+    };
+    expect(data.plan.status).toBe("completed");
+    expect(data.plan.items.every((i) => i.status === "completed")).toBe(true);
+    expect(data.plan.items[1]?.subItems?.[0].status).toBe("completed");
+    expect(validateVbriefSchema(data, dest)).toEqual([]);
+  });
+
+  it("normalizes item status complete on restamp in completed/ (#4284)", () => {
+    root = makeRepo();
+    const path = join(root, "xbrief", "completed", "husk-alias.xbrief.json");
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "husk-alias",
+        status: "running",
+        items: [{ title: "alias-item", status: "complete" }],
+      },
+    });
+    const result = runTransition("complete", path);
+    expect(result.ok).toBe(true);
+    expect(result.message).toMatch(/Restamped/);
+    const data = JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown> & {
+      plan: { status: string; items: Array<{ status: string }> };
+    };
+    expect(data.plan.status).toBe("completed");
+    expect(data.plan.items[0].status).toBe("completed");
+    expect(validateVbriefSchema(data, path)).toEqual([]);
+  });
+
   it("still refuses complete from pending/", () => {
     root = makeRepo();
     const file = writeVbrief(root, "pending", "pending");

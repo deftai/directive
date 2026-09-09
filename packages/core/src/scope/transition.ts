@@ -19,6 +19,7 @@ import { stampExistingEnvelopes } from "../lifecycle/brief-envelope.js";
 import { evaluateCompletedPlanConsistency } from "../lifecycle/completed-consistency.js";
 import type { LiteralAcceptanceRunner } from "../literal-acceptance/index.js";
 import type { GitRunner } from "../session/git.js";
+import { ITEM_STATUS_ALIASES } from "../vbrief-validate/constants.js";
 import { evaluateAcceptanceActivateGate } from "./acceptance-activate-gate.js";
 import {
   type CriterionAcceptanceReport,
@@ -89,6 +90,29 @@ const NON_TERMINAL_ITEM_STATUSES = new Set(["pending", "proposed", "running"]);
 
 /** Terminal lifecycle actions that reconcile the brief's own plan.items (#2862). */
 const OWN_ITEMS_RECONCILE_ACTIONS = new Set<ScopeAction>(["complete", "fail", "cancel"]);
+
+/**
+ * Rewrite illegal item-status spellings (complete -> completed) before complete lands (#4284).
+ * Does not add those spellings to the validator enum.
+ */
+function normalizeItemStatusAliases(items: unknown): void {
+  if (!Array.isArray(items)) {
+    return;
+  }
+  for (const item of items) {
+    if (item === null || typeof item !== "object" || Array.isArray(item)) {
+      continue;
+    }
+    const obj = item as Record<string, unknown>;
+    const status = String(obj.status ?? "");
+    const aliased = ITEM_STATUS_ALIASES[status];
+    if (aliased !== undefined) {
+      obj.status = aliased;
+    }
+    normalizeItemStatusAliases(obj.subItems);
+    normalizeItemStatusAliases(obj.items);
+  }
+}
 
 /**
  * Advance non-terminal plan.items / subItems to the terminal target status.
@@ -338,6 +362,9 @@ export function runTransition(
     // Reconcile the completing brief's own plan.items (mirrors #1527 / #2566 registry sync) (#2862).
     // On complete, items only reach here when #3240 evidence/disposition gate passed.
     if (OWN_ITEMS_RECONCILE_ACTIONS.has(act)) {
+      if (act === "complete") {
+        normalizeItemStatusAliases(planObj.items);
+      }
       advanceNonTerminalOwnItems(planObj.items, targetStatus);
     }
 
@@ -543,6 +570,7 @@ function restampCompletedBrief(args: RestampArgs): TransitionResult {
   planObj.status = "completed";
   planObj.updated = nowIso;
   stampExistingEnvelopes(data, nowIso);
+  normalizeItemStatusAliases(planObj.items);
   stampCompletionMetadata(planObj, projectRoot, nowIso, {
     completedSessionId: resolveCompletionSessionId(projectRoot),
   });

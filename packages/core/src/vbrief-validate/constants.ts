@@ -14,6 +14,11 @@ export const VALID_PLAN_STATUSES = new Set([
 /** PlanItem status enum — plan statuses plus container rollup `auto` (#2107 / xBRIEF v0.8). */
 export const VALID_ITEM_STATUSES = new Set([...VALID_PLAN_STATUSES, "auto"]);
 
+/** Illegal item-status spellings scope:complete rewrites to schema-legal values (#4284). Not accepted by vbrief:validate. */
+export const ITEM_STATUS_ALIASES: Readonly<Record<string, string>> = {
+  complete: "completed",
+};
+
 /** @deprecated Use VALID_PLAN_STATUSES or VALID_ITEM_STATUSES; kept for module re-exports. */
 export const VALID_STATUSES = VALID_PLAN_STATUSES;
 
