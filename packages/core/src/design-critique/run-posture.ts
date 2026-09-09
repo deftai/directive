@@ -41,10 +41,7 @@ export const ARC_MODE_FIELD = "arc-mode:";
 
 export const NO_INGEST_ARC_MODE = "no-ingest";
 
-export type DirectDispatchViolation =
-  | "occupancy-claim"
-  | "issue-ingest"
-  | "mutation-session-start";
+export type DirectDispatchViolation = "occupancy-claim" | "issue-ingest" | "mutation-session-start";
 
 export type DirectDispatchVerdict =
   | { ok: true }
@@ -66,11 +63,7 @@ export function parseOperatorRunPosture(utterance: string): RunPostureParse {
   const hasNoIngest = NO_INGEST_TOKEN_RE.test(utterance);
   const hasCheckout = CHECKOUT_TOKEN_RE.test(utterance);
   const hasIngest = INGEST_TOKEN_RE.test(utterance);
-  if (
-    (hasNoIngest && hasCheckout) ||
-    (hasNoIngest && hasIngest) ||
-    (hasCheckout && hasIngest)
-  ) {
+  if ((hasNoIngest && hasCheckout) || (hasNoIngest && hasIngest) || (hasCheckout && hasIngest)) {
     return { kind: "ask", reason: "ambiguous" };
   }
   if (hasNoIngest) {
