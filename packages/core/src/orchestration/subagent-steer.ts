@@ -41,12 +41,38 @@ export function defaultSteerDir(cwd: string = process.cwd()): string {
   return join(cwd, ".deft-scratch", "subagent-steer");
 }
 
+/** Filesystem-safe agent slug: no path separators, no reserved ack/steer suffixes. */
+export function isSafeAgentId(agentId: string): boolean {
+  if (typeof agentId !== "string" || agentId.length === 0 || agentId.length > 128) {
+    return false;
+  }
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(agentId)) {
+    return false;
+  }
+  if (agentId.includes("..")) {
+    return false;
+  }
+  if (agentId.endsWith(".ack") || agentId.endsWith(".steer")) {
+    return false;
+  }
+  return true;
+}
+
+export function requireSafeAgentId(agentId: string): string {
+  if (!isSafeAgentId(agentId)) {
+    throw new Error(
+      `agent_id is not a filesystem-safe slug: ${JSON.stringify(agentId)} (no path separators, no trailing .ack/.steer)`,
+    );
+  }
+  return agentId;
+}
+
 export function steerInboxPath(steerDir: string, agentId: string): string {
-  return join(steerDir, `${agentId}.json`);
+  return join(steerDir, `${requireSafeAgentId(agentId)}.json`);
 }
 
 export function steerAckPath(steerDir: string, agentId: string): string {
-  return join(steerDir, `${agentId}.ack.json`);
+  return join(steerDir, `${requireSafeAgentId(agentId)}.ack.json`);
 }
 
 export interface SteerRecord {
@@ -288,14 +314,20 @@ export function assertSteerWriter(
     return "writer_id must be non-empty";
   }
   if (writerKind === "occupancy-owner") {
-    const owner = options.occupancyOwnerId?.trim();
-    if (owner !== undefined && owner.length > 0 && owner !== trimmed) {
+    const owner = options.occupancyOwnerId?.trim() ?? "";
+    if (owner.length === 0) {
+      return "occupancy-owner requires occupancyOwnerId";
+    }
+    if (owner !== trimmed) {
       return `occupancy-owner writer_id ${JSON.stringify(trimmed)} does not match occupancy owner ${JSON.stringify(owner)}`;
     }
   }
   if (writerKind === "dispatching-parent") {
-    const parent = options.parentId?.trim();
-    if (parent !== undefined && parent.length > 0 && parent !== trimmed) {
+    const parent = options.parentId?.trim() ?? "";
+    if (parent.length === 0) {
+      return "dispatching-parent requires parentId";
+    }
+    if (parent !== trimmed) {
       return `dispatching-parent writer_id ${JSON.stringify(trimmed)} does not match parent_id ${JSON.stringify(parent)}`;
     }
   }
@@ -383,14 +415,24 @@ export function applyUnreadSteer(
   if (ack.record !== null && ack.record.steer_id === parsed.record.steer_id) {
     return { applied: false, reason: "already-acked", record: parsed.record, failures: [] };
   }
+  return { applied: true, reason: "applied", record: parsed.record, failures: [] };
+}
+
+/** Write apply-once ack after the child has acted on the steer text. */
+export function ackSteer(
+  steerDir: string,
+  agentId: string,
+  steerId: string,
+  now: Date = new Date(),
+): SteerAckRecord {
   const ackRecord: SteerAckRecord = {
     schema: STEER_ACK_SCHEMA,
-    agent_id: agentId,
-    steer_id: parsed.record.steer_id,
+    agent_id: requireSafeAgentId(agentId),
+    steer_id: steerId,
     acked_at: now.toISOString().replace(/\.\d{3}Z$/, "Z"),
   };
   atomicWriteJson(steerAckPath(steerDir, agentId), ackRecord);
-  return { applied: true, reason: "applied", record: parsed.record, failures: [] };
+  return ackRecord;
 }
 
 export interface SteerPendingSweep {
@@ -505,18 +547,18 @@ export function renderSteerPendingText(sweep: SteerPendingSweep): string {
     }
     return lines.join("\n");
   }
-  if (sweep.pending.length === 0) {
+  if (sweep.pending.length === 0 && sweep.parse_failures.length === 0) {
     lines.push("verify_subagent_steer: no unread steer");
-    if (sweep.parse_failures.length > 0) {
-      lines.push("  Parse failures (not pending; not a liveness takeover):");
-      for (const fail of sweep.parse_failures) {
-        lines.push(`    ${fail}`);
-      }
-    }
     return lines.join("\n");
   }
   lines.push("STEER_PENDING: unread parent-steer inbox (not missing heartbeat)");
   lines.push("This is a parent-visible unread flag. It does not authorize takeover.");
+  if (sweep.parse_failures.length > 0) {
+    lines.push("  Malformed inbox (instruction not accepted):");
+    for (const fail of sweep.parse_failures) {
+      lines.push(`    ${fail}`);
+    }
+  }
   for (const item of sweep.pending) {
     const age =
       item.age_seconds === null

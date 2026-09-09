@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { writeSteer } from "@deftai/directive-core/orchestration";
@@ -46,6 +46,7 @@ describe("verify-subagent-steer gate (#4286)", () => {
       text: "do not kill check",
       steerId: "s1",
       writtenAt: new Date(),
+      parentId: "parent",
     });
 
     const verdict = evaluateSubagentSteerGate(
@@ -92,6 +93,7 @@ describe("verify-subagent-steer gate (#4286)", () => {
       text: "acked",
       steerId: "s2",
       writtenAt: new Date(),
+      parentId: "parent",
     });
     writeFileSync(
       join(steerDir, "leaf-a.ack.json"),
@@ -130,6 +132,21 @@ describe("verify-subagent-steer gate (#4286)", () => {
     });
     expect(verdict.exitCode).toBe(2);
     expect(verdict.redispatchOk).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("malformed inbox exits 1 STEER_PENDING not 0", () => {
+    const root = mkdtempSync(join(tmpdir(), "steer-cli-bad-"));
+    const inbox = join(root, "inbox");
+    mkdirSync(inbox, { recursive: true });
+    writeFileSync(join(inbox, "leaf-a.json"), "{not json", "utf8");
+    const verdict = evaluateSubagentSteerGate(
+      { steerDir: inbox, agentIds: [], emitJson: true, help: false },
+      root,
+    );
+    expect(verdict.exitCode).toBe(1);
+    expect(verdict.json?.all_ok).toBe(false);
+    expect(verdict.json?.redispatch_ok).toBe(false);
     rmSync(root, { recursive: true, force: true });
   });
 

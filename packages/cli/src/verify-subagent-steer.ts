@@ -106,7 +106,7 @@ export function evaluateSubagentSteerGate(
     agentIds: args.agentIds.length > 0 ? args.agentIds : undefined,
   });
   const configError = steerPendingConfigError(sweep);
-  const pending = sweep.pending.length > 0;
+  const pending = sweep.pending.length > 0 || sweep.parse_failures.length > 0;
 
   if (args.emitJson) {
     return {

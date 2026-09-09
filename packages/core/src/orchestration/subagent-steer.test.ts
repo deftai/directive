@@ -4,14 +4,17 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { sweepScratchDirs } from "./subagent-monitor.js";
 import {
+  ackSteer,
   applyUnreadSteer,
   assertSteerWriter,
   defaultSteerDir,
+  isSafeAgentId,
   parseSteerFile,
   renderSteerPendingText,
   STEER_ACK_SCHEMA,
   STEER_SCHEMA,
   STEER_TEXT_MAX_CHARS,
+  steerInboxPath,
   sweepSteerPending,
   writeSteer,
 } from "./subagent-steer.js";
@@ -44,6 +47,7 @@ describe("subagent-steer inbox (#4286)", () => {
       steerId: "steer-1",
       writtenAt: new Date("2026-09-09T11:59:00Z"),
       ttlSeconds: 1800,
+      parentId: "parent-1",
     });
 
     const sweep = sweepSteerPending(steerDir, { now, agentIds: ["leaf-a"] });
@@ -76,6 +80,9 @@ describe("subagent-steer inbox (#4286)", () => {
     expect(first.applied).toBe(true);
     expect(first.reason).toBe("applied");
     expect(first.record?.schema).toBe(STEER_SCHEMA);
+    expect(sweepSteerPending(steerDir, { now }).pending).toHaveLength(1);
+
+    ackSteer(steerDir, "leaf-a", first.record?.steer_id ?? "steer-2", now);
 
     const second = applyUnreadSteer(steerDir, "leaf-a", {
       now: new Date("2026-09-09T12:01:00Z"),
@@ -98,10 +105,13 @@ describe("subagent-steer inbox (#4286)", () => {
       steerId: "steer-3",
       writtenAt: new Date("2026-09-09T11:00:00Z"),
       ttlSeconds: 60,
+      parentId: "parent-1",
     });
     const now = new Date("2026-09-09T12:00:00Z");
     expect(sweepSteerPending(steerDir, { now }).pending).toEqual([]);
-    expect(applyUnreadSteer(steerDir, "leaf-a", { now }).reason).toBe("expired");
+    expect(applyUnreadSteer(steerDir, "leaf-a", { now, parentId: "parent-1" }).reason).toBe(
+      "expired",
+    );
   });
 
   it("refuses occupancy-owner writer that does not match occupancy", () => {
@@ -142,6 +152,7 @@ describe("subagent-steer inbox (#4286)", () => {
         writerId: "p",
         kind: "note",
         text: "   ",
+        parentId: "p",
       }),
     ).toThrow(/non-empty/);
     expect(() =>
@@ -151,8 +162,33 @@ describe("subagent-steer inbox (#4286)", () => {
         writerId: "p",
         kind: "note",
         text: "x".repeat(STEER_TEXT_MAX_CHARS + 1),
+        parentId: "p",
       }),
     ).toThrow(/exceeds/);
+  });
+
+  it("malformed inbox is parent-visible pending, not a clean success", () => {
+    const root = tempRoot("steer-malformed-");
+    const steerDir = join(root, "inbox");
+    mkdirSync(steerDir, { recursive: true });
+    writeFileSync(join(steerDir, "leaf-a.json"), "{not json", "utf8");
+    const sweep = sweepSteerPending(steerDir, { now: new Date("2026-09-09T12:00:00Z") });
+    expect(sweep.pending).toEqual([]);
+    expect(sweep.parse_failures.length).toBeGreaterThan(0);
+    expect(renderSteerPendingText(sweep)).toContain("STEER_PENDING");
+    expect(renderSteerPendingText(sweep)).toContain("Malformed inbox");
+  });
+
+  it("refuses occupancy-owner writes without occupancyOwnerId and unsafe agent ids", () => {
+    expect(assertSteerWriter("occupancy-owner", "owner-1", {})).toMatch(
+      /requires occupancyOwnerId/,
+    );
+    expect(assertSteerWriter("dispatching-parent", "parent-1", {})).toMatch(/requires parentId/);
+    expect(isSafeAgentId("../other")).toBe(false);
+    expect(isSafeAgentId("leaf-a.ack")).toBe(false);
+    expect(isSafeAgentId("leaf-a")).toBe(true);
+    const root = tempRoot("steer-path-");
+    expect(() => steerInboxPath(join(root, "inbox"), "../other")).toThrow(/filesystem-safe/);
   });
 
   it("missing steer dir is not pending and is not a config error", () => {
