@@ -8,9 +8,13 @@ import { existsSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { defaultGitRunner, type GitRunner, type GitRunResult } from "../session/git.js";
 import { isLinkedWorktreePath } from "../session/main-worktree.js";
-import { isDispatchShaPin } from "./run-posture.js";
 
-const ORIGIN_DEFAULT_CANDIDATES = ["origin/HEAD", "origin/master", "origin/main"] as const;
+const DISPATCH_SHA_RE = /^[0-9a-f]{7,40}$/i;
+const ORIGIN_DEFAULT_CANDIDATES = ["origin/HEAD", "origin/main", "origin/master"] as const;
+
+function isHexPin(value: string): boolean {
+  return DISPATCH_SHA_RE.test(value.trim());
+}
 
 export type ArcDestPinKind = "origin-default" | "against-implementation";
 
@@ -58,7 +62,7 @@ function gitOrThrow(
 
 function firstHexSha(stdout: string): string | null {
   const token = stdout.trim().split(/\s+/)[0] ?? "";
-  return isDispatchShaPin(token) ? token.toLowerCase() : null;
+  return isHexPin(token) ? token.toLowerCase() : null;
 }
 
 function resolveOriginDefaultTipAfterFetch(
@@ -74,7 +78,7 @@ function resolveOriginDefaultTipAfterFetch(
   }
   throw new ArcDestError(
     "origin-default-missing",
-    "could not resolve origin/<default> tip after fetch (tried origin/HEAD, origin/master, origin/main)",
+    "could not resolve origin/<default> tip after fetch (tried origin/HEAD, origin/main, origin/master)",
   );
 }
 
@@ -97,7 +101,7 @@ function resolvePin(
   gitOrThrow(git, repoRoot, ["fetch", "origin"], "fetch-failed", "git fetch origin");
   const against = againstImplementationSha?.trim() ?? "";
   if (against.length > 0) {
-    if (!isDispatchShaPin(against)) {
+    if (!isHexPin(against)) {
       throw new ArcDestError(
         "against-implementation-not-pin",
         "against-implementation dest must be a fetched PR head SHA, not a moving ref",

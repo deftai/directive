@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { defaultGitRunner } from "../session/git.js";
 import { isLinkedWorktreePath } from "../session/main-worktree.js";
 import { ArcDestError, ensureArcDest, resolveOriginDefaultTip } from "./arc-dest.js";
+import { prepareGithubOnlyDest } from "./run-posture.js";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -101,6 +102,38 @@ describe("ensureArcDest (#4296)", () => {
     expect(result.dispatchSha).toBe(prHead);
     expect(git(dest, ["rev-parse", "HEAD"])).toBe(prHead);
     expect(git(dest, ["rev-parse", "HEAD"])).not.toBe(originSha);
+  });
+
+  it("prefers origin/main over origin/master when origin/HEAD is missing", () => {
+    const { root } = repoWithOrigin();
+    const mainSha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const masterSha = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    const gitFake: typeof defaultGitRunner = (_cwd, args) => {
+      const joined = args.join(" ");
+      if (joined === "fetch origin") return { code: 0, stdout: "", stderr: "" };
+      if (joined.includes("origin/HEAD^{commit}")) {
+        return { code: 128, stdout: "", stderr: "missing" };
+      }
+      if (joined.includes("origin/main^{commit}")) {
+        return { code: 0, stdout: `${mainSha}\n`, stderr: "" };
+      }
+      if (joined.includes("origin/master^{commit}")) {
+        return { code: 0, stdout: `${masterSha}\n`, stderr: "" };
+      }
+      return { code: 128, stdout: "", stderr: joined };
+    };
+    const tip = resolveOriginDefaultTip(root, gitFake);
+    expect(tip.originRef).toBe("origin/main");
+    expect(tip.sha).toBe(mainSha);
+  });
+
+  it("prepareGithubOnlyDest is the Stop 1 dest caller and records the pin", () => {
+    const { root, originSha, dest } = repoWithOrigin();
+    const prepared = prepareGithubOnlyDest({ repoRoot: root, destPath: dest });
+    expect(prepared.dest.dispatchSha).toBe(originSha);
+    expect(prepared.record).toContain("arc-mode: no-ingest");
+    expect(prepared.record).toContain(`dest: ${prepared.dest.destPath}`);
+    expect(prepared.record).toContain(`dispatch-sha: ${originSha}`);
   });
 
   it("refuses a moving ref as against-implementation dest", () => {

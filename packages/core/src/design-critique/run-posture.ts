@@ -7,6 +7,8 @@
  * not no-worktree. Direct tokens resolve to `no-ingest`. Ingest stays
  * `issue:ingest` after the completed-arc record.
  */
+import { type EnsureArcDestInput, type EnsureArcDestResult, ensureArcDest } from "./arc-dest.js";
+
 export const ARC_RUN_POSTURES = ["no-ingest", "checkout"] as const;
 
 export type ArcRunPosture = (typeof ARC_RUN_POSTURES)[number];
@@ -100,6 +102,26 @@ export function resolveArcRunPostureForHost(input: {
 /** Stop 1 record line. Never writes `arc-mode: ingest`. Emits parser posture. */
 export function arcModeRecordLine(posture: ArcRunPosture): string {
   return `arc-mode: ${posture}`;
+}
+
+/**
+ * Parent Stop 1 dest step (#4296). Fetches origin/<default> (or PR head), creates
+ * or verifies the dest, and emits the parser arc-mode plus dest pin lines.
+ */
+export function prepareGithubOnlyDest(input: EnsureArcDestInput): {
+  dest: EnsureArcDestResult;
+  record: string;
+} {
+  const dest = ensureArcDest(input);
+  return {
+    dest,
+    record: [
+      arcModeRecordLine("no-ingest"),
+      `dest: ${dest.destPath}`,
+      `origin-ref: ${dest.originRef}`,
+      `dispatch-sha: ${dest.dispatchSha}`,
+    ].join("\n"),
+  };
 }
 
 /** True when the value is a hex pin, not a moving branch ref. */
