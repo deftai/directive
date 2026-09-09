@@ -109,6 +109,10 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ! Mid-scope gates: **split-dispatch** when `agent_id` is terminal; retain-capable hosts (continue-by-agent-id / message-later / steer-mid-flight) MAY re-message the live child. Retention = orchestration only — not constitution self-edit (#3164). Depth: preamble §10; `deft-directive-swarm`. Topology: #3155 nuclear-family. ⊗ Invent retain on one-shot hosts.
 
+## Parent-steer inbox (#4286)
+
+! Grok-build leaves whose tool loop exceeds ~3 min poll `.deft-scratch/subagent-steer/<agent-id>.json` on each pollable slice. `deft verify:subagent-steer` exit 1 is `STEER_PENDING`, not missing-heartbeat takeover. Depth: preamble §10.5; `docs/subagent-heartbeat.md`. ⊗ Replace split-dispatch mid-scope approval gates with this inbox. ⊗ Treat unread steer as REDISPATCH_OK.
+
 ## Review-surface precedence (#2308)
 
 ! Route PR shepherding / review work through `deft-directive-review-cycle` — `.deft/core/.agents/skills/deft-directive-review-cycle/SKILL.md`; host `babysit` / `bugbot` / `security-review` advisory-only (#2308 / #2261).

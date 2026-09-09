@@ -160,7 +160,7 @@ Same `!` / `⊗` rules as managed below; `task issue:ingest` (#2143).
 
 Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after agents-entry edits (#1309).
 
-<!-- deft:managed-section v3 sha=56bc7de22307 refreshed=2026-09-02T23:51:43Z session=78bfbcc6fbd8 -->
+<!-- deft:managed-section v3 sha=b5674a48da38 refreshed=2026-09-09T22:01:09Z session=93db2c1ae7de -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -270,6 +270,10 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 ## Mid-scope gate capability tier (#3158 / #954)
 
 ! Mid-scope gates: **split-dispatch** when `agent_id` is terminal; retain-capable hosts (continue-by-agent-id / message-later / steer-mid-flight) MAY re-message the live child. Retention = orchestration only — not constitution self-edit (#3164). Depth: preamble §10; `deft-directive-swarm`. Topology: #3155 nuclear-family. ⊗ Invent retain on one-shot hosts.
+
+## Parent-steer inbox (#4286)
+
+! Grok-build leaves whose tool loop exceeds ~3 min poll `.deft-scratch/subagent-steer/<agent-id>.json` on each pollable slice. `deft verify:subagent-steer` exit 1 is `STEER_PENDING`, not missing-heartbeat takeover. Depth: preamble §10.5; `docs/subagent-heartbeat.md`. ⊗ Replace split-dispatch mid-scope approval gates with this inbox. ⊗ Treat unread steer as REDISPATCH_OK.
 
 ## Review-surface precedence (#2308)
 

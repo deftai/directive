@@ -7,7 +7,7 @@
  * as a malformed heartbeat / REDISPATCH_OK.
  */
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
 import { parseIso8601Utc } from "./subagent-monitor.js";
@@ -143,13 +143,15 @@ function requireString(
 function atomicWriteJson(filePath: string, payload: unknown): void {
   const dir = dirname(filePath);
   mkdirSync(dir, { recursive: true });
+  const tmpName = `.${basename(filePath)}.${randomUUID()}.tmp`;
   containedWrite({
     root: dir,
-    target: basename(filePath),
+    target: tmpName,
     data: `${JSON.stringify(payload, null, 2)}\n`,
-    mode: "replace",
+    mode: "create",
     mkdir: true,
   });
+  renameSync(join(dir, tmpName), filePath);
 }
 
 function readJsonObject(filePath: string, failures: string[]): Record<string, unknown> | null {
