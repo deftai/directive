@@ -63,7 +63,7 @@ Record `arc-mode: no-ingest` or `arc-mode: checkout` on the Stop 1 write-back. `
 - ! N>1 process-only critics share that dest with cwd-without-occupy. They are not swarm Phase 2 and not a #4066 mutating worker. Unique dest-lock stays for implement-class. Skip class is a host-visible Grok stdin marker (`subagent_type` `plan` or `process_only`), not dest-path. ⊗ Skip #2885 on destProven. Keep #4066 primary-path deny.
 - ! Pin reads to `git show <dispatch-sha>:` against the recorded SHA. ⊗ A moving branch ref.
 - ! Direct EXIT names ingest as a later operator verb after the completed-arc record. ⊗ Auto-ingest.
-- ! After synthesis accepted on a Recut lean, print ingest (`task issue:ingest`) and do not print next-envelope as the default next. ⊗ Add a land CLI. ⊗ Treat body PATCH as a recut arc. Keep chip `design-critique:recut-needed` as list state.
+- ! After synthesis accepted on a Recut lean, print ingest (`task issue:ingest`) and do not print next-envelope as the default next. ⊗ Add a land CLI. ⊗ Treat body PATCH as a recut arc. Keep chip `design-critique:ingest-ready` as list state.
 - ! Target-digest / stale-target (#4243) is a different hole. ⊗ Restamp for body alignment.
 - ⊗ Treat `arc-mode:` as ingest clearance or as a permanent ingest denial.
 - ⊗ Record a front-door mode named `ingest`.
