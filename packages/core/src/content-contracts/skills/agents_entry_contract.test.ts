@@ -114,6 +114,7 @@ const PROPAGATION_HEADER_MARKERS = [
   "## Writing bar (#3368)",
   "## Through-merge worker dispatch (#3032)",
   "## Mid-scope gate capability tier (#3158 / #954)",
+  "## Parent-steer inbox (#4286)",
   "## WIP cap",
   "## Codebase MAP Projection (#1595 / #1498)",
   "### Story Start Gate",

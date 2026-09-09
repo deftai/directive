@@ -55,6 +55,18 @@ If the leaf needs another agent, it stops and reports `BLOCKED`. The parent owns
 ! Heartbeat liveness on the Grok Build hybrid path is required — see `references/core-phase-4.md` Heartbeat liveness check (#1365) and `docs/subagent-heartbeat.md`.
 ! Poll coordination uses worktree state + `get_command_or_subagent_output` (not OpenClaw parent-announce).
 
+## Parent-steer inbox (#4286)
+
+! Grok-build leaves still need a parent-writable steer path because this host has no child prompt and no live `resume_from`. Directive owns that path. Do not wait for an xAI input field.
+
+! Inbox: `<worktree>/.deft-scratch/subagent-steer/<agent-id>.json` (not heartbeat JSON). Child reads on each pollable slice and acks apply-once via `<agent-id>.ack.json`. `task verify:subagent-steer` is the parent-visible unread flag (`STEER_PENDING`). It is not `REDISPATCH_OK`.
+
+! Tool-loop duty: no blocking wait longer than the heartbeat/steer poll interval when the leaf must remain steerable; between slices, read the inbox and rewrite heartbeat. A scratch path does not interrupt a blocked tool.
+
+⊗ Replace split-dispatch for mid-scope approval gates with this inbox.
+⊗ Invent OpenClaw `sessions_yield` or live `resume_from` on this host.
+⊗ Drop a second JSON schema into `.deft-scratch/subagent-status/`.
+
 ## Retained / continue-by-id (#3158)
 
 ! **Default one-shot:** `spawn_subagent` workers that finish their tool loop are observed terminal (`succeeded` / failed); the `agent_id` is not a general message-later inbox. Mid-scope user-approval gates MUST use **split-dispatch** (#954) unless this host later documents continue-by-agent-id.

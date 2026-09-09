@@ -194,6 +194,10 @@ MUST write a heartbeat record to:
 
 The monitor walks `.deft-scratch/subagent-status/` for every agent
 worktree and reports liveness based on the records found there.
+`sweepScratchDirs` reads only top-level heartbeat `<agent-id>.json`
+files. It does not recurse into subdirectories and it skips JSON whose
+`schema` starts with `deft.subagent.steer` so a parent-steer inbox
+cannot trip REDISPATCH_OK (#4286).
 
 ## Heartbeat schema
 
@@ -410,6 +414,60 @@ host `gh` state is visible across the cloud boundary.
 
 Cross-references: `skills/deft-directive-swarm/SKILL.md` Phase 3 Step 1a,
 `scripts/platform_capabilities.py`, `scripts/github_auth_modes.py`. Refs #1557.
+
+## Parent-steer inbox (#4286)
+
+Heartbeat is **child → parent** liveness. Parent → child steer is a
+separate closed schema in a sibling directory the heartbeat sweep does
+not walk:
+
+```
+<project-root>/.deft-scratch/subagent-steer/<agent-id>.json
+<project-root>/.deft-scratch/subagent-steer/<agent-id>.ack.json
+```
+
+! Writer is the occupancy owner or the dispatching parent (`writer_kind`
+  + `writer_id`). Child applies unread steer **once** and writes the ack
+  with the same `steer_id`. Expired inbox is not pending.
+
+! Grok-build implementation leaves whose tool loop exceeds ~3 minutes
+  MUST read the inbox on each pollable slice (same 2-3 min cadence as
+  heartbeat) and rewrite heartbeat. ⊗ Block a tool longer than that
+  interval when the leaf must remain steerable. A scratch path does not
+  interrupt a blocked tool. Mid-block recovery stays REDISPATCH_OK /
+  split-dispatch.
+
+! Parent-visible unread flag: `task verify:subagent-steer`
+  (`--steer-dir`, `--agent`, `--json`). Exit `1` prints `STEER_PENDING`.
+  ⊗ Share that exit with missing/STALE heartbeat. ⊗ Print
+  `REDISPATCH_OK` from this gate.
+
+Closed inbox schema (`deft.subagent.steer.v1`):
+
+```json
+{
+  "schema": "deft.subagent.steer.v1",
+  "agent_id": "leaf-a",
+  "steer_id": "steer-1",
+  "written_at": "2026-09-09T12:00:00Z",
+  "expires_at": "2026-09-09T12:30:00Z",
+  "writer_kind": "dispatching-parent",
+  "writer_id": "parent-1",
+  "kind": "constraint",
+  "text": "do not complete leftover 3785 in this PR"
+}
+```
+
+`kind` is one of `constraint` | `correction` | `halt` | `note`. `text`
+is bounded (2000 chars) and is not a new dispatch envelope.
+
+Ack schema (`deft.subagent.steer-ack.v1`): `agent_id`, `steer_id`,
+`acked_at`.
+
+⊗ Put this schema in `.deft-scratch/subagent-status/` as a second JSON
+shape. ⊗ Treat steer `text` as constitution self-edit. ⊗ Replace
+split-dispatch mid-scope approval gates with this inbox. ⊗ Invent
+OpenClaw `sessions_yield` or live `resume_from` on Grok Build.
 
 ## Cross-references
 
