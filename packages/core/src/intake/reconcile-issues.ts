@@ -303,6 +303,14 @@ export interface FetchIssueStatesOptions extends FetchIssuesOptions {
   readonly batchSize?: number;
 }
 
+export interface FetchIssueStatesForApplyOptions extends FetchIssueStatesOptions {
+  /**
+   * Extra issue numbers that the printed reconcile report still walks.
+   * Inventory OPEN overlay covers them; already-terminal numbers are not live-GET.
+   */
+  readonly reportIssueNumbers?: Iterable<number>;
+}
+
 function normalizeRestIssueState(raw: unknown): string {
   if (typeof raw !== "string" || raw.length === 0) {
     return "NOT_FOUND";
@@ -433,17 +441,42 @@ export function collectNonTerminalApplyIssueNumbers(
   return numbers;
 }
 
+/** Unique anchored plus report numbers, including already-terminal paths (#4269). */
+export function collectApplyReportIssueNumbers(
+  anchors: readonly Record<string, unknown>[],
+  extra?: Iterable<number>,
+): Set<number> {
+  const numbers = new Set<number>();
+  if (extra !== undefined) {
+    for (const n of extra) {
+      if (typeof n === "number" && Number.isInteger(n)) {
+        numbers.add(n);
+      }
+    }
+  }
+  for (const anchor of anchors) {
+    const n = anchor.issue_number;
+    if (typeof n === "number" && Number.isInteger(n)) {
+      numbers.add(n);
+    }
+  }
+  return numbers;
+}
+
 /**
  * Apply-lifecycle-fixes fetch: open-issue inventory for OPEN status,
  * live REST only for remaining non-open non-terminal movers (#4269).
+ * Inventory OPEN overlay also covers already-terminal report numbers so the
+ * printed reconcile report does not treat a still-open issue as missing.
  */
 export function fetchIssueStatesForApply(
   repo: string,
   anchors: readonly Record<string, unknown>[],
-  options: FetchIssueStatesOptions = {},
+  options: FetchIssueStatesForApplyOptions = {},
 ): Map<number, IssueState> | null {
-  const needed = collectNonTerminalApplyIssueNumbers(anchors);
-  if (needed.size === 0) {
+  const movers = collectNonTerminalApplyIssueNumbers(anchors);
+  const reportNumbers = collectApplyReportIssueNumbers(anchors, options.reportIssueNumbers);
+  if (movers.size === 0 && reportNumbers.size === 0) {
     return new Map();
   }
   const parsed = splitRepoSlug(repo);
@@ -480,11 +513,15 @@ export function fetchIssueStatesForApply(
   }
 
   const states = new Map<number, IssueState>();
-  const remaining: number[] = [];
-  for (const n of [...needed].sort((a, b) => a - b)) {
+  for (const n of [...reportNumbers].sort((a, b) => a - b)) {
     if (openNumbers.has(n)) {
       states.set(n, new IssueState("OPEN"));
-    } else {
+    }
+  }
+
+  const remaining: number[] = [];
+  for (const n of [...movers].sort((a, b) => a - b)) {
+    if (!openNumbers.has(n)) {
       remaining.push(n);
     }
   }
@@ -1210,13 +1247,19 @@ export function reconcileMain(args: ReconcileCliArgs): number {
     }
     report = reconcileWithUnlinked(issueToVbriefsObj, openIssues);
     if (args.applyLifecycleFixes) {
-      issueStateMap = fetchIssueStatesForApply(repo, anchors, { cwd: projectRoot });
+      issueStateMap = fetchIssueStatesForApply(repo, anchors, {
+        cwd: projectRoot,
+        reportIssueNumbers: needed,
+      });
       if (issueStateMap === null) {
         return 1;
       }
     }
   } else if (args.applyLifecycleFixes) {
-    issueStateMap = fetchIssueStatesForApply(repo, anchors, { cwd: projectRoot });
+    issueStateMap = fetchIssueStatesForApply(repo, anchors, {
+      cwd: projectRoot,
+      reportIssueNumbers: needed,
+    });
     if (issueStateMap === null) {
       return 1;
     }

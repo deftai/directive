@@ -734,20 +734,63 @@ describe("fetchIssueStatesForApply (#4269)", () => {
     expect(liveGets).toBe(1);
   });
 
-  it("skips all network when every anchored brief is already terminal", () => {
-    const scmCall = vi.fn(() => {
-      throw new Error("no network expected for already-terminal anchors");
-    });
+  it("skips per-issue GET when every anchored brief is already terminal", () => {
+    let inventoryCalls = 0;
+    const perIssuePaths: string[] = [];
     const states = fetchIssueStatesForApply(
       "o/r",
       [
         { rel_path: "completed/done.xbrief.json", issue_number: 1, axis: "references" },
         { rel_path: "cancelled/dropped.xbrief.json", issue_number: 2, axis: "references" },
       ],
-      { scmCall },
+      {
+        scmCall: (_src, verb, args) => {
+          expect(verb).toBe("api");
+          if (args?.includes("--paginate") === true && args?.includes("--slurp") === true) {
+            inventoryCalls += 1;
+            return completed(JSON.stringify([{ number: 1, state: "open" }]));
+          }
+          perIssuePaths.push(String(args?.[0] ?? ""));
+          throw new Error(`unexpected REST path: `);
+        },
+      },
     );
-    expect(states).toEqual(new Map());
-    expect(scmCall).not.toHaveBeenCalled();
+    expect(inventoryCalls).toBe(1);
+    expect(perIssuePaths).toEqual([]);
+    expect(states?.get(1)?.value).toBe("OPEN");
+    expect(states?.has(2)).toBe(false);
+  });
+
+  it("inventory OPEN overlay keeps terminal-on-disk still-open issues off NOT_FOUND", () => {
+    const perIssuePaths: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const states = fetchIssueStatesForApply(
+      "o/r",
+      [
+        { rel_path: "active/mover.xbrief.json", issue_number: 10, axis: "references" },
+        { rel_path: "completed/still-open.xbrief.json", issue_number: 14, axis: "references" },
+      ],
+      {
+        reportIssueNumbers: [10, 14, 99],
+        scmCall: (_src, _verb, args) => {
+          if (args?.includes("--paginate") === true && args?.includes("--slurp") === true) {
+            return completed(
+              JSON.stringify([
+                { number: 10, state: "open" },
+                { number: 14, state: "open" },
+                { number: 99, state: "open" },
+              ]),
+            );
+          }
+          perIssuePaths.push(String(args?.[0] ?? ""));
+          throw new Error(`unexpected REST path: `);
+        },
+      },
+    );
+    expect(perIssuePaths).toEqual([]);
+    expect(states?.get(10)?.value).toBe("OPEN");
+    expect(states?.get(14)?.value).toBe("OPEN");
+    expect(states?.get(99)?.value).toBe("OPEN");
   });
 
   it("fails closed on malformed inventory JSON", () => {
