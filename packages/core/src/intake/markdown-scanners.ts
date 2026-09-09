@@ -178,6 +178,61 @@ function matchAcHeadingLine(line: string): { level: number; end: number } | null
   return { level, end: line.length };
 }
 
+const BOUND_REMEDY_HEADING_RE = /^bound[\s-]+remedy\b/;
+
+/** Find a Lean-family Bound-remedy heading (same class as In plain English). */
+export function findBoundRemedyHeading(text: string): AcHeadingMatch | null {
+  let offset = 0;
+  for (const line of text.split("\n")) {
+    const match = matchBoundRemedyHeadingLine(line);
+    if (match !== null) {
+      return { level: match.level, sectionStart: offset + match.end };
+    }
+    offset += line.length + 1;
+  }
+  return null;
+}
+
+function matchBoundRemedyHeadingLine(line: string): { level: number; end: number } | null {
+  if (!line.startsWith("#")) {
+    return null;
+  }
+  let level = 0;
+  while (level < line.length && line[level] === "#") {
+    level += 1;
+  }
+  if (level !== 2) {
+    return null;
+  }
+  if (level >= line.length || line[level] !== " ") {
+    return null;
+  }
+  const headingText = line
+    .slice(level + 1)
+    .trim()
+    .toLowerCase();
+  if (!BOUND_REMEDY_HEADING_RE.test(headingText)) {
+    return null;
+  }
+  return { level, end: line.length };
+}
+
+/** Closed Recut harvest: Bound-remedy heading plus parseListItems on that slice only. */
+export function extractBoundRemedyHarvest(text: string): {
+  readonly items: CheckboxItem[];
+  readonly sourceText: string;
+} {
+  if (text.length === 0) {
+    return { items: [], sourceText: "" };
+  }
+  const heading = findBoundRemedyHeading(text);
+  if (heading === null) {
+    return { items: [], sourceText: "" };
+  }
+  const sourceText = sliceAcSection(text, heading);
+  return { items: parseListItems(sourceText), sourceText };
+}
+
 /** Slice text until the next heading at the same or higher level. */
 export function sliceAcSection(text: string, heading: AcHeadingMatch): string {
   const after = text.slice(heading.sectionStart);

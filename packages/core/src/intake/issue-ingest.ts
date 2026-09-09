@@ -10,6 +10,7 @@ import {
 import { basename, dirname, join, resolve } from "node:path";
 import { cacheGet } from "../cache/operations.js";
 import { type ScanFlag, scan } from "../cache/scanner.js";
+import { leanCarriesRecutToken } from "../design-critique/auto-stamp-chip.js";
 import {
   assertCompletedArcAllowsIngest,
   DesignCritiqueIngestBlockedError,
@@ -49,6 +50,7 @@ import {
 } from "../xbrief-migrate/constants.js";
 import { applyClauseQualityForIngest, emitAcceptanceStampFromPlan } from "./clause-derivation.js";
 import {
+  extractBoundRemedyHarvest,
   findAcHeading,
   parseCheckboxItems,
   parseListItems,
@@ -102,6 +104,22 @@ export class ScannerHardFailError extends Error {
     this.name = "ScannerHardFailError";
     this.issueNumber = issueNumber;
     this.flags = flags;
+  }
+}
+
+/**
+ * Thrown when Recut + completed-arc harvest finds no Bound-remedy list (#4258).
+ * Fail closed: emit nothing.
+ */
+export class RecutHarvestRefusedError extends Error {
+  readonly issueNumber: number;
+
+  constructor(issueNumber: number, detail: string) {
+    super(
+      `issue:ingest refused #${issueNumber}: recut harvest empty (${detail}) -- nothing written.`,
+    );
+    this.name = "RecutHarvestRefusedError";
+    this.issueNumber = issueNumber;
   }
 }
 
@@ -1370,6 +1388,10 @@ export function buildIssueVbrief(
   options: {
     infoRootKey?: typeof LEGACY_INFO_ROOT_KEY | typeof MIGRATED_INFO_ROOT_KEY;
     infoVersion?: string;
+    recutHarvest?: {
+      readonly items: readonly Record<string, string>[];
+      readonly sourceText: string;
+    };
   } = {},
 ): [Record<string, unknown>, string] {
   const number = Number(issue.number);
@@ -1450,7 +1472,13 @@ export function buildIssueVbrief(
     narratives.Labels = labelNames.join(", ");
   }
 
-  const planItemsRaw = bodyStr.length > 0 ? extractPlanItems(bodyStr) : [];
+  const recutHarvest = options.recutHarvest;
+  const planItemsRaw =
+    recutHarvest !== undefined
+      ? recutHarvest.items.map((item) => ({ title: item.title, status: item.status }))
+      : bodyStr.length > 0
+        ? extractPlanItems(bodyStr)
+        : [];
   // #2447: scan each derived plan-item title (empty-body issues still scan title above).
   const planItems = planItemsRaw.map((item) => ({
     ...item,
@@ -1495,8 +1523,9 @@ export function buildIssueVbrief(
   // into plan.metadata.literal_acceptance_commands (source=task_statement, capture-only).
   // Agents MUST promote exact strings into swarm.verify_commands before shell execution
   // (Greptile P1: raw issue text must not auto-spawn). Not paraphrased.
-  if (bodyStr.length > 0) {
-    const intakeText = [title, bodyStr].filter((s) => s.length > 0).join("\n\n");
+  const harvestSource = recutHarvest?.sourceText;
+  if (bodyStr.length > 0 || harvestSource !== undefined) {
+    const intakeText = [title, harvestSource ?? bodyStr].filter((s) => s.length > 0).join("\n\n");
     const attached = captureAndAttachLiteralAcceptance(plan, intakeText);
     // Re-tag stored capture as task_statement so run refuses until promote.
     const meta = attached.plan.metadata as Record<string, unknown> | undefined;
@@ -1529,7 +1558,7 @@ export function buildIssueVbrief(
     // #3323: when no commands were stated, derive numbered clauses before product edit.
     const derived = stampDerivedClausesOnAcceptance(
       plan,
-      [title, overviewSource].filter((s) => s.length > 0).join("\n\n"),
+      [title, harvestSource ?? overviewSource].filter((s) => s.length > 0).join("\n\n"),
     );
     Object.assign(plan, derived.plan);
     applyClauseQualityForIngest(plan);
@@ -1996,9 +2025,25 @@ export function ingestOne(
       comments,
     });
     let admittedDigest: string | null = null;
+    let recutHarvest:
+      | { readonly items: readonly Record<string, string>[]; readonly sourceText: string }
+      | undefined;
     if (verdict.status === "complete") {
       const cited = comments.find((comment) => comment.id === verdict.citedLeanId);
       const citedBody = cited?.body ?? "";
+      if (leanCarriesRecutToken(citedBody)) {
+        const harvested = extractBoundRemedyHarvest(citedBody);
+        if (harvested.items.length === 0) {
+          throw new RecutHarvestRefusedError(
+            number,
+            "cited successor lean has no Bound-remedy list",
+          );
+        }
+        recutHarvest = {
+          items: harvested.items.map((item) => ({ title: item.title, status: item.status })),
+          sourceText: harvested.sourceText,
+        };
+      }
       if (hasOperativeTargetDigestLine(citedBody)) {
         const liveBody = fetchLiveIssueBodyForAdmission(number, options.repoUrl, {
           scmCall: options.scmCall,
@@ -2020,6 +2065,7 @@ export function ingestOne(
     const [vbrief, folder] = buildIssueVbrief(enriched, options.status, options.repoUrl, {
       infoRootKey: emissionLayout.infoRootKey,
       infoVersion: emissionLayout.infoVersion,
+      recutHarvest,
     });
     if (admittedDigest !== null) {
       attachAdmittedTargetDigest(vbrief.plan, admittedDigest);
@@ -2130,7 +2176,10 @@ export function ingestBulk(
         process.stderr.write(`${exc.message}\n`);
         continue;
       }
-      if (exc instanceof DesignCritiqueIngestBlockedError) {
+      if (
+        exc instanceof DesignCritiqueIngestBlockedError ||
+        exc instanceof RecutHarvestRefusedError
+      ) {
         (summary.blocked as string[]).push(`#${exc.issueNumber}`);
         process.stderr.write(`${exc.message}\n`);
         continue;
@@ -2281,7 +2330,10 @@ export function issueIngestMain(args: IssueIngestCliArgs): number {
       process.stderr.write(`${exc.message}\n`);
       return 2;
     }
-    if (exc instanceof DesignCritiqueIngestBlockedError) {
+    if (
+      exc instanceof DesignCritiqueIngestBlockedError ||
+      exc instanceof RecutHarvestRefusedError
+    ) {
       process.stderr.write(`${exc.message}\n`);
       return 1;
     }

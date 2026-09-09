@@ -739,6 +739,11 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(text).toContain("Recut:");
     expect(text).toContain("--chip recut-needed");
     expect(text).toContain("⊗ Classify recut by NLP of the lean.");
+    expect(text).toContain("body-is-normative");
+    expect(text).toContain("## Bound remedy");
+    expect(text).toContain("parseListItems");
+    expect(text).toContain("extractPlanItems");
+    expect(text).toContain("#4237");
     expect(text).toContain(
       "⊗ Add `design-critique:recut-needed` to `judgmentGates` labels.any-of.",
     );
@@ -944,6 +949,9 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(stop1).toContain("\u2297 `git worktree add`");
     const bind = markdownSection(text, "## Bind after accepted synthesis");
     expect(bind).toContain("Direct EXIT names it as a later operator verb");
+    expect(bind).toContain(
+      "After Recut bind, print ingest and do not print next-envelope as the default next",
+    );
     const ceiling = markdownSection(text, "### Envelope and ceiling");
     expect(ceiling).toContain("Worktree isolation before each spawn unless `arc-mode: direct`");
     const template = readText(TEMPLATE);
@@ -952,6 +960,8 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     const skill = readText(SKILL_REL);
     expect(skill).toContain("parse closed tokens");
     expect(skill).toContain("ingest is a separate operator verb");
+    expect(skill).toContain("After Recut bind: Next: run `task issue:ingest`");
+    expect(skill).not.toContain("land CLI");
     expect(skill).not.toContain("session:start --read-only");
     expect(skill).not.toContain("git worktree add");
     expect(parseOperatorRunPosture("arc 1234 yolo")).toEqual({

@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Recut ingest harvests Bound-remedy from the successor lean, not GitHub-body checkboxes (#4258).** After Recut plus a completed-arc record, ingest takes the next-build items from that Bound-remedy list and refuses when the list is empty. Closes #4258.
+
 ### Removed
 
 ## [0.113.1] - 2026-09-08

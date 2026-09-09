@@ -61,6 +61,8 @@ Record `arc-mode: direct` or `arc-mode: checkout` on the Stop 1 write-back. `eva
 - ! Direct posting path that survives a foreign lease: `gh issue comment --body-file -` (stdin). Least-authority envelope: bounded GitHub reads and one comment post.
 - ! Direct N>1 process-only critics are not swarm Phase 2 and not a #4066 mutating worker. Family CLIs still spawn. ⊗ `git worktree add`. Pin reads to `git show <dispatch-sha>:` against the recorded SHA. ⊗ A moving branch ref.
 - ! Direct EXIT names ingest as a later operator verb after the completed-arc record. ⊗ Auto-ingest.
+- ! After synthesis accepted on a Recut lean, print ingest (`task issue:ingest`) and do not print next-envelope as the default next. ⊗ Add a land CLI. ⊗ Treat body PATCH as a recut arc. Keep chip `design-critique:recut-needed` as list state.
+- ! Target-digest / stale-target (#4243) is a different hole. ⊗ Restamp for body alignment.
 - ⊗ Treat `arc-mode:` as ingest clearance or as a permanent ingest denial.
 - ⊗ Record a front-door mode named `ingest`.
 
@@ -275,6 +277,9 @@ After this round's same-round siblings are posted, parent posts a successor `**L
 - ! The first posted map is an ADR-006 arbitration surface. Record a substantiation token when takes introduce load-bearing premises. Non-self-arbitration applies when the same party authored the triage and the proposed takes.
 - ! Bind synthesis and the auto-stamp catalog chip (`design-critique:triage-ready` or `design-critique:recut-needed`) to the latest successor lean, never a superseded write-back.
 - ! When the next-build contract is recut (not this body), stamp a Lean-family line-start `Recut:` on that successor lean. Nine spellings: zero to two asterisks counted independently on each side, the same wrapping as `Lean:`. Auto-stamp matches that token through `resolveAutoStampCatalogChip`. It does not parse lean English.
+- ! Recut token plus a completed-arc record means harvest that closed Bound-remedy heading slice on the cited successor lean. It is not repair-required refuse and not a recut arc. Leave #4237 Outcome:ready as the body-is-normative path. ⊗ Let Recut mean both.
+- ! Recut harvest is a Lean-family heading token (`## Bound remedy`, same class as `## In plain English`) plus parseListItems on that slice of the cited successor lean only. ⊗ Bind Recut harvest as reuse extractPlanItems. Empty on that lean refuses. A numbered list without that heading is not enough.
+- ! Point that harvest source at plan.items, literal capture, and derived-clause taskStatement. Overview may keep the GitHub body as historical described content. ⊗ Close with an items-only patch.
 - ⊗ Classify recut by NLP of the lean.
 - ! Full template (accepted set, residual, supersedes-id, ceiling if retrying) lives only on the successor lean and on a retry disagreement map.
 - ! Walk comments stay slim (model and role lines, Accept X, critic id, heading, decision, and when needed a token plus pointer).
@@ -489,7 +494,7 @@ Closed catalog (last chip wins): `design-critique:mechanism-shaped` (in-flight, 
 - ⊗ `gh api POST .../labels` or additive `scm:issue:edit --add-label` for this facet.
 - ⊗ Intercept mixed `scm issue edit` adds/removes for this facet.
 - ⊗ General-purpose labels CLI.
-- ! After the completed-arc record is present, `triage:accept` / `scope:promote` / `issue:ingest` / build may proceed unless `evaluateCompletedArcRecord` returns `cancelled` or `unrecut-body` (#4057). Any identity may run those verbs. Same-session parent continuation is not required. ⊗ Treat `arc-mode:` as ingest clearance or as a permanent ingest denial. Ingest stays `issue:ingest` after the completed-arc record. Direct EXIT names it as a later operator verb. GitHub Triage on the implementer is not required. They read the accepted verified synthesis (latest successor lean plus the verified-claims table).
+- ! After the completed-arc record is present, `triage:accept` / `scope:promote` / `issue:ingest` / build may proceed unless `evaluateCompletedArcRecord` returns `cancelled` or `unrecut-body` (#4057). Any identity may run those verbs. Same-session parent continuation is not required. ⊗ Treat `arc-mode:` as ingest clearance or as a permanent ingest denial. Ingest stays `issue:ingest` after the completed-arc record. Direct EXIT names it as a later operator verb. After Recut bind, print ingest and do not print next-envelope as the default next. GitHub Triage on the implementer is not required. They read the accepted verified synthesis (latest successor lean plus the verified-claims table).
 - ! Per-thread body ingest stays the mapper after a set-level bind. Stories the bind wants are recut bodies or newly filed issues. Derived AC stays on that body.
 - ! Un-recut portfolio members fail closed on `cancelled`. Parent posts `design-critique: cancelled, because ...` on that number. Parent `role: parent` dominate prose is not that record. Critic, quoted, or fenced cancel-shaped prose is not that record. Leftover `mechanism-shaped` without cancel stays `missing-record` and is not this control.
 - ! A later successor lean after cancel starts a recut arc. Completing a superseded thread without recut would mint the harvest.

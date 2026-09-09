@@ -36,6 +36,7 @@ import {
   mintIssuePlanId,
   PLAN_ID_ORIGIN_META_KEY,
   provenanceIssueNumber,
+  RecutHarvestRefusedError,
   repairNonterminalIssuePlanIds,
   ScannerHardFailError,
   stripRenderedIssueHeader,
@@ -1151,6 +1152,197 @@ describe("ingestOne completed-arc record (#3806)", () => {
         ),
       ).toThrow(DesignCritiqueIngestBlockedError);
       expect(readdirSync(xbriefDir).filter((n) => n.endsWith(".json"))).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+const RECUT_LEAN_5587555346 = [
+  "model: grok-4.6",
+  "role: parent",
+  "",
+  "## In plain English",
+  "",
+  "The persist-then-deny story on #4254 does not bind as written.",
+  "",
+  "Recut: the five-point body is not the next-build contract.",
+  "",
+  "**Lean:** accept all classified headings from 5587545172.",
+  "",
+  "## Bound remedy (reading of the takes)",
+  "",
+  "1. Do not bind issue remedy 1 (same-incarnation second persist is idempotent allow) as the AC.",
+  "2. Split the AC. Unique dest still conflicts across incarnations and parents.",
+  "3. Keep occupied rollback. Do not add EXISTS rollback (that would delete the winner).",
+  "4. If retry-allow is the fix, the key must be narrower than dest+parent.",
+  "5. Logging of persist incarnation vs EXISTS does not change disposition.",
+].join("\n");
+
+const WITHDRAWN_BODY = [
+  "## Acceptance",
+  "- [ ] pnpm exec vitest run packages/core/src/intake",
+  "- [ ] withdrawn body checkbox that must not win",
+].join("\n");
+
+describe("ingestOne Recut Bound-remedy harvest (#4258)", () => {
+  const lean = { id: 5587555346, body: RECUT_LEAN_5587555346 };
+  const table = { id: 5587861177, body: "## Verified-claims table\n" };
+  const synthesis = {
+    id: 5587864554,
+    body:
+      "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+      "Bound contract: successor lean 5587555346, verified-claims table 5587861177.\n",
+  };
+
+  it("harvests Bound-remedy items and stated acceptance, not GitHub-body checkboxes", () => {
+    const root = mkdtempSync(join(tmpdir(), "ingest-4258-harvest-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(xbriefDir, { recursive: true });
+    try {
+      expect(extractPlanItems(RECUT_LEAN_5587555346)).toEqual([]);
+      expect(extractPlanItems(WITHDRAWN_BODY).map((item) => item.title)).toEqual([
+        "pnpm exec vitest run packages/core/src/intake",
+        "withdrawn body checkbox that must not win",
+      ]);
+      const [result, path] = ingestOne(
+        {
+          number: 4254,
+          title: "recut harvest",
+          html_url: "https://github.com/o/r/issues/4254",
+          body: WITHDRAWN_BODY,
+          labels: [{ name: "design-critique:recut-needed" }],
+          [ISSUE_COMMENT_THREAD_KEY]: [lean, table, synthesis],
+        },
+        {
+          vbriefDir: xbriefDir,
+          status: "proposed",
+          repoUrl: "https://github.com/o/r",
+          cwd: root,
+          scmCall: () => completed("[]", "", 0),
+        },
+      );
+      expect(result).toBe("created");
+      expect(path).toBeTruthy();
+      const data = JSON.parse(readFileSync(path as string, "utf8")) as {
+        plan: {
+          items: { title: string }[];
+          acceptance: {
+            none_stated: boolean;
+            commands: unknown[];
+            clauses: { text: string }[];
+          };
+          narratives: { Overview: string };
+          metadata?: { literal_acceptance_commands?: { command: string }[] };
+        };
+      };
+      expect(data.plan.items.map((item) => item.title)).toEqual([
+        "Do not bind issue remedy 1 (same-incarnation second persist is idempotent allow) as the AC.",
+        "Split the AC. Unique dest still conflicts across incarnations and parents.",
+        "Keep occupied rollback. Do not add EXISTS rollback (that would delete the winner).",
+        "If retry-allow is the fix, the key must be narrower than dest+parent.",
+        "Logging of persist incarnation vs EXISTS does not change disposition.",
+      ]);
+      expect(data.plan.items.map((item) => item.title)).not.toContain(
+        "withdrawn body checkbox that must not win",
+      );
+      expect(data.plan.acceptance.none_stated).toBe(true);
+      expect(data.plan.acceptance.commands).toEqual([]);
+      expect(data.plan.acceptance.clauses.map((clause) => clause.text)).toEqual(
+        data.plan.items.map((item) => item.title),
+      );
+      expect(data.plan.narratives.Overview).toContain("withdrawn body checkbox that must not win");
+      const captured = data.plan.metadata?.literal_acceptance_commands ?? [];
+      expect(captured.map((row) => row.command)).not.toContain(
+        "pnpm exec vitest run packages/core/src/intake",
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses when the cited Recut lean has no Bound-remedy list", () => {
+    const root = mkdtempSync(join(tmpdir(), "ingest-4258-empty-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(xbriefDir, { recursive: true });
+    try {
+      expect(() =>
+        ingestOne(
+          {
+            number: 4254,
+            title: "empty recut harvest",
+            html_url: "https://github.com/o/r/issues/4254",
+            body: WITHDRAWN_BODY,
+            labels: [{ name: "design-critique:recut-needed" }],
+            [ISSUE_COMMENT_THREAD_KEY]: [
+              {
+                id: 5587555346,
+                body: "Recut: next-build is not this body.\n**Lean:** accept.\n\n1. numbered without heading\n",
+              },
+              table,
+              synthesis,
+            ],
+          },
+          {
+            vbriefDir: xbriefDir,
+            status: "proposed",
+            repoUrl: "https://github.com/o/r",
+            cwd: root,
+            scmCall: () => completed("[]", "", 0),
+          },
+        ),
+      ).toThrow(RecutHarvestRefusedError);
+      expect(readdirSync(xbriefDir).filter((n) => n.endsWith(".json"))).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("keeps body-is-normative harvest when the cited lean has no Recut token (#4237)", () => {
+    const root = mkdtempSync(join(tmpdir(), "ingest-4258-body-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(xbriefDir, { recursive: true });
+    try {
+      const [result, path] = ingestOne(
+        {
+          number: 4237,
+          title: "body is normative",
+          html_url: "https://github.com/o/r/issues/4237",
+          body: WITHDRAWN_BODY,
+          labels: [{ name: "design-critique:triage-ready" }],
+          [ISSUE_COMMENT_THREAD_KEY]: [
+            {
+              id: 5587555346,
+              body: RECUT_LEAN_5587555346.replace(
+                "Recut: the five-point body is not the next-build contract.\n\n",
+                "",
+              ),
+            },
+            table,
+            {
+              id: 5587864554,
+              body:
+                "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
+                "Bound contract: successor lean 5587555346, verified-claims table 5587861177.\n",
+            },
+          ],
+        },
+        {
+          vbriefDir: xbriefDir,
+          status: "proposed",
+          repoUrl: "https://github.com/o/r",
+          cwd: root,
+          scmCall: () => completed("[]", "", 0),
+        },
+      );
+      expect(result).toBe("created");
+      const data = JSON.parse(readFileSync(path as string, "utf8")) as {
+        plan: { items: { title: string }[] };
+      };
+      expect(data.plan.items.map((item) => item.title)).toEqual([
+        "pnpm exec vitest run packages/core/src/intake",
+        "withdrawn body checkbox that must not win",
+      ]);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
