@@ -43,11 +43,11 @@ describe("withdrawn chip remaining-set (#4070)", () => {
       "bug",
       "triaged",
       "triage:deferred",
-      "design-critique:triage-ready",
+      "design-critique:ingest-ready",
       "triage:needs-human",
       "process",
     ]);
-    expect(remaining).toEqual(["bug", "design-critique:triage-ready", "process"]);
+    expect(remaining).toEqual(["bug", "design-critique:ingest-ready", "process"]);
   });
 
   it("remove delta is the withdrawn chips present, never adds", () => {
@@ -71,10 +71,10 @@ describe("withdrawn chip remaining-set (#4070)", () => {
     const result = applyWithdrawnChipStrip(client, "o/r", 9, [
       "triaged",
       "triage:deferred",
-      "design-critique:triage-ready",
+      "design-critique:ingest-ready",
     ]);
     expect(client.applyCalls).toEqual([["o/r", 9, [], ["triaged", "triage:deferred"]]]);
-    expect(result.remaining).toEqual(["design-critique:triage-ready"]);
+    expect(result.remaining).toEqual(["design-critique:ingest-ready"]);
   });
 });
 
@@ -162,7 +162,7 @@ describe("stripWithdrawnChips", () => {
 
   it("apply writes remaining-set via LabelClient and skips unchanged", () => {
     const client = new FakeLabelClient();
-    client.labels.set("o/r:1", ["triaged", "design-critique:triage-ready"]);
+    client.labels.set("o/r:1", ["triaged", "design-critique:ingest-ready"]);
     const [code, outcome] = stripWithdrawnChips({
       repo: "o/r",
       dryRun: false,
@@ -170,7 +170,7 @@ describe("stripWithdrawnChips", () => {
       listIssues: (_repo, label) => {
         if (label === "triaged") {
           return [
-            { number: 1, labels: ["triaged", "design-critique:triage-ready"] },
+            { number: 1, labels: ["triaged", "design-critique:ingest-ready"] },
             { number: 2, labels: ["bug"] },
           ];
         }
@@ -181,7 +181,7 @@ describe("stripWithdrawnChips", () => {
     expect(outcome.applied).toBe(1);
     expect(outcome.unchanged).toBe(1);
     expect(client.applyCalls).toEqual([["o/r", 1, [], ["triaged"]]]);
-    expect(client.labels.get("o/r:1")).toEqual(["design-critique:triage-ready"]);
+    expect(client.labels.get("o/r:1")).toEqual(["design-critique:ingest-ready"]);
   });
 });
 

@@ -28,7 +28,7 @@ describe("main non-rest branches", () => {
           "--issue",
           "3642",
           "--chip",
-          "triage-ready",
+          "ingest-ready",
           "--repo",
           "deftai/directive",
         ],
@@ -44,7 +44,7 @@ describe("main non-rest branches", () => {
     expect(spawnSyncMock).not.toHaveBeenCalled();
     expect(apply).toHaveBeenCalledTimes(1);
     expect(apply.mock.calls[0]?.slice(2)).toEqual([
-      ["design-critique:triage-ready"],
+      ["design-critique:ingest-ready"],
       ["design-critique:mechanism-shaped"],
     ]);
     stdout.mockRestore();

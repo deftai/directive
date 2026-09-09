@@ -292,10 +292,10 @@ describe("labels SCM client", () => {
       })
       .mockReturnValueOnce({ args: [], returncode: 0, stdout: "", stderr: "" });
     const client = new ScmLabelClient();
-    client.apply("deftai/directive", 3637, ["design-critique:triage-ready"], []);
+    client.apply("deftai/directive", 3637, ["design-critique:ingest-ready"], []);
     expect(spy).toHaveBeenCalledTimes(2);
     const editArgs = spy.mock.calls[1]?.[2] ?? [];
-    expect(editArgs).toContain("design-critique:triage-ready");
+    expect(editArgs).toContain("design-critique:ingest-ready");
     expect(editArgs).toContain("design-critique:mechanism-shaped");
     expect(editArgs).toContain("--add-label");
     expect(editArgs).toContain("--remove-label");
@@ -314,10 +314,10 @@ describe("labels SCM client", () => {
       })
       .mockReturnValueOnce({ args: [], returncode: 0, stdout: "", stderr: "" });
     const client = new ScmLabelClient();
-    client.apply("deftai/directive", 3637, ["design-critique:triage-ready", "area:cli"], ["bug"]);
+    client.apply("deftai/directive", 3637, ["design-critique:ingest-ready", "area:cli"], ["bug"]);
     expect(spy).toHaveBeenCalledTimes(2);
     const editArgs = spy.mock.calls[1]?.[2] ?? [];
-    expect(editArgs).toContain("design-critique:triage-ready");
+    expect(editArgs).toContain("design-critique:ingest-ready");
     expect(editArgs).toContain("design-critique:mechanism-shaped");
     expect(editArgs).toContain("area:cli");
     expect(editArgs).toContain("bug");
@@ -331,13 +331,13 @@ describe("labels SCM client", () => {
         args: [],
         returncode: 0,
         stdout: JSON.stringify({
-          labels: [{ name: "bug" }, { name: "design-critique:triage-ready" }],
+          labels: [{ name: "bug" }, { name: "design-critique:ingest-ready" }],
         }),
         stderr: "",
       })
       .mockReturnValueOnce({ args: [], returncode: 0, stdout: "", stderr: "" });
     const client = new ScmLabelClient();
-    client.apply("deftai/directive", 3642, ["design-critique:triage-ready", "area:cli"], []);
+    client.apply("deftai/directive", 3642, ["design-critique:ingest-ready", "area:cli"], []);
     expect(spy).toHaveBeenCalledTimes(2);
     const editArgs = spy.mock.calls[1]?.[2] ?? [];
     expect(editArgs).toContain("area:cli");

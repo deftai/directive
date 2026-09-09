@@ -47,20 +47,29 @@ describe("resolveDesignCritiqueChipArg", () => {
   });
 
   it("accepts short and full catalog names", () => {
-    expect(resolveDesignCritiqueChipArg("triage-ready")).toBe("design-critique:triage-ready");
+    expect(resolveDesignCritiqueChipArg("ingest-ready")).toBe("design-critique:ingest-ready");
     expect(resolveDesignCritiqueChipArg("mechanism-shaped")).toBe(
       "design-critique:mechanism-shaped",
     );
-    expect(resolveDesignCritiqueChipArg("recut-needed")).toBe("design-critique:recut-needed");
-    expect(resolveDesignCritiqueChipArg("design-critique:triage-ready")).toBe(
-      "design-critique:triage-ready",
+    expect(resolveDesignCritiqueChipArg("in-progress")).toBe("design-critique:in-progress");
+    expect(resolveDesignCritiqueChipArg("design-critique:ingest-ready")).toBe(
+      "design-critique:ingest-ready",
     );
-    expect(resolveDesignCritiqueChipArg("design-critique:recut-needed")).toBe(
-      "design-critique:recut-needed",
+    expect(resolveDesignCritiqueChipArg("design-critique:in-progress")).toBe(
+      "design-critique:in-progress",
     );
   });
 
   it("fails closed on unknown chip names", () => {
+    expect(() => resolveDesignCritiqueChipArg("triage-ready")).toThrow(
+      /unknown design-critique chip/,
+    );
+    expect(() => resolveDesignCritiqueChipArg("recut-needed")).toThrow(
+      /unknown design-critique chip/,
+    );
+    expect(() => resolveDesignCritiqueChipArg("decisions-needed")).toThrow(
+      /unknown design-critique chip/,
+    );
     expect(() => resolveDesignCritiqueChipArg("design-critique:halted")).toThrow(
       /unknown design-critique chip/,
     );
@@ -79,13 +88,13 @@ describe("parseDesignCritiqueChipArgs", () => {
         "--issue",
         "3642",
         "--chip",
-        "triage-ready",
+        "ingest-ready",
         "--repo",
         "deftai/directive",
       ]),
     ).toEqual({
       issue: 3642,
-      chip: "design-critique:triage-ready",
+      chip: "design-critique:ingest-ready",
       repo: "deftai/directive",
       json: false,
     });
@@ -110,12 +119,12 @@ describe("parseDesignCritiqueChipArgs", () => {
   });
 
   it("requires --chip and --issue; --repo may be omitted", () => {
-    expect(() => parseDesignCritiqueChipArgs(["--chip", "triage-ready"])).toThrow(
+    expect(() => parseDesignCritiqueChipArgs(["--chip", "ingest-ready"])).toThrow(
       /missing --issue/,
     );
-    expect(parseDesignCritiqueChipArgs(["--issue", "1", "--chip", "triage-ready"])).toEqual({
+    expect(parseDesignCritiqueChipArgs(["--issue", "1", "--chip", "ingest-ready"])).toEqual({
       issue: 1,
-      chip: "design-critique:triage-ready",
+      chip: "design-critique:ingest-ready",
       repo: null,
       json: false,
     });
@@ -130,7 +139,7 @@ describe("parseDesignCritiqueChipArgs", () => {
         "--issue",
         "1",
         "--chip",
-        "triage-ready",
+        "ingest-ready",
         "--repo",
         "deftai/directive",
         "--add-label",
@@ -142,7 +151,7 @@ describe("parseDesignCritiqueChipArgs", () => {
         "--issue",
         "1.5",
         "--chip",
-        "triage-ready",
+        "ingest-ready",
         "--repo",
         "deftai/directive",
       ]),
@@ -153,7 +162,7 @@ describe("parseDesignCritiqueChipArgs", () => {
         "--issue",
         "2",
         "--chip",
-        "triage-ready",
+        "ingest-ready",
         "--repo",
         "deftai/directive",
       ]),
@@ -163,7 +172,7 @@ describe("parseDesignCritiqueChipArgs", () => {
         "1",
         "2",
         "--chip",
-        "triage-ready",
+        "ingest-ready",
         "--repo",
         "deftai/directive",
       ]),
@@ -172,16 +181,16 @@ describe("parseDesignCritiqueChipArgs", () => {
 });
 
 describe("runDesignCritiqueChip", () => {
-  it("replaces mechanism-shaped with triage-ready in one apply", () => {
+  it("replaces mechanism-shaped with ingest-ready in one apply", () => {
     const client = new FakeLabelClient(["bug", "design-critique:mechanism-shaped", "area:cli"]);
     const result = runDesignCritiqueChip(
-      ["--issue", "3642", "--chip", "triage-ready", "--repo", "deftai/directive", "--json"],
+      ["--issue", "3642", "--chip", "ingest-ready", "--repo", "deftai/directive", "--json"],
       { client },
     );
     expect(result.exitCode).toBe(0);
     expect(client.applyCalls).toHaveLength(1);
     expect(client.applyCalls[0]).toEqual({
-      add: ["design-critique:triage-ready"],
+      add: ["design-critique:ingest-ready"],
       remove: ["design-critique:mechanism-shaped"],
     });
     const payload = JSON.parse(result.stdout) as {
@@ -189,47 +198,47 @@ describe("runDesignCritiqueChip", () => {
       add: string[];
       remove: string[];
     };
-    expect(payload.remaining).toEqual(["bug", "area:cli", "design-critique:triage-ready"]);
-    expect(payload.add).toEqual(["design-critique:triage-ready"]);
+    expect(payload.remaining).toEqual(["bug", "area:cli", "design-critique:ingest-ready"]);
+    expect(payload.add).toEqual(["design-critique:ingest-ready"]);
     expect(payload.remove).toEqual(["design-critique:mechanism-shaped"]);
     expect(client.labels.sort()).toEqual(
-      ["area:cli", "bug", "design-critique:triage-ready"].sort(),
+      ["area:cli", "bug", "design-critique:ingest-ready"].sort(),
     );
   });
 
-  it("applies recut-needed in one remaining-set write (#4205)", () => {
+  it("applies in-progress in one remaining-set write (#4298)", () => {
     const client = new FakeLabelClient(["bug", "design-critique:mechanism-shaped", "area:cli"]);
     const result = runDesignCritiqueChip(
-      ["--issue", "4205", "--chip", "recut-needed", "--repo", "deftai/directive", "--json"],
+      ["--issue", "4205", "--chip", "in-progress", "--repo", "deftai/directive", "--json"],
       { client },
     );
     expect(result.exitCode).toBe(0);
     expect(client.applyCalls).toEqual([
-      { add: ["design-critique:recut-needed"], remove: ["design-critique:mechanism-shaped"] },
+      { add: ["design-critique:in-progress"], remove: ["design-critique:mechanism-shaped"] },
     ]);
     const payload = JSON.parse(result.stdout) as { remaining: string[] };
-    expect(payload.remaining).toEqual(["bug", "area:cli", "design-critique:recut-needed"]);
-    expect(payload.remaining).not.toContain("design-critique:triage-ready");
+    expect(payload.remaining).toEqual(["bug", "area:cli", "design-critique:in-progress"]);
+    expect(payload.remaining).not.toContain("design-critique:ingest-ready");
   });
 
   it("recuts to mechanism-shaped and keeps other facets", () => {
-    const client = new FakeLabelClient(["enhancement", "design-critique:triage-ready"]);
+    const client = new FakeLabelClient(["enhancement", "design-critique:ingest-ready"]);
     const result = runDesignCritiqueChip(
       ["--issue", "1", "--chip", "mechanism-shaped", "--repo", "o/r"],
       { client },
     );
     expect(result.exitCode).toBe(0);
     expect(client.applyCalls).toEqual([
-      { add: ["design-critique:mechanism-shaped"], remove: ["design-critique:triage-ready"] },
+      { add: ["design-critique:mechanism-shaped"], remove: ["design-critique:ingest-ready"] },
     ]);
     expect(result.stdout).toContain("applied design-critique:mechanism-shaped");
-    expect(result.stdout).toContain("removed design-critique:triage-ready");
+    expect(result.stdout).toContain("removed design-critique:ingest-ready");
   });
 
   it("skips write when already exclusive", () => {
-    const client = new FakeLabelClient(["process", "design-critique:triage-ready"]);
+    const client = new FakeLabelClient(["process", "design-critique:ingest-ready"]);
     const result = runDesignCritiqueChip(
-      ["--issue", "3642", "--chip", "triage-ready", "--repo", "deftai/directive"],
+      ["--issue", "3642", "--chip", "ingest-ready", "--repo", "deftai/directive"],
       { client },
     );
     expect(result.exitCode).toBe(0);
@@ -276,7 +285,7 @@ describe("runDesignCritiqueChip", () => {
       "--issue",
       "1",
       "--chip",
-      "triage-ready",
+      "ingest-ready",
       "--repo",
       "not-a-repo",
     ]);
@@ -294,7 +303,7 @@ describe("runDesignCritiqueChip", () => {
       },
     };
     const result = runDesignCritiqueChip(
-      ["--issue", "1", "--chip", "triage-ready", "--repo", "deftai/directive"],
+      ["--issue", "1", "--chip", "ingest-ready", "--repo", "deftai/directive"],
       { client },
     );
     expect(result.exitCode).toBe(0);
@@ -311,7 +320,7 @@ describe("runDesignCritiqueChip", () => {
 
   it("resolves omitted --repo from git origin", () => {
     const client = new FakeLabelClient(["bug"]);
-    const result = runDesignCritiqueChip(["--issue", "1", "--chip", "triage-ready", "--json"], {
+    const result = runDesignCritiqueChip(["--issue", "1", "--chip", "ingest-ready", "--json"], {
       client,
       resolveDefaultRepo: () => "deftai/directive",
     });
@@ -323,7 +332,7 @@ describe("runDesignCritiqueChip", () => {
 
   it("fails closed when --repo is omitted and origin cannot be resolved", () => {
     const client = new FakeLabelClient(["bug"]);
-    const result = runDesignCritiqueChip(["--issue", "1", "--chip", "triage-ready"], {
+    const result = runDesignCritiqueChip(["--issue", "1", "--chip", "ingest-ready"], {
       client,
       resolveDefaultRepo: () => null,
     });
@@ -340,7 +349,7 @@ describe("runDesignCritiqueChip", () => {
       },
     };
     const result = runDesignCritiqueChip(
-      ["--issue", "1", "--chip", "triage-ready", "--repo", "deftai/directive", "--json"],
+      ["--issue", "1", "--chip", "ingest-ready", "--repo", "deftai/directive", "--json"],
       { client },
     );
     expect(result.exitCode).toBe(0);

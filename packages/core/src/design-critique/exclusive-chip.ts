@@ -3,8 +3,8 @@ import type { LabelClient } from "../vbrief-reconcile/types.js";
 /** Closed catalog. Last chip wins. Not an open `design-critique:*` glob. */
 export const DESIGN_CRITIQUE_CATALOG_CHIPS = [
   "design-critique:mechanism-shaped",
-  "design-critique:triage-ready",
-  "design-critique:recut-needed",
+  "design-critique:in-progress",
+  "design-critique:ingest-ready",
 ] as const;
 
 export type DesignCritiqueCatalogChip = (typeof DESIGN_CRITIQUE_CATALOG_CHIPS)[number];
@@ -18,6 +18,7 @@ export function isDesignCritiqueCatalogChip(name: string): name is DesignCritiqu
 /**
  * Remaining-set replace: GET current, drop the other catalog names, keep other
  * facets, then PUT/PATCH this list. One write. No DELETE-then-POST window.
+ * Always pushes nextChip. No clear-to-none verb (#4298).
  */
 export function remainingSetAfterDesignCritiqueChip(
   current: readonly string[],

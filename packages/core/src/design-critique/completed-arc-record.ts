@@ -558,7 +558,8 @@ export function evaluateCompletedArcRecord(input: {
     const latest = synthesis.reduce((a, b) => (a.id >= b.id ? a : b));
     return refuseUnrecutSetLevel(recutComments, verdictForSynthesis(latest, recutComments));
   }
-  const inArc = hasDesignCritiqueCatalogChip(labels) || isInFlightCritiqueThread(recutComments);
+  // Labels are not SoT: in-arc membership is thread-only (#4298).
+  const inArc = isInFlightCritiqueThread(recutComments);
   if (!inArc) {
     return { status: "not-in-arc" };
   }

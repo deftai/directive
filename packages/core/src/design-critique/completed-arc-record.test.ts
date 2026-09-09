@@ -64,10 +64,10 @@ describe("evaluateCompletedArcRecord (#3806)", () => {
     });
   });
 
-  it("does not treat leftover mechanism-shaped or triage-ready as clearance", () => {
+  it("does not treat leftover mechanism-shaped or ingest-ready as clearance", () => {
     const missing = evaluateCompletedArcRecord({
-      labels: ["design-critique:triage-ready"],
-      comments: [],
+      labels: ["design-critique:ingest-ready"],
+      comments: [{ id: 1, body: "role: critic\n\n## Finding 1\n" }],
     });
     expect(missing).toMatchObject({
       status: "blocked",
@@ -75,15 +75,20 @@ describe("evaluateCompletedArcRecord (#3806)", () => {
     });
   });
 
-  it("does not treat leftover recut-needed as clearance (#4205)", () => {
-    const missing = evaluateCompletedArcRecord({
-      labels: ["design-critique:recut-needed"],
-      comments: [],
-    });
-    expect(missing).toMatchObject({
-      status: "blocked",
-      reason: "missing-record",
-    });
+  it("catalog chip alone with zero thread evidence is not-in-arc (#4298)", () => {
+    for (const chip of [
+      "design-critique:mechanism-shaped",
+      "design-critique:in-progress",
+      "design-critique:ingest-ready",
+      "design-critique:triage-ready",
+      "design-critique:recut-needed",
+    ]) {
+      const verdict = evaluateCompletedArcRecord({
+        labels: [chip],
+        comments: [],
+      });
+      expect(verdict, chip).toEqual({ status: "not-in-arc" });
+    }
   });
 
   it("blocks a lone synthesis-accepted sentence that does not cite a lean", () => {

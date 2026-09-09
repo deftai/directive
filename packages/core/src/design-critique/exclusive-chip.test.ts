@@ -35,18 +35,18 @@ class FakeLabelClient implements LabelClient {
   }
 }
 
-describe("design-critique exclusive remaining-set chip (#3642)", () => {
-  it("replaces mechanism-shaped with triage-ready and keeps other facets", () => {
+describe("design-critique exclusive remaining-set chip (#3642 / #4298)", () => {
+  it("replaces mechanism-shaped with ingest-ready and keeps other facets", () => {
     const remaining = remainingSetAfterDesignCritiqueChip(
       ["bug", "design-critique:mechanism-shaped", "area:cli"],
-      "design-critique:triage-ready",
+      "design-critique:ingest-ready",
     );
-    expect(remaining).toEqual(["bug", "area:cli", "design-critique:triage-ready"]);
+    expect(remaining).toEqual(["bug", "area:cli", "design-critique:ingest-ready"]);
   });
 
-  it("recut to mechanism-shaped drops triage-ready", () => {
+  it("recut to mechanism-shaped drops ingest-ready", () => {
     const remaining = remainingSetAfterDesignCritiqueChip(
-      ["enhancement", "design-critique:triage-ready"],
+      ["enhancement", "design-critique:ingest-ready"],
       "design-critique:mechanism-shaped",
     );
     expect(remaining).toEqual(["enhancement", "design-critique:mechanism-shaped"]);
@@ -58,12 +58,12 @@ describe("design-critique exclusive remaining-set chip (#3642)", () => {
         "bug",
         "doctor",
         "design-critique:mechanism-shaped",
-        "design-critique:triage-ready",
+        "design-critique:ingest-ready",
         "area:cli",
       ],
-      "design-critique:triage-ready",
+      "design-critique:ingest-ready",
     );
-    expect(remaining).toEqual(["bug", "doctor", "area:cli", "design-critique:triage-ready"]);
+    expect(remaining).toEqual(["bug", "doctor", "area:cli", "design-critique:ingest-ready"]);
     expect(remaining.filter((n) => n.startsWith("design-critique:")).length).toBe(1);
   });
 
@@ -72,25 +72,27 @@ describe("design-critique exclusive remaining-set chip (#3642)", () => {
       /not a design-critique catalog chip/,
     );
     expect(isDesignCritiqueCatalogChip("design-critique:halted")).toBe(false);
-    expect(isDesignCritiqueCatalogChip("design-critique:recut-needed")).toBe(true);
+    expect(isDesignCritiqueCatalogChip("design-critique:triage-ready")).toBe(false);
+    expect(isDesignCritiqueCatalogChip("design-critique:recut-needed")).toBe(false);
+    expect(isDesignCritiqueCatalogChip("design-critique:in-progress")).toBe(true);
     expect(DESIGN_CRITIQUE_CATALOG_CHIPS).toEqual([
       "design-critique:mechanism-shaped",
-      "design-critique:triage-ready",
-      "design-critique:recut-needed",
+      "design-critique:in-progress",
+      "design-critique:ingest-ready",
     ]);
   });
 
-  it("replaces triage-ready with recut-needed and keeps other facets (#4205)", () => {
+  it("replaces mechanism-shaped with in-progress and keeps other facets", () => {
     const remaining = remainingSetAfterDesignCritiqueChip(
-      ["bug", "design-critique:triage-ready", "area:cli"],
-      "design-critique:recut-needed",
+      ["bug", "design-critique:mechanism-shaped", "area:cli"],
+      "design-critique:in-progress",
     );
-    expect(remaining).toEqual(["bug", "area:cli", "design-critique:recut-needed"]);
+    expect(remaining).toEqual(["bug", "area:cli", "design-critique:in-progress"]);
   });
 
-  it("recut to mechanism-shaped drops recut-needed", () => {
+  it("recut to mechanism-shaped drops in-progress", () => {
     const remaining = remainingSetAfterDesignCritiqueChip(
-      ["enhancement", "design-critique:recut-needed"],
+      ["enhancement", "design-critique:in-progress"],
       "design-critique:mechanism-shaped",
     );
     expect(remaining).toEqual(["enhancement", "design-critique:mechanism-shaped"]);
@@ -99,10 +101,10 @@ describe("design-critique exclusive remaining-set chip (#3642)", () => {
   it("apply delta is one add+remove, not two-step DELETE-then-POST", () => {
     const delta = designCritiqueChipApplyDelta(
       ["bug", "design-critique:mechanism-shaped"],
-      "design-critique:triage-ready",
+      "design-critique:ingest-ready",
     );
     expect(delta).toEqual({
-      add: ["design-critique:triage-ready"],
+      add: ["design-critique:ingest-ready"],
       remove: ["design-critique:mechanism-shaped"],
     });
   });
@@ -113,26 +115,26 @@ describe("design-critique exclusive remaining-set chip (#3642)", () => {
       client,
       "deftai/directive",
       3637,
-      "design-critique:triage-ready",
+      "design-critique:ingest-ready",
     );
     expect(client.applyCalls).toHaveLength(1);
     expect(client.applyCalls[0]).toEqual({
-      add: ["design-critique:triage-ready"],
+      add: ["design-critique:ingest-ready"],
       remove: ["design-critique:mechanism-shaped"],
     });
-    expect(result.remaining).toEqual(["bug", "area:cli", "design-critique:triage-ready"]);
+    expect(result.remaining).toEqual(["bug", "area:cli", "design-critique:ingest-ready"]);
     expect(client.labels.sort()).toEqual(
-      ["area:cli", "bug", "design-critique:triage-ready"].sort(),
+      ["area:cli", "bug", "design-critique:ingest-ready"].sort(),
     );
   });
 
   it("skips apply when the remaining set is already exclusive", () => {
-    const client = new FakeLabelClient(["process", "design-critique:triage-ready"]);
+    const client = new FakeLabelClient(["process", "design-critique:ingest-ready"]);
     applyDesignCritiqueCatalogChip(
       client,
       "deftai/directive",
       3642,
-      "design-critique:triage-ready",
+      "design-critique:ingest-ready",
     );
     expect(client.applyCalls).toHaveLength(0);
   });
@@ -157,13 +159,13 @@ describe("design-critique exclusive remaining-set chip (#3642)", () => {
     const client = new FakeLabelClient([
       "bug",
       "design-critique:mechanism-shaped",
-      "design-critique:triage-ready",
+      "design-critique:ingest-ready",
     ]);
     applyDesignCritiqueCatalogChip(
       client,
       "deftai/directive",
       3637,
-      "design-critique:triage-ready",
+      "design-critique:ingest-ready",
     );
     expect(client.applyCalls).toEqual([{ add: [], remove: ["design-critique:mechanism-shaped"] }]);
   });
@@ -174,24 +176,35 @@ describe("design-critique exclusive remaining-set chip (#3642)", () => {
     );
   });
 
+  it("has no clear-to-none verb", () => {
+    expect(() => remainingSetAfterDesignCritiqueChip(["bug"], "none")).toThrow(
+      /not a design-critique catalog chip/,
+    );
+    const remaining = remainingSetAfterDesignCritiqueChip(
+      ["design-critique:in-progress"],
+      "design-critique:in-progress",
+    );
+    expect(remaining).toEqual(["design-critique:in-progress"]);
+  });
+
   it("folds exclusive replace into LabelClient.apply add/remove", () => {
     const merged = mergeDesignCritiqueExclusiveIntoApply(
       ["bug", "design-critique:mechanism-shaped"],
-      ["design-critique:triage-ready"],
+      ["design-critique:ingest-ready"],
       [],
     );
     expect(merged).toEqual({
-      add: ["design-critique:triage-ready"],
+      add: ["design-critique:ingest-ready"],
       remove: ["design-critique:mechanism-shaped"],
     });
     const passthrough = mergeDesignCritiqueExclusiveIntoApply(["bug"], ["status:blocked"], ["rfc"]);
     expect(passthrough).toEqual({ add: ["status:blocked"], remove: ["rfc"] });
     const mixed = mergeDesignCritiqueExclusiveIntoApply(
       ["bug", "design-critique:mechanism-shaped"],
-      ["design-critique:triage-ready", "area:cli"],
+      ["design-critique:ingest-ready", "area:cli"],
       ["bug"],
     );
-    expect(mixed.add.sort()).toEqual(["area:cli", "design-critique:triage-ready"]);
+    expect(mixed.add.sort()).toEqual(["area:cli", "design-critique:ingest-ready"]);
     expect(mixed.remove.sort()).toEqual(["bug", "design-critique:mechanism-shaped"]);
   });
 });
