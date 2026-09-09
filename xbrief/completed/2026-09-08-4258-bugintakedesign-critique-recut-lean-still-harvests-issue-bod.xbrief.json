@@ -1,0 +1,231 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4258",
+    "updated": "2026-09-09T04:15:00Z"
+  },
+  "plan": {
+    "title": "bug(intake,design-critique): Recut lean still harvests issue-body AC; body rewrite looks like a new arc",
+    "status": "completed",
+    "narratives": {
+      "Description": "Recut-bound ingest still harvests GitHub-body checkboxes. Workers then implement withdrawn acceptance instead of the successor-lean Bound-remedy.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4258",
+      "Overview": "Shipped Recut Bound-remedy harvest on PR 4276 merge 77faf567fc71d0bb1b454852c03b731e83419dca. GitHub body remains historical. Do not restamp target-digest.",
+      "Labels": "bug, agent-experience, process, urgent, design-critique:recut-needed",
+      "UserStory": "As a Directive operator, I want issue:ingest to harvest Recut-bound successor-lean Bound-remedy items and stated acceptance, so that workers implement the accepted lean instead of withdrawn GitHub-body checkboxes.",
+      "ImplementationPlan": "Change packages/core/src/intake/issue-ingest.ts and markdown-scanners.ts so Recut plus completed-arc harvests the Bound-remedy heading slice via parseListItems. Point literal capture and derived-clause taskStatement at that slice. Update content/contracts/design-critique.md and the design-critique skill EXIT to print ingest. Verify with pnpm exec vitest run packages/core/src/intake and task check."
+    },
+    "items": [
+      {
+        "title": "Name a closed extractor: a Lean-family heading token (Bound-remedy heading, same class as In plain English) plus parseListItems on that slice of the cited successor lean only. Do not bind Recut harvest as reuse extractPlanItems. Fixture lean 5587555346: checkbox-first on the GitHub body must not win; empty on that lean must refuse. A numbered list without that heading is not enough.",
+        "status": "complete",
+        "narrative": {
+          "Acceptance": "Observable: Name a closed extractor: a Lean-family heading token (Bound-remedy heading, same class as In plain English) plus parseListItems on that slice of the cited successor lean only. Do not bind Recut harvest as reuse extractPlanItems. Fixture lean 5587555346: checkbox-first on the GitHub body must not win; empty on that lean must refuse. A numbered list without that heading is not enough. A failing test or named refuse proves the gap; a passing fixture proves the close.",
+          "Traces": "accepted successor lean"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/intake/markdown-scanners.test.ts",
+          "recorded_at": "2026-09-09T02:37:49Z",
+          "recorded_by": "4258-recut-harvest-b"
+        }
+      },
+      {
+        "title": "Point the same Recut harvest source at plan.items, literal capture, and derived-clause taskStatement. Overview may keep the GitHub body as historical described content. Do not close this issue with an items-only patch.",
+        "status": "complete",
+        "narrative": {
+          "Acceptance": "Observable: Point the same Recut harvest source at plan.items, literal capture, and derived-clause taskStatement. Overview may keep the GitHub body as historical described content. Do not close this issue with an items-only patch. A failing test or named refuse proves the gap; a passing fixture proves the close.",
+          "Traces": "accepted successor lean"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/intake/issue-ingest.test.ts",
+          "recorded_at": "2026-09-09T02:37:49Z",
+          "recorded_by": "4258-recut-harvest-b"
+        }
+      },
+      {
+        "title": "Bind one Recut ingest story: Recut token plus completed-arc record means harvest that closed bound-remedy slice. It is not repair-required refuse and not a recut arc. Leave #4237 Outcome:ready as the body-is-normative path. Do not let Recut mean both.",
+        "status": "complete",
+        "narrative": {
+          "Acceptance": "Observable: Bind one Recut ingest story: Recut token plus completed-arc record means harvest that closed bound-remedy slice. It is not repair-required refuse and not a recut arc. Leave #4237 Outcome:ready as the body-is-normative path. Do not let Recut mean both. A failing test or named refuse proves the gap; a passing fixture proves the close.",
+          "Traces": "accepted successor lean"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/intake/issue-ingest.test.ts",
+          "recorded_at": "2026-09-09T02:37:49Z",
+          "recorded_by": "4258-recut-harvest-b"
+        }
+      },
+      {
+        "title": "After synthesis accepted on a Recut lean, print ingest (existing issue:ingest) and do not print next-envelope as the default next. Do not add a land CLI. Do not treat body PATCH as a recut arc. Keep chip design-critique:recut-needed as list state.",
+        "status": "complete",
+        "narrative": {
+          "Acceptance": "Observable: After synthesis accepted on a Recut lean, print ingest (existing issue:ingest) and do not print next-envelope as the default next. Do not add a land CLI. Do not treat body PATCH as a recut arc. Keep chip design-critique:recut-needed as list state. A failing test or named refuse proves the gap; a passing fixture proves the close.",
+          "Traces": "accepted successor lean"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "content/contracts/design-critique.md",
+          "recorded_at": "2026-09-09T02:37:49Z",
+          "recorded_by": "4258-recut-harvest-b"
+        }
+      },
+      {
+        "title": "Target-digest / stale-target (#4243) is a different hole. Do not restamp for body alignment.",
+        "status": "complete",
+        "narrative": {
+          "Acceptance": "Observable: Target-digest / stale-target (#4243) is a different hole. Do not restamp for body alignment. A failing test or named refuse proves the gap; a passing fixture proves the close.",
+          "Traces": "accepted successor lean"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/intake/issue-ingest.test.ts",
+          "recorded_at": "2026-09-09T02:37:49Z",
+          "recorded_by": "4258-recut-harvest-b"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "urgent",
+      "design-critique:recut-needed"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4258",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4258: bug(intake,design-critique): Recut lean still harvests issue-body AC; body rewrite looks like a new arc"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "## Acceptance",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/intake/issue-ingest.ts",
+          "packages/core/src/intake/markdown-scanners.ts",
+          "content/contracts/design-critique.md",
+          "content/skills/deft-directive-design-critique/SKILL.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/intake",
+          "task check"
+        ],
+        "expected_outputs": [
+          "Bound-remedy Recut harvest mapper",
+          "Recut ingest story vs #4237",
+          "CHANGELOG #4258"
+        ],
+        "depends_on": [],
+        "conflict_group": "4258-recut-harvest",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Ingested from GitHub issue; AC traces the accepted successor lean rather than a specification FR id."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5389034119,
+        "origin": "deftai/directive#4258",
+        "id": "github.issue.5389034119"
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "dbf7171216b0d006f9d5e32311396f672dba9cc1",
+        "prNumber": 4276,
+        "prBase": "master",
+        "mergeCommit": "77faf567fc71d0bb1b454852c03b731e83419dca",
+        "deliveryBranch": "master",
+        "deliveryCommit": "2aeead58c99b238b7d33fc568ae1e20eb83c9b55",
+        "verifiedAt": "2026-09-09T04:15:00Z",
+        "verifier": "hand-complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDgzN2MtODU2Mi03OTEyLTlhY2MtYTg2MDM5YmMwM2Y2"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-09T04:15:00Z"
+      },
+      "completedAt": "2026-09-09T04:15:00Z",
+      "completedSessionId": "host:claude:v1:MDFhMDgzN2MtODU2Mi03OTEyLTlhY2MtYTg2MDM5YmMwM2Y2"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Name a closed extractor: a Lean-family heading token (Bound-remedy heading, same class as In plain English) plus parseListItems on that slice of the cited successor lean only. Do not bind Recut harvest as reuse extractPlanItems. Fixture lean 5587555346: checkbox-first on the GitHub body must not win; empty on that lean must refuse. A numbered list without that heading is not enough.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Point the same Recut harvest source at plan.items, literal capture, and derived-clause taskStatement. Overview may keep the GitHub body as historical described content. Do not close this issue with an items-only patch.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Bind one Recut ingest story: Recut token plus completed-arc record means harvest that closed bound-remedy slice. It is not repair-required refuse and not a recut arc. Leave #4237 Outcome:ready as the body-is-normative path. Do not let Recut mean both.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "After synthesis accepted on a Recut lean, print ingest (existing issue:ingest) and do not print next-envelope as the default next. Do not add a land CLI. Do not treat body PATCH as a recut arc. Keep chip design-critique:recut-needed as list state.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Target-digest / stale-target (#4243) is a different hole. Do not restamp for body alignment.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "CHANGELOG",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5389034119",
+    "updated": "2026-09-09T04:15:00Z"
+  }
+}
