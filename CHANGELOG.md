@@ -20,6 +20,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+### Removed
+
+## [0.113.2] - 2026-09-09
+
+> Recut ingest harvests Bound-remedy from the successor lean, and lifecycle reconcile no longer fetches every anchored issue one-by-one.
+
+### Added
+
+### Changed
+
+### Fixed
+
 - **Completed xBRIEF plan.items no longer land with status `complete` (#4284).** The #4258 brief now uses schema-legal `completed`. `scope:complete` rewrites `complete` to `completed` so release `vbrief:validate` stays closed. Closes #4284.
 - **Recut ingest harvests Bound-remedy from the successor lean, not GitHub-body checkboxes (#4258).** After Recut plus a completed-arc record, ingest takes the next-build items from that Bound-remedy list and refuses when the list is empty. Closes #4258.
 - **`--apply-lifecycle-fixes` no longer fetches every anchored GitHub issue one by one (#4269).** Closed issues still land in completed/ or cancelled/ from why they closed. Closes #4269.
@@ -5898,7 +5910,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.113.1...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.113.2...HEAD
+[0.113.2]: https://github.com/deftai/directive/compare/v0.113.1...v0.113.2
 [0.113.1]: https://github.com/deftai/directive/compare/v0.113.0...v0.113.1
 [0.113.0]: https://github.com/deftai/directive/compare/v0.112.0...v0.113.0
 [0.112.0]: https://github.com/deftai/directive/compare/v0.111.0...v0.112.0

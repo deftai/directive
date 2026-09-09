@@ -44,8 +44,11 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1439 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1442 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#4284** -- bug(xbrief): completed #4258 brief uses invalid plan.items status complete -- `[completed]`
+- **#4258** -- bug(intake,design-critique): Recut lean still harvests issue-body AC; body rewrite looks like a new arc -- `[completed]`
+- **#4269** -- perf(release,reconcile): apply-lifecycle-fixes still does one REST call per anchored issue -- `[completed]`
 - **#4272** -- bug(hooks,harness): Grok Build spawn_subagent hits Cursor-compat rewrite; updated_input drops required prompt -- `[completed]`
 - **#4254** -- bug(hooks,harness): dest-lock consult-deny after first allow ghosts a retry -- `[completed]`
 - **#4241** -- bug(design-critique,harness): direct critic spawn is exploratory/non-mutation and must not go through #4066 dest occupancy -- `[completed]`
@@ -68,7 +71,4 @@ _Showing 25 of 1439 completed scopes (newest first). Full history: lifecycle `co
 - **#4086** -- docs(canon): remove residual legacy authority from current xBRIEF sources -- `[completed]`
 - **#4005** -- security: gate destination-visible empty-op Shell mutations under active UAT -- `[completed]`
 - **#4091** -- docs(contributing): replace retired Python extension procedures with TypeScript paths -- `[completed]`
-- **#4088** -- fix(architecture): cover content modules in codeStructure validation -- `[completed]`
-- **#4116** -- bug(update,gitignore): canonical gitignore ignores .deft/approved-scope/ which provenance requires on the merge base -- `[completed]`
-- **#4130** -- bug(review-cycle,swarm): dual-stop max-out needs a parent-owned fresh critic; grok leaf must not nest -- `[completed]`
 
