@@ -18,7 +18,7 @@
     "items": [
       {
         "title": "Name a closed extractor: a Lean-family heading token (Bound-remedy heading, same class as In plain English) plus parseListItems on that slice of the cited successor lean only. Do not bind Recut harvest as reuse extractPlanItems. Fixture lean 5587555346: checkbox-first on the GitHub body must not win; empty on that lean must refuse. A numbered list without that heading is not enough.",
-        "status": "complete",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Observable: Name a closed extractor: a Lean-family heading token (Bound-remedy heading, same class as In plain English) plus parseListItems on that slice of the cited successor lean only. Do not bind Recut harvest as reuse extractPlanItems. Fixture lean 5587555346: checkbox-first on the GitHub body must not win; empty on that lean must refuse. A numbered list without that heading is not enough. A failing test or named refuse proves the gap; a passing fixture proves the close.",
           "Traces": "accepted successor lean"
@@ -32,7 +32,7 @@
       },
       {
         "title": "Point the same Recut harvest source at plan.items, literal capture, and derived-clause taskStatement. Overview may keep the GitHub body as historical described content. Do not close this issue with an items-only patch.",
-        "status": "complete",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Observable: Point the same Recut harvest source at plan.items, literal capture, and derived-clause taskStatement. Overview may keep the GitHub body as historical described content. Do not close this issue with an items-only patch. A failing test or named refuse proves the gap; a passing fixture proves the close.",
           "Traces": "accepted successor lean"
@@ -46,7 +46,7 @@
       },
       {
         "title": "Bind one Recut ingest story: Recut token plus completed-arc record means harvest that closed bound-remedy slice. It is not repair-required refuse and not a recut arc. Leave #4237 Outcome:ready as the body-is-normative path. Do not let Recut mean both.",
-        "status": "complete",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Observable: Bind one Recut ingest story: Recut token plus completed-arc record means harvest that closed bound-remedy slice. It is not repair-required refuse and not a recut arc. Leave #4237 Outcome:ready as the body-is-normative path. Do not let Recut mean both. A failing test or named refuse proves the gap; a passing fixture proves the close.",
           "Traces": "accepted successor lean"
@@ -60,7 +60,7 @@
       },
       {
         "title": "After synthesis accepted on a Recut lean, print ingest (existing issue:ingest) and do not print next-envelope as the default next. Do not add a land CLI. Do not treat body PATCH as a recut arc. Keep chip design-critique:recut-needed as list state.",
-        "status": "complete",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Observable: After synthesis accepted on a Recut lean, print ingest (existing issue:ingest) and do not print next-envelope as the default next. Do not add a land CLI. Do not treat body PATCH as a recut arc. Keep chip design-critique:recut-needed as list state. A failing test or named refuse proves the gap; a passing fixture proves the close.",
           "Traces": "accepted successor lean"
@@ -74,7 +74,7 @@
       },
       {
         "title": "Target-digest / stale-target (#4243) is a different hole. Do not restamp for body alignment.",
-        "status": "complete",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Observable: Target-digest / stale-target (#4243) is a different hole. Do not restamp for body alignment. A failing test or named refuse proves the gap; a passing fixture proves the close.",
           "Traces": "accepted successor lean"

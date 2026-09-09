@@ -1,0 +1,122 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4284",
+    "updated": "2026-09-09T13:52:19Z"
+  },
+  "plan": {
+    "id": "github.issue.5400244213",
+    "title": "bug(xbrief): completed #4258 brief uses invalid plan.items status complete",
+    "status": "pending",
+    "narratives": {
+      "Description": "Completed #4258 xBRIEF plan.items use illegal status complete, which fails vbrief:validate and blocks the v0.113.2 release cut.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4284",
+      "UserStory": "As a maintainer, I want completed xBRIEF plan.items to use schema-legal status values, so that release Step 5 vbrief:validate can pass without weakening the gate.",
+      "ImplementationPlan": "Normalize the landed #4258 completed brief item statuses to completed. Make scope:complete normalize or refuse item status complete. Add a regression test. Do not weaken vbrief:validate. CHANGELOG Unreleased Fixed.",
+      "Traces": "FR-1 item status schema; NFR-1 do not weaken vbrief:validate"
+    },
+    "items": [
+      {
+        "id": "FR-1",
+        "title": "Fix completed #4258 brief plan.items status complete to completed",
+        "status": "pending",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "vbrief:validate exits 0 including that file",
+          "Traces": "FR-1"
+        }
+      },
+      {
+        "id": "FR-2",
+        "title": "scope:complete normalizes or refuses item status complete",
+        "status": "pending",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "A regression test proves complete cannot land again",
+          "Traces": "FR-2"
+        }
+      },
+      {
+        "id": "FR-3",
+        "title": "CHANGELOG Unreleased Fixed names the schema-legal item status close",
+        "status": "pending",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Unreleased Fixed bullet cites #4284",
+          "Traces": "FR-3"
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4284",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4284: bug(xbrief): completed #4258 brief uses invalid plan.items status complete"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready for concurrent allocation",
+        "parallel_safe": true,
+        "depends_on": [],
+        "conflict_group": "4284-xbrief-item-status",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "file_scope": [
+          "xbrief/completed/2026-09-08-4258-bugintakedesign-critique-recut-lean-still-harvests-issue-bod.xbrief.json",
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/vbrief-validate/schema.ts",
+          "packages/core/src/vbrief-validate/constants.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/scope/transition.test.ts"
+        ],
+        "expected_outputs": [
+          "vbrief:validate exit 0",
+          "PR merged"
+        ]
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5400244213,
+        "origin": "deftai/directive#4284",
+        "id": "github.issue.5400244213"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "vbrief:validate exits 0 including that file",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "A regression test proves complete cannot land again",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Unreleased Fixed bullet cites #4284",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "updated": "2026-09-09T13:52:19Z"
+  }
+}
