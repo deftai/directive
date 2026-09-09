@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF for GitHub issue #3785 (partial: bound items 3 and 4; items 1 and 2 split out on portability evidence)",
-    "updated": "2026-08-28T20:30:45Z"
+    "updated": "2026-09-09T15:51:22Z"
   },
   "plan": {
     "title": "bug(hooks): warn when a fail-closed hook registration travels without a hostable runtime",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Directive git-tracks the fail-closed Cursor hook registration while gitignoring the runtime it names. The registration travels via git; the implementation does not. Any clone, CI runner, or container without a global npm install fail-closes every mutation at exit 127 with no in-session recovery. This scope warns at the one moment a runtime is provably present, and documents the durable out-of-band recovery.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/3785",
@@ -17,31 +17,73 @@
     "items": [
       {
         "title": "Fail-closed stays on: the deposited Cursor registration keeps `failClosed: true` and a regression test locks that absence of the runtime is never a write allow",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/hook-runtime-travel.test.ts#keeps the Cursor deposit fail-closed: absence is never an allow (#3156)",
+          "recorded_at": "2026-09-09T15:51:12.413Z",
+          "recorded_by": "orchestrator/3785-peel"
+        }
       },
       {
         "title": "Deposit and update warn when an agent-hook registration travels with the repository (tracked, or trackable and not ignored) while no runtime anchor travels with it",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/hook-runtime-travel.test.ts#warns on a first deposit, before the registration has been staged",
+          "recorded_at": "2026-09-09T15:51:12.413Z",
+          "recorded_by": "orchestrator/3785-peel"
+        }
       },
       {
         "title": "Recovery docs lead with `deft policy:disable-host-hooks --host cursor --confirm` and warn that hand-editing `failClosed: false` is reverted by the next `deft update`",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/docs/hook-runtime-unavailable.md -- recovery section, merged in PR 3890 (2a66cb432b2ac92cf0955a0c1421a4b1d7149161)",
+          "recorded_at": "2026-09-09T15:51:12.413Z",
+          "recorded_by": "orchestrator/3785-peel"
+        }
       },
       {
         "title": "Docs record absent, crashed, and timed-out as one non-decision class that stays fail-closed and needs legibility plus an escape, carrying the answer to #3736",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/docs/hook-runtime-unavailable.md -- one non-decision class, merged in PR 3890 (2a66cb432b2ac92cf0955a0c1421a4b1d7149161)",
+          "recorded_at": "2026-09-09T15:51:12.413Z",
+          "recorded_by": "orchestrator/3785-peel"
+        }
       },
       {
         "title": "AGENTS.md card names the exit-127 lockout signature and its recovery, mirrored into `content/templates/agents-entry.md` per #1309",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts#hook-runtime lockout markers in AGENTS.md and agents-entry.md (#1309)",
+          "recorded_at": "2026-09-09T15:51:12.413Z",
+          "recorded_by": "orchestrator/3785-peel"
+        }
       },
       {
         "title": "CHANGELOG `[Unreleased]` entry names the durable workaround rather than the hand-edit",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "CHANGELOG.md [0.108.0] -- names deft policy:disable-host-hooks --host cursor --confirm, merged in PR 3890 (2a66cb432b2ac92cf0955a0c1421a4b1d7149161)",
+          "recorded_at": "2026-09-09T15:51:12.413Z",
+          "recorded_by": "orchestrator/3785-peel"
+        }
       },
       {
         "title": "Split issue filed for bound items 1 and 2 carrying the cross-platform portability evidence",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "https://github.com/deftai/directive/issues/3888 -- split issue carrying the cross-platform portability evidence for bound items 1 and 2",
+          "recorded_at": "2026-09-09T15:51:12.413Z",
+          "recorded_by": "orchestrator/3785-peel"
+        }
       }
     ],
     "tags": [
@@ -64,6 +106,11 @@
         "uri": "https://github.com/deftai/directive/issues/3571",
         "type": "x-xbrief/refs",
         "title": "Issue #3571"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3888",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #3888: bug(hooks): a repo-local deft-hook runner is not portably registrable from one tracked hooks.json (#3785 items 1+2)"
       }
     ],
     "acceptance": {
@@ -151,8 +198,33 @@
         ],
         "module_boundary": "packages/core/src/init-deposit",
         "cohesion_exemption": "CHANGELOG.md is a chronological append-only release log; its length is the record, not a cohesion defect. This slice appends one [Unreleased] entry and edits nothing else in the file."
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 3890,
+        "prBase": null,
+        "mergeCommit": "2a66cb432b2ac92cf0955a0c1421a4b1d7149161",
+        "deliveryBranch": "master",
+        "deliveryCommit": "1f64c5277946afe70fc1f235af790139d42b6276",
+        "verifiedAt": "2026-09-09T15:51:22Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDg2NTAtOTlhZS03Y2YyLTliZDItYmIxYjM2YzI5OTJh"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-09T15:51:22Z"
+      },
+      "completedAt": "2026-09-09T15:51:22Z",
+      "completedSessionId": "host:grok:v1:MDFhMDg2NTAtOTlhZS03Y2YyLTliZDItYmIxYjM2YzI5OTJh",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-08-28T20:30:45Z"
+    "updated": "2026-09-09T15:51:22Z"
   }
 }
