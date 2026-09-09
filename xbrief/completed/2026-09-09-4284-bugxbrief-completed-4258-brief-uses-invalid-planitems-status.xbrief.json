@@ -2,12 +2,12 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4284",
-    "updated": "2026-09-09T13:52:19Z"
+    "updated": "2026-09-09T15:24:17Z"
   },
   "plan": {
     "id": "github.issue.5400244213",
     "title": "bug(xbrief): completed #4258 brief uses invalid plan.items status complete",
-    "status": "pending",
+    "status": "completed",
     "narratives": {
       "Description": "Completed #4258 xBRIEF plan.items use illegal status complete, which fails vbrief:validate and blocks the v0.113.2 release cut.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4284",
@@ -19,31 +19,49 @@
       {
         "id": "FR-1",
         "title": "Fix completed #4258 brief plan.items status complete to completed",
-        "status": "pending",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "Acceptance": "vbrief:validate exits 0 including that file",
           "Traces": "FR-1"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/transition.test.ts",
+          "recorded_by": "parent:4284-post-merge",
+          "recorded_at": "2026-09-09T15:24:10.473Z"
         }
       },
       {
         "id": "FR-2",
         "title": "scope:complete normalizes or refuses item status complete",
-        "status": "pending",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "Acceptance": "A regression test proves complete cannot land again",
           "Traces": "FR-2"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/transition.test.ts",
+          "recorded_by": "parent:4284-post-merge",
+          "recorded_at": "2026-09-09T15:24:10.473Z"
         }
       },
       {
         "id": "FR-3",
         "title": "CHANGELOG Unreleased Fixed names the schema-legal item status close",
-        "status": "pending",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "Acceptance": "Unreleased Fixed bullet cites #4284",
           "Traces": "FR-3"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4287",
+          "recorded_by": "operator:squash-merge",
+          "recorded_at": "2026-09-09T15:24:10.473Z"
         }
       }
     ],
@@ -85,7 +103,32 @@
         "github_issue_id": 5400244213,
         "origin": "deftai/directive#4284",
         "id": "github.issue.5400244213"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4287,
+        "prBase": null,
+        "mergeCommit": "0af0df41728cf5f9b6d1f718ab49cc099b4e1eef",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0af0df41728cf5f9b6d1f718ab49cc099b4e1eef",
+        "verifiedAt": "2026-09-09T15:24:17Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDg2NTAtOTlhZS03Y2YyLTliZDItYmIxYjM2YzI5OTJh"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-09T15:24:17Z"
+      },
+      "completedAt": "2026-09-09T15:24:17Z",
+      "completedSessionId": "host:grok:v1:MDFhMDg2NTAtOTlhZS03Y2YyLTliZDItYmIxYjM2YzI5OTJh",
+      "capacityBucket": "technical-debt"
     },
     "acceptance": {
       "commands": [],
@@ -117,6 +160,6 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "updated": "2026-09-09T13:52:19Z"
+    "updated": "2026-09-09T15:24:17Z"
   }
 }
