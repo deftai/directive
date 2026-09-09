@@ -720,7 +720,9 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
       "design-critique:in-progress",
       "design-critique:ingest-ready",
     ]);
-    expect(() => resolveDesignCritiqueChipArg("recut-needed")).toThrow(/unknown design-critique chip/);
+    expect(() => resolveDesignCritiqueChipArg("recut-needed")).toThrow(
+      /unknown design-critique chip/,
+    );
     expect(() => resolveDesignCritiqueChipArg("design-critique:recut-needed")).toThrow(
       /unknown design-critique chip/,
     );

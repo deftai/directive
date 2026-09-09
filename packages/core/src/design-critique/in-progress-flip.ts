@@ -3,8 +3,8 @@
  * panel-deposit or role: critic, not spawn intent.
  */
 
-import type { DesignCritiqueCatalogChip } from "./exclusive-chip.js";
 import { isPanelDepositBody, type ThreadComment } from "./completed-arc-record.js";
+import type { DesignCritiqueCatalogChip } from "./exclusive-chip.js";
 
 const CRITIC_ROLE_RE = /(?:^|\n)\s*role:\s*critic\b/i;
 

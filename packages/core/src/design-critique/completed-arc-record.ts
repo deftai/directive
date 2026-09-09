@@ -497,7 +497,6 @@ export function evaluateCompletedArcRecord(input: {
   readonly comments: readonly ThreadComment[];
 }): CompletedArcVerdict {
   const comments = input.comments;
-  const labels = input.labels ?? [];
   const cancel = latestCancelled(comments);
   const latestLeanForCancel = latestSuccessorLean(comments);
   if (
