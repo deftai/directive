@@ -118,6 +118,7 @@ import {
   isExploreSpawn,
   isProcessOnlyCriticSpawn,
   isReadOnlyHookContext,
+  processOnlyCriticRequiresDest,
 } from "./readonly.js";
 import {
   type ActiveScopeInspection,
@@ -2605,6 +2606,23 @@ function routeHookDecision(
       const destNote = prepareProcessOnlyCriticDest(input.payload, projectRoot, seams);
       if (destNote !== null && destNote.ok === false) {
         return deny(input, "spawn-not-ready", toolName, destNote.message);
+      }
+      if (
+        destNote === null &&
+        processOnlyCriticRequiresDest(input.payload, {
+          host: input.host,
+          toolName,
+          environ,
+        })
+      ) {
+        return deny(
+          input,
+          "spawn-not-ready",
+          toolName,
+          `Directive denied ${toolName}: process_only critic spawn requires tool_input.cwd ` +
+            "on an existing linked dest worktree (github-only dest-first). Dest-path is not " +
+            "the skip class; pass cwd to the dest created at origin/<default> after fetch.",
+        );
       }
       const pin = destNote?.ok ? ` ${destNote.record}` : "";
       return {

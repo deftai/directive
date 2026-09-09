@@ -9,6 +9,7 @@ import {
   isGrokHookProcess,
   isProcessOnlyCriticSpawn,
   isReadOnlyHookContext,
+  processOnlyCriticRequiresDest,
 } from "./readonly.js";
 import { READ_ONLY_HOOK_ENV } from "./tools.js";
 
@@ -222,6 +223,18 @@ describe("process-only critic spawn (#4241)", () => {
     expect(
       isProcessOnlyCriticSpawn({ tool_input: { subagent_type: "generalPurpose" } }, grok),
     ).toBe(false);
+  });
+
+  it("requires dest cwd when process_only flag is set (#4296)", () => {
+    expect(
+      processOnlyCriticRequiresDest(
+        { tool_input: { subagent_type: "general-purpose", process_only: true } },
+        grok,
+      ),
+    ).toBe(true);
+    expect(processOnlyCriticRequiresDest({ tool_input: { subagent_type: "plan" } }, grok)).toBe(
+      false,
+    );
   });
 
   it("recognizes host-visible process_only on general-purpose (#4296)", () => {

@@ -376,3 +376,15 @@ export function isProcessOnlyCriticSpawn(
   if (!isPlan && !isFlag) return false;
   return !hasImplementConflictSignal(toolInput, input);
 }
+
+/** True when the skip class is the `process_only` flag, which requires dest cwd (#4296). */
+export function processOnlyCriticRequiresDest(
+  payload: unknown,
+  context: ProcessOnlyCriticSpawnContext,
+): boolean {
+  if (!isProcessOnlyCriticSpawn(payload, context)) return false;
+  const input = record(payload);
+  if (input === null) return false;
+  const toolInput = toolInputRecord(input) ?? input;
+  return hasProcessOnlyCriticFlag(toolInput, input);
+}
