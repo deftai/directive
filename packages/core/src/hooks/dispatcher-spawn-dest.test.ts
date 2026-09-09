@@ -73,6 +73,48 @@ function readySeams(overrides: Partial<HookPolicySeams> = {}): HookPolicySeams {
 }
 
 describe("dest-proven implement spawn (#4215)", () => {
+  it("prepares github-only dest on process_only spawn onto a linked worktree (#4296)", () => {
+    const { root, dest } = destFixture();
+    const prepareArcDest = vi.fn(() => ({
+      dest: {
+        destPath: dest,
+        dispatchSha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        originRef: "origin/main",
+        pinKind: "origin-default" as const,
+        reused: true,
+      },
+      record:
+        "arc-mode: no-ingest\ndest: " +
+        dest +
+        "\ndispatch-sha: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    }));
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: {
+            subagent_type: "general-purpose",
+            process_only: true,
+            cwd: dest,
+            prompt: "git show the dispatch sha",
+          },
+        },
+      },
+      readySeams({ prepareArcDest }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-process-only-ready" });
+    expect(prepareArcDest).toHaveBeenCalledWith({
+      repoRoot: root,
+      destPath: dest,
+      againstImplementationSha: undefined,
+    });
+    expect(decision.message).toContain("arc-mode: no-ingest");
+    expect(decision.message).toContain("dispatch-sha:");
+  });
+
   it("does not skip #2885 on destProven implement-class spawn (#4296)", () => {
     const { root, dest } = destFixture();
     const inspectRitual = vi.fn(() => STALE_RITUAL);

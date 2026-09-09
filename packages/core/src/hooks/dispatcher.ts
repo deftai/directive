@@ -1,4 +1,4 @@
-import { lstatSync, realpathSync } from "node:fs";
+import { existsSync, lstatSync, realpathSync } from "node:fs";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import {
   type AuthzDecision,
@@ -14,6 +14,7 @@ import {
   shouldConsumeSingleUseGrant,
   utcIso,
 } from "../authz/index.js";
+import { prepareGithubOnlyDest } from "../design-critique/run-posture.js";
 import { runningInsideDeftRepo } from "../doctor/paths.js";
 import {
   assertProjectionContained,
@@ -56,6 +57,7 @@ import {
   memoizeGitRunner,
   worktreePathOrNull,
 } from "../session/git.js";
+import { isLinkedWorktreePath } from "../session/main-worktree.js";
 import { evaluateOccupancyWriteGate } from "../session/occupancy.js";
 import { emitSessionRitualBlockedProcessCost } from "../session/process-cost.js";
 import { markRitualStaleAfterCompact } from "../session/ritual-sentinel.js";
@@ -317,6 +319,8 @@ export interface HookPolicySeams {
   readonly lifecycleExecutionPlatform?: NodeJS.Platform;
   /** Test seam for the #3987 post-decision owner-liveness re-stamp. */
   readonly restampOwnerLiveness?: (input: OwnerLivenessInput) => OwnerLivenessOutcome;
+  /** Test seam for Stop 1 dest prepare on process-only critic spawn (#4296). */
+  readonly prepareArcDest?: typeof prepareGithubOnlyDest;
 }
 
 /** POSIX-ish project-relative path for lifecycle matching. */
@@ -2328,6 +2332,37 @@ function restampOwnerLiveness(
   }
 }
 
+function prepareProcessOnlyCriticDest(
+  payload: unknown,
+  projectRoot: string,
+  seams: HookPolicySeams,
+): { ok: true; record: string } | { ok: false; message: string } | null {
+  const input = record(payload);
+  if (input === null) return null;
+  const toolInput = toolInputRecord(input) ?? input;
+  const cwd = fieldString(toolInput, "cwd");
+  if (cwd === null || !existsSync(cwd) || !isLinkedWorktreePath(cwd)) return null;
+  const against =
+    fieldString(toolInput, "dispatch_sha") ??
+    fieldString(toolInput, "against_implementation_sha") ??
+    undefined;
+  try {
+    const prepared = (seams.prepareArcDest ?? prepareGithubOnlyDest)({
+      repoRoot: projectRoot,
+      destPath: cwd,
+      againstImplementationSha: against,
+    });
+    return { ok: true, record: prepared.record };
+  } catch (cause) {
+    return {
+      ok: false,
+      message:
+        `Directive denied process-only critic spawn: dest prepare failed: ${String(cause)}. ` +
+        "Parent must fetch origin and create or verify the dest at origin/<default> before spawn.",
+    };
+  }
+}
+
 /** Decide a normalized event using only the P0 direct-write policy. */
 export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}): HookDecision {
   const observation: DispatchObservation = { effectiveRoots: [], foreignTarget: false };
@@ -2567,6 +2602,11 @@ function routeHookDecision(
         environ,
       })
     ) {
+      const destNote = prepareProcessOnlyCriticDest(input.payload, projectRoot, seams);
+      if (destNote !== null && destNote.ok === false) {
+        return deny(input, "spawn-not-ready", toolName, destNote.message);
+      }
+      const pin = destNote?.ok ? ` ${destNote.record}` : "";
       return {
         verdict: "allow",
         code: "spawn-process-only-ready",
@@ -2576,7 +2616,7 @@ function routeHookDecision(
         projectRoot,
         message:
           `Directive allowed process-only critic ${toolName} spawn without dest occupancy ` +
-          "or implementation gates (subagent_type plan or process_only).",
+          `or implementation gates (subagent_type plan or process_only).${pin}`,
         scopePath: null,
       };
     }
