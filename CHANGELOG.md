@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Recut-bound ingest harvests Bound-remedy, not GitHub-body checkboxes (#4258).** After a Recut token plus a completed-arc record, `issue:ingest` takes `plan.items`, literal capture, and derived-clause taskStatement from the cited successor lean `## Bound remedy` list. Empty on that lean refuses. Overview keeps the GitHub body as history. Recut is not repair-required refuse and not a recut arc. After Recut bind, EXIT prints ingest. Closes #4258.
+
 ### Removed
 
 ## [0.113.1] - 2026-09-08

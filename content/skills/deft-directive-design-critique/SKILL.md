@@ -68,4 +68,4 @@ Dispatch-composition miss: offer or file a prevention issue.
 
 ## EXIT
 
-deft-directive-design-critique complete -- exiting skill. Next: operator fills the brief template and dispatches the next envelope. Direct EXIT: ingest is a separate operator verb.
+deft-directive-design-critique complete -- exiting skill. After Recut bind: Next: run `task issue:ingest`. Else: operator fills the brief template and dispatches the next envelope. Direct EXIT: ingest is a separate operator verb.
