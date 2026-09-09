@@ -169,7 +169,7 @@ describe("routeArgv", () => {
         "--issue",
         "3642",
         "--chip",
-        "triage-ready",
+        "ingest-ready",
       ]).argv,
     ).toEqual([
       "scm",
@@ -178,10 +178,10 @@ describe("routeArgv", () => {
       "--issue",
       "3642",
       "--chip",
-      "triage-ready",
+      "ingest-ready",
     ]);
     expect(
-      routeArgv(["scm:issue:design-critique-chip", "--issue", "3642", "--chip", "triage-ready"])
+      routeArgv(["scm:issue:design-critique-chip", "--issue", "3642", "--chip", "ingest-ready"])
         .argv,
     ).toEqual([
       "scm",
@@ -190,7 +190,7 @@ describe("routeArgv", () => {
       "--issue",
       "3642",
       "--chip",
-      "triage-ready",
+      "ingest-ready",
     ]);
   });
 

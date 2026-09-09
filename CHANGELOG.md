@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Design-critique exclusive catalog is mechanism-shaped, in-progress, ingest-ready (#4298).** One bind chip after a complete record: ingest-ready. judgmentGates stays on mechanism-shaped. in-progress flips on first panel-deposit or role: critic, not spawn intent. Recut: is a lean token, not a chip; auto-stamp writes ingest-ready. Old triage-ready / recut-needed fail closed. In-arc membership is thread-only. Halt leaves the standing in-flight chip. Closes #4298. Refs #3642, #4205, #3640, #3806.
+
 ### Fixed
 
 - **Land leftover completed-tracked artifact for #3785 (#3264 / #1358).** Partial items 3-4 shipped in PR 3890 (`2a66cb43`). Remaining bound items 1-2 stay on #3888. Moved to `xbrief/completed/` via `scope:complete`. Empty `xbrief/active/` keeps a `.gitkeep` so labeled-current FILES.md still names a repo-tracked folder. Closes #3785. Refs #3888, #2321, #3476.

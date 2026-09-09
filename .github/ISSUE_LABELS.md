@@ -111,7 +111,7 @@ Config surface: `plan.policy.triageLabelMirror` (see #1423 Wave 1 / #3118).
 
 ### Design-critique stamp (ADR-005 / #3434 / #3627 / #3642 / #3640)
 
-Author-stamped, not classify-mirror output. Not a `triage:*` classify action. The triage author decides the lean is mechanism-shaped and writes **both** halves of the #1423 pairing. After synthesis-accepted (operator **accept synthesis** or #3640 auto-stamp), apply the bind-ready chip as the exclusive catalog chip. Auto-stamp selects `triage-ready` or `recut-needed` from a Lean-family `Recut:` line-start on the successor lean (`resolveAutoStampCatalogChip`). `CHIP_ALIASES` is the same three names.
+Author-stamped, not classify-mirror output. Not a `triage:*` classify action. The triage author decides the lean is mechanism-shaped and writes **both** halves of the #1423 pairing. After synthesis-accepted (operator **accept synthesis** or #3640 auto-stamp), apply the bind chip `design-critique:ingest-ready` as the exclusive catalog chip. `resolveAutoStampCatalogChip` returns ingest-ready once the completed-arc record exists. `Recut:` is a lean token, not a chip. `CHIP_ALIASES` is the same three names. Old `design-critique:triage-ready` and `design-critique:recut-needed` fail closed.
 
 Closed set (one current chip; remaining-set replace, last chip wins):
 
@@ -120,16 +120,16 @@ Closed set (one current chip; remaining-set replace, last chip wins):
 | Body-text field (artifact) | `mechanism-shaped: true` | Survives in the write-back comment; history after remaining-set replace |
 | Mirrored label (predicate / lists) | `design-critique:mechanism-shaped` | In-flight; what `plan.policy.judgmentGates` matches |
 | Synthesis-accepted line | `design-critique: synthesis accepted, because …` | Bind record (operator **accept synthesis** or #3640 auto-stamp) |
-| Bind-ready label | `design-critique:triage-ready` | List-visible convenience after synthesis-accepted when the next-build contract is this body; not ingest clearance |
-| Recut-needed label | `design-critique:recut-needed` | List-visible convenience after synthesis-accepted when the successor lean carries `Recut:`; not ingest clearance; not a halt chip |
+| In-progress label | `design-critique:in-progress` | List-visible live arc after first panel-deposit or `role: critic` post; not in `judgmentGates`; not ingest clearance |
+| Bind-ready label | `design-critique:ingest-ready` | List-visible convenience after a completed-arc record; not ingest clearance |
 
-Applying one catalog chip: parent MUST call `task scm:issue:design-critique-chip -- --issue N --chip triage-ready|mechanism-shaped|recut-needed [--repo OWNER/NAME]`. GET current labels, drop the other catalog names (`design-critique:mechanism-shaped`, `design-critique:triage-ready`, and `design-critique:recut-needed`), PUT/PATCH that remaining set. Other facets stay. Inventory: `LabelClient.apply` / `mergeIssueLabels`. Do not DELETE-then-POST (unchipped window). Do not PUT a naive full wipe. Do not `gh api POST .../labels` or additive `scm:issue:edit --add-label`.
+Applying one catalog chip: parent MUST call `task scm:issue:design-critique-chip -- --issue N --chip mechanism-shaped|in-progress|ingest-ready [--repo OWNER/NAME]`. GET current labels, drop the other catalog names (`design-critique:mechanism-shaped`, `design-critique:in-progress`, and `design-critique:ingest-ready`), PUT/PATCH that remaining set. Other facets stay. Inventory: `LabelClient.apply` / `mergeIssueLabels`. Do not DELETE-then-POST (unchipped window). Do not PUT a naive full wipe. Do not `gh api POST .../labels` or additive `scm:issue:edit --add-label`.
 
 Chip is list state, not consent. Ingest waits on the completed-arc record (`design-critique: synthesis accepted, because …` citing the accepted successor lean), not this chip. Chip apply miss is non-blocking. Do not drop `mechanism-shaped` without the synthesis-accepted line (or the #3640 empty-disagreement path).
 
 Do **not** invent a classifier for "mechanism-shaped." Stamp or omit. No stamp -> gate never fires (voluntary critiques stay legal). Clearance line is separate: `design-critique: warranted \| not warranted, because ...` (ADR-005).
 
-Critic does not write issue labels. Do not add a critic-posted or author/role chip. `judgmentGates` still matches only `design-critique:mechanism-shaped`. No halt chip. Remove-set is those three catalog names only.
+Critic does not write issue labels. Do not add a critic-posted or author/role chip. `judgmentGates` still matches only `design-critique:mechanism-shaped`. in-progress and ingest-ready stay out of that match. No halt chip. Halt leaves the standing in-flight chip. No clear-to-none. Orphan query is label-indexed and confirms halt on the thread. Remove-set is those three catalog names only.
 
 ### Work claim (`status:claimed`, #4200)
 

@@ -1,10 +1,9 @@
 /**
- * Auto-stamp catalog chip from a closed Lean-family line-start (#4205).
+ * Auto-stamp catalog chip after a completed-arc record (#4298).
  *
- * Recut vs implement is a token on the successor lean, not English. Same
- * wrapping as `Lean:` (zero to two asterisks on each side). Absence of the
- * token is the implement-bound chip. This module does not classify comments
- * as successor leans.
+ * Recut vs implement is a token on the successor lean, not a chip. Bind path 1
+ * remaining-set-replaces ingest-ready once the record exists. This module does
+ * not classify comments as successor leans.
  */
 
 import type { DesignCritiqueCatalogChip } from "./exclusive-chip.js";
@@ -18,10 +17,10 @@ export function leanCarriesRecutToken(body: string): boolean {
 
 /**
  * Chip for #3640 auto-stamp / bind path 2 after operator confirm.
- * Recut token present → recut-needed. Otherwise triage-ready.
+ * Record present -> ingest-ready. Recut: is not a chip selector.
  */
-export function resolveAutoStampCatalogChip(successorLeanBody: string): DesignCritiqueCatalogChip {
-  return leanCarriesRecutToken(successorLeanBody)
-    ? "design-critique:recut-needed"
-    : "design-critique:triage-ready";
+export function resolveAutoStampCatalogChip(
+  _successorLeanBody?: string,
+): DesignCritiqueCatalogChip {
+  return "design-critique:ingest-ready";
 }

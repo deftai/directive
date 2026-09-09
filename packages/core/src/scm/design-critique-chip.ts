@@ -1,7 +1,7 @@
 /**
  * Chip-only remaining-set write for design-critique catalog labels (#3642).
  *
- * Parent attach of triage-ready / recut-needed / recut mechanism-shaped MUST use this verb,
+ * Parent attach of ingest-ready / in-progress / recut mechanism-shaped MUST use this verb,
  * not `gh api POST .../labels` and not additive `scm:issue:edit --add-label`.
  */
 
@@ -22,18 +22,18 @@ export const DESIGN_CRITIQUE_CHIP_VERB = "design-critique-chip" as const;
 export const CHIP_APPLY_MISS_TOKEN = "chip apply missed (non-blocking convenience)";
 
 export const DESIGN_CRITIQUE_CHIP_USAGE =
-  "usage: scm issue design-critique-chip --issue N --chip triage-ready|mechanism-shaped|recut-needed [--repo OWNER/NAME] [--json]\n" +
-  "       Parent attach of design-critique:triage-ready / recut-needed / recut mechanism-shaped.\n" +
+  "usage: scm issue design-critique-chip --issue N --chip mechanism-shaped|in-progress|ingest-ready [--repo OWNER/NAME] [--json]\n" +
+  "       Parent attach of design-critique:ingest-ready / in-progress / recut mechanism-shaped.\n" +
   "       Closed catalog remaining-set replace. One write. Other facets stay.\n" +
   "       Apply miss is non-blocking convenience; ingest is not blocked.\n";
 
 export const CHIP_ALIASES: Readonly<Record<string, DesignCritiqueCatalogChip>> = {
-  "triage-ready": "design-critique:triage-ready",
   "mechanism-shaped": "design-critique:mechanism-shaped",
-  "recut-needed": "design-critique:recut-needed",
-  "design-critique:triage-ready": "design-critique:triage-ready",
+  "in-progress": "design-critique:in-progress",
+  "ingest-ready": "design-critique:ingest-ready",
   "design-critique:mechanism-shaped": "design-critique:mechanism-shaped",
-  "design-critique:recut-needed": "design-critique:recut-needed",
+  "design-critique:in-progress": "design-critique:in-progress",
+  "design-critique:ingest-ready": "design-critique:ingest-ready",
 };
 
 export interface DesignCritiqueChipArgs {
@@ -60,8 +60,8 @@ export function resolveDesignCritiqueChipArg(raw: string): DesignCritiqueCatalog
   const chip = CHIP_ALIASES[raw];
   if (chip === undefined) {
     throw new Error(
-      `unknown design-critique chip ${pyRepr(raw)}; expected triage-ready|mechanism-shaped|recut-needed ` +
-        "(or design-critique:triage-ready|design-critique:mechanism-shaped|design-critique:recut-needed)",
+      `unknown design-critique chip ${pyRepr(raw)}; expected mechanism-shaped|in-progress|ingest-ready ` +
+        "(or design-critique:mechanism-shaped|design-critique:in-progress|design-critique:ingest-ready)",
     );
   }
   return chip;
@@ -101,7 +101,7 @@ export function parseDesignCritiqueChipArgs(extra: readonly string[]): DesignCri
 
   const positionals = remainder.filter((t) => !t.startsWith("-"));
   if (chipRaw === null || chipRaw.length === 0) {
-    throw new Error("missing --chip triage-ready|mechanism-shaped|recut-needed");
+    throw new Error("missing --chip mechanism-shaped|in-progress|ingest-ready");
   }
   const chip = resolveDesignCritiqueChipArg(chipRaw);
 

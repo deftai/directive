@@ -25,7 +25,7 @@ Boundaries are read off the machinery in this document, not asserted here.
 - Rounds accumulate inside one arc. The auto-stamp denominator is scoped to critic posts in this arc and keeps a Stop 4 retry's post, so a retry continues the arc it retries.
 - Same-round siblings share one ceiling and one panel-deposit. A panel is one round, not N arcs.
 - The arc stays open through the operator-gated loop until a verified synthesis is accepted, or until the halt line. Successor leans are moves inside that loop, so revising a lean before bind is not a boundary.
-- A **recut** opens the next arc, and only after bind: it re-applies `design-critique:mechanism-shaped`, drops `design-critique:triage-ready` and `design-critique:recut-needed`, and its new lean is not cleared by the older completed-arc record. That is a post-bind target revision.
+- A **recut** opens the next arc, and only after bind: it re-applies `design-critique:mechanism-shaped`, drops `design-critique:ingest-ready`, and its new lean is not cleared by the older completed-arc record. That is a post-bind target revision.
 
 - ! Read `arc` in this document as that unit.
 - ⊗ Read a new ceiling, a new round, or a pre-bind lean revision as a new arc.
@@ -250,15 +250,15 @@ Keep the arc in this contract until a verified synthesis is accepted.
 - ! After this round's same-round siblings are posted, parent posts a successor lean with proposed per-heading takes **before** printing `accept` / `retry differences` / `walk` / `walk all`. That posted lean is the first operator surface. Chat is not the record.
 - ! Do not post the successor lean or print the verb menu while same-round siblings remain unposted. Spend is permission, not the wait rule. Parent dispatch bookkeeping is the trigger; thread posts corroborate.
 - ⊗ Count self-attested `role: critic` lines as panel-complete.
-- ! Operator confirm or amend binds the proposed takes on that posted lean. Binding takes is not synthesis bind and does not stamp `design-critique:triage-ready`.
-- ⊗ Bind synthesis or stamp `design-critique:triage-ready` while same-round siblings remain unposted. The first lean after this round's siblings are posted is the take-offer, not the bind.
+- ! Operator confirm or amend binds the proposed takes on that posted lean. Binding takes is not synthesis bind and does not stamp `design-critique:ingest-ready`.
+- ⊗ Bind synthesis or stamp `design-critique:ingest-ready` while same-round siblings remain unposted. The first lean after this round's siblings are posted is the take-offer, not the bind.
 - ! Later successor leans follow accept-X or walk-end, or land before synthesis. This supersedes #3627's "successor lean only after accept-X" for the first lean after this round's siblings are posted. Later leans may still follow accept-X / walk-end.
 - ⊗ Print `accept` / `retry differences` / `walk` / `walk all` when no successor lean is posted for this round. An empty-lean verb menu is a contract miss.
 - ! The halt line remains postable while same-round siblings remain unposted. An unposted sibling with no dispatch-fail evidence is Dual stop envelope exhaustion.
 - ⊗ Auto-dispatch critics (#3578 / #1702).
-- ⊗ Hand the arc to `triage:accept` / `scope:promote` until the completed-arc record is present: `design-critique: synthesis accepted, because …` citing the accepted successor lean (and the verified-claims table when posted). Catalog chips (`design-critique:mechanism-shaped` / `design-critique:triage-ready` / `design-critique:recut-needed`) are list-visible convenience, not clearance. A lone synthesis-accepted-shaped comment that does not cite an accepted lean does not unblock ingest.
-- ⊗ Stamp `design-critique:triage-ready` at critic-post.
-- ⊗ Stamp `design-critique:recut-needed` at critic-post.
+- ⊗ Hand the arc to `triage:accept` / `scope:promote` until the completed-arc record is present: `design-critique: synthesis accepted, because …` citing the accepted successor lean (and the verified-claims table when posted). Catalog chips (`design-critique:mechanism-shaped` / `design-critique:in-progress` / `design-critique:ingest-ready`) are list-visible convenience, not clearance. A lone synthesis-accepted-shaped comment that does not cite an accepted lean does not unblock ingest.
+- ⊗ Stamp `design-critique:ingest-ready` at critic-post.
+- ⊗ Stamp `design-critique:in-progress` at spawn intent.
 - ⊗ Add a `design-critique:critic-posted` chip or any author/role chip.
 - ⊗ Critic writes issue labels.
 - ⊗ Add a #3607 thread interlock in this contract.
@@ -269,14 +269,14 @@ After this round's same-round siblings are posted, parent posts a successor `**L
 
 - ! After this round's same-round siblings are posted, post the successor lean before printing `accept` / `retry differences` / `walk` / `walk all`.
 - ! Lead that lean with the plain-language summary under the `## In plain English` token. The obligations are in `## Plain-language summary` below.
-- ! Operator confirm or amend is what makes those takes bindable. An all-accept draft still goes through this offer. Confirming or amending an all-accept first lean binds those takes. It does not auto-stamp synthesis or `design-critique:triage-ready` while same-round siblings remain unposted.
+- ! Operator confirm or amend is what makes those takes bindable. An all-accept draft still goes through this offer. Confirming or amending an all-accept first lean binds those takes. It does not auto-stamp synthesis or `design-critique:ingest-ready` while same-round siblings remain unposted.
 - ! Cite accepted critic ids/headings, the still-open residual, and the write-back or prior lean it supersedes.
 - ! A lean that closes a round of two or more names that round's dispatched sibling count and cites each sibling comment id it is leaning over.
 - ! Carry a per-heading take on the successor lean: `accept-into-contract` | `disagree` | `defer`. Defer is not accepted.
 - ! The successor lean is the disposition map. Do not post a third map type.
 - ! The first posted map is an ADR-006 arbitration surface. Record a substantiation token when takes introduce load-bearing premises. Non-self-arbitration applies when the same party authored the triage and the proposed takes.
-- ! Bind synthesis and the auto-stamp catalog chip (`design-critique:triage-ready` or `design-critique:recut-needed`) to the latest successor lean, never a superseded write-back.
-- ! When the next-build contract is recut (not this body), stamp a Lean-family line-start `Recut:` on that successor lean. Nine spellings: zero to two asterisks counted independently on each side, the same wrapping as `Lean:`. Auto-stamp matches that token through `resolveAutoStampCatalogChip`. It does not parse lean English.
+- ! Bind synthesis and the auto-stamp catalog chip (`design-critique:ingest-ready`) to the latest successor lean, never a superseded write-back.
+- ! When the next-build contract is recut (not this body), stamp a Lean-family line-start `Recut:` on that successor lean. Nine spellings: zero to two asterisks counted independently on each side, the same wrapping as `Lean:`. `Recut:` is a lean token, not a chip. `resolveAutoStampCatalogChip` remaining-set-replaces `ingest-ready` after the completed-arc record exists. It does not parse lean English and does not map Recut to a chip.
 - ! Recut token plus a completed-arc record means harvest that closed Bound-remedy heading slice on the cited successor lean. It is not repair-required refuse and not a recut arc. Leave #4237 Outcome:ready as the body-is-normative path. ⊗ Let Recut mean both.
 - ! Recut harvest is a Lean-family heading token (`## Bound remedy`, same class as `## In plain English`) plus parseListItems on that slice of the cited successor lean only. ⊗ Bind Recut harvest as reuse extractPlanItems. Empty on that lean refuses. A numbered list without that heading is not enough.
 - ! Point that harvest source at plan.items, literal capture, and derived-clause taskStatement. Overview may keep the GitHub body as historical described content. ⊗ Close with an items-only patch.
@@ -392,7 +392,7 @@ Contract stops stay internal. Parent prints these phrases when they apply. They 
 - ! Do not print **retry differences** until residual headings are named on that map.
 - ! Do not skip the first-lean offer because the draft is all-accept.
 - ! Non-empty disagree set: print **walk** / **walk all** / **retry differences** / **accept**. Walk is an option, not the only path. Do not auto-start the walk.
-- ! When the successor lean's per-heading map is total over a **non-empty** in-envelope classified-finding set, every heading is `accept-into-contract` (no `disagree`, no `defer`), AND zero unresolved audit markers, AND the operator has confirmed or amended that map, AND no unposted same-round siblings remain: parent auto-posts the verified-claims table as its own comment, then auto-posts `design-critique: synthesis accepted, because agents agreed (empty disagreement set)` and remaining-set-replaces the chip via `task scm:issue:design-critique-chip -- --issue N --chip recut-needed` when `resolveAutoStampCatalogChip` matches a Lean-family `Recut:` line-start on the latest successor lean, else `--chip triage-ready`. If that write misses, continue; do not halt. Do not print **accept synthesis**, **post the verified-claims table**, **walk**, or **walk all**.
+- ! When the successor lean's per-heading map is total over a **non-empty** in-envelope classified-finding set, every heading is `accept-into-contract` (no `disagree`, no `defer`), AND zero unresolved audit markers, AND the operator has confirmed or amended that map, AND no unposted same-round siblings remain: parent auto-posts the verified-claims table as its own comment, then auto-posts `design-critique: synthesis accepted, because agents agreed (empty disagreement set)` and remaining-set-replaces the chip via `task scm:issue:design-critique-chip -- --issue N --chip ingest-ready` (`resolveAutoStampCatalogChip` after the completed-arc record; Recut: is not a chip). If that write misses, continue; do not halt. Do not print **accept synthesis**, **post the verified-claims table**, **walk**, or **walk all**.
 - ⊗ Auto-stamp a parent-drafted all-accept map that the operator has not confirmed or amended.
 - ⊗ Auto-stamp while same-round siblings remain unposted.
 - ⊗ Auto-stamp when any audit marker is unresolved.
@@ -439,6 +439,7 @@ design-critique: halted, because …
 Presence, shape, and authority only. Do not score the because-clause.
 
 - ⊗ Add a `design-critique:halted` issue label.
+- ! Halt leaves the standing in-flight catalog chip in place. No clear-to-none verb. Orphan query confirms halt on the thread.
 - ! Resume after halt is a new operator verb, not a silent retry.
 
 ## Stop 5 — Verified synthesis
@@ -483,14 +484,14 @@ Two bind paths authorize:
 design-critique: synthesis accepted, because …
 ```
 
-1. #3640 auto-stamp: when the successor lean map is total over the auto-stamp denominator (critic posts in this arc, including Stop 4 retry output, plus still-open residual headings) and that set is non-empty and every heading is `accept-into-contract` AND zero unresolved audit markers AND the operator has confirmed or amended that map AND no unposted same-round siblings remain, parent posts `design-critique: synthesis accepted, because agents agreed (empty disagreement set)` and remaining-set-replaces the chip via `task scm:issue:design-critique-chip -- --issue N --chip recut-needed` when `resolveAutoStampCatalogChip` matches a Lean-family `Recut:` line-start on the latest successor lean, else `--chip triage-ready`. If that write misses, continue; do not halt. Do not print **accept synthesis**. Do not auto-stamp on a partial map, an unconfirmed parent draft, or when any audit marker is unresolved, or while same-round siblings remain unposted.
-2. Explicit operator **accept synthesis** (or a listed short form), subject to the two non-empty refusals below. Parent may post that line and cite the verb. Then apply the exclusive catalog chip `resolveAutoStampCatalogChip` selects (`design-critique:recut-needed` or `design-critique:triage-ready`) via remaining-set write. If that write misses, continue; do not halt.
+1. #3640 auto-stamp: when the successor lean map is total over the auto-stamp denominator (critic posts in this arc, including Stop 4 retry output, plus still-open residual headings) and that set is non-empty and every heading is `accept-into-contract` AND zero unresolved audit markers AND the operator has confirmed or amended that map AND no unposted same-round siblings remain, parent posts `design-critique: synthesis accepted, because agents agreed (empty disagreement set)` and remaining-set-replaces the chip via `task scm:issue:design-critique-chip -- --issue N --chip ingest-ready` (`resolveAutoStampCatalogChip` after the completed-arc record; Recut: is not a chip). If that write misses, continue; do not halt. Do not print **accept synthesis**. Do not auto-stamp on a partial map, an unconfirmed parent draft, or when any audit marker is unresolved, or while same-round siblings remain unposted.
+2. Explicit operator **accept synthesis** (or a listed short form), subject to the two non-empty refusals below. Parent may post that line and cite the verb. Then apply the exclusive catalog chip `resolveAutoStampCatalogChip` selects (`design-critique:ingest-ready`) via remaining-set write. If that write misses, continue; do not halt.
 
-Closed catalog (last chip wins): `design-critique:mechanism-shaped` (in-flight, gate match), `design-critique:triage-ready` (bound implement), and `design-critique:recut-needed` (bound recut / not this body). No halt chip. `CHIP_ALIASES` in `packages/core/src/scm/design-critique-chip.ts` is the same three names. Unknown `--chip` fails closed.
+Closed catalog (last chip wins): `design-critique:mechanism-shaped` (in-flight, gate match), `design-critique:in-progress` (live after first panel-deposit or `role: critic`; not gate-matched), and `design-critique:ingest-ready` (the only bind chip after a complete record). No halt chip. Halt leaves the standing in-flight chip. No clear-to-none. `CHIP_ALIASES` in `packages/core/src/scm/design-critique-chip.ts` is the same three names. Old `design-critique:triage-ready` and `design-critique:recut-needed` fail closed. Unknown `--chip` fails closed.
 
 - ⊗ Bind path 2 when the critic posts zero classified headings (stub / blank). The same refusal path 1 carries at Operator verbs. Stop and inform. Do not stamp.
 - ⊗ Bind path 2 on a footnote-only census. A footnote-only post is a valid census and is not a stub, but denominator set (a) is empty, so it carries no bind at either path.
-- ! Exclusive replace is one merged remaining-set write: GET current labels, drop the other catalog names (`design-critique:mechanism-shaped`, `design-critique:triage-ready`, and `design-critique:recut-needed`), PUT/PATCH that list with the new chip. Other facets stay. Parent write path: `task scm:issue:design-critique-chip -- --issue N --chip triage-ready|mechanism-shaped|recut-needed [--repo OWNER/NAME]` (`deft scm issue design-critique-chip` dual-invoke). The verb GET-drops via `applyDesignCritiqueCatalogChip` / `designCritiqueChipApplyDelta` and one `ScmLabelClient.apply`. Inventory: `LabelClient.apply` / `mergeIssueLabels`.
+- ! Exclusive replace is one merged remaining-set write: GET current labels, drop the other catalog names (`design-critique:mechanism-shaped`, `design-critique:in-progress`, and `design-critique:ingest-ready`), PUT/PATCH that list with the new chip. Other facets stay. Parent write path: `task scm:issue:design-critique-chip -- --issue N --chip mechanism-shaped|in-progress|ingest-ready [--repo OWNER/NAME]` (`deft scm issue design-critique-chip` dual-invoke). The verb GET-drops via `applyDesignCritiqueCatalogChip` / `designCritiqueChipApplyDelta` and one `ScmLabelClient.apply`. Inventory: `LabelClient.apply` / `mergeIssueLabels`.
 - ⊗ `gh api POST .../labels` or additive `scm:issue:edit --add-label` for this facet.
 - ⊗ Intercept mixed `scm issue edit` adds/removes for this facet.
 - ⊗ General-purpose labels CLI.
@@ -503,18 +504,19 @@ Closed catalog (last chip wins): `design-critique:mechanism-shaped` (in-flight, 
 - ⊗ Put a set-level graph (dominate / split / corpus parsed from comment English) inside ingest.
 - ! Ingest clearance cites the latest successor lean. An older completed-arc record does not clear a later recut lean. A panel-deposit is in-flight even when the catalog chip missed and no critic has posted.
 - ! The lexical form of that citation, and the requirement that the occurrence be affirmative, are published in `## Citation grammar`. Ingest reads that grammar, not prose intent.
-- ! Keep `plan.policy.judgmentGates` matching only `design-critique:mechanism-shaped`. After `triage-ready` or `recut-needed` replaces it, the issue leaves the gate match.
+- ! Keep `plan.policy.judgmentGates` matching only `design-critique:mechanism-shaped`. After `ingest-ready` replaces it, the issue leaves the gate match. Carry not-started vs live on `in-progress`, which is not in the gate match, so Stop 1 clearance scope stays H({mechanism-shaped}).
 - ! Chip is list-visible state, not consent. Do not drop `mechanism-shaped` without the synthesis-accepted line (or the #3640 empty-disagreement path).
-- ⊗ Treat `design-critique:triage-ready` as ingest clearance.
-- ⊗ Treat `design-critique:recut-needed` as ingest clearance or as a halt chip.
+- ⊗ Treat `design-critique:ingest-ready` as ingest clearance.
+- ⊗ Treat `design-critique:in-progress` as ingest clearance or as a halt chip.
 - ! Chip apply miss is non-blocking convenience. Do not invent a 403 HTTP parser. Any apply miss is the same miss. Do not use the halt line. Do not block ingest. Optional later remaining-set by a write-capable identity is hygiene.
 - ! Leftover `design-critique:mechanism-shaped` after a chip apply miss does not block ingest. `judgmentGates` match is advisory/observe.
 - ⊗ Use the halt line for a chip apply miss.
-- ! Write-back `mechanism-shaped: true` is history after replace. Current-state authority is the last catalog chip.
-- ! Recut (new lean) applies `design-critique:mechanism-shaped` with the same remaining-set write and drops `triage-ready` and `recut-needed`.
+- ! Write-back `mechanism-shaped: true` is history after replace. The last catalog chip is list-visible state, not current-state authority. Ingest keys off the completed-arc record and cited lean.
+- ! Recut (new lean) applies `design-critique:mechanism-shaped` with the same remaining-set write and drops `ingest-ready`.
 - ~ A live `design-critique:*` count!=1 check is SHOULD, not a new `judgmentGates` match.
-- ⊗ Add `design-critique:triage-ready` to `judgmentGates` labels.any-of.
+- ⊗ Add `design-critique:ingest-ready` to `judgmentGates` labels.any-of.
 - ⊗ Add `design-critique:recut-needed` to `judgmentGates` labels.any-of.
+- ⊗ Add `design-critique:in-progress` to `judgmentGates` labels.any-of.
 - ⊗ Infer consent from looks-good.
 - ⊗ DELETE-then-POST the chip (unchipped window if POST fails).
 - ⊗ PUT a naive full wipe of every label.

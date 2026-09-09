@@ -82,6 +82,8 @@ const REQUIRED_CONTRACT_POINTERS = [
   "second line",
   "design-critique:triage-ready",
   "design-critique:recut-needed",
+  "design-critique:ingest-ready",
+  "design-critique:in-progress",
   "resolveAutoStampCatalogChip",
   "Recut:",
   "design-critique: halted, because",
@@ -568,7 +570,8 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(text).toContain("## Bind after accepted synthesis");
     expect(text).toContain("```text\ndesign-critique: halted, because …\n```");
     expect(text).toContain("```text\ndesign-critique: synthesis accepted, because …\n```");
-    expect(text).toContain("design-critique:triage-ready");
+    expect(text).toContain("design-critique:ingest-ready");
+    expect(text).toContain("design-critique:in-progress");
     expect(text).toContain("Default critic posts without extra record: 2");
     expect(text).toContain("An N=3 panel is permitted three round-1 posts and no default retry.");
     expect(text).toContain("still-open finding headings/ids");
@@ -594,7 +597,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(text).toContain("⊗ Add a `design-critique:critic-posted` chip or any author/role chip.");
     expect(text).toContain("⊗ Use Phase 3 or Stop 5 as operator commands.");
     expect(text).toContain("⊗ Add a #3607 thread interlock in this contract.");
-    expect(text).toContain("⊗ Stamp `design-critique:triage-ready` at critic-post.");
+    expect(text).toContain("⊗ Stamp `design-critique:ingest-ready` at critic-post.");
     expect(text).not.toContain("`triage:ready`");
     expect(text).not.toContain("`triage:triage-ready`");
     expect(text).not.toContain("review:pass-open");
@@ -624,7 +627,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(text).toContain("non-empty");
     expect(text).toContain("classified-finding set");
     expect(text).toContain("scm:issue:design-critique-chip");
-    expect(text).toContain("--chip triage-ready");
+    expect(text).toContain("--chip ingest-ready");
     expect(text).toContain("zero classified headings");
     expect(text).toContain("Do not stamp");
     expect(text).toContain("Dispatch failure");
@@ -657,9 +660,9 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
   it("pins exclusive remaining-set replace of the three catalog chips", () => {
     const remaining = remainingSetAfterDesignCritiqueChip(
       ["bug", "design-critique:mechanism-shaped", "area:cli"],
-      "design-critique:triage-ready",
+      "design-critique:ingest-ready",
     );
-    expect(remaining).toEqual(["bug", "area:cli", "design-critique:triage-ready"]);
+    expect(remaining).toEqual(["bug", "area:cli", "design-critique:ingest-ready"]);
     const recut = remainingSetAfterDesignCritiqueChip(
       remaining,
       "design-critique:mechanism-shaped",
@@ -690,9 +693,10 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(skill).not.toContain("remaining-set");
   });
 
-  it("catalogs design-critique:triage-ready only, not critic-posted, and keeps judgmentGates on mechanism-shaped", () => {
+  it("catalogs design-critique:ingest-ready, not critic-posted, and keeps judgmentGates on mechanism-shaped", () => {
     const labelsDoc = readText(".github/ISSUE_LABELS.md");
-    expect(labelsDoc).toContain("design-critique:triage-ready");
+    expect(labelsDoc).toContain("design-critique:ingest-ready");
+    expect(labelsDoc).toContain("design-critique:in-progress");
     expect(labelsDoc).toContain("design-critique: synthesis accepted, because");
     expect(labelsDoc).toContain("design-critique:mechanism-shaped");
     expect(labelsDoc).toContain("Not a `triage:*` classify action");
@@ -704,40 +708,43 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(gateMatch).not.toBeNull();
     const anyOf = gateMatch?.[1] ?? "";
     expect(anyOf).toContain("design-critique:mechanism-shaped");
-    expect(anyOf).not.toContain("design-critique:triage-ready");
+    expect(anyOf).not.toContain("design-critique:ingest-ready");
+    expect(anyOf).not.toContain("design-critique:in-progress");
     expect(anyOf).not.toContain("design-critique:recut-needed");
     expect(anyOf).not.toContain("critic-posted");
   });
 
-  it("locks recut-needed chip, Recut: token, CHIP_ALIASES, and no-NLP auto-stamp (#4205)", () => {
+  it("locks ingest-ready bind chip, Recut: token, CHIP_ALIASES, and no-NLP auto-stamp (#4298)", () => {
     expect(DESIGN_CRITIQUE_CATALOG_CHIPS).toEqual([
       "design-critique:mechanism-shaped",
-      "design-critique:triage-ready",
-      "design-critique:recut-needed",
+      "design-critique:in-progress",
+      "design-critique:ingest-ready",
     ]);
-    expect(resolveDesignCritiqueChipArg("recut-needed")).toBe("design-critique:recut-needed");
-    expect(resolveDesignCritiqueChipArg("design-critique:recut-needed")).toBe(
-      "design-critique:recut-needed",
+    expect(() => resolveDesignCritiqueChipArg("recut-needed")).toThrow(
+      /unknown design-critique chip/,
+    );
+    expect(() => resolveDesignCritiqueChipArg("design-critique:recut-needed")).toThrow(
+      /unknown design-critique chip/,
     );
     expect(
       resolveAutoStampCatalogChip(
         "**Lean:** recut of 5555695949. Repo-wide lookup or drop cross-issue overlap.\n",
       ),
-    ).toBe("design-critique:triage-ready");
+    ).toBe("design-critique:ingest-ready");
     expect(
       resolveAutoStampCatalogChip("**Lean:** next-build is not this body.\n\n**Recut:**\n"),
-    ).toBe("design-critique:recut-needed");
+    ).toBe("design-critique:ingest-ready");
     const remaining = remainingSetAfterDesignCritiqueChip(
       ["bug", "design-critique:mechanism-shaped"],
-      "design-critique:recut-needed",
+      "design-critique:ingest-ready",
     );
-    expect(remaining).toEqual(["bug", "design-critique:recut-needed"]);
+    expect(remaining).toEqual(["bug", "design-critique:ingest-ready"]);
     expect(remaining).not.toContain("design-critique:triage-ready");
     const text = readText(CONTRACT);
     expect(text).toContain("design-critique:recut-needed");
     expect(text).toContain("resolveAutoStampCatalogChip");
     expect(text).toContain("Recut:");
-    expect(text).toContain("--chip recut-needed");
+    expect(text).toContain("--chip ingest-ready");
     expect(text).toContain("⊗ Classify recut by NLP of the lean.");
     expect(text).toContain("body-is-normative");
     expect(text).toContain("## Bound remedy");
@@ -783,7 +790,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
       "The first lean after this round's siblings are posted is the take-offer, not the bind",
     );
     expect(loop).toContain(
-      "⊗ Bind synthesis or stamp `design-critique:triage-ready` while same-round siblings remain unposted.",
+      "⊗ Bind synthesis or stamp `design-critique:ingest-ready` while same-round siblings remain unposted.",
     );
     expect(verbs).toContain("when they apply");
     expect(verbs).toContain("empty-lean verb menu");
@@ -814,7 +821,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(text).not.toContain("panel-deposit for this round");
     const substantiation = markdownSection(text, "## Parent-side substantiation");
     expect(lean).toContain(
-      "It does not auto-stamp synthesis or `design-critique:triage-ready` while same-round siblings remain unposted.",
+      "It does not auto-stamp synthesis or `design-critique:ingest-ready` while same-round siblings remain unposted.",
     );
     expect(substantiation).toContain(
       "AND no unposted same-round siblings remain. This conjunct applies at Operator verbs auto-stamp",
@@ -1043,7 +1050,7 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(bind).toContain("Any identity may run those verbs");
     expect(bind).toContain("judgmentGates");
     expect(bind).toContain("advisory/observe");
-    expect(bind).toContain("Treat `design-critique:triage-ready` as ingest clearance");
+    expect(bind).toContain("Treat `design-critique:ingest-ready` as ingest clearance");
     expect(text).toContain("evaluateCompletedArcRecord");
     const skill = readText(SKILL_REL);
     expect(skill).toContain("completed-arc record");
