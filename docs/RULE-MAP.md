@@ -9,7 +9,7 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 ## Overview
 
 - **Rules:** 24 groupings, 273 documents
-- **Tasks:** 62 namespaces, 247 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
+- **Tasks:** 62 namespaces, 248 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
 - **Packs:** 6 source-of-truth packs (704 entries from rules|lessons|patterns|skills|strategies|entries)
 
 Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the Taskfile gates that enforce them), and the **Lifecycle** that ties them together.
@@ -38,7 +38,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 39 | 546 | 118 | 618 | 0 | 17 |
 | strategies | Higher-order approaches: interviewing, decomposition, planning, research, refactoring. | 16 | 318 | 90 | 138 | 0 | 11 |
 | swarm | Multi-agent (swarm) coordination guidance. | 1 | 75 | 15 | 22 | 0 | 0 |
-| templates | Reusable document/scaffold templates. | 11 | 98 | 10 | 45 | 1 | 5 |
+| templates | Reusable document/scaffold templates. | 11 | 98 | 10 | 46 | 1 | 5 |
 | tools | Tooling standards (telemetry, search, formatters, the Taskfile contract). | 7 | 91 | 73 | 33 | 1 | 15 |
 | vbrief | The durable state format: project definition, specification, scopes, plans. | 1 | 71 | 27 | 27 | 0 | 8 |
 | verification | How agents prove work is done: gates, validators, coverage, review. | 4 | 39 | 22 | 26 | 0 | 4 |
@@ -443,7 +443,7 @@ _How agents prove work is done: gates, validators, coverage, review._
 | umbrella | Fetch umbrella ## Current shape comment (#1152) — task umbrella:current-shape <N> [-- --repo OWNER/REPO \| --json \| --strict]. Does NOT… | 1 |
 | value | Pull-based attributed-value trend readout (#1709). -- task value:show -- [--window=7d\|30d] [--format=text\|json] | 1 |
 | vbrief | Validate and manage vBRIEF lifecycle state and structure. | 6 |
-| verify | Verification gates: stub scans, session ritual, story-ready, oracles. | 59 |
+| verify | Verification gates: stub scans, session ritual, story-ready, oracles. | 60 |
 | xbrief | Validate xBRIEF lifecycle folder structure and cross-file consistency. Alias of vbrief:validate with xbrief-first naming (#3483). | 3 |
 
 ## Lifecycle
