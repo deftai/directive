@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   evaluateInlineReviewThreads,
+  fetchGreptilePullCommentsRest,
   fetchUnresolvedGreptileInlineFindings,
   headShaMatches,
   type InlineReviewThread,
@@ -201,5 +202,30 @@ describe("fetchUnresolvedGreptileInlineFindings", () => {
     const runGh: RunGhFn = () => ({ returncode: 0, stdout: JSON.stringify(payload), stderr: "" });
     const findings = fetchUnresolvedGreptileInlineFindings(120, "deftai/statusreport", HEAD, runGh);
     expect(findings.error).toContain("missing endCursor");
+  });
+});
+
+describe("fetchGreptilePullCommentsRest (#4289)", () => {
+  it("counts HEAD-pinned Greptile P1 from REST pulls comments", () => {
+    const runGh: RunGhFn = () => ({
+      returncode: 0,
+      stdout: JSON.stringify([
+        {
+          user: { login: "greptile-apps[bot]" },
+          body: INLINE_P1_BODY,
+          commit_id: HEAD,
+        },
+      ]),
+      stderr: "",
+    });
+    const findings = fetchGreptilePullCommentsRest(4292, "deftai/directive", HEAD, runGh);
+    expect(findings.error).toBeNull();
+    expect(findings.p1Count).toBeGreaterThanOrEqual(1);
+  });
+
+  it("returns error when REST fails", () => {
+    const runGh: RunGhFn = () => ({ returncode: 1, stdout: "", stderr: "nope" });
+    const findings = fetchGreptilePullCommentsRest(4292, "deftai/directive", HEAD, runGh);
+    expect(findings.error).toContain("REST pulls comments failed");
   });
 });

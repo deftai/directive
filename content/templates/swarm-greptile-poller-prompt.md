@@ -94,6 +94,21 @@ m = re.search(
 last_reviewed_sha = m.group("sha") if m else None
 ```
 
+### Thin HTML named state (#4289)
+
+When the body is `<!-- greptile_summary -->` with a parsed Confidence Score and **no** `Last reviewed commit:` line, this is **not** informal-clean and **not** INCOMPLETE_BUT_RATED. Do not scrape the HTML for a SHA.
+
+Pin SHA currency to the already-fetched `Greptile Review` check-run on current HEAD (`completed` + `{success, neutral}`), not `pending_required`. Body SHA still wins when present. Findings come from REST `pulls/<N>/comments` and/or check-run `N comments added` text -- vacuous `detect()` zeros are not a findings pin. Missing findings channel fail-closes (`clean_gate_holdout=findings_channel`). Dirty REST P0/P1 is NEW_P0/P1 without a body SHA.
+
+If that pin or findings channel is missing, restate the open-PR symptom **per surface** (do not bind every-consumer-until-TIMEOUT): blocking `pr:watch` waits to cap TIMEOUT; `--one-shot` is PENDING; `pr:merge-ready` is a parse fail; this poller STALLs; review-cycle Step 6 stays `unknown`. Keep #4288 as the merged/closed terminal.
+
+```python
+thin_html = ("<!-- greptile_summary -->" in body and confidence is not None and last_reviewed_sha is None)
+if thin_html and greptile_terminal:
+    last_reviewed_sha = head_sha
+```
+
+
 A regex that requires the SHA inline after `Last reviewed commit:` will NEVER match Greptile's actual output -- the poller will fall through every iteration and run to its `{poll_cap_minutes}`-minute cap (Agent D, post-#721 swarm; #727 comment 2 Bug 1).
 
 ### P0/P1 findings detection (TRIPLE-TIER -- #910)
@@ -378,6 +393,7 @@ def evaluate_clean_gate(
     errored,
     terminal_check_run,
     min_confidence=4,
+    findings_channel_present=True,
 ):
     """Return (is_clean, clean_gate_holdout) per the (6)-condition AND gate.
 
@@ -416,6 +432,8 @@ def evaluate_clean_gate(
         return False, "errored"
     if not terminal_check_run:
         return False, "terminal_check_run"
+    if not findings_channel_present:
+        return False, "findings_channel"
     return True, None
 ```
 
@@ -488,7 +506,7 @@ Send to parent:
 
 ### (2) NEW P0/P1 FINDINGS
 
-`last_reviewed_sha` matches HEAD AND `has_blocking` is True. Do NOT exit on P2 -- those are non-blocking style suggestions per `skills/deft-directive-review-cycle/SKILL.md`.
+`last_reviewed_sha` matches HEAD AND `has_blocking` is True. Thin HTML (#4289): `has_blocking` from REST pulls comments / comments-added, and NEW_P0/P1 does not require a body SHA when the Greptile Review check-run is terminal on HEAD. Do NOT exit on P2 -- those are non-blocking style suggestions per `skills/deft-directive-review-cycle/SKILL.md`.
 
 Address the findings per Phase 2 Step 2-3 of the review-cycle skill: read every finding, plan a single coherent batch, run `task check`, commit with message `fix: address Greptile review findings (batch)`, push. After the push, you MAY reset the **poll-wait timer** for the new HEAD (Greptile needs a fresh review window) — but you MUST NOT reset the dual-stop **fix-batch counter** (#2442).
 

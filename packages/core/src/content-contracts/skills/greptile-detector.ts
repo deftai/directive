@@ -307,6 +307,100 @@ export function parseLastReviewedShaNaiveInline(body: string): string | null {
   return m?.[1] ?? null;
 }
 
+/** Marker Greptile still emits on the thin HTML rolling summary (#4289). */
+export const THIN_HTML_SUMMARY_MARKER = "<!-- greptile_summary -->";
+
+const COMMENTS_ADDED_RE = /(\d+)\s+comments?\s+added/i;
+
+export function isThinHtmlSummary(body: string): boolean {
+  if (!body.includes(THIN_HTML_SUMMARY_MARKER)) {
+    return false;
+  }
+  if (parseConfidence(body) === null) {
+    return false;
+  }
+  if (/Last reviewed commit:/i.test(body)) {
+    return false;
+  }
+  return (
+    parseLastReviewedShaMarkdownLink(body) === null && parseLastReviewedShaNaiveInline(body) === null
+  );
+}
+
+export function parseCommentsAdded(summary: string | null | undefined): number | null {
+  if (summary === null || summary === undefined || summary.length === 0) {
+    return null;
+  }
+  const m = COMMENTS_ADDED_RE.exec(summary);
+  if (m === null) {
+    return null;
+  }
+  return Number.parseInt(m[1] ?? "", 10);
+}
+
+export function isGreptileReviewTerminal(
+  status: string | null | undefined,
+  conclusion: string | null | undefined,
+): boolean {
+  return status === "completed" && (conclusion === "success" || conclusion === "neutral");
+}
+
+export type ShaCurrencySource = "body" | "greptile_review_check_run" | "none";
+
+export function resolveShaCurrency(params: {
+  bodySha: string | null;
+  headSha: string;
+  thinHtmlSummary: boolean;
+  greptileReviewTerminalOnHead: boolean;
+}): { sha: string | null; source: ShaCurrencySource } {
+  if (params.bodySha !== null) {
+    return { sha: params.bodySha, source: "body" };
+  }
+  if (params.thinHtmlSummary && params.greptileReviewTerminalOnHead) {
+    return { sha: params.headSha, source: "greptile_review_check_run" };
+  }
+  return { sha: null, source: "none" };
+}
+
+export interface FindingsChannel {
+  readonly present: boolean;
+  readonly p0Count: number;
+  readonly p1Count: number;
+  readonly hasBlocking: boolean;
+}
+
+export function resolveFindingsChannel(params: {
+  thinHtmlSummary: boolean;
+  bodyDetect: Pick<DetectResult, "p0_count" | "p1_count" | "has_blocking">;
+  commentsAdded: number | null;
+  restPullComments: { p0Count: number; p1Count: number } | null;
+}): FindingsChannel {
+  if (!params.thinHtmlSummary) {
+    return {
+      present: true,
+      p0Count: params.bodyDetect.p0_count,
+      p1Count: params.bodyDetect.p1_count,
+      hasBlocking: params.bodyDetect.has_blocking,
+    };
+  }
+  const rest = params.restPullComments;
+  const commentsAdded = params.commentsAdded;
+  const restFetched = rest !== null;
+  const commentsParsed = commentsAdded !== null;
+  if (!restFetched && !commentsParsed) {
+    return { present: false, p0Count: 0, p1Count: 0, hasBlocking: false };
+  }
+  const p0Count = rest?.p0Count ?? 0;
+  const p1Count = rest?.p1Count ?? 0;
+  const commentsBlocking = commentsParsed && commentsAdded > 0 && !restFetched;
+  return {
+    present: true,
+    p0Count,
+    p1Count,
+    hasBlocking: p0Count + p1Count > 0 || commentsBlocking,
+  };
+}
+
 const ESCAPED_BRACKET_SHA = "a1b2c3d4e5f60718293a4b5c6d7e8f9001122334";
 
 export const BODY_TIER2_P1_ONLY = `Greptile review of head 1234567
@@ -576,6 +670,30 @@ export const BODY_AC4_EMPTY = "";
 export const BODY_AC4_TRUNCATED =
   "Greptile review of head 1234567\n" + "\n" + "## Confidence Score:";
 
+/** Real PR 4287 thinner HTML (comment 5604200332): confidence in h2, no Last reviewed. */
+export const BODY_PR4287_THIN_HTML =
+  "<!-- greptile_summary -->\n\n" +
+  "<h2>Confidence Score: 5/5</h2>\n\n" +
+  "The PR appears safe to merge, with no outstanding correctness, security, or repository-rule issues identified.\n\n" +
+  "<details><summary><h3>Summary</h3></summary>\n\n" +
+  "- Rewrites the affected completed xBRIEF item statuses to schema-legal completed.\n" +
+  "</details>\n";
+
+/** Real PR 4292 thinner HTML (comment 5604802405): same shape, findings live in inlines. */
+export const BODY_PR4292_THIN_HTML =
+  "<!-- greptile_summary -->\n\n" +
+  "<h2>Confidence Score: 5/5</h2>\n\n" +
+  "The PR appears safe to merge; no outstanding correctness, lifecycle, security, or repository-rule issue was identified.\n\n" +
+  "<details><summary><h3>Summary</h3></summary>\n\n" +
+  "- Moves the leftover xBRIEF from active to completed.\n" +
+  "</details>\n";
+
+/** REST pulls comment 3970461813 on PR 4292: inline P1 outside the rolling summary. */
+export const BODY_PR4292_INLINE_P1 =
+  "<a href=\"#\"><img alt=\"P1\" src=\"https://greptile-static-assets.s3.amazonaws.com/badges/p1.svg?v=9\" align=\"top\"></a> " +
+  "**Split issue becomes completed**\n";
+
+
 /**
  * Fail-closed CLEAN gate shared by pr:watch, swarm poller, and content-contracts.
  *
@@ -591,6 +709,8 @@ export function evaluateCleanGate(params: {
   ciFailures: number;
   errored: boolean;
   terminalCheckRun?: boolean;
+  /** When false, fail closed instead of CLEAN (thin HTML missing findings channel, #4289). Default true. */
+  findingsChannelPresent?: boolean;
   /** Minimum confidence score (1–5) that CLEANs; score must be >= min. Default 4. */
   minConfidence?: number;
 }): [boolean, string | null] {
@@ -603,6 +723,7 @@ export function evaluateCleanGate(params: {
     errored,
     terminalCheckRun = true,
     minConfidence = 4,
+    findingsChannelPresent = true,
   } = params;
 
   if (lastReviewedSha === null || lastReviewedSha !== headSha) {
@@ -622,6 +743,9 @@ export function evaluateCleanGate(params: {
   }
   if (!terminalCheckRun) {
     return [false, "terminal_check_run"];
+  }
+  if (!findingsChannelPresent) {
+    return [false, "findings_channel"];
   }
   return [true, null];
 }
@@ -674,6 +798,9 @@ export function simulatePollLoop(params: {
   maxPolls?: number;
   stallThreshold?: number;
   terminalCheckRun?: boolean;
+  greptileReviewTerminalOnHead?: boolean;
+  commentsAdded?: number | null;
+  restPullComments?: { p0Count: number; p1Count: number } | null;
 }): [PollExitClass, number, string | null, string[]] {
   const {
     body,
@@ -682,13 +809,30 @@ export function simulatePollLoop(params: {
     maxPolls = 5,
     stallThreshold = 3,
     terminalCheckRun = true,
+    greptileReviewTerminalOnHead = false,
+    commentsAdded = null,
+    restPullComments = null,
   } = params;
 
   const erroredSentinel = "Greptile encountered an error while reviewing this PR";
-  const lastReviewedSha = parseLastReviewedShaMarkdownLink(body);
+  const bodySha = parseLastReviewedShaMarkdownLink(body);
+  const thinHtmlSummary = isThinHtmlSummary(body);
+  const sha = resolveShaCurrency({
+    bodySha,
+    headSha,
+    thinHtmlSummary,
+    greptileReviewTerminalOnHead,
+  });
+  const lastReviewedSha = sha.sha;
   const confidence = parseConfidence(body);
   const findings = detect(body);
-  const hasBlocking = findings.has_blocking;
+  const channel = resolveFindingsChannel({
+    thinHtmlSummary,
+    bodyDetect: findings,
+    commentsAdded,
+    restPullComments,
+  });
+  const hasBlocking = channel.hasBlocking;
   const errored = body.trim() === erroredSentinel;
   let stallStreak = 0;
   const logLines: string[] = [];
@@ -702,7 +846,8 @@ export function simulatePollLoop(params: {
       confidence,
       ciFailures,
       errored,
-      terminalCheckRun,
+      terminalCheckRun: thinHtmlSummary ? greptileReviewTerminalOnHead : terminalCheckRun,
+      findingsChannelPresent: channel.present,
     });
     lastHoldout = cleanGateHoldout;
     logLines.push(
@@ -713,8 +858,8 @@ export function simulatePollLoop(params: {
         headSha,
         confidence,
         hasBlocking,
-        p0Count: findings.p0_count,
-        p1Count: findings.p1_count,
+        p0Count: channel.p0Count,
+        p1Count: channel.p1Count,
         errored,
         ciFailures,
         isClean,
@@ -725,7 +870,7 @@ export function simulatePollLoop(params: {
     if (isClean) {
       return ["CLEAN", i, cleanGateHoldout, logLines];
     }
-    if (hasBlocking && lastReviewedSha === headSha) {
+    if (hasBlocking && (lastReviewedSha === headSha || (thinHtmlSummary && greptileReviewTerminalOnHead))) {
       return ["NEW_P0P1", i, cleanGateHoldout, logLines];
     }
     if (errored) {

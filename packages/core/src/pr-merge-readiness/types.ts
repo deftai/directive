@@ -15,6 +15,8 @@ export interface GreptileVerdict {
    * for merge-ready even when GitHub reports Ready-to-merge.
    */
   readonly shouldNotMerge: boolean;
+  /** Canonical HTML greptile_summary with confidence and no Last reviewed commit (#4289). */
+  readonly thinHtmlSummary: boolean;
   readonly rawBodyExcerpt: string;
 }
 

@@ -8,6 +8,7 @@ import {
   VIA_FALLBACK2,
   VIA_PRIMARY,
 } from "./constants.js";
+import { isGreptileReviewTerminal, parseCommentsAdded } from "../content-contracts/skills/greptile-detector.js";
 import { evaluateGates, isMergeReady } from "./evaluate.js";
 import {
   type CheckRunRecord,
@@ -355,8 +356,25 @@ function finalizeVerdictGate(
   partialData.greptile_inline = inlineFindingsToDict(inline);
   const minConfidence = resolvedMinConfidence(options);
   partialData.min_greptile_confidence = minConfidence;
+  let greptileReviewTerminalOnHead = false;
+  let commentsAdded: number | null = null;
+  if (resolved.repo !== null) {
+    const check = fetchCheckRunsRest(headSha, resolved.repo, runGh);
+    if (check.summary !== null) {
+      const greptileRun = check.checkRuns.find((run) => run.name === "Greptile Review");
+      greptileReviewTerminalOnHead = isGreptileReviewTerminal(
+        greptileRun?.status,
+        greptileRun?.conclusion,
+      );
+      commentsAdded = parseCommentsAdded(greptileRun?.summary);
+      partialData.greptile_review = check.summary.greptile_review;
+      partialData.greptile_comments_added = commentsAdded;
+    }
+  }
   const failures = evaluateGates(prNumber, headSha, verdict, inline, {
     minConfidence,
+    greptileReviewTerminalOnHead,
+    commentsAdded,
   });
 
   if (failures.length === 0) {

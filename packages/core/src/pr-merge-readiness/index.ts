@@ -32,6 +32,7 @@ export {
 } from "./gh.js";
 export {
   evaluateInlineReviewThreads,
+  fetchGreptilePullCommentsRest,
   fetchUnresolvedGreptileInlineFindings,
   headShaMatches,
   type InlineGreptileFindings,

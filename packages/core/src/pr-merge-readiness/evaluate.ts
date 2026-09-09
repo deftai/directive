@@ -3,6 +3,10 @@ import {
   formatMinConfidenceRequirement,
   meetsMinGreptileConfidence,
 } from "../policy/min-greptile-confidence.js";
+import {
+  resolveFindingsChannel,
+  resolveShaCurrency,
+} from "../content-contracts/skills/greptile-detector.js";
 import { INFORMAL_CLEAN_DIAGNOSTIC } from "./constants.js";
 import type { InlineGreptileFindings } from "./greptile-inline.js";
 import type { GreptileVerdict } from "./types.js";
@@ -13,6 +17,10 @@ export interface EvaluateGatesOptions {
    * Defaults to the consumer bar (4 == legacy confidence > 3).
    */
   readonly minConfidence?: number;
+  /** Already-fetched Greptile Review check-run is terminal on current HEAD (#4289). */
+  readonly greptileReviewTerminalOnHead?: boolean;
+  /** Parsed check-run N comments added; null if missing (#4289). */
+  readonly commentsAdded?: number | null;
 }
 
 /** Return failure messages (empty list == merge-ready). */
@@ -49,17 +57,24 @@ export function evaluateGates(
       return appendInlineFailures(failures, inline);
     }
 
-    if (verdict.lastReviewedSha === null) {
+    const sha = resolveShaCurrency({
+      bodySha: verdict.lastReviewedSha,
+      headSha: headSha ?? "",
+      thinHtmlSummary: verdict.thinHtmlSummary,
+      greptileReviewTerminalOnHead: options.greptileReviewTerminalOnHead === true,
+    });
+    if (sha.source === "none") {
       failures.push(
         "Could not parse `Last reviewed commit:` from Greptile body. " +
           "The comment may be malformed or Greptile may still be writing it -- re-fetch.",
       );
     } else if (
       headSha &&
-      !(headSha.startsWith(verdict.lastReviewedSha) || verdict.lastReviewedSha.startsWith(headSha))
+      sha.sha !== null &&
+      !(headSha.startsWith(sha.sha) || sha.sha.startsWith(headSha))
     ) {
       failures.push(
-        `Greptile last reviewed ${verdict.lastReviewedSha} but PR HEAD is ${headSha}. ` +
+        `Greptile last reviewed ${sha.sha} but PR HEAD is ${headSha}. ` +
           "Review is stale -- wait for Greptile to re-review the latest commit.",
       );
     }
@@ -91,7 +106,36 @@ export function evaluateGates(
       );
     }
 
-    if (verdict.p0Count > 0 || verdict.p1Count > 0) {
+    if (verdict.thinHtmlSummary) {
+      const rest =
+        inline !== null && inline.error === null
+          ? { p0Count: inline.p0Count, p1Count: inline.p1Count }
+          : null;
+      const channel = resolveFindingsChannel({
+        thinHtmlSummary: true,
+        bodyDetect: {
+          p0_count: verdict.p0Count,
+          p1_count: verdict.p1Count,
+          has_blocking: verdict.p0Count + verdict.p1Count > 0 || verdict.shouldNotMerge,
+        },
+        commentsAdded: options.commentsAdded ?? null,
+        restPullComments: rest,
+      });
+      if (!channel.present) {
+        failures.push(
+          "Thin HTML greptile_summary has no findings channel (#4289). " +
+            "Do not CLEAN on parsed confidence plus a terminal Greptile Review check-run " +
+            "plus vacuous detect() zeros. Fetch REST pulls comments and/or parse check-run " +
+            "comments-added text.",
+        );
+      } else if (channel.hasBlocking) {
+        failures.push(
+          `Greptile findings channel reports ${channel.p0Count} P0 and ${channel.p1Count} P1 ` +
+            "on the current HEAD (REST pull comments and/or check-run comments-added). " +
+            "All P0 / P1 findings MUST be addressed before merge (P2 findings are non-blocking).",
+        );
+      }
+    } else if (verdict.p0Count > 0 || verdict.p1Count > 0) {
       failures.push(
         `Greptile reports ${verdict.p0Count} P0 and ${verdict.p1Count} P1 findings ` +
           "on the current HEAD. All P0 / P1 findings MUST be addressed before merge " +
@@ -100,10 +144,14 @@ export function evaluateGates(
     }
   }
 
-  return appendInlineFailures(failures, inline);
+  return appendInlineFailures(failures, inline, verdict.thinHtmlSummary);
 }
 
-function appendInlineFailures(failures: string[], inline: InlineGreptileFindings | null): string[] {
+function appendInlineFailures(
+  failures: string[],
+  inline: InlineGreptileFindings | null,
+  skipInlineCounts = false,
+): string[] {
   if (inline === null) {
     return failures;
   }
@@ -112,7 +160,7 @@ function appendInlineFailures(failures: string[], inline: InlineGreptileFindings
       "Could not verify Greptile inline review comments on the current HEAD (#2620). " +
         `Root cause: ${inline.error}`,
     );
-  } else if (inline.p0Count > 0 || inline.p1Count > 0) {
+  } else if (!skipInlineCounts && (inline.p0Count > 0 || inline.p1Count > 0)) {
     failures.push(
       `Greptile has ${inline.p0Count} unresolved inline P0 and ${inline.p1Count} unresolved inline P1 ` +
         `review comment(s) on the current HEAD across ${inline.unresolvedThreadCount} open thread(s). ` +

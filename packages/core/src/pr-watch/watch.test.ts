@@ -122,6 +122,21 @@ describe("watch verdict matrix (one-shot, single probe)", () => {
     expect(r.exitCode).toBe(EXIT_TERMINAL_ERROR);
   });
 
+  it("thin HTML dirty findings without body SHA are NEW_P0_P1 when Greptile Review is terminal (#4289)", () => {
+    const r = runOneShot(
+      makeProbe({
+        hasBlocking: true,
+        p1Count: 1,
+        lastReviewedSha: null,
+        shaMatch: false,
+        greptileReviewTerminal: true,
+        cleanGateHoldout: "has_blocking",
+      }),
+    );
+    expect(r.verdict).toBe(VERDICT_NEW_P0_P1);
+    expect(r.exitCode).toBe(EXIT_NEW_P0_P1);
+  });
+
   it("ERRORED sentinel -> exit 2", () => {
     const r = runOneShot(makeProbe({ errored: true, shaMatch: true, cleanGateHoldout: "errored" }));
     expect(r.verdict).toBe(VERDICT_ERRORED);

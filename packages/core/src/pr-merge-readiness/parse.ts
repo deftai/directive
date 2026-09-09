@@ -1,4 +1,4 @@
-import { hasShouldNotMergeProse } from "../content-contracts/skills/greptile-detector.js";
+import { hasShouldNotMergeProse, isThinHtmlSummary } from "../content-contracts/skills/greptile-detector.js";
 import { findLastReviewedCommitSha } from "../text/redos-safe.js";
 import {
   CONFIDENCE_RE,
@@ -24,6 +24,7 @@ export function emptyVerdict(): GreptileVerdict {
     informalClean: false,
     excludedAuthor: false,
     shouldNotMerge: false,
+    thinHtmlSummary: false,
     rawBodyExcerpt: "",
   };
 }
@@ -109,6 +110,7 @@ export function parseGreptileBody(body: string): GreptileVerdict {
     excludedAuthor,
     // #3225: advisory prose is a first-class hard block (not formal review state).
     shouldNotMerge: hasShouldNotMergeProse(body),
+    thinHtmlSummary: isThinHtmlSummary(body),
     rawBodyExcerpt: body.slice(0, 200),
   };
 

@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Thin HTML Greptile summaries no longer stall on a missing Last reviewed commit (#4289).** Named state fail-closes without a findings channel (REST pulls comments and/or check-run comments-added), pins HEAD via the already-fetched Greptile Review check-run, and names both SHA gates. Dirty inlines are NEW_P0_P1 without a body SHA. Not informal-clean. Not #4288. Closes #4289.
+
 - **Land leftover completed-tracked artifact for #3785 (#3264 / #1358).** Partial items 3-4 shipped in PR 3890 (`2a66cb43`). Remaining bound items 1-2 stay on #3888. Moved to `xbrief/completed/` via `scope:complete`. Empty `xbrief/active/` keeps a `.gitkeep` so labeled-current FILES.md still names a repo-tracked folder. Closes #3785. Refs #3888, #2321, #3476.
 
 ### Removed

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   BODY_AC4_MARKDOWN_LINK_CLEAN,
+  BODY_PR4287_THIN_HTML,
+  BODY_PR4292_INLINE_P1,
+  BODY_PR4292_THIN_HTML,
   BODY_TIER2_P1_ONLY,
 } from "../content-contracts/skills/greptile-detector.js";
 import { GREPTILE_ERRORED_SENTINEL } from "../pr-merge-readiness/constants.js";
@@ -15,6 +18,8 @@ interface FakeGhConfig {
   headSha?: string | null;
   body?: string;
   checkRuns?: unknown[];
+  pullComments?: unknown[];
+  pullCommentsError?: boolean;
   headError?: boolean;
 }
 
@@ -27,6 +32,10 @@ function makeFakeGh(cfg: FakeGhConfig) {
     if (cmd[1] === "pr" && cmd[2] === "view") {
       if (cfg.headError === true) return fail("no such PR");
       return ok(cfg.headSha === null ? "" : `${cfg.headSha ?? FIXTURE_SHA}\n`);
+    }
+    if (joined.includes("/pulls/") && joined.includes("/comments")) {
+      if (cfg.pullCommentsError === true) return fail("comments unavailable");
+      return ok(JSON.stringify(cfg.pullComments ?? []));
     }
     if (joined.includes("/pulls/")) {
       // REST HEAD fallback.
@@ -173,5 +182,80 @@ describe("probeOnce (canonical greptile-detector integration)", () => {
     };
     const probe = probeOnce(1056, null, gh);
     expect(probe.error).toContain("could not resolve repo");
+  });
+
+  const GREPTILE_CLEAN = {
+    name: "Greptile Review",
+    status: "completed",
+    conclusion: "success",
+    output: { summary: "6 files reviewed, 0 comments added." },
+  };
+  const GREPTILE_DIRTY = {
+    name: "Greptile Review",
+    status: "completed",
+    conclusion: "success",
+    output: { summary: "3 files reviewed, 1 comments added." },
+  };
+
+  it("thin HTML 4287 with check-run pin and 0 comments added is CLEAN", () => {
+    const probe = probeOnce(
+      4287,
+      "deftai/directive",
+      makeFakeGh({
+        headSha: FIXTURE_SHA,
+        body: BODY_PR4287_THIN_HTML,
+        checkRuns: [...GREEN_CI, GREPTILE_CLEAN],
+        pullComments: [],
+      }),
+    );
+    expect(probe.error).toBeNull();
+    expect(probe.isClean).toBe(true);
+    expect(probe.shaMatch).toBe(true);
+    expect(probe.greptileReviewTerminal).toBe(true);
+    expect(probe.hasBlocking).toBe(false);
+    expect(probe.cleanGateHoldout).toBeNull();
+  });
+
+  it("thin HTML without findings channel fail-closes (not CLEAN on detect zeros)", () => {
+    const probe = probeOnce(
+      4287,
+      "deftai/directive",
+      makeFakeGh({
+        headSha: FIXTURE_SHA,
+        body: BODY_PR4287_THIN_HTML,
+        checkRuns: [
+          ...GREEN_CI,
+          { name: "Greptile Review", status: "completed", conclusion: "success" },
+        ],
+        pullCommentsError: true,
+      }),
+    );
+    expect(probe.isClean).toBe(false);
+    expect(probe.cleanGateHoldout).toBe("findings_channel");
+  });
+
+  it("thin HTML 4292 inline P1 is NEW_P0_P1 without a body SHA", () => {
+    const probe = probeOnce(
+      4292,
+      "deftai/directive",
+      makeFakeGh({
+        headSha: FIXTURE_SHA,
+        body: BODY_PR4292_THIN_HTML,
+        checkRuns: [...GREEN_CI, GREPTILE_DIRTY],
+        pullComments: [
+          {
+            user: { login: "greptile-apps[bot]" },
+            body: BODY_PR4292_INLINE_P1,
+            commit_id: FIXTURE_SHA,
+          },
+        ],
+      }),
+    );
+    expect(probe.isClean).toBe(false);
+    expect(probe.hasBlocking).toBe(true);
+    expect(probe.p1Count).toBeGreaterThanOrEqual(1);
+    expect(probe.shaMatch).toBe(true);
+    expect(probe.lastReviewedSha).toBe(FIXTURE_SHA);
+    expect(probe.cleanGateHoldout).toBe("has_blocking");
   });
 });

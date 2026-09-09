@@ -291,3 +291,62 @@ export function fetchUnresolvedGreptileInlineFindings(
 
   return evaluateInlineReviewThreads(allThreads, headSha);
 }
+
+/** Fetch Greptile inline P0/P1 via REST pulls comments (no GraphQL) (#4289). */
+export function fetchGreptilePullCommentsRest(
+  prNumber: number,
+  repo: string,
+  headSha: string,
+  runGh: RunGhFn,
+): InlineGreptileFindings {
+  const rc = runGh(["gh", "api", `repos/${repo}/pulls/${prNumber}/comments`]);
+  if (rc.returncode !== 0) {
+    return {
+      ...EMPTY_INLINE,
+      error: `REST pulls comments failed: ${rc.stderr.trim() || rc.stdout.trim()}`,
+    };
+  }
+  if (!rc.stdout.trim()) {
+    return { ...EMPTY_INLINE };
+  }
+  let payload: unknown;
+  try {
+    payload = JSON.parse(rc.stdout) as unknown;
+  } catch (exc: unknown) {
+    const message = exc instanceof Error ? exc.message : String(exc);
+    return { ...EMPTY_INLINE, error: `could not parse REST pulls comments JSON: ${message}` };
+  }
+  if (!Array.isArray(payload)) {
+    return { ...EMPTY_INLINE, error: "REST pulls comments JSON is not an array" };
+  }
+  let p0Count = 0;
+  let p1Count = 0;
+  let unresolvedThreadCount = 0;
+  for (const item of payload) {
+    if (item === null || typeof item !== "object" || Array.isArray(item)) {
+      continue;
+    }
+    const rec = item as Record<string, unknown>;
+    const user = rec.user;
+    let login = "";
+    if (user !== null && typeof user === "object" && !Array.isArray(user) && "login" in user) {
+      const raw = (user as Record<string, unknown>).login;
+      login = typeof raw === "string" ? raw : "";
+    }
+    if (login !== GREPTILE_LOGIN) {
+      continue;
+    }
+    const commitId = typeof rec.commit_id === "string" ? rec.commit_id : null;
+    if (commitId === null || !headShaMatches(commitId, headSha)) {
+      continue;
+    }
+    const body = typeof rec.body === "string" ? rec.body : "";
+    const findings = detect(body);
+    if (findings.p0_count + findings.p1_count > 0) {
+      p0Count += findings.p0_count;
+      p1Count += findings.p1_count;
+      unresolvedThreadCount += 1;
+    }
+  }
+  return { p0Count, p1Count, unresolvedThreadCount, error: null };
+}
