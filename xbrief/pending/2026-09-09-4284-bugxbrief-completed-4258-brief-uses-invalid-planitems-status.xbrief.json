@@ -7,7 +7,7 @@
   "plan": {
     "id": "github.issue.5400244213",
     "title": "bug(xbrief): completed #4258 brief uses invalid plan.items status complete",
-    "status": "running",
+    "status": "pending",
     "narratives": {
       "Description": "Completed #4258 xBRIEF plan.items use illegal status complete, which fails vbrief:validate and blocks the v0.113.2 release cut.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4284",
