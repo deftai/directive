@@ -110,11 +110,7 @@ export function evaluateSubagentSteerGate(
 
   if (args.emitJson) {
     return {
-      exitCode: configError
-        ? EXIT_STEER_CONFIG
-        : pending
-          ? EXIT_STEER_PENDING
-          : EXIT_STEER_OK,
+      exitCode: configError ? EXIT_STEER_CONFIG : pending ? EXIT_STEER_PENDING : EXIT_STEER_OK,
       redispatchOk: false,
       message: "",
       json: {

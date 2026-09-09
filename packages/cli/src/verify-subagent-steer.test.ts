@@ -1,8 +1,8 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
 import { writeSteer } from "@deftai/directive-core/orchestration";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   evaluateSubagentSteerGate,
   parseVerifySubagentSteerArgs,

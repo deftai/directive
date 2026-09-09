@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { sweepScratchDirs } from "./subagent-monitor.js";
 import {
   applyUnreadSteer,
   assertSteerWriter,
@@ -14,7 +15,6 @@ import {
   sweepSteerPending,
   writeSteer,
 } from "./subagent-steer.js";
-import { sweepScratchDirs } from "./subagent-monitor.js";
 
 const roots: string[] = [];
 
@@ -105,9 +105,9 @@ describe("subagent-steer inbox (#4286)", () => {
   });
 
   it("refuses occupancy-owner writer that does not match occupancy", () => {
-    expect(
-      assertSteerWriter("occupancy-owner", "other", { occupancyOwnerId: "owner-1" }),
-    ).toMatch(/does not match occupancy owner/);
+    expect(assertSteerWriter("occupancy-owner", "other", { occupancyOwnerId: "owner-1" })).toMatch(
+      /does not match occupancy owner/,
+    );
     const root = tempRoot("steer-writer-");
     const steerDir = join(root, "inbox");
     expect(() =>
