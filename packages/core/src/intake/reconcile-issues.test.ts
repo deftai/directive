@@ -649,7 +649,7 @@ describe("fetchIssueStatesForApply (#4269)", () => {
     vi.restoreAllMocks();
   });
 
-  it("uses inventory for OPEN membership and live-GETs only non-open non-terminal movers", () => {
+  it("uses inventory for OPEN status and live-GETs only non-open non-terminal movers", () => {
     const perIssuePaths: string[] = [];
     let inventoryCalls = 0;
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);

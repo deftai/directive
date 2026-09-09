@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Recut ingest harvests Bound-remedy from the successor lean, not GitHub-body checkboxes (#4258).** After Recut plus a completed-arc record, ingest takes the next-build items from that Bound-remedy list and refuses when the list is empty. Closes #4258.
-- **`--apply-lifecycle-fixes` uses the open-issue inventory for OPEN status and live-GETs only movers that need state_reason (#4269).** Non-terminal anchors only. NOT_PLANNED and DUPLICATE go to cancelled/; other closed go to completed/. Progress prints on the remaining work. Inventory absence is not a destination. Does not recut #3752. Closes #4269.
+- **`--apply-lifecycle-fixes` uses the open-issue inventory for OPEN status and live-GETs only movers that need `state_reason` (#4269).** Non-terminal anchors only. NOT_PLANNED and DUPLICATE go to cancelled/; other closed go to completed/. Progress prints on the remaining work. Inventory absence is not a destination. Does not recut #3752. Closes #4269.
 
 ### Removed
 

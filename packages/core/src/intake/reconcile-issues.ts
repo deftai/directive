@@ -434,7 +434,7 @@ export function collectNonTerminalApplyIssueNumbers(
 }
 
 /**
- * Apply-lifecycle-fixes fetch: open-issue inventory for OPEN membership,
+ * Apply-lifecycle-fixes fetch: open-issue inventory for OPEN status,
  * live REST only for remaining non-open non-terminal movers (#4269).
  */
 export function fetchIssueStatesForApply(
