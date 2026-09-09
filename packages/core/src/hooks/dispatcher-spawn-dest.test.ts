@@ -73,7 +73,7 @@ function readySeams(overrides: Partial<HookPolicySeams> = {}): HookPolicySeams {
 }
 
 describe("dest-proven implement spawn (#4215)", () => {
-  it("prepares github-only dest on process_only spawn onto a linked worktree (#4296)", () => {
+  it("allows process_only recut skip class on a linked dest, not dest-path (#4296)", () => {
     const { root, dest } = destFixture();
     const prepareArcDest = vi.fn(() => ({
       dest: {
@@ -115,7 +115,7 @@ describe("dest-proven implement spawn (#4215)", () => {
     expect(decision.message).toContain("dispatch-sha:");
   });
 
-  it("does not skip #2885 on destProven implement-class spawn (#4296)", () => {
+  it("keeps #2885 on destProven implement-class without process_only (#4296)", () => {
     const { root, dest } = destFixture();
     const inspectRitual = vi.fn(() => STALE_RITUAL);
     const inspectScope = vi.fn(() => ({

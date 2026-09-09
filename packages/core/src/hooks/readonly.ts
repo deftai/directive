@@ -265,7 +265,7 @@ export function isEphemeralSpawn(
 /** Grok PreToolUse stdin field for process-only critic spawn (#4241). Not explore. */
 const PROCESS_ONLY_CRITIC_SUBAGENT_TYPE = "plan";
 
-/** Host-visible spawn flag implement-class never sets (#4296). Not dest-path. */
+/** Recut skip-class flag implement-class never sets (#4296). Not dest-path. Not a gate bypass. */
 const PROCESS_ONLY_CRITIC_FLAG_KEYS = ["process_only", "processOnly"] as const;
 
 function fieldTruthy(input: Record<string, unknown>, key: string): boolean {
@@ -337,10 +337,11 @@ export function appliesGrokSpawnDestContract(input: GrokSpawnDestContractInput):
 
 /**
  * Process-only critic spawn: dest occupancy skip without the explore tool allowlist
- * (#4241 / #4296). True on Grok `spawn_subagent` when a host-visible stdin marker
- * implement-class never sets is present: `subagent_type` `plan`, or `process_only`.
- * Dest-path (`cwd`) is not a class. Prompt text is never a class. Do not skip
- * #2885 on destProven. Implement envelope signals win.
+ * (#4241 / #4296). Recut skip class, not an implementation-gate bypass. True on Grok
+ * `spawn_subagent` when a host-visible stdin marker implement-class never sets is
+ * present: `subagent_type` `plan`, or `process_only`. Dest-path (`cwd`) is not a
+ * class. Prompt text is never a class. Do not skip #2885 on destProven. Implement
+ * envelope signals win. The flag is the class; implement-class never sets it.
  */
 export function isProcessOnlyCriticSpawn(
   payload: unknown,

@@ -956,8 +956,12 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(stop1).toContain("ensureArcDest");
     expect(stop1).toContain("cwd-without-occupy");
     expect(stop1).toContain("process_only");
+    expect(stop1).toContain("recut skip class, not an implementation-gate bypass");
     expect(stop1).toContain("\u2297 Pin dest to local HEAD");
     expect(stop1).toContain("\u2297 Skip #2885 on destProven");
+    expect(stop1).toContain(
+      "\u2297 Pin dest / process_only skip-class rules into `templates/agents-entry.md`",
+    );
     const bind = markdownSection(text, "## Bind after accepted synthesis");
     expect(bind).toContain("Direct EXIT names it as a later operator verb");
     expect(bind).toContain(
@@ -1288,6 +1292,8 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     const agentsEntry = readText("templates/agents-entry.md");
     expect(agents).not.toContain("deft-directive-design-critique");
     expect(agentsEntry).not.toContain("deft-directive-design-critique");
+    expect(agentsEntry).not.toContain("process_only");
+    expect(agentsEntry).not.toContain("cwd-without-occupy");
     for (const pin of DEFAULT_ALWAYS_PINS) {
       expect(agents).toContain(pin);
       expect(agentsEntry).toContain(pin);

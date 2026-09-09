@@ -237,7 +237,7 @@ describe("process-only critic spawn (#4241)", () => {
     );
   });
 
-  it("recognizes host-visible process_only on general-purpose (#4296)", () => {
+  it("treats process_only as the recut skip class, not dest-path (#4296)", () => {
     expect(
       isProcessOnlyCriticSpawn(
         {
@@ -298,7 +298,7 @@ describe("process-only critic spawn (#4241)", () => {
     ).toBe(false);
   });
 
-  it("implement signals win over plan and process_only (fail closed)", () => {
+  it("refuses process_only skip when implement envelope fields are set (#4296)", () => {
     expect(
       isProcessOnlyCriticSpawn(
         {

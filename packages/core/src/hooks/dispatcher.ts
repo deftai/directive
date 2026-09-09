@@ -2594,8 +2594,9 @@ function routeHookDecision(
         scopePath: null,
       };
     }
-    // Process-only critic (`subagent_type` plan or `process_only`): dest occupancy,
-    // ritual, and active-xBRIEF skip. Dest-path is not the class. Prompt is not a class.
+    // Recut skip class (#4296): host-visible `plan` or `process_only` stdin marker.
+    // Not dest-path. Not prompt. Not an implement-class gate bypass: implement-class
+    // never sets process_only. Dest occupancy, ritual, and active-xBRIEF skip.
     if (
       isProcessOnlyCriticSpawn(input.payload, {
         host: input.host,

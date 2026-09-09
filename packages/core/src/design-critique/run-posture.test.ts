@@ -127,7 +127,7 @@ describe("parseOperatorRunPosture (#4072 / #4296)", () => {
       posture: "checkout",
     });
     expect(arcModeRecordLine("checkout")).toBe("arc-mode: checkout");
-    expect(arcModeRecordLine("no-ingest")).toBe("arc-mode: no-ingest");
+    expect(arcModeRecordLine(NO_INGEST_ARC_MODE)).toBe(`arc-mode: ${NO_INGEST_ARC_MODE}`);
     expect(NO_INGEST_ARC_MODE).toBe("no-ingest");
     expect(ARC_RUN_POSTURES).not.toContain("ingest");
     expect(ARC_RUN_POSTURES).not.toContain("direct");

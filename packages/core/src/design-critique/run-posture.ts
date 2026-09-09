@@ -101,7 +101,7 @@ export function resolveArcRunPostureForHost(input: {
 
 /** Stop 1 record line. Never writes `arc-mode: ingest`. Emits parser posture. */
 export function arcModeRecordLine(posture: ArcRunPosture): string {
-  return `arc-mode: ${posture}`;
+  return `arc-mode: ${posture === "no-ingest" ? NO_INGEST_ARC_MODE : posture}`;
 }
 
 /**
@@ -116,7 +116,7 @@ export function prepareGithubOnlyDest(input: EnsureArcDestInput): {
   return {
     dest,
     record: [
-      arcModeRecordLine("no-ingest"),
+      arcModeRecordLine(NO_INGEST_ARC_MODE),
       `dest: ${dest.destPath}`,
       `origin-ref: ${dest.originRef}`,
       `dispatch-sha: ${dest.dispatchSha}`,
