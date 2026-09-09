@@ -164,7 +164,7 @@ xbrief/
 ├── plan.xbrief.json                 # Plan envelope
 ├── proposed/                        # Candidate scope xBRIEFs
 ├── pending/                         # illustrative — created on first promote; may be absent when empty
-├── active/                          # Running scope xBRIEFs
+├── active/                          # Running scope xBRIEFs; .gitkeep holds the folder when empty
 ├── completed/                       # Completed scope xBRIEFs
 ├── cancelled/                       # Cancelled or rejected scope xBRIEFs
 ├── decisions/                       # Structured decision log

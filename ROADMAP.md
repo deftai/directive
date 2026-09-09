@@ -5,10 +5,6 @@
 
 # Roadmap
 
-## Active
-
-- **#3785** -- bug(hooks): warn when a fail-closed hook registration travels without a hostable runtime -- `[running]`
-
 ## Proposed
 
 _Scopes not yet promoted to pending. Orientation only — not a substitute for `task triage:queue`._
@@ -44,8 +40,9 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1442 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1443 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#3785** -- bug(hooks): warn when a fail-closed hook registration travels without a hostable runtime -- `[completed]`
 - **#4284** -- bug(xbrief): completed #4258 brief uses invalid plan.items status complete -- `[completed]`
 - **#4258** -- bug(intake,design-critique): Recut lean still harvests issue-body AC; body rewrite looks like a new arc -- `[completed]`
 - **#4269** -- perf(release,reconcile): apply-lifecycle-fixes still does one REST call per anchored issue -- `[completed]`
@@ -70,5 +67,4 @@ _Showing 25 of 1442 completed scopes (newest first). Full history: lifecycle `co
 - **#4066** -- rfc(session,swarm): spawned work takes its own worktree; master occupancy is the exception and must be released -- `[completed]`
 - **#4086** -- docs(canon): remove residual legacy authority from current xBRIEF sources -- `[completed]`
 - **#4005** -- security: gate destination-visible empty-op Shell mutations under active UAT -- `[completed]`
-- **#4091** -- docs(contributing): replace retired Python extension procedures with TypeScript paths -- `[completed]`
 
