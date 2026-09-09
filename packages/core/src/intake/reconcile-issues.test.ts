@@ -9,15 +9,17 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CompletedProcess } from "../scm/call.js";
 import { validateEpicStoryLinks } from "../vbrief-validate/epic-links.js";
 import {
   applyLifecycleFixes,
   attachCompletedStatusDrift,
   buildLifecycleReport,
+  destinationFolder,
   extractReferencesFromVbrief,
   fetchIssueStates,
+  fetchIssueStatesForApply,
   formatMarkdown,
   IssueState,
   isTerminalLifecyclePath,
@@ -639,5 +641,181 @@ describe("reconcile envelope policy (#3933)", () => {
     };
     expect(Object.keys(unchanged)).toEqual(["plan"]);
     expect(unchanged.plan.status).toBe("running");
+  });
+});
+
+describe("fetchIssueStatesForApply (#4269)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("uses inventory for OPEN status and live-GETs only non-open non-terminal movers", () => {
+    const perIssuePaths: string[] = [];
+    let inventoryCalls = 0;
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const states = fetchIssueStatesForApply(
+      "o/r",
+      [
+        { rel_path: "active/open-a.xbrief.json", issue_number: 10, axis: "references" },
+        { rel_path: "pending/open-b.xbrief.json", issue_number: 11, axis: "references" },
+        { rel_path: "proposed/not-planned.xbrief.json", issue_number: 12, axis: "references" },
+        { rel_path: "active/completed-closed.xbrief.json", issue_number: 13, axis: "references" },
+        { rel_path: "completed/already-done.xbrief.json", issue_number: 14, axis: "references" },
+        {
+          rel_path: "cancelled/already-cancelled.xbrief.json",
+          issue_number: 15,
+          axis: "references",
+        },
+      ],
+      {
+        scmCall: (_src, verb, args) => {
+          expect(verb).toBe("api");
+          if (args?.includes("--paginate") === true && args?.includes("--slurp") === true) {
+            inventoryCalls += 1;
+            return completed(
+              JSON.stringify([
+                { number: 10, state: "open" },
+                { number: 11, state: "open" },
+              ]),
+            );
+          }
+          const path = String(args?.[0] ?? "");
+          perIssuePaths.push(path);
+          if (path === "repos/o/r/issues/12") {
+            return completed(JSON.stringify({ state: "closed", state_reason: "not_planned" }));
+          }
+          if (path === "repos/o/r/issues/13") {
+            return completed(JSON.stringify({ state: "closed", state_reason: "completed" }));
+          }
+          throw new Error(`unexpected REST path: ${path}`);
+        },
+      },
+    );
+    expect(states).not.toBeNull();
+    expect(inventoryCalls).toBe(1);
+    expect(perIssuePaths).toEqual(["repos/o/r/issues/12", "repos/o/r/issues/13"]);
+    expect(states?.get(10)?.value).toBe("OPEN");
+    expect(states?.get(11)?.value).toBe("OPEN");
+    expect(states?.get(12)?.value).toBe("CLOSED");
+    expect(states?.get(12)?.stateReason).toBe("NOT_PLANNED");
+    expect(states?.get(13)?.value).toBe("CLOSED");
+    expect(states?.get(13)?.stateReason).toBe("COMPLETED");
+    expect(states?.has(14)).toBe(false);
+    expect(states?.has(15)).toBe(false);
+    expect(destinationFolder(states?.get(12)?.stateReason)).toBe("cancelled");
+    expect(destinationFolder(states?.get(13)?.stateReason)).toBe("completed");
+    const progress = stderr.mock.calls.map((call) => String(call[0])).join("");
+    expect(progress).toContain("[1/2] apply-lifecycle-fixes fetching state_reason for #12");
+    expect(progress).toContain("[2/2] apply-lifecycle-fixes fetching state_reason for #13");
+  });
+
+  it("reuses one live GET when two non-terminal briefs share a closed issue", () => {
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    let liveGets = 0;
+    const states = fetchIssueStatesForApply(
+      "o/r",
+      [
+        { rel_path: "active/one.xbrief.json", issue_number: 20, axis: "references" },
+        { rel_path: "pending/two.xbrief.json", issue_number: 20, axis: "planRef" },
+      ],
+      {
+        scmCall: (_src, _verb, args) => {
+          if (args?.includes("--paginate") === true) {
+            return completed(JSON.stringify([]));
+          }
+          liveGets += 1;
+          expect(args?.[0]).toBe("repos/o/r/issues/20");
+          return completed(JSON.stringify({ state: "closed", state_reason: "duplicate" }));
+        },
+      },
+    );
+    expect(states?.get(20)?.stateReason).toBe("DUPLICATE");
+    expect(destinationFolder(states?.get(20)?.stateReason)).toBe("cancelled");
+    expect(liveGets).toBe(1);
+  });
+
+  it("skips per-issue GET when every anchored brief is already terminal", () => {
+    let inventoryCalls = 0;
+    const perIssuePaths: string[] = [];
+    const states = fetchIssueStatesForApply(
+      "o/r",
+      [
+        { rel_path: "completed/done.xbrief.json", issue_number: 1, axis: "references" },
+        { rel_path: "cancelled/dropped.xbrief.json", issue_number: 2, axis: "references" },
+      ],
+      {
+        scmCall: (_src, verb, args) => {
+          expect(verb).toBe("api");
+          if (args?.includes("--paginate") === true && args?.includes("--slurp") === true) {
+            inventoryCalls += 1;
+            return completed(JSON.stringify([{ number: 1, state: "open" }]));
+          }
+          perIssuePaths.push(String(args?.[0] ?? ""));
+          throw new Error(`unexpected REST path: `);
+        },
+      },
+    );
+    expect(inventoryCalls).toBe(1);
+    expect(perIssuePaths).toEqual([]);
+    expect(states?.get(1)?.value).toBe("OPEN");
+    expect(states?.has(2)).toBe(false);
+  });
+
+  it("inventory OPEN overlay keeps terminal-on-disk still-open issues off NOT_FOUND", () => {
+    const perIssuePaths: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const states = fetchIssueStatesForApply(
+      "o/r",
+      [
+        { rel_path: "active/mover.xbrief.json", issue_number: 10, axis: "references" },
+        { rel_path: "completed/still-open.xbrief.json", issue_number: 14, axis: "references" },
+      ],
+      {
+        reportIssueNumbers: [10, 14, 99],
+        scmCall: (_src, _verb, args) => {
+          if (args?.includes("--paginate") === true && args?.includes("--slurp") === true) {
+            return completed(
+              JSON.stringify([
+                { number: 10, state: "open" },
+                { number: 14, state: "open" },
+                { number: 99, state: "open" },
+              ]),
+            );
+          }
+          perIssuePaths.push(String(args?.[0] ?? ""));
+          throw new Error(`unexpected REST path: `);
+        },
+      },
+    );
+    expect(perIssuePaths).toEqual([]);
+    expect(states?.get(10)?.value).toBe("OPEN");
+    expect(states?.get(14)?.value).toBe("OPEN");
+    expect(states?.get(99)?.value).toBe("OPEN");
+  });
+
+  it("fails closed on malformed inventory JSON", () => {
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const states = fetchIssueStatesForApply(
+      "o/r",
+      [{ rel_path: "active/a.xbrief.json", issue_number: 1, axis: "references" }],
+      {
+        scmCall: (_src, _verb, args) => {
+          if (args?.includes("--paginate") === true) {
+            return completed(JSON.stringify({ not: "an array" }));
+          }
+          throw new Error(`unexpected REST args: ${String(args?.join(" "))}`);
+        },
+      },
+    );
+    expect(states).toBeNull();
+    expect(stderr.mock.calls.map((call) => String(call[0])).join("")).toMatch(/inventory|array/i);
+  });
+
+  it("locks cancelled versus completed destination from state_reason", () => {
+    expect(destinationFolder("NOT_PLANNED")).toBe("cancelled");
+    expect(destinationFolder("DUPLICATE")).toBe("cancelled");
+    expect(destinationFolder("COMPLETED")).toBe("completed");
+    expect(destinationFolder(null)).toBe("completed");
+    expect(destinationFolder(undefined)).toBe("completed");
   });
 });
