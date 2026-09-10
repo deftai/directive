@@ -10,6 +10,7 @@ import { tmpdir } from "node:os";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { isPass2CommitPath } from "../init-deposit/hygiene.js";
 import { defaultWhich } from "../release/spawn.js";
+import type { SpawnResult } from "../release/types.js";
 import { resolveCommandOnPath, spawnCommandText } from "../verify-env/command-spawn.js";
 import {
   MODULE_NOT_FOUND_MARKERS,
@@ -494,6 +495,77 @@ const DEFAULT_REGISTRY_PACKAGES = [
   "@deftai/directive",
 ] as const;
 
+const PASS2_UPDATE_ARGV = ["update", "--yes", "--upgrade", "--repo-root", ".", "--json"] as const;
+
+function fixtureGit(consumerDir: string, args: readonly string[], seams: E2ESeams): SpawnResult {
+  if (seams.runGit) return seams.runGit(consumerDir, args);
+  const spawn = seams.spawnText ?? spawnCommandText;
+  return spawn("git", args, {
+    cwd: consumerDir,
+    env: process.env,
+    timeoutMs: 60_000,
+  });
+}
+
+function parsePorcelainPaths(stdout: string): string[] {
+  const paths: string[] = [];
+  for (const line of stdout.split(/\r?\n/)) {
+    if (line.trim().length === 0) continue;
+    const renamed = line.match(/->\s+(.+)$/);
+    if (renamed?.[1] !== undefined) {
+      paths.push(renamed[1].trim());
+      continue;
+    }
+    paths.push(line.slice(3).trim());
+  }
+  return paths.filter((path) => path.length > 0);
+}
+
+function runPass2UpdateFromInstalledCli(
+  cleanDir: string,
+  consumerDir: string,
+  seams: E2ESeams,
+): [boolean, string, readonly string[]] {
+  mkdirSync(consumerDir, { recursive: true });
+  const gitSteps: Array<readonly string[]> = [
+    ["init"],
+    ["config", "user.email", "deft-fixture@example.com"],
+    ["config", "user.name", "deft-fixture"],
+    ["add", "-A"],
+    ["-c", "commit.gpgsign=false", "commit", "--no-verify", "-m", "pass1-absence-locks"],
+  ];
+  for (const args of gitSteps) {
+    const result = fixtureGit(consumerDir, args, seams);
+    const detail = `${result.stderr ?? ""}\n${result.stdout ?? ""}`;
+    if (result.status !== 0 && !(args.includes("commit") && /nothing to commit/i.test(detail))) {
+      return [false, `Pass 2 git ${args[0]} failed: ${detail.trim().slice(-400)}`, []];
+    }
+  }
+  const cliBin = join(cleanDir, "node_modules", "@deftai", "directive", "dist", "bin.js");
+  if (!existsSync(cliBin)) {
+    return [false, `Pass 2 missing installed CLI at ${cliBin}`, []];
+  }
+  const spawn = seams.spawnText ?? spawnCommandText;
+  const update = spawn(process.execPath, [cliBin, ...PASS2_UPDATE_ARGV], {
+    cwd: consumerDir,
+    env: { ...process.env, DEFT_PROJECT_ROOT: consumerDir },
+    timeoutMs: NPM_INSTALL_RUN_TIMEOUT_SECONDS * 1000,
+  });
+  if (update.status !== 0) {
+    const detail = `${update.stderr ?? ""}\n${update.stdout ?? ""}`.trim().slice(-500);
+    return [false, `Pass 2 directive update failed (exit ${update.status}): ${detail}`, []];
+  }
+  const porcelain = fixtureGit(consumerDir, ["status", "--porcelain"], seams);
+  if (porcelain.status !== 0) {
+    return [
+      false,
+      `Pass 2 git status failed: ${(porcelain.stderr || porcelain.stdout || "").trim().slice(-400)}`,
+      [],
+    ];
+  }
+  return [true, "Pass 2 directive update OK", parsePorcelainPaths(porcelain.stdout ?? "")];
+}
+
 export function runPostPublishTwoPassFixture(
   options: PostPublishTwoPassOptions,
   seams: E2ESeams = {},
@@ -532,7 +604,21 @@ export function runPostPublishTwoPassFixture(
   } catch (exc) {
     return [false, String(exc)];
   }
-  const changed = options.pass2ChangedPaths ?? [];
+  let changed = options.pass2ChangedPaths ?? [];
+  if (options.skipInstall !== true) {
+    const [updateOk, updateReason, updatePaths] = runPass2UpdateFromInstalledCli(
+      options.cleanDir,
+      consumerDir,
+      seams,
+    );
+    if (!updateOk) return [false, updateReason];
+    changed = [...updatePaths];
+    try {
+      assertPass2Precondition(consumerDir);
+    } catch (exc) {
+      return [false, String(exc)];
+    }
+  }
   const illegal = changed.filter((path) => !isPass2CommitPath(path));
   if (illegal.length > 0) {
     return [false, `Pass 2 commit-set includes non-installer-managed paths: ${illegal.join(", ")}`];

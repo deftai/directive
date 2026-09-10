@@ -645,4 +645,47 @@ describe("Pass 2 absence-lock precondition (#4271)", () => {
     expect(reason).not.toContain("not this workspace");
     expect(reason).toMatch(/tag-bind FAIL|no @deftai\/directive/);
   });
+
+  it("live path runs installed directive update and inspects Pass 2 paths", () => {
+    const clean = mkdtempSync(join(tmpdir(), "deft-4271-live-"));
+    const consumer = join(clean, "consumer");
+    mkdirSync(join(consumer, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(consumer, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({ plan: { narratives: { Overview: "ok" } } }),
+    );
+    const pkgDir = join(clean, "node_modules", "@deftai", "directive");
+    mkdirSync(join(pkgDir, "dist"), { recursive: true });
+    writeFileSync(
+      join(pkgDir, "package.json"),
+      JSON.stringify({ name: "@deftai/directive", version: "1.2.3" }),
+    );
+    writeFileSync(join(pkgDir, "dist", "bin.js"), "export {};\n");
+    let sawUpdate = false;
+    const [okFlag, reason] = runPostPublishTwoPassFixture(
+      {
+        cleanDir: clean,
+        workspaceRoot: process.cwd(),
+        version: "1.2.3",
+        consumerDir: consumer,
+        skipInstall: false,
+      },
+      {
+        which: () => "/usr/bin/npm",
+        spawnText: (_cmd, args) => {
+          if (args.includes("update")) sawUpdate = true;
+          return { status: 0, stdout: "{}", stderr: "" };
+        },
+        runGit: (_root, args) => {
+          if (args.includes("--porcelain")) {
+            return { status: 0, stdout: " M .deft/core/main.md\n", stderr: "" };
+          }
+          return { status: 0, stdout: "", stderr: "" };
+        },
+      },
+    );
+    expect(okFlag).toBe(true);
+    expect(sawUpdate).toBe(true);
+    expect(reason).toContain("two-pass fixture green");
+  });
 });
