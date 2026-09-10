@@ -213,6 +213,8 @@ A red product verification may be resolved only by a product change or an indepe
 
 After exiting:
 - ! Run full `task check` once — the merge chokepoint. Phase 3 used the iteration lane, so this is the first full suite in the loop, not a second run.
+- ! If that post-loop `task check` is red and the fix changes files, restart from Phase 1 (Read). Do not only re-run the gate — those edits must pass Read and Diff (#4324).
+- ! After that restart exits with zero changes, run full `task check` once again (recovery after a red merge chokepoint).
 - ! Re-run the full gate only after a red merge chokepoint or a new commit.
 - ~ The branch is now ready for push and PR creation
 
@@ -237,6 +239,7 @@ Docs: `docs/decision-log.md`.
 - ⊗ Ignore the iteration count -- more than 3 iterations usually indicates oscillating fixes or an unclear spec task
 - ⊗ Add a prohibition (`!` or `⊗`) without scanning the same file for conflicting softer-strength rules (`~`, `≉`) that reference the same term
 - ⊗ Add a weaker rule (`~` / `≉`) beside an existing `!` / `⊗` for the same command/pattern without reconciling in the same commit
+- ⊗ After a red post-loop `task check`, fix files and re-run only the gate without restarting Read-Write-Lint-Diff
 - ⊗ Skip `task pr:check-closing-keywords` (#737) before pushing a PR. Intent mode (#3015) also refuses bare/conditional real `Closes #N` without `--allow-close`. The negation-context substring match is the Layer 0 (prevention) gate that prevents the recurring auto-close of umbrella / staying-OPEN issues observed in #697 (closed #642), #401 (closed #642), #700 (closed #233), and #735 (closed #734) -- each incident required manual reopen and downstream cleanup. The lint's three-state exit (0 clean / 1 hits found / 2 config error) MUST be treated as a hard refusal: rewrite the PR body / commit messages until clean, OR pass `--allow-known-false-positives` ONLY for legitimately-quoted occurrences (test fixtures, documentation that discusses the trigger token literally). See `skills/deft-directive-swarm/SKILL.md` Phase 6 Step 1 for the corresponding Layer 3 (recovery) `pr:check-protected-issues` rule (#701)
 - ⊗ Invent remote PR/SHA/CI/review claims in handoff evidence without same-turn probe binding — invented-done (#3120)
 - ⊗ Fill remote ship/gate fields from memory when only local work completed; legal partial omits PR fields (#3120)
