@@ -196,6 +196,7 @@ const REQUIRED_SKILL_POINTERS = [
   "Yolo standing confirm of a posted all-accept map",
   "completed-arc record",
   "Chip apply miss is non-blocking",
+  "## Plain-language summary",
   "parse closed tokens",
   "ingest is a separate operator verb",
   "Seat families",
@@ -1254,6 +1255,53 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     const skill = readText(SKILL_REL);
     expect(skill).not.toContain("## In plain English");
     expect(skill).not.toContain("Reserved line-starts");
+  });
+  it("locks pointer-only In plain English as a miss (#4309)", () => {
+    const text = readText(CONTRACT);
+    const summary = markdownSection(text, "## Plain-language summary");
+    expect(summary).toContain(
+      "State the problem in ordinary language, then the accepted solution in ordinary language, on both artifacts",
+    );
+    expect(summary).toContain(
+      "including the #3640 auto-posted synthesis-accepted comment",
+    );
+    expect(summary).toContain(
+      "Comment ids and Bound-remedy pointers may follow; they are not the summary.",
+    );
+    expect(summary).toContain(
+      "Write a summary that only points at Bound-remedy or comment ids. That is a miss.",
+    );
+    expect(summary).toContain(
+      "Treat \"keep it to a screen\" as license to omit the problem or replace the solution with a pointer.",
+    );
+    expect(summary).toContain(
+      "finding-class tokens, Bound-remedy pointers, or comment ids for the summary",
+    );
+    expect(summary).toContain(
+      "Put ingest-open protocol or the sentence \"Ingest may proceed\" under this heading.",
+    );
+    expect(summary).toContain(
+      "Ingest still reads the bound lean and the verified-claims table.",
+    );
+    expect(summary).toContain("Nothing observes this section.");
+    expect(summary).toContain("do not add a prose-quality parser");
+    expect(summary).toContain("⊗ Address an implementer in the summary.");
+    expect(summary).toContain(
+      "⊗ Mandate a next-step or recommended-action field on either artifact.",
+    );
+    const stop5 = markdownSection(text, "## Stop 5 — Verified synthesis");
+    expect(stop5).toContain(
+      "A Bound-remedy or comment-id pointer is not that summary.",
+    );
+    const testSurface = markdownSection(text, "## Test surface");
+    expect(testSurface).toContain("Live parent turns stay unenforced. No prose-quality parser (#4309)");
+    expect(testSurface).toContain("the thin skill names `## Plain-language summary`");
+    const skill = readText(SKILL_REL);
+    expect(skill).toContain("## Plain-language summary");
+    expect(skill).toContain("Plain English first in main-chat");
+    expect(skill).not.toContain("## In plain English");
+    expect(skill).not.toContain("do not add a prose-quality parser");
+    expect(skill).not.toContain("keep it to a screen");
   });
   it("pins Stop 1 exclusion and refutation-target tokens by content (#3672)", () => {
     const text = readText(CONTRACT);

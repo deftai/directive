@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Cursor dest-missing deny names inspectSpawnDestination keys and shared recoveries (#4279).** Parent continues, assist/ephemeral, and plan lead on dest-missing; explore leads only on an already read-only spawn deny. Ritual notes on dest-missing are telemetry, not a recovery. Unmarked generalPurpose stays implement. Cursor Task isolation-key bind stays unbound until a PreToolUse measurement. Closes #4279.
 - **Yolo on the launching utterance confirms a posted all-accept design-critique map (#4308).** Standing for the arc; confirm conjunct only. `arc N yolo` still asks run posture. Recut-shaped maps stamp; ingest stays later. Closes #4308.
+- **Design-critique summaries state the problem and the accepted solution, not a Bound-remedy pointer (#4309).** A later reader can tell what broke and how the bound map solves it. The thin skill points at the Plain-language summary section. Live parent turns stay unenforced. Closes #4309.
 
 ### Removed
 
