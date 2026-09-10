@@ -116,6 +116,7 @@ export type ProjectLifecycleState =
   | "empty-greenfield"
   | "partial"
   | "legacy-only"
+  | "dual-populated"
   | "absent";
 
 export interface FrameworkLayoutRow {
@@ -156,10 +157,20 @@ export function classifyProjectLifecycle(projectRoot: string): ProjectLifecycleR
     path,
   } as const;
   try {
+    const conv = detectXbriefConvergence(projectRoot);
+    if (conv.state === "dual-populated") {
+      return {
+        ...base,
+        state: "dual-populated",
+        healthy: false,
+        message:
+          `Project-lifecycle dual-populated: unmarked populated vbrief/ coexists with xbrief/ at ${path}; ` +
+          `run deft migrate:xbrief`,
+      };
+    }
     if (hasMigratedLifecycleArtifacts(projectRoot)) {
       return { ...base, state: "valid", healthy: true };
     }
-    const conv = detectXbriefConvergence(projectRoot);
     if (conv.state === "legacy-only") {
       return {
         ...base,

@@ -1083,6 +1083,26 @@ describe("framework-layout split identities (#4162)", () => {
     const valid = makeRoot();
     seedEnvelope(valid);
     expect(classifyProjectLifecycle(valid)).toMatchObject({ state: "valid", healthy: true });
+
+    const dual = makeRoot();
+    seedEnvelope(dual);
+    mkdirSync(join(dual, "vbrief", "active"), { recursive: true });
+    writeFileSync(join(dual, "vbrief", "active", "a.vbrief.json"), "{}\n");
+    expect(classifyProjectLifecycle(dual)).toMatchObject({
+      state: "dual-populated",
+      healthy: false,
+    });
+    expect(classifyProjectLifecycle(dual).message).toContain("migrate:xbrief");
+
+    const marked = makeRoot();
+    seedEnvelope(marked);
+    mkdirSync(join(marked, "vbrief"), { recursive: true });
+    writeFileSync(
+      join(marked, "vbrief", "DEPRECATED.md"),
+      "<!-- deft:vbrief-deprecated -->\nlegacy retained\n",
+    );
+    writeFileSync(join(marked, "vbrief", "old.vbrief.json"), "{}\n");
+    expect(classifyProjectLifecycle(marked)).toMatchObject({ state: "valid", healthy: true });
   });
 
   it("healthy packed consumer does not warn missing xbrief/", () => {
