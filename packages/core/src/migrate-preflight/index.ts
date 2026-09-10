@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { contentRoot } from "../content-root.js";
 import {
   detectPreCutoverLegacy,
   frozenPreCutoverMigrationGuidance,
@@ -32,23 +33,38 @@ export type MigratePreflightOutcome =
   | { readonly kind: "ready"; readonly exitCode: 0 | 1; readonly results: readonly CheckResult[] }
   | MigratePreflightConfigError;
 
-function resolveContentRoot(frameworkRoot: string): string {
-  const nested = join(frameworkRoot, "content");
-  try {
-    if (statSync(nested).isDirectory()) return nested;
-  } catch {
-    // consumer deposit: content lives directly under framework root
+/**
+ * Ordered schema lookup over layouts that already exist (#4310):
+ * source `content/vbrief/schemas`, flattened deposit `vbrief/schemas`
+ * (both via {@link contentRoot}), then consumer project-root `xbrief/schemas`.
+ * Does not invent `content/xbrief/schemas`.
+ */
+export function resolveFrameworkSchemasDir(deftRoot: string, projectRoot: string): string | null {
+  const candidates = [
+    join(contentRoot(deftRoot), "vbrief", "schemas"),
+    join(projectRoot, "xbrief", "schemas"),
+  ];
+  for (const dir of candidates) {
+    try {
+      if (statSync(dir).isDirectory()) return dir;
+    } catch {
+      // try the next established layout
+    }
   }
-  return frameworkRoot;
+  return null;
 }
 
 export function checkLayout(deftRoot: string, projectRoot: string): CheckResult {
-  const schemasDir = join(resolveContentRoot(deftRoot), "xbrief", "schemas");
-  if (!existsSync(schemasDir) || !statSync(schemasDir).isDirectory()) {
+  const schemasDir = resolveFrameworkSchemasDir(deftRoot, projectRoot);
+  if (schemasDir === null) {
+    const sourceOrDeposit = join(contentRoot(deftRoot), "vbrief", "schemas");
+    const projectSchemas = join(projectRoot, "xbrief", "schemas");
     return {
       name: "layout",
       status: "FAIL",
-      message: `Framework schemas dir missing at ${schemasDir}. Refresh the deft checkout (see deft/QUICK-START.md).`,
+      message:
+        `Framework schemas dir missing at ${sourceOrDeposit} ` +
+        `(also checked ${projectSchemas}). Refresh the deft checkout (see deft/QUICK-START.md).`,
     };
   }
 

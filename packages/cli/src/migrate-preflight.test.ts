@@ -18,7 +18,7 @@ describe("migrate-preflight CLI (#2146)", () => {
     const project = mkdtempSync(join(tmpdir(), "migrate-preflight-cli-"));
     created.push(project);
     const deposit = join(project, ".deft", "core");
-    mkdirSync(join(deposit, "xbrief", "schemas"), { recursive: true });
+    mkdirSync(join(deposit, "vbrief", "schemas"), { recursive: true });
     mkdirSync(join(project, "xbrief"), { recursive: true });
 
     const args = parseArgs(["--project-root", project]);

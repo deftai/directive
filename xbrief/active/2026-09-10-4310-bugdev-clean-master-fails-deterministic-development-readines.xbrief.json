@@ -1,0 +1,296 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4310",
+    "updated": "2026-09-10T18:04:52Z"
+  },
+  "plan": {
+    "title": "bug(dev): clean master fails deterministic development-readiness gates",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(dev): clean master fails deterministic development-readiness gates",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4310",
+      "Overview": "## Summary\n\nA clean checkout of current master cannot pass the repository readiness checks:\n\n1. `task migrate:preflight` expects framework schemas at `content/xbrief/schemas`, but source packages them at `content/vbrief/schemas`; the consumer form of this defect is tracked by #4162.\n2. `xbrief/pending/` is required by the current layout but has no tracked placeholder, so it disappears in a clean clone and the project is classified as pre-cutover.\n3. `task verify:lifecycle-visible -- --enforce` reports the repository canonical `*.premigrate.*` backup exclusions as hiding every lifecycle root, although those backup names are not convention-valid scope filenames.\n\n## Reproduction\n\nAt master `50f62f76b85b97f69377e96575b5567101903133`:\n\n```text\ntask migrate:preflight\nCHECK layout: FAIL Framework schemas dir missing at .../content/xbrief/schemas.\nCHECK document-model: FAIL ... missing lifecycle folder(s) ... pending.\n\ntask verify:lifecycle-visible -- --enforce\nverify:lifecycle-visible: 20 hidden lifecycle path(s)\n... ignored by .gitignore:60:*.premigrate.*\n... ignored by .gitignore:68:*.premigrate.vbrief.json\n... ignored by .gitignore:69:*.premigrate.xbrief.json\n```\n\n## Expected\n\nA clean checkout of master is development-ready and passes both deterministic checks without manually creating required directories or weakening canonical migration-backup exclusions.\n\n## Acceptance criteria\n\n- [ ] The required empty `xbrief/pending/` lifecycle stage survives a fresh clone.\n- [ ] Migrate preflight resolves the packaged framework schema directory correctly in both source and consumer-deposit layouts.\n- [ ] Lifecycle visibility accepts canonical premigration-backup patterns while still rejecting globs that can hide convention-valid lifecycle scope files.\n- [ ] Regression tests cover all three clean-clone failures.\n- [ ] `task check` passes.\n- [ ] CHANGELOG `[Unreleased]` records the repair.\n\n## Related\n\n- #4162 covers the consumer-facing schema-layout family.\n- #4010 is closed and covered a different empty-pattern result from `git check-ignore -v`.\n\n## Deduplication\n\nSearched open issues for `xbrief/pending`, `content/xbrief/schemas`, `migrate:preflight`, `lifecycle-visible`, `premigrate`, and the exact schema error. No open issue covers this clean-source-checkout combination.\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @dbcall2 (2026-09-10T13:53:59Z)\n\n## Scope amendment — full contributor gate\n\nThe explicit merge chokepoint (`task check:merge`) exposed three additional readiness details while verifying the original clean-checkout repair:\n\n- `packages/cli/src/migrate-preflight.test.ts` still constructs the obsolete deposited `xbrief/schemas` fixture and must move with the #4162/#4310 schema correction.\n- Four session-coda tests read the developer real OpenClaw state; this is already tracked by #3770 and needs a hermetic OpenClaw seam.\n- The command-snippet candidate-diff fallback prefers a fork `origin/master` even when it is stale and the feature branch is based on current canonical `upstream/master`. This recurs in the #4195 defect family for a full contributor checkout and should prefer the canonical upstream ref when available.\n\nThese findings block a clean contributor `task check:merge`, so they are included in #4310 development-readiness verification before further implementation.\n\n### Comment by @dbcall2 (2026-09-10T14:11:57Z)\n\nmodel: grok-4.6\nrole: triage\n\nmechanism-shaped: true\ndesign-critique: warranted, because the lean is three interacting fail-closed development-readiness gates (schema layout, pending placeholder, premigrate ignore) plus a later check:merge amendment whose composition is the load-bearing design\nrefutation-target: A clean checkout of current master cannot pass migrate:preflight and verify:lifecycle-visible --enforce, and those failures plus the later check:merge findings are one development-readiness repair that must not weaken canonical *.premigrate.* exclusions.\narc-mode: no-ingest\ndest: /Users/davidcall/tools/deft/directive/.deft-scratch/worktrees/parent-arc-4310\norigin-ref: upstream/master\ndispatch-sha: 9a220e54967556075817b4966bbb404c8ad64d9b\n\ncharter: open critique\nspend: N=3\nwhy: operator 3arc uses panel permission; clone-to-merge readiness gates have high blast radius; body is drafted AC with no single defensible protocol presumption, so charter is open critique\ntarget shape: single issue\n\n## Scope recorded\n\nIssue 4310 including comment 5619813778 (full contributor gate amendment). Dest created this session after fetch: origin is the dbcall2 fork, so dest pins the issue repo default upstream/master, not local HEAD 50f62f76 and not origin/master 268ea8dd. SHA matches upstream/master. Parent remains unclaimed on primary. Ingest is not this motion.\n\n\n### Comment by @dbcall2 (2026-09-10T14:12:07Z)\n\nmodel: grok-4.6\nrole: parent\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5620070898\nfamilies: grok, claude, codex\n\nseat: grok launcher: spawn_subagent\nseat: claude launcher: claude\nseat: codex launcher: codex\n\n\n### Comment by @dbcall2 (2026-09-10T14:22:07Z)\n\nmodel: claude-opus-5[1m]\nrole: critic\n\nFresh critic, round 1, open critique. Envelope ceiling 5620070898; read the body plus comment 5619813778 and nothing later. Reads pinned to `git show 9a220e54:`. Process-only: I audit the lean, the protocol fit, and the recording obligations, not the repair.\n\n## Re-verification (anchors run, not cited)\n\nRan in the dispatch dest at `9a220e54` (= `upstream/master`; note `origin/master` here is `268ea8dd`):\n\n- `task migrate:preflight` -> `CHECK layout: FAIL Framework schemas dir missing at .../content/xbrief/schemas` and `CHECK document-model: FAIL ... missing lifecycle folder(s) ...: pending`. Confirmed. `content/vbrief/schemas` exists; `content/xbrief/schemas` does not. Resolver hardcodes the path at `packages/core/src/migrate-preflight/index.ts:46`.\n- `xbrief/pending/` is absent from the worktree and `git ls-files | grep xbrief/pending` is empty. Confirmed, and it is untracked, not merely empty.\n- `task verify:lifecycle-visible -- --enforce` -> `20 hidden lifecycle path(s)`, exactly the split the body reports (10 at `.gitignore:60`, 5 at `:68`, 5 at `:69`). Confirmed as an output. **Not** confirmed as a description of the mechanism -- see finding 2.\n\nInventory before proposing anything: the mechanism already in place is `packages/core/src/lifecycle-visible/evaluate.ts` -- `ignorePatternLooksLifecycleRelevant` (a pattern pre-filter), `expandGitignoreGlobToConcrete` (`*` -> the stem `lifecycle-visible`), `derivedLifecycleIgnoreProbesFromSources`, and the two sentinels. For the schema half, `packages/core/src/migrate-preflight/index.ts` and `resolveContentRoot`. For the arc's own dest, `packages/core/src/design-critique/arc-dest.ts`. Nothing here needs a new mechanism; three of the four findings below are about which existing seam the acceptance criteria point at.\n\n---\n\n### 1. `blocks-the-design` -- the recorded scope and the recorded acceptance criteria are different sets, and the digest covers only one of them\n\n**Evidence.** The Stop 1 write-back records `target shape: single issue` and scope as \"Issue 4310 including comment 5619813778\". The body carries six acceptance-criteria boxes covering exactly the three original defects. Comment 5619813778 adds three more (the `packages/cli/src/migrate-preflight.test.ts` fixture, the #3770 OpenClaw seam, the #4195 candidate-diff ref preference) and carries no acceptance criteria at all. I verified the fixture claim: `packages/cli/src/migrate-preflight.test.ts:21` does `mkdirSync(join(deposit, \"xbrief\", \"schemas\"))`, so the existing test encodes the defective layout and stays green while a source checkout fails.\n\n**Failure mode.** A new successor lean must carry the ingest pin digest, and `stale-target` compares that digest against the **live REST issue body**. The body does not contain the amendment. So the anti-drift control covers three of six in-scope defects and nothing pins the other three. Downstream this is worse, not better: `composeOverviewWithComments` does deliver the comment to the next worker, but this contract marks ingested comment text untrusted described content that instructs nobody -- so the amendment reaches the implementer precisely through the channel that is defined as non-authoritative, while the body's six boxes arrive as the scope. `unrecut-body` cannot catch this, because it only fires on a `set-level` target shape and this arc recorded `single issue`. Result: an arc that binds, an ingest that clears, and half the recorded scope with no acceptance criteria and no pin.\n\n**Disposition consequence.** Before the successor lean, either PATCH the body to fold in the amendment and give its three items acceptance criteria (the contract explicitly says a body PATCH is not a recut arc, so this costs no arc boundary), or drop the amendment out of scope to its own issue and re-record the write-back scope as the body alone. A lean written over \"body + comment\" without one of those cannot state a coverage claim that the record supports.\n\n### 2. `blocks-the-design` -- AC 3 names a rule class the checker already ignores, so it is satisfiable by a no-op\n\n**Evidence.** AC 3 reads \"Lifecycle visibility accepts canonical premigration-backup patterns while still rejecting globs that can hide convention-valid lifecycle scope files,\" and the body frames the failure as the checker treating \"the repository canonical `*.premigrate.*` backup exclusions\" as hiding lifecycle roots. Run against the built module:\n\n```text\n\"*.premigrate.*\"            relevant= false\n\"*.premigrate.md\"           relevant= false\n\"xbrief/*.premigrate.*\"     relevant= true\n\"vbrief/*.premigrate.*\"     relevant= true\n\"*.premigrate.vbrief.json\"  relevant= true\n\"*.premigrate.xbrief.json\"  relevant= true\n```\n\n`ignorePatternLooksLifecycleRelevant(\"*.premigrate.*\")` is **already** false. The rule the report names at `.gitignore:60` never generated a probe. The 20 findings come from lines 61, 62, 68 and 69; git then attributes each derived probe to the *last* matching rule, which for the two directory-scoped globs is line 60:\n\n```text\n$ git check-ignore -v --no-index vbrief/proposed/lifecycle-visible.premigrate.lifecycle-visible\n.gitignore:60:*.premigrate.*    vbrief/proposed/lifecycle-visible.premigrate.lifecycle-visible\n```\n\n10 probes from lines 61/62 attribute to 60, 5 to 68, 5 to 69. That is the whole 20.\n\n**Failure mode.** Two ways to satisfy AC 3 literally, both wrong. Add `*.premigrate.*` to a pattern allowlist: no-op, the reproduction still fails, and the box gets ticked. Or suppress findings keyed on the *matched* rule: that makes suppression depend on gitignore precedence rather than on the candidate pattern, so any future glob whose derived probe happens to be last-matched by a premigrate rule disappears silently -- a false negative in the exact check whose job is to have no false negatives. Meanwhile the printed remedy today is `remove the matching ignore rule or index flag`, which points the operator at `.gitignore:60` and instructs the one edit the same AC forbids. The safety case here cannot end at \"an operator would notice that is the wrong line\"; the deterministic control is the finding text, and the finding text is currently wrong.\n\n**Disposition consequence.** AC 3 has to name the seam that actually produced the output before it can constrain anything. The two candidates I can see: (a) a finding reports the *candidate* ignore rule that generated its probe, not the rule git attributed the probe to, and (b) a derived probe whose expanded name is not a convention-valid lifecycle scope filename is not a finding. Either is testable. As written, AC 3 is not.\n\n### 3. `sharpens-framing` -- amendment item 3 and this contract's own dest rule are one defect, and only one of them is in scope\n\n**Evidence.** Amendment item 3 says the candidate-diff fallback \"prefers a fork `origin/master` even when it is stale.\" `packages/core/src/design-critique/arc-dest.ts` has the identical shape: `ORIGIN_DEFAULT_CANDIDATES = [\"origin/HEAD\", \"origin/main\", \"origin/master\"]`, hardcoded remote *name*. In this checkout `origin` is `git@github.com:dbcall2/directive.git` (`268ea8dd`) and `upstream` is `deftai/directive` (`9a220e54`). The Stop 1 write-back records `origin-ref: upstream/master` and says so expressly. So the parent hand-overrode a MUST that names `ensureArcDest` as its mechanism, because that mechanism would have silently pinned this arc to the fork tip -- no `origin-default-missing` error, `origin/master` resolves fine, it just resolves to the wrong repository.\n\n**Failure mode.** Remote *name* is being used as a trust signal for \"which repo is canonical,\" in at least two call sites, and remote names are arbitrary local config. Fixing only the command-snippet call site leaves the design-critique dest path pinning fork tips on every contributor checkout, which is how a critic ends up auditing a revision the issue repo never had. And \"prefer the canonical upstream ref when available,\" as the amendment phrases it, reproduces the bug one level up: it still keys on a name.\n\n**Disposition consequence.** Restate amendment item 3 as remote-URL resolution against the issue repository rather than remote-name preference, and either widen it to cover `arc-dest.ts` or split it to its own issue. If it stays inside 4310 as a name-preference fix, the lean should say expressly that the identical seam in `arc-dest.ts` is knowingly out of scope, so the next arc does not re-derive it.\n\n### 4. `sharpens-framing` -- AC 2 and #4162 both claim the consumer-deposit layout\n\n**Evidence.** AC 2 is \"Migrate preflight resolves the packaged framework schema directory correctly in both source and consumer-deposit layouts,\" while the body's Related section says \"#4162 covers the consumer-facing schema-layout family\" and the summary scopes 4310 to \"the consumer form of this defect is tracked by #4162.\"\n\n**Failure mode.** Two open issues own the same half. Whichever lands first, the other holds an acceptance criterion that is already satisfied, and AC 6 (CHANGELOG) attributes one repair to one number. The residual is bookkeeping, but it is the kind that leaves an open issue whose boxes all pass.\n\n**Disposition consequence.** Either narrow AC 2 to the source layout and let #4162 own the deposit layout, or fold #4162 in and say so in Related. Do not leave both.\n\n### 5. `sharpens-framing` -- Stop 1 recorded a refutation target under an open-critique charter, and its content asserts AC 3's conclusion\n\n**Evidence.** The write-back records `charter: open critique` with the reason \"no single defensible protocol presumption,\" and in the same comment records a `refutation-target:` sentence ending \"...must not weaken canonical `*.premigrate.*` exclusions.\" Stop 1 requires the field unconditionally; the arc section says open critique names no refutation target and the target is the scope the write-back records; Stop 3 forbids loading a refutation target into the envelope. My envelope correctly withheld it, so I did not critique it -- which is the problem.\n\n**Failure mode.** The sentence sits above the ceiling in the parent voice, states as premise the exact claim AC 3 turns into a requirement, and by construction no critic in this arc is given it as a target. A Stop 4 critic or a synthesis reader meets it as settled framing. Given finding 2, that premise is also the one that most needs auditing: \"must not weaken canonical exclusions\" is true and is *also* how AC 3 got pointed at the wrong rule class.\n\n**Disposition consequence.** The successor lean should state that the recorded refutation target was inert under this charter and was not any critic's target, and should not carry that sentence forward as a finding-grade claim. Separately, the tension between an unconditional Stop 1 MUST and \"open critique names no refutation target\" is a real contract seam and is worth its own issue; it is not one I can resolve from inside this envelope.\n\n### 6. `sharpens-framing` -- the check reports paths that do not exist and that a hand re-run reports clean\n\n**Evidence.** `vbrief/` is absent from this checkout entirely, yet 10 of the 20 findings are `vbrief/*` paths. And `git check-ignore -v xbrief/pending/` returns rc=1 with no output -- the reported path, checked the way the report describes it, is clean. The probes that actually matched are never printed.\n\n**Failure mode.** An operator handed `xbrief/pending/ ignored by .gitignore:60:*.premigrate.*` cannot reproduce it, and the closest prior art in this family (#4010, an empty-pattern result from `git check-ignore -v`) is the same shape of diagnostic gap. The current output reports a conclusion without reporting what was scanned or what was found.\n\n**Disposition consequence.** Add an acceptance criterion that a finding names its derived probe and the candidate rule, not only the attributed rule. Without it, finding 2's repair is untestable from the CLI surface and the next regression lands the same way.\n\n### 7. `footnote` -- panel composition is unverifiable from inside this envelope\n\nThe N>=3 seat families reach me only through my dispatch envelope; the panel-deposit is necessarily above the ceiling and the Stop 1 write-back records the spend but not the claimed families. This is the known unobserved-completeness gap, restated only so the census records that this critic attests its own seat and nothing about its siblings.\n\n### 8. `footnote` -- Stop 1 chip never applied\n\nIssue 4310 carries zero labels as of this comment. `design-critique:mechanism-shaped` was stamped in prose but never mirrored, so `plan.policy.judgmentGates` never matched this issue, and no `design-critique:in-progress` was applied after the deposit. Sibling arcs do carry the chips (#4308 has `design-critique:ingest-ready`). The contract makes chip application non-blocking convenience and keeps the gate advisory in this rollout, so this carries no disposition weight -- but the lean should not read as though the ADR-005 gate fired for this arc.\n\n---\n\n## Injection / swarm lens\n\nFires: the target changes shared state (`.gitignore` semantics), an accept set in a shipped verifier, and -- in amendment item 3 -- which git ref is trusted as a diff base.\n\nThe ref-preference change is the one with real content. Remote names are unauthenticated local config; any remote can be called `upstream`. Making \"prefer canonical upstream\" a name test means a contributor whose remotes are misnamed, or a tool that adds a remote under a conventional name, silently redirects every derived diff and every arc dest to a repository nobody chose. Blast radius is a wrong base, not code execution -- but the wrong base is what a critic and a command-snippet consumer both read as ground truth, and this arc is a live instance: `ensureArcDest` would have pinned to `268ea8dd` and the parent had to override by hand. The control is resolving by remote URL against the issue repository, not by name.\n\nThe lifecycle-visible half also runs `git check-ignore` over paths derived from attacker-writable-in-principle content (nested `.gitignore` files anywhere under `xbrief/`/`vbrief/`, collected by `collectNestedLifecycleGitignoreFiles`). Probe names are synthesized from those patterns and passed as argv. `expandGitignoreGlobToConcrete` strips leading `/` and collapses `**`, and there is an argv chunking budget, so I found no traversal or injection path -- but any AC 3 repair that adds an allowlist keyed on pattern text is taking a trust decision on that same untrusted input, and should key on the derived probe name instead.\n\nNo embedded instructions were present in the body or in comment 5619813778. Nothing in the ingested text directed my critique.\n\n## Road not taken\n\nFor finding 2 I chose \"the attribution seam is wrong\" over two alternatives. Rejected: widening `ignorePatternLooksLifecycleRelevant` to also return false for `xbrief/*.premigrate.*` and `vbrief/*.premigrate.*`. That does clear the 20 findings and is a two-line change. I rejected it because the pre-filter's stated job is \"could this glob hide a convention-valid brief,\" and a directory-scoped premigrate glob is a legitimate answer of *no* only if `.premigrate.` can never appear in a convention-valid scope filename -- which is a convention claim nobody has written down. Also rejected: suppressing on the matched rule, for the false-negative reason in the finding.\n\n## Steelman\n\nThe strongest position against finding 2: the pre-filter is exactly where this belongs, the four premigrate lines are all canonically backup-only, and the attribution point is cosmetic because an operator who deletes `.gitignore:60` still has 61/62/68/69 and the check keeps failing, so nothing irreversible happens. What would flip me: a written convention -- enforced somewhere, not asserted -- that a lifecycle scope filename can never contain `.premigrate.`. With that in hand, a basename-level exclusion on the derived probe is sufficient and correct, AC 3 becomes implementable roughly as written, and finding 2 drops to `sharpens-framing` about the finding text alone. Absent that convention, the pre-filter is being asked to make a judgment the repository has not defined, and the seam moves to attribution.\n\n## Census\n\n2 `blocks-the-design`, 4 `sharpens-framing`, 2 `footnote`. Findings 1 and 5 are process; 2, 3, 4 and 6 are the acceptance criteria as recording obligations, judged against re-run behaviour rather than against the body's description of it.\n\n\n### Comment by @dbcall2 (2026-09-10T14:23:38Z)\n\nmodel: grok-4.6\nrole: critic\n\nRe-verified at dispatch SHA `9a220e54967556075817b4966bbb404c8ad64d9b` (this dest HEAD). `task migrate:preflight` fails layout at `content/xbrief/schemas` and document-model missing `pending`. `task verify:lifecycle-visible -- --enforce` reports 20 hidden roots attributed to `.gitignore:60:*.premigrate.*`, `:68:*.premigrate.vbrief.json`, and `:69:*.premigrate.xbrief.json`. Those three clone-layout failures are real. Comment 5619813778 then adds a different design.\n\n## 1. Check:merge leftovers cannot ride the clone-layout lean (blocks-the-design)\n\n**Evidence.** The issue body names three clone-layout repairs plus `task check` and CHANGELOG. Comment 5619813778 then folds in (a) the schema test fixture, (b) four session-coda tests already tracked by open #3770, and (c) command-snippet `origin/master` versus `upstream/master`. `baseSeams` in `packages/core/src/doctor/session-coda.test.ts` still omits `openclawEnv` / `openclawHomeDir`. `readCommandSnippetCandidateDiff` tries `origin/master` before `origin/main` and never `upstream/master` (`packages/core/src/deposit/live-procedure-targets.ts`). This dest's `origin/master` is `268ea8dd`; `upstream/master` equals the dispatch SHA. #3770 is still a separate open issue. Closed #4195 is the shallow-clone `UNRESOLVED_SHALLOW_CANDIDATE_DIFF` sentinel, not a stale-fork origin.\n\n**Failure mode.** `task check` / `check:merge` as acceptance makes every current red test in-scope. Bind without a Recut and ingest keeps the body (three clone items) while the recorded scope claimed the amendment. Bind with a Recut and #3770 plus a remote-base policy share one next-build contract with the gitkeep / schema / ignore work. Two issues then own the OpenClaw seam.\n\n**Disposition.** Bind #4310 only on the three re-verified clone-layout gates plus the schema-path test fixture that is the same `checkLayout` function. Leave #3770. Do not treat closed #4195 as this origin/upstream defect. If the amendment stays, Recut the body and dominate or cancel #3770; otherwise the composition cannot bind.\n\n## 2. Schema repair is lookup over existing trees, not a new `content/xbrief/schemas` (sharpens-framing)\n\n**Evidence.** `checkLayout` does `join(resolveContentRoot(deftRoot), \"xbrief\", \"schemas\")`. Source at this SHA has `content/vbrief/schemas` and no `content/xbrief`. `CANONICAL_SCHEMA_REL` is `content/vbrief/schemas/vbrief-core.schema.json`. UPGRADING.md names that file as source SoT and consumer deposit as project-root `xbrief/schemas/`. Core tests `makeFakeDeftRoot(..., { contentNested: true })` mkdir `content/xbrief/schemas`. The CLI test mkdir `.deft/core/xbrief/schemas`. Doctor `CONSUMER_FRAMEWORK_DIRS` still lists deposit `xbrief`; #4162 is that doctor warning, not this preflight path.\n\n**Failure mode.** An implementer creates or moves source schemas to `content/xbrief/schemas` and fights contract-drift / packs-slice. Or they only retarget source and leave consumer preflight looking at `.deft/core/xbrief/schemas` while deposits still ship `vbrief/schemas`.\n\n**Disposition.** State AC2 as an ordered existence check over the layouts that already exist: source `content/vbrief/schemas`, flattened deposit `vbrief/schemas`, consumer project-root `xbrief/schemas`. Move fixtures with that lookup. Do not add a third tree.\n\n## 3. Hide detection must use convention-valid names, not glob-expanded backup probes (sharpens-framing)\n\n**Evidence.** `git check-ignore -v --no-index` at this SHA: `xbrief/pending/2026-09-10-clean-clone-readiness.xbrief.json` and `vbrief/pending/2026-09-10-foo.vbrief.json` are not ignored. `xbrief/pending/lifecycle-visible.premigrate.xbrief.json` matches `.gitignore:69`. `ignorePatternLooksLifecycleRelevant` treats any `.xbrief.json` glob as relevant; `expandGitignoreGlobToConcrete` turns `*.premigrate.xbrief.json` into `lifecycle-visible.premigrate.xbrief.json`; `lifecycleRootForRelPath` then reports the stage root. `isSelectiveLifecyclePath` only skips `.triage-cache`. Enforce output says \"remove the matching ignore rule\" (#3505), which is the repair the AC forbids. Filename convention is `YYYY-MM-DD-<slug>.(x|v)brief.json`.\n\nThis target changes ignore-rule evaluation (shared git visibility of lifecycle roots). The control is the probe set below, not reviewer attention.\n\n**Failure mode.** Deleting `*.premigrate.*` commits migration backups. A `premigrate` string denylist misses the next backup glob (`*.orig.xbrief.json`) and re-reds `--enforce`. Dropping every derived probe whose expanded name is not convention-valid, without keeping the January sentinels, would also drop `*.xbrief.json` (expands to `lifecycle-visible.xbrief.json`) and miss a real hide.\n\n**Disposition.** Keep the gitignore lines. Emit derived probes only when the expanded concrete name is itself convention-valid (date globs such as `2026-07-*.xbrief.json`). Keep the existing fallback sentinels (`2026-01-01-lifecycle-visible.xbrief.json` and the vbrief twin) so `*.xbrief.json` still fails. Rewrite the enforce line so it does not tell the operator to delete canonical backup exclusions.\n\n**Road not taken.** Special-case `premigrate` in `ignorePatternLooksLifecycleRelevant`. That matches the three recorded gitignore lines. Flip: a fourth backup glob with the same hide-nothing-valid shape would reproduce this issue.\n\n## 4. Recording leftovers (footnote)\n\nIssue labels are empty despite `mechanism-shaped: true` on comment 5620070898 (chip apply miss; non-blocking). Related #4162 is the doctor deposit-root `xbrief/` warning, not migrate-preflight schemas. Empty `xbrief/pending/` is the installer `.gitkeep` convention already used at `xbrief/active/.gitkeep` (#1179); other stages survive clone because they have tracked files. If origin/upstream candidate-diff is later its own issue, an ordered base list must probe merge-base against HEAD rather than prefer the name `upstream/master` whenever it exists; same-repo CI has `origin` as the canonical remote.\n\n\n### Comment by @dbcall2 (2026-09-10T14:26:26Z)\n\nmodel: gpt-5\nrole: critic\n\n## Verdict\n\nThe original three-failure repair is viable. The amended single-issue lean does not bind as written: it turns the repository-wide merge gate into a moving scope boundary and adds a Git-base-selection change without defining how the selected remote is trusted.\n\n## Re-verification\n\nAt dispatch SHA `9a220e54967556075817b4966bbb404c8ad64d9b`:\n\n- `task migrate:preflight` reproduced both claimed failures: missing `content/xbrief/schemas` and missing `xbrief/pending/`.\n- `task verify:lifecycle-visible -- --enforce` reproduced all 20 false findings from the three canonical `*.premigrate.*` families.\n- The targeted command-snippet suite reproduced its full-checkout failure. Its candidate diff was taken against stale fork history and included the sentinel's own historical introduction.\n- `packages/core/src/doctor/session-coda.test.ts` reproduced exactly four failures; the real `~/.openclaw` state changed doctor success into a warning.\n- The obsolete migrate-preflight CLI fixture passed, confirming that it currently tests a deposited `xbrief/schemas` layout that the source/deposit inventory does not establish.\n\n### 1. blocks-the-design — `check:merge` is integration evidence, not a scope-discovery rule\n\n**Evidence.** The issue body defines three clean-checkout failures. The [scope amendment](https://github.com/deftai/directive/issues/4310#issuecomment-5619813778) then annexes a directly coupled fixture update, an already-tracked #3770 hermeticity defect, and a #4195-family base-selection defect because the aggregate exposed them. But [`check:merge` is the complete framework gate](https://github.com/deftai/directive/blob/9a220e54967556075817b4966bbb404c8ad64d9b/Taskfile.yml#L411-L480), not a boundary around development-readiness code. The triage record nevertheless says `target shape: single issue`.\n\n**Concrete failure mode.** Any unrelated gate that happens to be red in the operator's environment becomes new #4310 implementation scope. Closure becomes non-monotone, existing issue ownership is duplicated, and the worker cannot tell whether passing the five body ACs completes the issue or whether every newly observed aggregate failure must also be repaired.\n\n**Disposition consequence.** Do not bind the amendment as one single-issue repair. Keep the migrate-preflight fixture with #4310 because it is direct regression coverage for the schema-path change. Leave the OpenClaw seam and candidate-base defect in their existing issue families, recorded as dependencies if they prevent the final aggregate run. If the intended target really is “make the whole contributor gate green across these issue families,” recut it as a set-level/umbrella target with per-issue dispositions and update the recorded target shape.\n\nThe strongest rejected position is that one green aggregate makes one issue operationally convenient. That would be persuasive only if the aggregate's gate list were also the declared, closed scope; it is not.\n\n### 2. blocks-the-design — a remote named `upstream` is not trusted repository identity\n\n**Evidence.** The current candidate-diff resolver [tries bases in order and accepts the first non-null diff, including an empty diff](https://github.com/deftai/directive/blob/9a220e54967556075817b4966bbb404c8ad64d9b/packages/core/src/deposit/live-procedure-targets.ts#L1012-L1025). It performs no remote-URL or repository-identity check. The amendment's phrase “prefer the canonical upstream ref when available” does not say how canonicality is established; Git remote names are mutable local labels.\n\n**Concrete failure mode.** Prepending `upstream/master` fixes this checkout's stale-fork false positive, but a missing, stale, or mispointed `upstream` can still be accepted as authoritative. In a full checkout, an `upstream/master` ref equal to HEAD yields a successful empty candidate diff and can hide a same-diff exemption violation. This is the authority/shared-state risk in the target; no issue-thread prompt injection was present within the ceiling.\n\n**Disposition consequence.** The base-selection requirement must define a fail-closed trust and precedence contract before it is accepted: CI-provided base SHA/ref first; otherwise an explicit or branch-tracked remote whose repository identity matches the canonical repo; ambiguity or disconnected history must not silently become an empty diff. Tests need at least stale fork + fresh canonical remote, mispointed `upstream`, canonical ref equal to HEAD, and no canonical remote.\n\nThe conventional-name steelman is strong for local ergonomics, but not for a gate that decides exemption ownership. A repository-identity check and the fail-closed cases above would flip this finding.\n\n### 3. sharpens-framing — reuse the established content-root boundary for schema resolution\n\n**Evidence.** [`migrate-preflight/index.ts`](https://github.com/deftai/directive/blob/9a220e54967556075817b4966bbb404c8ad64d9b/packages/core/src/migrate-preflight/index.ts#L23-L36) privately reimplements source-versus-deposit resolution and then appends `xbrief/schemas`. The shared [`contentRoot`](https://github.com/deftai/directive/blob/9a220e54967556075817b4966bbb404c8ad64d9b/packages/core/src/content-root.ts#L76-L89) already handles source, flattened deposit, and installed content-package precedence. The pinned tree packages framework schemas under `content/vbrief/schemas`, while the CLI test [constructs `.deft/core/xbrief/schemas`](https://github.com/deftai/directive/blob/9a220e54967556075817b4966bbb404c8ad64d9b/packages/cli/src/migrate-preflight.test.ts#L17-L27).\n\n**Concrete failure mode.** A local path rename can make the source checkout green while leaving flattened deposits or npm-content resolution wrong, or preserve a passing fixture for a layout the installer does not provide.\n\n**Disposition consequence.** State the repair as one framework-schema resolver based on the existing content-root abstraction plus the actual `vbrief/schemas` source path, with source, flattened-deposit, and content-package tests. This sharpens the existing “both layouts” AC; it does not require a new subsystem.\n\n### 4. sharpens-framing — test lifecycle ignores against the filename language, not the word `premigrate`\n\n**Evidence.** The current lifecycle check expands each relevant ignore glob to one synthetic pathname and maps any match back to a stage root ([probe construction](https://github.com/deftai/directive/blob/9a220e54967556075817b4966bbb404c8ad64d9b/packages/core/src/lifecycle-visible/evaluate.ts#L282-L310), [finding projection](https://github.com/deftai/directive/blob/9a220e54967556075817b4966bbb404c8ad64d9b/packages/core/src/lifecycle-visible/evaluate.ts#L604-L648)). The repository already has a canonical [`matchesFilenameConvention`](https://github.com/deftai/directive/blob/9a220e54967556075817b4966bbb404c8ad64d9b/packages/core/src/vbrief-validate/filename.ts#L4-L49). The three reproduced backup-pattern witnesses are not convention-valid scope filenames.\n\n**Concrete failure mode.** A hard-coded `premigrate` exemption clears today's 20 false positives but couples safety to backup spelling. A later backup spelling regresses, while an over-broad ignore can evade if its single synthetic witness is invalid even though the glob intersects the valid scope-filename language.\n\n**Disposition consequence.** Keep the AC, but make the test matrix express the semantic boundary: canonical backup patterns produce no finding; broad suffix/date/stage globs that can match a valid scope filename still fail; narrow globs proven disjoint from the filename grammar pass. Reuse the filename validator as the oracle or explicitly document an equivalent bounded witness construction. Deleting the backup ignores is the rejected road: it restores the gate by weakening migration safety.\n\n### 5. footnote — the pre-critic record is otherwise usable\n\nThrough ceiling `5620070898`, the thread has the required model/role lead, no-ingest posture, pinned destination/SHA, open-critique charter, N=3 spend rationale, and a concrete scope amendment. No unresolved audit marker was named or omitted. The recording defect is specifically the mismatch between `single issue` and the portfolio-like amendment, not a missing envelope field.\n\n\n### Comment by @dbcall2 (2026-09-10T14:52:02Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nA clean clone of current master fails two readiness gates. Migrate-preflight looks for framework schemas under `content/xbrief/schemas`, a path this source tree does not have; the schemas live under `content/vbrief/schemas`. Lifecycle-visible then reports twenty hidden lifecycle roots from backup ignore globs, even though a real dated scope file in those folders is not ignored. Those three clone-layout failures were re-run at the dispatch SHA and they are real.\n\nThe issue then also tried to absorb whatever else was red on a full contributor `check:merge`: a schema-path test fixture that still builds the defective layout, an OpenClaw hermeticity hole already tracked on #3770, and a git-base choice that treats the remote name `origin` or `upstream` as trust. That mix cannot be one issue. The body's six boxes cover only the clone-layout work. Ingest would pin only that body. `check:merge` is the whole framework gate, not a rule for discovering #4310 scope. Preferring a remote named `upstream` still keys on a local label.\n\nIf this map is confirmed, #4310's next-build contract is only the three clone-layout repairs plus the schema test fixture that currently encodes the bad path. Schema lookup uses the trees that already exist. The backup gitignore lines stay; the checker stops treating backup-shaped probe names as hidden lifecycle files, and a finding names the probe it actually used. #3770 keeps the OpenClaw seam. Remote identity and the arc dest's origin-name pin are not this issue.\n\nThis map recuts the next-build contract. It is a reading of the three critic posts, not a new finding.\n\nBind would be finished. Ingest may proceed unless another arc is desired. The `ingest-ready` label records that bind; it does not mean the GitHub body is the spec. Recut means rewriting the GitHub issue body from the accepted lean so the new body carries that lean's information. That rewrite is optional. The issue can also be ingested as it stands: ingest takes the lean's numbered list as plan items and leaves the current body as history.\n\nThis is not an instruction to a later worker.\n\nRecut: next-build contract is not this body.\n\n**Lean:** recut of #4310 after critics 5620218467, 5620240573, 5620281777. Round 1 siblings dispatched: 3. Supersedes write-back 5620070898.\n\nTarget-digest: sha256:256803e142f713775ffcbf287265785d32903acb84eee591efa2b602e3cbdbb5\n\nyolo-standing: yes (launching utterance 3arc)\narc-mode: no-ingest\ndest: /Users/davidcall/tools/deft/directive/.deft-scratch/worktrees/parent-arc-4310\norigin-ref: upstream/master\ndispatch-sha: 9a220e54967556075817b4966bbb404c8ad64d9b\n\n## Bound remedy\n\n- Bind #4310 only to the three re-verified clone-layout failures plus the migrate-preflight CLI fixture that encodes the defective schema layout.\n- Leave #3770. Do not treat closed #4195 as this origin/upstream defect. Do not treat `check:merge` redness as a scope-discovery rule.\n- Schema repair is an ordered existence lookup over layouts that already exist, using the established content-root boundary: source `content/vbrief/schemas`, flattened deposit `vbrief/schemas`, consumer project-root `xbrief/schemas`. Move fixtures with that lookup. Do not add `content/xbrief/schemas`.\n- #4162 remains the doctor consumer-root warning, not this preflight path.\n- Keep the canonical `*.premigrate.*` gitignore lines. Lifecycle-visible emits a derived probe only when the expanded concrete name is convention-valid, and keeps the existing January sentinels so `*.xbrief.json` still fails. Do not special-case the word `premigrate`.\n- A lifecycle-visible finding names its derived probe and the candidate ignore rule, not only the rule git last-matched. The enforce line must not tell the operator to delete those backup exclusions.\n- Remote-name preference (`origin` / `upstream`) and `arc-dest.ts` origin-default names are out of this issue. They need repository-identity and fail-closed base selection, not a name preference.\n- The Stop 1 refutation-target sentence was inert under open critique and was not any critic's target. Do not carry that sentence forward as a finding-grade claim.\n\n### Takes (critic 5620218467)\n\n- 1 recorded scope and acceptance criteria are different sets — accept-into-contract\n- 2 AC 3 names a rule class the checker already ignores — accept-into-contract\n- 3 amendment item 3 and arc-dest are one defect — accept-into-contract\n- 4 AC 2 and #4162 both claim the consumer-deposit layout — accept-into-contract\n- 5 Stop 1 refutation target under open critique — accept-into-contract\n- 6 the check reports paths that do not exist — accept-into-contract\n\n### Takes (critic 5620240573)\n\n- 1 check:merge leftovers cannot ride the clone-layout lean — accept-into-contract\n- 2 schema repair is lookup over existing trees — accept-into-contract\n- 3 hide detection must use convention-valid names — accept-into-contract\n\n### Takes (critic 5620281777)\n\n- 1 check:merge is integration evidence, not a scope-discovery rule — accept-into-contract\n- 2 a remote named upstream is not trusted repository identity — accept-into-contract\n- 3 reuse the established content-root boundary for schema resolution — accept-into-contract\n- 4 test lifecycle ignores against the filename language — accept-into-contract\n\nAccepted set: Claude 1-6, Grok 1-3, Codex 1-4. Still-open residual: none. Footnotes (Claude 7-8, Grok 4, Codex 5) are census only.\n\nNon-self-arbitration: this parent authored Stop 1 5620070898. The three critics were grok-4.6 CLI, claude-opus-5, and gpt-5. These takes are not independent confirmation of the triage.\n\n\n### Comment by @dbcall2 (2026-09-10T14:52:21Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nEach row names its method. Agreement is not evidence.\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | At dispatch SHA 9a220e549, migrate:preflight fails missing content/xbrief/schemas and missing pending; lifecycle-visible --enforce reports 20 hidden roots | Claude, Grok, and Codex each ran the two commands in dest | measured |\n| 2 | ignorePatternLooksLifecycleRelevant(\"*.premigrate.*\") is false; the 20 findings come from .gitignore 61/62/68/69, with git attributing some probes to line 60 | Claude ran the built module and git check-ignore -v --no-index | measured |\n| 3 | checkLayout joins resolveContentRoot with xbrief/schemas; source at this SHA has content/vbrief/schemas and no content/xbrief | Grok and Codex git show migrate-preflight/index.ts and the tree | measured |\n| 4 | packages/cli/src/migrate-preflight.test.ts mkdirSync deposit xbrief/schemas | Claude and Codex git show that test | measured |\n| 5 | Four session-coda tests fail against real OpenClaw state; #3770 is still open | Codex ran the suite | measured |\n| 6 | readCommandSnippetCandidateDiff tries origin/master before origin/main and never upstream/master | Grok and Codex git show live-procedure-targets.ts | measured |\n| 7 | Catalog chip apply missed; issue labels empty | Claude REST labels read; parent chip write this session returned GraphQL AddLabelsToLabelable deny | measured |\n| 8 | Three clone-layout failures are the viable repair; the check:merge annex cannot bind as one single-issue next-build contract | Reading of accepted headings Claude 1, Grok 1, Codex 1; not independent of those critics | endorsed |\n\n\n### Comment by @dbcall2 (2026-09-10T14:52:30Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nA clean clone of current master fails two readiness gates. Migrate-preflight looks for schemas on a path the source tree does not have. Lifecycle-visible reports twenty hidden roots from backup ignore globs that do not hide a real scope file. Those failures are real.\n\nThe filed issue also tried to absorb other check:merge redness: an OpenClaw hermeticity hole already on #3770, and a git-base choice that treats the remote name origin or upstream as trust. That mix cannot be one issue.\n\nThe accepted next-build contract is only the three clone-layout repairs plus the schema test fixture that currently encodes the bad path. Schema lookup uses the trees that already exist. Backup gitignore lines stay; the checker stops treating backup-shaped probe names as hidden lifecycle files, and a finding names the probe it actually used. #3770 keeps the OpenClaw seam. Remote identity and the arc dest's origin-name pin are not this issue.\n\nBind is finished. Ingest may proceed unless another arc is desired. The ingest-ready label records that bind; it does not mean the GitHub body is the spec. Recut means rewriting the GitHub issue body from the accepted lean so the new body carries that lean's information. That rewrite is optional. The issue can also be ingested as it stands: ingest takes the lean's numbered list as plan items and leaves the current body as history.\n\nThis is not an instruction to a later worker.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCiting successor lean 5620648209 and verified-claims table 5620653745.\n\nNon-self-arbitration: same grok-4.6 parent as Stop 1 5620070898. Round 1 complete, N=3, critics 5620218467, 5620240573, 5620281777, ceiling 5620070898. Yolo standing on the launching utterance was the confirm conjunct. It does not satisfy ingest."
+    },
+    "items": [
+      {
+        "title": "Bind #4310 only to the three re-verified clone-layout failures plus the migrate-preflight CLI fixture that encodes the defective schema layout.",
+        "status": "proposed"
+      },
+      {
+        "title": "Leave #3770. Do not treat closed #4195 as this origin/upstream defect. Do not treat `check:merge` redness as a scope-discovery rule.",
+        "status": "proposed"
+      },
+      {
+        "title": "Schema repair is an ordered existence lookup over layouts that already exist, using the established content-root boundary: source `content/vbrief/schemas`, flattened deposit `vbrief/schemas`, consumer project-root `xbrief/schemas`. Move fixtures with that lookup. Do not add `content/xbrief/schemas`.",
+        "status": "proposed"
+      },
+      {
+        "title": "#4162 remains the doctor consumer-root warning, not this preflight path.",
+        "status": "proposed"
+      },
+      {
+        "title": "Keep the canonical `*.premigrate.*` gitignore lines. Lifecycle-visible emits a derived probe only when the expanded concrete name is convention-valid, and keeps the existing January sentinels so `*.xbrief.json` still fails. Do not special-case the word `premigrate`.",
+        "status": "proposed"
+      },
+      {
+        "title": "A lifecycle-visible finding names its derived probe and the candidate ignore rule, not only the rule git last-matched. The enforce line must not tell the operator to delete those backup exclusions.",
+        "status": "proposed"
+      },
+      {
+        "title": "Remote-name preference (`origin` / `upstream`) and `arc-dest.ts` origin-default names are out of this issue. They need repository-identity and fail-closed base selection, not a name preference.",
+        "status": "proposed"
+      },
+      {
+        "title": "The Stop 1 refutation-target sentence was inert under open critique and was not any critic's target. Do not carry that sentence forward as a finding-grade claim.",
+        "status": "proposed"
+      },
+      {
+        "title": "1 recorded scope and acceptance criteria are different sets — accept-into-contract",
+        "status": "proposed"
+      },
+      {
+        "title": "2 AC 3 names a rule class the checker already ignores — accept-into-contract",
+        "status": "proposed"
+      },
+      {
+        "title": "3 amendment item 3 and arc-dest are one defect — accept-into-contract",
+        "status": "proposed"
+      },
+      {
+        "title": "4 AC 2 and #4162 both claim the consumer-deposit layout — accept-into-contract",
+        "status": "proposed"
+      },
+      {
+        "title": "5 Stop 1 refutation target under open critique — accept-into-contract",
+        "status": "proposed"
+      },
+      {
+        "title": "6 the check reports paths that do not exist — accept-into-contract",
+        "status": "proposed"
+      },
+      {
+        "title": "1 check:merge leftovers cannot ride the clone-layout lean — accept-into-contract",
+        "status": "proposed"
+      },
+      {
+        "title": "2 schema repair is lookup over existing trees — accept-into-contract",
+        "status": "proposed"
+      },
+      {
+        "title": "3 hide detection must use convention-valid names — accept-into-contract",
+        "status": "proposed"
+      },
+      {
+        "title": "1 check:merge is integration evidence, not a scope-discovery rule — accept-into-contract",
+        "status": "proposed"
+      },
+      {
+        "title": "2 a remote named upstream is not trusted repository identity — accept-into-contract",
+        "status": "proposed"
+      },
+      {
+        "title": "3 reuse the established content-root boundary for schema resolution — accept-into-contract",
+        "status": "proposed"
+      },
+      {
+        "title": "4 test lifecycle ignores against the filename language — accept-into-contract",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4310",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4310: bug(dev): clean master fails deterministic development-readiness gates"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4195",
+        "type": "x-xbrief/closes",
+        "title": "Issue #4195"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4162",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4162"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 21 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Bind #4310 only to the three re-verified clone-layout failures plus the migrate-preflight CLI fixture that encodes the defective schema layout.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Leave #3770. Do not treat closed #4195 as this origin/upstream defect. Do not treat `check:merge` redness as a scope-discovery rule.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Schema repair is an ordered existence lookup over layouts that already exist, using the established content-root boundary: source `content/vbrief/schemas`, flattened deposit `vbrief/schemas`, consumer project-root `xbrief/schemas`. Move fixtures with that lookup. Do not add `content/xbrief/schemas`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "#4162 remains the doctor consumer-root warning, not this preflight path.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Keep the canonical `*.premigrate.*` gitignore lines. Lifecycle-visible emits a derived probe only when the expanded concrete name is convention-valid, and keeps the existing January sentinels so `*.xbrief.json` still fails. Do not special-case the word `premigrate`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "A lifecycle-visible finding names its derived probe and the candidate ignore rule, not only the rule git last-matched. The enforce line must not tell the operator to delete those backup exclusions.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Remote-name preference (`origin` / `upstream`) and `arc-dest.ts` origin-default names are out of this issue. They need repository-identity and fail-closed base selection, not a name preference.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "The Stop 1 refutation-target sentence was inert under open critique and was not any critic's target. Do not carry that sentence forward as a finding-grade claim.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "1 recorded scope and acceptance criteria are different sets — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "2 AC 3 names a rule class the checker already ignores — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "3 amendment item 3 and arc-dest are one defect — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "4 AC 2 and #4162 both claim the consumer-deposit layout — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "5 Stop 1 refutation target under open critique — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "6 the check reports paths that do not exist — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "1 check:merge leftovers cannot ride the clone-layout lean — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "2 schema repair is lookup over existing trees — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "3 hide detection must use convention-valid names — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "1 check:merge is integration evidence, not a scope-discovery rule — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "2 a remote named upstream is not trusted repository identity — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "3 reuse the established content-root boundary for schema resolution — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "4 test lifecycle ignores against the filename language — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5412750540,
+        "origin": "deftai/directive#4310",
+        "id": "github.issue.5412750540"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "256803e142f713775ffcbf287265785d32903acb84eee591efa2b602e3cbdbb5"
+      }
+    },
+    "id": "github.issue.5412750540",
+    "updated": "2026-09-10T18:04:52Z"
+  }
+}

@@ -8,6 +8,7 @@
 import { type Dirent, existsSync, readdirSync, readFileSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
 import { defaultGitRunner, type GitRunner } from "../session/git.js";
+import { matchesFilenameConvention } from "../vbrief-validate/filename.js";
 
 const EXIT_OK = 0;
 const EXIT_ENFORCE_FINDINGS = 1;
@@ -29,8 +30,19 @@ export interface LifecycleHideFinding {
   readonly kind: LifecycleHideKind;
   readonly source: string;
   readonly line: number | null;
+  /** Git last-match pattern from `check-ignore -v`. */
   readonly rule: string;
   readonly raw: string;
+  /** Pathspec actually scanned when this hide was observed (#4310). */
+  readonly probe?: string;
+  /** Ignore-rule line that generated the derived probe, when known (#4310). */
+  readonly candidateRule?: string;
+}
+
+/** One derived check-ignore pathspec plus the ignore line that produced it. */
+export interface DerivedLifecycleIgnoreProbe {
+  readonly path: string;
+  readonly candidateRule: string;
 }
 
 export interface LifecycleVisibleOptions {
@@ -185,10 +197,43 @@ export function expandGitignoreGlobToConcrete(pattern: string): string | null {
   if (body.length === 0) return null;
   body = expandGitignoreCharClasses(body);
   body = body.replace(/\*\*/g, "");
-  body = body.replace(/\*/g, LIFECYCLE_PROBE_STEM);
+  body = replaceGitignoreStars(body);
   body = body.replace(/\?/g, "0");
   body = body.replace(/\/{2,}/g, "/").replace(/^\/+/, "");
   return body.length > 0 ? body : null;
+}
+
+/**
+ * Replace each `*` left-to-right. Date prefixes pad to YYYY-MM-DD-slug so a
+ * derived probe can be convention-valid (`2026-07-*` → July 01 + stem).
+ * Bare `*.xbrief.json` stays undated; January sentinels cover that case.
+ */
+function replaceGitignoreStars(body: string): string {
+  let out = "";
+  for (const ch of body) {
+    if (ch !== "*") {
+      out += ch;
+      continue;
+    }
+    if (/\d{4}-\d{2}-$/.test(out)) out += `01-${LIFECYCLE_PROBE_STEM}`;
+    else if (/\d{4}-$/.test(out)) out += `01-01-${LIFECYCLE_PROBE_STEM}`;
+    else out += LIFECYCLE_PROBE_STEM;
+  }
+  return out;
+}
+
+function isCanonicalStageRoot(relPosix: string): boolean {
+  const posix = relPosix.replace(/\\/g, "/").replace(/\/+$/, "");
+  return lifecycleRootRelPaths().some((root) => root.replace(/\/+$/, "") === posix);
+}
+
+/** Derived file probes must themselves be convention-valid scope names (#4310). */
+export function derivedProbeIsEmitable(relPosix: string): boolean {
+  const posix = relPosix.replace(/\\/g, "/").replace(/\/+$/, "");
+  if (posix.length === 0) return false;
+  if (isCanonicalStageRoot(posix)) return true;
+  const base = posix.split("/").pop() ?? "";
+  return matchesFilenameConvention(base);
 }
 
 function lifecycleRootsForBasenameProbe(name: string): readonly string[] {
@@ -274,22 +319,19 @@ function ignoreFileBaseDir(projectRoot: string, file: string): string {
   return "";
 }
 
-/**
- * One derived probe per relevant ignore-rule line (bounded by ignore-file size, not a numeric cap).
- * Date globs keep their year/month so `2026-07-*` probes a July name, not the January fallback.
- * Slash patterns keep the ignore-file directory; stage wildcards expand onto real stages.
- */
-export function derivedLifecycleIgnoreProbesFromSources(
+/** Ignore-file globs → probe path + candidate rule (convention-valid names only, #4310). */
+export function derivedLifecycleIgnoreProbeRecordsFromSources(
   sources: readonly IgnorePatternSource[],
-): string[] {
-  const out: string[] = [];
+): DerivedLifecycleIgnoreProbe[] {
+  const out: DerivedLifecycleIgnoreProbe[] = [];
   const seen = new Set<string>();
-  const add = (relPosix: string): void => {
+  const add = (relPosix: string, candidateRule: string): void => {
     const posix = relPosix.replace(/\\/g, "/").replace(/^\/+/, "");
     if (posix.length === 0 || seen.has(posix)) return;
     if (lifecycleRootForRelPath(posix) === null) return;
+    if (!derivedProbeIsEmitable(posix)) return;
     seen.add(posix);
-    out.push(posix);
+    out.push({ path: posix, candidateRule });
   };
   for (const source of sources) {
     const baseDir = posixTrimDir(source.baseDir);
@@ -298,16 +340,28 @@ export function derivedLifecycleIgnoreProbesFromSources(
       const concrete = expandGitignoreGlobToConcrete(pattern);
       if (concrete === null) continue;
       for (const candidate of candidateLifecycleProbePaths(concrete, baseDir)) {
-        add(candidate);
+        add(candidate, pattern);
       }
       if (!concrete.includes("/")) {
         for (const root of lifecycleRootsUnderIgnoreBase(concrete, baseDir)) {
-          add(`${root}${concrete}`);
+          add(`${root}${concrete}`, pattern);
         }
       }
     }
   }
   return out;
+}
+
+/**
+ * One derived probe per relevant ignore-rule line (bounded by ignore-file size, not a numeric cap).
+ * Date globs keep their year/month so `2026-07-*` probes a July name, not the January fallback.
+ * Slash patterns keep the ignore-file directory; stage wildcards expand onto real stages.
+ * File probes emit only when the expanded basename is convention-valid (#4310).
+ */
+export function derivedLifecycleIgnoreProbesFromSources(
+  sources: readonly IgnorePatternSource[],
+): string[] {
+  return derivedLifecycleIgnoreProbeRecordsFromSources(sources).map((record) => record.path);
 }
 
 function collectNestedLifecycleGitignoreFiles(projectRoot: string): string[] {
@@ -460,7 +514,11 @@ function formatFinding(finding: LifecycleHideFinding): string {
       finding.line === null
         ? `${finding.source}:${finding.rule}`
         : `${finding.source}:${finding.line}:${finding.rule}`;
-    return `  ${finding.path}  ignored by ${loc}`;
+    const extras: string[] = [];
+    if (finding.probe) extras.push(`derived probe ${finding.probe}`);
+    if (finding.candidateRule) extras.push(`candidate rule ${finding.candidateRule}`);
+    const suffix = extras.length > 0 ? ` (${extras.join("; ")})` : "";
+    return `  ${finding.path}  ignored by ${loc}${suffix}`;
   }
   return `  ${finding.path}  ${finding.kind} (${finding.source})`;
 }
@@ -487,7 +545,9 @@ function resultFor(
   ];
   if (enforce) {
     lines.push(
-      "FAIL: --enforce is set; remove the matching ignore rule or index flag so lifecycle roots stay visible to git (#3505).",
+      "FAIL: --enforce is set; a convention-valid lifecycle path is hidden. " +
+        "Use the derived probe and candidate ignore rule above. " +
+        "Do not delete canonical *.premigrate.* backup exclusions to clear this check (#4310 / #3505).",
     );
     return {
       code: EXIT_ENFORCE_FINDINGS,
@@ -608,7 +668,16 @@ function collectIgnoredRoots(projectRoot: string, runGit: GitRunner): LifecycleH
   // brief-shaped sentinel plus present files close that hole. Date-range globs
   // such as `2026-07-*.xbrief.json` miss the January fallback, so emit one
   // matching derived probe per ignore-rule line (no numeric cap).
-  const derived = derivedLifecycleIgnoreProbes(projectRoot, runGit);
+  const derivedRecords = derivedLifecycleIgnoreProbeRecordsFromSources(
+    readIgnorePatternSources(projectRoot, runGit),
+  );
+  const derived = derivedRecords.map((record) => record.path);
+  const candidateByProbe = new Map<string, string>();
+  for (const record of derivedRecords) {
+    if (!candidateByProbe.has(record.path)) {
+      candidateByProbe.set(record.path, record.candidateRule);
+    }
+  }
   const probes = [
     ...new Set([
       ...emptyStageFallbackProbes(derived),
@@ -645,6 +714,8 @@ function collectIgnoredRoots(projectRoot: string, runGit: GitRunner): LifecycleH
       line: parsed.line,
       rule: parsed.pattern,
       raw: rawLine,
+      probe: parsed.path,
+      candidateRule: candidateByProbe.get(parsed.path) ?? parsed.pattern,
     });
   }
   return findings;
@@ -694,7 +765,11 @@ export function formatLifecycleVisibleSessionLines(result: LifecycleVisibleResul
         finding.line === null
           ? `${finding.source}:${finding.rule}`
           : `${finding.source}:${finding.line}:${finding.rule}`;
-      return `[deft lifecycle-visible] hidden ${finding.path}  (${loc})`;
+      const extras: string[] = [];
+      if (finding.probe) extras.push(`probe ${finding.probe}`);
+      if (finding.candidateRule) extras.push(`candidate ${finding.candidateRule}`);
+      const suffix = extras.length > 0 ? `; ${extras.join("; ")}` : "";
+      return `[deft lifecycle-visible] hidden ${finding.path}  (${loc}${suffix})`;
     }
     return `[deft lifecycle-visible] ${finding.kind} on ${finding.path}`;
   });
