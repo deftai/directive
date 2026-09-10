@@ -1,0 +1,328 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4271",
+    "updated": "2026-09-10T18:40:00Z"
+  },
+  "plan": {
+    "title": "BLOCKER: bug(update): seeded xBRIEF stamps require a two-pass compatibility migration",
+    "status": "completed",
+    "narratives": {
+      "Description": "A consumer that treats Deft version stamps in canonical xBRIEFs as compatibility pins cannot move from 0.112.0 to 0.113.x in one green PR. The accepted design is two independently green passes: Pass 1 consumer-only stamp deletion while 0.112.0 is installed; Pass 2 framework-only deft update from that cleaned tree. No shim, no canonical-xBRIEF exception, no third pass. Next-build is Bound-remedy on successor lean 5607103339, not the GitHub body. Recut: next-build contract is not this body.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4271",
+      "Overview": "History only. Next-build is Bound-remedy on successor lean 5607103339. Setup seeded DeftVersion stamps in canonical xBRIEFs; deft update does not manage those files; stamp-aware checks then deadlock 0.112.0 to 0.113.x. Two independently green passes, no shim.",
+      "Labels": "bug, ci-cd, agent-experience, Upgrade Blocker, area:installer, legacy-arced, design-critique:ingest-ready",
+      "UserStory": "As a consumer on 0.112.0, I want a two-pass upgrade that is green at each merge, so that I can delete seeded xBRIEF stamps then run a framework-only deft update without mixed-content or stale-stamp failures.",
+      "ImplementationPlan": "1. Edit the setup skill source file and the hygiene.ts installerManagedMatchers module so Pass 1 absence locks evaluate Markdown list or section units, USER.md-only rules stay, and Pass 2 commit-set is installerManagedMatchers not the frozen Go list. 2. Add tests and a post-publish two-pass fixture from a clean directory using only a tag-bound registry install; do not call rehearseNpmInstallAndRun. After pack edits run task packs:render and task packs:verify-drift. Verify absence locks, nested package.json version equality, and denylist coverage including or deferring vbrief peers."
+    },
+    "items": [
+      {
+        "title": "Evaluate the setup retirement locks on a normalized Markdown list item or section unit, on both the decoded pack body and the rendered skill, so a wrapped `deft_version` + `PROJECT-DEFINITION` instruction fails while USER.md-only rules stay.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given Bound-remedy item 1 on successor lean 5607103339, when implemented, then that clause holds and tests or fixtures verify it.",
+          "Traces": "Traces to successor lean 5607103339 Bound remedy. Recut: next-build is not the issue body. Operator reading 5619289564 is the problem-and-solution framing, not a new lean."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/setup-stamp-retirement.test.ts",
+          "recorded_at": "2026-09-10T18:33:07Z",
+          "recorded_by": "spawn-9dbfffb9"
+        }
+      },
+      {
+        "title": "Name `packages/core/src/init-deposit/hygiene.ts` `installerManagedMatchers()` as the Pass 2 commit-set referent. The frozen Go list is not that referent.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given Bound-remedy item 2 on successor lean 5607103339, when implemented, then that clause holds and tests or fixtures verify it.",
+          "Traces": "Traces to successor lean 5607103339 Bound remedy. Recut: next-build is not the issue body. Operator reading 5619289564 is the problem-and-solution framing, not a new lean."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/hygiene.test.ts",
+          "recorded_at": "2026-09-10T18:33:07Z",
+          "recorded_by": "spawn-9dbfffb9"
+        }
+      },
+      {
+        "title": "Name `task packs:render` as the pack-to-skill regeneration after the pack edit. Name `task packs:verify-drift` as the projection control. State that `task packs:render-skills` is out of scope.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given Bound-remedy item 3 on successor lean 5607103339, when implemented, then that clause holds and tests or fixtures verify it.",
+          "Traces": "Traces to successor lean 5607103339 Bound remedy. Recut: next-build is not the issue body. Operator reading 5619289564 is the problem-and-solution framing, not a new lean."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/setup-stamp-retirement.test.ts",
+          "recorded_at": "2026-09-10T18:33:07Z",
+          "recorded_by": "spawn-9dbfffb9"
+        }
+      },
+      {
+        "title": "Run the post-publish two-pass fixture from a clean directory that is not this workspace, using only the tag-bound registry install of the four packages. Do not call `rehearseNpmInstallAndRun`. Missing npm remains a hard fail.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given Bound-remedy item 4 on successor lean 5607103339, when implemented, then that clause holds and tests or fixtures verify it.",
+          "Traces": "Traces to successor lean 5607103339 Bound remedy. Recut: next-build is not the issue body. Operator reading 5619289564 is the problem-and-solution framing, not a new lean."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/release-e2e/npm-ops.test.ts",
+          "recorded_at": "2026-09-10T18:33:07Z",
+          "recorded_by": "spawn-9dbfffb9"
+        }
+      },
+      {
+        "title": "Require the tag-bind to walk every installed `@deftai/directive*` `package.json`, hoisted and nested, asserting `version === V`, because publish rewrites workspace protocol to caret.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given Bound-remedy item 5 on successor lean 5607103339, when implemented, then that clause holds and tests or fixtures verify it.",
+          "Traces": "Traces to successor lean 5607103339 Bound remedy. Recut: next-build is not the issue body. Operator reading 5619289564 is the problem-and-solution framing, not a new lean."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/release-e2e/npm-ops.test.ts",
+          "recorded_at": "2026-09-10T18:33:07Z",
+          "recorded_by": "spawn-9dbfffb9"
+        }
+      },
+      {
+        "title": "Make the rendered-skill lock scan the whole rendered file including frontmatter, or add `description` and `frontmatter_extra` to the pack-side lock field set.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given Bound-remedy item 6 on successor lean 5607103339, when implemented, then that clause holds and tests or fixtures verify it.",
+          "Traces": "Traces to successor lean 5607103339 Bound remedy. Recut: next-build is not the issue body. Operator reading 5619289564 is the problem-and-solution framing, not a new lean."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/setup-stamp-retirement.test.ts",
+          "recorded_at": "2026-09-10T18:33:07Z",
+          "recorded_by": "spawn-9dbfffb9"
+        }
+      },
+      {
+        "title": "Add a Pass 2 fixture precondition that the three absence locks are already present in the base tree.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given Bound-remedy item 7 on successor lean 5607103339, when implemented, then that clause holds and tests or fixtures verify it.",
+          "Traces": "Traces to successor lean 5607103339 Bound remedy. Recut: next-build is not the issue body. Operator reading 5619289564 is the problem-and-solution framing, not a new lean."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/release-e2e/npm-ops.test.ts",
+          "recorded_at": "2026-09-10T18:33:07Z",
+          "recorded_by": "spawn-9dbfffb9"
+        }
+      },
+      {
+        "title": "State that specification `deft_version` has no framework seeding path and is controlled only by the Pass 1 absence lock.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given Bound-remedy item 8 on successor lean 5607103339, when implemented, then that clause holds and tests or fixtures verify it.",
+          "Traces": "Traces to successor lean 5607103339 Bound remedy. Recut: next-build is not the issue body. Operator reading 5619289564 is the problem-and-solution framing, not a new lean."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/skills/setup-stamp-retirement.test.ts",
+          "recorded_at": "2026-09-10T18:33:07Z",
+          "recorded_by": "spawn-9dbfffb9"
+        }
+      },
+      {
+        "title": "Either share one #1430 denylist fixture across TypeScript and Go, or state that the Go leg is a frozen source-only assertion.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given Bound-remedy item 9 on successor lean 5607103339, when implemented, then that clause holds and tests or fixtures verify it.",
+          "Traces": "Traces to successor lean 5607103339 Bound remedy. Recut: next-build is not the issue body. Operator reading 5619289564 is the problem-and-solution framing, not a new lean."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/hygiene.test.ts",
+          "recorded_at": "2026-09-10T18:33:07Z",
+          "recorded_by": "spawn-9dbfffb9"
+        }
+      },
+      {
+        "title": "Extend the #1430 denylist to the legacy `vbrief/specification.vbrief.json` and `vbrief/plan.vbrief.json` peers, or defer those peers with a named owner.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given Bound-remedy item 10 on successor lean 5607103339, when implemented, then that clause holds and tests or fixtures verify it.",
+          "Traces": "Traces to successor lean 5607103339 Bound remedy. Recut: next-build is not the issue body. Operator reading 5619289564 is the problem-and-solution framing, not a new lean."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/hygiene.test.ts",
+          "recorded_at": "2026-09-10T18:33:07Z",
+          "recorded_by": "spawn-9dbfffb9"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "ci-cd",
+      "agent-experience",
+      "Upgrade Blocker",
+      "area:installer",
+      "legacy-arced",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4271",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4271: BLOCKER: bug(update): seeded xBRIEF stamps require a two-pass compatibility migration"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1430",
+        "type": "x-xbrief/closes",
+        "title": "Issue #1430"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "task packs:render",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "task packs:verify-drift",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "task packs:render-skills",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/init-deposit/hygiene.ts",
+          "content/skills/deft-directive-setup/SKILL.md",
+          "packages/core/src/release-e2e/npm-ops.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check",
+          "pnpm exec vitest run packages/core/src/init-deposit"
+        ],
+        "expected_outputs": [
+          "Pass 1 absence locks on Markdown list/section units; USER.md-only rules stay",
+          "Pass 2 commit-set is installerManagedMatchers not frozen Go list",
+          "post-publish two-pass fixture from a clean directory with tag-bound registry install",
+          "no shim, no canonical-xBRIEF exception, no third pass"
+        ],
+        "depends_on": [],
+        "conflict_group": "xbrief-stamp-two-pass",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "acceptance_criteria_justification": "Harvested ten Bound-remedy clauses from successor lean 5607103339; splitting would break the two-pass lock.",
+        "missing_traces_justification": "Ingested from GitHub issue #4271 successor lean 5607103339 Bound remedy. Body is history."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5391176130,
+        "origin": "deftai/directive#4271",
+        "id": "github.issue.5391176130"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "2c4a1f4bc331bb2ecfaa8383aef99e1244c82296e7e9b142e7ed8226d96e655e"
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 10 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Evaluate the setup retirement locks on a normalized Markdown list item or section unit, on both the decoded pack body and the rendered skill, so a wrapped `deft_version` + `PROJECT-DEFINITION` instruction fails while USER.md-only rules stay.",
+          "artifact_path": "content/skills/deft-directive-setup/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Name `packages/core/src/init-deposit/hygiene.ts` `installerManagedMatchers()` as the Pass 2 commit-set referent. The frozen Go list is not that referent.",
+          "artifact_path": "packages/core/src/init-deposit/hygiene.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Name `task packs:render` as the pack-to-skill regeneration after the pack edit. Name `task packs:verify-drift` as the projection control. State that `task packs:render-skills` is out of scope.",
+          "artifact_path": "content/skills/deft-directive-setup/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Run the post-publish two-pass fixture from a clean directory that is not this workspace, using only the tag-bound registry install of the four packages. Do not call `rehearseNpmInstallAndRun`. Missing npm remains a hard fail.",
+          "artifact_path": "packages/core/src/release-e2e/npm-ops.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Require the tag-bind to walk every installed `@deftai/directive*` `package.json`, hoisted and nested, asserting `version === V`, because publish rewrites workspace protocol to caret.",
+          "artifact_path": "packages/core/src/release-e2e/npm-ops.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Make the rendered-skill lock scan the whole rendered file including frontmatter, or add `description` and `frontmatter_extra` to the pack-side lock field set.",
+          "artifact_path": "content/skills/deft-directive-setup/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Add a Pass 2 fixture precondition that the three absence locks are already present in the base tree.",
+          "artifact_path": "packages/core/src/release-e2e/npm-ops.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "State that specification `deft_version` has no framework seeding path and is controlled only by the Pass 1 absence lock.",
+          "artifact_path": "packages/core/src/init-deposit/hygiene.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Either share one #1430 denylist fixture across TypeScript and Go, or state that the Go leg is a frozen source-only assertion.",
+          "artifact_path": "packages/core/src/init-deposit/hygiene.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Extend the #1430 denylist to the legacy `vbrief/specification.vbrief.json` and `vbrief/plan.vbrief.json` peers, or defer those peers with a named owner.",
+          "artifact_path": "packages/core/src/init-deposit/hygiene.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5391176130",
+    "updated": "2026-09-10T15:14:10Z"
+  }
+}
