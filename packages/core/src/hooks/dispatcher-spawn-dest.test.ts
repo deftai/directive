@@ -5,7 +5,13 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyWorktreeOccupancy } from "../session/occupancy.js";
 import { readSpawnReservationIncarnation } from "../session/spawn-occupancy.js";
-import { CURSOR_TASK_SPAWN_CLASS_RECOVERY, CURSOR_TASK_SPAWN_READ_ONLY_RECOVERY, decideHook, type HookPolicySeams, spawnToolArgUpdatedInput } from "./index.js";
+import {
+  CURSOR_TASK_SPAWN_CLASS_RECOVERY,
+  CURSOR_TASK_SPAWN_READ_ONLY_RECOVERY,
+  decideHook,
+  type HookPolicySeams,
+  spawnToolArgUpdatedInput,
+} from "./index.js";
 import { isExploreSpawn } from "./readonly.js";
 
 const temps: string[] = [];
