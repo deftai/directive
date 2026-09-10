@@ -1,0 +1,269 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4296",
+    "updated": "2026-09-10T00:10:56Z"
+  },
+  "plan": {
+    "title": "feat(design-critique): every arc is GitHub-only and starts in an arc worktree from origin/default",
+    "status": "completed",
+    "narratives": {
+      "Description": "feat(design-critique): every arc is GitHub-only and starts in an arc worktree from origin/default",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4296",
+      "Overview": "## Summary\n\nEvery design-critique arc (and the same for gh-arch) is GitHub-only. Bind lives on the issue thread. issue:ingest, swarm, promote, and build are later verbs, always. There is no ingest front-door mode.\n\nBefore Stop 1 or the first spawn, the parent creates one arc worktree from origin/<default> after fetch (main or master), not from local HEAD. Stop 1 records that SHA as dispatch-sha. Every child uses that dest (spawn_subagent cwd, claude / codex exec cwd). Primary occupancy never runs for the panel.\n\nThis recuts #4072: direct means this motion does not ingest. It does not mean no worktree. It recuts the earlier 4296 filing that made ingest a legal front-door mode and scoped dest to CLI-family seats only.\n\n## Why\n\n#4072 locked direct as no occupancy, no ingest, no worktrees. That does not compose with a Grok parent that must launch a real critic (general-purpose or grok CLI) or Claude/Codex. Those need a repo cwd. plan and explore skip dest for Grok spawn_subagent and strip git show / gh.\n\nPrimary checkout is the dest #4066 refuses. Compaction re-arm on primary is #4290. Stale local HEAD is #4291. A 3arc Grok seat on primary is #4297. The arc must not live there.\n\n## What to build\n\n1. Every arc resolves as GitHub-only. Closed tokens that used to mean direct / github-only / no worktrees mean no-ingest. An ingest token is not a front-door mode; it asks or refuses (wrong motion). Yolo does not pick a mode because there is no second mode.\n\n2. Parent fetches, then git worktree add (or fast-forward a named dest) from origin/<default>. Not local HEAD. Reuse of an existing arc worktree is allowed only after fetch and a match to that tip. Against-implementation charters pin the PR head SHA, still fetched.\n\n3. Parent may stay unclaimed on primary (read-only) and only pass cwd. Children occupy the dest, not the operator tab.\n\n4. Arc worktree is not a swarm worktree. No active story, no product writes, no scope:activate. Process-only: GitHub comments and git show <dispatch-sha>:.\n\n5. Grok seat is general-purpose (or grok CLI) with cwd on that dest, so tools include git show and gh. Not plan. Not explore.\n\n6. After primary-path is gone, general-purpose still hits ritual and #2885 (no active xBRIEF). This dest class skips those the way #4241 skipped them for plan, without taking plan's tool allowlist.\n\n7. Occupancy class stays a spawn-payload / dest-path field. Do not teach PreToolUse to read a GitHub comment.\n\n## Rejected\n\n- Ingest as a front-door mode\n- Spawn on occupied primary as the 3arc fix (#4066 hole)\n- plan or explore as the critic seat\n- Per-critic worktrees (swarm Phase 2)\n- YOLO default to checkout-as-ingest\n- Auto-ingest\n- Evidence from a dirty worktree or from unfetched local HEAD\n- Occupancy cloned into run-posture by parsing Stop 1 prose\n\n## Acceptance\n\n- parseOperatorRunPosture: every arc is no-ingest / GitHub-only. ingest is not a resolved front-door mode.\n- Parent creates or verifies one dest at origin/<default> tip after fetch before first spawn. dispatch-sha on Stop 1 equals that tip.\n- Grok general-purpose spawn with cwd on that dest is allowed. Same dest for claude and codex exec. Spawn onto primary remains denied.\n- No active xBRIEF is required for that spawn. Ritual on primary is not required.\n- issue:ingest after bind remains a later operator verb.\n- Tests pin: closed-token table, dest-from-origin-default, primary-path still denied, #2885 skip for this class, implement-class #4066 unchanged.\n\n## Related\n\n- #4297 -- 3arc Grok seat refused on primary; field instance for dest-first\n- #4290 -- primary compaction re-arm occupancy-refuses\n- #4291 -- local HEAD can be 64 behind; dest must not be that tree\n- #4072 -- named direct; recut no-worktree and no ingest-mode\n- #4241 -- plan dest skip; not explore; tools were supposed to remain\n- #4067 -- Grok launcher tree; CLI seats\n- #4066 -- implement-class dest occupancy\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-09T18:58:32Z)\n\nmodel: grok-4.6\nrole: triage\n\nmechanism-shaped: true\ndesign-critique: warranted, because the lean is a fail-closed spawn-and-dest recording obligation (GitHub-only ledger, origin/default dest, occupancy class)\nrefutation-target: Every arc is GitHub-only and the parent starts it in one worktree at origin/<default> tip after fetch, so primary occupancy never runs and ingest is always a later verb.\narc-mode: no-ingest\ndest: C:/Repos/deft/directive/.deft-scratch/worktrees/parent-arc-4296\norigin-ref: origin/master\ndispatch-sha: 7609d700f6e96d9e8bf250fc0e4faeaa1331f686\n\ncharter: refutation\nspend: N=1\nwhy: the body names a defensible presumption with a refutation target; default motion; panel permission unused\ntarget shape: single issue\n\n## Scope recorded\n\nIssue 4296 as steered 2026-09-09. Dest created this session: git fetch origin; git worktree add --detach at origin/master. SHA matches origin/master. Parent remains unclaimed on primary. Ingest is not this motion.\n\n### Comment by @MScottAdams (2026-09-09T19:06:36Z)\n\nmodel: grok-4.6\nrole: critic\n\nRound 1. Charter refutation. Spend N=1. Ceiling 5607147331 inclusive. Pin 7609d700f6e96d9e8bf250fc0e4faeaa1331f686.\n\nRefutation. The GitHub-only ledger and ingest-as-later-verb half already holds at this SHA: `parseOperatorRunPosture` never resolves `ingest`, and `evaluateCompletedArcRecord` ignores `arc-mode:`. Dest-from-origin/default is a real cwd pin against local HEAD. The causal joint does not hold. A dest worktree does not make primary occupancy never run, and dest-path is not a critic occupancy class. The proposed dest-class skip for `general-purpose` cannot bind as written.\n\nEnvironment (this dest). cwd is `.deft-scratch/worktrees/parent-arc-4296`, a linked worktree, detached at `7609d700`, matching origin/master. `xbrief/active` is only `.gitkeep`. The same `.deft-scratch/worktrees/` prefix holds swarm story worktrees. That matches the parent measurement: dest consult can allow a linked worktree, then `spawn_subagent` `general-purpose` still dies on #2885.\n\n### 1. Dest-path cannot be the skip class\n\nClass: blocks-the-design\n\nEvidence. `git show 7609d700:packages/core/src/hooks/readonly.ts`: `isProcessOnlyCriticSpawn` is true only on Grok `spawn_subagent` when `subagent_type === \"plan\"` (PROCESS_ONLY_CRITIC_SUBAGENT_TYPE at 266; predicate 327–356). The comment on that function is the host measurement: Grok PreToolUse stdin actually contains `subagent_type`. `git show 7609d700:packages/core/src/hooks/readonly.test.ts` 215–233 pins `general-purpose` false and pins that prompt text naming critic is not a class.\n\n`git show 7609d700:packages/core/src/hooks/dispatcher.ts`: `decideHook` at 2530–2610 lets `plan` return `spawn-process-only-ready` and never consult dest. `general-purpose` is not explore, not plan, not ephemeral, so it falls through to `inspectMutationGates`. Consult then runs. `skipParentRitual` is `destProven === true && parentId !== \"none\"` (1376) — ritual on primary is already skipped for dest-proven implement spawn. Spawn has no write target, so the #2885 outside-root skip does not apply (1601–1650); recovery names `subagent_type plan`, not dest-path.\n\n`git show 7609d700:packages/core/src/session/spawn-occupancy.ts`: plan consult returns `destProven: false` and skips dest (338–351). Implement-class denies `primary-path` (420–422). A linked worktree dest is allowed. Grok dest is `tool_input.cwd` only — the same field #4066 already requires for implement-class.\n\nFailure mode. Horn A: skip #2885 when cwd is a proven linked worktree. Swarm implement workers already pass that dest. Horn B: skip when `subagent_type` is `general-purpose` plus dest. That is the implement worker. Horn C: classify from the critic prompt. Tests already refuse it. Horn D: copy the plan early-return for this dest class. Occupancy unique-reservation is skipped (`exemption: \"process-only-critic\"`), so “children occupy the dest” is false. `general-purpose` is write-capable. A read-only parent spawn of `general-purpose` is `read-only-deny` unless plan/explore (dispatcher.ts 2531–2548). Skipping #2885 without a structural write deny leaves product writes on a dest with no active xBRIEF. Envelope text is not a control.\n\nDisposition. Name a host-visible structural marker that implement-class never sets, measured on Grok stdin the way `plan` was, or recut the Grok seat to a type that already skips. Dest-path is not that marker. Keep #4066 primary-path deny. Do not skip #2885 on destProven.\n\n### 2. One dest plus occupy cannot compose with unique reservation\n\nClass: blocks-the-design\n\nEvidence. `git show 7609d700:packages/core/src/session/spawn-occupancy.ts`: live occupant is `destination-occupied` (467). `persistSpawnReservation` unique dest-lock. Body AC: same dest for Grok cwd and claude/codex exec. Rejected: per-critic worktrees. Item 3: children occupy the dest. Variant table still permits N≥3. Plan skip exists because dest occupancy is skipped, not because dest is shared.\n\nFailure mode. Second sibling, a CLI-family seat on the same dest, or a Stop 4 retry onto a still-live dest is `destination-occupied`. The fork is the same as finding 1: skip occupancy (item 3 false; dest-path becomes the class) or unique dest per seat (rejected).\n\nDisposition. Recut item 3 to cwd-without-occupy, with an exemption class that is not dest-path, or recut panel dest. N=1 on this arc does not make the AC true.\n\n### 3. The causal “so” and the field grammar\n\nClass: sharpens-framing\n\nEvidence. `git show 7609d700:packages/core/src/design-critique/run-posture.ts`: `ARC_RUN_POSTURES` is `direct | checkout` (10). Token `no worktrees` resolves to `direct` (28, 51). `evaluateDirectDispatch` treats `worktreeAdd` as a `direct` violation (123–138). `arcModeRecordLine` emits `arc-mode: direct` or `arc-mode: checkout` only (98–100). Stop 1 on this thread recorded `arc-mode: no-ingest`, which that helper cannot emit. Item 3 is “may stay unclaimed”, not must. Dest consult is occupancy on the dest tree, not a primary-lease skip. Ingest-later is already true without dest. Body already pins against-implementation dest to the fetched PR head, not origin/default; the refutation target does not.\n\nFailure mode. Binding “github-only” with today’s fixture forbids the dest the lean requires. Binding `no worktrees` as no-ingest while creating a worktree lies in the token. Claiming dest implies primary occupancy never runs overclaims: a later primary mutation still claims. Against-implementation dest origin is an exception the target erases.\n\nDisposition. Collapse or retarget the closed set so github-only means no-ingest, not no-worktree. Retire or re-gloss `no worktrees`. Recut `evaluateDirectDispatch` `worktree-add`. Record `arc-mode:` as a value the parser emits. State parent-unclaimed as its own MUST. State against-implementation dest origin on Stop 1. Do not treat dest creation as occupancy clearance.\n\n### Injection / swarm\n\nTriggered: occupancy, identity, worktrees, envelopes, shared state. Dest cwd is the swarm dest layout. Identity must not be cwd and must not be prompt. Occupancy unique-lock is swarm Phase 2 semantics. This dest is “not a swarm worktree” only if the skip class is not dest-path. No reviewer-catch.\n\n### Road-not-taken\n\nKeep `plan` as the skip identity and change the host tool allowlist so `plan` has `git show` and `gh`. The body rejects that seat because plan/explore skip dest and strip those tools. That allowlist is host-owned. If Grok `plan` still strips them, this road is closed and the seat must be `general-purpose` plus a new stdin field, not a dest-path skip.\n\n### Steelman\n\nStrongest rejected reading: dest-from-origin/default plus primary-path deny already means the panel never occupies primary, and ingest stays a later verb. That reading is true for implement-class spawn onto primary and for ingest. It does not skip #2885 for `general-purpose`, does not create a critic class, and does not make `evaluateDirectDispatch` allow `worktree add`. Flip: measure a Grok stdin field other than `subagent_type` / `cwd` / `prompt` that implement-class never sets, and recut occupy-versus-skip as its own field.\n\n### Footnote\n\nParent measurement is the code path in findings 1–2. Ritual skip is already destProven, so item 6 should not recut ritual as new work.\n\n\n### Comment by @MScottAdams (2026-09-09T19:07:49Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe GitHub-only half of 4296 already holds: ingest is a later verb, and dest-from-origin/default is a real pin against stale local HEAD. The causal \"so dest means primary occupancy never runs and general-purpose is a critic\" does not hold. Dest-path is not a skip class. One dest that children occupy cannot share unique reservation. Today's arc-mode grammar still treats worktree add as a direct violation.\n\nConfirming this map recuts 4296. Ledger stays GitHub-only. Dest still comes from origin/default after fetch. The skip class must be a host-visible spawn marker implement-class never sets, measured on Grok stdin the way plan was, or the Grok seat recuts to a type that already skips and actually has git show and gh. Children get cwd without occupying. evaluateDirectDispatch must not treat worktree add as a direct violation. 4297 stays a field instance of dest-first plus primary-path deny, not a separate spawn-on-primary product.\n\nThis is not an instruction to a later builder.\n\nRecut: next-build contract is not this body.\n\n**Lean:** recut of #4296 after critic 5607245861. Round 1 siblings dispatched: 1. Supersedes write-back 5607147331.\n\nTarget-digest: sha256:c1f3698ba5254c9e0012a793efd8ae8349b8e1d88c5f571a1f696b4e4ed92e25\n\narc-mode: no-ingest\ndest: C:/Repos/deft/directive/.deft-scratch/worktrees/parent-arc-4296\ndispatch-sha: 7609d700f6e96d9e8bf250fc0e4faeaa1331f686\n\n## Bound remedy\n\n- Keep GitHub-only: ingest, swarm, promote, and build stay later verbs. ingest is not a front-door mode.\n- Parent still fetches and creates or verifies one dest at origin/<default> tip (not local HEAD). dispatch-sha equals that tip. Against-implementation dest is the fetched PR head, recorded on Stop 1.\n- Skip class is not dest-path. Name a host-visible Grok stdin marker that implement-class never sets, measured like plan, or recut the Grok seat to a type that already skips and keeps git show and gh. Do not skip #2885 on destProven. Keep #4066 primary-path deny.\n- Recut \"children occupy the dest\" to cwd-without-occupy so N>=3 and Stop 4 can share one dest. Unique dest-lock stays for implement-class.\n- Collapse the closed set so github-only means no-ingest, not no-worktree. Recut evaluateDirectDispatch worktree-add. Record arc-mode as a value the parser emits. Parent-unclaimed is its own MUST, not implied by dest create.\n- Ritual skip is already destProven. Do not recut ritual as new work.\n- 4297 is not a separate implementation. Same land as this recut (dest-first, primary still denied). Close as duplicate or Closes on that PR.\n\n### Takes (critic 5607245861)\n\n- 1 Dest-path cannot be the skip class — accept-into-contract\n- 2 One dest plus occupy cannot compose with unique reservation — accept-into-contract\n- 3 The causal so and the field grammar — accept-into-contract\n\nAccepted set: 1-3. Still-open residual: none. Footnote on ritual is census only.\n\nNon-self-arbitration: this parent authored Stop 1 5607147331. The critic was a same-family grok-4.6 CLI child on the dest after spawn_subagent died on #2885. These takes are not independent confirmation.\n\n### Comment by @MScottAdams (2026-09-09T19:12:16Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nEach row names its method. Agreement is not evidence.\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | isProcessOnlyCriticSpawn is subagent_type plan only; general-purpose is not that class | Critic git show 7609d700:packages/core/src/hooks/readonly.ts and readonly.test.ts | measured |\n| 2 | general-purpose on a linked worktree dest consult can allow, then inspectMutationGates / #2885 still fires | Parent spawn_subagent this session on parent-arc-4296; critic git show dispatcher.ts 2530-2610 and 1601-1650 | measured |\n| 3 | Unique dest-lock makes second occupant destination-occupied; plan skip exists because dest occupancy is skipped | Critic git show spawn-occupancy.ts persistSpawnReservation / destination-occupied | measured |\n| 4 | parseOperatorRunPosture / arcModeRecordLine emit direct or checkout only; no worktrees maps to direct; evaluateDirectDispatch treats worktreeAdd as a direct violation | Critic git show run-posture.ts | measured |\n| 5 | evaluateCompletedArcRecord ignores arc-mode; ingest-later already holds without dest | Critic git show run-posture.ts and completed-arc-record path | endorsed |\n\n### Comment by @MScottAdams (2026-09-09T19:12:26Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\n4296 cannot be built as dest-path skip. The next-build contract is the recut lean: GitHub-only ledger, dest from origin/default after fetch, skip class a host-visible Grok stdin marker (not dest-path), cwd-without-occupy, recut the no-worktree grammar. 4297 is that dest-first plus primary-path deny, not a second product.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCiting successor lean 5607261125 and verified-claims table 5607314344.\n\nNon-self-arbitration: same grok-4.6 parent as Stop 1; critic was a same-family grok CLI child. Operator accepted 2026-09-09. Round 1 complete, N=1, critic 5607245861, ceiling 5607147331.",
+      "Labels": "bug, enhancement, design, agent-experience, process, grok-build, harness, urgent, critic, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Keep GitHub-only: ingest, swarm, promote, and build stay later verbs. ingest is not a front-door mode.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/4300 HEAD 3a9fb49f task check green",
+          "recorded_at": "2026-09-10T00:10:24Z",
+          "recorded_by": "grok-build-parent"
+        }
+      },
+      {
+        "title": "Parent still fetches and creates or verifies one dest at origin/<default> tip (not local HEAD). dispatch-sha equals that tip. Against-implementation dest is the fetched PR head, recorded on Stop 1.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/4300 HEAD 3a9fb49f task check green",
+          "recorded_at": "2026-09-10T00:10:24Z",
+          "recorded_by": "grok-build-parent"
+        }
+      },
+      {
+        "title": "Skip class is not dest-path. Name a host-visible Grok stdin marker that implement-class never sets, measured like plan, or recut the Grok seat to a type that already skips and keeps git show and gh. Do not skip #2885 on destProven. Keep #4066 primary-path deny.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/4300 HEAD 3a9fb49f task check green",
+          "recorded_at": "2026-09-10T00:10:24Z",
+          "recorded_by": "grok-build-parent"
+        }
+      },
+      {
+        "title": "Recut \"children occupy the dest\" to cwd-without-occupy so N>=3 and Stop 4 can share one dest. Unique dest-lock stays for implement-class.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/4300 HEAD 3a9fb49f task check green",
+          "recorded_at": "2026-09-10T00:10:24Z",
+          "recorded_by": "grok-build-parent"
+        }
+      },
+      {
+        "title": "Collapse the closed set so github-only means no-ingest, not no-worktree. Recut evaluateDirectDispatch worktree-add. Record arc-mode as a value the parser emits. Parent-unclaimed is its own MUST, not implied by dest create.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "https://github.com/deftai/directive/pull/4300 HEAD 3a9fb49f task check green",
+          "recorded_at": "2026-09-10T00:10:24Z",
+          "recorded_by": "grok-build-parent"
+        }
+      },
+      {
+        "title": "Ritual skip is already destProven. Do not recut ritual as new work.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "census only or already closed duplicate; recut did not require new product work",
+          "provenance": {
+          "kind": "operator-session",
+          "actor": "Scott"
+        },
+          "recorded_at": "2026-09-10T00:10:24Z"
+        }
+      },
+      {
+        "title": "4297 is not a separate implementation. Same land as this recut (dest-first, primary still denied). Close as duplicate or Closes on that PR.",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "census only or already closed duplicate; recut did not require new product work",
+          "provenance": {
+          "kind": "operator-session",
+          "actor": "Scott"
+        },
+          "recorded_at": "2026-09-10T00:10:24Z"
+        }
+      },
+      {
+        "title": "1 Dest-path cannot be the skip class — accept-into-contract",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4300 merge 6122c64364f62b88f5334edba7071cd83351794f",
+          "recorded_at": "2026-09-10T00:10:24Z",
+          "recorded_by": "grok-build-parent"
+        }
+      },
+      {
+        "title": "2 One dest plus occupy cannot compose with unique reservation — accept-into-contract",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4300 merge 6122c64364f62b88f5334edba7071cd83351794f",
+          "recorded_at": "2026-09-10T00:10:24Z",
+          "recorded_by": "grok-build-parent"
+        }
+      },
+      {
+        "title": "3 The causal so and the field grammar — accept-into-contract",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/4300 merge 6122c64364f62b88f5334edba7071cd83351794f",
+          "recorded_at": "2026-09-10T00:10:24Z",
+          "recorded_by": "grok-build-parent"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "enhancement",
+      "design",
+      "agent-experience",
+      "process",
+      "grok-build",
+      "harness",
+      "urgent",
+      "critic",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4296",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4296: feat(design-critique): every arc is GitHub-only and starts in an arc worktree from origin/default"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 10 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Keep GitHub-only: ingest, swarm, promote, and build stay later verbs. ingest is not a front-door mode.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Parent still fetches and creates or verifies one dest at origin/<default> tip (not local HEAD). dispatch-sha equals that tip. Against-implementation dest is the fetched PR head, recorded on Stop 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Skip class is not dest-path. Name a host-visible Grok stdin marker that implement-class never sets, measured like plan, or recut the Grok seat to a type that already skips and keeps git show and gh. Do not skip #2885 on destProven. Keep #4066 primary-path deny.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Recut \"children occupy the dest\" to cwd-without-occupy so N>=3 and Stop 4 can share one dest. Unique dest-lock stays for implement-class.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Collapse the closed set so github-only means no-ingest, not no-worktree. Recut evaluateDirectDispatch worktree-add. Record arc-mode as a value the parser emits. Parent-unclaimed is its own MUST, not implied by dest create.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Ritual skip is already destProven. Do not recut ritual as new work.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "4297 is not a separate implementation. Same land as this recut (dest-first, primary still denied). Close as duplicate or Closes on that PR.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "1 Dest-path cannot be the skip class — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "2 One dest plus occupy cannot compose with unique reservation — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "3 The causal so and the field grammar — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5403323813,
+        "origin": "deftai/directive#4296",
+        "id": "github.issue.5403323813"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "c1f3698ba5254c9e0012a793efd8ae8349b8e1d88c5f571a1f696b4e4ed92e25"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4300,
+        "prBase": null,
+        "mergeCommit": "6122c64364f62b88f5334edba7071cd83351794f",
+        "deliveryBranch": "master",
+        "deliveryCommit": "6122c64364f62b88f5334edba7071cd83351794f",
+        "verifiedAt": "2026-09-10T00:10:56Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDg2NTAtOTlhZS03Y2YyLTliZDItYmIxYjM2YzI5OTJh"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-10T00:10:56Z"
+      },
+      "completedAt": "2026-09-10T00:10:56Z",
+      "completedSessionId": "host:grok:v1:MDFhMDg2NTAtOTlhZS03Y2YyLTliZDItYmIxYjM2YzI5OTJh",
+      "capacityBucket": "new-capability"
+    },
+    "id": "github.issue.5403323813",
+    "updated": "2026-09-10T00:10:56Z"
+  }
+}
