@@ -45,6 +45,7 @@ Comment lead (model then role): Stop 3 — Critic envelope.
 Operator-gated loop. Successor lean. Parent-side substantiation. Operator verbs. Dual stop. Halt line. Bind after accepted synthesis.
 After this round's siblings are posted: successor lean, then verbs.
 Auto-stamp after operator confirm; not while same-round siblings outstanding.
+Yolo standing confirm of a posted all-accept map: Operator verbs. Confirm conjunct only. Not ingest.
 Walk / walk all. Auto-stamp when agents agree: Operator verbs.
 Parent chip write: scm:issue:design-critique-chip.
 Chip apply miss is non-blocking convenience; do not halt. Ingest waits on the completed-arc record, not a catalog chip.

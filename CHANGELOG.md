@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Yolo on the launching utterance confirms a posted all-accept design-critique map (#4308).** Standing for the arc; confirm conjunct only. `arc N yolo` still asks run posture. Recut-shaped maps stamp; ingest stays later. Closes #4308.
+
 ### Removed
 
 ## [0.114.0] - 2026-09-10
