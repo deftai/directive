@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Land leftover completed-tracked artifact for #4162 (#3264 / #3476).** The #4162 xBRIEF stayed in `xbrief/active/` on origin/master after the product land. Moved to `xbrief/completed/` so merge-gate orphan-active is green. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #4321 (#3264 / #3476).** The #4321 xBRIEF stayed untracked after squash of PR 4329. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Consumer AGENTS.md names the explicit-body docs-impact seed (#4293 / #1309).** Pointer: compose the template `Documentation impact` block, then `verify:docs-impact --body-file` on those same bytes (leftover-complete / finalize-cohort). `plan.policy.agentsMdBudget.absoluteMaxBytes` 17600→17725 for that pointer after composing with #4295.
 - **Land leftover completed-tracked artifact for #4293 (#3264 / #3476).** Moved to xbrief/completed/ via scope:complete after PR 4312 merge.
@@ -27,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Doctor escaping-symlink test skips on Windows without symlink privilege (#4344).** `containDepositInstallRoot rejects an escaping symlink` still asserts on platforms that can create the symlink; EPERM/EACCES on win32 skips instead of failing `task check`. Closes #4344.
 - **Doctor layout splits project lifecycle from the deposit schema pack (#4162).** A healthy consumer with project-root `xbrief/` plus deposit `vbrief/` no longer warns missing `xbrief/`. Dual-populated unmarked `vbrief/` plus `xbrief/` warns rather than reporting healthy. Layout rows name project-lifecycle, framework-content, or engine/deposit. `migrate:preflight` schema FAIL uses `vbrief/schemas` via shared `contentRoot()`. Closes #4162.
 - **Clean clone passes migrate-preflight and lifecycle-visible --enforce (#4310).** Schema lookup uses content-root plus existing trees (`content/vbrief/schemas`, flattened `vbrief/schemas`, project-root `xbrief/schemas`). Tracked `xbrief/pending/.gitkeep` survives clone. Lifecycle-visible derived probes require a convention-valid filename; canonical `*.premigrate.*` backup exclusions stay. Findings name the derived probe and candidate ignore rule. Closes #4310.
 - **Cursor Task dest-missing deny names explore or continue-in-parent, not Grok-only plan (#4321).** Closes #4321.

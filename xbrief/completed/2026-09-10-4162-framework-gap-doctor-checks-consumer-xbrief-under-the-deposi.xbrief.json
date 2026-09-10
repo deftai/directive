@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4162",
-    "updated": "2026-09-10T18:03:04Z"
+    "updated": "2026-09-10T21:38:06Z"
   },
   "plan": {
     "title": "[framework-gap] doctor checks consumer xbrief under the deposit root and emits an impossible warning",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Doctor's consumer framework-layout check looks for xbrief under the deposit while a current consumer keeps lifecycle at project-root xbrief and the shipped schema pack at deposit vbrief. The bound recut splits those identities, aligns migrate-preflight to vbrief/schemas, contains AGENTS.md install-root before echoing paths, and uses published-flatten fixtures.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4162",
@@ -19,66 +19,75 @@
     "items": [
       {
         "title": "Do not bind a one-row retarget of consumer `framework-layout`'s `xbrief` slot onto project-root `xbrief/` as the whole design.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a packed consumer with project-root xbrief/ plus deposit vbrief/ and no .deft/core/xbrief/, when doctor --full --json runs, then it emits no missing-xbrief framework-layout warning."
-        }
+        },
+        "completed": "2026-09-10T21:26:53Z"
       },
       {
         "title": "Keep the postcondition: a healthy current consumer with project-root `xbrief/` plus deposit `vbrief/` and no `.deft/core/xbrief/` must not warn missing `xbrief/`.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the same healthy consumer, when a one-row project-root swap is proposed as the whole fix, then the shipped change rejects that as the complete design and records the split identities."
-        }
+        },
+        "completed": "2026-09-10T21:26:53Z"
       },
       {
         "title": "Split Doctor layout into distinct identities: project lifecycle at project-root `xbrief/` via existing `resolveLifecycleLayout` / envelope-version; framework schema pack at `contentRoot` as `vbrief/schemas`; engine dirs (`tasks`, source `scripts`) on deposit/framework root.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given DEFT_ROOT or a content-package framework root, when Doctor layout-checks deposit/content rows, then those rows use the resolved framework/content root and do not discard it for an AGENTS.md depositRoot."
-        }
+        },
+        "completed": "2026-09-10T21:26:53Z"
       },
       {
         "title": "Consumer deposit/content rows must use the resolved framework/content root, not a re-derived AGENTS.md `depositRoot` that discards that root (DEFT_ROOT / content-package cases).",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a source or flattened tree whose pack is vbrief/schemas, when migrate-preflight checkLayout runs, then it fails or passes against contentRoot vbrief/schemas and does not require project-root xbrief/schemas as the framework pack."
-        }
+        },
+        "completed": "2026-09-10T21:26:53Z"
       },
       {
         "title": "Align `migrate:preflight` schema FAIL to the real pack name `vbrief/schemas` through shared `contentRoot()`. Do not move that FAIL onto project-root `xbrief/schemas`. Preflight already checks project-root `xbrief/` separately.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given an AGENTS.md install-root with .. or an absolute path, when Doctor prints a resolved layout path, then it rejects or contains that root (or falls back to .deft/core) and does not emit a host path outside the project."
-        }
+        },
+        "completed": "2026-09-10T21:26:53Z"
       },
       {
         "title": "If project-lifecycle absence remains in Doctor, report it under a project-lifecycle identity with the resolved project path. Do not treat `isDirectory(projectRoot/xbrief)` as complete health; cover valid, empty/greenfield, partial, legacy-only, and absent states without turning absence into an uncaught throw.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a packed-consumer fixture, when tests assert framework-layout, then the fixture uses project-root xbrief/ plus deposit vbrief/ and does not mkdir .deft/core/xbrief as the healthy shape."
-        }
+        },
+        "completed": "2026-09-10T21:26:53Z"
       },
       {
         "title": "Human and JSON output must identify which tree a missing path belongs to (project-lifecycle vs framework-content vs engine/deposit). Before probing or printing an AGENTS.md install-root, apply existing deposit containment (reject `..`, absolute, escaping symlinks) or fall back to `.deft/core`.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given missing or partial project lifecycle, when Doctor reports it, then the finding returns a project-lifecycle identity with the resolved project path and does not treat a bare isDirectory as complete health."
-        }
+        },
+        "completed": "2026-09-10T21:26:53Z"
       },
       {
         "title": "Packed-consumer and installed-package fixtures must use the published flatten (lifecycle at project root, `vbrief` under the deposit). Do not mkdir `.deft/core/xbrief` as the healthy shape. Add first row-level `framework-layout` coverage for consumer and source-checkout branches. Move the #3372 fixture's deposit `xbrief` to the project root.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given missing framework vbrief/schemas, when Doctor or migrate-preflight reports it, then the finding returns a framework-content identity with the selected content path."
-        }
+        },
+        "completed": "2026-09-10T21:26:53Z"
       },
       {
         "title": "Source-checkout coverage is re-derived from the same project/deposit split (roots coincide here), not a freeze of today's `EXPECTED_FRAMEWORK_DIRS` behavior.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given source-checkout layout, when framework-layout coverage runs, then it is re-derived from the same project/deposit split and records CHANGELOG Unreleased."
-        }
+        },
+        "completed": "2026-09-10T21:26:53Z"
       }
     ],
     "tags": [
@@ -216,10 +225,35 @@
           "command": "task check",
           "reason": "merge-chokepoint hygiene, not a product acceptance command; including it in verify:ac recurses because check runs verify:ac (#3721)"
         }
-      ]
+      ],
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4339,
+        "prBase": null,
+        "mergeCommit": "d419389acb65f49f2f6b0c36d4a7324ad41c179a",
+        "deliveryBranch": "master",
+        "deliveryCommit": "efa70239aee280a0e128bfdb52eb0b317da17e0e",
+        "verifiedAt": "2026-09-10T21:38:06Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDhkMmMtZGRlYy03OWYzLWFiOGEtZjA5ZjdjZTE4YTRl"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-09-10T21:38:06Z",
+      "completedSessionId": "host:grok:v1:MDFhMDhkMmMtZGRlYy03OWYzLWFiOGEtZjA5ZjdjZTE4YTRl",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-10T21:38:06Z"
+      }
     },
     "id": "github.issue.5337132295",
-    "updated": "2026-09-10T18:03:04Z",
+    "updated": "2026-09-10T21:38:06Z",
     "architecture": {
       "systemOfRecord": {
         "note": "This story does not add durable product state. Filesystem writes in the diff are Vitest temp fixtures for doctor/migrate-preflight layout tests.",
@@ -233,7 +267,7 @@
               "filesystem"
             ],
             "excludedFromProduction": true,
-            "productionGuard": "writeFileSync calls are inside Vitest test helpers using mkdtempSync \u2014 never invoked at runtime"
+            "productionGuard": "writeFileSync calls are inside Vitest test helpers using mkdtempSync — never invoked at runtime"
           }
         ]
       }
