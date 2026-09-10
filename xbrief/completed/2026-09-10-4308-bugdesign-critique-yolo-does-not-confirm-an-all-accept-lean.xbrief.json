@@ -137,7 +137,12 @@
         "algorithm": "sha256",
         "sha256": "f188fff4af4c40514201de29a0143c66397096c54df1d904ba95a4541d500bf6"
       },
-      "kind": "story"
+      "kind": "story",
+      "completedAt": "2026-09-10T13:40:37Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-10T13:40:37Z"
+      }
     },
     "acceptance": {
       "commands": [],
