@@ -9,6 +9,7 @@ import {
   isGrokHookProcess,
   isProcessOnlyCriticSpawn,
   isReadOnlyHookContext,
+  processOnlyCriticRequiresDest,
 } from "./readonly.js";
 import { READ_ONLY_HOOK_ENV } from "./tools.js";
 
@@ -224,6 +225,57 @@ describe("process-only critic spawn (#4241)", () => {
     ).toBe(false);
   });
 
+  it("requires dest cwd when process_only flag is set (#4296)", () => {
+    expect(
+      processOnlyCriticRequiresDest(
+        { tool_input: { subagent_type: "general-purpose", process_only: true } },
+        grok,
+      ),
+    ).toBe(true);
+    expect(processOnlyCriticRequiresDest({ tool_input: { subagent_type: "plan" } }, grok)).toBe(
+      false,
+    );
+  });
+
+  it("treats process_only as the recut skip class, not dest-path (#4296)", () => {
+    expect(
+      isProcessOnlyCriticSpawn(
+        {
+          tool_input: {
+            subagent_type: "general-purpose",
+            process_only: true,
+            cwd: "/dest",
+            prompt: "critic",
+          },
+        },
+        grok,
+      ),
+    ).toBe(true);
+    expect(
+      isProcessOnlyCriticSpawn(
+        {
+          tool_input: { subagent_type: "general-purpose", processOnly: "true", prompt: "critic" },
+        },
+        grok,
+      ),
+    ).toBe(true);
+  });
+
+  it("does not skip on dest-path cwd without process_only (#4296)", () => {
+    expect(
+      isProcessOnlyCriticSpawn(
+        {
+          tool_input: {
+            subagent_type: "general-purpose",
+            cwd: "/dest/linked-worktree",
+            prompt: "You are a process-only critic",
+          },
+        },
+        grok,
+      ),
+    ).toBe(false);
+  });
+
   it("does not classify from prompt text naming critic", () => {
     expect(
       isProcessOnlyCriticSpawn(
@@ -246,7 +298,7 @@ describe("process-only critic spawn (#4241)", () => {
     ).toBe(false);
   });
 
-  it("implement signals win over plan (fail closed)", () => {
+  it("refuses process_only skip when implement envelope fields are set (#4296)", () => {
     expect(
       isProcessOnlyCriticSpawn(
         {
@@ -259,6 +311,18 @@ describe("process-only critic spawn (#4241)", () => {
       isProcessOnlyCriticSpawn(
         {
           tool_input: { subagent_type: "plan", worker_role: "leaf-implementation" },
+        },
+        grok,
+      ),
+    ).toBe(false);
+    expect(
+      isProcessOnlyCriticSpawn(
+        {
+          tool_input: {
+            subagent_type: "general-purpose",
+            process_only: true,
+            drive_to: "merge-ready",
+          },
         },
         grok,
       ),

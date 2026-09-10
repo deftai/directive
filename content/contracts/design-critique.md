@@ -47,21 +47,23 @@ The Stop 1 write-back records `refutation-target:` naming the triage author's hi
 
 `verify:judgment-gates --enforce` stays opt-in unused in this rollout. Advisory observe first. No marker means the gate never fires. Voluntary critiques stay legal.
 
-### Run posture (#4072)
+### Run posture (#4072 / #4296)
 
 The front door is a session-local run-posture field, not a second ingest switch and not a third occupancy concept. Occupancy mechanics stay on #4020. Cite that rule; do not clone it.
 
-Closed tokens on the operator utterance: `direct`, `directly`, `forge-only`, `github-only`, `github only`, `on github`, `no worktrees` for direct; `checkout` for the mutating checkout path. `parseOperatorRunPosture` (`packages/core/src/design-critique/run-posture.ts`) matches those tokens with word boundaries. `on github` is a location synonym at this Stop 1 front door: `file an issue on github` and `the comments live on github` resolve `direct`. Missing token, including `arc <N> yolo`, asks before Stop 1. Yolo does not pick a mode. `ingest` is not a front-door mode; that token asks. On grok-bot detect, a missing-token ask resolves to `arc-mode:direct` unless checkout tokens already won. `resolveArcRunPostureForHost` consumes `parseOperatorRunPosture`; do not clone the parser. ⊗ Substring or NLP classification. ⊗ Front-door mode `ingest`. ⊗ A yolo default-direct. ⊗ Default-direct without grok-bot detect. ⊗ An `arc N` proximity check on `on github`.
+Closed tokens on the operator utterance: `direct`, `directly`, `forge-only`, `github-only`, `github only`, `on github`, `no worktrees`, `no-ingest`, `no ingest` resolve to `no-ingest`; `checkout` for the mutating checkout path. GitHub-only means no-ingest, not no-worktree. `no worktrees` is a github-only synonym, not a dest forbid. `parseOperatorRunPosture` (`packages/core/src/design-critique/run-posture.ts`) matches those tokens with word boundaries. `on github` is a location synonym at this Stop 1 front door: `file an issue on github` and `the comments live on github` resolve `no-ingest`. Missing token, including `arc <N> yolo`, asks before Stop 1. Yolo does not pick a mode. `ingest` is not a front-door mode; that token asks. On grok-bot detect, a missing-token ask resolves to `arc-mode: no-ingest` unless checkout tokens already won. `resolveArcRunPostureForHost` consumes `parseOperatorRunPosture`; do not clone the parser. ⊗ Substring or NLP classification. ⊗ Front-door mode `ingest`. ⊗ A yolo default-direct. ⊗ Default-direct without grok-bot detect. ⊗ An `arc N` proximity check on `on github`.
 
-Record `arc-mode: direct` or `arc-mode: checkout` on the Stop 1 write-back. `evaluateDirectDispatch` is a fixture over parent-claimed actions, not a live occupancy observer.
+Record `arc-mode: no-ingest` or `arc-mode: checkout` on the Stop 1 write-back. `arcModeRecordLine` emits the parser posture. `evaluateDirectDispatch` is a fixture over parent-claimed actions, not a live occupancy observer. Worktree-add is not a github-only violation.
 
 - ! Record `arc-mode:` on the Stop 1 write-back before any mutation-capable session start.
-- ! Direct means `session:start --read-only`, or an explicit occupancy release if a mutation lease is already held.
-- ! Recognition of `direct` happens before mutation initialization. Refuse direct when mutation `session:start` has already occurred, unless the lease is released first.
-- ! Direct posting path that survives a foreign lease: `gh issue comment --body-file -` (stdin). Least-authority envelope: bounded GitHub reads and one comment post.
-- ! Direct N>1 process-only critics are not swarm Phase 2 and not a #4066 mutating worker. Family CLIs still spawn. ⊗ `git worktree add`. Pin reads to `git show <dispatch-sha>:` against the recorded SHA. ⊗ A moving branch ref.
+- ! Parent-unclaimed is its own MUST: `session:start --read-only`, or an explicit occupancy release if a mutation lease is already held. Dest create does not clear occupancy.
+- ! Recognition of `no-ingest` happens before mutation initialization. Refuse github-only when mutation `session:start` has already occurred, unless the lease is released first.
+- ! Posting path that survives a foreign lease: `gh issue comment --body-file -` (stdin). Least-authority envelope: bounded GitHub reads and one comment post.
+- ! Parent fetches, then creates or verifies one dest at origin/<default> tip (`ensureArcDest`). dispatch-sha equals that tip. Against-implementation dest is the fetched PR head SHA, recorded on Stop 1. ⊗ Pin dest to local HEAD.
+- ! N>1 process-only critics share that dest with cwd-without-occupy. They are not swarm Phase 2 and not a #4066 mutating worker. Unique dest-lock stays for implement-class. Skip class is a host-visible Grok stdin marker (`subagent_type` `plan` or `process_only`), not dest-path. That marker is the recut skip class, not an implementation-gate bypass: implement-class never sets `process_only`. ⊗ Skip #2885 on destProven. Keep #4066 primary-path deny. ⊗ Pin dest / process_only skip-class rules into `templates/agents-entry.md`.
+- ! Pin reads to `git show <dispatch-sha>:` against the recorded SHA. ⊗ A moving branch ref.
 - ! Direct EXIT names ingest as a later operator verb after the completed-arc record. ⊗ Auto-ingest.
-- ! After synthesis accepted on a Recut lean, print ingest (`task issue:ingest`) and do not print next-envelope as the default next. ⊗ Add a land CLI. ⊗ Treat body PATCH as a recut arc. Keep chip `design-critique:recut-needed` as list state.
+- ! After synthesis accepted on a Recut lean, print ingest (`task issue:ingest`) and do not print next-envelope as the default next. ⊗ Add a land CLI. ⊗ Treat body PATCH as a recut arc. Keep chip `design-critique:ingest-ready` as list state.
 - ! Target-digest / stale-target (#4243) is a different hole. ⊗ Restamp for body alignment.
 - ⊗ Treat `arc-mode:` as ingest clearance or as a permanent ingest denial.
 - ⊗ Record a front-door mode named `ingest`.
@@ -191,7 +193,7 @@ seat: codex launcher: codex
 
 - ! For spend N≥3, the panel-deposit or a sibling-seat record names three claimed families before the first sibling spawn. Parent claims the family at dispatch. ⊗ Classify family from a model slug.
 - ! A same-family sibling set is not a panel. ⊗ Lean it. Printed recovery is re-seat (or halt), not wait for Stop 5.
-- ! Grok Build launcher tree: Grok seat via `spawn_subagent` (or `grok`); Claude seat via `claude` CLI; Codex seat via `codex exec`. Worktree isolation before each spawn unless `arc-mode: direct`. Probe `claude` / `codex` on PATH before offering paste-ready. Paste-ready is the fallback when a named family's CLI is absent. Close stdin on CLI spawns (Windows `cmd /c "… <nul"`; Unix `… </dev/null`). Pointer: [`docs/grok-build-subscription-setup.md`](../docs/grok-build-subscription-setup.md).
+- ! Grok Build launcher tree: Grok seat via `spawn_subagent` (or `grok`); Claude seat via `claude` CLI; Codex seat via `codex exec`. Every arc uses one dest at origin/<default> after fetch; github-only is no-ingest, not no-worktree. Probe `claude` / `codex` on PATH before offering paste-ready. Paste-ready is the fallback when a named family's CLI is absent. Close stdin on CLI spawns (Windows `cmd /c "… <nul"`; Unix `… </dev/null`). Pointer: [`docs/grok-build-subscription-setup.md`](../docs/grok-build-subscription-setup.md).
 - ! `evaluatePanelSeatComposition` (`packages/core/src/design-critique/panel-seat-families.ts`) refuses a same-family N≥3 set and refuses paste-ready-first when `claude` / `codex` resolve. It takes claimed families and PATH probe results. It does not observe live comments and does not count siblings.
 - ! After a dispatch-composition miss, offer a prevention issue. On yolo, file it. ⊗ Only re-seat.
 

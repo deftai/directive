@@ -345,7 +345,7 @@ export function consultImplementSpawnOccupancy(
       hostCanReroot,
       message:
         "Directive skipped dest occupancy consult for process-only critic spawn " +
-        "(subagent_type plan).",
+        "(cwd-without-occupy; subagent_type plan or process_only).",
       parentId,
       leftoverIncarnation: null,
     };

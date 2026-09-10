@@ -12,7 +12,7 @@ Dispatch envelope skeleton for one critic or synthesis pass. Fill the fields. Re
 - Critic role (fresh | resume):
 - Id ceiling (GitHub comment id, inclusive):
 - SHA at dispatch:
-- Run posture (`arc-mode: direct` | `arc-mode: checkout`):
+- Run posture (`arc-mode: no-ingest` | `arc-mode: checkout`):
 - Target (work issue or umbrella):
 - Audit targets (marker ids, comma-separated, or `none`; ids only, no parent rationale):
 - Seat families (N≥3: three claimed families before spawn):

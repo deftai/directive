@@ -164,7 +164,7 @@ const REQUIRED_TEMPLATE_POINTERS = [
   "Audit targets",
   "ids only",
   "`refutation-target:`",
-  "Run posture (`arc-mode: direct`",
+  "Run posture (`arc-mode: no-ingest`",
   "Seat families (N≥3",
   "Launcher (spawn_subagent | grok | claude | codex | paste-ready)",
 ];
@@ -953,16 +953,24 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(stop1).toContain("Yolo does not pick a mode");
     expect(stop1).toContain("\u2297 Front-door mode `ingest`");
     expect(stop1).toContain("\u2297 Treat `arc-mode:` as ingest clearance");
-    expect(stop1).toContain("\u2297 `git worktree add`");
+    expect(stop1).toContain("ensureArcDest");
+    expect(stop1).toContain("cwd-without-occupy");
+    expect(stop1).toContain("process_only");
+    expect(stop1).toContain("recut skip class, not an implementation-gate bypass");
+    expect(stop1).toContain("\u2297 Pin dest to local HEAD");
+    expect(stop1).toContain("\u2297 Skip #2885 on destProven");
+    expect(stop1).toContain(
+      "\u2297 Pin dest / process_only skip-class rules into `templates/agents-entry.md`",
+    );
     const bind = markdownSection(text, "## Bind after accepted synthesis");
     expect(bind).toContain("Direct EXIT names it as a later operator verb");
     expect(bind).toContain(
       "After Recut bind, print ingest and do not print next-envelope as the default next",
     );
     const ceiling = markdownSection(text, "### Envelope and ceiling");
-    expect(ceiling).toContain("Worktree isolation before each spawn unless `arc-mode: direct`");
+    expect(ceiling).toContain("github-only is no-ingest, not no-worktree");
     const template = readText(TEMPLATE);
-    expect(template).toContain("Run posture (`arc-mode: direct` | `arc-mode: checkout`)");
+    expect(template).toContain("Run posture (`arc-mode: no-ingest` | `arc-mode: checkout`)");
     expect(template).toContain("Run posture `arc-mode:`");
     const skill = readText(SKILL_REL);
     expect(skill).toContain("parse closed tokens");
@@ -981,9 +989,9 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     });
     expect(
       evaluateDirectDispatch({
-        posture: "direct",
+        posture: "no-ingest",
         occupancyClaimed: false,
-        worktreeAdd: false,
+        worktreeAdd: true,
         issueIngest: false,
         sessionPosture: "read-only",
       }),
@@ -1284,6 +1292,8 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     const agentsEntry = readText("templates/agents-entry.md");
     expect(agents).not.toContain("deft-directive-design-critique");
     expect(agentsEntry).not.toContain("deft-directive-design-critique");
+    expect(agentsEntry).not.toContain("process_only");
+    expect(agentsEntry).not.toContain("cwd-without-occupy");
     for (const pin of DEFAULT_ALWAYS_PINS) {
       expect(agents).toContain(pin);
       expect(agentsEntry).toContain(pin);

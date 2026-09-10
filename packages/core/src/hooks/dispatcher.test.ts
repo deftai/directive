@@ -2483,6 +2483,49 @@ describe("process-only critic spawn dest skip (#4241)", () => {
     expect(decision.code).not.toBe("spawn-explore-ready");
   });
 
+  it("denies process_only spawn onto a nonexistent dest cwd (#4296 dest-first)", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: {
+            subagent_type: "general-purpose",
+            process_only: true,
+            cwd: "/dest",
+            prompt: "git show the dispatch sha and post a GitHub comment",
+          },
+        },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toMatch(/requires tool_input.cwd/);
+  });
+
+  it("denies process_only spawn without a linked dest cwd (#4296 dest-first)", () => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: {
+            subagent_type: "general-purpose",
+            process_only: true,
+            prompt: "git show the dispatch sha",
+          },
+        },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toMatch(/requires tool_input.cwd/);
+  });
+
   it("still requires a worktree for general-purpose implement spawn on Grok", () => {
     const decision = decideHook(
       {

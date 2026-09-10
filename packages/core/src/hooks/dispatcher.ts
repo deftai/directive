@@ -1,4 +1,4 @@
-import { lstatSync, realpathSync } from "node:fs";
+import { existsSync, lstatSync, realpathSync } from "node:fs";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import {
   type AuthzDecision,
@@ -14,6 +14,7 @@ import {
   shouldConsumeSingleUseGrant,
   utcIso,
 } from "../authz/index.js";
+import { prepareGithubOnlyDest } from "../design-critique/run-posture.js";
 import { runningInsideDeftRepo } from "../doctor/paths.js";
 import {
   assertProjectionContained,
@@ -56,6 +57,7 @@ import {
   memoizeGitRunner,
   worktreePathOrNull,
 } from "../session/git.js";
+import { isLinkedWorktreePath } from "../session/main-worktree.js";
 import { evaluateOccupancyWriteGate } from "../session/occupancy.js";
 import { emitSessionRitualBlockedProcessCost } from "../session/process-cost.js";
 import { markRitualStaleAfterCompact } from "../session/ritual-sentinel.js";
@@ -116,6 +118,7 @@ import {
   isExploreSpawn,
   isProcessOnlyCriticSpawn,
   isReadOnlyHookContext,
+  processOnlyCriticRequiresDest,
 } from "./readonly.js";
 import {
   type ActiveScopeInspection,
@@ -209,7 +212,7 @@ export type HookDecisionCode =
   | "spawn-explore-ready"
   /** Non-lifecycle assist/docs spawn allowed without active xBRIEF (#3080). */
   | "spawn-ephemeral-ready"
-  /** Process-only critic spawn (`subagent_type` plan) skips dest occupancy (#4241). */
+  /** Process-only critic spawn (`subagent_type` plan or `process_only`) skips dest occupancy. */
   | "spawn-process-only-ready"
   | "spawn-ready"
   | "spawn-not-ready"
@@ -317,6 +320,8 @@ export interface HookPolicySeams {
   readonly lifecycleExecutionPlatform?: NodeJS.Platform;
   /** Test seam for the #3987 post-decision owner-liveness re-stamp. */
   readonly restampOwnerLiveness?: (input: OwnerLivenessInput) => OwnerLivenessOutcome;
+  /** Test seam for Stop 1 dest prepare on process-only critic spawn (#4296). */
+  readonly prepareArcDest?: typeof prepareGithubOnlyDest;
 }
 
 /** POSIX-ish project-relative path for lifecycle matching. */
@@ -1622,9 +1627,9 @@ function inspectMutationGates(
           "or set session assist (`DEFT_SESSION_POSTURE=assist` or `DEFT_HOOK_ASSIST=1`), " +
           "or run local-dev Shell (`docker compose` / `pnpm dev`) in the parent without a " +
           "lifecycle story. (4) Process-only critic — spawn with structural `subagent_type` " +
-          "plan (Grok PreToolUse stdin). Free-text markers such as `[worker_role: ephemeral]` " +
-          "or naming critic in the prompt are NOT sufficient. Do not invent a fake scope " +
-          "only to satisfy this gate.";
+          "plan or `process_only` (Grok PreToolUse stdin). Dest-path is not that class. " +
+          "Free-text markers such as `[worker_role: ephemeral]` or naming critic in the prompt " +
+          "are NOT sufficient. Do not invent a fake scope only to satisfy this gate.";
       } else if (
         options.proposedLifecycleExempt &&
         relTarget !== null &&
@@ -2328,6 +2333,37 @@ function restampOwnerLiveness(
   }
 }
 
+function prepareProcessOnlyCriticDest(
+  payload: unknown,
+  projectRoot: string,
+  seams: HookPolicySeams,
+): { ok: true; record: string } | { ok: false; message: string } | null {
+  const input = record(payload);
+  if (input === null) return null;
+  const toolInput = toolInputRecord(input) ?? input;
+  const cwd = fieldString(toolInput, "cwd");
+  if (cwd === null || !existsSync(cwd) || !isLinkedWorktreePath(cwd)) return null;
+  const against =
+    fieldString(toolInput, "dispatch_sha") ??
+    fieldString(toolInput, "against_implementation_sha") ??
+    undefined;
+  try {
+    const prepared = (seams.prepareArcDest ?? prepareGithubOnlyDest)({
+      repoRoot: projectRoot,
+      destPath: cwd,
+      againstImplementationSha: against,
+    });
+    return { ok: true, record: prepared.record };
+  } catch (cause) {
+    return {
+      ok: false,
+      message:
+        `Directive denied process-only critic spawn: dest prepare failed: ${String(cause)}. ` +
+        "Parent must fetch origin and create or verify the dest at origin/<default> before spawn.",
+    };
+  }
+}
+
 /** Decide a normalized event using only the P0 direct-write policy. */
 export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}): HookDecision {
   const observation: DispatchObservation = { effectiveRoots: [], foreignTarget: false };
@@ -2542,8 +2578,8 @@ function routeHookDecision(
         "read-only-deny",
         toolName,
         `Directive denied ${toolName}: read-only posture blocks implementation sub-agent spawns. ` +
-          "Use subagent_type explore for read-only research spawns, or subagent_type plan " +
-          "for process-only critic spawns.",
+          "Use subagent_type explore for read-only research spawns, or subagent_type plan / " +
+          "process_only for process-only critic spawns.",
       );
     }
     if (isExploreSpawn(input.payload)) {
@@ -2558,8 +2594,9 @@ function routeHookDecision(
         scopePath: null,
       };
     }
-    // Process-only critic (`subagent_type` plan): dest consult, worktree, ritual,
-    // and active-xBRIEF skip. Not the explore tool allowlist. Prompt text is not a class (#4241).
+    // Recut skip class (#4296): host-visible `plan` or `process_only` stdin marker.
+    // Not dest-path. Not prompt. Not an implement-class gate bypass: implement-class
+    // never sets process_only. Dest occupancy, ritual, and active-xBRIEF skip.
     if (
       isProcessOnlyCriticSpawn(input.payload, {
         host: input.host,
@@ -2567,6 +2604,28 @@ function routeHookDecision(
         environ,
       })
     ) {
+      const destNote = prepareProcessOnlyCriticDest(input.payload, projectRoot, seams);
+      if (destNote !== null && destNote.ok === false) {
+        return deny(input, "spawn-not-ready", toolName, destNote.message);
+      }
+      if (
+        destNote === null &&
+        processOnlyCriticRequiresDest(input.payload, {
+          host: input.host,
+          toolName,
+          environ,
+        })
+      ) {
+        return deny(
+          input,
+          "spawn-not-ready",
+          toolName,
+          `Directive denied ${toolName}: process_only critic spawn requires tool_input.cwd ` +
+            "on an existing linked dest worktree (github-only dest-first). Dest-path is not " +
+            "the skip class; pass cwd to the dest created at origin/<default> after fetch.",
+        );
+      }
+      const pin = destNote?.ok ? ` ${destNote.record}` : "";
       return {
         verdict: "allow",
         code: "spawn-process-only-ready",
@@ -2576,7 +2635,7 @@ function routeHookDecision(
         projectRoot,
         message:
           `Directive allowed process-only critic ${toolName} spawn without dest occupancy ` +
-          "or implementation gates (subagent_type plan).",
+          `or implementation gates (subagent_type plan or process_only).${pin}`,
         scopePath: null,
       };
     }

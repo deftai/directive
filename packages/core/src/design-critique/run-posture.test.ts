@@ -9,6 +9,7 @@ import {
   DIRECT_SESSION_START,
   evaluateDirectDispatch,
   isDispatchShaPin,
+  NO_INGEST_ARC_MODE,
   parseOperatorRunPosture,
   pinnedShowCommand,
   resolveArcRunPostureForHost,
@@ -18,30 +19,38 @@ const LEAN_ID = 5442939496;
 const TABLE_ID = 5443106967;
 const SYNTHESIS_ID = 5443114746;
 
-describe("parseOperatorRunPosture (#4072)", () => {
-  it("resolves arc N yolo direct to direct", () => {
+describe("parseOperatorRunPosture (#4072 / #4296)", () => {
+  it("resolves arc N yolo direct to no-ingest", () => {
     expect(parseOperatorRunPosture("arc 1234 yolo direct")).toEqual({
       kind: "resolved",
-      posture: "direct",
+      posture: "no-ingest",
     });
   });
 
-  it("resolves forge-only and github-only closed synonyms", () => {
+  it("resolves forge-only and github-only closed synonyms to no-ingest", () => {
     expect(parseOperatorRunPosture("arc 4066 yolo on github only")).toEqual({
       kind: "resolved",
-      posture: "direct",
+      posture: "no-ingest",
     });
     expect(parseOperatorRunPosture("arc 1 github-only")).toEqual({
       kind: "resolved",
-      posture: "direct",
+      posture: "no-ingest",
     });
     expect(parseOperatorRunPosture("arc 1 forge-only")).toEqual({
       kind: "resolved",
-      posture: "direct",
+      posture: "no-ingest",
     });
     expect(parseOperatorRunPosture("arc 1 no worktrees")).toEqual({
       kind: "resolved",
-      posture: "direct",
+      posture: "no-ingest",
+    });
+    expect(parseOperatorRunPosture("arc 1 no-ingest")).toEqual({
+      kind: "resolved",
+      posture: "no-ingest",
+    });
+    expect(parseOperatorRunPosture("arc 1 no ingest")).toEqual({
+      kind: "resolved",
+      posture: "no-ingest",
     });
   });
 
@@ -52,25 +61,25 @@ describe("parseOperatorRunPosture (#4072)", () => {
     });
   });
 
-  it("resolves please run this directly to direct", () => {
+  it("resolves please run this directly to no-ingest", () => {
     expect(parseOperatorRunPosture("please run this directly")).toEqual({
       kind: "resolved",
-      posture: "direct",
+      posture: "no-ingest",
     });
   });
 
   it("resolves on github as a location synonym, including extra matches", () => {
     expect(parseOperatorRunPosture("arc 4219 yolo on github")).toEqual({
       kind: "resolved",
-      posture: "direct",
+      posture: "no-ingest",
     });
     expect(parseOperatorRunPosture("file an issue on github")).toEqual({
       kind: "resolved",
-      posture: "direct",
+      posture: "no-ingest",
     });
     expect(parseOperatorRunPosture("the comments live on github")).toEqual({
       kind: "resolved",
-      posture: "direct",
+      posture: "no-ingest",
     });
   });
 
@@ -78,7 +87,7 @@ describe("parseOperatorRunPosture (#4072)", () => {
     for (const token of DIRECT_RUN_POSTURE_TOKENS) {
       expect(parseOperatorRunPosture(token)).toEqual({
         kind: "resolved",
-        posture: "direct",
+        posture: "no-ingest",
       });
     }
   });
@@ -118,23 +127,25 @@ describe("parseOperatorRunPosture (#4072)", () => {
       posture: "checkout",
     });
     expect(arcModeRecordLine("checkout")).toBe("arc-mode: checkout");
-    expect(arcModeRecordLine("direct")).toBe("arc-mode: direct");
+    expect(arcModeRecordLine(NO_INGEST_ARC_MODE)).toBe(`arc-mode: ${NO_INGEST_ARC_MODE}`);
+    expect(NO_INGEST_ARC_MODE).toBe("no-ingest");
     expect(ARC_RUN_POSTURES).not.toContain("ingest");
+    expect(ARC_RUN_POSTURES).not.toContain("direct");
     expect(ARC_MODE_FIELD).toBe("arc-mode:");
   });
 });
 
 describe("resolveArcRunPostureForHost (#4202)", () => {
-  it("defaults missing-token to direct only after grok-bot detect", () => {
+  it("defaults missing-token to no-ingest only after grok-bot detect", () => {
     expect(
       resolveArcRunPostureForHost({ utterance: "run an arc on #286", grokBotDetected: true }),
-    ).toEqual({ kind: "resolved", posture: "direct" });
+    ).toEqual({ kind: "resolved", posture: "no-ingest" });
     expect(
       resolveArcRunPostureForHost({ utterance: "run an arc on #286", grokBotDetected: false }),
     ).toEqual({ kind: "ask", reason: "missing-token" });
   });
 
-  it("lets checkout tokens win over the grok-bot direct default", () => {
+  it("lets checkout tokens win over the grok-bot no-ingest default", () => {
     expect(
       resolveArcRunPostureForHost({ utterance: "arc 1234 checkout", grokBotDetected: true }),
     ).toEqual({ kind: "resolved", posture: "checkout" });
@@ -147,13 +158,13 @@ describe("resolveArcRunPostureForHost (#4202)", () => {
   });
 });
 
-describe("evaluateDirectDispatch (#4072)", () => {
-  it("accepts read-only GitHub comments and SHA-pinned reads with no claim, worktree, or ingest", () => {
+describe("evaluateDirectDispatch (#4072 / #4296)", () => {
+  it("accepts read-only GitHub comments, dest worktree, and SHA-pinned reads when parent is unclaimed", () => {
     expect(
       evaluateDirectDispatch({
-        posture: "direct",
+        posture: "no-ingest",
         occupancyClaimed: false,
-        worktreeAdd: false,
+        worktreeAdd: true,
         issueIngest: false,
         sessionPosture: "read-only",
       }),
@@ -166,9 +177,9 @@ describe("evaluateDirectDispatch (#4072)", () => {
     expect(() => pinnedShowCommand("origin/master")).toThrow(/hex pin/);
   });
 
-  it("refuses occupancy claim, worktree add, ingest, and mutation start on direct", () => {
+  it("refuses occupancy claim, ingest, and mutation start; dest worktree is not a violation", () => {
     const result = evaluateDirectDispatch({
-      posture: "direct",
+      posture: "no-ingest",
       occupancyClaimed: true,
       worktreeAdd: true,
       issueIngest: true,
@@ -178,13 +189,26 @@ describe("evaluateDirectDispatch (#4072)", () => {
     if (result.ok) return;
     expect(result.violations).toEqual([
       "occupancy-claim",
-      "worktree-add",
       "issue-ingest",
       "mutation-session-start",
     ]);
+    expect(result.violations).not.toContain("worktree-add");
   });
 
-  it("does not apply direct prohibitions to checkout posture", () => {
+  it("keeps parent-unclaimed as its own MUST when dest is created", () => {
+    const result = evaluateDirectDispatch({
+      posture: "no-ingest",
+      occupancyClaimed: true,
+      worktreeAdd: true,
+      issueIngest: false,
+      sessionPosture: "read-only",
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.violations).toEqual(["occupancy-claim"]);
+  });
+
+  it("does not apply no-ingest prohibitions to checkout posture", () => {
     expect(
       evaluateDirectDispatch({
         posture: "checkout",
@@ -198,7 +222,7 @@ describe("evaluateDirectDispatch (#4072)", () => {
 });
 
 describe("completed-arc record ignores arc-mode (#4072)", () => {
-  it("still completes when the synthesis carries arc-mode: direct", () => {
+  it("still completes when the synthesis carries arc-mode: no-ingest", () => {
     const lean: ThreadComment = {
       id: LEAN_ID,
       body: "**Lean:** operator amend of 5442883752. Chips stay convenience.\n",
@@ -213,7 +237,7 @@ describe("completed-arc record ignores arc-mode (#4072)", () => {
         "model: grok-4.6\nrole: parent\n\n" +
         "design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n" +
         `Bound contract: successor lean ${LEAN_ID}, confirmed by operator, verified-claims table ${TABLE_ID}.\n` +
-        "arc-mode: direct\n",
+        "arc-mode: no-ingest\n",
     };
     expect(evaluateCompletedArcRecord({ comments: [lean, table, synthesis] })).toEqual({
       status: "complete",

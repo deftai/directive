@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Design-critique arcs are GitHub-only dest worktrees, not ingest and not dest-path skip (#4296).** `github-only` means no-ingest. Parent fetches and pins one dest at origin/<default> (or fetched PR head). Skip class is Grok stdin `process_only` or `plan`, not cwd. Children share dest cwd-without-occupy. Closes #4296. Refs #4072, #4241, #4066, #4297.
 - **Parent-steer inbox for grok-build leaves (#4286).** Parent writes a closed-schema inbox at `.deft-scratch/subagent-steer/<agent-id>.json`; the child reads it on each pollable slice and acks apply-once. Heartbeat sweep skips steer schema and only reads top-level `<agent-id>.json`. `verify:subagent-steer` exit 1 is `STEER_PENDING`, not `REDISPATCH_OK`. Does not replace split-dispatch. Closes #4286.
 
 ### Changed
