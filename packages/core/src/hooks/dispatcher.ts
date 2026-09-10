@@ -119,7 +119,7 @@ import {
   isProcessOnlyCriticSpawn,
   isReadOnlyHookContext,
   processOnlyCriticRequiresDest,
-  SPAWN_CLASS_RECOVERY,
+  SPAWN_READ_ONLY_RECOVERY,
 } from "./readonly.js";
 import {
   type ActiveScopeInspection,
@@ -2581,7 +2581,7 @@ function routeHookDecision(
         "read-only-deny",
         toolName,
         `Directive denied ${toolName}: read-only posture blocks implementation sub-agent spawns. ` +
-          SPAWN_CLASS_RECOVERY,
+          SPAWN_READ_ONLY_RECOVERY,
       );
     }
     if (isExploreSpawn(input.payload)) {

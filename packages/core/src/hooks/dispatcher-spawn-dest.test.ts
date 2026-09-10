@@ -679,7 +679,7 @@ describe("Cursor Task dest-missing deny honesty (#4279)", () => {
     expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
   });
 
-  it("shares the same recovery set on the read-only spawn deny", () => {
+  it("shares the recovery inventory on the read-only spawn deny, explore first", () => {
     const decision = decideHook(
       {
         host: "cursor",
@@ -694,10 +694,12 @@ describe("Cursor Task dest-missing deny honesty (#4279)", () => {
       readySeams(),
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "read-only-deny" });
-    expect(decision.message).toContain(SPAWN_CLASS_RECOVERY);
+    expect(decision.message).toMatch(/subagent_type explore/);
+    expect(decision.message).toMatch(/subagent_type plan/);
+    expect(decision.message).toMatch(/assist \/ ephemeral/);
     const parentIdx = decision.message.indexOf("Continue in the parent");
     const exploreIdx = decision.message.search(/subagent_type explore/i);
-    expect(parentIdx).toBeGreaterThanOrEqual(0);
-    expect(exploreIdx).toBeGreaterThan(parentIdx);
+    expect(exploreIdx).toBeGreaterThanOrEqual(0);
+    expect(parentIdx).toBeGreaterThan(exploreIdx);
   });
 });

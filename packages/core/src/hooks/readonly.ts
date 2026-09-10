@@ -100,6 +100,12 @@ export const SPAWN_CLASS_RECOVERY =
   "or subagent_type plan. Use subagent_type explore only when the spawn is actually " +
   "read-only research.";
 
+/** Same recovery inventory as SPAWN_CLASS_RECOVERY, ordered for an already read-only spawn. */
+export const SPAWN_READ_ONLY_RECOVERY =
+  "Use subagent_type explore for this read-only spawn, or subagent_type plan, " +
+  "or assist / ephemeral markers for scratch. Continue in the parent only when " +
+  "the remaining work stays read-only.";
+
 /** Explore sub-agent spawns are exempt from the implementation gate stack (#1185). */
 export function isExploreSpawn(payload: unknown): boolean {
   const input = record(payload);
