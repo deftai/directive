@@ -16,6 +16,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.115.0] - 2026-09-10
+
+> Cursor dest-placing local implement, session:start HEAD orientation, doctor layout split, dest-missing / docs-impact / yolo-confirm fixes, and Windows symlink EPERM skip.
+
+### Added
+
 - **Cursor local implement is dest-placing, not Task dest (#4295).** Local Cursor workers start in a reserved linked worktree instead of unsupported Task destination keys. Consumer agents-entry pins dest-placing Cursor. agentsMdBudget.absoluteMaxBytes 17300→17600. Closes #4295.
 
 ### Changed
@@ -5953,7 +5965,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.114.0...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.115.0...HEAD
+[0.115.0]: https://github.com/deftai/directive/compare/v0.114.0...v0.115.0
 [0.114.0]: https://github.com/deftai/directive/compare/v0.113.2...v0.114.0
 [0.113.2]: https://github.com/deftai/directive/compare/v0.113.1...v0.113.2
 [0.113.1]: https://github.com/deftai/directive/compare/v0.113.0...v0.113.1

@@ -40,8 +40,20 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1447 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1459 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#4344** -- bug(doctor): #4162 escaping-symlink test EPERMs on Windows without Developer Mode -- `[completed]`
+- **#4162** -- [framework-gap] doctor checks consumer xbrief under the deposit root and emits an impossible warning -- `[completed]`
+- **#4310** -- bug(dev): clean master fails deterministic development-readiness gates -- `[completed]`
+- **#4321** -- bug(hooks,cursor): preflight-loop parallel review Task spawns denied — implement-class gate + no worktree destination -- `[completed]`
+- **#4324** -- bug(docs,skills): #1704 leftover -- CONTRIBUTING and pre-PR still force full task check per commit -- `[completed]`
+- **#4291** -- bug(session,branch-policy): no checkout or branch signal at mutation time -- a whole session landed on the primary checkout on a merged branch 64 behind main, and the worktree remedy needs six undocumented commands -- `[completed]`
+- **#4271** -- BLOCKER: bug(update): seeded xBRIEF stamps require a two-pass compatibility migration -- `[completed]`
+- **#4295** -- rfc(swarm,cursor): envelope when Task cannot prove a local worktree dest -- `[completed]`
+- **#4293** -- bug(pr,docs-impact): custom --body-file PRs skip the template declaration and fail merge-gate -- `[completed]`
+- **#4309** -- bug(design-critique): parent In plain English is an abbreviation, not the problem-and-solution reading -- `[completed]`
+- **#4279** -- bug(hooks,cursor): implement-class Task deny names dest fields Cursor Task cannot pass; explore recovery omitted -- `[completed]`
+- **#4308** -- bug(design-critique): yolo does not confirm an all-accept lean, so parents wait after empty disagreement -- `[completed]`
 - **#4296** -- feat(design-critique): every arc is GitHub-only and starts in an arc worktree from origin/default -- `[completed]`
 - **#4289** -- bug(greptile-detector): new HTML summaries omit Last reviewed commit; SHA-match holdout stalls every review consumer -- `[completed]`
 - **#4286** -- bug(swarm,grok-build): parent-to-child steer must be a Directive inbox; host supplies no child prompt -- `[completed]`
@@ -55,16 +67,4 @@ _Showing 25 of 1447 completed scopes (newest first). Full history: lifecycle `co
 - **#4241** -- bug(design-critique,harness): direct critic spawn is exploratory/non-mutation and must not go through #4066 dest occupancy -- `[completed]`
 - **#4240** -- bug(verify-ac): bound behavioral clauses with no executable run still cannot complete -- `[completed]`
 - **#4230** -- perf(check,release): one suite at Step 5, real 20-min suite-gate hang (supervisor), full-mode pin — lane fixed host-side (stale CI cache) -- `[completed]`
-- **#4215** -- rfc(harness): implement spawn into a reserved worktree must not require a live primary ritual (#1185 leftover / #4066) -- `[completed]`
-- **#4137** -- bug(intake): issue:ingest comment fetch is unpaginated so threads over 30 comments miss synthesis -- `[completed]`
-- **#4220** -- bug(design-critique): parseOperatorRunPosture rejects directly and on github as direct synonyms (#4072) -- `[completed]`
-- **#4203** -- bug(cli): scope:record-approved-scope help advertises rejected -- separator -- `[completed]`
-- **#4205** -- bug(design-critique): all-accept auto-stamp puts triage-ready on a recut lean -- `[completed]`
-- **#4202** -- feat(design-critique): arc triggers (#3845) plus Grok Bot widget/direct default -- `[completed]`
-- **#4201** -- rfc(harness): host-grokbot adapter + Grok Bot–native consumer façade -- `[completed]`
-- **#4200** -- feat(session,scm): list-visible work-claim tag plus task verb, without a lifecycle PR -- `[completed]`
-- **#4100** -- docs(ia): recut README and UPGRADING around audience journeys -- `[completed]`
-- **#4099** -- docs(features): add a capability map and verifiable documentation-impact contract -- `[completed]`
-- **#4099** -- docs(features): add a capability map and verifiable documentation-impact contract -- `[completed]`
-- **#4087** -- docs(architecture): rebuild architecture, concepts, and file maps for the current runtime tree -- `[completed]`
 
