@@ -34,7 +34,13 @@ import {
 } from "./child-occupancy.js";
 import { defaultGitRunner, type GitRunner, gitCommonDir } from "./git.js";
 import { isLinkedWorktreePath, isMainWorktreePath, mainWorktreeRoot } from "./main-worktree.js";
-import { liveOccupant } from "./occupancy.js";
+import {
+  evaluateOccupancyWriteGate,
+  grantOccupancyMembership,
+  liveOccupancyGrants,
+  liveOccupant,
+  type OccupancyWriteGateResult,
+} from "./occupancy.js";
 
 export type SpawnDestinationKind = "host-isolation" | "path";
 
@@ -88,6 +94,8 @@ export interface SpawnOccupancyConsultAllow {
    * Consult does not mutate; evaluate/dispatcher leftover-release then mint.
    */
   readonly leftoverIncarnation: string | null;
+  /** Cursor nursery inherit (#4295): payload root is the dest-rooted window. */
+  readonly nurseryInherit: boolean;
 }
 
 export interface SpawnOccupancyConsultDeny {
@@ -105,6 +113,13 @@ export type SpawnOccupancyConsult = SpawnOccupancyConsultAllow | SpawnOccupancyC
 const HOSTS_THAT_REROOT = new Set(["claude", "cursor", "codex"]);
 // #4279: Cursor Task dest-key bind waits on a recorded PreToolUse payload.
 // HOSTS_THAT_REROOT for Task stays unbound until that measurement.
+
+/** Fence-in-place (#4295) stays parked until these are measured. Comment 5611146439 stands. */
+export const FENCE_IN_PLACE_PARKED_UNTIL = [
+  "Shell updated_input.cwd",
+  "Write/ApplyPatch path rewrite",
+  "Composer visibility of gitignored .deft-scratch/worktrees/",
+] as const;
 
 export const SPAWN_DEST_ISOLATION_KEYS = ["isolation", "Isolation"] as const;
 export const SPAWN_DEST_PATH_KEYS = [
@@ -348,6 +363,59 @@ function consultDeny(
   };
 }
 
+function consultCursorNurseryInherit(
+  input: ConsultImplementSpawnOccupancyInput,
+  payloadRoot: string,
+  parentId: string,
+  hostCanReroot: boolean,
+  runGit: GitRunner,
+): SpawnOccupancyConsult | null {
+  if (!isLinkedWorktreePath(payloadRoot)) return null;
+  if (isMainWorktreePath(payloadRoot, runGit)) return null;
+  if (mainWorktreeRoot(payloadRoot, runGit) === null) return null;
+  const destination: SpawnDestination = { kind: "path", path: payloadRoot, isolation: null };
+  const live = liveOccupant(payloadRoot, input.now);
+  if (live !== null && live.sessionId !== parentId) {
+    return consultDeny(
+      "destination-occupied",
+      `Directive denied spawn: destination worktree is occupied by session ${live.sessionId} ` +
+        `(intent=${live.intent}). Use another worktree. Do not grant across hosts onto that lease ` +
+        "and do not take over the primary checkout.",
+      parentId,
+      destination,
+      payloadRoot,
+    );
+  }
+  const existing = existingDispatchReservation(payloadRoot, payloadRoot);
+  if (existing !== null) {
+    return consultDeny(
+      "reservation-conflict",
+      `Directive denied spawn: destination ${payloadRoot} is already reserved for dispatch ` +
+        `${existing.incarnation} (agent ${existing.agentId}). Own worktree means a unique ` +
+        "reservation, not a shared linked tree.",
+      parentId,
+      destination,
+      payloadRoot,
+    );
+  }
+  const destProven = destIsProven({ destPath: payloadRoot, payloadRoot, runGit });
+  return {
+    allow: true,
+    destProven,
+    destination,
+    destPath: payloadRoot,
+    reRootPath: payloadRoot,
+    hostCanReroot,
+    message:
+      "Directive consulted spawn destination via Cursor nursery inherit. " +
+      "Payload root is a non-primary linked worktree; Task dest keys are not used. " +
+      `Hook payload window dest is ${payloadRoot}.`,
+    parentId,
+    leftoverIncarnation: null,
+    nurseryInherit: true,
+  };
+}
+
 /**
  * Decision-only dest occupancy. Does not mint an incarnation or persist a dest-lock.
  */
@@ -377,6 +445,7 @@ export function consultImplementSpawnOccupancy(
         "(cwd-without-occupy; subagent_type plan or process_only).",
       parentId,
       leftoverIncarnation: null,
+      nurseryInherit: false,
     };
   }
   const grokCwd = grokHost ? grokCwdPath(input.payload) : null;
@@ -416,6 +485,16 @@ export function consultImplementSpawnOccupancy(
       } satisfies SpawnDestination)
     : inspectSpawnDestination(input.payload);
   if (destination === null || (grokHost && destination.path === null)) {
+    if (!grokHost && input.host === "cursor") {
+      const nursery = consultCursorNurseryInherit(
+        input,
+        payloadRoot,
+        parentId,
+        hostCanReroot,
+        runGit,
+      );
+      if (nursery !== null) return nursery;
+    }
     return consultDeny(
       "destination-missing",
       grokHost ? grokMissingDestMessage() : rerootMissingDestMessage(),
@@ -547,6 +626,7 @@ export function consultImplementSpawnOccupancy(
     message: `Directive consulted spawn destination.${leftoverNote}${rerootNote}`,
     parentId,
     leftoverIncarnation,
+    nurseryInherit: false,
   };
 }
 
@@ -574,6 +654,7 @@ export function mintImplementSpawnReservation(
       : "payload",
     incarnation,
     provenance: "dispatch",
+    nurseryInherit: consult.nurseryInherit,
   };
   const rerootNote = consult.hostCanReroot
     ? consult.reRootPath !== null
@@ -707,9 +788,15 @@ export function persistSpawnReservation(
       }
     }
   }
-  if (existsSync(dest) && liveOccupant(dest, now) !== null) {
-    if (!skipDestLock) releaseSpawnReservation(root, dest, incarnation);
-    return { ok: false, reason: "occupied" };
+  const live = existsSync(dest) ? liveOccupant(dest, now) : null;
+  if (live !== null) {
+    const parentOccupant =
+      reservation.nurseryInherit === true &&
+      (live.sessionId === reservation.parentId || live.sessionId === reservation.occupancyOwner);
+    if (!parentOccupant) {
+      if (!skipDestLock) releaseSpawnReservation(root, dest, incarnation);
+      return { ok: false, reason: "occupied" };
+    }
   }
   recordChildOccupancyLease(root, reservation);
   if (existsSync(dest) && dest !== root) {
@@ -858,4 +945,73 @@ export function allocatedWorktreeMatches(
     return true;
   }
   return false;
+}
+
+const NURSERY_PARENT_WRITE_DENY =
+  "Directive denied parent product writes while a nursery occupancy grant is live on this tree. " +
+  "Revoke with occupancy:grant --revoke after the child finishes. Heartbeat, occupancy, and " +
+  "forge comments are not this fence.";
+
+function isCursorNurseryDest(destRoot: string, runGit: GitRunner = defaultGitRunner): boolean {
+  const dest = resolve(destRoot);
+  if (!isLinkedWorktreePath(dest)) return false;
+  if (isMainWorktreePath(dest, runGit)) return false;
+  return mainWorktreeRoot(dest, runGit) !== null;
+}
+
+/** Admit a Cursor nursery child through occupancy:grant; deny parent product writes while live (#4295). */
+export function applyCursorNurseryOccupancy(
+  destRoot: string,
+  gate: OccupancyWriteGateResult,
+  sessionId: string,
+  now?: Date,
+  host?: string,
+): OccupancyWriteGateResult {
+  const dest = resolve(destRoot);
+  const presented = sessionId.trim();
+  if (presented.length === 0) return gate;
+  if ((host ?? "").trim() !== "cursor") return gate;
+  if (!presented.startsWith("host:cursor:")) return gate;
+  if (!isCursorNurseryDest(dest)) return gate;
+  const at = now ?? new Date();
+  if (!gate.allow && gate.occupant !== null && gate.admitted === null) {
+    const occupant = gate.occupant;
+    if (occupant.sessionId === presented) return gate;
+    if (liveOccupancyGrants(occupant, at).length > 0) return gate;
+    const existing = existingDispatchReservation(dest, dest);
+    if (existing === null || existing.nurseryInherit !== true) return gate;
+    if (
+      existing.parentId !== occupant.sessionId &&
+      existing.occupancyOwner !== occupant.sessionId
+    ) {
+      return gate;
+    }
+    const granted = grantOccupancyMembership(dest, {
+      sessionId: occupant.sessionId,
+      childSessionId: presented,
+      role: "leaf-implementation",
+      worktreePath: dest,
+      now: at,
+    });
+    if (granted.code !== 0) return gate;
+    return evaluateOccupancyWriteGate(dest, { sessionId: presented, now: at });
+  }
+  if (gate.allow && gate.admitted === "owner") {
+    const occupant = gate.occupant;
+    if (occupant === null || occupant.sessionId !== presented) return gate;
+    if (liveOccupancyGrants(occupant, at).length === 0) return gate;
+    const existing = existingDispatchReservation(dest, dest);
+    if (existing === null || existing.nurseryInherit !== true) return gate;
+    if (existing.parentId !== presented && existing.occupancyOwner !== presented) return gate;
+    return {
+      allow: false,
+      message: NURSERY_PARENT_WRITE_DENY,
+      occupant,
+      refreshed: false,
+      warning: null,
+      admitted: null,
+      grant: null,
+    };
+  }
+  return gate;
 }

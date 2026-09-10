@@ -1,7 +1,10 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { evaluate as evaluateBranchPolicy } from "../branch/evaluate.js";
 import { extractIssueRef } from "../capacity/backfill.js";
+import { composeDocsImpactBody, verifyDocsImpactBodyFile } from "../docs/docs-impact.js";
+import { containedWrite } from "../fs/contained-write.js";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { defaultRunGh, fetchClosingIssuesReferences } from "../pr-protected-issues/gh.js";
@@ -398,15 +401,35 @@ function pushAndOpenPr(
   }
 
   const slugs = storySlugs(storyPaths);
-  const prList = prNumbers.length > 0 ? prNumbers.map((n) => `#${n}`).join(", ") : "cohort";
+  const prList = prNumbers.length > 0 ? prNumbers.map((n) => `#${String(n)}`).join(", ") : "cohort";
   const title = `chore(xbrief): complete ${slugs} post-merge`;
-  const body =
-    `## Summary\n` +
-    `Automated cohort lifecycle sweep after merge cascade (${prList}).\n\n` +
-    `## Test plan\n` +
-    `- [x] \`task xbrief:validate\` green\n` +
-    `- [x] WIP reset via active/ -> completed/ moves\n`;
-
+  const body = composeDocsImpactBody(
+    "## Summary\n" +
+      "Automated cohort lifecycle sweep after merge cascade (" +
+      prList +
+      ").\n\n" +
+      "## Test plan\n" +
+      "- [x] task xbrief:validate green\n" +
+      "- [x] WIP reset via active/ -> completed/ moves\n",
+  );
+  const bodyDir = mkdtempSync(join(tmpdir(), "deft-finalize-pr-"));
+  const bodyFile = join(bodyDir, "body.md");
+  containedWrite({
+    root: bodyDir,
+    target: "body.md",
+    data: body,
+    mode: "create",
+  });
+  const verifyCode = verifyDocsImpactBodyFile(bodyFile, projectRoot, {
+    runGit: (args) => runGit(["git", ...args], { cwd: projectRoot }),
+  });
+  if (verifyCode !== 0) {
+    return {
+      ok: false,
+      error: `verify:docs-impact --body-file failed (exit ${String(verifyCode)})`,
+      prUrl: null,
+    };
+  }
   const create = runGh([
     "gh",
     "pr",
@@ -419,8 +442,8 @@ function pushAndOpenPr(
     branch,
     "--title",
     title,
-    "--body",
-    body,
+    "--body-file",
+    bodyFile,
   ]);
   if (create.returncode !== 0) {
     return {

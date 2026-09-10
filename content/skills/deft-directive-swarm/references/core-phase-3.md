@@ -33,7 +33,7 @@
 8. ! **Select launch path automatically** based on detection results — do NOT present static options:
    - **`start_agent` available** → Orchestrated launch (Step 2a) — preferred path, fully automated, no manual tab management
    - **`start_agent` unavailable, Warp detected** → Interactive Warp tabs (Step 2b) — full MCP, global rules, warm index; requires manual tab management
-   - **Cursor `Task` tool available (no `start_agent`, no `WARP_*`)** → Cursor sub-agent launch (Step 2e) via the `Task` tool with `run_in_background: true` (Tier 1 / Approach 1) — keeps the monitor pane interactive; descriptor is `cursor-composer` (interactive) or `cursor-cloud-agent` (cloud)
+   - **Cursor detected (no `start_agent`, no `WARP_*`)** → Cursor dest-placing launch (Step 2e / `host-cursor.md`) (Tier 1 / Approach 1). Local implement is nursery inherit on a dest-rooted window or dest-rooted `@cursor/sdk` `Agent.create({ local: { cwd } })` with reservation before exec — not Task dest keys. Descriptor is `cursor-composer` (interactive) or `cursor-cloud-agent` (cloud)
    - **Claude Code available (no `start_agent`, no `WARP_*`, no Cursor classification)** → Claude Code launch (Step 2g) via `Agent` with `run_in_background: true` (Tier 1 / Approach 1) — descriptor is `claude-code` (#3134)
    - **OpenClaw `sessions_spawn` available (no `start_agent`, no `WARP_*`, no Cursor, no Claude Code)** → OpenClaw launch (Step 2f) via `sessions_spawn` (Tier 1 / Approach 1) — descriptor is `openclaw`
    - **Grok Bot unique signals available (no earlier Tier-1 primitive)** → Grok Bot launch (Step 2h) via Task/executor/CloudAgent (Tier 1 / Approach 1) — descriptor is `grok-bot` (#4201)

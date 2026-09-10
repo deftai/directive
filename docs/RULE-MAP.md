@@ -21,7 +21,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | ci-cd | CI runner and pipeline guidance, loaded when migrating or configuring CI. | 6 | 5 | 4 | 6 | 0 | 0 |
 | coding | Core software-development rules for agents: hygiene, testing, debugging, security, build output. | 10 | 194 | 57 | 140 | 2 | 5 |
 | context | How to feed agents context well: examples, deterministic splits, spec deltas. | 8 | 42 | 67 | 30 | 16 | 13 |
-| contracts | Interface/behavioral contracts the framework enforces. | 16 | 176 | 16 | 118 | 0 | 5 |
+| contracts | Interface/behavioral contracts the framework enforces. | 16 | 177 | 16 | 121 | 0 | 5 |
 | conventions | Cross-cutting naming, formatting, and repo conventions. | 4 | 16 | 2 | 16 | 0 | 3 |
 | deployments | Provider-specific deployment playbooks (AWS, Azure, GCP, Cloudflare, Vercel, fly.io…). | 52 | 107 | 74 | 24 | 13 | 6 |
 | docs | Explanatory docs and the framework glossary. | 34 | 18 | 12 | 52 | 1 | 2 |
@@ -34,7 +34,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | platforms | Platform-specific guidance. | 2 | 94 | 63 | 19 | 16 | 12 |
 | references | External references and citations backing the guidance. | 4 | 19 | 1 | 19 | 0 | 0 |
 | resilience | Failure handling, recovery, and robustness rules. | 2 | 16 | 14 | 14 | 1 | 2 |
-| scm | Source-control conventions and Git/GitHub workflow rules. | 3 | 87 | 34 | 28 | 1 | 3 |
+| scm | Source-control conventions and Git/GitHub workflow rules. | 3 | 89 | 34 | 32 | 1 | 3 |
 | skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 39 | 546 | 118 | 620 | 0 | 17 |
 | strategies | Higher-order approaches: interviewing, decomposition, planning, research, refactoring. | 16 | 318 | 90 | 138 | 0 | 11 |
 | swarm | Multi-agent (swarm) coordination guidance. | 1 | 75 | 15 | 22 | 0 | 0 |
