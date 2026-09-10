@@ -1,0 +1,70 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4348",
+    "updated": "2026-09-10T23:46:35Z"
+  },
+  "plan": {
+    "title": "chore(security): bump brace-expansion to 5.0.9 (Dependabot #10/#13)",
+    "status": "running",
+    "narratives": {
+      "Description": "chore(security): bump brace-expansion to 5.0.9 (Dependabot #10/#13)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4348",
+      "Overview": "## Problem\r\n\r\nDependabot alerts [#10](https://github.com/deftai/directive/security/dependabot/10) (CVE-2026-14257) and [#13](https://github.com/deftai/directive/security/dependabot/13) (CVE-2026-69152) stay open. Both are HIGH DoS in transitive brace-expansion (runtime, via minimatch@10).\r\n\r\npnpm-workspace.yaml still pins brace-expansion@5 to 5.0.7 from the prior advisory. That pin is one patch short of the current patched line (5.0.9).\r\n\r\n## What to build\r\n\r\nBump the pnpm 11 workspace override to 5.0.9, refresh pnpm-lock.yaml, and record the pin in CHANGELOG [Unreleased]. Also bump the leftover brace-expansion@2 override to 2.1.4 if that line is still declared.\r\n\r\n## Acceptance\r\n\r\n- pnpm-workspace.yaml pins brace-expansion@5 to 5.0.9.\r\n- pnpm-lock.yaml resolves brace-expansion@5 to 5.0.9, not 5.0.7.\r\n- CHANGELOG [Unreleased] records the bump and cites alerts #10 and #13.\r\n\r\nLiteral check:\r\n\r\n    pnpm why brace-expansion\r\n\n"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4348",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4348: chore(security): bump brace-expansion to 5.0.9 (Dependabot #10/#13)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "pnpm-workspace.yaml pins brace-expansion@5 to 5.0.9.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "pnpm-lock.yaml resolves brace-expansion@5 to 5.0.9, not 5.0.7.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "CHANGELOG [Unreleased] records the bump and cites alerts #10 and #13.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5418486230,
+        "origin": "deftai/directive#4348",
+        "id": "github.issue.5418486230"
+      }
+    },
+    "id": "github.issue.5418486230",
+    "updated": "2026-09-10T23:46:35Z"
+  }
+}
