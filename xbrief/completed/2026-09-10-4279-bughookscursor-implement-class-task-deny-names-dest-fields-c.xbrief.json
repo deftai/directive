@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4279",
-    "updated": "2026-09-10T14:26:29Z"
+    "updated": "2026-09-10T14:33:21Z"
   },
   "plan": {
     "title": "bug(hooks,cursor): implement-class Task deny names dest fields Cursor Task cannot pass; explore recovery omitted",
@@ -23,11 +23,15 @@
           "Acceptance": "Given a Cursor Task implement-class dest-missing deny, when copy is edited, then one PreToolUse measurement records whether isolation worktree_path or cwd reaches tool_input, and HOSTS_THAT_REROOT plus host-cursor.md Step 2e stay in scope only if the key does not arrive.",
           "Traces": "Traces to the bound-remedy harvest on the origin GitHub issue thread."
         },
-        "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/session/spawn-occupancy.test.ts#Cursor Task dest-missing deny honesty",
-          "recorded_at": "2026-09-10T14:26:16Z",
-          "recorded_by": "leaf-implementation grok-4.6"
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "No recorded Cursor Task PreToolUse dest payload. Isolation-key bind and HOSTS_THAT_REROOT / host-cursor.md Step 2e for Task stay unbound. Recoveries, dest keys, and ritual telemetry shipped without that bind.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-09-10T14:33:21Z",
+          "resume_when": "a recorded Cursor Task PreToolUse payload shows whether isolation/worktree_path/cwd reaches tool_input"
         }
       },
       {
