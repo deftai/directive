@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4344",
-    "updated": "2026-09-10T22:22:28Z"
+    "updated": "2026-09-10T22:48:02Z"
   },
   "plan": {
     "title": "bug(doctor): #4162 escaping-symlink test EPERMs on Windows without Developer Mode",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(doctor): #4162 escaping-symlink test EPERMs on Windows without Developer Mode",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4344",
@@ -52,7 +52,32 @@
         "github_issue_id": 5417611808,
         "origin": "deftai/directive#4344",
         "id": "github.issue.5417611808"
-      }
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4346,
+        "prBase": null,
+        "mergeCommit": "64be462c586b49ed1fcfe6df4c25cf36efc9ca9c",
+        "deliveryBranch": "master",
+        "deliveryCommit": "64be462c586b49ed1fcfe6df4c25cf36efc9ca9c",
+        "verifiedAt": "2026-09-10T22:48:02Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDhkNmMtNDVhMi03MDIyLTg1Y2ItNmJhZTcwMWI0M2Fl"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-10T22:48:02Z"
+      },
+      "completedAt": "2026-09-10T22:48:02Z",
+      "completedSessionId": "host:claude:v1:MDFhMDhkNmMtNDVhMi03MDIyLTg1Y2ItNmJhZTcwMWI0M2Fl",
+      "capacityBucket": "new-capability"
     },
     "acceptance": {
       "commands": [
@@ -87,6 +112,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.5417611808",
-    "updated": "2026-09-10T22:22:28Z"
+    "updated": "2026-09-10T22:48:02Z"
   }
 }

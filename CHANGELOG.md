@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Land leftover completed-tracked artifact for #4344 (#3264 / #3476).** The #4344 xBRIEF stayed in `xbrief/active/` on origin/master after squash of PR 4346. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #4162 (#3264 / #3476).** The #4162 xBRIEF stayed in `xbrief/active/` on origin/master after the product land. Moved to `xbrief/completed/` so merge-gate orphan-active is green. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Land leftover completed-tracked artifact for #4321 (#3264 / #3476).** The #4321 xBRIEF stayed untracked after squash of PR 4329. Moved to `xbrief/completed/` via `scope:complete`. Does not reopen or recut that issue. Refs #2321, #3476.
 - **Consumer AGENTS.md names the explicit-body docs-impact seed (#4293 / #1309).** Pointer: compose the template `Documentation impact` block, then `verify:docs-impact --body-file` on those same bytes (leftover-complete / finalize-cohort). `plan.policy.agentsMdBudget.absoluteMaxBytes` 17600→17725 for that pointer after composing with #4295.
