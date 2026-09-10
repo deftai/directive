@@ -120,6 +120,7 @@ import {
   isProcessOnlyCriticSpawn,
   isReadOnlyHookContext,
   processOnlyCriticRequiresDest,
+  SPAWN_CLASS_RECOVERY,
   SPAWN_READ_ONLY_RECOVERY,
 } from "./readonly.js";
 import {
@@ -250,6 +251,54 @@ export interface HookDecision {
   readonly scopePath: string | null;
   /** Complete host tool input replacement for an exact lifecycle command (#3611). */
   readonly updatedInput?: Readonly<Record<string, unknown>>;
+}
+
+/**
+ * Cursor Task dest-missing recovery (#4321). Live spawn-class copy for this
+ * host/tool. Do not advertise Grok-only plan as a Cursor Task hatch.
+ * Parent continues first; explore is a read-only spawn, not only research.
+ */
+export const CURSOR_TASK_SPAWN_CLASS_RECOVERY =
+  "Continue in the parent, or spawn with assist / ephemeral markers for scratch. " +
+  "Use subagent_type explore when the spawn is actually a read-only spawn. " +
+  "Do not retry subagent_type plan on Cursor Task -- that skip is Grok spawn_subagent only.";
+
+/**
+ * Cursor Task already-read-only spawn deny (#4321). Explore first; plan is not
+ * a Cursor Task recovery.
+ */
+export const CURSOR_TASK_SPAWN_READ_ONLY_RECOVERY =
+  "Use subagent_type explore for this read-only spawn. Continue in the parent only when " +
+  "the remaining work stays read-only. Do not retry subagent_type plan on Cursor Task -- " +
+  "that skip is Grok spawn_subagent only.";
+
+function isCursorTaskSpawn(host: HookHost, toolName: string): boolean {
+  return host === "cursor" && toolName.toLowerCase() === "task";
+}
+
+function spawnReadOnlyRecoveryFor(host: HookHost, toolName: string): string {
+  return isCursorTaskSpawn(host, toolName)
+    ? CURSOR_TASK_SPAWN_READ_ONLY_RECOVERY
+    : SPAWN_READ_ONLY_RECOVERY;
+}
+
+function overlayCursorTaskSpawnRecovery(
+  host: HookHost,
+  toolName: string,
+  decision: HookDecision,
+): HookDecision {
+  if (!isCursorTaskSpawn(host, toolName) || decision.verdict !== "deny") {
+    return decision;
+  }
+  let message = decision.message;
+  if (message.includes(SPAWN_CLASS_RECOVERY)) {
+    message = message.replace(SPAWN_CLASS_RECOVERY, CURSOR_TASK_SPAWN_CLASS_RECOVERY);
+  }
+  if (message.includes(SPAWN_READ_ONLY_RECOVERY)) {
+    message = message.replace(SPAWN_READ_ONLY_RECOVERY, CURSOR_TASK_SPAWN_READ_ONLY_RECOVERY);
+  }
+  if (message === decision.message) return decision;
+  return { ...decision, message };
 }
 
 export interface HookDispatchInput {
@@ -2594,7 +2643,7 @@ function routeHookDecision(
         "read-only-deny",
         toolName,
         `Directive denied ${toolName}: read-only posture blocks implementation sub-agent spawns. ` +
-          SPAWN_READ_ONLY_RECOVERY,
+          spawnReadOnlyRecoveryFor(input.host, toolName),
       );
     }
     if (isExploreSpawn(input.payload)) {
@@ -2670,10 +2719,14 @@ function routeHookDecision(
         scopePath: null,
       };
     }
-    return inspectMutationGates(input, toolName, seams, {
-      proposedLifecycleExempt: false,
-      observation,
-    });
+    return overlayCursorTaskSpawnRecovery(
+      input.host,
+      toolName,
+      inspectMutationGates(input, toolName, seams, {
+        proposedLifecycleExempt: false,
+        observation,
+      }),
+    );
   }
 
   // Tree-wide destructive git (#3917): always-on, independent of shellDestForms.
