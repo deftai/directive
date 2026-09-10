@@ -16,6 +16,8 @@ import {
   readSpawnReservationIncarnation,
   releaseLeftoverSpawnReservation,
   releaseSpawnReservation,
+  SPAWN_DEST_ISOLATION_KEYS,
+  SPAWN_DEST_PATH_KEYS,
 } from "./spawn-occupancy.js";
 
 const temps: string[] = [];
@@ -635,8 +637,8 @@ describe("consultImplementSpawnOccupancy (#4215)", () => {
     });
     expect(consult.allow).toBe(false);
     if (consult.allow) return;
-    expect(consult.reason).not.toBeUndefined();
-    expect(consult.message).not.toMatch(/process-only critic/);
+    expect(consult.reason).toBe("destination-missing");
+    expect(consult.message).not.toMatch(/skipped dest occupancy consult/);
   });
 
   it("cwd-without-occupy shares one dest for process_only siblings (#4296)", () => {
@@ -1197,5 +1199,52 @@ describe("leftover dest-lock consult reuse (#4254)", () => {
     expect(second.ok).toBe(false);
     if (!second.ok) expect(second.reason).toBe("conflict");
     expect(readSpawnReservationIncarnation(root, dest)).toBe("inc-winner");
+  });
+});
+
+describe("Cursor Task dest-missing deny honesty (#4279)", () => {
+  it("names every inspectSpawnDestination key and shared recoveries, not a three-name subset", () => {
+    const decision = consultImplementSpawnOccupancy({
+      payload: {
+        tool_name: "Task",
+        tool_input: { subagent_type: "generalPurpose", prompt: "implement" },
+      },
+      payloadRoot: "/project",
+      host: "cursor",
+      parentId: "parent-1",
+      environ: {},
+    });
+    expect(decision.allow).toBe(false);
+    if (decision.allow) return;
+    expect(decision.reason).toBe("destination-missing");
+    expect(decision.message).toContain("tool_input.isolation=worktree");
+    for (const key of SPAWN_DEST_ISOLATION_KEYS.slice(1)) {
+      expect(decision.message).toContain(key);
+    }
+    for (const key of SPAWN_DEST_PATH_KEYS) {
+      expect(decision.message).toContain(key);
+    }
+    const parentIdx = decision.message.indexOf("Continue in the parent");
+    const exploreIdx = decision.message.search(/subagent_type explore/i);
+    expect(parentIdx).toBeGreaterThanOrEqual(0);
+    expect(exploreIdx).toBeGreaterThan(parentIdx);
+    expect(decision.message).toMatch(/assist \/ ephemeral/);
+    expect(decision.message).toMatch(/subagent_type plan/);
+    expect(decision.message).toMatch(/actually read-only/);
+  });
+
+  it("reads Isolation and workdir through the shared dest-key lists", () => {
+    expect(
+      inspectSpawnDestination({
+        tool_name: "Task",
+        tool_input: { Isolation: "worktree", prompt: "implement" },
+      }),
+    ).toEqual({ kind: "host-isolation", path: null, isolation: "worktree" });
+    expect(
+      inspectSpawnDestination({
+        tool_name: "Task",
+        tool_input: { workdir: "/tmp/worker-tree", prompt: "implement" },
+      }),
+    ).toEqual({ kind: "path", path: "/tmp/worker-tree", isolation: null });
   });
 });

@@ -20,7 +20,11 @@ import {
   containedWrite,
 } from "../fs/contained-write.js";
 import { fieldPresent, fieldString, record, toolInputRecord } from "../hooks/classify/payload.js";
-import { appliesGrokSpawnDestContract, isProcessOnlyCriticSpawn } from "../hooks/readonly.js";
+import {
+  appliesGrokSpawnDestContract,
+  isProcessOnlyCriticSpawn,
+  SPAWN_CLASS_RECOVERY,
+} from "../hooks/readonly.js";
 import {
   type ChildOccupancyDispatchInput,
   type ChildOccupancyRecord,
@@ -99,6 +103,20 @@ export interface SpawnOccupancyConsultDeny {
 export type SpawnOccupancyConsult = SpawnOccupancyConsultAllow | SpawnOccupancyConsultDeny;
 
 const HOSTS_THAT_REROOT = new Set(["claude", "cursor", "codex"]);
+// #4279: Cursor Task dest-key bind waits on a recorded PreToolUse payload.
+// HOSTS_THAT_REROOT for Task stays unbound until that measurement.
+
+export const SPAWN_DEST_ISOLATION_KEYS = ["isolation", "Isolation"] as const;
+export const SPAWN_DEST_PATH_KEYS = [
+  "worktree_path",
+  "worktreePath",
+  "worktree",
+  "cwd",
+  "working_directory",
+  "workingDirectory",
+  "workdir",
+] as const;
+
 const GROK_EXTRA_DEST_KEYS = ["worktree_path", "worktreePath", "worktree"] as const;
 
 /**
@@ -108,6 +126,24 @@ const GROK_EXTRA_DEST_KEYS = ["worktree_path", "worktreePath", "worktree"] as co
  */
 export const GROK_VENDOR_COMPAT_HOOKS_DISABLE_REFUSE =
   "Default-on vendor compat must work; do not set [compat.cursor] hooks = false as the product fix.";
+
+function firstNamedField(source: Record<string, unknown>, keys: readonly string[]): string | null {
+  for (const key of keys) {
+    const value = fieldString(source, key);
+    if (value !== null) return value;
+  }
+  return null;
+}
+
+function rerootDestKeyList(): string {
+  const isolation = SPAWN_DEST_ISOLATION_KEYS.map((key, index) =>
+    index === 0 ? `tool_input.${key}=worktree` : key,
+  );
+  const names = [...isolation, ...SPAWN_DEST_PATH_KEYS];
+  if (names.length === 0) return "";
+  if (names.length === 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")}, or ${names[names.length - 1]}`;
+}
 
 function looksLikePath(value: string): boolean {
   if (value.length === 0) return false;
@@ -128,17 +164,9 @@ export function inspectSpawnDestination(payload: unknown): SpawnDestination | nu
   const nested = toolInputRecord(input);
   const toolInput = nested ?? {};
   const isolation =
-    fieldString(toolInput, "isolation") ??
-    fieldString(toolInput, "Isolation") ??
-    (nested === null ? fieldString(input, "isolation") : null);
-  const pathRaw =
-    fieldString(toolInput, "worktree_path") ??
-    fieldString(toolInput, "worktreePath") ??
-    fieldString(toolInput, "worktree") ??
-    fieldString(toolInput, "cwd") ??
-    fieldString(toolInput, "working_directory") ??
-    fieldString(toolInput, "workingDirectory") ??
-    fieldString(toolInput, "workdir");
+    firstNamedField(toolInput, SPAWN_DEST_ISOLATION_KEYS) ??
+    (nested === null ? firstNamedField(input, SPAWN_DEST_ISOLATION_KEYS) : null);
+  const pathRaw = firstNamedField(toolInput, SPAWN_DEST_PATH_KEYS);
   const path = pathRaw !== null && looksLikePath(pathRaw) ? pathRaw : null;
   const isolationWorktree = isolation !== null && isolation.toLowerCase() === "worktree";
   if (path !== null) {
@@ -227,11 +255,12 @@ function grokMissingDestMessage(): string {
 }
 
 function rerootMissingDestMessage(): string {
+  const destKeys = rerootDestKeyList();
   return (
     "Directive denied implement-class spawn: no worktree destination on the spawn payload " +
-    "(tool_input.isolation=worktree, worktree_path, or cwd). Spawned mutating work takes " +
-    "its own worktree; do not inherit the parent checkout. Pass isolation=worktree or a " +
-    "linked worktree_path before the spawn primitive."
+    `(${destKeys}). Spawned mutating work takes its own worktree; do not inherit the ` +
+    "parent checkout. Pass a destination field inspectSpawnDestination reads " +
+    `(${destKeys}) before the spawn primitive. ${SPAWN_CLASS_RECOVERY}`
   );
 }
 
