@@ -4,11 +4,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { listChildOccupancyLeases, recordChildOccupancyLease } from "./child-occupancy.js";
-import { applyWorktreeOccupancy } from "./occupancy.js";
+import { canonicalHostSessionId } from "./host-session-owner.js";
+import { applyWorktreeOccupancy, evaluateOccupancyWriteGate } from "./occupancy.js";
 import {
   allocatedWorktreeMatches,
+  applyCursorNurseryOccupancy,
   consultImplementSpawnOccupancy,
   evaluateImplementSpawnOccupancy,
+  FENCE_IN_PLACE_PARKED_UNTIL,
   GROK_VENDOR_COMPAT_HOOKS_DISABLE_REFUSE,
   inspectSpawnDestination,
   mintImplementSpawnReservation,
@@ -1246,5 +1249,143 @@ describe("Cursor Task dest-missing deny honesty (#4279)", () => {
         tool_input: { workdir: "/tmp/worker-tree", prompt: "implement" },
       }),
     ).toEqual({ kind: "path", path: "/tmp/worker-tree", isolation: null });
+  });
+});
+
+describe("Cursor nursery inherit (#4295)", () => {
+  const taskPayload = {
+    tool_name: "Task",
+    tool_input: { subagent_type: "generalPurpose", prompt: "implement" },
+  };
+
+  it("treats a parent-occupied linked worktree payload root as dest", () => {
+    const main = mkdtempSync(join(tmpdir(), "nursery-main-"));
+    temps.push(main);
+    gitInit(main);
+    const dest = join(main, "wt");
+    addLinkedWorktree(main, dest);
+    const now = new Date("2026-09-10T12:00:00Z");
+    applyWorktreeOccupancy(dest, { sessionId: "parent-1", now, env: {} });
+    const consult = consultImplementSpawnOccupancy({
+      payload: taskPayload,
+      payloadRoot: dest,
+      host: "cursor",
+      parentId: "parent-1",
+      now,
+      environ: {},
+    });
+    expect(consult.allow).toBe(true);
+    if (!consult.allow) return;
+    expect(consult.nurseryInherit).toBe(true);
+    expect(consult.destProven).toBe(true);
+    expect(consult.destPath).toBe(dest);
+    const minted = mintImplementSpawnReservation(consult, {
+      payload: taskPayload,
+      payloadRoot: dest,
+      host: "cursor",
+      parentId: "parent-1",
+    });
+    expect(minted.reservation?.nurseryInherit).toBe(true);
+    expect(persistSpawnReservation(dest, minted.reservation, now).ok).toBe(true);
+  });
+
+  it("still dest-missing-denies Cursor Task on the primary checkout", () => {
+    const main = mkdtempSync(join(tmpdir(), "nursery-primary-"));
+    temps.push(main);
+    gitInit(main);
+    const consult = consultImplementSpawnOccupancy({
+      payload: taskPayload,
+      payloadRoot: main,
+      host: "cursor",
+      parentId: "parent-1",
+      environ: {},
+    });
+    expect(consult.allow).toBe(false);
+    if (consult.allow) return;
+    expect(consult.reason).toBe("destination-missing");
+  });
+
+  it("reservation-conflicts a second Task in the same nursery window", () => {
+    const main = mkdtempSync(join(tmpdir(), "nursery-second-"));
+    temps.push(main);
+    gitInit(main);
+    const dest = join(main, "wt");
+    addLinkedWorktree(main, dest);
+    const now = new Date("2026-09-10T12:00:00Z");
+    applyWorktreeOccupancy(dest, { sessionId: "parent-1", now, env: {} });
+    const first = evaluateImplementSpawnOccupancy({
+      payload: taskPayload,
+      payloadRoot: dest,
+      host: "cursor",
+      parentId: "parent-1",
+      now,
+      environ: {},
+    });
+    expect(first.allow).toBe(true);
+    if (!first.allow || first.reservation === null) return;
+    expect(persistSpawnReservation(dest, first.reservation, now).ok).toBe(true);
+    const second = consultImplementSpawnOccupancy({
+      payload: taskPayload,
+      payloadRoot: dest,
+      host: "cursor",
+      parentId: "parent-1",
+      now,
+      environ: {},
+    });
+    expect(second.allow).toBe(false);
+    if (second.allow) return;
+    expect(second.reason).toBe("reservation-conflict");
+  });
+
+  it("admits the child through occupancy:grant and denies parent product writes", () => {
+    const main = mkdtempSync(join(tmpdir(), "nursery-grant-"));
+    temps.push(main);
+    gitInit(main);
+    const dest = join(main, "wt");
+    addLinkedWorktree(main, dest);
+    const now = new Date("2026-09-10T12:00:00Z");
+    const parentId = canonicalHostSessionId("cursor", "parent-nursery");
+    const childId = canonicalHostSessionId("cursor", "child-nursery");
+    applyWorktreeOccupancy(dest, { sessionId: parentId, now, env: {} });
+    const first = evaluateImplementSpawnOccupancy({
+      payload: taskPayload,
+      payloadRoot: dest,
+      host: "cursor",
+      parentId,
+      now,
+      environ: {},
+    });
+    expect(first.allow).toBe(true);
+    if (!first.allow || first.reservation === null) return;
+    expect(persistSpawnReservation(dest, first.reservation, now).ok).toBe(true);
+    const stranger = evaluateOccupancyWriteGate(dest, { sessionId: childId, now });
+    expect(stranger.allow).toBe(false);
+    const refusedOtherHost = applyCursorNurseryOccupancy(dest, stranger, childId, now, "grok");
+    expect(refusedOtherHost.allow).toBe(false);
+    const refusedForeign = applyCursorNurseryOccupancy(
+      dest,
+      evaluateOccupancyWriteGate(dest, { sessionId: "host:grok:v1:other", now }),
+      "host:grok:v1:other",
+      now,
+      "cursor",
+    );
+    expect(refusedForeign.allow).toBe(false);
+    const admitted = applyCursorNurseryOccupancy(dest, stranger, childId, now, "cursor");
+    expect(admitted.allow).toBe(true);
+    expect(admitted.admitted).toBe("member");
+    const parent = evaluateOccupancyWriteGate(dest, { sessionId: parentId, now });
+    expect(parent.allow).toBe(true);
+    expect(parent.admitted).toBe("owner");
+    const fenced = applyCursorNurseryOccupancy(dest, parent, parentId, now, "cursor");
+    expect(fenced.allow).toBe(false);
+    expect(fenced.message).toMatch(/nursery occupancy grant is live/);
+  });
+
+  it("keeps fence-in-place parked until the three measurements land", () => {
+    expect(FENCE_IN_PLACE_PARKED_UNTIL).toEqual([
+      "Shell updated_input.cwd",
+      "Write/ApplyPatch path rewrite",
+      "Composer visibility of gitignored .deft-scratch/worktrees/",
+    ]);
   });
 });

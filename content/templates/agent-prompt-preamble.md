@@ -97,7 +97,7 @@ Populate `selected_backend` OR `routing_policy` (or both when the operator sets 
 **Role-boundary expectations (all providers):** the same boundaries apply whether the worker runs on Composer, Grok Build, Cursor/cloud, Claude Code, OpenClaw, or a future adapter:
 
 - ! `leaf-implementation` workers implement scoped xBRIEF work in their assigned worktree only -- gates (`task check`, file-scope audit, Greptile review cycle) are model-agnostic and MUST still pass.
-- ! **Spawned mutating workers take their own worktree (#4066).** Implement-class spawn must carry `isolation=worktree` or a linked `worktree_path`/`cwd` before occupancy claim. Sharing the primary checkout with a live occupant is refuse, not `occupancy:grant` across hosts. Master/primary occupancy is the exception (`release-cut`, `policy-restore`, operator-directed default-branch work). `--read-only` never claims. On DONE/terminal the dispatcher compare-and-releases the recorded child tree (incarnation + parent-id); do not steal the parent's lease to recover. Grok `spawn_subagent` cannot rewrite PreToolUse input -- pass cwd to the reserved worktree.
+- ! **Spawned mutating workers take their own worktree (#4066 / #4295).** Implement-class spawn must dest-place before occupancy claim. Grok `spawn_subagent` dest is `cwd` only (cannot rewrite PreToolUse input). Claude/Codex keep `isolation=worktree` or a linked path. Cursor Task has no local dest field — dest-placing is a dest-rooted window (nursery inherit) or `@cursor/sdk` `Agent.create({ local: { cwd } })`; do not advertise Task dest keys. Sharing the primary checkout with a live occupant is refuse, not `occupancy:grant` across hosts. Master/primary occupancy is the exception (`release-cut`, `policy-restore`, operator-directed default-branch work). `--read-only` never claims. On DONE/terminal the dispatcher compare-and-releases the recorded child tree (incarnation + parent-id); do not steal the parent's lease to recover.
 - ! `orchestrator`, `review-monitor`, and `merge-release` roles MUST run on strong or review-capable agents; dispatchers MUST NOT route these roles to cheap leaf backends.
 - ⊗ Route a cheap leaf backend onto the merge cascade, Phase 5->6 release gate, conflict-resolution rebase, or review-cycle merge-ready decision -- these are irreversible-damage surfaces that stay on the strong tier regardless of provider.
 
@@ -238,7 +238,7 @@ On Windows, Cursor Task-tool local subagents historically opened a visible `cmd.
 
 **Directive rule for orchestrators on Windows:**
 
-- ! Use **local** Cursor Task swarm workers as the default dispatch path — same as other platforms. Do not route to cloud solely because the host is Windows.
+- ! Use **local dest-placing Cursor** as the default dispatch path — same as other platforms (nursery inherit or dest-rooted `@cursor/sdk` `Agent.create`; not dest-binding Task). Do not route to cloud solely because the host is Windows.
 - ! Parallel local cohorts are allowed; do not force concurrency=1 because of #2563.
 - ~ Prefer the normal warm `task` / `dist/bin.js` path; avoid unnecessary `DEFT_FORCE_TS_BUILD=1` across a parallel cohort.
 - ⊗ Drop or weaken the #2563 `windowsHide` / warm-dist mitigations without a replacement that keeps Windows local swarm workable.

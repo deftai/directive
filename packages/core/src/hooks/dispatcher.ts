@@ -64,6 +64,7 @@ import { markRitualStaleAfterCompact } from "../session/ritual-sentinel.js";
 import { runSessionStartHookWrite } from "../session/session-start-hook.js";
 import {
   allocatedWorktreeMatches,
+  applyCursorNurseryOccupancy,
   consultImplementSpawnOccupancy,
   mintImplementSpawnReservation,
   persistSpawnReservation,
@@ -1273,11 +1274,17 @@ function inspectMutationGates(
         occupant: null,
         admitted: null as "owner" | "member" | null,
       }
-    : evaluateOccupancyWriteGate(effectiveRoot, {
-        sessionId: actor?.sessionId,
-        // Hosts with a resolved owner must not fall back to a stale ambient one.
-        env: actor?.hostAuthoritative === true ? {} : environ,
-      });
+    : applyCursorNurseryOccupancy(
+        effectiveRoot,
+        evaluateOccupancyWriteGate(effectiveRoot, {
+          sessionId: actor?.sessionId,
+          // Hosts with a resolved owner must not fall back to a stale ambient one.
+          env: actor?.hostAuthoritative === true ? {} : environ,
+        }),
+        actor?.sessionId ?? "",
+        undefined,
+        input.host,
+      );
 
   // #3769: occupancy decides before any ritual persist. The gated verifier
   // executes agent_hooks and rebinds a forward HEAD, and both rewrite
@@ -1497,11 +1504,17 @@ function inspectMutationGates(
   let occupancyWarning: string | null = null;
   const recheckOccupancyBeforeWriteAllow = (): HookDecision | null => {
     if (actor === null) return null;
-    const finalOccupancy = evaluateOccupancyWriteGate(effectiveRoot, {
-      sessionId: actor.sessionId,
-      env: actor.hostAuthoritative ? {} : environ,
-      refresh: true,
-    });
+    const finalOccupancy = applyCursorNurseryOccupancy(
+      effectiveRoot,
+      evaluateOccupancyWriteGate(effectiveRoot, {
+        sessionId: actor.sessionId,
+        env: actor.hostAuthoritative ? {} : environ,
+        refresh: true,
+      }),
+      actor.sessionId ?? "",
+      undefined,
+      input.host,
+    );
     occupancyWarning = finalOccupancy.warning;
     if (finalOccupancy.occupant !== null && actor.issue !== null) {
       return deny(

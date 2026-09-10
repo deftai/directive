@@ -32,7 +32,14 @@ export const CURSOR_TIER1_TARGETS: readonly CursorTier1Target[] = [
   {
     path: "content/skills/deft-directive-swarm/references/host-cursor.md",
     label: "swarm Cursor host adapter",
-    markers: ["Step 2e: Cursor Launch", "cursor-composer", "Task"],
+    markers: [
+      "Step 2e: Cursor Launch",
+      "cursor-composer",
+      "Task",
+      "dest-placing",
+      "Agent.create",
+      "5611146439",
+    ],
   },
   {
     path: "content/skills/deft-directive-review-cycle/SKILL.md",
