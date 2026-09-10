@@ -147,7 +147,7 @@ export const DOCS_IMPACT_SEED_BLOCK =
 export function composeDocsImpactBody(body: string, seed: string = DOCS_IMPACT_SEED_BLOCK): string {
   const parsed = parseDocsImpactDeclaration(body);
   if (parsed.declaration !== null) return body;
-  const trimmed = body.replace(/\s+$/u, "");
+  const trimmed = body.trimEnd();
   if (trimmed.length === 0) return seed;
   return `${trimmed}\n\n${seed}`;
 }

@@ -332,6 +332,7 @@ describe("explicit body seed then same-file verify (#4293)", () => {
     expect(parseDocsImpactDeclaration(composed).declaration).not.toBeNull();
     const already = body("change_class: none\nsurfaces: none");
     expect(composeDocsImpactBody(already)).toBe(already);
+    expect(composeDocsImpactBody(`${summaryOnly}   \n\n`)).toBe(composed);
     const dir = mkdtempSync(join(tmpdir(), "docs-impact-seeded-"));
     const bodyPath = join(dir, "body.md");
     writeFileSync(bodyPath, composed);
