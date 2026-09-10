@@ -41,6 +41,7 @@ export interface ChildOccupancyRecord {
   readonly identitySourceKind: ChildOccupancyIdentitySourceKind;
   readonly incarnation: string;
   readonly provenance: ChildOccupancyProvenance;
+  readonly nurseryInherit: boolean;
 }
 
 export interface ChildOccupancyDispatchInput {
@@ -51,6 +52,8 @@ export interface ChildOccupancyDispatchInput {
   readonly identitySourceKind: ChildOccupancyIdentitySourceKind;
   readonly incarnation?: string;
   readonly provenance?: ChildOccupancyProvenance;
+  /** Cursor nursery inherit (#4295): dest is the parent window worktree. */
+  readonly nurseryInherit?: boolean;
 }
 
 export type ChildOccupancyReleaseReason =
@@ -154,6 +157,7 @@ function parseChildOccupancyRecord(payload: unknown): ChildOccupancyRecord | nul
     identitySourceKind: kindRaw,
     incarnation,
     provenance,
+    nurseryInherit: obj.nursery_inherit === true,
   };
 }
 
@@ -224,6 +228,7 @@ export function recordChildOccupancyLease(
     identitySourceKind: input.identitySourceKind,
     incarnation: incarnation.length > 0 ? incarnation : randomUUID(),
     provenance,
+    nurseryInherit: input.nurseryInherit === true,
   };
   const root = resolve(storeRoot);
   const relpath = childOccupancyRelpath(agentId);
@@ -241,6 +246,7 @@ export function recordChildOccupancyLease(
         identity_source_kind: record.identitySourceKind,
         incarnation: record.incarnation,
         provenance: record.provenance,
+        nursery_inherit: record.nurseryInherit,
       },
       2,
     )}\n`,

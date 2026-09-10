@@ -1442,6 +1442,31 @@ export function checkCoverageCheckResumePolicy(projectRoot: string): CheckResult
   };
 }
 
+export function checkCursorSdkAuth(environ: NodeJS.ProcessEnv = process.env): CheckResult {
+  const key = (environ.CURSOR_API_KEY ?? "").trim();
+  const want = (environ.DEFT_CURSOR_SDK_LAUNCH ?? "").trim() === "1";
+  if (key.length > 0) {
+    return {
+      name: "cursor-sdk-auth",
+      status: "pass",
+      detail: "CURSOR_API_KEY is set for dest-rooted @cursor/sdk Agent.create.",
+    };
+  }
+  if (want) {
+    return {
+      name: "cursor-sdk-auth",
+      status: "fail",
+      detail: "Headless Cursor SDK launch needs CURSOR_API_KEY (separate from IDE login).",
+      data: stampAdvisory({ recovery: "Set CURSOR_API_KEY for @cursor/sdk Agent.create." }),
+    };
+  }
+  return {
+    name: "cursor-sdk-auth",
+    status: "skip",
+    detail: "CURSOR_API_KEY unset; required only for dest-rooted @cursor/sdk Agent.create (#4295).",
+  };
+}
+
 export function deriveExitCode(checks: readonly CheckResult[], errors: readonly string[]): number {
   if (errors.length > 0 || checks.some((c) => c.status === "error")) {
     return 2;
@@ -1497,6 +1522,7 @@ export function runChecksImpl(
     checks.push(checkCompletedLifecycleConsistency(projectRoot));
     checks.push(checkCompletedOpenItems(projectRoot));
     checks.push(checkCompletedUnguardedWrite(projectRoot));
+    checks.push(checkCursorSdkAuth());
     return {
       projectRoot,
       installRoot: null,
@@ -1520,6 +1546,7 @@ export function runChecksImpl(
   checks.push(checkCompletedLifecycleConsistency(projectRoot));
   checks.push(checkCompletedOpenItems(projectRoot));
   checks.push(checkCompletedUnguardedWrite(projectRoot));
+  checks.push(checkCursorSdkAuth());
   return {
     projectRoot,
     installRoot,
