@@ -238,11 +238,23 @@ export function derivedProbeIsEmitable(relPosix: string): boolean {
 
 const ARTIFACT_PROBE_SUFFIXES = [".xbrief.json", ".vbrief.json"] as const;
 
+/** Calendar last day for YYYY-MM so July 30/31 witnesses stay inside `[01]` globs. */
+function daysInMonth(year: number, month: number): number {
+  if (month === 2) {
+    const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+    return leap ? 29 : 28;
+  }
+  const table = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return table[month] ?? 31;
+}
+
 /**
  * When a glob expansion is not convention-valid, complete a partial YYYY-MM-DD
  * prefix so intersecting date globs still have a valid witness (#4310 P1).
  * `2026-07-0*.xbrief.json` expands to `2026-07-0lifecycle-visible.xbrief.json`;
  * this repairs it to `2026-07-01-lifecycle-visible.xbrief.json`.
+ * Day clamp uses the month's last calendar day so `2026-07-3[01]*` stays on
+ * the 30th instead of dropping to the 28th (outside the glob).
  */
 export function completeConventionValidProbe(relPosix: string): string | null {
   const posix = relPosix.replace(/\\/g, "/").replace(/^\/+/, "");
@@ -260,7 +272,10 @@ export function completeConventionValidProbe(relPosix: string): string | null {
   let month = (m[2] ?? "01").padStart(2, "0");
   let day = (m[3] ?? "01").padStart(2, "0");
   if (month === "00" || Number(month) > 12) month = month === "00" ? "01" : "12";
-  if (day === "00" || Number(day) > 28) day = day === "00" ? "01" : "28";
+  const maxDay = daysInMonth(Number(year), Number(month));
+  if (day === "00" || Number(day) > maxDay) {
+    day = day === "00" ? "01" : String(maxDay).padStart(2, "0");
+  }
   let slug = m[4] ?? "";
   if (slug.startsWith("-")) slug = slug.slice(1);
   if (slug.length === 0) slug = LIFECYCLE_PROBE_STEM;

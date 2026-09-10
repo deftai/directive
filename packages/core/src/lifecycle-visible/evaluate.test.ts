@@ -1167,9 +1167,7 @@ describe("convention-valid derived probes (#4310)", () => {
 
   it("repairs a partial-day date glob into a convention-valid July witness", () => {
     expect(
-      completeConventionValidProbe(
-        `xbrief/pending/2026-07-0${LIFECYCLE_PROBE_STEM}.xbrief.json`,
-      ),
+      completeConventionValidProbe(`xbrief/pending/2026-07-0${LIFECYCLE_PROBE_STEM}.xbrief.json`),
     ).toBe(`xbrief/pending/2026-07-01-${LIFECYCLE_PROBE_STEM}.xbrief.json`);
     const probes = probesFromPatterns(["xbrief/pending/2026-07-0*.xbrief.json"]);
     expect(probes).toContain(`xbrief/pending/2026-07-01-${LIFECYCLE_PROBE_STEM}.xbrief.json`);
@@ -1185,6 +1183,33 @@ describe("convention-valid derived probes (#4310)", () => {
     expect(hit?.candidateRule).toBe("xbrief/pending/2026-07-0*.xbrief.json");
   });
 
+  it("keeps a July 30/31 character-class glob inside the ignore rule", () => {
+    expect(
+      completeConventionValidProbe(`xbrief/pending/2026-07-30${LIFECYCLE_PROBE_STEM}.xbrief.json`),
+    ).toBe(`xbrief/pending/2026-07-30-${LIFECYCLE_PROBE_STEM}.xbrief.json`);
+    expect(
+      completeConventionValidProbe(`xbrief/pending/2026-07-31${LIFECYCLE_PROBE_STEM}.xbrief.json`),
+    ).toBe(`xbrief/pending/2026-07-31-${LIFECYCLE_PROBE_STEM}.xbrief.json`);
+    const probes = probesFromPatterns(["xbrief/pending/2026-07-3[01]*.xbrief.json"]);
+    expect(probes).toContain(`xbrief/pending/2026-07-30-${LIFECYCLE_PROBE_STEM}.xbrief.json`);
+  });
+
+  it("still reports a 2026-07-3[01]* hide on an empty pending stage", () => {
+    const root = initLifecycleRepo();
+    writeFileSync(join(root, ".gitignore"), "xbrief/pending/2026-07-3[01]*.xbrief.json\n", "utf8");
+    const result = evaluateLifecycleVisible({ projectRoot: root, enforce: true });
+    expect(result.code).toBe(1);
+    const hit = result.findings.find((f) => f.path === "xbrief/pending/");
+    expect(hit?.probe).toBe(`xbrief/pending/2026-07-30-${LIFECYCLE_PROBE_STEM}.xbrief.json`);
+    expect(hit?.candidateRule).toBe("xbrief/pending/2026-07-3[01]*.xbrief.json");
+  });
+
+  it("clamps an impossible February 30 to the month's last day", () => {
+    expect(
+      completeConventionValidProbe(`xbrief/pending/2026-02-30${LIFECYCLE_PROBE_STEM}.xbrief.json`),
+    ).toBe(`xbrief/pending/2026-02-28-${LIFECYCLE_PROBE_STEM}.xbrief.json`);
+  });
+
   it("names the later generating rule when two date globs share a witness", () => {
     const records = derivedLifecycleIgnoreProbeRecordsFromSources([
       {
@@ -1192,7 +1217,9 @@ describe("convention-valid derived probes (#4310)", () => {
         patterns: ["2026-07-*.xbrief.json", "2026-07-01-*.xbrief.json"],
       },
     ]);
-    const hit = records.find((r) => r.path.endsWith(`2026-07-01-${LIFECYCLE_PROBE_STEM}.xbrief.json`));
+    const hit = records.find((r) =>
+      r.path.endsWith(`2026-07-01-${LIFECYCLE_PROBE_STEM}.xbrief.json`),
+    );
     expect(hit?.candidateRule).toBe("2026-07-01-*.xbrief.json");
   });
 });
