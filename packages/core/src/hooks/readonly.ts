@@ -96,7 +96,7 @@ export function isReadOnlyHookContext(
  * Do not lead with explore: dest-missing callers were just classified implement.
  */
 export const SPAWN_CLASS_RECOVERY =
-  "Continue in the parent, or spawn with session assist / ephemeral markers for scratch, " +
+  "Continue in the parent, or spawn with assist / ephemeral markers for scratch, " +
   "or subagent_type plan / process_only for process-only critic spawns. Use subagent_type " +
   "explore only when the spawn is actually read-only research.";
 

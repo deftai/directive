@@ -4,10 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyWorktreeOccupancy } from "../session/occupancy.js";
-import {
-  readSpawnReservationIncarnation,
-  SPAWN_DEST_PATH_KEYS,
-} from "../session/spawn-occupancy.js";
+import { readSpawnReservationIncarnation } from "../session/spawn-occupancy.js";
 import { decideHook, type HookPolicySeams, spawnToolArgUpdatedInput } from "./index.js";
 import { isExploreSpawn, SPAWN_CLASS_RECOVERY } from "./readonly.js";
 
@@ -619,7 +616,7 @@ describe("Cursor Task dest-missing deny honesty (#4279)", () => {
   it("keeps unmarked generalPurpose fail-closed and does not lead recoveries with explore", () => {
     const inspectRitual = vi.fn(() => ({
       ...STALE_RITUAL,
-      message: "session ritual state is stale (older than 4h). Run deft session:start --rearm",
+      message: "ritual state is stale (older than 4h). Rearm does not clear dest-missing.",
     }));
     const decision = decideHook(
       {
@@ -640,12 +637,20 @@ describe("Cursor Task dest-missing deny honesty (#4279)", () => {
     const exploreIdx = decision.message.search(/subagent_type explore/i);
     expect(parentIdx).toBeGreaterThanOrEqual(0);
     expect(exploreIdx).toBeGreaterThan(parentIdx);
-    for (const key of SPAWN_DEST_PATH_KEYS) {
+    for (const key of [
+      "worktree_path",
+      "worktreePath",
+      "worktree",
+      "cwd",
+      "working_directory",
+      "workingDirectory",
+      "workdir",
+    ]) {
       expect(decision.message).toContain(key);
     }
     expect(decision.message).toContain("tool_input.isolation=worktree");
     expect(decision.message).toContain("ritual telemetry (does not clear dest-missing)");
-    expect(decision.message).toContain("session:start --rearm");
+    expect(decision.message).toContain("ritual state is stale");
     expect(decision.message).not.toMatch(/Also ritual-not-ready:/);
     expect(inspectRitual).toHaveBeenCalled();
   });

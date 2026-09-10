@@ -104,7 +104,7 @@ export type SpawnOccupancyConsult = SpawnOccupancyConsultAllow | SpawnOccupancyC
 
 const HOSTS_THAT_REROOT = new Set(["claude", "cursor", "codex"]);
 // #4279: Cursor Task dest-key bind waits on a recorded PreToolUse payload.
-// HOSTS_THAT_REROOT membership for Task is unbound until that measurement.
+// HOSTS_THAT_REROOT for Task stays unbound until that measurement.
 
 export const SPAWN_DEST_ISOLATION_KEYS = ["isolation", "Isolation"] as const;
 export const SPAWN_DEST_PATH_KEYS = [
