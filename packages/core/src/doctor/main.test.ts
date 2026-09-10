@@ -3,9 +3,12 @@ import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ResolutionFacts } from "../resolution/index.js";
+import { LAYOUT_TREE } from "./constants.js";
 import { parseDoctorFlags } from "./flags.js";
 import {
+  classifyProjectLifecycle,
   cmdDoctor,
+  collectFrameworkLayoutRows,
   enforceDirectiveSurface,
   resolveOperatingMode,
   resolvePlatformSkew,
@@ -155,6 +158,7 @@ describe("cmdDoctor maintainer clone classification (#2850)", () => {
     for (const dir of ["languages", "strategies", "skills", "templates"]) {
       mkdirSync(join(root, "content", dir), { recursive: true });
     }
+    mkdirSync(join(root, "content", "vbrief", "schemas"), { recursive: true });
     for (const dir of ["tasks", "scripts", "xbrief"]) {
       mkdirSync(join(root, dir), { recursive: true });
     }
@@ -771,18 +775,19 @@ describe("cmdDoctor USER.md resolution surface (#2271)", () => {
 describe("cmdDoctor completed-open-items advisory mapping (#3372)", () => {
   function makeConsumer(): { root: string; framework: string } {
     const root = makeRoot();
-    const framework = makeRoot();
     const deposit = join(root, ".deft", "core");
-    for (const dir of ["languages", "strategies", "skills", "templates", "tasks", "xbrief"]) {
+    for (const dir of ["languages", "strategies", "skills", "templates", "tasks"]) {
       mkdirSync(join(deposit, dir), { recursive: true });
     }
+    mkdirSync(join(deposit, "vbrief", "schemas"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
       join(root, "AGENTS.md"),
-      "<!-- deft:managed-section v3 sha=abc refreshed=x session=y -->\nmanaged\n<!-- /deft:managed-section -->\n",
+      "<!-- deft:managed-section v3 sha=abc refreshed=x sid=y -->\nmanaged\n<!-- /deft:managed-section -->\n",
       "utf8",
     );
     writeFileSync(join(root, "Taskfile.yml"), "version: '3'\n", "utf8");
-    return { root, framework };
+    return { root, framework: deposit };
   }
 
   function writeCompletedBrief(root: string, name: string, body: string): void {
@@ -955,5 +960,222 @@ describe("cmdDoctor completed-open-items advisory mapping (#3372)", () => {
     const ritual = runDoctorJson(root, framework, ["--json", "--project-root", root], seams);
     expect(ritual.exit).toBe(0);
     expect(ritual.lastErrorCount).toBe(0);
+  });
+});
+
+describe("framework-layout split identities (#4162)", () => {
+  function isDir(p: string): boolean {
+    try {
+      return statSync(p).isDirectory();
+    } catch {
+      return false;
+    }
+  }
+
+  function seedEnvelope(root: string): void {
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "seed.xbrief.json"), '{"xBRIEFInfo":{"version":"0.8"}}\n');
+  }
+
+  it("consumer rows use resolved frameworkRoot not AGENTS.md deposit", () => {
+    const project = makeRoot();
+    const resolved = makeRoot();
+    mkdirSync(join(project, ".deft", "core", "tasks"), { recursive: true });
+    mkdirSync(join(resolved, "tasks"), { recursive: true });
+    mkdirSync(join(resolved, "vbrief", "schemas"), { recursive: true });
+    for (const dir of ["languages", "strategies", "skills", "templates"]) {
+      mkdirSync(join(resolved, dir), { recursive: true });
+    }
+    const rows = collectFrameworkLayoutRows({
+      frameworkRoot: resolved,
+      consumerContext: true,
+      isDir,
+    });
+    const tasks = rows.find((r) => r.directory === "tasks");
+    expect(tasks?.tree).toBe(LAYOUT_TREE.ENGINE_DEPOSIT);
+    expect(tasks?.path).toBe(join(resolved, "tasks"));
+    expect(tasks?.present).toBe(true);
+    expect(rows.some((r) => r.directory === "xbrief")).toBe(false);
+    expect(rows.some((r) => r.path.includes(join(project, ".deft", "core")))).toBe(false);
+    const schemas = rows.find((r) => r.directory === "vbrief/schemas");
+    expect(schemas?.tree).toBe(LAYOUT_TREE.FRAMEWORK_CONTENT);
+    expect(schemas?.path).toBe(join(resolved, "vbrief", "schemas"));
+    expect(rows.some((r) => r.directory === "scripts")).toBe(false);
+  });
+
+  it("source-checkout rows re-derive the same split with coinciding roots", () => {
+    const root = makeRoot();
+    for (const dir of ["languages", "strategies", "skills", "templates"]) {
+      mkdirSync(join(root, "content", dir), { recursive: true });
+    }
+    mkdirSync(join(root, "content", "vbrief", "schemas"), { recursive: true });
+    mkdirSync(join(root, "tasks"), { recursive: true });
+    mkdirSync(join(root, "scripts"), { recursive: true });
+    seedEnvelope(root);
+    const rows = collectFrameworkLayoutRows({
+      frameworkRoot: root,
+      consumerContext: false,
+      isDir,
+    });
+    expect(rows.find((r) => r.directory === "scripts")?.tree).toBe(LAYOUT_TREE.ENGINE_DEPOSIT);
+    expect(rows.find((r) => r.directory === "tasks")?.path).toBe(join(root, "tasks"));
+    expect(rows.find((r) => r.directory === "vbrief/schemas")?.path).toBe(
+      join(root, "content", "vbrief", "schemas"),
+    );
+    expect(rows.some((r) => r.directory === "xbrief")).toBe(false);
+    expect(classifyProjectLifecycle(root).state).toBe("valid");
+  });
+
+  it("content-package wins for framework-content rows", () => {
+    const project = makeRoot();
+    const deposit = join(project, ".deft", "core");
+    mkdirSync(join(deposit, "tasks"), { recursive: true });
+    const pkg = join(project, "node_modules", "@deftai", "directive-content");
+    mkdirSync(pkg, { recursive: true });
+    writeFileSync(join(pkg, "package.json"), "{}\n");
+    mkdirSync(join(pkg, "vbrief", "schemas"), { recursive: true });
+    for (const dir of ["languages", "strategies", "skills", "templates"]) {
+      mkdirSync(join(pkg, dir), { recursive: true });
+    }
+    const rows = collectFrameworkLayoutRows({
+      frameworkRoot: deposit,
+      consumerContext: true,
+      isDir,
+    });
+    expect(rows.find((r) => r.directory === "vbrief/schemas")?.path).toBe(
+      join(pkg, "vbrief", "schemas"),
+    );
+    expect(rows.find((r) => r.directory === "languages")?.path).toBe(join(pkg, "languages"));
+    expect(rows.find((r) => r.directory === "tasks")?.path).toBe(join(deposit, "tasks"));
+  });
+
+  it("classifies project-lifecycle states without throwing", () => {
+    const absent = makeRoot();
+    expect(classifyProjectLifecycle(absent)).toMatchObject({
+      state: "absent",
+      healthy: false,
+      tree: LAYOUT_TREE.PROJECT_LIFECYCLE,
+    });
+
+    const empty = makeRoot();
+    mkdirSync(join(empty, "xbrief"), { recursive: true });
+    expect(classifyProjectLifecycle(empty)).toMatchObject({
+      state: "empty-greenfield",
+      healthy: true,
+    });
+
+    const partial = makeRoot();
+    mkdirSync(join(partial, "xbrief", "notes"), { recursive: true });
+    writeFileSync(join(partial, "xbrief", "notes", "readme.txt"), "not an envelope\n");
+    expect(classifyProjectLifecycle(partial)).toMatchObject({
+      state: "partial",
+      healthy: false,
+    });
+
+    const legacy = makeRoot();
+    mkdirSync(join(legacy, "vbrief", "active"), { recursive: true });
+    writeFileSync(join(legacy, "vbrief", "active", "a.vbrief.json"), "{}\n");
+    expect(classifyProjectLifecycle(legacy)).toMatchObject({
+      state: "legacy-only",
+      healthy: false,
+    });
+
+    const valid = makeRoot();
+    seedEnvelope(valid);
+    expect(classifyProjectLifecycle(valid)).toMatchObject({ state: "valid", healthy: true });
+
+    const dual = makeRoot();
+    seedEnvelope(dual);
+    mkdirSync(join(dual, "vbrief", "active"), { recursive: true });
+    writeFileSync(join(dual, "vbrief", "active", "a.vbrief.json"), "{}\n");
+    expect(classifyProjectLifecycle(dual)).toMatchObject({
+      state: "dual-populated",
+      healthy: false,
+    });
+    expect(classifyProjectLifecycle(dual).message).toContain("migrate:xbrief");
+
+    const marked = makeRoot();
+    seedEnvelope(marked);
+    mkdirSync(join(marked, "vbrief"), { recursive: true });
+    writeFileSync(
+      join(marked, "vbrief", "DEPRECATED.md"),
+      "<!-- deft:vbrief-deprecated -->\nlegacy retained\n",
+    );
+    writeFileSync(join(marked, "vbrief", "old.vbrief.json"), "{}\n");
+    expect(classifyProjectLifecycle(marked)).toMatchObject({ state: "valid", healthy: true });
+  });
+
+  it("healthy packed consumer does not warn missing xbrief/", () => {
+    const root = makeRoot();
+    const deposit = join(root, ".deft", "core");
+    for (const dir of ["languages", "strategies", "skills", "templates", "tasks"]) {
+      mkdirSync(join(deposit, dir), { recursive: true });
+    }
+    mkdirSync(join(deposit, "vbrief", "schemas"), { recursive: true });
+    seedEnvelope(root);
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      "<!-- deft:managed-section v3 sha=abc refreshed=x sid=y -->\nmanaged\n<!-- /deft:managed-section -->\n",
+      "utf8",
+    );
+    writeFileSync(join(root, "Taskfile.yml"), "version: '3'\n", "utf8");
+    const stdout: string[] = [];
+    const origWrite = process.stdout.write.bind(process.stdout);
+    process.stdout.write = ((chunk: string | Uint8Array): boolean => {
+      stdout.push(typeof chunk === "string" ? chunk : chunk.toString());
+      return true;
+    }) as typeof process.stdout.write;
+    let exit: number;
+    try {
+      exit = cmdDoctor(["--full", "--json", "--project-root", root], {
+        whichFn: () => "/usr/bin/x",
+        frameworkRoot: deposit,
+        agentsRefreshPlan: () => ({ state: "current" }),
+      });
+    } finally {
+      process.stdout.write = origWrite;
+    }
+    expect(exit).toBe(0);
+    const payload = JSON.parse(stdout.join("")) as {
+      findings?: Array<{ check?: string; directory?: string; tree?: string; message?: string }>;
+    };
+    const layout = (payload.findings ?? []).filter((f) => f.check === "framework-layout");
+    expect(layout.some((f) => f.directory === "xbrief")).toBe(false);
+    expect(JSON.stringify(layout)).not.toContain("Missing directory: xbrief/");
+  });
+
+  it("missing engine and schema dirs identify their trees", () => {
+    const root = makeRoot();
+    const deposit = join(root, ".deft", "core");
+    mkdirSync(deposit, { recursive: true });
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      "<!-- deft:managed-section v3 sha=abc refreshed=x sid=y -->\nmanaged\n<!-- /deft:managed-section -->\n",
+      "utf8",
+    );
+    const stdout: string[] = [];
+    const origWrite = process.stdout.write.bind(process.stdout);
+    process.stdout.write = ((chunk: string | Uint8Array): boolean => {
+      stdout.push(typeof chunk === "string" ? chunk : chunk.toString());
+      return true;
+    }) as typeof process.stdout.write;
+    try {
+      cmdDoctor(["--full", "--json", "--project-root", root], {
+        whichFn: () => "/usr/bin/x",
+        frameworkRoot: deposit,
+        agentsRefreshPlan: () => ({ state: "current" }),
+      });
+    } finally {
+      process.stdout.write = origWrite;
+    }
+    const payload = JSON.parse(stdout.join("")) as {
+      findings?: Array<{ directory?: string; tree?: string; check?: string }>;
+    };
+    const layout = (payload.findings ?? []).filter((f) => f.check === "framework-layout");
+    expect(layout.find((f) => f.directory === "tasks")?.tree).toBe(LAYOUT_TREE.ENGINE_DEPOSIT);
+    expect(layout.find((f) => f.directory === "vbrief/schemas")?.tree).toBe(
+      LAYOUT_TREE.FRAMEWORK_CONTENT,
+    );
+    expect(layout.find((f) => f.directory === "xbrief")?.tree).toBe(LAYOUT_TREE.PROJECT_LIFECYCLE);
   });
 });

@@ -6,6 +6,7 @@ import {
   formatConsumerGateIntegrityFailure,
 } from "../check/consumer-gate-integrity.js";
 import { contentRoot } from "../content-root.js";
+import { resolveLifecycleLayout } from "../layout/resolve.js";
 import {
   DEFT_DIRECTIVE_DISABLE_FLAG_NAME,
   DEFT_DIRECTIVE_DISABLE_STATUS,
@@ -38,6 +39,8 @@ import {
 import { type ResolveUserMdResult, resolveUserMdPath } from "../user-config/resolve-user-md.js";
 import { evaluateAgentHooks } from "../verify-env/agent-hooks.js";
 import { probeAgentHooksLive } from "../verify-env/agent-hooks-live-probe.js";
+import { MIGRATED_ARTIFACT_DIR } from "../xbrief-migrate/constants.js";
+import { detectXbriefConvergence } from "../xbrief-migrate/detect.js";
 import { agentsRefreshPlan, hasManagedSectionMarker, hasV3ManagedMarker } from "./agents-md.js";
 import {
   checkXbriefEnvelopeMajorVersion,
@@ -50,6 +53,9 @@ import {
   CONSUMER_FRAMEWORK_DIRS,
   EXPECTED_CONTENT_DIRS,
   EXPECTED_FRAMEWORK_DIRS,
+  FRAMEWORK_SCHEMA_PACK_DIR,
+  LAYOUT_TREE,
+  type LayoutTree,
   NETWORK_DISCLOSURE_LINE,
   PAYLOAD_STALENESS_OFFLINE_SKIP_MESSAGE,
   recoveryLadderFields,
@@ -69,7 +75,6 @@ import {
 import { formatAllowedFlagsHint, formatUnknownFlagsError, parseDoctorFlags } from "./flags.js";
 import { formatDoctorHelp } from "./help.js";
 import { pythonJsonDump } from "./json.js";
-import { parseInstallRootFromAgentsMd } from "./manifest.js";
 import { runNpmRegistryMirrorCheck } from "./npm-registry.js";
 import { runOpenClawL2AdapterCheck } from "./openclaw-l2-adapter.js";
 import { runOpenClawSkillPinsCheck } from "./openclaw-skills.js";
@@ -105,6 +110,138 @@ import type { DoctorSeams, Finding, ResolutionSummary } from "./types.js";
 import { defaultWhich } from "./which.js";
 
 const DEFAULT_RESOLUTION_PLATFORMS = ["linux", "darwin", "win32"] as const;
+
+export type ProjectLifecycleState =
+  | "valid"
+  | "empty-greenfield"
+  | "partial"
+  | "legacy-only"
+  | "dual-populated"
+  | "absent";
+
+export interface FrameworkLayoutRow {
+  readonly tree: LayoutTree;
+  readonly directory: string;
+  readonly path: string;
+  readonly present: boolean;
+}
+
+export interface ProjectLifecycleReport {
+  readonly tree: typeof LAYOUT_TREE.PROJECT_LIFECYCLE;
+  readonly path: string;
+  readonly state: ProjectLifecycleState;
+  readonly healthy: boolean;
+  readonly message?: string;
+}
+
+export interface CollectFrameworkLayoutRowsInput {
+  readonly frameworkRoot: string;
+  readonly consumerContext: boolean;
+  readonly isDir: (p: string) => boolean;
+}
+
+function hasMigratedLifecycleArtifacts(projectRoot: string): boolean {
+  try {
+    resolveLifecycleLayout(projectRoot);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Classify project-root lifecycle without throwing on absent or legacy trees (#4162). */
+export function classifyProjectLifecycle(projectRoot: string): ProjectLifecycleReport {
+  const path = join(projectRoot, MIGRATED_ARTIFACT_DIR);
+  const base = {
+    tree: LAYOUT_TREE.PROJECT_LIFECYCLE,
+    path,
+  } as const;
+  try {
+    const conv = detectXbriefConvergence(projectRoot);
+    if (conv.state === "dual-populated") {
+      return {
+        ...base,
+        state: "dual-populated",
+        healthy: false,
+        message:
+          `Project-lifecycle dual-populated: unmarked populated vbrief/ coexists with xbrief/ at ${path}; ` +
+          `run deft migrate:xbrief`,
+      };
+    }
+    if (hasMigratedLifecycleArtifacts(projectRoot)) {
+      return { ...base, state: "valid", healthy: true };
+    }
+    if (conv.state === "legacy-only") {
+      return {
+        ...base,
+        state: "legacy-only",
+        healthy: false,
+        message: `Project-lifecycle legacy-only at ${path}; run deft migrate:xbrief`,
+      };
+    }
+    if (conv.xbriefPresent && conv.xbriefHasContent) {
+      return {
+        ...base,
+        state: "partial",
+        healthy: false,
+        message: `Project-lifecycle partial at ${path}: xbrief/ exists without .xbrief.json envelopes`,
+      };
+    }
+    if (conv.xbriefPresent) {
+      return { ...base, state: "empty-greenfield", healthy: true };
+    }
+    return {
+      ...base,
+      state: "absent",
+      healthy: false,
+      message: `Missing project-lifecycle directory: xbrief/ at ${path}`,
+    };
+  } catch {
+    return {
+      ...base,
+      state: "absent",
+      healthy: false,
+      message: `Project-lifecycle unreadable at ${path}`,
+    };
+  }
+}
+
+/**
+ * Engine + framework-content rows from the resolved framework/content root (#4162).
+ * Lifecycle is classified separately; `xbrief` is not an engine dir.
+ */
+export function collectFrameworkLayoutRows(
+  input: CollectFrameworkLayoutRowsInput,
+): FrameworkLayoutRow[] {
+  const contentBase = contentRoot(input.frameworkRoot);
+  const engineDirs = input.consumerContext ? CONSUMER_FRAMEWORK_DIRS : EXPECTED_FRAMEWORK_DIRS;
+  const contentRows: FrameworkLayoutRow[] = EXPECTED_CONTENT_DIRS.map((directory) => {
+    const path = join(contentBase, directory);
+    return {
+      tree: LAYOUT_TREE.FRAMEWORK_CONTENT,
+      directory,
+      path,
+      present: input.isDir(path),
+    };
+  });
+  const schemaPath = join(contentBase, "vbrief", "schemas");
+  const schemaRow: FrameworkLayoutRow = {
+    tree: LAYOUT_TREE.FRAMEWORK_CONTENT,
+    directory: FRAMEWORK_SCHEMA_PACK_DIR,
+    path: schemaPath,
+    present: input.isDir(schemaPath),
+  };
+  const engineRows: FrameworkLayoutRow[] = engineDirs.map((directory) => {
+    const path = join(input.frameworkRoot, directory);
+    return {
+      tree: LAYOUT_TREE.ENGINE_DEPOSIT,
+      directory,
+      path,
+      present: input.isDir(path),
+    };
+  });
+  return [...contentRows, schemaRow, ...engineRows];
+}
 
 /**
  * Read the `packageManager` field (Corepack) from a project package.json, or
@@ -445,37 +582,46 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
         return false;
       }
     });
-  // #1875: shippable-content dirs resolve under content/ in a source checkout
-  // and at the root in a flattened consumer deposit; engine/lifecycle dirs stay
-  // at the framework root in both layouts.
-  let agentsMdText = "";
-  try {
-    agentsMdText = readFileSync(join(projectRoot, "AGENTS.md"), "utf8");
-  } catch {
-    agentsMdText = "";
-  }
-  const installRootRel = parseInstallRootFromAgentsMd(agentsMdText) ?? ".deft/core";
-  const depositRoot = consumerContext ? join(projectRoot, installRootRel) : frameworkRoot;
-  const contentBase = contentRoot(depositRoot);
-  const frameworkDirs = consumerContext ? CONSUMER_FRAMEWORK_DIRS : EXPECTED_FRAMEWORK_DIRS;
-  const layoutChecks: Array<[dirName: string, base: string]> = [
-    ...EXPECTED_CONTENT_DIRS.map((d) => [d, contentBase] as [string, string]),
-    ...frameworkDirs.map((d) => [d, depositRoot] as [string, string]),
-  ];
-  for (const [dirName, base] of layoutChecks) {
-    const dirPath = join(base, dirName);
-    if (isDir(dirPath)) {
-      sink.success(`Directory: ${dirName}/`);
+  // #4162: split identities. Engine dirs and content/schema pack use the
+  // already-resolved frameworkRoot / contentRoot (DEFT_ROOT, content-package).
+  // Do not re-derive a deposit from AGENTS.md for these rows.
+  const layoutRows = collectFrameworkLayoutRows({
+    frameworkRoot,
+    consumerContext,
+    isDir,
+  });
+  for (const row of layoutRows) {
+    if (row.present) {
+      sink.success(`Directory: ${row.directory}/ (${row.tree})`);
     } else {
-      const message = `Missing directory: ${dirName}/`;
+      const message = `Missing directory: ${row.directory}/ (${row.tree}) at ${row.path}`;
       sink.warn(message);
       addFinding({
         severity: "warning",
         message,
         check: "framework-layout",
-        directory: dirName,
+        directory: row.directory,
+        tree: row.tree,
+        path: row.path,
       });
     }
+  }
+  const lifecycle = classifyProjectLifecycle(projectRoot);
+  if (lifecycle.healthy) {
+    sink.success(`Project-lifecycle: ${lifecycle.state} at ${lifecycle.path}`);
+  } else {
+    const message =
+      lifecycle.message ?? `Project-lifecycle ${lifecycle.state} at ${lifecycle.path}`;
+    sink.warn(message);
+    addFinding({
+      severity: "warning",
+      message,
+      check: "framework-layout",
+      directory: MIGRATED_ARTIFACT_DIR,
+      tree: lifecycle.tree,
+      path: lifecycle.path,
+      state: lifecycle.state,
+    });
   }
 
   if (!jsonMode) {

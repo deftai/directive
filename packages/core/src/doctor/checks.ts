@@ -42,6 +42,7 @@ import {
   UPGRADING_DOC_URL,
 } from "./constants.js";
 import {
+  containDepositInstallRoot,
   isDeprecationRedirectStub,
   locateManifest,
   manifestCandidatePaths,
@@ -1496,7 +1497,8 @@ export function runChecksImpl(
   const agentsMdText = readText(agentsMdPath, seams);
   let installRoot: string | null = null;
   if (agentsMdText !== null) {
-    installRoot = parseInstallRootFromAgentsMd(agentsMdText);
+    const parsed = parseInstallRootFromAgentsMd(agentsMdText);
+    installRoot = parsed === null ? null : containDepositInstallRoot(projectRoot, parsed);
   }
   const checks: CheckResult[] = [];
   if (agentsMdText === null) {

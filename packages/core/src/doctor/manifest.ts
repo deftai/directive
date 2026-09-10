@@ -1,5 +1,9 @@
 import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { isAbsolute, join, relative, resolve } from "node:path";
+import {
+  assertProjectionContained,
+  ProjectionContainmentError,
+} from "../fs/projection-containment.js";
 import { AGENTS_MANAGED_CLOSE } from "../platform/constants.js";
 import { findManagedOpenMarker } from "../platform/linear-scan.js";
 import { parseManifestKeyValueLine, stripEdgeQuotes } from "../text/redos-safe.js";
@@ -130,6 +134,39 @@ export function parseInstallRootFromAgentsMd(text: string): string | null {
     return match[1].trim();
   }
   return null;
+}
+
+/** Fallback when an AGENTS.md install-root is missing or fails containment (#4162). */
+export const FALLBACK_INSTALL_ROOT = ".deft/core";
+
+/**
+ * Contain an AGENTS.md install-root before any probe or echo (#4162).
+ * Rejects `..`, absolute paths, and escaping symlinks; falls back to `.deft/core`.
+ */
+export function containDepositInstallRoot(
+  projectRoot: string,
+  raw: string | null | undefined,
+): string {
+  if (raw == null) return FALLBACK_INSTALL_ROOT;
+  const trimmed = raw.trim();
+  if (!trimmed) return FALLBACK_INSTALL_ROOT;
+  if (isAbsolute(trimmed)) return FALLBACK_INSTALL_ROOT;
+  const posix = trimmed.replace(/\\/g, "/").replace(/\/+$/, "");
+  if (!posix || posix.split("/").includes("..")) return FALLBACK_INSTALL_ROOT;
+  const projectAbs = resolve(projectRoot);
+  const resolved = resolve(projectAbs, posix);
+  const rel = relative(projectAbs, resolved);
+  if (!rel || rel.startsWith("..") || isAbsolute(rel)) return FALLBACK_INSTALL_ROOT;
+  try {
+    assertProjectionContained(projectAbs, resolved);
+  } catch (err) {
+    if (err instanceof ProjectionContainmentError) return FALLBACK_INSTALL_ROOT;
+    const code = (err as NodeJS.ErrnoException).code;
+    // Uncreated custom roots stay named so Doctor diagnoses that path, not .deft/core.
+    if (code === "ENOENT") return posix;
+    throw err;
+  }
+  return posix;
 }
 
 /**

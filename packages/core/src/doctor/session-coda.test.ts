@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { formatDoctorHelp } from "./help.js";
 import { cmdDoctor } from "./main.js";
 import {
@@ -269,6 +269,11 @@ describe("utcDateYmd + projectRootRealpath + help", () => {
 });
 
 describe("cmdDoctor session coda wiring (#2712)", () => {
+  const openclawHome = mkdtempSync(join(tmpdir(), "deft-coda-oc-"));
+  afterAll(() => {
+    rmSync(openclawHome, { recursive: true, force: true });
+  });
+
   function captureDoctor(
     args: string[],
     seams: Parameters<typeof cmdDoctor>[1],
@@ -293,6 +298,7 @@ describe("cmdDoctor session coda wiring (#2712)", () => {
     ciEnv: undefined as string | undefined,
     now: () => new Date("2026-08-12T12:00:00Z"),
     loadSessionCodas: () => SEED_CODAS,
+    openclawHomeDir: () => openclawHome,
   };
 
   it("default unset: interactive success ⇒ off-hint, no star", () => {
