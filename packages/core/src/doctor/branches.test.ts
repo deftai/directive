@@ -53,11 +53,20 @@ describe("manifest helpers", () => {
     }
   });
 
-  it("containDepositInstallRoot rejects an escaping symlink (#4162)", () => {
+  it("containDepositInstallRoot rejects an escaping symlink (#4162)", (ctx) => {
     const root = mkdtempSync(join(tmpdir(), "deft-contain-link-"));
     const outside = mkdtempSync(join(tmpdir(), "deft-contain-out-"));
     try {
-      symlinkSync(outside, join(root, "escape"));
+      try {
+        symlinkSync(outside, join(root, "escape"));
+      } catch (err) {
+        const code = (err as NodeJS.ErrnoException).code;
+        // SeCreateSymbolicLink is off without Developer Mode / admin (#4344).
+        if (process.platform === "win32" && (code === "EPERM" || code === "EACCES")) {
+          ctx.skip();
+        }
+        throw err;
+      }
       expect(containDepositInstallRoot(root, "escape")).toBe(FALLBACK_INSTALL_ROOT);
     } finally {
       rmSync(root, { recursive: true, force: true });

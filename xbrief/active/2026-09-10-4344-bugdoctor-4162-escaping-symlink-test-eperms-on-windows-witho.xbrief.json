@@ -1,0 +1,92 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4344",
+    "updated": "2026-09-10T22:22:28Z"
+  },
+  "plan": {
+    "title": "bug(doctor): #4162 escaping-symlink test EPERMs on Windows without Developer Mode",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(doctor): #4162 escaping-symlink test EPERMs on Windows without Developer Mode",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4344",
+      "Overview": "## Problem\nRelease `v0.115.0` Phase 4 Step 5 (`task check` / `verify:ac`) fails closed on Windows. `#4162` added `containDepositInstallRoot rejects an escaping symlink` in `packages/core/src/doctor/branches.test.ts`. `symlinkSync` throws `EPERM` unless Developer Mode / admin is on. The test has no platform skip.\n\nThis is the first cut that includes that test (not present at v0.114.0). Linux CI TypeScript is green; this host cannot create the symlink.\n\n`verify:ac` also targeted the just-completed leftover `#4162` brief (`#3357`) with `pnpm exec vitest run packages/core/src/doctor packages/core/src/migrate-preflight`.\n\n## Recurrence\nAny Windows `task check` / release Step 5 after `#4162` lands.\n\n## Acceptance\n- The escaping-symlink case still runs on platforms that can create the symlink.\n- On Windows without symlink privilege, the test skips or uses a non-EPERM fixture. It must not fail `task check`.\n- `pnpm exec vitest run packages/core/src/doctor packages/core/src/migrate-preflight` exits 0 on this Windows checkout.\n\n## Release\nv0.115.0 cut paused at Step 5. Do not `--skip-ci` as first recovery (#2859)."
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4344",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4344: bug(doctor): #4162 escaping-symlink test EPERMs on Windows without Developer Mode"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [
+        {
+          "command": "pnpm exec vitest run packages/core/src/doctor packages/core/src/migrate-preflight",
+          "source": "explicit",
+          "sourceSpan": "operator-stamp#4344"
+        }
+      ],
+      "literal_acceptance_rejected": [
+        {
+          "command": "task check",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        },
+        {
+          "command": "containDepositInstallRoot rejects an escaping symlink",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        }
+      ],
+      "swarm": {},
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5417611808,
+        "origin": "deftai/directive#4344",
+        "id": "github.issue.5417611808"
+      }
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/doctor packages/core/src/migrate-preflight"
+      ],
+      "none_stated": false,
+      "source_rung": "stated",
+      "derived_reason": "operator stamped the Windows vitest command after ingest marked none_stated (#3721 backticks)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "The escaping-symlink case still runs on platforms that can create the symlink.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "On Windows without symlink privilege, the test skips or uses a non-EPERM fixture. It must not fail `task check`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "`pnpm exec vitest run packages/core/src/doctor packages/core/src/migrate-preflight` exits 0 on this Windows checkout.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5417611808",
+    "updated": "2026-09-10T22:22:28Z"
+  }
+}
