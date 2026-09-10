@@ -32,6 +32,7 @@ describe("seedMinimalProjectDefinition (#3013)", () => {
     expect(parsed.plan?.title).toBe("PROJECT-DEFINITION");
     expect(Array.isArray(parsed.plan?.items)).toBe(true);
     expect(parsed.xBRIEFInfo?.version).toBeTruthy();
+    expect(JSON.stringify(parsed)).not.toMatch(/DeftVersion|deft_version/);
     expect(sink.lines.join("")).toMatch(/#3013|created|seed/i);
   });
 

@@ -1,5 +1,6 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { isAbsolute, join, relative, resolve } from "node:path";
+import { isPass2CommitPath } from "../init-deposit/hygiene.js";
 import { defaultWhich } from "../release/spawn.js";
 import { resolveCommandOnPath, spawnCommandText } from "../verify-env/command-spawn.js";
 import {
@@ -375,4 +376,158 @@ export function rehearseNpmInstallAndRun(
     true,
     `packed + installed 4 packages at v${version}; ran directive --version (exit 0) + doctor without module-not-found`,
   ];
+}
+
+export const PASS1_ABSENCE_LOCK_PATHS = [
+  "xbrief/PROJECT-DEFINITION.xbrief.json",
+  "xbrief/specification.xbrief.json",
+  "xbrief/plan.xbrief.json",
+] as const;
+
+const DIRECTIVE_SCOPE_PREFIX = "@deftai/directive";
+
+function isInsideWorkspace(cleanDir: string, workspaceRoot: string): boolean {
+  const rel = relative(resolve(workspaceRoot), resolve(cleanDir));
+  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
+}
+
+function xbriefStampFieldsPresent(raw: string): boolean {
+  return /"DeftVersion"\s*:/.test(raw) || /"deft_version"\s*:/.test(raw);
+}
+
+export function pass1AbsenceLocksPresent(projectDir: string): boolean {
+  for (const rel of PASS1_ABSENCE_LOCK_PATHS) {
+    const full = join(projectDir, rel);
+    if (!existsSync(full)) continue;
+    const raw = readFileSync(full, "utf8");
+    if (xbriefStampFieldsPresent(raw)) return false;
+  }
+  return true;
+}
+
+export function assertPass2Precondition(projectDir: string): void {
+  if (!pass1AbsenceLocksPresent(projectDir)) {
+    throw new Error(
+      "Pass 2 precondition failed: three absence locks are not present in the base tree",
+    );
+  }
+}
+
+export interface DirectivePackageManifest {
+  readonly path: string;
+  readonly name: string;
+  readonly version: string;
+}
+
+export function collectDirectivePackageManifests(installRoot: string): DirectivePackageManifest[] {
+  const results: DirectivePackageManifest[] = [];
+  const walk = (dir: string): void => {
+    try {
+      const entries = readdirSync(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const full = join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walk(full);
+          continue;
+        }
+        if (entry.name !== "package.json") continue;
+        try {
+          const data = JSON.parse(readFileSync(full, "utf8")) as {
+            name?: unknown;
+            version?: unknown;
+          };
+          if (typeof data.name === "string" && data.name.startsWith(DIRECTIVE_SCOPE_PREFIX)) {
+            results.push({
+              path: full,
+              name: data.name,
+              version: typeof data.version === "string" ? data.version : "",
+            });
+          }
+        } catch {
+          // skip malformed package.json
+        }
+      }
+    } catch {
+      return;
+    }
+  };
+  walk(installRoot);
+  return results;
+}
+
+export function assertTagBoundDirectiveVersions(installRoot: string, version: string): void {
+  const manifests = collectDirectivePackageManifests(installRoot);
+  if (manifests.length === 0) {
+    throw new Error("tag-bind FAIL: no @deftai/directive* package.json found");
+  }
+  for (const manifest of manifests) {
+    if (manifest.version !== version) {
+      throw new Error(
+        `tag-bind FAIL: ${manifest.path} name=${manifest.name} version=${manifest.version} !== ${version}`,
+      );
+    }
+  }
+}
+
+export interface PostPublishTwoPassOptions {
+  readonly cleanDir: string;
+  readonly workspaceRoot: string;
+  readonly version: string;
+  readonly consumerDir?: string;
+  readonly registryPackages?: readonly string[];
+  readonly pass2ChangedPaths?: readonly string[];
+  readonly skipInstall?: boolean;
+}
+
+const DEFAULT_REGISTRY_PACKAGES = [
+  "@deftai/directive-types",
+  "@deftai/directive-core",
+  "@deftai/directive-content",
+  "@deftai/directive",
+] as const;
+
+export function runPostPublishTwoPassFixture(
+  options: PostPublishTwoPassOptions,
+  seams: E2ESeams = {},
+): [boolean, string] {
+  if (isInsideWorkspace(options.cleanDir, options.workspaceRoot)) {
+    return [false, "two-pass fixture must run from a clean directory that is not this workspace"];
+  }
+  const which = resolveWhich(seams);
+  const npmPath = which("npm");
+  if (npmPath === null) {
+    return [false, "npm missing (hard fail)"];
+  }
+  const env: NodeJS.ProcessEnv = { ...process.env };
+  if (!options.skipInstall) {
+    const pkgs = options.registryPackages ?? DEFAULT_REGISTRY_PACKAGES;
+    const specs = pkgs.map((name) => `${name}@${options.version}`);
+    mkdirSync(options.cleanDir, { recursive: true });
+    const [ok, reason] = runNpmStep(
+      [npmPath, "install", ...specs],
+      options.cleanDir,
+      env,
+      "tag-bound registry install",
+      NPM_INSTALL_TIMEOUT_SECONDS,
+      seams,
+    );
+    if (!ok) return [false, reason];
+  }
+  try {
+    assertTagBoundDirectiveVersions(options.cleanDir, options.version);
+  } catch (exc) {
+    return [false, String(exc)];
+  }
+  const consumerDir = options.consumerDir ?? join(options.cleanDir, "consumer");
+  try {
+    assertPass2Precondition(consumerDir);
+  } catch (exc) {
+    return [false, String(exc)];
+  }
+  const changed = options.pass2ChangedPaths ?? [];
+  const illegal = changed.filter((path) => !isPass2CommitPath(path));
+  if (illegal.length > 0) {
+    return [false, `Pass 2 commit-set includes non-installer-managed paths: ${illegal.join(", ")}`];
+  }
+  return [true, `post-publish two-pass fixture green at v${options.version}`];
 }

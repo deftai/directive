@@ -606,8 +606,7 @@ omit = [
       "Strategy": "Use {strategy name} for this project",
       "Quality": "Run task check before every commit. Achieve >= {coverage}% coverage overall + per-module. Store secrets in secrets/ dir.",
       "ProjectRules": "{Any rules the user specified, or 'No project-specific rules defined.'}",
-      "Branching": "{If confirmed trunk-based: 'Trunk-based workflow', otherwise 'Branch-based workflow (default)'}",
-      "DeftVersion": "0.20.0"
+      "Branching": "{If confirmed trunk-based: 'Trunk-based workflow', otherwise 'Branch-based workflow (default)'}"
     },
     "items": []
   }
@@ -870,8 +869,9 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 
 ## Anti-Patterns
 
-- ! When deft-directive-setup generates or updates USER.md or PROJECT-DEFINITION.xbrief.json, the `deft_version` field MUST be set to the current framework version
-- ⊗ Generate a USER.md or PROJECT-DEFINITION.xbrief.json without including the `deft_version` field
+- ! When deft-directive-setup generates or updates USER.md, the `deft_version` field MUST be set to the current framework version. USER.md is the only artifact that carries this field.
+- ⊗ Generate a USER.md without including the `deft_version` field
+- ⊗ Write `deft_version` or `DeftVersion` into PROJECT-DEFINITION, specification, or plan xBRIEFs. Those stamps are retired (HASH4271). Specification `deft_version` has no framework seeding path; Pass 1 absence locks are the only control.
 - ⊗ Explore codebase before Phase 1 questions
 - ⊗ Read framework files before first question
 - ⊗ Batch multiple questions into one message — ask one at a time, interview style

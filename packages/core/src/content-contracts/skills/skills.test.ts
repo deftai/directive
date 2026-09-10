@@ -637,10 +637,10 @@ describe("test_skills", () => {
     const text = readSkill(_SETUP_PATH);
     expect(text).toContain("**deft_version**:");
   });
-  it("deft_setup_project_definition_template_has_deft_version", () => {
+  it("deft_setup_project_definition_template_has_no_deft_version", () => {
     const text = readSkill(_SETUP_PATH);
     expect(text).toContain("**deft_version**:");
-    expect(text).toContain('"DeftVersion"');
+    expect(text).not.toContain('"DeftVersion"');
   });
   it("deft_setup_stale_user_md_detection", () => {
     const text = readSkill(_SETUP_PATH);
