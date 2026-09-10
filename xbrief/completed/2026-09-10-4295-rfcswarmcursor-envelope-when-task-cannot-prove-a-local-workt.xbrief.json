@@ -1,0 +1,222 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4295",
+    "updated": "2026-09-10T14:39:08Z"
+  },
+  "plan": {
+    "title": "rfc(swarm,cursor): envelope when Task cannot prove a local worktree dest",
+    "status": "completed",
+    "narratives": {
+      "Description": "Cursor cannot start an isolated implement worker through Task. Extra dest keys never reach the hook, and rewriting dest fields does not move the child. Next-build is dest-placing Cursor that is not Task-dest: nursery inherit on a dest-rooted window, plus dest-rooted SDK Agent.create. The GitHub body three-envelope list is history, not the spec. Recut: next-build contract is not this body. Successor lean 5620250875.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4295",
+      "Overview": "Recut: GitHub issue body three-envelope list is history. Next-build is successor lean https://github.com/deftai/directive/issues/4295#issuecomment-5620250875. Bound remedy is the five plan items: nursery inherit dest, dest-rooted Agent.create, fence-in-place parked, Task has no local dest field (5611146439), dest-placing Cursor not dest-binding Task. Shipped in https://github.com/deftai/directive/pull/4322 merge 70a044052079dbcf0c68158adec2212aedc36a07.",
+      "Labels": "documentation, swarm, rfc, agent-experience, process, harness, design-critique:ingest-ready",
+      "UserStory": "As a Cursor parent, I want local implement children to start already rooted on a reserved linked worktree without Task dest fields, so that through-merge dispatch is not denied and the parent does not implement on the primary checkout.",
+      "ImplementationPlan": "1. Add a nursery inherit consult in the spawn-occupancy source file: when the Cursor window payload root is a non-primary linked worktree, mint a reservation and occupancy:grant, and deny parent product writes while the grant is live. 2. Document dest-rooted @cursor/sdk Agent.create with cwd set to the reserved worktree, reservation before exec, process-handle liveness, and a doctor check; recut host-cursor.md so local implement does not dispatch via Task. Add tests that Task dest keys stay unadvertised and fence-in-place stays parked."
+    },
+    "items": [
+      {
+        "title": "When the Cursor window payload root is a non-primary linked worktree of this repo, unoccupied except by this parent, treat that payload root as dest, mint a unique reservation, and admit the child through occupancy:grant. While that grant is live, deny parent product writes in that tree.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the bound remedy, when this clause is implemented, then the observable behavior in this title holds and tests or content-contract coverage verify it.",
+          "Traces": "Traces to successor lean 5620250875 Bound remedy on GitHub issue #4295. Recut: next-build is not the issue body."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/spawn-occupancy.test.ts#nurseryInherit + https://github.com/deftai/directive/pull/4322",
+          "recorded_at": "2026-09-10T16:38:31Z",
+          "recorded_by": "leaf-implementation/4295"
+        },
+        "x-directive/artifact_path": "packages/core/src/session/spawn-occupancy.ts"
+      },
+      {
+        "title": "Headless Cursor implement dispatch is dest-rooted @cursor/sdk Agent.create with local cwd set to the reserved worktree, reservation before exec, process-handle liveness, and a doctor check for the separate SDK auth.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the bound remedy, when this clause is implemented, then the observable behavior in this title holds and tests or content-contract coverage verify it.",
+          "Traces": "Traces to successor lean 5620250875 Bound remedy on GitHub issue #4295. Recut: next-build is not the issue body."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "packages/core/src/session/spawn-occupancy.ts Agent.create docs + doctor cursor-sdk-auth + https://github.com/deftai/directive/pull/4322",
+          "recorded_at": "2026-09-10T16:38:31Z",
+          "recorded_by": "leaf-implementation/4295"
+        },
+        "x-directive/artifact_path": "content/skills/deft-directive-swarm/references/core-phase-3.md"
+      },
+      {
+        "title": "Fence-in-place stays parked until Shell updated_input.cwd, Write/ApplyPatch path rewrite, and Composer visibility of gitignored .deft-scratch/worktrees/ are measured.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the bound remedy, when this clause is implemented, then the observable behavior in this title holds and tests or content-contract coverage verify it.",
+          "Traces": "Traces to successor lean 5620250875 Bound remedy on GitHub issue #4295. Recut: next-build is not the issue body."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/spawn-occupancy.ts FENCE_IN_PLACE_PARKED_UNTIL + https://github.com/deftai/directive/pull/4322",
+          "recorded_at": "2026-09-10T16:38:31Z",
+          "recorded_by": "leaf-implementation/4295"
+        },
+        "x-directive/artifact_path": "packages/core/src/session/spawn-occupancy.ts"
+      },
+      {
+        "title": "Cursor Task has no local dest field. A prompt token selects a trusted reservation record. It does not move the child. Comment 5611146439 stands.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the bound remedy, when this clause is implemented, then the observable behavior in this title holds and tests or content-contract coverage verify it.",
+          "Traces": "Traces to successor lean 5620250875 Bound remedy on GitHub issue #4295. Recut: next-build is not the issue body."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "content/skills/deft-directive-swarm/references/host-cursor.md comment 5611146439 + https://github.com/deftai/directive/pull/4322",
+          "recorded_at": "2026-09-10T16:38:31Z",
+          "recorded_by": "leaf-implementation/4295"
+        },
+        "x-directive/artifact_path": "content/skills/deft-directive-swarm/references/host-cursor.md"
+      },
+      {
+        "title": "Recut host-cursor.md so local implement does not dispatch via Task. Windows-local default means dest-placing Cursor, not dest-binding Task.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the bound remedy, when this clause is implemented, then the observable behavior in this title holds and tests or content-contract coverage verify it.",
+          "Traces": "Traces to successor lean 5620250875 Bound remedy on GitHub issue #4295. Recut: next-build is not the issue body."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "content/skills/deft-directive-swarm/references/host-cursor.md dest-placing + https://github.com/deftai/directive/pull/4322",
+          "recorded_at": "2026-09-10T16:38:31Z",
+          "recorded_by": "leaf-implementation/4295"
+        },
+        "x-directive/artifact_path": "content/skills/deft-directive-swarm/references/host-cursor.md"
+      }
+    ],
+    "tags": [
+      "documentation",
+      "swarm",
+      "rfc",
+      "agent-experience",
+      "process",
+      "harness",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4295",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4295: rfc(swarm,cursor): envelope when Task cannot prove a local worktree dest"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When the Cursor window payload root is a non-primary linked worktree of this repo, unoccupied except by this parent, treat that payload root as dest, mint a unique reservation, and admit the child through occupancy:grant. While that grant is live, deny parent product writes in that tree.",
+          "artifact_path": "packages/core/src/session/spawn-occupancy.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Headless Cursor implement dispatch is dest-rooted @cursor/sdk Agent.create with local cwd set to the reserved worktree, reservation before exec, process-handle liveness, and a doctor check for the separate SDK auth.",
+          "artifact_path": "content/skills/deft-directive-swarm/references/core-phase-3.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Fence-in-place stays parked until Shell updated_input.cwd, Write/ApplyPatch path rewrite, and Composer visibility of gitignored .deft-scratch/worktrees/ are measured.",
+          "artifact_path": "packages/core/src/session/spawn-occupancy.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Cursor Task has no local dest field. A prompt token selects a trusted reservation record. It does not move the child. Comment 5611146439 stands.",
+          "artifact_path": "content/skills/deft-directive-swarm/references/host-cursor.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Recut host-cursor.md so local implement does not dispatch via Task. Windows-local default means dest-placing Cursor, not dest-binding Task.",
+          "artifact_path": "content/skills/deft-directive-swarm/references/host-cursor.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5403154102,
+        "origin": "deftai/directive#4295",
+        "id": "github.issue.5403154102"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "6d21fd96375a475879a5a52b6ca95544996309edd8724149c7865feb2e4a159f"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/skills/deft-directive-swarm/references/host-cursor.md",
+          "content/skills/deft-directive-swarm/references/core-phase-0.md",
+          "content/skills/deft-directive-swarm/references/core-phase-3.md",
+          "content/templates/agent-prompt-preamble.md",
+          "packages/core/src/session/spawn-occupancy.ts",
+          "packages/core/src/session/spawn-occupancy.test.ts",
+          "packages/core/src/session/occupancy.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check",
+          "pnpm exec vitest run packages/core/src/session/spawn-occupancy.test.ts"
+        ],
+        "expected_outputs": [
+          "host-cursor.md local implement does not dispatch via Task",
+          "nursery inherit admits one Task child when the window is already the reserved worktree and denies parent product writes while the grant is live",
+          "SDK Agent.create path is documented dest-rooted with reservation before exec",
+          "fence-in-place stays parked; Task dest keys are not advertised as moving the child"
+        ],
+        "depends_on": [],
+        "conflict_group": "cursor-dest-placing",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Ingested from handmade-arc successor lean 5620250875 Bound remedy; GitHub body is history. No spec-section requirement trace applies."
+      },
+      "completedAt": "2026-09-10T16:59:46Z",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "prNumber": 4322,
+        "mergeCommit": "70a044052079dbcf0c68158adec2212aedc36a07",
+        "deliveryBranch": "master",
+        "deliveryCommit": "70a044052079dbcf0c68158adec2212aedc36a07",
+        "verifiedAt": "2026-09-10T16:59:46Z",
+        "verifier": "leaf-implementation/4295",
+        "disposition": "delivered",
+        "handoffState": "unknown",
+        "deployed": null,
+        "uatVerified": null
+      }
+    },
+    "id": "github.issue.5403154102",
+    "updated": "2026-09-10T14:39:08Z"
+  }
+}
