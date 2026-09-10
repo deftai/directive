@@ -34,9 +34,9 @@ export interface LifecycleHideFinding {
   readonly rule: string;
   readonly raw: string;
   /** Pathspec actually scanned when this hide was observed (#4310). */
-  readonly probe?: string;
+  readonly probe: string;
   /** Ignore-rule line that generated the derived probe, when known (#4310). */
-  readonly candidateRule?: string;
+  readonly candidateRule: string;
 }
 
 /** One derived check-ignore pathspec plus the ignore line that produced it. */
@@ -514,9 +514,7 @@ function formatFinding(finding: LifecycleHideFinding): string {
       finding.line === null
         ? `${finding.source}:${finding.rule}`
         : `${finding.source}:${finding.line}:${finding.rule}`;
-    const probe = finding.probe ?? finding.path;
-    const candidate = finding.candidateRule ?? finding.rule;
-    return `  ${finding.path}  ignored by ${loc} (derived probe ${probe}; candidate rule ${candidate})`;
+    return `  ${finding.path}  ignored by ${loc} (derived probe ${finding.probe}; candidate rule ${finding.candidateRule})`;
   }
   return `  ${finding.path}  ${finding.kind} (${finding.source})`;
 }
@@ -739,6 +737,8 @@ function collectIndexFlags(projectRoot: string, runGit: GitRunner): LifecycleHid
       line: null,
       rule: kind,
       raw: record,
+      probe: parsed.path,
+      candidateRule: kind,
     });
   }
   return findings;
@@ -761,9 +761,7 @@ export function formatLifecycleVisibleSessionLines(result: LifecycleVisibleResul
         finding.line === null
           ? `${finding.source}:${finding.rule}`
           : `${finding.source}:${finding.line}:${finding.rule}`;
-      const probe = finding.probe ?? finding.path;
-      const candidate = finding.candidateRule ?? finding.rule;
-      return `[deft lifecycle-visible] hidden ${finding.path}  (${loc}; probe ${probe}; candidate ${candidate})`;
+      return `[deft lifecycle-visible] hidden ${finding.path}  (${loc}; probe ${finding.probe}; candidate ${finding.candidateRule})`;
     }
     return `[deft lifecycle-visible] ${finding.kind} on ${finding.path}`;
   });
