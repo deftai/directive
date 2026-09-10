@@ -20,10 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Consumer AGENTS.md names the explicit-body docs-impact seed (#4293 / #1309).** Pointer: compose the template `Documentation impact` block, then `verify:docs-impact --body-file` on those same bytes (leftover-complete / finalize-cohort). `plan.policy.agentsMdBudget.absoluteMaxBytes` 17600→17725 for that pointer after composing with #4295.
+
 ### Fixed
 
 - **Cursor dest-missing deny names inspectSpawnDestination keys and shared recoveries (#4279).** Parent continues, assist/ephemeral, and plan lead on dest-missing; explore leads only on an already read-only spawn deny. Ritual notes on dest-missing are telemetry, not a recovery. Unmarked generalPurpose stays implement. Cursor Task isolation-key bind stays unbound until a PreToolUse measurement. Closes #4279.
 - **Yolo on the launching utterance confirms a posted all-accept design-critique map (#4308).** Standing for the arc; confirm conjunct only. `arc N yolo` still asks run posture. Recut-shaped maps stamp; ingest stays later. Closes #4308.
+- **Explicit PR bodies seed the docs-impact block and verify those same bytes before create (#4293).** github.md standing recipe, leftover-complete, and finalize-cohort compose `change_class` / `surfaces` / `rationale` into the body-file, then `verify:docs-impact --body-file` on that object. `--body` and `--fill` skip the template the same way. Does not add `scm:pr:create`. Closes #4293.
 - **Design-critique summaries state the problem and the accepted solution, not a Bound-remedy pointer (#4309).** A later reader can tell what broke and how the bound map solves it. The thin skill points at the Plain-language summary section. Live parent turns stay unenforced. Closes #4309.
 
 ### Removed

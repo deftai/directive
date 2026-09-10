@@ -3,8 +3,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  composeDocsImpactBody,
+  DOCS_IMPACT_SEED_BLOCK,
   detectClosedSurfaceChanges,
   docsImpactMain,
+  EXIT_IMPACT,
   evaluateDocsImpact,
   extractCommandIdsFromSources,
   extractHelpKeysFromSource,
@@ -16,6 +19,7 @@ import {
   RATIONALE_MAX_CHARS,
   restPullsPath,
   type SurfaceChange,
+  verifyDocsImpactBodyFile,
 } from "./docs-impact.js";
 
 const rationale = 'rationale: "Internal-only change."';
@@ -300,5 +304,42 @@ describe("docs-impact CLI transport", () => {
     });
     expect(code).toBe(2);
     expect(extractSkillIdsFromPack("null")).toEqual(new Set());
+  });
+});
+
+describe("explicit body seed then same-file verify (#4293)", () => {
+  const summaryOnly = "## Summary\nLand leftover completed-tracked artifact.\n\nCloses #4293\n";
+
+  it("fails a Summary/Closes body with no change_class the same way CI does", () => {
+    const parsed = parseDocsImpactDeclaration(summaryOnly);
+    expect(parsed.errors.some((e) => e.includes("missing documentation-impact declaration"))).toBe(
+      true,
+    );
+    const dir = mkdtempSync(join(tmpdir(), "docs-impact-summary-"));
+    const bodyPath = join(dir, "body.md");
+    writeFileSync(bodyPath, summaryOnly);
+    expect(
+      docsImpactMain(["--body-file", bodyPath, "--project-root", dir], {
+        runGit: () => ({ returncode: 0, stdout: "", stderr: "" }),
+      }),
+    ).toBe(EXIT_IMPACT);
+  });
+
+  it("seeds the template block and verifies those same bytes", () => {
+    const composed = composeDocsImpactBody(summaryOnly);
+    expect(composed).toContain("change_class: none");
+    expect(composed).toContain(DOCS_IMPACT_SEED_BLOCK.trim());
+    expect(parseDocsImpactDeclaration(composed).declaration).not.toBeNull();
+    const already = body("change_class: none\nsurfaces: none");
+    expect(composeDocsImpactBody(already)).toBe(already);
+    expect(composeDocsImpactBody(`${summaryOnly}   \n\n`)).toBe(composed);
+    const dir = mkdtempSync(join(tmpdir(), "docs-impact-seeded-"));
+    const bodyPath = join(dir, "body.md");
+    writeFileSync(bodyPath, composed);
+    expect(
+      verifyDocsImpactBodyFile(bodyPath, dir, {
+        runGit: () => ({ returncode: 0, stdout: "", stderr: "" }),
+      }),
+    ).toBe(0);
   });
 });
