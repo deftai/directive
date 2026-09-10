@@ -4,10 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { listChildOccupancyLeases, recordChildOccupancyLease } from "./child-occupancy.js";
-import {
-  applyWorktreeOccupancy,
-  evaluateOccupancyWriteGate,
-} from "./occupancy.js";
+import { applyWorktreeOccupancy, evaluateOccupancyWriteGate } from "./occupancy.js";
 import {
   allocatedWorktreeMatches,
   applyCursorNurseryOccupancy,

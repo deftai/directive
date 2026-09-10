@@ -363,7 +363,6 @@ function consultDeny(
   };
 }
 
-
 function consultCursorNurseryInherit(
   input: ConsultImplementSpawnOccupancyInput,
   payloadRoot: string,
@@ -978,7 +977,10 @@ export function applyCursorNurseryOccupancy(
     if (liveOccupancyGrants(occupant, at).length > 0) return gate;
     const existing = existingDispatchReservation(dest, dest);
     if (existing === null) return gate;
-    if (existing.parentId !== occupant.sessionId && existing.occupancyOwner !== occupant.sessionId) {
+    if (
+      existing.parentId !== occupant.sessionId &&
+      existing.occupancyOwner !== occupant.sessionId
+    ) {
       return gate;
     }
     const granted = grantOccupancyMembership(dest, {

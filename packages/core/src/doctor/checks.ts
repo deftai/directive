@@ -1442,9 +1442,7 @@ export function checkCoverageCheckResumePolicy(projectRoot: string): CheckResult
   };
 }
 
-export function checkCursorSdkAuth(
-  environ: NodeJS.ProcessEnv = process.env,
-): CheckResult {
+export function checkCursorSdkAuth(environ: NodeJS.ProcessEnv = process.env): CheckResult {
   const key = (environ.CURSOR_API_KEY ?? "").trim();
   const want = (environ.DEFT_CURSOR_SDK_LAUNCH ?? "").trim() === "1";
   if (key.length > 0) {
@@ -1548,7 +1546,7 @@ export function runChecksImpl(
   checks.push(checkCompletedLifecycleConsistency(projectRoot));
   checks.push(checkCompletedOpenItems(projectRoot));
   checks.push(checkCompletedUnguardedWrite(projectRoot));
-    checks.push(checkCursorSdkAuth());
+  checks.push(checkCursorSdkAuth());
   return {
     projectRoot,
     installRoot,
