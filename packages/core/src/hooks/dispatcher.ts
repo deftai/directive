@@ -1509,7 +1509,7 @@ function inspectMutationGates(
         env: actor.hostAuthoritative ? {} : environ,
         refresh: true,
       }),
-      actor.sessionId,
+      actor.sessionId ?? "",
     );
     occupancyWarning = finalOccupancy.warning;
     if (finalOccupancy.occupant !== null && actor.issue !== null) {
