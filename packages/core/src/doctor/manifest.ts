@@ -161,7 +161,10 @@ export function containDepositInstallRoot(
     assertProjectionContained(projectAbs, resolved);
   } catch (err) {
     if (err instanceof ProjectionContainmentError) return FALLBACK_INSTALL_ROOT;
-    return FALLBACK_INSTALL_ROOT;
+    const code = (err as NodeJS.ErrnoException).code;
+    // Uncreated custom roots stay named so Doctor diagnoses that path, not .deft/core.
+    if (code === "ENOENT") return posix;
+    throw err;
   }
   return posix;
 }

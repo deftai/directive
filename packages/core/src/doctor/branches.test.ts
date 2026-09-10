@@ -65,6 +65,16 @@ describe("manifest helpers", () => {
     }
   });
 
+  it("containDepositInstallRoot keeps an uncreated contained custom root (#4162)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-contain-missing-"));
+    try {
+      expect(containDepositInstallRoot(root, "custom-core")).toBe("custom-core");
+      expect(containDepositInstallRoot(root, "nested/install")).toBe("nested/install");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("isDeprecationRedirectStub", () => {
     expect(isDeprecationRedirectStub("<!-- deft:deprecated-redirect -->\n")).toBe(true);
     expect(isDeprecationRedirectStub("# real skill\n")).toBe(false);
