@@ -139,10 +139,7 @@ const DEFT_DIRECTIVE_DISABLE_MARKERS = [
   "no-deft-directive",
 ] as const;
 
-const STAMP_RETIREMENT_MARKERS = [
-  "No xBRIEF DeftVersion stamps",
-  "#4271",
-] as const;
+const STAMP_RETIREMENT_MARKERS = ["No xBRIEF DeftVersion stamps", "#4271"] as const;
 
 /**
  * Always-on hook-runtime lockout card (#3785). A session denied on exit 127
