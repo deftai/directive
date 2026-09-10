@@ -783,7 +783,7 @@ describe("cmdDoctor completed-open-items advisory mapping (#3372)", () => {
     mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
       join(root, "AGENTS.md"),
-      "<!-- deft:managed-section v3 sha=abc refreshed=x session=y -->\nmanaged\n<!-- /deft:managed-section -->\n",
+      "<!-- deft:managed-section v3 sha=abc refreshed=x sid=y -->\nmanaged\n<!-- /deft:managed-section -->\n",
       "utf8",
     );
     writeFileSync(join(root, "Taskfile.yml"), "version: '3'\n", "utf8");
@@ -1095,7 +1095,7 @@ describe("framework-layout split identities (#4162)", () => {
     seedEnvelope(root);
     writeFileSync(
       join(root, "AGENTS.md"),
-      "<!-- deft:managed-section v3 sha=abc refreshed=x session=y -->\nmanaged\n<!-- /deft:managed-section -->\n",
+      "<!-- deft:managed-section v3 sha=abc refreshed=x sid=y -->\nmanaged\n<!-- /deft:managed-section -->\n",
       "utf8",
     );
     writeFileSync(join(root, "Taskfile.yml"), "version: '3'\n", "utf8");
@@ -1130,7 +1130,7 @@ describe("framework-layout split identities (#4162)", () => {
     mkdirSync(deposit, { recursive: true });
     writeFileSync(
       join(root, "AGENTS.md"),
-      "<!-- deft:managed-section v3 sha=abc refreshed=x session=y -->\nmanaged\n<!-- /deft:managed-section -->\n",
+      "<!-- deft:managed-section v3 sha=abc refreshed=x sid=y -->\nmanaged\n<!-- /deft:managed-section -->\n",
       "utf8",
     );
     const stdout: string[] = [];
