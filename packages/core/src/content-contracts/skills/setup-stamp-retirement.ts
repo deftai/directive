@@ -112,19 +112,11 @@ export function unitInstructsXbriefStampRestore(unit: string): boolean {
   ) {
     return false;
   }
-  if (
-    USER_MD_HINT.test(unit) &&
-    /# User Preferences/.test(unit) &&
-    hasJsonStampKey(unit) === false
-  ) {
-    return false;
-  }
   if (hasJsonStampKey(unit)) return true;
   if (!STAMP_FIELD.test(unit) || !CANONICAL_XBRIEF.test(unit)) return false;
   if (/⊗|\bMUST NOT\b/.test(unit)) return false;
   if (/\bMUST\b/.test(unit) && /PROJECT-DEFINITION/.test(unit)) return true;
   if (/\b(generate|write|include|set)\b/i.test(unit) && CANONICAL_XBRIEF.test(unit)) {
-    if (/# User Preferences/.test(unit) && /\*\*deft_version\*\*/.test(unit)) return false;
     return true;
   }
   return false;
@@ -135,8 +127,15 @@ export function findRetiredStampRestoreInstructions(markdown: string): string[] 
 }
 
 export function assertSetupRetirementLocks(markdown: string): void {
+  if (markdown.includes(PACKS_RENDER_SKILLS_OUT_OF_SCOPE)) {
+    throw new Error(
+      `#4271 setup retirement lock: ${PACKS_RENDER_SKILLS_OUT_OF_SCOPE} is out of scope; after pack edit run ${PACK_TO_SKILL_REGEN} then ${PROJECTION_CONTROL}`,
+    );
+  }
   const hits = findRetiredStampRestoreInstructions(markdown);
   if (hits.length > 0) {
-    throw new Error("#4271 setup retirement lock: restore instruction for xBRIEF stamps");
+    throw new Error(
+      `#4271 setup retirement lock: restore instruction for xBRIEF stamps; specification deft_version seeding=${SPECIFICATION_DEFT_VERSION_SEEDING}`,
+    );
   }
 }

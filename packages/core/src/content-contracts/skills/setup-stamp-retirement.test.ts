@@ -61,6 +61,17 @@ describe("setup stamp retirement locks (#4271)", () => {
     expect(unitInstructsXbriefStampRestore(unit)).toBe(false);
   });
 
+  it("does not exempt a User Preferences section that also names PROJECT-DEFINITION", () => {
+    const markdown = [
+      "# User Preferences",
+      "",
+      "When generating PROJECT-DEFINITION.xbrief.json, set deft_version",
+    ].join("\n");
+    const units = markdownListAndSectionUnits(markdown);
+    expect(units).toHaveLength(1);
+    expect(unitInstructsXbriefStampRestore(units[0] ?? "")).toBe(true);
+  });
+
   it("fails a MUST-set mandate naming PROJECT-DEFINITION and deft_version", () => {
     const unit =
       "- ! When generating USER.md or PROJECT-DEFINITION.xbrief.json, the deft_version field MUST be set";
@@ -98,5 +109,19 @@ describe("setup stamp retirement locks (#4271)", () => {
 
   it("states specification deft_version has no framework seeding path", () => {
     expect(SPECIFICATION_DEFT_VERSION_SEEDING).toBe("none-pass1-absence-lock-only");
+  });
+
+  it("assertSetupRetirementLocks names packs:render referents and forbids render-skills", () => {
+    expect(() => assertSetupRetirementLocks("task packs:render-skills")).toThrow(
+      PACK_TO_SKILL_REGEN,
+    );
+    expect(() => assertSetupRetirementLocks("task packs:render-skills")).toThrow(
+      PROJECTION_CONTROL,
+    );
+    expect(() =>
+      assertSetupRetirementLocks(
+        "- When generating PROJECT-DEFINITION.xbrief.json, set deft_version",
+      ),
+    ).toThrow(SPECIFICATION_DEFT_VERSION_SEEDING);
   });
 });

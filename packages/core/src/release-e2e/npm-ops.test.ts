@@ -22,6 +22,7 @@ import {
   assertPass2Precondition,
   assertTagBoundDirectiveVersions,
   collectDirectivePackageManifests,
+  invokePostPublishTwoPassFromReleaseWorkflow,
   pass1AbsenceLocksPresent,
   rehearseNpmInstallAndRun,
   rehearseNpmPublish,
@@ -616,5 +617,32 @@ describe("Pass 2 absence-lock precondition (#4271)", () => {
       { which: () => "/usr/bin/npm" },
     );
     expect(bad).toBe(false);
+  });
+
+  it("npm-publish.yml invokes the fixture after the four publishes", () => {
+    const yml = readFileSync(join(process.cwd(), ".github/workflows/npm-publish.yml"), "utf8");
+    const rehearsal = readFileSync(
+      join(process.cwd(), "packages/core/src/release-e2e/rehearsal.ts"),
+      "utf8",
+    );
+    expect(yml).toContain("Post-publish two-pass fixture (#4271)");
+    expect(yml).toContain("--post-publish-two-pass");
+    expect(yml.indexOf("Publish @deftai/directive")).toBeLessThan(
+      yml.indexOf("Post-publish two-pass fixture (#4271)"),
+    );
+    expect(rehearsal).not.toContain("runPostPublishTwoPassFixture");
+    expect(rehearsal).not.toContain("invokePostPublishTwoPassFromReleaseWorkflow");
+  });
+
+  it("workflow helper seeds absence locks and stays off this workspace", () => {
+    const [okFlag, reason] = invokePostPublishTwoPassFromReleaseWorkflow(
+      "1.2.3",
+      process.cwd(),
+      { which: () => "/usr/bin/npm" },
+      true,
+    );
+    expect(okFlag).toBe(false);
+    expect(reason).not.toContain("not this workspace");
+    expect(reason).toMatch(/tag-bind FAIL|no @deftai\/directive/);
   });
 });

@@ -1,4 +1,12 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { isPass2CommitPath } from "../init-deposit/hygiene.js";
 import { defaultWhich } from "../release/spawn.js";
@@ -530,4 +538,45 @@ export function runPostPublishTwoPassFixture(
     return [false, `Pass 2 commit-set includes non-installer-managed paths: ${illegal.join(", ")}`];
   }
   return [true, `post-publish two-pass fixture green at v${options.version}`];
+}
+
+export function invokePostPublishTwoPassFromReleaseWorkflow(
+  version: string,
+  workspaceRoot: string,
+  seams: E2ESeams = {},
+  skipInstall = false,
+): [boolean, string] {
+  if (version.length === 0) {
+    return [false, "VERSION required"];
+  }
+  const cleanDir = mkdtempSync(join(tmpdir(), "deft-4271-two-pass-"));
+  const consumerDir = join(cleanDir, "consumer");
+  mkdirSync(join(consumerDir, "xbrief"), { recursive: true });
+  const body = `${JSON.stringify({ plan: { narratives: { Overview: "ok" } } })}\n`;
+  for (const rel of PASS1_ABSENCE_LOCK_PATHS) {
+    writeFileSync(join(consumerDir, rel), body, "utf8");
+  }
+  return runPostPublishTwoPassFixture(
+    {
+      cleanDir,
+      workspaceRoot,
+      version,
+      consumerDir,
+      skipInstall,
+    },
+    seams,
+  );
+}
+
+const npmOpsEntry = (process.argv[1] ?? "").replace(/\\/g, "/");
+if (/\/npm-ops\.[cm]?js$/.test(npmOpsEntry) && process.argv.includes("--post-publish-two-pass")) {
+  const flagAt = process.argv.indexOf("--post-publish-two-pass");
+  const raw = process.argv[flagAt + 1] ?? process.env.VERSION ?? "";
+  const version = raw.replace(/^v/, "");
+  const [ok, reason] = invokePostPublishTwoPassFromReleaseWorkflow(version, process.cwd());
+  if (!ok) {
+    console.error(reason);
+    process.exit(1);
+  }
+  console.log(reason);
 }
