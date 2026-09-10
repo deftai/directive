@@ -151,27 +151,45 @@ describe("doctor branch coverage boost", () => {
 
   it("cmdDoctor consumer layout skips scripts/ under deposit (#2022)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-doc-consumer-layout-"));
-    const framework = mkdtempSync(join(tmpdir(), "deft-doc-framework-layout-"));
     const deposit = join(root, ".deft", "core");
     try {
-      for (const dir of ["languages", "strategies", "skills", "templates", "tasks", "xbrief"]) {
+      for (const dir of ["languages", "strategies", "skills", "templates", "tasks"]) {
         mkdirSync(join(deposit, dir), { recursive: true });
       }
+      mkdirSync(join(deposit, "vbrief", "schemas"), { recursive: true });
+      mkdirSync(join(root, "xbrief"), { recursive: true });
       writeFileSync(
         join(root, "AGENTS.md"),
         "<!-- deft:managed-section v3 -->\n<!-- /deft:managed-section -->\n",
         "utf8",
       );
       writeFileSync(join(root, "Taskfile.yml"), "version: '3'\n", "utf8");
-      const code = cmdDoctor(["--full", "--json", "--project-root", root], {
-        frameworkRoot: framework,
-        whichFn: () => "/bin/x",
-        agentsRefreshPlan: () => ({ state: "current" }),
-      });
+      const stdout: string[] = [];
+      const origWrite = process.stdout.write.bind(process.stdout);
+      process.stdout.write = ((chunk: string | Uint8Array): boolean => {
+        stdout.push(typeof chunk === "string" ? chunk : chunk.toString());
+        return true;
+      }) as typeof process.stdout.write;
+      let code: number;
+      try {
+        code = cmdDoctor(["--full", "--json", "--project-root", root], {
+          frameworkRoot: deposit,
+          whichFn: () => "/bin/x",
+          agentsRefreshPlan: () => ({ state: "current" }),
+        });
+      } finally {
+        process.stdout.write = origWrite;
+      }
       expect(code).toBe(0);
+      const payload = JSON.parse(stdout.join("")) as {
+        findings?: Array<{ check?: string; directory?: string; message?: string }>;
+      };
+      const layout = (payload.findings ?? []).filter((f) => f.check === "framework-layout");
+      expect(layout.some((f) => f.directory === "xbrief")).toBe(false);
+      expect(layout.some((f) => f.directory === "scripts")).toBe(false);
+      expect(JSON.stringify(layout)).not.toContain("Missing directory: xbrief/");
     } finally {
       rmSync(root, { recursive: true, force: true });
-      rmSync(framework, { recursive: true, force: true });
     }
   });
 });

@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Doctor layout splits project lifecycle from the deposit schema pack (#4162).** A healthy consumer with project-root `xbrief/` plus deposit `vbrief/` no longer warns missing `xbrief/`. Layout rows name project-lifecycle, framework-content, or engine/deposit. `migrate:preflight` schema FAIL uses `vbrief/schemas` via shared `contentRoot()`. Closes #4162.
 - **Clean clone passes migrate-preflight and lifecycle-visible --enforce (#4310).** Schema lookup uses content-root plus existing trees (`content/vbrief/schemas`, flattened `vbrief/schemas`, project-root `xbrief/schemas`). Tracked `xbrief/pending/.gitkeep` survives clone. Lifecycle-visible derived probes require a convention-valid filename; canonical `*.premigrate.*` backup exclusions stay. Findings name the derived probe and candidate ignore rule. Closes #4310.
 - **Cursor Task dest-missing deny names explore or continue-in-parent, not Grok-only plan (#4321).** Closes #4321.
 - **Mutation session:start prints checkout, HEAD, and ahead/behind versus the default upstream (#4291).** Branch-sync now measures HEAD, not local main/master. Warns when behind, diverged, or 0-ahead/N-behind; fetch failure stays a warning with unknown counts. Does not refuse. Out of this number: mint/host rewrite, stranger worktree copy, shell honesty, and write versus gated doctor. Closes #4291.

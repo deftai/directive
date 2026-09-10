@@ -58,13 +58,10 @@ export function checkLayout(deftRoot: string, projectRoot: string): CheckResult 
   const schemasDir = resolveFrameworkSchemasDir(deftRoot, projectRoot);
   if (schemasDir === null) {
     const sourceOrDeposit = join(contentRoot(deftRoot), "vbrief", "schemas");
-    const projectSchemas = join(projectRoot, "xbrief", "schemas");
     return {
       name: "layout",
       status: "FAIL",
-      message:
-        `Framework schemas dir missing at ${sourceOrDeposit} ` +
-        `(also checked ${projectSchemas}). Refresh the deft checkout (see deft/QUICK-START.md).`,
+      message: `Framework schemas dir missing at ${sourceOrDeposit}. Refresh the deft checkout (see deft/QUICK-START.md).`,
     };
   }
 

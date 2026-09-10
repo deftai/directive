@@ -142,12 +142,25 @@ export const PAYLOAD_STALENESS_OFFLINE_SKIP_MESSAGE =
   "framework currency against your git remote and the npm registry " +
   "(discloses tool + registry before contacting either).";
 
-// Engine / lifecycle dirs that stay at the framework root (NOT relocated by
-// #1875). Shippable-content dirs moved under content/ -- see EXPECTED_CONTENT_DIRS.
-export const EXPECTED_FRAMEWORK_DIRS = ["tasks", "scripts", "xbrief"] as const;
+// Engine dirs that stay at the framework/deposit root (#4162). Project
+// lifecycle is project-root xbrief/; schema pack is contentRoot vbrief/schemas.
+// Do not list xbrief here — that was the false-name that warned consumers.
+export const EXPECTED_FRAMEWORK_DIRS = ["tasks", "scripts"] as const;
 
 /** npm consumer deposit after #2022 Phase 3 -- Python scripts/ tree is intentionally absent. */
-export const CONSUMER_FRAMEWORK_DIRS = ["tasks", "xbrief"] as const;
+export const CONSUMER_FRAMEWORK_DIRS = ["tasks"] as const;
+
+/** Tree identity for Doctor layout rows and JSON findings (#4162). */
+export const LAYOUT_TREE = {
+  PROJECT_LIFECYCLE: "project-lifecycle",
+  FRAMEWORK_CONTENT: "framework-content",
+  ENGINE_DEPOSIT: "engine/deposit",
+} as const;
+
+export type LayoutTree = (typeof LAYOUT_TREE)[keyof typeof LAYOUT_TREE];
+
+/** Shipped schema pack relative to contentRoot() (source: content/vbrief/schemas). */
+export const FRAMEWORK_SCHEMA_PACK_DIR = "vbrief/schemas" as const;
 
 // Post-#1875 content/ move: these framework-internal markers now live under
 // content/ in the SOURCE repo. They identify a deft source checkout (a consumer
