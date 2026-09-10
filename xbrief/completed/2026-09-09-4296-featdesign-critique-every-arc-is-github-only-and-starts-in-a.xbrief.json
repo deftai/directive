@@ -70,7 +70,10 @@
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "census only or already closed duplicate; recut did not require new product work",
-          "provenance": "human-origin",
+          "provenance": {
+          "kind": "operator-session",
+          "actor": "Scott"
+        },
           "recorded_at": "2026-09-10T00:10:24Z"
         }
       },
@@ -80,7 +83,10 @@
         "x-directive/disposition": {
           "disposition": "not_applicable",
           "reason": "census only or already closed duplicate; recut did not require new product work",
-          "provenance": "human-origin",
+          "provenance": {
+          "kind": "operator-session",
+          "actor": "Scott"
+        },
           "recorded_at": "2026-09-10T00:10:24Z"
         }
       },
