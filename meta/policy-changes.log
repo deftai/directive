@@ -258,3 +258,4 @@
 2026-09-09T13:27:26Z actor=agent:deft-directive-release allowDirectCommitsToMaster=true previous=False note=v0.113.2 release-cut changed=true
 2026-09-09T15:41:44Z actor=deft policy:enforce-branches allowDirectCommitsToMaster=false previous=True changed=true
 2026-09-10T01:22:22Z actor=deft policy:allow-direct-commits allowDirectCommitsToMaster=true previous=False changed=true
+2026-09-10T01:48:39Z actor=deft policy:enforce-branches allowDirectCommitsToMaster=false previous=True changed=true
