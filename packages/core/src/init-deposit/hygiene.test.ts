@@ -27,6 +27,7 @@ import {
   findPackageAbsentDepositPaths,
   findPackageAbsentDepositPathsSync,
   frameworkStagePaths,
+  GO_1430_DENYLIST_STATUS,
   type InstallerManagedMatcher,
   installerManagedGuardEre,
   installerManagedMatchers,
@@ -36,10 +37,12 @@ import {
   isInstallerManagedPath,
   isPackageJsonDirectivePinOnlyDiff,
   isPackageLockDirectivePinFollowThrough,
+  isPass2CommitPath,
   isPnpmLockDirectivePinFollowThrough,
   isTrackedDeletePath,
   isUpgradePinPathContentAllowed,
   isYarnLockDirectivePinFollowThrough,
+  pass2CommitSetMatchers,
   pnpmLockRootDirectDeps,
   prunePackageAbsentDepositPaths,
   pruneStrayDepositPaths,
@@ -1619,5 +1622,42 @@ describe("reconcileDepositToContentPackage fail-closed (#2913)", () => {
 
     // Restore perms so afterEach can clean up.
     chmodSync(lockedDir, 0o755);
+  });
+});
+
+describe("Pass 2 commit-set and #1430 peers (#4271)", () => {
+  it("names installerManagedMatchers as the Pass 2 commit-set referent", () => {
+    expect(pass2CommitSetMatchers()).toEqual(installerManagedMatchers());
+    expect(isPass2CommitPath("xbrief/.deft-version")).toBe(true);
+    expect(isPass2CommitPath(".deft/core/main.md")).toBe(true);
+    expect(isPass2CommitPath("xbrief/PROJECT-DEFINITION.xbrief.json")).toBe(false);
+    expect(isPass2CommitPath("xbrief/specification.xbrief.json")).toBe(false);
+    expect(isPass2CommitPath("xbrief/plan.xbrief.json")).toBe(false);
+  });
+
+  it("treats the Go denylist as frozen source-only", () => {
+    expect(GO_1430_DENYLIST_STATUS).toBe("frozen-source-only");
+  });
+
+  it("extends CONSUMER_GUARD_MUST_FIRE to specification and plan peers", () => {
+    expect(CONSUMER_GUARD_MUST_FIRE).toContain("vbrief/specification.vbrief.json");
+    expect(CONSUMER_GUARD_MUST_FIRE).toContain("vbrief/plan.vbrief.json");
+    expect(CONSUMER_GUARD_MUST_FIRE).toContain("xbrief/specification.xbrief.json");
+    expect(CONSUMER_GUARD_MUST_FIRE).toContain("xbrief/plan.xbrief.json");
+    for (const path of [
+      "vbrief/specification.vbrief.json",
+      "vbrief/plan.vbrief.json",
+      "xbrief/specification.xbrief.json",
+      "xbrief/plan.xbrief.json",
+    ]) {
+      expect(isInstallerManagedPath(path)).toBe(false);
+    }
+  });
+
+  it("fails closed if a specification or plan matcher is re-added", () => {
+    const poisoned = [...installerManagedMatchers(), { exact: "xbrief/specification.xbrief.json" }];
+    expect(() => assertInstallerAllowlistHonors1430(poisoned)).toThrow(/#1430 violation/);
+    const poisonedPlan = [...installerManagedMatchers(), { exact: "vbrief/plan.vbrief.json" }];
+    expect(() => assertInstallerAllowlistHonors1430(poisonedPlan)).toThrow(/#1430 violation/);
   });
 });

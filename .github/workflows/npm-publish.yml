@@ -140,3 +140,14 @@ jobs:
             npm view "${PKG}@${VER}" version >/dev/null
             echo "Already published ${PKG}@${VER}, continuing"
           }
+
+      # Bound-remedy 4 (#4271): after the four packages publish, run the
+      # two-pass fixture from a clean directory. Do not call rehearseNpmInstallAndRun.
+      - name: Post-publish two-pass fixture (#4271)
+        shell: bash
+        env:
+          VERSION: ${{ env.REF_NAME }}
+        run: |
+          set -euo pipefail
+          VERSION="${VERSION#v}"
+          node ./packages/core/dist/release-e2e/npm-ops.js --post-publish-two-pass "${VERSION}"

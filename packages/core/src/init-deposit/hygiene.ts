@@ -8,7 +8,11 @@
  * and scope briefs are never installer-managed; if they reappear in
  * `installerManagedMatchers()`, unit tests and deposit-time assert fail closed.
  *
- * Refs #1576, #1453, #1430, #3029, #3030, #3127, #3117, #3193, #3393.
+ * Pass 2 (#4271) commit-set referent is this module installerManagedMatchers().
+ * The frozen Go list in cmd/deft-install/deposit.go is not that referent
+ * (GO_1430_DENYLIST_STATUS is frozen source-only).
+ *
+ * Refs #1576, #1453, #1430, #3029, #3030, #3127, #3117, #3193, #3393, #4271.
  */
 
 import { execFileSync } from "node:child_process";
@@ -55,12 +59,24 @@ export interface InstallerManagedMatcher {
 export const CONSUMER_GUARD_MUST_FIRE: readonly string[] = [
   "xbrief/PROJECT-DEFINITION.xbrief.json",
   "vbrief/PROJECT-DEFINITION.vbrief.json",
+  // Canonical identity peers (#4271 / #1430): specification + plan, both spellings.
+  "xbrief/specification.xbrief.json",
+  "xbrief/plan.xbrief.json",
+  "vbrief/specification.vbrief.json",
+  "vbrief/plan.vbrief.json",
   // Representative consumer scope briefs (not scaffolding markers).
   "xbrief/active/example-scope.xbrief.json",
   "vbrief/active/example-scope.vbrief.json",
   "xbrief/proposed/example-scope.xbrief.json",
   "vbrief/pending/example-scope.vbrief.json",
 ];
+
+/**
+ * Go cmd/deft-install/deposit.go consumerGuardMustFire is a frozen
+ * source-only assertion (LAST_GO_INSTALLER). It is not kept in lockstep with
+ * this live TypeScript denylist and is not the Pass 2 commit-set referent (#4271).
+ */
+export const GO_1430_DENYLIST_STATUS = "frozen-source-only" as const;
 
 /** Exact managed multi-host skill pointer paths only (#75 Greptile P1). */
 function multiHostSkillDiscoveryManagedMatchers(): InstallerManagedMatcher[] {
@@ -166,6 +182,9 @@ const CONSUMER_SCOPE_BRIEF_EXACT =
 /** PROJECT-DEFINITION exact paths (xbrief or legacy vbrief). */
 const CONSUMER_PROJECT_DEFINITION_EXACT = /^(xbrief|vbrief)\/PROJECT-DEFINITION\.(x|v)brief\.json$/;
 
+/** Canonical specification/plan peers under xbrief/ or legacy vbrief/ (#4271). */
+const CONSUMER_CANONICAL_PEER_EXACT = /^(xbrief|vbrief)\/(specification|plan)\.(x|v)brief\.json$/;
+
 /**
  * Prefixes that would exempt entire consumer lifecycle trees or the whole
  * xbrief/vbrief tree — never installer-managed (#1430).
@@ -200,6 +219,7 @@ export function assertInstallerAllowlistHonors1430(
     if (matcher.exact) {
       if (
         CONSUMER_PROJECT_DEFINITION_EXACT.test(matcher.exact) ||
+        CONSUMER_CANONICAL_PEER_EXACT.test(matcher.exact) ||
         CONSUMER_SCOPE_BRIEF_EXACT.test(matcher.exact)
       ) {
         throw new Error(
@@ -237,6 +257,20 @@ export function installerManagedGuardEre(): string {
 
 export function isInstallerManagedPath(path: string): boolean {
   return matchesInstallerManaged(path, installerManagedMatchers());
+}
+
+/**
+ * Pass 2 (#4271) commit-set referent: TS installerManagedMatchers() in this
+ * file. Do not substitute the frozen Go matcher list.
+ */
+export function pass2CommitSetMatchers(): InstallerManagedMatcher[] {
+  return installerManagedMatchers();
+}
+
+/** True when a Pass 2 framework-only update may commit this path. */
+export function isPass2CommitPath(path: string): boolean {
+  const normalized = path.replace(/\\/g, "/");
+  return isInstallerManagedPath(normalized) || isCoreStagePath(normalized);
 }
 
 export interface MixedCoreAndAppClassification {

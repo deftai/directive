@@ -139,6 +139,8 @@ const DEFT_DIRECTIVE_DISABLE_MARKERS = [
   "no-deft-directive",
 ] as const;
 
+const STAMP_RETIREMENT_MARKERS = ["No xBRIEF DeftVersion stamps", "#4271"] as const;
+
 /**
  * Always-on hook-runtime lockout card (#3785). A session denied on exit 127
  * can still read files, so this card is the only channel that reaches it: it
@@ -885,6 +887,11 @@ describe("test_agents_entry_contract", () => {
   it("deft_directive_disable_markers_present_in_both_files", () => {
     expect(missingMarkers(template, DEFT_DIRECTIVE_DISABLE_MARKERS)).toEqual([]);
     expect(missingMarkers(agents, DEFT_DIRECTIVE_DISABLE_MARKERS)).toEqual([]);
+  });
+
+  it("stamp_retirement_markers_present_in_both_files (#4271)", () => {
+    expect(missingMarkers(template, STAMP_RETIREMENT_MARKERS)).toEqual([]);
+    expect(missingMarkers(agents, STAMP_RETIREMENT_MARKERS)).toEqual([]);
   });
 
   it("hook_runtime_unavailable_markers_present_in_both_files", () => {

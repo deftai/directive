@@ -19,9 +19,15 @@ import type { SpawnResult } from "../release/types.js";
 import * as commandSpawn from "../verify-env/command-spawn.js";
 import {
   alignNpmPackageVersions,
+  assertPass2Precondition,
+  assertTagBoundDirectiveVersions,
+  collectDirectivePackageManifests,
+  invokePostPublishTwoPassFromReleaseWorkflow,
+  pass1AbsenceLocksPresent,
   rehearseNpmInstallAndRun,
   rehearseNpmPublish,
   resolvePnpm,
+  runPostPublishTwoPassFixture,
 } from "./npm-ops.js";
 import type { E2ESeams } from "./types.js";
 
@@ -491,5 +497,198 @@ describe("rehearseNpmInstallAndRun (#1996)", () => {
     const [okFlag, reason] = rehearseNpmInstallAndRun(clone, "0.0.1", seams);
     expect(okFlag).toBe(false);
     expect(reason).toContain("directive --version exited 7");
+  });
+});
+
+describe("post-publish two-pass fixture (#4271)", () => {
+  it("hard-fails when npm is missing", () => {
+    const clean = mkdtempSync(join(tmpdir(), "deft-4271-clean-"));
+    const [okFlag, reason] = runPostPublishTwoPassFixture(
+      { cleanDir: clean, workspaceRoot: process.cwd(), version: "0.113.2", skipInstall: true },
+      { which: () => null },
+    );
+    expect(okFlag).toBe(false);
+    expect(reason).toContain("npm missing");
+    expect(reason).toContain("hard fail");
+  });
+
+  it("refuses this workspace as the clean directory", () => {
+    const [okFlag, reason] = runPostPublishTwoPassFixture(
+      { cleanDir: process.cwd(), workspaceRoot: process.cwd(), version: "0.113.2" },
+      { which: () => "/usr/bin/npm" },
+    );
+    expect(okFlag).toBe(false);
+    expect(reason).toContain("not this workspace");
+  });
+
+  it("does not call rehearseNpmInstallAndRun", () => {
+    const src = readFileSync(
+      join(process.cwd(), "packages/core/src/release-e2e/npm-ops.ts"),
+      "utf8",
+    );
+    const fn = src.slice(src.indexOf("export function runPostPublishTwoPassFixture"));
+    expect(fn).not.toContain("rehearseNpmInstallAndRun");
+  });
+});
+
+describe("tag-bind nested package.json versions (#4271)", () => {
+  it("asserts version === V on hoisted and nested manifests", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-4271-bind-"));
+    const writePkg = (dir: string, name: string, version: string): void => {
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, "package.json"), JSON.stringify({ name, version }));
+    };
+    writePkg(join(root, "node_modules", "@deftai", "directive"), "@deftai/directive", "1.2.3");
+    writePkg(
+      join(
+        root,
+        "node_modules",
+        "@deftai",
+        "directive-core",
+        "node_modules",
+        "@deftai",
+        "directive-types",
+      ),
+      "@deftai/directive-types",
+      "1.2.3",
+    );
+    expect(() => assertTagBoundDirectiveVersions(root, "1.2.3")).not.toThrow();
+    expect(collectDirectivePackageManifests(root).length).toBeGreaterThanOrEqual(2);
+    writePkg(
+      join(root, "node_modules", "@deftai", "directive-content"),
+      "@deftai/directive-content",
+      "9.9.9",
+    );
+    expect(() => assertTagBoundDirectiveVersions(root, "1.2.3")).toThrow(/tag-bind FAIL/);
+  });
+});
+
+describe("Pass 2 absence-lock precondition (#4271)", () => {
+  it("requires the three stamp fields to be absent before Pass 2", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-4271-abs-"));
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({ plan: { narratives: { Overview: "ok" } } }),
+    );
+    expect(pass1AbsenceLocksPresent(root)).toBe(true);
+    expect(() => assertPass2Precondition(root)).not.toThrow();
+    writeFileSync(
+      join(root, "xbrief", "specification.xbrief.json"),
+      JSON.stringify({ plan: { narratives: { DeftVersion: "0.20.0" } } }),
+    );
+    expect(pass1AbsenceLocksPresent(root)).toBe(false);
+    expect(() => assertPass2Precondition(root)).toThrow(/Pass 2 precondition/);
+  });
+
+  it("Pass 2 fixture is green when locks hold and commit-set is installer-managed", () => {
+    const clean = mkdtempSync(join(tmpdir(), "deft-4271-pass2-"));
+    const consumer = join(clean, "consumer");
+    mkdirSync(join(consumer, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(consumer, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({ plan: { narratives: { Overview: "ok" } } }),
+    );
+    mkdirSync(join(clean, "node_modules", "@deftai", "directive"), { recursive: true });
+    writeFileSync(
+      join(clean, "node_modules", "@deftai", "directive", "package.json"),
+      JSON.stringify({ name: "@deftai/directive", version: "1.2.3" }),
+    );
+    const [okFlag, reason] = runPostPublishTwoPassFixture(
+      {
+        cleanDir: clean,
+        workspaceRoot: process.cwd(),
+        version: "1.2.3",
+        skipInstall: true,
+        pass2ChangedPaths: [".deft/core/main.md", "AGENTS.md"],
+      },
+      { which: () => "/usr/bin/npm" },
+    );
+    expect(okFlag).toBe(true);
+    expect(reason).toContain("two-pass fixture green");
+    const [bad] = runPostPublishTwoPassFixture(
+      {
+        cleanDir: clean,
+        workspaceRoot: process.cwd(),
+        version: "1.2.3",
+        skipInstall: true,
+        pass2ChangedPaths: ["xbrief/PROJECT-DEFINITION.xbrief.json"],
+      },
+      { which: () => "/usr/bin/npm" },
+    );
+    expect(bad).toBe(false);
+  });
+
+  it("npm-publish.yml invokes the fixture after the four publishes", () => {
+    const yml = readFileSync(join(process.cwd(), ".github/workflows/npm-publish.yml"), "utf8");
+    const rehearsal = readFileSync(
+      join(process.cwd(), "packages/core/src/release-e2e/rehearsal.ts"),
+      "utf8",
+    );
+    expect(yml).toContain("Post-publish two-pass fixture (#4271)");
+    expect(yml).toContain("--post-publish-two-pass");
+    expect(yml.indexOf("Publish @deftai/directive")).toBeLessThan(
+      yml.indexOf("Post-publish two-pass fixture (#4271)"),
+    );
+    expect(rehearsal).not.toContain("runPostPublishTwoPassFixture");
+    expect(rehearsal).not.toContain("invokePostPublishTwoPassFromReleaseWorkflow");
+  });
+
+  it("workflow helper seeds absence locks and stays off this workspace", () => {
+    const [okFlag, reason] = invokePostPublishTwoPassFromReleaseWorkflow(
+      "1.2.3",
+      process.cwd(),
+      { which: () => "/usr/bin/npm" },
+      true,
+    );
+    expect(okFlag).toBe(false);
+    expect(reason).not.toContain("not this workspace");
+    expect(reason).toMatch(/tag-bind FAIL|no @deftai\/directive/);
+  });
+
+  it("live path runs installed directive update and inspects Pass 2 paths", () => {
+    const clean = mkdtempSync(join(tmpdir(), "deft-4271-live-"));
+    const consumer = join(clean, "consumer");
+    mkdirSync(join(consumer, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(consumer, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({ plan: { narratives: { Overview: "ok" } } }),
+    );
+    const pkgDir = join(clean, "node_modules", "@deftai", "directive");
+    mkdirSync(join(pkgDir, "dist"), { recursive: true });
+    writeFileSync(
+      join(pkgDir, "package.json"),
+      JSON.stringify({ name: "@deftai/directive", version: "1.2.3" }),
+    );
+    writeFileSync(join(pkgDir, "dist", "bin.js"), "export {};\n");
+    let sawUpdate = false;
+    const [okFlag, reason] = runPostPublishTwoPassFixture(
+      {
+        cleanDir: clean,
+        workspaceRoot: process.cwd(),
+        version: "1.2.3",
+        consumerDir: consumer,
+        skipInstall: false,
+      },
+      {
+        which: () => "/usr/bin/npm",
+        spawnText: (_cmd, args) => {
+          if (args.includes("update")) sawUpdate = true;
+          return { status: 0, stdout: "{}", stderr: "" };
+        },
+        runGit: (_root, args) => {
+          if (args.includes("--porcelain")) {
+            return { status: 0, stdout: " M .deft/core/main.md\n", stderr: "" };
+          }
+          return { status: 0, stdout: "", stderr: "" };
+        },
+      },
+    );
+    expect(okFlag).toBe(true);
+    expect(sawUpdate).toBe(true);
+    expect(reason).toContain("two-pass fixture green");
+    expect(existsSync(join(consumer, "package.json"))).toBe(true);
+    expect(readFileSync(join(consumer, "AGENTS.md"), "utf8")).toContain("deft:managed-section");
+    expect(existsSync(join(consumer, ".deft", "core", "main.md"))).toBe(true);
   });
 });
