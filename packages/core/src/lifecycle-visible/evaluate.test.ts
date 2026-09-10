@@ -790,6 +790,32 @@ describe("formatLifecycleVisibleSessionLines (#3505)", () => {
       "[deft lifecycle-visible] hidden xbrief/active/  (.gitignore:xbrief/active/; probe xbrief/active/; candidate xbrief/active/)",
     );
   });
+
+  it("omits empty probe and candidateRule instead of printing undefined", () => {
+    const lines = formatLifecycleVisibleSessionLines({
+      code: 0,
+      message: "x",
+      stream: "stdout",
+      findings: [
+        {
+          path: "xbrief/active/",
+          kind: "ignored",
+          source: ".git/info/exclude",
+          line: 24,
+          rule: "xbrief/active/",
+          raw: "x",
+          probe: "",
+          candidateRule: "",
+        },
+      ],
+      enforce: false,
+      failOpen: true,
+    });
+    expect(lines[0]).toBe(
+      "[deft lifecycle-visible] hidden xbrief/active/  (.git/info/exclude:24:xbrief/active/)",
+    );
+    expect(lines[0]).not.toMatch(/undefined/);
+  });
 });
 
 describe("evaluateLifecycleVisible live git fixtures (#3505)", () => {

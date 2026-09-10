@@ -761,7 +761,10 @@ export function formatLifecycleVisibleSessionLines(result: LifecycleVisibleResul
         finding.line === null
           ? `${finding.source}:${finding.rule}`
           : `${finding.source}:${finding.line}:${finding.rule}`;
-      return `[deft lifecycle-visible] hidden ${finding.path}  (${loc}; probe ${finding.probe}; candidate ${finding.candidateRule})`;
+      const named: string[] = [loc];
+      if (finding.probe) named.push(`probe ${finding.probe}`);
+      if (finding.candidateRule) named.push(`candidate ${finding.candidateRule}`);
+      return `[deft lifecycle-visible] hidden ${finding.path}  (${named.join("; ")})`;
     }
     return `[deft lifecycle-visible] ${finding.kind} on ${finding.path}`;
   });
