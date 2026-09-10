@@ -40,8 +40,12 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1443 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1447 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#4296** -- feat(design-critique): every arc is GitHub-only and starts in an arc worktree from origin/default -- `[completed]`
+- **#4289** -- bug(greptile-detector): new HTML summaries omit Last reviewed commit; SHA-match holdout stalls every review consumer -- `[completed]`
+- **#4286** -- bug(swarm,grok-build): parent-to-child steer must be a Directive inbox; host supplies no child prompt -- `[completed]`
+- **#4298** -- feat(design-critique): exclusive chips mechanism-shaped, in-progress, ingest-ready, decisions-needed -- `[completed]`
 - **#3785** -- bug(hooks): warn when a fail-closed hook registration travels without a hostable runtime -- `[completed]`
 - **#4284** -- bug(xbrief): completed #4258 brief uses invalid plan.items status complete -- `[completed]`
 - **#4258** -- bug(intake,design-critique): Recut lean still harvests issue-body AC; body rewrite looks like a new arc -- `[completed]`
@@ -63,8 +67,4 @@ _Showing 25 of 1443 completed scopes (newest first). Full history: lifecycle `co
 - **#4099** -- docs(features): add a capability map and verifiable documentation-impact contract -- `[completed]`
 - **#4099** -- docs(features): add a capability map and verifiable documentation-impact contract -- `[completed]`
 - **#4087** -- docs(architecture): rebuild architecture, concepts, and file maps for the current runtime tree -- `[completed]`
-- **#4119** -- bug(intake,lifecycle): issue:ingest omits stable plan.id and transitions admit it -- `[completed]`
-- **#4066** -- rfc(session,swarm): spawned work takes its own worktree; master occupancy is the exception and must be released -- `[completed]`
-- **#4086** -- docs(canon): remove residual legacy authority from current xBRIEF sources -- `[completed]`
-- **#4005** -- security: gate destination-visible empty-op Shell mutations under active UAT -- `[completed]`
 

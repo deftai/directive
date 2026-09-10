@@ -16,6 +16,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.114.0] - 2026-09-10
+
+> GitHub-only design-critique dests, grok-build parent-steer inbox, exclusive chips (mechanism-shaped / in-progress / ingest-ready), and Greptile thin-HTML SHA pinning.
+
+### Added
+
 - **Design-critique arcs are GitHub-only dest worktrees, not ingest and not dest-path skip (#4296).** `github-only` means no-ingest. Parent fetches and pins one dest at origin/<default> (or fetched PR head). Skip class is Grok stdin `process_only` or `plan`, not cwd. Children share dest cwd-without-occupy. Closes #4296. Refs #4072, #4241, #4066, #4297.
 - **Parent-steer inbox for grok-build leaves (#4286).** Parent writes a closed-schema inbox at `.deft-scratch/subagent-steer/<agent-id>.json`; the child reads it on each pollable slice and acks apply-once. Heartbeat sweep skips steer schema and only reads top-level `<agent-id>.json`. `verify:subagent-steer` exit 1 is `STEER_PENDING`, not `REDISPATCH_OK`. Does not replace split-dispatch. Closes #4286.
 
@@ -5919,7 +5931,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.113.2...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.114.0...HEAD
+[0.114.0]: https://github.com/deftai/directive/compare/v0.113.2...v0.114.0
 [0.113.2]: https://github.com/deftai/directive/compare/v0.113.1...v0.113.2
 [0.113.1]: https://github.com/deftai/directive/compare/v0.113.0...v0.113.1
 [0.113.0]: https://github.com/deftai/directive/compare/v0.112.0...v0.113.0
