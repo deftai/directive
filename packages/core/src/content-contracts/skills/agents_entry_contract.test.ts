@@ -140,8 +140,7 @@ const DEFT_DIRECTIVE_DISABLE_MARKERS = [
 ] as const;
 
 const STAMP_RETIREMENT_MARKERS = [
-  "USER.md may keep `deft_version`",
-  "DeftVersion",
+  "No xBRIEF DeftVersion stamps",
   "#4271",
 ] as const;
 
