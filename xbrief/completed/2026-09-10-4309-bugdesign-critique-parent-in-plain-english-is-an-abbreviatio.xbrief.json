@@ -1,0 +1,199 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4309",
+    "updated": "2026-09-10T16:51:32Z"
+  },
+  "plan": {
+    "title": "bug(design-critique): parent In plain English is an abbreviation, not the problem-and-solution reading",
+    "status": "completed",
+    "narratives": {
+      "Description": "Parent In plain English on the lean and the synthesis is too short when it only points at Bound-remedy ids. A later reader cannot tell what broke or how the bound map solves it. Both artifacts must state the problem and the accepted solution in ordinary language. The thin skill must point at the Plain-language summary section. Recut meaning is #4320, not this bind. Successor lean 5620856844.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4309",
+      "Overview": "Parent In plain English on the lean and the synthesis is too short when it only points at Bound-remedy ids. A later reader cannot tell what broke or how the bound map solves it. Both artifacts must state the problem and the accepted solution in ordinary language. The thin skill must point at the Plain-language summary section. Recut meaning is #4320, not this bind. Successor lean 5620856844.",
+      "Labels": "bug, agent-experience, process, design-critique:ingest-ready",
+      "UserStory": "As a later reader of a bound arc, I want the lean and the synthesis to state the problem and the accepted solution in ordinary language, so that I do not have to ask in chat for a reading the abbreviated pointer did not carry.",
+      "ImplementationPlan": "Shipped in PR 4323."
+    },
+    "items": [
+      {
+        "title": "Contract publishes that a summary which only points at Bound-remedy / comment ids is a miss, and that the problem and accepted solution must appear in ordinary language on both artifacts.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given successor lean 5620856844, when this clause is implemented, then the observable behavior in this title holds and content-contract tests verify it.",
+          "Traces": "Traces to successor lean 5620856844 accepted set F2,F4,F5,F6 and issue #4309 body Expected. F1 and F3 moved to #4320."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-09-10T16:38:33Z",
+          "recorded_by": "leaf-implementation/4309"
+        }
+      },
+      {
+        "title": "Thin skill pointer names ## Plain-language summary. Skill Plain English first in main-chat stays the widget surface (F5).",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given successor lean 5620856844, when this clause is implemented, then the observable behavior in this title holds and content-contract tests verify it.",
+          "Traces": "Traces to successor lean 5620856844 accepted set F2,F4,F5,F6 and issue #4309 body Expected. F1 and F3 moved to #4320."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-09-10T16:38:33Z",
+          "recorded_by": "leaf-implementation/4309"
+        }
+      },
+      {
+        "title": "Content-contract tests lock those sentences. Live parent turns stay unenforced. No prose-quality parser.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given successor lean 5620856844, when this clause is implemented, then the observable behavior in this title holds and content-contract tests verify it.",
+          "Traces": "Traces to successor lean 5620856844 accepted set F2,F4,F5,F6 and issue #4309 body Expected. F1 and F3 moved to #4320."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-09-10T16:38:33Z",
+          "recorded_by": "leaf-implementation/4309"
+        }
+      },
+      {
+        "title": "Non-normative rules stay: no implementer imperatives, no next-step field, ingest still reads the bound lean + table. F2/F4: do not put ingest-open protocol or Ingest may proceed under this 4309 summary; that is #4320.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given successor lean 5620856844, when this clause is implemented, then the observable behavior in this title holds and content-contract tests verify it.",
+          "Traces": "Traces to successor lean 5620856844 accepted set F2,F4,F5,F6 and issue #4309 body Expected. F1 and F3 moved to #4320."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-09-10T16:38:33Z",
+          "recorded_by": "leaf-implementation/4309"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4309",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4309: bug(design-critique): parent In plain English is an abbreviation, not the problem-and-solution reading"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Contract publishes that a summary which only points at Bound-remedy / comment ids is a miss, and that the problem and accepted solution must appear in ordinary language on both artifacts.",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Thin skill pointer names ## Plain-language summary. Skill Plain English first in main-chat stays the widget surface (F5).",
+          "artifact_path": "content/skills/deft-directive-design-critique/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Content-contract tests lock those sentences. Live parent turns stay unenforced. No prose-quality parser.",
+          "artifact_path": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Non-normative rules stay: no implementer imperatives, no next-step field, ingest still reads the bound lean + table. F2/F4: do not put ingest-open protocol or Ingest may proceed under this 4309 summary; that is #4320.",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5412666815,
+        "origin": "deftai/directive#4309",
+        "id": "github.issue.5412666815"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "6bf3bbe6f58380b5ed32c5fff29e085643d220bbb488bcfd973893058e22bb44"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/contracts/design-critique.md",
+          "content/skills/deft-directive-design-critique/SKILL.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
+        ],
+        "expected_outputs": [
+          "contract publishes pointer-only In plain English as a miss",
+          "thin skill names ## Plain-language summary without copying the rule body",
+          "content-contract tests lock those sentences",
+          "ingest-open and Recut-definition stay on #4320"
+        ],
+        "depends_on": [],
+        "conflict_group": "design-critique-plain-english",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Ingested from GitHub issue #4309 plus successor lean 5620856844. F1/F3 are #4320. No spec-section requirement trace applies."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4323,
+        "prBase": null,
+        "mergeCommit": "ec949ecbc4959c302e756c379f636ee6f169f9f0",
+        "deliveryBranch": "master",
+        "deliveryCommit": "ec949ecbc4959c302e756c379f636ee6f169f9f0",
+        "verifiedAt": "2026-09-10T16:51:32Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDhiZGUtZGQ2Yi03YTExLWIwMTgtYjJhZjhlYjk0MWQ1"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-10T16:51:32Z"
+      },
+      "completedAt": "2026-09-10T16:51:32Z",
+      "completedSessionId": "host:claude:v1:MDFhMDhiZGUtZGQ2Yi03YTExLWIwMTgtYjJhZjhlYjk0MWQ1",
+      "capacityBucket": "technical-debt"
+    },
+    "id": "github.issue.5412666815",
+    "updated": "2026-09-10T16:51:32Z"
+  }
+}
