@@ -135,6 +135,32 @@ export function parseDocsImpactDeclaration(body: string): {
   };
 }
 
+/** Template fields from .github/PULL_REQUEST_TEMPLATE.md (#4099 / #4293). */
+export const DOCS_IMPACT_SEED_BLOCK =
+  "## Documentation impact\n" +
+  "\n" +
+  "change_class: none\n" +
+  "surfaces: none\n" +
+  'rationale: "No closed user-doc surface added or removed."\n';
+
+/** Compose the template docs-impact block into an explicit PR body. */
+export function composeDocsImpactBody(body: string, seed: string = DOCS_IMPACT_SEED_BLOCK): string {
+  const parsed = parseDocsImpactDeclaration(body);
+  if (parsed.declaration !== null) return body;
+  const trimmed = body.replace(/\s+$/u, "");
+  if (trimmed.length === 0) return seed;
+  return `${trimmed}\n\n${seed}`;
+}
+
+/** Run the existing --body-file verifier on one path object (#4293). */
+export function verifyDocsImpactBodyFile(
+  bodyFile: string,
+  projectRoot: string,
+  seams: { runGh?: RunGhFn; runGit?: RunGitFn } = {},
+): number {
+  return docsImpactMain(["--body-file", bodyFile, "--project-root", projectRoot], seams);
+}
+
 function sliceAssignment(source: string, name: string): string {
   const match = new RegExp(`(?:export )?const ${name}\\b[^=]*=`).exec(source);
   if (match === null || match.index === undefined) return "";

@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -156,12 +156,16 @@ interface MockGitOpts {
   readonly onCommit?: () => void;
   readonly fetchFail?: boolean;
   readonly notAncestor?: boolean;
+  readonly closedSurfaceAdd?: boolean;
 }
 
 function mockRunGit(opts: MockGitOpts = {}): (command: readonly string[]) => TextCaptureResult {
   let currentBranch = "";
   return (command) => {
     const joined = command.join(" ");
+    if (opts.closedSurfaceAdd && joined.includes("diff") && joined.includes("--name-status")) {
+      return { returncode: 0, stdout: "A\tdocs-site/new.html\n", stderr: "" };
+    }
     if (joined.includes("git switch -c")) {
       currentBranch = command[command.length - 1] ?? "";
       return { returncode: 0, stdout: "", stderr: "" };
@@ -441,6 +445,43 @@ describe("finalizeCohort", () => {
     const baseIdx = createCall?.indexOf("--base") ?? -1;
     expect(baseIdx).toBeGreaterThanOrEqual(0);
     expect(createCall?.[baseIdx + 1]).toBe("develop");
+    expect(createCall?.includes("--body")).toBe(false);
+    const bodyFileIdx = createCall?.indexOf("--body-file") ?? -1;
+    expect(bodyFileIdx).toBeGreaterThanOrEqual(0);
+    const uploaded = readFileSync(createCall?.[bodyFileIdx + 1] ?? "", "utf8");
+    expect(uploaded).toContain("change_class:");
+    expect(uploaded).toContain("surfaces:");
+    expect(uploaded).toMatch(/rationale:\s*"/);
+    expect(uploaded).toContain("## Summary");
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("refuses PR create when the same body-file fails docs-impact (#4293)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-docs-impact-fail-"));
+    const storyPath = writeActiveStory(project, "story-docs-fail", 4293);
+    const ghCalls: string[][] = [];
+    const capturingRunGh: (command: readonly string[]) => TextCaptureResult = (cmd) => {
+      ghCalls.push([...cmd]);
+      if (cmd.includes("pr") && cmd.includes("create")) {
+        return {
+          returncode: 0,
+          stdout: "https://github.com/deftai/directive/pull/9999",
+          stderr: "",
+        };
+      }
+      return { returncode: 0, stdout: "", stderr: "" };
+    };
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      label: "story-docs-fail",
+      repo: "deftai/directive",
+      runGit: mockRunGit({ closedSurfaceAdd: true }),
+      runGh: capturingRunGh,
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.result.errors.some((e) => e.includes("verify:docs-impact"))).toBe(true);
+    expect(ghCalls.some((c) => c.includes("pr") && c.includes("create"))).toBe(false);
     rmSync(project, { recursive: true, force: true });
   });
 
