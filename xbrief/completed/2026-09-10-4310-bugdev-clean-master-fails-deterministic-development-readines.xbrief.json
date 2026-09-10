@@ -15,213 +15,87 @@
     "items": [
       {
         "title": "Bind #4310 only to the three re-verified clone-layout failures plus the migrate-preflight CLI fixture that encodes the defective schema layout.",
-        "status": "proposed",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/4336 merge 008150e4f50803309cb40c68a1bda7aab3d551c4",
-          "recorded_at": "2026-09-10T20:13:35Z",
-          "recorded_by": "host:grok:v1:MDFhMDhiMzItYzQ3OS03Y2UyLWE1OWYtMmUzZmU4NjBkODJh"
-        }
+        "status": "proposed"
       },
       {
         "title": "Leave #3770. Do not treat closed #4195 as this origin/upstream defect. Do not treat `check:merge` redness as a scope-discovery rule.",
-        "status": "proposed",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/4336 merge 008150e4f50803309cb40c68a1bda7aab3d551c4",
-          "recorded_at": "2026-09-10T20:13:35Z",
-          "recorded_by": "host:grok:v1:MDFhMDhiMzItYzQ3OS03Y2UyLWE1OWYtMmUzZmU4NjBkODJh"
-        }
+        "status": "proposed"
       },
       {
         "title": "Schema repair is an ordered existence lookup over layouts that already exist, using the established content-root boundary: source `content/vbrief/schemas`, flattened deposit `vbrief/schemas`, consumer project-root `xbrief/schemas`. Move fixtures with that lookup. Do not add `content/xbrief/schemas`.",
-        "status": "proposed",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/4336 merge 008150e4f50803309cb40c68a1bda7aab3d551c4",
-          "recorded_at": "2026-09-10T20:13:35Z",
-          "recorded_by": "host:grok:v1:MDFhMDhiMzItYzQ3OS03Y2UyLWE1OWYtMmUzZmU4NjBkODJh"
-        }
+        "status": "proposed"
       },
       {
         "title": "#4162 remains the doctor consumer-root warning, not this preflight path.",
-        "status": "proposed",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/4336 merge 008150e4f50803309cb40c68a1bda7aab3d551c4",
-          "recorded_at": "2026-09-10T20:13:35Z",
-          "recorded_by": "host:grok:v1:MDFhMDhiMzItYzQ3OS03Y2UyLWE1OWYtMmUzZmU4NjBkODJh"
-        }
+        "status": "proposed"
       },
       {
         "title": "Keep the canonical `*.premigrate.*` gitignore lines. Lifecycle-visible emits a derived probe only when the expanded concrete name is convention-valid, and keeps the existing January sentinels so `*.xbrief.json` still fails. Do not special-case the word `premigrate`.",
-        "status": "proposed",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/4336 merge 008150e4f50803309cb40c68a1bda7aab3d551c4",
-          "recorded_at": "2026-09-10T20:13:35Z",
-          "recorded_by": "host:grok:v1:MDFhMDhiMzItYzQ3OS03Y2UyLWE1OWYtMmUzZmU4NjBkODJh"
-        }
+        "status": "proposed"
       },
       {
         "title": "A lifecycle-visible finding names its derived probe and the candidate ignore rule, not only the rule git last-matched. The enforce line must not tell the operator to delete those backup exclusions.",
-        "status": "proposed",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/4336 merge 008150e4f50803309cb40c68a1bda7aab3d551c4",
-          "recorded_at": "2026-09-10T20:13:35Z",
-          "recorded_by": "host:grok:v1:MDFhMDhiMzItYzQ3OS03Y2UyLWE1OWYtMmUzZmU4NjBkODJh"
-        }
+        "status": "proposed"
       },
       {
         "title": "Remote-name preference (`origin` / `upstream`) and `arc-dest.ts` origin-default names are out of this issue. They need repository-identity and fail-closed base selection, not a name preference.",
-        "status": "proposed",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/4336 merge 008150e4f50803309cb40c68a1bda7aab3d551c4",
-          "recorded_at": "2026-09-10T20:13:35Z",
-          "recorded_by": "host:grok:v1:MDFhMDhiMzItYzQ3OS03Y2UyLWE1OWYtMmUzZmU4NjBkODJh"
-        }
+        "status": "proposed"
       },
       {
         "title": "The Stop 1 refutation-target sentence was inert under open critique and was not any critic's target. Do not carry that sentence forward as a finding-grade claim.",
-        "status": "proposed",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/4336 merge 008150e4f50803309cb40c68a1bda7aab3d551c4",
-          "recorded_at": "2026-09-10T20:13:35Z",
-          "recorded_by": "host:grok:v1:MDFhMDhiMzItYzQ3OS03Y2UyLWE1OWYtMmUzZmU4NjBkODJh"
-        }
+        "status": "proposed"
       },
       {
         "title": "1 recorded scope and acceptance criteria are different sets — accept-into-contract",
-        "status": "proposed",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/4336 merge 008150e4f50803309cb40c68a1bda7aab3d551c4",
-          "recorded_at": "2026-09-10T20:13:35Z",
-          "recorded_by": "host:grok:v1:MDFhMDhiMzItYzQ3OS03Y2UyLWE1OWYtMmUzZmU4NjBkODJh"
-        }
+        "status": "proposed"
       },
       {
         "title": "2 AC 3 names a rule class the checker already ignores — accept-into-contract",
-        "status": "proposed",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/4336 merge 008150e4f50803309cb40c68a1bda7aab3d551c4",
-          "recorded_at": "2026-09-10T20:13:35Z",
-          "recorded_by": "host:grok:v1:MDFhMDhiMzItYzQ3OS03Y2UyLWE1OWYtMmUzZmU4NjBkODJh"
-        }
+        "status": "proposed"
       },
       {
         "title": "3 amendment item 3 and arc-dest are one defect — accept-into-contract",
-        "status": "proposed",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/4336 merge 008150e4f50803309cb40c68a1bda7aab3d551c4",
-          "recorded_at": "2026-09-10T20:13:35Z",
-          "recorded_by": "host:grok:v1:MDFhMDhiMzItYzQ3OS03Y2UyLWE1OWYtMmUzZmU4NjBkODJh"
-        }
+        "status": "proposed"
       },
       {
         "title": "4 AC 2 and #4162 both claim the consumer-deposit layout — accept-into-contract",
-        "status": "proposed",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/4336 merge 008150e4f50803309cb40c68a1bda7aab3d551c4",
-          "recorded_at": "2026-09-10T20:13:35Z",
-          "recorded_by": "host:grok:v1:MDFhMDhiMzItYzQ3OS03Y2UyLWE1OWYtMmUzZmU4NjBkODJh"
-        }
+        "status": "proposed"
       },
       {
         "title": "5 Stop 1 refutation target under open critique — accept-into-contract",
-        "status": "proposed",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/4336 merge 008150e4f50803309cb40c68a1bda7aab3d551c4",
-          "recorded_at": "2026-09-10T20:13:35Z",
-          "recorded_by": "host:grok:v1:MDFhMDhiMzItYzQ3OS03Y2UyLWE1OWYtMmUzZmU4NjBkODJh"
-        }
+        "status": "proposed"
       },
       {
         "title": "6 the check reports paths that do not exist — accept-into-contract",
-        "status": "proposed",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/4336 merge 008150e4f50803309cb40c68a1bda7aab3d551c4",
-          "recorded_at": "2026-09-10T20:13:35Z",
-          "recorded_by": "host:grok:v1:MDFhMDhiMzItYzQ3OS03Y2UyLWE1OWYtMmUzZmU4NjBkODJh"
-        }
+        "status": "proposed"
       },
       {
         "title": "1 check:merge leftovers cannot ride the clone-layout lean — accept-into-contract",
-        "status": "proposed",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/4336 merge 008150e4f50803309cb40c68a1bda7aab3d551c4",
-          "recorded_at": "2026-09-10T20:13:35Z",
-          "recorded_by": "host:grok:v1:MDFhMDhiMzItYzQ3OS03Y2UyLWE1OWYtMmUzZmU4NjBkODJh"
-        }
+        "status": "proposed"
       },
       {
         "title": "2 schema repair is lookup over existing trees — accept-into-contract",
-        "status": "proposed",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/4336 merge 008150e4f50803309cb40c68a1bda7aab3d551c4",
-          "recorded_at": "2026-09-10T20:13:35Z",
-          "recorded_by": "host:grok:v1:MDFhMDhiMzItYzQ3OS03Y2UyLWE1OWYtMmUzZmU4NjBkODJh"
-        }
+        "status": "proposed"
       },
       {
         "title": "3 hide detection must use convention-valid names — accept-into-contract",
-        "status": "proposed",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/4336 merge 008150e4f50803309cb40c68a1bda7aab3d551c4",
-          "recorded_at": "2026-09-10T20:13:35Z",
-          "recorded_by": "host:grok:v1:MDFhMDhiMzItYzQ3OS03Y2UyLWE1OWYtMmUzZmU4NjBkODJh"
-        }
+        "status": "proposed"
       },
       {
         "title": "1 check:merge is integration evidence, not a scope-discovery rule — accept-into-contract",
-        "status": "proposed",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/4336 merge 008150e4f50803309cb40c68a1bda7aab3d551c4",
-          "recorded_at": "2026-09-10T20:13:35Z",
-          "recorded_by": "host:grok:v1:MDFhMDhiMzItYzQ3OS03Y2UyLWE1OWYtMmUzZmU4NjBkODJh"
-        }
+        "status": "proposed"
       },
       {
         "title": "2 a remote named upstream is not trusted repository identity — accept-into-contract",
-        "status": "proposed",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/4336 merge 008150e4f50803309cb40c68a1bda7aab3d551c4",
-          "recorded_at": "2026-09-10T20:13:35Z",
-          "recorded_by": "host:grok:v1:MDFhMDhiMzItYzQ3OS03Y2UyLWE1OWYtMmUzZmU4NjBkODJh"
-        }
+        "status": "proposed"
       },
       {
         "title": "3 reuse the established content-root boundary for schema resolution — accept-into-contract",
-        "status": "proposed",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/4336 merge 008150e4f50803309cb40c68a1bda7aab3d551c4",
-          "recorded_at": "2026-09-10T20:13:35Z",
-          "recorded_by": "host:grok:v1:MDFhMDhiMzItYzQ3OS03Y2UyLWE1OWYtMmUzZmU4NjBkODJh"
-        }
+        "status": "proposed"
       },
       {
         "title": "4 test lifecycle ignores against the filename language — accept-into-contract",
-        "status": "proposed",
-        "x-directive/evidence": {
-          "kind": "merge",
-          "pointer": "https://github.com/deftai/directive/pull/4336 merge 008150e4f50803309cb40c68a1bda7aab3d551c4",
-          "recorded_at": "2026-09-10T20:13:35Z",
-          "recorded_by": "host:grok:v1:MDFhMDhiMzItYzQ3OS03Y2UyLWE1OWYtMmUzZmU4NjBkODJh"
-        }
+        "status": "proposed"
       }
     ],
     "references": [
@@ -414,6 +288,26 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "256803e142f713775ffcbf287265785d32903acb84eee591efa2b602e3cbdbb5"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-10T20:22:15Z"
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4336,
+        "prBase": null,
+        "mergeCommit": "008150e4f50803309cb40c68a1bda7aab3d551c4",
+        "deliveryBranch": "master",
+        "deliveryCommit": "008150e4f50803309cb40c68a1bda7aab3d551c4",
+        "verifiedAt": "2026-09-10T20:22:15Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMDhiMzItYzQ3OS03Y2UyLWE1OWYtMmUzZmU4NjBkODJh"
       }
     },
     "id": "github.issue.5412750540",
