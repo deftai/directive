@@ -91,11 +91,27 @@ export function isReadOnlyHookContext(
   return hookReadOnlyFromPayload(payload);
 }
 
+/**
+ * Shared spawn-class recovery for dest-missing and read-only spawn denials (#4279).
+ * Do not lead with explore: dest-missing callers were just classified implement.
+ */
+export const SPAWN_CLASS_RECOVERY =
+  "Continue in the parent, or spawn with assist / ephemeral markers for scratch, " +
+  "or subagent_type plan. Use subagent_type explore only when the spawn is actually " +
+  "read-only research.";
+
+/** Same recovery inventory as SPAWN_CLASS_RECOVERY, ordered for an already read-only spawn. */
+export const SPAWN_READ_ONLY_RECOVERY =
+  "Use subagent_type explore for this read-only spawn, or subagent_type plan, " +
+  "or assist / ephemeral markers for scratch. Continue in the parent only when " +
+  "the remaining work stays read-only.";
+
 /** Explore sub-agent spawns are exempt from the implementation gate stack (#1185). */
 export function isExploreSpawn(payload: unknown): boolean {
   const input = record(payload);
   if (input === null) return false;
   const toolInput = toolInputRecord(input) ?? input;
+  if (hasImplementConflictSignal(toolInput, input)) return false;
   const subagentType =
     fieldString(toolInput, "subagent_type") ??
     fieldString(toolInput, "subagentType") ??

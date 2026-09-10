@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyWorktreeOccupancy } from "../session/occupancy.js";
 import { readSpawnReservationIncarnation } from "../session/spawn-occupancy.js";
 import { decideHook, type HookPolicySeams, spawnToolArgUpdatedInput } from "./index.js";
+import { isExploreSpawn, SPAWN_CLASS_RECOVERY } from "./readonly.js";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -608,5 +609,97 @@ describe("Grok-applied spawn_subagent handler-runtime identity (#4272)", () => {
       ),
     ).toBeUndefined();
     expect(spawnToolArgUpdatedInput(null, "/wt", "inc-1")).toBeUndefined();
+  });
+});
+
+describe("Cursor Task dest-missing deny honesty (#4279)", () => {
+  it("keeps unmarked generalPurpose fail-closed and does not lead recoveries with explore", () => {
+    const inspectRitual = vi.fn(() => ({
+      ...STALE_RITUAL,
+      message: "ritual state is stale (older than 4h). Rearm does not clear dest-missing.",
+    }));
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Task",
+          tool_input: { subagent_type: "generalPurpose", prompt: "implement" },
+        },
+        environ: { DEFT_SESSION_ID: "parent-1" },
+      },
+      readySeams({ inspectRitual }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toContain(SPAWN_CLASS_RECOVERY);
+    const parentIdx = decision.message.indexOf("Continue in the parent");
+    const exploreIdx = decision.message.search(/subagent_type explore/i);
+    expect(parentIdx).toBeGreaterThanOrEqual(0);
+    expect(exploreIdx).toBeGreaterThan(parentIdx);
+    for (const key of [
+      "worktree_path",
+      "worktreePath",
+      "worktree",
+      "cwd",
+      "working_directory",
+      "workingDirectory",
+      "workdir",
+    ]) {
+      expect(decision.message).toContain(key);
+    }
+    expect(decision.message).toContain("tool_input.isolation=worktree");
+    expect(decision.message).toContain("ritual telemetry (does not clear dest-missing)");
+    expect(decision.message).toContain("ritual state is stale");
+    expect(decision.message).not.toMatch(/Also ritual-not-ready:/);
+    expect(inspectRitual).toHaveBeenCalled();
+  });
+
+  it("does not explore-allow when implement conflict signals are present", () => {
+    expect(
+      isExploreSpawn({
+        tool_name: "Task",
+        tool_input: { subagent_type: "explore", drive_to: "merge-ready" },
+      }),
+    ).toBe(false);
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Task",
+          tool_input: { subagent_type: "explore", drive_to: "merge-ready" },
+        },
+        environ: { DEFT_SESSION_ID: "parent-1" },
+      },
+      readySeams(),
+    );
+    expect(decision.code).not.toBe("spawn-explore-ready");
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+  });
+
+  it("shares the recovery inventory on the read-only spawn deny, explore first", () => {
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Task",
+          tool_input: { subagent_type: "generalPurpose", isolation: "worktree" },
+        },
+        environ: { DEFT_HOOK_READ_ONLY: "1" },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "read-only-deny" });
+    expect(decision.message).toMatch(/subagent_type explore/);
+    expect(decision.message).toMatch(/subagent_type plan/);
+    expect(decision.message).toMatch(/assist \/ ephemeral/);
+    const parentIdx = decision.message.indexOf("Continue in the parent");
+    const exploreIdx = decision.message.search(/subagent_type explore/i);
+    expect(exploreIdx).toBeGreaterThanOrEqual(0);
+    expect(parentIdx).toBeGreaterThan(exploreIdx);
   });
 });
