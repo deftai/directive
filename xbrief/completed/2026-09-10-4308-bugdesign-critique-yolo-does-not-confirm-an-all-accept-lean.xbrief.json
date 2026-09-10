@@ -1,0 +1,215 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4308",
+    "updated": "2026-09-10T12:12:05Z"
+  },
+  "plan": {
+    "title": "bug(design-critique): yolo does not confirm an all-accept lean, so parents wait after empty disagreement",
+    "status": "completed",
+    "narratives": {
+      "Description": "Published design-critique SoT requires a later operator confirm of a posted all-accept map, and yolo is not that confirm today. Parents that follow the contract wait after empty disagreement; yolo on the launching utterance must stamp without a second Accept widget.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4308",
+      "Overview": "## Problem\n\n`arc <N> yolo` is standing auto-pilot for the design-critique motion. When the parent has no differences with the critic (posted successor lean is total, every heading `accept-into-contract`, no `disagree` / `defer`), yolo is the confirm and #3640 auto-stamp must run. The parent that follows today's published SoT waits for a second Accept instead.\n\nField instance: #4293 (2026-09-09). Operator: `arc 4293 yolo and label`, then `1 github-only`. Parent posted an all-accept recut lean (comment 5611749608), printed Accept / Halt / Discuss / Back, and stopped. Operator had to ask why yolo did not accept. Auto-stamp ran only after that prompt.\n\n## Root cause\n\nThe yolo-as-confirm-on-empty-disagreement rule is unpublished. The published conjunct forbids the expected behavior.\n\nMeasured on the contract and thin skill:\n\n- Auto-bind / Operator verbs / Bind path 1 all require `the operator has confirmed or amended that map`.\n- `\u2297 Auto-stamp a parent-drafted all-accept map that the operator has not confirmed or amended.`\n- `\u2297 Infer accept-synthesis from looks-good, ok, proceed, or bare **accept**.` Yolo is not in that refuse list and is not mapped onto confirm either. It is a front-door token, not a post-lean verb.\n- Thin skill: `Auto-stamp after operator confirm` and `the operator confirms or amends before bind or stamp`. The skill never names yolo.\n- Contract yolo mentions are only: yolo does not pick run posture (`arc <N> yolo` asks before Stop 1); on a dispatch-composition miss, yolo files a prevention issue.\n- Content-contract tests lock the confirm conjunct and the unconfirmed-draft prohibition. They do not lock a yolo confirm sentence.\n- Test surface already says parent-turn detection does not fail-close live parent turns. This is a recording-obligation hole, not a missing runtime gate.\n\nA parent that matches the published SoT will post the first-lean offer (correct) and then wait (wrong under yolo + empty disagreement). A parent that follows tribal knowledge will auto-stamp. Those two readings of the same utterance are both licensed by current text.\n\nThis is not the run-posture hole. Yolo still must not pick `arc-mode`. That ask already fired on #4293 and is out of scope.\n\n## Expected\n\nAfter same-round siblings are posted:\n\n1. Parent still posts the successor lean (first-lean offer). An all-accept draft still goes through that offer.\n2. If that posted map is total, every heading is `accept-into-contract`, zero unresolved audit markers, no unposted siblings, **and** the operator utterance already contained yolo: yolo is the confirm. Auto-post the verified-claims table, auto-post `design-critique: synthesis accepted, because agents agreed (empty disagreement set)` citing that lean, remaining-set-replace `ingest-ready`. Do not print **accept**.\n3. If any take is `disagree` or `defer`, yolo does **not** confirm. Print **walk** / **retry differences** / **accept** as today. Differences are the walk/retry set, not a second widget on an empty set.\n4. Looks-good / ok / proceed / bare accept still do not bind.\n5. Yolo still does not pick run posture.\n\n## Acceptance\n\n- [ ] Contract publishes yolo as standing confirm of a posted all-accept map (empty parent-critic disagreement). The first-lean offer still posts first.\n- [ ] Contract publishes the complement: yolo does not confirm a non-empty disagree/defer set.\n- [ ] Thin skill pointer names that confirm. It does not copy the rule body.\n- [ ] Content-contract tests lock the yolo-confirm sentence, the disagree-set refusal, and the existing run-posture ask (`arc <N> yolo` still asks).\n- [ ] Looks-good / proceed still do not bind. Live parent turns stay unenforced.\n\n## Non-goals\n\n- Mechanizing live parent-turn detection (already `does not fail-close live parent turns`).\n- Changing the run-posture front door (yolo still does not pick a mode).\n- Mapping looks-good / proceed onto confirm.\n- Auto-ingest after Recut bind.\n- Reopening #3640 (empty-disagreement auto-stamp after confirm stays; this maps yolo onto that confirm when disagreement is empty).\n\n## Field\n\n#4293 lean 5611749608. Operator utterance `arc 4293 yolo and label`. Parent-critic takes all `accept-into-contract`. Widget wait. Operator recut in chat: if the parent does not have differences with the critic, yolo does an automatic accept.\r\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-10T02:46:58Z)\n\nmodel: grok-4.6\nrole: triage\n\nmechanism-shaped: true\ndesign-critique: warranted, because the lean is a protocol-gap recording obligation (yolo standing confirm of an all-accept map)\nrefutation-target: the published auto-stamp conjunct requires a later operator confirm of the posted map, and yolo is not mapped onto that confirm when parent-critic disagreement is empty.\narc-mode: no-ingest\ndest: C:/Repos/deft/directive/.deft-scratch/worktrees/parent-arc-4308\norigin-ref: origin/HEAD\ndispatch-sha: 50f62f76b85b97f69377e96575b5567101903133\n\ncharter: refutation\nspend: N=1\nwhy: the body names a defensible presumption with a refutation target; default motion\ntarget shape: single issue\n\n## Scope recorded\n\nIssue 4308. Operator utterance `arc 4308 yolo noingest and label`. Closed-token spelling is `no-ingest`; recorded as no-ingest. Dest created this session: git fetch origin; git worktree add --detach at origin/HEAD. Parent unclaimed on primary. Ingest is not this motion. Yolo does not pick run posture; it does confirm an all-accept posted map once that offer exists.\r\n\n\n### Comment by @MScottAdams (2026-09-10T02:56:00Z)\n\nmodel: grok-4.6\nrole: critic\n\nPin: dest HEAD 50f62f76b85b97f69377e96575b5567101903133. Ceiling: triage 5611886612. Charter: refutation. No shell on this seat; reads are dest files at that pin, not a moving ref.\n\n## Refutation verdict\n\nThe recorded target survives.\n\nRe-verified at the pin:\n\n- Auto-bind / Operator verbs / Bind path 1 all require `the operator has confirmed or amended that map` (`content/contracts/design-critique.md` Parent-side substantiation, Operator verbs, Bind after accepted synthesis).\n- `\u2297 Auto-stamp a parent-drafted all-accept map that the operator has not confirmed or amended.`\n- Looks-good / ok / proceed / bare accept are refused as accept-synthesis. `yolo` is not in that list and is not mapped onto confirm.\n- Thin skill: `Auto-stamp after operator confirm` and `the operator confirms or amends before bind or stamp`. The skill never names yolo (`content/skills/deft-directive-design-critique/SKILL.md`).\n- Contract `yolo` uses are only: missing token including `arc <N> yolo` asks before Stop 1; yolo does not pick a mode; on a dispatch-composition miss, yolo files a prevention issue.\n- `parseOperatorRunPosture(\"arc 1234 yolo\")` is `{ kind: \"ask\", reason: \"missing-token\" }` (`run-posture.ts`, `run-posture.test.ts`, `design_critique_contract.test.ts`).\n- Content-contract tests lock the confirm conjunct and the unconfirmed-draft prohibition. They do not lock a yolo-confirm sentence. Test surface: parent-turn detection does not fail-close live parent turns. `evaluateParentAudit` `bindAttempt` has `allAcceptMap` and unresolved markers, not a confirm flag.\n- `operatorVerbApplySet` with a posted lean, zero disagree, zero residual, `autoStamp: false` prints Accept then Halt (Discuss/Back appended). `autoStamp: true` prints no operator verbs.\n\n\"Later\" is a gloss. The conjunct does not use that word. It still requires confirm of the posted map. The published confirm act after an all-accept offer is the widget Accept. Front-door yolo is not that act. The unconfirmed-draft prohibition is why a SoT parent waits. Silence in the looks-good list is why a tribal parent stamps. That split does not map yolo onto confirm.\n\nField instance (issue 4293, cited in the body): comment 5611749608 is a recut-shaped all-accept map (takes 1-3 `accept-into-contract`, residual none). Comment 5611822631 is the table. Comment 5611825272 is the empty-disagreement completed-arc line, about nine minutes later, and names yolo with empty parent-critic disagreement as the confirm. Widget text is chat-only; the apply-set above matches the claimed Accept / Halt / Discuss / Back wait.\n\n## 1. Name the standing carrier, or the two-turn ask path still waits\n\n`sharpens-framing`\n\nEvidence: published Stop 1, `arc <N> yolo` with no posture token asks (`parseOperatorRunPosture`). The body's only field instance is that path: `arc 4293 yolo and label`, then `1 github-only`. Expected step 2 keys off `the operator utterance already contained yolo`. `parseOperatorRunPosture` takes one current string. The posture answer does not contain `yolo`.\n\nFailure mode: a parent that tests the latest operator turn still waits after an all-accept map and reproduces 4293. A parent that tests the launching utterance stamps. The same phrase, two carriers.\n\nDisposition: bind yolo as standing for the arc once present on the launching utterance. A later run-posture answer does not have to repeat it. Optionally record that standing next to `arc-mode:` on the Stop 1 write-back (this write-back already said it in prose). Do not change the front door: `arc N yolo` still asks.\n\n## 2. Yolo replaces only the confirm conjunct\n\n`sharpens-framing`\n\nEvidence: auto-stamp still requires a non-empty classified-finding set, total all-`accept-into-contract` map, zero unresolved audit markers, and no unposted same-round siblings. Stub, footnote-only, and dispatch-fail still refuse. Expected step 2 lists total + all-accept + markers + siblings + yolo, and omits non-empty / stub / footnote-only. Expected step 3 says print walk / retry / accept \"as today\" for disagree or defer; walk still prints only when a take is `disagree` (`operatorVerbApplySet` `disagreeCount > 0`).\n\nFailure mode: yolo-as-standing-auto-pilot gets read as waiving the rest of the gate, or as printing walk on a defer-only map. Footnote-only then stamps, or the verb menu regresses.\n\nDisposition: publish yolo as the confirm conjunct only. Leave the other refusals. Defer is not disagree. Same-turn stamp uses the existing `autoStamp: true` apply-set (no Accept widget).\n\n## 3. Parse yolo from the operator chat token, not the thread\n\n`sharpens-framing`\n\nEvidence: this motion changes bind/stamp authority and parses an utterance. Issue 4308's body and this thread already contain the word `yolo`. Run posture already forbids substring / NLP and clones of `parseOperatorRunPosture`. Intent-ceiling and `strategies/yolo.md` are a different `yolo`.\n\nFailure mode: a parent scans issue English, critic text, or a concatenated launch+body string, treats this bug's own thread as confirm, and auto-stamps. Compositional-fragment: `yolo` in the body plus a later `arc 4308` with no yolo. Confused deputy: bind from untrusted thread text.\n\nDisposition: closed token, word boundaries, operator chat utterance only. Same discipline as `parseOperatorRunPosture`, not that function overloaded to return a mode. Issue / comment / critic English is data. Looks-good / proceed stay refused.\n\n## 4. The field instance is a recut-shaped map; yolo-confirm is not ingest\n\n`sharpens-framing`\n\nEvidence: comment 5611749608 carries a recut token and Bound-remedy harvest. Direct EXIT already names ingest as a later operator verb. After recut bind, print ingest and do not auto-ingest. The body's non-goals include auto-ingest. \"Standing auto-pilot\" does not say that.\n\nFailure mode: a parent who stamps the recut map then runs `issue:ingest` because yolo is standing, or who thinks yolo-confirm does not apply to recut-shaped offers and waits again.\n\nDisposition: yolo-confirm applies to a posted all-accept successor map, including recut-shaped ones. It does not satisfy ingest, next-envelope, or chip hygiene beyond the existing auto-stamp remaining-set write.\n\n## Injection / swarm lens\n\nTriggered: authority (bind / catalog chip) and untrusted input (utterance / thread). Finding 3 is the control. Occupancy, dest, and worktrees are unchanged. Yolo still must not pick `arc-mode`.\n\n## Road not taken\n\nKeep widget Accept (status quo) versus standing yolo-confirm versus a new Stop 1 field consumed by a fixture.\n\nSteelman of widget Accept: the first-lean offer exists so the operator can see Bound-remedy / recut text before bind. Front-door yolo cannot see that text. What flips it: the operator already named empty disagreement as the case where a second Accept is waste; the SoT-versus-tribal split is the bug; the offer still posts as the interrupt surface. Closest inventory: setup-skill yolo-strategy carve-out (display summary, then self-confirm). Cite that pattern; do not import `/deft:run:yolo`. A Stop 1 standing record is optional bookkeeping, not a live gate. Live parent turns stay unenforced, as the body already says.\n\n## Footnotes\n\n- `footnote` Widget wait on 4293 is not a thread comment. The nine-minute gap from 5611749608 to 5611822631 / 5611825272 is consistent with a wait; it does not prove the widget labels.\n- `footnote` `On yolo, file it` stays a composition-miss rule at a different stop. `and label` is parent chip work, not this confirm mapping.\n\nCensus: 0 `blocks-the-design`, 4 `sharpens-framing`, 2 `footnote`.\r\n\n\n### Comment by @MScottAdams (2026-09-10T02:56:32Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe published SoT really does require a later confirm of the posted map, and yolo is not that confirm today. Confirming this map recuts 4308. Yolo on the launching utterance is standing confirm of a posted all-accept map. It replaces only that conjunct. A later run-posture answer does not have to repeat yolo. Parse yolo from operator chat with word boundaries, never from the thread. Recut-shaped offers still stamp. Ingest stays a later verb.\n\nThis is not an instruction to a later builder.\n\nRecut: next-build contract is not this body.\n\n**Lean:** recut of #4308 after critic 5611954501. Round 1 siblings dispatched: 1. Supersedes write-back 5611886612.\n\nTarget-digest: sha256:f188fff4af4c40514201de29a0143c66397096c54df1d904ba95a4541d500bf6\n\narc-mode: no-ingest\ndest: C:/Repos/deft/directive/.deft-scratch/worktrees/parent-arc-4308\ndispatch-sha: 50f62f76b85b97f69377e96575b5567101903133\n\n## Bound remedy\n\n- Bind yolo as standing for the arc once present on the launching utterance. A later run-posture answer does not have to repeat it. Optionally record that standing next to `arc-mode:` on the Stop 1 write-back. Do not change the front door: `arc N yolo` still asks.\n- Publish yolo as the confirm conjunct only. Leave non-empty classified set, stub, footnote-only, dispatch-fail, unresolved markers, and unposted-sibling refusals. Defer is not disagree. Same-turn stamp uses `autoStamp: true` (no Accept widget).\n- Parse yolo as a closed token with word boundaries on the operator chat utterance only. Same discipline as run-posture parse, not that function overloaded to return a mode. Issue, comment, and critic English are data. Looks-good / proceed stay refused.\n- Yolo-confirm applies to a posted all-accept successor map, including recut-shaped ones. It does not satisfy ingest, next-envelope, or chip hygiene beyond the existing auto-stamp remaining-set write.\n\n### Takes (critic 5611954501)\n\n- 1 Name the standing carrier, or the two-turn ask path still waits \u2014 accept-into-contract\n- 2 Yolo replaces only the confirm conjunct \u2014 accept-into-contract\n- 3 Parse yolo from the operator chat token, not the thread \u2014 accept-into-contract\n- 4 The field instance is a recut-shaped map; yolo-confirm is not ingest \u2014 accept-into-contract\n\nAccepted set: 1-4. Still-open residual: none. Footnotes are census only.\n\nNon-self-arbitration: this parent authored Stop 1 5611886612. The critic was a same-family grok-4.6 plan child; parent posted the critic body after the skip-class seat could not shell. These takes are not independent confirmation.\r\n\n\n### Comment by @MScottAdams (2026-09-10T02:56:43Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nEach row names its method. Agreement is not evidence.\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | Auto-bind / Operator verbs / Bind path 1 require operator confirm of the posted map; unconfirmed all-accept drafts must not stamp | Critic dest read of design-critique.md at pin 50f62f76; parent re-read Operator verbs this session | measured |\n| 2 | Thin skill never names yolo; contract yolo uses are run-posture ask and composition-miss file-it | Critic dest read of SKILL.md and contract at pin 50f62f76 | measured |\n| 3 | parseOperatorRunPosture(\"arc 1234 yolo\") is missing-token ask; content-contract tests lock confirm conjunct, not a yolo-confirm sentence | Critic dest read of run-posture.ts / design_critique_contract.test.ts at pin 50f62f76 | measured |\n| 4 | operatorVerbApplySet autoStamp false prints Accept then Halt; autoStamp true prints no operator verbs | Critic dest read of widget-apply-set.ts at pin 50f62f76 | measured |\n\nNon-self-arbitration: same grok-4.6 parent as Stop 1 5611886612. Critic 5611954501 was a same-family plan child; parent posted that body after the skip-class seat could not shell.\r\n\n\n### Comment by @MScottAdams (2026-09-10T02:56:52Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\n4308 cannot bind as a second Accept after an all-accept lean when the launching utterance already contained yolo. Next-build is standing yolo-confirm of that posted map, confirm conjunct only, chat-token parse, recut-shaped offers included, ingest still later.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCiting successor lean 5611958359 and verified-claims table 5611959793.\n\nNon-self-arbitration: same grok-4.6 parent as Stop 1 5611886612. Critic 5611954501 was a same-family plan child. Yolo on the launching utterance with empty parent-critic disagreement is the confirm. Round 1 complete, N=1, ceiling 5611886612.",
+      "Labels": "bug, agent-experience, process, design-critique:ingest-ready",
+      "UserStory": "As a parent agent, I want yolo on the launching utterance to confirm a posted all-accept successor map, so that I do not wait for a second Accept when parent-critic disagreement is empty.",
+      "ImplementationPlan": "1. Edit the design-critique contract source file content/contracts/design-critique.md to publish yolo as standing confirm, and point the thin skill at that module without copying the rule body. 2. Add a regression test in design_critique_contract.test.ts that verifies yolo-confirm, refuse on disagree/defer, and the existing run-posture ask still fires."
+    },
+    "items": [
+      {
+        "title": "Yolo is standing confirm once present on the launching utterance",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given an operator launching utterance that contains yolo, when a total all-accept successor map is posted, then yolo confirms that map without requiring the later run-posture answer to repeat yolo, and arc N yolo still asks for run posture.",
+          "Traces": "Traces to the bound-remedy harvest on the origin GitHub issue thread."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-09-10T13:41:41Z",
+          "recorded_by": "leaf-implementation/4308"
+        }
+      },
+      {
+        "title": "Yolo replaces only the confirm conjunct",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a posted map with disagree or defer or stub or footnote-only or unresolved markers, when yolo is standing, then auto-stamp still refuses and the Accept widget is not printed only when autoStamp is true on an all-accept map.",
+          "Traces": "Traces to the bound-remedy harvest on the origin GitHub issue thread."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-09-10T13:41:41Z",
+          "recorded_by": "leaf-implementation/4308"
+        }
+      },
+      {
+        "title": "Parse yolo from operator chat token only",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the word yolo in issue body critic text or concatenated thread English, when the operator chat utterance has no yolo token, then confirm does not fire; looks-good and proceed still do not bind.",
+          "Traces": "Traces to the bound-remedy harvest on the origin GitHub issue thread."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-09-10T13:41:41Z",
+          "recorded_by": "leaf-implementation/4308"
+        }
+      },
+      {
+        "title": "Yolo-confirm is not ingest",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a recut-shaped all-accept successor map, when yolo confirms, then auto-stamp runs and ingest remains a later operator verb that does not run automatically.",
+          "Traces": "Traces to the bound-remedy harvest on the origin GitHub issue thread."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "recorded_at": "2026-09-10T13:41:41Z",
+          "recorded_by": "leaf-implementation/4308"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4308",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4308: bug(design-critique): yolo does not confirm an all-accept lean, so parents wait after empty disagreement"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "arc N yolo",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/contracts/design-critique.md",
+          "content/skills/deft-directive-design-critique/SKILL.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check",
+          "pnpm exec vitest run packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
+        ],
+        "expected_outputs": [
+          "contract publishes yolo as standing confirm of a posted all-accept map",
+          "contract publishes that yolo does not confirm a non-empty disagree or defer set",
+          "content-contract tests lock yolo-confirm, disagree-set refusal, and run-posture ask"
+        ],
+        "depends_on": [],
+        "conflict_group": "design-critique-yolo-confirm",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Ingested from GitHub issue #4308 bound-remedy harvest; no spec-section requirement trace applies."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5407084426,
+        "origin": "deftai/directive#4308",
+        "id": "github.issue.5407084426"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "f188fff4af4c40514201de29a0143c66397096c54df1d904ba95a4541d500bf6"
+      },
+      "kind": "story",
+      "completedAt": "2026-09-10T13:40:37Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-10T13:40:37Z"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 8 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Bind yolo as standing for the arc once present on the launching utterance. A later run-posture answer does not have to repeat it. Optionally record that standing next to `arc-mode:` on the Stop 1 write-back. Do not change the front door: `arc N yolo` still asks.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Publish yolo as the confirm conjunct only. Leave non-empty classified set, stub, footnote-only, dispatch-fail, unresolved markers, and unposted-sibling refusals. Defer is not disagree. Same-turn stamp uses `autoStamp: true` (no Accept widget).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Parse yolo as a closed token with word boundaries on the operator chat utterance only. Same discipline as run-posture parse, not that function overloaded to return a mode. Issue, comment, and critic English are data. Looks-good / proceed stay refused.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Yolo-confirm applies to a posted all-accept successor map, including recut-shaped ones. It does not satisfy ingest, next-envelope, or chip hygiene beyond the existing auto-stamp remaining-set write.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "1 Name the standing carrier, or the two-turn ask path still waits \u2014 accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "2 Yolo replaces only the confirm conjunct \u2014 accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "3 Parse yolo from the operator chat token, not the thread \u2014 accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "4 The field instance is a recut-shaped map; yolo-confirm is not ingest \u2014 accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5407084426",
+    "updated": "2026-09-10T13:40:37Z"
+  }
+}
