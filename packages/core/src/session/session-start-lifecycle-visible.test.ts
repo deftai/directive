@@ -46,6 +46,8 @@ const hidden: LifecycleVisibleResult = {
       line: 24,
       rule: "xbrief/active/",
       raw: ".git/info/exclude:24:xbrief/active/\txbrief/active/",
+      probe: "xbrief/active/",
+      candidateRule: "xbrief/active/",
     },
   ],
   enforce: false,
@@ -75,7 +77,7 @@ describe("session:start lifecycle-visible advisory (#3505)", () => {
     });
     expect(result.code).toBe(0);
     expect(result.lines.join("\n")).toContain(
-      "[deft lifecycle-visible] hidden xbrief/active/  (.git/info/exclude:24:xbrief/active/)",
+      "[deft lifecycle-visible] hidden xbrief/active/  (.git/info/exclude:24:xbrief/active/; probe xbrief/active/; candidate xbrief/active/)",
     );
     expect(result.lines.join("\n")).toContain("ADVISORY");
   });

@@ -11,6 +11,7 @@ import {
   emitMigratePreflight,
   evaluate,
   formatCheckLine,
+  resolveFrameworkSchemasDir,
   runMigratePreflight,
 } from "./index.js";
 
@@ -43,8 +44,8 @@ function makeFakeDeftRoot(
   const { schemas = true, contentNested = false } = opts;
   const deftRoot = join(base, "deft");
   const schemaRoot = contentNested
-    ? join(deftRoot, "content", "xbrief", "schemas")
-    : join(deftRoot, "xbrief", "schemas");
+    ? join(deftRoot, "content", "vbrief", "schemas")
+    : join(deftRoot, "vbrief", "schemas");
   if (schemas) {
     mkdirSync(schemaRoot, { recursive: true });
   }
@@ -81,13 +82,62 @@ describe("migrate-preflight", () => {
     expect(result.status).toBe("WARN");
   });
 
-  it("checkLayout passes with nested content/ schemas layout", () => {
+  it("checkLayout passes with nested content/vbrief/schemas layout (#4310)", () => {
     const base = mkdtempSync(join(tmpdir(), "deft-preflight-"));
     temps.push(base);
     const deftRoot = makeFakeDeftRoot(base, { contentNested: true });
     const project = makeProjectRoot(base);
     const result = checkLayout(deftRoot, project);
     expect(result.status).toBe("PASS");
+    expect(resolveFrameworkSchemasDir(deftRoot, project)).toBe(
+      join(deftRoot, "content", "vbrief", "schemas"),
+    );
+  });
+
+  it("checkLayout passes with flattened deposit vbrief/schemas (#4310)", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-preflight-"));
+    temps.push(base);
+    const deftRoot = makeFakeDeftRoot(base);
+    const project = makeProjectRoot(base);
+    const result = checkLayout(deftRoot, project);
+    expect(result.status).toBe("PASS");
+    expect(resolveFrameworkSchemasDir(deftRoot, project)).toBe(join(deftRoot, "vbrief", "schemas"));
+  });
+
+  it("checkLayout passes with consumer project-root xbrief/schemas (#4310)", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-preflight-"));
+    temps.push(base);
+    const deftRoot = makeFakeDeftRoot(base, { schemas: false });
+    const project = makeProjectRoot(base);
+    mkdirSync(join(project, "xbrief", "schemas"), { recursive: true });
+    const result = checkLayout(deftRoot, project);
+    expect(result.status).toBe("PASS");
+    expect(resolveFrameworkSchemasDir(deftRoot, project)).toBe(join(project, "xbrief", "schemas"));
+  });
+
+  it("checkLayout ignores content/xbrief/schemas and does not add that tree (#4310)", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-preflight-"));
+    temps.push(base);
+    const deftRoot = makeFakeDeftRoot(base, { schemas: false });
+    mkdirSync(join(deftRoot, "content", "xbrief", "schemas"), { recursive: true });
+    const project = makeProjectRoot(base);
+    const result = checkLayout(deftRoot, project);
+    expect(result.status).toBe("FAIL");
+    expect(resolveFrameworkSchemasDir(deftRoot, project)).toBeNull();
+  });
+
+  it("checkLayout passes when schemas live in the content package (#4310)", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-preflight-"));
+    temps.push(base);
+    const deftRoot = join(base, "deft");
+    mkdirSync(deftRoot, { recursive: true });
+    const pkg = join(base, "node_modules", "@deftai", "directive-content");
+    mkdirSync(join(pkg, "vbrief", "schemas"), { recursive: true });
+    writeFileSync(join(pkg, "package.json"), "{}\n", "utf8");
+    const project = makeProjectRoot(base);
+    const result = checkLayout(deftRoot, project);
+    expect(result.status).toBe("PASS");
+    expect(resolveFrameworkSchemasDir(deftRoot, project)).toBe(join(pkg, "vbrief", "schemas"));
   });
 
   it("formatCheckLine mirrors Python surface", () => {

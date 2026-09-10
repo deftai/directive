@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Clean clone passes migrate-preflight and lifecycle-visible --enforce (#4310).** Schema lookup uses content-root plus existing trees (`content/vbrief/schemas`, flattened `vbrief/schemas`, project-root `xbrief/schemas`). Tracked `xbrief/pending/.gitkeep` survives clone. Lifecycle-visible derived probes require a convention-valid filename; canonical `*.premigrate.*` backup exclusions stay. Findings name the derived probe and candidate ignore rule. Closes #4310.
 - **Cursor Task dest-missing deny names explore or continue-in-parent, not Grok-only plan (#4321).** Closes #4321.
 - **Mutation session:start prints checkout, HEAD, and ahead/behind versus the default upstream (#4291).** Branch-sync now measures HEAD, not local main/master. Warns when behind, diverged, or 0-ahead/N-behind; fetch failure stays a warning with unknown counts. Does not refuse. Out of this number: mint/host rewrite, stranger worktree copy, shell honesty, and write versus gated doctor. Closes #4291.
 - **Setup no longer seeds xBRIEF DeftVersion stamps; two-pass upgrade is independently green (#4271).** Setup retirement locks evaluate Markdown list/section units on pack body and rendered skill. Pass 2 commit-set is installerManagedMatchers() in hygiene.ts; frozen Go is source-only. npm-publish.yml runs the post-publish fixture after the four packages ship. Consumer AGENTS.md forbids xBRIEF DeftVersion stamps. Closes #4271.
