@@ -119,6 +119,7 @@ import {
   isProcessOnlyCriticSpawn,
   isReadOnlyHookContext,
   processOnlyCriticRequiresDest,
+  SPAWN_CLASS_RECOVERY,
 } from "./readonly.js";
 import {
   type ActiveScopeInspection,
@@ -1367,7 +1368,9 @@ function inspectMutationGates(
       const inspected = ritualDetailForOccupancyDeny();
       const ritualNote =
         inspected !== null && inspected.code !== 0
-          ? ` Also ritual-not-ready: ${inspected.message}`
+          ? consult.reason === "destination-missing"
+            ? ` Also ritual telemetry (does not clear dest-missing): ${inspected.message}`
+            : ` Also ritual-not-ready: ${inspected.message}`
           : "";
       return deny(
         input,
@@ -2578,8 +2581,7 @@ function routeHookDecision(
         "read-only-deny",
         toolName,
         `Directive denied ${toolName}: read-only posture blocks implementation sub-agent spawns. ` +
-          "Use subagent_type explore for read-only research spawns, or subagent_type plan / " +
-          "process_only for process-only critic spawns.",
+          SPAWN_CLASS_RECOVERY,
       );
     }
     if (isExploreSpawn(input.payload)) {
