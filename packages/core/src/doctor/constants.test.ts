@@ -2,7 +2,13 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { CANONICAL_UPGRADE_COMMAND, upgradeCommandFor } from "./constants.js";
+import {
+  CANONICAL_UPGRADE_COMMAND,
+  CONSUMER_FRAMEWORK_DIRS,
+  EXPECTED_FRAMEWORK_DIRS,
+  FRAMEWORK_SCHEMA_PACK_DIR,
+  upgradeCommandFor,
+} from "./constants.js";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../../..");
 
@@ -17,5 +23,11 @@ describe("doctor constants (#2003)", () => {
     expect(upgradeCommandFor()).toBe(CANONICAL_UPGRADE_COMMAND);
     expect(upgradeCommandFor("npm")).toBe(CANONICAL_UPGRADE_COMMAND);
     expect(upgradeCommandFor("pnpm")).toBe("pnpm add -g @deftai/directive@latest");
+  });
+
+  it("engine dir lists omit xbrief and schema pack is vbrief/schemas (#4162)", () => {
+    expect(EXPECTED_FRAMEWORK_DIRS).toEqual(["tasks", "scripts"]);
+    expect(CONSUMER_FRAMEWORK_DIRS).toEqual(["tasks"]);
+    expect(FRAMEWORK_SCHEMA_PACK_DIR).toBe("vbrief/schemas");
   });
 });

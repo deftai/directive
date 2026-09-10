@@ -73,6 +73,17 @@ describe("migrate-preflight", () => {
     expect(result.message).toContain("schemas");
   });
 
+  it("checkLayout FAIL names contentRoot vbrief/schemas not project-root xbrief/schemas (#4162)", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-preflight-"));
+    temps.push(base);
+    const deftRoot = makeFakeDeftRoot(base, { schemas: false });
+    const project = makeProjectRoot(base);
+    const result = checkLayout(deftRoot, project);
+    expect(result.status).toBe("FAIL");
+    expect(result.message).toContain(join(deftRoot, "vbrief", "schemas"));
+    expect(result.message).not.toContain(join(project, "xbrief", "schemas"));
+  });
+
   it("checkLayout warns when project vbrief/ is missing", () => {
     const base = mkdtempSync(join(tmpdir(), "deft-preflight-"));
     temps.push(base);

@@ -1,8 +1,12 @@
-import { resolve, sep } from "node:path";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 import { agentsRefreshPlan, hasV3ManagedMarker } from "./agents-md.js";
 import { pythonJsonDump } from "./json.js";
 import {
+  containDepositInstallRoot,
+  FALLBACK_INSTALL_ROOT,
   isDeprecationRedirectStub,
   locateManifest,
   manifestTagToVersion,
@@ -32,6 +36,43 @@ describe("manifest helpers", () => {
     expect(parseInstallRootFromAgentsMd("Deft is installed in .deft/core.")).toBe(".deft/core");
     expect(parseInstallRootFromAgentsMd("Full guidelines: .deft/core/main.md")).toBe(".deft/core");
     expect(parseInstallRootFromAgentsMd("nope")).toBeNull();
+  });
+
+  it("containDepositInstallRoot rejects .., absolute, and empty (#4162)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-contain-4162-"));
+    try {
+      mkdirSync(join(root, ".deft", "core"), { recursive: true });
+      expect(containDepositInstallRoot(root, "..")).toBe(FALLBACK_INSTALL_ROOT);
+      expect(containDepositInstallRoot(root, "../etc")).toBe(FALLBACK_INSTALL_ROOT);
+      expect(containDepositInstallRoot(root, "/etc")).toBe(FALLBACK_INSTALL_ROOT);
+      expect(containDepositInstallRoot(root, "")).toBe(FALLBACK_INSTALL_ROOT);
+      expect(containDepositInstallRoot(root, null)).toBe(FALLBACK_INSTALL_ROOT);
+      expect(containDepositInstallRoot(root, ".deft/core")).toBe(".deft/core");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("containDepositInstallRoot rejects an escaping symlink (#4162)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-contain-link-"));
+    const outside = mkdtempSync(join(tmpdir(), "deft-contain-out-"));
+    try {
+      symlinkSync(outside, join(root, "escape"));
+      expect(containDepositInstallRoot(root, "escape")).toBe(FALLBACK_INSTALL_ROOT);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+      rmSync(outside, { recursive: true, force: true });
+    }
+  });
+
+  it("containDepositInstallRoot keeps an uncreated contained custom root (#4162)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-contain-missing-"));
+    try {
+      expect(containDepositInstallRoot(root, "custom-core")).toBe("custom-core");
+      expect(containDepositInstallRoot(root, "nested/install")).toBe("nested/install");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("isDeprecationRedirectStub", () => {

@@ -25,12 +25,13 @@ function makeConsumerDeposit(options: {
   markers?: boolean;
 }): { root: string; framework: string } {
   const root = mkdtempSync(join(tmpdir(), "deft-doc-advisory-"));
-  const framework = mkdtempSync(join(tmpdir(), "deft-doc-advisory-fw-"));
-  temps.push(root, framework);
+  temps.push(root);
   const deposit = join(root, ".deft", "core");
-  for (const dir of ["languages", "strategies", "skills", "templates", "tasks", "xbrief"]) {
+  for (const dir of ["languages", "strategies", "skills", "templates", "tasks"]) {
     mkdirSync(join(deposit, dir), { recursive: true });
   }
+  mkdirSync(join(deposit, "vbrief", "schemas"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   const lines: string[] = [];
   for (let i = 0; i < options.unmanagedLines; i += 1) {
     lines.push(`project rule ${i}`);
@@ -58,7 +59,7 @@ function makeConsumerDeposit(options: {
       "utf8",
     );
   }
-  return { root, framework };
+  return { root, framework: deposit };
 }
 
 type DoctorJsonPayload = { findings: Array<Record<string, unknown>> };

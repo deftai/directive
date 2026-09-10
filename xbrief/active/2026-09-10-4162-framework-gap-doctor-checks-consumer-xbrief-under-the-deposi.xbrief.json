@@ -1,0 +1,242 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4162",
+    "updated": "2026-09-10T18:03:04Z"
+  },
+  "plan": {
+    "title": "[framework-gap] doctor checks consumer xbrief under the deposit root and emits an impossible warning",
+    "status": "running",
+    "narratives": {
+      "Description": "Doctor's consumer framework-layout check looks for xbrief under the deposit while a current consumer keeps lifecycle at project-root xbrief and the shipped schema pack at deposit vbrief. The bound recut splits those identities, aligns migrate-preflight to vbrief/schemas, contains AGENTS.md install-root before echoing paths, and uses published-flatten fixtures.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4162",
+      "Overview": "Doctor looks for consumer xbrief under the deposit. Real lifecycle is project-root xbrief/; shipped pack is vbrief. Bound successor lean 5620897287: split identities, align migrate-preflight to vbrief/schemas, contain AGENTS.md install-root, use published-flatten fixtures. Issue thread is history; plan.items are the contract.",
+      "Labels": "bug, doctor, agent-experience, area:cli, status:child",
+      "UserStory": "As a consumer operator, I want Doctor and migrate-preflight to distinguish project lifecycle xbrief from the deposited vbrief schema pack, so that a healthy current consumer is not warned for a directory the flatten never creates.",
+      "ImplementationPlan": "Follow successor lean 5620897287 Bound remedy. Split Doctor layout rows by identity (project lifecycle, contentRoot vbrief/schemas, engine dirs on deposit/framework root). Use resolved framework/content root for deposit/content rows. Align migrate-preflight schema FAIL to vbrief/schemas via shared contentRoot. Add contained install-root before path echo. Replace fake .deft/core/xbrief fixtures with the published flatten. Record CHANGELOG Unreleased.",
+      "AcceptanceJustification": "Nine independently testable Bound-remedy clauses harvested from successor lean 5620897287 Recut list; collapsing them would drop a required identity split."
+    },
+    "items": [
+      {
+        "title": "Do not bind a one-row retarget of consumer `framework-layout`'s `xbrief` slot onto project-root `xbrief/` as the whole design.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a packed consumer with project-root xbrief/ plus deposit vbrief/ and no .deft/core/xbrief/, when doctor --full --json runs, then it emits no missing-xbrief framework-layout warning."
+        }
+      },
+      {
+        "title": "Keep the postcondition: a healthy current consumer with project-root `xbrief/` plus deposit `vbrief/` and no `.deft/core/xbrief/` must not warn missing `xbrief/`.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the same healthy consumer, when a one-row project-root swap is proposed as the whole fix, then the shipped change rejects that as the complete design and records the split identities."
+        }
+      },
+      {
+        "title": "Split Doctor layout into distinct identities: project lifecycle at project-root `xbrief/` via existing `resolveLifecycleLayout` / envelope-version; framework schema pack at `contentRoot` as `vbrief/schemas`; engine dirs (`tasks`, source `scripts`) on deposit/framework root.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given DEFT_ROOT or a content-package framework root, when Doctor layout-checks deposit/content rows, then those rows use the resolved framework/content root and do not discard it for an AGENTS.md depositRoot."
+        }
+      },
+      {
+        "title": "Consumer deposit/content rows must use the resolved framework/content root, not a re-derived AGENTS.md `depositRoot` that discards that root (DEFT_ROOT / content-package cases).",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a source or flattened tree whose pack is vbrief/schemas, when migrate-preflight checkLayout runs, then it fails or passes against contentRoot vbrief/schemas and does not require project-root xbrief/schemas as the framework pack."
+        }
+      },
+      {
+        "title": "Align `migrate:preflight` schema FAIL to the real pack name `vbrief/schemas` through shared `contentRoot()`. Do not move that FAIL onto project-root `xbrief/schemas`. Preflight already checks project-root `xbrief/` separately.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an AGENTS.md install-root with .. or an absolute path, when Doctor prints a resolved layout path, then it rejects or contains that root (or falls back to .deft/core) and does not emit a host path outside the project."
+        }
+      },
+      {
+        "title": "If project-lifecycle absence remains in Doctor, report it under a project-lifecycle identity with the resolved project path. Do not treat `isDirectory(projectRoot/xbrief)` as complete health; cover valid, empty/greenfield, partial, legacy-only, and absent states without turning absence into an uncaught throw.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a packed-consumer fixture, when tests assert framework-layout, then the fixture uses project-root xbrief/ plus deposit vbrief/ and does not mkdir .deft/core/xbrief as the healthy shape."
+        }
+      },
+      {
+        "title": "Human and JSON output must identify which tree a missing path belongs to (project-lifecycle vs framework-content vs engine/deposit). Before probing or printing an AGENTS.md install-root, apply existing deposit containment (reject `..`, absolute, escaping symlinks) or fall back to `.deft/core`.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given missing or partial project lifecycle, when Doctor reports it, then the finding returns a project-lifecycle identity with the resolved project path and does not treat a bare isDirectory as complete health."
+        }
+      },
+      {
+        "title": "Packed-consumer and installed-package fixtures must use the published flatten (lifecycle at project root, `vbrief` under the deposit). Do not mkdir `.deft/core/xbrief` as the healthy shape. Add first row-level `framework-layout` coverage for consumer and source-checkout branches. Move the #3372 fixture's deposit `xbrief` to the project root.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given missing framework vbrief/schemas, when Doctor or migrate-preflight reports it, then the finding returns a framework-content identity with the selected content path."
+        }
+      },
+      {
+        "title": "Source-checkout coverage is re-derived from the same project/deposit split (roots coincide here), not a freeze of today's `EXPECTED_FRAMEWORK_DIRS` behavior.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given source-checkout layout, when framework-layout coverage runs, then it is re-derived from the same project/deposit split and records CHANGELOG Unreleased."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "doctor",
+      "agent-experience",
+      "area:cli",
+      "status:child"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4162",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4162: [framework-gap] doctor checks consumer xbrief under the deposit root and emits an impossible warning"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 9 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Do not bind a one-row retarget of consumer `framework-layout`'s `xbrief` slot onto project-root `xbrief/` as the whole design.",
+          "artifact_path": "packages/core/src/doctor/main.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Keep the postcondition: a healthy current consumer with project-root `xbrief/` plus deposit `vbrief/` and no `.deft/core/xbrief/` must not warn missing `xbrief/`.",
+          "artifact_path": "packages/core/src/doctor/main.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Split Doctor layout into distinct identities: project lifecycle at project-root `xbrief/` via existing `resolveLifecycleLayout` / envelope-version; framework schema pack at `contentRoot` as `vbrief/schemas`; engine dirs (`tasks`, source `scripts`) on deposit/framework root.",
+          "artifact_path": "packages/core/src/doctor/main.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Consumer deposit/content rows must use the resolved framework/content root, not a re-derived AGENTS.md `depositRoot` that discards that root (DEFT_ROOT / content-package cases).",
+          "artifact_path": "packages/core/src/doctor/main.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Align `migrate:preflight` schema FAIL to the real pack name `vbrief/schemas` through shared `contentRoot()`. Do not move that FAIL onto project-root `xbrief/schemas`. Preflight already checks project-root `xbrief/` separately.",
+          "artifact_path": "packages/core/src/migrate-preflight/index.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "If project-lifecycle absence remains in Doctor, report it under a project-lifecycle identity with the resolved project path. Do not treat `isDirectory(projectRoot/xbrief)` as complete health; cover valid, empty/greenfield, partial, legacy-only, and absent states without turning absence into an uncaught throw.",
+          "artifact_path": "packages/core/src/doctor/main.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Human and JSON output must identify which tree a missing path belongs to (project-lifecycle vs framework-content vs engine/deposit). Before probing or printing an AGENTS.md install-root, apply existing deposit containment (reject `..`, absolute, escaping symlinks) or fall back to `.deft/core`.",
+          "artifact_path": "packages/core/src/doctor/branches.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Packed-consumer and installed-package fixtures must use the published flatten (lifecycle at project root, `vbrief` under the deposit). Do not mkdir `.deft/core/xbrief` as the healthy shape. Add first row-level `framework-layout` coverage for consumer and source-checkout branches. Move the #3372 fixture's deposit `xbrief` to the project root.",
+          "artifact_path": "packages/core/src/doctor/main.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Source-checkout coverage is re-derived from the same project/deposit split (roots coincide here), not a freeze of today's `EXPECTED_FRAMEWORK_DIRS` behavior.",
+          "artifact_path": "packages/core/src/doctor/main.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5337132295,
+        "origin": "deftai/directive#4162",
+        "id": "github.issue.5337132295"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "ee92984ca691b1b4e460226f77056dd2e82c5ef76bac1578fd1f35b491df62ac"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/doctor packages/core/src/migrate-preflight"
+        ],
+        "expected_outputs": [
+          "healthy packed consumer with project xbrief + deposit vbrief does not warn missing xbrief",
+          "migrate-preflight FAIL uses contentRoot vbrief/schemas",
+          "layout JSON identifies project-lifecycle vs framework-content vs engine/deposit",
+          "CHANGELOG Unreleased note"
+        ],
+        "depends_on": [],
+        "conflict_group": "doctor-layout-4162",
+        "size": "large",
+        "file_scope_confidence": "omitted",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to GitHub issue #4162 bound successor lean 5620897287 and Recut Bound-remedy list after design-critique synthesis 5620906225, not a SPECIFICATION section. file_scope omitted: operator mint of approved-scope is TTY-only (#3874 / #3110); this dest cannot self-authorize a declared scope.",
+        "acceptance_criteria_justification": "Nine independently testable Bound-remedy clauses harvested from successor lean 5620897287 Recut list; collapsing them would drop a required identity split."
+      },
+      "literal_acceptance_not_commands": [
+        {
+          "command": "deft doctor --full --network --json",
+          "reason": "issue reproduction command from the GitHub body, not a stated acceptance command (#3721)",
+          "sourceSpan": "task_statement"
+        },
+        {
+          "command": "task check",
+          "reason": "merge-chokepoint hygiene, not a product acceptance command; including it in verify:ac recurses because check runs verify:ac (#3721)"
+        }
+      ]
+    },
+    "id": "github.issue.5337132295",
+    "updated": "2026-09-10T18:03:04Z",
+    "architecture": {
+      "systemOfRecord": {
+        "note": "This story does not add durable product state. Filesystem writes in the diff are Vitest temp fixtures for doctor/migrate-preflight layout tests.",
+        "stateSurfaces": [
+          {
+            "name": "Vitest temp-fixture writer",
+            "classification": "dev_only_fixture",
+            "owner": "packages/core/src/doctor/main.test.ts",
+            "approvedStorage": [
+              "json_file",
+              "filesystem"
+            ],
+            "excludedFromProduction": true,
+            "productionGuard": "writeFileSync calls are inside Vitest test helpers using mkdtempSync \u2014 never invoked at runtime"
+          }
+        ]
+      }
+    }
+  }
+}
