@@ -195,6 +195,15 @@ describe("test_agent_prompt_preamble_template", () => {
     expect(bullet).not.toMatch(/keep local Task concurrency at \*\*1\*\*/i);
     expect(bullet).toContain("not cloud-for-Windows");
     expect(bullet).toContain("do not force concurrency=1 for #2563");
+    expect(bullet).toContain("dest-placing");
+  });
+  it("host_cursor_does_not_bind_task_dest_keys (#4295)", () => {
+    const hostCursor = readRepoFile("skills/deft-directive-swarm/references/host-cursor.md");
+    expect(hostCursor).not.toMatch(/The worktree path set to the agent.s isolated git worktree/);
+    expect(hostCursor).toContain("Comment 5611146439 stands");
+    expect(hostCursor).toContain("Agent.create");
+    expect(hostCursor).toContain("Fence-in-place (parked)");
+    expect(hostCursor).toContain("dest-placing");
   });
   it("template_cloud_pr_shepherd_review_monitor_worked_example_present", () => {
     expect(templateText).toContain("Cloud PR-shepherd dispatch");

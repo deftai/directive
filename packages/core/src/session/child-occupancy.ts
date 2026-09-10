@@ -51,6 +51,8 @@ export interface ChildOccupancyDispatchInput {
   readonly identitySourceKind: ChildOccupancyIdentitySourceKind;
   readonly incarnation?: string;
   readonly provenance?: ChildOccupancyProvenance;
+  /** Cursor nursery inherit (#4295): dest is the parent window worktree. */
+  readonly nurseryInherit?: boolean;
 }
 
 export type ChildOccupancyReleaseReason =

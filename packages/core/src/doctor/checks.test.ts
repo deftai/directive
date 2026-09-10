@@ -8,6 +8,7 @@ import {
   checkCompletedLifecycleConsistency,
   checkCompletedOpenItems,
   checkCompletedUnguardedWrite,
+  checkCursorSdkAuth,
   checkCoverageCheckResumePolicy,
   checkGitignoreCoverage,
   checkInstallPathConsistency,
@@ -1126,5 +1127,20 @@ describe("checkXbriefEnvelopeMajorVersion (#3243)", () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  });
+});
+
+describe("checkCursorSdkAuth (#4295)", () => {
+  it("skips when CURSOR_API_KEY is unset", () => {
+    expect(checkCursorSdkAuth({}).status).toBe("skip");
+  });
+  it("passes when CURSOR_API_KEY is set", () => {
+    expect(checkCursorSdkAuth({ CURSOR_API_KEY: "k" }).status).toBe("pass");
+  });
+  it("fails advisory when SDK launch is requested without a key", () => {
+    const result = checkCursorSdkAuth({ DEFT_CURSOR_SDK_LAUNCH: "1" });
+    expect(result.status).toBe("fail");
+    expect(isDoctorAdvisoryFail(result.name, result.data)).toBe(true);
+    expect(deriveExitCode([result], [])).toBe(0);
   });
 });
