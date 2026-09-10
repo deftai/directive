@@ -47,6 +47,9 @@ function tempRoot(): string {
 /** Fake git runner: HEAD + toplevel resolve; everything else is a benign no-op. */
 function fakeGit(root: string): (root: string, args: readonly string[]) => GitRunResult {
   return (_root, args) => {
+    if (args[0] === "rev-parse" && args[1] === "--abbrev-ref" && args[2] === "HEAD") {
+      return { code: 1, stdout: "", stderr: "" };
+    }
     if (args[0] === "rev-parse" && args.includes("HEAD")) {
       return { code: 0, stdout: "deadbeef", stderr: "" };
     }
@@ -889,5 +892,74 @@ describe("runSessionStart consumer evidence (#3358)", () => {
     };
     expect(dial.inputs.taskSize).toBe("S");
     expect(dial.depth).toBe("rapid");
+  });
+});
+
+describe("runSessionStart mutation HEAD orientation (#4291)", () => {
+  function headSyncGit(root: string, counts: string, fetchCode = 0): SessionStartOptions["runGit"] {
+    const base = fakeGit(root);
+    return (_root, args) => {
+      if (args[0] === "symbolic-ref") {
+        return { code: 0, stdout: "origin/main", stderr: "" };
+      }
+      if (args[0] === "rev-parse" && args[1] === "--abbrev-ref" && args[2] === "HEAD") {
+        return { code: 0, stdout: "fix/stale", stderr: "" };
+      }
+      if (args[0] === "rev-parse" && args[1] === "--abbrev-ref") {
+        return { code: 0, stdout: "origin/main", stderr: "" };
+      }
+      if (args[0] === "fetch") {
+        return { code: fetchCode, stdout: "", stderr: fetchCode === 0 ? "" : "offline" };
+      }
+      if (args[0] === "rev-list") {
+        return { code: 0, stdout: counts, stderr: "" };
+      }
+      if (args[0] === "show-ref") {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      return base(_root, args);
+    };
+  }
+
+  it("prints checkout, HEAD, and ahead/behind on mutation session:start", () => {
+    const root = tempRoot();
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult()),
+      runGit: headSyncGit(root, "0 64"),
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(0);
+    const text = result.lines.join("\n");
+    expect(text).toContain(`checkout=${root}`);
+    expect(text).toContain("HEAD=fix/stale");
+    expect(text).toContain("ahead=0");
+    expect(text).toContain("behind=64");
+    expect(text).toContain("vs origin/main");
+    expect(text).toContain("0 ahead");
+  });
+
+  it("does not refuse when HEAD is 0 ahead and N behind", () => {
+    const root = tempRoot();
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult()),
+      runGit: headSyncGit(root, "0 64"),
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(0);
+    expect(result.payload.ready).not.toBe(false);
+  });
+
+  it("fetch-fail stays a warning with unknown counts and exit 0", () => {
+    const root = tempRoot();
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult()),
+      runGit: headSyncGit(root, "0 0", 1),
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(0);
+    const text = result.lines.join("\n");
+    expect(text).toContain("ahead=unknown");
+    expect(text).toContain("behind=unknown");
+    expect(text).toContain("refresh");
   });
 });

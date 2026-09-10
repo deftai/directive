@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Mutation session:start prints checkout, HEAD, and ahead/behind versus the default upstream (#4291).** Branch-sync now measures HEAD, not local main/master. Warns when behind, diverged, or 0-ahead/N-behind; fetch failure stays a warning with unknown counts. Does not refuse. Out of this number: mint/host rewrite, stranger worktree copy, shell honesty, and write versus gated doctor. Closes #4291.
 - **Setup no longer seeds xBRIEF DeftVersion stamps; two-pass upgrade is independently green (#4271).** Setup retirement locks evaluate Markdown list/section units on pack body and rendered skill. Pass 2 commit-set is installerManagedMatchers() in hygiene.ts; frozen Go is source-only. npm-publish.yml runs the post-publish fixture after the four packages ship. Consumer AGENTS.md forbids xBRIEF DeftVersion stamps. Closes #4271.
 - **Cursor dest-missing deny names inspectSpawnDestination keys and shared recoveries (#4279).** Parent continues, assist/ephemeral, and plan lead on dest-missing; explore leads only on an already read-only spawn deny. Ritual notes on dest-missing are telemetry, not a recovery. Unmarked generalPurpose stays implement. Cursor Task isolation-key bind stays unbound until a PreToolUse measurement. Closes #4279.
 - **Yolo on the launching utterance confirms a posted all-accept design-critique map (#4308).** Standing for the arc; confirm conjunct only. `arc N yolo` still asks run posture. Recut-shaped maps stamp; ingest stays later. Closes #4308.
