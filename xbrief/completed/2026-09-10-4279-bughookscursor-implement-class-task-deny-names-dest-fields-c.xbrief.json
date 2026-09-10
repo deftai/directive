@@ -1,0 +1,277 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4279",
+    "updated": "2026-09-10T14:26:29Z"
+  },
+  "plan": {
+    "title": "bug(hooks,cursor): implement-class Task deny names dest fields Cursor Task cannot pass; explore recovery omitted",
+    "status": "completed",
+    "narratives": {
+      "Description": "Cursor implement-class dest-missing deny copy names recoveries the Task schema may not send and omits recoveries that already work. Next-build waits on one PreToolUse measurement, does not lead recoveries with explore, and keeps unmarked generalPurpose implement-gated.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4279",
+      "Overview": "## Summary\n\nOn Cursor, the implement-class Task deny names destination fields the Cursor `Task` schema cannot pass, and it omits the recoveries that already work (`subagent_type: explore`, session assist / ephemeral, parent continues).\n\n## Field instance\n\n- **When:** 2026-09-08\n- **Consumer:** [deftai/BestiMax](https://github.com/deftai/BestiMax) (Directive deposit)\n- **Host:** Cursor Multitask Mode + `Task` tool\n- **Intent:** read-only \"what's next\" / `triage:queue` (no product writes)\n- **Spawn:** `Task` with `subagent_type: generalPurpose` (unmarked Multitask default)\n\nPreToolUse deny (verbatim class):\n\n> Directive denied implement-class spawn: no worktree destination on the spawn payload (`tool_input.isolation=worktree`, `worktree_path`, or `cwd`). Spawned mutating work takes its own worktree; do not inherit the parent checkout. Pass `isolation=worktree` or a linked `worktree_path` before the spawn primitive. Also ritual-not-ready: session ritual state is stale (older than 4h). Run `deft session:start --rearm` …\n\n## What is correct\n\nUnmarked / `generalPurpose` is **implement** (fail closed). That classification is intentional (#3080 AC2 / #3259 D1-D). This issue does **not** ask to fail-open that default or to classify from prompt text.\n\nThe working Cursor path for this intent is `subagent_type: explore` (#1185).\n\n## What is wrong\n\n1. **Unsatisfiable recovery.** The deny tells the agent to pass `isolation=worktree` / `worktree_path` / `cwd`. Cursor `Task` has none of those fields (prompt, `subagent_type`, `model`, `run_in_background`, …). The named recovery cannot be followed on this host.\n2. **Missing honest recoveries.** This deny path does not list the paths that already work on Cursor: `subagent_type: explore` (#1185); session assist / ephemeral markers (#3259 / #3080); continue in the parent. Same honesty class as #3259 AC4, different deny path (dest + ritual, not missing xBRIEF).\n\n## Expected\n\n- Implement-class dest-missing deny on Cursor lists **satisfiable** recoveries only.\n- If implement `Task` on Cursor is meant to work, document (or add) the actual dest field the codec can send. Do not advertise keys the schema cannot carry.\n- `generalPurpose` stays implement-gated.\n\n## Not asking\n\n- Fail-open unmarked `generalPurpose` without dest / ritual / active scope\n- Prompt-NLP / free-text `[worker_role: …]` classification\n- Weakening implement worktree dest (#4066)\n\n## Related\n\n- #1185 — explore spawn\n- #3080 — implement / explore / ephemeral postures (shipped)\n- #3259 — Cursor Multitask delivery residual (shipped; this is dest/ritual deny copy)\n- #4066 — implement spawn requires its own dest\n- #4178 — compile-not-ready + dest on swarm sheets (open; different surface)\n- #4215 — Grok dest-proven skip (closed; different host dest field)\n\nRefs #1709\n\n## Acceptance\n\n- [ ] Cursor implement-class dest-missing deny does not tell the agent to pass `isolation=worktree` / `worktree_path` / `cwd` unless the Cursor `Task` codec actually accepts that key\n- [ ] Deny text lists satisfiable Cursor recoveries: explore Task; session assist / ephemeral; parent continues (and dest-capable swarm launch only if a real dest field exists)\n- [ ] Unmarked `generalPurpose` remains implement (fail closed)\n- [ ] Tests + CHANGELOG\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-09T20:53:39Z)\n\nmodel: grok-4.6\nrole: triage\n\nmechanism-shaped: true\ndesign-critique: warranted, because the lean is deny-copy honesty on Cursor implement-class Task dest-missing (satisfiable recoveries only)\nrefutation-target: The Cursor implement-class dest-missing deny must not name isolation/worktree_path/cwd unless Task can send them, and must list satisfiable recoveries (explore, assist/ephemeral, parent continues), without fail-opening unmarked generalPurpose.\narc-mode: no-ingest\ndest: C:/Repos/deft/directive/.deft-scratch/worktrees/parent-arc-4279\norigin-ref: origin/master\ndispatch-sha: 7609d700f6e96d9e8bf250fc0e4faeaa1331f686\n\ncharter: refutation\nspend: N=1\nwhy: the body names a defensible presumption with a refutation target\ntarget shape: single issue\n\n## Scope recorded\n\nDest-first GitHub-only pass. Dest created this session at origin/master 7609d700. Parent unclaimed on primary. Ingest is not this motion. Complementary to #4294 (cloud dest skip); this issue is deny-copy honesty only.\n\n### Comment by @MScottAdams (2026-09-09T21:01:06Z)\n\nmodel: claude-opus-5\nrole: critic\n\nRefutation charter, N=1, round 1. Ceiling 5608596787 (the triage write-back) honored. Anchors re-verified against `git show 7609d700f6e96d9e8bf250fc0e4faeaa1331f686:<path>`, not from the thread.\n\n## Verdict on the recorded target\n\nThe target is three conjuncts. They do not share a fate.\n\n- **\"must not name isolation/worktree_path/cwd unless Task can send them\"** -- does not survive as written. It rests on a capability premise this repository asserts in the opposite direction and has never measured for this tool.\n- **\"must list satisfiable recoveries (explore, assist/ephemeral, parent continues)\"** -- survives in substance (the recoveries are genuinely missing from this deny path) and fails in form (the mandated ordering routes denied implement spawns through the one spawn branch with no implement-signal fence).\n- **\"without fail-opening unmarked generalPurpose\"** -- holds, but is not load-bearing. Copy does not touch classification, and every recovery requires a structural marker. It fences the wrong hazard; see finding 2.\n\n## 1. blocks-the-design -- the deny-copy premise is unmeasured, and the repo asserts it the other way\n\n**Evidence.** `packages/core/src/session/spawn-occupancy.ts:101` -- `const HOSTS_THAT_REROOT = new Set([\"claude\", \"cursor\", \"codex\"]);`. `packages/core/src/hooks/dispatcher.ts:2138` -- `const UPDATED_INPUT_WIRE_HOSTS = [\"codex\", \"claude\", \"cursor\"] as const;`, whose own doc comment reads \"the bridge cannot offer -- or deny on behalf of -- a delivery channel a host does not have (#3873)\". That is the exact principle this issue invokes, already encoded, and it currently classifies Cursor as *having* the channel.\n\nThe predicate is finer than the issue reads it. In `consultImplementSpawnOccupancy`, `destination === null` denies on every host (lines 389-395), but `destPath === null` with a non-null destination denies only when `!hostCanReroot` (lines 399-407). On Cursor `hostCanReroot` is true, so `isolation: worktree` with no path **allows** and the hook supplies the path -- `rerootNote` at lines 501-505 is literally \" Host isolation=worktree re-roots the child payload.\" So `isolation=worktree` is precisely the token that flips this deny to allow, and the copy naming it is internally consistent with the predicate.\n\n`content/skills/deft-directive-swarm/references/host-cursor.md` Step 2e item 3 is a live MUST-shaped dispatch instruction: \"The worktree path set to the agent's isolated git worktree.\" That presupposes exactly the capability the body denies.\n\n**Measurement.** No test in this tree exercises `toolName: \"Task\"` with `host: \"cursor\"` at the dest seam. Every `host: \"cursor\"` case in `packages/core/src/hooks/dispatcher-spawn-dest.test.ts` (lines 333, 373, 391, 409, 432, 475, 491) and in `packages/core/src/session/spawn-occupancy.test.ts` (lines 834-900) is on `spawn_subagent` -- the #4272 Grok-applied-in-Cursor path. One of those is named \"denies missing dest with Grok cwd text, not Cursor reroot text\", so the tree names a Cursor reroot text and only ever asserts when it does *not* fire.\n\n**Failure mode.** The body asserts \"Cursor `Task` has none of those fields (prompt, `subagent_type`, `model`, `run_in_background`, ...)\" with no measurement and no cite. That is an unstated premise about Cursor's own Task parameter schema, not about Directive's predicate. If Cursor forwards an unknown key into PreToolUse `tool_input`, the copy is already honest, `HOSTS_THAT_REROOT` is right, and the issue reduces to finding 4. If it does not, then the copy is dishonest **and** Cursor's membership in both lists is wrong for `Task`, host-cursor.md Step 2e item 3 is unimplementable, and implement-class `Task` on Cursor cannot isolate at all.\n\n**Disposition consequence.** Those are different builds -- a copy string versus a per-tool capability split plus a contract retraction. The write-back records the scope as \"deny-copy honesty only\", and that scope cannot hold in either branch. The first move is one observation: does a Cursor `Task` spawn carrying `isolation: \"worktree\"` reach the hook with that key in `tool_input`? Bind nothing until that is recorded as measured rather than asserted.\n\n## 2. blocks-the-design -- mandating `explore` first routes denied implement spawns to the unfenced branch\n\n**Evidence.** `packages/core/src/hooks/readonly.ts:148` -- `hasImplementConflictSignal` exists precisely so that \"Structural implement signals ... win over an ephemeral marker (fail closed, #3080)\", and `isEphemeralSpawn` consults it (readonly.ts:258, \"Implement signals win over ephemeral markers including session assist env (fail closed)\"). `isExploreSpawn` (readonly.ts:93-111) does **not**: it is a bare `subagent_type` / `worker_role` string read with no conflict check. In `dispatcher.ts` the branch order is read-only deny (2530), explore allow (2549), process-only allow (2563), ephemeral allow (2585), then `inspectMutationGates` -- which is the only path that reaches the dest consult. The explore branch returns `spawn-explore-ready` unconditionally, ahead of every fence.\n\n**Failure mode.** A deny emitted at the dest seam is by construction read by an agent the gate has just classified implement. Telling it \"pass `subagent_type: explore`\" is the gate instructing the caller to relabel into the one spawn class with no implement-signal override. `assist` / `ephemeral` is fenced by #3080; `explore` is not. In the recorded field instance the relabel was honest -- the intent really was read-only `triage:queue` -- but the deny string cannot see intent, and it will be read by callers whose intent is not read-only.\n\n**Disposition consequence.** The third conjunct is satisfied literally (unmarked `generalPurpose` still fails closed) while the mandated copy opens a one-token bypass by instruction. Acceptance criterion 2 cannot bind as written. Either extend `hasImplementConflictSignal` to `isExploreSpawn` first, or order the copy so the intent-preserving recoveries (parent continues; assist/ephemeral for scratch; `plan` for process-only) lead and `explore` is stated as conditional on the spawn actually being read-only. This is not \"a reviewer would catch it\": the deterministic control is the existing #3080 conflict predicate, currently not wired to this branch.\n\n## 3. sharpens-framing -- the deny names 3 of the 8 keys the predicate accepts\n\n**Evidence.** `inspectSpawnDestination` (spawn-occupancy.ts:120-150) accepts `isolation` / `Isolation`, and for the path `worktree_path`, `worktreePath`, `worktree`, `cwd`, `working_directory`, `workingDirectory`, `workdir`. `rerootMissingDestMessage` (lines 229-236) names three: `tool_input.isolation=worktree`, `worktree_path`, `cwd`.\n\n**Failure mode.** A fix driven by \"trim the keys Task cannot send\" deletes the three named keys and leaves five accepted-but-unnamed ones, producing a dest deny on the #4066 surface that names no dest field at all. A caller that *can* supply `workdir` from a swarm sheet then gets a deny with no actionable key.\n\n**Disposition consequence.** Acceptance criterion 1 is stated as a subtraction. It needs the complement: whatever key set survives must be the set the predicate actually reads, or the two drift again.\n\n## 4. sharpens-framing -- the honest-recovery copy already exists, and it names `plan`\n\n**Evidence.** `dispatcher.ts:2540-2547` already emits, on the read-only spawn deny: \"Use subagent_type explore for read-only research spawns, or subagent_type plan for process-only critic spawns.\" `isProcessOnlyCriticSpawn` (readonly.ts:327-357, `PROCESS_ONLY_CRITIC_SUBAGENT_TYPE = \"plan\"`) also skips the dest consult outright -- `consultImplementSpawnOccupancy` early-returns with \"Directive skipped dest occupancy consult for process-only critic spawn (subagent_type plan)\" (spawn-occupancy.ts:338-351).\n\n**Failure mode.** The target's mandated list is `explore` + assist/ephemeral + parent continues. It omits `plan`, which is a satisfiable recovery on this exact host and the one that skips the dest consult by design (#4241). So the remedy for an under-inclusive recovery list is a second, divergent under-inclusive recovery list, thirty lines from a shipped one -- and the two now disagree about `plan`.\n\n**Disposition consequence.** Name one recovery set and share it across both spawn deny paths rather than authoring a per-path list. The inventory-before-proposing obligation lands here.\n\n## 5. sharpens-framing -- the ritual clause in the field instance is decoration, not cause\n\n**Evidence.** `dispatcher.ts:1353-1372`: the spawn consult deny composes `${consult.message}${ritualNote}${rootsNote}` under code `spawn-not-ready`, where `ritualNote` comes from `ritualDetailForOccupancyDeny()`. The comment at lines 1284-1286 is explicit -- \"Ritual detail on an occupancy deny is telemetry and message decoration, so an inspect failure must not convert an occupancy verdict into a ritual one.\"\n\n**Failure mode.** The verbatim string in the field instance ends \"Also ritual-not-ready: ... Run `deft session:start --rearm` ...\". Running `--rearm` does not clear this deny; the dest predicate re-denies. So the composed message the agent reads carries a second instruction that is causally inert on this path, which is the same honesty defect the issue is filed about.\n\n**Disposition consequence.** Acceptance criterion 2 says \"deny text lists satisfiable Cursor recoveries\". A dest-clause-only edit leaves an unsatisfiable recovery in the same string and the field instance's actual confusion intact. Either scope the criterion to the dest clause explicitly, or mark the appended ritual note as telemetry rather than instruction.\n\n## 6. sharpens-framing -- the recorded target is a conjunction\n\n**Evidence.** The Stop 1 write-back records one `refutation-target:` carrying two positive obligations and one negative constraint, where the method asks for the triage author's highest-leverage asserted premise, singular.\n\n**Failure mode.** A compound target cannot take a single verdict. Conjunct 1 fails, conjunct 2 splits substance from form, conjunct 3 holds and is inert. A round-2 or synthesis pass reading \"the target survives\" or \"the target falls\" as one bit loses all of that.\n\n**Disposition consequence.** Carry the three conjuncts as separate headings so each takes its own `accept-into-contract` / `disagree` / `defer`.\n\n## 7. sharpens-framing -- `arc-mode: no-ingest` is outside the closed set and uses the prohibited spelling\n\n**Evidence.** `packages/core/src/design-critique/run-posture.ts:11` -- `ARC_RUN_POSTURES = [\"direct\", \"checkout\"]`. `no-ingest` is neither. Fed to `parseOperatorRunPosture`, `INGEST_TOKEN_RE = /\\bingest\\b/i` matches and it returns `{ kind: \"ask\", reason: \"ingest-is-not-posture\" }` (lines 62-77). The contract requires `arc-mode: direct` or `arc-mode: checkout` on the write-back and prohibits treating the field as a permanent ingest denial -- which is what the recorded value spells.\n\n**Failure mode.** The recorded scope also says \"Dest created this session at origin/master 7609d700\". Under `direct` the contract prohibits `git worktree add`, so the isolation actually used is checkout-shaped while the posting path is GitHub-only. With no closed token recorded, a later reader cannot tell which set of obligations governed this arc.\n\n**Disposition consequence.** This is a recording defect in the arc, not a bar on the design -- the deny-copy lean can still bind. Repair it by recording `arc-mode: checkout` (a dest worktree exists) and noting GitHub-only posting separately, and leave ingest clearance to the completed-arc record where it belongs.\n\n## 8. footnote\n\nOne Cursor deny string spans two platform descriptors that host-cursor.md already distinguishes -- `cursor-composer` and `cursor-cloud-agent`. Dest-missing has different meaning on each: a cloud-agent worker gets its own checkout, so \"pass a linked worktree path\" is not merely unsatisfiable there but meaningless. Not folded into this arc; the copy can be made honest for the recorded local Multitask instance without it. Pointer to #4294, which owns the cloud dest skip.\n\n## Injection / swarm lens\n\nFires: the target rewrites hook deny text that agents act on, and the recoveries it mandates change spawn authority class. Finding 2 is that lens. The specific hazard is a gate emitting its own bypass token into an envelope read by a caller it has just refused, and the unfenced branch (`isExploreSpawn`, no `hasImplementConflictSignal`) is the one the target names first.\n\n## Road not taken\n\nI considered treating this as a straightforward copy defect and scoring only the recovery-list omission -- the reading the write-back records. Rejected because the copy cannot be written honestly without first deciding a capability fact, and this tree asserts that fact both ways (`HOSTS_THAT_REROOT` plus host-cursor.md Step 2e item 3, against the issue body) with no test on `Task` + `cursor`. A copy edit made under the wrong branch of that fork either deletes an honest recovery or preserves a dishonest one, and nothing in the acceptance criteria would detect which.\n\n## Steelman\n\nThe strongest rejected position: the field instance is a real measured event, an agent was handed instructions it could not follow, and requiring a capability measurement before touching a plainly confusing string is exactly the over-caution that leaves bad copy shipped for months. Finding 4 is enough on its own -- adding `plan`, assist/ephemeral, and parent-continues to this deny path is strictly an improvement regardless of how the capability question lands, and it can ship today.\n\nWhat would flip my verdict on finding 1: a recorded PreToolUse payload from a Cursor `Task` spawn showing whether an unknown `isolation` or `worktree_path` key survives into `tool_input`. Either result settles it, and either result makes the build concrete. What would flip finding 2: `hasImplementConflictSignal` wired into `isExploreSpawn`, or evidence that the explore branch is unreachable for a caller carrying implement signals.\n\n\n### Comment by @MScottAdams (2026-09-09T21:01:51Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe dest-missing deny on Cursor is a real honesty problem, but the body cannot bind as written: whether Task can send isolation is unmeasured and this tree asserts the opposite, and listing explore first tells a just-denied implement spawn to take the unfenced branch. Confirming this map recuts 4279.\n\nThis is not an instruction to a later builder.\n\nRecut: next-build contract is not this body.\n\n**Lean:** recut of #4279 after critic 5608684606. Round 1 siblings dispatched: 1. Supersedes write-back 5608596787.\n\nTarget-digest: sha256:49916d40a714d293febbba65ed9a7ecea2b2fe008de616429caa553e7e271465\n\narc-mode: no-ingest\ndest: C:/Repos/deft/directive/.deft-scratch/worktrees/parent-arc-4279\ndispatch-sha: 7609d700f6e96d9e8bf250fc0e4faeaa1331f686\n\n## Bound remedy\n\n- Do not bind deny-copy until one PreToolUse measurement records whether Cursor Task isolation/worktree_path/cwd reaches tool_input. If the key arrives, the named recovery is already honest for that key. If it does not, copy and HOSTS_THAT_REROOT / host-cursor.md Step 2e for Task are both in scope.\n- Recovery list: do not lead with explore. Either wire hasImplementConflictSignal into isExploreSpawn first, or order recoveries as parent continues, assist/ephemeral, plan, then explore only if the spawn is actually read-only. Share one recovery set with the existing read-only spawn deny (dispatcher.ts 2540-2547), including plan.\n- Surviving dest keys in the deny must match inspectSpawnDestination, not a three-name subset.\n- Scope the dest-clause honesty separately from the appended ritual note, which is telemetry not a recovery (session:start --rearm does not clear dest-missing).\n- generalPurpose stays implement. Do not fail-open. Cloud dest skip stays on #4294.\n\n### Takes (critic 5608684606)\n\n- 1 deny-copy premise is unmeasured — accept-into-contract\n- 2 mandating explore first routes implement to the unfenced branch — accept-into-contract\n- 3 deny names 3 of 8 keys the predicate accepts — accept-into-contract\n- 4 honest-recovery copy already exists and names plan — accept-into-contract\n- 5 ritual clause in the field instance is decoration — accept-into-contract\n- 6 recorded target is a conjunction — accept-into-contract\n- 7 arc-mode no-ingest is outside the closed set — accept-into-contract\n\nAccepted set: 1-7. Still-open residual: none. Footnote 8 is census only.\n\nNon-self-arbitration: parent authored Stop 1 5608596787. Classified findings originated in opus critic 5608684606.\n\n### Comment by @MScottAdams (2026-09-09T23:02:40Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nEach row names its method. Agreement is not evidence.\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | HOSTS_THAT_REROOT includes cursor; isolation=worktree with no path allows on Cursor | Opus git show spawn-occupancy.ts 101, 337, 399-407, 501-505 | measured |\n| 2 | No test in tree of toolName Task with host cursor at dest seam | Opus git show dispatcher-spawn-dest.test.ts and spawn-occupancy.test.ts | measured |\n| 3 | isExploreSpawn has no hasImplementConflictSignal; explore allow is before inspectMutationGates | Opus git show readonly.ts 93-111, 148, 258 and dispatcher.ts 2530-2585 | measured |\n| 4 | rerootMissingDestMessage names 3 keys; inspectSpawnDestination accepts 8 | Opus git show spawn-occupancy.ts 120-150, 229-236 | measured |\n| 5 | Read-only spawn deny already names explore and plan | Opus git show dispatcher.ts 2540-2547 | measured |\n| 6 | Ritual note on occupancy deny is decoration; rearm does not clear dest-missing | Opus git show dispatcher.ts 1284-1286, 1353-1372 | measured |\n\n### Comment by @MScottAdams (2026-09-09T23:03:01Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe Cursor dest-missing deny is a real honesty problem, but the body cannot bind as written. Next-build waits on one Task-payload measurement, does not lead recoveries with explore, shares the existing deny recovery set including plan, and keeps generalPurpose implement.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCiting successor lean 5608693734 and verified-claims table 5609923543.\n\nNon-self-arbitration: parent authored Stop 1 5608596787; classified findings originated in opus 5608684606. Operator accepted 2026-09-09.",
+      "Labels": "bug, agent-experience, process, harness, design-critique:ingest-ready",
+      "UserStory": "As a Cursor agent, I want dest-missing deny text to name only satisfiable recoveries, so that I am not told to pass isolation keys the Task tool cannot send.",
+      "ImplementationPlan": "1. Measure one PreToolUse payload then edit the dispatcher.ts and spawn-occupancy.ts source files so dest-deny copy names only keys inspectSpawnDestination reads. 2. Add a vitest test in dispatcher-spawn-dest.test.ts that verifies recoveries do not lead with explore and unmarked generalPurpose still fails closed."
+    },
+    "items": [
+      {
+        "title": "Do not bind deny-copy until Task payload is measured",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a Cursor Task implement-class dest-missing deny, when copy is edited, then one PreToolUse measurement records whether isolation worktree_path or cwd reaches tool_input, and HOSTS_THAT_REROOT plus host-cursor.md Step 2e stay in scope only if the key does not arrive.",
+          "Traces": "Traces to the bound-remedy harvest on the origin GitHub issue thread."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/spawn-occupancy.test.ts#Cursor Task dest-missing deny honesty",
+          "recorded_at": "2026-09-10T14:26:16Z",
+          "recorded_by": "leaf-implementation grok-4.6"
+        }
+      },
+      {
+        "title": "Recovery list does not lead with explore",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given dest-missing deny text, when recoveries are listed, then parent continues assist/ephemeral and plan lead, explore is conditional on a read-only spawn, and the set is shared with the existing read-only spawn deny including plan.",
+          "Traces": "Traces to the bound-remedy harvest on the origin GitHub issue thread."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts#Cursor Task dest-missing deny honesty",
+          "recorded_at": "2026-09-10T14:26:16Z",
+          "recorded_by": "leaf-implementation grok-4.6"
+        }
+      },
+      {
+        "title": "Surviving dest keys match inspectSpawnDestination",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a dest-missing deny message, when it names dest fields, then the named keys match inspectSpawnDestination rather than a three-name subset.",
+          "Traces": "Traces to the bound-remedy harvest on the origin GitHub issue thread."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/spawn-occupancy.test.ts#names every inspectSpawnDestination key",
+          "recorded_at": "2026-09-10T14:26:16Z",
+          "recorded_by": "leaf-implementation grok-4.6"
+        }
+      },
+      {
+        "title": "Ritual note is telemetry not a recovery",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a dest-missing occupancy deny, when the message includes a ritual note, then session:start --rearm is not presented as a recovery that clears dest-missing.",
+          "Traces": "Traces to the bound-remedy harvest on the origin GitHub issue thread."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts#ritual telemetry (does not clear dest-missing)",
+          "recorded_at": "2026-09-10T14:26:16Z",
+          "recorded_by": "leaf-implementation grok-4.6"
+        }
+      },
+      {
+        "title": "generalPurpose stays implement gated",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given unmarked generalPurpose Task, when dest is missing, then the spawn still fails closed as implement and cloud dest skip stays on issue 4294.",
+          "Traces": "Traces to the bound-remedy harvest on the origin GitHub issue thread."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts#keeps unmarked generalPurpose fail-closed",
+          "recorded_at": "2026-09-10T14:26:16Z",
+          "recorded_by": "leaf-implementation grok-4.6"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "harness",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4279",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4279: bug(hooks,cursor): implement-class Task deny names dest fields Cursor Task cannot pass; explore recovery omitted"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 12 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Do not bind deny-copy until one PreToolUse measurement records whether Cursor Task isolation/worktree_path/cwd reaches tool_input. If the key arrives, the named recovery is already honest for that key. If it does not, copy and HOSTS_THAT_REROOT / host-cursor.md Step 2e for Task are both in scope.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Recovery list: do not lead with explore. Either wire hasImplementConflictSignal into isExploreSpawn first, or order recoveries as parent continues, assist/ephemeral, plan, then explore only if the spawn is actually read-only. Share one recovery set with the existing read-only spawn deny (dispatcher.ts 2540-2547), including plan.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Surviving dest keys in the deny must match inspectSpawnDestination, not a three-name subset.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Scope the dest-clause honesty separately from the appended ritual note, which is telemetry not a recovery (session:start --rearm does not clear dest-missing).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "generalPurpose stays implement. Do not fail-open. Cloud dest skip stays on #4294.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "1 deny-copy premise is unmeasured — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "2 mandating explore first routes implement to the unfenced branch — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "3 deny names 3 of 8 keys the predicate accepts — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "4 honest-recovery copy already exists and names plan — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "5 ritual clause in the field instance is decoration — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "6 recorded target is a conjunction — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "7 arc-mode no-ingest is outside the closed set — accept-into-contract",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5394190541,
+        "origin": "deftai/directive#4279",
+        "id": "github.issue.5394190541"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "49916d40a714d293febbba65ed9a7ecea2b2fe008de616429caa553e7e271465"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/session/spawn-occupancy.ts",
+          "packages/core/src/hooks/readonly.ts",
+          "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
+          "packages/core/src/session/spawn-occupancy.test.ts",
+          "content/skills/deft-directive-swarm/references/host-cursor.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/hooks/dispatcher-spawn-dest.test.ts packages/core/src/session/spawn-occupancy.test.ts"
+        ],
+        "expected_outputs": [
+          "Cursor dest-missing deny does not advertise unsatisfiable Task dest keys",
+          "deny recoveries share the existing read-only set including plan and do not lead with explore",
+          "unmarked generalPurpose remains implement fail-closed"
+        ],
+        "depends_on": [],
+        "conflict_group": "cursor-dest-deny-copy",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Ingested from GitHub issue #4279 bound-remedy harvest; no spec-section requirement trace applies."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4314,
+        "prBase": null,
+        "mergeCommit": "82779b5c88170008a5ffa1be67b9b79f610c5a6c",
+        "deliveryBranch": "master",
+        "deliveryCommit": "82779b5c88170008a5ffa1be67b9b79f610c5a6c",
+        "verifiedAt": "2026-09-10T14:26:29Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDhiNGEtNTQ2YS03NTgwLTkwMzYtMDE1ZDlhMTBjOGVi"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-10T14:26:29Z"
+      },
+      "completedAt": "2026-09-10T14:26:29Z",
+      "completedSessionId": "host:claude:v1:MDFhMDhiNGEtNTQ2YS03NTgwLTkwMzYtMDE1ZDlhMTBjOGVi",
+      "capacityBucket": "technical-debt"
+    },
+    "id": "github.issue.5394190541",
+    "updated": "2026-09-10T14:26:29Z"
+  }
+}
