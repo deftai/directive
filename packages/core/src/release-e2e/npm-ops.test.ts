@@ -687,5 +687,8 @@ describe("Pass 2 absence-lock precondition (#4271)", () => {
     expect(okFlag).toBe(true);
     expect(sawUpdate).toBe(true);
     expect(reason).toContain("two-pass fixture green");
+    expect(existsSync(join(consumer, "package.json"))).toBe(true);
+    expect(readFileSync(join(consumer, "AGENTS.md"), "utf8")).toContain("deft:managed-section");
+    expect(existsSync(join(consumer, ".deft", "core", "main.md"))).toBe(true);
   });
 });

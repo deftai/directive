@@ -521,12 +521,44 @@ function parsePorcelainPaths(stdout: string): string[] {
   return paths.filter((path) => path.length > 0);
 }
 
+function seedInitializedPass1Consumer(consumerDir: string, version: string): void {
+  mkdirSync(join(consumerDir, "xbrief"), { recursive: true });
+  mkdirSync(join(consumerDir, ".deft", "core"), { recursive: true });
+  const xbriefBody = `${JSON.stringify({ plan: { narratives: { Overview: "ok" } } })}\n`;
+  for (const rel of PASS1_ABSENCE_LOCK_PATHS) {
+    const full = join(consumerDir, rel);
+    if (!existsSync(full)) writeFileSync(full, xbriefBody, "utf8");
+  }
+  writeFileSync(
+    join(consumerDir, "package.json"),
+    `${JSON.stringify(
+      {
+        name: "deft-4271-two-pass-consumer",
+        private: true,
+        version: "0.0.0",
+        dependencies: { "@deftai/directive": version },
+      },
+      null,
+      2,
+    )}\n`,
+    "utf8",
+  );
+  writeFileSync(
+    join(consumerDir, "AGENTS.md"),
+    "<!-- deft:managed-section -->\n# Deft\n<!-- /deft:managed-section -->\n",
+    "utf8",
+  );
+  writeFileSync(join(consumerDir, ".deft", "core", "main.md"), "# Deft\n", "utf8");
+}
+
 function runPass2UpdateFromInstalledCli(
   cleanDir: string,
   consumerDir: string,
+  version: string,
   seams: E2ESeams,
 ): [boolean, string, readonly string[]] {
   mkdirSync(consumerDir, { recursive: true });
+  seedInitializedPass1Consumer(consumerDir, version);
   const gitSteps: Array<readonly string[]> = [
     ["init"],
     ["config", "user.email", "deft-fixture@example.com"],
@@ -609,6 +641,7 @@ export function runPostPublishTwoPassFixture(
     const [updateOk, updateReason, updatePaths] = runPass2UpdateFromInstalledCli(
       options.cleanDir,
       consumerDir,
+      options.version,
       seams,
     );
     if (!updateOk) return [false, updateReason];
