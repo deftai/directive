@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Cursor local implement is dest-placing, not Task dest (#4295).** Nursery inherit admits one Task child when the window is already a reserved linked worktree and occupancy:grant fences parent product writes. Headless launch is dest-rooted `@cursor/sdk` `Agent.create` with reservation before exec, process-handle liveness, and doctor `cursor-sdk-auth`. Fence-in-place stays parked. Task dest keys do not move the child (comment 5611146439). Closes #4295.
+- **Cursor local implement is dest-placing, not Task dest (#4295).** Local Cursor workers start in a reserved linked worktree instead of unsupported Task destination keys. Closes #4295.
 
 ### Changed
 

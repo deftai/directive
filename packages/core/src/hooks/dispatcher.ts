@@ -1282,6 +1282,8 @@ function inspectMutationGates(
           env: actor?.hostAuthoritative === true ? {} : environ,
         }),
         actor?.sessionId ?? "",
+        undefined,
+        input.host,
       );
 
   // #3769: occupancy decides before any ritual persist. The gated verifier
@@ -1510,6 +1512,8 @@ function inspectMutationGates(
         refresh: true,
       }),
       actor.sessionId ?? "",
+      undefined,
+      input.host,
     );
     occupancyWarning = finalOccupancy.warning;
     if (finalOccupancy.occupant !== null && actor.issue !== null) {

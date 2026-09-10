@@ -965,10 +965,13 @@ export function applyCursorNurseryOccupancy(
   gate: OccupancyWriteGateResult,
   sessionId: string,
   now?: Date,
+  host?: string,
 ): OccupancyWriteGateResult {
   const dest = resolve(destRoot);
   const presented = sessionId.trim();
   if (presented.length === 0) return gate;
+  if ((host ?? "").trim() !== "cursor") return gate;
+  if (!presented.startsWith("host:cursor:")) return gate;
   if (!isCursorNurseryDest(dest)) return gate;
   const at = now ?? new Date();
   if (!gate.allow && gate.occupant !== null && gate.admitted === null) {
@@ -976,7 +979,7 @@ export function applyCursorNurseryOccupancy(
     if (occupant.sessionId === presented) return gate;
     if (liveOccupancyGrants(occupant, at).length > 0) return gate;
     const existing = existingDispatchReservation(dest, dest);
-    if (existing === null) return gate;
+    if (existing === null || existing.nurseryInherit !== true) return gate;
     if (
       existing.parentId !== occupant.sessionId &&
       existing.occupancyOwner !== occupant.sessionId
@@ -998,7 +1001,7 @@ export function applyCursorNurseryOccupancy(
     if (occupant === null || occupant.sessionId !== presented) return gate;
     if (liveOccupancyGrants(occupant, at).length === 0) return gate;
     const existing = existingDispatchReservation(dest, dest);
-    if (existing === null) return gate;
+    if (existing === null || existing.nurseryInherit !== true) return gate;
     if (existing.parentId !== presented && existing.occupancyOwner !== presented) return gate;
     return {
       allow: false,

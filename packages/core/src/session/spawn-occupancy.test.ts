@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { listChildOccupancyLeases, recordChildOccupancyLease } from "./child-occupancy.js";
+import { canonicalHostSessionId } from "./host-session-owner.js";
 import { applyWorktreeOccupancy, evaluateOccupancyWriteGate } from "./occupancy.js";
 import {
   allocatedWorktreeMatches,
@@ -1343,27 +1344,39 @@ describe("Cursor nursery inherit (#4295)", () => {
     const dest = join(main, "wt");
     addLinkedWorktree(main, dest);
     const now = new Date("2026-09-10T12:00:00Z");
-    applyWorktreeOccupancy(dest, { sessionId: "parent-1", now, env: {} });
+    const parentId = canonicalHostSessionId("cursor", "parent-nursery");
+    const childId = canonicalHostSessionId("cursor", "child-nursery");
+    applyWorktreeOccupancy(dest, { sessionId: parentId, now, env: {} });
     const first = evaluateImplementSpawnOccupancy({
       payload: taskPayload,
       payloadRoot: dest,
       host: "cursor",
-      parentId: "parent-1",
+      parentId,
       now,
       environ: {},
     });
     expect(first.allow).toBe(true);
     if (!first.allow || first.reservation === null) return;
     expect(persistSpawnReservation(dest, first.reservation, now).ok).toBe(true);
-    const stranger = evaluateOccupancyWriteGate(dest, { sessionId: "child-1", now });
+    const stranger = evaluateOccupancyWriteGate(dest, { sessionId: childId, now });
     expect(stranger.allow).toBe(false);
-    const admitted = applyCursorNurseryOccupancy(dest, stranger, "child-1", now);
+    const refusedOtherHost = applyCursorNurseryOccupancy(dest, stranger, childId, now, "grok");
+    expect(refusedOtherHost.allow).toBe(false);
+    const refusedForeign = applyCursorNurseryOccupancy(
+      dest,
+      evaluateOccupancyWriteGate(dest, { sessionId: "host:grok:v1:other", now }),
+      "host:grok:v1:other",
+      now,
+      "cursor",
+    );
+    expect(refusedForeign.allow).toBe(false);
+    const admitted = applyCursorNurseryOccupancy(dest, stranger, childId, now, "cursor");
     expect(admitted.allow).toBe(true);
     expect(admitted.admitted).toBe("member");
-    const parent = evaluateOccupancyWriteGate(dest, { sessionId: "parent-1", now });
+    const parent = evaluateOccupancyWriteGate(dest, { sessionId: parentId, now });
     expect(parent.allow).toBe(true);
     expect(parent.admitted).toBe("owner");
-    const fenced = applyCursorNurseryOccupancy(dest, parent, "parent-1", now);
+    const fenced = applyCursorNurseryOccupancy(dest, parent, parentId, now, "cursor");
     expect(fenced.allow).toBe(false);
     expect(fenced.message).toMatch(/nursery occupancy grant is live/);
   });
