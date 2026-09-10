@@ -8,6 +8,8 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { GitRunner } from "../session/git.js";
 import {
+  completeConventionValidProbe,
+  derivedLifecycleIgnoreProbeRecordsFromSources,
   derivedLifecycleIgnoreProbesFromSources,
   derivedProbeIsEmitable,
   displayIgnoreSource,
@@ -1161,5 +1163,36 @@ describe("convention-valid derived probes (#4310)", () => {
       derivedProbeIsEmitable(`xbrief/pending/2026-07-01-${LIFECYCLE_PROBE_STEM}.xbrief.json`),
     ).toBe(true);
     expect(derivedProbeIsEmitable("xbrief/pending/")).toBe(true);
+  });
+
+  it("repairs a partial-day date glob into a convention-valid July witness", () => {
+    expect(
+      completeConventionValidProbe(
+        `xbrief/pending/2026-07-0${LIFECYCLE_PROBE_STEM}.xbrief.json`,
+      ),
+    ).toBe(`xbrief/pending/2026-07-01-${LIFECYCLE_PROBE_STEM}.xbrief.json`);
+    const probes = probesFromPatterns(["xbrief/pending/2026-07-0*.xbrief.json"]);
+    expect(probes).toContain(`xbrief/pending/2026-07-01-${LIFECYCLE_PROBE_STEM}.xbrief.json`);
+  });
+
+  it("still reports a 2026-07-0* hide on an empty pending stage", () => {
+    const root = initLifecycleRepo();
+    writeFileSync(join(root, ".gitignore"), "xbrief/pending/2026-07-0*.xbrief.json\n", "utf8");
+    const result = evaluateLifecycleVisible({ projectRoot: root, enforce: true });
+    expect(result.code).toBe(1);
+    const hit = result.findings.find((f) => f.path === "xbrief/pending/");
+    expect(hit?.probe).toBe(`xbrief/pending/2026-07-01-${LIFECYCLE_PROBE_STEM}.xbrief.json`);
+    expect(hit?.candidateRule).toBe("xbrief/pending/2026-07-0*.xbrief.json");
+  });
+
+  it("names the later generating rule when two date globs share a witness", () => {
+    const records = derivedLifecycleIgnoreProbeRecordsFromSources([
+      {
+        baseDir: "",
+        patterns: ["2026-07-*.xbrief.json", "2026-07-01-*.xbrief.json"],
+      },
+    ]);
+    const hit = records.find((r) => r.path.endsWith(`2026-07-01-${LIFECYCLE_PROBE_STEM}.xbrief.json`));
+    expect(hit?.candidateRule).toBe("2026-07-01-*.xbrief.json");
   });
 });

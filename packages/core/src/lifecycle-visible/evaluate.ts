@@ -236,6 +236,38 @@ export function derivedProbeIsEmitable(relPosix: string): boolean {
   return matchesFilenameConvention(base);
 }
 
+const ARTIFACT_PROBE_SUFFIXES = [".xbrief.json", ".vbrief.json"] as const;
+
+/**
+ * When a glob expansion is not convention-valid, complete a partial YYYY-MM-DD
+ * prefix so intersecting date globs still have a valid witness (#4310 P1).
+ * `2026-07-0*.xbrief.json` expands to `2026-07-0lifecycle-visible.xbrief.json`;
+ * this repairs it to `2026-07-01-lifecycle-visible.xbrief.json`.
+ */
+export function completeConventionValidProbe(relPosix: string): string | null {
+  const posix = relPosix.replace(/\\/g, "/").replace(/^\/+/, "");
+  if (posix.length === 0) return null;
+  if (derivedProbeIsEmitable(posix)) return posix;
+  const slash = posix.lastIndexOf("/");
+  const dir = slash >= 0 ? posix.slice(0, slash + 1) : "";
+  const base = slash >= 0 ? posix.slice(slash + 1) : posix;
+  const suffix = ARTIFACT_PROBE_SUFFIXES.find((s) => base.endsWith(s));
+  if (suffix === undefined) return null;
+  const stem = base.slice(0, -suffix.length);
+  const m = stem.match(/^(\d{4})(?:-(\d{1,2}))?(?:-(\d{1,2}))?(.*)$/);
+  if (m === null) return null;
+  const year = m[1] ?? "2026";
+  let month = (m[2] ?? "01").padStart(2, "0");
+  let day = (m[3] ?? "01").padStart(2, "0");
+  if (month === "00" || Number(month) > 12) month = month === "00" ? "01" : "12";
+  if (day === "00" || Number(day) > 28) day = day === "00" ? "01" : "28";
+  let slug = m[4] ?? "";
+  if (slug.startsWith("-")) slug = slug.slice(1);
+  if (slug.length === 0) slug = LIFECYCLE_PROBE_STEM;
+  const repaired = `${dir}${year}-${month}-${day}-${slug}${suffix}`;
+  return derivedProbeIsEmitable(repaired) ? repaired : null;
+}
+
 function lifecycleRootsForBasenameProbe(name: string): readonly string[] {
   const roots = lifecycleRootRelPaths();
   if (name.endsWith(".vbrief.json")) return roots.filter((r) => r.startsWith("vbrief/"));
@@ -324,14 +356,19 @@ export function derivedLifecycleIgnoreProbeRecordsFromSources(
   sources: readonly IgnorePatternSource[],
 ): DerivedLifecycleIgnoreProbe[] {
   const out: DerivedLifecycleIgnoreProbe[] = [];
-  const seen = new Set<string>();
+  const indexByPath = new Map<string, number>();
   const add = (relPosix: string, candidateRule: string): void => {
-    const posix = relPosix.replace(/\\/g, "/").replace(/^\/+/, "");
-    if (posix.length === 0 || seen.has(posix)) return;
-    if (lifecycleRootForRelPath(posix) === null) return;
-    if (!derivedProbeIsEmitable(posix)) return;
-    seen.add(posix);
-    out.push({ path: posix, candidateRule });
+    const repaired = completeConventionValidProbe(relPosix);
+    if (repaired === null) return;
+    if (lifecycleRootForRelPath(repaired) === null) return;
+    const existing = indexByPath.get(repaired);
+    if (existing !== undefined) {
+      // Last generating rule wins so the named candidate tracks git last-match order.
+      out[existing] = { path: repaired, candidateRule };
+      return;
+    }
+    indexByPath.set(repaired, out.length);
+    out.push({ path: repaired, candidateRule });
   };
   for (const source of sources) {
     const baseDir = posixTrimDir(source.baseDir);
