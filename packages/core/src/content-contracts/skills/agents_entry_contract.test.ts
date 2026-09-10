@@ -184,6 +184,14 @@ const THROUGH_MERGE_DISPATCH_MARKERS = [
   "Parent conversation implements or babysits",
 ] as const;
 
+/** Always-on Cursor dest-placing spawn dest (#4066 / #4295). */
+const SPAWN_DEST_PLACING_MARKERS = [
+  "Spawn dest (#4066 / #4295)",
+  "dest-placing",
+  "Task dest keys",
+  "Agent.create",
+] as const;
+
 /** After-merge one-origin orphan-active DONE gate (#3429). */
 const AFTER_MERGE_ORPHAN_ACTIVE_MARKERS = [
   "verify:orphan-active -- --issue",
@@ -852,6 +860,11 @@ describe("test_agents_entry_contract", () => {
   it("through_merge_dispatch_markers_present_in_both_files", () => {
     expect(missingMarkers(template, THROUGH_MERGE_DISPATCH_MARKERS)).toEqual([]);
     expect(missingMarkers(agents, THROUGH_MERGE_DISPATCH_MARKERS)).toEqual([]);
+  });
+
+  it("spawn_dest_placing_markers_present_in_both_files", () => {
+    expect(missingMarkers(template, SPAWN_DEST_PLACING_MARKERS)).toEqual([]);
+    expect(missingMarkers(agents, SPAWN_DEST_PLACING_MARKERS)).toEqual([]);
   });
 
   it("after_merge_orphan_active_markers_present_in_both_files", () => {
