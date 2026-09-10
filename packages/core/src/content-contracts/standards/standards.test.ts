@@ -2602,6 +2602,17 @@ describe("test_standards.py", () => {
     expect(text).toContain("#3167");
     expect(text).toContain("#3180");
   });
+
+  it("CONTRIBUTING.md has no MUST/forbids per-commit full-check gate (#4324)", () => {
+    const text = readText("CONTRIBUTING.md");
+    expect(text).not.toMatch(/definition of ready-to-commit/i);
+    expect(text).not.toMatch(/Do not commit unless `task check` passes/);
+    expect(text).not.toMatch(/Commit code that has not passed `task check`/);
+    expect(text).not.toMatch(/authoritative pre-commit gate/i);
+    expect(text).toContain("#4135");
+    expect(text.toLowerCase()).toContain("iteration lane");
+    expect(text).toMatch(/push\/PR/);
+  });
 });
 
 describe("allMdFiles skip dirs", () => {
