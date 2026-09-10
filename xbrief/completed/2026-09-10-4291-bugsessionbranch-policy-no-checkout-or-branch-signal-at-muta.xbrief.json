@@ -1,0 +1,380 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4291",
+    "updated": "2026-09-10T18:44:22Z"
+  },
+  "plan": {
+    "title": "bug(session,branch-policy): no checkout or branch signal at mutation time -- a whole session landed on the primary checkout on a merged branch 64 behind main, and the worktree remedy needs six undocumented commands",
+    "status": "completed",
+    "narratives": {
+      "Description": "Mutation session start does not print which checkout and branch it is mutating, or ahead/behind versus the default upstream. The filed body asked for three products; the successor lean recuts to the first slice only. Next-build is Bound-remedy on lean 5606856102. Body is history.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4291",
+      "Overview": "## Summary\n\nA full working session — a 229-line design document, three new xBRIEF files, and a\nseries of edits to existing briefs — landed in the **primary checkout**, on a feature\nbranch **64 commits behind `origin/main` with zero commits of its own**, already fully\nmerged. Nothing in Directive said so at any point.\n\nTwo separate failures produced that outcome:\n\n1. **No branch or checkout signal at mutation time.** Not at session start, not at the\n   first write, not at the compaction re-arm. The session was never told which checkout\n   it was mutating, which branch that checkout was on, or that the branch was stale and\n   merged.\n2. **The compliant path was unavailable and the non-compliant one was not gated.** The\n   Write tool was denied with no working recovery (#4290). Bash writes were not\n   intercepted. So the actor did the whole session's file work through `cat >>`.\n\nThe policy says *\"spawned mutating work takes a linked worktree.\"* The enforced outcome\nwas the exact inverse: every mutation on the primary checkout, on a stale branch,\nthrough the one path the gate does not watch. The friction landed entirely on the\ncompliant route.\n\n## The stale branch is the part with lasting consequences\n\n```\n$ git rev-parse --abbrev-ref HEAD\nfix/stream-long-research-calls\n$ git rev-list --left-right --count origin/main...HEAD\n64      0\n```\n\nThe design document and briefs analyse source files as they exist 64 commits ago. Line\nreferences, function signatures and settings may all have moved. That was discovered\nonly when a worktree was finally created and its base turned out to be a different tree\n— by inspection, not by any signal from the framework.\n\nA branch that is `0` ahead and `N` behind is a specific, cheap, high-value thing to\ndetect: it is finished work, and new work should not start on it.\n\n## The sanctioned remedy took six commands and undocumented knowledge\n\n\"Use another worktree\" is the printed advice. Doing so:\n\n1. Create the worktree (fresh from `origin/main`).\n2. `deft session:start` → `occupancy claimed session d6d5e7f0-...  (intent=mutation)`\n3. `Write` → **denied**:\n   > Worktree occupied by session `d6d5e7f0-...`. This process presented session\n   > `host:claude:v1:OWUwYTg0...`, which neither holds that lease nor has a write grant on it.\n\n   The lease that blocks the write was created by the command the framework just told\n   the actor to run, three seconds earlier, in the same directory.\n4. `deft update` — a fresh worktree has drifted agent hooks, which independently fails\n   the gated ritual.\n5. `deft occupancy:release --session-id=d6d5e7f0-...` — note that bare\n   `occupancy:release` refuses, because that invocation \"presented no session identity\".\n6. `DEFT_SESSION_ID=host:claude:v1:OWUwYTg0... deft session:start` → claims under the\n   host identity.\n7. `Write` → works.\n\n**The root cause is step 2 against step 3:** `session:start` claims the lease under a\nsession id it mints itself, while the host presents its own identity on the next write.\nThey never match, so the sanctioned first move creates the obstacle. Nothing in any\nmessage names `DEFT_SESSION_ID` as the reconciliation; that came from a note the actor\nhad written after hitting this before.\n\n## The write check and the gated ritual disagree\n\nAfter step 6, `Write` succeeds while `deft verify:session-ritual -- --tier=gated` still\nfails on `doctor` (4 pre-existing hard errors, canonical-vendored install not\nnpm-managed). One of the two is wrong about whether this session is ready to mutate.\n\n## Requests\n\n1. **Report the checkout and branch at mutation intent.** One line: which checkout,\n   which branch, ahead/behind the default branch. Refuse, or at minimum warn loudly, when\n   a mutation session is starting on a branch that is `0` ahead and `N` behind — that\n   branch is merged and finished.\n2. **Claim the lease under the identity the host will present.** When a host session id\n   is available, `session:start` should claim with it rather than minting one that is\n   guaranteed not to match the next write.\n3. **Reconcile the gate with the shell.** Either intercept shell writes, or stop\n   describing the worktree rule as enforced — today it is a speed bump on the honest\n   path and absent from the other.\n\n## Related\n\n- **#4290** — the compaction-staleness recovery loop on the primary checkout. That issue\n  is why the actor was writing through Bash at all; this one is about what that produced\n  and the absence of any branch signal.\n- **#3884** — same class: printed recovery requires a lease it must not take.\n- **#3860** — 233 linked worktrees sharing one common dir. This repository currently\n  lists 38, which is context for how routine the worktree path is meant to be.\n\n## Environment\n\n- `@deftai/directive`, engine `@deftai/directive-core@0.112.0`; deposit `v0.105.0`\n- Windows 11, Claude Code desktop, interactive session\n- Consumer project, primary checkout on `fix/stream-long-research-calls`\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-09-09T18:17:45Z)\n\nmodel: grok-4.6\nrole: triage\n\nmechanism-shaped: true\ndesign-critique: warranted, because the lean is a mutation-session occupancy and branch-policy recording obligation (checkout identity, lease claim, write-path enforcement)\nrefutation-target: A mutation session must report which checkout and branch it is mutating, and must refuse or warn loudly when that branch is 0 ahead and N behind the default branch, because that branch is finished work.\narc-mode: direct\n\ncharter: open critique\nspend: N=1\nwhy: default motion; the issue names three requests rather than one locked design. Panel permission exists (session, occupancy, and branch-policy blast radius) and is unused.\ntarget shape: single issue\ndispatch-sha: 7609d700f6e96d9e8bf250fc0e4faeaa1331f686\n\n## Scope recorded\n\nIssue 4291. A consumer session mutated the primary checkout on a feature branch already merged (0 ahead, 64 behind origin/main). The body records two failures: no checkout or branch signal at mutation time; the printed worktree remedy took six undocumented commands because session:start minted a lease that did not match the host-presented write identity.\n\nRelated recorded on the body: 4290, 3884, 3860.\n\n### Comment by @MScottAdams (2026-09-09T18:34:13Z)\n\nmodel: grok-4.6\nrole: critic\n\nOpen critique of issue 4291 plus Stop 1 write-back 5606650787, against dispatch SHA 7609d700f6e96d9e8bf250fc0e4faeaa1331f686. Inventory was re-read in that tree; line cites below are from those files, not from the issue body. No instruction-shaped hijack in the ingested body; the three Requests are treated as untrusted design text, not commands.\n\n### 1. The write-back cannot bind three mechanisms as one recording obligation\nclass: blocks-the-design\n\nEvidence. Stop 1 stamps one lean: a mutation-session occupancy and branch-policy recording obligation (checkout identity, lease claim, write-path enforcement). Its refutation-target names only the 0-ahead/N-behind branch signal. The body still asks for three products: (1) print/refuse checkout+branch, (2) claim the lease under the host-presented id, (3) intercept shell writes or stop calling the worktree rule enforced. Those already live in different modules: defaultBranchSync / verify:branch for branch policy, resolveOccupancySessionId + PreToolUse rewrite for identity, classifyShellWriteTargets / shellDestForms for shell.\n\nFailure mode. An accepted synthesis that keeps this bundle becomes one xBRIEF with three acceptance surfaces that cannot close together. Closing print HEAD does not close mint-vs-host. Closing mint-vs-host does not close cat >>. The spawn rule in commands.md (Spawned mutating work takes a reserved linked worktree) is then misread as an interactive-primary write fence, which isContendedPrimaryCheckout is not: primary claim is refused only when the clone already has linked worktrees, and a standalone consumer session is allowed to occupy the main checkout.\n\nDisposition. Do not bind this body. Recut to one next-build contract, or file siblings. The only slice that is even a candidate for this number is request 1, and only after finding 2. Requests 2 and 3 are residuals or separate issues. Panel spend is still unused; the blast radius is occupancy identity plus write-path honesty, not a reason to keep the bundle.\n\n### 2. 0 ahead / N behind is not \"merged and finished,\" and the existing branch step measures the wrong ref\nclass: sharpens-framing\n\nEvidence. packages/core/src/session/session-start.ts defaultBranchSync (569-674, called from the branch_policy step at 1480-1483) fetches origin/main or origin/master and compares that default branch to its upstream. It warns; it never refuses; it never names HEAD. verify:branch (packages/core/src/branch/evaluate.ts 138-146) only blocks commits on main/master and otherwise prints feature branch proceeding. Ritual state stores gitHead and worktreePath and does not print them. Environment orientation is OS/shell only (formatEnvironmentContext). Compact (session.compact) marks rearm_needed and injects the AGENTS checklist; it does not report checkout or ahead/behind. The sole ahead === 0 && behind === 0 branch in this tree is the default-branch sync happy path, not current HEAD.\n\nFailure mode. Binding refuse mutation when 0/N, because that branch is finished work will refuse a newly created feature branch that has no unique commits yet, and will miss a merged branch that still has unique commits (ahead > 0). The incident shape (0/64 on fix/stream-long-research-calls) is real and cheap to detect; the predicate finished/merged is not that count. A session that never runs mutation session:start and writes through unmatched shell still hears nothing, because this step only runs on cold mutation start, not on Write and not on compact.\n\nDisposition. A successor lean can bind a warn (or a hard refuse with a stronger predicate such as HEAD is an ancestor of the default upstream and ahead is 0) plus one printed line: checkout path, HEAD name, ahead/behind vs default. It cannot bind the body's \"refuse or warn, because finished.\" Do not add a second ahead/behind helper; retarget or sibling the existing defaultBranchSync object. Fetch-fail already degrades to warning with null counts -- a refuse gate that depends on git fetch will fail open on the same path unless that is designed in.\n\nRoad-not-taken. Retarget defaultBranchSync at HEAD and keep warn-only. That is the cheapest patch and would have printed 64 behind. What flips it to a refuse is a merge predicate that this tree does not compute today, plus an answer for first-write and compact, which session:start does not own.\n\n### 3. \"Claim under the identity the host will present\" already shipped; the hole is mint when the hook never rewrites\nclass: sharpens-framing\n\nEvidence. Claude is a payload host (packages/core/src/session/host-session-owner.ts 29-34: session_id on the hook payload). ambientHostSessionOwner only reads GROK_SESSION_ID. resolveOccupancySessionId (occupancy.ts 643-651) uses explicit --session-id, then DEFT_SESSION_ID, then that host-env owner, then mints. The comment on that mint is the defect: Minting instead binds the lease to an id no later hook process can present. Payload identity is injected only by PreToolUse rewrite of an exact simple deft/directive lifecycle command (rewriteExactLifecycleCommand, attachLifecycleIdentityRewrite). task session:start on a consumer is denied until --session-id is explicit, not rewritten. A shell export of DEFT_SESSION_ID never reaches deft-hook, a sibling process (commands.md occupancy identity). The only DEFT_SESSION_ID= line session:start prints is for freshness report/bind, and it prints the claimed (here: minted) id (session-start.ts 1908-1910).\n\nFailure mode. The six-command remedy is this sequence: unhooked or unmatched deft session:start mints a UUID; Write hits the hook and presents host:claude:v1:...; stranger remediation fires. Binding \"when a host session id is available, claim with it\" re-implements #3611 / #3873 / #4066 host-authoritative claim and does not close the case where the id is available to the hook and unavailable to the CLI. Following the printed DEFT_SESSION_ID=<mint> line cannot fix Write: the hook drops ambient env on a host-authoritative actor. The actor's working step (DEFT_SESSION_ID=host:claude:v1:... session:start) is the opposite of what start printed.\n\nDisposition. Do not bind a new \"prefer host id\" feature. Bind the residual: mutation session:start that cannot prove a later Write will present the claimed id must not mint a live occupant, or must name the presented-vs-claimed split and the release/reclaim pair. Manual/CI callers without a payload keep --session-id. Deposit/engine skew in the environment (engine 0.112.0, deposit v0.105.0; #4066 shipped in 0.111.0) is context for matcher drift, not a substitute for that residual.\n\n### 4. Printed recovery still sends a self-minted occupant to \"another worktree\"\nclass: sharpens-framing\n\nEvidence. The deny text quoted in the body matches formatOccupancyRemediation (occupancy.ts 485-534) stranger arm: occupant UUID, presented host:claude:v1:..., neither holds that lease nor has a write grant, lead line Use another worktree. isOwnInheritedPresentation only treats canonical-id aliases of the same raw host id as self; a UUID mint vs host:claude:v1:... is a stranger. Bare occupancy:release resolving empty is the #3954 prove-surface terminal (no mint). Primary-claim refusal (679-695) also says Use another worktree and quotes the spawn rule.\n\nFailure mode. The actor is already in the worktree the framework just told them to create. The occupant is the lease they minted three seconds earlier. \"Use another worktree\" creates the #3860 class (more linked trees, another mint if rewrite still misses). Steal-from-self was closed for aliased host ids (#4066); this incident is not that class. Related #3884 is named on the body and is not in this tree at 7609d700, so that sibling is unverified here.\n\nDisposition. If request 2's residual is accepted, the stranger template must detect claimed-id-is-minted / presented-id-is-canonical-host and print occupancy:release --session-id=<occupant> then session:start --session-id=<presented>, not another worktree. Do not bind \"document DEFT_SESSION_ID\" as the reconciliation: freshness already prints the wrong id, and a shell export does not reach the hook.\n\n### 5. Shell interception as a closed gate cannot bind; occupancy is already honest about fail-open -- the overclaim is elsewhere\nclass: sharpens-framing\n\nEvidence. classifyShellWriteTargets recognizes Set-Content / Add-Content / Out-File / pathlib write_text / IO.WriteAllText only. No cat, no >>, no POSIX redirection. Dest-form (classifyProductDestForms) lists remaining fail-open mutators including > redirection (dest-form.ts 167-171). shellDestForms defaults to off; off leaves Shell unrecognized and fail-open (dispatcher.ts 1995-2006; path-write-fence.md). #3983 changelog at this SHA: recogniser recall ~47%, \"This does not close the shell write bypass.\" Occupancy Write/Edit is enforced. Implement spawn dest is enforced (#4066). Interactive primary occupation is allowed until linked worktrees exist (isContendedPrimaryCheckout).\n\nFailure mode. Binding intercept shell writes reopens a reconstruction problem this tree already abandoned (#3438: cwd, &&, globs, bash -c). Binding \"stop describing the worktree rule as enforced\" is true of spawn/primary-claim copy when quoted onto an interactive session that never spawned, and true of occupancy if AGENTS/commands still sound like all mutations are gated. It is false of Write/Edit occupancy and of contended-primary claim. A lean that takes the body's \"or\" as \"close the bypass\" will not close; a lean that takes it as \"stop quoting spawn policy as a write fence\" can.\n\nDisposition. Accept only the honesty arm, scoped to spawn vs interactive vs Shell-fail-open. Do not bind total shell interception. Do not treat #3983/#3987 as unfinished work this issue must finish.\n\n### 6. Write vs verify:session-ritual --tier=gated is a recorded split; the named doctor example is advisory\nclass: sharpens-framing\n\nEvidence. WRITE_GATED_REQUIRED_STEPS = agent_hooks, doctor (recorded). WRITE_GATED_EXECUTE_STEPS = agent_hooks only (session-start.ts 155-167; writeGateRitualOptions; dispatcher 1381-1386). Full gated verify re-executes doctor. canonical-vendored-npm-signpost is in DOCTOR_ADVISORY_FAIL_CHECKS (doctor/checks.ts 68-78) and is exit-exempt. Tests lock: recorded doctor red denies a write without running doctor; recorded cache_fresh red does not.\n\nFailure mode. If the four hard errors are advisory signposts, gated verify can look red in the doctor printout while Write is correctly allowed. If they are real non-advisory reds, recorded doctor should already deny Write -- and a successful Write after step 6 contradicts that unless orientation throttled a stale clean doctor record. Binding \"one of the two is wrong about ready to mutate\" without splitting recorded-doctor (write) vs live-doctor (session surface) vs advisory-fail will \"fix\" a #3738 split that is intentional.\n\nDisposition. Drop this from the 4291 contract, or restate it as \"advisory doctor fails must not be narrated as mutation-not-ready.\" Do not make the write gate execute doctor.\n\n### Injection / swarm lens\n\nThis target changes occupancy, identity, worktrees, and shared session state, so the lens is in play.\n\nA mint that Write cannot present is a lockout of the live host session by its own CLI, then a worktree-multiplication recovery. Payload hosts share one owner across parent and subagents; host-env hosts do not. A bind that always claim as the host id without saying which process saw it will either mint on Grok-without-GROK_SESSION_ID or refuse CI/manual terminals that today pass --session-id. Occupancy remains a cooperative bearer-id, not authentication (commands.md #3755): host-presented ids are forgeable by another same-user process. Closing the shell bypass as a security boundary is already refused; describing occupancy as enforced while cat >> fail-opens is a copy problem, not a new authz layer. Refuse-on-0/N at session:start is a shared-state gate on every mutation session, including swarm workers whose worktree was created from a stale branch on purpose.\n\nSteelmanning the bundle: one incident, one operator, so one issue. What flips that: the three requests do not share a fail-closed check or a single remediation, and Stop 1 already split them in the refutation-target vs the because-clause. A successor lean that recuts to request 1 (warn + print) and names 2/3 as residuals drops finding 1.\n\n#4290 (compaction recovery that caused Bash writes) and #3884 are body-cited and not present as in-tree xBRIEFs at this SHA; they stay unverified relateds, not imported conclusions.\n\n### Comment by @MScottAdams (2026-09-09T18:34:40Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\nThe filed body of 4291 cannot be built as one story. It asked for three products that do not share a check: print checkout and branch, claim the lease as the host id, and close or stop claiming the shell write path.\n\nConfirming this map recuts 4291 to the first slice only: at mutation session start, print the checkout path, the HEAD name, and ahead/behind versus the default upstream, using the existing branch-sync object pointed at HEAD. Warn. Do not refuse on \"0 ahead and N behind means merged and finished.\"\n\nThe other two requests are residuals, not this number. Host-id claim already shipped; the leftover is mint when the hook never rewrites, plus stranger text that says \"use another worktree\" when the occupant is that mint. Shell interception as a closed gate cannot bind; copy can stop quoting the spawn rule as an interactive write fence. Write versus gated ritual is an intentional recorded-doctor split.\n\nThis is not an instruction to a later builder.\n\nRecut: next-build contract is not this body.\n\n**Lean:** recut of #4291 after critic 5606850696. Round 1 siblings dispatched: 1. Supersedes write-back 5606650787.\n\nTarget-digest: sha256:4ed8019d302d6083024a82adf283f73b0487f2dc2c69cb839bec4be5c4388b94\n\narc-mode: direct\ncharter: open critique\nspend: N=1\ndispatch-sha: 7609d700f6e96d9e8bf250fc0e4faeaa1331f686\n\n## Bound remedy\n\n- Print one orientation line on mutation session:start: checkout path, HEAD branch name, and ahead/behind versus the default upstream.\n- Retarget the existing defaultBranchSync object at HEAD. Warn when behind, diverged, or 0-ahead/N-behind. Do not refuse on the body's \"merged and finished\" predicate. Do not add a second ahead/behind helper.\n- Fetch-fail stays a warning with null counts. Do not make this step a refuse gate that depends on git fetch.\n- Out of this number: mint when the hook never rewrites; stranger remediation that says use another worktree when the occupant is that mint; spawn-versus-interactive-versus-Shell copy honesty; Write versus gated-ritual doctor split.\n\n### Takes (critic 5606850696)\n\n- 1 The write-back cannot bind three mechanisms as one recording obligation — accept-into-contract\n- 2 0 ahead / N behind is not merged and finished, and the existing branch step measures the wrong ref — accept-into-contract\n- 3 Claim under the identity the host will present already shipped; the hole is mint when the hook never rewrites — accept-into-contract\n- 4 Printed recovery still sends a self-minted occupant to another worktree — accept-into-contract\n- 5 Shell interception as a closed gate cannot bind; the overclaim is copy — accept-into-contract\n- 6 Write vs gated ritual is a recorded split; drop from this contract — accept-into-contract\n\nAccepted set: 1-6. Still-open residual: none. Ceiling if retrying: n/a.\n\nNon-self-arbitration: this parent authored Stop 1 5606650787. The round-1 critic was a same-family grok-4.6 plan child. These takes are not independent confirmation. Operator asked to file this recut (2026-09-09).\n\n### Comment by @MScottAdams (2026-09-09T18:34:58Z)\n\nmodel: grok-4.6\nrole: parent\n\n## Verified-claims table\n\nEach row names its method. Agreement is not evidence.\n\n| # | Claim | Method | Status |\n| --- | --- | --- | --- |\n| 1 | Filed body asks for three products that already live in different modules | Critic inventory of defaultBranchSync, resolveOccupancySessionId, classifyShellWriteTargets at 7609d700; parent re-read defaultBranchSync in session-start.ts this session | measured |\n| 2 | defaultBranchSync compares the default branch to its upstream, warns, never names HEAD, never refuses | Parent read session-start.ts 569-674 this session | measured |\n| 3 | Host-authoritative claim already exists; mint is the residual when rewrite misses | Critic read host-session-owner.ts and resolveOccupancySessionId at 7609d700 | endorsed |\n| 4 | Stranger remediation lead line is Use another worktree | Critic matched body deny text to formatOccupancyRemediation at 7609d700 | endorsed |\n| 5 | Shell dest-form defaults off; cat and POSIX redirection are fail-open | Critic read dest-form.ts and dispatcher.ts at 7609d700; changelog #3983 at that SHA | endorsed |\n| 6 | Write gate records doctor and executes agent_hooks only | Critic read WRITE_GATED_* in session-start.ts at 7609d700 | endorsed |\n\n### Comment by @MScottAdams (2026-09-09T18:35:08Z)\n\nmodel: grok-4.6\nrole: parent\n\n## In plain English\n\n4291 cannot be built as filed. The next-build contract is the recut lean: print checkout, HEAD, and ahead/behind at mutation session start, warn, retarget the existing branch-sync object. The other requests are residuals.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCiting successor lean 5606856102 and verified-claims table 5606859764.\n\nNon-self-arbitration: same grok-4.6 parent as Stop 1; critic was a same-family plan child. Operator asked to file this recut 2026-09-09. Round 1 complete, N=1, critic 5606850696, ceiling 5606650787.",
+      "Labels": "legacy-arced",
+      "UserStory": "As an operator starting a mutation session, I want one orientation line with checkout path, HEAD name, and ahead/behind versus the default upstream, so that I do not start work on a stale checkout without a signal.",
+      "ImplementationPlan": "1. Edit packages/core/src/session/session-start.ts so defaultBranchSync is retargeted at HEAD and mutation session:start prints checkout path, HEAD branch name, and ahead/behind versus the default upstream. Warn when behind, diverged, or 0-ahead/N-behind. Fetch-fail stays a warning with null counts. Do not refuse on merged-and-finished and do not add a second ahead/behind helper. 2. Lock that in packages/core/src/session/session-start.test.ts and packages/core/src/session/session-start-sync-branches.test.ts. 3. CHANGELOG.md names the orientation line. Verify with pnpm exec vitest run packages/core/src/session/session-start.test.ts packages/core/src/session/session-start-sync-branches.test.ts and task check before push."
+    },
+    "items": [
+      {
+        "title": "Print one orientation line on mutation session:start: checkout path, HEAD branch name, and ahead/behind versus the default upstream.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given Bound-remedy on the successor lean, when implemented, then this clause holds: Print one orientation line on mutation session:start: checkout path, HEAD branch name, and ahead/behind versus the default upstream.",
+          "Traces": "Successor lean 5606856102 Bound remedy. Synthesis 5606861824. Recut: next-build is not the issue body. Digest 4ed8019d302d6083024a82adf283f73b0487f2dc2c69cb839bec4be5c4388b94."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/session-start.test.ts + packages/core/src/session/session-start-sync-branches.test.ts; PR #4330 merge 72936bf61",
+          "recorded_at": "2026-09-10T18:43:59Z",
+          "recorded_by": "leaf-implementation/4291"
+        },
+        "x-directive/artifact_path": "packages/core/src/session/session-start.ts"
+      },
+      {
+        "title": "Retarget the existing defaultBranchSync object at HEAD. Warn when behind, diverged, or 0-ahead/N-behind. Do not refuse on the body's \"merged and finished\" predicate. Do not add a second ahead/behind helper.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given Bound-remedy on the successor lean, when implemented, then this clause holds: Retarget the existing defaultBranchSync object at HEAD. Warn when behind, diverged, or 0-ahead/N-behind. Do not refuse on the body's \"merged and finished\" predicate. Do not add a second ahead/behind helper.",
+          "Traces": "Successor lean 5606856102 Bound remedy. Synthesis 5606861824. Recut: next-build is not the issue body. Digest 4ed8019d302d6083024a82adf283f73b0487f2dc2c69cb839bec4be5c4388b94."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/session-start.test.ts + packages/core/src/session/session-start-sync-branches.test.ts; PR #4330 merge 72936bf61",
+          "recorded_at": "2026-09-10T18:43:59Z",
+          "recorded_by": "leaf-implementation/4291"
+        },
+        "x-directive/artifact_path": "packages/core/src/session/session-start.ts"
+      },
+      {
+        "title": "Fetch-fail stays a warning with null counts. Do not make this step a refuse gate that depends on git fetch.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given Bound-remedy on the successor lean, when implemented, then this clause holds: Fetch-fail stays a warning with null counts. Do not make this step a refuse gate that depends on git fetch.",
+          "Traces": "Successor lean 5606856102 Bound remedy. Synthesis 5606861824. Recut: next-build is not the issue body. Digest 4ed8019d302d6083024a82adf283f73b0487f2dc2c69cb839bec4be5c4388b94."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/session/session-start.test.ts + packages/core/src/session/session-start-sync-branches.test.ts; PR #4330 merge 72936bf61",
+          "recorded_at": "2026-09-10T18:43:59Z",
+          "recorded_by": "leaf-implementation/4291"
+        },
+        "x-directive/artifact_path": "packages/core/src/session/session-start.ts"
+      },
+      {
+        "title": "Out of this number: mint when the hook never rewrites; stranger remediation that says use another worktree when the occupant is that mint; spawn-versus-interactive-versus-Shell copy honesty; Write versus gated-ritual doctor split.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given Bound-remedy on the successor lean, when implemented, then this clause holds: Out of this number: mint when the hook never rewrites; stranger remediation that says use another worktree when the occupant is that mint; spawn-versus-interactive-versus-Shell copy honesty; Write versus gated-ritual doctor split.",
+          "Traces": "Successor lean 5606856102 Bound remedy. Synthesis 5606861824. Recut: next-build is not the issue body. Digest 4ed8019d302d6083024a82adf283f73b0487f2dc2c69cb839bec4be5c4388b94."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Bound-remedy recut of #4291 (successor lean 5606856102, synthesis 5606861824): mint-when-hook-never-rewrites, stranger worktree copy, spawn-versus-interactive-versus-Shell honesty, and Write versus gated-ritual doctor split are out of this number.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-09-09T18:34:40Z",
+            "mintedVia": "github-issue-comment-recut-4291",
+            "eventRef": "https://github.com/deftai/directive/issues/4291#issuecomment-5606856102"
+          },
+          "recorded_at": "2026-09-10T18:43:59Z"
+        },
+        "x-directive/artifact_path": "CHANGELOG.md"
+      },
+      {
+        "title": "1 The write-back cannot bind three mechanisms as one recording obligation — accept-into-contract",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given Bound-remedy on the successor lean, when implemented, then this clause holds: 1 The write-back cannot bind three mechanisms as one recording obligation — accept-into-contract",
+          "Traces": "Successor lean 5606856102 Bound remedy. Synthesis 5606861824. Recut: next-build is not the issue body. Digest 4ed8019d302d6083024a82adf283f73b0487f2dc2c69cb839bec4be5c4388b94."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Critic take accepted into the recut contract (operator synthesis 5606861824). This item is a design take, not a product acceptance criterion for this number.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-09-09T18:34:58Z",
+            "mintedVia": "github-issue-comment-synthesis-4291",
+            "eventRef": "https://github.com/deftai/directive/issues/4291#issuecomment-5606861824"
+          },
+          "recorded_at": "2026-09-10T18:43:59Z"
+        },
+        "x-directive/artifact_path": "packages/core/src/session/session-start.test.ts"
+      },
+      {
+        "title": "2 0 ahead / N behind is not merged and finished, and the existing branch step measures the wrong ref — accept-into-contract",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given Bound-remedy on the successor lean, when implemented, then this clause holds: 2 0 ahead / N behind is not merged and finished, and the existing branch step measures the wrong ref — accept-into-contract",
+          "Traces": "Successor lean 5606856102 Bound remedy. Synthesis 5606861824. Recut: next-build is not the issue body. Digest 4ed8019d302d6083024a82adf283f73b0487f2dc2c69cb839bec4be5c4388b94."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Critic take accepted into the recut contract (operator synthesis 5606861824). This item is a design take, not a product acceptance criterion for this number.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-09-09T18:34:58Z",
+            "mintedVia": "github-issue-comment-synthesis-4291",
+            "eventRef": "https://github.com/deftai/directive/issues/4291#issuecomment-5606861824"
+          },
+          "recorded_at": "2026-09-10T18:43:59Z"
+        },
+        "x-directive/artifact_path": "packages/core/src/session/session-start.test.ts"
+      },
+      {
+        "title": "3 Claim under the identity the host will present already shipped; the hole is mint when the hook never rewrites — accept-into-contract",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given Bound-remedy on the successor lean, when implemented, then this clause holds: 3 Claim under the identity the host will present already shipped; the hole is mint when the hook never rewrites — accept-into-contract",
+          "Traces": "Successor lean 5606856102 Bound remedy. Synthesis 5606861824. Recut: next-build is not the issue body. Digest 4ed8019d302d6083024a82adf283f73b0487f2dc2c69cb839bec4be5c4388b94."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Critic take accepted into the recut contract (operator synthesis 5606861824). This item is a design take, not a product acceptance criterion for this number.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-09-09T18:34:58Z",
+            "mintedVia": "github-issue-comment-synthesis-4291",
+            "eventRef": "https://github.com/deftai/directive/issues/4291#issuecomment-5606861824"
+          },
+          "recorded_at": "2026-09-10T18:43:59Z"
+        },
+        "x-directive/artifact_path": "packages/core/src/session/session-start.test.ts"
+      },
+      {
+        "title": "4 Printed recovery still sends a self-minted occupant to another worktree — accept-into-contract",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given Bound-remedy on the successor lean, when implemented, then this clause holds: 4 Printed recovery still sends a self-minted occupant to another worktree — accept-into-contract",
+          "Traces": "Successor lean 5606856102 Bound remedy. Synthesis 5606861824. Recut: next-build is not the issue body. Digest 4ed8019d302d6083024a82adf283f73b0487f2dc2c69cb839bec4be5c4388b94."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Critic take accepted into the recut contract (operator synthesis 5606861824). This item is a design take, not a product acceptance criterion for this number.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-09-09T18:34:58Z",
+            "mintedVia": "github-issue-comment-synthesis-4291",
+            "eventRef": "https://github.com/deftai/directive/issues/4291#issuecomment-5606861824"
+          },
+          "recorded_at": "2026-09-10T18:43:59Z"
+        },
+        "x-directive/artifact_path": "packages/core/src/session/session-start.test.ts"
+      },
+      {
+        "title": "5 Shell interception as a closed gate cannot bind; the overclaim is copy — accept-into-contract",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given Bound-remedy on the successor lean, when implemented, then this clause holds: 5 Shell interception as a closed gate cannot bind; the overclaim is copy — accept-into-contract",
+          "Traces": "Successor lean 5606856102 Bound remedy. Synthesis 5606861824. Recut: next-build is not the issue body. Digest 4ed8019d302d6083024a82adf283f73b0487f2dc2c69cb839bec4be5c4388b94."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Critic take accepted into the recut contract (operator synthesis 5606861824). This item is a design take, not a product acceptance criterion for this number.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-09-09T18:34:58Z",
+            "mintedVia": "github-issue-comment-synthesis-4291",
+            "eventRef": "https://github.com/deftai/directive/issues/4291#issuecomment-5606861824"
+          },
+          "recorded_at": "2026-09-10T18:43:59Z"
+        },
+        "x-directive/artifact_path": "packages/core/src/session/session-start.test.ts"
+      },
+      {
+        "title": "6 Write vs gated ritual is a recorded split; drop from this contract — accept-into-contract",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given Bound-remedy on the successor lean, when implemented, then this clause holds: 6 Write vs gated ritual is a recorded split; drop from this contract — accept-into-contract",
+          "Traces": "Successor lean 5606856102 Bound remedy. Synthesis 5606861824. Recut: next-build is not the issue body. Digest 4ed8019d302d6083024a82adf283f73b0487f2dc2c69cb839bec4be5c4388b94."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Critic take accepted into the recut contract (operator synthesis 5606861824). This item is a design take, not a product acceptance criterion for this number.",
+          "provenance": {
+            "kind": "operator-session",
+            "actor": "Scott",
+            "mintedAt": "2026-09-09T18:34:58Z",
+            "mintedVia": "github-issue-comment-synthesis-4291",
+            "eventRef": "https://github.com/deftai/directive/issues/4291#issuecomment-5606861824"
+          },
+          "recorded_at": "2026-09-10T18:43:59Z"
+        },
+        "x-directive/artifact_path": "packages/core/src/session/session-start.test.ts"
+      }
+    ],
+    "tags": [
+      "legacy-arced"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4291",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4291: bug(session,branch-policy): no checkout or branch signal at mutation time -- a whole session landed on the primary checkout on a merged branch 64 behind main, and the worktree remedy needs six undocumented commands"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3884",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3884"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 10 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Print one orientation line on mutation session:start: checkout path, HEAD branch name, and ahead/behind versus the default upstream.",
+          "artifact_path": "packages/core/src/session/session-start.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Retarget the existing defaultBranchSync object at HEAD. Warn when behind, diverged, or 0-ahead/N-behind. Do not refuse on the body's \"merged and finished\" predicate. Do not add a second ahead/behind helper.",
+          "artifact_path": "packages/core/src/session/session-start.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Fetch-fail stays a warning with null counts. Do not make this step a refuse gate that depends on git fetch.",
+          "artifact_path": "packages/core/src/session/session-start.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Out of this number: mint when the hook never rewrites; stranger remediation that says use another worktree when the occupant is that mint; spawn-versus-interactive-versus-Shell copy honesty; Write versus gated-ritual doctor split.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "1 The write-back cannot bind three mechanisms as one recording obligation — accept-into-contract",
+          "artifact_path": "packages/core/src/session/session-start.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "2 0 ahead / N behind is not merged and finished, and the existing branch step measures the wrong ref — accept-into-contract",
+          "artifact_path": "packages/core/src/session/session-start.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "3 Claim under the identity the host will present already shipped; the hole is mint when the hook never rewrites — accept-into-contract",
+          "artifact_path": "packages/core/src/session/session-start.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "4 Printed recovery still sends a self-minted occupant to another worktree — accept-into-contract",
+          "artifact_path": "packages/core/src/session/session-start.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "5 Shell interception as a closed gate cannot bind; the overclaim is copy — accept-into-contract",
+          "artifact_path": "packages/core/src/session/session-start.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "6 Write vs gated ritual is a recorded split; drop from this contract — accept-into-contract",
+          "artifact_path": "packages/core/src/session/session-start.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5401717684,
+        "origin": "deftai/directive#4291",
+        "id": "github.issue.5401717684"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "4ed8019d302d6083024a82adf283f73b0487f2dc2c69cb839bec4be5c4388b94"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/session/session-start.ts",
+          "packages/core/src/session/session-start.test.ts",
+          "packages/core/src/session/session-start-sync-branches.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/session/session-start.test.ts packages/core/src/session/session-start-sync-branches.test.ts"
+        ],
+        "expected_outputs": [
+          "mutation session:start prints checkout path, HEAD name, ahead/behind",
+          "defaultBranchSync measures HEAD",
+          "fetch-fail warns with null counts",
+          "no refuse on 0-ahead/N-behind"
+        ],
+        "depends_on": [],
+        "conflict_group": "session-start-head-orientation",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "acceptance_criteria_justification": "Successor lean 5606856102 Bound remedy. Synthesis 5606861824. Recut: next-build is not the issue body. Digest 4ed8019d302d6083024a82adf283f73b0487f2dc2c69cb839bec4be5c4388b94.",
+        "missing_traces_justification": "Successor lean 5606856102 Bound remedy. Synthesis 5606861824. Recut: next-build is not the issue body. Digest 4ed8019d302d6083024a82adf283f73b0487f2dc2c69cb839bec4be5c4388b94."
+      },
+      "completionProvenance": {
+        "repository": null,
+        "implementationCommit": null,
+        "prNumber": 4330,
+        "prBase": null,
+        "mergeCommit": "72936bf61f8b9ce7b044994b4214b05e680996c6",
+        "deliveryBranch": "master",
+        "deliveryCommit": "72936bf61f8b9ce7b044994b4214b05e680996c6",
+        "verifiedAt": "2026-09-10T18:44:22Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MDFhMDhjNDUtMDY2Ni03ODQzLTk3NjAtMGY2NTAyNjQwMjEz"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-09-10T18:44:22Z"
+      },
+      "completedAt": "2026-09-10T18:44:22Z",
+      "completedSessionId": "host:claude:v1:MDFhMDhjNDUtMDY2Ni03ODQzLTk3NjAtMGY2NTAyNjQwMjEz",
+      "capacityBucket": "new-capability"
+    },
+    "id": "github.issue.5401717684",
+    "updated": "2026-09-10T18:44:22Z"
+  }
+}
